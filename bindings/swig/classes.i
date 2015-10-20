@@ -81,6 +81,8 @@ template< class T > class enable_shared_from_this;
 
 %ignore sigrok::DatafeedCallbackData;
 
+#ifndef SWIGJAVA
+
 #define SWIG_ATTRIBUTE_TEMPLATE
 
 %include "attribute.i"
@@ -208,6 +210,8 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 %attribute(sigrok::Analog, const sigrok::Quantity *, mq, mq);
 %attribute(sigrok::Analog, const sigrok::Unit *, unit, unit);
 %attributevector(Analog, std::vector<const sigrok::QuantityFlag *>, mq_flags, mq_flags);
+
+#endif
 
 %include <libsigrokcxx/libsigrokcxx.hpp>
 

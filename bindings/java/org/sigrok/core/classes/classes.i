@@ -293,20 +293,13 @@ typedef jobject jdatafeedcallback;
 
 %include "doc.i"
 
-%define %attributevector(Class, Type, Name, Get)
-%attributeval(sigrok::Class, Type, Name, Get);
-%enddef
-
-%define %attributemap(Class, Type, Name, Get)
-%attributeval(sigrok::Class, Type, Name, Get);
-%enddef
-
 %define %enumextras(Class)
 %enddef
 
 /* Ignore these for now, need fixes. */
 %ignore sigrok::Context::create_analog_packet;
 %ignore sigrok::Context::create_meta_packet;
+%ignore sigrok::Meta::config;
 
 %include "bindings/swig/classes.i"
 
