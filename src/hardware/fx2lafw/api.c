@@ -99,6 +99,20 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-braintechnology-usb-lps.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
+	/*
+	 * sigrok FX2 based 8-channel logic analyzer
+	 */
+	{ 0x1d50, 0x608c, "sigrok", "FX2 LA (8ch)", NULL,
+		FIRMWARE_DIR "/fx2lafw-sigrok-fx2-8ch.fw",
+		0, NULL, NULL},
+
+	/*
+	 * sigrok FX2 based 16-channel logic analyzer
+	 */
+	{ 0x1d50, 0x608d, "sigrok", "FX2 LA (16ch)", NULL,
+		FIRMWARE_DIR "/fx2lafw-sigrok-fx2-16ch.fw",
+		DEV_CAPS_16BIT, NULL, NULL },
+
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 };
 
