@@ -109,6 +109,14 @@ SR_PRIV int korad_kdxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		cmd = "BEEP%01.0f";
 		value = (devc->beep_enabled) ? 1 : 0;
 		break;
+	case KDXXXXP_OCP:
+		cmd = "OCP%01.0f";
+		value = (devc->OCP_enabled) ? 1 : 0;
+		break;
+	case KDXXXXP_OVP:
+		cmd = "OVP%01.0f";
+		value = (devc->OVP_enabled) ? 1 : 0;
+		break;
 	case KDXXXXP_SAVE:
 		cmd = "SAV%01.0f";
 		if (devc->program < 1 || devc->program > 5) {
@@ -266,18 +274,24 @@ SR_PRIV int korad_kdxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 		 * 00 independent 01 series 11 parallel
 		 */
 		devc->beep_enabled = (1 << 4);
-		/* status_byte & (1 << 5) Unlocked */
-
+		devc->OCP_enabled = (status_byte & (1 << 5));
 		devc->output_enabled = (status_byte & (1 << 6));
+		/* Velleman LABPS3005 quirk */
+		if (devc->output_enabled)
+			devc->OVP_enabled = (status_byte & (1 << 7));
 		sr_dbg("Status: 0x%02x", status_byte);
-		sr_spew("Status: CH1: constant %s CH2: constant %s. Device is "
-			"%s and %s. Buttons are %s. Output is %s ",
+		sr_spew("Status: CH1: constant %s CH2: constant %s. "
+			"Tracking would be %s. Device is "
+			"%s and %s. Buttons are %s. Output is %s "
+			"and extra byte is %s.",
 			(status_byte & (1 << 0)) ? "voltage" : "current",
 			(status_byte & (1 << 1)) ? "voltage" : "current",
+			(status_byte & (1 << 2)) ? "parallel" : "series",
 			(status_byte & (1 << 3)) ? "tracking" : "independent",
 			(status_byte & (1 << 4)) ? "beeping" : "silent",
 			(status_byte & (1 << 5)) ? "locked" : "unlocked",
-			(status_byte & (1 << 6)) ? "enabled" : "disabled");
+			(status_byte & (1 << 6)) ? "enabled" : "disabled",
+			(status_byte & (1 << 7)) ? "true" : "false");
 	}
 
 	devc->reply_pending = FALSE;
@@ -300,6 +314,10 @@ static void next_measurement(struct dev_context *devc)
 	case KDXXXXP_VOLTAGE_MAX:
 		devc->target = KDXXXXP_CURRENT;
 		break;
+	/* Read back what was set */
+	case KDXXXXP_BEEP:
+	case KDXXXXP_OCP:
+	case KDXXXXP_OVP:
 	case KDXXXXP_OUTPUT:
 		devc->target = KDXXXXP_STATUS;
 		break;

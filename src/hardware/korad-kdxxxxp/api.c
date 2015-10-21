@@ -44,6 +44,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const struct korad_kdxxxxp_model models[] = {
@@ -225,6 +227,12 @@ static int config_get(uint32_t key, GVariant **data,
 		else
 			*data = g_variant_new_string("CV");
 		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+		*data = g_variant_new_boolean(devc->OCP_enabled);
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		*data = g_variant_new_boolean(devc->OVP_enabled);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -280,6 +288,20 @@ static int config_set(uint32_t key, GVariant *data,
 		/* Set always so it is possible turn off with sigrok-cli. */
 		devc->output_enabled = bval;
 		devc->target = KDXXXXP_OUTPUT;
+		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+			return SR_ERR;
+		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+		bval = g_variant_get_boolean(data);
+		devc->OCP_enabled = bval;
+		devc->target = KDXXXXP_OCP;
+		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+			return SR_ERR;
+		break;
+	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		bval = g_variant_get_boolean(data);
+		devc->OVP_enabled = bval;
+		devc->target = KDXXXXP_OVP;
 		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;

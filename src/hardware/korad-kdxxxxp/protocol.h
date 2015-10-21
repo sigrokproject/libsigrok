@@ -61,6 +61,8 @@ enum {
 	KDXXXXP_STATUS,
 	KDXXXXP_OUTPUT,
 	KDXXXXP_BEEP,
+	KDXXXXP_OCP,
+	KDXXXXP_OVP,
 	KDXXXXP_SAVE,
 	KDXXXXP_RECALL,
 };
@@ -89,6 +91,8 @@ struct dev_context {
 
 	gboolean output_enabled; /**< Is the output enabled? */
 	gboolean beep_enabled;   /**< Enable beeper. */
+	gboolean OCP_enabled;    /**< Output current protection enabled */
+	gboolean OVP_enabled;    /**< Output voltage protection enabled */
 
 	/* Temporary state across callbacks */
 	int target;              /**< What reply to expect */
