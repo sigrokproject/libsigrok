@@ -202,7 +202,7 @@ SR_PRIV int korad_kdxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 				struct dev_context *devc)
 {
 	double value;
-	int count, ret;
+	int count, ret, i;
 	float *target;
 	char status_byte;
 
@@ -241,6 +241,16 @@ SR_PRIV int korad_kdxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 	devc->reply[count] = 0;
 
 	if (target) {
+		/* Handle the strange 'M' */
+		if (devc->reply[0] == 'M') {
+			for (i = 1; i < count; ++i) {
+				devc->reply[i - 1] = devc->reply[i];
+			}
+			/* Get the last character */
+			if (( i = korad_kdxxxxp_read_chars(serial, 1,
+						&(devc->reply[count]))) < 0)
+				return i;
+		}
 		value = g_ascii_strtod(devc->reply, NULL);
 		*target = (float)value;
 		sr_dbg("value: %f",value);

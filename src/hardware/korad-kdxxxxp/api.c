@@ -43,6 +43,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
 static const struct korad_kdxxxxp_model models[] = {
@@ -216,6 +217,13 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_ENABLED:
 		*data = g_variant_new_boolean(devc->output_enabled);
+		break;
+	case SR_CONF_REGULATION:
+		/* Dual channel not supported. */
+		if (devc->cc_mode[0])
+			*data = g_variant_new_string("CC");
+		else
+			*data = g_variant_new_string("CV");
 		break;
 	default:
 		return SR_ERR_NA;
