@@ -404,6 +404,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	sdi->priv = devc;
 
+	sdi->status = SR_ST_INACTIVE;
+
+	sr_scpi_close(scpi);
+
 	return sdi;
 }
 
