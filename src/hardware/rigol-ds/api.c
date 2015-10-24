@@ -313,7 +313,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
 	sdi->vendor = g_strdup(model->series->vendor->name);
 	sdi->model = g_strdup(model->name);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -403,10 +402,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->data_source = DATA_SOURCE_LIVE;
 
 	sdi->priv = devc;
-
-	sdi->status = SR_ST_INACTIVE;
-
-	sr_scpi_close(scpi);
 
 	return sdi;
 }

@@ -110,12 +110,16 @@ static struct sr_dev_inst *sr_scpi_scan_resource(struct drv_context *drvc,
 		return NULL;
 	};
 
-	if ((sdi = probe_device(scpi)))
-		return sdi;
+	sdi = probe_device(scpi);
 
 	sr_scpi_close(scpi);
-	sr_scpi_free(scpi);
-	return NULL;
+
+	if (sdi)
+		sdi->status = SR_ST_INACTIVE;
+	else
+		sr_scpi_free(scpi);
+
+	return sdi;
 }
 
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,

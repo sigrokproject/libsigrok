@@ -81,7 +81,6 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
 	sdi->vendor = g_strdup(hw_info->manufacturer);
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -99,10 +98,6 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 
 	if (hmo_init_device(sdi) != SR_OK)
 		goto fail;
-
-	sr_scpi_close(sdi->conn);
-
-	sdi->status = SR_ST_INACTIVE;
 
 	return sdi;
 

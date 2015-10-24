@@ -92,7 +92,6 @@ static struct sr_dev_inst *probe_usbtmc_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
 	sdi->vendor = g_strdup(MANUFACTURER_NAME);
 	sdi->model = g_strdup(model_name);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -112,9 +111,6 @@ static struct sr_dev_inst *probe_usbtmc_device(struct sr_scpi_dev_inst *scpi)
 	if (dlm_device_init(sdi, model_index) != SR_OK)
 		goto fail;
 
-	sr_scpi_close(sdi->conn);
-
-	sdi->status = SR_ST_INACTIVE;
 	return sdi;
 
 fail:
