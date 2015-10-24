@@ -118,7 +118,7 @@ static const struct sr_option *get_options(void)
 
 	/* Default to a scaling factor of 1.0. */
 	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new(("(xt"), &p, &q));
+		options[0].def = g_variant_ref_sink(g_variant_new("(xt)", &p, &q));
 
 	return options;
 }
