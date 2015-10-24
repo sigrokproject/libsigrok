@@ -221,44 +221,6 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 }
 
 /**
- * Convert a floating point value to a string, limited to the given
- * number of decimal digits.
- *
- * @param[in] value The value to convert.
- * @param[in] digits Number of digits after the decimal point to print.
- *                   Must be >= 0.
- * @param[out] result Pointer to store result. Must not be NULL.
- *
- * The string is allocated by the function and must be freed by the caller
- * after use by calling g_free().
- *
- * @retval SR_OK Success.
- * @retval SR_ERR_ARG Invalid argument.
- *
- * @since 0.4.0
- */
-SR_API int sr_analog_float_to_string(float value, unsigned int digits, char **result)
-{
-	unsigned int cnt, i;
-
-	if (!result)
-		return SR_ERR_ARG;
-
-	/* This produces at least one too many digits. */
-	*result = g_strdup_printf("%.*f", digits, value);
-	for (i = 0, cnt = 0; (*result)[i]; i++) {
-		if (isdigit((*result)[i++]))
-			cnt++;
-		if (cnt == digits) {
-			(*result)[i] = 0;
-			break;
-		}
-	}
-
-	return SR_OK;
-}
-
-/**
  * Convert the unit/MQ/MQ flags in the analog struct to a string.
  *
  * @param[in] analog Struct containing the unit, MQ and MQ flags.

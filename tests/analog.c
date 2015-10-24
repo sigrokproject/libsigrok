@@ -124,25 +124,6 @@ START_TEST(test_analog_to_float_null)
 }
 END_TEST
 
-#if 0
-START_TEST(test_analog_float_to_string)
-{
-	int ret;
-	unsigned int i;
-	char *result;
-	const char *r[] = {"3", "3.1", "3.14", "3.145", "3.1415", "3.15159"};
-
-	for (i = 0; i < ARRAY_SIZE(r); i++) {
-		ret = sr_analog_float_to_string(G_PI, i, &result);
-		fail_unless(ret == SR_OK);
-		fail_unless(result != NULL);
-		fail_unless(!strcmp(result, r[i]), "%s != %s", result, r[i]);
-		g_free(result);
-	}
-}
-END_TEST
-#endif
-
 START_TEST(test_analog_float_to_string_null)
 {
 	int ret;
@@ -234,9 +215,6 @@ Suite *suite_analog(void)
 	tc = tcase_create("analog_to_float");
 	tcase_add_test(tc, test_analog_to_float);
 	tcase_add_test(tc, test_analog_to_float_null);
-#if 0
-	tcase_add_test(tc, test_analog_float_to_string);
-#endif
 	tcase_add_test(tc, test_analog_float_to_string_null);
 	tcase_add_test(tc, test_analog_unit_to_string);
 	tcase_add_test(tc, test_analog_unit_to_string_null);
