@@ -83,10 +83,10 @@ enum {
 
 	REG_DIV_BYPASS  = 0x1094, /* bypass clock divider flag */
 
-	REG_CMD_CTRL1   = 0x10B0, /* command control ??? */
-	REG_CMD_CTRL2   = 0x10B4, /* command control ??? */
-	REG_CMD_CTRL3   = 0x10B8, /* command control ??? */
-	REG_CMD_CTRL4   = 0x10BC, /* command control ??? */
+	REG_LONG_STROBE = 0x10B0, /* long register read/write strobe */
+	REG_LONG_ADDR   = 0x10B4, /* long register address */
+	REG_LONG_LOW    = 0x10B8, /* long register low word */
+	REG_LONG_HIGH   = 0x10BC, /* long register high word */
 
 	REG_FREQ_CH1    = 0x10C0, /* channel 1 live frequency */
 	REG_FREQ_CH2    = 0x10C4, /* channel 2 live frequency */

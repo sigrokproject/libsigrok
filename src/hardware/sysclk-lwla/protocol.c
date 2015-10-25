@@ -327,16 +327,16 @@ static void issue_stop_capture(const struct sr_dev_inst *sdi)
 
 	regvals = devc->reg_write_seq;
 
-	regvals[0].reg = REG_CMD_CTRL2;
+	regvals[0].reg = REG_LONG_ADDR;
 	regvals[0].val = 10;
 
-	regvals[1].reg = REG_CMD_CTRL3;
+	regvals[1].reg = REG_LONG_LOW;
 	regvals[1].val = 0;
 
-	regvals[2].reg = REG_CMD_CTRL4;
+	regvals[2].reg = REG_LONG_HIGH;
 	regvals[2].val = 0;
 
-	regvals[3].reg = REG_CMD_CTRL1;
+	regvals[3].reg = REG_LONG_STROBE;
 	regvals[3].val = 0;
 
 	regvals[4].reg = REG_DIV_BYPASS;
@@ -714,25 +714,25 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_write_reg(sdi->conn, REG_CMD_CTRL2, 100);
+	ret = lwla_write_reg(sdi->conn, REG_LONG_ADDR, 100);
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL1, &value);
-	if (ret != SR_OK)
-		return ret;
-	sr_dbg("Received test word 0x%08X back.", value);
-	if (value != 0x12345678)
-		return SR_ERR;
-
-	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL4, &value);
+	ret = lwla_read_reg(sdi->conn, REG_LONG_STROBE, &value);
 	if (ret != SR_OK)
 		return ret;
 	sr_dbg("Received test word 0x%08X back.", value);
 	if (value != 0x12345678)
 		return SR_ERR;
 
-	ret = lwla_read_reg(sdi->conn, REG_CMD_CTRL3, &value);
+	ret = lwla_read_reg(sdi->conn, REG_LONG_HIGH, &value);
+	if (ret != SR_OK)
+		return ret;
+	sr_dbg("Received test word 0x%08X back.", value);
+	if (value != 0x12345678)
+		return SR_ERR;
+
+	ret = lwla_read_reg(sdi->conn, REG_LONG_LOW, &value);
 	if (ret != SR_OK)
 		return ret;
 	sr_dbg("Received test word 0x%08X back.", value);
@@ -833,16 +833,16 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	regvals[1].reg = REG_MEM_CTRL2;
 	regvals[1].val = 1;
 
-	regvals[2].reg = REG_CMD_CTRL2;
+	regvals[2].reg = REG_LONG_ADDR;
 	regvals[2].val = 10;
 
-	regvals[3].reg = REG_CMD_CTRL3;
+	regvals[3].reg = REG_LONG_LOW;
 	regvals[3].val = 0x74;
 
-	regvals[4].reg = REG_CMD_CTRL4;
+	regvals[4].reg = REG_LONG_HIGH;
 	regvals[4].val = 0;
 
-	regvals[5].reg = REG_CMD_CTRL1;
+	regvals[5].reg = REG_LONG_STROBE;
 	regvals[5].val = 0;
 
 	regvals[6].reg = REG_DIV_BYPASS;
@@ -887,16 +887,16 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 
 	regvals = devc->reg_write_seq;
 
-	regvals[0].reg = REG_CMD_CTRL2;
+	regvals[0].reg = REG_LONG_ADDR;
 	regvals[0].val = 10;
 
-	regvals[1].reg = REG_CMD_CTRL3;
+	regvals[1].reg = REG_LONG_LOW;
 	regvals[1].val = 1;
 
-	regvals[2].reg = REG_CMD_CTRL4;
+	regvals[2].reg = REG_LONG_HIGH;
 	regvals[2].val = 0;
 
-	regvals[3].reg = REG_CMD_CTRL1;
+	regvals[3].reg = REG_LONG_STROBE;
 	regvals[3].val = 0;
 
 	devc->reg_write_pos = 0;
