@@ -75,6 +75,8 @@ swig = open(os.path.join(outdirname, 'swig/enums.i'), 'w')
 for file in (header, code):
     print("/* Generated file - edit enums.py instead! */", file=file)
 
+print("namespace sigrok {", file=header)
+
 # Template for beginning of class declaration and public members.
 header_public_template = """
 /** {brief} */
@@ -176,3 +178,5 @@ for enum, (classname, classbrief) in classes.items():
     filename = os.path.join(dirname, "%s_methods.i" % classname)
     if os.path.exists(filename):
         print(str.join('', open(filename).readlines()), file=swig)
+
+print("}", file=header)

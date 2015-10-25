@@ -217,6 +217,4 @@ typedef std::map<const sigrok::ConfigKey *, Glib::VariantBase>
 
 %include "swig/enums.i"
 
-namespace sigrok {
 %include <libsigrokcxx/enums.hpp>
-}

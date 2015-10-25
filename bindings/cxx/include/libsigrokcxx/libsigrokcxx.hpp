@@ -986,8 +986,8 @@ private:
 	const string _name;
 };
 
-#include <libsigrokcxx/enums.hpp>
-
 }
+
+#include <libsigrokcxx/enums.hpp>
 
 #endif
