@@ -26,6 +26,13 @@ using namespace std;
 %include "std_shared_ptr.i"
 %include "std_vector.i"
 %include "std_map.i"
+#ifdef SWIGJAVA
+namespace std {
+  template <class _Key> class set {};
+}
+#else
+%include "std_set.i"
+#endif
 
 %template(StringMap) std::map<std::string, std::string>;
 
@@ -55,6 +62,12 @@ using namespace std;
     std::vector<const sigrok::ConfigKey *>;
 %template(ConfigMap)
     std::map<const sigrok::ConfigKey *, Glib::VariantBase>;
+
+%template(CapabilitySet)
+    std::set<enum sigrok::Capability>;
+
+%template(ConfigKeys)
+    std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> >;
 
 %template(OptionVector)
     std::vector<std::shared_ptr<sigrok::Option> >;
