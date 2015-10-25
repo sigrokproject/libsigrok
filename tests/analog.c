@@ -124,15 +124,6 @@ START_TEST(test_analog_to_float_null)
 }
 END_TEST
 
-START_TEST(test_analog_float_to_string_null)
-{
-	int ret;
-
-	ret = sr_analog_float_to_string(0, 0, NULL);
-	fail_unless(ret == SR_ERR_ARG);
-}
-END_TEST
-
 START_TEST(test_analog_unit_to_string)
 {
 	int ret;
@@ -215,7 +206,6 @@ Suite *suite_analog(void)
 	tc = tcase_create("analog_to_float");
 	tcase_add_test(tc, test_analog_to_float);
 	tcase_add_test(tc, test_analog_to_float_null);
-	tcase_add_test(tc, test_analog_float_to_string_null);
 	tcase_add_test(tc, test_analog_unit_to_string);
 	tcase_add_test(tc, test_analog_unit_to_string_null);
 	tcase_add_test(tc, test_set_rational);
