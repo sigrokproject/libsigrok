@@ -602,8 +602,9 @@ $(PDOC_END): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 python-build: $(PDIR)/timestamp
 
 $(PDIR)/timestamp: $(PDIR)/sigrok/core/classes.i \
-		bindings/swig/classes.i bindings/swig/enums.i $(PDOC_START) \
-		$(PDOC_END) $(library_include_HEADERS) \
+		bindings/swig/classes.i bindings/swig/templates.i \
+		bindings/swig/enums.i $(PDOC_START) $(PDOC_END) \
+		$(library_include_HEADERS) \
 		$(nodist_library_include_HEADERS) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
@@ -652,7 +653,8 @@ $(JDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(JCLS) || $(MKDIR_P) $(JCLS)
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py java $(CPPXMLDOC) > $@
 
-$(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i bindings/swig/enums.i \
+$(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i \
+		bindings/swig/templates.i bindings/swig/enums.i \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
 	-$(AM_V_at)rm -f $(java_cleanfiles)
