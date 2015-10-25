@@ -21,7 +21,9 @@ from __future__ import print_function
 from xml.etree import ElementTree
 import sys, os
 
-language, input_file = sys.argv[1:]
+language, input_file = sys.argv[1:3]
+if len(sys.argv) == 4:
+    mode = sys.argv[3]
 input_dir = os.path.dirname(input_file)
 
 index = ElementTree.parse(input_file)
@@ -88,7 +90,14 @@ for compound in index.findall('compound'):
                 trimmed_name, member_name))
         print('%}')
     elif language == 'python' and constants:
-        print('%%extend %s {\n%%pythoncode %%{' % class_name)
-        for member_name, brief in constants:
-            print('    ## @brief %s\n    %s = None' % (brief, member_name))
-        print('%}\n}')
+        if mode == 'start':
+            print('%%extend %s {\n%%pythoncode %%{' % class_name)
+            for member_name, brief in constants:
+                print('    ## @brief %s\n    %s = None' % (brief, member_name))
+            print('%}\n}')
+        elif mode == 'end':
+            print('%pythoncode %{')
+            for member_name, brief in constants:
+                print('%s.%s.__doc__ = """%s"""' % (
+                    trimmed_name, member_name, brief))
+            print('%}')

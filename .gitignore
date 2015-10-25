@@ -50,7 +50,8 @@ stamp-h?
 /bindings/python/sigrok/__pycache__/
 /bindings/python/sigrok/core/classes.py
 /bindings/python/sigrok/core/classes_wrap.cpp
-/bindings/python/sigrok/core/doc.i
+/bindings/python/sigrok/core/doc_start.i
+/bindings/python/sigrok/core/doc_end.i
 /bindings/python/sigrok/core/lowlevel.py
 /bindings/python/sigrok/core/lowlevel_wrap.c
 /bindings/python/timestamp

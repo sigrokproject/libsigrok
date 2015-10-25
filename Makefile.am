@@ -584,21 +584,27 @@ $(CPPXMLDOC): bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
 if BINDINGS_PYTHON
 
 PDIR = bindings/python
-PDOC = bindings/python/sigrok/core/doc.i
+PDOC_START = bindings/python/sigrok/core/doc_start.i
+PDOC_END = bindings/python/sigrok/core/doc_end.i
 
 setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CXX)' CFLAGS='$(AM_CXXFLAGS) $(CXXFLAGS)' LDADD='$(PYSIGROK_LIBS)'
 setup_quiet = --quiet
 setup_py = $(PYTHON) $(srcdir)/$(PDIR)/setup.py $(setup_vars) $(setup_quiet)
 
-$(PDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
+$(PDOC_START): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
-	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py python $(CPPXMLDOC) > $@
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py python $(CPPXMLDOC) start > $@
+
+$(PDOC_END): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
+	$(AM_V_at)test -d $(PDIR)/sigrok/core || $(MKDIR_P) $(PDIR)/sigrok/core
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py python $(CPPXMLDOC) end > $@
 
 python-build: $(PDIR)/timestamp
 
 $(PDIR)/timestamp: $(PDIR)/sigrok/core/classes.i \
-		bindings/swig/classes.i bindings/swig/enums.i $(PDOC) \
-		$(library_include_HEADERS) $(nodist_library_include_HEADERS) \
+		bindings/swig/classes.i bindings/swig/enums.i $(PDOC_START) \
+		$(PDOC_END) $(library_include_HEADERS) \
+		$(nodist_library_include_HEADERS) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		@ORDER@ bindings/cxx/libsigrokcxx.la

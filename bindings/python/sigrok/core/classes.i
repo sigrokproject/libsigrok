@@ -384,7 +384,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 %ignore sigrok::InputFormat::create_input;
 %ignore sigrok::OutputFormat::create_output;
 
-%include "doc.i"
+%include "doc_start.i"
 
 %define %attributevector(Class, Type, Name, Get)
 %rename(_ ## Get) sigrok::Class::Get;
@@ -527,3 +527,5 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     data = property(_data)
 }
 }
+
+%include "doc_end.i"
