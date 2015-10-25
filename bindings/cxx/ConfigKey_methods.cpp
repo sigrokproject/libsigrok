@@ -88,7 +88,11 @@ Glib::VariantBase ConfigKey::parse_string(string value) const
 			variant = g_variant_new_boolean(sr_parse_boolstring(value.c_str()));
 			break;
 		case SR_T_FLOAT:
-			variant = g_variant_new_double(stod(value));
+			try {
+				variant = g_variant_new_double(stod(value));
+			} catch (invalid_argument) {
+				throw Error(SR_ERR_ARG);
+			}
 			break;
 		case SR_T_RATIONAL_PERIOD:
 			check(sr_parse_period(value.c_str(), &p, &q));
@@ -99,7 +103,11 @@ Glib::VariantBase ConfigKey::parse_string(string value) const
 			variant = g_variant_new("(tt)", p, q);
 			break;
 		case SR_T_INT32:
-			variant = g_variant_new_int32(stoi(value));
+			try {
+				variant = g_variant_new_int32(stoi(value));
+			} catch (invalid_argument) {
+				throw Error(SR_ERR_ARG);
+			}
 			break;
 		default:
 			throw Error(SR_ERR_BUG);
