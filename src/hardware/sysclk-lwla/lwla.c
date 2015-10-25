@@ -191,6 +191,33 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 	return ret;
 }
 
+SR_PRIV int lwla_read_long_reg(const struct sr_usb_dev_inst *usb,
+			       uint32_t addr, uint64_t *value)
+{
+	uint32_t low, high, dummy;
+	int ret;
+
+	ret = lwla_write_reg(usb, REG_LONG_ADDR, addr);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = lwla_read_reg(usb, REG_LONG_STROBE, &dummy);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = lwla_read_reg(usb, REG_LONG_HIGH, &high);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = lwla_read_reg(usb, REG_LONG_LOW, &low);
+	if (ret != SR_OK)
+		return ret;
+
+	*value = ((uint64_t)high << 32) | low;
+
+	return SR_OK;
+}
+
 SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 			   uint16_t reg, uint32_t value)
 {

@@ -114,6 +114,9 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value);
 
+SR_PRIV int lwla_read_long_reg(const struct sr_usb_dev_inst *usb,
+			       uint32_t addr, uint64_t *value);
+
 SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 			   uint16_t reg, uint32_t value);
 

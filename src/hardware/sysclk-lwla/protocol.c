@@ -700,9 +700,9 @@ static void LIBUSB_CALL receive_transfer_in(struct libusb_transfer *transfer)
  */
 SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 {
+	uint64_t value;
 	struct dev_context *devc;
 	int ret;
-	uint32_t value;
 
 	devc = sdi->priv;
 
@@ -710,36 +710,23 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	devc->cur_clock_config = CONF_CLOCK_NONE;
 
 	ret = lwla_set_clock_config(sdi);
-
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_write_reg(sdi->conn, REG_LONG_ADDR, 100);
+	ret = lwla_read_long_reg(sdi->conn, 100, &value);
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_read_reg(sdi->conn, REG_LONG_STROBE, &value);
+	/* Ignore the value returned by the first read */
+	ret = lwla_read_long_reg(sdi->conn, 100, &value);
 	if (ret != SR_OK)
 		return ret;
-	sr_dbg("Received test word 0x%08X back.", value);
-	if (value != 0x12345678)
+
+	if (value != UINT64_C(0x1234567887654321)) {
+		sr_err("Received invalid test word 0x%16" PRIX64 ".", value);
 		return SR_ERR;
-
-	ret = lwla_read_reg(sdi->conn, REG_LONG_HIGH, &value);
-	if (ret != SR_OK)
-		return ret;
-	sr_dbg("Received test word 0x%08X back.", value);
-	if (value != 0x12345678)
-		return SR_ERR;
-
-	ret = lwla_read_reg(sdi->conn, REG_LONG_LOW, &value);
-	if (ret != SR_OK)
-		return ret;
-	sr_dbg("Received test word 0x%08X back.", value);
-	if (value != 0x87654321)
-		return SR_ERR;
-
-	return ret;
+	}
+	return SR_OK;
 }
 
 /* Select the LWLA clock configuration.  If the clock source changed from
