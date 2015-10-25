@@ -36,6 +36,7 @@ for compound in index.findall('compound'):
     class_name = compound.find('name').text
     if not class_name.startswith('sigrok::'):
         continue
+    trimmed_name = class_name.split('::')[1]
     doc = ElementTree.parse("%s/%s.xml" % (input_dir, compound.attrib['refid']))
     cls = doc.find('compounddef')
     brief = get_text(cls.find('briefdescription'))
@@ -64,27 +65,30 @@ for compound in index.findall('compound'):
                         if description:
                             parameters[name] = description
             if brief:
-                if language == 'python':
+                if language == 'python' and kind == 'public-func':
                     print(str.join('\n', [
                         '%%feature("docstring") %s::%s "%s' % (
                             class_name, member_name, brief)] + [
                         '@param %s %s' % (name, desc)
                             for name, desc in parameters.items()]) + '";')
-                elif language == 'java':
-                    if kind == 'public-func':
+                elif language == 'java' and kind == 'public-func':
                         print(str.join('\n', [
                             '%%javamethodmodifiers %s::%s "/** %s' % (
                                 class_name, member_name, brief)] + [
                             '   * @param %s %s' % (name, desc)
                                 for name, desc in parameters.items()])
                                     + ' */\npublic"')
-                    elif kind == 'public-static-attrib':
-                        constants.append((member_name, brief))
+                elif kind == 'public-static-attrib':
+                    constants.append((member_name, brief))
     if language == 'java' and constants:
         print('%%typemap(javacode) %s %%{' % class_name)
         for member_name, brief in constants:
-            trimmed_name = class_name.split('::')[1]
             print('  /** %s */\n  public static final %s %s = new %s(classesJNI.%s_%s_get(), false);\n' % (
                 brief, trimmed_name, member_name, trimmed_name,
                 trimmed_name, member_name))
         print('%}')
+    elif language == 'python' and constants:
+        print('%%extend %s {\n%%pythoncode %%{' % class_name)
+        for member_name, brief in constants:
+            print('    ## @brief %s\n    %s = None' % (brief, member_name))
+        print('%}\n}')
