@@ -136,19 +136,11 @@ for enum, (classname, classbrief) in classes.items():
             classname, classname, trimmed_name, classname, name, trimmed_name),
             file=code)
 
-    print('%%typemap(javacode) sigrok::%s %%{' % classname, file=swig)
-
     # Define public pointers for each enum value
     for trimmed_name in trimmed_names:
         print('const %s * const %s::%s = &%s::_%s;' % (
             classname, classname, trimmed_name, classname, trimmed_name),
             file=code)
-        print('public static final %s %s = new %s(classesJNI.%s_%s_get(), false);' % (
-            classname, trimmed_name, classname, classname, trimmed_name),
-            file=swig)
-
-    print ('%}', file=swig)
-
 
     # Define map of enum values to constants
     print('template<> const SR_API std::map<const enum %s, const %s * const> EnumValue<%s, enum %s>::_values = {' % (

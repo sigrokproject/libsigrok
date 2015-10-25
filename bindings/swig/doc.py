@@ -45,14 +45,16 @@ for compound in index.findall('compound'):
         elif language == 'java':
             print('%%typemap(javaclassmodifiers) %s "/** %s */\npublic class"' % (
             class_name, brief))
+    constants = []
     for section in cls.findall('sectiondef'):
-        if section.attrib['kind'] != 'public-func':
+        kind = section.attrib['kind']
+        if kind not in ('public-func', 'public-static-attrib'):
             continue
-        for function in section.findall('memberdef'):
-            function_name = function.find('name').text
-            brief = get_text(function.find('briefdescription'))
+        for member in section.findall('memberdef'):
+            member_name = member.find('name').text
+            brief = get_text(member.find('briefdescription')).replace('"', '\\"')
             parameters = {}
-            for para in function.find('detaileddescription').findall('para'):
+            for para in member.find('detaileddescription').findall('para'):
                 paramlist = para.find('parameterlist')
                 if paramlist is not None:
                     for param in paramlist.findall('parameteritem'):
@@ -65,12 +67,24 @@ for compound in index.findall('compound'):
                 if language == 'python':
                     print(str.join('\n', [
                         '%%feature("docstring") %s::%s "%s' % (
-                            class_name, function_name, brief)] + [
+                            class_name, member_name, brief)] + [
                         '@param %s %s' % (name, desc)
                             for name, desc in parameters.items()]) + '";')
                 elif language == 'java':
-                    print(str.join('\n', [
-                        '%%javamethodmodifiers %s::%s "/** %s' % (
-                            class_name, function_name, brief)] + [
-                        '   * @param %s %s' % (name, desc)
-                            for name, desc in parameters.items()]) + ' */\npublic"')
+                    if kind == 'public-func':
+                        print(str.join('\n', [
+                            '%%javamethodmodifiers %s::%s "/** %s' % (
+                                class_name, member_name, brief)] + [
+                            '   * @param %s %s' % (name, desc)
+                                for name, desc in parameters.items()])
+                                    + ' */\npublic"')
+                    elif kind == 'public-static-attrib':
+                        constants.append((member_name, brief))
+    if language == 'java' and constants:
+        print('%%typemap(javacode) %s %%{' % class_name)
+        for member_name, brief in constants:
+            trimmed_name = class_name.split('::')[1]
+            print('  /** %s */\n  public static final %s %s = new %s(classesJNI.%s_%s_get(), false);\n' % (
+                brief, trimmed_name, member_name, trimmed_name,
+                trimmed_name, member_name))
+        print('%}')
