@@ -352,8 +352,8 @@ public:
 	string long_name() const;
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
-	vector<shared_ptr<HardwareDevice> > scan(
-		const map<const ConfigKey *, Glib::VariantBase> &options = {});
+	vector<shared_ptr<HardwareDevice> > scan(const map<const ConfigKey *, Glib::VariantBase>
+			&options = map<const ConfigKey *, Glib::VariantBase>());
 private:
 	struct sr_dev_driver *_structure;
 	bool _initialized;
@@ -798,7 +798,8 @@ public:
 	map<string, shared_ptr<Option> > options();
 	/** Create an input using this input format.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Input> create_input(const map<string, Glib::VariantBase> &options = {});
+	shared_ptr<Input> create_input(const map<string, Glib::VariantBase>
+			&options = map<string, Glib::VariantBase>());
 private:
 	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
@@ -891,16 +892,15 @@ public:
 	/** Create an output using this format.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Output> create_output(
-		shared_ptr<Device> device,
-		const map<string, Glib::VariantBase> &options = {});
+	shared_ptr<Output> create_output(shared_ptr<Device> device,
+		const map<string, Glib::VariantBase> &options = map<string, Glib::VariantBase>());
 	/** Create an output using this format.
 	 * @param filename Name of destination file.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Output> create_output(string filename,
 		shared_ptr<Device> device,
-		const map<string, Glib::VariantBase> &options = {});
+		const map<string, Glib::VariantBase> &options = map<string, Glib::VariantBase>());
 	/**
 	 * Checks whether a given flag is set.
 	 * @param flag Flag to check
