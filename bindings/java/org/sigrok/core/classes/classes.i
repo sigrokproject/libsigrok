@@ -75,7 +75,7 @@ namespace Glib {
   jlong value;
   for (auto entry : $1)
   {
-    *(CValue **) &value = new CValue(entry);
+    value = reinterpret_cast<intptr_t>(new CValue(entry));
     jenv->CallObjectMethod($result, Vector_add,
       jenv->NewObject(Value, Value_init, value, true));
   }
@@ -149,8 +149,7 @@ MAP_COMMON(std::string, std::shared_ptr<sigrok::ClassName>, String, ClassName)
   jlong value;
   for (auto entry : $1)
   {
-    *(std::shared_ptr< sigrok::ClassName > **)&value =
-      new std::shared_ptr< sigrok::ClassName>(entry.second);
+    value = reinterpret_cast<intptr_t>(new std::shared_ptr< sigrok::ClassName>(entry.second));
     jenv->CallObjectMethod($result, HashMap_put,
       jenv->NewStringUTF(entry.first.c_str()),
       jenv->NewObject(Value, Value_init, value, true));
@@ -185,8 +184,8 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
   jlong value;
   for (auto entry : $1)
   {
-    *(const sigrok::ConfigKey **) &key = entry.first;
-    *(Glib::VariantBase **) &value = new Glib::VariantBase(entry.second);
+    key = reinterpret_cast<intptr_t>(entry.first);
+    value = reinterpret_cast<intptr_t>(new Glib::VariantBase(entry.second));
     jenv->CallObjectMethod($result, HashMap_put,
       jenv->NewObject(ConfigKey, ConfigKey_init, key, false));
       jenv->NewObject(Variant, Variant_init, value, true));
@@ -220,7 +219,7 @@ MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
   jlong key;
   for (auto map_entry : $1)
   {
-    *(const sigrok::ConfigKey **) &key = map_entry.first;
+    key = reinterpret_cast<intptr_t>(map_entry.first);
     jobject value = jenv->NewObject(HashSet, HashSet_init);
     for (auto &set_entry : map_entry.second)
       jenv->CallObjectMethod(value, HashSet_add,
@@ -268,7 +267,7 @@ typedef jobject jlogcallback;
       std::string message)
     {
       jlong loglevel_addr;
-      *(const sigrok::LogLevel **) &loglevel_addr = loglevel;
+      loglevel_addr = reinterpret_cast<intptr_t>(loglevel);
       jobject loglevel_obj = env->NewObject(
         LogLevel, LogLevel_init, loglevel_addr, false);
       jobject message_obj = env->NewStringUTF(message.c_str());
@@ -314,10 +313,8 @@ typedef jobject jdatafeedcallback;
     {
       jlong device_addr;
       jlong packet_addr;
-      *(std::shared_ptr<sigrok::Device> **) &device_addr =
-        new std::shared_ptr<sigrok::Device>(device);
-      *(std::shared_ptr<sigrok::Packet> **) &packet_addr =
-        new std::shared_ptr<sigrok::Packet>(packet);
+      device_addr = reinterpret_cast<intptr_t>(new std::shared_ptr<sigrok::Device>(device));
+      packet_addr = reinterpret_cast<intptr_t>(new std::shared_ptr<sigrok::Packet>(packet));
       jobject device_obj = env->NewObject(
         Device, Device_init, device_addr, true);
       jobject packet_obj = env->NewObject(
