@@ -269,15 +269,15 @@ public:
 	shared_ptr<Packet> create_header_packet(Glib::TimeVal start_time);
 	/** Create a meta packet. */
 	shared_ptr<Packet> create_meta_packet(
-		const map<const ConfigKey *, Glib::VariantBase> &config);
+		map<const ConfigKey *, Glib::VariantBase> config);
 	/** Create a logic packet. */
 	shared_ptr<Packet> create_logic_packet(
 		void *data_pointer, size_t data_length, unsigned int unit_size);
 	/** Create an analog packet. */
 	shared_ptr<Packet> create_analog_packet(
-		const vector<shared_ptr<Channel> > &channels,
+		vector<shared_ptr<Channel> > channels,
 		float *data_pointer, unsigned int num_samples, const Quantity *mq,
-		const Unit *unit, const vector<const QuantityFlag *> &mqflags);
+		const Unit *unit, vector<const QuantityFlag *> mqflags);
 	/** Load a saved session.
 	 * @param filename File name string. */
 	shared_ptr<Session> load_session(string filename);
@@ -352,8 +352,8 @@ public:
 	string long_name() const;
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
-	vector<shared_ptr<HardwareDevice> > scan(const map<const ConfigKey *, Glib::VariantBase>
-			&options = map<const ConfigKey *, Glib::VariantBase>());
+	vector<shared_ptr<HardwareDevice> > scan(map<const ConfigKey *, Glib::VariantBase>
+			options = map<const ConfigKey *, Glib::VariantBase>());
 private:
 	struct sr_dev_driver *_structure;
 	bool _initialized;
@@ -798,8 +798,8 @@ public:
 	map<string, shared_ptr<Option> > options();
 	/** Create an input using this input format.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Input> create_input(const map<string, Glib::VariantBase>
-			&options = map<string, Glib::VariantBase>());
+	shared_ptr<Input> create_input(map<string, Glib::VariantBase>
+			options = map<string, Glib::VariantBase>());
 private:
 	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
@@ -893,14 +893,14 @@ public:
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Output> create_output(shared_ptr<Device> device,
-		const map<string, Glib::VariantBase> &options = map<string, Glib::VariantBase>());
+		map<string, Glib::VariantBase> options = map<string, Glib::VariantBase>());
 	/** Create an output using this format.
 	 * @param filename Name of destination file.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
 	shared_ptr<Output> create_output(string filename,
 		shared_ptr<Device> device,
-		const map<string, Glib::VariantBase> &options = map<string, Glib::VariantBase>());
+		map<string, Glib::VariantBase> options = map<string, Glib::VariantBase>());
 	/**
 	 * Checks whether a given flag is set.
 	 * @param flag Flag to check
@@ -929,9 +929,9 @@ public:
 private:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
 	Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options);
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
 	Output(string filename, shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options);
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
 	~Output();
 
 	const struct sr_output *_structure;

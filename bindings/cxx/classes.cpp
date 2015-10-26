@@ -278,7 +278,7 @@ shared_ptr<Packet> Context::create_header_packet(Glib::TimeVal start_time)
 }
 
 shared_ptr<Packet> Context::create_meta_packet(
-	const map<const ConfigKey *, Glib::VariantBase> &config)
+	map<const ConfigKey *, Glib::VariantBase> config)
 {
 	auto meta = g_new0(struct sr_datafeed_meta, 1);
 	for (const auto &input : config)
@@ -311,9 +311,9 @@ shared_ptr<Packet> Context::create_logic_packet(
 }
 
 shared_ptr<Packet> Context::create_analog_packet(
-	const vector<shared_ptr<Channel> > &channels,
+	vector<shared_ptr<Channel> > channels,
 	float *data_pointer, unsigned int num_samples, const Quantity *mq,
-	const Unit *unit, const vector<const QuantityFlag *> &mqflags)
+	const Unit *unit, vector<const QuantityFlag *> mqflags)
 {
 	auto analog = g_new0(struct sr_datafeed_analog, 1);
 	auto meaning = g_new0(struct sr_analog_meaning, 1);
@@ -325,7 +325,7 @@ shared_ptr<Packet> Context::create_analog_packet(
 	analog->num_samples = num_samples;
 	meaning->mq = static_cast<sr_mq>(mq->id());
 	meaning->unit = static_cast<sr_unit>(unit->id());
-	meaning->mqflags = static_cast<sr_mqflag>(QuantityFlag::mask_from_flags(mqflags));
+	meaning->mqflags = static_cast<sr_mqflag>(QuantityFlag::mask_from_flags(move(mqflags)));
 	analog->data = data_pointer;
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_ANALOG;
@@ -407,7 +407,7 @@ string Driver::long_name() const
 }
 
 vector<shared_ptr<HardwareDevice>> Driver::scan(
-	const map<const ConfigKey *, Glib::VariantBase> &options)
+	map<const ConfigKey *, Glib::VariantBase> options)
 {
 	/* Initialise the driver if not yet done. */
 	if (!_initialized)
@@ -1274,7 +1274,7 @@ map<string, shared_ptr<Option>> InputFormat::options()
 }
 
 shared_ptr<Input> InputFormat::create_input(
-	const map<string, Glib::VariantBase> &options)
+	map<string, Glib::VariantBase> options)
 {
 	auto input = sr_input_new(_structure, map_to_hash_variant(options));
 	if (!input)
@@ -1423,18 +1423,18 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 }
 
 shared_ptr<Output> OutputFormat::create_output(
-	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
+	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
 {
 	return shared_ptr<Output>{
-		new Output{shared_from_this(), move(device), options},
+		new Output{shared_from_this(), move(device), move(options)},
 		default_delete<Output>{}};
 }
 
 shared_ptr<Output> OutputFormat::create_output(string filename,
-	shared_ptr<Device> device, const map<string, Glib::VariantBase> &options)
+	shared_ptr<Device> device, map<string, Glib::VariantBase> options)
 {
 	return shared_ptr<Output>{
-		new Output{move(filename), shared_from_this(), move(device), options},
+		new Output{move(filename), shared_from_this(), move(device), move(options)},
 		default_delete<Output>{}};
 }
 
@@ -1444,22 +1444,22 @@ bool OutputFormat::test_flag(const OutputFlag *flag) const
 }
 
 Output::Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
 	_structure(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, nullptr)),
 	_format(move(format)),
 	_device(move(device)),
-	_options(options)
+	_options(move(options))
 {
 }
 
 Output::Output(string filename, shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, const map<string, Glib::VariantBase> &options) :
+		shared_ptr<Device> device, map<string, Glib::VariantBase> options) :
 	_structure(sr_output_new(format->_structure,
 		map_to_hash_variant(options), device->_structure, filename.c_str())),
 	_format(move(format)),
 	_device(move(device)),
-	_options(options)
+	_options(move(options))
 {
 }
 
