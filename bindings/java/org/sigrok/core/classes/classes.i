@@ -198,11 +198,11 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
 MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
   ConfigKey, java.util.Set<Capability>)
 
-%typemap(jni) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability>> "jobject"
-%typemap(jtype) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability>>
+%typemap(jni) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> > "jobject"
+%typemap(jtype) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> >
   "java.util.Map<ConfigKey,java.util.Set<Capability>>"
 
-%typemap(out) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability>> {
+%typemap(out) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> > {
   jclass HashMap = jenv->FindClass("java/util/HashMap");
   jmethodID HashMap_init = jenv->GetMethodID(HashMap, "<init>", "()V");
   jmethodID HashMap_put = jenv->GetMethodID(HashMap, "put",
