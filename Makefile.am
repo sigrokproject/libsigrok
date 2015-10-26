@@ -493,7 +493,6 @@ EXTRA_DIST = \
 	bindings/java/org/sigrok/core/classes/classes.i \
 	bindings/java/org/sigrok/core/interfaces/DatafeedCallback.java \
 	bindings/java/org/sigrok/core/interfaces/LogCallback.java \
-	bindings/java/org/sigrok/core/interfaces/SourceCallback.java \
 	bindings/swig/classes.i \
 	bindings/swig/doc.py \
 	contrib/gnuplot_chronovu_la8.gpi \
