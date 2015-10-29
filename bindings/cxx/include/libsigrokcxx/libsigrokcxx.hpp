@@ -71,7 +71,12 @@ raised, which provides access to the error code and description.
 #define LIBSIGROKCXX_HPP
 
 #include <libsigrok/libsigrok.h>
+
+/* Suppress warnings due to glibmm's use of std::auto_ptr<> in a public
+ * header file. To be removed once glibmm is fixed. */
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <glibmm.h>
+G_GNUC_END_IGNORE_DEPRECATIONS
 
 #include <stdexcept>
 #include <memory>
