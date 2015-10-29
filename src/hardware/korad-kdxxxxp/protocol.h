@@ -91,11 +91,11 @@ struct dev_context {
 
 	gboolean output_enabled; /**< Is the output enabled? */
 	gboolean beep_enabled;   /**< Enable beeper. */
-	gboolean OCP_enabled;    /**< Output current protection enabled */
-	gboolean OVP_enabled;    /**< Output voltage protection enabled */
+	gboolean ocp_enabled;    /**< Output current protection enabled. */
+	gboolean ovp_enabled;    /**< Output voltage protection enabled. */
 
 	/* Temporary state across callbacks */
-	int target;              /**< What reply to expect */
+	int target;              /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */
 	char reply[6];
 };

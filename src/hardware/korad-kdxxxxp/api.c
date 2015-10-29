@@ -222,16 +222,13 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_REGULATION:
 		/* Dual channel not supported. */
-		if (devc->cc_mode[0])
-			*data = g_variant_new_string("CC");
-		else
-			*data = g_variant_new_string("CV");
+		*data = g_variant_new_string((devc->cc_mode[0]) ? "CC" : "CV");
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-		*data = g_variant_new_boolean(devc->OCP_enabled);
+		*data = g_variant_new_boolean(devc->ocp_enabled);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-		*data = g_variant_new_boolean(devc->OVP_enabled);
+		*data = g_variant_new_boolean(devc->ovp_enabled);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -293,14 +290,14 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->OCP_enabled = bval;
+		devc->ocp_enabled = bval;
 		devc->target = KDXXXXP_OCP;
 		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->OVP_enabled = bval;
+		devc->ovp_enabled = bval;
 		devc->target = KDXXXXP_OVP;
 		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
