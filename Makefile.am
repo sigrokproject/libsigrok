@@ -581,6 +581,9 @@ $(CPPXMLDOC): bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
 		bindings/cxx/enums.timestamp
 	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
 
+# Macro definitions to be used by the SWIG parser.
+swig_defs = -Dnoexcept= -Dprivate=protected -DG_GNUC_BEGIN_IGNORE_DEPRECATIONS= -DG_GNUC_END_IGNORE_DEPRECATIONS=
+
 if BINDINGS_PYTHON
 
 PDIR = bindings/python
@@ -610,7 +613,7 @@ $(PDIR)/timestamp: $(PDIR)/sigrok/core/classes.i \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		@ORDER@ bindings/cxx/libsigrokcxx.la
 	$(AM_V_at)$(setup_py) clean --all 2>/dev/null
-	$(AM_V_GEN)$(setup_py) build_ext --swig "$(SWIG)" build_py
+	$(AM_V_GEN)$(setup_py) build_ext --swig "$(SWIG)" --swig-opts '$(swig_defs)' build_py
 	$(AM_V_at): >$@
 
 python-install:
@@ -658,7 +661,7 @@ $(JCXX): $(srcdir)/$(JSWG) $(JDOC) bindings/swig/classes.i \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
 	-$(AM_V_at)rm -f $(java_cleanfiles)
-	$(AM_V_GEN)$(SWIG) -c++ -Dnoexcept= -Dprivate=protected \
+	$(AM_V_GEN)$(SWIG) -c++ $(swig_defs) \
 		-java -package org.sigrok.core.classes \
 		-Ibindings -I$(JCLS) $(local_includes) -I$(srcdir) $(JNI_CPPFLAGS) \
 		-outdir $(JCLS) -o $@ $(srcdir)/$(JSWG)

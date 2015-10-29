@@ -69,6 +69,10 @@ class build_py(_build_py):
         return _build_py.check_package(self, package, vpath(package_dir))
 
 class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        self.swig_opts = ['-c++', '-threads', '-Isigrok/core', '-I..',
+            '-I' + srcdir_parent] + ['-I%s' % i for i in includes] + self.swig_opts
     def spawn (self, cmd):
         cmd[1:-1] = [arg if arg.startswith('-') else unvpath(arg) for arg in
                      cmd[1:-1]]
@@ -87,9 +91,6 @@ setup(
     ext_modules = [
         Extension('sigrok.core._classes',
             sources = [vpath('sigrok/core/classes.i')],
-            swig_opts = ['-c++', '-threads', '-Dnoexcept=', '-Dprivate=protected',
-                '-Isigrok/core', '-I..', '-I' + srcdir_parent] +
-                ['-I%s' % i for i in includes],
             extra_compile_args = ['-Wno-uninitialized'],
             include_dirs = includes,
             library_dirs = libdirs,
