@@ -307,7 +307,7 @@ private:
 	~Context();
 	friend class Session;
 	friend class Driver;
-	friend class std::default_delete<Context>;
+	friend struct std::default_delete<Context>;
 };
 
 enum Capability {
@@ -368,7 +368,7 @@ private:
 	friend class Context;
 	friend class HardwareDevice;
 	friend class ChannelGroup;
-	friend class std::default_delete<Driver>;
+	friend struct std::default_delete<Driver>;
 };
 
 /** A generic device, either hardware or virtual */
@@ -409,7 +409,7 @@ private:
 	friend class ChannelGroup;
 	friend class Output;
 	friend class Analog;
-	friend class std::default_delete<Device>;
+	friend struct std::default_delete<Device>;
 };
 
 /** A real hardware device, connected via a driver */
@@ -428,7 +428,7 @@ private:
 
 	friend class Driver;
 	friend class ChannelGroup;
-	friend class std::default_delete<HardwareDevice>;
+	friend struct std::default_delete<HardwareDevice>;
 };
 
 /** A virtual device, created by the user */
@@ -445,7 +445,7 @@ private:
 	shared_ptr<Device> get_shared_from_this();
 
 	friend class Context;
-	friend class std::default_delete<UserDevice>;
+	friend struct std::default_delete<UserDevice>;
 };
 
 /** A channel on a device */
@@ -478,7 +478,7 @@ private:
 	friend class Session;
 	friend class TriggerStage;
 	friend class Context;
-	friend class std::default_delete<Channel>;
+	friend struct std::default_delete<Channel>;
 };
 
 /** A group of channels on a device, which share some configuration */
@@ -496,7 +496,7 @@ private:
 	~ChannelGroup();
 	vector<Channel *> _channels;
 	friend class Device;
-	friend class std::default_delete<ChannelGroup>;
+	friend struct std::default_delete<ChannelGroup>;
 };
 
 /** A trigger configuration */
@@ -517,7 +517,7 @@ private:
 	vector<unique_ptr<TriggerStage> > _stages;
 	friend class Context;
 	friend class Session;
-	friend class std::default_delete<Trigger>;
+	friend struct std::default_delete<Trigger>;
 };
 
 /** A stage in a trigger configuration */
@@ -544,7 +544,7 @@ private:
 	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
 	friend class Trigger;
-	friend class std::default_delete<TriggerStage>;
+	friend struct std::default_delete<TriggerStage>;
 };
 
 /** A match condition in a trigger configuration  */
@@ -564,7 +564,7 @@ private:
 	struct sr_trigger_match *_structure;
 	shared_ptr<Channel> _channel;
 	friend class TriggerStage;
-	friend class std::default_delete<TriggerMatch>;
+	friend struct std::default_delete<TriggerMatch>;
 };
 
 /** Type of session stopped callback */
@@ -599,7 +599,7 @@ private:
 	shared_ptr<Device> get_shared_from_this();
 
 	friend class Session;
-	friend class std::default_delete<SessionDevice>;
+	friend struct std::default_delete<SessionDevice>;
 };
 
 /** A sigrok session */
@@ -654,7 +654,7 @@ private:
 	friend class Context;
 	friend class DatafeedCallbackData;
 	friend class SessionDevice;
-	friend class std::default_delete<Session>;
+	friend struct std::default_delete<Session>;
 };
 
 /** A packet on the session datafeed */
@@ -681,7 +681,7 @@ private:
 	friend class Logic;
 	friend class Analog;
 	friend class Context;
-	friend class std::default_delete<Packet>;
+	friend struct std::default_delete<Packet>;
 };
 
 /** Abstract base class for datafeed packet payloads */
@@ -695,7 +695,7 @@ private:
 
 	friend class Packet;
 	friend class Output;
-	friend class std::default_delete<PacketPayload>;
+	friend struct std::default_delete<PacketPayload>;
 };
 
 /** Payload of a datafeed header packet */
@@ -813,7 +813,7 @@ private:
 
 	friend class Context;
 	friend class InputDevice;
-	friend class std::default_delete<InputFormat>;
+	friend struct std::default_delete<InputFormat>;
 };
 
 /** An input instance (an input format applied to a file or stream) */
@@ -837,7 +837,7 @@ private:
 
 	friend class Context;
 	friend class InputFormat;
-	friend class std::default_delete<Input>;
+	friend struct std::default_delete<Input>;
 };
 
 /** A virtual device associated with an input */
@@ -851,7 +851,7 @@ private:
 	shared_ptr<Device> get_shared_from_this();
 	shared_ptr<Input> _input;
 	friend class Input;
-	friend class std::default_delete<InputDevice>;
+	friend struct std::default_delete<InputDevice>;
 };
 
 /** An option used by an output format */
@@ -877,7 +877,7 @@ private:
 
 	friend class InputFormat;
 	friend class OutputFormat;
-	friend class std::default_delete<Option>;
+	friend struct std::default_delete<Option>;
 };
 
 /** An output format supported by the library */
@@ -921,7 +921,7 @@ private:
 
 	friend class Context;
 	friend class Output;
-	friend class std::default_delete<OutputFormat>;
+	friend struct std::default_delete<OutputFormat>;
 };
 
 /** An output instance (an output format applied to a device) */
@@ -945,7 +945,7 @@ private:
 	const map<string, Glib::VariantBase> _options;
 
 	friend class OutputFormat;
-	friend class std::default_delete<Output>;
+	friend struct std::default_delete<Output>;
 };
 
 /** Base class for objects which wrap an enumeration value from libsigrok */
