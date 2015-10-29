@@ -678,9 +678,9 @@ $(JLIB): $(JCXX) \
 
 java-install:
 	$(INSTALL) -d $(DESTDIR)$(libdir)/jni
-	$(INSTALL) $(JLIB) -t $(DESTDIR)$(libdir)/jni
+	$(INSTALL) $(JLIB) $(DESTDIR)$(libdir)/jni
 	$(INSTALL) -d $(DESTDIR)$(datadir)/java
-	$(INSTALL) $(JJAR) -t $(DESTDIR)$(datadir)/java
+	$(INSTALL) $(JJAR) $(DESTDIR)$(datadir)/java
 
 java-clean:
 	-$(AM_V_at)rm -f $(java_cleanfiles)
