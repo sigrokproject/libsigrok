@@ -133,17 +133,6 @@ struct context {
 	size_t line_number;
 };
 
-static int format_match(GHashTable *metadata)
-{
-	char *buf;
-
-	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_MIMETYPE));
-	if (!strcmp(buf, "text/csv"))
-		return SR_OK;
-
-	return SR_ERR;
-}
-
 static void strip_comment(char *buf, const GString *prefix)
 {
 	char *ptr;
@@ -817,9 +806,7 @@ SR_PRIV struct sr_input_module input_csv = {
 	.name = "CSV",
 	.desc = "Comma-separated values",
 	.exts = (const char*[]){"csv", NULL},
-	.metadata = { SR_INPUT_META_MIMETYPE },
 	.options = get_options,
-	.format_match = format_match,
 	.init = init,
 	.receive = receive,
 	.end = end,
