@@ -223,8 +223,6 @@ enum sr_input_meta_keys {
 	SR_INPUT_META_FILESIZE = 0x02,
 	/** The first 128 bytes of the file, provided as a GString. */
 	SR_INPUT_META_HEADER = 0x04,
-	/** The file's MIME type. */
-	SR_INPUT_META_MIMETYPE = 0x08,
 
 	/** The module cannot identify a file without this metadata. */
 	SR_INPUT_META_REQUIRED = 0x80,
@@ -280,7 +278,6 @@ struct sr_input_module {
 	 *   SR_INPUT_META_FILENAME
 	 *   SR_INPUT_META_FILESIZE
 	 *   SR_INPUT_META_HEADER
-	 *   SR_INPUT_META_MIMETYPE
 	 *
 	 * If the high bit (SR_INPUT META_REQUIRED) is set, the module cannot
 	 * identify a stream without the given metadata.
