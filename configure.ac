@@ -431,7 +431,7 @@ AM_CONDITIONAL([BINDINGS_JAVA], [test "x$BINDINGS_JAVA" = xyes])
 ##############################
 
 # Add mandatory dependencies to module list.
-SR_APPEND([SR_PKGLIBS], ['libzip >= 0.11'])
+SR_APPEND([SR_PKGLIBS], ['libzip >= 0.10'])
 AC_SUBST([SR_PKGLIBS])
 
 # Retrieve the compile and link flags for all modules combined.
@@ -449,11 +449,16 @@ AM_COND_IF([BINDINGS_CXX], [
 # Check for specific libusb features, now that we know the CFLAGS.
 AC_LANG([C])
 sr_save_cflags=$CFLAGS
+sr_save_libs=$LIBS
 CFLAGS="$LIBSIGROK_CFLAGS $CFLAGS"
+LIBS="$LIBSIGROK_LIBS $LIBS"
 AC_CHECK_TYPES([libusb_os_handle],
 	[sr_have_libusb_os_handle=yes], [sr_have_libusb_os_handle=no],
 	[[#include <libusb.h>]])
+AC_CHECK_FUNCS([zip_discard])
+LIBS=$sr_save_libs
 CFLAGS=$sr_save_cflags
+
 AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*],
 	[AC_MSG_ERROR([Windows builds require the event-abstraction branch of libusb])])])
 
@@ -499,7 +504,7 @@ Compile configuration:
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sr_glib_version
- - libzip >= 0.11.................. $sr_libzip_version
+ - libzip >= 0.10.................. $sr_libzip_version
 
 Detected libraries (optional):
 $sr_pkglibs_summary

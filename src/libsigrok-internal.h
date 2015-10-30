@@ -754,6 +754,12 @@ SR_PRIV void sr_packet_free(struct sr_datafeed_packet *packet);
 
 /*--- session_file.c --------------------------------------------------------*/
 
+#if !HAVE_ZIP_DISCARD
+/* Replace zip_discard() if not available. */
+#define zip_discard(zip) sr_zip_discard(zip)
+SR_PRIV void sr_zip_discard(struct zip *archive);
+#endif
+
 SR_PRIV GKeyFile *sr_sessionfile_read_metadata(struct zip *archive,
 			const struct zip_stat *entry);
 

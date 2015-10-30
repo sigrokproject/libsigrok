@@ -46,6 +46,16 @@
 extern SR_PRIV struct sr_dev_driver session_driver;
 static int session_driver_initialized = 0;
 
+#if !HAVE_ZIP_DISCARD
+/* Replacement for zip_discard() if it isn't available.
+ */
+SR_PRIV void sr_zip_discard(struct zip *archive)
+{
+	if (zip_unchange_all(archive) < 0 || zip_close(archive) < 0)
+		sr_err("Failed to discard ZIP archive: %s", zip_strerror(archive));
+}
+#endif
+
 /** Read metadata entries from a session archive.
  * @param[in] archive An open ZIP archive.
  * @param[in] entry Stat buffer filled in for the metadata archive member.
