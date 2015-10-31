@@ -328,7 +328,7 @@ static void issue_stop_capture(const struct sr_dev_inst *sdi)
 	regvals = devc->reg_write_seq;
 
 	regvals[0].reg = REG_LONG_ADDR;
-	regvals[0].val = 10;
+	regvals[0].val = LREG_CAP_CTRL;
 
 	regvals[1].reg = REG_LONG_LOW;
 	regvals[1].val = 0;
@@ -713,12 +713,12 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_read_long_reg(sdi->conn, 100, &value);
+	ret = lwla_read_long_reg(sdi->conn, LREG_TEST_ID, &value);
 	if (ret != SR_OK)
 		return ret;
 
 	/* Ignore the value returned by the first read */
-	ret = lwla_read_long_reg(sdi->conn, 100, &value);
+	ret = lwla_read_long_reg(sdi->conn, LREG_TEST_ID, &value);
 	if (ret != SR_OK)
 		return ret;
 
@@ -821,11 +821,11 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	regvals[1].val = MEM_CTRL_WRITE;
 
 	regvals[2].reg = REG_LONG_ADDR;
-	regvals[2].val = 10;
+	regvals[2].val = LREG_CAP_CTRL;
 
 	regvals[3].reg = REG_LONG_LOW;
-	regvals[3].val = 0x74;
-
+	regvals[3].val = CAP_CTRL_CLR_TIMEBASE | CAP_CTRL_FLUSH_FIFO
+		       | CAP_CTRL_CLR_FIFOFULL | CAP_CTRL_CLR_COUNTER;
 	regvals[4].reg = REG_LONG_HIGH;
 	regvals[4].val = 0;
 
@@ -875,10 +875,10 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	regvals = devc->reg_write_seq;
 
 	regvals[0].reg = REG_LONG_ADDR;
-	regvals[0].val = 10;
+	regvals[0].val = LREG_CAP_CTRL;
 
 	regvals[1].reg = REG_LONG_LOW;
-	regvals[1].val = 1;
+	regvals[1].val = CAP_CTRL_TRG_EN;
 
 	regvals[2].reg = REG_LONG_HIGH;
 	regvals[2].val = 0;

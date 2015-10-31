@@ -101,6 +101,23 @@ enum {
 	MEM_CTRL_CLR_IDX = 1 << 1, /* "clr_idx" bit */
 };
 
+/* LWLA1034 long register addresses.
+ */
+enum {
+	LREG_CAP_CTRL = 10,  /* capture control bits */
+	LREG_TEST_ID  = 100, /* constant test ID */
+};
+
+/** Flag bits for LREG_CAP_CTRL.
+ */
+enum {
+	CAP_CTRL_TRG_EN       = 1 << 0, /* "trg_en" bit */
+	CAP_CTRL_CLR_TIMEBASE = 1 << 2, /* "do_clr_timebase" bit */
+	CAP_CTRL_FLUSH_FIFO   = 1 << 4, /* "flush_fifo" bit */
+	CAP_CTRL_CLR_FIFOFULL = 1 << 5, /* "clr_fifo32_ful" bit */
+	CAP_CTRL_CLR_COUNTER  = 1 << 6, /* "clr_cntr0" bit */
+};
+
 /** Register/value pair.
  */
 struct regval_pair {
