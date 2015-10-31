@@ -372,13 +372,10 @@ static void process_capture_status(const struct sr_dev_inst *sdi)
 		return;
 	}
 
-	/* TODO: Find out the actual bit width of these fields as stored
-	 * in the FPGA.  These fields are definitely less than 64 bit wide
-	 * internally, and the unused bits occasionally even contain garbage.
-	 */
 	mem_fill = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
-	duration = LWLA_TO_UINT32(acq->xfer_buf_in[4]);
-	flags    = LWLA_TO_UINT32(acq->xfer_buf_in[8]) & STATUS_FLAG_MASK;
+	duration = LWLA_TO_UINT32(acq->xfer_buf_in[4])
+		| ((uint64_t)LWLA_TO_UINT32(acq->xfer_buf_in[5]) << 32);
+	flags = LWLA_TO_UINT32(acq->xfer_buf_in[8]) & STATUS_FLAG_MASK;
 
 	/* The LWLA1034 runs at 125 MHz if the clock divider is bypassed.
 	 * However, the time base used for the duration is apparently not
