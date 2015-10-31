@@ -337,7 +337,7 @@ AS_IF([test "x$BINDINGS_CXX" = xyes],
 
 # The Python bindings need Python development files.
 SR_PKG_CHECK([python_dev], [SR_PKGLIBS_PYTHON],
-	[python >= 2.7], [python2 >= 2.7], [python27 >= 2.7])
+	[python >= 2.7], [python2 >= 2.7], [python27 >= 2.7], [python-2.7 >= 2.7])
 AS_IF([test "x$sr_have_python_dev" != xyes],
 	[SR_APPEND([sr_python_missing], [', '], [Headers])])
 
