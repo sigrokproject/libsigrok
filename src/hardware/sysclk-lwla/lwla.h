@@ -74,12 +74,12 @@ enum {
 	STATUS_FLAG_MASK = 0x3F
 };
 
-/** LWLA register addresses.
+/** LWLA1034 register addresses.
  */
 enum {
-	REG_MEM_CTRL2   = 0x1074, /* capture buffer control ??? */
+	REG_MEM_CTRL    = 0x1074, /* capture buffer control */
 	REG_MEM_FILL    = 0x1078, /* capture buffer fill level */
-	REG_MEM_CTRL4   = 0x107C, /* capture buffer control ??? */
+	REG_MEM_START   = 0x107C, /* capture buffer start address */
 
 	REG_DIV_BYPASS  = 0x1094, /* bypass clock divider flag */
 
@@ -92,6 +92,13 @@ enum {
 	REG_FREQ_CH2    = 0x10C4, /* channel 2 live frequency */
 	REG_FREQ_CH3    = 0x10C8, /* channel 3 live frequency */
 	REG_FREQ_CH4    = 0x10CC, /* channel 4 live frequency */
+};
+
+/** Flag bits for REG_MEM_CTRL.
+ */
+enum {
+	MEM_CTRL_WRITE   = 1 << 0, /* "wr1rd0" bit */
+	MEM_CTRL_CLR_IDX = 1 << 1, /* "clr_idx" bit */
 };
 
 /** Register/value pair.

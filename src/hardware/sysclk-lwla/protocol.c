@@ -257,10 +257,10 @@ static void issue_read_start(const struct sr_dev_inst *sdi)
 	regvals[0].reg = REG_DIV_BYPASS;
 	regvals[0].val = 1;
 
-	regvals[1].reg = REG_MEM_CTRL2;
-	regvals[1].val = 2;
+	regvals[1].reg = REG_MEM_CTRL;
+	regvals[1].val = MEM_CTRL_CLR_IDX;
 
-	regvals[2].reg = REG_MEM_CTRL4;
+	regvals[2].reg = REG_MEM_START;
 	regvals[2].val = 4;
 
 	devc->reg_write_pos = 0;
@@ -723,7 +723,7 @@ SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
 		return ret;
 
 	if (value != UINT64_C(0x1234567887654321)) {
-		sr_err("Received invalid test word 0x%16" PRIX64 ".", value);
+		sr_err("Received invalid test word 0x%016" PRIX64 ".", value);
 		return SR_ERR;
 	}
 	return SR_OK;
@@ -814,11 +814,11 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 			sr_info("External clock, rising edge.");
 	}
 
-	regvals[0].reg = REG_MEM_CTRL2;
-	regvals[0].val = 2;
+	regvals[0].reg = REG_MEM_CTRL;
+	regvals[0].val = MEM_CTRL_CLR_IDX;
 
-	regvals[1].reg = REG_MEM_CTRL2;
-	regvals[1].val = 1;
+	regvals[1].reg = REG_MEM_CTRL;
+	regvals[1].val = MEM_CTRL_WRITE;
 
 	regvals[2].reg = REG_LONG_ADDR;
 	regvals[2].val = 10;
