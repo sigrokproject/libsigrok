@@ -72,7 +72,7 @@ namespace Glib {
   jclass Value = jenv->FindClass("org/sigrok/core/classes/" #JValue);
   jmethodID Value_init = jenv->GetMethodID(Value, "<init>", "(JZ)V");
   $result = jenv->NewObject(Vector, Vector_init);
-  jlong value;
+  jlong value = 0;
   for (auto entry : $1)
   {
     *(CValue **) &value = new CValue(entry);
@@ -146,7 +146,7 @@ MAP_COMMON(std::string, std::shared_ptr<sigrok::ClassName>, String, ClassName)
   jclass Value = jenv->FindClass("org/sigrok/core/classes/" #ClassName);
   jmethodID Value_init = jenv->GetMethodID(Value, "<init>", "(JZ)V");
   $result = jenv->NewObject(HashMap, HashMap_init);
-  jlong value;
+  jlong value = 0;
   for (auto entry : $1)
   {
     *(std::shared_ptr< sigrok::ClassName > **)&value =
@@ -181,8 +181,8 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
   jclass Variant = jenv->FindClass("org/sigrok/core/classes/Variant");
   jmethodID Variant_init = jenv->GetMethodID(Variant, "<init>", "(JZ)V");
   $result = jenv->NewObject(HashMap, HashMap_init);
-  jlong key;
-  jlong value;
+  jlong key = 0;
+  jlong value = 0;
   for (auto entry : $1)
   {
     *(const sigrok::ConfigKey **) &key = entry.first;
@@ -217,7 +217,7 @@ MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
   jmethodID Capability_swigToEnum = jenv->GetStaticMethodID(Capability,
     "swigToEnum", "(I)Lorg/sigrok/core/classes/Capability;");
   $result = jenv->NewObject(HashMap, HashMap_init);
-  jlong key;
+  jlong key = 0;
   for (auto map_entry : $1)
   {
     *(const sigrok::ConfigKey **) &key = map_entry.first;
@@ -267,7 +267,7 @@ typedef jobject jlogcallback;
       const sigrok::LogLevel *loglevel,
       std::string message)
     {
-      jlong loglevel_addr;
+      jlong loglevel_addr = 0;
       *(const sigrok::LogLevel **) &loglevel_addr = loglevel;
       jobject loglevel_obj = env->NewObject(
         LogLevel, LogLevel_init, loglevel_addr, false);
@@ -312,8 +312,8 @@ typedef jobject jdatafeedcallback;
       std::shared_ptr<sigrok::Device> device,
       std::shared_ptr<sigrok::Packet> packet)
     {
-      jlong device_addr;
-      jlong packet_addr;
+      jlong device_addr = 0;
+      jlong packet_addr = 0;
       *(std::shared_ptr<sigrok::Device> **) &device_addr =
         new std::shared_ptr<sigrok::Device>(device);
       *(std::shared_ptr<sigrok::Packet> **) &packet_addr =
