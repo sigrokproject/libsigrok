@@ -335,9 +335,18 @@ AS_IF([test "x$BINDINGS_CXX" = xyes],
 	[sr_python_missing=],
 	[sr_python_missing='C++ bindings'])
 
-# The Python bindings need Python development files.
+# Extract major and minor version number of the Python interpreter.
+sr_pymajor=${PYTHON_VERSION%%.*}
+sr_pyminor=${PYTHON_VERSION#*.}
+
+# The Python bindings need Python development files. Check for either
+# Python 3 or Python 2 headers depending on the interpreter version.
 SR_PKG_CHECK([python_dev], [SR_PKGLIBS_PYTHON],
-	[python >= 2.7], [python2 >= 2.7], [python27 >= 2.7], [python-2.7 >= 2.7])
+	[python = $PYTHON_VERSION],
+	[python$sr_pymajor = $PYTHON_VERSION],
+	[python$sr_pymajor$sr_pyminor = $PYTHON_VERSION],
+	[python-$PYTHON_VERSION = $PYTHON_VERSION])
+
 AS_IF([test "x$sr_have_python_dev" != xyes],
 	[SR_APPEND([sr_python_missing], [', '], [Headers])])
 
