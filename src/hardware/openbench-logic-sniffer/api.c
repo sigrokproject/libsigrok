@@ -573,7 +573,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
-	serial_source_add(sdi->session, serial, G_IO_IN, -1,
+	/* If the device stops sending for longer than it takes to send a byte,
+	 * that means it's finished. But wait at least 100 ms to be safe.
+	 */
+	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			ols_receive_data, cb_data);
 
 	return SR_OK;

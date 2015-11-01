@@ -344,16 +344,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 	devc = sdi->priv;
 
+	if (devc->num_transfers == 0 && revents == 0) {
+		/* Ignore timeouts as long as we haven't received anything */
+		return TRUE;
+	}
+
 	if (devc->num_transfers++ == 0) {
-		/*
-		 * First time round, means the device started sending data,
-		 * and will not stop until done. If it stops sending for
-		 * longer than it takes to send a byte, that means it's
-		 * finished. We'll double that to 30ms to be sure...
-		 */
-		serial_source_remove(sdi->session, serial);
-		serial_source_add(sdi->session, serial, G_IO_IN, 30,
-				ols_receive_data, cb_data);
 		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
 		if (!devc->raw_sample_buf) {
 			sr_err("Sample buffer malloc failed.");
