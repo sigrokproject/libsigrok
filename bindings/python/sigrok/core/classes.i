@@ -61,6 +61,16 @@ typedef gint pyg_flags_type;
 typedef guint pyg_flags_type;
 #endif
 
+#if PY_VERSION_HEX >= 0x03000000
+#define string_check PyUnicode_Check
+#define string_from_python PyUnicode_AsUTF8
+#define string_to_python PyUnicode_FromString
+#else
+#define string_check PyString_Check
+#define string_from_python PyString_AsString
+#define string_to_python PyString_FromString
+#endif
+
 %}
 
 %init %{
@@ -117,7 +127,7 @@ typedef guint pyg_flags_type;
         auto log_obj = SWIG_NewPointerObj(
                 SWIG_as_voidptr(loglevel), SWIGTYPE_p_sigrok__LogLevel, 0);
 
-        auto string_obj = PyString_FromString(message.c_str());
+        auto string_obj = string_to_python(message.c_str());
 
         auto arglist = Py_BuildValue("(OO)", log_obj, string_obj);
 
@@ -298,12 +308,12 @@ std::map<std::string, std::string> dict_to_map_string(PyObject *dict)
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(dict, &pos, &py_key, &py_value)) {
-        if (!PyString_Check(py_key))
+        if (!string_check(py_key))
             throw sigrok::Error(SR_ERR_ARG);
-        if (!PyString_Check(py_value))
+        if (!string_check(py_value))
             throw sigrok::Error(SR_ERR_ARG);
-        auto key = PyString_AsString(py_key);
-        auto value = PyString_AsString(py_value);
+        auto key = string_from_python(py_key);
+        auto value = string_from_python(py_value);
         output[key] = value;
     }
 
@@ -319,8 +329,8 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == SR_T_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
-    else if (type == SR_T_STRING && PyString_Check(input))
-        return Glib::Variant<Glib::ustring>::create(PyString_AsString(input));
+    else if (type == SR_T_STRING && string_check(input))
+        return Glib::Variant<Glib::ustring>::create(string_from_python(input));
     else if (type == SR_T_BOOL && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == SR_T_FLOAT && PyFloat_Check(input))
@@ -341,8 +351,8 @@ Glib::VariantBase python_to_variant_by_option(PyObject *input,
         return Glib::Variant<guint64>::create(PyInt_AsLong(input));
     if (type == G_VARIANT_TYPE_UINT64 && PyLong_Check(input))
         return Glib::Variant<guint64>::create(PyLong_AsLong(input));
-    else if (type == G_VARIANT_TYPE_STRING && PyString_Check(input))
-        return Glib::Variant<Glib::ustring>::create(PyString_AsString(input));
+    else if (type == G_VARIANT_TYPE_STRING && string_check(input))
+        return Glib::Variant<Glib::ustring>::create(string_from_python(input));
     else if (type == G_VARIANT_TYPE_BOOLEAN && PyBool_Check(input))
         return Glib::Variant<bool>::create(input == Py_True);
     else if (type == G_VARIANT_TYPE_DOUBLE && PyFloat_Check(input))
@@ -366,9 +376,9 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     Py_ssize_t pos = 0;
 
     while (PyDict_Next(dict, &pos, &py_key, &py_value)) {
-        if (!PyString_Check(py_key))
+        if (!string_check(py_key))
             throw sigrok::Error(SR_ERR_ARG);
-        auto key = PyString_AsString(py_key);
+        auto key = string_from_python(py_key);
         auto value = python_to_variant_by_option(py_value, options[key]);
         output[key] = value;
     }
@@ -443,9 +453,9 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
         while (PyDict_Next(dict, &pos, &py_key, &py_value))
         {
-            if (!PyString_Check(py_key))
+            if (!string_check(py_key))
                 throw sigrok::Error(SR_ERR_ARG);
-            auto key = sigrok::ConfigKey::get_by_identifier(PyString_AsString(py_key));
+            auto key = sigrok::ConfigKey::get_by_identifier(string_from_python(py_key));
             auto value = python_to_variant_by_key(py_value, key);
             options[key] = value;
         }
