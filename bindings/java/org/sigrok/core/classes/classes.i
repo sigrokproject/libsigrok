@@ -237,6 +237,40 @@ MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
    $1 = jenv;
 %} 
 
+/* Thread safe JNIEnv handling */
+
+%inline {
+namespace {
+  class ScopedEnv {
+    public:
+      ScopedEnv(JavaVM *jvm);
+      ScopedEnv(const ScopedEnv &ref) = delete;
+      ~ScopedEnv();
+      JNIEnv* operator-> () { return env; }
+      operator bool () const { return (bool)env; }
+    private:
+      JavaVM *jvm;
+      JNIEnv *env;
+      int env_status;
+  };
+  ScopedEnv::ScopedEnv(JavaVM *jvm) : jvm(jvm), env(NULL) {
+    env_status = jvm->GetEnv((void **)&env, JNI_VERSION_1_2);
+    if (env_status == JNI_EDETACHED) {
+%#if defined(__ANDROID__)
+      jvm->AttachCurrentThread(&env, NULL);
+%#else
+      jvm->AttachCurrentThread((void **)&env, NULL);
+%#endif
+    }
+  }
+  ScopedEnv::~ScopedEnv() {
+    if (env_status == JNI_EDETACHED) {
+      jvm->DetachCurrentThread();
+    }
+  }
+}
+}
+
 /* Support Java log callbacks. */
 
 %typemap(javaimports) sigrok::Context
@@ -255,6 +289,8 @@ typedef jobject jlogcallback;
 {
   void add_log_callback(JNIEnv *env, jlogcallback obj)
   {
+    JavaVM *jvm = NULL;
+    env->GetJavaVM(&jvm);
     jclass obj_class = env->GetObjectClass(obj);
     jmethodID method = env->GetMethodID(obj_class, "run",
       "(Lorg/sigrok/core/classes/LogLevel;Ljava/lang/String;)V");
@@ -267,6 +303,9 @@ typedef jobject jlogcallback;
       const sigrok::LogLevel *loglevel,
       std::string message)
     {
+      ScopedEnv env(jvm);
+      if (!env)
+        throw sigrok::Error(SR_ERR);
       jlong loglevel_addr = 0;
       *(const sigrok::LogLevel **) &loglevel_addr = loglevel;
       jobject loglevel_obj = env->NewObject(
@@ -297,6 +336,8 @@ typedef jobject jdatafeedcallback;
 {
   void add_datafeed_callback(JNIEnv *env, jdatafeedcallback obj)
   {
+    JavaVM *jvm = NULL;
+    env->GetJavaVM(&jvm);
     jclass obj_class = env->GetObjectClass(obj);
     jmethodID method = env->GetMethodID(obj_class, "run",
       "(Lorg/sigrok/core/classes/Device;Lorg/sigrok/core/classes/Packet;)V");
@@ -312,6 +353,9 @@ typedef jobject jdatafeedcallback;
       std::shared_ptr<sigrok::Device> device,
       std::shared_ptr<sigrok::Packet> packet)
     {
+      ScopedEnv env(jvm);
+      if (!env)
+        throw sigrok::Error(SR_ERR);
       jlong device_addr = 0;
       jlong packet_addr = 0;
       *(std::shared_ptr<sigrok::Device> **) &device_addr =
