@@ -271,6 +271,40 @@ namespace {
 }
 }
 
+/* "Smartpointer" for Java references. */
+
+%inline {
+namespace {
+  class GlobalRefBase
+  {
+    protected:
+      GlobalRefBase (JavaVM *jvm, jobject ref);
+      GlobalRefBase (const GlobalRefBase &ref) = delete;
+      ~GlobalRefBase ();
+      JavaVM *jvm;
+      jobject jref;
+  };
+  GlobalRefBase::GlobalRefBase (JavaVM *jvm, jobject ref) : jvm(jvm), jref(0) {
+    ScopedEnv env(jvm);
+    if (env && ref)
+      jref = env->NewGlobalRef(ref);
+  }
+  GlobalRefBase::~GlobalRefBase () {
+    ScopedEnv env(jvm);
+    if(env && jref)
+      env->DeleteGlobalRef(jref);
+  }
+  template <class Jtype>
+  class GlobalRef : private GlobalRefBase
+  {
+    public:
+      GlobalRef (JavaVM *jvm, Jtype ref) : GlobalRefBase(jvm, ref) {}
+      GlobalRef (const GlobalRef &ref) : GlobalRefBase(ref.jvm, ref.jref) {}
+      operator Jtype () const { return static_cast<Jtype>(jref); }
+  };
+}
+}
+
 /* Support Java log callbacks. */
 
 %typemap(javaimports) sigrok::Context
@@ -294,10 +328,9 @@ typedef jobject jlogcallback;
     jclass obj_class = env->GetObjectClass(obj);
     jmethodID method = env->GetMethodID(obj_class, "run",
       "(Lorg/sigrok/core/classes/LogLevel;Ljava/lang/String;)V");
-    jclass LogLevel = (jclass) env->NewGlobalRef(
-        env->FindClass("org/sigrok/core/classes/LogLevel"));
+    GlobalRef<jclass> LogLevel(jvm, env->FindClass("org/sigrok/core/classes/LogLevel"));
     jmethodID LogLevel_init = env->GetMethodID(LogLevel, "<init>", "(JZ)V");
-    jobject obj_ref = env->NewGlobalRef(obj);
+    GlobalRef<jobject> obj_ref(jvm, obj);
 
     $self->set_log_callback([=] (
       const sigrok::LogLevel *loglevel,
@@ -341,13 +374,11 @@ typedef jobject jdatafeedcallback;
     jclass obj_class = env->GetObjectClass(obj);
     jmethodID method = env->GetMethodID(obj_class, "run",
       "(Lorg/sigrok/core/classes/Device;Lorg/sigrok/core/classes/Packet;)V");
-    jclass Device = (jclass) env->NewGlobalRef(
-        env->FindClass("org/sigrok/core/classes/Device"));
+    GlobalRef<jclass> Device(jvm, env->FindClass("org/sigrok/core/classes/Device"));
     jmethodID Device_init = env->GetMethodID(Device, "<init>", "(JZ)V");
-    jclass Packet = (jclass) env->NewGlobalRef(
-       env->FindClass("org/sigrok/core/classes/Packet"));
+    GlobalRef<jclass> Packet(jvm, env->FindClass("org/sigrok/core/classes/Packet"));
     jmethodID Packet_init = env->GetMethodID(Packet, "<init>", "(JZ)V");
-    jobject obj_ref = env->NewGlobalRef(obj);
+    GlobalRef<jobject> obj_ref(jvm, obj);
 
     $self->add_datafeed_callback([=] (
       std::shared_ptr<sigrok::Device> device,
