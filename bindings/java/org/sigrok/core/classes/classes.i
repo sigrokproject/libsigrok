@@ -195,14 +195,14 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
 
 /* Specialisation for ConfigKey->set<Capability> maps */
 
-MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
+MAP_COMMON(const sigrok::ConfigKey *, std::set<const sigrok::Capability *>,
   ConfigKey, java.util.Set<Capability>)
 
-%typemap(jni) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> > "jobject"
-%typemap(jtype) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> >
+%typemap(jni) std::map<const sigrok::ConfigKey *, std::set<const sigrok::Capability *> > "jobject"
+%typemap(jtype) std::map<const sigrok::ConfigKey *, std::set<const sigrok::Capability *> >
   "java.util.Map<ConfigKey,java.util.Set<Capability>>"
 
-%typemap(out) std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> > {
+%typemap(out) std::map<const sigrok::ConfigKey *, std::set<const sigrok::Capability *> > {
   jclass HashMap = jenv->FindClass("java/util/HashMap");
   jmethodID HashMap_init = jenv->GetMethodID(HashMap, "<init>", "()V");
   jmethodID HashMap_put = jenv->GetMethodID(HashMap, "put",
@@ -214,8 +214,7 @@ MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
   jclass ConfigKey = jenv->FindClass("org/sigrok/core/classes/ConfigKey");
   jmethodID ConfigKey_init = jenv->GetMethodID(ConfigKey, "<init>", "(JZ)V");
   jclass Capability = jenv->FindClass("org/sigrok/core/classes/Capability");
-  jmethodID Capability_swigToEnum = jenv->GetStaticMethodID(Capability,
-    "swigToEnum", "(I)Lorg/sigrok/core/classes/Capability;");
+  jmethodID Capability_init = jenv->GetMethodID(Capability, "<init>", "(JZ)V");
   $result = jenv->NewObject(HashMap, HashMap_init);
   jlong key = 0;
   for (auto map_entry : $1)
@@ -224,8 +223,7 @@ MAP_COMMON(const sigrok::ConfigKey *, std::set<enum sigrok::Capability>,
     jobject value = jenv->NewObject(HashSet, HashSet_init);
     for (auto &set_entry : map_entry.second)
       jenv->CallObjectMethod(value, HashSet_add,
-        jenv->CallStaticObjectMethod(Capability,
-          Capability_swigToEnum, set_entry));
+        jenv->NewObject(Capability, Capability_init, set_entry));
     jenv->CallObjectMethod($result, HashMap_put,
       jenv->NewObject(ConfigKey, ConfigKey_init, key, false), value);
   }

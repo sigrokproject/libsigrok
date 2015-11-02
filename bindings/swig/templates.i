@@ -63,11 +63,16 @@ namespace std {
 %template(ConfigMap)
     std::map<const sigrok::ConfigKey *, Glib::VariantBase>;
 
+/* Currently broken on Python. */
+#ifndef SWIGPYTHON
+
 %template(CapabilitySet)
-    std::set<enum sigrok::Capability>;
+    std::set<const sigrok::Capability *>;
 
 %template(ConfigKeys)
-    std::map<const sigrok::ConfigKey *, std::set<enum sigrok::Capability> >;
+    std::map<const sigrok::ConfigKey *, std::set<const sigrok::Capability *> >;
+
+#endif
 
 %template(OptionVector)
     std::vector<std::shared_ptr<sigrok::Option> >;

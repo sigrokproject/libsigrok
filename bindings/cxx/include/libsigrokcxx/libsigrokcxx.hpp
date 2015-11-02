@@ -98,6 +98,7 @@ class SR_API HardwareDevice;
 class SR_API Channel;
 class SR_API Session;
 class SR_API ConfigKey;
+class SR_API Capability;
 class SR_API InputFormat;
 class SR_API OutputFormat;
 class SR_API OutputFlag;
@@ -310,12 +311,6 @@ private:
 	friend struct std::default_delete<Context>;
 };
 
-enum Capability {
-	GET = SR_CONF_GET,
-	SET = SR_CONF_SET,
-	LIST = SR_CONF_LIST
-};
-
 /** An object that can be configured. */
 class SR_API Configurable
 {
@@ -331,7 +326,7 @@ public:
 	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key) const;
 	/** Enumerate available keys, according to a given index key. */
-	map<const ConfigKey *, set<enum Capability> > config_keys(const ConfigKey *key);
+	map<const ConfigKey *, set<const Capability *> > config_keys(const ConfigKey *key);
 	/** Check for a key in the list from a given index key. */
 	bool config_check(const ConfigKey *key, const ConfigKey *index_key) const;
 protected:

@@ -40,6 +40,7 @@ mapping = dict([
     ('sr_unit', ('Unit', 'Unit of measurement')),
     ('sr_mqflag', ('QuantityFlag', 'Flag applied to measured quantity')),
     ('sr_configkey', ('ConfigKey', 'Configuration key')),
+    ('sr_configcap', ('Capability', 'Configuration capability')),
     ('sr_datatype', ('DataType', 'Configuration data type')),
     ('sr_channeltype', ('ChannelType', 'Channel type')),
     ('sr_trigger_matches', ('TriggerMatchType', 'Trigger match type')),

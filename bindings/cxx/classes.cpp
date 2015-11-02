@@ -491,12 +491,12 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key) const
 	return Glib::VariantContainerBase(data);
 }
 
-map<const ConfigKey *, set<Capability>> Configurable::config_keys(const ConfigKey *key)
+map<const ConfigKey *, set<const Capability *>> Configurable::config_keys(const ConfigKey *key)
 {
 	GVariant *gvar_opts;
 	gsize num_opts;
 	const uint32_t *opts;
-	map<const ConfigKey *, set<Capability>> result;
+	map<const ConfigKey *, set<const Capability *>> result;
 
 	check(sr_config_list(
 		config_driver, config_sdi, config_channel_group,
@@ -508,13 +508,13 @@ map<const ConfigKey *, set<Capability>> Configurable::config_keys(const ConfigKe
 	for (gsize i = 0; i < num_opts; i++)
 	{
 		auto key = ConfigKey::get(opts[i] & SR_CONF_MASK);
-		set<Capability> capabilities;
+		set<const Capability *> capabilities;
 		if (opts[i] & SR_CONF_GET)
-			capabilities.insert(GET);
+			capabilities.insert(Capability::GET);
 		if (opts[i] & SR_CONF_SET)
-			capabilities.insert(SET);
+			capabilities.insert(Capability::SET);
 		if (opts[i] & SR_CONF_LIST)
-			capabilities.insert(LIST);
+			capabilities.insert(Capability::LIST);
 		result[key] = capabilities;
 	}
 
