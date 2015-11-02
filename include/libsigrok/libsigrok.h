@@ -652,9 +652,16 @@ struct sr_key_info {
 	const char *description;
 };
 
-#define SR_CONF_GET  (1 << 31)
-#define SR_CONF_SET  (1 << 30)
-#define SR_CONF_LIST (1 << 29)
+/** Configuration capabilities. */
+enum sr_configcap {
+	/** Value can be read. */
+	SR_CONF_GET = (1 << 31),
+	/** Value can be written. */
+	SR_CONF_SET = (1 << 30),
+	/** Possible values can be enumerated. */
+	SR_CONF_LIST = (1 << 29),
+};
+
 #define SR_CONF_MASK 0x1fffffff
 
 /** Configuration keys */
