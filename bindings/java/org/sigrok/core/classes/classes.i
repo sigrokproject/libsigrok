@@ -244,7 +244,6 @@ namespace {
   class ScopedEnv {
     public:
       ScopedEnv(JavaVM *jvm);
-      ScopedEnv(const ScopedEnv &ref) = delete;
       ~ScopedEnv();
       JNIEnv* operator-> () { return env; }
       operator bool () const { return (bool)env; }
@@ -279,7 +278,6 @@ namespace {
   {
     protected:
       GlobalRefBase (JavaVM *jvm, jobject ref);
-      GlobalRefBase (const GlobalRefBase &ref) = delete;
       ~GlobalRefBase ();
       JavaVM *jvm;
       jobject jref;
