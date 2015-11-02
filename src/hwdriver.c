@@ -392,6 +392,43 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 	return ret;
 }
 
+/**
+ * Enumerate scan options supported by this driver.
+ *
+ * Before calling sr_driver_scan_options(), the user must have previously
+ * initialized the driver by calling sr_driver_init().
+ *
+ * @param driver The driver to enumerate options for. This must be a pointer
+ *               to one of the entries returned by sr_driver_list(). Must not
+ *               be NULL.
+ *
+ * @return A GArray * of uint32_t entries, or NULL on invalid arguments. Each
+ *         entry is a configuration key that is supported as a scan option.
+ *         The array must be freed by the caller using g_array_free().
+ *
+ * @since 0.4.0
+ */
+SR_API GArray *sr_driver_scan_options(const struct sr_dev_driver *driver)
+{
+	GVariant *gvar;
+	const uint32_t *opts;
+	gsize num_opts;
+	GArray *result;
+
+	if (sr_config_list(driver, NULL, NULL, SR_CONF_SCAN_OPTIONS, &gvar) != SR_OK)
+		return NULL;
+
+	opts = g_variant_get_fixed_array(gvar, &num_opts, sizeof(uint32_t));
+
+	result = g_array_sized_new(FALSE, FALSE, sizeof(uint32_t), num_opts);
+
+	g_array_insert_vals(result, 0, opts, num_opts);
+
+	g_variant_unref(gvar);
+
+	return result;
+}
+
 static int check_options(struct sr_dev_driver *driver, GSList *options,
 		uint32_t optlist_key, struct sr_dev_inst *sdi,
 		struct sr_channel_group *cg)
