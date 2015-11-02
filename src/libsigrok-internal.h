@@ -675,6 +675,12 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...) G_GNUC_PRINTF(2, 3);
 
 /*--- device.c --------------------------------------------------------------*/
 
+/** Scan options supported by a driver. */
+#define SR_CONF_SCAN_OPTIONS 0x7FFF0000
+
+/** Device options for a particular device. */
+#define SR_CONF_DEVICE_OPTIONS 0x7FFF0001
+
 /** Values for the changes argument of sr_dev_driver.config_channel_set. */
 enum {
 	/** The enabled state of the channel has been changed. */

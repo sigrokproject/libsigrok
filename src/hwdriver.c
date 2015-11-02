@@ -173,10 +173,6 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Over-temperature protection active", NULL},
 
 	/* Special stuff */
-	{SR_CONF_SCAN_OPTIONS, SR_T_STRING, "scan_options",
-		"Scan options", NULL},
-	{SR_CONF_DEVICE_OPTIONS, SR_T_STRING, "device_options",
-		"Device options", NULL},
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
 		"Session file", NULL},
 	{SR_CONF_CAPTUREFILE, SR_T_STRING, "capturefile",

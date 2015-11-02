@@ -982,12 +982,6 @@ enum sr_configkey {
 
 	/*--- Special stuff -------------------------------------------------*/
 
-	/** Scan options supported by the driver. */
-	SR_CONF_SCAN_OPTIONS = 40000,
-
-	/** Device options for a particular device. */
-	SR_CONF_DEVICE_OPTIONS,
-
 	/** Session filename. */
 	SR_CONF_SESSIONFILE,
 
