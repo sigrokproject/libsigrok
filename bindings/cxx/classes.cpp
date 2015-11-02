@@ -406,6 +406,16 @@ string Driver::long_name() const
 	return valid_string(_structure->longname);
 }
 
+set<const ConfigKey *> Driver::scan_options() const
+{
+	GArray *opts = sr_driver_scan_options(_structure);
+	set<const ConfigKey *> result;
+	for (guint i = 0; i < opts->len; i++)
+		result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
+	g_array_free(opts, TRUE);
+	return result;
+}
+
 vector<shared_ptr<HardwareDevice>> Driver::scan(
 	map<const ConfigKey *, Glib::VariantBase> options)
 {
@@ -466,6 +476,21 @@ Configurable::~Configurable()
 {
 }
 
+set<const ConfigKey *> Configurable::config_keys() const
+{
+	GArray *opts;
+	set<const ConfigKey *> result;
+
+	opts = sr_dev_options(config_driver, config_sdi, config_channel_group);
+
+	for (guint i = 0; i < opts->len; i++)
+		result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
+
+	g_array_free(opts, TRUE);
+
+	return result;
+}
+
 Glib::VariantBase Configurable::config_get(const ConfigKey *key) const
 {
 	GVariant *data;
@@ -482,6 +507,29 @@ void Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &val
 		key->id(), const_cast<GVariant*>(value.gobj())));
 }
 
+set<const Capability *> Configurable::config_capabilities(const ConfigKey *key) const
+{
+	int caps = sr_dev_config_capabilities(config_sdi, config_channel_group,
+		key->id());
+
+	set<const Capability *> result;
+
+	for (auto cap: Capability::values())
+		if (caps & cap->id())
+			result.insert(cap);
+
+	return result;
+}
+
+bool Configurable::config_check(const ConfigKey *key,
+	const Capability *capability) const
+{
+	int caps = sr_dev_config_capabilities(config_sdi, config_channel_group,
+		key->id());
+
+	return (caps & capability->id());
+}
+
 Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key) const
 {
 	GVariant *data;
@@ -489,66 +537,6 @@ Glib::VariantContainerBase Configurable::config_list(const ConfigKey *key) const
 		config_driver, config_sdi, config_channel_group,
 		key->id(), &data));
 	return Glib::VariantContainerBase(data);
-}
-
-map<const ConfigKey *, set<const Capability *>> Configurable::config_keys(const ConfigKey *key)
-{
-	GVariant *gvar_opts;
-	gsize num_opts;
-	const uint32_t *opts;
-	map<const ConfigKey *, set<const Capability *>> result;
-
-	check(sr_config_list(
-		config_driver, config_sdi, config_channel_group,
-		key->id(), &gvar_opts));
-
-	opts = static_cast<const uint32_t *>(g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(uint32_t)));
-
-	for (gsize i = 0; i < num_opts; i++)
-	{
-		auto key = ConfigKey::get(opts[i] & SR_CONF_MASK);
-		set<const Capability *> capabilities;
-		if (opts[i] & SR_CONF_GET)
-			capabilities.insert(Capability::GET);
-		if (opts[i] & SR_CONF_SET)
-			capabilities.insert(Capability::SET);
-		if (opts[i] & SR_CONF_LIST)
-			capabilities.insert(Capability::LIST);
-		result[key] = capabilities;
-	}
-
-	g_variant_unref(gvar_opts);
-
-	return result;
-}
-
-bool Configurable::config_check(const ConfigKey *key,
-	const ConfigKey *index_key) const
-{
-	GVariant *gvar_opts;
-	gsize num_opts;
-	const uint32_t *opts;
-
-	if (sr_config_list(config_driver, config_sdi, config_channel_group,
-			index_key->id(), &gvar_opts) != SR_OK)
-		return false;
-
-	opts = static_cast<const uint32_t *>(g_variant_get_fixed_array(
-		gvar_opts, &num_opts, sizeof(uint32_t)));
-
-	for (gsize i = 0; i < num_opts; i++)
-	{
-		if ((opts[i] & SR_CONF_MASK) == unsigned(key->id()))
-		{
-			g_variant_unref(gvar_opts);
-			return true;
-		}
-	}
-
-	g_variant_unref(gvar_opts);
-
-	return false;
 }
 
 Device::Device(struct sr_dev_inst *structure) :

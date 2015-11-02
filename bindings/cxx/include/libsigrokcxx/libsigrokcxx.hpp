@@ -315,6 +315,8 @@ private:
 class SR_API Configurable
 {
 public:
+	/** Supported configuration keys. */
+	set<const ConfigKey *> config_keys() const;
 	/** Read configuration for the given key.
 	 * @param key ConfigKey to read. */
 	Glib::VariantBase config_get(const ConfigKey *key) const;
@@ -325,10 +327,13 @@ public:
 	/** Enumerate available values for the given configuration key.
 	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key) const;
-	/** Enumerate available keys, according to a given index key. */
-	map<const ConfigKey *, set<const Capability *> > config_keys(const ConfigKey *key);
-	/** Check for a key in the list from a given index key. */
-	bool config_check(const ConfigKey *key, const ConfigKey *index_key) const;
+	/** Enumerate configuration capabilities for the given configuration key.
+	 * @param key ConfigKey to enumerate capabilities for. */
+	set<const Capability *> config_capabilities(const ConfigKey *key) const;
+	/** Check whether a configuration capability is supported for a given key.
+	 * @param key ConfigKey to check.
+     * @param capability Capability to check for. */
+	bool config_check(const ConfigKey *key, const Capability *capability) const;
 protected:
 	Configurable(
 		struct sr_dev_driver *driver,
@@ -341,15 +346,15 @@ protected:
 };
 
 /** A hardware driver provided by the library */
-class SR_API Driver :
-	public ParentOwned<Driver, Context>,
-	public Configurable
+class SR_API Driver : public ParentOwned<Driver, Context>, public Configurable
 {
 public:
 	/** Name of this driver. */
 	string name() const;
 	/** Long name for this driver. */
 	string long_name() const;
+	/** Scan options supported by this driver. */
+	set<const ConfigKey *> scan_options() const;
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
 	vector<shared_ptr<HardwareDevice> > scan(map<const ConfigKey *, Glib::VariantBase>
