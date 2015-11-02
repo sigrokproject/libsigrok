@@ -1091,9 +1091,9 @@ enum sr_dev_inst_status {
 struct sr_dev_driver {
 	/* Driver-specific */
 	/** Driver name. Lowercase a-z, 0-9 and dashes (-) only. */
-	char *name;
+	const char *name;
 	/** Long name. Verbose driver name shown to user. */
-	char *longname;
+	const char *longname;
 	/** API version (currently 1).	*/
 	int api_version;
 	/** Called when driver is loaded, e.g. program startup. */
