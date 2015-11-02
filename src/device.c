@@ -197,6 +197,53 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 }
 
 /**
+ * Enumerate the configuration options of the specified item.
+ *
+ * @param driver Pointer to the driver to be checked. Must not be NULL.
+ * @param sdi Pointer to the device instance to be checked. May be NULL to
+ *            check driver options.
+ * @param cg  Pointer to a channel group, if a specific channel group is to
+ *            be checked. Must be NULL to check device-wide options.
+ * @return A GArray * of enum sr_configkey values, or NULL on invalid
+ *         arguments. The array must be freed by the caller using
+ *         g_array_free().
+ *
+ * @since 0.4.0
+ */
+SR_API GArray *sr_dev_options(
+		const struct sr_dev_driver *driver, const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg)
+{
+	GVariant *gvar;
+	const uint32_t *opts;
+	uint32_t opt;
+	gsize num_opts, i;
+	GArray *result;
+
+	if (!driver || !driver->config_list)
+		return NULL;
+
+	if (sdi && sdi->driver != driver)
+		return NULL;
+
+	if (driver->config_list(SR_CONF_DEVICE_OPTIONS, &gvar, sdi, cg) != SR_OK)
+		return NULL;
+
+	opts = g_variant_get_fixed_array(gvar, &num_opts, sizeof(uint32_t));
+
+	result = g_array_sized_new(FALSE, FALSE, sizeof(uint32_t), num_opts);
+
+	for (i = 0; i < num_opts; i++) {
+		opt = opts[i] & SR_CONF_MASK;
+		g_array_insert_val(result, i, opt);
+	}
+
+	g_variant_unref(gvar);
+
+	return result;
+}
+
+/**
  * Enumerate the configuration capabilities supported by a device instance
  * for a given configuration key.
  *
