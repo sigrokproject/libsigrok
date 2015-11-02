@@ -197,6 +197,52 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
 }
 
 /**
+ * Enumerate the configuration capabilities supported by a device instance
+ * for a given configuration key.
+ *
+ * @param sdi Pointer to the device instance to be checked. Must not be NULL.
+ *            If the device's 'driver' field is NULL (virtual device), this
+ *            function will always return FALSE (virtual devices don't have
+ *            a hardware capabilities list).
+ * @param cg  Pointer to a channel group, if a specific channel group is to
+ *            be checked. Must be NULL to check device-wide options.
+ * @param[in] key The option that should be checked for is supported by the
+ *            specified device.
+ *
+ * @retval A bitmask of enum sr_configcap values, which will be zero for
+ *         invalid inputs or if the key is unsupported.
+ *
+ * @since 0.4.0
+ */
+SR_API int sr_dev_config_capabilities(const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg, const int key)
+{
+	GVariant *gvar;
+	const int *devopts;
+	gsize num_opts, i;
+	int ret;
+
+	if (!sdi || !sdi->driver || !sdi->driver->config_list)
+		return 0;
+
+	if (sdi->driver->config_list(SR_CONF_DEVICE_OPTIONS,
+				&gvar, sdi, cg) != SR_OK)
+		return 0;
+
+	ret = 0;
+	devopts = g_variant_get_fixed_array(gvar, &num_opts, sizeof(int32_t));
+	for (i = 0; i < num_opts; i++) {
+		if ((devopts[i] & SR_CONF_MASK) == key) {
+			ret = devopts[i] & ~SR_CONF_MASK;
+			break;
+		}
+	}
+	g_variant_unref(gvar);
+
+	return ret;
+}
+
+/**
  * Allocate and init a new user-generated device instance.
  *
  * @param vendor Device vendor
