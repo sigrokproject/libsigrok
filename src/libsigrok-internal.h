@@ -681,6 +681,9 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...) G_GNUC_PRINTF(2, 3);
 /** Device options for a particular device. */
 #define SR_CONF_DEVICE_OPTIONS 0x7FFF0001
 
+/** Mask for separating config keys from capabilities. */
+#define SR_CONF_MASK 0x1fffffff
+
 /** Values for the changes argument of sr_dev_driver.config_channel_set. */
 enum {
 	/** The enabled state of the channel has been changed. */

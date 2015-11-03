@@ -662,8 +662,6 @@ enum sr_configcap {
 	SR_CONF_LIST = (1 << 29),
 };
 
-#define SR_CONF_MASK 0x1fffffff
-
 /** Configuration keys */
 enum sr_configkey {
 	/*--- Device classes ------------------------------------------------*/
