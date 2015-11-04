@@ -1036,6 +1036,22 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog_old *analog, void *in
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog_old *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog_old *analog, void *info);
 
+/*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
+
+#define DTM0660_PACKET_SIZE 15
+
+struct dtm0660_info {
+	gboolean is_ac, is_dc, is_auto, is_rs232, is_micro, is_nano, is_kilo;
+	gboolean is_diode, is_milli, is_percent, is_mega, is_beep, is_farad;
+	gboolean is_ohm, is_rel, is_hold, is_ampere, is_volt, is_hz, is_bat;
+	gboolean is_degf, is_degc, is_c2c1_01, is_c2c1_00, is_apo, is_min;
+	gboolean is_minmax, is_max, is_sign;
+};
+
+SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
+			struct sr_datafeed_analog_old *analog, void *info);
+
 /*--- hardware/dmm/m2110.c --------------------------------------------------*/
 
 #define BBCGM_M2110_PACKET_SIZE 9
