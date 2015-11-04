@@ -599,5 +599,17 @@ SR_PRIV const struct dmm_info *serial_dmm_drivers[] = {
 		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
 		NULL
 	),
+	DMM(
+		"velleman-dvm4100", dtm0660,
+		"Velleman", "DVM4100", "2400/8n1/rts=0/dtr=1",
+		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
+		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
+	),
+	DMM(
+		"peaktech-3415", dtm0660,
+		"Peaktech", "3415", "2400/8n1/rts=0/dtr=1",
+		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
+		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
+	),
 	NULL
 };
