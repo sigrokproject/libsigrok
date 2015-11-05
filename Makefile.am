@@ -174,8 +174,9 @@ libsigrok_la_SOURCES += \
 endif
 if HW_ASIX_SIGMA
 libsigrok_la_SOURCES += \
-	src/hardware/asix-sigma/asix-sigma.h \
-	src/hardware/asix-sigma/asix-sigma.c
+	src/hardware/asix-sigma/protocol.h \
+	src/hardware/asix-sigma/protocol.c \
+	src/hardware/asix-sigma/api.c
 endif
 if HW_ATTEN_PPS3XXX
 libsigrok_la_SOURCES += \

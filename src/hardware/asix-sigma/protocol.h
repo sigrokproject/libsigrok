@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2010 Håvard Espeland <gus@ping.uio.no>,
+ * Copyright (C) 2010-2012 Håvard Espeland <gus@ping.uio.no>,
  * Copyright (C) 2010 Martin Stensgård <mastensg@ping.uio.no>
  * Copyright (C) 2010 Carl Henrik Lunde <chlunde@ping.uio.no>
  *
@@ -19,10 +19,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
-#define LIBSIGROK_HARDWARE_ASIX_SIGMA_ASIX_SIGMA_H
+#ifndef LIBSIGROK_HARDWARE_ASIX_SIGMA_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_ASIX_SIGMA_PROTOCOL_H
+
+#include <stdint.h>
+#include <glib.h>
+#include <ftdi.h>
+#include <string.h>
+#include <libsigrok/libsigrok.h>
+#include "libsigrok-internal.h"
 
 #define LOG_PREFIX "asix-sigma"
+
+#define USB_VENDOR			0xa600
+#define USB_PRODUCT			0xa000
+#define USB_DESCRIPTION			"ASIX SIGMA"
+#define USB_VENDOR_NAME			"ASIX"
+#define USB_MODEL_NAME			"SIGMA"
 
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
@@ -207,5 +220,18 @@ struct dev_context {
 	struct sigma_state state;
 	void *cb_data;
 };
+
+extern SR_PRIV const uint64_t samplerates[];
+extern SR_PRIV const int SAMPLERATES_COUNT;
+
+SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len, 
+				 struct dev_context *devc);
+SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
+SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);
+SR_PRIV void sigma_clear_helper(void *priv);
+SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
+SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int sigma_build_basic_trigger(struct triggerlut *lut, struct dev_context *devc);
 
 #endif
