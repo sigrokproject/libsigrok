@@ -36,9 +36,9 @@ enum {
 };
 
 struct mic_dev_info {
-	char *vendor;
-	char *device;
-	char *conn;
+	const char *vendor;
+	const char *device;
+	const char *conn;
 	uint32_t max_sample_points;
 	gboolean has_temperature;
 	gboolean has_humidity;

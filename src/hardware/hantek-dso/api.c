@@ -428,7 +428,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	char str[128], *s;
+	char str[128];
+	const char *s;
 	const uint64_t *vdiv;
 	int ch_idx;
 

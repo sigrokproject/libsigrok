@@ -68,7 +68,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	return SR_OK;
 }
 
-static void si_printf(float value, GString *out, char *unitstr)
+static void si_printf(float value, GString *out, const char *unitstr)
 {
 	float v;
 

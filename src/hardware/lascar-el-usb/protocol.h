@@ -68,7 +68,7 @@ enum {
 
 struct elusb_profile {
 	int modelid;
-	char *modelname;
+	const char *modelname;
 	int logformat;
 };
 

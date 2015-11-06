@@ -44,9 +44,9 @@ enum {
 /* Information on single model */
 struct korad_kdxxxxp_model {
 	int model_id; /**< Model info */
-	char *vendor; /**< Vendor name */
-	char *name; /**< Model name */
-	char *id; /**< Model ID, as delivered by interface */
+	const char *vendor; /**< Vendor name */
+	const char *name; /**< Model name */
+	const char *id; /**< Model ID, as delivered by interface */
 	int channels; /**< Number of channels */
 	double voltage[3]; /**< Min, max, step */
 	double current[3]; /**< Min, max, step */

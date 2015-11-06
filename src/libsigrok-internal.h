@@ -288,7 +288,7 @@ struct sr_input_module {
 	 * Returns a NULL-terminated list of options this module can take.
 	 * Can be NULL, if the module has no options.
 	 */
-	struct sr_option *(*options) (void);
+	const struct sr_option *(*options) (void);
 
 	/**
 	 * Check if this input module can load and parse the specified stream.
@@ -383,7 +383,7 @@ struct sr_output_module {
 	 * A unique ID for this output module, suitable for use in command-line
 	 * clients, [a-z0-9-]. Must not be NULL.
 	 */
-	char *id;
+	const char *id;
 
 	/**
 	 * A unique name for this output module, suitable for use in GUI
@@ -397,7 +397,7 @@ struct sr_output_module {
 	 * This can be displayed by frontends, e.g. when selecting the output
 	 * module for saving a file.
 	 */
-	char *desc;
+	const char *desc;
 
 	/**
 	 * A NULL terminated array of strings containing a list of file name
@@ -491,7 +491,7 @@ struct sr_transform_module {
 	 * A unique ID for this transform module, suitable for use in
 	 * command-line clients, [a-z0-9-]. Must not be NULL.
 	 */
-	char *id;
+	const char *id;
 
 	/**
 	 * A unique name for this transform module, suitable for use in GUI
@@ -505,7 +505,7 @@ struct sr_transform_module {
 	 * This can be displayed by frontends, e.g. when selecting
 	 * which transform module(s) to add.
 	 */
-	char *desc;
+	const char *desc;
 
 	/**
 	 * Returns a NULL-terminated list of options this transform module

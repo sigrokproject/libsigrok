@@ -374,7 +374,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
-	char *fpga_firmware = NULL;
+	const char *fpga_firmware = NULL;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 

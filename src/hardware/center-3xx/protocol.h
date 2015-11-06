@@ -37,9 +37,9 @@ enum {
 };
 
 struct center_dev_info {
-	char *vendor;
-	char *device;
-	char *conn;
+	const char *vendor;
+	const char *device;
+	const char *conn;
 	int num_channels;
 	uint32_t max_sample_points;
 	uint8_t packet_size;

@@ -546,11 +546,11 @@ struct sr_analog_spec {
 /** Generic option struct used by various subsystems. */
 struct sr_option {
 	/* Short name suitable for commandline usage, [a-z0-9-]. */
-	char *id;
+	const char *id;
 	/* Short name suitable for GUI usage, can contain UTF-8. */
-	char *name;
+	const char *name;
 	/* Description of the option, in a sentence. */
-	char *desc;
+	const char *desc;
 	/* Default value for this option. */
 	GVariant *def;
 	/* List of possible values, if this is an option with few values. */
@@ -645,11 +645,11 @@ struct sr_key_info {
 	/** Data type like SR_T_STRING, etc if applicable. */
 	int datatype;
 	/** Short, lowercase ID string, e.g. "serialcomm", "voltage". */
-	char *id;
+	const char *id;
 	/** Full capitalized name, e.g. "Serial communication". */
-	char *name;
+	const char *name;
 	/** Verbose description (unused currently). */
-	char *description;
+	const char *description;
 };
 
 #define SR_CONF_GET  (1 << 31)

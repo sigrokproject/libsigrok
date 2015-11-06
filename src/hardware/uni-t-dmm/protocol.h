@@ -31,8 +31,8 @@
 
 struct dmm_info {
 	struct sr_dev_driver di;
-	char *vendor;
-	char *device;
+	const char *vendor;
+	const char *device;
 	uint32_t baudrate;
 	int packet_size;
 	gboolean (*packet_valid)(const uint8_t *);

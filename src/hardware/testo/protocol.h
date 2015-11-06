@@ -46,7 +46,7 @@
 #define EP_OUT               2 | LIBUSB_ENDPOINT_OUT
 
 struct testo_model {
-	char *name;
+	const char *name;
 	int request_size;
 	const uint8_t *request;
 };

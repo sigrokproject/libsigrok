@@ -76,7 +76,7 @@ static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 	link_parms.clientId = (long) vxi->client;
 	link_parms.lockDevice = 0;
 	link_parms.lock_timeout = VXI_DEFAULT_TIMEOUT_MS;
-	link_parms.device = "inst0";
+	link_parms.device = (char *)"inst0";
 
 	if (!(link_resp = create_link_1(&link_parms, vxi->client))) {
 		sr_err("Link creation failed for %s", vxi->address);

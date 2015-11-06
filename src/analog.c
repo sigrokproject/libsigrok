@@ -45,7 +45,7 @@
 
 struct unit_mq_string {
 	uint64_t value;
-	char *str;
+	const char *str;
 };
 
 /* Please use the same order as in enum sr_unit (libsigrok.h). */

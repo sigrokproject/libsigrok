@@ -162,7 +162,7 @@ static struct sr_option options[] = {
 	ALL_ZERO
 };
 
-static struct sr_option *get_options(void)
+static const struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));

@@ -21,7 +21,7 @@
 #include <string.h>
 #include "protocol.h"
 
-static void dump_packet(char *msg, uint8_t *packet)
+static void dump_packet(const char *msg, uint8_t *packet)
 {
 	int i;
 	char str[128];

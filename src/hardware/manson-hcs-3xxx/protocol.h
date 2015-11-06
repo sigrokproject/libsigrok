@@ -58,8 +58,8 @@ enum {
 /** Information on a single model. */
 struct hcs_model {
 	int model_id;      /**< Model info */
-	char *name;        /**< Model name */
-	char *id;          /**< Model ID, like delivered by interface */
+	const char *name;  /**< Model name */
+	const char *id;    /**< Model ID, like delivered by interface */
 	double voltage[3]; /**< Min, max, step */
 	double current[3]; /**< Min, max, step */
 };

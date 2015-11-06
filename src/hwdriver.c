@@ -569,7 +569,8 @@ static int check_key(const struct sr_dev_driver *driver,
 	GVariant *gvar_opts;
 	const uint32_t *opts;
 	uint32_t pub_opt;
-	char *suffix, *opstr;
+	const char *suffix;
+	const char *opstr;
 
 	if (sdi && cg)
 		suffix = " for this device and channel group";

@@ -54,7 +54,7 @@ struct channel_spec {
 
 struct pps_model {
 	int modelid;
-	char *name;
+	const char *name;
 	int channel_modes;
 	int num_channels;
 	struct channel_spec channels[MAX_CHANNELS];

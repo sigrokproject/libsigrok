@@ -80,7 +80,8 @@ static void give_device_time_to_process(struct dev_context *devc)
 SR_PRIV int korad_kdxxxxp_set_value(struct sr_serial_dev_inst *serial,
 				struct dev_context *devc)
 {
-	char msg[21], *cmd;
+	char msg[21];
+	const char *cmd;
 	float value;
 	int ret;
 

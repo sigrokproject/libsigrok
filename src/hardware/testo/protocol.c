@@ -61,7 +61,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	int unit, packet_len, len, i;
 	unsigned char packet[MAX_REPLY_SIZE], buf[MAX_REPLY_SIZE];
-	char *probe_name;
+	const char *probe_name;
 
 	devc = sdi->priv;
 	usb = sdi->conn;

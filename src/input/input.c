@@ -242,7 +242,7 @@ SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,
 		GHashTable *options)
 {
 	struct sr_input *in;
-	struct sr_option *mod_opts;
+	const struct sr_option *mod_opts;
 	const GVariantType *gvt;
 	GHashTable *new_opts;
 	GHashTableIter iter;

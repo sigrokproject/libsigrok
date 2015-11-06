@@ -154,10 +154,10 @@ struct dso_profile {
 	/* VID/PID after firmware upload */
 	uint16_t fw_vid;
 	uint16_t fw_pid;
-	char *vendor;
-	char *model;
+	const char *vendor;
+	const char *model;
 	const uint64_t *buffersizes;
-	char *firmware;
+	const char *firmware;
 };
 
 struct dev_context {

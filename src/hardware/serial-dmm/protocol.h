@@ -26,11 +26,11 @@ struct dmm_info {
 	/** libsigrok driver info struct. */
 	struct sr_dev_driver di;
 	/** Manufacturer/brand. */
-	char *vendor;
+	const char *vendor;
 	/** Model. */
-	char *device;
+	const char *device;
 	/** serialconn string. */
-	char *conn;
+	const char *conn;
 	/** Baud rate. */
 	uint32_t baudrate;
 	/** Packet size in bytes. */

@@ -31,7 +31,7 @@
 struct zp_model {
 	uint16_t vid;
 	uint16_t pid;
-	char *model_name;
+	const char *model_name;
 	unsigned int channels;
 	unsigned int sample_depth;	/* In Ksamples/channel */
 	unsigned int max_sampling_freq;

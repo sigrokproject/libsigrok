@@ -651,7 +651,8 @@ static float read_sample(struct sr_channel *ch)
 SR_PRIV int bl_acme_open_channel(struct sr_channel *ch)
 {
 	struct channel_priv *chp;
-	char path[64], *file;
+	char path[64];
+	const char *file;
 	int fd;
 
 	chp = ch->priv;
