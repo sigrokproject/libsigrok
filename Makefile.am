@@ -703,11 +703,16 @@ all-local: $(BUILD_EXTRA)
 install-exec-local: $(INSTALL_EXTRA)
 clean-local: $(CLEAN_EXTRA)
 
-MAINTAINERCLEANFILES = ChangeLog
+.PHONY: dist-changelog
 
-.PHONY: ChangeLog
-ChangeLog:
-	git --git-dir '$(top_srcdir)/.git' log >$@ || touch $@
+dist-hook: dist-changelog
 
-dist-hook: ChangeLog
+dist-changelog:
+	$(AM_V_at)if test ! -d '$(top_srcdir)/.git'; then \
+		cp -f '$(top_srcdir)/ChangeLog' "$(top_distdir)/ChangeLog"; \
+	elif git -C '$(top_srcdir)' log >.ChangeLog.tmp; then \
+		mv -f .ChangeLog.tmp "$(top_distdir)/ChangeLog"; \
+	else \
+		rm -f .ChangeLog.tmp; exit 1; \
+	fi
 

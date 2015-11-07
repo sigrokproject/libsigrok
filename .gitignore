@@ -21,7 +21,6 @@
 .deps/
 .dirstamp
 .libs/
-/ChangeLog
 /Makefile
 /config.*
 /doxy/
