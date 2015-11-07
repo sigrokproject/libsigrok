@@ -574,6 +574,7 @@ bindings/cxx/classes.lo: bindings/cxx/classes.cpp bindings/cxx/enums.cpp \
 cxx-clean:
 	rm -rf doxy/
 	rm -rf bindings/cxx/doxy/
+	rm -f bindings/swig/enums.i
 	rm -f bindings/cxx/enums.cpp
 	rm -f bindings/cxx/include/libsigrokcxx/enums.hpp
 	rm -f bindings/cxx/enums.timestamp
@@ -697,7 +698,7 @@ java-uninstall:
 	-rm -f $(DESTDIR)$(libdir)/jni/libsigrok_java_core_classes.so
 
 java-clean:
-	-$(AM_V_at)rm -f $(java_cleanfiles)
+	-$(AM_V_at)rm -f $(java_cleanfiles) $(JDOC)
 	-$(AM_V_at)rm -fr $(JDIR)/doxy
 
 java-doc:
