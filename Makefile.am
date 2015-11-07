@@ -536,6 +536,7 @@ tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 
 BUILD_EXTRA =
 INSTALL_EXTRA =
+UNINSTALL_EXTRA =
 CLEAN_EXTRA =
 
 if BINDINGS_CXX
@@ -691,6 +692,10 @@ java-install:
 	$(INSTALL) -d $(DESTDIR)$(datadir)/java
 	$(INSTALL) $(JJAR) $(DESTDIR)$(datadir)/java
 
+java-uninstall:
+	-rm -f $(DESTDIR)$(datadir)/java/sigrok-core.jar
+	-rm -f $(DESTDIR)$(libdir)/jni/libsigrok_java_core_classes.so
+
 java-clean:
 	-$(AM_V_at)rm -f $(java_cleanfiles)
 	-$(AM_V_at)rm -fr $(JDIR)/doxy
@@ -700,12 +705,14 @@ java-doc:
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install
+UNINSTALL_EXTRA += java-uninstall
 CLEAN_EXTRA += java-clean
 
 endif
 
 all-local: $(BUILD_EXTRA)
 install-exec-local: $(INSTALL_EXTRA)
+uninstall-local: $(UNINSTALL_EXTRA)
 clean-local: $(CLEAN_EXTRA)
 
 .PHONY: dist-changelog
