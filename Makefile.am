@@ -98,6 +98,7 @@ libsigrok_la_SOURCES += \
 
 # SCPI support
 libsigrok_la_SOURCES += \
+	src/scpi.h \
 	src/scpi/scpi.c \
 	src/scpi/helpers.c \
 	src/scpi/scpi_tcp.c
@@ -496,6 +497,7 @@ EXTRA_DIST = \
 	bindings/java/org/sigrok/core/interfaces/LogCallback.java \
 	bindings/swig/classes.i \
 	bindings/swig/doc.py \
+	bindings/swig/templates.i \
 	contrib/gnuplot_chronovu_la8.gpi \
 	contrib/gnuplot_rigol_ds1xx2.gpi \
 	contrib/gnuplot_usbeesx.gpi \
