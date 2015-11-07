@@ -22,6 +22,9 @@ ACLOCAL_AMFLAGS = -I m4
 AM_LIBTOOLFLAGS = --silent
 GNUMAKEFLAGS = --no-print-directory
 
+# distutils/setuptools cause trouble on distcheck. Disable for now.
+DISTCHECK_CONFIGURE_FLAGS = --disable-python
+
 FIRMWARE_DIR = $(datadir)/sigrok-firmware
 
 local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
