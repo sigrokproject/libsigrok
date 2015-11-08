@@ -32,8 +32,6 @@
 #define USB_VENDOR_NAME			"ASIX"
 #define USB_MODEL_NAME			"SIGMA"
 
-SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
-
 /*
  * The ASIX Sigma supports arbitrary integer frequency divider in
  * the 50MHz mode. The divider is in range 1...256 , allowing for
