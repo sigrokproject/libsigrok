@@ -30,7 +30,7 @@ index = ElementTree.parse(input_file)
 
 def get_text(node):
     paras = node.findall('para')
-    return str.join('\n\n', [p.text.rstrip() for p in paras if p.text])
+    return str.join('\n\n', [("".join(l)).rstrip() for l in [list(p.itertext()) for p in paras] if l])
 
 for compound in index.findall('compound'):
     if compound.attrib['kind'] != 'class':
