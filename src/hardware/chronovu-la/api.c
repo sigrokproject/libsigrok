@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2011-2014 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2011-2015 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,18 @@
 SR_PRIV struct sr_dev_driver chronovu_la_driver_info;
 static struct sr_dev_driver *di = &chronovu_la_driver_info;
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 };
@@ -37,19 +45,6 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
-};
-
-/* The ChronoVu LA8/LA16 can have multiple VID/PID pairs. */
-static const struct {
-	uint16_t vid;
-	uint16_t pid;
-	int model;
-	const char *iproduct;
-} vid_pid[] = {
-	{ 0x0403, 0x6001, CHRONOVU_LA8,  "ChronoVu LA8"  },
-	{ 0x0403, 0x8867, CHRONOVU_LA8,  "ChronoVu LA8"  },
-	{ 0x0403, 0x6001, CHRONOVU_LA16, "ChronoVu LA16" },
-	{ 0x0403, 0x8867, CHRONOVU_LA16, "ChronoVu LA16" },
 };
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
@@ -74,7 +69,9 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int add_device(int idx, int model, GSList **devices)
+static int add_device(int model, struct libusb_device_descriptor *des,
+	const char *serial_num, const char *connection_id,
+	libusb_device *usbdev, GSList **devices)
 {
 	int ret;
 	unsigned int i;
@@ -105,8 +102,8 @@ static int add_device(int idx, int model, GSList **devices)
 	devc->done = 0;
 	devc->block_counter = 0;
 	devc->divcount = 0;
-	devc->usb_vid = vid_pid[idx].vid;
-	devc->usb_pid = vid_pid[idx].pid;
+	devc->usb_vid = des->idVendor;
+	devc->usb_pid = des->idProduct;
 	memset(devc->samplerates, 0, sizeof(uint64_t) * 255);
 
 	/* Allocate memory where we'll store the de-mangled data. */
@@ -124,6 +121,10 @@ static int add_device(int idx, int model, GSList **devices)
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup("ChronoVu");
 	sdi->model = g_strdup(devc->prof->modelname);
+	sdi->serial_num = g_strdup(serial_num);
+	sdi->connection_id = g_strdup(connection_id);
+	sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(usbdev),
+		libusb_get_device_address(usbdev), NULL);
 	sdi->driver = di;
 	sdi->priv = devc;
 
@@ -145,47 +146,102 @@ err_free_devc:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	int ret;
-	unsigned int i;
-	GSList *devices;
-	struct ftdi_context *ftdic;
+	int i, ret, model;
+	struct drv_context *drvc;
+	GSList *devices, *conn_devices, *l;
+	struct sr_usb_dev_inst *usb;
+	struct sr_config *src;
+	struct libusb_device_descriptor des;
+	libusb_device **devlist;
+	struct libusb_device_handle *hdl;
+	const char *conn;
+	char product[64], serial_num[64], connection_id[64];
 
-	(void)di;
-	(void)options;
+	drvc = di->context;
+	drvc->instances = NULL;
+
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (conn)
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	else
+		conn_devices = NULL;
 
 	devices = NULL;
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 
-	/* Allocate memory for the FTDI context and initialize it. */
-	if (!(ftdic = ftdi_new())) {
-		sr_err("Failed to initialize libftdi.");
-		return NULL;
-	}
+	for (i = 0; devlist[i]; i++) {
+		if (conn) {
+			for (l = conn_devices; l; l = l->next) {
+				usb = l->data;
+				if (usb->bus == libusb_get_bus_number(devlist[i])
+					&& usb->address == libusb_get_device_address(devlist[i]))
+					break;
+			}
+			if (!l)
+				/* This device matched none of the ones that
+				 * matched the conn specification. */
+				continue;
+		}
 
-	/* Check for LA8 and/or LA16 devices with various VID/PIDs. */
-	for (i = 0; i < ARRAY_SIZE(vid_pid); i++) {
-		ret = ftdi_usb_open_desc(ftdic, vid_pid[i].vid,
-			vid_pid[i].pid, vid_pid[i].iproduct, NULL);
-		/* Show errors other than "device not found". */
-		if (ret < 0 && ret != -3)
-			sr_dbg("Error finding/opening device (%d): %s.",
-			       ret, ftdi_get_error_string(ftdic));
-		if (ret < 0)
-			continue; /* No device found, or not usable. */
+		libusb_get_device_descriptor(devlist[i], &des);
 
-		sr_dbg("Found %s device (%04x:%04x).",
-		       vid_pid[i].iproduct, vid_pid[i].vid, vid_pid[i].pid);
+		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
+			continue;
 
-		if ((ret = add_device(i, vid_pid[i].model, &devices)) < 0)
+		if (des.iProduct == 0) {
+			product[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, (unsigned char *)product,
+				sizeof(product))) < 0) {
+			sr_warn("Failed to get product string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		if (des.iSerialNumber == 0) {
+			serial_num[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iSerialNumber, (unsigned char *)serial_num,
+				sizeof(serial_num))) < 0) {
+			sr_warn("Failed to get serial number string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+
+		libusb_close(hdl);
+
+		if (!strcmp(product, "ChronoVu LA8")) {
+			model = 0;
+		} else if (!strcmp(product, "ChronoVu LA16")) {
+			model = 1;
+		} else {
+			sr_spew("Unknown iProduct string '%s'.", product);
+			continue;
+		}
+
+		sr_dbg("Found %s (%04x:%04x, %d.%d, %s).",
+		       product, des.idVendor, des.idProduct,
+		       libusb_get_bus_number(devlist[i]),
+		       libusb_get_device_address(devlist[i]), connection_id);
+
+		if ((ret = add_device(model, &des, serial_num, connection_id,
+					devlist[i], &devices)) < 0) {
 			sr_dbg("Failed to add device: %d.", ret);
-
-		if ((ret = ftdi_usb_close(ftdic)) < 0)
-			sr_dbg("Failed to close FTDI device (%d): %s.",
-			       ret, ftdi_get_error_string(ftdic));
+		}
 	}
 
-	/* Close USB device, deinitialize and free the FTDI context. */
-	ftdi_free(ftdic);
-	ftdic = NULL;
+	libusb_free_device_list(devlist, 1);
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
 	return devices;
 }
@@ -278,10 +334,18 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	char str[128];
 
 	(void)cg;
 
 	switch (key) {
+	case SR_CONF_CONN:
+		if (!sdi || !(usb = sdi->conn))
+			return SR_ERR_ARG;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
+		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi || !(devc = sdi->priv))
 			return SR_ERR_BUG;
@@ -339,9 +403,17 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	(void)cg;
 
 	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
+	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		if (!sdi)
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		else
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi || !sdi->priv || !(devc = sdi->priv))
