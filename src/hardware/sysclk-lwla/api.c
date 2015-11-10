@@ -72,9 +72,6 @@ static const char *const trigger_source_names[] = { "CH", "TRG" };
  */
 static const char *const signal_edge_names[] = { "r", "f" };
 
-SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info;
-static struct sr_dev_driver *const di = &sysclk_lwla_driver_info;
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -187,7 +184,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	int ret;
 
-	drvc = di->context;
+	drvc = sdi->driver->context;
 
 	if (!drvc) {
 		sr_err("Driver was not initialized.");
@@ -238,7 +235,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
-	if (!di->context) {
+	if (!sdi->driver->context) {
 		sr_err("Driver was not initialized.");
 		return SR_ERR;
 	}
@@ -576,7 +573,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	drvc = di->context;
+	drvc = sdi->driver->context;
 
 	if (devc->acquisition) {
 		sr_err("Acquisition still in progress?");
