@@ -484,19 +484,20 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 /*
  * FreeBSD requires that devices prior to calling libusb_get_port_numbers()
  * have been opened with libusb_open().
+ * This apparently also applies to some Mac OS X versions.
  */
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	struct libusb_device_handle *devh;
 	if (libusb_open(dev, &devh) != 0)
 		return SR_ERR;
 #endif
 	n = libusb_get_port_numbers(dev, port_numbers, sizeof(port_numbers));
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	libusb_close(devh);
 #endif
 
-/* Workaround FreeBSD libusb_get_port_numbers() returning 0. */
-#ifdef __FreeBSD__
+/* Workaround FreeBSD / Mac OS X libusb_get_port_numbers() returning 0. */
+#if defined(__FreeBSD__) || defined(__APPLE__)
 	if (n == 0) {
 		port_numbers[0] = libusb_get_device_address(dev);
 		n = 1;
