@@ -22,6 +22,7 @@
 #define LIBSIGROK_HARDWARE_CHRONOVU_LA_PROTOCOL_H
 
 #include <glib.h>
+#include <libusb.h>
 #include <ftdi.h>
 #include <stdint.h>
 #include <string.h>
