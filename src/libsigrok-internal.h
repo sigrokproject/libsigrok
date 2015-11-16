@@ -117,6 +117,20 @@ struct zip_stat;
                    (unsigned)((const uint8_t*)(x))[0]))
 
 /**
+ * Read a 64 bits big endian unsigned integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+#define RB64(x)  (((uint64_t)((const uint8_t*)(x))[0] << 56) | \
+                  ((uint64_t)((const uint8_t*)(x))[1] << 48) |  \
+                  ((uint64_t)((const uint8_t*)(x))[2] << 40) |  \
+                  ((uint64_t)((const uint8_t*)(x))[3] << 32) |  \
+                  ((uint64_t)((const uint8_t*)(x))[4] << 24) |  \
+                  ((uint64_t)((const uint8_t*)(x))[5] << 16) |  \
+                  ((uint64_t)((const uint8_t*)(x))[6] <<  8) |  \
+                   (uint64_t)((const uint8_t*)(x))[7])
+
+/**
  * Read a 32 bits big endian float out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding float
