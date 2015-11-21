@@ -359,7 +359,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		return NULL;
 	}
 
-	if (bus > 64) {
+	if (bus > 255) {
 		sr_err("Invalid bus specified: %d.", bus);
 		return NULL;
 	}
