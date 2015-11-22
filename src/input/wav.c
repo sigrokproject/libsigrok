@@ -279,8 +279,8 @@ static int process_buffer(struct sr_input *in)
 		offset = 0;
 
 	/* Round off up to the last channels * unitsize boundary. */
-	chunk_samples = (in->buf->len - offset) / inc->num_channels / inc->unitsize;
-	max_chunk_samples = CHUNK_SIZE / inc->num_channels / inc->unitsize;
+	chunk_samples = (in->buf->len - offset) / inc->samplesize;
+	max_chunk_samples = CHUNK_SIZE / inc->samplesize;
 	processed = 0;
 	total_samples = chunk_samples;
 	while (processed < total_samples) {
@@ -289,7 +289,7 @@ static int process_buffer(struct sr_input *in)
 		else
 			num_samples = chunk_samples;
 		send_chunk(in, offset, num_samples);
-		offset += num_samples * inc->unitsize;
+		offset += num_samples * inc->samplesize;
 		chunk_samples -= num_samples;
 		processed += num_samples;
 	}
