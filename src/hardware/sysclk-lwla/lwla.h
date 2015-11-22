@@ -47,83 +47,111 @@ struct sr_usb_dev_inst;
 #define LWLA_WORD_2(val) GUINT16_TO_LE(((val) >> 48) & 0xFFFF)
 #define LWLA_WORD_3(val) GUINT16_TO_LE(((val) >> 32) & 0xFFFF)
 
+/* Maximum number of 16-bit words sent at a time during acquisition.
+ * Used for allocating the libusb transfer buffer.
+ */
+#define MAX_ACQ_SEND_LEN16	64 /* 43 for capture setup plus stuffing */
+
+/* Maximum number of 32-bit words received at a time during acquisition.
+ * This is a multiple of the endpoint buffer size to avoid transfer overflow
+ * conditions.
+ */
+#define MAX_ACQ_RECV_LEN32	(2 * 512 / 4)
+
+/* Maximum length of a register read/write sequence.
+ */
+#define MAX_REG_SEQ_LEN		16
+
+/* Logic datafeed packet size in bytes.
+ * This is a multiple of both 4 and 5 to match any model's unit size
+ * and memory granularity.
+ */
+#define PACKET_SIZE		(5000 * 4 * 5)
+
 /** USB device end points.
  */
-enum {
-	EP_COMMAND   = 2,
-	EP_BITSTREAM = 4,
-	EP_REPLY     = 6 | LIBUSB_ENDPOINT_IN
+enum usb_endpoint {
+	EP_COMMAND = 2,
+	EP_CONFIG  = 4,
+	EP_REPLY   = 6 | LIBUSB_ENDPOINT_IN
 };
 
 /** LWLA protocol command ID codes.
  */
-enum {
+enum command_id {
 	CMD_READ_REG	= 1,
 	CMD_WRITE_REG	= 2,
-	CMD_READ_MEM	= 6,
-	CMD_CAP_SETUP	= 7,
-	CMD_CAP_STATUS	= 8,
+	CMD_READ_MEM32	= 3,
+	CMD_READ_MEM36	= 6,
+	CMD_WRITE_LREGS	= 7,
+	CMD_READ_LREGS	= 8,
 };
 
 /** LWLA capture state flags.
+ * The bit positions are the same as in the LWLA1016 control register.
  */
 enum {
-	STATUS_CAPTURING = 1 << 1,
-	STATUS_TRIGGERED = 1 << 4,
-	STATUS_MEM_AVAIL = 1 << 5,
-	STATUS_FLAG_MASK = 0x3F
+	STATUS_CAPTURING = 1 << 2,
+	STATUS_TRIGGERED = 1 << 5,
+	STATUS_MEM_AVAIL = 1 << 6,
 };
 
-/** LWLA1034 register addresses.
+/** LWLA1034 run-length encoding states.
  */
-enum {
-	REG_MEM_CTRL    = 0x1074, /* capture buffer control */
-	REG_MEM_FILL    = 0x1078, /* capture buffer fill level */
-	REG_MEM_START   = 0x107C, /* capture buffer start address */
-
-	REG_DIV_BYPASS  = 0x1094, /* bypass clock divider flag */
-
-	REG_LONG_STROBE = 0x10B0, /* long register read/write strobe */
-	REG_LONG_ADDR   = 0x10B4, /* long register address */
-	REG_LONG_LOW    = 0x10B8, /* long register low word */
-	REG_LONG_HIGH   = 0x10BC, /* long register high word */
-
-	REG_FREQ_CH1    = 0x10C0, /* channel 1 live frequency */
-	REG_FREQ_CH2    = 0x10C4, /* channel 2 live frequency */
-	REG_FREQ_CH3    = 0x10C8, /* channel 3 live frequency */
-	REG_FREQ_CH4    = 0x10CC, /* channel 4 live frequency */
+enum rle_state {
+	RLE_STATE_DATA,
+	RLE_STATE_LEN
 };
 
-/** Flag bits for REG_MEM_CTRL.
+/** Register address/value pair.
  */
-enum {
-	MEM_CTRL_WRITE   = 1 << 0, /* "wr1rd0" bit */
-	MEM_CTRL_CLR_IDX = 1 << 1, /* "clr_idx" bit */
-};
-
-/* LWLA1034 long register addresses.
- */
-enum {
-	LREG_CAP_CTRL = 10,  /* capture control bits */
-	LREG_TEST_ID  = 100, /* constant test ID */
-};
-
-/** Flag bits for LREG_CAP_CTRL.
- */
-enum {
-	CAP_CTRL_TRG_EN       = 1 << 0, /* "trg_en" bit */
-	CAP_CTRL_CLR_TIMEBASE = 1 << 2, /* "do_clr_timebase" bit */
-	CAP_CTRL_FLUSH_FIFO   = 1 << 4, /* "flush_fifo" bit */
-	CAP_CTRL_CLR_FIFOFULL = 1 << 5, /* "clr_fifo32_ful" bit */
-	CAP_CTRL_CLR_COUNTER  = 1 << 6, /* "clr_cntr0" bit */
-};
-
-/** Register/value pair.
- */
-struct regval_pair {
+struct regval {
 	unsigned int reg;
-	unsigned int val;
+	uint32_t val;
 };
+
+/** LWLA sample acquisition and decompression state.
+ */
+struct acquisition_state {
+	uint64_t samples_max;	/* maximum number of samples to process */
+	uint64_t samples_done;	/* number of samples sent to the session bus */
+	uint64_t duration_max;	/* maximum capture duration in milliseconds */
+	uint64_t duration_now;	/* running capture duration since trigger */
+
+	uint64_t sample;	/* last sample read from capture memory */
+	uint64_t run_len;	/* remaining run length of current sample */
+
+	struct libusb_transfer *xfer_in;	/* USB in transfer record */
+	struct libusb_transfer *xfer_out;	/* USB out transfer record */
+
+	size_t mem_addr_fill;	/* capture memory fill level */
+	size_t mem_addr_done;	/* position up to which data was received */
+	size_t mem_addr_next;	/* start address for next async read */
+	size_t mem_addr_stop;	/* end of memory range to be read */
+	size_t in_index;	/* position in read transfer buffer */
+	size_t out_index;	/* position in logic packet buffer */
+	enum rle_state rle;	/* RLE decoding state */
+
+	gboolean rle_enabled;	/* capturing in timing-state mode */
+	gboolean clock_boost;	/* switch to faster clock during capture */
+	unsigned int status;	/* last received device status */
+
+	unsigned int reg_seq_pos;	/* index of next register/value pair */
+	unsigned int reg_seq_len;	/* length of register/value sequence */
+
+	struct regval reg_sequence[MAX_REG_SEQ_LEN];	/* register buffer */
+	uint32_t xfer_buf_in[MAX_ACQ_RECV_LEN32];	/* USB in buffer */
+	uint16_t xfer_buf_out[MAX_ACQ_SEND_LEN16];	/* USB out buffer */
+	uint8_t out_packet[PACKET_SIZE];		/* logic payload */
+};
+
+static inline void lwla_queue_regval(struct acquisition_state *acq,
+				     unsigned int reg, uint32_t value)
+{
+	acq->reg_sequence[acq->reg_seq_len].reg = reg;
+	acq->reg_sequence[acq->reg_seq_len].val = value;
+	acq->reg_seq_len++;
+}
 
 SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
 				const struct sr_usb_dev_inst *usb,
@@ -138,13 +166,10 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value);
 
-SR_PRIV int lwla_read_long_reg(const struct sr_usb_dev_inst *usb,
-			       uint32_t addr, uint64_t *value);
-
 SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 			   uint16_t reg, uint32_t value);
 
 SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,
-			    const struct regval_pair *regvals, int count);
+			    const struct regval *regvals, int count);
 
 #endif

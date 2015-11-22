@@ -95,7 +95,7 @@ SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
 	sr_info("Downloading FPGA bitstream '%s'.", name);
 
 	/* Transfer the entire bitstream in one URB. */
-	ret = libusb_bulk_transfer(usb->devhdl, EP_BITSTREAM,
+	ret = libusb_bulk_transfer(usb->devhdl, EP_CONFIG,
 				   stream, length, &xfer_len, USB_TIMEOUT_MS);
 	g_free(stream);
 
@@ -191,33 +191,6 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 	return ret;
 }
 
-SR_PRIV int lwla_read_long_reg(const struct sr_usb_dev_inst *usb,
-			       uint32_t addr, uint64_t *value)
-{
-	uint32_t low, high, dummy;
-	int ret;
-
-	ret = lwla_write_reg(usb, REG_LONG_ADDR, addr);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = lwla_read_reg(usb, REG_LONG_STROBE, &dummy);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = lwla_read_reg(usb, REG_LONG_HIGH, &high);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = lwla_read_reg(usb, REG_LONG_LOW, &low);
-	if (ret != SR_OK)
-		return ret;
-
-	*value = ((uint64_t)high << 32) | low;
-
-	return SR_OK;
-}
-
 SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 			   uint16_t reg, uint32_t value)
 {
@@ -232,7 +205,7 @@ SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 }
 
 SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,
-			    const struct regval_pair *regvals, int count)
+			    const struct regval *regvals, int count)
 {
 	int i;
 	int ret;

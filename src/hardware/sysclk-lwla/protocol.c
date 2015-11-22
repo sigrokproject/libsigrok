@@ -19,25 +19,12 @@
 
 #include <config.h>
 #include <string.h>
+#include "lwla.h"
 #include "protocol.h"
 
-/* Bit mask for the RLE repeat-count-follows flag. */
-#define RLE_FLAG_LEN_FOLLOWS ((uint64_t)1 << 35)
-
-/* Start address of capture status memory area to read. */
-#define CAP_STAT_ADDR 5
-
-/* Number of 64-bit words read from the capture status memory. */
-#define CAP_STAT_LEN 5
-
-/* The bitstream filenames are indexed by the clock_config enumeration.
+/* Status polling interval during acquisition.
  */
-static const char bitstream_map[][32] = {
-	"sysclk-lwla1034-off.rbf",
-	"sysclk-lwla1034-int.rbf",
-	"sysclk-lwla1034-extpos.rbf",
-	"sysclk-lwla1034-extneg.rbf",
-};
+#define POLL_INTERVAL 100 /* ms */
 
 /* Submit an already filled-in USB transfer.
  */
@@ -57,557 +44,301 @@ static int submit_transfer(struct dev_context *devc,
 	return SR_OK;
 }
 
-/* Set up the LWLA in preparation for an acquisition session.
+/* Set up transfer for the next register in a write sequence.
  */
-static int capture_setup(const struct sr_dev_inst *sdi)
+static void next_reg_write(struct acquisition_state *acq)
 {
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-	uint64_t divider_count;
-	uint64_t trigger_mask;
-	uint64_t memory_limit;
-	uint16_t command[3 + (10 * 4)];
+	struct regval *regval;
 
-	devc = sdi->priv;
-	acq  = devc->acquisition;
-
-	command[0] = LWLA_WORD(CMD_CAP_SETUP);
-	command[1] = LWLA_WORD(0); /* address */
-	command[2] = LWLA_WORD(10); /* length */
-
-	command[3] = LWLA_WORD_0(devc->channel_mask);
-	command[4] = LWLA_WORD_1(devc->channel_mask);
-	command[5] = LWLA_WORD_2(devc->channel_mask);
-	command[6] = LWLA_WORD_3(devc->channel_mask);
-
-	/* Set the clock divide counter maximum for samplerates of up to
-	 * 100 MHz. At the highest samplerate of 125 MHz the clock divider
-	 * is bypassed.
-	 */
-	if (!acq->bypass_clockdiv && devc->samplerate > 0)
-		divider_count = SR_MHZ(100) / devc->samplerate - 1;
-	else
-		divider_count = 0;
-
-	command[7]  = LWLA_WORD_0(divider_count);
-	command[8]  = LWLA_WORD_1(divider_count);
-	command[9]  = LWLA_WORD_2(divider_count);
-	command[10] = LWLA_WORD_3(divider_count);
-
-	command[11] = LWLA_WORD_0(devc->trigger_values);
-	command[12] = LWLA_WORD_1(devc->trigger_values);
-	command[13] = LWLA_WORD_2(devc->trigger_values);
-	command[14] = LWLA_WORD_3(devc->trigger_values);
-
-	command[15] = LWLA_WORD_0(devc->trigger_edge_mask);
-	command[16] = LWLA_WORD_1(devc->trigger_edge_mask);
-	command[17] = LWLA_WORD_2(devc->trigger_edge_mask);
-	command[18] = LWLA_WORD_3(devc->trigger_edge_mask);
-
-	trigger_mask = devc->trigger_mask;
-	/* Set bits to select external TRG input edge. */
-	if (devc->cfg_trigger_source == TRIGGER_EXT_TRG)
-		switch (devc->cfg_trigger_slope) {
-		case EDGE_POSITIVE:
-			trigger_mask |= (uint64_t)1 << 35;
-			break;
-		case EDGE_NEGATIVE:
-			trigger_mask |= (uint64_t)1 << 34;
-			break;
-		}
-
-	command[19] = LWLA_WORD_0(trigger_mask);
-	command[20] = LWLA_WORD_1(trigger_mask);
-	command[21] = LWLA_WORD_2(trigger_mask);
-	command[22] = LWLA_WORD_3(trigger_mask);
-
-	/* Set the capture memory full threshold. This is slightly less
-	 * than the actual maximum, most likely in order to compensate for
-	 * pipeline latency.
-	 */
-	memory_limit = MEMORY_DEPTH - 16;
-
-	command[23] = LWLA_WORD_0(memory_limit);
-	command[24] = LWLA_WORD_1(memory_limit);
-	command[25] = LWLA_WORD_2(memory_limit);
-	command[26] = LWLA_WORD_3(memory_limit);
-
-	/* Fill remaining words with zeroes. */
-	memset(&command[27], 0, sizeof(command) - 27 * sizeof(command[0]));
-
-	return lwla_send_command(sdi->conn, command, ARRAY_SIZE(command));
-}
-
-/* Issue a register write command as an asynchronous USB transfer.
- */
-static int issue_write_reg(const struct sr_dev_inst *sdi,
-			   unsigned int reg, unsigned int value)
-{
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
+	regval = &acq->reg_sequence[acq->reg_seq_pos];
 
 	acq->xfer_buf_out[0] = LWLA_WORD(CMD_WRITE_REG);
-	acq->xfer_buf_out[1] = LWLA_WORD(reg);
-	acq->xfer_buf_out[2] = LWLA_WORD_0(value);
-	acq->xfer_buf_out[3] = LWLA_WORD_1(value);
+	acq->xfer_buf_out[1] = LWLA_WORD(regval->reg);
+	acq->xfer_buf_out[2] = LWLA_WORD_0(regval->val);
+	acq->xfer_buf_out[3] = LWLA_WORD_1(regval->val);
 
-	acq->xfer_out->length = 4 * sizeof(uint16_t);
-
-	return submit_transfer(devc, acq->xfer_out);
+	acq->xfer_out->length = 4 * sizeof(acq->xfer_buf_out[0]);
 }
 
-/* Issue a register write command as an asynchronous USB transfer for the
- * next register/value pair of the currently active register write sequence.
+/* Set up transfer for the next register in a read sequence.
  */
-static int issue_next_write_reg(const struct sr_dev_inst *sdi)
+static void next_reg_read(struct acquisition_state *acq)
 {
-	struct dev_context *devc;
-	struct regval_pair *regval;
-	int ret;
+	unsigned int addr;
 
-	devc = sdi->priv;
-
-	if (devc->reg_write_pos >= devc->reg_write_len) {
-		sr_err("Already written all registers in sequence.");
-		return SR_ERR_BUG;
-	}
-	regval = &devc->reg_write_seq[devc->reg_write_pos];
-
-	ret = issue_write_reg(sdi, regval->reg, regval->val);
-	if (ret != SR_OK)
-		return ret;
-
-	++devc->reg_write_pos;
-	return SR_OK;
-}
-
-/* Issue a capture status request as an asynchronous USB transfer.
- */
-static void request_capture_status(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
-
-	acq->xfer_buf_out[0] = LWLA_WORD(CMD_CAP_STATUS);
-	acq->xfer_buf_out[1] = LWLA_WORD(CAP_STAT_ADDR);
-	acq->xfer_buf_out[2] = LWLA_WORD(CAP_STAT_LEN);
-
-	acq->xfer_out->length = 3 * sizeof(uint16_t);
-
-	if (submit_transfer(devc, acq->xfer_out) == SR_OK)
-		devc->state = STATE_STATUS_REQUEST;
-}
-
-/* Issue a request for the capture buffer fill level as
- * an asynchronous USB transfer.
- */
-static void request_capture_length(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
+	addr = acq->reg_sequence[acq->reg_seq_pos].reg;
 
 	acq->xfer_buf_out[0] = LWLA_WORD(CMD_READ_REG);
-	acq->xfer_buf_out[1] = LWLA_WORD(REG_MEM_FILL);
+	acq->xfer_buf_out[1] = LWLA_WORD(addr);
 
-	acq->xfer_out->length = 2 * sizeof(uint16_t);
-
-	if (submit_transfer(devc, acq->xfer_out) == SR_OK)
-		devc->state = STATE_LENGTH_REQUEST;
+	acq->xfer_out->length = 2 * sizeof(acq->xfer_buf_out[0]);
 }
 
-/* Initiate the capture memory read operation:  Reset the acquisition state
- * and start a sequence of register writes in order to set up the device for
- * reading from the capture buffer.
+/* Decode the response to a register read request.
  */
-static void issue_read_start(const struct sr_dev_inst *sdi)
+static int read_reg_response(struct acquisition_state *acq)
 {
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-	struct regval_pair *regvals;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
-
-	/* Reset RLE state. */
-	acq->rle = RLE_STATE_DATA;
-	acq->sample  = 0;
-	acq->run_len = 0;
-
-	acq->samples_done = 0;
-
-	/* For some reason, the start address is 4 rather than 0. */
-	acq->mem_addr_done = 4;
-	acq->mem_addr_next = 4;
-	acq->mem_addr_stop = acq->mem_addr_fill;
-
-	/* Sample position in the packet output buffer. */
-	acq->out_index = 0;
-
-	regvals = devc->reg_write_seq;
-
-	regvals[0].reg = REG_DIV_BYPASS;
-	regvals[0].val = 1;
-
-	regvals[1].reg = REG_MEM_CTRL;
-	regvals[1].val = MEM_CTRL_CLR_IDX;
-
-	regvals[2].reg = REG_MEM_START;
-	regvals[2].val = 4;
-
-	devc->reg_write_pos = 0;
-	devc->reg_write_len = 3;
-
-	if (issue_next_write_reg(sdi) == SR_OK)
-		devc->state = STATE_READ_PREPARE;
-}
-
-/* Issue a command as an asynchronous USB transfer which returns the device
- * to normal state after a read operation.  Sets a new device context state
- * on success.
- */
-static void issue_read_end(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (issue_write_reg(sdi, REG_DIV_BYPASS, 0) == SR_OK)
-		devc->state = STATE_READ_END;
-}
-
-/* Decode an incoming response to a buffer fill level request and act on it
- * as appropriate.  Note that this function changes the device context state.
- */
-static void process_capture_length(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct acquisition_state *acq;
-
-	devc = sdi->priv;
-	acq  = devc->acquisition;
+	uint32_t value;
 
 	if (acq->xfer_in->actual_length != 4) {
 		sr_err("Received size %d doesn't match expected size 4.",
 		       acq->xfer_in->actual_length);
-		devc->transfer_error = TRUE;
-		return;
+		return SR_ERR;
 	}
-	acq->mem_addr_fill = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
+	value = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
+	acq->reg_sequence[acq->reg_seq_pos].val = value;
 
-	sr_dbg("%zu words in capture buffer.", acq->mem_addr_fill);
-
-	if (acq->mem_addr_fill > 0 && !devc->cancel_requested)
-		issue_read_start(sdi);
-	else
-		issue_read_end(sdi);
+	return SR_OK;
 }
 
-/* Initiate a sequence of register write commands with the effect of
- * cancelling a running capture operation.  This sets a new device state
- * if issuing the first command succeeds.
+/* Enter a new state and submit the corresponding request to the device.
  */
-static void issue_stop_capture(const struct sr_dev_inst *sdi)
+static int submit_request(const struct sr_dev_inst *sdi,
+			  enum protocol_state state)
 {
-	struct dev_context *devc;
-	struct regval_pair *regvals;
-
-	devc = sdi->priv;
-
-	if (devc->stopping_in_progress)
-		return;
-
-	regvals = devc->reg_write_seq;
-
-	regvals[0].reg = REG_LONG_ADDR;
-	regvals[0].val = LREG_CAP_CTRL;
-
-	regvals[1].reg = REG_LONG_LOW;
-	regvals[1].val = 0;
-
-	regvals[2].reg = REG_LONG_HIGH;
-	regvals[2].val = 0;
-
-	regvals[3].reg = REG_LONG_STROBE;
-	regvals[3].val = 0;
-
-	regvals[4].reg = REG_DIV_BYPASS;
-	regvals[4].val = 0;
-
-	devc->reg_write_pos = 0;
-	devc->reg_write_len = 5;
-
-	if (issue_next_write_reg(sdi) == SR_OK) {
-		devc->stopping_in_progress = TRUE;
-		devc->state = STATE_STOP_CAPTURE;
-	}
-}
-
-/* Decode an incoming capture status response and act on it as appropriate.
- * Note that this function changes the device state.
- */
-static void process_capture_status(const struct sr_dev_inst *sdi)
-{
-	uint64_t duration;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	unsigned int mem_fill;
-	unsigned int flags;
+	int ret;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
 
-	if (acq->xfer_in->actual_length != CAP_STAT_LEN * 8) {
-		sr_err("Received size %d doesn't match expected size %d.",
-		       acq->xfer_in->actual_length, CAP_STAT_LEN * 8);
+	devc->state = state;
+
+	acq->xfer_out->length = 0;
+	acq->reg_seq_pos = 0;
+	acq->reg_seq_len = 0;
+
+	/* Perform the model-specific action for the new state. */
+	ret = (*devc->model->prepare_request)(sdi);
+
+	if (ret != SR_OK) {
 		devc->transfer_error = TRUE;
-		return;
+		return ret;
 	}
 
-	mem_fill = LWLA_TO_UINT32(acq->xfer_buf_in[0]);
-	duration = LWLA_TO_UINT32(acq->xfer_buf_in[4])
-		| ((uint64_t)LWLA_TO_UINT32(acq->xfer_buf_in[5]) << 32);
-	flags = LWLA_TO_UINT32(acq->xfer_buf_in[8]) & STATUS_FLAG_MASK;
+	if (acq->reg_seq_pos < acq->reg_seq_len) {
+		if ((state & STATE_EXPECT_RESPONSE) != 0)
+			next_reg_read(acq);
+		else
+			next_reg_write(acq);
+	}
 
-	/* The LWLA1034 runs at 125 MHz if the clock divider is bypassed.
-	 * However, the time base used for the duration is apparently not
-	 * adjusted for this "boost" mode.  Whereas normally the duration
-	 * unit is 1 ms, it is 0.8 ms when the clock divider is bypassed.
-	 * As 0.8 = 100 MHz / 125 MHz, it seems that the internal cycle
-	 * counter period is the same as at the 100 MHz setting.
-	 */
-	if (acq->bypass_clockdiv)
-		acq->duration_now = duration * 4 / 5;
-	else
-		acq->duration_now = duration;
+	return submit_transfer(devc, acq->xfer_out);
+}
 
-	sr_spew("Captured %u words, %" PRIu64 " ms, flags 0x%02X.",
-		mem_fill, acq->duration_now, flags);
+/* Evaluate and act on the response to a capture status request.
+ */
+static void handle_status_response(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct acquisition_state *acq;
+	unsigned int old_status;
 
-	if ((flags & STATUS_TRIGGERED) > (acq->capture_flags & STATUS_TRIGGERED))
-		sr_info("Capture triggered.");
+	devc = sdi->priv;
+	acq  = devc->acquisition;
+	old_status = acq->status;
 
-	acq->capture_flags = flags;
-
-	if (acq->duration_now >= acq->duration_max) {
-		sr_dbg("Time limit reached, stopping capture.");
-		issue_stop_capture(sdi);
+	if ((*devc->model->handle_response)(sdi) != SR_OK) {
+		devc->transfer_error = TRUE;
 		return;
 	}
 	devc->state = STATE_STATUS_WAIT;
 
-	if ((acq->capture_flags & STATUS_TRIGGERED) == 0) {
+	sr_spew("Captured %zu words, %" PRIu64 " ms, status 0x%02X.",
+		acq->mem_addr_fill, acq->duration_now, acq->status);
+
+	if ((~old_status & acq->status & STATUS_TRIGGERED) != 0)
+		sr_info("Capture triggered.");
+
+	if (acq->duration_now >= acq->duration_max) {
+		sr_dbg("Time limit reached, stopping capture.");
+		submit_request(sdi, STATE_STOP_CAPTURE);
+	} else if ((acq->status & STATUS_TRIGGERED) == 0) {
 		sr_spew("Waiting for trigger.");
-	} else if ((acq->capture_flags & STATUS_MEM_AVAIL) == 0) {
+	} else if ((acq->status & STATUS_MEM_AVAIL) == 0) {
 		sr_dbg("Capture memory filled.");
-		request_capture_length(sdi);
-	} else if ((acq->capture_flags & STATUS_CAPTURING) != 0) {
+		submit_request(sdi, STATE_LENGTH_REQUEST);
+	} else if ((acq->status & STATUS_CAPTURING) != 0) {
 		sr_spew("Sampling in progress.");
 	}
 }
 
-/* Issue a capture buffer read request as an asynchronous USB transfer.
- * The address and size of the memory area to read are derived from the
- * current acquisition state.
+/* Evaluate and act on the response to a capture length request.
  */
-static void request_read_mem(const struct sr_dev_inst *sdi)
+static void handle_length_response(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	size_t count;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
 
-	if (acq->mem_addr_next >= acq->mem_addr_stop)
+	if ((*devc->model->handle_response)(sdi) != SR_OK) {
+		devc->transfer_error = TRUE;
 		return;
-
-	/* Always read a multiple of 8 device words. */
-	count = (acq->mem_addr_stop - acq->mem_addr_next + 7) / 8 * 8;
-	count = MIN(count, READ_CHUNK_LEN);
-
-	acq->xfer_buf_out[0] = LWLA_WORD(CMD_READ_MEM);
-	acq->xfer_buf_out[1] = LWLA_WORD_0(acq->mem_addr_next);
-	acq->xfer_buf_out[2] = LWLA_WORD_1(acq->mem_addr_next);
-	acq->xfer_buf_out[3] = LWLA_WORD_0(count);
-	acq->xfer_buf_out[4] = LWLA_WORD_1(count);
-
-	acq->xfer_out->length = 5 * sizeof(uint16_t);
-
-	if (submit_transfer(devc, acq->xfer_out) == SR_OK) {
-		acq->mem_addr_next += count;
-		devc->state = STATE_READ_REQUEST;
 	}
+	acq->rle = RLE_STATE_DATA;
+	acq->sample = 0;
+	acq->run_len = 0;
+	acq->samples_done = 0;
+	acq->mem_addr_done = acq->mem_addr_next;
+	acq->out_index = 0;
+
+	if (acq->mem_addr_next >= acq->mem_addr_stop) {
+		submit_request(sdi, STATE_READ_FINISH);
+		return;
+	}
+	sr_dbg("%zu words in capture buffer.",
+	       acq->mem_addr_stop - acq->mem_addr_next);
+
+	submit_request(sdi, STATE_READ_PREPARE);
 }
 
-/* Demangle and decompress incoming sample data from the capture buffer.
- * The data chunk is taken from the acquisition state, and is expected to
- * contain a multiple of 8 device words.
- * All data currently in the acquisition buffer will be processed.  Packets
- * of decoded samples are sent off to the session bus whenever the output
- * buffer becomes full while decoding.
+/* Evaluate and act on the response to a capture length request.
  */
-static int process_sample_data(const struct sr_dev_inst *sdi)
+static void handle_read_response(const struct sr_dev_inst *sdi)
 {
-	uint64_t sample;
-	uint64_t high_nibbles;
-	uint64_t word;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	uint8_t *out_p;
-	uint32_t *slice;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	size_t expect_len;
-	size_t actual_len;
-	size_t out_max_samples;
-	size_t out_run_samples;
-	size_t ri;
-	size_t in_words_left;
-	size_t si;
+	size_t end_addr;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
-
-	if (acq->mem_addr_done >= acq->mem_addr_stop
-			|| acq->samples_done >= acq->samples_max)
-		return SR_OK;
-
-	in_words_left = MIN(acq->mem_addr_stop - acq->mem_addr_done,
-			    READ_CHUNK_LEN);
-	expect_len = LWLA1034_MEMBUF_LEN(in_words_left) * sizeof(uint32_t);
-	actual_len = acq->xfer_in->actual_length;
-
-	if (actual_len != expect_len) {
-		sr_err("Received size %zu does not match expected size %zu.",
-		       actual_len, expect_len);
-		devc->transfer_error = TRUE;
-		return SR_ERR;
-	}
-	acq->mem_addr_done += in_words_left;
 
 	/* Prepare session packet. */
 	packet.type    = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = UNIT_SIZE;
+	logic.unitsize = (devc->model->num_channels + 7) / 8;
 	logic.data     = acq->out_packet;
 
-	slice = acq->xfer_buf_in;
-	si = 0; /* word index within slice */
+	end_addr = MIN(acq->mem_addr_next, acq->mem_addr_stop);
+	acq->in_index = 0;
+	/*
+	 * Repeatedly call the model-specific read response handler until
+	 * all data received in the transfer has been accounted for.
+	 */
+	while (!devc->cancel_requested
+			&& (acq->run_len > 0 || acq->mem_addr_done < end_addr)
+			&& acq->samples_done < acq->samples_max) {
 
-	for (;;) {
-		/* Calculate number of samples to write into packet. */
-		out_max_samples = MIN(acq->samples_max - acq->samples_done,
-				      PACKET_LENGTH - acq->out_index);
-		out_run_samples = MIN(acq->run_len, out_max_samples);
-
-		/* Expand run-length samples into session packet. */
-		sample = acq->sample;
-		out_p = &acq->out_packet[acq->out_index * UNIT_SIZE];
-
-		for (ri = 0; ri < out_run_samples; ++ri) {
-			out_p[0] =  sample        & 0xFF;
-			out_p[1] = (sample >>  8) & 0xFF;
-			out_p[2] = (sample >> 16) & 0xFF;
-			out_p[3] = (sample >> 24) & 0xFF;
-			out_p[4] = (sample >> 32) & 0xFF;
-			out_p += UNIT_SIZE;
+		if ((*devc->model->handle_response)(sdi) != SR_OK) {
+			devc->transfer_error = TRUE;
+			return;
 		}
-		acq->run_len -= out_run_samples;
-		acq->out_index += out_run_samples;
-		acq->samples_done += out_run_samples;
-
-		/* Packet full or sample count limit reached? */
-		if (out_run_samples == out_max_samples) {
-			logic.length = acq->out_index * UNIT_SIZE;
+		if (acq->out_index * logic.unitsize >= PACKET_SIZE) {
+			/* Send off full logic packet. */
+			logic.length = acq->out_index * logic.unitsize;
 			sr_session_send(sdi, &packet);
 			acq->out_index = 0;
-
-			if (acq->samples_done >= acq->samples_max)
-				return SR_OK; /* sample limit reached */
-			if (acq->run_len > 0)
-				continue; /* need another packet */
 		}
-
-		if (in_words_left == 0)
-			break; /* done with current chunk */
-
-		/* Now work on the current slice. */
-		high_nibbles = LWLA_TO_UINT32(slice[8]);
-		word = LWLA_TO_UINT32(slice[si]);
-		word |= (high_nibbles << (4 * si + 4)) & ((uint64_t)0xF << 32);
-
-		if (acq->rle == RLE_STATE_DATA) {
-			acq->sample = word & ALL_CHANNELS_MASK;
-			acq->run_len = ((word >> NUM_CHANNELS) & 1) + 1;
-			if (word & RLE_FLAG_LEN_FOLLOWS)
-				acq->rle = RLE_STATE_LEN;
-		} else {
-			acq->run_len += word << 1;
-			acq->rle = RLE_STATE_DATA;
-		}
-
-		/* Move to next word. */
-		si = (si + 1) % 8;
-		if (si == 0)
-			slice += 9;
-		--in_words_left;
 	}
 
-	/* Send out partially filled packet if this was the last chunk. */
-	if (acq->mem_addr_done >= acq->mem_addr_stop && acq->out_index > 0) {
-		logic.length = acq->out_index * UNIT_SIZE;
+	if (!devc->cancel_requested
+			&& acq->samples_done < acq->samples_max
+			&& acq->mem_addr_next < acq->mem_addr_stop) {
+		/* Request the next block. */
+		submit_request(sdi, STATE_READ_REQUEST);
+		return;
+	}
+
+	/* Send partially filled packet as it is the last one. */
+	if (!devc->cancel_requested && acq->out_index > 0) {
+ 		logic.length = acq->out_index * logic.unitsize;
 		sr_session_send(sdi, &packet);
 		acq->out_index = 0;
 	}
-	return SR_OK;
+	submit_request(sdi, STATE_READ_FINISH);
 }
 
-/* Finish an acquisition session.  This sends the end packet to the session
- * bus and removes the listener for asynchronous USB transfers.
+/* Destroy and unset the acquisition state record.
  */
-static void end_acquisition(struct sr_dev_inst *sdi)
+static void clear_acquisition_state(const struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
+	struct acquisition_state *acq;
 
-	drvc = sdi->driver->context;
 	devc = sdi->priv;
+	acq  = devc->acquisition;
 
-	if (devc->state == STATE_IDLE)
-		return;
+	devc->acquisition = NULL;
 
-	devc->state = STATE_IDLE;
+	if (acq) {
+		libusb_free_transfer(acq->xfer_out);
+		libusb_free_transfer(acq->xfer_in);
+		g_free(acq);
+	}
+}
 
-	/* Remove USB file descriptors from polling. */
-	usb_source_remove(sdi->session, drvc->sr_ctx);
+/* USB I/O source callback.
+ */
+static int transfer_event(int fd, int revents, void *cb_data)
+{
+	const struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+	struct timeval tv;
+	struct sr_datafeed_packet packet;
+	int ret;
+
+	(void)fd;
+
+	sdi  = cb_data;
+	devc = sdi->priv;
+	drvc = sdi->driver->context;
+
+	if (!devc || !drvc)
+		return G_SOURCE_REMOVE;
+
+	/* Handle pending USB events without blocking. */
+	tv.tv_sec  = 0;
+	tv.tv_usec = 0;
+	ret = libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx,
+						     &tv, NULL);
+	if (ret != 0) {
+		sr_err("Event handling failed: %s.", libusb_error_name(ret));
+		devc->transfer_error = TRUE;
+	}
+
+	if (!devc->transfer_error && devc->state == STATE_STATUS_WAIT) {
+		if (devc->cancel_requested)
+			submit_request(sdi, STATE_STOP_CAPTURE);
+		else if (revents == 0) /* status poll timeout */
+			submit_request(sdi, STATE_STATUS_REQUEST);
+	}
+
+	/* Stop processing events if an error occurred on a transfer. */
+	if (devc->transfer_error)
+		devc->state = STATE_IDLE;
+
+	if (devc->state != STATE_IDLE)
+		return G_SOURCE_CONTINUE;
+
+	sr_info("Acquisition stopped.");
+
+	/* We are done, clean up and send end packet to session bus. */
+	clear_acquisition_state(sdi);
 
 	packet.type = SR_DF_END;
+	packet.payload = NULL;
 	sr_session_send(sdi, &packet);
 
-	lwla_free_acquisition_state(devc->acquisition);
-	devc->acquisition = NULL;
-	devc->cancel_requested = FALSE;
+	return G_SOURCE_REMOVE;
 }
 
 /* USB output transfer completion callback.
  */
-static void LIBUSB_CALL receive_transfer_out(struct libusb_transfer *transfer)
+static void LIBUSB_CALL transfer_out_completed(struct libusb_transfer *transfer)
 {
-	struct sr_dev_inst *sdi;
+	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct acquisition_state *acq;
 
 	sdi  = transfer->user_data;
 	devc = sdi->priv;
+	acq  = devc->acquisition;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
 		sr_err("Transfer to device failed: %d.", transfer->status);
@@ -615,49 +346,57 @@ static void LIBUSB_CALL receive_transfer_out(struct libusb_transfer *transfer)
 		return;
 	}
 
-	if (devc->reg_write_pos < devc->reg_write_len) {
-		issue_next_write_reg(sdi);
-	} else {
-		switch (devc->state) {
-		case STATE_START_CAPTURE:
+	/* If this was a read request, wait for the response. */
+	if ((devc->state & STATE_EXPECT_RESPONSE) != 0) {
+		submit_transfer(devc, acq->xfer_in);
+		return;
+	}
+	if (acq->reg_seq_pos < acq->reg_seq_len)
+		acq->reg_seq_pos++; /* register write completed */
+
+	/* Repeat until all queued registers have been written. */
+	if (acq->reg_seq_pos < acq->reg_seq_len && !devc->cancel_requested) {
+		next_reg_write(acq);
+		submit_transfer(devc, acq->xfer_out);
+		return;
+	}
+
+	switch (devc->state) {
+	case STATE_START_CAPTURE:
+		sr_info("Acquisition started.");
+
+		if (!devc->cancel_requested)
 			devc->state = STATE_STATUS_WAIT;
-			break;
-		case STATE_STATUS_REQUEST:
-			devc->state = STATE_STATUS_RESPONSE;
-			submit_transfer(devc, devc->acquisition->xfer_in);
-			break;
-		case STATE_STOP_CAPTURE:
-			if (!devc->cancel_requested)
-				request_capture_length(sdi);
-			else
-				end_acquisition(sdi);
-			break;
-		case STATE_LENGTH_REQUEST:
-			devc->state = STATE_LENGTH_RESPONSE;
-			submit_transfer(devc, devc->acquisition->xfer_in);
-			break;
-		case STATE_READ_PREPARE:
-			request_read_mem(sdi);
-			break;
-		case STATE_READ_REQUEST:
-			devc->state = STATE_READ_RESPONSE;
-			submit_transfer(devc, devc->acquisition->xfer_in);
-			break;
-		case STATE_READ_END:
-			end_acquisition(sdi);
-			break;
-		default:
-			sr_err("Unexpected device state %d.", devc->state);
-			break;
-		}
+		else
+			submit_request(sdi, STATE_STOP_CAPTURE);
+		break;
+	case STATE_STOP_CAPTURE:
+		if (!devc->cancel_requested)
+			submit_request(sdi, STATE_LENGTH_REQUEST);
+		else
+			devc->state = STATE_IDLE;
+		break;
+	case STATE_READ_PREPARE:
+		if (acq->mem_addr_next < acq->mem_addr_stop && !devc->cancel_requested)
+			submit_request(sdi, STATE_READ_REQUEST);
+		else
+			submit_request(sdi, STATE_READ_FINISH);
+		break;
+	case STATE_READ_FINISH:
+		devc->state = STATE_IDLE;
+		break;
+	default:
+		sr_err("Unexpected device state %d.", devc->state);
+		devc->transfer_error = TRUE;
+		break;
 	}
 }
 
 /* USB input transfer completion callback.
  */
-static void LIBUSB_CALL receive_transfer_in(struct libusb_transfer *transfer)
+static void LIBUSB_CALL transfer_in_completed(struct libusb_transfer *transfer)
 {
-	struct sr_dev_inst *sdi;
+	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct acquisition_state *acq;
 
@@ -666,112 +405,101 @@ static void LIBUSB_CALL receive_transfer_in(struct libusb_transfer *transfer)
 	acq  = devc->acquisition;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer from device failed: %d.", transfer->status);
+		sr_err("Transfer from device failed (state %d): %s.",
+		       devc->state, libusb_error_name(transfer->status));
+		devc->transfer_error = TRUE;
+		return;
+	}
+	if ((devc->state & STATE_EXPECT_RESPONSE) == 0) {
+		sr_err("Unexpected completion of input transfer (state %d).",
+		       devc->state);
 		devc->transfer_error = TRUE;
 		return;
 	}
 
+	if (acq->reg_seq_pos < acq->reg_seq_len && !devc->cancel_requested) {
+		/* Complete register read sequence. */
+		if (read_reg_response(acq) != SR_OK) {
+			devc->transfer_error = TRUE;
+			return;
+		}
+		/* Repeat until all queued registers have been read. */
+		if (++acq->reg_seq_pos < acq->reg_seq_len) {
+			next_reg_read(acq);
+			submit_transfer(devc, acq->xfer_out);
+			return;
+		}
+	}
+
 	switch (devc->state) {
-	case STATE_STATUS_RESPONSE:
-		process_capture_status(sdi);
-		break;
-	case STATE_LENGTH_RESPONSE:
-		process_capture_length(sdi);
-		break;
-	case STATE_READ_RESPONSE:
-		if (process_sample_data(sdi) == SR_OK
-				&& acq->mem_addr_next < acq->mem_addr_stop
-				&& acq->samples_done < acq->samples_max)
-			request_read_mem(sdi);
+	case STATE_STATUS_REQUEST:
+		if (devc->cancel_requested)
+			submit_request(sdi, STATE_STOP_CAPTURE);
 		else
-			issue_read_end(sdi);
+			handle_status_response(sdi);
+		break;
+	case STATE_LENGTH_REQUEST:
+		if (devc->cancel_requested)
+			submit_request(sdi, STATE_READ_FINISH);
+		else
+			handle_length_response(sdi);
+		break;
+	case STATE_READ_REQUEST:
+		handle_read_response(sdi);
 		break;
 	default:
 		sr_err("Unexpected device state %d.", devc->state);
+		devc->transfer_error = TRUE;
 		break;
 	}
 }
 
-/* Initialize the LWLA.  This downloads a bitstream into the FPGA
- * and executes a simple device test sequence.
+/* Set up the acquisition state record.
  */
-SR_PRIV int lwla_init_device(const struct sr_dev_inst *sdi)
-{
-	uint64_t value;
-	struct dev_context *devc;
-	int ret;
-
-	devc = sdi->priv;
-
-	/* Force reload of bitstream */
-	devc->cur_clock_config = CONF_CLOCK_NONE;
-
-	ret = lwla_set_clock_config(sdi);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = lwla_read_long_reg(sdi->conn, LREG_TEST_ID, &value);
-	if (ret != SR_OK)
-		return ret;
-
-	/* Ignore the value returned by the first read */
-	ret = lwla_read_long_reg(sdi->conn, LREG_TEST_ID, &value);
-	if (ret != SR_OK)
-		return ret;
-
-	if (value != UINT64_C(0x1234567887654321)) {
-		sr_err("Received invalid test word 0x%016" PRIX64 ".", value);
-		return SR_ERR;
-	}
-	return SR_OK;
-}
-
-/* Select the LWLA clock configuration.  If the clock source changed from
- * the previous setting, this will download a new bitstream to the FPGA.
- */
-SR_PRIV int lwla_set_clock_config(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct drv_context *drvc;
-	int ret;
-	enum clock_config choice;
-
-	devc = sdi->priv;
-	drvc = sdi->driver->context;
-
-	if (sdi->status == SR_ST_INACTIVE)
-		choice = CONF_CLOCK_NONE;
-	else if (devc->cfg_clock_source == CLOCK_INTERNAL)
-		choice = CONF_CLOCK_INT;
-	else if (devc->cfg_clock_edge == EDGE_POSITIVE)
-		choice = CONF_CLOCK_EXT_RISE;
-	else
-		choice = CONF_CLOCK_EXT_FALL;
-
-	if (choice != devc->cur_clock_config) {
-		devc->cur_clock_config = CONF_CLOCK_NONE;
-		ret = lwla_send_bitstream(drvc->sr_ctx, sdi->conn,
-					  bitstream_map[choice]);
-		if (ret == SR_OK)
-			devc->cur_clock_config = choice;
-		return ret;
-	}
-	return SR_OK;
-}
-
-/* Configure the LWLA in preparation for an acquisition session.
- */
-SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
+static int init_acquisition_state(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct acquisition_state *acq;
-	struct regval_pair regvals[7];
-	int ret;
 
 	devc = sdi->priv;
 	usb  = sdi->conn;
-	acq  = devc->acquisition;
+
+	if (devc->acquisition) {
+		sr_err("Acquisition still in progress?");
+		return SR_ERR;
+	}
+	if (devc->cfg_clock_source == CLOCK_INTERNAL && devc->samplerate == 0) {
+		sr_err("Samplerate not set.");
+		return SR_ERR;
+	}
+
+	acq = g_try_malloc0(sizeof(struct acquisition_state));
+	if (!acq)
+		return SR_ERR_MALLOC;
+
+	acq->xfer_in = libusb_alloc_transfer(0);
+	if (!acq->xfer_in) {
+		g_free(acq);
+		return SR_ERR_MALLOC;
+	}
+	acq->xfer_out = libusb_alloc_transfer(0);
+	if (!acq->xfer_out) {
+		libusb_free_transfer(acq->xfer_in);
+		g_free(acq);
+		return SR_ERR_MALLOC;
+	}
+
+	libusb_fill_bulk_transfer(acq->xfer_out, usb->devhdl, EP_COMMAND,
+				  (unsigned char *)acq->xfer_buf_out, 0,
+				  &transfer_out_completed,
+				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
+
+	libusb_fill_bulk_transfer(acq->xfer_in, usb->devhdl, EP_REPLY,
+				  (unsigned char *)acq->xfer_buf_in,
+				  sizeof(acq->xfer_buf_in),
+				  &transfer_in_completed,
+				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
 
 	if (devc->limit_msec > 0) {
 		acq->duration_max = devc->limit_msec;
@@ -790,10 +518,8 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 	if (devc->cfg_clock_source == CLOCK_INTERNAL) {
 		sr_info("Internal clock, samplerate %" PRIu64 ".",
 			devc->samplerate);
-		if (devc->samplerate == 0)
-			return SR_ERR_BUG;
-		/* At 125 MHz, the clock divider is bypassed. */
-		acq->bypass_clockdiv = (devc->samplerate > SR_MHZ(100));
+		/* Ramp up clock speed to enable samplerates above 100 MS/s. */
+		acq->clock_boost = (devc->samplerate > SR_MHZ(100));
 
 		/* If only one of the limits is set, derive the other one. */
 		if (devc->limit_msec == 0 && devc->limit_samples > 0)
@@ -803,170 +529,62 @@ SR_PRIV int lwla_setup_acquisition(const struct sr_dev_inst *sdi)
 			acq->samples_max = devc->limit_msec
 					* devc->samplerate / 1000;
 	} else {
-		acq->bypass_clockdiv = TRUE;
+		acq->clock_boost = TRUE;
 
-		if (devc->cfg_clock_edge == EDGE_NEGATIVE)
-			sr_info("External clock, falling edge.");
-		else
+		if (devc->cfg_clock_edge == EDGE_POSITIVE)
 			sr_info("External clock, rising edge.");
+		else
+			sr_info("External clock, falling edge.");
 	}
 
-	regvals[0].reg = REG_MEM_CTRL;
-	regvals[0].val = MEM_CTRL_CLR_IDX;
+	acq->rle_enabled = devc->cfg_rle;
+	devc->acquisition = acq;
 
-	regvals[1].reg = REG_MEM_CTRL;
-	regvals[1].val = MEM_CTRL_WRITE;
+	return SR_OK;
+}
 
-	regvals[2].reg = REG_LONG_ADDR;
-	regvals[2].val = LREG_CAP_CTRL;
+SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	int ret;
 
-	regvals[3].reg = REG_LONG_LOW;
-	regvals[3].val = CAP_CTRL_CLR_TIMEBASE | CAP_CTRL_FLUSH_FIFO
-		       | CAP_CTRL_CLR_FIFOFULL | CAP_CTRL_CLR_COUNTER;
-	regvals[4].reg = REG_LONG_HIGH;
-	regvals[4].val = 0;
+	drvc = sdi->driver->context;
+	devc = sdi->priv;
 
-	regvals[5].reg = REG_LONG_STROBE;
-	regvals[5].val = 0;
+	if (devc->state != STATE_IDLE) {
+		sr_err("Not in idle state, cannot start acquisition.");
+		return SR_ERR;
+	}
+	devc->cancel_requested = FALSE;
+	devc->transfer_error = FALSE;
 
-	regvals[6].reg = REG_DIV_BYPASS;
-	regvals[6].val = acq->bypass_clockdiv;
-
-	ret = lwla_write_regs(usb, regvals, ARRAY_SIZE(regvals));
+	ret = init_acquisition_state(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	return capture_setup(sdi);
-}
-
-/* Start the capture operation on the LWLA device.  Beginning with this
- * function, all USB transfers will be asynchronous until the end of the
- * acquisition session.
- */
-SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-	struct acquisition_state *acq;
-	struct regval_pair *regvals;
-
-	devc = sdi->priv;
-	usb  = sdi->conn;
-	acq  = devc->acquisition;
-
-	acq->duration_now  = 0;
-	acq->mem_addr_fill = 0;
-	acq->capture_flags = 0;
-
-	libusb_fill_bulk_transfer(acq->xfer_out, usb->devhdl, EP_COMMAND,
-				  (unsigned char *)acq->xfer_buf_out, 0,
-				  &receive_transfer_out,
-				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
-
-	libusb_fill_bulk_transfer(acq->xfer_in, usb->devhdl, EP_REPLY,
-				  (unsigned char *)acq->xfer_buf_in,
-				  sizeof acq->xfer_buf_in,
-				  &receive_transfer_in,
-				  (struct sr_dev_inst *)sdi, USB_TIMEOUT_MS);
-
-	regvals = devc->reg_write_seq;
-
-	regvals[0].reg = REG_LONG_ADDR;
-	regvals[0].val = LREG_CAP_CTRL;
-
-	regvals[1].reg = REG_LONG_LOW;
-	regvals[1].val = CAP_CTRL_TRG_EN;
-
-	regvals[2].reg = REG_LONG_HIGH;
-	regvals[2].val = 0;
-
-	regvals[3].reg = REG_LONG_STROBE;
-	regvals[3].val = 0;
-
-	devc->reg_write_pos = 0;
-	devc->reg_write_len = 4;
-
-	devc->state = STATE_START_CAPTURE;
-
-	return issue_next_write_reg(sdi);
-}
-
-/* Allocate an acquisition state object.
- */
-SR_PRIV struct acquisition_state *lwla_alloc_acquisition_state(void)
-{
-	struct acquisition_state *acq;
-
-	acq = g_malloc0(sizeof(struct acquisition_state));
-
-	acq->xfer_in = libusb_alloc_transfer(0);
-	if (!acq->xfer_in) {
-		sr_err("Transfer malloc failed.");
-		g_free(acq);
-		return NULL;
+	ret = (*devc->model->setup_acquisition)(sdi);
+	if (ret != SR_OK) {
+		sr_err("Failed to set up device for acquisition.");
+		clear_acquisition_state(sdi);
+		return ret;
 	}
-
-	acq->xfer_out = libusb_alloc_transfer(0);
-	if (!acq->xfer_out) {
-		sr_err("Transfer malloc failed.");
-		libusb_free_transfer(acq->xfer_in);
-		g_free(acq);
-		return NULL;
+	/* Register event source for asynchronous USB I/O. */
+	ret = usb_source_add(sdi->session, drvc->sr_ctx, POLL_INTERVAL,
+			     &transfer_event, (struct sr_dev_inst *)sdi);
+	if (ret != SR_OK) {
+		clear_acquisition_state(sdi);
+		return ret;
 	}
+	ret = submit_request(sdi, STATE_START_CAPTURE);
 
-	return acq;
-}
-
-/* Deallocate an acquisition state object.
- */
-SR_PRIV void lwla_free_acquisition_state(struct acquisition_state *acq)
-{
-	if (acq) {
-		libusb_free_transfer(acq->xfer_out);
-		libusb_free_transfer(acq->xfer_in);
-		g_free(acq);
+	if (ret == SR_OK) {
+		/* Send header packet to the session bus. */
+		ret = std_session_send_df_header(sdi, LOG_PREFIX);
 	}
-}
-
-/* USB I/O source callback.
- */
-SR_PRIV int lwla_receive_data(int fd, int revents, void *cb_data)
-{
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	struct drv_context *drvc;
-	struct timeval tv;
-	int ret;
-
-	(void)fd;
-
-	sdi  = cb_data;
-	devc = sdi->priv;
-	drvc = sdi->driver->context;
-
-	if (!devc || !drvc)
-		return FALSE;
-
-	/* No timeout: return immediately. */
-	tv.tv_sec  = 0;
-	tv.tv_usec = 0;
-
-	ret = libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx,
-						     &tv, NULL);
-	if (ret != 0)
-		sr_err("Event handling failed: %s.", libusb_error_name(ret));
-
-	/* If no event flags are set the timeout must have expired. */
-	if (revents == 0 && devc->state == STATE_STATUS_WAIT) {
-		if (devc->cancel_requested)
-			issue_stop_capture(sdi);
-		else
-			request_capture_status(sdi);
+	if (ret != SR_OK) {
+		usb_source_remove(sdi->session, drvc->sr_ctx);
+		clear_acquisition_state(sdi);
 	}
-
-	/* Check if an error occurred on a transfer. */
-	if (devc->transfer_error)
-		end_acquisition(sdi);
-
-	return TRUE;
+	return ret;
 }
