@@ -134,10 +134,6 @@ static gboolean usb_source_dispatch(GSource *source,
 		pollfd = g_ptr_array_index(usource->pollfds, i);
 		revents |= pollfd->revents;
 	}
-	if (revents != 0)
-		sr_spew("%s: revents 0x%.2X", __func__, revents);
-	else
-		sr_spew("%s: timed out", __func__);
 
 	if (!callback) {
 		sr_err("Callback not set, cannot dispatch event.");

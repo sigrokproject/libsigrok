@@ -117,21 +117,12 @@ static gboolean fd_source_dispatch(GSource *source,
 		GSourceFunc callback, void *user_data)
 {
 	struct fd_source *fsource;
-	const char *name;
 	unsigned int revents;
 	gboolean keep;
 
 	fsource = (struct fd_source *)source;
-	name = g_source_get_name(source);
 	revents = fsource->pollfd.revents;
 
-	if (revents != 0) {
-		sr_spew("%s: %s " G_POLLFD_FORMAT ", revents 0x%.2X",
-			__func__, name, fsource->pollfd.fd, revents);
-	} else {
-		sr_spew("%s: %s " G_POLLFD_FORMAT ", timed out",
-			__func__, name, fsource->pollfd.fd);
-	}
 	if (!callback) {
 		sr_err("Callback not set, cannot dispatch event.");
 		return G_SOURCE_REMOVE;
