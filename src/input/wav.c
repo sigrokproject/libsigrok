@@ -187,7 +187,6 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	struct sr_datafeed_analog_old analog;
 	struct context *inc;
 	float fdata[CHUNK_SIZE];
-	uint64_t sample;
 	int total_samples, samplenum;
 	char *s, *d;
 
@@ -199,18 +198,16 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	total_samples = num_samples * inc->num_channels;
 	for (samplenum = 0; samplenum < total_samples; samplenum++) {
 		if (inc->fmt_code == WAVE_FORMAT_PCM_) {
-			sample = 0;
-			memcpy(&sample, s, inc->unitsize);
-			switch (inc->samplesize) {
+			switch (inc->unitsize) {
 			case 1:
 				/* 8-bit PCM samples are unsigned. */
-				fdata[samplenum] = (uint8_t)sample / (float)255;
+				fdata[samplenum] = *(uint8_t*)(s) / (float)255;
 				break;
 			case 2:
-				fdata[samplenum] = RL16S(&sample) / (float)INT16_MAX;
+				fdata[samplenum] = RL16S(s) / (float)INT16_MAX;
 				break;
 			case 4:
-				fdata[samplenum] = RL32S(&sample) / (float)INT32_MAX;
+				fdata[samplenum] = RL32S(s) / (float)INT32_MAX;
 				break;
 			}
 		} else {
