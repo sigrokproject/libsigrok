@@ -37,7 +37,7 @@
 #define MIN_DATA_CHUNK_OFFSET    45
 
 /* Expect to find the "data" chunk within this offset from the start. */
-#define MAX_DATA_CHUNK_OFFSET    256
+#define MAX_DATA_CHUNK_OFFSET    1024
 
 #define WAVE_FORMAT_PCM_         0x0001
 #define WAVE_FORMAT_IEEE_FLOAT_  0x0003
@@ -174,6 +174,9 @@ static int find_data_chunk(GString *buf, int initial_offset)
 		/* Skip past this chunk. */
 		offset += 8 + RL32(buf->str + offset + 4);
 	}
+
+	if (offset > MAX_DATA_CHUNK_OFFSET)
+		return -1;
 
 	return offset;
 }
