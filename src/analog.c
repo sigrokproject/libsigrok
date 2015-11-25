@@ -187,9 +187,80 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 	bigendian = FALSE;
 #endif
 	if (!analog->encoding->is_float) {
-		/* TODO */
-		sr_err("Only floating-point encoding supported so far.");
-		return SR_ERR;
+		float offset = analog->encoding->offset.p / (float)analog->encoding->offset.q;
+		float scale = analog->encoding->scale.p / (float)analog->encoding->scale.q;
+		gboolean is_signed = analog->encoding->is_signed;
+		gboolean is_bigendian = analog->encoding->is_bigendian;
+		int8_t *data8 = (int8_t *)(analog->data);
+		int16_t *data16 = (int16_t *)(analog->data);
+		int32_t *data32 = (int32_t *)(analog->data);
+
+		switch (analog->encoding->unitsize) {
+		case 1:
+			if (is_signed) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * data8[i];
+					outbuf[i] += offset;
+				}
+			} else {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * R8(data8 + i);
+					outbuf[i] += offset;
+				}
+			}
+			break;
+		case 2:
+			if (is_signed && is_bigendian) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RB16S(&data16[i]);
+					outbuf[i] += offset;
+				}
+			} else if (is_bigendian) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RB16(&data16[i]);
+					outbuf[i] += offset;
+				}
+			} else if (is_signed) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RL16S(&data16[i]);
+					outbuf[i] += offset;
+				}
+			} else {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RL16(&data16[i]);
+					outbuf[i] += offset;
+				}
+			}
+			break;
+		case 4:
+			if (is_signed && is_bigendian) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RB32S(&data32[i]);
+					outbuf[i] += offset;
+				}
+			} else if (is_bigendian) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RB32(&data32[i]);
+					outbuf[i] += offset;
+				}
+			} else if (is_signed) {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RL32S(&data32[i]);
+					outbuf[i] += offset;
+				}
+			} else {
+				for (unsigned int i = 0; i < count; i++) {
+					outbuf[i] = scale * RL32(&data32[i]);
+					outbuf[i] += offset;
+				}
+			}
+			break;
+		default:
+			sr_err("Unsupported unit size '%d' for analog-to-float conversion.",
+				analog->encoding->unitsize);
+			return SR_ERR;
+		}
+		return SR_OK;
 	}
 
 	if (analog->encoding->unitsize == sizeof(float)

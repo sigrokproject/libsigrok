@@ -77,6 +77,15 @@ struct zip_stat;
                    (unsigned)((const uint8_t*)(x))[0])
 
 /**
+ * Read a 16 bits big endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding signed integer
+ */
+#define RB16S(x)  ((int16_t) \
+                  (((unsigned)((const uint8_t*)(x))[0] <<  8) | \
+                    (unsigned)((const uint8_t*)(x))[1]))
+
+/**
  * Read a 16 bits little endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding signed integer
@@ -104,6 +113,17 @@ struct zip_stat;
                   ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
                   ((unsigned)((const uint8_t*)(x))[1] <<  8) |  \
                    (unsigned)((const uint8_t*)(x))[0])
+
+/**
+ * Read a 32 bits big endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding signed integer
+ */
+#define RB32S(x)  ((int32_t) \
+                 (((unsigned)((const uint8_t*)(x))[0] << 24) | \
+                  ((unsigned)((const uint8_t*)(x))[1] << 16) | \
+                  ((unsigned)((const uint8_t*)(x))[2] <<  8) | \
+                   (unsigned)((const uint8_t*)(x))[3]))
 
 /**
  * Read a 32 bits little endian signed integer out of memory.
