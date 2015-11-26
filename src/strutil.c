@@ -58,8 +58,6 @@
  *
  * @retval SR_OK Conversion successful.
  * @retval SR_ERR Failure.
- *
- * @since 0.3.0
  */
 SR_PRIV int sr_atol(const char *str, long *ret)
 {
@@ -92,8 +90,6 @@ SR_PRIV int sr_atol(const char *str, long *ret)
  *
  * @retval SR_OK Conversion successful.
  * @retval SR_ERR Failure.
- *
- * @since 0.3.0
  */
 SR_PRIV int sr_atoi(const char *str, int *ret)
 {
@@ -124,8 +120,6 @@ SR_PRIV int sr_atoi(const char *str, int *ret)
  *
  * @retval SR_OK Conversion successful.
  * @retval SR_ERR Failure.
- *
- * @since 0.3.0
  */
 SR_PRIV int sr_atod(const char *str, double *ret)
 {
@@ -158,8 +152,6 @@ SR_PRIV int sr_atod(const char *str, double *ret)
  *
  * @retval SR_OK Conversion successful.
  * @retval SR_ERR Failure.
- *
- * @since 0.3.0
  */
 SR_PRIV int sr_atof(const char *str, float *ret)
 {
@@ -190,8 +182,6 @@ SR_PRIV int sr_atof(const char *str, float *ret)
  *
  * @retval SR_OK Conversion successful.
  * @retval SR_ERR Failure.
- *
- * @since 0.3.0
  */
 SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 {
