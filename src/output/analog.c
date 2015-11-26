@@ -31,6 +31,7 @@ struct context {
 	int num_enabled_channels;
 	GPtrArray *channellist;
 	int digits;
+	float *fdata;
 };
 
 enum {
@@ -64,6 +65,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		g_ptr_array_add(ctx->channellist, ch->name);
 		ctx->num_enabled_channels++;
 	}
+	ctx->fdata = NULL;
 
 	return SR_OK;
 }
@@ -316,9 +318,10 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	case SR_DF_ANALOG:
 		analog = packet->payload;
 		num_channels = g_slist_length(analog->meaning->channels);
-		if (!(fdata = g_try_malloc(
+		if (!(fdata = g_try_realloc(ctx->fdata,
 						analog->num_samples * num_channels * sizeof(float))))
 			return SR_ERR_MALLOC;
+		ctx->fdata = fdata;
 		if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 			return ret;
 		*out = g_string_sized_new(512);
@@ -361,6 +364,7 @@ static int cleanup(struct sr_output *o)
 	ctx = o->priv;
 
 	g_ptr_array_free(ctx->channellist, 1);
+	g_free(ctx->fdata);
 	g_free(ctx);
 	o->priv = NULL;
 
