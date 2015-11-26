@@ -256,6 +256,8 @@ SR_API int sr_session_destroy(struct sr_session *session)
 	sr_session_dev_remove_all(session);
 	g_slist_free_full(session->owned_devs, (GDestroyNotify)sr_dev_inst_free);
 
+	sr_session_datafeed_callback_remove_all(session);
+
 	g_hash_table_unref(session->event_sources);
 
 	g_mutex_clear(&session->main_mutex);
