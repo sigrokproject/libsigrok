@@ -338,23 +338,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	return SR_OK;
 }
 
-static int cleanup(struct sr_output *o)
-{
-	struct out_context *outc;
-	int i;
-
-	outc = o->priv;
-	g_slist_free(outc->channels);
-	for (i = 0; i < outc->num_channels; i++)
-		g_free(outc->chanbuf[i]);
-	g_free(outc->chanbuf_used);
-	g_free(outc->chanbuf);
-	g_free(outc);
-	o->priv = NULL;
-
-	return SR_OK;
-}
-
 static struct sr_option options[] = {
 	{ "scale", "Scale", "Scale values by factor", NULL, NULL },
 	ALL_ZERO
@@ -366,6 +349,24 @@ static const struct sr_option *get_options(void)
 		options[0].def = g_variant_ref_sink(g_variant_new_double(0.0));
 
 	return options;
+}
+
+static int cleanup(struct sr_output *o)
+{
+	struct out_context *outc;
+	int i;
+
+	outc = o->priv;
+	g_slist_free(outc->channels);
+	g_variant_unref(options[0].def);
+	for (i = 0; i < outc->num_channels; i++)
+		g_free(outc->chanbuf[i]);
+	g_free(outc->chanbuf_used);
+	g_free(outc->chanbuf);
+	g_free(outc);
+	o->priv = NULL;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_output_module output_wav = {

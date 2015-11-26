@@ -296,18 +296,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	return SR_OK;
 }
 
-static int cleanup(struct sr_output *o)
-{
-	struct out_context *outc;
-
-	outc = o->priv;
-	g_free(outc->filename);
-	g_free(outc);
-	o->priv = NULL;
-
-	return SR_OK;
-}
-
 static struct sr_option options[] = {
 	ALL_ZERO
 };
@@ -318,6 +306,19 @@ static const struct sr_option *get_options(void)
 		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
 
 	return options;
+}
+
+static int cleanup(struct sr_output *o)
+{
+	struct out_context *outc;
+
+	outc = o->priv;
+	g_variant_unref(options[0].def);
+	g_free(outc->filename);
+	g_free(outc);
+	o->priv = NULL;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_output_module output_srzip = {

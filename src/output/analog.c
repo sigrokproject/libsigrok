@@ -355,22 +355,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	return SR_OK;
 }
 
-static int cleanup(struct sr_output *o)
-{
-	struct context *ctx;
-
-	if (!o || !o->sdi)
-		return SR_ERR_ARG;
-	ctx = o->priv;
-
-	g_ptr_array_free(ctx->channellist, 1);
-	g_free(ctx->fdata);
-	g_free(ctx);
-	o->priv = NULL;
-
-	return SR_OK;
-}
-
 static struct sr_option options[] = {
 	{ "digits", "Digits", "Digits to show", NULL, NULL },
 	ALL_ZERO
@@ -387,6 +371,24 @@ static const struct sr_option *get_options(void)
 	}
 
 	return options;
+}
+
+static int cleanup(struct sr_output *o)
+{
+	struct context *ctx;
+
+	if (!o || !o->sdi)
+		return SR_ERR_ARG;
+	ctx = o->priv;
+
+	g_ptr_array_free(ctx->channellist, 1);
+	g_variant_unref(options[0].def);
+	g_slist_free_full(options[0].values, (GDestroyNotify)g_variant_unref);
+	g_free(ctx->fdata);
+	g_free(ctx);
+	o->priv = NULL;
+
+	return SR_OK;
 }
 
 SR_PRIV struct sr_output_module output_analog = {
