@@ -323,11 +323,11 @@ libsigrok_la_SOURCES += \
 	src/hardware/kern-scale/protocol.c \
 	src/hardware/kern-scale/api.c
 endif
-if HW_KORAD_KDXXXXP
+if HW_KORAD_KAXXXXP
 libsigrok_la_SOURCES += \
-	src/hardware/korad-kdxxxxp/protocol.h \
-	src/hardware/korad-kdxxxxp/protocol.c \
-	src/hardware/korad-kdxxxxp/api.c
+	src/hardware/korad-kaxxxxp/protocol.h \
+	src/hardware/korad-kaxxxxp/protocol.c \
+	src/hardware/korad-kaxxxxp/api.c
 endif
 if HW_LASCAR_EL_USB
 libsigrok_la_SOURCES += \

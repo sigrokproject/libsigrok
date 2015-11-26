@@ -48,14 +48,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const struct korad_kdxxxxp_model models[] = {
+static const struct korad_kaxxxxp_model models[] = {
 	/* Device enum, vendor, model, ID reply, channels, voltage, current */
 	{VELLEMAN_LABPS_3005D, "Velleman", "LABPS3005D",
 		"VELLEMANLABPS3005DV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{0, NULL, NULL, NULL, 0, {0, 0, 0}, {0, 0, 0}}
 };
 
-SR_PRIV struct sr_dev_driver korad_kdxxxxp_driver_info;
+SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info;
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
@@ -115,11 +115,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	memset(&reply, 0, sizeof(reply));
 	sr_dbg("Want max %d bytes.", len);
-	if ((korad_kdxxxxp_send_cmd(serial, "*IDN?") < 0))
+	if ((korad_kaxxxxp_send_cmd(serial, "*IDN?") < 0))
 		return NULL;
 
 	/* i is used here for debug purposes only. */
-	if ((i = korad_kdxxxxp_read_chars(serial, len, reply)) < 0)
+	if ((i = korad_kaxxxxp_read_chars(serial, len, reply)) < 0)
 		return NULL;
 	sr_dbg("Received: %d, %s", i, reply);
 	model_id = -1;
@@ -151,7 +151,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 
 	/* Get current status of device. */
-	if (korad_kdxxxxp_get_all_values(serial, devc) < 0)
+	if (korad_kaxxxxp_get_all_values(serial, devc) < 0)
 		goto exit_err;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
@@ -267,8 +267,8 @@ static int config_set(uint32_t key, GVariant *data,
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
 			return SR_ERR_ARG;
 		devc->voltage_max = dval;
-		devc->target = KDXXXXP_VOLTAGE_MAX;
-		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+		devc->target = KAXXXXP_VOLTAGE_MAX;
+		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_CURRENT_LIMIT:
@@ -276,30 +276,30 @@ static int config_set(uint32_t key, GVariant *data,
 		if (dval < devc->model->current[0] || dval > devc->model->current[1])
 			return SR_ERR_ARG;
 		devc->current_max = dval;
-		devc->target = KDXXXXP_CURRENT_MAX;
-		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+		devc->target = KAXXXXP_CURRENT_MAX;
+		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
 		/* Set always so it is possible turn off with sigrok-cli. */
 		devc->output_enabled = bval;
-		devc->target = KDXXXXP_OUTPUT;
-		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+		devc->target = KAXXXXP_OUTPUT;
+		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->ocp_enabled = bval;
-		devc->target = KDXXXXP_OCP;
-		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+		devc->target = KAXXXXP_OCP;
+		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->ovp_enabled = bval;
-		devc->target = KDXXXXP_OVP;
-		if (korad_kdxxxxp_set_value(sdi->conn, devc) < 0)
+		devc->target = KAXXXXP_OVP;
+		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
 			return SR_ERR;
 		break;
 	default:
@@ -393,8 +393,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->req_sent_at = 0;
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN,
-			KDXXXXP_POLL_INTERVAL_MS,
-			korad_kdxxxxp_receive_data, (void *)sdi);
+			KAXXXXP_POLL_INTERVAL_MS,
+			korad_kaxxxxp_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -408,9 +408,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver korad_kdxxxxp_driver_info = {
-	.name = "korad-kdxxxxp",
-	.longname = "Korad KDxxxxP",
+SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info = {
+	.name = "korad-kaxxxxp",
+	.longname = "Korad KAxxxxP",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,

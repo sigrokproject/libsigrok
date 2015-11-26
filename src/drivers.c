@@ -102,8 +102,8 @@ extern SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
 #ifdef HAVE_HW_KERN_SCALE
 extern SR_PRIV struct sr_dev_driver *kern_scale_drivers[];
 #endif
-#ifdef HAVE_HW_KORAD_KDXXXXP
-extern SR_PRIV struct sr_dev_driver korad_kdxxxxp_driver_info;
+#ifdef HAVE_HW_KORAD_KAXXXXP
+extern SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info;
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
@@ -263,8 +263,8 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #ifdef HAVE_HW_KERN_SCALE
 	kern_scale_drivers,
 #endif
-#ifdef HAVE_HW_KORAD_KDXXXXP
-	(DRVS) {&korad_kdxxxxp_driver_info, NULL},
+#ifdef HAVE_HW_KORAD_KAXXXXP
+	(DRVS) {&korad_kaxxxxp_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_LASCAR_EL_USB
 	(DRVS) {&lascar_el_usb_driver_info, NULL},
