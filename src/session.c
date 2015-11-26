@@ -404,6 +404,45 @@ SR_API int sr_session_dev_list(struct sr_session *session, GSList **devlist)
 }
 
 /**
+ * Remove a device instance from a session.
+ *
+ * @param session The session to remove from. Must not be NULL.
+ * @param sdi The device instance to remove from a session. Must not
+ *            be NULL. Also, sdi->driver and sdi->driver->dev_open must
+ *            not be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ *
+ * @since 0.4.0
+ */
+SR_API int sr_session_dev_remove(struct sr_session *session,
+		struct sr_dev_inst *sdi)
+{
+	if (!sdi) {
+		sr_err("%s: sdi was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (!session) {
+		sr_err("%s: session was NULL", __func__);
+		return SR_ERR_ARG;
+	}
+
+	/* If sdi->session is not session, the device is not in this
+	 * session. */
+	if (sdi->session != session) {
+		sr_err("%s: not assigned to this session", __func__);
+		return SR_ERR_ARG;
+	}
+
+	session->devs = g_slist_remove(session->devs, sdi);
+	sdi->session = NULL;
+
+	return SR_OK;
+}
+
+/**
  * Remove all datafeed callbacks in a session.
  *
  * @param session The session to use. Must not be NULL.

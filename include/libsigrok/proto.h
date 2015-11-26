@@ -111,6 +111,8 @@ SR_API int sr_session_destroy(struct sr_session *session);
 SR_API int sr_session_dev_remove_all(struct sr_session *session);
 SR_API int sr_session_dev_add(struct sr_session *session,
 		struct sr_dev_inst *sdi);
+SR_API int sr_session_dev_remove(struct sr_session *session,
+		struct sr_dev_inst *sdi);
 SR_API int sr_session_dev_list(struct sr_session *session, GSList **devlist);
 SR_API int sr_session_trigger_set(struct sr_session *session, struct sr_trigger *trig);
 

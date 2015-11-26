@@ -261,6 +261,9 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	}
 	g_slist_free(sdi->channel_groups);
 
+	if (sdi->session)
+		sr_session_dev_remove(sdi->session, sdi);
+
 	g_free(sdi->vendor);
 	g_free(sdi->model);
 	g_free(sdi->version);
