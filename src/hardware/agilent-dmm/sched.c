@@ -515,7 +515,7 @@ SR_PRIV const struct agdmm_job agdmm_jobs_u12xx[] = {
 	{ 143, send_stat },
 	{ 1000, send_conf },
 	{ 143, send_fetc },
-	{ 0, NULL }
+	ALL_ZERO
 };
 
 SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
@@ -525,7 +525,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
 	{ "^\"(V|MV|A|UA|FREQ),(\\d),(AC|DC)\"$", recv_conf_u123x },
 	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
 	{ "^\"(DIOD)\"$", recv_conf },
-	{ NULL, NULL }
+	ALL_ZERO
 };
 
 SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
@@ -537,7 +537,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf },
-	{ NULL, NULL }
+	ALL_ZERO
 };
 
 SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
@@ -549,5 +549,5 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf },
-	{ NULL, NULL }
+	ALL_ZERO
 };

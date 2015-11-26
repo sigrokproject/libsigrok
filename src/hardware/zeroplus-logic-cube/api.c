@@ -51,7 +51,7 @@ static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x700e, "LAP-C(16032)",  16, 32,   100},
 	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
 	{0x0c12, 0x7100, "AKIP-9101", 16, 256, 200},
-	{ 0, 0, 0, 0, 0, 0 }
+	ALL_ZERO
 };
 
 static const uint32_t devopts[] = {

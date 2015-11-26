@@ -70,7 +70,7 @@ static const struct hcs_model models[] = {
 	{ MANSON_HCS_3600, "HCS-3600-USB", "3600", { 1, 16, 0.1 }, { 0, 60,   0.10 } },
 	{ MANSON_HCS_3602, "HCS-3602-USB", "3602", { 1, 32, 0.1 }, { 0, 30,   0.10 } },
 	{ MANSON_HCS_3604, "HCS-3604-USB", "3604", { 1, 60, 0.1 }, { 0, 15,   0.10 } },
-	{ 0, NULL, NULL, { 0, 0, 0 }, { 0, 0, 0 }, },
+	ALL_ZERO
 };
 
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;

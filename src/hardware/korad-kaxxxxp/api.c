@@ -54,7 +54,7 @@ static const struct korad_kaxxxxp_model models[] = {
 		"VELLEMANLABPS3005DV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KA3005D, "Korad", "KA3005P",
 		"KORADKA3005PV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
-	{0, NULL, NULL, NULL, 0, {0, 0, 0}, {0, 0, 0}}
+	ALL_ZERO
 };
 
 SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info;

@@ -206,7 +206,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_TEST_MODE, SR_T_STRING, "test_mode",
 		"Test mode", NULL},
 
-	{0, 0, NULL, NULL, NULL},
+	ALL_ZERO
 };
 
 /* Please use the same order as in enum sr_mq (libsigrok.h). */

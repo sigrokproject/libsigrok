@@ -52,7 +52,7 @@ static const struct elusb_profile profiles[] = {
 	{ 19, "EL-USB-1-LCD", LOG_UNSUPPORTED },
 	{ 20, "EL-OEM-3", LOG_UNSUPPORTED },
 	{ 21, "EL-USB-1-LCD", LOG_UNSUPPORTED },
-	{ 0, NULL, 0 }
+	ALL_ZERO
 };
 
 static libusb_device_handle *lascar_open(struct libusb_device *dev)

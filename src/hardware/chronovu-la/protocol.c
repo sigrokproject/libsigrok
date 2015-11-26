@@ -24,7 +24,7 @@
 SR_PRIV const struct cv_profile cv_profiles[] = {
 	{ CHRONOVU_LA8,  "LA8",  "ChronoVu LA8",  8,  SR_MHZ(100), 2, 0.8388608 },
 	{ CHRONOVU_LA16, "LA16", "ChronoVu LA16", 16, SR_MHZ(200), 4, 0.042 },
-	{ 0, NULL, NULL, 0, 0, 0, 0.0 },
+	ALL_ZERO
 };
 
 /* LA8: channels are numbered 0-7. LA16: channels are numbered 0-15. */
