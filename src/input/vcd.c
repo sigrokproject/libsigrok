@@ -511,6 +511,7 @@ static int process_buffer(struct sr_input *in)
 		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
+		g_slist_free(meta.config);
 		sr_config_free(src);
 
 		inc->started = TRUE;
