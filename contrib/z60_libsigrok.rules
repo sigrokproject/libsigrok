@@ -161,6 +161,12 @@ ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="664", GROUP="plugdev"
 # Saleae Logic16
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="664", GROUP="plugdev"
 
+# sigrok FX2 LA (8ch)
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608c", MODE="664", GROUP="plugdev"
+
+# sigrok FX2 LA (16ch)
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608d", MODE="664", GROUP="plugdev"
+
 # SysClk LWLA1016
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", MODE="664", GROUP="plugdev"
 
