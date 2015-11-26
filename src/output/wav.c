@@ -36,6 +36,7 @@ struct out_context {
 	int chanbuf_size;
 	int *chanbuf_used;
 	uint8_t **chanbuf;
+	float *fdata;
 };
 
 static int realloc_chanbufs(const struct sr_output *o, int size)
@@ -281,7 +282,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			num_samples = analog->num_samples;
 			channels = analog->meaning->channels;
 			num_channels = g_slist_length(analog->meaning->channels);
-			data = g_malloc(sizeof(float) * num_samples * num_channels);
+			if (!(data = g_try_realloc(outc->fdata, sizeof(float) * num_samples * num_channels)))
+				return SR_ERR_MALLOC;
+			outc->fdata = data;
 			ret = sr_analog_to_float(analog, data);
 			if (ret != SR_OK)
 				return ret;
@@ -363,6 +366,7 @@ static int cleanup(struct sr_output *o)
 		g_free(outc->chanbuf[i]);
 	g_free(outc->chanbuf_used);
 	g_free(outc->chanbuf);
+	g_free(outc->fdata);
 	g_free(outc);
 	o->priv = NULL;
 
