@@ -69,14 +69,6 @@ struct sr_usb_dev_inst;
  */
 #define PACKET_SIZE		(5000 * 4 * 5)
 
-/** USB device end points.
- */
-enum usb_endpoint {
-	EP_COMMAND = 2,
-	EP_CONFIG  = 4,
-	EP_REPLY   = 6 | LIBUSB_ENDPOINT_IN
-};
-
 /** LWLA protocol command ID codes.
  */
 enum command_id {

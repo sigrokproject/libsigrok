@@ -23,6 +23,7 @@
 #define LOG_PREFIX "sysclk-lwla"
 
 #include <stdint.h>
+#include <libusb.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include <libsigrok-internal.h>
@@ -59,6 +60,14 @@ enum {
 	USB_CONFIG	= 1,
 	USB_INTERFACE	= 0,
 	USB_TIMEOUT_MS	= 3000,
+};
+
+/** USB device end points.
+ */
+enum usb_endpoint {
+	EP_COMMAND = 2,
+	EP_CONFIG  = 4,
+	EP_REPLY   = 6 | LIBUSB_ENDPOINT_IN
 };
 
 /** LWLA1034 clock sources.

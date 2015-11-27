@@ -248,6 +248,40 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, &clear_dev_context);
 }
 
+/* Drain any pending data from the USB transfer buffers on the device.
+ * This may be necessary e.g. after a crash or generally to clean up after
+ * an abnormal condition.
+ */
+static int drain_usb(struct sr_usb_dev_inst *usb, unsigned int endpoint)
+{
+	int drained, xfer_len;
+	int ret;
+	unsigned char buf[512];
+
+	const unsigned int drain_timeout_ms = 10;
+
+	drained = 0;
+	do {
+		xfer_len = 0;
+		ret = libusb_bulk_transfer(usb->devhdl, endpoint,
+					   buf, sizeof buf, &xfer_len,
+					   drain_timeout_ms);
+		drained += xfer_len;
+	} while (ret == LIBUSB_SUCCESS && xfer_len != 0);
+
+	if (ret != LIBUSB_SUCCESS && ret != LIBUSB_ERROR_TIMEOUT) {
+		sr_err("Failed to drain USB endpoint %u: %s.",
+		       endpoint & (LIBUSB_ENDPOINT_IN - 1),
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+	if (drained > 0) {
+		sr_warn("Drained %d bytes from USB endpoint %u.",
+			drained, endpoint & (LIBUSB_ENDPOINT_IN - 1));
+	}
+	return SR_OK;
+}
+
 /* Open and initialize device.
  */
 static int dev_open(struct sr_dev_inst *sdi)
@@ -275,7 +309,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return ret;
 
 	ret = libusb_set_configuration(usb->devhdl, USB_CONFIG);
-	if (ret != 0) {
+	if (ret != LIBUSB_SUCCESS) {
 		sr_err("Failed to set USB configuration: %s.",
 			libusb_error_name(ret));
 		sr_usb_close(usb);
@@ -283,12 +317,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-	if (ret < 0) {
+	if (ret != LIBUSB_SUCCESS) {
 		sr_err("Failed to claim interface: %s.",
 			libusb_error_name(ret));
 		sr_usb_close(usb);
 		return SR_ERR;
 	}
+
+	ret = drain_usb(usb, EP_REPLY);
+	if (ret != SR_OK)
+		return ret;
 
 	sdi->status = SR_ST_ACTIVE;
 
