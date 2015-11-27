@@ -195,7 +195,7 @@ static void handle_length_response(const struct sr_dev_inst *sdi)
 	submit_request(sdi, STATE_READ_PREPARE);
 }
 
-/* Evaluate and act on the response to a capture length request.
+/* Evaluate and act on the response to a capture memory read request.
  */
 static void handle_read_response(const struct sr_dev_inst *sdi)
 {
