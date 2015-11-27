@@ -211,7 +211,7 @@ SR_PRIV int korad_kaxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 				struct dev_context *devc)
 {
 	double value;
-	int count, ret, i;
+	int count, ret;
 	float *target;
 	char status_byte;
 
@@ -250,15 +250,6 @@ SR_PRIV int korad_kaxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 	devc->reply[count] = 0;
 
 	if (target) {
-		/* Handle the strange 'M'. */
-		if (devc->reply[0] == 'M') {
-			for (i = 1; i < count; i++)
-				devc->reply[i - 1] = devc->reply[i];
-			/* Get the last character. */
-			if ((i = korad_kaxxxxp_read_chars(serial, 1,
-						&(devc->reply[count]))) < 0)
-				return i;
-		}
 		value = g_ascii_strtod(devc->reply, NULL);
 		*target = (float)value;
 		sr_dbg("value: %f",value);
@@ -293,7 +284,9 @@ SR_PRIV int korad_kaxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 			(status_byte & (1 << 6)) ? "enabled" : "disabled",
 			(status_byte & (1 << 7)) ? "true" : "false");
 	}
-
+	/* Read the sixth byte from ISET? BUG workaround. */
+	if (devc->target == KAXXXXP_CURRENT_MAX)
+		serial_read_blocking(serial, &status_byte, 1, 10);
 	devc->reply_pending = FALSE;
 
 	return ret;
