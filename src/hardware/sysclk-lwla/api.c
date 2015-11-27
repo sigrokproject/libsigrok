@@ -594,13 +594,14 @@ static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 	uint64_t trigger_mask;
 	uint64_t trigger_values;
 	uint64_t trigger_edge_mask;
-	uint64_t channel_bit;
+	uint64_t level_bit, type_bit;
 	struct dev_context *devc;
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	const GSList *node;
 	int idx;
+	enum sr_trigger_matches trg;
 
 	devc = sdi->priv;
 
@@ -625,30 +626,27 @@ static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 			continue; /* ignore disabled channel */
 
 		idx = match->channel->index;
+		trg = match->match;
 
 		if (idx < 0 || idx >= devc->model->num_channels) {
 			sr_err("Channel index %d out of range.", idx);
 			return SR_ERR_BUG; /* should not happen */
 		}
-		channel_bit = UINT64_C(1) << idx;
-		trigger_mask |= channel_bit;
-
-		switch (match->match) {
-		case SR_TRIGGER_ZERO:
-			break;
-		case SR_TRIGGER_ONE:
-			trigger_values |= channel_bit;
-			break;
-		case SR_TRIGGER_RISING:
-			trigger_values |= channel_bit;
-			/* Fall through for edge mask. */
-		case SR_TRIGGER_FALLING:
-			trigger_edge_mask |= channel_bit;
-			break;
-		default:
+		if (trg != SR_TRIGGER_ZERO
+				&& trg != SR_TRIGGER_ONE
+				&& trg != SR_TRIGGER_RISING
+				&& trg != SR_TRIGGER_FALLING) {
 			sr_err("Unsupported trigger match for CH%d.", idx + 1);
 			return SR_ERR_ARG;
 		}
+		level_bit = (trg == SR_TRIGGER_ONE
+			|| trg == SR_TRIGGER_RISING) ? 1 : 0;
+		type_bit = (trg == SR_TRIGGER_RISING
+			|| trg == SR_TRIGGER_FALLING) ? 1 : 0;
+
+		trigger_mask |= UINT64_C(1) << idx;
+		trigger_values |= level_bit << idx;
+		trigger_edge_mask |= type_bit << idx;
 	}
 	devc->trigger_mask = trigger_mask;
 	devc->trigger_values = trigger_values;
