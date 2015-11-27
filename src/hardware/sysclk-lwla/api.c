@@ -274,11 +274,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	/* Set the configuration twice to trigger a lightweight reset.
-	 */
 	ret = libusb_set_configuration(usb->devhdl, USB_CONFIG);
-	if (ret == 0)
-		ret = libusb_set_configuration(usb->devhdl, USB_CONFIG);
 	if (ret != 0) {
 		sr_err("Failed to set USB configuration: %s.",
 			libusb_error_name(ret));
