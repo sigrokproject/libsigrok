@@ -102,9 +102,9 @@ static const char bitstream_map[][32] = {
 static void read_response(struct acquisition_state *acq)
 {
 	uint32_t *in_p, *out_p;
-	size_t words_left, num_words;
-	size_t max_samples, run_samples;
-	size_t i;
+	unsigned int words_left, num_words;
+	unsigned int max_samples, run_samples;
+	unsigned int i;
 
 	words_left = MIN(acq->mem_addr_next, acq->mem_addr_stop)
 			- acq->mem_addr_done;
@@ -142,9 +142,9 @@ static void read_response_rle(struct acquisition_state *acq)
 {
 	uint32_t *in_p;
 	uint16_t *out_p;
-	size_t words_left;
-	size_t max_samples, run_samples;
-	size_t wi, ri;
+	unsigned int words_left;
+	unsigned int max_samples, run_samples;
+	unsigned int wi, ri;
 	uint32_t word;
 	uint16_t sample;
 
@@ -159,11 +159,11 @@ static void read_response_rle(struct acquisition_state *acq)
 		run_samples = MIN(max_samples, acq->run_len);
 
 		/* Expand run-length samples into session packet. */
-		sample = acq->sample;
+		sample = GUINT16_TO_LE(acq->sample);
 		out_p = &((uint16_t *)acq->out_packet)[acq->out_index];
 
 		for (ri = 0; ri < run_samples; ri++)
-			out_p[ri] = GUINT16_TO_LE(sample);
+			out_p[ri] = sample;
 
 		acq->run_len -= run_samples;
 		acq->out_index += run_samples;
@@ -285,7 +285,7 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	size_t count;
+	unsigned int count;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;

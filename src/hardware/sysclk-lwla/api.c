@@ -372,7 +372,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	size_t idx;
+	unsigned int idx;
 
 	(void)cg;
 

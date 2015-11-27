@@ -48,7 +48,8 @@ struct sr_usb_dev_inst;
 #define LWLA_WORD_3(val) GUINT16_TO_LE(((val) >> 32) & 0xFFFF)
 
 /* Maximum number of 16-bit words sent at a time during acquisition.
- * Used for allocating the libusb transfer buffer.
+ * Used for allocating the libusb transfer buffer. Keep this even so that
+ * subsequent members are always 32-bit aligned.
  */
 #define MAX_ACQ_SEND_LEN16	64 /* 43 for capture setup plus stuffing */
 
@@ -124,13 +125,13 @@ struct acquisition_state {
 	struct libusb_transfer *xfer_in;	/* USB in transfer record */
 	struct libusb_transfer *xfer_out;	/* USB out transfer record */
 
-	size_t mem_addr_fill;	/* capture memory fill level */
-	size_t mem_addr_done;	/* position up to which data was received */
-	size_t mem_addr_next;	/* start address for next async read */
-	size_t mem_addr_stop;	/* end of memory range to be read */
-	size_t in_index;	/* position in read transfer buffer */
-	size_t out_index;	/* position in logic packet buffer */
-	enum rle_state rle;	/* RLE decoding state */
+	unsigned int mem_addr_fill;	/* capture memory fill level */
+	unsigned int mem_addr_done;	/* next address to be processed */
+	unsigned int mem_addr_next;	/* start address for next async read */
+	unsigned int mem_addr_stop;	/* end of memory range to be read */
+	unsigned int in_index;		/* position in read transfer buffer */
+	unsigned int out_index;		/* position in logic packet buffer */
+	enum rle_state rle;		/* RLE decoding state */
 
 	gboolean rle_enabled;	/* capturing in timing-state mode */
 	gboolean clock_boost;	/* switch to faster clock during capture */

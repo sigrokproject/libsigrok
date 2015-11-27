@@ -170,7 +170,7 @@ static void queue_long_regval(struct acquisition_state *acq,
 /* Helper to fill in the long register bulk write command.
  */
 static inline void bulk_long_set(struct acquisition_state *acq,
-				 size_t idx, uint64_t value)
+				 unsigned int idx, uint64_t value)
 {
 	acq->xfer_buf_out[4 * idx + 3] = LWLA_WORD_0(value);
 	acq->xfer_buf_out[4 * idx + 4] = LWLA_WORD_1(value);
@@ -181,7 +181,7 @@ static inline void bulk_long_set(struct acquisition_state *acq,
 /* Helper for dissecting the response to a long register bulk read.
  */
 static inline uint64_t bulk_long_get(const struct acquisition_state *acq,
-				     size_t idx)
+				     unsigned int idx)
 {
 	uint64_t low, high;
 
@@ -200,9 +200,9 @@ static void read_response(struct acquisition_state *acq)
 	uint64_t sample, high_nibbles, word;
 	uint32_t *slice;
 	uint8_t *out_p;
-	size_t words_left;
-	size_t max_samples, run_samples;
-	size_t wi, ri, si;
+	unsigned int words_left;
+	unsigned int max_samples, run_samples;
+	unsigned int wi, ri, si;
 
 	/* Number of 36-bit words remaining in the transfer buffer. */
 	words_left = MIN(acq->mem_addr_next, acq->mem_addr_stop)
@@ -396,7 +396,7 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	size_t count;
+	unsigned int count;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;

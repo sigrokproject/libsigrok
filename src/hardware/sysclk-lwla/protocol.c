@@ -145,7 +145,7 @@ static void handle_status_response(const struct sr_dev_inst *sdi)
 	}
 	devc->state = STATE_STATUS_WAIT;
 
-	sr_spew("Captured %zu words, %" PRIu64 " ms, status 0x%02X.",
+	sr_spew("Captured %u words, %" PRIu64 " ms, status 0x%02X.",
 		acq->mem_addr_fill, acq->duration_now, acq->status);
 
 	if ((~old_status & acq->status & STATUS_TRIGGERED) != 0)
@@ -189,7 +189,7 @@ static void handle_length_response(const struct sr_dev_inst *sdi)
 		submit_request(sdi, STATE_READ_FINISH);
 		return;
 	}
-	sr_dbg("%zu words in capture buffer.",
+	sr_dbg("%u words in capture buffer.",
 	       acq->mem_addr_stop - acq->mem_addr_next);
 
 	submit_request(sdi, STATE_READ_PREPARE);
@@ -203,7 +203,7 @@ static void handle_read_response(const struct sr_dev_inst *sdi)
 	struct acquisition_state *acq;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	size_t end_addr;
+	unsigned int end_addr;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
