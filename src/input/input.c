@@ -64,6 +64,7 @@ extern SR_PRIV struct sr_input_module input_csv;
 extern SR_PRIV struct sr_input_module input_binary;
 extern SR_PRIV struct sr_input_module input_vcd;
 extern SR_PRIV struct sr_input_module input_wav;
+extern SR_PRIV struct sr_input_module input_raw_analog;
 /* @endcond */
 
 static const struct sr_input_module *input_module_list[] = {
@@ -72,6 +73,7 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_csv,
 	&input_vcd,
 	&input_wav,
+	&input_raw_analog,
 	NULL,
 };
 
