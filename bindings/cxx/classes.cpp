@@ -1140,7 +1140,7 @@ map<const ConfigKey *, Glib::VariantBase> Meta::config() const
 	map<const ConfigKey *, Glib::VariantBase> result;
 	for (auto l = _structure->config; l; l = l->next) {
 		auto *const config = static_cast<struct sr_config *>(l->data);
-		result[ConfigKey::get(config->key)] = Glib::VariantBase(config->data);
+		result[ConfigKey::get(config->key)] = Glib::VariantBase(config->data, true);
 	}
 	return result;
 }
