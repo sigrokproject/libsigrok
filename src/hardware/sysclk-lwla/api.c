@@ -264,7 +264,7 @@ static int drain_usb(struct sr_usb_dev_inst *usb, unsigned int endpoint)
 	do {
 		xfer_len = 0;
 		ret = libusb_bulk_transfer(usb->devhdl, endpoint,
-					   buf, sizeof buf, &xfer_len,
+					   buf, sizeof(buf), &xfer_len,
 					   drain_timeout_ms);
 		drained += xfer_len;
 	} while (ret == LIBUSB_SUCCESS && xfer_len != 0);
