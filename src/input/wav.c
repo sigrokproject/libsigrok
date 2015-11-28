@@ -242,15 +242,9 @@ static int process_buffer(struct sr_input *in)
 	struct sr_config *src;
 	int offset, chunk_samples, total_samples, processed, max_chunk_samples;
 	int num_samples, i;
-	char channelname[8];
 
 	inc = in->priv;
 	if (!inc->started) {
-		for (i = 0; i < inc->num_channels; i++) {
-			snprintf(channelname, 8, "CH%d", i + 1);
-			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
-		}
-
 		std_session_send_df_header(in->sdi, LOG_PREFIX);
 
 		packet.type = SR_DF_META;
@@ -310,6 +304,7 @@ static int receive(struct sr_input *in, GString *buf)
 {
 	struct context *inc;
 	int ret;
+	char channelname[8];
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
@@ -328,6 +323,11 @@ static int receive(struct sr_input *in, GString *buf)
 			return SR_OK;
 		else if (ret != SR_OK)
 			return ret;
+
+		for (int i = 0; i < inc->num_channels; i++) {
+			snprintf(channelname, 8, "CH%d", i + 1);
+			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
+		}
 
 		/* sdi is ready, notify frontend. */
 		in->sdi_ready = TRUE;
