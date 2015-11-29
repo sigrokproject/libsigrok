@@ -122,6 +122,10 @@ ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="664", GROUP="plugdev"
 # This is actually the generic SiLabs (Cygnal) F32x USBXpress VID:PID.
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", MODE="664", GROUP="plugdev"
 
+# LeCroy LogicStudio16
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a001", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a002", MODE="664", GROUP="plugdev"
+
 # Link Instruments MSO-19
 ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="664", GROUP="plugdev"
 
