@@ -49,29 +49,25 @@ struct context {
 
 struct sample_format {
 	const char const* fmt_name;
-	// same as struct sr_analog_encoding
-	uint8_t unitsize;
-	gboolean is_signed;
-	gboolean is_float;
-	gboolean is_bigendian;
+	struct sr_analog_encoding encoding;
 };
 
 static const struct sample_format const sample_formats[] =
 {
-	{ "S8",     1, TRUE,  FALSE, FALSE },
-	{ "U8",     1, FALSE, FALSE, FALSE },
-	{ "S16_LE", 2, TRUE,  FALSE, FALSE },
-	{ "U16_LE", 2, FALSE, FALSE, FALSE },
-	{ "S16_BE", 2, TRUE,  FALSE, TRUE },
-	{ "U16_BE", 2, FALSE, FALSE, TRUE },
-	{ "S32_LE", 4, TRUE,  FALSE, FALSE },
-	{ "U32_LE", 4, FALSE, FALSE, FALSE },
-	{ "S32_BE", 4, TRUE,  FALSE, TRUE },
-	{ "U32_BE", 4, FALSE, FALSE, TRUE },
-	{ "FLOAT_LE", 4, TRUE, TRUE, FALSE },
-	{ "FLOAT_BE", 4, TRUE, TRUE, TRUE },
-	{ "FLOAT64_LE", 8, TRUE, TRUE, FALSE },
-	{ "FLOAT64_BE", 8, TRUE, TRUE, TRUE },
+	{ "S8",         { 1, TRUE,  FALSE, FALSE, 0, TRUE, { 1,         128}, { 0, 1}}},
+	{ "U8",         { 1, FALSE, FALSE, FALSE, 0, TRUE, { 1,         255}, {-1, 2}}},
+	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 0, TRUE, { 1, INT16_MAX+1}, { 0, 1}}},
+	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 0, TRUE, { 1,  UINT16_MAX}, {-1, 2}}},
+	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  0, TRUE, { 1, INT16_MAX+1}, { 0, 1}}},
+	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  0, TRUE, { 1,  UINT16_MAX}, {-1, 2}}},
+	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 0, TRUE, { 1, INT32_MAX+1}, { 0, 1}}},
+	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 0, TRUE, { 1,  UINT32_MAX}, {-1, 2}}},
+	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  0, TRUE, { 1, INT32_MAX+1}, { 0, 1}}},
+	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  0, TRUE, { 1,  UINT32_MAX}, {-1, 2}}},
+	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,           1}, { 0, 1}}},
+	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,           1}, { 0, 1}}},
+	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,           1}, { 0, 1}}},
+	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,           1}, { 0, 1}}},
 };
 
 static int parse_format_string(const char *format)
@@ -96,16 +92,7 @@ static void init_context(struct context *inc, const struct sample_format *fmt, G
 	inc->analog.meaning = &inc->meaning;
 	inc->analog.spec = &inc->spec;
 
-	inc->encoding.unitsize = fmt->unitsize;
-	inc->encoding.is_signed = fmt->is_signed;
-	inc->encoding.is_float = fmt->is_float;
-	inc->encoding.is_bigendian = fmt->is_bigendian;
-	inc->encoding.digits = 0;
-	inc->encoding.is_digits_decimal = TRUE;
-	inc->encoding.scale.p = 1;
-	inc->encoding.scale.q = 1;
-	inc->encoding.offset.p = 0;
-	inc->encoding.offset.q = 1;
+	memcpy(&inc->encoding, &fmt->encoding, sizeof(inc->encoding));
 
 	inc->meaning.mq = 0;
 	inc->meaning.unit = 0;
@@ -150,7 +137,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	}
 
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
-	inc->samplesize = sample_formats[fmt_index].unitsize * num_channels;
+	inc->samplesize = sample_formats[fmt_index].encoding.unitsize * num_channels;
 	init_context(inc, &sample_formats[fmt_index], in->sdi->channels);
 
 	return SR_OK;
