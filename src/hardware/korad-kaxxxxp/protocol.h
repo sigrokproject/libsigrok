@@ -38,7 +38,7 @@
 
 enum {
 	VELLEMAN_LABPS_3005D,
-	KORAD_KA3005D,
+	KORAD_KA3005P,
 	/* Support for future devices with this protocol. */
 };
 
