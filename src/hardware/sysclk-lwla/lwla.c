@@ -20,9 +20,9 @@
 #include <config.h>
 #include <glib/gstdio.h>
 #include <libsigrok/libsigrok.h>
-#include "libsigrok-internal.h"
-#include "protocol.h"
+#include <libsigrok-internal.h>
 #include "lwla.h"
+#include "protocol.h"
 
 #define BITSTREAM_MAX_SIZE    (256 * 1024) /* bitstream size limit for safety */
 #define BITSTREAM_HEADER_SIZE 4            /* transfer header size in bytes */

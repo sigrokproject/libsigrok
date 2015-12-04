@@ -19,12 +19,8 @@
 
 #include <config.h>
 #include <string.h>
-#include "lwla.h"
 #include "protocol.h"
-
-/* Status polling interval during acquisition.
- */
-#define POLL_INTERVAL 100 /* ms */
+#include "lwla.h"
 
 /* Submit an already filled-in USB transfer.
  */
@@ -341,7 +337,8 @@ static void LIBUSB_CALL transfer_out_completed(struct libusb_transfer *transfer)
 	acq  = devc->acquisition;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer to device failed: %d.", transfer->status);
+		sr_err("Transfer to device failed (state %d): %s.",
+		       devc->state, libusb_error_name(transfer->status));
 		devc->transfer_error = TRUE;
 		return;
 	}
@@ -549,6 +546,8 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
+	const int poll_interval_ms = 100;
+
 	drvc = sdi->driver->context;
 	devc = sdi->priv;
 
@@ -570,7 +569,7 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 	/* Register event source for asynchronous USB I/O. */
-	ret = usb_source_add(sdi->session, drvc->sr_ctx, POLL_INTERVAL,
+	ret = usb_source_add(sdi->session, drvc->sr_ctx, poll_interval_ms,
 			     &transfer_event, (struct sr_dev_inst *)sdi);
 	if (ret != SR_OK) {
 		clear_acquisition_state(sdi);

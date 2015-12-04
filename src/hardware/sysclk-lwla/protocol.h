@@ -118,12 +118,10 @@ enum protocol_state {
  */
 struct dev_context {
 	uint64_t samplerate;	/* requested samplerate */
-
 	uint64_t limit_msec;	/* requested capture duration in ms */
 	uint64_t limit_samples;	/* requested capture length in samples */
 
-	uint64_t channel_mask;	/* bit mask of enabled channels */
-
+	uint64_t channel_mask;		/* bit mask of enabled channels */
 	uint64_t trigger_mask;		/* trigger enable mask */
 	uint64_t trigger_edge_mask;	/* trigger type mask */
 	uint64_t trigger_values;	/* trigger level/slope bits */

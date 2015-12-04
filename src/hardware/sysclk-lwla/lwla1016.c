@@ -319,7 +319,6 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 		lwla_queue_regval(acq, REG_CAP_COUNT, 0);
 		break;
 	case STATE_READ_REQUEST:
-		/* Always read a multiple of 8 device words. */
 		count = MIN(READ_CHUNK_LEN32,
 			    acq->mem_addr_stop - acq->mem_addr_next);
 

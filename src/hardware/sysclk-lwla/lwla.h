@@ -83,7 +83,7 @@ enum command_id {
 /** LWLA capture state flags.
  * The bit positions are the same as in the LWLA1016 control register.
  */
-enum {
+enum status_flag {
 	STATUS_CAPTURING = 1 << 2,
 	STATUS_TRIGGERED = 1 << 5,
 	STATUS_MEM_AVAIL = 1 << 6,

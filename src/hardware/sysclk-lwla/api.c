@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libsigrok/libsigrok.h>
-#include "libsigrok-internal.h"
+#include <libsigrok-internal.h>
 #include "protocol.h"
 
 /* Supported device scan options.
