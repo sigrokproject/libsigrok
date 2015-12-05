@@ -61,7 +61,7 @@ struct sr_usb_dev_inst;
 
 /* Maximum length of a register read/write sequence.
  */
-#define MAX_REG_SEQ_LEN		16
+#define MAX_REG_SEQ_LEN		8
 
 /* Logic datafeed packet size in bytes.
  * This is a multiple of both 4 and 5 to match any model's unit size

@@ -304,51 +304,46 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 
 static int setup_acquisition(const struct sr_dev_inst *sdi)
 {
+	static const struct regval capture_init[] = {
+		{REG_CAP_CTRL,  0},
+		{REG_DURATION,  0},
+		{REG_MEM_CTRL,  MEM_CTRL_RESET},
+		{REG_MEM_CTRL,  0},
+		{REG_MEM_CTRL,  MEM_CTRL_WRITE},
+		{REG_CAP_CTRL,  CAP_CTRL_FIFO32_FULL | CAP_CTRL_FIFO64_FULL},
+		{REG_CAP_CTRL,  CAP_CTRL_FIFO_EMPTY},
+		{REG_CAP_CTRL,  0},
+		{REG_CAP_COUNT, MEMORY_DEPTH - 5},
+	};
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	struct acquisition_state *acq;
-	uint32_t divider_count;
+	uint32_t divider_count, trigger_setup;
 	int ret;
 
 	devc = sdi->priv;
 	usb  = sdi->conn;
-	acq  = devc->acquisition;
 
-	acq->reg_seq_pos = 0;
-	acq->reg_seq_len = 0;
-
-	lwla_queue_regval(acq, REG_CHAN_MASK, devc->channel_mask);
+	ret = lwla_write_reg(usb, REG_CHAN_MASK, devc->channel_mask);
+	if (ret != SR_OK)
+		return ret;
 
 	if (devc->samplerate > 0 && devc->samplerate < SR_MHZ(100))
 		divider_count = SR_MHZ(100) / devc->samplerate - 1;
 	else
 		divider_count = 0;
 
-	lwla_queue_regval(acq, REG_DIV_COUNT, divider_count);
+	ret = lwla_write_reg(usb, REG_DIV_COUNT, divider_count);
+	if (ret != SR_OK)
+		return ret;
 
-	lwla_queue_regval(acq, REG_CAP_CTRL, 0);
-	lwla_queue_regval(acq, REG_DURATION, 0);
+	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
+	if (ret != SR_OK)
+		return ret;
 
-	lwla_queue_regval(acq, REG_MEM_CTRL, MEM_CTRL_RESET);
-	lwla_queue_regval(acq, REG_MEM_CTRL, 0);
-	lwla_queue_regval(acq, REG_MEM_CTRL, MEM_CTRL_WRITE);
+	trigger_setup = ((devc->trigger_edge_mask & 0xFFFF) << 16)
+			| (devc->trigger_values & 0xFFFF);
 
-	lwla_queue_regval(acq, REG_CAP_CTRL,
-		CAP_CTRL_FIFO32_FULL | CAP_CTRL_FIFO64_FULL);
-
-	lwla_queue_regval(acq, REG_CAP_CTRL, CAP_CTRL_FIFO_EMPTY);
-	lwla_queue_regval(acq, REG_CAP_CTRL, 0);
-
-	lwla_queue_regval(acq, REG_CAP_COUNT, MEMORY_DEPTH - 5);
-
-	lwla_queue_regval(acq, REG_TRG_SEL,
-		((devc->trigger_edge_mask & 0xFFFF) << 16)
-		| (devc->trigger_values & 0xFFFF));
-
-	ret = lwla_write_regs(usb, acq->reg_sequence, acq->reg_seq_len);
-	acq->reg_seq_len = 0;
-
-	return ret;
+	return lwla_write_reg(usb, REG_TRG_SEL, trigger_setup);
 }
 
 static int prepare_request(const struct sr_dev_inst *sdi)
