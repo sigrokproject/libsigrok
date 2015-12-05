@@ -56,8 +56,16 @@
  */
 #define READ_CHUNK_LEN36	(28 * 8)
 
-/* Bit mask for the RLE repeat-count-follows flag. */
+/* Bit mask for the RLE repeat-count-follows flag.
+ */
 #define RLE_FLAG_LEN_FOLLOWS	(UINT64_C(1) << 35)
+
+/* Start index and count for bulk long register reads.
+ * The first five long registers do not return useful values when read,
+ * so skip over them to reduce the transfer size of status poll responses.
+ */
+#define READ_LREGS_START	LREG_MEM_FILL
+#define READ_LREGS_COUNT	(LREG_STATUS + 1 - READ_LREGS_START)
 
 /** LWLA1034 register addresses.
  */
@@ -185,8 +193,8 @@ static inline uint64_t bulk_long_get(const struct acquisition_state *acq,
 {
 	uint64_t low, high;
 
-	low  = LWLA_TO_UINT32(acq->xfer_buf_in[2 * idx]);
-	high = LWLA_TO_UINT32(acq->xfer_buf_in[2 * idx + 1]);
+	low  = LWLA_TO_UINT32(acq->xfer_buf_in[2 * (idx - READ_LREGS_START)]);
+	high = LWLA_TO_UINT32(acq->xfer_buf_in[2 * (idx - READ_LREGS_START) + 1]);
 
 	return (high << 32) | low;
 }
@@ -423,8 +431,8 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 		break;
 	case STATE_STATUS_REQUEST:
 		acq->xfer_buf_out[0] = LWLA_WORD(CMD_READ_LREGS);
-		acq->xfer_buf_out[1] = LWLA_WORD(0);
-		acq->xfer_buf_out[2] = LWLA_WORD(LREG_STATUS + 1);
+		acq->xfer_buf_out[1] = LWLA_WORD(READ_LREGS_START);
+		acq->xfer_buf_out[2] = LWLA_WORD(READ_LREGS_COUNT);
 		acq->xfer_out->length = 3 * sizeof(acq->xfer_buf_out[0]);
 		break;
 	case STATE_LENGTH_REQUEST:
@@ -463,9 +471,9 @@ static int handle_response(const struct sr_dev_inst *sdi)
 
 	switch (devc->state) {
 	case STATE_STATUS_REQUEST:
-		if (acq->xfer_in->actual_length != (LREG_STATUS + 1) * 8) {
+		if (acq->xfer_in->actual_length != READ_LREGS_COUNT * 8) {
 			sr_err("Received size %d doesn't match expected size %d.",
-			       acq->xfer_in->actual_length, (LREG_STATUS + 1) * 8);
+			       acq->xfer_in->actual_length, READ_LREGS_COUNT * 8);
 			return SR_ERR;
 		}
 		acq->mem_addr_fill = bulk_long_get(acq, LREG_MEM_FILL) & 0xFFFFFFFF;
