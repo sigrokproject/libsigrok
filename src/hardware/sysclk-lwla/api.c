@@ -325,8 +325,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	ret = drain_usb(usb, EP_REPLY);
-	if (ret != SR_OK)
+	if (ret != SR_OK) {
+		sr_usb_close(usb);
 		return ret;
+	}
 
 	sdi->status = SR_ST_ACTIVE;
 
