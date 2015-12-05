@@ -154,7 +154,7 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len);
 
 SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
-			       uint32_t *reply, int reply_len, int expect_len);
+			       void *reply, int buf_size, int *xfer_len);
 
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value);

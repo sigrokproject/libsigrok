@@ -39,7 +39,7 @@
 
 /* Capture memory read start address.
  */
-#define READ_START_ADDR		4
+#define READ_START_ADDR	4
 
 /* Number of device memory units (36 bit) to read at a time. Slices of 8
  * consecutive 36-bit words are mapped to 9 32-bit words each, so the chunk
@@ -54,7 +54,7 @@
  * a time. So far, it appears safe to increase this to 224 words (28 slices,
  * 1008 bytes), thus making the most of two 512 byte buffers.
  */
-#define READ_CHUNK_LEN36	(28 * 8)
+#define READ_CHUNK_LEN	(28 * 8)
 
 /* Bit mask for the RLE repeat-count-follows flag.
  */
@@ -266,6 +266,60 @@ static void read_response(struct acquisition_state *acq)
 	acq->mem_addr_done += wi;
 }
 
+/* Check whether we can receive responses of more than 64 bytes.
+ * The FX2 firmware of the LWLA1034 has a bug in the reset logic which
+ * sometimes causes the response endpoint to be limited to transfers of
+ * 64 bytes at a time, instead of the expected 2*512 bytes. The problem
+ * can be worked around by never requesting more than 64 bytes.
+ * This quirk manifests itself only under certain conditions, and some
+ * users seem to see it more frequently than others. Detect it here in
+ * order to avoid paying the penalty unnecessarily.
+ */
+static int detect_short_transfer_quirk(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	int xfer_len;
+	int ret;
+	uint16_t command[3];
+	unsigned char buf[512];
+
+	const int lreg_count = 10;
+
+	devc = sdi->priv;
+	usb  = sdi->conn;
+
+	command[0] = LWLA_WORD(CMD_READ_LREGS);
+	command[1] = LWLA_WORD(0);
+	command[2] = LWLA_WORD(lreg_count);
+
+	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
+	if (ret != SR_OK)
+		return ret;
+
+	ret = lwla_receive_reply(usb, buf, sizeof(buf), &xfer_len);
+	if (ret != SR_OK)
+		return ret;
+
+	devc->short_transfer_quirk = (xfer_len == 64);
+
+	if (xfer_len == 8 * lreg_count)
+		return SR_OK;
+
+	if (xfer_len == 64) {
+		/* Drain the tailing portion of the split transfer. */
+		ret = lwla_receive_reply(usb, buf, sizeof(buf), &xfer_len);
+		if (ret != SR_OK)
+			return ret;
+
+		if (xfer_len == 8 * lreg_count - 64)
+			return SR_OK;
+	}
+	sr_err("Received response of unexpected length %d.", xfer_len);
+
+	return SR_ERR;
+}
+
 /* Select and transfer FPGA bitstream for the current configuration.
  */
 static int apply_fpga_config(const struct sr_dev_inst *sdi)
@@ -317,7 +371,8 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 		sr_err("Received invalid test word 0x%016" PRIX64 ".", value);
 		return SR_ERR;
 	}
-	return SR_OK;
+
+	return detect_short_transfer_quirk(sdi);
 }
 
 /* Set up the device in preparation for an acquisition session.
@@ -404,7 +459,7 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct acquisition_state *acq;
-	unsigned int count;
+	unsigned int chunk_len, remaining, count;
 
 	devc = sdi->priv;
 	acq  = devc->acquisition;
@@ -439,9 +494,12 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 		lwla_queue_regval(acq, REG_MEM_FILL, 0);
 		break;
 	case STATE_READ_REQUEST:
+		/* Limit reads to 8 device words (36 bytes) at a time if the
+		 * device firmware has the short transfer quirk. */
+		chunk_len = (devc->short_transfer_quirk) ? 8 : READ_CHUNK_LEN;
 		/* Always read a multiple of 8 device words. */
-		count = MIN(READ_CHUNK_LEN36, acq->mem_addr_stop
-					- acq->mem_addr_next + 7) / 8 * 8;
+		remaining = (acq->mem_addr_stop - acq->mem_addr_next + 7) / 8 * 8;
+		count = MIN(chunk_len, remaining);
 
 		acq->xfer_buf_out[0] = LWLA_WORD(CMD_READ_MEM36);
 		acq->xfer_buf_out[1] = LWLA_WORD_0(acq->mem_addr_next);

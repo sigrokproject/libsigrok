@@ -144,25 +144,17 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 }
 
 SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
-			       uint32_t *reply, int reply_len, int expect_len)
+			       void *reply, int buf_size, int *xfer_len)
 {
 	int ret;
-	int xfer_len;
 
-	if (!usb || !reply || reply_len <= 0)
+	if (!usb || !reply || buf_size <= 0)
 		return SR_ERR_BUG;
 
-	xfer_len = 0;
-	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY,
-				   (unsigned char *)reply, reply_len * 4,
-				   &xfer_len, USB_TIMEOUT_MS);
+	ret = libusb_bulk_transfer(usb->devhdl, EP_REPLY, reply, buf_size,
+				   xfer_len, USB_TIMEOUT_MS);
 	if (ret != 0) {
 		sr_dbg("Failed to receive reply: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
-	if (xfer_len != expect_len * 4) {
-		sr_dbg("Failed to receive reply: incorrect length %d != %d.",
-		       xfer_len, expect_len * 4);
 		return SR_ERR;
 	}
 	return SR_OK;
@@ -171,6 +163,7 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value)
 {
+	int xfer_len;
 	int ret;
 	uint16_t command[2];
 	uint32_t reply[128]; /* full EP buffer to avoid overflows */
@@ -179,16 +172,21 @@ SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 	command[1] = LWLA_WORD(reg);
 
 	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
-
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_receive_reply(usb, reply, ARRAY_SIZE(reply), 1);
+	ret = lwla_receive_reply(usb, reply, sizeof(reply), &xfer_len);
+	if (ret != SR_OK)
+		return ret;
 
-	if (ret == SR_OK)
-		*value = LWLA_TO_UINT32(reply[0]);
+	if (xfer_len != 4) {
+		sr_dbg("Invalid register read response of length %d.",
+		       xfer_len);
+		return SR_ERR;
+	}
+	*value = LWLA_TO_UINT32(reply[0]);
 
-	return ret;
+	return SR_OK;
 }
 
 SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,

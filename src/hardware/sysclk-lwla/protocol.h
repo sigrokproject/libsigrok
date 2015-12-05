@@ -129,6 +129,7 @@ struct dev_context {
 	const struct model_info *model;		/* device model descriptor */
 	struct acquisition_state *acquisition;	/* running capture state */
 	int active_fpga_config;			/* FPGA configuration index */
+	gboolean short_transfer_quirk;		/* 64 bytes response limit */
 
 	enum protocol_state state;	/* async protocol state */
 	gboolean cancel_requested;	/* stop after current transfer */

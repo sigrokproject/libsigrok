@@ -329,10 +329,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_usb_close(usb);
 		return ret;
 	}
+	/* This delay appears to be necessary for reliable operation. */
+	g_usleep(30 * 1000);
 
 	sdi->status = SR_ST_ACTIVE;
 
 	devc->active_fpga_config = FPGA_NOCONF;
+	devc->short_transfer_quirk = FALSE;
 	devc->state = STATE_IDLE;
 
 	ret = (*devc->model->apply_fpga_config)(sdi);
@@ -343,8 +346,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ret != SR_OK) {
 		sdi->status = SR_ST_INACTIVE;
 		sr_usb_close(usb);
+		return ret;
 	}
-	return ret;
+	if (devc->short_transfer_quirk)
+		sr_warn("Short transfer quirk detected! "
+			"Memory reads will be slow.");
+	return SR_OK;
 }
 
 /* Shutdown and close device.
