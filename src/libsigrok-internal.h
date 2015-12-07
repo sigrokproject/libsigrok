@@ -151,6 +151,35 @@ struct zip_stat;
                    (uint64_t)((const uint8_t*)(x))[7])
 
 /**
+ * Read a 64 bits little endian unsigned integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+#define RL64(x)  (((uint64_t)((const uint8_t*)(x))[7] << 56) | \
+                  ((uint64_t)((const uint8_t*)(x))[6] << 48) | \
+                  ((uint64_t)((const uint8_t*)(x))[5] << 40) | \
+                  ((uint64_t)((const uint8_t*)(x))[4] << 32) | \
+                  ((uint64_t)((const uint8_t*)(x))[3] << 24) | \
+                  ((uint64_t)((const uint8_t*)(x))[2] << 16) | \
+                  ((uint64_t)((const uint8_t*)(x))[1] <<  8) | \
+                   (uint64_t)((const uint8_t*)(x))[0])
+
+/**
+ * Read a 64 bits little endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+#define RL64S(x)  ((int64_t) \
+                 (((uint64_t)((const uint8_t*)(x))[7] << 56) | \
+                  ((uint64_t)((const uint8_t*)(x))[6] << 48) | \
+                  ((uint64_t)((const uint8_t*)(x))[5] << 40) | \
+                  ((uint64_t)((const uint8_t*)(x))[4] << 32) | \
+                  ((uint64_t)((const uint8_t*)(x))[3] << 24) | \
+                  ((uint64_t)((const uint8_t*)(x))[2] << 16) | \
+                  ((uint64_t)((const uint8_t*)(x))[1] <<  8) | \
+                   (uint64_t)((const uint8_t*)(x))[0]))
+
+/**
  * Read a 32 bits big endian float out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding float
