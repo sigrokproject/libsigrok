@@ -65,7 +65,7 @@ struct zip_stat;
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RB16(x)  (((unsigned)((const uint8_t*)(x))[0] <<  8) |  \
+#define RB16(x)  (((unsigned)((const uint8_t*)(x))[0] <<  8) | \
                    (unsigned)((const uint8_t*)(x))[1])
 
 /**
@@ -100,8 +100,8 @@ struct zip_stat;
  * @return the corresponding unsigned integer
  */
 #define RB32(x)  (((unsigned)((const uint8_t*)(x))[0] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[1] << 16) |  \
-                  ((unsigned)((const uint8_t*)(x))[2] <<  8) |  \
+                  ((unsigned)((const uint8_t*)(x))[1] << 16) | \
+                  ((unsigned)((const uint8_t*)(x))[2] <<  8) | \
                    (unsigned)((const uint8_t*)(x))[3])
 
 /**
@@ -110,8 +110,8 @@ struct zip_stat;
  * @return the corresponding unsigned integer
  */
 #define RL32(x)  (((unsigned)((const uint8_t*)(x))[3] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
-                  ((unsigned)((const uint8_t*)(x))[1] <<  8) |  \
+                  ((unsigned)((const uint8_t*)(x))[2] << 16) | \
+                  ((unsigned)((const uint8_t*)(x))[1] <<  8) | \
                    (unsigned)((const uint8_t*)(x))[0])
 
 /**
@@ -132,8 +132,8 @@ struct zip_stat;
  */
 #define RL32S(x)  ((int32_t) \
                  (((unsigned)((const uint8_t*)(x))[3] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[2] << 16) |  \
-                  ((unsigned)((const uint8_t*)(x))[1] <<  8) |  \
+                  ((unsigned)((const uint8_t*)(x))[2] << 16) | \
+                  ((unsigned)((const uint8_t*)(x))[1] <<  8) | \
                    (unsigned)((const uint8_t*)(x))[0]))
 
 /**
@@ -142,12 +142,12 @@ struct zip_stat;
  * @return the corresponding unsigned integer
  */
 #define RB64(x)  (((uint64_t)((const uint8_t*)(x))[0] << 56) | \
-                  ((uint64_t)((const uint8_t*)(x))[1] << 48) |  \
-                  ((uint64_t)((const uint8_t*)(x))[2] << 40) |  \
-                  ((uint64_t)((const uint8_t*)(x))[3] << 32) |  \
-                  ((uint64_t)((const uint8_t*)(x))[4] << 24) |  \
-                  ((uint64_t)((const uint8_t*)(x))[5] << 16) |  \
-                  ((uint64_t)((const uint8_t*)(x))[6] <<  8) |  \
+                  ((uint64_t)((const uint8_t*)(x))[1] << 48) | \
+                  ((uint64_t)((const uint8_t*)(x))[2] << 40) | \
+                  ((uint64_t)((const uint8_t*)(x))[3] << 32) | \
+                  ((uint64_t)((const uint8_t*)(x))[4] << 24) | \
+                  ((uint64_t)((const uint8_t*)(x))[5] << 16) | \
+                  ((uint64_t)((const uint8_t*)(x))[6] <<  8) | \
                    (uint64_t)((const uint8_t*)(x))[7])
 
 /**
