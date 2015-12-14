@@ -162,8 +162,8 @@ struct model_info {
 	int (*handle_response)(const struct sr_dev_inst *sdi);
 };
 
-SR_PRIV const struct model_info lwla1016_info;
-SR_PRIV const struct model_info lwla1034_info;
+extern SR_PRIV const struct model_info lwla1016_info;
+extern SR_PRIV const struct model_info lwla1034_info;
 
 SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi);
 
