@@ -62,6 +62,7 @@
 extern SR_PRIV struct sr_input_module input_chronovu_la8;
 extern SR_PRIV struct sr_input_module input_csv;
 extern SR_PRIV struct sr_input_module input_binary;
+extern SR_PRIV struct sr_input_module input_trace32_ad;
 extern SR_PRIV struct sr_input_module input_vcd;
 extern SR_PRIV struct sr_input_module input_wav;
 extern SR_PRIV struct sr_input_module input_raw_analog;
@@ -71,6 +72,7 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_binary,
 	&input_chronovu_la8,
 	&input_csv,
+	&input_trace32_ad,
 	&input_vcd,
 	&input_wav,
 	&input_raw_analog,
