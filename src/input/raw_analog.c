@@ -54,20 +54,20 @@ struct sample_format {
 
 static const struct sample_format const sample_formats[] =
 {
-	{ "S8",         { 1, TRUE,  FALSE, FALSE, 0, TRUE, { 1,         128}, { 0, 1}}},
-	{ "U8",         { 1, FALSE, FALSE, FALSE, 0, TRUE, { 1,         255}, {-1, 2}}},
-	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 0, TRUE, { 1, INT16_MAX+1}, { 0, 1}}},
-	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 0, TRUE, { 1,  UINT16_MAX}, {-1, 2}}},
-	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  0, TRUE, { 1, INT16_MAX+1}, { 0, 1}}},
-	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  0, TRUE, { 1,  UINT16_MAX}, {-1, 2}}},
-	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 0, TRUE, { 1, INT32_MAX+1}, { 0, 1}}},
-	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 0, TRUE, { 1,  UINT32_MAX}, {-1, 2}}},
-	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  0, TRUE, { 1, INT32_MAX+1}, { 0, 1}}},
-	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  0, TRUE, { 1,  UINT32_MAX}, {-1, 2}}},
-	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,           1}, { 0, 1}}},
-	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,           1}, { 0, 1}}},
-	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,           1}, { 0, 1}}},
-	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,           1}, { 0, 1}}},
+	{ "S8",         { 1, TRUE,  FALSE, FALSE, 0, TRUE, { 1,                     128}, { 0, 1}}},
+	{ "U8",         { 1, FALSE, FALSE, FALSE, 0, TRUE, { 1,                     255}, {-1, 2}}},
+	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 0, TRUE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 0, TRUE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  0, TRUE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  0, TRUE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 0, TRUE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 0, TRUE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  0, TRUE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  0, TRUE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,                       1}, { 0, 1}}},
 };
 
 static int parse_format_string(const char *format)
