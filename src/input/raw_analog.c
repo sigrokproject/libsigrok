@@ -48,7 +48,7 @@ struct context {
 };
 
 struct sample_format {
-	const char const* fmt_name;
+	const char const *fmt_name;
 	struct sr_analog_encoding encoding;
 };
 
@@ -72,8 +72,7 @@ static const struct sample_format const sample_formats[] =
 
 static int parse_format_string(const char *format)
 {
-	int num_formats = sizeof(sample_formats)/ sizeof(sample_formats[0]);
-	for (int i = 0; i < num_formats; i++) {
+	for (unsigned int i = 0; i < ARRAY_SIZE(sample_formats); i++) {
 		if (!strcmp(format, sample_formats[i].fmt_name))
 			return i;
 	}
@@ -119,8 +118,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	format = g_variant_get_string(g_hash_table_lookup(options, "format"), NULL);
 	if ((fmt_index = parse_format_string(format)) == -1) {
 		GString *formats = g_string_sized_new(200);
-		int num_formats = sizeof(sample_formats)/ sizeof(sample_formats[0]);
-		for (int i = 0; i < num_formats; i++)
+		for (unsigned int i = 0; i < ARRAY_SIZE(sample_formats); i++)
 			g_string_append_printf(formats, "%s ", sample_formats[i].fmt_name);
 		sr_err("Invalid format '%s': must be one of: %s.",
 		       format, formats->str);
@@ -246,12 +244,11 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
-	int num_formats = sizeof(sample_formats)/ sizeof(sample_formats[0]);
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
 		options[1].def = g_variant_ref_sink(g_variant_new_uint64(DEFAULT_SAMPLERATE));
 		options[2].def = g_variant_ref_sink(g_variant_new_string(sample_formats[0].fmt_name));
-		for (int i = 0; i < num_formats; i++) {
+		for (unsigned int i = 0; i < ARRAY_SIZE(sample_formats); i++) {
 			options[2].values = g_slist_append(options[2].values,
 				g_variant_ref_sink(g_variant_new_string(sample_formats[i].fmt_name)));
 		}
