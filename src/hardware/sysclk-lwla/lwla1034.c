@@ -377,6 +377,15 @@ static int device_init_check(const struct sr_dev_inst *sdi)
  */
 static int setup_acquisition(const struct sr_dev_inst *sdi)
 {
+	static const struct regval capture_init[] = {
+		{REG_MEM_CTRL,    MEM_CTRL_CLR_IDX},
+		{REG_MEM_CTRL,    MEM_CTRL_WRITE},
+		{REG_LONG_ADDR,   LREG_CAP_CTRL},
+		{REG_LONG_LOW,    CAP_CTRL_CLR_TIMEBASE | CAP_CTRL_FLUSH_FIFO |
+				  CAP_CTRL_CLR_FIFOFULL | CAP_CTRL_CLR_COUNTER},
+		{REG_LONG_HIGH,   0},
+		{REG_LONG_STROBE, 0},
+	};
 	uint64_t divider_count;
 	uint64_t trigger_mask;
 	struct dev_context *devc;
@@ -388,21 +397,11 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	usb  = sdi->conn;
 	acq  = devc->acquisition;
 
-	acq->reg_seq_pos = 0;
-	acq->reg_seq_len = 0;
+	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
+	if (ret != SR_OK)
+		return ret;
 
-	lwla_queue_regval(acq, REG_MEM_CTRL, MEM_CTRL_CLR_IDX);
-	lwla_queue_regval(acq, REG_MEM_CTRL, MEM_CTRL_WRITE);
-
-	queue_long_regval(acq, LREG_CAP_CTRL,
-		CAP_CTRL_CLR_TIMEBASE | CAP_CTRL_FLUSH_FIFO |
-		CAP_CTRL_CLR_FIFOFULL | CAP_CTRL_CLR_COUNTER);
-
-	lwla_queue_regval(acq, REG_CLK_BOOST, acq->clock_boost);
-
-	ret = lwla_write_regs(usb, acq->reg_sequence, acq->reg_seq_len);
-	acq->reg_seq_len = 0;
-
+	ret = lwla_write_reg(usb, REG_CLK_BOOST, acq->clock_boost);
 	if (ret != SR_OK)
 		return ret;
 
