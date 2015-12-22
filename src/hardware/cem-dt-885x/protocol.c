@@ -184,7 +184,7 @@ static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
 
 	devc = sdi->priv;
 
-	for (i = 0; i < num_samples; i ++) {
+	for (i = 0; i < num_samples; i++) {
 		fbuf[i] = ((data[i * 2] & 0xf0) >> 4) * 100;
 		fbuf[i] += (data[i * 2] & 0x0f) * 10;
 		fbuf[i] += ((data[i * 2 + 1] & 0xf0) >> 4);

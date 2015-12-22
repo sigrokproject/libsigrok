@@ -55,7 +55,7 @@ static int check_manufacturer(const char *manufacturer)
 {
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(manufacturers); ++i)
+	for (i = 0; i < ARRAY_SIZE(manufacturers); i++)
 		if (!strcmp(manufacturer, manufacturers[i]))
 			return SR_OK;
 
@@ -183,11 +183,11 @@ static int check_channel_group(struct dev_context *devc,
 	if (!cg)
 		return CG_NONE;
 
-	for (i = 0; i < model->analog_channels; ++i)
+	for (i = 0; i < model->analog_channels; i++)
 		if (cg == devc->analog_groups[i])
 			return CG_ANALOG;
 
-	for (i = 0; i < model->digital_pods; ++i)
+	for (i = 0; i < model->digital_pods; i++)
 		if (cg == devc->digital_groups[i])
 			return CG_DIGITAL;
 
@@ -230,7 +230,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
-			for (i = 0; i < model->analog_channels; ++i) {
+			for (i = 0; i < model->analog_channels; i++) {
 				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_int32(model->num_ydivs);
@@ -247,7 +247,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
-			for (i = 0; i < model->analog_channels; ++i) {
+			for (i = 0; i < model->analog_channels; i++) {
 				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new("(tt)",
@@ -278,7 +278,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
-			for (i = 0; i < model->analog_channels; ++i) {
+			for (i = 0; i < model->analog_channels; i++) {
 				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
@@ -377,7 +377,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			if (p != (*model->vdivs)[i][0] ||
 			    q != (*model->vdivs)[i][1])
 				continue;
-			for (j = 1; j <= model->analog_channels; ++j) {
+			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j - 1].vdiv = i;
@@ -459,7 +459,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		for (i = 0; (*model->coupling_options)[i]; i++) {
 			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
 				continue;
-			for (j = 1; j <= model->analog_channels; ++j) {
+			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
 					continue;
 				state->analog_channels[j-1].coupling = i;
@@ -689,7 +689,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	for (i = 1; i <= model->digital_pods; ++i) {
+	for (i = 1; i <= model->digital_pods; i++) {
 		if (state->digital_pods[i - 1] == pod_enabled[i - 1])
 			continue;
 		g_snprintf(command, sizeof(command),

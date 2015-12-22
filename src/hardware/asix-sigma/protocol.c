@@ -114,7 +114,7 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 	buf[idx++] = REG_ADDR_LOW | (reg & 0xf);
 	buf[idx++] = REG_ADDR_HIGH | (reg >> 4);
 
-	for (i = 0; i < len; ++i) {
+	for (i = 0; i < len; i++) {
 		buf[idx++] = REG_DATA_LOW | (data[i] & 0xf);
 		buf[idx++] = REG_DATA_HIGH_WRITE | (data[i] >> 4);
 	}
@@ -201,7 +201,7 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 	buf[idx++] = REG_DRAM_BLOCK;
 	buf[idx++] = REG_DRAM_WAIT_ACK;
 
-	for (i = 0; i < numchunks; ++i) {
+	for (i = 0; i < numchunks; i++) {
 		/* Alternate bit to copy from DRAM to cache. */
 		if (i != (numchunks - 1))
 			buf[idx++] = REG_DRAM_BLOCK | (((i + 1) % 2) << 4);
@@ -225,7 +225,7 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 	uint16_t bit;
 
 	/* Transpose the table and send to Sigma. */
-	for (i = 0; i < 16; ++i) {
+	for (i = 0; i < 16; i++) {
 		bit = 1 << i;
 
 		tmp[0] = tmp[1] = 0;
@@ -599,7 +599,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					return SR_ERR;
 				}
 
-				++trigger_set;
+				trigger_set++;
 			} else {
 				/* Simple trigger support (event). */
 				if (match->match == SR_TRIGGER_ONE) {
@@ -612,11 +612,11 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				}
 				else if (match->match == SR_TRIGGER_FALLING) {
 					devc->trigger.fallingmask |= channelbit;
-					++trigger_set;
+					trigger_set++;
 				}
 				else if (match->match == SR_TRIGGER_RISING) {
 					devc->trigger.risingmask |= channelbit;
-					++trigger_set;
+					trigger_set++;
 				}
 
 				/*
@@ -644,7 +644,7 @@ static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 	int i;
 	uint16_t sample = 0;
 
-	for (i = 0; i < 8; ++i) {
+	for (i = 0; i < 8; i++) {
 		if (i > 0)
 			last_sample = sample;
 		sample = samples[2 * i] | (samples[2 * i + 1] << 8);
@@ -976,20 +976,19 @@ static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
 	int i, j, k, bit;
 
 	/* For each quad channel. */
-	for (i = 0; i < 4; ++i) {
+	for (i = 0; i < 4; i++) {
 		entry[i] = 0xffff;
 
 		/* For each bit in LUT. */
-		for (j = 0; j < 16; ++j)
+		for (j = 0; j < 16; j++)
 
 			/* For each channel in quad. */
-			for (k = 0; k < 4; ++k) {
+			for (k = 0; k < 4; k++) {
 				bit = 1 << (i * 4 + k);
 
 				/* Set bit in entry */
-				if ((mask & bit) &&
-				    ((!(value & bit)) !=
-				    (!(j & (1 << k)))))
+				if ((mask & bit) && ((!(value & bit)) !=
+							(!(j & (1 << k)))))
 					entry[i] &= ~(1 << j);
 			}
 	}
@@ -1042,17 +1041,17 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 
 	/* Transpose if neg is set. */
 	if (neg) {
-		for (i = 0; i < 2; ++i) {
-			for (j = 0; j < 2; ++j) {
+		for (i = 0; i < 2; i++) {
+			for (j = 0; j < 2; j++) {
 				tmp = x[i][j];
-				x[i][j] = x[1-i][1-j];
-				x[1-i][1-j] = tmp;
+				x[i][j] = x[1 - i][1 - j];
+				x[1 - i][1 - j] = tmp;
 			}
 		}
 	}
 
 	/* Update mask with function. */
-	for (i = 0; i < 16; ++i) {
+	for (i = 0; i < 16; i++) {
 		a = (i >> (2 * index + 0)) & 1;
 		b = (i >> (2 * index + 1)) & 1;
 
@@ -1097,7 +1096,7 @@ SR_PRIV int sigma_build_basic_trigger(struct triggerlut *lut, struct dev_context
 			lut->m2d);
 
 	/* Rise/fall trigger support. */
-	for (i = 0, j = 0; i < 16; ++i) {
+	for (i = 0, j = 0; i < 16; i++) {
 		if (devc->trigger.risingmask & (1 << i) ||
 		    devc->trigger.fallingmask & (1 << i))
 			masks[j++] = 1 << i;

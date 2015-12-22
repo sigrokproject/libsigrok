@@ -265,7 +265,7 @@ static void scope_state_dump(const struct scope_config *config,
 	unsigned int i;
 	char *tmp;
 
-	for (i = 0; i < config->analog_channels; ++i) {
+	for (i = 0; i < config->analog_channels; i++) {
 		tmp = sr_voltage_string((*config->vdivs)[state->analog_channels[i].vdiv][0],
 					     (*config->vdivs)[state->analog_channels[i].vdiv][1]);
 		sr_info("State of analog channel  %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
@@ -274,12 +274,12 @@ static void scope_state_dump(const struct scope_config *config,
 			tmp, state->analog_channels[i].vertical_offset);
 	}
 
-	for (i = 0; i < config->digital_channels; ++i) {
+	for (i = 0; i < config->digital_channels; i++) {
 		sr_info("State of digital channel %d -> %s", i,
 			state->digital_channels[i] ? "On" : "Off");
 	}
 
-	for (i = 0; i < config->digital_pods; ++i) {
+	for (i = 0; i < config->digital_pods; i++) {
 		sr_info("State of digital POD %d -> %s", i,
 			state->digital_pods[i] ? "On" : "Off");
 	}
@@ -310,7 +310,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 		return SR_ERR;
 	}
 
-	for (i = 0; (*array)[i]; ++i) {
+	for (i = 0; (*array)[i]; i++) {
 		if (!g_strcmp0(tmp, (*array)[i])) {
 			*result = i;
 			g_free(tmp);
@@ -335,7 +335,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	float tmp_float;
 	char command[MAX_COMMAND_SIZE];
 
-	for (i = 0; i < config->analog_channels; ++i) {
+	for (i = 0; i < config->analog_channels; i++) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_ANALOG_CHAN_STATE],
 			   i + 1);
@@ -389,7 +389,7 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	unsigned int i;
 	char command[MAX_COMMAND_SIZE];
 
-	for (i = 0; i < config->digital_channels; ++i) {
+	for (i = 0; i < config->digital_channels; i++) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
 			   i);
@@ -399,7 +399,7 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 			return SR_ERR;
 	}
 
-	for (i = 0; i < config->digital_pods; ++i) {
+	for (i = 0; i < config->digital_pods; i++) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
 			   i + 1);
@@ -430,7 +430,7 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	state = devc->model_state;
 	channel_found = FALSE;
 
-	for (i = 0; i < config->analog_channels; ++i) {
+	for (i = 0; i < config->analog_channels; i++) {
 		if (state->analog_channels[i].state) {
 			g_snprintf(chan_name, sizeof(chan_name), "CHAN%d", i + 1);
 			g_snprintf(tmp_str, sizeof(tmp_str),
@@ -614,7 +614,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	}
 
 	/* Add digital channel groups. */
-	for (i = 0; i < scope_models[model_index].digital_pods; ++i) {
+	for (i = 0; i < scope_models[model_index].digital_pods; i++) {
 		g_snprintf(tmp, 25, "POD%d", i);
 
 		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));

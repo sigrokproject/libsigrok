@@ -334,7 +334,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, devc);
 
 		/* Find which pin to trigger on from mask. */
-		for (triggerpin = 0; triggerpin < 8; ++triggerpin)
+		for (triggerpin = 0; triggerpin < 8; triggerpin++)
 			if ((devc->trigger.risingmask | devc->trigger.fallingmask) &
 			    (1 << triggerpin))
 				break;

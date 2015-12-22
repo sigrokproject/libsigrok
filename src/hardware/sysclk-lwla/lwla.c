@@ -210,7 +210,7 @@ SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,
 
 	ret = SR_OK;
 
-	for (i = 0; i < count; ++i) {
+	for (i = 0; i < count; i++) {
 		ret = lwla_write_reg(usb, regvals[i].reg, regvals[i].val);
 
 		if (ret != SR_OK)

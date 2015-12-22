@@ -488,7 +488,7 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 		return -1;
 
 	/* Linear search is fine for very small tables. */
-	for (i = 0; i < len; ++i) {
+	for (i = 0; i < len; i++) {
 		if (strcmp(entry, table[i]) == 0)
 			return i;
 	}
