@@ -46,10 +46,7 @@ SR_PRIV struct sr_dev_driver siemens_b102x_driver_info;
 
 static const char *get_brandstr(struct sr_dev_driver *drv)
 {
-	if (drv == &norma_dmm_driver_info)
-		return "Norma";
-	else
-		return "Siemens";
+	return (drv == &norma_dmm_driver_info) ? "Norma" : "Siemens";
 }
 
 static const char *get_typestr(int type, struct sr_dev_driver *drv)
@@ -59,12 +56,13 @@ static const char *get_typestr(int type, struct sr_dev_driver *drv)
 		{"DM920", "B1025"},
 		{"DM930", "B1026"},
 		{"DM940", "B1027"},
-		{"DM950", "B1028"}};
+		{"DM950", "B1028"},
+	};
 
 	if ((type < 1) || (type > 5))
 		return "Unknown type!";
 
-	return nameref[type-1][(drv == &siemens_b102x_driver_info)];
+	return nameref[type - 1][(drv == &siemens_b102x_driver_info)];
 }
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
@@ -80,11 +78,10 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
-	int len, cnt;
+	int len, cnt, auxtype;
 	const char *conn, *serialcomm;
 	char *buf;
 	char req[10];
-	int auxtype;
 
 	devices = NULL;
 	drvc = drv->context;
@@ -131,7 +128,7 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 			continue;
 		buf[BUF_MAX - 1] = '\0';
 
-		/* Match ID string, e.g. "1834 065 V1.06,IF V1.02" (DM950) */
+		/* Match ID string, e.g. "1834 065 V1.06,IF V1.02" (DM950). */
 		if (g_regex_match_simple("^1834 [^,]*,IF V*", (char *)buf, 0, 0)) {
 			auxtype = xgittoint(buf[7]);
 			sr_spew("%s %s DMM %s detected!", get_brandstr(drv), get_typestr(auxtype, drv), buf + 9);

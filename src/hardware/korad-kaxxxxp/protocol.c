@@ -88,7 +88,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	give_device_time_to_process(devc);
 
 	msg[20] = 0;
-	switch(devc->target){
+	switch (devc->target) {
 	case KAXXXXP_CURRENT:
 	case KAXXXXP_VOLTAGE:
 	case KAXXXXP_STATUS:
@@ -158,7 +158,7 @@ SR_PRIV int korad_kaxxxxp_query_value(struct sr_serial_dev_inst *serial,
 
 	give_device_time_to_process(devc);
 
-	switch(devc->target){
+	switch (devc->target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");

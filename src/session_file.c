@@ -284,7 +284,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 								FALSE, channelname);
 					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
-					tmp_u64 = g_ascii_strtoull(keys[j]+5, NULL, 10);
+					tmp_u64 = g_ascii_strtoull(keys[j] + 5, NULL, 10);
 					if (!sdi || tmp_u64 == 0 || tmp_u64 > G_MAXINT) {
 						ret = SR_ERR_DATA;
 						break;

@@ -103,7 +103,7 @@ SR_PRIV int maynuo_m97_get_model_version(struct sr_modbus_dev_inst *modbus,
 
 SR_PRIV const char *maynuo_m97_mode_to_str(enum maynuo_m97_mode mode)
 {
-	switch(mode) {
+	switch (mode) {
 	case CC:             return "CC";
 	case CV:             return "CV";
 	case CW:             return "CP";
