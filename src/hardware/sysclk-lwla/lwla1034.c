@@ -358,9 +358,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 	uint64_t value;
 	int ret;
 
-	ret = read_long_reg(sdi->conn, LREG_TEST_ID, &value);
-	if (ret != SR_OK)
-		return ret;
+	read_long_reg(sdi->conn, LREG_TEST_ID, &value);
 
 	/* Ignore the value returned by the first read. */
 	ret = read_long_reg(sdi->conn, LREG_TEST_ID, &value);

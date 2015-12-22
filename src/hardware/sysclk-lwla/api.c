@@ -289,6 +289,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	int i;
 	int ret;
 
 	drvc = sdi->driver->context;
@@ -304,54 +305,58 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
-	if (ret != SR_OK)
-		return ret;
+	/* Try the whole shebang three times, fingers crossed. */
+	for (i = 0; i < 3; i++) {
+		ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+		if (ret != SR_OK)
+			return ret;
 
-	ret = libusb_set_configuration(usb->devhdl, USB_CONFIG);
-	if (ret != LIBUSB_SUCCESS) {
-		sr_err("Failed to set USB configuration: %s.",
-			libusb_error_name(ret));
-		sr_usb_close(usb);
-		return SR_ERR;
-	}
+		ret = libusb_set_configuration(usb->devhdl, USB_CONFIG);
+		if (ret != LIBUSB_SUCCESS) {
+			sr_err("Failed to set USB configuration: %s.",
+				libusb_error_name(ret));
+			sr_usb_close(usb);
+			return SR_ERR;
+		}
 
-	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-	if (ret != LIBUSB_SUCCESS) {
-		sr_err("Failed to claim interface: %s.",
-			libusb_error_name(ret));
-		sr_usb_close(usb);
-		return SR_ERR;
-	}
+		ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
+		if (ret != LIBUSB_SUCCESS) {
+			sr_err("Failed to claim interface: %s.",
+				libusb_error_name(ret));
+			sr_usb_close(usb);
+			return SR_ERR;
+		}
 
-	ret = drain_usb(usb, EP_REPLY);
-	if (ret != SR_OK) {
-		sr_usb_close(usb);
-		return ret;
-	}
-	/* This delay appears to be necessary for reliable operation. */
-	g_usleep(30 * 1000);
+		ret = drain_usb(usb, EP_REPLY);
+		if (ret != SR_OK) {
+			sr_usb_close(usb);
+			return ret;
+		}
+		/* This delay appears to be necessary for reliable operation. */
+		g_usleep(30 * 1000);
 
-	sdi->status = SR_ST_ACTIVE;
+		sdi->status = SR_ST_ACTIVE;
 
-	devc->active_fpga_config = FPGA_NOCONF;
-	devc->short_transfer_quirk = FALSE;
-	devc->state = STATE_IDLE;
+		devc->active_fpga_config = FPGA_NOCONF;
+		devc->short_transfer_quirk = FALSE;
+		devc->state = STATE_IDLE;
 
-	ret = (*devc->model->apply_fpga_config)(sdi);
+		ret = (*devc->model->apply_fpga_config)(sdi);
 
-	if (ret == SR_OK)
-		ret = (*devc->model->device_init_check)(sdi);
+		if (ret == SR_OK)
+			ret = (*devc->model->device_init_check)(sdi);
+		if (ret == SR_OK)
+			break;
 
-	if (ret != SR_OK) {
+		/* Rinse and repeat. */
 		sdi->status = SR_ST_INACTIVE;
 		sr_usb_close(usb);
-		return ret;
 	}
-	if (devc->short_transfer_quirk)
+
+	if (ret == SR_OK && devc->short_transfer_quirk)
 		sr_warn("Short transfer quirk detected! "
 			"Memory reads will be slow.");
-	return SR_OK;
+	return ret;
 }
 
 /* Shutdown and close device.

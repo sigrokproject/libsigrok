@@ -59,7 +59,7 @@ enum {
 enum {
 	USB_CONFIG	= 1,
 	USB_INTERFACE	= 0,
-	USB_TIMEOUT_MS	= 3000,
+	USB_TIMEOUT_MS	= 1000,
 };
 
 /** USB device end points.

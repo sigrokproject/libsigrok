@@ -274,9 +274,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 
 	const unsigned int test_count = 24;
 
-	ret = lwla_read_reg(sdi->conn, REG_TEST_ID, &value);
-	if (ret != SR_OK)
-		return ret;
+	lwla_read_reg(sdi->conn, REG_TEST_ID, &value);
 
 	/* Ignore the value returned by the first read. */
 	ret = lwla_read_reg(sdi->conn, REG_TEST_ID, &value);
