@@ -24,8 +24,8 @@
 #include "lwla.h"
 #include "protocol.h"
 
-#define BITSTREAM_MAX_SIZE    (256 * 1024) /* bitstream size limit for safety */
-#define BITSTREAM_HEADER_SIZE 4            /* transfer header size in bytes */
+#define BITSTREAM_MAX_SIZE    (256 * 1024) /* Bitstream size limit for safety */
+#define BITSTREAM_HEADER_SIZE 4            /* Transfer header size in bytes */
 
 /* Load a bitstream file into memory. Returns a newly allocated array
  * consisting of a 32-bit length field followed by the bitstream data.
@@ -81,9 +81,7 @@ SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
 				const char *name)
 {
 	unsigned char *stream;
-	int ret;
-	int length;
-	int xfer_len;
+	int ret, length, xfer_len;
 
 	if (!ctx || !usb || !name)
 		return SR_ERR_BUG;
@@ -120,8 +118,7 @@ SR_PRIV int lwla_send_bitstream(struct sr_context *ctx,
 SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 			      const uint16_t *command, int cmd_len)
 {
-	int ret;
-	int xfer_len;
+	int ret, xfer_len;
 
 	if (!usb || !command || cmd_len <= 0)
 		return SR_ERR_BUG;
@@ -140,6 +137,7 @@ SR_PRIV int lwla_send_command(const struct sr_usb_dev_inst *usb,
 		       LWLA_TO_UINT16(command[0]), xfer_len, cmd_len * 2);
 		return SR_ERR;
 	}
+
 	return SR_OK;
 }
 
@@ -157,16 +155,16 @@ SR_PRIV int lwla_receive_reply(const struct sr_usb_dev_inst *usb,
 		sr_dbg("Failed to receive reply: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
+
 	return SR_OK;
 }
 
 SR_PRIV int lwla_read_reg(const struct sr_usb_dev_inst *usb,
 			  uint16_t reg, uint32_t *value)
 {
-	int xfer_len;
-	int ret;
+	int xfer_len, ret;
 	uint16_t command[2];
-	uint32_t reply[128]; /* full EP buffer to avoid overflows */
+	uint32_t reply[128]; /* Full EP buffer to avoid overflows. */
 
 	command[0] = LWLA_WORD(CMD_READ_REG);
 	command[1] = LWLA_WORD(reg);
@@ -205,8 +203,7 @@ SR_PRIV int lwla_write_reg(const struct sr_usb_dev_inst *usb,
 SR_PRIV int lwla_write_regs(const struct sr_usb_dev_inst *usb,
 			    const struct regval *regvals, int count)
 {
-	int i;
-	int ret;
+	int i, ret;
 
 	ret = SR_OK;
 

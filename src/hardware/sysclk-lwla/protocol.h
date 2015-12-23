@@ -140,7 +140,6 @@ struct dev_context {
 	enum signal_edge cfg_clock_edge;	/* ext clock edge setting */
 	enum trigger_source cfg_trigger_source;	/* trigger source setting */
 	enum signal_edge cfg_trigger_slope;	/* ext trigger slope setting */
-
 };
 
 /** LWLA model descriptor.

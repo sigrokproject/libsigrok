@@ -113,9 +113,8 @@ static struct sr_dev_inst *dev_inst_new_matching(GSList *conn_matches,
 	const struct model_info *model;
 	struct sr_dev_inst *sdi;
 	struct libusb_device_descriptor des;
-	int bus, address;
+	int bus, address, ret;
 	unsigned int vid, pid;
-	int ret;
 
 	bus = libusb_get_bus_number(dev);
 	address = libusb_get_device_address(dev);
@@ -217,11 +216,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
  */
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-	struct drv_context *drvc;
-
-	drvc = di->context;
-
-	return drvc->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 /* Destroy the private device context.
@@ -234,7 +229,7 @@ static void clear_dev_context(void *priv)
 
 	if (devc->acquisition) {
 		sr_err("Cannot clear device context during acquisition!");
-		return; /* leak and pray */
+		return; /* Leak and pray. */
 	}
 	sr_dbg("Device context cleared.");
 
@@ -254,10 +249,8 @@ static int dev_clear(const struct sr_dev_driver *di)
  */
 static int drain_usb(struct sr_usb_dev_inst *usb, unsigned int endpoint)
 {
-	int drained, xfer_len;
-	int ret;
+	int drained, xfer_len, ret;
 	unsigned char buf[512];
-
 	const unsigned int drain_timeout_ms = 10;
 
 	drained = 0;
@@ -279,6 +272,7 @@ static int drain_usb(struct sr_usb_dev_inst *usb, unsigned int endpoint)
 		sr_warn("Drained %d bytes from USB endpoint %u.",
 			drained, endpoint & (LIBUSB_ENDPOINT_IN - 1));
 	}
+
 	return SR_OK;
 }
 
@@ -289,8 +283,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	int i;
-	int ret;
+	int i, ret;
 
 	drvc = sdi->driver->context;
 	devc = sdi->priv;
@@ -411,6 +404,7 @@ static int has_devopt(const struct model_info *model, uint32_t key)
 		if ((model->devopts[i] & (SR_CONF_MASK | key)) == key)
 			return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -492,6 +486,7 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 		if (strcmp(entry, table[i]) == 0)
 			return i;
 	}
+
 	return -1;
 }
 
@@ -605,9 +600,7 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
  */
 static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 {
-	uint64_t trigger_mask;
-	uint64_t trigger_values;
-	uint64_t trigger_edge_mask;
+	uint64_t trigger_mask, trigger_values, trigger_edge_mask;
 	uint64_t level_bit, type_bit;
 	struct dev_context *devc;
 	struct sr_trigger *trigger;
@@ -637,14 +630,14 @@ static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 		match = node->data;
 
 		if (!match->channel->enabled)
-			continue; /* ignore disabled channel */
+			continue; /* Ignore disabled channel. */
 
 		idx = match->channel->index;
 		trg = match->match;
 
 		if (idx < 0 || idx >= devc->model->num_channels) {
 			sr_err("Channel index %d out of range.", idx);
-			return SR_ERR_BUG; /* should not happen */
+			return SR_ERR_BUG; /* Should not happen. */
 		}
 		if (trg != SR_TRIGGER_ZERO
 				&& trg != SR_TRIGGER_ONE
@@ -713,8 +706,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  scanopts, ARRAY_SIZE(scanopts),
-						  sizeof(scanopts[0]));
+			scanopts, ARRAY_SIZE(scanopts), sizeof(scanopts[0]));
 		return SR_OK;
 	}
 	if (!sdi) {
@@ -723,8 +715,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 		/* List driver capabilities. */
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  drvopts, ARRAY_SIZE(drvopts),
-						  sizeof(drvopts[0]));
+			drvopts, ARRAY_SIZE(drvopts), sizeof(drvopts[0]));
 		return SR_OK;
 	}
 
@@ -733,9 +724,8 @@ static int config_list(uint32_t key, GVariant **data,
 	/* List the model's device options. */
 	if (key == SR_CONF_DEVICE_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  devc->model->devopts,
-						  devc->model->num_devopts,
-						  sizeof(devc->model->devopts[0]));
+			devc->model->devopts, devc->model->num_devopts,
+			sizeof(devc->model->devopts[0]));
 		return SR_OK;
 	}
 
@@ -746,26 +736,24 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_VARDICT);
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-						 devc->model->samplerates,
-						 devc->model->num_samplerates,
-						 sizeof(devc->model->samplerates[0]));
+			devc->model->samplerates, devc->model->num_samplerates,
+			sizeof(devc->model->samplerates[0]));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-						  trigger_matches,
-						  ARRAY_SIZE(trigger_matches),
-						  sizeof(trigger_matches[0]));
+			trigger_matches, ARRAY_SIZE(trigger_matches),
+			sizeof(trigger_matches[0]));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_source_names,
-					   ARRAY_SIZE(trigger_source_names));
+			ARRAY_SIZE(trigger_source_names));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(signal_edge_names,
-					   ARRAY_SIZE(signal_edge_names));
+			ARRAY_SIZE(signal_edge_names));
 		break;
 	default:
 		/* Must not happen for a key listed in devopts. */
@@ -798,6 +786,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 
 	(void)cb_data;
+
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -807,6 +796,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		devc->cancel_requested = TRUE;
 		sr_dbg("Stopping acquisition.");
 	}
+
 	return SR_OK;
 }
 

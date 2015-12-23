@@ -212,6 +212,7 @@ static void handle_read_response(const struct sr_dev_inst *sdi)
 
 	end_addr = MIN(acq->mem_addr_next, acq->mem_addr_stop);
 	acq->in_index = 0;
+
 	/*
 	 * Repeatedly call the model-specific read response handler until
 	 * all data received in the transfer has been accounted for.
@@ -545,7 +546,6 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int ret;
-
 	const int poll_interval_ms = 100;
 
 	drvc = sdi->driver->context;
@@ -585,5 +585,6 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 		clear_acquisition_state(sdi);
 	}
+
 	return ret;
 }

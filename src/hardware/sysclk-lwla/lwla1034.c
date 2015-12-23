@@ -208,9 +208,7 @@ static void read_response(struct acquisition_state *acq)
 	uint64_t sample, high_nibbles, word;
 	uint32_t *slice;
 	uint8_t *out_p;
-	unsigned int words_left;
-	unsigned int max_samples, run_samples;
-	unsigned int wi, ri, si;
+	unsigned int words_left, max_samples, run_samples, wi, ri, si;
 
 	/* Number of 36-bit words remaining in the transfer buffer. */
 	words_left = MIN(acq->mem_addr_next, acq->mem_addr_stop)
@@ -239,13 +237,13 @@ static void read_response(struct acquisition_state *acq)
 		acq->samples_done += run_samples;
 
 		if (run_samples == max_samples)
-			break; /* packet full or sample limit reached */
+			break; /* Packet full or sample limit reached. */
 		if (wi >= words_left)
-			break; /* done with current transfer */
+			break; /* Done with current transfer. */
 
 		/* Get the current slice of 8 packed 36-bit words. */
 		slice = &acq->xfer_buf_in[(acq->in_index + wi) / 8 * 9];
-		si = (acq->in_index + wi) % 8; /* word index within slice */
+		si = (acq->in_index + wi) % 8; /* Word index within slice. */
 
 		/* Extract the next 36-bit word. */
 		high_nibbles = LWLA_TO_UINT32(slice[8]);
@@ -262,6 +260,7 @@ static void read_response(struct acquisition_state *acq)
 			acq->rle = RLE_STATE_DATA;
 		}
 	}
+
 	acq->in_index += wi;
 	acq->mem_addr_done += wi;
 }
@@ -279,11 +278,9 @@ static int detect_short_transfer_quirk(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	int xfer_len;
-	int ret;
+	int xfer_len, ret;
 	uint16_t command[3];
 	unsigned char buf[512];
-
 	const int lreg_count = 10;
 
 	devc = sdi->priv;
@@ -326,8 +323,7 @@ static int apply_fpga_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	int config;
-	int ret;
+	int config, ret;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
@@ -342,7 +338,7 @@ static int apply_fpga_config(const struct sr_dev_inst *sdi)
 		config = FPGA_EXTNEG;
 
 	if (config == devc->active_fpga_config)
-		return SR_OK; /* no change */
+		return SR_OK; /* No change. */
 
 	ret = lwla_send_bitstream(drvc->sr_ctx, sdi->conn,
 				  bitstream_map[config]);
@@ -386,8 +382,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 		{REG_LONG_HIGH,   0},
 		{REG_LONG_STROBE, 0},
 	};
-	uint64_t divider_count;
-	uint64_t trigger_mask;
+	uint64_t divider_count, trigger_mask;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct acquisition_state *acq;

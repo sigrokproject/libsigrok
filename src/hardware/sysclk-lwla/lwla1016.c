@@ -142,9 +142,7 @@ static void read_response_rle(struct acquisition_state *acq)
 {
 	uint32_t *in_p;
 	uint16_t *out_p;
-	unsigned int words_left;
-	unsigned int max_samples, run_samples;
-	unsigned int wi, ri;
+	unsigned int words_left, max_samples, run_samples, wi, ri;
 	uint32_t word;
 	uint16_t sample;
 
@@ -170,14 +168,15 @@ static void read_response_rle(struct acquisition_state *acq)
 		acq->samples_done += run_samples;
 
 		if (run_samples == max_samples)
-			break; /* packet full or sample limit reached */
+			break; /* Packet full or sample limit reached. */
 		if (wi >= words_left)
-			break; /* done with current transfer */
+			break; /* Done with current transfer. */
 
 		word = GUINT32_FROM_LE(in_p[wi]);
 		acq->sample = word >> 16;
 		acq->run_len = (word & 0xFFFF) + 1;
 	}
+
 	acq->in_index += wi;
 	acq->mem_addr_done += wi;
 }
@@ -197,8 +196,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	unsigned int i;
-	int xfer_len;
-	int ret;
+	int xfer_len, ret;
 	uint16_t command[5];
 	unsigned char reply[512];
 
@@ -231,6 +229,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 		       xfer_len);
 		return SR_ERR;
 	}
+
 	return SR_OK;
 }
 
@@ -240,19 +239,18 @@ static int apply_fpga_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	int config;
-	int ret;
+	int config, ret;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 
 	if (sdi->status == SR_ST_INACTIVE)
-		return SR_OK; /* the LWLA1016 has no off state */
+		return SR_OK; /* The LWLA1016 has no off state. */
 
 	config = (devc->cfg_rle) ? FPGA_100_TS : FPGA_100;
 
 	if (config == devc->active_fpga_config)
-		return SR_OK; /* no change */
+		return SR_OK; /* No change. */
 
 	ret = lwla_send_bitstream(drvc->sr_ctx, sdi->conn,
 				  bitstream_map[config]);
@@ -271,7 +269,6 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 	};
 	uint32_t value;
 	int ret;
-
 	const unsigned int test_count = 24;
 
 	lwla_read_reg(sdi->conn, REG_TEST_ID, &value);
@@ -293,6 +290,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 	ret = test_read_memory(sdi, 0, test_count);
 	if (ret != SR_OK)
 		return ret;
+
 	/*
 	 * Issue another read request or the device will stall, for whatever
 	 * reason. This happens both with and without the short transfer quirk.
