@@ -37,7 +37,8 @@
 #define KAXXXXP_POLL_INTERVAL_MS 80
 
 enum {
-	VELLEMAN_LABPS_3005D,
+	VELLEMAN_PS3005D,
+	VELLEMAN_LABPS3005D,
 	KORAD_KA3005P,
 	/* Support for future devices with this protocol. */
 };

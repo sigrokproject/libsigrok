@@ -50,7 +50,9 @@ static const uint32_t devopts[] = {
 
 static const struct korad_kaxxxxp_model models[] = {
 	/* Device enum, vendor, model, ID reply, channels, voltage, current */
-	{VELLEMAN_LABPS_3005D, "Velleman", "LABPS3005D",
+	{VELLEMAN_PS3005D, "Velleman", "PS3005D",
+		"VELLEMANPS3005DV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{VELLEMAN_LABPS3005D, "Velleman", "LABPS3005D",
 		"VELLEMANLABPS3005DV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KA3005P, "Korad", "KA3005P",
 		"KORADKA3005PV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
