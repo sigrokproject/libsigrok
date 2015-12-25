@@ -56,6 +56,9 @@ static const struct korad_kaxxxxp_model models[] = {
 		"VELLEMANLABPS3005DV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KA3005P, "Korad", "KA3005P",
 		"KORADKA3005PV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	/* Sometimes the KA3005P has an extra 0x01 after the ID. */
+	{KORAD_KA3005P_0X01, "Korad", "KA3005P",
+		"KORADKA3005PV2.0\x01", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	ALL_ZERO
 };
 
@@ -135,7 +138,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_err("Unknown model ID '%s' detected, aborting.", reply);
 		return NULL;
 	}
-	sr_dbg("Found: %s %s", models[model_id].vendor, models[model_id].name);
+	sr_dbg("Found: %s %s (idx %d, ID '%s').", models[model_id].vendor,
+		models[model_id].name, model_id, models[model_id].id);
 
 	/* Init device instance, etc. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
