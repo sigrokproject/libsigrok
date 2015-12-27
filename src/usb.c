@@ -28,7 +28,7 @@
 #include "libsigrok-internal.h"
 
 /* SR_CONF_CONN takes one of these: */
-#define CONN_USB_VIDPID  "^([0-9a-z]{4})\\.([0-9a-z]{4})$"
+#define CONN_USB_VIDPID  "^([0-9a-fA-F]{4})\\.([0-9a-fA-F]{4})$"
 #define CONN_USB_BUSADDR "^(\\d+)\\.(\\d+)$"
 
 #define LOG_PREFIX "usb"
