@@ -45,6 +45,7 @@ struct session_vdev {
 	uint64_t samplerate;
 	int unitsize;
 	int num_channels;
+	int num_analog_channels;
 	int cur_chunk;
 	gboolean finished;
 };
@@ -53,6 +54,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTUREFILE | SR_CONF_SET,
 	SR_CONF_CAPTURE_UNITSIZE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_SET,
+	SR_CONF_NUM_ANALOG_CHANNELS | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SESSIONFILE | SR_CONF_SET,
 };
@@ -279,6 +281,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_NUM_LOGIC_CHANNELS:
 		vdev->num_channels = g_variant_get_int32(data);
+		break;
+	case SR_CONF_NUM_ANALOG_CHANNELS:
+		vdev->num_analog_channels = g_variant_get_int32(data);
 		break;
 	default:
 		return SR_ERR_NA;

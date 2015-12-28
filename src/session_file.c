@@ -186,7 +186,8 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 	struct sr_channel *ch;
 	int ret, i, j;
 	uint64_t tmp_u64;
-	int total_channels, k;
+	int total_channels, total_analog, k;
+	GSList *l;
 	int unitsize;
 	char **sections, **keys, *val;
 	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
@@ -283,6 +284,21 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 						sr_channel_new(sdi, k, SR_CHANNEL_LOGIC,
 								FALSE, channelname);
 					}
+				} else if (!strcmp(keys[j], "total analog")) {
+					total_analog = g_key_file_get_integer(kf,
+							sections[i], keys[j], &error);
+					if (!sdi || total_analog < 0 || error) {
+						ret = SR_ERR_DATA;
+						break;
+					}
+					sr_config_set(sdi, NULL, SR_CONF_NUM_ANALOG_CHANNELS,
+							g_variant_new_int32(total_analog));
+					for (k = 0; k < total_analog; k++) {
+						g_snprintf(channelname, sizeof(channelname),
+								"%d", k);
+						sr_channel_new(sdi, k, SR_CHANNEL_ANALOG,
+								FALSE, channelname);
+					}
 				} else if (!strncmp(keys[j], "probe", 5)) {
 					tmp_u64 = g_ascii_strtoull(keys[j] + 5, NULL, 10);
 					if (!sdi || tmp_u64 == 0 || tmp_u64 > G_MAXINT) {
@@ -290,6 +306,34 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 						break;
 					}
 					ch = g_slist_nth_data(sdi->channels, tmp_u64 - 1);
+					if (!ch) {
+						ret = SR_ERR_DATA;
+						break;
+					}
+					val = g_key_file_get_string(kf, sections[i],
+							keys[j], &error);
+					if (!val) {
+						ret = SR_ERR_DATA;
+						break;
+					}
+					/* sr_session_save() */
+					sr_dev_channel_name_set(ch, val);
+					g_free(val);
+					sr_dev_channel_enable(ch, TRUE);
+				} else if (!strncmp(keys[j], "analog", 6)) {
+					tmp_u64 = g_ascii_strtoull(keys[j]+6, NULL, 10);
+					if (!sdi || tmp_u64 == 0 || tmp_u64 > G_MAXINT) {
+						ret = SR_ERR_DATA;
+						break;
+					}
+					ch = NULL;
+					for (l = sdi->channels; l; l = l->next) {
+						ch = l->data;
+						if ((guint64)ch->index == tmp_u64 - 1)
+							break;
+						else
+							ch = NULL;
+					}
 					if (!ch) {
 						ret = SR_ERR_DATA;
 						break;
