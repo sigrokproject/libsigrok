@@ -65,7 +65,7 @@ static int zip_create(const struct sr_output *o)
 	const char *devgroup;
 	char *s, *metabuf;
 	gsize metalen;
-	guint logic_channels = 0;
+	guint logic_channels = 0, analog_channels = 0;
 
 	outc = o->priv;
 
@@ -106,19 +106,32 @@ static int zip_create(const struct sr_output *o)
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->type == SR_CHANNEL_LOGIC)
-			logic_channels++;
+		switch (ch->type) {
+			case SR_CHANNEL_LOGIC:
+				logic_channels++;
+				break;
+			case SR_CHANNEL_ANALOG:
+				analog_channels++;
+				break;
+		}
 	}
 
 	g_key_file_set_integer(meta, devgroup, "total probes", logic_channels);
+	g_key_file_set_integer(meta, devgroup, "total analog", analog_channels);
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
-		if (ch->enabled && ch->type == SR_CHANNEL_LOGIC) {
-			s = g_strdup_printf("probe%d", ch->index + 1);
-			g_key_file_set_string(meta, devgroup, s, ch->name);
-			g_free(s);
+		switch (ch->type) {
+			case SR_CHANNEL_LOGIC:
+				s = g_strdup_printf("probe%d", ch->index + 1);
+				break;
+			case SR_CHANNEL_ANALOG:
+				s = g_strdup_printf("analog%d", ch->index + 1);
+				break;
 		}
+		if (ch->enabled)
+			g_key_file_set_string(meta, devgroup, s, ch->name);
+		g_free(s);
 	}
 
 	metabuf = g_key_file_to_data(meta, &metalen, NULL);
