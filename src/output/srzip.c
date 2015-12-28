@@ -65,6 +65,7 @@ static int zip_create(const struct sr_output *o)
 	const char *devgroup;
 	char *s, *metabuf;
 	gsize metalen;
+	guint logic_channels = 0;
 
 	outc = o->priv;
 
@@ -99,12 +100,17 @@ static int zip_create(const struct sr_output *o)
 	devgroup = "device 1";
 	g_key_file_set_string(meta, devgroup, "capturefile", "logic-1");
 
-	g_key_file_set_integer(meta, devgroup, "total probes",
-			g_slist_length(o->sdi->channels));
-
 	s = sr_samplerate_string(outc->samplerate);
 	g_key_file_set_string(meta, devgroup, "samplerate", s);
 	g_free(s);
+
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_LOGIC)
+			logic_channels++;
+	}
+
+	g_key_file_set_integer(meta, devgroup, "total probes", logic_channels);
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -114,6 +120,7 @@ static int zip_create(const struct sr_output *o)
 			g_free(s);
 		}
 	}
+
 	metabuf = g_key_file_to_data(meta, &metalen, NULL);
 	g_key_file_free(meta);
 
