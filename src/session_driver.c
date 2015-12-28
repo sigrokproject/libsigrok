@@ -47,6 +47,7 @@ struct session_vdev {
 	int num_channels;
 	int num_analog_channels;
 	int cur_analog_channel;
+	GArray *analog_channels;
 	int cur_chunk;
 	gboolean finished;
 };
@@ -65,6 +66,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 	struct session_vdev *vdev;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	struct sr_datafeed_analog_old analog;
 	struct zip_stat zs;
 	int ret, got_data;
 	char capturefile[16];
@@ -127,15 +129,28 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 	ret = zip_fread(vdev->capfile, buf,
 			CHUNKSIZE / vdev->unitsize * vdev->unitsize);
 	if (ret > 0) {
-		if (ret % vdev->unitsize != 0)
-			sr_warn("Read size %d not a multiple of the"
-				" unit size %d.", ret, vdev->unitsize);
 		got_data = TRUE;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length = ret;
-		logic.unitsize = vdev->unitsize;
-		logic.data = buf;
+		if (vdev->cur_analog_channel != 0) {
+			packet.type = SR_DF_ANALOG_OLD;
+			packet.payload = &analog;
+			analog.channels = g_slist_prepend(NULL,
+					g_array_index(vdev->analog_channels,
+						struct sr_channel *, vdev->cur_analog_channel - 1));
+			analog.num_samples = ret / sizeof(float);
+			analog.mq = SR_MQ_VOLTAGE;
+			analog.unit = SR_UNIT_VOLT;
+			analog.mqflags = SR_MQFLAG_DC;
+			analog.data = (float *) buf;
+		} else {
+			if (ret % vdev->unitsize != 0)
+				sr_warn("Read size %d not a multiple of the"
+					" unit size %d.", ret, vdev->unitsize);
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.length = ret;
+			logic.unitsize = vdev->unitsize;
+			logic.data = buf;
+		}
 		vdev->bytes_read += ret;
 		sr_session_send(sdi, &packet);
 	} else {
@@ -321,12 +336,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct session_vdev *vdev;
 	int ret;
+	GSList *l;
+	struct sr_channel *ch;
 
 	(void)cb_data;
 
 	vdev = sdi->priv;
 	vdev->bytes_read = 0;
 	vdev->cur_analog_channel = 0;
+	vdev->analog_channels = g_array_sized_new(FALSE, FALSE,
+			sizeof(struct sr_channel *), vdev->num_analog_channels);
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_ANALOG)
+			g_array_append_val(vdev->analog_channels, ch);
+	}
 	vdev->cur_chunk = 0;
 	vdev->finished = FALSE;
 
