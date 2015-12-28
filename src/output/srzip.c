@@ -275,12 +275,88 @@ static int zip_append(const struct sr_output *o, unsigned char *buf,
 	return SR_OK;
 }
 
+static int zip_append_analog(const struct sr_output *o,
+		const struct sr_datafeed_analog *analog)
+{
+	struct out_context *outc;
+	struct zip *archive;
+	struct zip_source *analogsrc;
+	int64_t i, num_files;
+	struct zip_stat zs;
+	uint64_t chunk_num;
+	const char *entry_name;
+	char *basename;
+	gsize baselen;
+	struct sr_channel *channel;
+	float *chunkbuf;
+	gsize chunksize;
+	char *chunkname;
+	unsigned int next_chunk_num;
+
+	outc = o->priv;
+	if (!(archive = zip_open(outc->filename, 0, NULL)))
+		return SR_ERR;
+
+	if (zip_stat(archive, "metadata", 0, &zs) < 0) {
+		sr_err("Failed to open metadata: %s", zip_strerror(archive));
+		zip_discard(archive);
+		return SR_ERR;
+	}
+
+	/* TODO: support packets covering multiple channels */
+	if (g_slist_length(analog->meaning->channels) != 1) {
+		sr_err("Analog packets covering multiple channels not supported yet");
+		return SR_ERR;
+	}
+	channel = analog->meaning->channels->data;
+
+	basename = g_strdup_printf("analog-1-%u", channel->index + 1);
+	baselen = strlen(basename);
+	next_chunk_num = 1;
+	num_files = zip_get_num_entries(archive, 0);
+	for (i = 0; i < num_files; i++) {
+		entry_name = zip_get_name(archive, i, 0);
+		if (!entry_name || strncmp(entry_name, basename, baselen) != 0) {
+			continue;
+		} else if (entry_name[baselen] == '-') {
+			chunk_num = g_ascii_strtoull(entry_name + baselen + 1, NULL, 10);
+			if (chunk_num < G_MAXINT && chunk_num >= next_chunk_num)
+				next_chunk_num = chunk_num + 1;
+		}
+	}
+
+	chunksize = sizeof(float) * analog->num_samples;
+	if (!(chunkbuf = g_try_malloc(chunksize)))
+		return SR_ERR;
+	if (sr_analog_to_float(analog, chunkbuf) != SR_OK)
+		return SR_ERR;
+
+	analogsrc = zip_source_buffer(archive, chunkbuf, chunksize, FALSE);
+	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
+	i = zip_add(archive, chunkname, analogsrc);
+	g_free(chunkname);
+	if (i < 0) {
+		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
+		zip_source_free(analogsrc);
+		zip_discard(archive);
+		return SR_ERR;
+	}
+	if (zip_close(archive) < 0) {
+		sr_err("Error saving session file: %s", zip_strerror(archive));
+		zip_discard(archive);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
 	struct out_context *outc;
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
+	const struct sr_datafeed_analog *analog;
 	const struct sr_config *src;
 	GSList *l;
 
@@ -308,6 +384,17 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 		logic = packet->payload;
 		ret = zip_append(o, logic->data, logic->unitsize, logic->length);
+		if (ret != SR_OK)
+			return ret;
+		break;
+	case SR_DF_ANALOG:
+		if (!outc->zip_created) {
+			if ((ret = zip_create(o)) != SR_OK)
+				return ret;
+			outc->zip_created = TRUE;
+		}
+		analog = packet->payload;
+		ret = zip_append_analog(o, analog);
 		if (ret != SR_OK)
 			return ret;
 		break;
