@@ -46,6 +46,7 @@ struct session_vdev {
 	int unitsize;
 	int num_channels;
 	int num_analog_channels;
+	int cur_analog_channel;
 	int cur_chunk;
 	gboolean finished;
 };
@@ -108,6 +109,12 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 						capturefile, 0)))
 					return FALSE;
 				sr_dbg("Opened %s.", capturefile);
+			} else if (vdev->cur_analog_channel < vdev->num_analog_channels) {
+				vdev->capturefile = g_strdup_printf("analog-1-%d",
+						vdev->cur_analog_channel + 1);
+				vdev->cur_analog_channel++;
+				vdev->cur_chunk = 0;
+				return TRUE;
 			} else {
 				/* We got all the chunks, finish up. */
 				return FALSE;
@@ -319,6 +326,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	vdev = sdi->priv;
 	vdev->bytes_read = 0;
+	vdev->cur_analog_channel = 0;
 	vdev->cur_chunk = 0;
 	vdev->finished = FALSE;
 
