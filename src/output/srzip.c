@@ -33,6 +33,7 @@ struct out_context {
 	gboolean zip_created;
 	uint64_t samplerate;
 	char *filename;
+	gint min_analog_index;
 };
 
 static int init(struct sr_output *o, GHashTable *options)
@@ -104,6 +105,8 @@ static int zip_create(const struct sr_output *o)
 	g_key_file_set_string(meta, devgroup, "samplerate", s);
 	g_free(s);
 
+	outc->min_analog_index = -1;
+
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
@@ -111,6 +114,9 @@ static int zip_create(const struct sr_output *o)
 				logic_channels++;
 				break;
 			case SR_CHANNEL_ANALOG:
+				if (outc->min_analog_index == -1 ||
+						ch->index < outc->min_analog_index)
+					outc->min_analog_index = ch->index;
 				analog_channels++;
 				break;
 		}
@@ -126,7 +132,8 @@ static int zip_create(const struct sr_output *o)
 				s = g_strdup_printf("probe%d", ch->index + 1);
 				break;
 			case SR_CHANNEL_ANALOG:
-				s = g_strdup_printf("analog%d", ch->index + 1);
+				s = g_strdup_printf("analog%d",
+						ch->index - outc->min_analog_index + 1);
 				break;
 		}
 		if (ch->enabled)
@@ -310,7 +317,8 @@ static int zip_append_analog(const struct sr_output *o,
 	}
 	channel = analog->meaning->channels->data;
 
-	basename = g_strdup_printf("analog-1-%u", channel->index + 1);
+	basename = g_strdup_printf("analog-1-%u",
+			channel->index - outc->min_analog_index + 1);
 	baselen = strlen(basename);
 	next_chunk_num = 1;
 	num_files = zip_get_num_entries(archive, 0);
