@@ -28,6 +28,9 @@ extern SR_PRIV struct sr_dev_driver agdmm_driver_info;
 #ifdef HAVE_HW_APPA_55II
 extern SR_PRIV struct sr_dev_driver appa_55ii_driver_info;
 #endif
+#ifdef HAVE_HW_ARACHNID_LABS_RE_LOAD_PRO
+extern SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info;
+#endif
 #ifdef HAVE_HW_ASIX_SIGMA
 extern SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
 #endif
@@ -185,6 +188,9 @@ SR_PRIV struct sr_dev_driver **drivers_lists[] = {
 #endif
 #ifdef HAVE_HW_APPA_55II
 	(DRVS) {&appa_55ii_driver_info, NULL},
+#endif
+#ifdef HAVE_HW_ARACHNID_LABS_RE_LOAD_PRO
+	(DRVS) {&arachnid_labs_re_load_pro_driver_info, NULL},
 #endif
 #ifdef HAVE_HW_ASIX_SIGMA
 	(DRVS) {&asix_sigma_driver_info, NULL},

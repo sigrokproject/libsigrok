@@ -179,6 +179,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/appa-55ii/protocol.c \
 	src/hardware/appa-55ii/api.c
 endif
+if HW_ARACHNID_LABS_RE_LOAD_PRO
+libsigrok_la_SOURCES += \
+	src/hardware/arachnid-labs-re-load-pro/protocol.h \
+	src/hardware/arachnid-labs-re-load-pro/protocol.c \
+	src/hardware/arachnid-labs-re-load-pro/api.c
+endif
 if HW_ASIX_SIGMA
 libsigrok_la_SOURCES += \
 	src/hardware/asix-sigma/protocol.h \

@@ -217,6 +217,7 @@ m4_define([SR_DRIVER],
 
 SR_DRIVER([Agilent DMM], [agilent-dmm], [libserialport])
 SR_DRIVER([Appa 55II], [appa-55ii], [libserialport])
+SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [libserialport])
 SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma], [libftdi])
 SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx], [libserialport])
 SR_DRIVER([BayLibre ACME], [baylibre-acme], [sys_timerfd_h])
