@@ -33,6 +33,8 @@ static const struct sr_modbus_dev_inst *modbus_devs[] = {
 #endif
 };
 
+static const unsigned int modbus_devs_size = ARRAY_SIZE(modbus_devs);
+
 static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
 	const char *serialcomm, int modbusaddr,
 	struct sr_dev_inst *(*probe_device)(struct sr_modbus_dev_inst *modbus))
@@ -96,7 +98,7 @@ SR_PRIV GSList *sr_modbus_scan(struct drv_context *drvc, GSList *options,
 	}
 
 	devices = NULL;
-	for (i = 0; i < ARRAY_SIZE(modbus_devs); i++) {
+	for (i = 0; i < modbus_devs_size; i++) {
 		if ((resource && strcmp(resource, modbus_devs[i]->prefix))
 		    || !modbus_devs[i]->scan)
 			continue;
@@ -144,7 +146,7 @@ SR_PRIV struct sr_modbus_dev_inst *modbus_dev_inst_new(const char *resource,
 	gchar **params;
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(modbus_devs); i++) {
+	for (i = 0; i < modbus_devs_size; i++) {
 		modbus_dev = modbus_devs[i];
 		if (!strncmp(resource, modbus_dev->prefix, strlen(modbus_dev->prefix))) {
 			sr_dbg("Opening %s device %s.", modbus_dev->name, resource);
