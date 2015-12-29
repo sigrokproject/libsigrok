@@ -464,6 +464,9 @@ SR_API int sr_init(struct sr_context **ctx)
 	struct sr_context *context;
 	struct sr_dev_driver ***lists, **drivers;
 	GArray *array;
+#ifdef _WIN32
+	WSADATA wsadata;
+#endif
 
 	print_versions();
 
@@ -502,6 +505,14 @@ SR_API int sr_init(struct sr_context **ctx)
 		return ret;
 	}
 
+#ifdef _WIN32
+	if ((ret = WSAStartup(MAKEWORD(2, 2), &wsadata)) != 0) {
+		sr_err("WSAStartup failed with error code %d.", ret);
+		ret = SR_ERR;
+		goto done;
+	}
+#endif
+
 #ifdef HAVE_LIBUSB_1_0
 	ret = libusb_init(&context->libusb_ctx);
 	if (LIBUSB_SUCCESS != ret) {
@@ -516,7 +527,7 @@ SR_API int sr_init(struct sr_context **ctx)
 	context = NULL;
 	ret = SR_OK;
 
-#ifdef HAVE_LIBUSB_1_0
+#if defined(HAVE_LIBUSB_1_0) || defined(_WIN32)
 done:
 #endif
 	g_free(context);
@@ -541,6 +552,10 @@ SR_API int sr_exit(struct sr_context *ctx)
 	}
 
 	sr_hw_cleanup_all(ctx);
+
+#ifdef _WIN32
+	WSACleanup();
+#endif
 
 #ifdef HAVE_LIBUSB_1_0
 	libusb_exit(ctx->libusb_ctx);
