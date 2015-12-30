@@ -206,25 +206,33 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 				sr_err("Parsing timescale failed.");
 			}
 		} else if (g_strcmp0(name, "var") == 0) {
-			/* Format: $var type size identifier reference $end */
+			/* Format: $var type size identifier reference [opt. index] $end */
+			unsigned int length;
+
 			parts = g_strsplit_set(contents, " \r\n\t", 0);
 			remove_empty_parts(parts);
+			length = g_strv_length(parts);
 
-			if (g_strv_length(parts) != 4)
-				sr_warn("$var section should have 4 items");
+			if (length != 4 && length != 5)
+				sr_warn("$var section should have 4 or 5 items");
 			else if (g_strcmp0(parts[0], "reg") != 0 && g_strcmp0(parts[0], "wire") != 0)
 				sr_info("Unsupported signal type: '%s'", parts[0]);
 			else if (strtol(parts[1], NULL, 10) != 1)
 				sr_info("Unsupported signal size: '%s'", parts[1]);
 			else if (inc->channelcount >= inc->maxchannels)
-				sr_warn("Skipping '%s' because only %d channels requested.",
-						parts[3], inc->maxchannels);
+				sr_warn("Skipping '%s%s' because only %d channels requested.",
+					parts[3], parts[4] ? : "", inc->maxchannels);
 			else {
-				sr_info("Channel %d is '%s' identified by '%s'.",
-						inc->channelcount, parts[3], parts[2]);
 				vcd_ch = g_malloc(sizeof(struct vcd_channel));
 				vcd_ch->identifier = g_strdup(parts[2]);
-				vcd_ch->name = g_strdup(parts[3]);
+				if (length == 4)
+					vcd_ch->name = g_strdup(parts[3]);
+				else
+					vcd_ch->name = g_strconcat(parts[3], parts[4], NULL);
+
+				sr_info("Channel %d is '%s' identified by '%s'.",
+						inc->channelcount, vcd_ch->name, vcd_ch->identifier);
+
 				inc->channels = g_slist_append(inc->channels, vcd_ch);
 				inc->channelcount++;
 			}
