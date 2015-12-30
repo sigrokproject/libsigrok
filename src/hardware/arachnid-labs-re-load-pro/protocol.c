@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2015 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2015-2016 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,22 +19,238 @@
  */
 
 #include <config.h>
+#include <string.h>
 #include "protocol.h"
 
-SR_PRIV int arachnid_labs_re_load_pro_receive_data(int fd, int revents, void *cb_data)
+#define READ_TIMEOUT_MS 1000
+
+static int send_cmd(const struct sr_dev_inst *sdi, const char *cmd,
+		char *replybuf, int replybufsize)
 {
-	const struct sr_dev_inst *sdi;
+	char *bufptr;
+	int len, ret;
+	struct sr_serial_dev_inst *serial;
+
+	serial = sdi->conn;
+
+	/* Send the command (blocking, with timeout). */
+	if ((ret = serial_write_blocking(serial, cmd,
+			strlen(cmd), serial_timeout(serial,
+			strlen(cmd)))) < (int)strlen(cmd)) {
+		sr_err("Unable to send command.");
+		return SR_ERR;
+	}
+
+	/* Read the reply (blocking, with timeout). */
+	memset(replybuf, 0, replybufsize);
+	bufptr = replybuf;
+	len = replybufsize;
+	ret = serial_readline(serial, &bufptr, &len, READ_TIMEOUT_MS);
+
+	/* If we got 0 characters (possibly one \r or \n), retry once. */
+	if (len == 0) {
+		len = replybufsize;
+		ret = serial_readline(serial, &bufptr, &len, READ_TIMEOUT_MS);
+	}
+
+	if (g_str_has_prefix((const char *)&bufptr, "err ")) {
+		sr_err("Device replied with an error: '%s'.", bufptr);
+		return SR_ERR;
+	}
+
+	return ret;
+}
+
+SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
+					float current)
+{
+	int ret, ma;
+	char buf[100];
+	char *cmd;
+
+	if (current < 0 || current > 6) {
+		sr_err("The current limit must be 0-6 A (was %f A).", current);
+		return SR_ERR_ARG;
+	}
+
+	/* Hardware expects current in mA, integer (0..6000). */
+	ma = (int)(current * 1000);
+
+	sr_err("Setting current limit to %f A (%d mA).", current, ma);
+
+	cmd = g_strdup_printf("set %d\n", ma);
+	if ((ret = send_cmd(sdi, cmd, (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending current limit command: %d.", ret);
+		g_free(cmd);
+		return SR_ERR;
+	}
+	g_free(cmd);
+
+	return SR_OK;
+}
+
+SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
+					float *current)
+{
+	int ret;
+	char buf[100];
+
+	if ((ret = send_cmd(sdi, "set\n", (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending current limit query: %d.", ret);
+		return SR_ERR;
+	}
+
+	/* Hardware sends current in mA, integer (0..6000). */
+	*current = g_ascii_strtod(buf + 4, NULL) / 1000;
+
+	return SR_OK;
+}
+
+SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
+		float *voltage, float *current)
+{
+	int ret;
+	char buf[100];
+	char **tokens;
+
+	if ((ret = send_cmd(sdi, "read\n", (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending voltage/current query: %d.", ret);
+		return SR_ERR;
+	}
+
+	/* Reply: "read <current> <voltage>". */
+	tokens = g_strsplit((const char *)&buf, " ", 3);
+	if (voltage)
+		*voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
+	if (current)
+		*current = g_ascii_strtod(tokens[1], NULL) / 1000;
+	g_strfreev(tokens);
+
+	return SR_OK;
+}
+
+static void handle_packet(const struct sr_dev_inst *sdi)
+{
+	float voltage, current;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog_old analog;
 	struct dev_context *devc;
+	char **tokens;
+	GSList *l;
+
+	devc = sdi->priv;
+
+	if (g_str_has_prefix((const char *)devc->buf, "overtemp")) {
+		sr_dbg("Overtemperature condition!");
+		devc->otp_active = TRUE;
+		return;
+	}
+
+	if (!g_str_has_prefix((const char *)devc->buf, "read ")) {
+		sr_dbg("Unknown packet: '%s'.", devc->buf);
+		return;
+	}
+
+	tokens = g_strsplit((const char *)devc->buf, " ", 3);
+	voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
+	current = g_ascii_strtod(tokens[1], NULL) / 1000;
+	g_strfreev(tokens);
+
+	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
+
+	/* Begin frame. */
+	packet.type = SR_DF_FRAME_BEGIN;
+	sr_session_send(sdi, &packet);
+
+	packet.type = SR_DF_ANALOG_OLD;
+	packet.payload = &analog;
+	analog.num_samples = 1;
+
+	/* Voltage */
+	l = g_slist_copy(sdi->channels);
+	l = g_slist_remove_link(l, g_slist_nth(l, 1));
+	analog.channels = l;
+	analog.mq = SR_MQ_VOLTAGE;
+	analog.mqflags = SR_MQFLAG_DC;
+	analog.unit = SR_UNIT_VOLT;
+	analog.data = &voltage;
+	sr_session_send(sdi, &packet);
+	g_slist_free(l);
+
+	/* Current */
+	l = g_slist_copy(sdi->channels);
+	l = g_slist_remove_link(l, g_slist_nth(l, 0));
+	analog.channels = l;
+	analog.mq = SR_MQ_CURRENT;
+	analog.mqflags = SR_MQFLAG_DC;
+	analog.unit = SR_UNIT_AMPERE;
+	analog.data = &current;
+	sr_session_send(sdi, &packet);
+	g_slist_free(l);
+
+	/* End frame. */
+	packet.type = SR_DF_FRAME_END;
+	sr_session_send(sdi, &packet);
+
+	devc->num_samples++;
+}
+
+static void handle_new_data(const struct sr_dev_inst *sdi)
+{
+	int len;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+
+	/* Try to get as much data as the buffer can hold. */
+	len = RELOADPRO_BUFSIZE - devc->buflen;
+	len = serial_read_nonblocking(serial, devc->buf + devc->buflen, len);
+	if (len == 0)
+		return; /* No new bytes, nothing to do. */
+	if (len < 0) {
+		sr_err("Serial port read error: %d.", len);
+		return;
+	}
+	devc->buflen += len;
+
+	if (g_str_has_suffix((const char *)devc->buf, "\n")) {
+		handle_packet(sdi);
+		memset(devc->buf, 0, RELOADPRO_BUFSIZE);
+		devc->buflen = 0;
+	}
+}
+
+SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	int64_t t;
 
 	(void)fd;
 
-	if (!(sdi = cb_data))
+	sdi = cb_data;
+	devc = sdi->priv;
+
+	if (revents != G_IO_IN)
 		return TRUE;
 
-	if (!(devc = sdi->priv))
-		return TRUE;
+	handle_new_data(sdi);
 
-	if (revents == G_IO_IN) {
+	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
+		sr_info("Requested number of samples reached.");
+		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		return TRUE;
+	}
+
+	if (devc->limit_msec) {
+		t = (g_get_monotonic_time() - devc->starttime) / 1000;
+		if (t > (int64_t)devc->limit_msec) {
+			sr_info("Requested time limit reached.");
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return TRUE;
+		}
 	}
 
 	return TRUE;

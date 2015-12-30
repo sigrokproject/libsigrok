@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2015 Uwe Hermann <uwe@hermann-uwe.de>
+ * Copyright (C) 2015-2016 Uwe Hermann <uwe@hermann-uwe.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,27 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "arachnid-labs-re-load-pro"
+#define LOG_PREFIX "re-load-pro"
+
+#define RELOADPRO_BUFSIZE 100
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
+	uint64_t limit_samples;
+	uint64_t limit_msec;
+	uint64_t num_samples;
+	int64_t starttime;
+	uint8_t buf[RELOADPRO_BUFSIZE];
+	int buflen;
+	gboolean otp_active;
 };
 
+SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
+		float current);
+SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
+		float *current);
+SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
+		float *voltage, float *current);
 SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data);
 
 #endif
