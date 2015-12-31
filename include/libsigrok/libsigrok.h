@@ -981,7 +981,7 @@ enum sr_configkey {
 	/*--- Special stuff -------------------------------------------------*/
 
 	/** Session filename. */
-	SR_CONF_SESSIONFILE,
+	SR_CONF_SESSIONFILE = 40000,
 
 	/** The device supports specifying a capturefile to inject. */
 	SR_CONF_CAPTUREFILE,
