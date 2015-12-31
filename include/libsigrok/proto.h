@@ -83,7 +83,7 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 SR_API struct sr_dev_driver **sr_driver_list(const struct sr_context *ctx);
 SR_API int sr_driver_init(struct sr_context *ctx,
 		struct sr_dev_driver *driver);
-SR_API GArray *sr_driver_scan_options(const struct sr_dev_driver *driver);
+SR_API GArray *sr_driver_scan_options_list(const struct sr_dev_driver *driver);
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options);
 SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi,

@@ -391,7 +391,7 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 /**
  * Enumerate scan options supported by this driver.
  *
- * Before calling sr_driver_scan_options(), the user must have previously
+ * Before calling sr_driver_scan_options_list(), the user must have previously
  * initialized the driver by calling sr_driver_init().
  *
  * @param driver The driver to enumerate options for. This must be a pointer
@@ -404,7 +404,7 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
  *
  * @since 0.4.0
  */
-SR_API GArray *sr_driver_scan_options(const struct sr_dev_driver *driver)
+SR_API GArray *sr_driver_scan_options_list(const struct sr_dev_driver *driver)
 {
 	GVariant *gvar;
 	const uint32_t *opts;
