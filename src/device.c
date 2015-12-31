@@ -261,7 +261,7 @@ SR_API GArray *sr_dev_options(
  *
  * @since 0.4.0
  */
-SR_API int sr_dev_config_capabilities(const struct sr_dev_inst *sdi,
+SR_API int sr_dev_config_capabilities_list(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg, const int key)
 {
 	GVariant *gvar;

@@ -509,8 +509,8 @@ void Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &val
 
 set<const Capability *> Configurable::config_capabilities(const ConfigKey *key) const
 {
-	int caps = sr_dev_config_capabilities(config_sdi, config_channel_group,
-		key->id());
+	int caps = sr_dev_config_capabilities_list(config_sdi,
+				config_channel_group, key->id());
 
 	set<const Capability *> result;
 
@@ -524,8 +524,8 @@ set<const Capability *> Configurable::config_capabilities(const ConfigKey *key) 
 bool Configurable::config_check(const ConfigKey *key,
 	const Capability *capability) const
 {
-	int caps = sr_dev_config_capabilities(config_sdi, config_channel_group,
-		key->id());
+	int caps = sr_dev_config_capabilities_list(config_sdi,
+				config_channel_group, key->id());
 
 	return (caps & capability->id());
 }

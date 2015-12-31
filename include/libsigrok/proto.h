@@ -56,7 +56,7 @@ SR_API int sr_dev_channel_name_set(struct sr_channel *channel,
 SR_API int sr_dev_channel_enable(struct sr_channel *channel,
 		gboolean state);
 SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key);
-SR_API int sr_dev_config_capabilities(const struct sr_dev_inst *sdi,
+SR_API int sr_dev_config_capabilities_list(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg, int key);
 SR_API GArray *sr_dev_options(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
