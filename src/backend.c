@@ -20,6 +20,9 @@
 
 #include <config.h>
 #include <glib.h>
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
