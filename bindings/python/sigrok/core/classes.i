@@ -426,6 +426,16 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     return (long) $self;
   }
 
+  std::string __str__()
+  {
+    return $self->name();
+  }
+
+  std::string __repr__()
+  {
+    return "Class." + $self->name();
+  }
+
 %pythoncode
 {
   def __eq__(self, other):
