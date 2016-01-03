@@ -20,6 +20,8 @@
 #ifndef LIBSIGROK_PROTO_H
 #define LIBSIGROK_PROTO_H
 
+#include <unistd.h>
+
 /**
  * @file
  *
