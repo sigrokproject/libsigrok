@@ -150,7 +150,7 @@ static int parse_range(uint8_t b, float *floatval,
 		mode = 16; /* Act+apparent power */
 	else if (info->is_power_factor_freq)
 		mode = 17; /* Power factor / freq */
-	else if (info->is_v_a_eff_value)
+	else if (info->is_v_a_rms_value)
 		mode = 18; /* V eff + A eff */
 	else {
 		sr_dbg("Invalid mode, range byte was: 0x%02x.", b);
@@ -225,7 +225,7 @@ static void parse_flags(const uint8_t *buf, struct vc870_info *info)
 			info->is_power_factor_freq = TRUE;
 		else if (buf[1] == 0x32)
 			/* Voltage effective value + current effective value */
-			info->is_v_a_eff_value = TRUE;
+			info->is_v_a_rms_value = TRUE;
 		break;
 	default:
 		sr_dbg("Invalid function bytes: %02x %02x.", buf[0], buf[1]);
@@ -350,6 +350,14 @@ static void handle_flags(struct sr_datafeed_analog_old *analog,
 		/* TODO: Handle frequency. */
 		// analog->mq = SR_MQ_FREQUENCY;
 		// analog->unit = SR_UNIT_HERTZ;
+	}
+	if (info->is_v_a_rms_value) {
+		analog->mqflags |= SR_MQFLAG_RMS;
+		analog->mq = SR_MQ_VOLTAGE;
+		analog->unit = SR_UNIT_VOLT;
+		/* TODO: Handle effective current value */
+		// analog->mq = SR_MQ_CURRENT;
+		// analog->unit = SR_UNIT_AMPERE;
 	}
 
 	/* Measurement related flags */
