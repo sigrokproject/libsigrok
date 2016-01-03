@@ -46,11 +46,17 @@ static const float factors[][8] = {
 	{1e-4,  0,     0,     0,    0,    0,    0,    0},    /* Diode */
 	{1e-3,  1e-2,  1e-1,  1,    1e1,  1e2,  1e3,  1e4},  /* Frequency */
 	{1e-2,  0,     0,     0,    0,    0,    0,    0},    /* Loop current */
+	/*
+	 * Note: Measurements showed that AC and DC differ
+	 * in the factors used, although docs say they should
+	 * be the same.
+	 */
 	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* DCµA */
-	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* ACµA */
+	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* ACµA */
 	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* DCmA */
-	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* ACmA */
+	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* ACmA */
 	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* DCA */
+	/* TODO: Verify factor for ACA */
 	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* ACA */
 	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Act+apparent power */
 	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Power factor / freq */
