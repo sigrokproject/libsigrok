@@ -337,19 +337,19 @@ static void handle_flags(struct sr_datafeed_analog_old *analog,
 		analog->mq = SR_MQ_POWER;
 		analog->unit = SR_UNIT_WATT;
 	}
-	if (info->is_power_factor_freq) {
-		/* TODO: Handle power factor. */
-		// analog->mq = SR_MQ_POWER_FACTOR;
-		// analog->unit = SR_UNIT_UNITLESS;
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
-	}
 	if (info->is_power_apparent_power) {
 		analog->mq = SR_MQ_POWER;
 		analog->unit = SR_UNIT_WATT;
 		/* TODO: Handle apparent power. */
 		// analog->mq = SR_MQ_APPARENT_POWER;
 		// analog->unit = SR_UNIT_VOLT_AMPERE;
+	}
+	if (info->is_power_factor_freq) {
+		/* TODO: Handle power factor. */
+		// analog->mq = SR_MQ_POWER_FACTOR;
+		// analog->unit = SR_UNIT_UNITLESS;
+		analog->mq = SR_MQ_FREQUENCY;
+		analog->unit = SR_UNIT_HERTZ;
 	}
 
 	/* Measurement related flags */
