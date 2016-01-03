@@ -61,7 +61,6 @@ static int parse_value(const uint8_t *buf, struct vc870_info *info,
                        float *result)
 {
 	int i, intval;
-	float floatval;
 
 	/* Bytes 3-7: Main display value (5 decimal digits) */
 	if (info->is_open || info->is_ol1) {
@@ -86,13 +85,11 @@ static int parse_value(const uint8_t *buf, struct vc870_info *info,
 	intval *= info->is_sign1 ? -1 : 1;
 	// intval *= info->is_sign2 ? -1 : 1; /* TODO: Fahrenheit / aux display. */
 
-	floatval = (float)intval;
-
 	/* Note: The decimal point position will be parsed later. */
 
-	sr_spew("The display value is %f.", floatval);
+	sr_spew("The display value without comma is %05d.", intval);
 
-	*result = floatval;
+	*result = (float)intval;
 
 	return SR_OK;
 }
