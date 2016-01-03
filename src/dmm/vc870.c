@@ -59,7 +59,7 @@ static const float factors[][8] = {
 	/* TODO: Verify factor for ACA */
 	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* ACA */
 	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Act+apparent power */
-	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Power factor / freq */
+	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* Power factor / freq */
 	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* V eff + A eff */
 };
 
@@ -345,11 +345,11 @@ static void handle_flags(struct sr_datafeed_analog_old *analog,
 		// analog->unit = SR_UNIT_VOLT_AMPERE;
 	}
 	if (info->is_power_factor_freq) {
-		/* TODO: Handle power factor. */
-		// analog->mq = SR_MQ_POWER_FACTOR;
-		// analog->unit = SR_UNIT_UNITLESS;
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->mq = SR_MQ_POWER_FACTOR;
+		analog->unit = SR_UNIT_UNITLESS;
+		/* TODO: Handle frequency. */
+		// analog->mq = SR_MQ_FREQUENCY;
+		// analog->unit = SR_UNIT_HERTZ;
 	}
 
 	/* Measurement related flags */
