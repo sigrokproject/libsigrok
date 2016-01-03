@@ -280,7 +280,6 @@ static void parse_flags(const uint8_t *buf, struct vc870_info *info)
 	/* Byte 22: Always '\n' (newline, 0x0a, 10) */
 
 	info->is_auto = !info->is_manu;
-	info->is_rms = TRUE;
 }
 
 static void handle_flags(struct sr_datafeed_analog_old *analog,

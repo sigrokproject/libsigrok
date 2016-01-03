@@ -1202,7 +1202,7 @@ struct vc870_info {
 	gboolean is_light, is_usb, is_warning, is_auto_power, is_misplug_warn;
 	gboolean is_lo, is_hi, is_open2;
 
-	gboolean is_frequency, is_dual_display, is_auto, is_rms;
+	gboolean is_frequency, is_dual_display, is_auto;
 };
 
 SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
