@@ -277,7 +277,7 @@ static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 		return -1;
 
 	rd = read(fd, eeprom_buf, EEPROM_SIZE);
-	g_close(fd, NULL);
+	close(fd);
 	if (rd != EEPROM_SIZE)
 		return -1;
 
