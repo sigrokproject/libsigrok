@@ -101,7 +101,7 @@ SR_PRIV int ResourceReader::close_callback(struct sr_resource *res,
 	return SR_OK;
 }
 
-SR_PRIV ssize_t ResourceReader::read_callback(const struct sr_resource *res,
+SR_PRIV gssize ResourceReader::read_callback(const struct sr_resource *res,
 		void *buf, size_t count, void *cb_data) noexcept
 {
 	try {

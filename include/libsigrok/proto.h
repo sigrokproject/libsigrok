@@ -20,8 +20,6 @@
 #ifndef LIBSIGROK_PROTO_H
 #define LIBSIGROK_PROTO_H
 
-#include <unistd.h>
-
 /**
  * @file
  *
@@ -208,7 +206,7 @@ typedef int (*sr_resource_open_callback)(struct sr_resource *res,
 		const char *name, void *cb_data);
 typedef int (*sr_resource_close_callback)(struct sr_resource *res,
 		void *cb_data);
-typedef ssize_t (*sr_resource_read_callback)(const struct sr_resource *res,
+typedef gssize (*sr_resource_read_callback)(const struct sr_resource *res,
 		void *buf, size_t count, void *cb_data);
 
 SR_API int sr_resource_set_hooks(struct sr_context *ctx,

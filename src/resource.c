@@ -173,7 +173,7 @@ static int resource_close_default(struct sr_resource *res, void *cb_data)
 	return SR_OK;
 }
 
-static ssize_t resource_read_default(const struct sr_resource *res,
+static gssize resource_read_default(const struct sr_resource *res,
 		void *buf, size_t count, void *cb_data)
 {
 	FILE *file;
@@ -186,7 +186,7 @@ static ssize_t resource_read_default(const struct sr_resource *res,
 		sr_err("%s: invalid handle.", __func__);
 		return SR_ERR_ARG;
 	}
-	if (count > SSIZE_MAX) {
+	if (count > G_MAXSSIZE) {
 		sr_err("%s: count %zu too large.", __func__, count);
 		return SR_ERR_ARG;
 	}
@@ -309,10 +309,10 @@ SR_PRIV int sr_resource_close(struct sr_context *ctx, struct sr_resource *res)
  *
  * @private
  */
-SR_PRIV ssize_t sr_resource_read(struct sr_context *ctx,
+SR_PRIV gssize sr_resource_read(struct sr_context *ctx,
 		const struct sr_resource *res, void *buf, size_t count)
 {
-	ssize_t n_read;
+	gssize n_read;
 
 	n_read = (*ctx->resource_read_cb)(res, buf, count,
 			ctx->resource_cb_data);
@@ -342,7 +342,7 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx,
 	struct sr_resource res;
 	void *buf;
 	size_t res_size;
-	ssize_t n_read;
+	gssize n_read;
 
 	if (sr_resource_open(ctx, &res, type, name) != SR_OK)
 		return NULL;

@@ -232,7 +232,7 @@ private:
 			const char *name, void *cb_data) noexcept;
 	static SR_PRIV int close_callback(struct sr_resource *res,
 			void *cb_data) noexcept;
-	static SR_PRIV ssize_t read_callback(const struct sr_resource *res,
+	static SR_PRIV gssize read_callback(const struct sr_resource *res,
 			void *buf, size_t count, void *cb_data) noexcept;
 	friend class Context;
 };

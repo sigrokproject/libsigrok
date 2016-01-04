@@ -868,7 +868,7 @@ SR_PRIV int sr_resource_open(struct sr_context *ctx,
 		G_GNUC_WARN_UNUSED_RESULT;
 SR_PRIV int sr_resource_close(struct sr_context *ctx,
 		struct sr_resource *res);
-SR_PRIV ssize_t sr_resource_read(struct sr_context *ctx,
+SR_PRIV gssize sr_resource_read(struct sr_context *ctx,
 		const struct sr_resource *res, void *buf, size_t count)
 		G_GNUC_WARN_UNUSED_RESULT;
 SR_PRIV void *sr_resource_load(struct sr_context *ctx, int type,
