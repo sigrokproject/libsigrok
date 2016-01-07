@@ -105,7 +105,7 @@ static const struct dso_profile dev_profiles[] = {
 		"Hantek", "DSO-5200A",
 		buffersizes_512k,
 		"hantek-dso-5200A.fw" },
-	{ 0, 0, 0, 0, 0, 0, 0, 0 },
+	ALL_ZERO
 };
 
 static const uint64_t timebases[][2] = {

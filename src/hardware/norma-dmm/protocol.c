@@ -30,7 +30,7 @@
 SR_PRIV const struct nmadmm_req nmadmm_requests[] = {
 	{ NMADMM_REQ_IDN, "IDN?" },
 	{ NMADMM_REQ_IDN, "STATUS?" },
-	{ 0, NULL },
+	ALL_ZERO
 };
 
 static int nma_send_req(const struct sr_dev_inst *sdi, int req, char *params)

@@ -113,7 +113,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-sigrok-fx2-16ch.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
-	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	ALL_ZERO
 };
 
 static const uint32_t drvopts[] = {

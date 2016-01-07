@@ -310,7 +310,7 @@ static int __analyzer_set_freq(libusb_device_handle *devh, int freq, int scale)
 		{   1, FREQ_SCALE_KHZ, 64,  5,  5 },
 		{ 500, FREQ_SCALE_HZ,  64, 10,  5 },
 		{ 100, FREQ_SCALE_HZ,  68,  5,  8 },
-		{   0, 0,              0,   0,  0 }
+		ALL_ZERO
 	};
 
 	int i;
