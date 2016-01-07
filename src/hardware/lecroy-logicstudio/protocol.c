@@ -114,8 +114,8 @@ struct regval {
 	uint16_t val;
 };
 
-static void handle_fetch_samples_done(struct libusb_transfer *xfer);
-static void recv_bulk_transfer(struct libusb_transfer *xfer);
+static void LIBUSB_CALL handle_fetch_samples_done(struct libusb_transfer *xfer);
+static void LIBUSB_CALL recv_bulk_transfer(struct libusb_transfer *xfer);
 
 static const struct samplerate_info samplerates[] = {
 	{ SR_GHZ(1),  -24, 0x1f },
@@ -241,7 +241,7 @@ static void prep_regw(struct regval *regval, uint8_t reg, uint16_t val)
 	regval->val = val;
 }
 
-static void handle_fetch_samples_done(struct libusb_transfer *xfer)
+static void LIBUSB_CALL handle_fetch_samples_done(struct libusb_transfer *xfer)
 {
 	const struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
@@ -907,7 +907,7 @@ SR_PRIV int lls_setup_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static void recv_intr_transfer(struct libusb_transfer *xfer)
+static void LIBUSB_CALL recv_intr_transfer(struct libusb_transfer *xfer)
 {
 	const struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
@@ -1000,7 +1000,7 @@ static uint16_t sample_to_byte_offset(struct dev_context *devc, uint64_t o)
 	return o * devc->num_enabled_channel_groups;
 }
 
-static void recv_bulk_transfer(struct libusb_transfer *xfer)
+static void LIBUSB_CALL recv_bulk_transfer(struct libusb_transfer *xfer)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
