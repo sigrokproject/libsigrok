@@ -85,7 +85,7 @@ enum {
 
 struct context {
 	gboolean meta_sent;
-	gboolean header_read, records_read;
+	gboolean header_read, records_read, trigger_sent;
 	char format, device, record_mode, compression;
 	char pod_status[MAX_POD_COUNT];
 	struct sr_channel *channels[MAX_POD_COUNT][17]; /* 16 + CLK */
@@ -467,13 +467,14 @@ static void process_record_pi(struct sr_input *in, gsize start)
 		return;
 	}
 
-	if (timestamp == inc->trigger_timestamp) {
+	if (timestamp == inc->trigger_timestamp && !inc->trigger_sent) {
 		sr_dbg("Trigger @%lf s, record #%d.",
 			timestamp * TIMESTAMP_RESOLUTION, inc->cur_record);
 
 		packet.type = SR_DF_TRIGGER;
 		packet.payload = NULL;
 		sr_session_send(in->sdi, &packet);
+		inc->trigger_sent = TRUE;
 	}
 
 	/* Is this the last record in the file? */
@@ -519,13 +520,14 @@ static void process_record_iprobe(struct sr_input *in, gsize start)
 	single_payload[2] = R8(in->buf->str + start + 10) & 1;
 	payload_len = 3;
 
-	if (timestamp == inc->trigger_timestamp) {
+	if (timestamp == inc->trigger_timestamp && !inc->trigger_sent) {
 		sr_dbg("Trigger @%lf s, record #%d.",
 			timestamp * TIMESTAMP_RESOLUTION, inc->cur_record);
 
 		packet.type = SR_DF_TRIGGER;
 		packet.payload = NULL;
 		sr_session_send(in->sdi, &packet);
+		inc->trigger_sent = TRUE;
 	}
 
 	/* Is this the last record in the file? */
