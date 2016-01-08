@@ -327,13 +327,75 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 	return SR_OK;
 }
 
+/**
+ * This function takes a value of the form "2.000E-03", converts it to a
+ * significand / factor pair and returns the index of an array where
+ * a matching pair was found.
+ *
+ * It's a bit convoluted because of floating-point issues. The value "10.00E-09"
+ * is parsed by g_ascii_strtod() as 0.000000009999999939, for example.
+ * Therefore it's easier to break the number up into two strings and handle
+ * them separately.
+ *
+ * @param value The string to be parsed.
+ * @param array The array of s/f pairs.
+ * @param array_len The number of pairs in the array.
+ * @param result The index at which a matching pair was found.
+ *
+ * @return SR_ERR on any parsing error, SR_OK otherwise.
+ */
+static int array_float_get(gchar *value, const uint64_t array[][2],
+		int array_len, int *result)
+{
+	int i;
+	uint64_t f;
+	float s;
+	unsigned int s_int;
+	gchar ss[10], es[10];
+
+	memset(ss, 0, sizeof(ss));
+	memset(es, 0, sizeof(es));
+
+	strncpy(ss, value, 5);
+	strncpy(es, &(value[6]), 3);
+
+	if (sr_atof_ascii(ss, &s) != SR_OK)
+		return SR_ERR;
+	if (sr_atoi(es, &i) != SR_OK)
+		return SR_ERR;
+
+	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
+	f = pow(10, abs(i));
+
+	/*
+	 * Adjust the significand/factor pair to make sure
+	 * that f is a multiple of 1000.
+	 */
+	while ((int)fmod(log10(f), 3) > 0) {
+		s *= 10;
+		f *= 10;
+	}
+
+	/* Truncate s to circumvent rounding errors. */
+	s_int = (unsigned int)s;
+
+	for (i = 0; i < array_len; i++) {
+		if ((s_int == array[i][0]) && (f == array[i][1])) {
+			*result = i;
+			return SR_OK;
+		}
+	}
+
+	return SR_ERR;
+}
+
 static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 				    const struct scope_config *config,
 				    struct scope_state *state)
 {
 	unsigned int i, j;
-	float tmp_float;
 	char command[MAX_COMMAND_SIZE];
+	char *tmp_str;
 
 	for (i = 0; i < config->analog_channels; i++) {
 		g_snprintf(command, sizeof(command),
@@ -348,19 +410,18 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
 			   i + 1);
 
-		if (sr_scpi_get_float(scpi, command, &tmp_float) != SR_OK)
+		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
-		for (j = 0; j < config->num_vdivs; j++) {
-			if (tmp_float == ((float) (*config->vdivs)[j][0] /
-					  (*config->vdivs)[j][1])) {
-				state->analog_channels[i].vdiv = j;
-				break;
-			}
-		}
-		if (j == config->num_vdivs) {
+
+		if (array_float_get(tmp_str, hmo_vdivs, ARRAY_SIZE(hmo_vdivs),
+				&j) != SR_OK) {
+			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
 		}
+
+		g_free(tmp_str);
+		state->analog_channels[i].vdiv = j;
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_OFFSET],
