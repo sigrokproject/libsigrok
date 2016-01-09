@@ -415,6 +415,8 @@ static void parse_contents(const struct sr_input *in, char *data)
 				/* Process next token */
 				continue;
 		} else if (strchr("01xXzZ", tokens[i][0]) != NULL) {
+			char *identifier;
+
 			/* A new 1-bit sample value */
 			bit = (tokens[i][0] == '1');
 
@@ -427,15 +429,14 @@ static void parse_contents(const struct sr_input *in, char *data)
 					sr_dbg("Identifier missing!");
 					break;
 				}
+				identifier = tokens[i];
 			} else {
-				for (j = 1; tokens[i][j]; j++)
-					tokens[i][j - 1] = tokens[i][j];
-				tokens[i][j - 1] = '\0';
+				identifier = tokens[i] + 1;
 			}
 
 			for (j = 0, l = inc->channels; j < inc->channelcount && l; j++, l = l->next) {
 				vcd_ch = l->data;
-				if (g_strcmp0(tokens[i], vcd_ch->identifier) == 0) {
+				if (g_strcmp0(identifier, vcd_ch->identifier) == 0) {
 					/* Found our channel */
 					size_t byte_idx = (j / 8);
 					size_t bit_idx = j - 8 * byte_idx;
@@ -447,7 +448,7 @@ static void parse_contents(const struct sr_input *in, char *data)
 				}
 			}
 			if (j == inc->channelcount)
-				sr_dbg("Did not find channel for identifier '%s'.", tokens[i]);
+				sr_dbg("Did not find channel for identifier '%s'.", identifier);
 		} else {
 			sr_warn("Skipping unknown token '%s'.", tokens[i]);
 		}
