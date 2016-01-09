@@ -407,8 +407,13 @@ static void parse_contents(const struct sr_input *in, char *data)
 				break;
 			}
 		} else if (strchr("bBrR", tokens[i][0]) != NULL) {
-			/* A vector value, not supported yet. */
-			break;
+			sr_dbg("Vector values not supported yet");
+			if (!tokens[++i])
+				/* No tokens left, bail out */
+				break;
+			else
+				/* Process next token */
+				continue;
 		} else if (strchr("01xXzZ", tokens[i][0]) != NULL) {
 			/* A new 1-bit sample value */
 			bit = (tokens[i][0] == '1');
