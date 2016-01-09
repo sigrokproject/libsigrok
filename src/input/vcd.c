@@ -418,9 +418,10 @@ static void parse_contents(const struct sr_input *in, char *data)
 			 * there was whitespace after the bit, the next token.
 			 */
 			if (tokens[i][1] == '\0') {
-				if (!tokens[++i])
-					/* Missing identifier */
-					continue;
+				if (!tokens[++i]) {
+					sr_dbg("Identifier missing!");
+					break;
+				}
 			} else {
 				for (j = 1; tokens[i][j]; j++)
 					tokens[i][j - 1] = tokens[i][j];
