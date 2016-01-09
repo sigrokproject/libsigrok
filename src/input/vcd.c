@@ -428,14 +428,28 @@ static void parse_contents(const struct sr_input *in, char *data)
 				inc->skip_until_end = TRUE;
 				break;
 			}
-		} else if (strchr("bBrR", tokens[i][0]) != NULL) {
-			sr_dbg("Vector values not supported yet");
+		} else if (strchr("rR", tokens[i][0]) != NULL) {
+			sr_dbg("Real type vector values not supported yet!");
 			if (!tokens[++i])
 				/* No tokens left, bail out */
 				break;
 			else
 				/* Process next token */
 				continue;
+		} else if (strchr("bB", tokens[i][0]) != NULL) {
+			bit = (tokens[i][1] == '1');
+
+			/*
+			 * Bail out if a) char after 'b' is NUL, or b) there is
+			 * a second character after 'b', or c) there is no
+			 * identifier.
+			 */
+			if (!tokens[i][1] || tokens[i][2] || !tokens[++i]) {
+				sr_dbg("Unexpected vector format!");
+				break;
+			}
+
+			process_bit(inc, tokens[i], bit);
 		} else if (strchr("01xXzZ", tokens[i][0]) != NULL) {
 			char *identifier;
 
