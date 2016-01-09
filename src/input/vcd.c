@@ -336,14 +336,36 @@ static void add_samples(const struct sr_input *in, size_t count)
 	}
 }
 
+/* Set the channel level depending on the identifier and parsed value. */
+static void process_bit(struct context *inc, char *identifier, unsigned int bit)
+{
+	GSList *l;
+	struct vcd_channel *vcd_ch;
+	unsigned int j;
+
+	for (j = 0, l = inc->channels; j < inc->channelcount && l; j++, l = l->next) {
+		vcd_ch = l->data;
+		if (g_strcmp0(identifier, vcd_ch->identifier) == 0) {
+			/* Found our channel. */
+			size_t byte_idx = (j / 8);
+			size_t bit_idx = j - 8 * byte_idx;
+			if (bit)
+				inc->current_levels[byte_idx] |= (uint8_t)1 << bit_idx;
+			else
+				inc->current_levels[byte_idx] &= ~((uint8_t)1 << bit_idx);
+			break;
+		}
+	}
+	if (j == inc->channelcount)
+		sr_dbg("Did not find channel for identifier '%s'.", identifier);
+}
+
 /* Parse a set of lines from the data section. */
 static void parse_contents(const struct sr_input *in, char *data)
 {
 	struct context *inc;
-	struct vcd_channel *vcd_ch;
-	GSList *l;
 	uint64_t timestamp, prev_timestamp;
-	unsigned int bit, i, j;
+	unsigned int bit, i;
 	char **tokens;
 
 	inc = in->priv;
@@ -433,22 +455,7 @@ static void parse_contents(const struct sr_input *in, char *data)
 			} else {
 				identifier = tokens[i] + 1;
 			}
-
-			for (j = 0, l = inc->channels; j < inc->channelcount && l; j++, l = l->next) {
-				vcd_ch = l->data;
-				if (g_strcmp0(identifier, vcd_ch->identifier) == 0) {
-					/* Found our channel */
-					size_t byte_idx = (j / 8);
-					size_t bit_idx = j - 8 * byte_idx;
-					if (bit)
-						inc->current_levels[byte_idx] |= (uint8_t)1 << bit_idx;
-					else
-						inc->current_levels[byte_idx] &= ~((uint8_t)1 << bit_idx);
-					break;
-				}
-			}
-			if (j == inc->channelcount)
-				sr_dbg("Did not find channel for identifier '%s'.", identifier);
+			process_bit(inc, identifier, bit);
 		} else {
 			sr_warn("Skipping unknown token '%s'.", tokens[i]);
 		}
