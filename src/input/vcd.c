@@ -67,7 +67,6 @@
 
 #define LOG_PREFIX "input/vcd"
 
-#define DEFAULT_NUM_CHANNELS 8
 #define CHUNKSIZE (1024 * 1024)
 
 struct context {
@@ -219,7 +218,7 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 				sr_info("Unsupported signal type: '%s'", parts[0]);
 			else if (strtol(parts[1], NULL, 10) != 1)
 				sr_info("Unsupported signal size: '%s'", parts[1]);
-			else if (inc->channelcount >= inc->maxchannels)
+			else if (inc->maxchannels && inc->channelcount >= inc->maxchannels)
 				sr_warn("Skipping '%s%s' because only %d channels requested.",
 					parts[3], parts[4] ? : "", inc->maxchannels);
 			else {
@@ -480,16 +479,10 @@ static void parse_contents(const struct sr_input *in, char *data)
 static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
-	int num_channels;
 
-	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
-	if (num_channels < 1) {
-		sr_err("Invalid value for numchannels: must be at least 1.");
-		return SR_ERR_ARG;
-	}
 	inc = in->priv = g_malloc0(sizeof(struct context));
-	inc->maxchannels = num_channels;
 
+	inc->maxchannels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
 	inc->downsample = g_variant_get_int32(g_hash_table_lookup(options, "downsample"));
 	if (inc->downsample < 1)
 		inc->downsample = 1;
@@ -630,7 +623,7 @@ static struct sr_option options[] = {
 static const struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
-		options[0].def = g_variant_ref_sink(g_variant_new_int32(DEFAULT_NUM_CHANNELS));
+		options[0].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[1].def = g_variant_ref_sink(g_variant_new_int32(-1));
 		options[2].def = g_variant_ref_sink(g_variant_new_int32(1));
 		options[3].def = g_variant_ref_sink(g_variant_new_int32(0));
