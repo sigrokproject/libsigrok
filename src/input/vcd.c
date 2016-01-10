@@ -233,8 +233,8 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 				sr_info("Channel %d is '%s' identified by '%s'.",
 						inc->channelcount, vcd_ch->name, vcd_ch->identifier);
 
+				sr_channel_new(in->sdi, inc->channelcount++, SR_CHANNEL_LOGIC, TRUE, vcd_ch->name);
 				inc->channels = g_slist_append(inc->channels, vcd_ch);
-				inc->channelcount++;
 			}
 
 			g_strfreev(parts);
@@ -479,9 +479,8 @@ static void parse_contents(const struct sr_input *in, char *data)
 
 static int init(struct sr_input *in, GHashTable *options)
 {
-	int num_channels, i;
-	char name[16];
 	struct context *inc;
+	int num_channels;
 
 	num_channels = g_variant_get_int32(g_hash_table_lookup(options, "numchannels"));
 	if (num_channels < 1) {
@@ -503,11 +502,6 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = inc;
 
 	inc->buffer = g_malloc(CHUNKSIZE);
-
-	for (i = 0; i < num_channels; i++) {
-		snprintf(name, 16, "%d", i);
-		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
-	}
 
 	return SR_OK;
 }
