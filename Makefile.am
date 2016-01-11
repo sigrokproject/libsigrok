@@ -43,7 +43,7 @@ AM_CPPFLAGS = $(local_includes) $(global_defs)
 # The tests CFLAGS are a superset of the libsigrok CFLAGS, and the
 # python bindings CFLAGS are a superset of the C++ bindings CFLAGS.
 AM_CFLAGS = $(SR_EXTRA_CFLAGS) $(SR_WFLAGS) $(TESTS_CFLAGS)
-AM_CXXFLAGS = $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)
+AM_CXXFLAGS = $(SR_WXXFLAGS) $(LIBSIGROKCXX_CFLAGS)
 
 lib_LTLIBRARIES = libsigrok.la
 
@@ -609,7 +609,7 @@ PDIR = bindings/python
 PDOC_START = bindings/python/sigrok/core/doc_start.i
 PDOC_END = bindings/python/sigrok/core/doc_end.i
 
-setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CXX)' CFLAGS='$(AM_CXXFLAGS) $(CXXFLAGS)' CXXFLAGS='$(AM_CXXFLAGS) $(CXXFLAGS)' LDADD='$(PYSIGROK_LIBS)'
+setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CXX)' CFLAGS='$(CXXFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' CXXFLAGS='$(CXXFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' LDADD='$(PYSIGROK_LIBS)'
 setup_quiet = --quiet
 setup_py = $(PYTHON) $(srcdir)/$(PDIR)/setup.py $(setup_vars) $(setup_quiet)
 
