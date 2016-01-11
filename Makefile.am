@@ -654,6 +654,51 @@ CLEAN_EXTRA += python-clean
 
 endif
 
+if BINDINGS_RUBY
+
+RDIR = bindings/ruby
+RDOC = $(RDIR)/doc.i
+RWRAP = $(RDIR)/classes_wrap.cpp
+ROBJ = $(RWRAP:.cpp=.o)
+REXT = $(RDIR)/sigrok.so
+
+$(RDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py ruby $(CPPXMLDOC) > $@
+
+$(RWRAP): $(RDIR)/classes.i $(RDOC) \
+		bindings/swig/classes.i bindings/swig/templates.i \
+		bindings/swig/enums.i
+	$(AM_V_GEN)$(SWIG) -ruby -c++ -Ibindings -Ibindings/cxx/include $(swig_defs) -o $@ $<
+
+$(ROBJ): $(RWRAP) \
+		$(library_include_HEADERS) \
+		$(nodist_library_include_HEADERS) \
+		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
+		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
+	$(AM_V_CXX)$(CXX) $(RBSIGROK_CFLAGS) -I. -Iinclude -Ibindings/cxx/include -fPIC -o $@ -c $<
+
+$(REXT): $(ROBJ) @ORDER@ bindings/cxx/libsigrokcxx.la
+	$(AM_V_CXXLD)$(CXX) -shared -std=c++11 -o $@ $< -lsigrokcxx -Lbindings/cxx/.libs $(RBSIGROK_LIBS)
+
+ruby-build: $(REXT)
+
+ruby-install: $(REXT)
+	$(INSTALL) -d $(prefix)/$(RBSIGROK_EXTDIR)
+	$(INSTALL) $< $(prefix)/$(RBSIGROK_EXTDIR)
+
+ruby-clean:
+	-$(AM_V_at)rm -fr $(RDIR)/doc
+	-$(AM_V_at)rm $(REXT) $(ROBJ) $(RWRAP) $(RDOC)
+
+ruby-doc: $(RWRAP)
+	$(AM_V_at)yard doc -o $(RDIR)/doc $<
+
+BUILD_EXTRA += ruby-build
+INSTALL_EXTRA += ruby-install
+CLEAN_EXTRA += ruby-clean
+
+endif
+
 if BINDINGS_JAVA
 
 JDIR = bindings/java

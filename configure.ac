@@ -91,6 +91,7 @@ SR_VAR_OPT_PKG([SR_PKGLIBS], [sr_deps_avail])
 SR_PKGLIBS_TESTS=
 SR_PKGLIBS_CXX=
 SR_PKGLIBS_PYTHON=
+SR_PKGLIBS_RUBY=
 SR_EXTRA_LIBS=
 
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
@@ -282,6 +283,10 @@ AC_ARG_ENABLE([python],
 	[AS_HELP_STRING([--enable-python], [build Python bindings [default=yes]])],
 	[], [enable_python=$enable_bindings])
 
+AC_ARG_ENABLE([ruby],
+	[AS_HELP_STRING([--enable-ruby], [build Ruby bindings [default=yes]])],
+	[], [enable_ruby=$enable_bindings])
+
 AC_ARG_ENABLE([java],
 	[AS_HELP_STRING([--enable-java], [build Java bindings [default=yes]])],
 	[], [enable_java=$enable_bindings])
@@ -386,6 +391,41 @@ AS_IF([test -z "$sr_python_missing"],
 	[BINDINGS_PYTHON=$enable_python], [BINDINGS_PYTHON=no])
 AM_CONDITIONAL([BINDINGS_PYTHON], [test "x$BINDINGS_PYTHON" = xyes])
 
+#####################
+##  Ruby bindings  ##
+#####################
+
+AS_IF([test "x$BINDINGS_CXX" = xyes],
+	[sr_ruby_missing=],
+	[sr_ruby_missing='C++ bindings'])
+
+AX_RUBY_EXT
+
+AS_IF([test "x$RUBY" = x],
+	[SR_APPEND([sr_ruby_missing], [', '], ['Ruby'])])
+
+# Extract major and minor version number of the Ruby interpreter.
+sr_rbmajor=${RUBY_VERSION%%.*}
+sr_rbminor=${RUBY_VERSION#*.}
+sr_rbminor=${sr_rbminor%%.*}
+
+# The Ruby bindings need Ruby development files.
+SR_PKG_CHECK([ruby_dev], [SR_PKGLIBS_RUBY],
+	[ruby],
+	[ruby-$sr_rbmajor.$sr_rbminor])
+
+AS_IF([test "x$sr_have_ruby_dev" != xyes],
+	[SR_APPEND([sr_ruby_missing], [', '], [Headers])])
+
+# The Ruby bindings use SWIG to generate code.
+AS_IF([test "x$SWIG" = x],
+	[SR_APPEND([sr_ruby_missing], [', '], [SWIG])])
+
+AS_IF([test -z "$sr_ruby_missing"],
+	[BINDINGS_RUBY=$enable_ruby], [BINDINGS_RUBY=no])
+AM_CONDITIONAL([BINDINGS_RUBY], [test "x$BINDINGS_RUBY" = xyes])
+# AC_SUBST(RUBY_EXT_DLEXT, $RUBY_EXT_DLEXT)
+
 ####################
 ##  Java bindings ##
 ####################
@@ -454,6 +494,7 @@ PKG_CHECK_MODULES([TESTS], [$SR_PKGLIBS_TESTS glib-2.0 $SR_PKGLIBS])
 AM_COND_IF([BINDINGS_CXX], [
 	PKG_CHECK_MODULES([LIBSIGROKCXX], [$SR_PKGLIBS_CXX])
 	PKG_CHECK_MODULES([PYSIGROK], [$SR_PKGLIBS_PYTHON $SR_PKGLIBS_CXX])
+	PKG_CHECK_MODULES([RBSIGROK], [$SR_PKGLIBS_RUBY $SR_PKGLIBS_CXX], [AC_SUBST(RBSIGROK_EXTDIR, "lib/$($PKG_CONFIG --variable=sitearch $SR_PKGLIBS_RUBY)/$($PKG_CONFIG --variable=RUBY_BASE_NAME $SR_PKGLIBS_RUBY)/vendor_ruby/$($PKG_CONFIG --variable=ruby_version $SR_PKGLIBS_RUBY)")])
 ])
 
 # Check for specific libusb features, now that we know the CFLAGS.
@@ -490,7 +531,7 @@ m4_define([SR_PREPARE_BINDING_REPORT], [
 	test -z "$sr_$1_missing" || sr_report_$1=" (missing: $sr_$1_missing)"
 	test "x$enable_$1" = xyes || sr_report_$1=' (disabled)'
 ])
-m4_map_args([SR_PREPARE_BINDING_REPORT], [cxx], [python], [java])
+m4_map_args([SR_PREPARE_BINDING_REPORT], [cxx], [python], [ruby], [java])
 
 cat >&AS_MESSAGE_FD <<_EOF
 
@@ -531,6 +572,7 @@ Enabled SCPI backends:
 Enabled language bindings:
  - C++............................. $BINDINGS_CXX$sr_report_cxx
  - Python.......................... $BINDINGS_PYTHON$sr_report_python
+ - Ruby............................ $BINDINGS_RUBY$sr_report_ruby
  - Java............................ $BINDINGS_JAVA$sr_report_java
 
 _EOF
