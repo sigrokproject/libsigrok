@@ -384,6 +384,10 @@ AS_IF([test "x$HAVE_PYMOD_NUMPY" != xyes],
 
 # The Python bindings use SWIG to generate code.
 AC_CHECK_PROGS([SWIG], [swig swig3.0 swig2.0])
+AS_IF([test "x$SWIG" != x],
+    AC_MSG_CHECKING([for $SWIG version])
+    [SWIG_VERSION=`$SWIG -version 2>&1 | sed -n 's/SWIG Version\s*//p'`]
+    AC_MSG_RESULT([$SWIG_VERSION]))
 AS_IF([test "x$SWIG" = x],
 	[SR_APPEND([sr_python_missing], [', '], [SWIG])])
 
@@ -417,9 +421,11 @@ SR_PKG_CHECK([ruby_dev], [SR_PKGLIBS_RUBY],
 AS_IF([test "x$sr_have_ruby_dev" != xyes],
 	[SR_APPEND([sr_ruby_missing], [', '], [Headers])])
 
-# The Ruby bindings use SWIG to generate code.
+# The Ruby bindings use SWIG >= 3.0.8 to generate code.
 AS_IF([test "x$SWIG" = x],
-	[SR_APPEND([sr_ruby_missing], [', '], [SWIG])])
+	[SR_APPEND([sr_ruby_missing], [', '], [SWIG])],
+	[AS_VERSION_COMPARE($SWIG_VERSION, "3.0.8",
+		[SR_APPEND([sr_ruby_missing], [', '], ['SWIG >= 3.0.8'])])])
 
 AS_IF([test -z "$sr_ruby_missing"],
 	[BINDINGS_RUBY=$enable_ruby], [BINDINGS_RUBY=no])
