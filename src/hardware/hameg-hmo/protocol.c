@@ -18,6 +18,8 @@
  */
 
 #include <config.h>
+#include <math.h>
+#include <stdlib.h>
 #include "scpi.h"
 #include "protocol.h"
 
@@ -345,7 +347,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
  * @return SR_ERR on any parsing error, SR_OK otherwise.
  */
 static int array_float_get(gchar *value, const uint64_t array[][2],
-		int array_len, int *result)
+		int array_len, unsigned int *result)
 {
 	int i;
 	uint64_t f;
