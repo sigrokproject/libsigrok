@@ -403,10 +403,16 @@ AS_IF([test "x$BINDINGS_CXX" = xyes],
 	[sr_ruby_missing=],
 	[sr_ruby_missing='C++ bindings'])
 
-AX_RUBY_EXT
+AC_PATH_PROGS(RUBY, ["${RUBY-ruby}"], [])
+AS_IF([test "x$RUBY" != x],
+	AC_MSG_CHECKING([for Ruby version])
+    [RUBY_VERSION=`$RUBY -e 'puts RUBY_VERSION'`]
+    AC_MSG_RESULT([$RUBY_VERSION])
+    [RUBY_DLEXT=`$RUBY -rrbconfig -e 'puts RbConfig::CONFIG[["DLEXT"]]'`]
+    AC_SUBST(RUBY_DLEXT))
 
 AS_IF([test "x$RUBY" = x],
-	[SR_APPEND([sr_ruby_missing], [', '], ['Ruby'])])
+	[SR_APPEND([sr_ruby_missing], [', '], [Ruby])])
 
 # Extract major and minor version number of the Ruby interpreter.
 sr_rbmajor=${RUBY_VERSION%%.*}
@@ -430,7 +436,6 @@ AS_IF([test "x$SWIG" = x],
 AS_IF([test -z "$sr_ruby_missing"],
 	[BINDINGS_RUBY=$enable_ruby], [BINDINGS_RUBY=no])
 AM_CONDITIONAL([BINDINGS_RUBY], [test "x$BINDINGS_RUBY" = xyes])
-# AC_SUBST(RUBY_EXT_DLEXT, $RUBY_EXT_DLEXT)
 
 ####################
 ##  Java bindings ##

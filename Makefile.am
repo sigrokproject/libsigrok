@@ -660,7 +660,7 @@ RDIR = bindings/ruby
 RDOC = $(RDIR)/doc.i
 RWRAP = $(RDIR)/classes_wrap.cpp
 ROBJ = $(RWRAP:.cpp=.o)
-REXT = $(RDIR)/sigrok.so
+REXT = $(RDIR)/sigrok.$(RUBY_DLEXT)
 
 $(RDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py ruby $(CPPXMLDOC) > $@
@@ -683,8 +683,8 @@ $(REXT): $(ROBJ) @ORDER@ bindings/cxx/libsigrokcxx.la
 ruby-build: $(REXT)
 
 ruby-install: $(REXT)
-	$(INSTALL) -d $(prefix)/$(RBSIGROK_EXTDIR)
-	$(INSTALL) $< $(prefix)/$(RBSIGROK_EXTDIR)
+	$(INSTALL) -d $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
+	$(INSTALL) $< $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
 
 ruby-clean:
 	-$(AM_V_at)rm -fr $(RDIR)/doc
