@@ -372,7 +372,8 @@ static int array_option_get(char *value, const char *(*array)[],
 static int array_float_get(gchar *value, const uint64_t array[][2],
 		int array_len, int *result)
 {
-	int i, pos, e;
+	int i, e;
+	size_t pos;
 	uint64_t f;
 	float s;
 	unsigned int s_int;
@@ -382,8 +383,7 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	memset(es, 0, sizeof(es));
 
 	/* Get index of the separating 'E' character and break up the string. */
-	pos = (int)g_strstr_len(value, strlen(value), "E");
-	pos -= (int)value;
+	pos = strcspn(value, "E");
 
 	strncpy(ss, value, pos);
 	strncpy(es, &(value[pos+1]), 3);
