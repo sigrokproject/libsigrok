@@ -200,7 +200,9 @@ static const char *scope_digital_channel_names[] = {
 
 static const struct scope_config scope_models[] = {
 	{
-		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", NULL},
+		/* HMO2522/3032/3042/3052 support 16 digital channels but they're not supported yet. */
+		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", "HMO2522",
+				"HMO3032", "HMO3042", "HMO3052", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 		.digital_pods = 1,
@@ -230,7 +232,9 @@ static const struct scope_config scope_models[] = {
 		.scpi_dialect = &hameg_scpi_dialect,
 	},
 	{
-		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
+		/* HMO2524/3034/3044/3054 support 16 digital channels but they're not supported yet. */
+		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", "HMO2524",
+				"HMO3034", "HMO3044", "HMO3054", NULL},
 		.analog_channels = 4,
 		.digital_channels = 8,
 		.digital_pods = 1,
