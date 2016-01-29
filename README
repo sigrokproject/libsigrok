@@ -50,7 +50,7 @@ Requirements for the C library:
 
 Requirements for the C++ bindings:
 
- - libsigrok >= 0.3.0 (the libsigrok C library, see above)
+ - libsigrok >= 0.4.0 (the libsigrok C library, see above)
  - A C++ compiler with C++11 support (-std=c++11 option), e.g.
    - g++ (>= 4.7)
    - clang++ (>= 3.1)
@@ -62,7 +62,7 @@ Requirements for the C++ bindings:
 
 Requirements for the Python bindings:
 
- - libsigrokcxx >= 0.3.0 (the libsigrok C++ bindings, see above)
+ - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
  - Python >= 2.7 or Python >= 3 (including development files!)
  - Python setuptools (for Python 2 or 3)
  - pygobject >= 3.0.0 (for Python 2 or 3), a.k.a python-gi
@@ -74,14 +74,14 @@ Requirements for the Python bindings:
 
 Requirements for the Ruby bindings:
 
- - libsigrokcxx >= 0.3.0 (the libsigrok C++ bindings, see above)
+ - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
  - Ruby >= 1.9.3 (including development files!)
  - SWIG >= 3.0.8
  - YARD (optional, only needed for the Ruby API docs)
 
 Requirements for the Java bindings:
 
- - libsigrokcxx >= 0.3.0 (the libsigrok C++ bindings, see above)
+ - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
  - SWIG >= 2.0.0
  - Java JDK (for JNI includes and the javac/jar binaries)
  - doxygen (optional, only needed for the Java API docs)
