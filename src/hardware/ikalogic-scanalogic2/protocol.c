@@ -270,7 +270,8 @@ SR_PRIV void LIBUSB_CALL sl2_receive_transfer_in( struct libusb_transfer *transf
 	devc = sdi->priv;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer to device failed: %i.", transfer->status);
+		sr_err("Transfer to device failed: %s.",
+			libusb_error_name(transfer->status));
 		devc->transfer_error = TRUE;
 		return;
 	}
@@ -400,7 +401,8 @@ SR_PRIV void LIBUSB_CALL sl2_receive_transfer_out( struct libusb_transfer *trans
 	devc = sdi->priv;
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("Transfer to device failed: %i.", transfer->status);
+		sr_err("Transfer to device failed: %s.",
+			libusb_error_name(transfer->status));
 		devc->transfer_error = TRUE;
 		return;
 	}

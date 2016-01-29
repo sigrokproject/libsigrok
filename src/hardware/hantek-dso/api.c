@@ -774,8 +774,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
-	sr_spew("receive_transfer(): status %d received %d bytes.",
-		   transfer->status, transfer->actual_length);
+	sr_spew("receive_transfer(): status %s received %d bytes.",
+		libusb_error_name(transfer->status), transfer->actual_length);
 
 	if (transfer->actual_length == 0)
 		/* Nothing to send to the bus. */
