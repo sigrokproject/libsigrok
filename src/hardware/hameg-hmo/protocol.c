@@ -170,6 +170,8 @@ static const uint64_t hmo_vdivs[][2] = {
 	{ 2, 1 },
 	{ 5, 1 },
 	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
 };
 
 static const char *scope_analog_channel_names[] = {
