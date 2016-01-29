@@ -106,6 +106,7 @@ static struct usbtmc_blacklist blacklist_remote[] = {
 	{ 0x1ab1, 0x0588 },  /* Rigol DS1000 series */
 	{ 0x1ab1, 0x04b0 },  /* Rigol DS2000 series */
 	{ 0x0957, 0x0588 },  /* Agilent DSO1000 series (rebadged Rigol DS1000) */
+	{ 0x0b21, 0xffff },  /* All Yokogawa devices */
 	ALL_ZERO
 };
 
@@ -192,7 +193,8 @@ static int check_usbtmc_blacklist(struct usbtmc_blacklist *blacklist,
 	int i;
 
 	for (i = 0; blacklist[i].vid; i++) {
-		if (blacklist[i].vid == vid && blacklist[i].pid == pid)
+		if ((blacklist[i].vid == vid && blacklist[i].pid == 0xFFFF) ||
+			(blacklist[i].vid == vid && blacklist[i].pid == pid))
 			return TRUE;
 	}
 
