@@ -372,7 +372,7 @@ static int array_option_get(char *value, const char *(*array)[],
 static int array_float_get(gchar *value, const uint64_t array[][2],
 		int array_len, int *result)
 {
-	int i;
+	int i, pos, e;
 	uint64_t f;
 	float s;
 	unsigned int s_int;
@@ -381,28 +381,39 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	memset(ss, 0, sizeof(ss));
 	memset(es, 0, sizeof(es));
 
-	strncpy(ss, value, 5);
-	strncpy(es, &(value[6]), 3);
+	/* Get index of the separating 'E' character and break up the string. */
+	pos = (int)g_strstr_len(value, strlen(value), "E");
+	pos -= (int)value;
+
+	strncpy(ss, value, pos);
+	strncpy(es, &(value[pos+1]), 3);
 
 	if (sr_atof_ascii(ss, &s) != SR_OK)
 		return SR_ERR;
-	if (sr_atoi(es, &i) != SR_OK)
+	if (sr_atoi(es, &e) != SR_OK)
 		return SR_ERR;
 
 	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
-	f = pow(10, abs(i));
+	f = pow(10, abs(e));
 
 	/*
 	 * Adjust the significand/factor pair to make sure
 	 * that f is a multiple of 1000.
 	 */
-	while ((int)fmod(log10(f), 3) > 0) { s *= 10; f *= 10; }
+	while ((int)fmod(log10(f), 3) > 0) {
+		s *= 10;
+
+		if (e < 0)
+			f *= 10;
+		else
+			f /= 10;
+	}
 
 	/* Truncate s to circumvent rounding errors. */
 	s_int = (unsigned int)s;
 
 	for (i = 0; i < array_len; i++) {
-		if ( (s_int == array[i][0]) && (f == array[i][1]) ) {
+		if ((s_int == array[i][0]) && (f == array[i][1])) {
 			*result = i;
 			return SR_OK;
 		}
