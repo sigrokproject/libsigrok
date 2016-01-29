@@ -355,7 +355,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 static int array_float_get(gchar *value, const uint64_t array[][2],
 		int array_len, unsigned int *result)
 {
-	int i;
+	int i, pos, e;
 	uint64_t f;
 	float s;
 	unsigned int s_int;
@@ -364,16 +364,20 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	memset(ss, 0, sizeof(ss));
 	memset(es, 0, sizeof(es));
 
-	strncpy(ss, value, 5);
-	strncpy(es, &(value[6]), 3);
+	/* Get index of the separating 'E' character and break up the string. */
+	pos = (int)g_strstr_len(value, strlen(value), "E");
+	pos -= (int)value;
+
+	strncpy(ss, value, pos);
+	strncpy(es, &(value[pos+1]), 3);
 
 	if (sr_atof_ascii(ss, &s) != SR_OK)
 		return SR_ERR;
-	if (sr_atoi(es, &i) != SR_OK)
+	if (sr_atoi(es, &e) != SR_OK)
 		return SR_ERR;
 
 	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
-	f = pow(10, abs(i));
+	f = pow(10, abs(e));
 
 	/*
 	 * Adjust the significand/factor pair to make sure
@@ -381,7 +385,11 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	 */
 	while ((int)fmod(log10(f), 3) > 0) {
 		s *= 10;
-		f *= 10;
+
+		if (e < 0)
+			f *= 10;
+		else
+			f /= 10;
 	}
 
 	/* Truncate s to circumvent rounding errors. */
@@ -550,6 +558,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	const struct scope_config *config;
 	float tmp_float;
 	unsigned int i;
+	char *tmp_str;
 
 	devc = sdi->priv;
 	config = devc->model_config;
@@ -568,17 +577,19 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			&tmp_float) != SR_OK)
 		return SR_ERR;
 
-	for (i = 0; i < config->num_timebases; i++) {
-		if (tmp_float == ((float) (*config->timebases)[i][0] /
-				  (*config->timebases)[i][1])) {
-			state->timebase = i;
-			break;
-		}
-	}
-	if (i == config->num_timebases) {
+	if (sr_scpi_get_string(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
+			&tmp_str) != SR_OK)
+		return SR_ERR;
+
+	if (array_float_get(tmp_str, hmo_timebases, ARRAY_SIZE(hmo_timebases),
+			&i) != SR_OK) {
+		g_free(tmp_str);
 		sr_err("Could not determine array index for time base.");
 		return SR_ERR;
 	}
+
+	state->timebase = i;
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
