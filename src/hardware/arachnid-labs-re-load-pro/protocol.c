@@ -133,7 +133,10 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 {
 	float voltage, current;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	char **tokens;
 	GSList *l;
@@ -156,23 +159,24 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	current = g_ascii_strtod(tokens[1], NULL) / 1000;
 	g_strfreev(tokens);
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-
 	/* Begin frame. */
 	packet.type = SR_DF_FRAME_BEGIN;
+	packet.payload = NULL;
 	sr_session_send(sdi, &packet);
 
-	packet.type = SR_DF_ANALOG_OLD;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
+
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
 
 	/* Voltage */
 	l = g_slist_copy(sdi->channels);
 	l = g_slist_remove_link(l, g_slist_nth(l, 1));
-	analog.channels = l;
-	analog.mq = SR_MQ_VOLTAGE;
-	analog.mqflags = SR_MQFLAG_DC;
-	analog.unit = SR_UNIT_VOLT;
+	meaning.channels = l;
+	meaning.mq = SR_MQ_VOLTAGE;
+	meaning.mqflags = SR_MQFLAG_DC;
+	meaning.unit = SR_UNIT_VOLT;
 	analog.data = &voltage;
 	sr_session_send(sdi, &packet);
 	g_slist_free(l);
@@ -180,16 +184,17 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	/* Current */
 	l = g_slist_copy(sdi->channels);
 	l = g_slist_remove_link(l, g_slist_nth(l, 0));
-	analog.channels = l;
-	analog.mq = SR_MQ_CURRENT;
-	analog.mqflags = SR_MQFLAG_DC;
-	analog.unit = SR_UNIT_AMPERE;
+	meaning.channels = l;
+	meaning.mq = SR_MQ_CURRENT;
+	meaning.mqflags = SR_MQFLAG_DC;
+	meaning.unit = SR_UNIT_AMPERE;
 	analog.data = &current;
 	sr_session_send(sdi, &packet);
 	g_slist_free(l);
 
 	/* End frame. */
 	packet.type = SR_DF_FRAME_END;
+	packet.payload = NULL;
 	sr_session_send(sdi, &packet);
 
 	devc->num_samples++;
