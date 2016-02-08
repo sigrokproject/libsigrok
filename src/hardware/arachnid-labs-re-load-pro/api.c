@@ -75,6 +75,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	char buf[100];
 	char *bufptr;
+	double version;
 
 	devices = NULL;
 	drvc = di->context;
@@ -119,6 +120,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (ret < 0 || len < 9 || strncmp((const char *)&buf, "version ", 8)) {
 		sr_dbg("Unable to probe version number.");
+		serial_close(serial);
+		return NULL;
+	}
+
+	version = g_ascii_strtod(buf + 8, NULL);
+	if (version < 1.10) {
+		sr_info("Firmware >= 1.10 required (got %1.2f).", version);
 		serial_close(serial);
 		return NULL;
 	}
