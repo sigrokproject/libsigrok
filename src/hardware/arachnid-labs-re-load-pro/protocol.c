@@ -89,6 +89,21 @@ SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+SR_PRIV int reloadpro_set_on_off(const struct sr_dev_inst *sdi, gboolean on)
+{
+	int ret;
+	char buf[100];
+	const char *cmd;
+
+	cmd = (on) ? "on\n" : "off\n";
+	if ((ret = send_cmd(sdi, cmd, (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending on/off command: %d.", ret);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 					float *current)
 {

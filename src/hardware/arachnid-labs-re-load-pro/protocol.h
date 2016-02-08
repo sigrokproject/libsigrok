@@ -43,6 +43,7 @@ struct dev_context {
 
 SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 		float current);
+SR_PRIV int reloadpro_set_on_off(const struct sr_dev_inst *sdi, gboolean on);
 SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 		float *current);
 SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,

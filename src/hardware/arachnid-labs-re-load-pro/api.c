@@ -43,7 +43,7 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg[] = {
-	SR_CONF_ENABLED | SR_CONF_GET,
+	SR_CONF_ENABLED | SR_CONF_SET,
 	SR_CONF_REGULATION | SR_CONF_GET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -242,6 +242,7 @@ static int config_get(uint32_t key, GVariant **data,
 	 *  - SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD
 	 *  - SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE
 	 *  - SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD
+	 *  - SR_CONF_ENABLED (state cannot be queried, only set)
 	 */
 
 	ret = SR_OK;
@@ -251,9 +252,6 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
-	case SR_CONF_ENABLED:
-		*data = g_variant_new_boolean(TRUE); /* Always on. */
 		break;
 	case SR_CONF_REGULATION:
 		*data = g_variant_new_string("CC"); /* Always CC mode. */
@@ -311,6 +309,9 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_ENABLED:
+		ret = reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		ret = reloadpro_set_current_limit(sdi,
