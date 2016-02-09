@@ -976,6 +976,12 @@ enum sr_configkey {
 	/** Over-temperature protection (OTP) active. */
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
 
+	/** Under-voltage condition. */
+	SR_CONF_UNDER_VOLTAGE_CONDITION,
+
+	/** Under-voltage condition active. */
+	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
