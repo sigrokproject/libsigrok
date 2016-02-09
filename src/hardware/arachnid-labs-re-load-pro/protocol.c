@@ -159,8 +159,14 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (g_str_has_prefix((const char *)devc->buf, "overtemp")) {
-		sr_dbg("Overtemperature condition!");
+		sr_warn("Overtemperature condition!");
 		devc->otp_active = TRUE;
+		return;
+	}
+
+	if (g_str_has_prefix((const char *)devc->buf, "undervolt")) {
+		sr_warn("Undervoltage condition!");
+		devc->uvc_active = TRUE;
 		return;
 	}
 

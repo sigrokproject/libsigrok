@@ -52,6 +52,8 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION | SR_CONF_GET,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_UNDER_VOLTAGE_CONDITION | SR_CONF_GET,
+	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE | SR_CONF_GET,
 };
 
 SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info;
@@ -289,6 +291,12 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
 		*data = g_variant_new_boolean(devc->otp_active);
+		break;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION:
+		*data = g_variant_new_boolean(TRUE); /* Always on. */
+		break;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE:
+		*data = g_variant_new_boolean(devc->uvc_active);
 		break;
 	default:
 		return SR_ERR_NA;

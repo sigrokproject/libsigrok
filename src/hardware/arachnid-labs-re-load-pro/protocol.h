@@ -39,6 +39,7 @@ struct dev_context {
 	uint8_t buf[RELOADPRO_BUFSIZE];
 	int buflen;
 	gboolean otp_active;
+	gboolean uvc_active;
 };
 
 SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
