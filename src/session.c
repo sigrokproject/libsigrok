@@ -1525,7 +1525,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		break;
 	case SR_DF_LOGIC:
 		logic = packet->payload;
-		logic_copy = g_malloc(sizeof(logic));
+		logic_copy = g_malloc(sizeof(*logic_copy));
 		logic_copy->length = logic->length;
 		logic_copy->unitsize = logic->unitsize;
 		memcpy(logic_copy->data, logic->data, logic->length * logic->unitsize);
@@ -1533,7 +1533,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		break;
 	case SR_DF_ANALOG_OLD:
 		analog_old = packet->payload;
-		analog_old_copy = g_malloc(sizeof(analog_old));
+		analog_old_copy = g_malloc(sizeof(*analog_old_copy));
 		analog_old_copy->channels = g_slist_copy(analog_old->channels);
 		analog_old_copy->num_samples = analog_old->num_samples;
 		analog_old_copy->mq = analog_old->mq;
@@ -1546,7 +1546,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
-		analog_copy = g_malloc(sizeof(analog));
+		analog_copy = g_malloc(sizeof(*analog_copy));
 		analog_copy->data = g_malloc(
 				analog->encoding->unitsize * analog->num_samples);
 		memcpy(analog_copy->data, analog->data,
