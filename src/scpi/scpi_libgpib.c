@@ -139,6 +139,9 @@ static int scpi_gpib_close(struct sr_scpi_dev_inst *scpi)
 {
 	struct scpi_gpib *gscpi = scpi->priv;
 
+	/* Put device in back local mode to prevent lock-out of front panel. */
+	ibloc(gscpi->descriptor);
+	/* Now it's safe to close the handle. */
 	ibonl(gscpi->descriptor, 0);
 
 	return SR_OK;
