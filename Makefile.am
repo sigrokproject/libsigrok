@@ -307,6 +307,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/hantek-dso/dso.c \
 	src/hardware/hantek-dso/api.c
 endif
+if HW_HP_3457A
+libsigrok_la_SOURCES += \
+	src/hardware/hp-3457a/protocol.h \
+	src/hardware/hp-3457a/protocol.c \
+	src/hardware/hp-3457a/api.c
+endif
 if HW_HUNG_CHANG_DSO_2100
 libsigrok_la_SOURCES += \
 	src/hardware/hung-chang-dso-2100/protocol.h \
