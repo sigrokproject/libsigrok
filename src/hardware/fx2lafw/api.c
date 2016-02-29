@@ -47,6 +47,13 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-cwav-usbeesx.fw",
 		0, NULL, NULL},
 
+	/*
+	 * CWAV USBee ZX
+	 */
+	{ 0x08a9, 0x0005, "CWAV", "USBee ZX", NULL,
+		"fx2lafw-cwav-usbeezx.fw",
+		0, NULL, NULL},
+
 	/* DreamSourceLab DSLogic (before FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
