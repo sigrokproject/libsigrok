@@ -56,6 +56,7 @@ static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_189, "189", 100, 1000 },
 	{ FLUKE_287, "287", 100, 1000 },
 	{ FLUKE_190, "199B", 1000, 3500 },
+	{ FLUKE_289, "289", 100, 1000 },
 };
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)

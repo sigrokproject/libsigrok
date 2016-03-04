@@ -33,6 +33,7 @@ enum {
 	FLUKE_189,
 	FLUKE_287,
 	FLUKE_190,
+	FLUKE_289,
 };
 
 /* Supported device profiles */
