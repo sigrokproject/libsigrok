@@ -1015,6 +1015,9 @@ enum sr_configkey {
 	/** The device supports setting a probe factor. */
 	SR_CONF_PROBE_FACTOR,
 
+	/** Number of powerline cycles for ADC integration time. */
+	SR_CONF_ADC_POWERLINE_CYCLES,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Acquisition modes, sample limiting ----------------------------*/

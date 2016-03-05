@@ -189,6 +189,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Data source", NULL},
 	{SR_CONF_PROBE_FACTOR, SR_T_UINT64, "probe_factor",
 		"Probe factor", NULL},
+	{SR_CONF_ADC_POWERLINE_CYCLES, SR_T_FLOAT, "nplc",
+		"Number of ADC powerline cycles", NULL},
 
 	/* Acquisition modes, sample limiting */
 	{SR_CONF_LIMIT_MSEC, SR_T_UINT64, "limit_time",
