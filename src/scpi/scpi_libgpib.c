@@ -84,8 +84,8 @@ static int scpi_gpib_send(void *priv, const char *command)
 
 	if (ibsta & ERR)
 	{
-		sr_err("Error while sending SCPI command: '%s': iberr = %d.",
-				command, iberr);
+		sr_err("Error while sending SCPI command: '%s': iberr = %s.",
+			command, gpib_error_string(iberr));
 		return SR_ERR;
 	}
 
@@ -118,7 +118,8 @@ static int scpi_gpib_read_data(void *priv, char *buf, int maxlen)
 
 	if (ibsta & ERR)
 	{
-		sr_err("Error while reading SCPI response: iberr = %d.", iberr);
+		sr_err("Error while reading SCPI response: iberr = %s.",
+		        gpib_error_string(iberr));
 		return SR_ERR;
 	}
 
