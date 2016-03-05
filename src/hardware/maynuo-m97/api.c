@@ -135,7 +135,7 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 			break;
 		}
 	if (model == NULL) {
-		sr_err("Unkown model: %d.", id);
+		sr_err("Unknown model: %d.", id);
 		return NULL;
 	}
 
