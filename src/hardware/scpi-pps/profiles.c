@@ -44,12 +44,16 @@ static const uint32_t agilent_n5700a_devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
+static const struct channel_group_spec agilent_n5700a_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+};
+
 static const struct channel_spec agilent_n5767a_ch[] = {
 	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 }, FREQ_DC_ONLY },
 };
 
-static const struct channel_group_spec agilent_n5767a_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+static const struct channel_spec agilent_n5763a_ch[] = {
+	{ "1", { 0, 12.5, 0.001 }, { 0, 25, 0.01 }, FREQ_DC_ONLY },
 };
 
 /*
@@ -472,12 +476,21 @@ static const struct scpi_command philips_pm2800_cmd[] = {
 };
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
+	/* Agilent N5763A */
+	{ "Agilent", "N5763A", 0,
+		ARRAY_AND_SIZE(agilent_n5700a_devopts),
+		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
+		ARRAY_AND_SIZE(agilent_n5763a_ch),
+		ARRAY_AND_SIZE(agilent_n5700a_cg),
+		agilent_n5700a_cmd,
+		.probe_channels = NULL,
+	},
 	/* Agilent N5767A */
 	{ "Agilent", "N5767A", 0,
 		ARRAY_AND_SIZE(agilent_n5700a_devopts),
 		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
 		ARRAY_AND_SIZE(agilent_n5767a_ch),
-		ARRAY_AND_SIZE(agilent_n5767a_cg),
+		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
 	},
