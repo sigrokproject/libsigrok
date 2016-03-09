@@ -39,11 +39,7 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if ((err = libusb_get_device_descriptor(devlist[i], &des))) {
-			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(err));
-			continue;
-		}
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if (des.idVendor != devc->profile->fw_vid
 		    || des.idProduct != devc->profile->fw_pid)
