@@ -110,15 +110,15 @@ static int zip_create(const struct sr_output *o)
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
-			case SR_CHANNEL_LOGIC:
-				logic_channels++;
-				break;
-			case SR_CHANNEL_ANALOG:
-				if (outc->min_analog_index == -1 ||
-						ch->index < outc->min_analog_index)
-					outc->min_analog_index = ch->index;
-				analog_channels++;
-				break;
+		case SR_CHANNEL_LOGIC:
+			logic_channels++;
+			break;
+		case SR_CHANNEL_ANALOG:
+			if (outc->min_analog_index == -1 ||
+					ch->index < outc->min_analog_index)
+				outc->min_analog_index = ch->index;
+			analog_channels++;
+			break;
 		}
 	}
 
@@ -128,13 +128,13 @@ static int zip_create(const struct sr_output *o)
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
-			case SR_CHANNEL_LOGIC:
-				s = g_strdup_printf("probe%d", ch->index + 1);
-				break;
-			case SR_CHANNEL_ANALOG:
-				s = g_strdup_printf("analog%d",
-						ch->index - outc->min_analog_index + 1);
-				break;
+		case SR_CHANNEL_LOGIC:
+			s = g_strdup_printf("probe%d", ch->index + 1);
+			break;
+		case SR_CHANNEL_ANALOG:
+			s = g_strdup_printf("analog%d",
+					ch->index - outc->min_analog_index + 1);
+			break;
 		}
 		if (ch->enabled)
 			g_key_file_set_string(meta, devgroup, s, ch->name);
