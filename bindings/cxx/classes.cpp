@@ -317,15 +317,39 @@ shared_ptr<Packet> Context::create_analog_packet(
 {
 	auto analog = g_new0(struct sr_datafeed_analog, 1);
 	auto meaning = g_new0(struct sr_analog_meaning, 1);
+	auto encoding = g_new0(struct sr_analog_encoding, 1);
+	auto spec = g_new0(struct sr_analog_spec, 1);
 
 	analog->meaning = meaning;
 
 	for (const auto &channel : channels)
 		meaning->channels = g_slist_append(meaning->channels, channel->_structure);
-	analog->num_samples = num_samples;
 	meaning->mq = static_cast<sr_mq>(mq->id());
 	meaning->unit = static_cast<sr_unit>(unit->id());
 	meaning->mqflags = static_cast<sr_mqflag>(QuantityFlag::mask_from_flags(move(mqflags)));
+
+	analog->encoding = encoding;
+
+	encoding->unitsize = sizeof(float);
+	encoding->is_signed = TRUE;
+	encoding->is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+	encoding->is_bigendian = TRUE;
+#else
+	encoding->is_bigendian = FALSE;
+#endif
+	encoding->digits = 0;
+	encoding->is_digits_decimal = FALSE;
+	encoding->scale.p = 1;
+	encoding->scale.q = 1;
+	encoding->offset.p = 0;
+	encoding->offset.q = 1;
+
+	analog->spec = spec;
+
+	spec->spec_digits = 0;
+
+	analog->num_samples = num_samples;
 	analog->data = data_pointer;
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_ANALOG;
