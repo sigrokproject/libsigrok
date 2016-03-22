@@ -48,11 +48,11 @@ struct context {
 };
 
 struct sample_format {
-	const char const *fmt_name;
+	const char *fmt_name;
 	struct sr_analog_encoding encoding;
 };
 
-static const struct sample_format const sample_formats[] =
+static const struct sample_format sample_formats[] =
 {
 	{ "S8",         { 1, TRUE,  FALSE, FALSE, 0, TRUE, { 1,                     128}, { 0, 1}}},
 	{ "U8",         { 1, FALSE, FALSE, FALSE, 0, TRUE, { 1,                     255}, {-1, 2}}},
