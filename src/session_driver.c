@@ -74,10 +74,11 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 
 	got_data = FALSE;
 	vdev = sdi->priv;
+
 	if (!vdev->capfile) {
 		/* No capture file opened yet, or finished with the last
 		 * chunked one. */
-		if (vdev->cur_chunk == 0) {
+		if (vdev->capturefile && (vdev->cur_chunk == 0)) {
 			/* capturefile is always the unchunked base name. */
 			if (zip_stat(vdev->archive, vdev->capturefile, 0, &zs) != -1) {
 				/* No chunks, just a single capture file. */

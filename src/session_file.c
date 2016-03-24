@@ -163,6 +163,27 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 	return SR_OK;
 }
 
+SR_PRIV struct sr_dev_inst *sr_session_prepare_sdi(const char *filename, struct sr_session **session)
+{
+	struct sr_dev_inst *sdi = NULL;
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->driver = &session_driver;
+	sdi->status = SR_ST_ACTIVE;
+	if (!session_driver_initialized) {
+		/* first device, init the driver */
+		session_driver_initialized = 1;
+		sdi->driver->init(sdi->driver, NULL);
+	}
+	sr_dev_open(sdi);
+	sr_session_dev_add(*session, sdi);
+	(*session)->owned_devs = g_slist_append((*session)->owned_devs, sdi);
+	sr_config_set(sdi, NULL, SR_CONF_SESSIONFILE,
+			g_variant_new_string(filename));
+
+	return sdi;
+}
+
 /**
  * Load the session from the specified filename.
  *
@@ -223,32 +244,28 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 			/* device section */
 			sdi = NULL;
 			keys = g_key_file_get_keys(kf, sections[i], NULL, NULL);
+
+			/* File contains analog data if there are analog channels. */
+			total_analog = g_key_file_get_integer(kf, sections[i],
+					"total analog",	&error);
+			if (total_analog > 0 && !error)
+				sdi = sr_session_prepare_sdi(filename, session);
+			g_clear_error(&error);
+
+			/* File contains logic data if a capturefile is set. */
+			val = g_key_file_get_string(kf, sections[i],
+				"capturefile", &error);
+			if (val && !error) {
+				if (!sdi)
+					sdi = sr_session_prepare_sdi(filename, session);
+				sr_config_set(sdi, NULL, SR_CONF_CAPTUREFILE,
+						g_variant_new_string(val));
+				g_free(val);
+			}
+			g_clear_error(&error);
+
 			for (j = 0; keys[j]; j++) {
-				if (!strcmp(keys[j], "capturefile")) {
-					val = g_key_file_get_string(kf, sections[i],
-							keys[j], &error);
-					if (!val) {
-						ret = SR_ERR_DATA;
-						break;
-					}
-					sdi = g_malloc0(sizeof(struct sr_dev_inst));
-					sdi->driver = &session_driver;
-					sdi->status = SR_ST_ACTIVE;
-					if (!session_driver_initialized) {
-						/* first device, init the driver */
-						session_driver_initialized = 1;
-						sdi->driver->init(sdi->driver, NULL);
-					}
-					sr_dev_open(sdi);
-					sr_session_dev_add(*session, sdi);
-					(*session)->owned_devs = g_slist_append(
-							(*session)->owned_devs, sdi);
-					sr_config_set(sdi, NULL, SR_CONF_SESSIONFILE,
-							g_variant_new_string(filename));
-					sr_config_set(sdi, NULL, SR_CONF_CAPTUREFILE,
-							g_variant_new_string(val));
-					g_free(val);
-				} else if (!strcmp(keys[j], "samplerate")) {
+				if (!strcmp(keys[j], "samplerate")) {
 					val = g_key_file_get_string(kf, sections[i],
 							keys[j], &error);
 					if (!sdi || !val || sr_parse_sizestring(val,
