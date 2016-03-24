@@ -113,7 +113,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 				sr_dbg("Opened %s.", capturefile);
 			} else if (vdev->cur_analog_channel < vdev->num_analog_channels) {
 				vdev->capturefile = g_strdup_printf("analog-1-%d",
-						vdev->cur_analog_channel + 1);
+						vdev->num_channels + vdev->cur_analog_channel + 1);
 				vdev->cur_analog_channel++;
 				vdev->cur_chunk = 0;
 				return TRUE;

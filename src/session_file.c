@@ -293,7 +293,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 					}
 					sr_config_set(sdi, NULL, SR_CONF_NUM_ANALOG_CHANNELS,
 							g_variant_new_int32(total_analog));
-					for (k = 0; k < total_analog; k++) {
+					for (k = total_channels; k < (total_channels + total_analog); k++) {
 						g_snprintf(channelname, sizeof(channelname),
 								"%d", k);
 						sr_channel_new(sdi, k, SR_CHANNEL_ANALOG,
