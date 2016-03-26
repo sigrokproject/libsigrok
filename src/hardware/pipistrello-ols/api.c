@@ -702,7 +702,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
 
@@ -715,10 +714,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_session_source_remove(sdi->session, -1);
 
-	/* Send end packet to the session bus. */
-	sr_dbg("Sending SR_DF_END.");
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_end(cb_data, LOG_PREFIX);
 
 	return SR_OK;
 }

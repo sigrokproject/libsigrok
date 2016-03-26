@@ -29,7 +29,6 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
 	struct timeval tv;
@@ -54,8 +53,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	if (sdi->status == SR_ST_STOPPING) {
 		libusb_free_transfer(devc->xfer);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+		std_session_send_df_end(cb_data, LOG_PREFIX);
 		sdi->status = SR_ST_ACTIVE;
 		return TRUE;
 	}

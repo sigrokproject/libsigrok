@@ -28,15 +28,13 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
-	packet.type = SR_DF_END;
-	sr_session_send(devc->cb_data, &packet);
+	std_session_send_df_end(devc->cb_data, LOG_PREFIX);
 
 	sdi->status = SR_ST_ACTIVE;
 }
@@ -45,15 +43,13 @@ static void abort_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
-	packet.type = SR_DF_END;
-	sr_session_send(devc->cb_data, &packet);
+	std_session_send_df_end(devc->cb_data, LOG_PREFIX);
 
 	sdi->driver->dev_close(sdi);
 }

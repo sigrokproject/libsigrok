@@ -462,8 +462,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		devc->stored_samples = (buf[7] << 8) | buf[8];
 		if (devc->stored_samples == 0) {
 			/* Notify frontend of empty log by sending start/end packets. */
-			packet.type = SR_DF_END;
-			sr_session_send(cb_data, &packet);
+			std_session_send_df_end(cb_data, LOG_PREFIX);
 			return SR_OK;
 		}
 

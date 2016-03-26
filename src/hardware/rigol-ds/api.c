@@ -1050,7 +1050,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-	struct sr_datafeed_packet packet;
 
 	(void)cb_data;
 
@@ -1061,9 +1060,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	/* End of last frame. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;

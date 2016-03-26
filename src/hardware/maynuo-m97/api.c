@@ -484,16 +484,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_modbus_dev_inst *modbus;
-	struct sr_datafeed_packet packet;
 
 	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	/* End of last frame. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	modbus = sdi->conn;
 	sr_modbus_source_remove(sdi->session, modbus);

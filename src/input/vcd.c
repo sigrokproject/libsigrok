@@ -582,7 +582,6 @@ static int receive(struct sr_input *in, GString *buf)
 
 static int end(struct sr_input *in)
 {
-	struct sr_datafeed_packet packet;
 	struct context *inc;
 	int ret;
 
@@ -596,10 +595,8 @@ static int end(struct sr_input *in)
 	/* Send any samples that haven't been sent yet. */
 	send_buffer(in);
 
-	if (inc->started) {
-		packet.type = SR_DF_END;
-		sr_session_send(in->sdi, &packet);
-	}
+	if (inc->started)
+		std_session_send_df_end(in->sdi, LOG_PREFIX);
 
 	return ret;
 }

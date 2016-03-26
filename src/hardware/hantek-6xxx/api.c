@@ -732,7 +732,6 @@ static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount)
 static int handle_event(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
-	struct sr_datafeed_packet packet;
 	struct timeval tv;
 	struct sr_dev_driver *di;
 	struct dev_context *devc;
@@ -761,9 +760,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 */
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 
-		packet.type = SR_DF_END;
-		packet.payload = NULL;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 
 		devc->dev_state = IDLE;
 

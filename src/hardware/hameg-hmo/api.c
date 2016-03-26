@@ -769,13 +769,10 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-	struct sr_datafeed_packet packet;
 
 	(void)cb_data;
 
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

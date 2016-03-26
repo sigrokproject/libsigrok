@@ -835,7 +835,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	struct sigma_dram_line *dram_line;
 	int bufsz;
 	uint32_t stoppos, triggerpos;
-	struct sr_datafeed_packet packet;
 	uint8_t modestatus;
 
 	uint32_t i;
@@ -907,9 +906,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 		dl_lines_done += dl_lines_curr;
 	}
 
-	/* All done. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	sdi->driver->dev_acquisition_stop(sdi, sdi);
 

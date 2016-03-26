@@ -724,14 +724,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi,
 		void *cb_data)
 {
-	struct sr_datafeed_packet packet = { .type = SR_DF_END };
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_end(cb_data, LOG_PREFIX);
 	sr_session_source_remove(sdi->session, -1);
-
 	hung_chang_dso_2100_move_to(sdi, 1);
 
 	return SR_OK;

@@ -315,15 +315,12 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct sr_datafeed_packet packet;
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
 	serial_source_remove(sdi->session, serial);
 
-	/* Terminate session */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 }
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)

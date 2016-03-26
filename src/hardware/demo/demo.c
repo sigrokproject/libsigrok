@@ -880,17 +880,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct sr_datafeed_packet packet;
-
 	(void)cb_data;
 
 	sr_dbg("Stopping acquisition.");
-
 	sr_session_source_remove(sdi->session, -1);
-
-	/* Send last packet. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }

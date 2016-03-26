@@ -178,7 +178,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct session_vdev *vdev;
-	struct sr_datafeed_packet packet;
 
 	(void)fd;
 	(void)revents;
@@ -199,9 +198,8 @@ static int receive_data(int fd, int revents, void *cb_data)
 		zip_discard(vdev->archive);
 		vdev->archive = NULL;
 	}
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return G_SOURCE_REMOVE;
 }

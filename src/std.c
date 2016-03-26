@@ -105,6 +105,38 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/**
+ * Standard API helper for sending an SR_DF_END packet.
+ *
+ * @param sdi The device instance to use. Must not be NULL.
+ * @param prefix A driver-specific prefix string used for log messages.
+ * 		 Must not be NULL. An empty string is allowed.
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
+ *         SR_ERR upon other errors.
+ */
+SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi,
+				    const char *prefix)
+{
+	int ret;
+	struct sr_datafeed_packet packet;
+
+	if (!sdi || !prefix)
+		return SR_ERR_ARG;
+
+	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
+
+	packet.type = SR_DF_END;
+	packet.payload = NULL;
+
+	if ((ret = sr_session_send(sdi, &packet)) < 0) {
+		sr_err("%s: Failed to send SR_DF_END packet: %d.", prefix, ret);
+		return ret;
+	}
+
+	return SR_OK;
+}
+
 #ifdef HAVE_LIBSERIALPORT
 
 /**
@@ -183,7 +215,6 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {
 	int ret;
-	struct sr_datafeed_packet packet;
 
 	if (!prefix) {
 		sr_err("Invalid prefix.");
@@ -207,14 +238,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	/* Send SR_DF_END packet to the session bus. */
-	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-	if ((ret = sr_session_send(cb_data, &packet)) < 0) {
-		sr_err("%s: Failed to send SR_DF_END packet: %d.", prefix, ret);
-		return ret;
-	}
+	std_session_send_df_end(cb_data, prefix);
 
 	return SR_OK;
 }

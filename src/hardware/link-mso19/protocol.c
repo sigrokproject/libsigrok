@@ -286,15 +286,12 @@ SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state)
 
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 	serial_source_remove(sdi->session, devc->serial);
 
-	/* Terminate session */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 }
 
 SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val)

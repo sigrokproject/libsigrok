@@ -583,8 +583,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 
 	/* Check for empty capture */
 	if ((status & STATUS_READY) && !stop_address) {
-		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+		std_session_send_df_end(cb_data, LOG_PREFIX);
 		return SR_OK;
 	}
 
@@ -692,8 +691,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	analyzer_read_stop(usb->devhdl);
 	g_free(buf);
 
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_end(cb_data, LOG_PREFIX);
 
 	return SR_OK;
 }
@@ -703,10 +701,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	struct sr_datafeed_packet packet;
 
-	packet.type = SR_DF_END;
-	sr_session_send(cb_data, &packet);
+	std_session_send_df_end(cb_data, LOG_PREFIX);
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);

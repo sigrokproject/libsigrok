@@ -277,7 +277,6 @@ static int transfer_event(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct timeval tv;
-	struct sr_datafeed_packet packet;
 	int ret;
 
 	(void)fd;
@@ -317,10 +316,7 @@ static int transfer_event(int fd, int revents, void *cb_data)
 
 	/* We are done, clean up and send end packet to session bus. */
 	clear_acquisition_state(sdi);
-
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return G_SOURCE_REMOVE;
 }

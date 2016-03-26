@@ -369,8 +369,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */
-		packet.type = SR_DF_END;
-		sr_session_send(devc->cb_data, &packet);
+		std_session_send_df_end(devc->cb_data, LOG_PREFIX);
 		return SR_OK;
 	}
 

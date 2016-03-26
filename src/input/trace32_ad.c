@@ -731,7 +731,6 @@ static int receive(struct sr_input *in, GString *buf)
 static int end(struct sr_input *in)
 {
 	struct context *inc;
-	struct sr_datafeed_packet packet;
 	int ret;
 
 	inc = in->priv;
@@ -743,10 +742,8 @@ static int end(struct sr_input *in)
 
 	flush_output_buffer(in);
 
-	if (inc->meta_sent) {
-		packet.type = SR_DF_END;
-		sr_session_send(in->sdi, &packet);
-	}
+	if (inc->meta_sent)
+		std_session_send_df_end(in->sdi, LOG_PREFIX);
 
 	return ret;
 }

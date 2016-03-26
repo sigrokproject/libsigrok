@@ -883,8 +883,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 */
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 
-		packet.type = SR_DF_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 
 		devc->dev_state = IDLE;
 

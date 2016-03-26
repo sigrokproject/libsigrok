@@ -133,7 +133,6 @@ SR_PRIV int atten_pps3xxx_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	const struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
-	struct sr_datafeed_packet packet;
 	unsigned char c;
 
 	(void)fd;
@@ -156,8 +155,7 @@ SR_PRIV int atten_pps3xxx_receive_data(int fd, int revents, void *cb_data)
 				send_config(sdi);
 			else {
 				serial_source_remove(sdi->session, serial);
-				packet.type = SR_DF_END;
-				sr_session_send(sdi, &packet);
+				std_session_send_df_end(sdi, LOG_PREFIX);
 			}
 		}
 	}

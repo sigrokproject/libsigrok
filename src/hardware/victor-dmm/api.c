@@ -327,7 +327,6 @@ static int handle_events(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct sr_dev_driver *di;
 	struct timeval tv;
@@ -349,11 +348,8 @@ static int handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-
 		dev_close(sdi);
-
-		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 	}
 
 	memset(&tv, 0, sizeof(struct timeval));

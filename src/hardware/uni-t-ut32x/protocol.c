@@ -195,7 +195,6 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_dev_driver *di;
 	struct sr_dev_inst *sdi;
-	struct sr_datafeed_packet packet;
 	struct sr_usb_dev_inst *usb;
 	struct timeval tv;
 	int len, ret;
@@ -219,8 +218,7 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		packet.type = SR_DF_END;
-		sr_session_send(cb_data, &packet);
+		std_session_send_df_header(cb_data, LOG_PREFIX);
 
 		/* Tell the device to stop sending USB packets. */
 		usb = sdi->conn;

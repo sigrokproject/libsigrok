@@ -326,14 +326,11 @@ SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc)
 
 static void finish_acquisition(struct sr_dev_inst *sdi)
 {
-	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
 
-	/* Terminate session. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	/* Remove fds from polling. */
 	usb_source_remove(sdi->session, devc->ctx);

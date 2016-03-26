@@ -384,7 +384,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc = sdi->priv;
-	struct sr_datafeed_packet pkt;
 
 	(void)cb_data;
 
@@ -399,9 +398,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Remove session source and send EOT packet */
 	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
-	pkt.type = SR_DF_END;
-	pkt.payload = NULL;
-	sr_session_send(sdi, &pkt);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }

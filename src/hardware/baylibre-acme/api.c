@@ -401,7 +401,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
-	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
 
 	(void)cb_data;
@@ -417,9 +416,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;
 
-	/* Send last packet. */
-	packet.type = SR_DF_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	if (devc->samples_missed > 0)
 		sr_warn("%" PRIu64 " samples missed", devc->samples_missed);

@@ -251,8 +251,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 
-		packet.type = SR_DF_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 
 		devc->df_started = FALSE;
 	}
