@@ -33,7 +33,8 @@ struct out_context {
 	gboolean zip_created;
 	uint64_t samplerate;
 	char *filename;
-	gint analog_offset;
+	gint first_analog_index;
+	gint *analog_index_map;
 };
 
 static int init(struct sr_output *o, GHashTable *options)
@@ -66,8 +67,9 @@ static int zip_create(const struct sr_output *o)
 	const char *devgroup;
 	char *s, *metabuf;
 	gsize metalen;
-	guint logic_channels = 0, analog_channels = 0;
-	gint min_analog_index;
+	guint logic_channels = 0, enabled_logic_channels = 0;
+	guint enabled_analog_channels = 0;
+	guint index;
 
 	outc = o->priv;
 
@@ -100,46 +102,64 @@ static int zip_create(const struct sr_output *o)
 			SR_PACKAGE_VERSION_STRING);
 
 	devgroup = "device 1";
-	g_key_file_set_string(meta, devgroup, "capturefile", "logic-1");
+
+	for (l = o->sdi->channels; l; l = l->next) {
+		ch = l->data;
+
+		switch (ch->type) {
+		case SR_CHANNEL_LOGIC:
+			if (ch->enabled)
+				enabled_logic_channels++;
+			logic_channels++;
+			break;
+		case SR_CHANNEL_ANALOG:
+			if (ch->enabled)
+				enabled_analog_channels++;
+			break;
+		}
+	}
+
+	/* When reading the file, the first index of the analog channels
+	 * can only be deduced through the "total probes" count, so the
+	 * first analog index must follow the last logic one, enabled or not. */
+	if (enabled_logic_channels > 0)
+		outc->first_analog_index = logic_channels + 1;
+	else
+		outc->first_analog_index = 1;
+
+	/* Only set capturefile and probes if we will actually save logic data. */
+	if (enabled_logic_channels > 0) {
+		g_key_file_set_string(meta, devgroup, "capturefile", "logic-1");
+		g_key_file_set_integer(meta, devgroup, "total probes", logic_channels);
+	}
 
 	s = sr_samplerate_string(outc->samplerate);
 	g_key_file_set_string(meta, devgroup, "samplerate", s);
 	g_free(s);
 
-	min_analog_index = -1;
+	g_key_file_set_integer(meta, devgroup, "total analog", enabled_analog_channels);
 
+	/* Make the array one entry larger than needed so we can use the final
+	 * 0 as terminator. */
+	outc->analog_index_map = g_malloc0(sizeof(gint) * (enabled_analog_channels + 1));
+
+	index = 0;
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
-		switch (ch->type) {
-		case SR_CHANNEL_LOGIC:
-			logic_channels++;
-			break;
-		case SR_CHANNEL_ANALOG:
-			if (min_analog_index == -1 ||
-					ch->index < min_analog_index)
-				min_analog_index = ch->index;
-			analog_channels++;
-			break;
-		}
-	}
+		if (!ch->enabled)
+			continue;
 
-	outc->analog_offset = logic_channels - min_analog_index + 1;
-
-	g_key_file_set_integer(meta, devgroup, "total probes", logic_channels);
-	g_key_file_set_integer(meta, devgroup, "total analog", analog_channels);
-
-	for (l = o->sdi->channels; l; l = l->next) {
-		ch = l->data;
 		switch (ch->type) {
 		case SR_CHANNEL_LOGIC:
 			s = g_strdup_printf("probe%d", ch->index + 1);
 			break;
 		case SR_CHANNEL_ANALOG:
-			s = g_strdup_printf("analog%d", ch->index + outc->analog_offset);
+			outc->analog_index_map[index] = ch->index;
+			s = g_strdup_printf("analog%d", outc->first_analog_index + index);
+			index++;
 			break;
 		}
-		if (ch->enabled)
-			g_key_file_set_string(meta, devgroup, s, ch->name);
+		g_key_file_set_string(meta, devgroup, s, ch->name);
 		g_free(s);
 	}
 
@@ -300,7 +320,7 @@ static int zip_append_analog(const struct sr_output *o,
 	float *chunkbuf;
 	gsize chunksize;
 	char *chunkname;
-	unsigned int next_chunk_num;
+	unsigned int next_chunk_num, index;
 
 	outc = o->priv;
 	if (!(archive = zip_open(outc->filename, 0, NULL)))
@@ -319,8 +339,18 @@ static int zip_append_analog(const struct sr_output *o,
 	}
 	channel = analog->meaning->channels->data;
 
-	basename = g_strdup_printf("analog-1-%u",
-			channel->index + outc->analog_offset);
+	/* When reading the file, analog channels must be consecutive.
+	 * Thus we need a global channel index map as we don't know in
+	 * which order the channel data comes in. */
+	for (index = 0; outc->analog_index_map[index]; index++)
+		if (outc->analog_index_map[index] == channel->index)
+			break;
+	if (!outc->analog_index_map[index])
+		return SR_ERR_ARG;  /* Channel index was not in the list */
+
+	index += outc->first_analog_index;
+
+	basename = g_strdup_printf("analog-1-%u", index);
 	baselen = strlen(basename);
 	next_chunk_num = 1;
 	num_files = zip_get_num_entries(archive, 0);
@@ -431,6 +461,7 @@ static int cleanup(struct sr_output *o)
 
 	outc = o->priv;
 	g_variant_unref(options[0].def);
+	g_free(outc->analog_index_map);
 	g_free(outc->filename);
 	g_free(outc);
 	o->priv = NULL;
