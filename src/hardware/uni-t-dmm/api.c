@@ -194,9 +194,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-
 	devc->cb_data = cb_data;
-
 	devc->starttime = g_get_monotonic_time();
 
 	std_session_send_df_header(sdi, LOG_PREFIX);

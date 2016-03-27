@@ -358,8 +358,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	if (!(devc = sdi->priv))
-		return SR_ERR_BUG;
+	devc = sdi->priv;
 
 	if (!devc->ftdic)
 		return SR_ERR_BUG;

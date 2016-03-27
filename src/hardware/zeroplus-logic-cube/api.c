@@ -512,8 +512,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -538,10 +537,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	devc = sdi->priv;
 
 	if (analyzer_add_triggers(sdi) != SR_OK) {
 		sr_err("Failed to configure triggers.");

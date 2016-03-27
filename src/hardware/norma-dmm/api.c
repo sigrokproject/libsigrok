@@ -254,12 +254,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (!sdi || !cb_data || !(devc = sdi->priv))
-		return SR_ERR_BUG;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	devc = sdi->priv;
 	devc->cb_data = cb_data;
 
 	std_session_send_df_header(cb_data, LOG_PREFIX);

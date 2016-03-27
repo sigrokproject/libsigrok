@@ -463,8 +463,7 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-		void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;

@@ -352,7 +352,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-
 	serial = sdi->conn;
 
 	/* Send the 'monitor <ms>' command (doesn't have a reply). */
