@@ -790,7 +790,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (hantek_6xxx_init(sdi) != SR_OK)
 		return SR_ERR;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	devc->samp_received = 0;

@@ -438,7 +438,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {

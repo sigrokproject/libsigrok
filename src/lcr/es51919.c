@@ -927,7 +927,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
 	dev_limit_counter_start(&devc->frame_count);
 	dev_time_counter_start(&devc->time_count);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Poll every 50ms, or whenever some data comes in. */

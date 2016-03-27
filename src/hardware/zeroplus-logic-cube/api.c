@@ -578,7 +578,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	sr_info("Ramsize trigger    = 0x%x.", ramsize_trigger);
 	sr_info("Memory size        = 0x%x.", memory_size);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Check for empty capture */

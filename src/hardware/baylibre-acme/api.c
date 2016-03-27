@@ -392,7 +392,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_session_source_add_channel(sdi->session, devc->channel,
 		G_IO_IN | G_IO_ERR, 1000, bl_acme_receive_data, (void *)sdi);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 	devc->start_time = g_get_monotonic_time();
 

@@ -356,7 +356,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_dbg("Starting log retrieval.");
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;

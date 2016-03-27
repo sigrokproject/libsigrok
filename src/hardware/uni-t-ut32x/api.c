@@ -303,7 +303,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	if (!(devc->xfer = libusb_alloc_transfer(0)))

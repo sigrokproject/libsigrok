@@ -218,7 +218,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->num_samples = 0;
 	devc->starttime = g_get_monotonic_time();
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Poll every 500ms, or whenever some data comes in. */

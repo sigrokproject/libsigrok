@@ -573,10 +573,9 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	}
 	ret = submit_request(sdi, STATE_START_CAPTURE);
 
-	if (ret == SR_OK) {
-		/* Send header packet to the session bus. */
+	if (ret == SR_OK)
 		ret = std_session_send_df_header(sdi, LOG_PREFIX);
-	}
+
 	if (ret != SR_OK) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 		clear_acquisition_state(sdi);

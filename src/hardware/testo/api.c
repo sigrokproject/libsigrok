@@ -470,7 +470,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->num_samples = 0;
 	devc->reply_size = 0;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,

@@ -757,7 +757,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			hmo_receive_data, (void *)sdi);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	devc->current_channel = devc->enabled_channels;

@@ -868,7 +868,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_session_source_add(sdi->session, -1, 0, 100,
 			prepare_data, (struct sr_dev_inst *)sdi);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* We use this timestamp to decide how many more samples to send. */

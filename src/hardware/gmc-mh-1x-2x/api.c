@@ -476,7 +476,6 @@ static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi,
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Start timer, if required. */
@@ -507,7 +506,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi,
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Start timer, if required. */

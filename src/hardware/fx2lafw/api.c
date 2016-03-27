@@ -739,7 +739,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	else
 		devc->send_data_proc = la_send_data_proc;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	return SR_OK;

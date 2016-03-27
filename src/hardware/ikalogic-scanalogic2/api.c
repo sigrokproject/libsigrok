@@ -466,7 +466,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_dbg("Acquisition started successfully.");
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	devc->next_state = STATE_SAMPLE;

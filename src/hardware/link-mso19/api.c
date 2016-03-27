@@ -446,7 +446,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Reset trigger state. */
 	devc->trigger_state = 0x00;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Our first channel is analog, the other 8 are of type 'logic'. */

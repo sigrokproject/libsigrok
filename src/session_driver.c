@@ -367,7 +367,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* freewheeling source */

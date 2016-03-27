@@ -689,7 +689,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* Hook up a dummy handler to receive data from the device. */

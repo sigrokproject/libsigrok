@@ -570,7 +570,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	/* If the device stops sending for longer than it takes to send a byte,

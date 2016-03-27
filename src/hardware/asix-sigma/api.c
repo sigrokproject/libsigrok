@@ -400,7 +400,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	devc->cb_data = cb_data;
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Add capture source. */

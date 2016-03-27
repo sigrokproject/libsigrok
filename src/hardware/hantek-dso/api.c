@@ -993,7 +993,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->dev_state = CAPTURE;
 	usb_source_add(sdi->session, drvc->sr_ctx, TICK, handle_event, (void *)sdi);
 
-	/* Send header packet to the session bus. */
 	std_session_send_df_header(cb_data, LOG_PREFIX);
 
 	return SR_OK;
