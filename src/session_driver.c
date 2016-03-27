@@ -127,8 +127,13 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 
 	buf = g_malloc(CHUNKSIZE);
 
-	ret = zip_fread(vdev->capfile, buf,
-			CHUNKSIZE / vdev->unitsize * vdev->unitsize);
+	/* unitsize is not defined for purely analog session files. */
+	if (vdev->unitsize)
+		ret = zip_fread(vdev->capfile, buf,
+				CHUNKSIZE / vdev->unitsize * vdev->unitsize);
+	else
+		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
+
 	if (ret > 0) {
 		got_data = TRUE;
 		if (vdev->cur_analog_channel != 0) {

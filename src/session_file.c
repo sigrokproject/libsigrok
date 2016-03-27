@@ -212,6 +212,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 	int unitsize;
 	char **sections, **keys, *val;
 	char channelname[SR_MAX_CHANNELNAME_LEN + 1];
+	gboolean file_has_logic;
 
 	if ((ret = sr_sessionfile_check(filename)) != SR_OK)
 		return ret;
@@ -235,6 +236,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 
 	error = NULL;
 	ret = SR_OK;
+	file_has_logic = FALSE;
 	sections = g_key_file_get_groups(kf, NULL);
 	for (i = 0; sections[i] && ret == SR_OK; i++) {
 		if (!strcmp(sections[i], "global"))
@@ -261,6 +263,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 				sr_config_set(sdi, NULL, SR_CONF_CAPTUREFILE,
 						g_variant_new_string(val));
 				g_free(val);
+				file_has_logic = TRUE;
 			}
 			g_clear_error(&error);
 
@@ -277,7 +280,7 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 					g_free(val);
 					sr_config_set(sdi, NULL, SR_CONF_SAMPLERATE,
 							g_variant_new_uint64(tmp_u64));
-				} else if (!strcmp(keys[j], "unitsize")) {
+				} else if (!strcmp(keys[j], "unitsize") && file_has_logic) {
 					unitsize = g_key_file_get_integer(kf, sections[i],
 							keys[j], &error);
 					if (!sdi || unitsize <= 0 || error) {
