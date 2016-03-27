@@ -53,7 +53,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	if (sdi->status == SR_ST_STOPPING) {
 		libusb_free_transfer(devc->xfer);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(cb_data, LOG_PREFIX);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 		sdi->status = SR_ST_ACTIVE;
 		return TRUE;
 	}
@@ -69,8 +69,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 			if (ret != 0 || len != 1) {
 				sr_dbg("Failed to request new acquisition: %s",
 						libusb_error_name(ret));
-				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-						devc->cb_data);
+				sdi->driver->dev_acquisition_stop(sdi);
 				return TRUE;
 			}
 			libusb_submit_transfer(devc->xfer);
@@ -91,8 +90,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 		if (ret != 0 || len != 4) {
 			sr_dbg("Failed to request next chunk: %s",
 					libusb_error_name(ret));
-			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-					devc->cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 		libusb_submit_transfer(devc->xfer);
@@ -119,8 +117,7 @@ static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf
 	analog.data = buf;
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
-
+	sr_session_send(sdi, &packet);
 }
 
 SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer *transfer)
@@ -137,8 +134,7 @@ SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
 		/* USB device was unplugged. */
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-				devc->cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
@@ -159,8 +155,7 @@ SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer
 			send_data(sdi, fvalue, 1);
 			devc->num_samples++;
 			if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-						devc->cb_data);
+				sdi->driver->dev_acquisition_stop(sdi);
 			} else {
 				/* let USB event handler fire off another
 				 * request when the time is right. */
@@ -180,8 +175,7 @@ SR_PRIV void LIBUSB_CALL kecheng_kc_330b_receive_transfer(struct libusb_transfer
 			send_data(sdi, fvalue, 1);
 			devc->num_samples += num_samples;
 			if (devc->num_samples >= devc->stored_samples) {
-				sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-						devc->cb_data);
+				sdi->driver->dev_acquisition_stop(sdi);
 			} else {
 				/* let USB event handler fire off another
 				 * request when the time is right. */

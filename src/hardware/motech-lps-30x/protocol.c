@@ -181,12 +181,12 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 
 	/* If number of samples or time limit reached, stop acquisition. */
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 
 	if (devc->limit_msec) {
 		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
 		if ((elapsed_s * 1000) >= devc->limit_msec)
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 	/* Only request the next packet if required. */

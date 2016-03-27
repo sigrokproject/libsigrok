@@ -933,7 +933,7 @@ SR_PRIV void LIBUSB_CALL logic16_receive_transfer(struct libusb_transfer *transf
 			logic.length = new_samples * 2;
 			logic.unitsize = 2;
 			logic.data = devc->convbuffer;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			devc->sent_samples += new_samples;
 		} else {
 			trigger_offset = soft_trigger_logic_check(devc->stl,
@@ -949,7 +949,7 @@ SR_PRIV void LIBUSB_CALL logic16_receive_transfer(struct libusb_transfer *transf
 				logic.length = num_samples * 2;
 				logic.unitsize = 2;
 				logic.data = devc->convbuffer + trigger_offset * 2;
-				sr_session_send(devc->cb_data, &packet);
+				sr_session_send(sdi, &packet);
 				devc->sent_samples += num_samples;
 
 				devc->trigger_fired = TRUE;

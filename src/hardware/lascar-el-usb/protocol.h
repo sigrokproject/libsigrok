@@ -41,7 +41,6 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	void *cb_data;
 	const struct elusb_profile *profile;
 	/* Generic EL-USB */
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
@@ -80,6 +79,6 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi);
-SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 #endif

@@ -416,13 +416,13 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	logic.length = 1024;
 	logic.unitsize = 1;
 	logic.data = logic_out;
-	sr_session_send(cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	devc->num_samples += 1024;
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi, sdi);
 	}
 
 	return TRUE;

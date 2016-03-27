@@ -169,13 +169,11 @@ static void process_packet(const struct sr_dev_inst *sdi)
 
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	devc->num_samples++;
 	if (devc->num_samples >= devc->limit_samples)
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-				devc->cb_data);
-
+		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
 SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)

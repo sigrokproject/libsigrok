@@ -161,18 +161,14 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	devc = sdi->priv;
-	devc->cb_data = cb_data;
-
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Poll every 500ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -182,9 +178,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
+	return std_serial_dev_acquisition_stop(sdi, sdi, std_serial_dev_close,
 			sdi->conn, LOG_PREFIX);
 }
 

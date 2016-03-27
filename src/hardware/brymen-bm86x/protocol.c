@@ -330,7 +330,7 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached, stopping.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -338,7 +338,7 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 		time = (g_get_monotonic_time() - devc->start_time) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached, stopping.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

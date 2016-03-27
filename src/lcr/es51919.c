@@ -415,9 +415,6 @@ static const char *const models[] = {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** Opaque pointer passed in by the frontend. */
-	void *cb_data;
-
 	/** The number of frames. */
 	struct dev_limit_counter frame_count;
 
@@ -595,11 +592,7 @@ static gboolean packet_valid(const uint8_t *pkt)
 static int do_config_update(struct sr_dev_inst *sdi, uint32_t key,
 			    GVariant *var)
 {
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	return send_config_update_key(devc->cb_data, key, var);
+	return send_config_update_key(sdi, key, var);
 }
 
 static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
@@ -654,14 +647,14 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	if (analog.mq >= 0) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			frame = TRUE;
 		}
 
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 	}
 
 	g_slist_free(analog.channels);
@@ -671,21 +664,21 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	if (analog.mq >= 0) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			frame = TRUE;
 		}
 
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 	}
 
 	g_slist_free(analog.channels);
 
 	if (frame) {
 		packet.type = SR_DF_FRAME_END;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		dev_limit_counter_inc(&devc->frame_count);
 	}
 }
@@ -729,7 +722,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (dev_limit_counter_limit_reached(&devc->frame_count) ||
 	    dev_time_limit_reached(&devc->time_count))
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -910,8 +903,7 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
-					     void *cb_data)
+SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -922,12 +914,10 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
 	if (!(devc = sdi->priv))
 		return SR_ERR_BUG;
 
-	devc->cb_data = cb_data;
-
 	dev_limit_counter_start(&devc->frame_count);
 	dev_time_counter_start(&devc->time_count);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -937,9 +927,8 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi,
-					    void *cb_data)
+SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data,
+	return std_serial_dev_acquisition_stop(sdi, sdi,
 			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }

@@ -47,7 +47,7 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static void clear_helper(void *priv)
 {
@@ -92,7 +92,6 @@ static int add_device(int model, struct libusb_device_descriptor *des,
 	devc->cur_samplerate = 0; /* Set later (different for LA8/LA16). */
 	devc->limit_msec = 0;
 	devc->limit_samples = 0;
-	devc->cb_data = NULL;
 	memset(devc->mangled_buf, 0, BS);
 	devc->final_buf = NULL;
 	devc->trigger_pattern = 0x0000; /* Irrelevant, see trigger_mask. */
@@ -478,7 +477,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	/* Get one block of data. */
 	if ((ret = cv_read_block(devc)) < 0) {
 		sr_err("Failed to read data block: %d.", ret);
-		dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi);
 		return FALSE;
 	}
 
@@ -499,14 +498,14 @@ static int receive_data(int fd, int revents, void *cb_data)
 	 * full 8MByte first, only then the whole buffer contains valid data.
 	 */
 	for (i = 0; i < NUM_BLOCKS; i++)
-		cv_send_block_to_session_bus(devc, i);
+		cv_send_block_to_session_bus(sdi, i);
 
-	dev_acquisition_stop(sdi, sdi);
+	dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint8_t buf[8];
@@ -562,8 +561,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_dbg("Hardware acquisition started successfully.");
 
-	devc->cb_data = cb_data;
-
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Time when we should be done (for detecting trigger timeouts). */
@@ -578,10 +575,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi, LOG_PREFIX);

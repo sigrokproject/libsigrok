@@ -52,9 +52,6 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t limit_msec;
 
-	/* Opaque pointer passed in by the frontend. */
-	void *cb_data;
-
 	/* Runtime. */
 	uint64_t num_samples;
 	char buf[FLUKEDMM_BUFSIZE];

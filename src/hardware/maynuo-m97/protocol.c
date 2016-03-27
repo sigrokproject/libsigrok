@@ -178,7 +178,7 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 	devc->expecting_registers = 0;
 	if (sr_modbus_read_holding_registers(modbus, -1, 4, registers) == SR_OK) {
 		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 
 		maynuo_m97_session_send_value(sdi, sdi->channels->data,
 		                              RBFL(registers + 0),
@@ -188,13 +188,13 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 		                              SR_MQ_CURRENT, SR_UNIT_AMPERE);
 
 		packet.type = SR_DF_FRAME_END;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		devc->num_samples++;
 	}
 
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -202,7 +202,7 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 		t = (g_get_monotonic_time() - devc->starttime) / 1000;
 		if (t > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

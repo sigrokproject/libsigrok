@@ -130,7 +130,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 			analog.data = &temp;
 			packet.type = SR_DF_ANALOG_OLD;
 			packet.payload = &analog;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			g_slist_free(analog.channels);
 		}
 	}
@@ -140,8 +140,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 	 * memory slots come through as "----" measurements. */
 	devc->num_samples++;
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-				devc->cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 }
@@ -218,7 +217,7 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_header(cb_data, LOG_PREFIX);
+		std_session_send_df_header(sdi, LOG_PREFIX);
 
 		/* Tell the device to stop sending USB packets. */
 		usb = sdi->conn;

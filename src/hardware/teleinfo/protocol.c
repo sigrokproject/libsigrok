@@ -58,12 +58,10 @@ static struct sr_channel *teleinfo_find_channel(struct sr_dev_inst *sdi,
 static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_name,
                                 float value, int mq, int unit)
 {
-	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog_old analog;
 	struct sr_channel *ch;
 
-	devc = sdi->priv;
 	ch = teleinfo_find_channel(sdi, channel_name);
 
 	if (!ch || !ch->enabled)
@@ -78,7 +76,7 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->session_cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	g_slist_free(analog.channels);
 }
 
@@ -221,7 +219,7 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -229,7 +227,7 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 		time = (g_get_monotonic_time() - devc->start_time) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

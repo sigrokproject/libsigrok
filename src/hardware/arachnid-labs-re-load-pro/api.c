@@ -340,13 +340,11 @@ static int config_set(uint32_t key, GVariant *data,
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	int ret;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -366,7 +364,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			  reloadpro_receive_data, (void *)sdi);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	memset(devc->buf, 0, RELOADPRO_BUFSIZE);
 	devc->buflen = 0;
@@ -376,9 +374,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data,
+	return std_serial_dev_acquisition_stop(sdi, sdi,
 		std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 

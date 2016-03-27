@@ -430,7 +430,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			else
 				analog.unit = SR_UNIT_CELSIUS;
 			analog.data = temp;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			g_slist_free(analog.channels);
 		}
 
@@ -440,7 +440,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			analog.mq = SR_MQ_RELATIVE_HUMIDITY;
 			analog.unit = SR_UNIT_PERCENTAGE;
 			analog.data = rh;
-			sr_session_send(devc->cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			g_slist_free(analog.channels);
 		}
 
@@ -463,7 +463,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			if (analog.data[i] < 0.0)
 				analog.data[i] = 0.0;
 		}
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_free(analog.data);
 		break;
 	default:
@@ -487,7 +487,7 @@ SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(cb_data, LOG_PREFIX);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 	}
 
 	memset(&tv, 0, sizeof(struct timeval));
@@ -511,7 +511,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
@@ -530,7 +530,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 				devc->rcvd_bytes, devc->log_size,
 				devc->rcvd_samples, devc->logged_samples);
 		if (devc->rcvd_bytes >= devc->log_size)
-			dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi);
 	}
 
 	if (sdi->status == SR_ST_ACTIVE) {
@@ -540,7 +540,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so

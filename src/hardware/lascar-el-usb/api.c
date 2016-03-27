@@ -323,7 +323,7 @@ static int lascar_proc_config(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
 	struct sr_datafeed_packet packet;
@@ -349,26 +349,25 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
-	devc->cb_data = cb_data;
 
 	if (lascar_proc_config(sdi) != SR_OK)
 		return SR_ERR;
 
 	sr_dbg("Starting log retrieval.");
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
 	src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, g_variant_new_uint64(interval));
 	meta.config = g_slist_append(NULL, src);
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	g_free(src);
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */
-		std_session_send_df_end(devc->cb_data, LOG_PREFIX);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 		return SR_OK;
 	}
 
@@ -434,7 +433,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	buf = g_malloc(4096);
 	libusb_fill_bulk_transfer(xfer_in, usb->devhdl, LASCAR_EP_IN,
-			buf, 4096, lascar_el_usb_receive_transfer, cb_data, 100);
+			buf, 4096, lascar_el_usb_receive_transfer,
+			(struct sr_dev_inst *)sdi, 100);
 	if ((ret = libusb_submit_transfer(xfer_in) != 0)) {
 		sr_err("Unable to submit transfer: %s.", libusb_error_name(ret));
 		libusb_free_transfer(xfer_in);
@@ -445,10 +445,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	(void)cb_data;
 
 	if (!di->context) {
 		sr_err("Driver was not initialized.");

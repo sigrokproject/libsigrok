@@ -512,7 +512,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -574,11 +574,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_info("Ramsize trigger    = 0x%x.", ramsize_trigger);
 	sr_info("Memory size        = 0x%x.", memory_size);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Check for empty capture */
 	if ((status & STATUS_READY) && !stop_address) {
-		std_session_send_df_end(cb_data, LOG_PREFIX);
+		std_session_send_df_end(sdi, LOG_PREFIX);
 		return SR_OK;
 	}
 
@@ -661,7 +661,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			logic.length = (trigger_offset - samples_read) * 4;
 			logic.unitsize = 4;
 			logic.data = buf + buf_offset;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 			len -= logic.length;
 			samples_read += logic.length / 4;
 			buf_offset += logic.length;
@@ -671,7 +671,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 			/* Send out trigger */
 			packet.type = SR_DF_TRIGGER;
 			packet.payload = NULL;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 
 		/* Send out data (or data after trigger) */
@@ -680,24 +680,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		logic.length = len;
 		logic.unitsize = 4;
 		logic.data = buf + buf_offset;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		samples_read += len / 4;
 	}
 	analyzer_read_stop(usb->devhdl);
 	g_free(buf);
 
-	std_session_send_df_end(cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }
 
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
-	std_session_send_df_end(cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	if (!(devc = sdi->priv)) {
 		sr_err("%s: sdi->priv was NULL", __func__);

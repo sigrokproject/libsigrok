@@ -337,18 +337,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 #define BUFUNIT_TIMEOUT_MS(devc)	(100 + ((devc->bufunitsize * 1000) / \
 				(uint32_t)(devc->cur_samplerate)))
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_trigger *trigger;
 
-	(void)cb_data;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
-
-	/* Save user pointer */
-	devc->cb_data = cb_data;
 
 	/* Clear capture state */
 	devc->bytes_read = 0;
@@ -370,7 +365,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->trigger_fired = FALSE;
 	} else
 		devc->trigger_fired = TRUE;
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Trigger and add poll on file */
 	beaglelogic_start(devc);
@@ -381,11 +376,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

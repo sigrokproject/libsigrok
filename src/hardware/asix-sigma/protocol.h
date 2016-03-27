@@ -218,7 +218,6 @@ struct dev_context {
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;
-	void *cb_data;
 };
 
 extern SR_PRIV const uint64_t samplerates[];

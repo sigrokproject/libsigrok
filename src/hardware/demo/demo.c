@@ -177,7 +177,7 @@ static const uint8_t pattern_sigrok[] = {
 
 SR_PRIV struct sr_dev_driver demo_driver_info;
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
@@ -757,7 +757,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	if (devc->cur_samplerate <= 0 || devc->logic_unitsize <= 0
 			|| (devc->num_logic_channels <= 0
 			&& devc->num_analog_channels <= 0)) {
-		dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi);
 		return G_SOURCE_CONTINUE;
 	}
 
@@ -841,19 +841,17 @@ static int prepare_data(int fd, int revents, void *cb_data)
 			}
 		}
 		sr_dbg("Requested number of samples reached.");
-		dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi);
 	}
 
 	return G_SOURCE_CONTINUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	GHashTableIter iter;
 	void *value;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -877,10 +875,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi, LOG_PREFIX);

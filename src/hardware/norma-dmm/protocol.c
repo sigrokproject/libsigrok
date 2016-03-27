@@ -366,7 +366,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	memset(&packet, 0, sizeof(struct sr_datafeed_packet));
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	/* Finish processing. */
 	devc->num_samples++;
@@ -414,14 +414,14 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 	/* If number of samples or time limit reached, stop acquisition. */
 	terminating = FALSE;
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		terminating = TRUE;
 	}
 
 	if (devc->limit_msec) {
 		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
 		if ((elapsed_s * 1000) >= devc->limit_msec) {
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			terminating = TRUE;
 		}
 	}

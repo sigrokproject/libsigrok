@@ -921,7 +921,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
@@ -1031,7 +1031,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			rigol_ds_receive, (void *)sdi);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	devc->channel_entry = devc->enabled_channels;
 
@@ -1040,17 +1040,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Start of first frame. */
 	packet.type = SR_DF_FRAME_BEGIN;
-	sr_session_send(cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-
-	(void)cb_data;
 
 	devc = sdi->priv;
 

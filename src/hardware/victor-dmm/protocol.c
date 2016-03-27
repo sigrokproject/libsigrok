@@ -262,7 +262,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	devc->num_samples++;
 }

@@ -457,11 +457,9 @@ static int config_list(uint32_t key, GVariant **data,
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	devc = sdi->priv;
 
@@ -472,8 +470,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_BUG;
 
 	ftdi_set_bitmode(devc->ftdic, 0, BITMODE_BITBANG);
-
-	devc->cb_data = cb_data;
 
 	/* Properly reset internal variables before every new acquisition. */
 	devc->samples_sent = 0;
@@ -488,10 +484,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 

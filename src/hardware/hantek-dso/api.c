@@ -162,7 +162,7 @@ static const char *coupling[] = {
 
 SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 {
@@ -755,7 +755,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 			analog.data[data_offset++] = ch2;
 		}
 	}
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	g_free(analog.data);
 }
 
@@ -844,7 +844,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 		/* Mark the end of this frame. */
 		packet.type = SR_DF_FRAME_END;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 
 		if (devc->limit_frames && ++devc->num_frames == devc->limit_frames) {
 			/* Terminate session */
@@ -967,7 +967,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_dev_driver *di = sdi->driver;
@@ -977,7 +977,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->cb_data = cb_data;
 
 	if (configure_channels(sdi) != SR_OK) {
 		sr_err("Failed to configure channels.");
@@ -993,16 +992,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->dev_state = CAPTURE;
 	usb_source_add(sdi->session, drvc->sr_ctx, TICK, handle_event, (void *)sdi);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;

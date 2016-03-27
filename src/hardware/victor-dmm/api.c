@@ -33,7 +33,7 @@
 #define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
 
 SR_PRIV struct sr_dev_driver victor_dmm_driver_info;
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
@@ -292,14 +292,14 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc = sdi->priv;
 	if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi, sdi);
+		dev_acquisition_stop(sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		sr_dbg("Got %d-byte packet.", transfer->actual_length);
 		if (transfer->actual_length == DMM_DATA_SIZE) {
 			victor_dmm_receive_data(sdi, transfer->buffer);
 			if (devc->limit_samples) {
 				if (devc->num_samples >= devc->limit_samples)
-					dev_acquisition_stop(sdi, sdi);
+					dev_acquisition_stop(sdi);
 			}
 		}
 	}
@@ -313,7 +313,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
@@ -343,7 +343,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	if (devc->limit_msec) {
 		now = g_get_monotonic_time() / 1000;
 		if (now > devc->end_time)
-			dev_acquisition_stop(sdi, sdi);
+			dev_acquisition_stop(sdi);
 	}
 
 	if (sdi->status == SR_ST_STOPPING) {
@@ -359,10 +359,9 @@ static int handle_events(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	struct dev_context *devc;
 	struct drv_context *drvc = di->context;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
@@ -377,11 +376,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	devc = sdi->priv;
 	usb = sdi->conn;
-	devc->cb_data = cb_data;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			handle_events, (void *)sdi);
@@ -394,7 +391,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	 * handling above. */
 	libusb_fill_interrupt_transfer(transfer, usb->devhdl,
 			VICTOR_ENDPOINT, buf, DMM_DATA_SIZE, receive_transfer,
-			cb_data, 100);
+			(struct sr_dev_inst *)sdi, 100);
 	if ((ret = libusb_submit_transfer(transfer) != 0)) {
 		sr_err("Unable to submit transfer: %s.", libusb_error_name(ret));
 		libusb_free_transfer(transfer);
@@ -405,10 +402,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	(void)cb_data;
 
 	if (!di->context) {
 		sr_err("Driver was not initialized.");

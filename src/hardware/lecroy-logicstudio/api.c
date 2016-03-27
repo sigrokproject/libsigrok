@@ -498,7 +498,7 @@ static int receive_usb_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	drvc = (struct drv_context *) cb_data;
+	drvc = (struct drv_context *)cb_data;
 
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
@@ -509,7 +509,7 @@ static int receive_usb_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
 	int ret;
@@ -522,16 +522,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if ((ret = lls_start_acquisition(sdi)) < 0)
 		return ret;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	return usb_source_add(sdi->session, drvc->sr_ctx, 100,
 		receive_usb_data, drvc);
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 

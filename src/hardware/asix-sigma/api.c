@@ -301,7 +301,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct clockselect_50 clockselect;
@@ -398,8 +398,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	gettimeofday(&devc->start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d, devc);
 
-	devc->cb_data = cb_data;
-
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Add capture source. */
@@ -410,11 +408,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	devc = sdi->priv;
 	devc->state.state = SIGMA_IDLE;

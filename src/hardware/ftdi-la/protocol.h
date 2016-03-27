@@ -48,7 +48,6 @@ struct dev_context {
 	unsigned char *data_buf;
 	uint64_t samples_sent;
 	uint64_t bytes_received;
-	void *cb_data;
 };
 
 SR_PRIV int ftdi_la_set_samplerate(struct dev_context *devc);

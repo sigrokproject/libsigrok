@@ -336,14 +336,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
 	int ret;
 	GSList *l;
 	struct sr_channel *ch;
-
-	(void)cb_data;
 
 	vdev = sdi->priv;
 	vdev->bytes_read = 0;
@@ -375,11 +373,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct session_vdev *vdev;
 
-	(void)cb_data;
 	vdev = sdi->priv;
 
 	vdev->finished = TRUE;

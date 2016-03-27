@@ -83,8 +83,6 @@ struct dev_context {
 	int64_t req_sent_at;
 	gboolean reply_pending;
 
-	void *cb_data;
-
 	/* Operational state */
 	float current;          /**< Last current value [A] read from device. */
 	float current_max;      /**< Output current set. */

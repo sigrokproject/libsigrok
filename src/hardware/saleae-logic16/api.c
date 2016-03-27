@@ -688,7 +688,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
@@ -714,7 +714,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR;
 	}
 
-	devc->cb_data = cb_data;
 	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->cur_channel = 0;
@@ -789,7 +788,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, (void *)sdi);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	if ((ret = logic16_start_acquisition(sdi)) != SR_OK) {
 		abort_acquisition(devc);
@@ -799,11 +798,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	int ret;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

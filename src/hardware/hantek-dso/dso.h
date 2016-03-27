@@ -162,7 +162,6 @@ struct dso_profile {
 
 struct dev_context {
 	const struct dso_profile *profile;
-	void *cb_data;
 	uint64_t limit_frames;
 	uint64_t num_frames;
 	GSList *enabled_channels;

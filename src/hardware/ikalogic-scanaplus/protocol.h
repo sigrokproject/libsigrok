@@ -43,8 +43,6 @@ struct dev_context {
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
-	void *cb_data;
-
 	uint8_t *compressed_buf;
 	uint64_t compressed_bytes_ignored;
 	uint8_t *sample_buf;

@@ -767,10 +767,8 @@ static int config_list(uint32_t key, GVariant **data,
  * configured trigger conditions are met, or immediately if no triggers
  * are configured.
  */
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
@@ -781,11 +779,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 /* Request that a running capture operation be stopped.
  */
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	devc = sdi->priv;
 

@@ -158,8 +158,7 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
 			receive_transfer, (void *)sdi, 100);
 	if ((ret = libusb_submit_transfer(devc->out_transfer) != 0)) {
 		sr_err("Failed to request packet: %s.", libusb_error_name(ret));
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi,
-				devc->cb_data);
+		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
 		return SR_ERR;
 	}
 	sr_dbg("Requested new packet.");

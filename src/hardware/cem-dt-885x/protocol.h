@@ -104,7 +104,6 @@ struct dev_context {
 	gboolean enable_data_source_memory;
 
 	/* Temporary state across callbacks */
-	void *cb_data;
 	unsigned char cmd;
 	unsigned char token;
 	int buf_len;

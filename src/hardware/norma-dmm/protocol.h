@@ -64,9 +64,6 @@ struct dev_context {
 	uint64_t limit_samples;	/**< Target number of samples */
 	uint64_t limit_msec;	/**< Target sampling time */
 
-	/* Opaque pointer passed in by frontend. */
-	void *cb_data;
-
 	/* Operational state */
 	int last_req;			/**< Last request. */
 	int64_t req_sent_at;		/**< Request sent. */

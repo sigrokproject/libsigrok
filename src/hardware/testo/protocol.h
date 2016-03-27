@@ -59,7 +59,6 @@ struct dev_context {
 	/* Acquisition settings */
 	uint64_t limit_msec;
 	uint64_t limit_samples;
-	void *cb_data;
 
 	/* Operational state */
 	gint64 end_time;

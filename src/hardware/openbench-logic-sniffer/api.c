@@ -463,7 +463,7 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -569,21 +569,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* If the device stops sending for longer than it takes to send a byte,
 	 * that means it's finished. But wait at least 100 ms to be safe.
 	 */
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-			ols_receive_data, cb_data);
+			ols_receive_data, (struct sr_dev_inst *)sdi);
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	abort_acquisition(sdi);
 
 	return SR_OK;

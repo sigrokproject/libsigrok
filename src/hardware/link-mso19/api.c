@@ -391,7 +391,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret = SR_ERR;
@@ -446,22 +446,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	/* Reset trigger state. */
 	devc->trigger_state = 0x00;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Our first channel is analog, the other 8 are of type 'logic'. */
 	/* TODO. */
 
 	serial_source_add(sdi->session, devc->serial, G_IO_IN, -1,
-			mso_receive_data, cb_data);
+			mso_receive_data, sdi);
 
 	return SR_OK;
 }
 
 /* This stops acquisition on ALL devices, ignoring dev_index. */
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	stop_acquisition(sdi);
 
 	return SR_OK;

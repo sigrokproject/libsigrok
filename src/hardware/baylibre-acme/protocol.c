@@ -750,7 +750,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	 */
 	for (i = 0; i < nrexpiration; i++) {
 		framep.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(cb_data, &framep);
+		sr_session_send(sdi, &framep);
 
 		/*
 		 * Due to different units used in each channel we're sending
@@ -773,18 +773,18 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 				chp->val = read_sample(ch);
 
 			analog.data = &chp->val;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 
 		framep.type = SR_DF_FRAME_END;
-		sr_session_send(cb_data, &framep);
+		sr_session_send(sdi, &framep);
 	}
 
 	devc->samples_read++;
 	if (devc->limit_samples > 0 &&
 	    devc->samples_read >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		devc->last_sample_fin = g_get_monotonic_time();
 		return TRUE;
 	} else if (devc->limit_msec > 0) {
@@ -793,7 +793,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 
 		if (elapsed_time >= devc->limit_msec) {
 			sr_info("Sampling time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			devc->last_sample_fin = g_get_monotonic_time();
 			return TRUE;
 		}

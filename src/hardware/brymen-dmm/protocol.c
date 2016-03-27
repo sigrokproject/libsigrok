@@ -42,7 +42,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi)
 		/* Got a measurement. */
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		devc->num_samples++;
 	}
 }
@@ -139,7 +139,7 @@ SR_PRIV int brymen_dmm_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached, stopping.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -147,7 +147,7 @@ SR_PRIV int brymen_dmm_receive_data(int fd, int revents, void *cb_data)
 		time = (g_get_monotonic_time() - devc->starttime) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached, stopping.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

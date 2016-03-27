@@ -104,7 +104,7 @@ static void decode_packet(struct sr_dev_inst *sdi)
 	analog.data = &floatval;
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	devc->num_samples++;
 }
@@ -204,7 +204,7 @@ SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 	/* Stop acquisition if we acquired enough samples. */
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 	return TRUE;

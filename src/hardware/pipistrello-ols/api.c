@@ -535,7 +535,7 @@ static int disable_trigger(const struct sr_dev_inst *sdi, int stage)
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint32_t samplecount, readcount, delaycount;
@@ -688,16 +688,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Hook up a dummy handler to receive data from the device. */
 	sr_session_source_add(sdi->session, -1, 0, 10, p_ols_receive_data,
-			cb_data);
+				(struct sr_dev_inst *)sdi);
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -712,7 +712,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_session_source_remove(sdi->session, -1);
 
-	std_session_send_df_end(cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	return SR_OK;
 }

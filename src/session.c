@@ -365,8 +365,7 @@ SR_API int sr_session_dev_add(struct sr_session *session,
 			       sr_strerror(ret));
 			return ret;
 		}
-		if ((ret = sdi->driver->dev_acquisition_start(sdi,
-					sdi)) != SR_OK) {
+		if ((ret = sdi->driver->dev_acquisition_start(sdi)) != SR_OK) {
 			sr_err("Failed to start acquisition of device in "
 			       "running session (%s)", sr_strerror(ret));
 			return ret;
@@ -813,7 +812,7 @@ SR_API int sr_session_start(struct sr_session *session)
 	/* Have all devices start acquisition. */
 	for (l = session->devs; l; l = l->next) {
 		sdi = l->data;
-		ret = sdi->driver->dev_acquisition_start(sdi, sdi);
+		ret = sdi->driver->dev_acquisition_start(sdi);
 		if (ret != SR_OK) {
 			sr_err("Could not start %s device %s acquisition.",
 				sdi->driver->name, sdi->connection_id);
@@ -828,7 +827,7 @@ SR_API int sr_session_start(struct sr_session *session)
 		for (l = session->devs; l != lend; l = l->next) {
 			sdi = l->data;
 			if (sdi->driver->dev_acquisition_stop)
-				sdi->driver->dev_acquisition_stop(sdi, sdi);
+				sdi->driver->dev_acquisition_stop(sdi);
 		}
 		/* TODO: Handle delayed stops. Need to iterate the event
 		 * sources... */
@@ -912,7 +911,7 @@ static gboolean session_stop_sync(void *user_data)
 	for (node = session->devs; node; node = node->next) {
 		sdi = node->data;
 		if (sdi->driver && sdi->driver->dev_acquisition_stop)
-			sdi->driver->dev_acquisition_stop(sdi, sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 	return G_SOURCE_REMOVE;

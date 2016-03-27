@@ -69,8 +69,6 @@ struct dev_context {
 	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
-	void *cb_data;
-
 	/**
 	 * A buffer containing some (mangled) samples from the device.
 	 * Format: Pretty mangled-up (due to hardware reasons), see code.
@@ -137,6 +135,6 @@ SR_PRIV int cv_write(struct dev_context *devc, uint8_t *buf, int size);
 SR_PRIV int cv_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int cv_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int cv_read_block(struct dev_context *devc);
-SR_PRIV void cv_send_block_to_session_bus(struct dev_context *devc, int block);
+SR_PRIV void cv_send_block_to_session_bus(const struct sr_dev_inst *sdi, int block);
 
 #endif

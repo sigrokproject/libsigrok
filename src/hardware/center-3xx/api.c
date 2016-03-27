@@ -204,8 +204,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi,
-				    void *cb_data, int idx)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -214,11 +213,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 	devc->starttime = g_get_monotonic_time();
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Poll every 500ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -228,9 +226,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, cb_data,
+	return std_serial_dev_acquisition_stop(sdi, sdi,
 			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
@@ -251,8 +249,8 @@ static GSList *dev_list_##X(const struct sr_dev_driver *d) { \
 static int dev_clear_##X(const struct sr_dev_driver *d) { \
 	(void)d; return dev_clear(X); }
 #define HW_DEV_ACQUISITION_START(X) \
-static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi, \
-void *cb_data) { return dev_acquisition_start(sdi, cb_data, X); }
+static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
+) { return dev_acquisition_start(sdi, X); }
 
 /* Driver structs and API function wrappers */
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \

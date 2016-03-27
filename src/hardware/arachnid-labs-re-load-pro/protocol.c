@@ -266,7 +266,7 @@ SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -274,7 +274,7 @@ SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data)
 		t = (g_get_monotonic_time() - devc->starttime) / 1000;
 		if (t > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

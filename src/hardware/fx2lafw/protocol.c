@@ -385,15 +385,19 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
-SR_PRIV void mso_send_data_proc(struct dev_context *devc,
+SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 	uint8_t *data, size_t length, size_t sample_width)
 {
 	size_t i;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
 	sample_width = sample_width;
 	length /= 2;
 
 	/* Send the logic */
-	for(i = 0; i < length; i++) {
+	for (i = 0; i < length; i++) {
 		devc->logic_buffer[i]  = data[i * 2];
 		/* Rescale to -10V - +10V from 0-255. */
 		devc->analog_buffer[i] = data[i * 2 + 1] - 128.0f / 12.8f;
@@ -409,7 +413,8 @@ SR_PRIV void mso_send_data_proc(struct dev_context *devc,
 		.type = SR_DF_LOGIC,
 		.payload = &logic
 	};
-	sr_session_send(devc->cb_data, &logic_packet);
+
+	sr_session_send(sdi, &logic_packet);
 
 	const struct sr_datafeed_analog_old analog = {
 		.channels = devc->enabled_analog_channels,
@@ -424,11 +429,11 @@ SR_PRIV void mso_send_data_proc(struct dev_context *devc,
 		.type = SR_DF_ANALOG_OLD,
 		.payload = &analog
 	};
-	sr_session_send(devc->cb_data, &analog_packet);
 
+	sr_session_send(sdi, &analog_packet);
 }
 
-SR_PRIV void la_send_data_proc(struct dev_context *devc,
+SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi,
 	uint8_t *data, size_t length, size_t sample_width)
 {
 	const struct sr_datafeed_logic logic = {
@@ -442,7 +447,7 @@ SR_PRIV void la_send_data_proc(struct dev_context *devc,
 		.payload = &logic
 	};
 
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 }
 
 SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer)
@@ -512,10 +517,8 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			else
 				num_samples = cur_sample_count;
 
-			devc->send_data_proc(devc,
-						(uint8_t*)transfer->buffer,
-						num_samples * unitsize,
-						unitsize);
+			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
+				num_samples * unitsize, unitsize);
 			devc->sent_samples += num_samples;
 		}
 	} else {
@@ -528,10 +531,9 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 					num_samples > devc->limit_samples - devc->sent_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 
-			devc->send_data_proc(devc,
-						(uint8_t*)transfer->buffer + trigger_offset * unitsize,
-						num_samples * unitsize,
-						unitsize);
+			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer
+					+ trigger_offset * unitsize,
+					num_samples * unitsize, unitsize);
 			devc->sent_samples += num_samples;
 
 			devc->trigger_fired = TRUE;

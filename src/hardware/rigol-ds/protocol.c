@@ -617,8 +617,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (len == -1) {
 				sr_err("Read error, aborting capture.");
 				packet.type = SR_DF_FRAME_END;
-				sr_session_send(cb_data, &packet);
-				sdi->driver->dev_acquisition_stop(sdi, cb_data);
+				sr_session_send(sdi, &packet);
+				sdi->driver->dev_acquisition_stop(sdi);
 				return TRUE;
 			}
 			/* At slow timebases in live capture the DS2072
@@ -650,8 +650,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	if (len == -1) {
 		sr_err("Read error, aborting capture.");
 		packet.type = SR_DF_FRAME_END;
-		sr_session_send(cb_data, &packet);
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sr_session_send(sdi, &packet);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -677,7 +677,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		analog.mqflags = 0;
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);
 	} else {
 		logic.length = len;
@@ -688,7 +688,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		logic.data = devc->buffer;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 	}
 
 	if (devc->num_block_read == devc->num_block_bytes) {
@@ -707,8 +707,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		if (!sr_scpi_read_complete(scpi)) {
 			sr_err("Read should have been completed");
 			packet.type = SR_DF_FRAME_END;
-			sr_session_send(cb_data, &packet);
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sr_session_send(sdi, &packet);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 		devc->num_block_read = 0;
@@ -742,11 +742,11 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	} else {
 		/* Done with this frame. */
 		packet.type = SR_DF_FRAME_END;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 
 		if (++devc->num_frames == devc->limit_frames) {
 			/* Last frame, stop capture. */
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 		} else {
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;
@@ -755,7 +755,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 			/* Start of next frame. */
 			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 	}
 

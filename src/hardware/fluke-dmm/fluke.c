@@ -399,7 +399,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	analog.mqflags = 0;
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	devc->num_samples++;
 
 }
@@ -467,7 +467,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 		/* Got a measurement. */
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = analog;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		devc->num_samples++;
 		g_free(analog->data);
 		g_free(analog);
@@ -509,7 +509,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

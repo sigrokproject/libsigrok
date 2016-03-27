@@ -1156,11 +1156,9 @@ struct sr_dev_driver {
 	/** Close device */
 	int (*dev_close) (struct sr_dev_inst *sdi);
 	/** Begin data acquisition on the specified device. */
-	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi,
-			void *cb_data);
+	int (*dev_acquisition_start) (const struct sr_dev_inst *sdi);
 	/** End data acquisition on the specified device. */
-	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi,
-			void *cb_data);
+	int (*dev_acquisition_stop) (struct sr_dev_inst *sdi);
 
 	/* Dynamic */
 	/** Device driver context, considered private. Initialized by init(). */

@@ -46,9 +46,6 @@ struct dev_context {
 	/** The current sampling limit (in ms). */
 	uint64_t limit_msec;
 
-	/** Opaque pointer passed in by the frontend. */
-	void *cb_data;
-
 	/** The current number of already received samples. */
 	uint64_t num_samples;
 

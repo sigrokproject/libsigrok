@@ -413,7 +413,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
@@ -434,10 +434,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	devc->cb_data = cb_data;
 	devc->num_samples = 0;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
 		/* Force configuration. */
@@ -460,7 +459,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->stored_samples = (buf[7] << 8) | buf[8];
 		if (devc->stored_samples == 0) {
 			/* Notify frontend of empty log by sending start/end packets. */
-			std_session_send_df_end(cb_data, LOG_PREFIX);
+			std_session_send_df_end(sdi, LOG_PREFIX);
 			return SR_OK;
 		}
 
@@ -475,7 +474,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
 		meta.config = g_slist_append(NULL, src);
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_free(src);
 	}
 
@@ -522,11 +521,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

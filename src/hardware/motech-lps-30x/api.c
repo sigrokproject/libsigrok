@@ -796,7 +796,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -811,7 +811,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			motech_lps_30x_receive_data, (void *)sdi);
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Start timer, if required. */
 	if (devc->limit_msec)
@@ -823,7 +823,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
@@ -831,7 +831,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	if (sdi && (devc = sdi->priv) && devc->limit_msec)
 		g_timer_stop(devc->elapsed_msec);
 
-	return std_serial_dev_acquisition_stop(sdi, cb_data, std_serial_dev_close,
+	return std_serial_dev_acquisition_stop(sdi, sdi, std_serial_dev_close,
 			sdi->conn, LOG_PREFIX);
 }
 

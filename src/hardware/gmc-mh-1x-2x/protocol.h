@@ -90,9 +90,6 @@ struct dev_context {
 	uint64_t limit_samples;	/**< Target number of samples */
 	uint64_t limit_msec;	/**< Target sampling time */
 
-	/* Opaque pointer passed in by frontend. */
-	void *cb_data;
-
 	/* Operational state */
 	gboolean settings_ok;	/**< Settings msg received yet. */
 	int msg_type;       /**< Message type (MSGID_INF, ...). */

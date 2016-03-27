@@ -108,7 +108,6 @@ struct dev_context {
 	/* Acquisition settings */
 	GSList *enabled_channels;
 	uint64_t limit_frames;
-	void *cb_data;
 	enum data_source data_source;
 	uint64_t analog_frame_size;
 	uint64_t digital_frame_size;

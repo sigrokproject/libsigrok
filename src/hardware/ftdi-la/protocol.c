@@ -20,19 +20,22 @@
 #include <ftdi.h>
 #include "protocol.h"
 
-static void send_samples(struct dev_context *devc, uint64_t samples_to_send)
+static void send_samples(struct sr_dev_inst *sdi, uint64_t samples_to_send)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	struct dev_context *devc;
 
 	sr_spew("Sending %" PRIu64 " samples.", samples_to_send);
+
+	devc = sdi->priv;
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
 	logic.length = samples_to_send;
 	logic.unitsize = 1;
 	logic.data = devc->data_buf;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	devc->samples_sent += samples_to_send;
 	devc->bytes_received -= samples_to_send;
@@ -76,7 +79,7 @@ SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 	if (bytes_read < 0) {
 		sr_err("Failed to read FTDI data (%d): %s.",
 		       bytes_read, ftdi_get_error_string(devc->ftdic));
-		sdi->driver->dev_acquisition_stop(sdi, sdi);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return FALSE;
 	}
 	if (bytes_read == 0) {
@@ -89,12 +92,12 @@ SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 	n = devc->samples_sent + devc->bytes_received;
 
 	if (devc->limit_samples && (n >= devc->limit_samples)) {
-		send_samples(devc, devc->limit_samples - devc->samples_sent);
+		send_samples(sdi, devc->limit_samples - devc->samples_sent);
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	} else {
-		send_samples(devc, devc->bytes_received);
+		send_samples(sdi, devc->bytes_received);
 	}
 
 	return TRUE;

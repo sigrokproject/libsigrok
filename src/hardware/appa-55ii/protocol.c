@@ -120,7 +120,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->session_cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	g_slist_free(analog.channels);
 
 	devc->num_samples++;
@@ -172,7 +172,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
-		sr_session_send(devc->session_cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);
 
 		devc->num_samples++;
@@ -216,7 +216,7 @@ static void appa_55ii_log_end(struct sr_dev_inst *sdi)
 	if (devc->data_source != DATA_SOURCE_MEMORY)
 		return;
 
-	sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
+	sdi->driver->dev_acquisition_stop(sdi);
 }
 
 static const uint8_t *appa_55ii_parse_data(struct sr_dev_inst *sdi,
@@ -303,7 +303,7 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, devc->session_cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -311,8 +311,7 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 		time = (g_get_monotonic_time() - devc->start_time) / 1000;
 		if (time > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi,
-					devc->session_cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

@@ -472,12 +472,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				logic.unitsize = 4;
 				logic.data = devc->raw_sample_buf +
 					(devc->limit_samples - devc->num_samples) * 4;
-				sr_session_send(cb_data, &packet);
+				sr_session_send(sdi, &packet);
 			}
 
 			/* Send the trigger. */
 			packet.type = SR_DF_TRIGGER;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 
 			/* Send post-trigger samples. */
 			packet.type = SR_DF_LOGIC;
@@ -486,7 +486,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			logic.unitsize = 4;
 			logic.data = devc->raw_sample_buf + devc->trigger_at * 4 +
 				(devc->limit_samples - devc->num_samples) * 4;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		} else {
 			/* no trigger was used */
 			packet.type = SR_DF_LOGIC;
@@ -495,7 +495,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			logic.unitsize = 4;
 			logic.data = devc->raw_sample_buf +
 				(devc->limit_samples - devc->num_samples) * 4;
-			sr_session_send(cb_data, &packet);
+			sr_session_send(sdi, &packet);
 		}
 		g_free(devc->raw_sample_buf);
 

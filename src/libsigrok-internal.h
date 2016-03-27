@@ -1228,10 +1228,8 @@ SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
 SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 				       const struct sr_dev_inst *sdi,
 				       const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi,
-					     void *cb_data);
-SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi,
-					    void *cb_data);
+SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi);
+SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi);
 
 /*--- hardware/dmm/ut372.c --------------------------------------------------*/
 

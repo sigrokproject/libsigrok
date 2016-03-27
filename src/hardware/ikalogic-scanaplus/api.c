@@ -46,7 +46,7 @@ static const uint64_t samplerates[1] = { SR_MHZ(100) };
 
 SR_PRIV struct sr_dev_driver ikalogic_scanaplus_driver_info;
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static void clear_helper(void *priv)
 {
@@ -350,7 +350,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	int ret;
 	struct dev_context *devc;
@@ -364,8 +364,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_BUG;
 
 	/* TODO: Configure channels later (thresholds etc.). */
-
-	devc->cb_data = cb_data;
 
 	/* Properly reset internal variables before every new acquisition. */
 	devc->compressed_bytes_ignored = 0;
@@ -386,10 +384,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi, LOG_PREFIX);

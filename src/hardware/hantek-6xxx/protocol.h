@@ -101,7 +101,6 @@ struct hantek_6xxx_profile {
 
 struct dev_context {
 	const struct hantek_6xxx_profile *profile;
-	void *cb_data;
 	GSList *enabled_channels;
 	/*
 	 * We can't keep track of an FX2-based device after upgrading

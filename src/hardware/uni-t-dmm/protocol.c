@@ -87,7 +87,7 @@ static void decode_packet(struct sr_dev_inst *sdi, const uint8_t *buf)
 	analog.data = &floatval;
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	/* Increase sample count. */
 	devc->num_samples++;
@@ -288,14 +288,14 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 	/* Abort acquisition if we acquired enough samples. */
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 	if (devc->limit_msec) {
 		time_ms = (g_get_monotonic_time() - devc->starttime) / 1000;
 		if (time_ms > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

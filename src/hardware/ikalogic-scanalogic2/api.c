@@ -383,7 +383,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc;
@@ -398,7 +398,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc = sdi->priv;
 	drvc = di->context;
 
-	devc->cb_data = cb_data;
 	devc->wait_data_ready_locked = TRUE;
 	devc->stopping_in_progress = FALSE;
 	devc->transfer_error = FALSE;
@@ -466,17 +465,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	sr_dbg("Acquisition started successfully.");
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	devc->next_state = STATE_SAMPLE;
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)cb_data;
-
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 

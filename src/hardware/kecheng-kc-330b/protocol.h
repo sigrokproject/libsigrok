@@ -81,7 +81,6 @@ struct dev_context {
 	gboolean config_dirty;
 	uint64_t num_samples;
 	uint64_t stored_samples;
-	void *cb_data;
 	struct libusb_transfer *xfer;
 	unsigned char buf[128];
 

@@ -87,7 +87,6 @@ struct dev_context {
 	struct soft_trigger_logic *stl;
 	gboolean trigger_fired;
 
-	void *cb_data;
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
 	struct sr_context *ctx;

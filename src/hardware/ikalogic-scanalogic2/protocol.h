@@ -147,8 +147,6 @@ struct dev_context {
 	/* Time that the trigger will be delayed in milliseconds. */
 	uint16_t after_trigger_delay;
 
-	void *cb_data;
-
 	/* Array to provide an index based access to all channels. */
 	const struct sr_channel *channels[NUM_CHANNELS];
 

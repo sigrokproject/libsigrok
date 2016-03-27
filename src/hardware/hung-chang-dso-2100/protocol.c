@@ -348,7 +348,7 @@ static void push_samples(const struct sr_dev_inst *sdi, uint8_t *buf, size_t num
 	while (num--)
 		data[num] = (buf[num] - 0x80) * factor;
 
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 }
 
 static int read_subframe(const struct sr_dev_inst *sdi, uint8_t *buf)
@@ -393,7 +393,7 @@ static int read_subframe(const struct sr_dev_inst *sdi, uint8_t *buf)
 				};
 
 				push_samples(sdi, buf, 6);
-				sr_session_send(devc->cb_data, &packet);
+				sr_session_send(sdi, &packet);
 				buf += 6;
 				num -= 6;
 			}
@@ -439,7 +439,7 @@ SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	if (devc->channel) {
 		while (read_subframe(sdi, buf)) {
@@ -453,10 +453,10 @@ SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 	}
 
 	packet.type = SR_DF_FRAME_END;
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 
 	if (++devc->frame >= devc->frame_limit)
-		hung_chang_dso_2100_dev_acquisition_stop(sdi, devc->cb_data);
+		hung_chang_dso_2100_dev_acquisition_stop(sdi);
 	else
 		hung_chang_dso_2100_move_to(sdi, 0x21);
 

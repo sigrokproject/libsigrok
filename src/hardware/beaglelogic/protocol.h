@@ -59,8 +59,6 @@ struct dev_context {
 	uint32_t offset;
 	uint8_t *sample_buf;	/* mmap'd kernel buffer here */
 
-	void *cb_data;
-
 	/* Trigger logic */
 	struct soft_trigger_logic *stl;
 	gboolean trigger_fired;

@@ -27,14 +27,11 @@ extern uint64_t sl2_samplerates[NUM_SAMPLERATES];
 static void stop_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
-	struct dev_context *devc;
-
-	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
-	std_session_send_df_end(devc->cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	sdi->status = SR_ST_ACTIVE;
 }
@@ -42,14 +39,11 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 static void abort_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
-	struct dev_context *devc;
-
-	devc = sdi->priv;
 
 	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
-	std_session_send_df_end(devc->cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 
 	sdi->driver->dev_close(sdi);
 }
@@ -134,7 +128,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 			if (devc->trigger_type != TRIGGER_TYPE_NONE &&
 					devc->pre_trigger_samples == 0) {
 				packet.type = SR_DF_TRIGGER;
-				sr_session_send(devc->cb_data, &packet);
+				sr_session_send(sdi, &packet);
 			}
 		}
 
@@ -172,10 +166,10 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 				logic.length = n;
 				logic.unitsize = 1;
 				logic.data = buffer;
-				sr_session_send(devc->cb_data, &packet);
+				sr_session_send(sdi, &packet);
 
 				packet.type = SR_DF_TRIGGER;
-				sr_session_send(devc->cb_data, &packet);
+				sr_session_send(sdi, &packet);
 
 				n = 0;
 			}
@@ -188,7 +182,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 		logic.length = n;
 		logic.unitsize = 1;
 		logic.data = buffer;
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 	}
 }
 

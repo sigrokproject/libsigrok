@@ -773,7 +773,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		analog.mqflags = 0;
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);
 		g_array_free(data, TRUE);
 		data = NULL;
@@ -792,7 +792,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		logic.data = data->data;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
-		sr_session_send(cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_array_free(data, TRUE);
 		data = NULL;
 		break;
@@ -808,7 +808,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		devc->current_channel = devc->current_channel->next;
 		hmo_request_data(sdi);
 	} else if (++devc->num_frames == devc->frame_limit) {
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 	} else {
 		devc->current_channel = devc->enabled_channels;
 		hmo_request_data(sdi);

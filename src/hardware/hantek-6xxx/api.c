@@ -78,7 +78,7 @@ SR_PRIV struct sr_dev_driver hantek_6xxx_driver_info;
 
 static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data);
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile *prof)
 {
@@ -611,7 +611,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 			analog.data[data_offset++] = (ch2_bit * *(buf + i * 2 + 1) - ch2_center);
 	}
 
-	sr_session_send(devc->cb_data, &packet);
+	sr_session_send(sdi, &packet);
 	g_free(analog.data);
 }
 
@@ -699,7 +699,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			PRIu64 " <= %" PRIu64, devc->limit_samples,
 			devc->samp_received);
 		send_data(sdi, devc->sample_buf, devc->limit_samples);
-		sdi->driver->dev_acquisition_stop(sdi, NULL);
+		sdi->driver->dev_acquisition_stop(sdi);
 	} else if (devc->limit_msec && (g_get_monotonic_time() -
 			devc->aq_started) / 1000 >= devc->limit_msec) {
 		sr_info("Requested time limit reached, stopping. %d <= %d",
@@ -708,7 +708,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		send_data(sdi, devc->sample_buf, devc->samp_received);
 		g_free(devc->sample_buf);
 		devc->sample_buf = NULL;
-		sdi->driver->dev_acquisition_stop(sdi, NULL);
+		sdi->driver->dev_acquisition_stop(sdi);
 	} else {
 		read_channel(sdi, data_amount(sdi));
 	}
@@ -770,7 +770,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_dev_driver *di = sdi->driver;
@@ -780,7 +780,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->cb_data = cb_data;
 
 	if (configure_channels(sdi) != SR_OK) {
 		sr_err("Failed to configure channels.");
@@ -790,7 +789,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (hantek_6xxx_init(sdi) != SR_OK)
 		return SR_ERR;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	devc->samp_received = 0;
 	devc->dev_state = FLUSH;
@@ -805,11 +804,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	(void)cb_data;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR;

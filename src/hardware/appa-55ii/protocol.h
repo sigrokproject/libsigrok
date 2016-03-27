@@ -42,7 +42,6 @@ struct dev_context {
 	uint64_t limit_samples;   /**< The sampling limit (in number of samples). */
 	uint64_t limit_msec;      /**< The time limit (in milliseconds). */
 	gboolean data_source;     /**< Whether to read live samples or memory */
-	void *session_cb_data;    /**< Opaque pointer passed in by the frontend. */
 
 	/* Operational state */
 	uint64_t num_samples;     /**< The number of already received samples. */

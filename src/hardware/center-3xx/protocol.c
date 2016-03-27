@@ -153,7 +153,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
 		analog.channels = l;
 		analog.data = &(info.temp[i]);
-		sr_session_send(devc->cb_data, &packet);
+		sr_session_send(sdi, &packet);
 		g_slist_free(l);
 	}
 
@@ -235,7 +235,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, cb_data);
+		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -243,7 +243,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 		t = (g_get_monotonic_time() - devc->starttime) / 1000;
 		if (t > (int64_t)devc->limit_msec) {
 			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 	}

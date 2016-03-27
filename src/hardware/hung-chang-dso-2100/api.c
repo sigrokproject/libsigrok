@@ -686,7 +686,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	int ret;
@@ -702,7 +702,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 		devc->factor /= relays[(devc->cctl[devc->channel - 1] >> 4) & 0x03];
 	}
 	devc->frame = 0;
-	devc->cb_data = cb_data;
 	devc->state_known = TRUE;
 	devc->step = 0;
 	devc->adc2 = FALSE;
@@ -712,7 +711,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (ret != SR_OK)
 		return ret;
 
-	std_session_send_df_header(cb_data, LOG_PREFIX);
+	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	sr_session_source_add(sdi->session, -1, 0, 8,
 			      hung_chang_dso_2100_poll, (void *)sdi);
@@ -720,22 +719,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi,
-		void *cb_data)
+SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi)
 {
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	std_session_send_df_end(cb_data, LOG_PREFIX);
+	std_session_send_df_end(sdi, LOG_PREFIX);
 	sr_session_source_remove(sdi->session, -1);
 	hung_chang_dso_2100_move_to(sdi, 1);
 
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return hung_chang_dso_2100_dev_acquisition_stop(sdi, cb_data);
+	return hung_chang_dso_2100_dev_acquisition_stop(sdi);
 }
 
 SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info = {

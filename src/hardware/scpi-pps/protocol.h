@@ -139,9 +139,6 @@ struct dev_context {
 	/* Model-specific information */
 	const struct scpi_pps *device;
 
-	/* Acquisition settings */
-	void *cb_data;
-
 	/* Operational state */
 	gboolean beeper_was_set;
 	struct channel_spec *channels;
