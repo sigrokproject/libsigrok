@@ -234,6 +234,8 @@ SR_API int sr_session_load(struct sr_context *ctx, const char *filename,
 		return ret;
 	}
 
+	total_channels = 0;
+
 	error = NULL;
 	ret = SR_OK;
 	file_has_logic = FALSE;
