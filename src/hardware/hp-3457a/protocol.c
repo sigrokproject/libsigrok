@@ -216,9 +216,17 @@ static int calculate_num_zero_digits(double measurement, double range)
 	return zero_digits;
 }
 
+/*
+ * Until the output modules understand double precision data, we need to send
+ * the measurement as floats instead of doubles, hence, the dance with
+ * measurement_workaround double to float conversion.
+ * See bug #779 for details.
+ * The workaround should be removed once the output modules are fixed.
+ */
 static void acq_send_measurement(struct sr_dev_inst *sdi)
 {
 	double hires_measurement;
+	float measurement_workaround;
 	int zero_digits, num_digits;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -241,12 +249,13 @@ static void acq_send_measurement(struct sr_dev_inst *sdi)
 	packet.payload = &analog;
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, num_digits);
-	encoding.unitsize = sizeof(double);
+	encoding.unitsize = sizeof(float);
 
 	meaning.channels = sdi->channels;
 
+	measurement_workaround = hires_measurement;
 	analog.num_samples = 1;
-	analog.data = &hires_measurement;
+	analog.data = &measurement_workaround;
 
 	meaning.mq = devc->measurement_mq;
 	meaning.unit = devc->measurement_unit;
