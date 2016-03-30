@@ -25,7 +25,12 @@
 #include "protocol.h"
 #include "dslogic.h"
 
-#define FW_BUFSIZE (4 * 1024)
+/*
+ * This should be larger than the FPGA bitstream image so that it'll get
+ * uploaded in one big operation. There seem to be issues when uploading
+ * it in chunks.
+ */
+#define FW_BUFSIZE (1024 * 1024)
 
 #define FPGA_UPLOAD_DELAY (10 * 1000)
 
