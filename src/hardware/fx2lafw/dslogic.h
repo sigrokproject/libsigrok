@@ -32,6 +32,7 @@
 #define DS_START_FLAGS_STOP		(1 << 7)
 #define DS_START_FLAGS_CLK_48MHZ	(1 << 6)
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
+#define DS_START_FLAGS_MODE_LA		(1 << 4)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,

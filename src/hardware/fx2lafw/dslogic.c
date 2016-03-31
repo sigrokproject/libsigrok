@@ -117,7 +117,7 @@ SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
 	int ret;
 
 	devc = sdi->priv;
-	mode.flags = 0;
+	mode.flags = DS_START_FLAGS_MODE_LA;
 	mode.sample_delay_h = mode.sample_delay_l = 0;
 	if (devc->sample_wide)
 		mode.flags |= DS_START_FLAGS_SAMPLE_WIDE;
