@@ -54,6 +54,10 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 		0x04b4, 0x6022, 0x04b5, 0x6022,
 		"Hantek", "6022BE", "hantek-6022be.fw",
 	},
+	{
+		0x8102, 0x8102, 0x04b5, 0x6022,
+		"Sainsmart", "DDS120", "sainsmart-dds120.fw",
+	},
 	ALL_ZERO
 };
 
