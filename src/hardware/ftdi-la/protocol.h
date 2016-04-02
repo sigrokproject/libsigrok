@@ -17,15 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FT2232H_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_FT2232H_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_FTID_LA_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_FTID_LA_PROTOCOL_H
 
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "ft2232h"
+#define LOG_PREFIX "ftdi-la"
 
 #define DATA_BUF_SIZE (16 * 1024)
 
@@ -51,6 +51,6 @@ struct dev_context {
 	void *cb_data;
 };
 
-SR_PRIV int ft2232h_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data);
 
 #endif

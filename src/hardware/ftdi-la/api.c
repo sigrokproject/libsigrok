@@ -21,7 +21,7 @@
 #include <libusb.h>
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver ft2232h_driver_info;
+SR_PRIV struct sr_dev_driver ftdi_la_driver_info;
 
 static const uint32_t scanopts[] = {
 	/* TODO: SR_CONF_CONN to be able to specify the USB address. */
@@ -298,7 +298,7 @@ static int config_get(uint32_t key, GVariant **data,
 	return ret;
 }
 
-static int ft2232h_set_samplerate(struct dev_context *devc)
+static int ftdi_la_set_samplerate(struct dev_context *devc)
 {
 	int ret;
 
@@ -343,7 +343,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (value < 3600)
 			return SR_ERR_SAMPLERATE;
 		devc->cur_samplerate = value;
-		return ft2232h_set_samplerate(devc);
+		return ftdi_la_set_samplerate(devc);
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -412,7 +412,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	/* Hook up a dummy handler to receive data from the device. */
 	sr_session_source_add(sdi->session, -1, G_IO_IN, 0,
-			      ft2232h_receive_data, (void *)sdi);
+			      ftdi_la_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -437,9 +437,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver ft2232h_driver_info = {
-	.name = "ft2232h",
-	.longname = "FT2232H",
+SR_PRIV struct sr_dev_driver ftdi_la_driver_info = {
+	.name = "ftdi-la",
+	.longname = "FTDI LA",
 	.api_version = 1,
 	.init = init,
 	.cleanup = cleanup,

@@ -269,11 +269,11 @@ libsigrok_la_SOURCES += \
 	src/hardware/fluke-dmm/fluke.c \
 	src/hardware/fluke-dmm/api.c
 endif
-if HW_FT2232H
+if HW_FTDI_LA
 libsigrok_la_SOURCES += \
-	src/hardware/ft2232h/protocol.h \
-	src/hardware/ft2232h/protocol.c \
-	src/hardware/ft2232h/api.c
+	src/hardware/ftdi-la/protocol.h \
+	src/hardware/ftdi-la/protocol.c \
+	src/hardware/ftdi-la/api.c
 endif
 if HW_FX2LAFW
 libsigrok_la_SOURCES += \

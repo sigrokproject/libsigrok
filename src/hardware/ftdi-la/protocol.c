@@ -38,7 +38,7 @@ static void send_samples(struct dev_context *devc, uint64_t samples_to_send)
 	devc->bytes_received -= samples_to_send;
 }
 
-SR_PRIV int ft2232h_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
