@@ -38,6 +38,20 @@ static void send_samples(struct dev_context *devc, uint64_t samples_to_send)
 	devc->bytes_received -= samples_to_send;
 }
 
+SR_PRIV int ftdi_la_set_samplerate(struct dev_context *devc)
+{
+	int ret;
+
+	ret = ftdi_set_baudrate(devc->ftdic,
+			devc->cur_samplerate / devc->desc->samplerate_div);
+	if (ret < 0) {
+		sr_err("Failed to set baudrate (%d): %s.", devc->cur_samplerate,
+		       ftdi_get_error_string(devc->ftdic));
+		return SR_ERR;
+	}
+	return SR_OK;
+}
+
 SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;

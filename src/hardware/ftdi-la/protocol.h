@@ -51,6 +51,7 @@ struct dev_context {
 	void *cb_data;
 };
 
+SR_PRIV int ftdi_la_set_samplerate(struct dev_context *devc);
 SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data);
 
 #endif

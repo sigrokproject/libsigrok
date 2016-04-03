@@ -298,20 +298,6 @@ static int config_get(uint32_t key, GVariant **data,
 	return ret;
 }
 
-static int ftdi_la_set_samplerate(struct dev_context *devc)
-{
-	int ret;
-
-	ret = ftdi_set_baudrate(devc->ftdic,
-			devc->cur_samplerate / devc->desc->samplerate_div);
-	if (ret < 0) {
-		sr_err("Failed to set baudrate (%d): %s.", devc->cur_samplerate,
-		       ftdi_get_error_string(devc->ftdic));
-		return SR_ERR;
-	}
-	return SR_OK;
-}
-
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
