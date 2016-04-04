@@ -43,13 +43,19 @@ static int create_front_channel(struct sr_dev_inst *sdi, int chan_idx)
 {
 	struct sr_channel *channel;
 	struct sr_channel_group *front;
+	struct channel_context *chanc;
+
+	chanc = g_malloc(sizeof(*chanc));
+	chanc->location = CONN_FRONT;
 
 	channel = sr_channel_new(sdi, chan_idx++, SR_CHANNEL_ANALOG,
 				 TRUE, "Front");
+	channel->priv = chanc;
 
 	front = g_malloc0(sizeof(*front));
 	front->name = g_strdup("Front");
 	front->channels = g_slist_append(front->channels, channel);
+
 	sdi->channel_groups = g_slist_append(sdi->channel_groups, front);
 
 	return chan_idx;
@@ -58,13 +64,40 @@ static int create_front_channel(struct sr_dev_inst *sdi, int chan_idx)
 static int create_rear_channels(struct sr_dev_inst *sdi, int chan_idx,
 				 const struct rear_card_info *card)
 {
-	(void) sdi;
+	unsigned int i;
+	struct sr_channel *channel;
+	struct sr_channel_group *group;
+	struct channel_context *chanc;
+	char name[16];
 
 	/* When card is NULL, we couldn't identify the type of card. */
 	if (!card)
 		return chan_idx;
 
-	/* TODO: Create channel descriptor for plug-in cards here. */
+	group = g_malloc0(sizeof(*group));
+	group->priv = NULL;
+	group->name = g_strdup(card->cg_name);
+	sdi->channel_groups = g_slist_append(sdi->channel_groups, group);
+
+	for (i = 0; i < card->num_channels; i++) {
+
+		chanc = g_malloc(sizeof(*chanc));
+		chanc->location = CONN_REAR;
+
+		if (card->type == REAR_TERMINALS) {
+			chanc->index = -1;
+			g_snprintf(name, sizeof(name), "%s", card->cg_name);
+		} else {
+			chanc->index = i;
+			g_snprintf(name, sizeof(name), "%s%u", card->cg_name, i);
+		}
+
+		channel = sr_channel_new(sdi, chan_idx++, SR_CHANNEL_ANALOG,
+					FALSE, name);
+		channel->priv = chanc;
+		group->channels = g_slist_append(group->channels, channel);
+	}
+
 	return chan_idx;
 }
 
@@ -199,6 +232,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
+	/* Disable scan-advance (preserve relay life). */
+	sr_scpi_send(scpi, "SADV HOLD");
 	/* Switch back to auto-triggering. */
 	sr_scpi_send(scpi, "TRIG AUTO");
 
@@ -313,6 +348,21 @@ static int config_list(uint32_t key, GVariant **data,
 	return ret;
 }
 
+static void create_channel_index_list(GSList *channels, GArray **arr)
+{
+	struct sr_channel *channel;
+	struct channel_context *chanc;
+	GSList *list_elem;
+
+	*arr = g_array_new(FALSE, FALSE, sizeof(unsigned int));
+
+	for (list_elem = channels; list_elem; list_elem = list_elem->next) {
+		channel = list_elem->data;
+		chanc = channel->priv;
+		g_array_append_val(*arr, chanc->index);
+	}
+}
+
 /*
  * TRIG SGL
  *   Trigger the first measurement, then hold. We can't let the instrument
@@ -321,12 +371,21 @@ static int config_list(uint32_t key, GVariant **data,
  *   reading for sample N, but a new measurement is made and when we read the
  *   HIRES register, it contains data for sample N+1. This would produce
  *   wrong readings.
+ * SADV AUTO
+ *   Activate the scan-advance feature. This automatically connects the next
+ *   channel in the scan list to the A/D converter. This way, we do not need to
+ *   occupy the HP-IB bus to send channel select commands.
  */
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	int ret;
+	gboolean front_selected, rear_selected;
 	struct sr_scpi_dev_inst *scpi;
+	struct sr_channel *channel;
 	struct dev_context *devc;
+	struct channel_context *chanc;
+	GArray *ch_list;
+	GSList *channels;
 
 	(void)cb_data;
 
@@ -343,6 +402,44 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
+	front_selected = rear_selected = FALSE;
+	devc->active_channels = NULL;
+
+	for (channels = sdi->channels; channels; channels = channels->next) {
+		channel = channels->data;
+
+		if (!channel->enabled)
+			continue;
+
+		chanc = channel->priv;
+
+		if (chanc->location == CONN_FRONT)
+			front_selected = TRUE;
+		if (chanc->location == CONN_REAR)
+			rear_selected = TRUE;
+
+		devc->active_channels = g_slist_append(devc->active_channels, channel);
+	}
+
+	if (front_selected && rear_selected) {
+		sr_err("Can not use front and rear channels at the same time!");
+		g_slist_free(devc->active_channels);
+		return SR_ERR_ARG;
+	}
+
+	devc->current_channel = devc->active_channels->data;
+	devc->num_active_channels = g_slist_length(devc->active_channels);
+
+	hp_3457a_select_input(sdi, front_selected ? CONN_FRONT : CONN_REAR);
+
+	/* For plug-in cards, use the scan-advance features to scan channels. */
+	if (rear_selected && (devc->rear_card->card_id != REAR_TERMINALS)) {
+		create_channel_index_list(devc->active_channels, &ch_list);
+		hp_3457a_send_scan_list(sdi, (void *)ch_list->data, ch_list->len);
+		sr_scpi_send(scpi, "SADV AUTO");
+		g_array_free(ch_list, TRUE);
+	}
+
 	/* Start first measurement. */
 	sr_scpi_send(scpi, "TRIG SGL");
 	devc->acq_state = ACQ_TRIGGERED_MEASUREMENT;
@@ -353,10 +450,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct dev_context *devc;
 	(void)cb_data;
+
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
+
+	g_slist_free(devc->active_channels);
 
 	return SR_OK;
 }

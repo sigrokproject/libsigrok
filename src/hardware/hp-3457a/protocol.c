@@ -50,16 +50,19 @@ static const struct rear_card_info rear_card_parameters[] = {
 		.card_id = 0,
 		.name = "Rear terminals",
 		.cg_name = "rear",
+		.num_channels = 1,
 	}, {
 		.type = HP_44491A,
 		.card_id = 44491,
 		.name = "44491A Armature Relay Multiplexer",
 		.cg_name = "44491a",
+		.num_channels = 14,
 	}, {
 		.type = HP_44492A,
 		.card_id = 44492,
 		.name = "44492A Reed Relay Multiplexer",
 		.cg_name = "44492a",
+		.num_channels = 10,
 	}
 };
 
@@ -108,6 +111,10 @@ SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 	size_t i;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
+
+	/* No need to send command if we're not changing measurement type. */
+	if (devc->measurement_mq == mq)
+		return SR_OK;
 
 	for (i = 0; i < ARRAY_SIZE(sr_mq_to_cmd_map); i++) {
 		if (sr_mq_to_cmd_map[i].mq != mq)
@@ -176,10 +183,57 @@ SR_PRIV int hp_3457a_set_nplc(const struct sr_dev_inst *sdi, float nplc)
 	return ret;
 }
 
+SR_PRIV int hp_3457a_select_input(const struct sr_dev_inst *sdi,
+				  enum channel_conn loc)
+{
+	int ret;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+
+	if (devc->input_loc == loc)
+		return SR_OK;
+
+	ret = sr_scpi_send(scpi, "TERM %s", (loc == CONN_FRONT) ? "FRONT": "REAR");
+	if (ret == SR_OK)
+		devc->input_loc = loc;
+
+	return ret;
+}
+
+SR_PRIV int hp_3457a_send_scan_list(const struct sr_dev_inst *sdi,
+				    unsigned int *channels, size_t len)
+{
+	size_t i;
+	char chan[16], list_str[64] = "";
+
+	for (i = 0; i < len; i++) {
+		g_snprintf(chan, sizeof(chan), ",%u", channels[i]);
+		g_strlcat(list_str, chan, sizeof(list_str));
+	}
+
+	return sr_scpi_send(sdi->conn, "SLIST %s", list_str);
+}
+
 /* HIRES register only contains valid data with 10 or more powerline cycles. */
 static int is_highres_enabled(struct dev_context *devc)
 {
 	return (devc->nplc >= 10.0);
+}
+
+static void activate_next_channel(struct dev_context *devc)
+{
+	GSList *list_elem;
+	struct sr_channel *chan;
+
+	list_elem = g_slist_find(devc->active_channels, devc->current_channel);
+	if (list_elem)
+		list_elem = list_elem->next;
+	if (!list_elem)
+		list_elem = devc->active_channels;
+
+	chan = list_elem->data;
+
+	devc->current_channel = chan;
 }
 
 static void retrigger_measurement(struct sr_scpi_dev_inst *scpi,
@@ -201,6 +255,13 @@ static void request_range(struct sr_scpi_dev_inst *scpi,
 {
 	sr_scpi_send(scpi, "RANGE?");
 	devc->acq_state = ACQ_REQUESTED_RANGE;
+}
+
+static void request_current_channel(struct sr_scpi_dev_inst *scpi,
+				    struct dev_context *devc)
+{
+	sr_scpi_send(scpi, "CHAN?");
+	devc->acq_state = ACQ_REQUESTED_CHANNEL_SYNC;
 }
 
 /*
@@ -298,7 +359,7 @@ static void acq_send_measurement(struct sr_dev_inst *sdi)
 	sr_analog_init(&analog, &encoding, &meaning, &spec, num_digits);
 	encoding.unitsize = sizeof(float);
 
-	meaning.channels = sdi->channels;
+	meaning.channels = g_slist_append(NULL, devc->current_channel);
 
 	measurement_workaround = hires_measurement;
 	analog.num_samples = 1;
@@ -309,13 +370,24 @@ static void acq_send_measurement(struct sr_dev_inst *sdi)
 	meaning.unit = devc->measurement_unit;
 
 	sr_session_send(sdi, &packet);
+
+	g_slist_free(meaning.channels);
 }
 
+/*
+ * The scan-advance channel sync -- call to request_current_channel() -- is not
+ * necessarily needed. It is done in case we have a communication error and the
+ * DMM advances the channel without having sent the reading. The DMM only
+ * advances the channel when it thinks it sent the reading over HP-IB. Thus, on
+ * most errors we can retrigger the measurement and still be in sync. This
+ * check is done to make sure we don't fall out of sync due to obscure errors.
+ */
 SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 {
 	int ret;
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
+	struct channel_context *chanc;
 	struct sr_dev_inst *sdi = cb_data;
 
 	(void)fd;
@@ -359,6 +431,15 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 		}
 		devc->acq_state = ACQ_GOT_MEASUREMENT;
 		break;
+	case ACQ_REQUESTED_CHANNEL_SYNC:
+		ret = sr_scpi_get_double(scpi, NULL, &devc->last_channel_sync);
+		if (ret != SR_OK) {
+			sr_err("Cannot check channel synchronization.");
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return FALSE;
+		}
+		devc->acq_state = ACQ_GOT_CHANNEL_SYNC;
+		break;
 	default:
 		return FALSE;
 	}
@@ -368,6 +449,20 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 		devc->num_samples++;
 	}
 
+	if (devc->acq_state == ACQ_GOT_CHANNEL_SYNC) {
+		chanc = devc->current_channel->priv;
+		if (chanc->index != devc->last_channel_sync) {
+			sr_err("Current channel and scan advance out of sync.");
+			sr_err("Expected channel %u, but device says %u",
+			       chanc->index,
+			       (unsigned int)devc->last_channel_sync);
+			sdi->driver->dev_acquisition_stop(sdi, cb_data);
+			return FALSE;
+		}
+		/* All is good. Back to business. */
+		retrigger_measurement(scpi, devc);
+	}
+
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
 		return FALSE;
@@ -375,8 +470,14 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 
 	/* Got more to go. */
 	if (devc->acq_state == ACQ_GOT_MEASUREMENT) {
-		/* Retrigger */
-		retrigger_measurement(scpi, devc);
+		activate_next_channel(devc);
+		/* Retrigger, or check if scan-advance is in sync. */
+		if (((devc->num_samples % 10) == 9)
+		   && (devc->num_active_channels > 1)) {
+			request_current_channel(scpi, devc);
+		} else {
+			retrigger_measurement(scpi, devc);
+		}
 	}
 
 	return TRUE;

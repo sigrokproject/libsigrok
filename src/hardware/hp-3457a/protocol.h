@@ -38,6 +38,7 @@ struct rear_card_info {
 	enum card_type type;
 	const char *name;
 	const char *cg_name;
+	unsigned int num_channels;
 };
 
 /* Possible states in an acquisition. */
@@ -46,6 +47,14 @@ enum acquisition_state {
 	ACQ_REQUESTED_HIRES,
 	ACQ_REQUESTED_RANGE,
 	ACQ_GOT_MEASUREMENT,
+	ACQ_REQUESTED_CHANNEL_SYNC,
+	ACQ_GOT_CHANNEL_SYNC,
+};
+
+/* Channel connector (front terminals, or rear card. */
+enum channel_conn {
+	CONN_FRONT,
+	CONN_REAR,
 };
 
 /** Private, per-device-instance driver context. */
@@ -60,13 +69,23 @@ struct dev_context {
 	enum sr_unit measurement_unit;
 	uint64_t limit_samples;
 	float nplc;
+	GSList *active_channels;
+	unsigned int num_active_channels;
+	struct sr_channel *current_channel;
 
 	/* Operational state */
 	enum acquisition_state acq_state;
+	enum channel_conn input_loc;
 	uint64_t num_samples;
 	double base_measurement;
 	double hires_register;
 	double measurement_range;
+	double last_channel_sync;
+};
+
+struct channel_context {
+	enum channel_conn location;
+	int index;
 };
 
 SR_PRIV const struct rear_card_info *hp_3457a_probe_rear_card(struct sr_scpi_dev_inst *scpi);
@@ -74,5 +93,9 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 			    enum sr_mqflag mq_flags);
 SR_PRIV int hp_3457a_set_nplc(const struct sr_dev_inst *sdi, float nplc);
+SR_PRIV int hp_3457a_select_input(const struct sr_dev_inst *sdi,
+				  enum channel_conn loc);
+SR_PRIV int hp_3457a_send_scan_list(const struct sr_dev_inst *sdi,
+				    unsigned int *channels, size_t len);
 
 #endif
