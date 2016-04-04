@@ -114,6 +114,7 @@ static struct unit_mq_string mq_strings[] = {
 	{ SR_MQFLAG_AVG, " AVG" },
 	{ SR_MQFLAG_REFERENCE, " REF" },
 	{ SR_MQFLAG_UNSTABLE, " UNSTABLE" },
+	{ SR_MQFLAG_FOUR_WIRE, " 4-WIRE" },
 	ALL_ZERO
 };
 

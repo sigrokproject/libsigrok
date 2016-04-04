@@ -273,6 +273,8 @@ static void fancyprint(int unit, int mqflags, float value, GString *out)
 		g_string_append_printf(out, " REF");
 	if (mqflags & SR_MQFLAG_UNSTABLE)
 		g_string_append_printf(out, " UNSTABLE");
+	if (mqflags & SR_MQFLAG_FOUR_WIRE)
+		g_string_append_printf(out, " 4-WIRE");
 	g_string_append_c(out, '\n');
 }
 

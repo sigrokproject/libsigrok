@@ -383,6 +383,8 @@ enum sr_mqflag {
 	SR_MQFLAG_REFERENCE = 0x80000,
 	/** Unstable value (hasn't settled yet). */
 	SR_MQFLAG_UNSTABLE = 0x100000,
+	/** Measurement is four wire (e.g. Kelvin connection). */
+	SR_MQFLAG_FOUR_WIRE = 0x200000,
 
 	/*
 	 * Update mq_strings[] (analog.c) and fancyprint() (output/analog.c)
