@@ -653,7 +653,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	devc->sample_buf[devc->sample_buf_write++] = transfer;
-	devc->samp_received = transfer->actual_length / NUM_CHANNELS;
+	devc->samp_received += transfer->actual_length / NUM_CHANNELS;
 
 	sr_spew("receive_transfer(): calculated samplerate == %" PRIu64 "ks/s",
 		(uint64_t)(transfer->actual_length * 1000 /
