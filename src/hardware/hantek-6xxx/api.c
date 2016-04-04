@@ -43,10 +43,15 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *channel_names[] = {
 	"CH1", "CH2",
+};
+
+static const char *coupling[] = {
+	"AC", "DC",
 };
 
 static const struct hantek_6xxx_profile dev_profiles[] = {
@@ -103,6 +108,7 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	for (i = 0; i < NUM_CHANNELS; i++) {
 		devc->ch_enabled[i] = TRUE;
 		devc->voltage[i] = DEFAULT_VOLTAGE;
+		devc->coupling[i] = DEFAULT_COUPLING;
 	}
 
 	devc->sample_buf = NULL;
@@ -382,6 +388,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			vdiv = vdivs[devc->voltage[ch_idx]];
 			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
 			break;
+		case SR_CONF_COUPLING:
+			*data = g_variant_new_string(coupling[devc->coupling[ch_idx]]);
+			break;
 		}
 	}
 
@@ -395,6 +404,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	uint64_t p, q;
 	int tmp_int, ch_idx, ret;
 	unsigned int i;
+	const char *tmp_str;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -438,6 +448,17 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				devc->voltage[ch_idx] = tmp_int;
 				hantek_6xxx_update_vdiv(sdi);
 			} else
+				ret = SR_ERR_ARG;
+			break;
+		case SR_CONF_COUPLING:
+			tmp_str = g_variant_get_string(data, NULL);
+			for (i = 0; coupling[i]; i++) {
+				if (!strcmp(tmp_str, coupling[i])) {
+					devc->coupling[ch_idx] = i;
+					break;
+				}
+			}
+			if (coupling[i] == 0)
 				ret = SR_ERR_ARG;
 			break;
 		default:
@@ -492,6 +513,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			break;
+		case SR_CONF_COUPLING:
+			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 			break;
 		case SR_CONF_VDIV:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

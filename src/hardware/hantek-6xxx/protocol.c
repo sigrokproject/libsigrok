@@ -215,6 +215,16 @@ SR_PRIV int hantek_6xxx_update_vdiv(const struct sr_dev_inst *sdi)
 	return MIN(ret1, ret2);
 }
 
+SR_PRIV int hantek_6xxx_update_coupling(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	uint8_t coupling = 0xFF & ((devc->coupling[1] << 4) | devc->coupling[0]);
+
+	sr_dbg("update coupling 0x%x", coupling);
+
+	return write_control(sdi, COUPLING_REG, coupling);
+}
+
 SR_PRIV int hantek_6xxx_update_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -230,6 +240,7 @@ SR_PRIV int hantek_6xxx_init(const struct sr_dev_inst *sdi)
 
 	hantek_6xxx_update_samplerate(sdi);
 	hantek_6xxx_update_vdiv(sdi);
+	hantek_6xxx_update_coupling(sdi);
 	// hantek_6xxx_update_channels(sdi); /* Only 2 channel mode supported. */
 
 	return SR_OK;

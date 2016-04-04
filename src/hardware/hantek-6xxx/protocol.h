@@ -31,6 +31,7 @@
 #define MAX_RENUM_DELAY_MS	3000
 
 #define DEFAULT_VOLTAGE		2
+#define DEFAULT_COUPLING        COUPLING_DC
 #define DEFAULT_SAMPLERATE	SR_MHZ(8)
 
 #define NUM_CHANNELS		2
@@ -71,6 +72,7 @@ enum control_requests {
 	SAMPLERATE_REG = 0xe2,
 	TRIGGER_REG    = 0xe3,
 	CHANNELS_REG   = 0xe4,
+	COUPLING_REG   = 0xe5,
 };
 
 enum states {
@@ -78,6 +80,11 @@ enum states {
 	FLUSH,
 	CAPTURE,
 	STOPPING,
+};
+
+enum couplings {
+	COUPLING_AC = 0,
+	COUPLING_DC,
 };
 
 struct hantek_6xxx_profile {
@@ -116,6 +123,7 @@ struct dev_context {
 
 	gboolean ch_enabled[NUM_CHANNELS];
 	int voltage[NUM_CHANNELS];
+	int coupling[NUM_CHANNELS];
 	uint64_t samplerate;
 
 	uint64_t limit_msec;
@@ -130,6 +138,7 @@ SR_PRIV int hantek_6xxx_get_channeldata(const struct sr_dev_inst *sdi,
 SR_PRIV int hantek_6xxx_start_data_collecting(const struct sr_dev_inst *sdi);
 SR_PRIV int hantek_6xxx_stop_data_collecting(const struct sr_dev_inst *sdi);
 
+SR_PRIV int hantek_6xxx_update_coupling(const struct sr_dev_inst *sdi);
 SR_PRIV int hantek_6xxx_update_samplerate(const struct sr_dev_inst *sdi);
 SR_PRIV int hantek_6xxx_update_vdiv(const struct sr_dev_inst *sdi);
 SR_PRIV int hantek_6xxx_update_channels(const struct sr_dev_inst *sdi);
