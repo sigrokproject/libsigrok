@@ -56,6 +56,7 @@ struct dev_context {
 
 	/* Acquisition settings */
 	enum sr_mq measurement_mq;
+	enum sr_mqflag measurement_mq_flags;
 	enum sr_unit measurement_unit;
 	uint64_t limit_samples;
 	float nplc;
@@ -70,7 +71,8 @@ struct dev_context {
 
 SR_PRIV const struct rear_card_info *hp_3457a_probe_rear_card(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq);
+SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
+			    enum sr_mqflag mq_flags);
 SR_PRIV int hp_3457a_set_nplc(const struct sr_dev_inst *sdi, float nplc);
 
 #endif

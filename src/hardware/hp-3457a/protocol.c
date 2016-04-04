@@ -22,23 +22,26 @@
 #include <scpi.h>
 #include "protocol.h"
 
+static int set_mq_volt(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
+static int set_mq_amp(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
+static int set_mq_ohm(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 /*
- * Currently, only DC voltage and current are supported, as switching to AC or
- * AC+DC requires mq flags, which is not yet implemented.
- * Four-wire resistance measurements are not implemented (See "OHMF" command).
  * The source for the frequency measurement can be either AC voltage, AC+DC
  * voltage, AC current, or AC+DC current. Configuring this is not yet
  * supported. For details, see "FSOURCE" command.
+ * The set_mode function is optional and can be set to NULL, but in that case
+ * a cmd string must be provided.
  */
 static const struct {
 	enum sr_mq mq;
 	enum sr_unit unit;
 	const char *cmd;
+	int (*set_mode)(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 } sr_mq_to_cmd_map[] = {
-	{ SR_MQ_VOLTAGE, SR_UNIT_VOLT, "DCV" },
-	{ SR_MQ_CURRENT, SR_UNIT_AMPERE, "DCI" },
-	{ SR_MQ_RESISTANCE, SR_UNIT_OHM, "OHM" },
-	{ SR_MQ_FREQUENCY, SR_UNIT_HERTZ, "FREQ" },
+	{ SR_MQ_VOLTAGE, SR_UNIT_VOLT, "DCV", set_mq_volt },
+	{ SR_MQ_CURRENT, SR_UNIT_AMPERE, "DCI", set_mq_amp },
+	{ SR_MQ_RESISTANCE, SR_UNIT_OHM, "OHM", set_mq_ohm },
+	{ SR_MQ_FREQUENCY, SR_UNIT_HERTZ, "FREQ", NULL },
 };
 
 static const struct rear_card_info rear_card_parameters[] = {
@@ -60,7 +63,46 @@ static const struct rear_card_info rear_card_parameters[] = {
 	}
 };
 
-SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq)
+static int send_mq_ac_dc(struct sr_scpi_dev_inst *scpi, const char *mode,
+			   enum sr_mqflag flags)
+{
+	const char *ac_flag, *dc_flag;
+
+	if (flags & ~(SR_MQFLAG_AC | SR_MQFLAG_DC))
+		return SR_ERR_NA;
+
+	ac_flag = (flags & SR_MQFLAG_AC) ? "AC" : "";
+	dc_flag = "";
+	/* Must specify DC measurement when AC flag is not given. */
+	if ((flags & SR_MQFLAG_DC) || !(flags & SR_MQFLAG_AC))
+		dc_flag = "DC";
+
+	return sr_scpi_send(scpi, "%s%s%s", ac_flag, dc_flag, mode);
+}
+
+static int set_mq_volt(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
+{
+	return send_mq_ac_dc(scpi, "V", flags);
+}
+
+static int set_mq_amp(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
+{
+	return send_mq_ac_dc(scpi, "I", flags);
+}
+
+static int set_mq_ohm(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
+{
+	const char *ohm_flag;
+
+	if (flags & ~(SR_MQFLAG_FOUR_WIRE))
+		return SR_ERR_NA;
+
+	ohm_flag = (flags & SR_MQFLAG_FOUR_WIRE) ? "F" : "";
+	return sr_scpi_send(scpi, "OHM%s", ohm_flag);
+}
+
+SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
+			    enum sr_mqflag mq_flags)
 {
 	int ret;
 	size_t i;
@@ -70,9 +112,14 @@ SR_PRIV int hp_3457a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq)
 	for (i = 0; i < ARRAY_SIZE(sr_mq_to_cmd_map); i++) {
 		if (sr_mq_to_cmd_map[i].mq != mq)
 			continue;
-		ret = sr_scpi_send(scpi, sr_mq_to_cmd_map[i].cmd);
+		if (sr_mq_to_cmd_map[i].set_mode) {
+			ret = sr_mq_to_cmd_map[i].set_mode(scpi, mq_flags);
+		} else {
+			ret = sr_scpi_send(scpi, sr_mq_to_cmd_map[i].cmd);
+		}
 		if (ret == SR_OK) {
 			devc->measurement_mq = sr_mq_to_cmd_map[i].mq;
+			devc->measurement_mq_flags = mq_flags;
 			devc->measurement_unit = sr_mq_to_cmd_map[i].unit;
 		}
 		return ret;
@@ -258,6 +305,7 @@ static void acq_send_measurement(struct sr_dev_inst *sdi)
 	analog.data = &measurement_workaround;
 
 	meaning.mq = devc->measurement_mq;
+	meaning.mqflags = devc->measurement_mq_flags;
 	meaning.unit = devc->measurement_unit;
 
 	sr_session_send(sdi, &packet);

@@ -242,6 +242,7 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	int ret;
 	enum sr_mq mq;
+	enum sr_mqflag mq_flags;
 	struct dev_context *devc;
 	GVariant *tuple_child;
 
@@ -260,7 +261,9 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_MEASURED_QUANTITY:
 		tuple_child = g_variant_get_child_value(data, 0);
 		mq = g_variant_get_uint32(tuple_child);
-		ret = hp_3457a_set_mq(sdi, mq);
+		tuple_child = g_variant_get_child_value(data, 1);
+		mq_flags = g_variant_get_uint64(tuple_child);
+		ret = hp_3457a_set_mq(sdi, mq, mq_flags);
 		g_variant_unref(tuple_child);
 		break;
 	case SR_CONF_ADC_POWERLINE_CYCLES:
