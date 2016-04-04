@@ -123,7 +123,7 @@ SR_PRIV int hantek_6xxx_get_channeldata(const struct sr_dev_inst *sdi,
 	transfer = libusb_alloc_transfer(0);
 	libusb_fill_bulk_transfer(transfer, usb->devhdl, HANTEK_EP_IN, buf,
 			data_amount, cb, (void *)sdi, 4000);
-	if ((ret = libusb_submit_transfer(transfer)) != 0) {
+	if ((ret = libusb_submit_transfer(transfer)) < 0) {
 		sr_err("Failed to submit transfer: %s.",
 			libusb_error_name(ret));
 		/* TODO: Free them all. */
