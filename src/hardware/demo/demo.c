@@ -38,7 +38,7 @@
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE       4096
 
-#define DEFAULT_ANALOG_AMPLITUDE 25
+#define DEFAULT_ANALOG_AMPLITUDE 10
 #define ANALOG_SAMPLES_PER_PERIOD 20
 
 /* Logic patterns we can generate. */
