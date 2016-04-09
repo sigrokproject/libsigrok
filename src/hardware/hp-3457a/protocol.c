@@ -315,8 +315,10 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	if (devc->acq_state == ACQ_GOT_MEASUREMENT)
+	if (devc->acq_state == ACQ_GOT_MEASUREMENT) {
 		acq_send_measurement(sdi);
+		devc->num_samples++;
+	}
 
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
 		sdi->driver->dev_acquisition_stop(sdi, cb_data);
@@ -326,7 +328,6 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 	/* Got more to go. */
 	if (devc->acq_state == ACQ_GOT_MEASUREMENT) {
 		/* Retrigger */
-		devc->num_samples++;
 		retrigger_measurement(scpi, devc);
 	}
 
