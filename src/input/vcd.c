@@ -105,6 +105,10 @@ static gboolean parse_section(GString *buf, gchar **name, gchar **contents)
 	status = FALSE;
 	pos = 0;
 
+	/* Skip UTF8 BOM */
+	if (buf->len >= 3 && !strncmp(buf->str, "\xef\xbb\xbf", 3))
+		pos = 3;
+
 	/* Skip any initial white-space. */
 	while (pos < buf->len && g_ascii_isspace(buf->str[pos]))
 		pos++;
