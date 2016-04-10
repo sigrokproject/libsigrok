@@ -203,7 +203,7 @@ static const char *scope_digital_channel_names[] = {
 static const struct scope_config scope_models[] = {
 	{
 		/* HMO2522/3032/3042/3052 support 16 digital channels but they're not supported yet. */
-		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", "HMO2522",
+		.name = {"HMO1002", "HMO722", "HMO1022", "HMO1522", "HMO2022", "HMO2522",
 				"HMO3032", "HMO3042", "HMO3052", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,

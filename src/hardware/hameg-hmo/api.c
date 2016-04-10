@@ -28,6 +28,7 @@ SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
 
 static const char *manufacturers[] = {
 	"HAMEG",
+	"Rohde&Schwarz",
 };
 
 static const uint32_t drvopts[] = {
