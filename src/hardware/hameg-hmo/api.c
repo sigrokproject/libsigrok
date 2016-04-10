@@ -437,17 +437,17 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp = g_variant_get_string(data, NULL);
+		for (i = 0; (*model->trigger_slopes)[i]; i++) {
+			if (g_strcmp0(tmp, (*model->trigger_slopes)[i]) != 0)
+				continue;
+			state->trigger_slope = i;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
+				   (*model->trigger_slopes)[i]);
 
-		if (!tmp || !(tmp[0] == 'f' || tmp[0] == 'r'))
-			return SR_ERR_ARG;
-
-		state->trigger_slope = (tmp[0] == 'r') ? 0 : 1;
-
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
-			   (state->trigger_slope == 0) ? "POS" : "NEG");
-
-		ret = sr_scpi_send(sdi->conn, command);
+			ret = sr_scpi_send(sdi->conn, command);
+			break;
+		}
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE) {
