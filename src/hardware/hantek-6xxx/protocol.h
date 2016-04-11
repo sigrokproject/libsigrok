@@ -57,9 +57,9 @@
 #define VDIV_MULTIPLIER		10
 
 /* Weird flushing needed for filtering glitch away. */
-#define FLUSH_PACKET_SIZE	2600
+#define FLUSH_PACKET_SIZE	1024
 
-#define MIN_PACKET_SIZE		600
+#define MIN_PACKET_SIZE		512
 #define MAX_PACKET_SIZE		(12 * 1024 * 1024)
 
 #define HANTEK_EP_IN		0x86
