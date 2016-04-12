@@ -586,6 +586,7 @@ static void log_key(const struct sr_dev_inst *sdi,
 {
 	const char *opstr;
 	const struct sr_key_info *srci;
+	gchar *tmp_str;
 
 	/* Don't log SR_CONF_DEVICE_OPTIONS, it's verbose and not too useful. */
 	if (key == SR_CONF_DEVICE_OPTIONS)
@@ -594,9 +595,11 @@ static void log_key(const struct sr_dev_inst *sdi,
 	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
 	srci = sr_key_info_get(SR_KEY_CONFIG, key);
 
+	tmp_str = g_variant_print(data, TRUE);
 	sr_spew("sr_config_%s(): key %d (%s) sdi %p cg %s -> %s", opstr, key,
 		srci ? srci->id : "NULL", sdi, cg ? cg->name : "NULL",
-		data ? g_variant_print(data, TRUE) : "NULL");
+		data ? tmp_str : "NULL");
+	g_free(tmp_str);
 }
 
 static int check_key(const struct sr_dev_driver *driver,
