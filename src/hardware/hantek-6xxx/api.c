@@ -155,6 +155,7 @@ static void clear_dev_context(void *priv)
 
 	devc = priv;
 	g_slist_free(devc->enabled_channels);
+	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -650,6 +651,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc = sdi->priv;
 
 	if (devc->dev_state == FLUSH) {
+		g_free(transfer->buffer);
+		libusb_free_transfer(transfer);
 		devc->dev_state = CAPTURE;
 		devc->aq_started = g_get_monotonic_time();
 		read_channel(sdi, data_amount(sdi));
