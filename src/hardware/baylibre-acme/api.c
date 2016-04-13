@@ -156,7 +156,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	/* Nothing to do here. */
 	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
@@ -166,7 +165,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	/* Nothing to do here. */
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;

@@ -28,7 +28,6 @@ static void stop_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
 
-	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
 	std_session_send_df_end(sdi, LOG_PREFIX);
@@ -40,7 +39,6 @@ static void abort_acquisition(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc = sdi->driver->context;
 
-	/* Remove USB file descriptors from polling. */
 	usb_source_remove(sdi->session, drvc->sr_ctx);
 
 	std_session_send_df_end(sdi, LOG_PREFIX);

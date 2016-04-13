@@ -763,7 +763,6 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 
 	std_session_send_df_end(sdi, LOG_PREFIX);
 
-	/* Remove fds from polling. */
 	usb_source_remove(sdi->session, devc->ctx);
 
 	devc->num_transfers = 0;
