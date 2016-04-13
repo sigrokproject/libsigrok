@@ -410,7 +410,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	return std_serial_dev_acquisition_stop(sdi, sdi,
+	return std_serial_dev_acquisition_stop(sdi,
 		std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 

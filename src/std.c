@@ -211,7 +211,7 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  * @retval SR_ERR Other errors.
  */
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-			void *cb_data, dev_close_callback dev_close_fn,
+			dev_close_callback dev_close_fn,
 			struct sr_serial_dev_inst *serial, const char *prefix)
 {
 	int ret;
@@ -238,7 +238,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	std_session_send_df_end(cb_data, prefix);
+	std_session_send_df_end(sdi, prefix);
 
 	return SR_OK;
 }

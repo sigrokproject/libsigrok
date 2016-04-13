@@ -852,7 +852,7 @@ SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 #ifdef HAVE_LIBSERIALPORT
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-		void *cb_data, dev_close_callback dev_close_fn,
+		dev_close_callback dev_close_fn,
 		struct sr_serial_dev_inst *serial, const char *prefix);
 #endif
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,

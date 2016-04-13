@@ -929,6 +929,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 
 SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, sdi,
+	return std_serial_dev_acquisition_stop(sdi,
 			std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }

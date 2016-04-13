@@ -422,7 +422,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi, sdi);
+		sdi->driver->dev_acquisition_stop(sdi);
 	}
 
 	return TRUE;

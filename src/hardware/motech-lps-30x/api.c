@@ -831,7 +831,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (sdi && (devc = sdi->priv) && devc->limit_msec)
 		g_timer_stop(devc->elapsed_msec);
 
-	return std_serial_dev_acquisition_stop(sdi, sdi, std_serial_dev_close,
+	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
 			sdi->conn, LOG_PREFIX);
 }
 
