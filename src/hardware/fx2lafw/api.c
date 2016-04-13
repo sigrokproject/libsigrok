@@ -708,11 +708,25 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer)
 {
 	const struct sr_dev_inst *sdi;
+	struct sr_datafeed_packet packet;
 	struct dslogic_trigger_pos *tpos;
+	struct dev_context *devc;
 
 	sdi = transfer->user_data;
-
-	if (transfer->status == LIBUSB_TRANSFER_COMPLETED
+	devc = sdi->priv;
+	if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
+		sr_dbg("Trigger transfer canceled.");
+		/* Terminate session. */
+		packet.type = SR_DF_END;
+		sr_session_send(sdi, &packet);
+		usb_source_remove(sdi->session, devc->ctx);
+		devc->num_transfers = 0;
+		g_free(devc->transfers);
+		if (devc->stl) {
+			soft_trigger_logic_free(devc->stl);
+			devc->stl = NULL;
+		}
+	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
 		sr_dbg("tpos real_pos %.8x ram_saddr %.8x", tpos->real_pos, tpos->ram_saddr);
@@ -729,9 +743,11 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
 	struct dslogic_trigger_pos *tpos;
+	struct dev_context *devc;
 	int ret;
 
 	usb = sdi->conn;
+	devc = sdi->priv;
 
 	if ((ret = dslogic_stop_acquisition(sdi)) != SR_OK)
 		return ret;
@@ -754,6 +770,15 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 		g_free(tpos);
 		return SR_ERR;
 	}
+
+	devc->transfers = g_try_malloc0(sizeof(*devc->transfers));
+	if (!devc->transfers) {
+		sr_err("USB trigger_pos transfer malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+	devc->num_transfers = 1;
+	devc->submitted_transfers++;
+	devc->transfers[0] = transfer;
 
 	return ret;
 }
@@ -798,6 +823,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
 	(void)cb_data;
 
+	dslogic_stop_acquisition(sdi);
 	fx2lafw_abort_acquisition(sdi->priv);
 
 	return SR_OK;
