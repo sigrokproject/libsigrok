@@ -162,7 +162,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->priv = devc;
 
 		for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
-			sr_channel_new(sdi, &(desc->channel_names[0]) - chan,
+			sr_channel_new(sdi, chan - &(desc->channel_names[0]),
 					SR_CHANNEL_LOGIC, TRUE, *chan);
 
 		devices = g_slist_append(devices, sdi);
