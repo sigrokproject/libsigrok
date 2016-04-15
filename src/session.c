@@ -811,7 +811,11 @@ SR_API int sr_session_start(struct sr_session *session)
 
 	/* Have all devices start acquisition. */
 	for (l = session->devs; l; l = l->next) {
-		sdi = l->data;
+		if (!(sdi = l->data)) {
+			sr_err("Device sdi was NULL, can't start session.");
+			ret = SR_ERR;
+			break;
+		}
 		ret = sdi->driver->dev_acquisition_start(sdi);
 		if (ret != SR_OK) {
 			sr_err("Could not start %s device %s acquisition.",
