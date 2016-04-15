@@ -77,6 +77,8 @@ ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", MODE="664", GROUP="plugdev"
 
 # DreamSourceLab DSLogic
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", MODE="664", GROUP="plugdev"
+# DreamSourceLab DSLogic Pro
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0003", MODE="664", GROUP="plugdev"
 
 # HAMEG HO720
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", MODE="664", GROUP="plugdev"
