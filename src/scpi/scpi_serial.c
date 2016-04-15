@@ -44,6 +44,7 @@ static const struct {
 } scpi_serial_usb_ids[] = {
 	{ 0x0403, 0xed72, "115200/8n1/flow=1" }, /* Hameg HO720 */
 	{ 0x0403, 0xed73, "115200/8n1/flow=1" }, /* Hameg HO730 */
+	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO1002 */
 };
 
 static GSList *scpi_serial_scan(struct drv_context *drvc)
