@@ -78,6 +78,7 @@ static const char *hmo_coupling_options[] = {
 static const char *scope_trigger_slopes[] = {
 	"POS",
 	"NEG",
+	"EITH",
 	NULL,
 };
 
