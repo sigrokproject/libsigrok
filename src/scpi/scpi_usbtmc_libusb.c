@@ -238,7 +238,7 @@ static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi)
 			LIBUSB_ENDPOINT_IN         |
 			LIBUSB_REQUEST_TYPE_CLASS  |
 			LIBUSB_RECIPIENT_INTERFACE,
-			LOCAL_LOCKOUT, 1,
+			LOCAL_LOCKOUT, 0,
 			uscpi->interface,
 			&status, 1,
 			TRANSFER_TIMEOUT);
@@ -276,7 +276,7 @@ static void scpi_usbtmc_local(struct scpi_usbtmc_libusb *uscpi)
 			LIBUSB_ENDPOINT_IN         |
 			LIBUSB_REQUEST_TYPE_CLASS  |
 			LIBUSB_RECIPIENT_INTERFACE,
-			GO_TO_LOCAL, 1,
+			GO_TO_LOCAL, 0,
 			uscpi->interface,
 			&status, 1,
 			TRANSFER_TIMEOUT);
