@@ -135,12 +135,9 @@ static int scpi_tcp_send(void *priv, const char *command)
 {
 	struct scpi_tcp *tcp = priv;
 	int len, out;
-	char *terminated_command;
 
-	terminated_command = g_strdup_printf("%s\r\n", command);
-	len = strlen(terminated_command);
-	out = send(tcp->socket, terminated_command, len, 0);
-	g_free(terminated_command);
+	len = strlen(command);
+	out = send(tcp->socket, command, len, 0);
 
 	if (out < 0) {
 		sr_err("Send error: %s", g_strerror(errno));

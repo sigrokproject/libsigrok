@@ -296,8 +296,10 @@ SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
 	va_end(args_copy);
 
 	/* Allocate buffer and write out command. */
-	buf = g_malloc(len + 1);
+	buf = g_malloc0(len + 2);
 	vsprintf(buf, format, args);
+	if (buf[len - 1] != '\n')
+		buf[len] = '\n';
 
 	/* Send command. */
 	ret = scpi->send(scpi->priv, buf);

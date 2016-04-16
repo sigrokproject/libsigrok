@@ -87,20 +87,15 @@ static int scpi_visa_source_remove(struct sr_session *session, void *priv)
 static int scpi_visa_send(void *priv, const char *command)
 {
 	struct scpi_visa *vscpi = priv;
-	gchar *terminated_command;
 	ViUInt32 written = 0;
 	int len;
 
-	terminated_command = g_strconcat(command, "\n", NULL);
-	len = strlen(terminated_command);
-	if (viWrite(vscpi->vi, (ViBuf) (terminated_command + written), len,
+	len = strlen(command);
+	if (viWrite(vscpi->vi, (ViBuf) (command + written), len,
 			&written) != VI_SUCCESS) {
 		sr_err("Error while sending SCPI command: '%s'.", command);
-		g_free(terminated_command);
 		return SR_ERR;
 	}
-
-	g_free(terminated_command);
 
 	sr_spew("Successfully sent SCPI command: '%s'.", command);
 

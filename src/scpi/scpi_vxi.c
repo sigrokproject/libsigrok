@@ -118,18 +118,16 @@ static int scpi_vxi_send(void *priv, const char *command)
 	struct scpi_vxi *vxi = priv;
 	Device_WriteResp *write_resp;
 	Device_WriteParms write_parms;
-	char *terminated_command;
 	unsigned long len;
 
-	terminated_command = g_strdup_printf("%s\r\n", command);
-	len = strlen(terminated_command);
+	len = strlen(command);
 
 	write_parms.lid           = vxi->link;
 	write_parms.io_timeout    = VXI_DEFAULT_TIMEOUT_MS;
 	write_parms.lock_timeout  = VXI_DEFAULT_TIMEOUT_MS;
 	write_parms.flags         = DF_END;
 	write_parms.data.data_len = MIN(len, vxi->max_send_size);
-	write_parms.data.data_val = terminated_command;
+	write_parms.data.data_val = command;
 
 	if (!(write_resp = device_write_1(&write_parms, vxi->client))
 	    || write_resp->error) {
@@ -137,8 +135,6 @@ static int scpi_vxi_send(void *priv, const char *command)
 		       vxi->address, write_resp ? write_resp->error : 0);
 		return SR_ERR;
 	}
-
-	g_free(terminated_command);
 
 	if (write_resp->size < len)
 		sr_dbg("Only sent %lu/%lu bytes of SCPI command: '%s'.",
