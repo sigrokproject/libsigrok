@@ -165,13 +165,12 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
+
 	struct dev_context *devc;
+	devc = sdi->priv;
 	const GSList *l, *m;
 	int channelbit, i = 0;
 	uint16_t v16;
-
-	devc = sdi->priv;
-	devc->trigger_en = FALSE;
 
 	cfg->trig_mask0[0] = 0xffff;
 	cfg->trig_mask1[0] = 0xffff;
@@ -188,8 +187,33 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	cfg->trig_count0[0] = 0;
 	cfg->trig_count1[0] = 0;
 
-	if (!(trigger = sr_session_trigger_get(sdi->session)))
+	cfg->trig_pos = 0;
+	cfg->trig_sda = 0;
+	cfg->trig_glb = 0;
+	cfg->trig_adp = cfg->count - cfg->trig_pos - 1;
+
+	for (i = 1; i < 16; i++) {
+		cfg->trig_mask0[i] = 0xff;
+		cfg->trig_mask1[i] = 0xff;
+		cfg->trig_value0[i] = 0;
+		cfg->trig_value1[i] = 0;
+		cfg->trig_edge0[i] = 0;
+		cfg->trig_edge1[i] = 0;
+		cfg->trig_count0[i] = 0;
+		cfg->trig_count1[i] = 0;
+		cfg->trig_logic0[i] = 2;
+		cfg->trig_logic1[i] = 2;
+	}
+
+	cfg->trig_pos = (uint32_t)(devc->capture_ratio / 100.0 * devc->limit_samples);
+	sr_dbg("pos: %d", cfg->trig_pos);
+
+	sr_dbg("configuring trigger");
+
+	if (!(trigger = sr_session_trigger_get(sdi->session))){
+		sr_dbg("No session trigger found");
 		return SR_OK;
+	}
 
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
@@ -199,7 +223,6 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 				/* Ignore disabled channels with a trigger. */
 				continue;
 			channelbit = 1 << (match->channel->index);
-			devc->trigger_en = TRUE; /* Triggered. */
 			/* Simple trigger support (event). */
 			if (match->match == SR_TRIGGER_ONE) {
 				cfg->trig_mask0[0] &= ~channelbit;
@@ -221,33 +244,18 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 				cfg->trig_value1[0] |= channelbit;
 				cfg->trig_edge0[0] |= channelbit;
 				cfg->trig_edge1[0] |= channelbit;
-			} else if (match->match == SR_TRIGGER_EDGE){
+			} else if(match->match == SR_TRIGGER_EDGE){
 				cfg->trig_edge0[0] |= channelbit;
 				cfg->trig_edge1[0] |= channelbit;
 			}
 		}
 	}
-
-	if (devc->trigger_en) {
-		for (i = 1; i < 16; i++) {
-			cfg->trig_mask0[i] = 0xff;
-			cfg->trig_mask1[i] = 0xff;
-			cfg->trig_value0[i] = 0;
-			cfg->trig_value1[i] = 0;
-			cfg->trig_edge0[i] = 0;
-			cfg->trig_edge1[i] = 0;
-			cfg->trig_count0[i] = 0;
-			cfg->trig_count1[i] = 0;
-			cfg->trig_logic0[i] = 2;
-			cfg->trig_logic1[i] = 2;
-		}
-		v16 = RL16(&cfg->mode);
-		v16 |= 1 << 0;
-		WL16(&cfg->mode, v16);
-	}
-
+	v16 = RL16(&cfg->mode);
+	v16 |= 1 << 0;
+	WL16(&cfg->mode, v16);
 	return SR_OK;
 }
+
 
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 {
@@ -319,9 +327,8 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		v16 = 1 << 14;
 	else if (devc->dslogic_mode == DS_OP_LOOPBACK_TEST)
 		v16 = 1 << 13;
-	//if (devc->dslogic_external_clock)
-	//	v16 |= 1 << 1;
-	//v16 |= 1 << 0;
+	if (devc->dslogic_external_clock)
+		v16 |= 1 << 1;
 	WL16(&cfg.mode, v16);
 	v32 = ceil(SR_MHZ(100) * 1.0 / devc->cur_samplerate);
 	WL32(&cfg.divider, v32);

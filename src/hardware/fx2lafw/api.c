@@ -664,7 +664,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
 
-	if ((trigger = sr_session_trigger_get(sdi->session))) {
+	if ((trigger = sr_session_trigger_get(sdi->session)) && !devc->dslogic) {
 		int pre_trigger_samples = 0;
 		if (devc->limit_samples > 0)
 			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
@@ -741,11 +741,11 @@ static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_dbg("tpos real_pos %.8x ram_saddr %.8x", tpos->real_pos, tpos->ram_saddr);
+		sr_info("tpos real_pos %d ram_saddr %d", tpos->real_pos, tpos->ram_saddr);
+		devc->trigger_pos  = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);
 	}
-
 	libusb_free_transfer(transfer);
 }
 

@@ -133,8 +133,8 @@ struct dev_context {
 	/* Is this a DSLogic? */
 	gboolean dslogic;
 	uint16_t dslogic_mode;
+	uint32_t trigger_pos;
 	int dslogic_external_clock;
-	gboolean trigger_en;
 };
 
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);

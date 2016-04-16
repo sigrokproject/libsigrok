@@ -55,7 +55,8 @@ struct dslogic_mode {
 struct dslogic_trigger_pos {
 	uint32_t real_pos;
 	uint32_t ram_saddr;
-	uint8_t first_block[504];
+	uint32_t remain_cnt;
+	uint8_t first_block[500];
 };
 
 /*

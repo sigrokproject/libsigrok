@@ -306,7 +306,6 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
-	devc->trigger_en = FALSE;
 	devc->stl = NULL;
 
 	return devc;
@@ -455,6 +454,7 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	gboolean packet_has_error = FALSE;
+	struct sr_datafeed_packet packet;
 	unsigned int num_samples;
 	int trigger_offset, cur_sample_count, unitsize;
 	int pre_trigger_samples;
@@ -507,8 +507,6 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 	} else {
 		devc->empty_transfer_count = 0;
 	}
-	if (devc->trigger_en)
-		devc->trigger_fired = TRUE;
 	if (devc->trigger_fired) {
 		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
 			/* Send the incoming transfer to the session bus. */
@@ -517,9 +515,29 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			else
 				num_samples = cur_sample_count;
 
-			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
-				num_samples * unitsize, unitsize);
-			devc->sent_samples += num_samples;
+			if(devc->dslogic && devc->trigger_pos > devc->sent_samples
+				&& devc->trigger_pos <= devc->sent_samples + num_samples){
+					/* dslogic trigger in this block. Send trigger position */
+					trigger_offset = devc->trigger_pos - devc->sent_samples;
+					/* pre-trigger samples */
+					devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
+						trigger_offset * unitsize, unitsize);
+					devc->sent_samples += trigger_offset;
+					/* trigger position */
+					devc->trigger_pos = 0;
+					packet.type = SR_DF_TRIGGER;
+					packet.payload = NULL;
+					sr_session_send(sdi, &packet);
+					/* post trigger samples */
+					num_samples -= trigger_offset;
+					devc->send_data_proc(sdi, (uint8_t *)transfer->buffer
+							+ trigger_offset * unitsize,	num_samples * unitsize, unitsize);
+					devc->sent_samples += num_samples;
+			}else{
+				devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
+					num_samples * unitsize, unitsize);
+				devc->sent_samples += num_samples;
+			}
 		}
 	} else {
 		trigger_offset = soft_trigger_logic_check(devc->stl,
