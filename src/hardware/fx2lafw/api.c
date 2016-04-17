@@ -821,9 +821,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi, void *cb_data)
 {
+	struct dev_context *devc;
+
 	(void)cb_data;
 
-	dslogic_stop_acquisition(sdi);
+	devc = sdi->priv;
+
+	if (devc->dslogic)
+		dslogic_stop_acquisition(sdi);
+
 	fx2lafw_abort_acquisition(sdi->priv);
 
 	return SR_OK;
