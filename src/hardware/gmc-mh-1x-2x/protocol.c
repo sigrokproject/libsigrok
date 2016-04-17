@@ -873,7 +873,7 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
  *  @param buf Pointer to array of 14 data bytes.
  *  @param[in] raw Write only data bytes, no interpretation.
  */
-void dump_msg14(guchar *buf, gboolean raw)
+static void dump_msg14(guchar *buf, gboolean raw)
 {
 	if (!buf)
 		return;
@@ -1261,7 +1261,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
  *  @param[in] params Further parameters (9 bytes)
  *  @param[out] buf Buffer to create msg in (42 bytes).
  */
-void create_cmd_14(guchar addr, guchar func, guchar *params, guchar *buf)
+static void create_cmd_14(guchar addr, guchar func, guchar *params, guchar *buf)
 {
 	uint8_t dta[GMC_REPLY_SIZE];	/* Unencoded message */
 	int cnt;
