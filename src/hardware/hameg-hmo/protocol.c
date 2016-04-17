@@ -743,8 +743,12 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	/* Although this is correct in general, the USBTMC libusb implementation
+	 * currently does not generate an event prior to the first read. Often
+	 * it is ok to start reading just after the 50ms timeout. See bug #785.
 	if (revents != G_IO_IN)
 		return TRUE;
+	*/
 
 	ch = devc->current_channel->data;
 
