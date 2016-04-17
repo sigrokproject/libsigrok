@@ -434,9 +434,11 @@ set<const ConfigKey *> Driver::scan_options() const
 {
 	GArray *opts = sr_driver_scan_options_list(_structure);
 	set<const ConfigKey *> result;
-	for (guint i = 0; i < opts->len; i++)
-		result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
-	g_array_free(opts, TRUE);
+	if (opts) {
+		for (guint i = 0; i < opts->len; i++)
+			result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
+		g_array_free(opts, TRUE);
+	}
 	return result;
 }
 
