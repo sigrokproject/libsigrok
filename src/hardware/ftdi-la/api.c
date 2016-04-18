@@ -17,20 +17,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <config.h>
 #include <ftdi.h>
 #include <libusb.h>
+#include <libsigrok/libsigrok.h>
+#include "libsigrok-internal.h"
 #include "protocol.h"
 
 SR_PRIV struct sr_dev_driver ftdi_la_driver_info;
 
 static const uint32_t scanopts[] = {
-	/* TODO: SR_CONF_CONN to be able to specify the USB address. */
+	SR_CONF_CONN,
 };
 
 static const uint32_t devopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CONN | SR_CONF_GET,
 };
 
 static const uint64_t samplerates[] = {
@@ -63,13 +68,13 @@ static const struct ftdi_chip_desc ft232r_desc = {
 	.samplerate_div = 30,
 	.channel_names = {
 		"TXD",
-		"RI#",
-		"DCD#",
-		"DSR#",
-		"DTR#",
-		"CTS#",
-		"RTS#",
 		"RXD",
+		"RTS#",
+		"CTS#",
+		"DTR#",
+		"DSR#",
+		"DCD#",
+		"RI#",
 		NULL
 	}
 };
@@ -84,24 +89,32 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static GSList *scan(struct sr_dev_driver *di, GSList *options)
+static void scan_device(struct sr_dev_driver *di, struct libusb_device *dev, GSList **devices)
 {
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_dev_inst *sdi;
-	GSList *devices;
-	struct ftdi_device_list *devlist = 0;
-	struct ftdi_device_list *curdev;
 	struct libusb_device_descriptor usb_desc;
 	const struct ftdi_chip_desc *desc;
+	struct dev_context *devc;
 	char *vendor, *model, *serial_num;
-	int ret;
+	struct sr_dev_inst *sdi;
+	struct drv_context *drvc;
+	int rv;
 
-	(void)options;
-
-	devices = NULL;
 	drvc = di->context;
-	drvc->instances = NULL;
+	libusb_get_device_descriptor(dev, &usb_desc);
+
+	desc = NULL;
+	for (unsigned long i = 0; i < ARRAY_SIZE(chip_descs); i++) {
+		desc = chip_descs[i];
+		if (desc->vendor == usb_desc.idVendor &&
+			desc->product == usb_desc.idProduct)
+			break;
+	}
+
+	if (!desc) {
+		sr_spew("Unsupported FTDI device 0x%4x:0x%4x.",
+			usb_desc.idVendor, usb_desc.idProduct);
+		return;
+	}
 
 	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -116,10 +129,77 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_free_data_buf;
 	}
 
-	ret = ftdi_usb_find_all(devc->ftdic, &devlist, 0, 0);
+	devc->usbdev = dev;
+	devc->desc = desc;
+
+	vendor = g_malloc(32);
+	model = g_malloc(32);
+	serial_num = g_malloc(32);
+	rv = ftdi_usb_get_strings(devc->ftdic, dev, vendor, 32,
+			     model, 32, serial_num, 32);
+	switch (rv) {
+	case 0:
+		break;
+	case -9:
+		sr_dbg("The device lacks a serial number.");
+		g_free(serial_num);
+		serial_num = NULL;
+		break;
+	default:
+		sr_err("Failed to get the FTDI strings: %d", rv);
+		goto err_free_strings;
+	}
+	sr_dbg("Found an FTDI device: %s.", model);
+
+	/* Register the device with libsigrok. */
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->status = SR_ST_INITIALIZING;
+	sdi->vendor = vendor;
+	sdi->model = model;
+	sdi->serial_num = serial_num;
+	sdi->driver = di;
+	sdi->priv = devc;
+
+	for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
+		sr_channel_new(sdi, chan - &(desc->channel_names[0]),
+				SR_CHANNEL_LOGIC, TRUE, *chan);
+
+	*devices = g_slist_append(*devices, sdi);
+	drvc->instances = g_slist_append(drvc->instances, sdi);
+	return;
+
+err_free_strings:
+	g_free(vendor);
+	g_free(model);
+	g_free(serial_num);
+err_free_data_buf:
+	g_free(devc->data_buf);
+	g_free(devc);
+}
+
+static GSList *scan_all(struct sr_dev_driver *di, GSList *options)
+{
+	GSList *devices;
+	struct ftdi_device_list *devlist = 0;
+	struct ftdi_device_list *curdev;
+	struct ftdi_context *ftdic;
+	int ret;
+
+	(void)options;
+
+	devices = NULL;
+
+	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
+	ftdic = ftdi_new();
+	if (!ftdic) {
+		sr_err("Failed to initialize libftdi.");
+		return NULL;
+	}
+
+	ret = ftdi_usb_find_all(ftdic, &devlist, 0, 0);
 	if (ret < 0) {
 		sr_err("Failed to list devices (%d): %s", ret,
-		       ftdi_get_error_string(devc->ftdic));
+		       ftdi_get_error_string(ftdic));
 		goto err_free_ftdic;
 	}
 
@@ -127,59 +207,56 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	curdev = devlist;
 	while (curdev) {
-		libusb_get_device_descriptor(curdev->dev, &usb_desc);
-
-		desc = NULL;
-		for (unsigned long i = 0; i < ARRAY_SIZE(chip_descs); i++) {
-			desc = chip_descs[i];
-			if (desc->vendor == usb_desc.idVendor &&
-				desc->product == usb_desc.idProduct)
-				break;
-		}
-
-		if (!desc) {
-			sr_spew("Unsupported FTDI device 0x%4x:0x%4x.",
-				usb_desc.idVendor, usb_desc.idProduct);
-			continue;
-		}
-		devc->usbdev = curdev->dev;
-		devc->desc = desc;
-
-		vendor = g_malloc(32);
-		model = g_malloc(32);
-		serial_num = g_malloc(32);
-		ftdi_usb_get_strings(devc->ftdic, curdev->dev, vendor, 32,
-				     model, 32, serial_num, 32);
-		sr_dbg("Found an FTDI device: %s.", model);
-
-		/* Register the device with libsigrok. */
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
-		sdi->status = SR_ST_INITIALIZING;
-		sdi->vendor = vendor;
-		sdi->model = model;
-		sdi->serial_num = serial_num;
-		sdi->driver = di;
-		sdi->priv = devc;
-
-		for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
-			sr_channel_new(sdi, chan - &(desc->channel_names[0]),
-					SR_CHANNEL_LOGIC, TRUE, *chan);
-
-		devices = g_slist_append(devices, sdi);
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-
+		scan_device(di, curdev->dev, &devices);
 		curdev = curdev->next;
 	}
 
 	return devices;
 
 err_free_ftdic:
-	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
-err_free_data_buf:
-	g_free(devc->data_buf);
-	g_free(devc);
+	ftdi_free(ftdic); /* NOT free() or g_free()! */
 
 	return NULL;
+}
+
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
+{
+	struct sr_config *src;
+	struct sr_usb_dev_inst *usb;
+	const char *conn;
+	GSList *l, *conn_devices;
+	GSList *devices;
+	struct drv_context *drvc;
+	libusb_device **devlist;
+	int i;
+
+	drvc = di->context;
+	drvc->instances = NULL;
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		if (src->key == SR_CONF_CONN) {
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (conn) {
+		devices = NULL;
+		libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+		for (i = 0; devlist[i]; i++) {
+			conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+			for (l = conn_devices; l; l = l->next) {
+				usb = l->data;
+				if (usb->bus == libusb_get_bus_number(devlist[i])
+					&& usb->address == libusb_get_device_address(devlist[i])) {
+					scan_device(di, devlist[i], &devices);
+				}
+			}
+		}
+		libusb_free_device_list(devlist, 1);
+		return devices;
+	} else
+		return scan_all(di, options);
 }
 
 static GSList *dev_list(const struct sr_dev_driver *di)
@@ -281,6 +358,8 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	int ret;
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	char str[128];
 
 	(void)cg;
 
@@ -290,6 +369,13 @@ static int config_get(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
+		break;
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->conn)
+			return SR_ERR_ARG;
+		usb = sdi->conn;
+		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
+		*data = g_variant_new_string(str);
 		break;
 	default:
 		return SR_ERR_NA;
