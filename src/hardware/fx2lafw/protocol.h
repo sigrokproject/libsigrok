@@ -123,6 +123,7 @@ struct dev_context {
 	gboolean dslogic;
 	uint16_t dslogic_mode;
 	int dslogic_external_clock;
+	gboolean trigger_en;
 };
 
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);

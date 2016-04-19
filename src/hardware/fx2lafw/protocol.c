@@ -304,6 +304,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
+	devc->trigger_en = FALSE;
 	devc->stl = NULL;
 
 	return devc;
@@ -440,7 +441,8 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 	} else {
 		devc->empty_transfer_count = 0;
 	}
-
+	if (devc->trigger_en)
+		devc->trigger_fired = TRUE;
 	if (devc->trigger_fired) {
 		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
 			/* Send the incoming transfer to the session bus. */
