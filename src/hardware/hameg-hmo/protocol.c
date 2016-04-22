@@ -343,14 +343,8 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 }
 
 /**
- * This function takes a value of the form "2.000E-03", converts it to a
- * significand / factor pair and returns the index of an array where
- * a matching pair was found.
- *
- * It's a bit convoluted because of floating-point issues. The value "10.00E-09"
- * is parsed by g_ascii_strtod() as 0.000000009999999939, for example.
- * Therefore it's easier to break the number up into two strings and handle
- * them separately.
+ * This function takes a value of the form "2.000E-03" and returns the index
+ * of an array where a matching pair was found.
  *
  * @param value The string to be parsed.
  * @param array The array of s/f pairs.
@@ -362,48 +356,15 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 static int array_float_get(gchar *value, const uint64_t array[][2],
 		int array_len, unsigned int *result)
 {
-	int i, e;
-	size_t pos;
-	uint64_t f;
-	float s;
-	unsigned int s_int;
-	gchar ss[10], es[10];
+	struct sr_rational rval;
+	struct sr_rational aval;
 
-	memset(ss, 0, sizeof(ss));
-	memset(es, 0, sizeof(es));
-
-	/* Get index of the separating 'E' character and break up the string. */
-	pos = strcspn(value, "E");
-
-	strncpy(ss, value, pos);
-	strncpy(es, &(value[pos+1]), 3);
-
-	if (sr_atof_ascii(ss, &s) != SR_OK)
-		return SR_ERR;
-	if (sr_atoi(es, &e) != SR_OK)
+	if (sr_parse_rational(value, &rval) != SR_OK)
 		return SR_ERR;
 
-	/* Transform e.g. 10^-03 to 1000 as the array stores the inverse. */
-	f = pow(10, abs(e));
-
-	/*
-	 * Adjust the significand/factor pair to make sure
-	 * that f is a multiple of 1000.
-	 */
-	while ((int)fmod(log10(f), 3) > 0) {
-		s *= 10;
-
-		if (e < 0)
-			f *= 10;
-		else
-			f /= 10;
-	}
-
-	/* Truncate s to circumvent rounding errors. */
-	s_int = (unsigned int)s;
-
-	for (i = 0; i < array_len; i++) {
-		if ((s_int == array[i][0]) && (f == array[i][1])) {
+	for (int i = 0; i < array_len; i++) {
+		sr_rational_set(&aval, array[i][0], array[i][1]);
+		if (sr_rational_eq(&rval, &aval)) {
 			*result = i;
 			return SR_OK;
 		}
