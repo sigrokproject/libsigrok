@@ -351,7 +351,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct sr_modbus_dev_inst *modbus;
 	int ret;
 
-	(void)data;
 	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
