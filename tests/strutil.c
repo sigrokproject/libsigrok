@@ -34,6 +34,18 @@ static void test_samplerate(uint64_t samplerate, const char *expected)
 	g_free(s);
 }
 
+static void test_rational(const char *input, struct sr_rational expected)
+{
+	int ret;
+	struct sr_rational rational;
+
+	ret = sr_parse_rational(input, &rational);
+	fail_unless(ret == SR_OK);
+	fail_unless((expected.p == rational.p) && (expected.q == rational.q),
+		    "Invalid result for '%s': %ld/%ld'.",
+		    input, rational.p, rational.q);
+}
+
 /*
  * Check various inputs for sr_samplerate_string():
  *
@@ -155,6 +167,41 @@ START_TEST(test_ghz)
 }
 END_TEST
 
+START_TEST(test_integral)
+{
+	test_rational("1", (struct sr_rational){1, 1});
+	test_rational("2", (struct sr_rational){2, 1});
+	test_rational("10", (struct sr_rational){10, 1});
+	test_rational("-255", (struct sr_rational){-255, 1});
+}
+END_TEST
+
+START_TEST(test_fractional)
+{
+	test_rational("0.1", (struct sr_rational){1, 10});
+	test_rational("1.0", (struct sr_rational){10, 10});
+	test_rational("1.2", (struct sr_rational){12, 10});
+	test_rational("12.34", (struct sr_rational){1234, 100});
+	test_rational("-12.34", (struct sr_rational){-1234, 100});
+	test_rational("10.00", (struct sr_rational){1000, 100});
+}
+END_TEST
+
+START_TEST(test_exponent)
+{
+	test_rational("1e0", (struct sr_rational){1, 1});
+	test_rational("1E0", (struct sr_rational){1, 1});
+	test_rational("1E1", (struct sr_rational){10, 1});
+	test_rational("1e-1", (struct sr_rational){1, 10});
+	test_rational("-1.234e-0", (struct sr_rational){-1234, 1000});
+	test_rational("-1.234e3", (struct sr_rational){-1234, 1});
+	test_rational("-1.234e-3", (struct sr_rational){-1234, 1000000});
+	test_rational("0.001e3", (struct sr_rational){1, 1});
+	test_rational("0.001e0", (struct sr_rational){1, 1000});
+	test_rational("0.001e-3", (struct sr_rational){1, 1000000});
+}
+END_TEST
+
 Suite *suite_strutil(void)
 {
 	Suite *s;
@@ -168,6 +215,9 @@ Suite *suite_strutil(void)
 	tcase_add_test(tc, test_khz);
 	tcase_add_test(tc, test_mhz);
 	tcase_add_test(tc, test_ghz);
+	tcase_add_test(tc, test_integral);
+	tcase_add_test(tc, test_fractional);
+	tcase_add_test(tc, test_exponent);
 	suite_add_tcase(s, tc);
 
 	return s;
