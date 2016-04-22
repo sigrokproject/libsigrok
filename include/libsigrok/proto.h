@@ -33,6 +33,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
 		char **result);
 SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q);
+SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational *b);
 
 /*--- backend.c -------------------------------------------------------------*/
 

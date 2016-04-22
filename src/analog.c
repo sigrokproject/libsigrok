@@ -354,4 +354,83 @@ SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q)
 	r->q = q;
 }
 
+#ifndef HAVE___INT128_T
+struct sr_int128_t {
+	int64_t high;
+	uint64_t low;
+};
+
+struct sr_uint128_t {
+	uint64_t high;
+	uint64_t low;
+};
+
+static void mult_int64(struct sr_int128_t *res, const int64_t a,
+	const int64_t b)
+{
+	uint64_t t1, t2, t3, t4;
+
+	t1 = (UINT32_MAX & a) * (UINT32_MAX & b);
+	t2 = (UINT32_MAX & a) * (b >> 32);
+	t3 = (a >> 32) * (UINT32_MAX & b);
+	t4 = (a >> 32) * (b >> 32);
+
+	res->low = t1 + (t2 << 32) + (t3 << 32);
+	res->high = (t1 >> 32) + (uint64_t)((uint32_t)(t2)) + (uint64_t)((uint32_t)(t3));
+	res->high >>= 32;
+	res->high += ((int64_t)t2 >> 32) + ((int64_t)t3 >> 32) + t4;
+}
+
+static void mult_uint64(struct sr_uint128_t *res, const uint64_t a,
+	const uint64_t b)
+{
+	uint64_t t1, t2, t3, t4;
+
+	// (x1 + x2) * (y1 + y2) = x1*y1 + x1*y2 + x2*y1 + x2*y2
+	t1 = (UINT32_MAX & a) * (UINT32_MAX & b);
+	t2 = (UINT32_MAX & a) * (b >> 32);
+	t3 = (a >> 32) * (UINT32_MAX & b);
+	t4 = (a >> 32) * (b >> 32);
+
+	res->low = t1 + (t2 << 32) + (t3 << 32);
+	res->high = (t1 >> 32) + (uint64_t)((uint32_t)(t2)) + (uint64_t)((uint32_t)(t3));
+	res->high >>= 32;
+	res->high += ((int64_t)t2 >> 32) + ((int64_t)t3 >> 32) + t4;
+}
+#endif
+
+/**
+ * Compare two sr_rational for equality
+ *
+ * @param[in] a First value
+ * @param[in] b Second value
+ *
+ * The values are compared for numerical equality, i.e. 2/10 == 1/5
+ *
+ * @retval 1 if both values are equal
+ * @retval 0 otherwise
+ *
+ * @since 0.5.0
+ */
+SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational *b)
+{
+#ifdef HAVE___INT128_T
+	__int128_t m1, m2;
+
+	/* p1/q1 = p2/q2  <=>  p1*q2 = p2*q1 */
+	m1 = ((__int128_t)(b->p)) * ((__uint128_t)a->q);
+	m2 = ((__int128_t)(a->p)) * ((__uint128_t)b->q);
+
+	return (m1 == m2);
+
+#else
+	struct sr_int128_t m1, m2;
+
+	mult_int64(&m1, a->q, b->p);
+	mult_int64(&m2, a->p, b->q);
+
+	return (m1.high == m2.high) && (m1.low == m2.low);
+#endif
+}
+
 /** @} */

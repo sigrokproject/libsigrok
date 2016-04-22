@@ -196,6 +196,35 @@ START_TEST(test_set_rational_null)
 }
 END_TEST
 
+START_TEST(test_cmp_rational)
+{
+	const struct sr_rational r[] = { { 1, 1 },
+		{ 2, 2 },
+		{ 1000, 1000 },
+		{ INT64_MAX, INT64_MAX },
+		{ 1, 4 },
+		{ 2, 8 },
+		{ INT64_MAX, UINT64_MAX },
+		{ INT64_MIN, UINT64_MAX },
+	};
+
+	fail_unless(sr_rational_eq(&r[0], &r[0]) == 1);
+	fail_unless(sr_rational_eq(&r[0], &r[1]) == 1);
+	fail_unless(sr_rational_eq(&r[1], &r[2]) == 1);
+	fail_unless(sr_rational_eq(&r[2], &r[3]) == 1);
+	fail_unless(sr_rational_eq(&r[3], &r[3]) == 1);
+
+	fail_unless(sr_rational_eq(&r[4], &r[4]) == 1);
+	fail_unless(sr_rational_eq(&r[4], &r[5]) == 1);
+	fail_unless(sr_rational_eq(&r[5], &r[5]) == 1);
+
+	fail_unless(sr_rational_eq(&r[6], &r[6]) == 1);
+	fail_unless(sr_rational_eq(&r[7], &r[7]) == 1);
+
+	fail_unless(sr_rational_eq(&r[1], &r[4]) == 0);
+}
+END_TEST
+
 Suite *suite_analog(void)
 {
 	Suite *s;
@@ -210,6 +239,7 @@ Suite *suite_analog(void)
 	tcase_add_test(tc, test_analog_unit_to_string_null);
 	tcase_add_test(tc, test_set_rational);
 	tcase_add_test(tc, test_set_rational_null);
+	tcase_add_test(tc, test_cmp_rational);
 	suite_add_tcase(s, tc);
 
 	return s;
