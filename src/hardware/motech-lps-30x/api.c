@@ -242,7 +242,7 @@ SR_PRIV int lps_process_status(struct sr_dev_inst *sdi, int stat)
 	struct dev_context *devc;
 	int tracking_mode;
 
-	devc = (struct dev_context *)sdi->priv;
+	devc = sdi->priv;
 
 	sr_spew("Status: %d", stat);
 	devc->channel_status[0].cc_mode = (stat & 0x01) != 0;
@@ -289,7 +289,7 @@ SR_PRIV int lps_query_status(struct sr_dev_inst *sdi)
 	int stat, ret;
 	struct dev_context *devc;
 
-	devc = (struct dev_context *)sdi->priv;
+	devc = sdi->priv;
 
 	devc->req_sent_at = g_get_real_time();
 

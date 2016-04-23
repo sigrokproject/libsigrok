@@ -291,7 +291,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 
 	/* Send message 03 "Query multimeter version and status" */
 	sdi->conn = serial;
-	sdi->priv = devc;
 	if (req_stat14(sdi, TRUE) != SR_OK)
 		goto exit_err;
 

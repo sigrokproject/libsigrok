@@ -694,15 +694,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 /* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
 	std_session_send_df_end(sdi, LOG_PREFIX);
-
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_BUG;
-	}
 
 	usb = sdi->conn;
 	analyzer_reset(usb->devhdl);

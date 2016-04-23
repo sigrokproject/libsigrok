@@ -203,7 +203,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_REMOTE);
-	devc = sdi->priv;
 	devc->beeper_was_set = FALSE;
 	if (scpi_cmd_resp(sdi, devc->device->commands, &beeper,
 			G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
