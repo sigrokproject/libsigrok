@@ -127,7 +127,7 @@ static int scpi_vxi_send(void *priv, const char *command)
 	write_parms.lock_timeout  = VXI_DEFAULT_TIMEOUT_MS;
 	write_parms.flags         = DF_END;
 	write_parms.data.data_len = MIN(len, vxi->max_send_size);
-	write_parms.data.data_val = command;
+	write_parms.data.data_val = (char *)command;
 
 	if (!(write_resp = device_write_1(&write_parms, vxi->client))
 	    || write_resp->error) {

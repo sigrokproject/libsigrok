@@ -734,6 +734,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 
 	(void)fd;
+	(void)revents;
 
 	data = NULL;
 
