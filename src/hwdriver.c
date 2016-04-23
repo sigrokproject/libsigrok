@@ -278,6 +278,7 @@ static struct sr_key_info sr_key_info_mqflag[] = {
 	{SR_MQFLAG_AVG, 0, "average", "Average", NULL},
 	{SR_MQFLAG_REFERENCE, 0, "reference", "Reference", NULL},
 	{SR_MQFLAG_UNSTABLE, 0, "unstable", "Unstable", NULL},
+	{SR_MQFLAG_FOUR_WIRE, 0, "four_wire", "4-Wire", NULL},
 	ALL_ZERO
 };
 
