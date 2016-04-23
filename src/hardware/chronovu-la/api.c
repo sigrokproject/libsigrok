@@ -255,8 +255,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
-	if (!(devc = sdi->priv))
-		return SR_ERR_BUG;
+	devc = sdi->priv;
 
 	/* Allocate memory for the FTDI context and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {

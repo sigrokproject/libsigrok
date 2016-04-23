@@ -213,7 +213,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_scpi_open(scpi) != SR_OK)
 		return SR_ERR;
 
-	devc=sdi->priv;
+	devc = sdi->priv;
 
 	sr_scpi_send(scpi, "PRESET");
 	sr_scpi_send(scpi, "INBUF ON");

@@ -273,11 +273,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	drvc = di->context;
 	usb = sdi->conn;
-
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	devc = sdi->priv;
 
 	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx,
 					      &devlist);
