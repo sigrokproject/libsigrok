@@ -135,7 +135,7 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Maynuo");
 	sdi->model = g_strdup(model->name);
 	sdi->version = g_strdup_printf("v%d.%d", version/10, version%10);

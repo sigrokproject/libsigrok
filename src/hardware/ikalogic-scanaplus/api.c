@@ -114,7 +114,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INITIALIZING;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(USB_VENDOR_NAME);
 	sdi->model = g_strdup(USB_MODEL_NAME);
 	sdi->driver = di;

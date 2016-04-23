@@ -112,7 +112,7 @@ static int add_device(int model, struct libusb_device_descriptor *des,
 
 	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INITIALIZING;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("ChronoVu");
 	sdi->model = g_strdup(devc->prof->modelname);
 	sdi->serial_num = g_strdup(serial_num);

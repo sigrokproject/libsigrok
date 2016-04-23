@@ -284,7 +284,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devices = NULL;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("Demo device");
 	sdi->driver = di;
 

@@ -129,7 +129,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Arachnid Labs");
 	sdi->model = g_strdup("Re:load Pro");
 	sdi->version = g_strdup(buf + 8);

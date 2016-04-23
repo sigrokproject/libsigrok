@@ -148,7 +148,7 @@ static void scan_device(struct sr_dev_driver *di, struct libusb_device *dev, GSL
 
 	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INITIALIZING;
+	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = vendor;
 	sdi->model = model;
 	sdi->serial_num = serial_num;
