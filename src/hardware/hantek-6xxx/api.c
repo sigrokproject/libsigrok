@@ -50,7 +50,11 @@ static const char *channel_names[] = {
 	"CH1", "CH2",
 };
 
-static const char *coupling[] = {
+static const char *dc_coupling[] = {
+	"DC", "DC",
+};
+
+static const char *acdc_coupling[] = {
 	"AC", "DC",
 };
 
@@ -58,10 +62,12 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
 		0x04b4, 0x6022, 0x04b5, 0x6022,
 		"Hantek", "6022BE", "hantek-6022be.fw",
+		dc_coupling, ARRAY_SIZE(dc_coupling),
 	},
 	{
 		0x8102, 0x8102, 0x1D50, 0x608E,
 		"Sainsmart", "DDS120", "sainsmart-dds120.fw",
+		acdc_coupling, ARRAY_SIZE(acdc_coupling),
 	},
 	ALL_ZERO
 };
@@ -106,6 +112,8 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 		devc->voltage[i] = DEFAULT_VOLTAGE;
 		devc->coupling[i] = DEFAULT_COUPLING;
 	}
+	devc->coupling_vals = prof->coupling_vals;
+	devc->coupling_tab_size = prof->coupling_tab_size;
 
 	devc->sample_buf = NULL;
 	devc->sample_buf_write = 0;
@@ -369,7 +377,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
 			break;
 		case SR_CONF_COUPLING:
-			*data = g_variant_new_string(coupling[devc->coupling[ch_idx]]);
+			*data = g_variant_new_string(devc->coupling_vals[devc->coupling[ch_idx]]);
 			break;
 		}
 	}
@@ -432,13 +440,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			break;
 		case SR_CONF_COUPLING:
 			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; coupling[i]; i++) {
-				if (!strcmp(tmp_str, coupling[i])) {
+			for (i = 0; devc->coupling_vals[i]; i++) {
+				if (!strcmp(tmp_str, devc->coupling_vals[i])) {
 					devc->coupling[ch_idx] = i;
 					break;
 				}
 			}
-			if (coupling[i] == 0)
+			if (devc->coupling_vals[i] == 0)
 				ret = SR_ERR_ARG;
 			break;
 		default:
@@ -457,6 +465,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	unsigned int i;
 	GVariant *gvar;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -495,7 +506,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 			break;
 		case SR_CONF_COUPLING:
-			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

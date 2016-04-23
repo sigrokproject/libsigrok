@@ -97,6 +97,8 @@ struct hantek_6xxx_profile {
 	const char *vendor;
 	const char *model;
 	const char *firmware;
+	const char **coupling_vals;
+	uint8_t coupling_tab_size;
 };
 
 struct dev_context {
@@ -123,6 +125,8 @@ struct dev_context {
 	gboolean ch_enabled[NUM_CHANNELS];
 	int voltage[NUM_CHANNELS];
 	int coupling[NUM_CHANNELS];
+	const char **coupling_vals;
+	uint8_t coupling_tab_size;
 	uint64_t samplerate;
 
 	uint64_t limit_msec;
