@@ -141,19 +141,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial;
-
-	serial = sdi->conn;
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
-		return SR_ERR;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
 static int cleanup(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, NULL);
@@ -422,7 +409,7 @@ SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
+	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
