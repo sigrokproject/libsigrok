@@ -30,7 +30,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
 		"fx2lafw-cwav-usbeeax.fw",
-		0, NULL, NULL},
+		DEV_CAPS_AX_ANALOG, NULL, NULL},
 	/*
 	 * CWAV USBee DX
 	 * XZL-Studio DX
@@ -138,6 +138,10 @@ static const char *channel_names[] = {
 	"8", "9", "10", "11", "12", "13", "14", "15",
 };
 
+static const char *ax_channel_names[] = {
+	"A0",
+};
+
 static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
@@ -204,7 +208,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	struct libusb_device_handle *hdl;
-	int num_logic_channels, ret, i, j;
+	int ret, i, j;
+	int num_logic_channels = 0, num_analog_channels = 0;
 	const char *conn;
 	char manufacturer[64], product[64], serial_num[64], connection_id[64];
 
@@ -309,9 +314,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* Fill in channellist according to this device's profile. */
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
+
 		for (j = 0; j < num_logic_channels; j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
+
+		for (j = 0; j < num_analog_channels; j++)
+			sr_channel_new(sdi, j, SR_CHANNEL_ANALOG, TRUE,
+					ax_channel_names[j]);
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;
