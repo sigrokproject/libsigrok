@@ -433,4 +433,77 @@ SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational 
 #endif
 }
 
+/**
+ * Multiply two sr_rational
+ *
+ * @param[in] a First value
+ * @param[in] b Second value
+ * @param[out] res Result
+ *
+ * The resulting nominator/denominator are reduced if the result would not fit
+ * otherwise. If the resulting nominator/denominator are relatively prime,
+ * this may not be possible.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Resulting value to large
+ *
+ * @since 0.5.0
+ */
+SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a,
+	const struct sr_rational *b)
+{
+#ifdef HAVE___INT128_T
+	__int128_t p;
+	__uint128_t q;
+
+	p = (__int128_t)(a->p) * (__int128_t)(b->p);
+	q = (__uint128_t)(a->q) * (__uint128_t)(b->q);
+
+	if ((p > INT64_MAX) || (p < INT64_MIN) || (q > UINT64_MAX)) {
+		while (!((p & 1) || (q & 1))) {
+			p /= 2;
+			q /= 2;
+		}
+	}
+
+	if ((p > INT64_MAX) || (p < INT64_MIN) || (q > UINT64_MAX)) {
+		// TODO: determine gcd to do further reduction
+		return SR_ERR_ARG;
+	}
+
+	res->p = (int64_t)(p);
+	res->q = (uint64_t)(q);
+
+	return SR_OK;
+
+#else
+	struct sr_int128_t p;
+	struct sr_uint128_t q;
+
+	mult_int64(&p, a->p, b->p);
+	mult_uint64(&q, a->q, b->q);
+
+	while (!(p.low & 1) && !(q.low & 1)) {
+		p.low /= 2;
+		if (p.high & 1) p.low |= (1ll << 63);
+		p.high >>= 1;
+		q.low /= 2;
+		if (q.high & 1) q.low |= (1ll << 63);
+		q.high >>= 1;
+	}
+
+	if (q.high)
+		return SR_ERR_ARG;
+	if ((p.high >= 0) && (p.low > INT64_MAX))
+		return SR_ERR_ARG;
+	if (p.high < -1)
+		return SR_ERR_ARG;
+
+	res->p = (int64_t)p.low;
+	res->q = q.low;
+
+	return SR_OK;
+#endif
+}
+
 /** @} */
