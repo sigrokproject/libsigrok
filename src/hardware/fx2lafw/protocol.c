@@ -382,13 +382,28 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
+SR_PRIV void la_send_data_proc(void *cb_data,
+	uint8_t *data, size_t length, size_t sample_width)
+{
+	const struct sr_datafeed_logic logic = {
+		.length = length,
+		.unitsize = sample_width,
+		.data = data
+	};
+
+	const struct sr_datafeed_packet packet = {
+		.type = SR_DF_LOGIC,
+		.payload = &logic
+	};
+
+	sr_session_send(cb_data, &packet);
+}
+
 SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	gboolean packet_has_error = FALSE;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
 	unsigned int num_samples;
 	int trigger_offset, cur_sample_count, unitsize;
 	int pre_trigger_samples;
@@ -446,16 +461,15 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 	if (devc->trigger_fired) {
 		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
 			/* Send the incoming transfer to the session bus. */
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
 			if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 			else
 				num_samples = cur_sample_count;
-			logic.length = num_samples * unitsize;
-			logic.unitsize = unitsize;
-			logic.data = transfer->buffer;
-			sr_session_send(devc->cb_data, &packet);
+
+			devc->send_data_proc(devc->cb_data,
+						(uint8_t*)transfer->buffer,
+						num_samples * unitsize,
+						unitsize);
 			devc->sent_samples += num_samples;
 		}
 	} else {
@@ -463,16 +477,15 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			transfer->buffer, transfer->actual_length, &pre_trigger_samples);
 		if (trigger_offset > -1) {
 			devc->sent_samples += pre_trigger_samples;
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
 			num_samples = cur_sample_count - trigger_offset;
 			if (devc->limit_samples &&
 					num_samples > devc->limit_samples - devc->sent_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
-			logic.length = num_samples * unitsize;
-			logic.unitsize = unitsize;
-			logic.data = transfer->buffer + trigger_offset * unitsize;
-			sr_session_send(devc->cb_data, &packet);
+
+			devc->send_data_proc(devc->cb_data,
+						(uint8_t*)transfer->buffer + trigger_offset * unitsize,
+						num_samples * unitsize,
+						unitsize);
 			devc->sent_samples += num_samples;
 
 			devc->trigger_fired = TRUE;
