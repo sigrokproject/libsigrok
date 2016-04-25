@@ -125,6 +125,8 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 	/* Select the sampling width. */
 	cmd.flags |= devc->sample_wide ? CMD_START_FLAGS_SAMPLE_16BIT :
 		CMD_START_FLAGS_SAMPLE_8BIT;
+	/* Enable CTL2 clock. */
+	cmd.flags |= (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG) ? CMD_START_FLAGS_CLK_CTL2 : 0;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
@@ -393,12 +395,11 @@ SR_PRIV void mso_send_data_proc(struct dev_context *devc,
 	sample_width = sample_width;
 	length /= 2;
 
-	sr_dbg("mso_send_data_proc length = %d", length);
-
 	/* Send the logic */
 	for(i = 0; i < length; i++) {
 		devc->logic_buffer[i]  = data[i * 2];
-		devc->analog_buffer[i] = data[i * 2 + 1] - 128.0f;
+		/* Rescale to -10V - +10V from 0-255. */
+		devc->analog_buffer[i] = data[i * 2 + 1] - 128.0f / 12.8f;
 	};
 
 	const struct sr_datafeed_logic logic = {
@@ -414,10 +415,11 @@ SR_PRIV void mso_send_data_proc(struct dev_context *devc,
 	sr_session_send(devc->cb_data, &logic_packet);
 
 	const struct sr_datafeed_analog_old analog = {
+		.channels = devc->enabled_analog_channels,
 		.num_samples = length,
 		.mq = SR_MQ_VOLTAGE,
 		.unit = SR_UNIT_VOLT,
-		.mqflags = SR_MQFLAG_DC,
+		.mqflags = 0 /*SR_MQFLAG_DC*/,
 		.data = devc->analog_buffer
 	};
 
@@ -425,8 +427,6 @@ SR_PRIV void mso_send_data_proc(struct dev_context *devc,
 		.type = SR_DF_ANALOG_OLD,
 		.payload = &analog
 	};
-
-	sr_dbg("mso_send_data_proc length = %d", length);
 	sr_session_send(devc->cb_data, &analog_packet);
 
 }

@@ -39,6 +39,8 @@
 #define NUM_SIMUL_TRANSFERS	32
 #define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
 
+#define NUM_CHANNELS		16
+
 #define FX2LAFW_REQUIRED_VERSION_MAJOR	1
 
 #define MAX_8BIT_SAMPLE_RATE	SR_MHZ(24)
@@ -66,7 +68,7 @@
 #define CMD_START_FLAGS_WIDE_POS	5
 #define CMD_START_FLAGS_CLK_SRC_POS	6
 
-#define CMD_START_FLAGS_CLK_CTL2	(1 << CMD_START_FLAGS_CLK_CTL2)
+#define CMD_START_FLAGS_CLK_CTL2	(1 << CMD_START_FLAGS_CLK_CTL2_POS)
 #define CMD_START_FLAGS_SAMPLE_8BIT	(0 << CMD_START_FLAGS_WIDE_POS)
 #define CMD_START_FLAGS_SAMPLE_16BIT	(1 << CMD_START_FLAGS_WIDE_POS)
 
@@ -91,6 +93,8 @@ struct fx2lafw_profile {
 
 struct dev_context {
 	const struct fx2lafw_profile *profile;
+	GSList *enabled_analog_channels;
+	gboolean ch_enabled[NUM_CHANNELS];
 	/*
 	 * Since we can't keep track of an fx2lafw device after upgrading
 	 * the firmware (it renumerates into a different device address

@@ -133,15 +133,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const char *channel_names[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	"8", "9", "10", "11", "12", "13", "14", "15",
-};
-
-static const char *ax_channel_names[] = {
-	"A0",
-};
-
 static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
@@ -201,6 +192,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
+	struct sr_channel *ch;
+	struct sr_channel_group *cg;
 	struct sr_config *src;
 	const struct fx2lafw_profile *prof;
 	GSList *l, *devices, *conn_devices;
@@ -212,6 +205,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int num_logic_channels = 0, num_analog_channels = 0;
 	const char *conn;
 	char manufacturer[64], product[64], serial_num[64], connection_id[64];
+	char channel_name[16];
 
 	drvc = di->context;
 
@@ -316,17 +310,33 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
 		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
 
-		for (j = 0; j < num_logic_channels; j++)
-			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
-					channel_names[j]);
+		/* Logic channels, all in one channel group. */
+		cg = g_malloc0(sizeof(struct sr_channel_group));
+		cg->name = g_strdup("Logic");
+		for (j = 0; j < num_logic_channels; j++) {
+			sprintf(channel_name, "D%d", j);
+			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
+						TRUE, channel_name);
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
+		sdi->channel_groups = g_slist_append(NULL, cg);
 
-		for (j = 0; j < num_analog_channels; j++)
-			sr_channel_new(sdi, j, SR_CHANNEL_ANALOG, TRUE,
-					ax_channel_names[j]);
+		for (j = 0; j < num_analog_channels; j++) {
+			snprintf(channel_name, 16, "A%d", j);
+			ch = sr_channel_new(sdi, j + num_logic_channels,
+					SR_CHANNEL_ANALOG, TRUE, channel_name);
+
+			/* Every analog channel gets its own channel group. */
+			cg = g_malloc0(sizeof(struct sr_channel_group));
+			cg->name = g_strdup(channel_name);
+			cg->channels = g_slist_append(NULL, ch);
+			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+		}
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;
-		devc->sample_wide = (prof->dev_caps & DEV_CAPS_16BIT) != 0;
+		if ((prof->dev_caps & DEV_CAPS_16BIT) || (prof->dev_caps & DEV_CAPS_AX_ANALOG))
+			devc->sample_wide = TRUE;
 		sdi->priv = devc;
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
@@ -373,6 +383,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
 	return devices;
+}
+
+static void clear_dev_context(void *priv)
+{
+	struct dev_context *devc;
+
+	devc = priv;
+	g_slist_free(devc->enabled_analog_channels);
+	g_free(devc);
+}
+
+static int dev_clear(const struct sr_dev_driver *di)
+{
+	return std_dev_clear(di, clear_dev_context);
 }
 
 static GSList *dev_list(const struct sr_dev_driver *di)
@@ -799,6 +823,31 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
+static int configure_channels(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	const GSList *l;
+	int p;
+	struct sr_channel *ch;
+
+	devc = sdi->priv;
+
+	g_slist_free(devc->enabled_analog_channels);
+	devc->enabled_analog_channels = NULL;
+	memset(devc->ch_enabled, 0, sizeof(devc->ch_enabled));
+
+	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
+		ch = l->data;
+		if ((p <= NUM_CHANNELS) && (ch->type == SR_CHANNEL_ANALOG)) {
+			devc->ch_enabled[p] = ch->enabled;
+			devc->enabled_analog_channels =
+			    g_slist_append(devc->enabled_analog_channels, ch);
+		}
+	}
+
+	return SR_OK;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 {
 	struct sr_dev_driver *di;
@@ -819,6 +868,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
+
+	if (configure_channels(sdi) != SR_OK) {
+		sr_err("Failed to configure channels.");
+		return SR_ERR;
+	}
 
 	timeout = fx2lafw_get_timeout(devc);
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
@@ -868,7 +922,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = NULL,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
