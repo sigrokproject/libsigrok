@@ -122,8 +122,10 @@ struct dev_context {
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
 	struct sr_context *ctx;
-	void (*send_data_proc)(void *cb_data,
+	void (*send_data_proc)(struct dev_context *devc,
 		uint8_t *data, size_t length, size_t sample_width);
+	uint8_t *logic_buffer;
+	float *analog_buffer;
 
 	/* Is this a DSLogic? */
 	gboolean dslogic;
@@ -142,7 +144,9 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
 SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
-SR_PRIV void la_send_data_proc(void *cb_data, uint8_t *data, size_t length,
+SR_PRIV void la_send_data_proc(struct dev_context *devc, uint8_t *data, size_t length,
+		size_t sample_width);
+SR_PRIV void mso_send_data_proc(struct dev_context *devc, uint8_t *data, size_t length,
 		size_t sample_width);
 
 #endif

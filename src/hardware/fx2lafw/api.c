@@ -710,7 +710,10 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		devc->submitted_transfers++;
 	}
 
-	devc->send_data_proc = la_send_data_proc;
+	if (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG)
+		devc->send_data_proc = mso_send_data_proc;
+	else
+		devc->send_data_proc = la_send_data_proc;
 
 	/* Send header packet to the session bus. */
 	std_session_send_df_header(sdi, LOG_PREFIX);
@@ -802,6 +805,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	int timeout, ret;
+	size_t size;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -822,6 +826,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, void *cb_data)
 	if (devc->dslogic) {
 		dslogic_trigger_request(sdi);
 	} else {
+		size = fx2lafw_get_buffer_size(devc);
+		/* Prepare for analog sampling. */
+		if (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG) {
+			/* We need a buffer half the size of a transfer. */
+			devc->logic_buffer = g_try_malloc(size / 2);
+			devc->analog_buffer = g_try_malloc(
+				sizeof(float) * size / 2);
+		}
 		start_transfers(sdi);
 		if ((ret = fx2lafw_command_start_acquisition(sdi)) != SR_OK) {
 			fx2lafw_abort_acquisition(devc);
