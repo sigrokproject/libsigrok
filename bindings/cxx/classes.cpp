@@ -509,10 +509,11 @@ set<const ConfigKey *> Configurable::config_keys() const
 
 	opts = sr_dev_options(config_driver, config_sdi, config_channel_group);
 
-	for (guint i = 0; i < opts->len; i++)
-		result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
-
-	g_array_free(opts, TRUE);
+	if (opts) {
+		for (guint i = 0; i < opts->len; i++)
+			result.insert(ConfigKey::get(g_array_index(opts, uint32_t, i)));
+		g_array_free(opts, TRUE);
+	}
 
 	return result;
 }
