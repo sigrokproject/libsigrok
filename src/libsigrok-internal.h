@@ -401,6 +401,18 @@ struct sr_input_module {
 	 */
 	int (*end) (struct sr_input *in);
 
+        /**
+         * Reset the input module's input handling structures.
+         *
+         * Causes the input module to reset its internal state so that we can
+         * re-send the input data from the beginning without having to
+         * re-create the entire input module.
+         *
+         * @retval SR_OK Success.
+         * @retval other Negative error code.
+         */
+	int (*reset) (struct sr_input *in);
+
 	/**
 	 * This function is called after the caller is finished using
 	 * the input module, and can be used to free any internal

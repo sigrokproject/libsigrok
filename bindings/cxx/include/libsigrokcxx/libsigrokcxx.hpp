@@ -828,6 +828,7 @@ public:
 	void send(void *data, size_t length);
 	/** Signal end of input data. */
 	void end();
+	void reset();
 private:
 	Input(shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();

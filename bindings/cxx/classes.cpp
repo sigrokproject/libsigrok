@@ -1329,6 +1329,11 @@ void Input::end()
 	check(sr_input_end(_structure));
 }
 
+void Input::reset()
+{
+	check(sr_input_reset(_structure));
+}
+
 Input::~Input()
 {
 	sr_input_free(_structure);
