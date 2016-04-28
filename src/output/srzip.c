@@ -324,14 +324,6 @@ static int zip_append_analog(const struct sr_output *o,
 	unsigned int next_chunk_num, index;
 
 	outc = o->priv;
-	if (!(archive = zip_open(outc->filename, 0, NULL)))
-		return SR_ERR;
-
-	if (zip_stat(archive, "metadata", 0, &zs) < 0) {
-		sr_err("Failed to open metadata: %s", zip_strerror(archive));
-		zip_discard(archive);
-		return SR_ERR;
-	}
 
 	/* TODO: support packets covering multiple channels */
 	if (g_slist_length(analog->meaning->channels) != 1) {
@@ -351,6 +343,14 @@ static int zip_append_analog(const struct sr_output *o,
 
 	index += outc->first_analog_index;
 
+	if (!(archive = zip_open(outc->filename, 0, NULL)))
+		return SR_ERR;
+
+	if (zip_stat(archive, "metadata", 0, &zs) < 0) {
+		sr_err("Failed to open metadata: %s", zip_strerror(archive));
+		goto err_zip_discard;
+	}
+
 	basename = g_strdup_printf("analog-1-%u", index);
 	baselen = strlen(basename);
 	next_chunk_num = 1;
@@ -368,9 +368,10 @@ static int zip_append_analog(const struct sr_output *o,
 
 	chunksize = sizeof(float) * analog->num_samples;
 	if (!(chunkbuf = g_try_malloc(chunksize)))
-		return SR_ERR;
+		goto err_free_basename;
+
 	if (sr_analog_to_float(analog, chunkbuf) != SR_OK)
-		return SR_ERR;
+		goto err_free_chunkbuf;
 
 	analogsrc = zip_source_buffer(archive, chunkbuf, chunksize, FALSE);
 	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
@@ -379,16 +380,26 @@ static int zip_append_analog(const struct sr_output *o,
 	if (i < 0) {
 		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
 		zip_source_free(analogsrc);
-		zip_discard(archive);
-		return SR_ERR;
+		goto err_free_chunkbuf;
 	}
 	if (zip_close(archive) < 0) {
 		sr_err("Error saving session file: %s", zip_strerror(archive));
-		zip_discard(archive);
-		return SR_ERR;
+		goto err_free_chunkbuf;
 	}
 
+	g_free(basename);
+	g_free(chunkbuf);
+
 	return SR_OK;
+
+err_free_chunkbuf:
+	g_free(chunkbuf);
+err_free_basename:
+	g_free(basename);
+err_zip_discard:
+	zip_discard(archive);
+
+	return SR_ERR;
 }
 
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
