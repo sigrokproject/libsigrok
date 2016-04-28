@@ -140,8 +140,9 @@ static int zip_create(const struct sr_output *o)
 	g_key_file_set_integer(meta, devgroup, "total analog", enabled_analog_channels);
 
 	/* Make the array one entry larger than needed so we can use the final
-	 * 0 as terminator. */
+	 * entry as terminator, which is set to -1. */
 	outc->analog_index_map = g_malloc0(sizeof(gint) * (enabled_analog_channels + 1));
+	outc->analog_index_map[enabled_analog_channels] = -1;
 
 	index = 0;
 	for (l = o->sdi->channels; l; l = l->next) {
@@ -342,10 +343,10 @@ static int zip_append_analog(const struct sr_output *o,
 	/* When reading the file, analog channels must be consecutive.
 	 * Thus we need a global channel index map as we don't know in
 	 * which order the channel data comes in. */
-	for (index = 0; outc->analog_index_map[index]; index++)
+	for (index = 0; outc->analog_index_map[index] != -1; index++)
 		if (outc->analog_index_map[index] == channel->index)
 			break;
-	if (!outc->analog_index_map[index])
+	if (outc->analog_index_map[index] == -1)
 		return SR_ERR_ARG;  /* Channel index was not in the list */
 
 	index += outc->first_analog_index;
