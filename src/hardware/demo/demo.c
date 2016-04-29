@@ -389,9 +389,14 @@ static void clear_helper(void *priv)
 	g_free(devc);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
+}
+
+static int cleanup(const struct sr_dev_driver *di)
+{
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -892,7 +897,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = NULL,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
