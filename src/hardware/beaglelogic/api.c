@@ -202,25 +202,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static int cleanup(const struct sr_dev_driver *di)
 {
-	struct drv_context *drvc;
-	struct sr_dev_inst *sdi;
-	GSList *l;
-
-	/* unused driver */
-	if (!(drvc = di->context))
-		return SR_OK;
-
-	/* Clean up the instances */
-	for (l = drvc->instances; l; l = l->next) {
-		sdi = l->data;
-		di->dev_close(sdi);
-		g_free(sdi->priv);
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
+	return std_dev_clear(di, NULL);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
