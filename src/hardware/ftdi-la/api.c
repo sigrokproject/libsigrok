@@ -172,6 +172,7 @@ err_free_strings:
 	g_free(vendor);
 	g_free(model);
 	g_free(serial_num);
+	ftdi_free(devc->ftdic);
 err_free_data_buf:
 	g_free(devc->data_buf);
 	g_free(devc);
@@ -210,6 +211,9 @@ static GSList *scan_all(struct sr_dev_driver *di, GSList *options)
 		scan_device(di, curdev->dev, &devices);
 		curdev = curdev->next;
 	}
+
+	ftdi_list_free(&devlist);
+	ftdi_free(ftdic);
 
 	return devices;
 
