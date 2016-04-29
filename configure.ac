@@ -171,6 +171,9 @@ AS_IF([test "x$sr_cv_have_rpc" = xyes],
 # VXI support is only compiled if RPC support was found.
 AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 
+# Check for compiler support of 128 bit integers
+AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
+
 ########################
 ##  Hardware drivers  ##
 ########################
