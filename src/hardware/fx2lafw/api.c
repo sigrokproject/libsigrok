@@ -399,11 +399,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, clear_dev_context);
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
@@ -899,7 +894,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,

@@ -35,11 +35,6 @@ static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)di->context)->instances;
-}
-
 #define LOG_PREFIX "deree-de5000"
 
 SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
@@ -73,7 +68,7 @@ SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = es51919_serial_config_get,
 	.config_set = es51919_serial_config_set,

@@ -351,11 +351,6 @@ exit_err:
 	return NULL;
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -526,7 +521,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan_1x_2x_rs232,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
@@ -545,7 +540,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan_2x_bd232,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,

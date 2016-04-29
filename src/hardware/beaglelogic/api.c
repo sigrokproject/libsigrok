@@ -145,11 +145,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -375,7 +370,7 @@ SR_PRIV struct sr_dev_driver beaglelogic_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

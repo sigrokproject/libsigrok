@@ -172,11 +172,6 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 	return devices;
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -287,7 +282,7 @@ SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,
@@ -306,7 +301,7 @@ SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = NULL,
 	.config_get = NULL,
 	.config_set = config_set,

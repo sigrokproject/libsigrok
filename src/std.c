@@ -337,3 +337,22 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 
 	return ret;
 }
+
+/**
+ * Standard implementation for the driver dev_list() callback
+ *
+ * This function can be used as the dev_list callback by most drivers that use
+ * the standard helper functions. It returns the devices contained in the driver
+ * context instances list.
+ *
+ * @param di The driver instance to use.
+ *
+ * @return The list of devices/instances of this driver, or NULL upon errors
+ *         or if the list is empty.
+ */
+SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di)
+{
+	struct drv_context *drvc = di->context;
+
+	return drvc->instances;
+}

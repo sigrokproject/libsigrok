@@ -134,11 +134,6 @@ static GSList *scan(GSList *options, int idx)
 	return devices;
 }
 
-static GSList *dev_list(int idx)
-{
-	return ((struct drv_context *)(center_devs[idx].di->context))->instances;
-}
-
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -229,9 +224,6 @@ static int init_##X(struct sr_dev_driver *d, \
 #define HW_SCAN(X) \
 static GSList *scan_##X(struct sr_dev_driver *d, GSList *options) { \
 	(void)d; return scan(options, X); }
-#define HW_DEV_LIST(X) \
-static GSList *dev_list_##X(const struct sr_dev_driver *d) { \
-	(void)d; return dev_list(X); }
 #define HW_DEV_ACQUISITION_START(X) \
 static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 ) { return dev_acquisition_start(sdi, X); }
@@ -240,7 +232,6 @@ static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
 HW_INIT(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
-HW_DEV_LIST(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
 SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
@@ -249,7 +240,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.init = init_##ID_UPPER, \
 	.cleanup = std_cleanup, \
 	.scan = scan_##ID_UPPER, \
-	.dev_list = dev_list_##ID_UPPER, \
+	.dev_list = std_dev_list, \
 	.config_get = NULL, \
 	.config_set = config_set, \
 	.config_list = config_list, \

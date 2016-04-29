@@ -176,11 +176,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return sr_scpi_scan(di->context, options, probe_device);
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 /*
  * We need to set the HP 3457A to a known state, and there are quite a number
  * of knobs to tweak. Here's a brief explanation of what's going on. For more
@@ -454,7 +449,7 @@ SR_PRIV struct sr_dev_driver hp_3457a_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

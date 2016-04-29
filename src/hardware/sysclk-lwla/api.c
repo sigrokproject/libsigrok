@@ -212,13 +212,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return devices;
 }
 
-/* Return the list of devices found during scan.
- */
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 /* Destroy the private device context.
  */
 static void clear_dev_context(void *priv)
@@ -805,7 +798,7 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,

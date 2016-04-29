@@ -263,11 +263,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return scan_all(di, options);
 }
 
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
@@ -499,7 +494,7 @@ SR_PRIV struct sr_dev_driver ftdi_la_driver_info = {
 	.init = init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
