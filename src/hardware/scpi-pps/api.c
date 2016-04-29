@@ -181,11 +181,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -247,9 +242,14 @@ static void clear_helper(void *priv)
 	g_free(devc);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, clear_helper);
+}
+
+static int cleanup(const struct sr_dev_driver *di)
+{
+	return dev_clear(di);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
