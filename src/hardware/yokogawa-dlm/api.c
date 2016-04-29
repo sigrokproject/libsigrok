@@ -176,13 +176,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	dev_clear(di);
-
-	return SR_OK;
-}
-
 /**
  * Check which category a given channel group belongs to.
  *
@@ -696,7 +689,7 @@ SR_PRIV struct sr_dev_driver yokogawa_dlm_driver_info = {
 	.longname = "Yokogawa DL/DLM",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

@@ -144,11 +144,6 @@ static GSList *dev_list(int idx)
 	return ((struct drv_context *)(center_devs[idx].di->context))->instances;
 }
 
-static int cleanup(int idx)
-{
-	return dev_clear(idx);
-}
-
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -236,9 +231,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 #define HW_INIT(X) \
 static int init_##X(struct sr_dev_driver *d, \
 	struct sr_context *sr_ctx) { (void)d; return init(sr_ctx, X); }
-#define HW_CLEANUP(X) \
-static int cleanup_##X(const struct sr_dev_driver *d) { \
-	(void)d; return cleanup(X); }
 #define HW_SCAN(X) \
 static GSList *scan_##X(struct sr_dev_driver *d, GSList *options) { \
 	(void)d; return scan(options, X); }
@@ -255,7 +247,6 @@ static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 /* Driver structs and API function wrappers */
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
 HW_INIT(ID_UPPER) \
-HW_CLEANUP(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
 HW_DEV_LIST(ID_UPPER) \
 HW_DEV_CLEAR(ID_UPPER) \
@@ -265,7 +256,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.longname = LONGNAME, \
 	.api_version = 1, \
 	.init = init_##ID_UPPER, \
-	.cleanup = cleanup_##ID_UPPER, \
+	.cleanup = std_cleanup, \
 	.scan = scan_##ID_UPPER, \
 	.dev_list = dev_list_##ID_UPPER, \
 	.dev_clear = dev_clear_##ID_UPPER, \

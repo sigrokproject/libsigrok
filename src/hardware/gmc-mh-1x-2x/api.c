@@ -374,11 +374,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -529,7 +524,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan_1x_2x_rs232,
 	.dev_list = dev_list,
 	.dev_clear = NULL,
@@ -548,7 +543,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.longname = "Gossen Metrawatt Metrahit 2x, BD232/SI232-II interface",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan_2x_bd232,
 	.dev_list = dev_list,
 	.dev_clear = NULL,

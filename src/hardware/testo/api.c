@@ -230,20 +230,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	int ret;
-	struct drv_context *drvc;
-
-	if (!(drvc = di->context))
-		return SR_OK;
-
-	ret = dev_clear(di);
-	g_free(drvc);
-
-	return ret;
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -518,7 +504,7 @@ SR_PRIV struct sr_dev_driver testo_driver_info = {
 	.longname = "Testo",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

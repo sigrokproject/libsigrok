@@ -64,6 +64,28 @@ SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
 }
 
 /**
+ * Standard driver cleanup() callback API helper
+ *
+ * @param di The driver instance to use.
+ *
+ * Frees all device instances by calling sr_dev_clear() and then releases any
+ * resources allocated by std_init().
+ *
+ * @retval SR_OK Success
+ * @retval SR_ERR_ARG Invalid driver
+ *
+*/
+SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
+{
+	int ret;
+
+	ret = sr_dev_clear(di);
+	g_free(di->context);
+
+	return ret;
+}
+
+/**
  * Standard API helper for sending an SR_DF_HEADER packet.
  *
  * This function can be used to simplify most driver's

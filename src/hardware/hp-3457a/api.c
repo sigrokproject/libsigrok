@@ -244,11 +244,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear(di);
-}
-
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -462,7 +457,7 @@ SR_PRIV struct sr_dev_driver hp_3457a_driver_info = {
 	.longname = "HP 3457A",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

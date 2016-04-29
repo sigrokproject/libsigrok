@@ -54,11 +54,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, es51919_serial_clean);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear(di);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -76,7 +71,7 @@ SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
 	.longname = "DER EE DE-5000",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

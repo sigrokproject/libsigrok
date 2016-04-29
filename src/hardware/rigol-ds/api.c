@@ -459,11 +459,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear(di);
-}
-
 static int analog_frame_size(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
@@ -1072,7 +1067,7 @@ SR_PRIV struct sr_dev_driver rigol_ds_driver_info = {
 	.longname = "Rigol DS",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

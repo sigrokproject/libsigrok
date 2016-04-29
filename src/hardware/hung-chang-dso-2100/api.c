@@ -311,18 +311,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	struct drv_context *drvc = di->context;
-	int ret;
-
-	ret = dev_clear(di);
-
-	g_free(drvc);
-
-	return ret;
-}
-
 static int find_in_array(GVariant *data, const GVariantType *type,
 			 const void *arr, int n)
 {
@@ -741,7 +729,7 @@ SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info = {
 	.longname = "Hung-Chang DSO-2100",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

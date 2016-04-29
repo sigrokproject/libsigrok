@@ -264,11 +264,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear();
-}
-
 static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -470,7 +465,7 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

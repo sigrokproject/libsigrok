@@ -538,11 +538,6 @@ static int dev_clear_lps301(const struct sr_dev_driver *di)
 	return std_dev_clear(di, (std_dev_clear_callback)dev_clear_private);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear_lps301(di);
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -840,7 +835,7 @@ SR_PRIV struct sr_dev_driver motech_lps_301_driver_info = {
 	.longname = "Motech LPS-301",
 	.api_version = 1,
 	.init = init_lps301,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan_lps301,
 	.dev_list = dev_list_lps301,
 	.dev_clear = dev_clear_lps301,

@@ -509,21 +509,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	int ret;
-	struct drv_context *drvc;
-
-	if (!(drvc = di->context))
-		return SR_OK;
-
-	ret = std_dev_clear(di, NULL);
-
-	g_free(drvc);
-
-	return ret;
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -912,7 +897,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.longname = "fx2lafw (generic driver for FX2 based LAs)",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

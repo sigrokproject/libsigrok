@@ -200,11 +200,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -383,7 +378,7 @@ SR_PRIV struct sr_dev_driver beaglelogic_driver_info = {
 	.longname = "BeagleLogic",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
 	.dev_clear = dev_clear,

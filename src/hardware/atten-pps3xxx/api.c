@@ -204,11 +204,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -507,7 +502,7 @@ SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
 	.longname = "Atten PPS3203T-3S",
 	.api_version = 1,
 	.init = init,
-	.cleanup = cleanup,
+	.cleanup = std_cleanup,
 	.scan = scan_3203,
 	.dev_list = dev_list,
 	.dev_clear = NULL,

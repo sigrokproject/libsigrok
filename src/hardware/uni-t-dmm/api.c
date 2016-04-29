@@ -139,11 +139,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-	return dev_clear(di);
-}
-
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -221,7 +216,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.longname = VENDOR " " MODEL, \
 			.api_version = 1, \
 			.init = init, \
-			.cleanup = cleanup, \
+			.cleanup = std_cleanup, \
 			.scan = scan, \
 			.dev_list = dev_list, \
 			.dev_clear = dev_clear, \
