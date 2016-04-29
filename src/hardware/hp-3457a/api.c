@@ -181,11 +181,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 /*
  * We need to set the HP 3457A to a known state, and there are quite a number
  * of knobs to tweak. Here's a brief explanation of what's going on. For more
@@ -460,7 +455,6 @@ SR_PRIV struct sr_dev_driver hp_3457a_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

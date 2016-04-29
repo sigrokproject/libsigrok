@@ -36,11 +36,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -223,7 +218,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.cleanup = std_cleanup, \
 			.scan = scan, \
 			.dev_list = dev_list, \
-			.dev_clear = dev_clear, \
 			.config_get = NULL, \
 			.config_set = config_set, \
 			.config_list = config_list, \

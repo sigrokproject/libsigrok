@@ -204,11 +204,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 	return ((struct drv_context *)(di->context))->instances;
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, g_free);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_modbus_dev_inst *modbus = sdi->conn;
@@ -494,7 +489,6 @@ SR_PRIV struct sr_dev_driver maynuo_m97_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -75,11 +75,6 @@ static const struct hcs_model models[] = {
 
 SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	return std_init(sr_ctx, di, LOG_PREFIX);
@@ -421,7 +416,6 @@ SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
