@@ -167,6 +167,7 @@ SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
 		sr_dbg("Name for probe %d can't be read: %s",
 		       prb_num, err->message);
 		g_string_free(path, TRUE);
+		g_error_free(err);
 		return ret;
 	}
 
@@ -201,6 +202,7 @@ static int get_hwmon_index(unsigned int addr)
 	if (!dir) {
 		sr_err("Error opening %s: %s", path->str, err->message);
 		g_string_free(path, TRUE);
+		g_error_free(err);
 		return -1;
 	}
 
@@ -484,6 +486,7 @@ SR_PRIV int bl_acme_get_shunt(const struct sr_channel_group *cg,
 	if (!status) {
 		sr_err("Error reading shunt resistance: %s", err->message);
 		ret = SR_ERR_IO;
+		g_error_free(err);
 		goto out;
 	}
 
