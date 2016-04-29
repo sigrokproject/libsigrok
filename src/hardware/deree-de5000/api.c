@@ -49,9 +49,14 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 	return std_init(sr_ctx, di, LOG_PREFIX);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
+static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, es51919_serial_clean);
+}
+
+static int cleanup(const struct sr_dev_driver *di)
+{
+	return dev_clear(di);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -74,7 +79,7 @@ SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
 	.cleanup = cleanup,
 	.scan = scan,
 	.dev_list = dev_list,
-	.dev_clear = NULL,
+	.dev_clear = dev_clear,
 	.config_get = es51919_serial_config_get,
 	.config_set = es51919_serial_config_set,
 	.config_list = es51919_serial_config_list,
