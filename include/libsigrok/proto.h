@@ -36,6 +36,8 @@ SR_API void sr_rational_set(struct sr_rational *r, int64_t p, uint64_t q);
 SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational *b);
 SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a,
 		const struct sr_rational *b);
+SR_API int sr_rational_div(struct sr_rational *res, const struct sr_rational *num,
+		const struct sr_rational *div);
 
 /*--- backend.c -------------------------------------------------------------*/
 

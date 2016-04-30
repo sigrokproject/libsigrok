@@ -444,6 +444,8 @@ SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational 
  * otherwise. If the resulting nominator/denominator are relatively prime,
  * this may not be possible.
  *
+ * It is save to use the same variable for result and input values
+ *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Resulting value to large
  *
@@ -504,6 +506,47 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
 
 	return SR_OK;
 #endif
+}
+
+/**
+ * Divide rational a by rational b
+ *
+ * @param[in] num numerator
+ * @param[in] div divisor
+ * @param[out] res Result
+ *
+ * The resulting nominator/denominator are reduced if the result would not fit
+ * otherwise. If the resulting nominator/denominator are relatively prime,
+ * this may not be possible.
+ *
+ * It is save to use the same variable for result and input values
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Division by zero
+ * @retval SR_ERR_ARG Denominator of divisor to large
+ * @retval SR_ERR_ARG Resulting value to large
+ *
+ * @since 0.5.0
+ */
+SR_API int sr_rational_div(struct sr_rational *res, const struct sr_rational *num,
+	const struct sr_rational *div)
+{
+	struct sr_rational t;
+
+	if (div->q > INT64_MAX)
+		return SR_ERR_ARG;
+	if (div->p == 0)
+		return SR_ERR_ARG;
+
+	if (div->p > 0) {
+		t.p = div->q;
+		t.q = div->p;
+	} else {
+		t.p = -div->q;
+		t.q = -div->p;
+	}
+
+	return sr_rational_mult(res, num, &t);
 }
 
 /** @} */
