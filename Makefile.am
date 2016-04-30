@@ -407,6 +407,12 @@ libsigrok_la_SOURCES += \
 	src/hardware/openbench-logic-sniffer/protocol.c \
 	src/hardware/openbench-logic-sniffer/api.c
 endif
+if HW_PCE_322A
+libsigrok_la_SOURCES += \
+	src/hardware/pce-322a/protocol.h \
+	src/hardware/pce-322a/protocol.c \
+	src/hardware/pce-322a/api.c
+endif
 if HW_PIPISTRELLO_OLS
 libsigrok_la_SOURCES += \
 	src/hardware/pipistrello-ols/protocol.h \
