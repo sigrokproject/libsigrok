@@ -90,6 +90,7 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->vendor = g_strdup(mic_devs[idx].vendor);
 	sdi->model = g_strdup(mic_devs[idx].device);
 	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;
@@ -152,18 +153,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	devc = sdi->priv;
 
-	switch (key) {
-	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -206,9 +196,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->num_samples = 0;
-	devc->starttime = g_get_monotonic_time();
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Poll every 100ms, or whenever some data comes in. */
