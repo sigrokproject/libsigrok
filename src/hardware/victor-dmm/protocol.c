@@ -264,7 +264,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)

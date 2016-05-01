@@ -86,6 +86,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 		devc = g_malloc0(sizeof(struct dev_context));
+		sr_sw_limits_init(&devc->limits);
 		sdi->priv = devc;
 
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
@@ -170,6 +171,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
 	char str[128];
 
@@ -183,6 +185,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
 		*data = g_variant_new_string(str);
 		break;
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	default:
 		return SR_ERR_NA;
 	}
@@ -194,7 +199,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	gint64 now;
 
 	(void)cg;
 
@@ -203,20 +207,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	devc = sdi->priv;
 
-	switch (key) {
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		now = g_get_monotonic_time() / 1000;
-		devc->end_time = now + devc->limit_msec;
-		break;
-	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -260,10 +251,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		sr_dbg("Got %d-byte packet.", transfer->actual_length);
 		if (transfer->actual_length == DMM_DATA_SIZE) {
 			victor_dmm_receive_data(sdi, transfer->buffer);
-			if (devc->limit_samples) {
-				if (devc->num_samples >= devc->limit_samples)
-					dev_acquisition_stop(sdi);
-			}
+			if (sr_sw_limits_check(&devc->limits))
+				dev_acquisition_stop(sdi);
 		}
 	}
 	/* Anything else is either an error or a timeout, which is fine:
@@ -293,7 +282,6 @@ static int handle_events(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct sr_dev_driver *di;
 	struct timeval tv;
-	gint64 now;
 
 	(void)fd;
 	(void)revents;
@@ -303,11 +291,8 @@ static int handle_events(int fd, int revents, void *cb_data)
 	di = sdi->driver;
 	drvc = di->context;
 
-	if (devc->limit_msec) {
-		now = g_get_monotonic_time() / 1000;
-		if (now > devc->end_time)
-			dev_acquisition_stop(sdi);
-	}
+	if (sr_sw_limits_check(&devc->limits))
+		dev_acquisition_stop(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
