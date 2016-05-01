@@ -460,11 +460,8 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	sdi->conn = serial;
 
 	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
 	devc->model = &models[modelid];
-	devc->limit_samples = 0;
-	devc->limit_msec = 0;
-	devc->num_samples = 0;
-	devc->elapsed_msec = g_timer_new();
 
 	sdi->priv = devc;
 
@@ -524,8 +521,6 @@ static void dev_clear_private(struct dev_context *devc)
 	/* Free channel_status.info (list only, data owned by sdi). */
 	for (ch_idx = 0; ch_idx < devc->model->num_channels; ch_idx++)
 		g_slist_free(devc->channel_status[ch_idx].info);
-
-	g_timer_destroy(devc->elapsed_msec);
 }
 
 static int dev_clear_lps301(const struct sr_dev_driver *di)
@@ -549,11 +544,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_SAMPLES:
-			*data = g_variant_new_uint64(devc->limit_samples);
-			break;
 		case SR_CONF_LIMIT_MSEC:
-			*data = g_variant_new_uint64(devc->limit_msec);
-			break;
+			return sr_sw_limits_config_get(&devc->limits, key, data);
 		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->tracking_mode]);
 			break;
@@ -614,11 +606,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_MSEC:
-			devc->limit_msec = g_variant_get_uint64(data);
-			break;
 		case SR_CONF_LIMIT_SAMPLES:
-			devc->limit_samples = g_variant_get_uint64(data);
-			break;
+			return sr_sw_limits_config_set(&devc->limits, key, data);
 		case SR_CONF_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
 			found = FALSE;
@@ -803,9 +792,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			motech_lps_30x_receive_data, (void *)sdi);
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
-	/* Start timer, if required. */
-	if (devc->limit_msec)
-		g_timer_start(devc->elapsed_msec);
+	sr_sw_limits_acquisition_start(&devc->limits);
 
 	devc->acq_req = AQ_NONE;
 	/* Do not start polling device here, the read function will do it in 50 ms. */
@@ -815,12 +802,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-
-	/* Stop timer, if required. */
-	if (sdi && (devc = sdi->priv) && devc->limit_msec)
-		g_timer_stop(devc->elapsed_msec);
-
 	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
 			sdi->conn, LOG_PREFIX);
 }

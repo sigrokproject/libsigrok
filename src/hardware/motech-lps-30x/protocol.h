@@ -97,8 +97,7 @@ struct dev_context {
 
 	/* Acquisition status */
 	gboolean acq_running;		/**< Acquisition is running. */
-	uint64_t limit_samples;		/**< Target number of samples */
-	uint64_t limit_msec;		/**< Target sampling time */
+	struct sr_sw_limits limits;
 	acquisition_req acq_req;	/**< Current request. */
 	uint8_t	acq_req_pending;	/**< Request pending. 0=none, 1=reply, 2=OK */
 
@@ -108,8 +107,6 @@ struct dev_context {
 
 	/* Temporary state across callbacks */
 	int64_t req_sent_at;    /**< Request sent. */
-	uint64_t num_samples;	/**< Current #samples for limit_samples */
-	GTimer *elapsed_msec;	/**< Used for sampling with limit_msec  */
 	gchar buf[LINELEN_MAX];	/**< Buffer for read callback */
 	int buflen;		/**< Data len in buf */
 };
