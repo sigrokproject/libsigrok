@@ -231,7 +231,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 	}
 
 	if (analog[0].mq != -1 || analog[1].mq != -1)
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->sw_limits, 1);
 }
 
 static int brymen_bm86x_send_command(const struct sr_dev_inst *sdi)
@@ -308,7 +308,6 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	int64_t time;
 
 	(void)fd;
 	(void)revents;
@@ -328,20 +327,8 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 	if (brymen_bm86x_read_interrupt(sdi))
 		return FALSE;
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sr_info("Requested number of samples reached, stopping.");
+	if (sr_sw_limits_check(&devc->sw_limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		time = (g_get_monotonic_time() - devc->start_time) / 1000;
-		if (time > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached, stopping.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-	}
 
 	return TRUE;
 }
