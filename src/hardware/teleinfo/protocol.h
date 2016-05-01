@@ -40,13 +40,10 @@ enum optarif {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Acquisition settings */
-	uint64_t limit_samples;   /**< The sampling limit (in number of samples). */
-	uint64_t limit_msec;      /**< The time limit (in milliseconds). */
+	struct sr_sw_limits sw_limits;
 
 	/* Operational state */
 	enum optarif optarif;     /**< The device mode (which measures are reported) */
-	uint64_t num_samples;     /**< The number of already received samples. */
-	int64_t start_time;       /**< The time at which sampling started. */
 
 	/* Temporary state across callbacks */
 	uint8_t buf[TELEINFO_BUF_SIZE];

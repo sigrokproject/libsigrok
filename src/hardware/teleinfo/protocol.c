@@ -93,7 +93,7 @@ static void teleinfo_handle_measurement(struct sr_dev_inst *sdi,
 	}
 
 	if (!strcmp(label, "ADCO")) {
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->sw_limits, 1);
 	} else if (!strcmp(label, "BASE")) {
 		teleinfo_send_value(sdi, "BASE", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
 	} else if (!strcmp(label, "HCHP")) {
@@ -184,7 +184,6 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_serial_dev_inst *serial;
 	const uint8_t *ptr, *next_ptr, *end_ptr;
 	int len;
-	int64_t time;
 
 	(void)fd;
 
@@ -217,19 +216,8 @@ SR_PRIV int teleinfo_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->sw_limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-		return TRUE;
-	}
 
-	if (devc->limit_msec) {
-		time = (g_get_monotonic_time() - devc->start_time) / 1000;
-		if (time > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-	}
 	return TRUE;
 }
