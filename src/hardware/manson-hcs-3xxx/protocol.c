@@ -144,7 +144,8 @@ static void send_sample(struct sr_dev_inst *sdi)
 	analog.data = &devc->current;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
+
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 static int parse_reply(struct sr_dev_inst *sdi)
@@ -206,7 +207,7 @@ SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int64_t t, elapsed_us;
+	uint64_t elapsed_us;
 
 	(void)fd;
 
@@ -225,19 +226,9 @@ SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data)
 		/* Timeout. */
 	}
 
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		t = (g_get_monotonic_time() - devc->starttime) / 1000;
-		if (t > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
 	}
 
 	/* Request next packet, if required. */
