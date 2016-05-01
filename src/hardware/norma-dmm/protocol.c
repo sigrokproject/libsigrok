@@ -369,7 +369,7 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	sr_session_send(sdi, &packet);
 
 	/* Finish processing. */
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 	devc->buflen = 0;
 }
 
@@ -379,8 +379,6 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	int len;
-	gboolean terminating;
-	gdouble elapsed_s;
 
 	(void)fd;
 
@@ -411,23 +409,10 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop acquisition. */
-	terminating = FALSE;
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
-		terminating = TRUE;
-	}
-
-	if (devc->limit_msec) {
-		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
-		if ((elapsed_s * 1000) >= devc->limit_msec) {
-			sdi->driver->dev_acquisition_stop(sdi);
-			terminating = TRUE;
-		}
-	}
-
-	/* Request next package. */
-	if (!terminating) {
+	} else {
+		/* Request next package. */
 		if (devc->last_req_pending) {
 			gint64 elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
 			if (elapsed_us > NMADMM_TIMEOUT_MS * 1000) {/* Timeout! */

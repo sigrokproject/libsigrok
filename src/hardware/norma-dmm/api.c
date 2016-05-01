@@ -139,9 +139,9 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 			sdi->model = g_strdup(get_typestr(auxtype, drv));
 			sdi->version = g_strdup(buf + 9);
 			devc = g_malloc0(sizeof(struct dev_context));
+			sr_sw_limits_init(&devc->limits);
 			devc->type = auxtype;
 			devc->version = g_strdup(&buf[9]);
-			devc->elapsed_msec = g_timer_new();
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sdi->driver = drv;
@@ -182,7 +182,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if ((devc = sdi->priv) && devc->version) {
 		g_free(devc->version);
 		devc->version = NULL;
-		g_timer_destroy(devc->elapsed_msec);
 	}
 
 	return SR_OK;
@@ -203,18 +202,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_BUG;
 	}
 
-	switch (key) {
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -249,11 +237,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
-
-	/* Start timer, if required. */
-	if (devc->limit_msec)
-		g_timer_start(devc->elapsed_msec);
 
 	/* Poll every 100ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -265,12 +250,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-
-	/* Stop timer, if required. */
-	if (sdi && (devc = sdi->priv) && devc->limit_msec)
-		g_timer_stop(devc->elapsed_msec);
-
 	return std_serial_dev_acquisition_stop(sdi, dev_close,
 			sdi->conn, LOG_PREFIX);
 }

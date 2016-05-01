@@ -61,8 +61,7 @@ struct dev_context {
 	int type;		/**< DM9x0, e.g. 5 = DM950 */
 
 	/* Acquisition settings */
-	uint64_t limit_samples;	/**< Target number of samples */
-	uint64_t limit_msec;	/**< Target sampling time */
+	struct sr_sw_limits limits;
 
 	/* Operational state */
 	int last_req;			/**< Last request. */
@@ -71,8 +70,6 @@ struct dev_context {
 	int lowbatt;			/**< Low battery. 1=low, 2=critical. */
 
 	/* Temporary state across callbacks */
-	uint64_t num_samples;		/**< Current #samples. */
-	GTimer *elapsed_msec;		/**< Used for limit_msec */
 	uint8_t buf[NMADMM_BUFSIZE];	/**< Buffer for read callback */
 	int buflen;			/**< Data len in buf */
 };
