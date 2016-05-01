@@ -260,10 +260,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
+		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
 		if ((ret = maynuo_m97_get_bit(modbus, ISTATE, &ivalue)) == SR_OK)
@@ -347,10 +345,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
+		ret = sr_sw_limits_config_set(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
 		ret = maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
@@ -453,10 +449,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			maynuo_m97_receive_data, (void *)sdi)) != SR_OK)
 		return ret;
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
-
-	devc->num_samples = 0;
-	devc->starttime = g_get_monotonic_time();
 
 	return maynuo_m97_capture_start(sdi);
 }

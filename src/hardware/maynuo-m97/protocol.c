@@ -164,7 +164,6 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 	struct sr_modbus_dev_inst *modbus;
 	struct sr_datafeed_packet packet;
 	uint16_t registers[4];
-	int64_t t;
 
 	(void)fd;
 	(void)revents;
@@ -189,22 +188,12 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		t = (g_get_monotonic_time() - devc->starttime) / 1000;
-		if (t > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
 	}
 
 	maynuo_m97_capture_start(sdi);

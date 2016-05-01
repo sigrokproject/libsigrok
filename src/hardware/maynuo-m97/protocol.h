@@ -40,12 +40,9 @@ struct dev_context {
 	const struct maynuo_m97_model *model;
 
 	/* Acquisition settings */
-	uint64_t limit_samples;
-	uint64_t limit_msec;
+	struct sr_sw_limits limits;
 
 	/* Operational state */
-	uint64_t num_samples;
-	int64_t starttime;
 	int expecting_registers;
 };
 
