@@ -153,6 +153,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 
 	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
 	devc->model = &models[model_id];
 	devc->reply[5] = 0;
 	devc->req_sent_at = 0;
@@ -191,12 +192,7 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	switch (key) {
-	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_VOLTAGE:
 		*data = g_variant_new_double(devc->voltage);
 		break;
@@ -245,15 +241,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_VOLTAGE_TARGET:
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
@@ -375,10 +364,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
-	devc->starttime = g_get_monotonic_time();
-	devc->num_samples = 0;
 	devc->reply_pending = FALSE;
 	devc->req_sent_at = 0;
 	serial = sdi->conn;

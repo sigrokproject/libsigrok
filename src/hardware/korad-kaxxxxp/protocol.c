@@ -329,7 +329,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog_old analog;
-	int64_t t, elapsed_us;
+	uint64_t elapsed_us;
 
 	(void)fd;
 
@@ -363,7 +363,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			analog.mqflags = SR_MQFLAG_DC;
 			analog.data = &devc->voltage;
 			sr_session_send(sdi, &packet);
-			devc->num_samples++;
+			sr_sw_limits_update_samples_read(&devc->limits, 1);
 		}
 		next_measurement(devc);
 	} else {
@@ -376,19 +376,9 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		t = (g_get_monotonic_time() - devc->starttime) / 1000;
-		if (t > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
 	}
 
 	/* Request next packet, if required. */

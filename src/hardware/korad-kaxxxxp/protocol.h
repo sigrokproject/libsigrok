@@ -76,10 +76,7 @@ struct dev_context {
 	const struct korad_kaxxxxp_model *model; /**< Model information. */
 
 	/* Acquisition settings */
-	uint64_t limit_samples;
-	uint64_t limit_msec;
-	uint64_t num_samples;
-	int64_t starttime;
+	struct sr_sw_limits limits;
 	int64_t req_sent_at;
 	gboolean reply_pending;
 
