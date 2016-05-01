@@ -106,7 +106,7 @@ static void decode_packet(struct sr_dev_inst *sdi)
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
@@ -201,11 +201,8 @@ SR_PRIV int tondaj_sl_814_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	/* Stop acquisition if we acquired enough samples. */
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-	}
 
 	return TRUE;
 }
