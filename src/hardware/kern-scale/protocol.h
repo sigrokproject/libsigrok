@@ -49,17 +49,7 @@ struct scale_info {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The current sampling limit (in number of samples). */
-	uint64_t limit_samples;
-
-	/** The time limit (in milliseconds). */
-	uint64_t limit_msec;
-
-	/** The current number of already received samples. */
-	uint64_t num_samples;
-
-	/** The starting time of current sampling run. */
-	int64_t starttime;
+	struct sr_sw_limits limits;
 
 	uint8_t buf[SCALE_BUFSIZE];
 	int bufoffset;

@@ -54,7 +54,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 }
 
@@ -102,7 +102,6 @@ SR_PRIV int kern_scale_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct scale_info *scale;
-	int64_t time;
 	void *info;
 
 	(void)fd;
@@ -122,20 +121,8 @@ SR_PRIV int kern_scale_receive_data(int fd, int revents, void *cb_data)
 		g_free(info);
 	}
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		time = (g_get_monotonic_time() - devc->starttime) / 1000;
-		if (time > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-	}
 
 	return TRUE;
 }
