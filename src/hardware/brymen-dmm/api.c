@@ -79,6 +79,7 @@ static GSList *brymen_scan(const char *conn, const char *serialcomm)
 	sdi->vendor = g_strdup("Brymen");
 	sdi->model = g_strdup("BM85x");
 	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->sw_limits);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	drvc = di->context;
@@ -135,7 +136,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
@@ -147,19 +147,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_BUG;
 	}
 
-	ret = SR_OK;
-	switch (key) {
-	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
-	default:
-		ret = SR_ERR_NA;
-	}
-
-	return ret;
+	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -194,14 +182,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/*
-	 * Reset the number of samples to take. If we've already collected our
-	 * quota, but we start a new session, and don't reset this, we'll just
-	 * quit without acquiring any new samples.
-	 */
-	devc->num_samples = 0;
-	devc->starttime = g_get_monotonic_time();
-
+	sr_sw_limits_acquisition_start(&devc->sw_limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	/* Poll every 50ms, or whenever some data comes in. */
