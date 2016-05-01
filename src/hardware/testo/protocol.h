@@ -57,12 +57,9 @@ struct dev_context {
 	const struct testo_model *model;
 
 	/* Acquisition settings */
-	uint64_t limit_msec;
-	uint64_t limit_samples;
+	struct sr_sw_limits sw_limits;
 
 	/* Operational state */
-	gint64 end_time;
-	uint64_t num_samples;
 	uint8_t channel_units[MAX_CHANNELS];
 	int num_channels;
 
