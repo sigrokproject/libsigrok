@@ -54,16 +54,7 @@ extern SR_PRIV const struct center_dev_info center_devs[];
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The current sampling limit (in number of samples). */
-	uint64_t limit_samples;
-
-	/** The current sampling limit (in ms). */
-	uint64_t limit_msec;
-
-	/** The current number of already received samples. */
-	uint64_t num_samples;
-
-	int64_t starttime;
+	struct sr_sw_limits sw_limits;
 
 	uint8_t buf[SERIAL_BUFSIZE];
 	int bufoffset;

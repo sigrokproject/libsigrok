@@ -146,22 +146,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	devc = sdi->priv;
 
-	switch (key) {
-	case SR_CONF_LIMIT_SAMPLES:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -198,8 +183,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
-	devc->num_samples = 0;
-	devc->starttime = g_get_monotonic_time();
+
+	sr_sw_limits_acquisition_start(&devc->sw_limits);
 
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
