@@ -171,8 +171,9 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
-	if (devc->num_samples >= devc->limit_samples)
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
+
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
