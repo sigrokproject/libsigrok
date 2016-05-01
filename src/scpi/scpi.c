@@ -387,41 +387,13 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			       const char *command, char **scpi_response)
 {
-	char buf[256];
-	int len;
 	GString *response;
-	gint64 laststart;
-	unsigned int elapsed_ms;
+	response = g_string_sized_new(1024);
 
-	if (command)
-		if (sr_scpi_send(scpi, command) != SR_OK)
-			return SR_ERR;
-
-	if (sr_scpi_read_begin(scpi) != SR_OK)
+	if (sr_scpi_get_data(scpi, command, &response) != SR_OK) {
+		if (response)
+			g_string_free(response, TRUE);
 		return SR_ERR;
-
-	laststart = g_get_monotonic_time();
-
-	response = g_string_new("");
-
-	*scpi_response = NULL;
-
-	while (!sr_scpi_read_complete(scpi)) {
-		len = sr_scpi_read_data(scpi, buf, sizeof(buf));
-		if (len < 0) {
-			sr_err("Incompletely read SCPI response.");
-			g_string_free(response, TRUE);
-			return SR_ERR;
-		} else if (len > 0) {
-		        laststart = g_get_monotonic_time();
-		}
-		g_string_append_len(response, buf, len);
-		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
-		if (elapsed_ms >= scpi->read_timeout_ms) {
-			sr_err("Timed out waiting for SCPI response.");
-			g_string_free(response, TRUE);
-			return SR_ERR;
-		}
 	}
 
 	/* Get rid of trailing linefeed if present */
@@ -436,6 +408,54 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 		response->str, response->len);
 
 	*scpi_response = g_string_free(response, FALSE);
+
+	return SR_OK;
+}
+
+SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
+			     const char *command, GString **scpi_response)
+{
+	int len;
+	GString *response;
+	gint64 laststart;
+	unsigned int elapsed_ms;
+	unsigned int offset = 0;
+	int space;
+
+	if (command)
+		if (sr_scpi_send(scpi, command) != SR_OK)
+			return SR_ERR;
+
+	if (sr_scpi_read_begin(scpi) != SR_OK)
+		return SR_ERR;
+
+	laststart = g_get_monotonic_time();
+
+	response = *scpi_response;
+
+	offset = response->len;
+
+	while (!sr_scpi_read_complete(scpi)) {
+		space = response->allocated_len - response->len;
+		if (space < 128) {
+			g_string_set_size(response, response->len + 1024);
+			space = response->allocated_len - response->len;
+		}
+		len = sr_scpi_read_data(scpi, &response->str[offset], space);
+		if (len < 0) {
+			sr_err("Incompletely read SCPI response.");
+			return SR_ERR;
+		} else if (len > 0) {
+		        laststart = g_get_monotonic_time();
+		}
+		offset += len;
+		g_string_set_size(response, offset);
+		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
+		if (elapsed_ms >= scpi->read_timeout_ms) {
+			sr_err("Timed out waiting for SCPI response.");
+			return SR_ERR;
+		}
+	}
 
 	return SR_OK;
 }
@@ -703,6 +723,79 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 
 	return ret;
 }
+/**
+ * Send a SCPI command, read the reply, parse it as binary data with a
+ * "definite length block" header and store the as an result in scpi_response.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param command The SCPI command to send to the device (can be NULL).
+ * @param scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
+ *         error or upon no response. The allocated response must be freed by
+ *         the caller in the case of an SR_OK as well as in the case of
+ *         parsing error.
+ */
+SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
+			       const char *command, GByteArray **scpi_response)
+{
+	int ret;
+	GString* response;
+
+	char buf[10] = { 0 };
+	long llen;
+	long datalen;
+
+	response = g_string_sized_new(1024);
+	*scpi_response = NULL;
+
+	ret = sr_scpi_get_data(scpi, command, &response);
+	if (ret != SR_OK) {
+		g_string_free(response, TRUE);
+		return ret;
+	}
+
+	if (response->str[0] != '#') {
+		g_string_free(response, TRUE);
+		return SR_ERR_DATA;
+	}
+
+	buf[0] = response->str[1];
+	ret = sr_atol(buf, &llen);
+	if ((ret != SR_OK) || (llen == 0)) {
+		g_string_free(response, TRUE);
+		return ret;
+	}
+
+	memcpy(buf, &response->str[2], llen);
+	ret = sr_atol(buf, &datalen);
+	if ((ret != SR_OK) || (datalen == 0)) {
+		g_string_free(response, TRUE);
+		return ret;
+	}
+
+	// strip header
+	g_string_erase(response, 0, 2 + llen);
+
+	if (response->len < (unsigned long)(datalen)) {
+		int oldlen = response->len;
+		g_string_set_size(response, datalen);
+		g_string_set_size(response, oldlen);
+	}
+
+	while (response->len < (unsigned long)(datalen)) {
+		if (sr_scpi_get_data(scpi, NULL, &response) != SR_OK) {
+			g_string_free(response, TRUE);
+			return ret;
+		}
+	}
+
+	*scpi_response = g_byte_array_new_take(
+		(guint8*)g_string_free(response, FALSE), datalen);
+
+	return ret;
+}
+
 
 /**
  * Send the *IDN? SCPI command, receive the reply, parse it and store the
