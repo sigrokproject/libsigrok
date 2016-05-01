@@ -65,7 +65,8 @@ libsigrok_la_SOURCES = \
 	src/log.c \
 	src/version.c \
 	src/error.c \
-	src/std.c
+	src/std.c \
+	src/sw_limits.c
 
 # Input modules
 libsigrok_la_SOURCES += \

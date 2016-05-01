@@ -1258,4 +1258,23 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog_old *analog, void *info);
 
+/*--- sw_limits.c -----------------------------------------------------------*/
+
+struct sr_sw_limits {
+	uint64_t limit_samples;
+	uint64_t limit_msec;
+	uint64_t samples_read;
+	uint64_t start_time;
+};
+
+SR_PRIV int sr_sw_limits_config_get(struct sr_sw_limits *limits, uint32_t key,
+	GVariant **data);
+SR_PRIV int sr_sw_limits_config_set(struct sr_sw_limits *limits, uint32_t key,
+	GVariant *data);
+SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits);
+SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits);
+SR_PRIV void sr_sw_limits_update_samples_read(struct sr_sw_limits *limits,
+	uint64_t samples_read);
+SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits);
+
 #endif
