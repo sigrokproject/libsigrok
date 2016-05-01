@@ -123,7 +123,7 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	sr_session_send(sdi, &packet);
 	g_slist_free(analog.channels);
 
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 static void appa_55ii_log_metadata(struct sr_dev_inst *sdi, const uint8_t *buf)
@@ -175,7 +175,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog.channels);
 
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
 		devc->log_buf_len -= 20;
 		offset += 20;
 		devc->num_log_records--;
@@ -266,7 +266,6 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int64_t time;
 	const uint8_t *ptr, *next_ptr, *end_ptr;
 	int len;
 
@@ -301,19 +300,9 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
-	}
-
-	if (devc->limit_msec) {
-		time = (g_get_monotonic_time() - devc->start_time) / 1000;
-		if (time > (int64_t)devc->limit_msec) {
-			sr_info("Requested time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
 	}
 
 	return TRUE;

@@ -130,11 +130,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
 		*data = g_variant_new_string(data_sources[devc->data_source]);
 		break;
@@ -164,11 +161,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE: {
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < ARRAY_SIZE(data_sources); i++)
@@ -226,13 +219,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/*
-	 * Reset the number of samples to take. If we've already collected our
-	 * quota, but we start a new session, and don't reset this, we'll just
-	 * quit without acquiring any new samples.
-	 */
-	devc->num_samples = 0;
-	devc->start_time = g_get_monotonic_time();
+	sr_sw_limits_acquisition_start(&devc->limits);
 
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
