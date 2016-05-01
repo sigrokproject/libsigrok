@@ -697,7 +697,6 @@ SR_PRIV void bl_acme_close_channel(struct sr_channel *ch)
 
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 {
-	uint32_t cur_time, elapsed_time;
 	uint64_t nrexpiration;
 	struct sr_datafeed_packet packet, framep;
 	struct sr_datafeed_analog_old analog;
@@ -783,23 +782,11 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 		sr_session_send(sdi, &framep);
 	}
 
-	devc->samples_read++;
-	if (devc->limit_samples > 0 &&
-	    devc->samples_read >= devc->limit_samples) {
-		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi);
-		devc->last_sample_fin = g_get_monotonic_time();
-		return TRUE;
-	} else if (devc->limit_msec > 0) {
-		cur_time = g_get_monotonic_time();
-		elapsed_time = cur_time - devc->start_time;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
-		if (elapsed_time >= devc->limit_msec) {
-			sr_info("Sampling time limit reached.");
-			sdi->driver->dev_acquisition_stop(sdi);
-			devc->last_sample_fin = g_get_monotonic_time();
-			return TRUE;
-		}
+	if (sr_sw_limits_check(&devc->limits)) {
+		sdi->driver->dev_acquisition_stop(sdi);
+		return TRUE;
 	}
 
 	devc->last_sample_fin = g_get_monotonic_time();

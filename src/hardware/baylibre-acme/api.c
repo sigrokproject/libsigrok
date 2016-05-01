@@ -174,10 +174,8 @@ static int config_get(uint32_t key, GVariant **data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
+		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->samplerate);
@@ -219,12 +217,8 @@ static int config_set(uint32_t key, GVariant *data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		devc->limit_msec = 0;
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data) * 1000;
-		devc->limit_samples = 0;
+		ret = sr_sw_limits_config_set(&devc->limits, key, data);
 		break;
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
@@ -345,7 +339,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	devc = sdi->priv;
-	devc->samples_read = 0;
 	devc->samples_missed = 0;
 	devc->timer_fd = timerfd_create(CLOCK_MONOTONIC, 0);
 	if (devc->timer_fd < 0) {
@@ -372,7 +365,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		G_IO_IN | G_IO_ERR, 1000, bl_acme_receive_data, (void *)sdi);
 
 	std_session_send_df_header(sdi, LOG_PREFIX);
-	devc->start_time = g_get_monotonic_time();
+	sr_sw_limits_acquisition_start(&devc->limits);
 
 	return SR_OK;
 }
