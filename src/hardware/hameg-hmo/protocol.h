@@ -73,6 +73,7 @@ struct analog_channel_state {
 	float vertical_offset;
 
 	gboolean state;
+	char probe_unit;
 };
 
 struct scope_state {

@@ -47,6 +47,7 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	    = ":TIM:POS %s",
 	[SCPI_CMD_GET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT?",
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	    = ":PROB%d:SET:ATT:UNIT?",
 };
 
 static const uint32_t hmo_devopts[] = {
@@ -422,6 +423,19 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (scope_state_get_array_option(scpi, command, config->coupling_options,
 					 &state->analog_channels[i].coupling) != SR_OK)
 			return SR_ERR;
+
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_PROBE_UNIT],
+			   i + 1);
+
+		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
+			return SR_ERR;
+
+		if (tmp_str[0] == 'A')
+			state->analog_channels[i].probe_unit = 'A';
+		else
+			state->analog_channels[i].probe_unit = 'V';
+		g_free(tmp_str);
 	}
 
 	return SR_OK;
