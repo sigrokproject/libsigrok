@@ -31,7 +31,7 @@ static const uint32_t devopts_none[] = { };
 
 /* Agilent/Keysight N5700A series */
 static const uint32_t agilent_n5700a_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 };
 
 static const uint32_t agilent_n5700a_devopts_cg[] = {
@@ -85,7 +85,7 @@ static const struct scpi_command agilent_n5700a_cmd[] = {
 
 /* Chroma 61600 series AC source */
 static const uint32_t chroma_61604_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 };
 
 static const uint32_t chroma_61604_devopts_cg[] = {
@@ -132,7 +132,7 @@ static const struct scpi_command chroma_61604_cmd[] = {
 /* Chroma 62000 series DC source */
 
 static const uint32_t chroma_62000_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 };
 
 static const uint32_t chroma_62000_devopts_cg[] = {
@@ -214,7 +214,7 @@ static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
 
 /* Rigol DP800 series */
 static const uint32_t rigol_dp800_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -299,7 +299,7 @@ static const struct scpi_command rigol_dp800_cmd[] = {
 
 /* HP 663xx series */
 static const uint32_t hp_6632b_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -330,7 +330,7 @@ static const struct scpi_command hp_6632b_cmd[] = {
 
 /* Philips/Fluke PM2800 series */
 static const uint32_t philips_pm2800_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS,
 };
 
 static const uint32_t philips_pm2800_devopts_cg[] = {
