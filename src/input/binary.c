@@ -142,6 +142,16 @@ static int end(struct sr_input *in)
 	return ret;
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	inc->started = FALSE;
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 static struct sr_option options[] = {
 	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
 	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
@@ -167,4 +177,5 @@ SR_PRIV struct sr_input_module input_binary = {
 	.init = init,
 	.receive = receive,
 	.end = end,
+	.reset = reset,
 };
