@@ -768,6 +768,17 @@ static void cleanup(struct sr_input *in)
 	g_free(inc->sample_buffer);
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	cleanup(in);
+	inc->started = FALSE;
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 static struct sr_option options[] = {
 	{ "single-column", "Single column", "Enable/specify single column", NULL, NULL },
 	{ "numchannels", "Max channels", "Number of channels", NULL, NULL },
@@ -808,4 +819,5 @@ SR_PRIV struct sr_input_module input_csv = {
 	.receive = receive,
 	.end = end,
 	.cleanup = cleanup,
+	.reset = reset,
 };
