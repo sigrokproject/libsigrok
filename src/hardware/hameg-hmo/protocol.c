@@ -68,10 +68,10 @@ static const uint32_t hmo_analog_devopts[] = {
 };
 
 static const char *hmo_coupling_options[] = {
-	"AC",
-	"ACL",
-	"DC",
-	"DCL",
+	"AC",  // AC with 50 Ohm termination (152x, 202x, 30xx, 1202)
+	"ACL", // AC with 1 MOhm termination
+	"DC",  // DC with 50 Ohm termination
+	"DCL", // DC with 1 MOhm termination
 	"GND",
 	NULL,
 };
