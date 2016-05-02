@@ -267,6 +267,17 @@ static void cleanup(struct sr_input *in)
 	in->priv = NULL;
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	cleanup(in);
+	inc->started = FALSE;
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 SR_PRIV struct sr_input_module input_raw_analog = {
 	.id = "raw_analog",
 	.name = "RAW analog",
@@ -277,4 +288,5 @@ SR_PRIV struct sr_input_module input_raw_analog = {
 	.receive = receive,
 	.end = end,
 	.cleanup = cleanup,
+	.reset = reset,
 };
