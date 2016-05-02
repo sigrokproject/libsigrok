@@ -180,7 +180,7 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 	}
 
 	memcpy(buf, read_resp->data.data_val, read_resp->data.data_len);
-	vxi->read_complete = read_resp->reason & (RRR_SIZE | RRR_TERM | RRR_END);
+	vxi->read_complete = read_resp->reason & (RRR_TERM | RRR_END);
 	return read_resp->data.data_len;  /* actual number of bytes received */
 }
 
