@@ -570,6 +570,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 		sr_err("Could not determine array index for time base.");
 		return SR_ERR;
 	}
+	g_free(tmp_str);
 
 	state->timebase = i;
 
