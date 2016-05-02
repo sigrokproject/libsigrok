@@ -24,14 +24,14 @@
 #include "protocol.h"
 
 static const char *hameg_scpi_dialect[] = {
-	[SCPI_CMD_GET_DIG_DATA]		    = ":POD%d:DATA?",
+	[SCPI_CMD_GET_DIG_DATA]		    = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		    = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		    = ":TIM:SCAL %s",
 	[SCPI_CMD_GET_COUPLING]		    = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		    = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	    = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	    = ":%s:DATA:POINTS?",
-	[SCPI_CMD_GET_ANALOG_DATA]	    = ":CHAN%d:DATA?",
+	[SCPI_CMD_GET_ANALOG_DATA]	    = ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_DIV]	    = ":CHAN%d:SCAL?",
 	[SCPI_CMD_SET_VERTICAL_DIV]	    = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	    = ":POD%d:STAT?",
@@ -709,9 +709,13 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct scope_state *state;
 	struct sr_datafeed_packet packet;
-	GArray *data;
-	struct sr_datafeed_analog_old analog;
+	GByteArray *data;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
 
 	(void)fd;
@@ -733,12 +737,13 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	*/
 
 	ch = devc->current_channel->data;
+	state = devc->model_state;
 
 	switch (ch->type) {
 	case SR_CHANNEL_ANALOG:
-		if (sr_scpi_get_floatv(sdi->conn, NULL, &data) != SR_OK) {
+		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
-				g_array_free(data, TRUE);
+				g_byte_array_free(data, TRUE);
 
 			return TRUE;
 		}
@@ -746,21 +751,42 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_FRAME_BEGIN;
 		sr_session_send(sdi, &packet);
 
-		analog.channels = g_slist_append(NULL, ch);
-		analog.num_samples = data->len;
-		analog.data = (float *) data->data;
-		analog.mq = SR_MQ_VOLTAGE;
-		analog.unit = SR_UNIT_VOLT;
-		analog.mqflags = 0;
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
+
+		analog.data = data->data;
+		analog.num_samples = data->len / sizeof(float);
+		analog.encoding = &encoding;
+		analog.meaning = &meaning;
+		analog.spec = &spec;
+
+		encoding.unitsize = sizeof(float);
+		encoding.is_signed = TRUE;
+		encoding.is_float = TRUE;
+		encoding.is_bigendian = FALSE;
+		encoding.digits = 0;
+		encoding.is_digits_decimal = FALSE;
+		encoding.scale.p = 1;
+		encoding.scale.q = 1;
+		encoding.offset.p = 0;
+		encoding.offset.q = 1;
+		if (state->analog_channels[ch->index].probe_unit == 'V') {
+			meaning.mq = SR_MQ_VOLTAGE;
+			meaning.unit = SR_UNIT_VOLT;
+		} else {
+			meaning.mq = SR_MQ_CURRENT;
+			meaning.unit = SR_UNIT_AMPERE;
+		}
+		meaning.mqflags = 0;
+		meaning.channels = g_slist_append(NULL, ch);
+		spec.spec_digits = 0;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
-		g_slist_free(analog.channels);
-		g_array_free(data, TRUE);
+		g_slist_free(meaning.channels);
+		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
 	case SR_CHANNEL_LOGIC:
-		if (sr_scpi_get_uint8v(sdi->conn, NULL, &data) != SR_OK) {
+		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			g_free(data);
 			return TRUE;
 		}
@@ -774,7 +800,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		sr_session_send(sdi, &packet);
-		g_array_free(data, TRUE);
+		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
 	default:
