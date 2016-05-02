@@ -263,18 +263,11 @@ static int open_device(struct sr_dev_inst *sdi)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	int64_t timediff_us, timediff_ms;
 	int ret;
 
-	drvc = sdi->driver->context;
 	devc = sdi->priv;
-
-	if (!drvc) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	/*
 	 * If we didn't need to upload FX2 firmware in scan(), open the device

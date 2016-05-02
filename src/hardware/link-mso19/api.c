@@ -55,14 +55,11 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info;
 /* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
 static int dev_clear(const struct sr_dev_driver *di)
 {
+	struct drv_context *drvc = di->context;
 	GSList *l;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	int ret = SR_OK;
-
-	if (!(drvc = di->context))
-		return SR_OK;
 
 	/* Properly close and free all devices. */
 	for (l = drvc->instances; l; l = l->next) {

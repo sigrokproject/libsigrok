@@ -282,10 +282,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (!drvc) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 	if (sdi->status != SR_ST_INACTIVE) {
 		sr_err("Device already open.");
 		return SR_ERR;
@@ -349,19 +345,13 @@ static int dev_open(struct sr_dev_inst *sdi)
  */
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
 
-	drvc = sdi->driver->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (!drvc) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 	if (sdi->status == SR_ST_INACTIVE) {
 		sr_dbg("Device already closed.");
 		return SR_OK;

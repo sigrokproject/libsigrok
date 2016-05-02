@@ -183,16 +183,11 @@ static int dev_clear(const struct sr_dev_driver *di)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc;
+	struct drv_context *drvc = di->context;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	uint8_t buffer[PACKET_LENGTH];
 	int ret;
-
-	if (!(drvc = di->context)) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	usb = sdi->conn;
 	devc = sdi->priv;
@@ -254,13 +249,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
-
-	if (!di->context) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	usb = sdi->conn;
 

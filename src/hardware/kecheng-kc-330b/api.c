@@ -163,14 +163,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc;
+	struct drv_context *drvc = di->context;
 	struct sr_usb_dev_inst *usb;
 	int ret;
-
-	if (!(drvc = di->context)) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	usb = sdi->conn;
 
@@ -193,14 +188,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-
-	if (!di->context) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	usb = sdi->conn;
 
@@ -274,7 +263,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	struct sr_dev_driver *di = sdi->driver;
 	struct dev_context *devc;
 	uint64_t p, q;
 	unsigned int i;
@@ -285,11 +273,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
-
-	if (!di->context) {
-		sr_err("Driver was not initialized.");
-		return SR_ERR;
-	}
 
 	devc = sdi->priv;
 	ret = SR_OK;
