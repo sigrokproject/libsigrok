@@ -356,6 +356,16 @@ static int end(struct sr_input *in)
 	return ret;
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	inc->started = FALSE;
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 SR_PRIV struct sr_input_module input_wav = {
 	.id = "wav",
 	.name = "WAV",
@@ -366,4 +376,5 @@ SR_PRIV struct sr_input_module input_wav = {
 	.init = init,
 	.receive = receive,
 	.end = end,
+	.reset = reset,
 };
