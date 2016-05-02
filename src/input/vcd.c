@@ -613,6 +613,17 @@ static void cleanup(struct sr_input *in)
 	inc->current_levels = NULL;
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	cleanup(in);
+	inc->started = FALSE;
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 static struct sr_option options[] = {
 	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
 	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
@@ -645,4 +656,5 @@ SR_PRIV struct sr_input_module input_vcd = {
 	.receive = receive,
 	.end = end,
 	.cleanup = cleanup,
+	.reset = reset,
 };
