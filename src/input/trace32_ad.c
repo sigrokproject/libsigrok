@@ -748,6 +748,21 @@ static int end(struct sr_input *in)
 	return ret;
 }
 
+static int reset(struct sr_input *in)
+{
+	struct context *inc = in->priv;
+
+	inc->meta_sent = FALSE;
+	inc->header_read = FALSE;
+	inc->records_read = FALSE;
+	inc->trigger_sent = FALSE;
+	inc->cur_record = 0;
+
+	g_string_truncate(in->buf, 0);
+
+	return SR_OK;
+}
+
 static struct sr_option options[] = {
 	{ "podA", "Import pod A / iprobe",
 		"Create channels and data for pod A / iprobe", NULL, NULL },
@@ -797,4 +812,5 @@ SR_PRIV struct sr_input_module input_trace32_ad = {
 	.init = init,
 	.receive = receive,
 	.end = end,
+	.reset = reset,
 };
