@@ -57,7 +57,6 @@ extern const struct nmadmm_req nmadmm_requests[];
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	char *version;		/**< Version string */
 	int type;		/**< DM9x0, e.g. 5 = DM950 */
 
 	/* Acquisition settings */

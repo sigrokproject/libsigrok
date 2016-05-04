@@ -133,7 +133,6 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sr_sw_limits_init(&devc->limits);
 			devc->type = auxtype;
-			devc->version = g_strdup(&buf[9]);
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
@@ -160,21 +159,6 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 		sr_serial_dev_inst_free(serial);
 
 	return std_scan_complete(drv, devices);
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	std_serial_dev_close(sdi);
-
-	/* Free dynamically allocated resources. */
-	if ((devc = sdi->priv) && devc->version) {
-		g_free(devc->version);
-		devc->version = NULL;
-	}
-
-	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -237,7 +221,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, dev_close,
+	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
 			sdi->conn, LOG_PREFIX);
 }
 
@@ -254,7 +238,7 @@ static struct sr_dev_driver norma_dmm_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = dev_close,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
@@ -274,7 +258,7 @@ static struct sr_dev_driver siemens_b102x_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = dev_close,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
