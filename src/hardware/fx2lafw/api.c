@@ -21,6 +21,7 @@
 #include <config.h>
 #include "protocol.h"
 #include "dslogic.h"
+#include <math.h>
 
 static const struct fx2lafw_profile supported_fx2[] = {
 	/*
@@ -133,12 +134,31 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
+static const uint32_t dslogic_devopts[] = {
+	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+};
+
 static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
 	SR_TRIGGER_EDGE,
+};
+
+static const struct {
+	int range;
+	gdouble low;
+	gdouble high;
+} volt_thresholds[] = {
+	{ DS_VOLTAGE_RANGE_18_33_V, 0.7,     1.4 },
+	{ DS_VOLTAGE_RANGE_5_V,	    1.4,     3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -461,18 +481,19 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->dslogic) {
 		if (!strcmp(devc->profile->model, "DSLogic")) {
-			fpga_firmware = DSLOGIC_FPGA_FIRMWARE;
-		} else if (!strcmp(devc->profile->model, "DSLogic Pro")) {
+			if (devc->dslogic_voltage_threshold == DS_VOLTAGE_RANGE_18_33_V)
+				fpga_firmware = DSLOGIC_FPGA_FIRMWARE_3V3;
+			else
+				fpga_firmware = DSLOGIC_FPGA_FIRMWARE_5V;
+		} else if (!strcmp(devc->profile->model, "DSLogic Pro")){
 			fpga_firmware = DSLOGIC_PRO_FPGA_FIRMWARE;
 		} else if (!strcmp(devc->profile->model, "DSCope")) {
 			fpga_firmware = DSCOPE_FPGA_FIRMWARE;
 		}
 
-		if ((ret = dslogic_fpga_firmware_upload(sdi,
-				fpga_firmware)) != SR_OK)
+		if ((ret = dslogic_fpga_firmware_upload(sdi, fpga_firmware)) != SR_OK)
 			return ret;
 	}
-
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		devc->cur_samplerate = devc->samplerates[0];
@@ -504,6 +525,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	GVariant *range[2];
+	unsigned int i;
 	char str[128];
 
 	(void)cg;
@@ -524,6 +547,16 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			return SR_ERR;
 		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
 		*data = g_variant_new_string(str);
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
+			if (volt_thresholds[i].range != devc->dslogic_voltage_threshold)
+				continue;
+			range[0] = g_variant_new_double(volt_thresholds[i].low);
+			range[1] = g_variant_new_double(volt_thresholds[i].high);
+			*data = g_variant_new_tuple(range, 2);
+			break;
+		}
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -547,6 +580,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct dev_context *devc;
 	uint64_t arg;
 	int i, ret;
+	gdouble low, high;
 
 	(void)cg;
 
@@ -579,6 +613,25 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->capture_ratio = g_variant_get_uint64(data);
 		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		g_variant_get(data, "(dd)", &low, &high);
+		ret = SR_ERR_ARG;
+		for (i = 0; (unsigned int)i < ARRAY_SIZE(volt_thresholds); i++) {
+			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
+			    fabs(volt_thresholds[i].high - high) < 0.1) {
+				devc->dslogic_voltage_threshold = volt_thresholds[i].range;
+				break;
+			}
+		}
+		if (!strcmp(devc->profile->model, "DSLogic")) {
+			if (devc->dslogic_voltage_threshold == DS_VOLTAGE_RANGE_5_V)
+				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_5V);
+			else
+				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_3V3);
+		}else if (!strcmp(devc->profile->model, "DSLogic Pro")){
+			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PRO_FPGA_FIRMWARE);
+		}
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -590,8 +643,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar;
+	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
+	unsigned int i;
 
 	(void)cg;
 
@@ -603,10 +657,29 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi)
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+							  drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		else{
+			devc = sdi->priv;
+			if (!devc->dslogic)
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+								  devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+			else
+				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+								  dslogic_devopts, ARRAY_SIZE(dslogic_devopts), sizeof(uint32_t));
+		}
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		if (!sdi->priv) return SR_ERR_ARG;
+		devc = sdi->priv;
+		if (!devc->dslogic) return SR_ERR_NA;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
+			range[0] = g_variant_new_double(volt_thresholds[i].low);
+			range[1] = g_variant_new_double(volt_thresholds[i].high);
+			gvar = g_variant_new_tuple(range, 2);
+			g_variant_builder_add_value(&gvb, gvar);
+		}
+		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi->priv)
@@ -741,7 +814,7 @@ static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_info("tpos real_pos %d ram_saddr %d", tpos->real_pos, tpos->ram_saddr);
+		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos, tpos->ram_saddr, tpos->remain_cnt);
 		devc->trigger_pos  = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);
@@ -765,6 +838,15 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 
 	if ((ret = dslogic_fpga_configure(sdi)) != SR_OK)
 		return ret;
+
+	/* if this is a dslogic pro, set the voltage threshold */
+	if (!strcmp(devc->profile->model, "DSLogic Pro")){
+		if(devc->dslogic_voltage_threshold == DS_VOLTAGE_RANGE_18_33_V){
+			dslogic_set_vth(sdi, 1.4);
+		}else{
+			dslogic_set_vth(sdi, 3.3);
+		}
+	}
 
 	if ((ret = dslogic_start_acquisition(sdi)) != SR_OK)
 		return ret;

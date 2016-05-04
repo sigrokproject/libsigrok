@@ -27,6 +27,7 @@
 #define DS_CMD_START			0xb2
 #define DS_CMD_FPGA_FW			0xb3
 #define DS_CMD_CONFIG			0xb4
+#define DS_CMD_VTH				0xb8
 
 #define DS_NUM_TRIGGER_STAGES		16
 #define DS_START_FLAGS_STOP		(1 << 7)
@@ -39,6 +40,11 @@ enum dslogic_operation_modes {
 	DS_OP_INTERNAL_TEST,
 	DS_OP_EXTERNAL_TEST,
 	DS_OP_LOOPBACK_TEST,
+};
+
+enum  {
+	    DS_VOLTAGE_RANGE_18_33_V,	/* 1.8V and 3.3V logic */
+	    DS_VOLTAGE_RANGE_5_V,	/* 5V logic */
 };
 
 struct dslogic_version {
@@ -130,5 +136,6 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth);
 
 #endif

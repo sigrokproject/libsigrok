@@ -55,7 +55,8 @@
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 #define DEV_CAPS_AX_ANALOG	(1 << DEV_CAPS_AX_ANALOG_POS)
 
-#define DSLOGIC_FPGA_FIRMWARE "dreamsourcelab-dslogic-fpga.fw"
+#define DSLOGIC_FPGA_FIRMWARE_5V "dreamsourcelab-dslogic-fpga-5v.fw"
+#define DSLOGIC_FPGA_FIRMWARE_3V3 "dreamsourcelab-dslogic-fpga-3v3.fw"
 #define DSCOPE_FPGA_FIRMWARE "dreamsourcelab-dscope-fpga.fw"
 #define DSLOGIC_PRO_FPGA_FIRMWARE "dreamsourcelab-dslogic-pro-fpga.fw"
 
@@ -135,6 +136,7 @@ struct dev_context {
 	uint16_t dslogic_mode;
 	uint32_t trigger_pos;
 	int dslogic_external_clock;
+	int dslogic_voltage_threshold;
 };
 
 SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
