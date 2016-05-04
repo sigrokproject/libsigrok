@@ -142,6 +142,7 @@ static const uint32_t dslogic_devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const int32_t soft_trigger_matches[] = {
@@ -567,6 +568,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		*data = g_variant_new_boolean(devc->dslogic_external_clock);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -631,6 +635,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}else if (!strcmp(devc->profile->model, "DSLogic Pro")){
 			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PRO_FPGA_FIRMWARE);
 		}
+		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		devc->dslogic_external_clock = g_variant_get_boolean(data);
 		break;
 	default:
 		ret = SR_ERR_NA;
