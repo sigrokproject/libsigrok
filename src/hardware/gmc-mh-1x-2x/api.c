@@ -207,11 +207,8 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup(VENDOR_GMC);
 		sdi->model = g_strdup(gmc_model_str(model));
 		devc = g_malloc0(sizeof(struct dev_context));
+		sr_sw_limits_init(&devc->limits);
 		devc->model = model;
-		devc->limit_samples = 0;
-		devc->limit_msec = 0;
-		devc->num_samples = 0;
-		devc->elapsed_msec = g_timer_new();
 		devc->settings_ok = FALSE;
 		sdi->conn = serial;
 		sdi->priv = devc;
@@ -298,7 +295,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 
 		if (devc->model != METRAHIT_NONE) {
 			sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(devc->model));
-			devc->elapsed_msec = g_timer_new();
+			sr_sw_limits_init(&devc->limits);
 			sdi->model = g_strdup(gmc_model_str(devc->model));
 			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
 			sdi->conn = serial;
@@ -339,13 +336,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	std_serial_dev_close(sdi);
 
 	sdi->status = SR_ST_INACTIVE;
-
-	/* Free dynamically allocated resources. */
-	if ((devc = sdi->priv) && devc->elapsed_msec) {
-		g_timer_destroy(devc->elapsed_msec);
-		devc->elapsed_msec = NULL;
+	if ((devc = sdi->priv))
 		devc->model = METRAHIT_NONE;
-	}
 
 	return SR_OK;
 }
@@ -366,11 +358,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
 		break;
@@ -444,11 +433,8 @@ static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
-
-	/* Start timer, if required. */
-	if (devc->limit_msec)
-		g_timer_start(devc->elapsed_msec);
 
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -470,11 +456,8 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
-
-	/* Start timer, if required. */
-	if (devc->limit_msec)
-		g_timer_start(devc->elapsed_msec);
 
 	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -487,12 +470,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-
-	/* Stop timer, if required. */
-	if (sdi && (devc = sdi->priv) && devc->limit_msec)
-		g_timer_stop(devc->elapsed_msec);
-
 	return std_serial_dev_acquisition_stop(sdi, dev_close,
 			sdi->conn, LOG_PREFIX);
 }

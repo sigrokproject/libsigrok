@@ -670,7 +670,7 @@ static void send_value(struct sr_dev_inst *sdi)
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 /** Process 6-byte data message, Metrahit 1x/2x send mode. */
@@ -1097,7 +1097,6 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 	struct sr_serial_dev_inst *serial;
 	uint8_t buf, msgt;
 	int len;
-	gdouble elapsed_s;
 
 	(void)fd;
 
@@ -1171,15 +1170,8 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop acquisition. */
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-
-	if (devc->limit_msec) {
-		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
-		if ((elapsed_s * 1000) >= devc->limit_msec)
-			sdi->driver->dev_acquisition_stop(sdi);
-	}
 
 	return TRUE;
 }
@@ -1191,7 +1183,6 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 	struct sr_serial_dev_inst *serial;
 	uint8_t buf;
 	int len;
-	gdouble elapsed_s;
 
 	(void)fd;
 
@@ -1222,15 +1213,8 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	/* If number of samples or time limit reached, stop acquisition. */
-	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples))
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop(sdi);
-
-	if (devc->limit_msec) {
-		elapsed_s = g_timer_elapsed(devc->elapsed_msec, NULL);
-		if ((elapsed_s * 1000) >= devc->limit_msec)
-			sdi->driver->dev_acquisition_stop(sdi);
-	}
 
 	/* Request next data set, if required */
 	if (sdi->status == SR_ST_ACTIVE) {
@@ -1539,12 +1523,9 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 		else
 			g_usleep(2 * 1000 * 1000); /* Wait to ensure transfer before interface switched off. */
 		break;
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	default:
 		return SR_ERR_NA;
 	}
