@@ -140,6 +140,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	cg->channels = g_slist_append(cg->channels, ch);
 
 	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
 	sdi->priv = devc;
 
 	serial_close(serial);
@@ -226,11 +227,8 @@ static int config_get(uint32_t key, GVariant **data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_REGULATION:
 		*data = g_variant_new_string("CC"); /* Always CC mode. */
 		break;
@@ -289,11 +287,7 @@ static int config_set(uint32_t key, GVariant *data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
-	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
 		ret = reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
 		break;
@@ -332,12 +326,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			  reloadpro_receive_data, (void *)sdi);
 
+	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi, LOG_PREFIX);
 
 	memset(devc->buf, 0, RELOADPRO_BUFSIZE);
 	devc->buflen = 0;
-	devc->num_samples = 0;
-	devc->starttime = g_get_monotonic_time();
 
 	return SR_OK;
 }

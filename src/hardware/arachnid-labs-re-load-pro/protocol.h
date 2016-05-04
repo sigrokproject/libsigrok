@@ -32,10 +32,7 @@
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	uint64_t limit_samples;
-	uint64_t limit_msec;
-	uint64_t num_samples;
-	int64_t starttime;
+	struct sr_sw_limits limits;
 	uint8_t buf[RELOADPRO_BUFSIZE];
 	int buflen;
 	gboolean otp_active;
