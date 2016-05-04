@@ -400,8 +400,8 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	packet.type = SR_DF_ANALOG_OLD;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
-	devc->num_samples++;
 
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
 
 static void handle_line(const struct sr_dev_inst *sdi)
@@ -468,7 +468,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 		packet.type = SR_DF_ANALOG_OLD;
 		packet.payload = analog;
 		sr_session_send(sdi, &packet);
-		devc->num_samples++;
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
 		g_free(analog->data);
 		g_free(analog);
 	}
@@ -508,7 +508,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
+	if (sr_sw_limits_check(&devc->limits)) {
 		sdi->driver->dev_acquisition_stop(sdi);
 		return TRUE;
 	}

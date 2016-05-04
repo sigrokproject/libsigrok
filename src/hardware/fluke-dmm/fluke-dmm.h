@@ -49,11 +49,9 @@ struct flukedmm_profile {
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct flukedmm_profile *profile;
-	uint64_t limit_samples;
-	uint64_t limit_msec;
+	struct sr_sw_limits limits;
 
 	/* Runtime. */
-	uint64_t num_samples;
 	char buf[FLUKEDMM_BUFSIZE];
 	int buflen;
 	int64_t cmd_sent_at;
