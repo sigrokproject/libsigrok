@@ -121,7 +121,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 
 	dispatch(sdi);
 
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+	if (sr_sw_limits_check(&devc->limits))
 		sdi->driver->dev_acquisition_stop(sdi);
 
 	return TRUE;
@@ -307,7 +307,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples++;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
 	return SR_OK;
 }

@@ -52,11 +52,9 @@ struct agdmm_profile {
 /* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct agdmm_profile *profile;
-	uint64_t limit_samples;
-	uint64_t limit_msec;
+	struct sr_sw_limits limits;
 
 	/* Runtime. */
-	uint64_t num_samples;
 	int64_t jobqueue[8];
 	unsigned char buf[AGDMM_BUFSIZE];
 	int buflen;
