@@ -262,43 +262,17 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
-	libusb_device **devlist, *dev;
-	int device_count, ret, i;
-	char connection_id[64];
+	int ret;
 
 	drvc = di->context;
 	usb = sdi->conn;
 	devc = sdi->priv;
 
-	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx,
-					      &devlist);
-	if (device_count < 0) {
-		sr_err("Failed to retrieve device list.");
-		return SR_ERR;
-	}
+	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+	if (ret != SR_OK)
+		return ret;
 
-	dev = NULL;
-	for (i = 0; i < device_count; i++) {
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-		if (!strcmp(sdi->connection_id, connection_id)) {
-			dev = devlist[i];
-			break;
-		}
-	}
-	if (!dev) {
-		sr_err("Device on %d.%d (logical) / %s (physical) disappeared!",
-		       usb->bus, usb->address, sdi->connection_id);
-		return SR_ERR;
-	}
-
-	if (!(ret = libusb_open(dev, &(usb->devhdl)))) {
-		sdi->status = SR_ST_ACTIVE;
-		sr_info("Opened device on %d.%d (logical) / %s (physical) interface %d.",
-			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
-	} else {
-		sr_err("Failed to open device: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
+	sdi->status = SR_ST_ACTIVE;
 
 	ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
