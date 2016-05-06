@@ -354,12 +354,16 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 	struct libusb_device **devlist;
 	libusb_device_handle *dev_hdl;
 	int dummy, i;
+	int ret;
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 
 	drvc = di->context;
 	sdi = NULL;
 
-	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	ret = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	if (ret < 0)
+		return NULL;
+
 	for (i = 0; devlist[i]; i++) {
 		if (libusb_get_bus_number(devlist[i]) != bus ||
 				libusb_get_device_address(devlist[i]) != address)
@@ -374,6 +378,7 @@ SR_PRIV struct sr_dev_inst *lascar_scan(int bus, int address)
 		libusb_close(dev_hdl);
 		sdi = lascar_identify(config);
 	}
+	libusb_free_device_list(devlist, 1);
 
 	return sdi;
 }
