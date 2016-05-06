@@ -107,28 +107,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc = di->context;
 	struct sr_usb_dev_inst *usb;
-	libusb_device **devlist;
-	int ret, i;
-	char connection_id[64];
+	int ret;
 
 	usb = sdi->conn;
 
-	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-	for (i = 0; devlist[i]; i++) {
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-		if (strcmp(sdi->connection_id, connection_id))
-			continue;
-		if ((ret = libusb_open(devlist[i], &usb->devhdl))) {
-			sr_err("Failed to open device: %s.", libusb_error_name(ret));
-			return SR_ERR;
-		}
-		break;
-	}
-	libusb_free_device_list(devlist, 1);
-	if (!devlist[i]) {
-		sr_err("Device not found.");
-		return SR_ERR;
-	}
+	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+	if (ret != SR_OK)
+		return ret;
 
 	/* The device reports as HID class, so the kernel would have
 	 * claimed it. */
