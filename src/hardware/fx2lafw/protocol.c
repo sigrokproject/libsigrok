@@ -306,6 +306,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
+	devc->dslogic_continuous_mode = FALSE;
 	devc->stl = NULL;
 
 	return devc;

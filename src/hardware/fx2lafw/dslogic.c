@@ -332,7 +332,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	 * 13	1 = loopback test mode
 	 * 12	1 = stream mode
 	 * 11	1 = serial trigger
-	 * 8-12	unused
+	 * 8-10 unused
 	 * 7	1 = analog mode
 	 * 6	1 = samplerate 400MHz
 	 * 5	1 = samplerate 200MHz or analog mode
@@ -348,6 +348,8 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		v16 = 1 << 14;
 	else if (devc->dslogic_mode == DS_OP_LOOPBACK_TEST)
 		v16 = 1 << 13;
+	if (devc->dslogic_continuous_mode)
+		v16 |= 1 << 12;
 	if (devc->dslogic_external_clock)
 		v16 |= 1 << 1;
 

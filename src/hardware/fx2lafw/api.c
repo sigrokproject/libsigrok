@@ -135,7 +135,7 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t dslogic_devopts[] = {
-	SR_CONF_CONTINUOUS | SR_CONF_SET,
+	SR_CONF_CONTINUOUS | SR_CONF_SET | SR_CONF_GET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
@@ -571,6 +571,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(devc->dslogic_external_clock);
 		break;
+	case SR_CONF_CONTINUOUS:
+		*data = g_variant_new_boolean(devc->dslogic_continuous_mode);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -638,6 +641,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->dslogic_external_clock = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_CONTINUOUS:
+		devc->dslogic_continuous_mode = g_variant_get_boolean(data);
 		break;
 	default:
 		ret = SR_ERR_NA;
