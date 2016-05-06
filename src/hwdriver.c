@@ -199,7 +199,7 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Sample limit", NULL},
 	{SR_CONF_LIMIT_FRAMES, SR_T_UINT64, "limit_frames",
 		"Frame limit", NULL},
-	{SR_CONF_CONTINUOUS, SR_T_UINT64, "continuous",
+	{SR_CONF_CONTINUOUS, SR_T_BOOL, "continuous",
 		"Continuous sampling", NULL},
 	{SR_CONF_DATALOG, SR_T_BOOL, "datalog",
 		"Datalog", NULL},
