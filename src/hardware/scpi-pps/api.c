@@ -24,6 +24,7 @@
 #include "protocol.h"
 
 static struct sr_dev_driver scpi_pps_driver_info;
+static struct sr_dev_driver hp_ib_pps_driver_info;
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -41,7 +42,10 @@ static const struct pps_channel_instance pci[] = {
 	{ SR_MQ_FREQUENCY, SCPI_CMD_GET_MEAS_FREQUENCY, "F" },
 };
 
-static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
+					int (*get_hw_id)(struct sr_scpi_dev_inst *scpi,
+							struct sr_scpi_hw_info **scpi_response)
+			   )
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
@@ -62,7 +66,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	const char *vendor;
 	char ch_name[16];
 
-	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+	if (get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
 		return NULL;
 	}
@@ -166,9 +170,80 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	return sdi;
 }
 
-static GSList *scan(struct sr_dev_driver *di, GSList *options)
+static gchar *hpib_get_revision(struct sr_scpi_dev_inst *scpi)
 {
-	return sr_scpi_scan(di->context, options, probe_device);
+	int ret;
+	gboolean matches;
+	char *response;
+	GRegex *version_regex;
+
+	ret = sr_scpi_get_string(scpi, "ROM?", &response);
+	if (ret != SR_OK && !response)
+		return NULL;
+
+	/* Example version string: "B01 B01" */
+	version_regex = g_regex_new("[A-Z][0-9]{2} [A-Z][0-9]{2}", 0, 0, NULL);
+	matches = g_regex_match(version_regex, response, 0, NULL);
+	g_regex_unref(version_regex);
+
+	if (!matches) {
+		/* Not a valid version string. Ignore it. */
+		g_free(response);
+		response = NULL;
+	} else {
+		/* Replace space with dot. */
+		response[3] = '.';
+	}
+
+	return response;
+}
+
+/*
+ * This function assumes the response is in the form "HP<model_number>"
+ *
+ * HP made many GPIB (then called HP-IB) instruments before the SCPI command
+ * set was introduced into the standard. We haven't seen any non-HP instruments
+ * which respond to the "ID?" query, so assume all are HP for now.
+ */
+static int hpib_get_hw_id(struct sr_scpi_dev_inst *scpi,
+			  struct sr_scpi_hw_info **scpi_response)
+{
+	int ret;
+	char *response;
+	struct sr_scpi_hw_info *hw_info;
+
+	ret = sr_scpi_get_string(scpi, "ID?", &response);
+	if ((ret != SR_OK) || !response)
+		return SR_ERR;
+
+	hw_info = g_malloc0(sizeof(struct sr_scpi_hw_info));
+
+	*scpi_response = hw_info;
+	hw_info->model = response;
+	hw_info->firmware_version = hpib_get_revision(scpi);
+	hw_info->manufacturer = g_strdup("HP");
+
+	return SR_OK;
+}
+
+static struct sr_dev_inst *probe_scpi_pps_device(struct sr_scpi_dev_inst *scpi)
+{
+	return probe_device(scpi, sr_scpi_get_hw_id);
+}
+
+static struct sr_dev_inst *probe_hpib_pps_device(struct sr_scpi_dev_inst *scpi)
+{
+	return probe_device(scpi, hpib_get_hw_id);
+}
+
+static GSList *scan_scpi_pps(struct sr_dev_driver *di, GSList *options)
+{
+	return sr_scpi_scan(di->context, options, probe_scpi_pps_device);
+}
+
+static GSList *scan_hpib_pps(struct sr_dev_driver *di, GSList *options)
+{
+	return sr_scpi_scan(di->context, options, probe_hpib_pps_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -628,7 +703,26 @@ static struct sr_dev_driver scpi_pps_driver_info = {
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
-	.scan = scan,
+	.scan = scan_scpi_pps,
+	.dev_list = std_dev_list,
+	.dev_clear = dev_clear,
+	.config_get = config_get,
+	.config_set = config_set,
+	.config_list = config_list,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.context = NULL,
+};
+
+static struct sr_dev_driver hp_ib_pps_driver_info = {
+	.name = "hpib-pps",
+	.longname = "HP-IB PPS",
+	.api_version = 1,
+	.init = std_init,
+	.cleanup = std_cleanup,
+	.scan = scan_hpib_pps,
 	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
@@ -641,3 +735,4 @@ static struct sr_dev_driver scpi_pps_driver_info = {
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(scpi_pps_driver_info);
+SR_REGISTER_DEV_DRIVER(hp_ib_pps_driver_info);
