@@ -133,11 +133,6 @@ static const struct lps_modelspec models[] = {
 	},
 };
 
-static int init_lps301(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 /** Send command to device with va_list.
  */
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args)
@@ -810,7 +805,7 @@ SR_PRIV struct sr_dev_driver motech_lps_301_driver_info = {
 	.name = "motech-lps-301",
 	.longname = "Motech LPS-301",
 	.api_version = 1,
-	.init = init_lps301,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan_lps301,
 	.dev_list = std_dev_list,

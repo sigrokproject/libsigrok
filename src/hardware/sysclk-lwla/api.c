@@ -61,13 +61,6 @@ static const char *const signal_edge_names[] = {
 	[EDGE_NEGATIVE] = "f",
 };
 
-/* Initialize the SysClk LWLA driver.
- */
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 /* Create a new sigrok device instance for the indicated LWLA model.
  */
 static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
@@ -785,7 +778,7 @@ SR_PRIV struct sr_dev_driver sysclk_lwla_driver_info = {
 	.name = "sysclk-lwla",
 	.longname = "SysClk LWLA series",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

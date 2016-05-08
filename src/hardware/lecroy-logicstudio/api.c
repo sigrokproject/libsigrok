@@ -73,11 +73,6 @@ static const uint64_t samplerates[] = {
 
 SR_PRIV struct sr_dev_driver lecroy_logicstudio_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static struct sr_dev_inst *create_device(struct sr_dev_driver *di,
 		struct sr_usb_dev_inst *usb, enum sr_dev_inst_status status,
 		int64_t fw_updated)
@@ -509,7 +504,7 @@ SR_PRIV struct sr_dev_driver lecroy_logicstudio_driver_info = {
 	.name = "lecroy-logicstudio",
 	.longname = "LeCroy LogicStudio",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

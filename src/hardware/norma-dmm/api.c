@@ -65,11 +65,6 @@ static const char *get_typestr(int type, struct sr_dev_driver *drv)
 	return nameref[type - 1][(drv == &siemens_b102x_driver_info)];
 }
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -258,7 +253,7 @@ SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
 	.longname = "Norma DM9x0 DMMs",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
@@ -277,7 +272,7 @@ SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
 	.name = "siemens-b102x",
 	.longname = "Siemens B102x DMMs",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

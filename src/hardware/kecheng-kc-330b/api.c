@@ -63,11 +63,6 @@ static const char *data_sources[] = {
 
 SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static int scan_kecheng(struct sr_dev_driver *di,
 		struct sr_usb_dev_inst *usb, char **model)
 {
@@ -512,7 +507,7 @@ SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info = {
 	.name = "kecheng-kc-330b",
 	.longname = "Kecheng KC-330B",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

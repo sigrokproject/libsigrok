@@ -84,11 +84,6 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft232r_desc,
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static void scan_device(struct sr_dev_driver *di, struct libusb_device *dev, GSList **devices)
 {
 	struct libusb_device_descriptor usb_desc;
@@ -491,7 +486,7 @@ SR_PRIV struct sr_dev_driver ftdi_la_driver_info = {
 	.name = "ftdi-la",
 	.longname = "FTDI LA",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

@@ -85,11 +85,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return ret;
 }
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i;
@@ -456,7 +451,7 @@ SR_PRIV struct sr_dev_driver link_mso19_driver_info = {
 	.name = "link-mso19",
 	.longname = "Link Instruments MSO-19",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

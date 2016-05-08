@@ -59,11 +59,6 @@ static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_289, "289", 100, 1000 },
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 		const char *serialcomm)
 {
@@ -278,7 +273,7 @@ SR_PRIV struct sr_dev_driver flukedmm_driver_info = {
 	.name = "fluke-dmm",
 	.longname = "Fluke 18x/28x series DMMs",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

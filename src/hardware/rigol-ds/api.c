@@ -272,11 +272,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct dev_context *devc;
@@ -1061,7 +1056,7 @@ SR_PRIV struct sr_dev_driver rigol_ds_driver_info = {
 	.name = "rigol-ds",
 	.longname = "Rigol DS",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

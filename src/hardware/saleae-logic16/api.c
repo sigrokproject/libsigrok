@@ -95,11 +95,6 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(100),
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static gboolean check_conf_profile(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
@@ -796,7 +791,7 @@ SR_PRIV struct sr_dev_driver saleae_logic16_driver_info = {
 	.name = "saleae-logic16",
 	.longname = "Saleae Logic16",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

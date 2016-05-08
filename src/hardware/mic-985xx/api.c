@@ -57,11 +57,6 @@ SR_PRIV const struct mic_dev_info mic_devs[] = {
 	},
 };
 
-static int init(struct sr_context *sr_ctx, int idx)
-{
-	return std_init(mic_devs[idx].di, sr_ctx);
-}
-
 static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 {
 	struct sr_dev_inst *sdi;
@@ -215,9 +210,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 }
 
 /* Driver-specific API function wrappers */
-#define HW_INIT(X) \
-static int init_##X(struct sr_dev_driver *di, struct sr_context *sr_ctx) { \
-	(void)di; return init(sr_ctx, X); }
 #define HW_SCAN(X) \
 static GSList *scan_##X(struct sr_dev_driver *di, GSList *options) { \
 	(void)di; return scan(options, X); }
@@ -231,7 +223,6 @@ static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 
 /* Driver structs and API function wrappers */
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
-HW_INIT(ID_UPPER) \
 HW_SCAN(ID_UPPER) \
 HW_CONFIG_LIST(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
@@ -239,7 +230,7 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
 	.longname = LONGNAME, \
 	.api_version = 1, \
-	.init = init_##ID_UPPER, \
+	.init = std_init, \
 	.cleanup = std_cleanup, \
 	.scan = scan_##ID_UPPER, \
 	.dev_list = std_dev_list, \

@@ -39,11 +39,6 @@ static const char *data_sources[] = {
 
 SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -311,7 +306,7 @@ SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info = {
 	.name = "uni-t-ut32x",
 	.longname = "UNI-T UT32x",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

@@ -60,11 +60,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static struct dev_context *beaglelogic_devc_alloc(void)
 {
 	struct dev_context *devc;
@@ -367,7 +362,7 @@ SR_PRIV struct sr_dev_driver beaglelogic_driver_info = {
 	.name = "beaglelogic",
 	.longname = "BeagleLogic",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

@@ -66,11 +66,6 @@ static const uint32_t devopts_bd[] = {
  * Need to implement device-specific lists.
  */
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 /**
  * Read single byte from serial port.
  *
@@ -518,7 +513,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan_1x_2x_rs232,
 	.dev_list = std_dev_list,
@@ -537,7 +532,7 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.name = "gmc-mh-2x-bd232",
 	.longname = "Gossen Metrawatt Metrahit 2x, BD232/SI232-II interface",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan_2x_bd232,
 	.dev_list = std_dev_list,

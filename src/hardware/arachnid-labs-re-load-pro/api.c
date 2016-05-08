@@ -58,11 +58,6 @@ static const uint32_t devopts_cg[] = {
 
 SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -369,7 +364,7 @@ SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {
 	.name = "arachnid-labs-re-load-pro",
 	.longname = "Arachnid Labs Re:load Pro",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

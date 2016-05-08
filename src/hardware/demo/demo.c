@@ -179,11 +179,6 @@ SR_PRIV struct sr_dev_driver demo_driver_info;
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 {
 	double t, frequency;
@@ -883,7 +878,7 @@ SR_PRIV struct sr_dev_driver demo_driver_info = {
 	.name = "demo",
 	.longname = "Demo driver and pattern generator",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

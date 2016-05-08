@@ -104,11 +104,6 @@ static const uint8_t coupling_map[] = {
 	0x00, 0x08, 0x04
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan_port(GSList *devices, struct sr_dev_driver *di,
 			 struct parport *port)
 {
@@ -723,7 +718,7 @@ SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info = {
 	.name = "hung-chang-dso-2100",
 	.longname = "Hung-Chang DSO-2100",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

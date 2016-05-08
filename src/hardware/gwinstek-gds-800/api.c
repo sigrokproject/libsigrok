@@ -33,11 +33,6 @@ static const uint32_t devopts[] = {
 
 SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct dev_context *devc;
@@ -244,7 +239,7 @@ SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.name = "gwinstek-gds-800",
 	.longname = "GW Instek GDS-800 series",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

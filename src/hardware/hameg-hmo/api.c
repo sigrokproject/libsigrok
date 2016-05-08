@@ -47,11 +47,6 @@ enum {
 	CG_DIGITAL,
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static int check_manufacturer(const char *manufacturer)
 {
 	unsigned int i;
@@ -777,7 +772,7 @@ SR_PRIV struct sr_dev_driver hameg_hmo_driver_info = {
 	.name = "hameg-hmo",
 	.longname = "Hameg HMO",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

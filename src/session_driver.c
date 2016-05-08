@@ -206,11 +206,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 /* driver callbacks */
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static int dev_clear(const struct sr_dev_driver *di)
 {
 	struct drv_context *drvc;
@@ -389,7 +384,7 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.name = "virtual-session",
 	.longname = "Session-emulating driver",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = dev_clear,
 	.scan = NULL,
 	.dev_list = NULL,

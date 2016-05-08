@@ -36,11 +36,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct scale_info *scale;
@@ -197,7 +192,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.name = ID, \
 			.longname = VENDOR " " MODEL, \
 			.api_version = 1, \
-			.init = init, \
+			.init = std_init, \
 			.cleanup = std_cleanup, \
 			.scan = scan, \
 			.dev_list = std_dev_list, \

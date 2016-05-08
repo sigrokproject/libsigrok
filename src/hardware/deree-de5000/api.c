@@ -39,11 +39,6 @@ static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
 
 SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, es51919_serial_clean);
@@ -65,7 +60,7 @@ SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
 	.name = "deree-de5000",
 	.longname = "DER EE DE-5000",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

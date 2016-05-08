@@ -38,11 +38,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATALOG | SR_CONF_GET | SR_CONF_SET,
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -420,7 +415,7 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.name = "lascar-el-usb",
 	.longname = "Lascar EL-USB",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

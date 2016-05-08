@@ -43,11 +43,6 @@ static const struct testo_model models[] = {
 	{ "435", 9, TESTO_x35_REQUEST },
 };
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -433,7 +428,7 @@ SR_PRIV struct sr_dev_driver testo_driver_info = {
 	.name = "testo",
 	.longname = "Testo",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

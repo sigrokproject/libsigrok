@@ -64,11 +64,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static int add_device(int model, struct libusb_device_descriptor *des,
 	const char *serial_num, const char *connection_id,
 	libusb_device *usbdev, GSList **devices)
@@ -577,7 +572,7 @@ SR_PRIV struct sr_dev_driver chronovu_la_driver_info = {
 	.name = "chronovu-la",
 	.longname = "ChronoVu LA8/LA16",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

@@ -77,11 +77,6 @@ static const uint64_t samplerates[] = {
 
 SR_PRIV struct sr_dev_driver p_ols_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -711,7 +706,7 @@ SR_PRIV struct sr_dev_driver p_ols_driver_info = {
 	.name = "p-ols",
 	.longname = "Pipistrello OLS",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

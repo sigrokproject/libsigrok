@@ -111,11 +111,6 @@ static const struct maynuo_m97_model supported_models[] = {
 
 SR_PRIV struct sr_dev_driver maynuo_m97_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 {
 	const struct maynuo_m97_model *model = NULL;
@@ -474,7 +469,7 @@ SR_PRIV struct sr_dev_driver maynuo_m97_driver_info = {
 	.name = "maynuo-m97",
 	.longname = "maynuo M97/M98 series",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

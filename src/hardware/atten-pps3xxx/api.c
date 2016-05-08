@@ -77,11 +77,6 @@ static const struct pps_model models[] = {
 
 SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 {
 	struct sr_dev_inst *sdi;
@@ -496,7 +491,7 @@ SR_PRIV struct sr_dev_driver atten_pps3203_driver_info = {
 	.name = "atten-pps3203",
 	.longname = "Atten PPS3203T-3S",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan_3203,
 	.dev_list = std_dev_list,

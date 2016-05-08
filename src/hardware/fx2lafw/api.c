@@ -181,11 +181,6 @@ static const uint64_t dslogic_samplerates[] = {
 
 SR_PRIV struct sr_dev_driver fx2lafw_driver_info;
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -891,7 +886,7 @@ SR_PRIV struct sr_dev_driver fx2lafw_driver_info = {
 	.name = "fx2lafw",
 	.longname = "fx2lafw (generic driver for FX2 based LAs)",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
