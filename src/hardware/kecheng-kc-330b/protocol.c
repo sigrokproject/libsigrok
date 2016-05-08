@@ -51,7 +51,7 @@ SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)
 	if (sdi->status == SR_ST_STOPPING) {
 		libusb_free_transfer(devc->xfer);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		sdi->status = SR_ST_ACTIVE;
 		return TRUE;
 	}

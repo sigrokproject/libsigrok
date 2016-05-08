@@ -317,7 +317,7 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 	serial_source_remove(sdi->session, serial);
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 }
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)

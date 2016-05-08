@@ -165,7 +165,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Device replies with "A00\r\n" (OK) or "E01\r\n" (Error). Ignore. */
 
 	sr_sw_limits_acquisition_start(&devc->limits);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
@@ -177,7 +177,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+			sdi->conn);
 }
 
 #define SCALE(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \

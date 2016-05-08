@@ -491,7 +491,7 @@ SR_PRIV int lascar_el_usb_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 	}
 
 	memset(&tv, 0, sizeof(struct timeval));

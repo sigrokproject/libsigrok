@@ -289,7 +289,7 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	serial_source_remove(sdi->session, devc->serial);
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 }
 
 SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val)

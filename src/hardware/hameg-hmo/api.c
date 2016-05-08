@@ -745,7 +745,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			hmo_receive_data, (void *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	devc->current_channel = devc->enabled_channels;
 
@@ -757,7 +757,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

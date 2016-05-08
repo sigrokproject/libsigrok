@@ -451,7 +451,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			atten_pps3xxx_receive_data, (void *)sdi);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Send a "channel" configuration packet now. */
 	memset(packet, 0, PACKET_SIZE);

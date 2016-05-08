@@ -196,7 +196,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			devc->state = WAIT_FOR_TRANSFER_OF_CHANNEL_INDICATOR_COMPLETE;
 
 			if (!devc->df_started) {
-				std_session_send_df_header(sdi, LOG_PREFIX);
+				std_session_send_df_header(sdi);
 
 				packet.type = SR_DF_FRAME_BEGIN;
 				sr_session_send(sdi, &packet);

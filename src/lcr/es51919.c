@@ -914,7 +914,7 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 	dev_limit_counter_start(&devc->frame_count);
 	dev_time_counter_start(&devc->time_count);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -927,5 +927,5 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi,
-			std_serial_dev_close, sdi->conn, LOG_PREFIX);
+			std_serial_dev_close, sdi->conn);
 }

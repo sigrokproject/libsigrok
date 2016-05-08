@@ -317,7 +317,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->trigger_fired = FALSE;
 	} else
 		devc->trigger_fired = TRUE;
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Trigger and add poll on file */
 	beaglelogic_start(devc);
@@ -343,7 +343,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	/* Remove session source and send EOT packet */
 	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

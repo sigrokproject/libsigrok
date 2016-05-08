@@ -85,23 +85,16 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
  * dev_acquisition_start() API callback.
  *
  * @param sdi The device instance to use.
- * @param prefix A driver-specific prefix string used for log messages.
- * 		 Must not be NULL. An empty string is allowed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR upon other errors.
  */
-SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
-				       const char *prefix)
+SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 {
+	const char *prefix = sdi->driver->name;
 	int ret;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
-
-	if (!prefix) {
-		sr_err("Invalid prefix.");
-		return SR_ERR_ARG;
-	}
 
 	sr_dbg("%s: Starting acquisition.", prefix);
 
@@ -124,19 +117,17 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
  * Standard API helper for sending an SR_DF_END packet.
  *
  * @param sdi The device instance to use. Must not be NULL.
- * @param prefix A driver-specific prefix string used for log messages.
- * 		 Must not be NULL. An empty string is allowed.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
  *         SR_ERR upon other errors.
  */
-SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi,
-				    const char *prefix)
+SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 {
+	const char *prefix = sdi->driver->name;
 	int ret;
 	struct sr_datafeed_packet packet;
 
-	if (!sdi || !prefix)
+	if (!sdi)
 		return SR_ERR_ARG;
 
 	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
@@ -217,8 +208,6 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  *               	  Must not be NULL.
  * @param serial The serial device instance (struct serial_dev_inst *).
  *               Must not be NULL.
- * @param[in] prefix A driver-specific prefix string used for log messages.
- *               Must not be NULL. An empty string is allowed.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid arguments.
@@ -227,14 +216,10 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 			dev_close_callback dev_close_fn,
-			struct sr_serial_dev_inst *serial, const char *prefix)
+			struct sr_serial_dev_inst *serial)
 {
+	const char *prefix = sdi->driver->name;
 	int ret;
-
-	if (!prefix) {
-		sr_err("Invalid prefix.");
-		return SR_ERR_ARG;
-	}
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("%s: Device inactive, can't stop acquisition.", prefix);
@@ -253,7 +238,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	std_session_send_df_end(sdi, prefix);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

@@ -857,7 +857,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	else
 		devc->send_data_proc = la_send_data_proc;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	return SR_OK;
 }
@@ -873,7 +873,7 @@ static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer
 	if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
 		sr_dbg("Trigger transfer canceled.");
 		/* Terminate session. */
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		usb_source_remove(sdi->session, devc->ctx);
 		devc->num_transfers = 0;
 		g_free(devc->transfers);

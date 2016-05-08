@@ -918,7 +918,7 @@ static void LIBUSB_CALL recv_intr_transfer(struct libusb_transfer *xfer)
 	devc = sdi->priv;
 
 	if (devc->abort_acquisition) {
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 		return;
 	}
@@ -1089,7 +1089,7 @@ static void LIBUSB_CALL recv_bulk_transfer(struct libusb_transfer *xfer)
 		read_offset %= SAMPLE_BUF_SIZE;
 	}
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 }
 
 static uint32_t transform_sample_count(struct dev_context *devc,

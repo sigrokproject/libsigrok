@@ -87,7 +87,7 @@ static int process_buffer(struct sr_input *in)
 
 	inc = in->priv;
 	if (!inc->started) {
-		std_session_send_df_header(in->sdi, LOG_PREFIX);
+		std_session_send_df_header(in->sdi);
 
 		if (inc->samplerate) {
 			packet.type = SR_DF_META;
@@ -149,7 +149,7 @@ static int end(struct sr_input *in)
 
 	inc = in->priv;
 	if (inc->started)
-		std_session_send_df_end(in->sdi, LOG_PREFIX);
+		std_session_send_df_end(in->sdi);
 
 	return ret;
 }

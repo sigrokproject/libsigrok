@@ -372,7 +372,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gettimeofday(&devc->start_tv, 0);
 	sigma_set_register(WRITE_MODE, 0x0d, devc);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Add capture source. */
 	sr_session_source_add(sdi->session, -1, 0, 10, sigma_receive_data, (void *)sdi);

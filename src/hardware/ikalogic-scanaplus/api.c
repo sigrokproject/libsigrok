@@ -349,7 +349,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((ret = scanaplus_start_acquisition(devc)) < 0)
 		return ret;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Hook up a dummy handler to receive data from the device. */
 	sr_session_source_add(sdi->session, -1, 0, 0, scanaplus_receive_data, (void *)sdi);
@@ -361,7 +361,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

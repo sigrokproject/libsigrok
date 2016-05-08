@@ -217,7 +217,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	sr_sw_limits_acquisition_start(&devc->sw_limits);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	sr_session_source_add(sdi->session, -1, 0, 10,
 			brymen_bm86x_receive_data, (void *)sdi);
@@ -230,7 +230,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	sr_session_source_remove(sdi->session, -1);
 

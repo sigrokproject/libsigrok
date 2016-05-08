@@ -155,7 +155,7 @@ SR_PRIV int atten_pps3xxx_receive_data(int fd, int revents, void *cb_data)
 				send_config(sdi);
 			else {
 				serial_source_remove(sdi->session, serial);
-				std_session_send_df_end(sdi, LOG_PREFIX);
+				std_session_send_df_end(sdi);
 			}
 		}
 	}

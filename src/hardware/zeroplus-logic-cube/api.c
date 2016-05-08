@@ -522,11 +522,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_info("Ramsize trigger    = 0x%x.", ramsize_trigger);
 	sr_info("Memory size        = 0x%x.", memory_size);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Check for empty capture */
 	if ((status & STATUS_READY) && !stop_address) {
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		return SR_OK;
 	}
 
@@ -634,7 +634,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	analyzer_read_stop(usb->devhdl);
 	g_free(buf);
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
@@ -644,7 +644,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	usb = sdi->conn;
 	analyzer_reset(usb->devhdl);

@@ -199,7 +199,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 		vdev->archive = NULL;
 	}
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return G_SOURCE_REMOVE;
 }
@@ -360,7 +360,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* freewheeling source */
 	sr_session_source_add(sdi->session, -1, 0, 0, receive_data, (void *)sdi);

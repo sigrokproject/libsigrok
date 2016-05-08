@@ -652,7 +652,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)
 		return ret;
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Prime the pipe with the first channel's fetch. */
 	ch = sr_next_enabled_channel(sdi, NULL);
@@ -692,7 +692,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	sr_scpi_get_float(scpi, NULL, &f);
 	sr_scpi_source_remove(sdi->session, scpi);
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

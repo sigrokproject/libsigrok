@@ -305,7 +305,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Starting log retrieval.");
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	interval = (devc->config[0x1c] | (devc->config[0x1d] << 8)) * 1000;
 	packet.type = SR_DF_META;
@@ -317,7 +317,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		return SR_OK;
 	}
 

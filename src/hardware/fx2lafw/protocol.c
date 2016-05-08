@@ -331,7 +331,7 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	usb_source_remove(sdi->session, devc->ctx);
 

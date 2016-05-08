@@ -667,7 +667,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Hook up a dummy handler to receive data from the device. */
 	sr_session_source_add(sdi->session, -1, 0, 10, p_ols_receive_data,
@@ -691,7 +691,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	sr_session_source_remove(sdi->session, -1);
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

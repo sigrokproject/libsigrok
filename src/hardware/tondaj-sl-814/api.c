@@ -137,7 +137,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 	
 	sr_sw_limits_acquisition_start(&devc->limits);
 
@@ -152,7 +152,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+			sdi->conn);
 }
 
 static struct sr_dev_driver tondaj_sl_814_driver_info = {

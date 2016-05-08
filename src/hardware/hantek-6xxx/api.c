@@ -739,7 +739,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 */
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 
 		devc->dev_state = IDLE;
 
@@ -768,7 +768,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (hantek_6xxx_init(sdi) != SR_OK)
 		return SR_ERR;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	devc->samp_received = 0;
 	devc->dev_state = FLUSH;

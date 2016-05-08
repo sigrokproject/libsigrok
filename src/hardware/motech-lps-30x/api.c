@@ -770,7 +770,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			motech_lps_30x_receive_data, (void *)sdi);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 
@@ -783,7 +783,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+			sdi->conn);
 }
 
 static struct sr_dev_driver motech_lps_301_driver_info = {

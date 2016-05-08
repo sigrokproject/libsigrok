@@ -164,7 +164,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	sr_session_source_add(sdi->session, -1, 0, 10 /* poll_timeout */,
 		      uni_t_dmm_receive_data, (void *)sdi);
@@ -175,7 +175,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	sr_dbg("Stopping acquisition.");
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 	sr_session_source_remove(sdi->session, -1);
 
 	return SR_OK;

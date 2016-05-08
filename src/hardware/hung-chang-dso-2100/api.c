@@ -682,7 +682,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	sr_session_source_add(sdi->session, -1, 0, 8,
 			      hung_chang_dso_2100_poll, (void *)sdi);
@@ -695,7 +695,7 @@ SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *s
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 	sr_session_source_remove(sdi->session, -1);
 	hung_chang_dso_2100_move_to(sdi, 1);
 

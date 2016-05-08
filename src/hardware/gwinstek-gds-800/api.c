@@ -229,7 +229,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 
 		devc->df_started = FALSE;
 	}

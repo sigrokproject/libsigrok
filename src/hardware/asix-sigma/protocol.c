@@ -906,7 +906,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 		dl_lines_done += dl_lines_curr;
 	}
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	sdi->driver->dev_acquisition_stop(sdi);
 

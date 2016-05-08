@@ -683,7 +683,7 @@ static int process_buffer(struct sr_input *in)
 	}
 
 	if (!inc->meta_sent) {
-		std_session_send_df_header(in->sdi, LOG_PREFIX);
+		std_session_send_df_header(in->sdi);
 		send_metadata(in);
 	}
 
@@ -751,7 +751,7 @@ static int end(struct sr_input *in)
 	flush_output_buffer(in);
 
 	if (inc->meta_sent)
-		std_session_send_df_end(in->sdi, LOG_PREFIX);
+		std_session_send_df_end(in->sdi);
 
 	return ret;
 }

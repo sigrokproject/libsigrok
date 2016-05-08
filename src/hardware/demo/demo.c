@@ -850,7 +850,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_session_source_add(sdi->session, -1, 0, 100,
 			prepare_data, (struct sr_dev_inst *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->start_us = g_get_monotonic_time();
@@ -863,7 +863,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }

@@ -316,7 +316,7 @@ static int transfer_event(int fd, int revents, void *cb_data)
 
 	/* We are done, clean up and send end packet to session bus. */
 	clear_acquisition_state(sdi);
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	return G_SOURCE_REMOVE;
 }
@@ -574,7 +574,7 @@ SR_PRIV int lwla_start_acquisition(const struct sr_dev_inst *sdi)
 	ret = submit_request(sdi, STATE_START_CAPTURE);
 
 	if (ret == SR_OK)
-		ret = std_session_send_df_header(sdi, LOG_PREFIX);
+		ret = std_session_send_df_header(sdi);
 
 	if (ret != SR_OK) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);

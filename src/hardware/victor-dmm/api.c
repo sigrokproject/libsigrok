@@ -273,7 +273,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 		dev_close(sdi);
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 	}
 
 	memset(&tv, 0, sizeof(struct timeval));
@@ -297,7 +297,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	usb = sdi->conn;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			handle_events, (void *)sdi);

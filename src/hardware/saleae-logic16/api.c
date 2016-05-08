@@ -761,7 +761,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, (void *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	if ((ret = logic16_start_acquisition(sdi)) != SR_OK) {
 		abort_acquisition(devc);

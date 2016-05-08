@@ -445,7 +445,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	return maynuo_m97_capture_start(sdi);
 }
@@ -457,7 +457,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	modbus = sdi->conn;
 	sr_modbus_source_remove(sdi->session, modbus);

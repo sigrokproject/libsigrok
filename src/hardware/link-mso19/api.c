@@ -380,7 +380,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Reset trigger state. */
 	devc->trigger_state = 0x00;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Our first channel is analog, the other 8 are of type 'logic'. */
 	/* TODO. */

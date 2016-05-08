@@ -1018,7 +1018,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			rigol_ds_receive, (void *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	devc->channel_entry = devc->enabled_channels;
 
@@ -1044,7 +1044,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;

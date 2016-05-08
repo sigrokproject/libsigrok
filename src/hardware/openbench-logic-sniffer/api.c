@@ -543,7 +543,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* If the device stops sending for longer than it takes to send a byte,
 	 * that means it's finished. But wait at least 100 ms to be safe.

@@ -254,7 +254,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	if (!(devc->xfer = libusb_alloc_transfer(0)))
 		return SR_ERR;

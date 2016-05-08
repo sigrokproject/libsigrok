@@ -127,7 +127,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR_DEV_CLOSED;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Poll every 150ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -140,7 +140,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
-			sdi->conn, LOG_PREFIX);
+			sdi->conn);
 }
 
 static struct sr_dev_driver colead_slm_driver_info = {

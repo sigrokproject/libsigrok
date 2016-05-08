@@ -101,7 +101,7 @@ SR_PRIV int beaglelogic_receive_data(int fd, int revents, void *cb_data)
 	if (devc->bytes_read >= devc->limit_samples * logic.unitsize ||
 			packetsize == 0) {
 		/* Send EOA Packet, stop polling */
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 		sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
 	}
 

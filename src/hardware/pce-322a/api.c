@@ -309,7 +309,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	devc->buffer_len = 0;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	/* Poll every 150ms, or whenever some data comes in. */
 	serial = sdi->conn;
@@ -322,7 +322,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi, dev_close,
-			sdi->conn, LOG_PREFIX);
+			sdi->conn);
 }
 
 static struct sr_dev_driver pce_322a_driver_info = {

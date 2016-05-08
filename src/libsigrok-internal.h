@@ -928,12 +928,10 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di);
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		dev_close_callback dev_close_fn,
-		struct sr_serial_dev_inst *serial, const char *prefix);
+		struct sr_serial_dev_inst *serial);
 #endif
-SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi,
-		const char *prefix);
-SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi,
-		const char *prefix);
+SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi);
+SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi);
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_callback clear_private);
 SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di);

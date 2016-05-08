@@ -348,7 +348,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_session_source_add_channel(sdi->session, devc->channel,
 		G_IO_IN | G_IO_ERR, 1000, bl_acme_receive_data, (void *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 	sr_sw_limits_acquisition_start(&devc->limits);
 
 	return SR_OK;
@@ -369,7 +369,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	g_io_channel_unref(devc->channel);
 	devc->channel = NULL;
 
-	std_session_send_df_end(sdi, LOG_PREFIX);
+	std_session_send_df_end(sdi);
 
 	if (devc->samples_missed > 0)
 		sr_warn("%" PRIu64 " samples missed", devc->samples_missed);

@@ -215,7 +215,7 @@ SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 
 		/* Tell the device to stop sending USB packets. */
 		usb = sdi->conn;

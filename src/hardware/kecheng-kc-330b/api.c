@@ -389,7 +389,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->num_samples = 0;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
 		/* Force configuration. */
@@ -412,7 +412,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->stored_samples = (buf[7] << 8) | buf[8];
 		if (devc->stored_samples == 0) {
 			/* Notify frontend of empty log by sending start/end packets. */
-			std_session_send_df_end(sdi, LOG_PREFIX);
+			std_session_send_df_end(sdi);
 			return SR_OK;
 		}
 

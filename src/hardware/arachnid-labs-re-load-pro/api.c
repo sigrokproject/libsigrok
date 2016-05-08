@@ -327,7 +327,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			  reloadpro_receive_data, (void *)sdi);
 
 	sr_sw_limits_acquisition_start(&devc->limits);
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	memset(devc->buf, 0, RELOADPRO_BUFSIZE);
 	devc->buflen = 0;
@@ -338,7 +338,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi,
-		std_serial_dev_close, sdi->conn, LOG_PREFIX);
+		std_serial_dev_close, sdi->conn);
 }
 
 static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {

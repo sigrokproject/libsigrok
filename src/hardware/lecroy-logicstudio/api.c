@@ -480,7 +480,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((ret = lls_start_acquisition(sdi)) < 0)
 		return ret;
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	return usb_source_add(sdi->session, drvc->sr_ctx, 100,
 		receive_usb_data, drvc);

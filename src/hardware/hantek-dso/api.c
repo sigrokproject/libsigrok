@@ -862,7 +862,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		 */
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 
-		std_session_send_df_end(sdi, LOG_PREFIX);
+		std_session_send_df_end(sdi);
 
 		devc->dev_state = IDLE;
 
@@ -971,7 +971,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->dev_state = CAPTURE;
 	usb_source_add(sdi->session, drvc->sr_ctx, TICK, handle_event, (void *)sdi);
 
-	std_session_send_df_header(sdi, LOG_PREFIX);
+	std_session_send_df_header(sdi);
 
 	return SR_OK;
 }
