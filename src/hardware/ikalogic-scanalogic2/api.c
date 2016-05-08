@@ -52,8 +52,6 @@ static const char *channel_names[] = {
 	"0", "1", "2", "3",
 };
 
-SR_PRIV struct sr_dev_driver ikalogic_scanalogic2_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	GSList *usb_devices, *devices, *l;
@@ -79,7 +77,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
 
-		if ((ret = sl2_get_device_info(*usb, &dev_info)) < 0) {
+		if ((ret = sl2_get_device_info(di, *usb, &dev_info)) < 0) {
 			sr_warn("Failed to get device information: %d.", ret);
 			sr_usb_dev_inst_free(usb);
 			continue;

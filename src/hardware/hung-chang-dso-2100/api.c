@@ -22,8 +22,6 @@
 #include <string.h>
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };

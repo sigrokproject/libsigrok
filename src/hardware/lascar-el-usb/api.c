@@ -24,8 +24,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };

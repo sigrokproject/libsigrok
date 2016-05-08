@@ -73,8 +73,6 @@ static const struct hcs_model models[] = {
 	ALL_ZERO
 };
 
-SR_PRIV struct sr_dev_driver manson_hcs_3xxx_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i, model_id;

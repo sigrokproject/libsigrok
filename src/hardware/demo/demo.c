@@ -175,8 +175,6 @@ static const uint8_t pattern_sigrok[] = {
 	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-SR_PRIV struct sr_dev_driver demo_driver_info;
-
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)

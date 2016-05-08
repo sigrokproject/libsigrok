@@ -26,8 +26,6 @@
 #include <config.h>
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver asix_sigma_driver_info;
-
 /*
  * Channel numbers seem to go from 1-16, according to this image:
  * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg

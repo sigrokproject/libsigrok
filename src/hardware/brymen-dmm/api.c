@@ -32,10 +32,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-SR_PRIV struct sr_dev_driver brymen_bm857_driver_info;
-static struct sr_dev_driver *di = &brymen_bm857_driver_info;
-
-static GSList *brymen_scan(const char *conn, const char *serialcomm)
+static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
+	const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -118,10 +116,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (serialcomm) {
 		/* Use the provided comm specs. */
-		devices = brymen_scan(conn, serialcomm);
+		devices = brymen_scan(di, conn, serialcomm);
 	} else {
 		/* But 9600/8n1 should work all of the time. */
-		devices = brymen_scan(conn, "9600/8n1/dtr=1/rts=1");
+		devices = brymen_scan(di, conn, "9600/8n1/dtr=1/rts=1");
 	}
 
 	return devices;

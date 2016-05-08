@@ -28,9 +28,6 @@
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
-
-/* Forward declarations */
-SR_PRIV struct sr_dev_driver motech_lps_301_driver_info;
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen);
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args);
 SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...);

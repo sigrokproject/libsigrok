@@ -21,9 +21,6 @@
 #include <config.h>
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver chronovu_la_driver_info;
-static struct sr_dev_driver *di = &chronovu_la_driver_info;
-
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
@@ -64,9 +61,9 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int add_device(int model, struct libusb_device_descriptor *des,
-	const char *serial_num, const char *connection_id,
-	libusb_device *usbdev, GSList **devices)
+static int add_device(struct sr_dev_driver *di, int model,
+	struct libusb_device_descriptor *des, const char *serial_num,
+	const char *connection_id, libusb_device *usbdev, GSList **devices)
 {
 	int ret;
 	unsigned int i;
@@ -228,7 +225,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		       libusb_get_bus_number(devlist[i]),
 		       libusb_get_device_address(devlist[i]), connection_id);
 
-		if ((ret = add_device(model, &des, serial_num, connection_id,
+		if ((ret = add_device(di, model, &des, serial_num, connection_id,
 					devlist[i], &devices)) < 0) {
 			sr_dbg("Failed to add device: %d.", ret);
 		}

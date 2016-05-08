@@ -56,8 +56,6 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE | SR_CONF_GET,
 };
 
-SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -133,7 +131,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->vendor = g_strdup("Arachnid Labs");
 	sdi->model = g_strdup("Re:load Pro");
 	sdi->version = g_strdup(buf + 8);
-	sdi->driver = &arachnid_labs_re_load_pro_driver_info;
+	sdi->driver = di;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 

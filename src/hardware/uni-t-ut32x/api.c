@@ -37,8 +37,6 @@ static const char *data_sources[] = {
 	"Memory",
 };
 
-SR_PRIV struct sr_dev_driver uni_t_ut32x_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;

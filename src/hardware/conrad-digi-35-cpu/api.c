@@ -39,8 +39,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
-SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;

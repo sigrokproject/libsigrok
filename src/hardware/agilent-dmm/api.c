@@ -70,8 +70,6 @@ static const struct agdmm_profile supported_agdmm[] = {
 	ALL_ZERO
 };
 
-SR_PRIV struct sr_dev_driver agdmm_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;

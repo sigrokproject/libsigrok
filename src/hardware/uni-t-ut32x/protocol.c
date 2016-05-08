@@ -22,8 +22,6 @@
 #include <math.h>
 #include "protocol.h"
 
-extern struct sr_dev_driver uni_t_ut32x_driver_info;
-
 static float parse_temperature(unsigned char *buf)
 {
 	float temp;

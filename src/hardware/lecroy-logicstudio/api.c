@@ -71,8 +71,6 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(500),
 };
 
-SR_PRIV struct sr_dev_driver lecroy_logicstudio_driver_info;
-
 static struct sr_dev_inst *create_device(struct sr_dev_driver *di,
 		struct sr_usb_dev_inst *usb, enum sr_dev_inst_status status,
 		int64_t fw_updated)

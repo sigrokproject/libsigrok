@@ -21,8 +21,6 @@
 #include "protocol.h"
 #include "beaglelogic.h"
 
-SR_PRIV struct sr_dev_driver beaglelogic_driver_info;
-
 /* Scan options */
 static const uint32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS,

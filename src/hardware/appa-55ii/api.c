@@ -42,8 +42,6 @@ static const char *data_sources[] = {
 	"Memory",
 };
 
-SR_PRIV struct sr_dev_driver appa_55ii_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;

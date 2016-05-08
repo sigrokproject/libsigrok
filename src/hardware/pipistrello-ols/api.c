@@ -75,8 +75,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-SR_PRIV struct sr_dev_driver p_ols_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;

@@ -75,8 +75,6 @@ static const struct pps_model models[] = {
 	},
 };
 
-SR_PRIV struct sr_dev_driver atten_pps3203_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 {
 	struct sr_dev_inst *sdi;

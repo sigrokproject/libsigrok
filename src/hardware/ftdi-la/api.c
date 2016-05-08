@@ -24,8 +24,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver ftdi_la_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };

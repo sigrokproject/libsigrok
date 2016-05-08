@@ -79,8 +79,6 @@ static const char *channel_names[] = {
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info;
-
 /*
  * The hardware supports more samplerates than these, but these are the
  * options hardcoded into the vendor's Windows GUI.

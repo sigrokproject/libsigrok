@@ -85,8 +85,6 @@ static const uint64_t samplerates[] = {
 
 #define RESPONSE_DELAY_US (10 * 1000)
 
-SR_PRIV struct sr_dev_driver ols_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;

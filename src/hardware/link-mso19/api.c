@@ -50,8 +50,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(100),
 };
 
-SR_PRIV struct sr_dev_driver link_mso19_driver_info;
-
 /* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
 static int dev_clear(const struct sr_dev_driver *di)
 {

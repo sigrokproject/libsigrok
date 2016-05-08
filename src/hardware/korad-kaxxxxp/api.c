@@ -62,8 +62,6 @@ static const struct korad_kaxxxxp_model models[] = {
 	ALL_ZERO
 };
 
-SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;

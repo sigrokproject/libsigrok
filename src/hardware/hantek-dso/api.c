@@ -160,11 +160,10 @@ static const char *coupling[] = {
 	"GND",
 };
 
-SR_PRIV struct sr_dev_driver hantek_dso_driver_info;
-
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
-static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
+static struct sr_dev_inst *dso_dev_new(struct sr_dev_driver *di,
+	const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
@@ -177,7 +176,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(prof->vendor);
 	sdi->model = g_strdup(prof->model);
-	sdi->driver = &hantek_dso_driver_info;
+	sdi->driver = di;
 
 	/*
 	 * Add only the real channels -- EXT isn't a source of data, only
@@ -209,7 +208,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
 	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
 	sdi->priv = devc;
-	drvc = hantek_dso_driver_info.context;
+	drvc = di->context;
 	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return sdi;
@@ -314,7 +313,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the pre-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = dso_dev_new(prof);
+				sdi = dso_dev_new(di, prof);
 				sdi->connection_id = g_strdup(connection_id);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
@@ -333,7 +332,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = dso_dev_new(prof);
+				sdi = dso_dev_new(di, prof);
 				sdi->connection_id = g_strdup(connection_id);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);

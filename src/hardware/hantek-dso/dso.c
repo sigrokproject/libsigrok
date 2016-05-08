@@ -29,8 +29,6 @@
 
 #define NUM_CHANNELS 2
 
-extern struct sr_dev_driver hantek_dso_driver_info;
-
 static int send_begin(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
@@ -111,7 +109,7 @@ err:
 SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct drv_context *drvc = hantek_dso_driver_info.context;
+	struct drv_context *drvc = sdi->driver->context;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;

@@ -32,9 +32,6 @@
 #define SERIALCOMM_2X "9600/8n1/dtr=1/rts=1/flow=0"
 #define VENDOR_GMC "Gossen Metrawatt"
 
-SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info;
-SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,

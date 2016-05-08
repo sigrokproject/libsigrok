@@ -39,8 +39,6 @@
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
 
-SR_PRIV struct sr_dev_driver saleae_logic16_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };

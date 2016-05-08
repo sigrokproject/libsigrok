@@ -33,8 +33,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 };
 
-SR_PRIV struct sr_dev_driver brymen_bm86x_driver_info;
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	GSList *usb_devices, *devices, *l;

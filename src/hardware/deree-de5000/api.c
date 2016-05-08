@@ -37,8 +37,6 @@ static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
 
 #define LOG_PREFIX "deree-de5000"
 
-SR_PRIV struct sr_dev_driver deree_de5000_driver_info;
-
 static int dev_clear(const struct sr_dev_driver *di)
 {
 	return std_dev_clear(di, es51919_serial_clean);

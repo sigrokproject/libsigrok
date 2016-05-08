@@ -61,8 +61,6 @@ static const char *data_sources[] = {
 	"Memory",
 };
 
-SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info;
-
 static int scan_kecheng(struct sr_dev_driver *di,
 		struct sr_usb_dev_inst *usb, char **model)
 {

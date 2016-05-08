@@ -22,8 +22,6 @@
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1"
-
-SR_PRIV struct sr_dev_driver testo_driver_info;
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static const uint32_t scanopts[] = {

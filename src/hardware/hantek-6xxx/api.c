@@ -74,13 +74,12 @@ static const uint64_t vdivs[][2] = {
 	VDIV_VALUES
 };
 
-SR_PRIV struct sr_dev_driver hantek_6xxx_driver_info;
-
 static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
-static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile *prof)
+static struct sr_dev_inst *hantek_6xxx_dev_new(struct sr_dev_driver *di,
+	const struct hantek_6xxx_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
@@ -93,7 +92,7 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(prof->vendor);
 	sdi->model = g_strdup(prof->model);
-	sdi->driver = &hantek_6xxx_driver_info;
+	sdi->driver = di;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
@@ -223,7 +222,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the pre-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = hantek_6xxx_dev_new(prof);
+				sdi = hantek_6xxx_dev_new(di, prof);
 				sdi->connection_id = g_strdup(connection_id);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
@@ -242,7 +241,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = hantek_6xxx_dev_new(prof);
+				sdi = hantek_6xxx_dev_new(di, prof);
 				sdi->connection_id = g_strdup(connection_id);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
