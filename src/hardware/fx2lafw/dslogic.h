@@ -35,6 +35,9 @@
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
 #define DS_START_FLAGS_MODE_LA		(1 << 4)
 
+/* enable rle to capture more samples than this limit */
+#define DS_MAX_LOGIC_DEPTH	16000000
+
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
 	DS_OP_INTERNAL_TEST,

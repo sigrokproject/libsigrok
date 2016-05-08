@@ -337,7 +337,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	 * 6	1 = samplerate 400MHz
 	 * 5	1 = samplerate 200MHz or analog mode
 	 * 4	0 = logic, 1 = dso or analog
-	 * 3	unused
+	 * 3	1 = RLE encoding (enable for more than 16 Megasamples)
 	 * 1-2	00 = internal clock, 
 	 * 		01 = external clock rising, 
 	 * 		11 = external clock falling
@@ -357,6 +357,11 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		if (devc->dslogic_clock_edge == DS_EDGE_FALLING){
 			v16 |= 1 << 2;
 		}
+	}
+	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH && !devc->dslogic_continuous_mode){
+		/* enable rle for long captures.
+		   Without this, captured data present errors. */
+		v16 |= 1<< 3;
 	}
 
 	WL16(&cfg.mode, v16);
