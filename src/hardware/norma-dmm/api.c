@@ -67,7 +67,7 @@ static const char *get_typestr(int type, struct sr_dev_driver *drv)
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 static GSList *scan(struct sr_dev_driver *drv, GSList *options)

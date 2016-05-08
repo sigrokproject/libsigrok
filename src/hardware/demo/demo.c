@@ -181,7 +181,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)

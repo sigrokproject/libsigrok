@@ -86,7 +86,7 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 static void scan_device(struct sr_dev_driver *di, struct libusb_device *dev, GSList **devices)

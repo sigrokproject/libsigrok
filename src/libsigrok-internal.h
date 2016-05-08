@@ -859,7 +859,7 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 typedef int (*dev_close_callback)(struct sr_dev_inst *sdi);
 typedef void (*std_dev_clear_callback)(void *priv);
 
-SR_PRIV int std_init(struct sr_context *sr_ctx, struct sr_dev_driver *di,
+SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx,
 		const char *prefix);
 SR_PRIV int std_cleanup(const struct sr_dev_driver *di);
 #ifdef HAVE_LIBSERIALPORT

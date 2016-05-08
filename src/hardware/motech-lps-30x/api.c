@@ -135,7 +135,7 @@ static const struct lps_modelspec models[] = {
 
 static int init_lps301(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 /** Send command to device with va_list.

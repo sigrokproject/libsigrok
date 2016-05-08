@@ -49,7 +49,7 @@ enum {
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 static int check_manufacturer(const char *manufacturer)

@@ -208,7 +208,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(sr_ctx, di, LOG_PREFIX);
+	return std_init(di, sr_ctx, LOG_PREFIX);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
