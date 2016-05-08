@@ -35,8 +35,8 @@
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
 #define DS_START_FLAGS_MODE_LA		(1 << 4)
 
-/* enable rle to capture more samples than this limit */
-#define DS_MAX_LOGIC_DEPTH	16000000
+#define DS_MAX_LOGIC_DEPTH	SR_MHZ(16)
+#define DS_MAX_LOGIC_SAMPLERATE SR_MHZ(100)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
@@ -145,5 +145,6 @@ SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth);
+SR_PRIV int dslogic_get_number_of_transfers(struct dev_context* devc);
 
 #endif

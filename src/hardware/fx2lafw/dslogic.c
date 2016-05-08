@@ -358,14 +358,15 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 			v16 |= 1 << 2;
 		}
 	}
-	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH && !devc->dslogic_continuous_mode){
+	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH * ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE) 
+		&& !devc->dslogic_continuous_mode){
 		/* enable rle for long captures.
 		   Without this, captured data present errors. */
 		v16 |= 1<< 3;
 	}
 
 	WL16(&cfg.mode, v16);
-	v32 = ceil(SR_MHZ(100) * 1.0 / devc->cur_samplerate);
+	v32 = ceil(DS_MAX_LOGIC_SAMPLERATE * 1.0 / devc->cur_samplerate);
 	WL32(&cfg.divider, v32);
 	WL32(&cfg.count, devc->limit_samples);
 
@@ -380,4 +381,36 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	}
 
 	return SR_OK;
+}
+
+static int to_bytes_per_ms(struct dev_context* devc){
+	if (devc->cur_samplerate > SR_MHZ(100))
+        return SR_MHZ(100) / 1000 * (devc->sample_wide ? 2 : 1);
+    return devc->cur_samplerate / 1000 * (devc->sample_wide ? 2 : 1);	
+}
+
+static size_t get_buffer_size(struct dev_context *devc)
+{
+    size_t s;
+
+    /*
+     * The buffer should be large enough to hold 10ms of data and
+     * a multiple of 512.
+     */
+    s = 10 * to_bytes_per_ms(devc);
+    //s = to_bytes_per_ms(devc->cur_samplerate);
+    return (s + 511) & ~511;
+}
+
+SR_PRIV int dslogic_get_number_of_transfers(struct dev_context* devc){
+	unsigned int n;
+	/* Total buffer size should be able to hold about 100ms of data. */
+	n = (100 * to_bytes_per_ms(devc) /
+		get_buffer_size(devc));
+	sr_info("New calculation: %d", n);
+
+	if (n > NUM_SIMUL_TRANSFERS)
+		return NUM_SIMUL_TRANSFERS;
+
+	return n;
 }

@@ -809,6 +809,19 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		devc->trigger_fired = TRUE;
 
 	num_transfers = fx2lafw_get_number_of_transfers(devc);
+
+	//if (devc->dslogic)
+	//	num_transfers = dslogic_get_number_of_transfers(devc);
+
+	if ( devc->dslogic){
+		if(devc->cur_samplerate == SR_MHZ(100))
+			num_transfers = 16;
+		else if (devc->cur_samplerate == SR_MHZ(200))
+			num_transfers = 8;
+		else if (devc->cur_samplerate == SR_MHZ(400))
+			num_transfers = 4;
+	}
+
 	size = fx2lafw_get_buffer_size(devc);
 	devc->submitted_transfers = 0;
 
@@ -830,6 +843,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				endpoint | LIBUSB_ENDPOINT_IN, buf, size,
 				fx2lafw_receive_transfer, (void *)sdi, timeout);
+		sr_info("submitting transfer: %d", i);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
