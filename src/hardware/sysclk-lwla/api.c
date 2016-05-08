@@ -65,7 +65,7 @@ static const char *const signal_edge_names[] = {
  */
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(di, sr_ctx, LOG_PREFIX);
+	return std_init(di, sr_ctx);
 }
 
 /* Create a new sigrok device instance for the indicated LWLA model.

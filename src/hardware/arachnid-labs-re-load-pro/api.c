@@ -60,7 +60,7 @@ SR_PRIV struct sr_dev_driver arachnid_labs_re_load_pro_driver_info;
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(di, sr_ctx, LOG_PREFIX);
+	return std_init(di, sr_ctx);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

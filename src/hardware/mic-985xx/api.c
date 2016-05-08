@@ -59,7 +59,7 @@ SR_PRIV const struct mic_dev_info mic_devs[] = {
 
 static int init(struct sr_context *sr_ctx, int idx)
 {
-	return std_init(mic_devs[idx].di, sr_ctx, LOG_PREFIX);
+	return std_init(mic_devs[idx].di, sr_ctx);
 }
 
 static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)

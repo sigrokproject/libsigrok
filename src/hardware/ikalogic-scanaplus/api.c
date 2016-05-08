@@ -67,7 +67,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(di, sr_ctx, LOG_PREFIX);
+	return std_init(di, sr_ctx);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

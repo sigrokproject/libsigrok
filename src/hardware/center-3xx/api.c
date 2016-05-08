@@ -58,7 +58,7 @@ SR_PRIV const struct center_dev_info center_devs[] = {
 
 static int init(struct sr_context *sr_ctx, int idx)
 {
-	return std_init(center_devs[idx].di, sr_ctx, LOG_PREFIX);
+	return std_init(center_devs[idx].di, sr_ctx);
 }
 
 static GSList *center_scan(const char *conn, const char *serialcomm, int idx)

@@ -41,19 +41,12 @@
  *
  * @param di The driver instance to use.
  * @param sr_ctx The libsigrok context to assign.
- * @param[in] prefix A driver-specific prefix string used for log messages.
  *
  * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
  */
-SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx,
-		     const char *prefix)
+SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	struct drv_context *drvc;
-
-	if (!di) {
-		sr_err("%s: Invalid driver, cannot initialize.", prefix);
-		return SR_ERR_ARG;
-	}
 
 	drvc = g_malloc0(sizeof(struct drv_context));
 	drvc->sr_ctx = sr_ctx;

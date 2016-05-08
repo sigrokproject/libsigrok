@@ -106,7 +106,7 @@ static const uint8_t coupling_map[] = {
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-	return std_init(di, sr_ctx, LOG_PREFIX);
+	return std_init(di, sr_ctx);
 }
 
 static GSList *scan_port(GSList *devices, struct sr_dev_driver *di,
