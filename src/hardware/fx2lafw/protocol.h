@@ -137,6 +137,7 @@ struct dev_context {
 	uint32_t trigger_pos;
 	gboolean dslogic_external_clock;
 	gboolean dslogic_continuous_mode;
+	int dslogic_clock_edge;
 	int dslogic_voltage_threshold;
 };
 

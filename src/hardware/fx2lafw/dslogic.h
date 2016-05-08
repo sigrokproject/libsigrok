@@ -47,6 +47,11 @@ enum  {
 	    DS_VOLTAGE_RANGE_5_V,	/* 5V logic */
 };
 
+enum{
+	DS_EDGE_RISING,
+	DS_EDGE_FALLING
+};
+
 struct dslogic_version {
 	uint8_t major;
 	uint8_t minor;

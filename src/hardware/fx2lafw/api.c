@@ -143,6 +143,7 @@ static const uint32_t dslogic_devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST
 };
 
 static const int32_t soft_trigger_matches[] = {
@@ -151,6 +152,13 @@ static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
 	SR_TRIGGER_EDGE,
+};
+
+/* Names assigned to available edge slope choices.
+ */
+static const char *const signal_edge_names[] = {
+	[DS_EDGE_RISING] = "rising",
+	[DS_EDGE_FALLING] = "falling",
 };
 
 static const struct {
@@ -574,11 +582,39 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_CONTINUOUS:
 		*data = g_variant_new_boolean(devc->dslogic_continuous_mode);
 		break;
+	case SR_CONF_CLOCK_EDGE:
+		i = devc->dslogic_clock_edge;
+		if (i >= ARRAY_SIZE(signal_edge_names))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(signal_edge_names[0]);//idx]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
 	return SR_OK;
+}
+
+
+/* Helper for mapping a string-typed configuration value to an index
+ * within a table of possible values.
+ */
+static int lookup_index(GVariant *value, const char *const *table, int len)
+{
+	const char *entry;
+	int i;
+
+	entry = g_variant_get_string(value, NULL);
+	if (!entry)
+		return -1;
+
+	/* Linear search is fine for very small tables. */
+	for (i = 0; i < len; i++) {
+		if (strcmp(entry, table[i]) == 0)
+			return i;
+	}
+
+	return -1;
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
@@ -645,6 +681,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_CONTINUOUS:
 		devc->dslogic_continuous_mode = g_variant_get_boolean(data);
 		break;
+	case SR_CONF_CLOCK_EDGE:
+		i = lookup_index(data, signal_edge_names,
+		 		   ARRAY_SIZE(signal_edge_names));
+		if (i < 0)
+			return SR_ERR_ARG;
+		devc->dslogic_clock_edge = i;
+		break;		
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -708,6 +751,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
 				sizeof(int32_t));
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_strv(signal_edge_names,
+			ARRAY_SIZE(signal_edge_names));
 		break;
 	default:
 		return SR_ERR_NA;

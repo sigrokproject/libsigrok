@@ -337,8 +337,10 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	 * 6	1 = samplerate 400MHz
 	 * 5	1 = samplerate 200MHz or analog mode
 	 * 4	0 = logic, 1 = dso or analog
-	 * 2-3	unused
-	 * 1	0 = internal clock, 1 = external clock
+	 * 3	unused
+	 * 1-2	00 = internal clock, 
+	 * 		01 = external clock rising, 
+	 * 		11 = external clock falling
 	 * 0	1 = trigger enabled
 	 */
 	v16 = 0x0000;
@@ -350,8 +352,12 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		v16 = 1 << 13;
 	if (devc->dslogic_continuous_mode)
 		v16 |= 1 << 12;
-	if (devc->dslogic_external_clock)
+	if (devc->dslogic_external_clock){
 		v16 |= 1 << 1;
+		if (devc->dslogic_clock_edge == DS_EDGE_FALLING){
+			v16 |= 1 << 2;
+		}
+	}
 
 	WL16(&cfg.mode, v16);
 	v32 = ceil(SR_MHZ(100) * 1.0 / devc->cur_samplerate);

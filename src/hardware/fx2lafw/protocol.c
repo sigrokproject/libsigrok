@@ -307,6 +307,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
 	devc->dslogic_continuous_mode = FALSE;
+	devc->dslogic_clock_edge = DS_EDGE_RISING;
 	devc->stl = NULL;
 
 	return devc;
