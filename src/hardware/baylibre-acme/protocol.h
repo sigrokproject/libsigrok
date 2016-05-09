@@ -56,7 +56,6 @@ struct dev_context {
 
 	uint32_t num_channels;
 	uint64_t samples_missed;
-	int64_t last_sample_fin;
 	int timer_fd;
 	GIOChannel *channel;
 };

@@ -789,6 +789,5 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	devc->last_sample_fin = g_get_monotonic_time();
 	return TRUE;
 }
