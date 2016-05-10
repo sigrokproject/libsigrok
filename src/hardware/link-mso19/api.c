@@ -192,15 +192,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup(manufacturer);
 		sdi->model = g_strdup(product);
 		sdi->version = g_strdup(hwrev);
-
-		if (!sdi) {
-			sr_err("Unable to create device instance for %s",
-			       sysname);
-			sr_dev_inst_free(sdi);
-			g_free(devc);
-			return devices;
-		}
-
 		sdi->driver = di;
 		sdi->priv = devc;
 
