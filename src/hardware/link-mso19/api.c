@@ -50,39 +50,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(100),
 };
 
-/* TODO: Use sr_dev_inst to store connection handle & use std_dev_clear(). */
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	struct drv_context *drvc = di->context;
-	GSList *l;
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	int ret = SR_OK;
-
-	/* Properly close and free all devices. */
-	for (l = drvc->instances; l; l = l->next) {
-		if (!(sdi = l->data)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		if (!(devc = sdi->priv)) {
-			/* Log error, but continue cleaning up the rest. */
-			sr_err("%s: sdi->priv was NULL, continuing", __func__);
-			ret = SR_ERR_BUG;
-			continue;
-		}
-		std_serial_dev_close(sdi);
-		sr_serial_dev_inst_free(devc->serial);
-		sr_dev_inst_free(sdi);
-	}
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return ret;
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i;
@@ -446,7 +413,6 @@ static struct sr_dev_driver link_mso19_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
