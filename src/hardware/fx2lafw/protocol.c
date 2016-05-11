@@ -390,9 +390,10 @@ SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 	size_t i;
 	struct dev_context *devc;
 
+	(void)sample_width;
+
 	devc = sdi->priv;
 
-	sample_width = sample_width;
 	length /= 2;
 
 	/* Send the logic */
