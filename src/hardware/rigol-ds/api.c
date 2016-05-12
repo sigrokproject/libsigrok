@@ -249,7 +249,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, 4, true},
 };
 
-SR_PRIV struct sr_dev_driver rigol_ds_driver_info;
+static struct sr_dev_driver rigol_ds_driver_info;
 
 static void clear_helper(void *priv)
 {
@@ -1054,7 +1054,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver rigol_ds_driver_info = {
+static struct sr_dev_driver rigol_ds_driver_info = {
 	.name = "rigol-ds",
 	.longname = "Rigol DS",
 	.api_version = 1,
@@ -1072,3 +1072,4 @@ SR_PRIV struct sr_dev_driver rigol_ds_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(rigol_ds_driver_info);

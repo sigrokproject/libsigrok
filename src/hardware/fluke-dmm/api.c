@@ -264,7 +264,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver flukedmm_driver_info = {
+static struct sr_dev_driver flukedmm_driver_info = {
 	.name = "fluke-dmm",
 	.longname = "Fluke 18x/28x series DMMs",
 	.api_version = 1,
@@ -282,3 +282,4 @@ SR_PRIV struct sr_dev_driver flukedmm_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(flukedmm_driver_info);

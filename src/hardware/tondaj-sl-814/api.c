@@ -164,7 +164,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info = {
+static struct sr_dev_driver tondaj_sl_814_driver_info = {
 	.name = "tondaj-sl-814",
 	.longname = "Tondaj SL-814",
 	.api_version = 1,
@@ -182,3 +182,4 @@ SR_PRIV struct sr_dev_driver tondaj_sl_814_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(tondaj_sl_814_driver_info);

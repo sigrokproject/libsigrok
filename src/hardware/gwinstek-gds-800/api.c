@@ -31,7 +31,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 };
 
-SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info;
+static struct sr_dev_driver gwinstek_gds_800_driver_info;
 
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
@@ -239,7 +239,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info = {
+static struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.name = "gwinstek-gds-800",
 	.longname = "GW Instek GDS-800 series",
 	.api_version = 1,
@@ -256,3 +256,4 @@ SR_PRIV struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(gwinstek_gds_800_driver_info);

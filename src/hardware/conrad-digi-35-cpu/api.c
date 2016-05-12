@@ -181,7 +181,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
+static struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.name = "conrad-digi-35-cpu",
 	.longname = "Conrad DIGI 35 CPU",
 	.api_version = 1,
@@ -199,3 +199,4 @@ SR_PRIV struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(conrad_digi_35_cpu_driver_info);

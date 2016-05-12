@@ -378,7 +378,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		std_serial_dev_close, sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info = {
+static struct sr_dev_driver korad_kaxxxxp_driver_info = {
 	.name = "korad-kaxxxxp",
 	.longname = "Korad KAxxxxP",
 	.api_version = 1,
@@ -395,3 +395,4 @@ SR_PRIV struct sr_dev_driver korad_kaxxxxp_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(korad_kaxxxxp_driver_info);

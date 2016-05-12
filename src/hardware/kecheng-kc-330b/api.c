@@ -501,7 +501,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info = {
+static struct sr_dev_driver kecheng_kc_330b_driver_info = {
 	.name = "kecheng-kc-330b",
 	.longname = "Kecheng KC-330B",
 	.api_version = 1,
@@ -519,3 +519,4 @@ SR_PRIV struct sr_dev_driver kecheng_kc_330b_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(kecheng_kc_330b_driver_info);

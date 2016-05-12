@@ -588,3 +588,4 @@ SR_PRIV struct sr_dev_driver ols_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(ols_driver_info);

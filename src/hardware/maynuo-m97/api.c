@@ -109,7 +109,7 @@ static const struct maynuo_m97_model supported_models[] = {
 //	{ 102, "M9812B"    ,   15, 500,    300 },
 };
 
-SR_PRIV struct sr_dev_driver maynuo_m97_driver_info;
+static struct sr_dev_driver maynuo_m97_driver_info;
 
 static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 {
@@ -465,7 +465,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver maynuo_m97_driver_info = {
+static struct sr_dev_driver maynuo_m97_driver_info = {
 	.name = "maynuo-m97",
 	.longname = "maynuo M97/M98 series",
 	.api_version = 1,
@@ -482,3 +482,4 @@ SR_PRIV struct sr_dev_driver maynuo_m97_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(maynuo_m97_driver_info);

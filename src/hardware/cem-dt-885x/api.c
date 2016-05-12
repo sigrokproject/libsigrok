@@ -377,7 +377,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info = {
+static struct sr_dev_driver cem_dt_885x_driver_info = {
 	.name = "cem-dt-885x",
 	.longname = "CEM DT-885x",
 	.api_version = 1,
@@ -395,3 +395,4 @@ SR_PRIV struct sr_dev_driver cem_dt_885x_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(cem_dt_885x_driver_info);

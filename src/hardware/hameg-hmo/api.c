@@ -24,7 +24,7 @@
 
 #define SERIALCOMM "115200/8n1/flow=1"
 
-SR_PRIV struct sr_dev_driver hameg_hmo_driver_info;
+static struct sr_dev_driver hameg_hmo_driver_info;
 
 static const char *manufacturers[] = {
 	"HAMEG",
@@ -773,7 +773,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver hameg_hmo_driver_info = {
+static struct sr_dev_driver hameg_hmo_driver_info = {
 	.name = "hameg-hmo",
 	.longname = "Hameg HMO",
 	.api_version = 1,
@@ -791,3 +791,4 @@ SR_PRIV struct sr_dev_driver hameg_hmo_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(hameg_hmo_driver_info);

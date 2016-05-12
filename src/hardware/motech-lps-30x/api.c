@@ -798,7 +798,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver motech_lps_301_driver_info = {
+static struct sr_dev_driver motech_lps_301_driver_info = {
 	.name = "motech-lps-301",
 	.longname = "Motech LPS-301",
 	.api_version = 1,
@@ -816,3 +816,4 @@ SR_PRIV struct sr_dev_driver motech_lps_301_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(motech_lps_301_driver_info);

@@ -41,8 +41,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-SR_PRIV struct sr_dev_driver mic_98581_driver_info;
-SR_PRIV struct sr_dev_driver mic_98583_driver_info;
+static struct sr_dev_driver mic_98581_driver_info;
+static struct sr_dev_driver mic_98583_driver_info;
 
 SR_PRIV const struct mic_dev_info mic_devs[] = {
 	{
@@ -226,7 +226,7 @@ static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 HW_SCAN(ID_UPPER) \
 HW_CONFIG_LIST(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
-SR_PRIV struct sr_dev_driver ID##_driver_info = { \
+static struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
 	.longname = LONGNAME, \
 	.api_version = 1, \
@@ -242,7 +242,8 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = dev_acquisition_stop, \
 	.context = NULL, \
-};
+}; \
+SR_REGISTER_DEV_DRIVER(ID##_driver_info)
 
 DRV(mic_98581, MIC_98581, "mic-98581", "MIC 98581")
 DRV(mic_98583, MIC_98583, "mic-98583", "MIC 98583")

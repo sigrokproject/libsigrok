@@ -427,3 +427,4 @@ SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(lascar_el_usb_driver_info);

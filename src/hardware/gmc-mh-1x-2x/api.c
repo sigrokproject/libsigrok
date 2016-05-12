@@ -508,7 +508,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
+static struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
 	.api_version = 1,
@@ -526,8 +526,9 @@ SR_PRIV struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(gmc_mh_1x_2x_rs232_driver_info);
 
-SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
+static struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.name = "gmc-mh-2x-bd232",
 	.longname = "Gossen Metrawatt Metrahit 2x, BD232/SI232-II interface",
 	.api_version = 1,
@@ -545,3 +546,4 @@ SR_PRIV struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(gmc_mh_2x_bd232_driver_info);

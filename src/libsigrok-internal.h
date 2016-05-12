@@ -267,6 +267,71 @@ struct zip_stat;
 #define ALL_ZERO { 0 }
 #endif
 
+#ifdef __APPLE__
+#define SR_DRIVER_LIST_SECTION "__DATA,__sr_driver_list"
+#else
+#define SR_DRIVER_LIST_SECTION "sr_driver_list"
+#endif
+
+/**
+ * Register a list of hardware drivers.
+ *
+ * This macro can be used to register multiple hardware drivers to the library.
+ * This is useful when a driver supports multiple similar but slightly
+ * different devices that require different sr_dev_driver struct definitions.
+ *
+ * For registering only a single driver see SR_REGISTER_DEV_DRIVER().
+ *
+ * Example:
+ * @code{c}
+ * #define MY_DRIVER(_name) \
+ *     &(struct sr_dev_driver){ \
+ *         .name = _name, \
+ *         ...
+ *     };
+ *
+ * SR_REGISTER_DEV_DRIVER_LIST(my_driver_infos,
+ *     MY_DRIVER("driver 1"),
+ *     MY_DRIVER("driver 2"),
+ *     ...
+ * );
+ * @endcode
+ *
+ * @param name Name to use for the driver list identifier.
+ * @param ... Comma separated list of pointers to sr_dev_driver structs.
+ */
+#define SR_REGISTER_DEV_DRIVER_LIST(name, ...) \
+	static const struct sr_dev_driver *name[] \
+		__attribute__((section (SR_DRIVER_LIST_SECTION), used, \
+			aligned(sizeof(struct sr_dev_driver *)))) \
+		= { \
+			__VA_ARGS__ \
+		};
+
+/**
+ * Register a hardware driver.
+ *
+ * This macro is used to register a hardware driver with the library. It has
+ * to be used in order to make the driver accessible to applications using the
+ * library.
+ *
+ * The macro invocation should be placed directly under the struct
+ * sr_dev_driver definition.
+ *
+ * Example:
+ * @code{c}
+ * static struct sr_dev_driver driver_info = {
+ *     .name = "driver",
+ *     ....
+ * };
+ * SR_REGISTER_DEV_DRIVER(driver_info);
+ * @endcode
+ *
+ * @param name Identifier name of sr_dev_driver struct to register.
+ */
+#define SR_REGISTER_DEV_DRIVER(name) \
+	SR_REGISTER_DEV_DRIVER_LIST(name##_list, &name);
+
 struct sr_context {
 	struct sr_dev_driver **driver_list;
 #ifdef HAVE_LIBUSB_1_0
@@ -759,8 +824,6 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device);
 SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc);
 
 /*--- hwdriver.c ------------------------------------------------------------*/
-
-extern SR_PRIV struct sr_dev_driver **drivers_lists[];
 
 SR_PRIV const GVariantType *sr_variant_type_get(int datatype);
 SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *data);

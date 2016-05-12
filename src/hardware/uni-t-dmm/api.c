@@ -185,7 +185,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 #define DMM(ID, CHIPSET, VENDOR, MODEL, BAUDRATE, PACKETSIZE, \
 			VALID, PARSE, DETAILS) \
-    &(struct dmm_info) { \
+    &((struct dmm_info) { \
 		{ \
 			.name = ID, \
 			.longname = VENDOR " " MODEL, \
@@ -205,9 +205,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		}, \
 		VENDOR, MODEL, BAUDRATE, PACKETSIZE, \
 		VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
-	}
+	}).di
 
-SR_PRIV const struct dmm_info *uni_t_dmm_drivers[] = {
+SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	DMM(
 		"tecpel-dmm-8061", fs9721,
 		"Tecpel", "DMM-8061", 2400,
@@ -377,5 +377,4 @@ SR_PRIV const struct dmm_info *uni_t_dmm_drivers[] = {
 		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
 		NULL
 	),
-	NULL
-};
+);

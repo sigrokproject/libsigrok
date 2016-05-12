@@ -186,7 +186,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 #define SCALE(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \
 			VALID, PARSE) \
-	&(struct scale_info) { \
+	&((struct scale_info) { \
 		{ \
 			.name = ID, \
 			.longname = VENDOR " " MODEL, \
@@ -206,7 +206,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		}, \
 		VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \
 		VALID, PARSE, sizeof(struct CHIPSET##_info) \
-	}
+	}).di
 
 /*
  * Some scales have (user-configurable) 14-byte or 15-byte packets.
@@ -218,11 +218,10 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
  * the user override them via "serialcomm".
  */
 
-SR_PRIV const struct scale_info *kern_scale_drivers[] = {
+SR_REGISTER_DEV_DRIVER_LIST(kern_scale_drivers,
 	SCALE(
 		"kern-ew-6200-2nm", kern,
 		"KERN", "EW 6200-2NM", "1200/8n2", 1200,
 		15 /* (or 14) */, sr_kern_packet_valid, sr_kern_parse
-	),
-	NULL
-};
+	)
+);

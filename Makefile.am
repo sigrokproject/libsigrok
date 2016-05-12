@@ -54,7 +54,6 @@ libsigrok_la_SOURCES = \
 	src/session.c \
 	src/session_file.c \
 	src/session_driver.c \
-	src/drivers.c \
 	src/hwdriver.c \
 	src/trigger.c \
 	src/soft-trigger.c \
@@ -168,6 +167,10 @@ libsigrok_la_SOURCES += \
 	src/scale/kern.c
 
 # Hardware drivers
+
+# This entry must be placed before all drivers
+libsigrok_la_SOURCES += src/hardware/driver_list_start.c
+
 if HW_AGILENT_DMM
 libsigrok_la_SOURCES += \
 	src/hardware/agilent-dmm/api.c \
@@ -499,6 +502,9 @@ libsigrok_la_SOURCES += \
 	src/hardware/zeroplus-logic-cube/protocol.c \
 	src/hardware/zeroplus-logic-cube/api.c
 endif
+
+# This entry must be placed after all drivers
+libsigrok_la_SOURCES += src/hardware/driver_list_end.c
 
 libsigrok_la_LIBADD = $(SR_EXTRA_LIBS) $(LIBSIGROK_LIBS)
 libsigrok_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined

@@ -448,6 +448,8 @@ static int sanity_check_all_transform_modules(void)
 	return ret;
 }
 
+extern struct sr_dev_driver *sr_driver_list_start;
+
 /**
  * Initialize libsigrok.
  *
@@ -468,7 +470,7 @@ SR_API int sr_init(struct sr_context **ctx)
 {
 	int ret = SR_ERR;
 	struct sr_context *context;
-	struct sr_dev_driver ***lists, **drivers;
+	struct sr_dev_driver **drivers;
 	GArray *array;
 #ifdef _WIN32
 	WSADATA wsadata;
@@ -485,9 +487,8 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	/* Generate ctx->driver_list at runtime. */
 	array = g_array_new(TRUE, FALSE, sizeof(struct sr_dev_driver *));
-	for (lists = drivers_lists; *lists; lists++)
-		for (drivers = *lists; *drivers; drivers++)
-			g_array_append_val(array, *drivers);
+	for (drivers = (&sr_driver_list_start) + 1; *drivers; drivers++)
+		g_array_append_val(array, *drivers);
 	context->driver_list = (struct sr_dev_driver **)array->data;
 	g_array_free(array, FALSE);
 

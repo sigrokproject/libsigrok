@@ -803,7 +803,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver hantek_6xxx_driver_info = {
+static struct sr_dev_driver hantek_6xxx_driver_info = {
 	.name = "hantek-6xxx",
 	.longname = "Hantek 6xxx",
 	.api_version = 1,
@@ -821,3 +821,4 @@ SR_PRIV struct sr_dev_driver hantek_6xxx_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(hantek_6xxx_driver_info);

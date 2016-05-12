@@ -41,8 +41,8 @@ static const uint32_t devopts[] = {
 
 #define SERIALCOMM "4800/8n1/dtr=1/rts=0/flow=1"
 
-SR_PRIV struct sr_dev_driver norma_dmm_driver_info;
-SR_PRIV struct sr_dev_driver siemens_b102x_driver_info;
+static struct sr_dev_driver norma_dmm_driver_info;
+static struct sr_dev_driver siemens_b102x_driver_info;
 
 static const char *get_brandstr(struct sr_dev_driver *drv)
 {
@@ -246,7 +246,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			sdi->conn, LOG_PREFIX);
 }
 
-SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
+static struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
 	.longname = "Norma DM9x0 DMMs",
 	.api_version = 1,
@@ -264,8 +264,9 @@ SR_PRIV struct sr_dev_driver norma_dmm_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(norma_dmm_driver_info);
 
-SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
+static struct sr_dev_driver siemens_b102x_driver_info = {
 	.name = "siemens-b102x",
 	.longname = "Siemens B102x DMMs",
 	.api_version = 1,
@@ -283,3 +284,4 @@ SR_PRIV struct sr_dev_driver siemens_b102x_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(siemens_b102x_driver_info);

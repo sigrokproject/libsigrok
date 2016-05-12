@@ -712,7 +712,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return hung_chang_dso_2100_dev_acquisition_stop(sdi);
 }
 
-SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info = {
+static struct sr_dev_driver hung_chang_dso_2100_driver_info = {
 	.name = "hung-chang-dso-2100",
 	.longname = "Hung-Chang DSO-2100",
 	.api_version = 1,
@@ -732,3 +732,4 @@ SR_PRIV struct sr_dev_driver hung_chang_dso_2100_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(hung_chang_dso_2100_driver_info);

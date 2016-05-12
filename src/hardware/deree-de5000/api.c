@@ -54,7 +54,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return g_slist_append(NULL, sdi);
 }
 
-SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
+static struct sr_dev_driver deree_de5000_driver_info = {
 	.name = "deree-de5000",
 	.longname = "DER EE DE-5000",
 	.api_version = 1,
@@ -72,3 +72,4 @@ SR_PRIV struct sr_dev_driver deree_de5000_driver_info = {
 	.dev_acquisition_stop = es51919_serial_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(deree_de5000_driver_info);

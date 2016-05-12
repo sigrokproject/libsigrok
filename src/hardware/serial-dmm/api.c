@@ -207,7 +207,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 #define DMM(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, TIMEOUT, \
 			DELAY, REQUEST, VALID, PARSE, DETAILS) \
-	&(struct dmm_info) { \
+	&((struct dmm_info) { \
 		{ \
 			.name = ID, \
 			.longname = VENDOR " " MODEL, \
@@ -227,9 +227,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		}, \
 		VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, TIMEOUT, DELAY, \
 		REQUEST, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
-	}
+	}).di
 
-SR_PRIV const struct dmm_info *serial_dmm_drivers[] = {
+SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	DMM(
 		"bbcgm-2010", metex14,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
@@ -564,5 +564,4 @@ SR_PRIV const struct dmm_info *serial_dmm_drivers[] = {
 		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
 		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
 	),
-	NULL
-};
+);

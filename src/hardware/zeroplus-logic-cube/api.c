@@ -655,7 +655,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
+static struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.name = "zeroplus-logic-cube",
 	.longname = "ZEROPLUS Logic Cube LAP-C series",
 	.api_version = 1,
@@ -673,3 +673,4 @@ SR_PRIV struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(zeroplus_logic_cube_driver_info);

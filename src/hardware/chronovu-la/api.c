@@ -566,7 +566,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver chronovu_la_driver_info = {
+static struct sr_dev_driver chronovu_la_driver_info = {
 	.name = "chronovu-la",
 	.longname = "ChronoVu LA8/LA16",
 	.api_version = 1,
@@ -584,3 +584,4 @@ SR_PRIV struct sr_dev_driver chronovu_la_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
+SR_REGISTER_DEV_DRIVER(chronovu_la_driver_info);

@@ -40,8 +40,8 @@ static const char *channel_names[] = {
 	"T1", "T2", "T3", "T4",
 };
 
-SR_PRIV struct sr_dev_driver center_309_driver_info;
-SR_PRIV struct sr_dev_driver voltcraft_k204_driver_info;
+static struct sr_dev_driver center_309_driver_info;
+static struct sr_dev_driver voltcraft_k204_driver_info;
 
 SR_PRIV const struct center_dev_info center_devs[] = {
 	{
@@ -209,7 +209,7 @@ static int dev_acquisition_start_##X(const struct sr_dev_inst *sdi \
 #define DRV(ID, ID_UPPER, NAME, LONGNAME) \
 HW_SCAN(ID_UPPER) \
 HW_DEV_ACQUISITION_START(ID_UPPER) \
-SR_PRIV struct sr_dev_driver ID##_driver_info = { \
+static struct sr_dev_driver ID##_driver_info = { \
 	.name = NAME, \
 	.longname = LONGNAME, \
 	.api_version = 1, \
@@ -225,7 +225,8 @@ SR_PRIV struct sr_dev_driver ID##_driver_info = { \
 	.dev_acquisition_start = dev_acquisition_start_##ID_UPPER, \
 	.dev_acquisition_stop = dev_acquisition_stop, \
 	.context = NULL, \
-};
+}; \
+SR_REGISTER_DEV_DRIVER(ID##_driver_info);
 
 DRV(center_309, CENTER_309, "center-309", "Center 309")
 DRV(voltcraft_k204, VOLTCRAFT_K204, "voltcraft-k204", "Voltcraft K204")
