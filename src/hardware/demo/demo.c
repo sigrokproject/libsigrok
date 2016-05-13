@@ -295,51 +295,55 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->logic_pattern = PATTERN_SIGROK;
 	devc->num_analog_channels = num_analog_channels;
 
-	/* Logic channels, all in one channel group. */
-	cg = g_malloc0(sizeof(struct sr_channel_group));
-	cg->name = g_strdup("Logic");
-	for (i = 0; i < num_logic_channels; i++) {
-		sprintf(channel_name, "D%d", i);
-		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
-		cg->channels = g_slist_append(cg->channels, ch);
+	if (num_logic_channels > 0) {
+		/* Logic channels, all in one channel group. */
+		cg = g_malloc0(sizeof(struct sr_channel_group));
+		cg->name = g_strdup("Logic");
+		for (i = 0; i < num_logic_channels; i++) {
+			sprintf(channel_name, "D%d", i);
+			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
+		sdi->channel_groups = g_slist_append(NULL, cg);
 	}
-	sdi->channel_groups = g_slist_append(NULL, cg);
 
 	/* Analog channels, channel groups and pattern generators. */
-	pattern = 0;
-	/* An "Analog" channel group with all analog channels in it. */
-	acg = g_malloc0(sizeof(struct sr_channel_group));
-	acg->name = g_strdup("Analog");
-	sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
+	if (num_analog_channels > 0) {
+		pattern = 0;
+		/* An "Analog" channel group with all analog channels in it. */
+		acg = g_malloc0(sizeof(struct sr_channel_group));
+		acg->name = g_strdup("Analog");
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
 
-	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
-	for (i = 0; i < num_analog_channels; i++) {
-		snprintf(channel_name, 16, "A%d", i);
-		ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
-				TRUE, channel_name);
-		acg->channels = g_slist_append(acg->channels, ch);
+		devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
+		for (i = 0; i < num_analog_channels; i++) {
+			snprintf(channel_name, 16, "A%d", i);
+			ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
+					TRUE, channel_name);
+			acg->channels = g_slist_append(acg->channels, ch);
 
-		/* Every analog channel gets its own channel group as well. */
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup(channel_name);
-		cg->channels = g_slist_append(NULL, ch);
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+			/* Every analog channel gets its own channel group as well. */
+			cg = g_malloc0(sizeof(struct sr_channel_group));
+			cg->name = g_strdup(channel_name);
+			cg->channels = g_slist_append(NULL, ch);
+			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
-		/* Every channel gets a generator struct. */
-		ag = g_malloc(sizeof(struct analog_gen));
-		ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
-		ag->packet.channels = cg->channels;
-		ag->packet.mq = 0;
-		ag->packet.mqflags = 0;
-		ag->packet.unit = SR_UNIT_VOLT;
-		ag->packet.data = ag->pattern_data;
-		ag->pattern = pattern;
-		ag->avg_val = 0.0f;
-		ag->num_avgs = 0;
-		g_hash_table_insert(devc->ch_ag, ch, ag);
+			/* Every channel gets a generator struct. */
+			ag = g_malloc(sizeof(struct analog_gen));
+			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
+			ag->packet.channels = cg->channels;
+			ag->packet.mq = 0;
+			ag->packet.mqflags = 0;
+			ag->packet.unit = SR_UNIT_VOLT;
+			ag->packet.data = ag->pattern_data;
+			ag->pattern = pattern;
+			ag->avg_val = 0.0f;
+			ag->num_avgs = 0;
+			g_hash_table_insert(devc->ch_ag, ch, ag);
 
-		if (++pattern == ARRAY_SIZE(analog_pattern_str))
-			pattern = 0;
+			if (++pattern == ARRAY_SIZE(analog_pattern_str))
+				pattern = 0;
+		}
 	}
 
 	sdi->priv = devc;
@@ -744,7 +748,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 
 	/* Just in case. */
-	if (devc->cur_samplerate <= 0 || devc->logic_unitsize <= 0
+	if (devc->cur_samplerate <= 0
 			|| (devc->num_logic_channels <= 0
 			&& devc->num_analog_channels <= 0)) {
 		dev_acquisition_stop(sdi);
