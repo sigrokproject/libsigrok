@@ -705,7 +705,7 @@ $(ROBJ): $(RWRAP) \
 	$(AM_V_CXX)$(CXX) $(RBSIGROK_CFLAGS) -I. -Iinclude -Ibindings/cxx/include $(local_includes) -fPIC -o $@ -c $<
 
 $(REXT): $(ROBJ) @ORDER@ bindings/cxx/libsigrokcxx.la
-	$(AM_V_CXXLD)$(CXX) -shared -std=c++11 -o $@ $< -lsigrokcxx -Lbindings/cxx/.libs $(RBSIGROK_LIBS)
+	$(AM_V_CXXLD)$(CXX) -shared -o $@ $< -lsigrokcxx -Lbindings/cxx/.libs $(RBSIGROK_LIBS)
 
 ruby-build: $(REXT)
 
