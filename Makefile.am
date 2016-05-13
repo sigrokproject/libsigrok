@@ -530,6 +530,7 @@ EXTRA_DIST = \
 	bindings/python/sigrok/__init__.py \
 	bindings/python/sigrok/core/__init__.py \
 	bindings/python/sigrok/core/classes.i \
+	bindings/ruby/classes.i \
 	bindings/java/Doxyfile \
 	bindings/java/org/sigrok/core/classes/classes.i \
 	bindings/java/org/sigrok/core/interfaces/DatafeedCallback.java \
@@ -712,6 +713,9 @@ ruby-install: $(REXT)
 	$(INSTALL) -d $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
 	$(INSTALL) $< $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
 
+ruby-uninstall:
+	rm -f $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)/sigrok.$(RUBY_DLEXT)
+
 ruby-clean:
 	-$(AM_V_at)rm -fr $(RDIR)/doc
 	-$(AM_V_at)rm -f $(REXT) $(ROBJ) $(RWRAP) $(RDOC)
@@ -721,6 +725,7 @@ ruby-doc: $(RWRAP)
 
 BUILD_EXTRA += ruby-build
 INSTALL_EXTRA += ruby-install
+UNINSTALL_EXTRA += ruby-uninstall
 CLEAN_EXTRA += ruby-clean
 
 endif
