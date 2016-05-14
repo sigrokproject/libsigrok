@@ -40,7 +40,6 @@ struct ftdi_chip_desc {
 struct dev_context {
 	struct ftdi_context *ftdic;
 	const struct ftdi_chip_desc *desc;
-	char address[sizeof("d:000:000")];
 
 	uint64_t limit_samples;
 	uint32_t cur_samplerate;

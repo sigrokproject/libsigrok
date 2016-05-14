@@ -116,9 +116,6 @@ static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
 	/* Allocate memory for the incoming data. */
 	devc->data_buf = g_malloc0(DATA_BUF_SIZE);
 
-	snprintf(devc->address, sizeof(devc->address), "d:%u/%u",
-		libusb_get_bus_number(dev), libusb_get_device_address(dev));
-
 	devc->desc = desc;
 
 	vendor = g_malloc(32);
@@ -148,6 +145,8 @@ static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
 	sdi->serial_num = serial_num;
 	sdi->driver = di;
 	sdi->priv = devc;
+	sdi->connection_id = g_strdup_printf("d:%u/%u",
+		libusb_get_bus_number(dev), libusb_get_device_address(dev));
 
 	for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
 		sr_channel_new(sdi, chan - &(desc->channel_names[0]),
@@ -274,7 +273,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (!devc->ftdic)
 		return SR_ERR;
 
-	ret = ftdi_usb_open_string(devc->ftdic, devc->address);
+	ret = ftdi_usb_open_string(devc->ftdic, sdi->connection_id);
 	if (ret < 0) {
 		/* Log errors, except for -3 ("device not found"). */
 		if (ret != -3)
