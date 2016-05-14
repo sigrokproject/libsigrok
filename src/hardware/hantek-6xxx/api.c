@@ -542,7 +542,10 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		int num_samples)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc = sdi->priv;
 	int num_channels, data_offset, i;
 
@@ -554,15 +557,17 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	const gboolean ch1_ena = !!devc->ch_enabled[0];
 	const gboolean ch2_ena = !!devc->ch_enabled[1];
 
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+
 	num_channels = (ch1_ena && ch2_ena) ? 2 : 1;
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 
-	analog.channels = devc->enabled_channels;
+	analog.meaning->channels = devc->enabled_channels;
 	analog.num_samples = num_samples;
-	analog.mq = SR_MQ_VOLTAGE;
-	analog.unit = SR_UNIT_VOLT;
-	analog.mqflags = 0;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = 0;
 
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
 	if (!analog.data) {
@@ -585,9 +590,9 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		 * represents 5V peak-to-peak where 0 = -2.5V and 255 = +2.5V.
 		 */
 		if (ch1_ena)
-			analog.data[data_offset++] = (ch1_bit * *(buf + i * 2) - ch1_center);
+			((float *)analog.data)[data_offset++] = (ch1_bit * *(buf + i * 2) - ch1_center);
 		if (ch2_ena)
-			analog.data[data_offset++] = (ch2_bit * *(buf + i * 2 + 1) - ch2_center);
+			((float *)analog.data)[data_offset++] = (ch2_bit * *(buf + i * 2 + 1) - ch2_center);
 	}
 
 	sr_session_send(sdi, &packet);
