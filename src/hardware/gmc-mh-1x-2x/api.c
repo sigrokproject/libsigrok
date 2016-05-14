@@ -372,8 +372,10 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	(void)cg;
 
-	if (!sdi || !(devc = sdi->priv))
+	if (!sdi)
 		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 
 	ret = SR_OK;
 	switch (key) {

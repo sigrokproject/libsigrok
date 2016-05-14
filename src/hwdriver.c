@@ -672,10 +672,11 @@ static int check_key(const struct sr_dev_driver *driver,
 /**
  * Query value of a configuration key at the given driver or device instance.
  *
- * @param[in] driver The sr_dev_driver struct to query.
+ * @param[in] driver The sr_dev_driver struct to query. Must not be NULL.
  * @param[in] sdi (optional) If the key is specific to a device, this must
  *            contain a pointer to the struct sr_dev_inst to be checked.
- *            Otherwise it must be NULL.
+ *            Otherwise it must be NULL. If sdi is != NULL, sdi->priv must
+ *            also be != NULL.
  * @param[in] cg The channel group on the device for which to list the
  *                    values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
@@ -708,6 +709,9 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 
 	if (check_key(driver, sdi, cg, key, SR_CONF_GET, NULL) != SR_OK)
 		return SR_ERR_ARG;
+
+	if (sdi && !sdi->priv)
+		return SR_ERR;
 
 	if ((ret = driver->config_get(key, data, sdi, cg)) == SR_OK) {
 		log_key(sdi, cg, key, SR_CONF_GET, *data);

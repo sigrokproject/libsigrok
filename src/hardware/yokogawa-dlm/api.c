@@ -209,8 +209,10 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	const struct scope_config *model;
 	struct scope_state *state;
 
-	if (!sdi || !(devc = sdi->priv))
+	if (!sdi)
 		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;

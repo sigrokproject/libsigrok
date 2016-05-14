@@ -258,13 +258,14 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		if (sdi) {
-			devc = sdi->priv;
-			*data = g_variant_new_uint64(devc->cur_rate);
-		} else
-			return SR_ERR;
+		*data = g_variant_new_uint64(devc->cur_rate);
 		break;
 	default:
 		return SR_ERR_NA;

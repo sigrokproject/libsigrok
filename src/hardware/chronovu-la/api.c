@@ -330,8 +330,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_string(str);
 		break;
 	case SR_CONF_SAMPLERATE:
-		if (!sdi || !(devc = sdi->priv))
+		if (!sdi)
 			return SR_ERR_BUG;
+		devc = sdi->priv;
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	default:
