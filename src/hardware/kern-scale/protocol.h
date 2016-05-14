@@ -40,7 +40,7 @@ struct scale_info {
 	gboolean (*packet_valid)(const uint8_t *);
 	/** Packet parsing function. */
 	int (*packet_parse)(const uint8_t *, float *,
-			    struct sr_datafeed_analog_old *, void *);
+			    struct sr_datafeed_analog *, void *);
 	/** Size of chipset info struct. */
 	gsize info_size;
 };
