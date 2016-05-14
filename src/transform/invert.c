@@ -30,12 +30,7 @@ static int receive(const struct sr_transform *t,
 		struct sr_datafeed_packet **packet_out)
 {
 	const struct sr_datafeed_logic *logic;
-	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog *analog;
-	struct sr_channel *ch;
-	GSList *l;
-	float *fdata, *f;
-	int si, num_channels, c;
 	uint8_t *b;
 	int64_t p;
 	uint64_t i, j, q;
@@ -51,20 +46,6 @@ static int receive(const struct sr_transform *t,
 				/* For now invert every bit in every byte. */
 				b = (uint8_t *)logic->data + i + logic->unitsize - 1 - j;
 				*b = ~(*b);
-			}
-		}
-		break;
-	case SR_DF_ANALOG_OLD:
-		analog_old = packet_in->payload;
-		fdata = (float *)analog_old->data;
-		num_channels = g_slist_length(analog_old->channels);
-		for (si = 0; si < analog_old->num_samples; si++) {
-			/* For now invert all values in all channels. */
-			for (l = analog_old->channels, c = 0; l; l = l->next, c++) {
-				ch = l->data;
-				(void)ch;
-				f = &fdata[si * num_channels + c];
-				*f = 1.0 / *f;
 			}
 		}
 		break;
