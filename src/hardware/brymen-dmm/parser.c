@@ -192,7 +192,7 @@ static void parse_flags(const uint8_t *buf, struct brymen_flags *info)
 }
 
 SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info)
+		struct sr_datafeed_analog *analog, void *info)
 {
 	struct brymen_flags flags;
 	struct brymen_header *hdr;
@@ -204,7 +204,7 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	hdr = (void *)buf;
 	bfunc = (uint8_t *)(buf + sizeof(struct brymen_header));
 
-	analog->mqflags = 0;
+	analog->meaning->mqflags = 0;
 
 	/* Give some debug info about the package. */
 	asciilen = hdr->len - 4;
@@ -218,43 +218,43 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 		return SR_ERR;
 
 	if (flags.is_volt) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (flags.is_amp) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (flags.is_ohm) {
 		if (flags.is_beep)
-			analog->mq = SR_MQ_CONTINUITY;
+			analog->meaning->mq = SR_MQ_CONTINUITY;
 		else
-			analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (flags.is_hertz) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 	if (flags.is_duty_cycle) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 	if (flags.is_capacitance) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (flags.is_fahrenheit) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 	if (flags.is_celsius) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 	if (flags.is_capacitance) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 
 	/*
@@ -265,8 +265,8 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	 * identify the value as ohm, not dBmW.
 	 */
 	if (flags.is_decibel && !flags.is_ohm) {
-		analog->mq = SR_MQ_POWER;
-		analog->unit = SR_UNIT_DECIBEL_MW;
+		analog->meaning->mq = SR_MQ_POWER;
+		analog->meaning->unit = SR_UNIT_DECIBEL_MW;
 		/*
 		 * For some reason, dBm measurements are sent by the multimeter
 		 * with a value three orders of magnitude smaller than the
@@ -276,12 +276,12 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	}
 
 	if (flags.is_diode)
-		analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 	/* We can have both AC+DC in a single measurement. */
 	if (flags.is_ac)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (flags.is_dc)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 
 	if (flags.is_low_batt)
 		sr_info("Low battery!");
