@@ -487,7 +487,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct dev_context *devc = NULL;
 	const struct scope_config *model = NULL;
 
-	if (sdi && (devc = sdi->priv)) {
+	if (sdi) {
+		devc = sdi->priv;
 		if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 			return SR_ERR;
 

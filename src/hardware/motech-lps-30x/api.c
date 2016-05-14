@@ -700,7 +700,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (sdi != NULL)
+		if (sdi)
 			break;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));

@@ -894,7 +894,6 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(models, ARRAY_SIZE(models));
 		break;
 	default:
-		sr_spew("%s: Unsupported key %u", __func__, key);
 		return SR_ERR_NA;
 	}
 

@@ -805,8 +805,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	}
 
 	/* Every other option requires a valid device instance. */
-	if (!sdi || !(devc = sdi->priv))
+	if (!sdi)
 		return SR_ERR_ARG;
+	devc = sdi->priv;
 
 	/* If a channel group is specified, it must be a valid one. */
 	if (cg && !g_slist_find(sdi->channel_groups, cg)) {

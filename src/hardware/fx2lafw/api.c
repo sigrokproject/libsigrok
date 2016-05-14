@@ -740,8 +740,6 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_SAMPLERATE:
-		if (!sdi->priv)
-			return SR_ERR_ARG;
 		devc = sdi->priv;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), devc->samplerates,

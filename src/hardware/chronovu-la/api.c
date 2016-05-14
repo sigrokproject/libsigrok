@@ -399,8 +399,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
-		if (!sdi || !sdi->priv || !(devc = sdi->priv))
+		if (!sdi)
 			return SR_ERR_BUG;
+		devc = sdi->priv;
 		cv_fill_samplerates_if_needed(sdi);
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
