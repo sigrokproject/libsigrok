@@ -282,13 +282,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		GString **out)
 {
 	struct context *ctx;
-	const struct sr_datafeed_analog_old *analog_old;
 	const struct sr_datafeed_analog *analog;
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata;
 	unsigned int i;
-	int num_channels, c, ret, si, digits;
+	int num_channels, c, ret, digits;
 	char *number, *suffix;
 
 	*out = NULL;
@@ -302,20 +301,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		break;
 	case SR_DF_FRAME_END:
 		*out = g_string_new("FRAME-END\n");
-		break;
-	case SR_DF_ANALOG_OLD:
-		analog_old = packet->payload;
-		fdata = (float *)analog_old->data;
-		*out = g_string_sized_new(512);
-		num_channels = g_slist_length(analog_old->channels);
-		for (si = 0; si < analog_old->num_samples; si++) {
-			for (l = analog_old->channels, c = 0; l; l = l->next, c++) {
-				ch = l->data;
-				g_string_append_printf(*out, "%s: ", ch->name);
-				fancyprint(analog_old->unit, analog_old->mqflags,
-						fdata[si * num_channels + c], *out);
-			}
-		}
 		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
