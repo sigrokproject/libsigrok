@@ -632,8 +632,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	const char *tmp_str;
 	char buffer[16];
 
-	if (!(devc = sdi->priv))
-		return SR_ERR_ARG;
+	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

@@ -722,7 +722,8 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 /**
  * Set value of a configuration key in a device instance.
  *
- * @param[in] sdi The device instance.
+ * @param[in] sdi The device instance. Must not be NULL. sdi->driver and
+ *                sdi->priv must not be NULL either.
  * @param[in] cg The channel group on the device for which to list the
  *                    values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
@@ -746,7 +747,7 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 
 	g_variant_ref_sink(data);
 
-	if (!sdi || !sdi->driver || !data)
+	if (!sdi || !sdi->driver || !sdi->priv || !data)
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;

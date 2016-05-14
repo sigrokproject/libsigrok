@@ -284,6 +284,7 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 	double pos;
 
 	(void)cg;
+
 	devc = sdi->priv;
 
 	if (sdi->status != SR_ST_ACTIVE)

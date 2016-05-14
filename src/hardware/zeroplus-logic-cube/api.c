@@ -380,10 +380,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	if (!(devc = sdi->priv)) {
-		sr_err("%s: sdi->priv was NULL", __func__);
-		return SR_ERR_ARG;
-	}
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:

@@ -318,8 +318,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	double tmp_d;
 	gboolean update_sample_rate;
 
-	if (!sdi || !(devc = sdi->priv))
+	if (!sdi)
 		return SR_ERR_ARG;
+
+	devc = sdi->priv;
 
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
