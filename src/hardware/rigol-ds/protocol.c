@@ -539,7 +539,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
 	double vdiv, offset;
 	int len, i, vref;
@@ -669,16 +672,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		else
 			for (i = 0; i < len; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
-		analog.channels = g_slist_append(NULL, ch);
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+		analog.meaning->channels = g_slist_append(NULL, ch);
 		analog.num_samples = len;
 		analog.data = devc->data;
-		analog.mq = SR_MQ_VOLTAGE;
-		analog.unit = SR_UNIT_VOLT;
-		analog.mqflags = 0;
-		packet.type = SR_DF_ANALOG_OLD;
+		analog.meaning->mq = SR_MQ_VOLTAGE;
+		analog.meaning->unit = SR_UNIT_VOLT;
+		analog.meaning->mqflags = 0;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
-		g_slist_free(analog.channels);
+		g_slist_free(analog.meaning->channels);
 	} else {
 		logic.length = len;
 		// TODO: For the MSO1000Z series, we need a way to express that
