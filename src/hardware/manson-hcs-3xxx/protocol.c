@@ -123,24 +123,29 @@ static void send_sample(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 
 	devc = sdi->priv;
 
-	packet.type = SR_DF_ANALOG_OLD;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	analog.channels = sdi->channels;
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 
-	analog.mq = SR_MQ_VOLTAGE;
-	analog.unit = SR_UNIT_VOLT;
-	analog.mqflags = SR_MQFLAG_DC;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = SR_MQFLAG_DC;
 	analog.data = &devc->voltage;
 	sr_session_send(sdi, &packet);
 
-	analog.mq = SR_MQ_CURRENT;
-	analog.unit = SR_UNIT_AMPERE;
-	analog.mqflags = 0;
+	analog.meaning->mq = SR_MQ_CURRENT;
+	analog.meaning->unit = SR_UNIT_AMPERE;
+	analog.meaning->mqflags = 0;
 	analog.data = &devc->current;
 	sr_session_send(sdi, &packet);
 
