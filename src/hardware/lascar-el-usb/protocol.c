@@ -27,7 +27,7 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-extern struct sr_dev_driver lascar_el_usb_driver_info;
+extern SR_PRIV struct sr_dev_driver lascar_el_usb_driver_info;
 struct sr_dev_driver *di = &lascar_el_usb_driver_info;
 
 static const struct elusb_profile profiles[] = {
