@@ -34,7 +34,7 @@ enum {
 };
 
 static void parse_packet(const uint8_t *buf, float *floatval,
-			 struct sr_datafeed_analog_old *analog)
+			 struct sr_datafeed_analog *analog)
 {
 	gboolean is_a, is_fast;
 	uint16_t intval;
@@ -69,18 +69,18 @@ static void parse_packet(const uint8_t *buf, float *floatval,
 	/* The value on the display always has one digit after the comma. */
 	*floatval /= 10;
 
-	analog->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
-	analog->unit = SR_UNIT_DECIBEL_SPL;
+	analog->meaning->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
+	analog->meaning->unit = SR_UNIT_DECIBEL_SPL;
 
 	if (is_a)
-		analog->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		analog->meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A;
 	else
-		analog->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C;
+		analog->meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C;
 
 	if (is_fast)
-		analog->mqflags |= SR_MQFLAG_SPL_TIME_WEIGHT_F;
+		analog->meaning->mqflags |= SR_MQFLAG_SPL_TIME_WEIGHT_F;
 	else
-		analog->mqflags |= SR_MQFLAG_SPL_TIME_WEIGHT_S;
+		analog->meaning->mqflags |= SR_MQFLAG_SPL_TIME_WEIGHT_S;
 
 	/* TODO: How to handle level? */
 	(void)level;
@@ -89,20 +89,24 @@ static void parse_packet(const uint8_t *buf, float *floatval,
 static void decode_packet(struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	float floatval;
 
 	devc = sdi->priv;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
+
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	parse_packet(devc->buf, &floatval, &analog);
 
 	/* Send a sample packet with one analog value. */
-	analog.channels = sdi->channels;
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &floatval;
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
