@@ -73,7 +73,7 @@ static int brymen_bm86x_parse_digits(const unsigned char *buf, int length,
 }
 
 static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
-                               struct sr_datafeed_analog_old *analog)
+                               struct sr_datafeed_analog *analog)
 {
 	char str[16], temp_unit;
 	int ret1, ret2, over_limit;
@@ -88,40 +88,40 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 	if (ret1 == SR_OK || over_limit) {
 		/* SI unit */
 		if (buf[8] & 0x01) {
-			analog[0].mq = SR_MQ_VOLTAGE;
-			analog[0].unit = SR_UNIT_VOLT;
+			analog[0].meaning->mq = SR_MQ_VOLTAGE;
+			analog[0].meaning->unit = SR_UNIT_VOLT;
 			if (!strcmp(str, "diod"))
-				analog[0].mqflags |= SR_MQFLAG_DIODE;
+				analog[0].meaning->mqflags |= SR_MQFLAG_DIODE;
 		} else if (buf[14] & 0x80) {
-			analog[0].mq = SR_MQ_CURRENT;
-			analog[0].unit = SR_UNIT_AMPERE;
+			analog[0].meaning->mq = SR_MQ_CURRENT;
+			analog[0].meaning->unit = SR_UNIT_AMPERE;
 		} else if (buf[14] & 0x20) {
-			analog[0].mq = SR_MQ_CAPACITANCE;
-			analog[0].unit = SR_UNIT_FARAD;
+			analog[0].meaning->mq = SR_MQ_CAPACITANCE;
+			analog[0].meaning->unit = SR_UNIT_FARAD;
 		} else if (buf[14] & 0x10) {
-			analog[0].mq = SR_MQ_CONDUCTANCE;
-			analog[0].unit = SR_UNIT_SIEMENS;
+			analog[0].meaning->mq = SR_MQ_CONDUCTANCE;
+			analog[0].meaning->unit = SR_UNIT_SIEMENS;
 		} else if (buf[15] & 0x01) {
-			analog[0].mq = SR_MQ_FREQUENCY;
-			analog[0].unit = SR_UNIT_HERTZ;
+			analog[0].meaning->mq = SR_MQ_FREQUENCY;
+			analog[0].meaning->unit = SR_UNIT_HERTZ;
 		} else if (buf[10] & 0x01) {
-			analog[0].mq = SR_MQ_CONTINUITY;
-			analog[0].unit = SR_UNIT_OHM;
+			analog[0].meaning->mq = SR_MQ_CONTINUITY;
+			analog[0].meaning->unit = SR_UNIT_OHM;
 		} else if (buf[15] & 0x10) {
-			analog[0].mq = SR_MQ_RESISTANCE;
-			analog[0].unit = SR_UNIT_OHM;
+			analog[0].meaning->mq = SR_MQ_RESISTANCE;
+			analog[0].meaning->unit = SR_UNIT_OHM;
 		} else if (buf[15] & 0x02) {
-			analog[0].mq = SR_MQ_POWER;
-			analog[0].unit = SR_UNIT_DECIBEL_MW;
+			analog[0].meaning->mq = SR_MQ_POWER;
+			analog[0].meaning->unit = SR_UNIT_DECIBEL_MW;
 		} else if (buf[15] & 0x80) {
-			analog[0].mq = SR_MQ_DUTY_CYCLE;
-			analog[0].unit = SR_UNIT_PERCENTAGE;
+			analog[0].meaning->mq = SR_MQ_DUTY_CYCLE;
+			analog[0].meaning->unit = SR_UNIT_PERCENTAGE;
 		} else if (buf[ 2] & 0x0A) {
-			analog[0].mq = SR_MQ_TEMPERATURE;
+			analog[0].meaning->mq = SR_MQ_TEMPERATURE;
 			if (temp_unit == 'F')
-				analog[0].unit = SR_UNIT_FAHRENHEIT;
+				analog[0].meaning->unit = SR_UNIT_FAHRENHEIT;
 			else
-				analog[0].unit = SR_UNIT_CELSIUS;
+				analog[0].meaning->unit = SR_UNIT_CELSIUS;
 		}
 
 		/* when MIN MAX and AVG are displayed at the same time, remove them */
@@ -129,14 +129,14 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 			buf[1] &= ~0xE0;
 
 		/* AC/DC/Auto flags */
-		if (buf[1] & 0x10)  analog[0].mqflags |= SR_MQFLAG_DC;
-		if (buf[2] & 0x01)  analog[0].mqflags |= SR_MQFLAG_AC;
-		if (buf[1] & 0x01)  analog[0].mqflags |= SR_MQFLAG_AUTORANGE;
-		if (buf[1] & 0x08)  analog[0].mqflags |= SR_MQFLAG_HOLD;
-		if (buf[1] & 0x20)  analog[0].mqflags |= SR_MQFLAG_MAX;
-		if (buf[1] & 0x40)  analog[0].mqflags |= SR_MQFLAG_MIN;
-		if (buf[1] & 0x80)  analog[0].mqflags |= SR_MQFLAG_AVG;
-		if (buf[3] & 0x01)  analog[0].mqflags |= SR_MQFLAG_RELATIVE;
+		if (buf[1] & 0x10)  analog[0].meaning->mqflags |= SR_MQFLAG_DC;
+		if (buf[2] & 0x01)  analog[0].meaning->mqflags |= SR_MQFLAG_AC;
+		if (buf[1] & 0x01)  analog[0].meaning->mqflags |= SR_MQFLAG_AUTORANGE;
+		if (buf[1] & 0x08)  analog[0].meaning->mqflags |= SR_MQFLAG_HOLD;
+		if (buf[1] & 0x20)  analog[0].meaning->mqflags |= SR_MQFLAG_MAX;
+		if (buf[1] & 0x40)  analog[0].meaning->mqflags |= SR_MQFLAG_MIN;
+		if (buf[1] & 0x80)  analog[0].meaning->mqflags |= SR_MQFLAG_AVG;
+		if (buf[3] & 0x01)  analog[0].meaning->mqflags |= SR_MQFLAG_RELATIVE;
 
 		/* when dBm is displayed, remove the m suffix so that it is
 		   not considered as the 10e-3 SI prefix */
@@ -157,27 +157,27 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 	if (ret2 == SR_OK) {
 		/* SI unit */
 		if (buf[14] & 0x08) {
-			analog[1].mq = SR_MQ_VOLTAGE;
-			analog[1].unit = SR_UNIT_VOLT;
+			analog[1].meaning->mq = SR_MQ_VOLTAGE;
+			analog[1].meaning->unit = SR_UNIT_VOLT;
 		} else if (buf[9] & 0x04) {
-			analog[1].mq = SR_MQ_CURRENT;
-			analog[1].unit = SR_UNIT_AMPERE;
+			analog[1].meaning->mq = SR_MQ_CURRENT;
+			analog[1].meaning->unit = SR_UNIT_AMPERE;
 		} else if (buf[9] & 0x08) {
-			analog[1].mq = SR_MQ_CURRENT;
-			analog[1].unit = SR_UNIT_PERCENTAGE;
+			analog[1].meaning->mq = SR_MQ_CURRENT;
+			analog[1].meaning->unit = SR_UNIT_PERCENTAGE;
 		} else if (buf[14] & 0x04) {
-			analog[1].mq = SR_MQ_FREQUENCY;
-			analog[1].unit = SR_UNIT_HERTZ;
+			analog[1].meaning->mq = SR_MQ_FREQUENCY;
+			analog[1].meaning->unit = SR_UNIT_HERTZ;
 		} else if (buf[9] & 0x40) {
-			analog[1].mq = SR_MQ_TEMPERATURE;
+			analog[1].meaning->mq = SR_MQ_TEMPERATURE;
 			if (temp_unit == 'F')
-				analog[1].unit = SR_UNIT_FAHRENHEIT;
+				analog[1].meaning->unit = SR_UNIT_FAHRENHEIT;
 			else
-				analog[1].unit = SR_UNIT_CELSIUS;
+				analog[1].meaning->unit = SR_UNIT_CELSIUS;
 		}
 
 		/* AC flag */
-		if (buf[9] & 0x20)  analog[1].mqflags |= SR_MQFLAG_AC;
+		if (buf[9] & 0x20)  analog[1].meaning->mqflags |= SR_MQFLAG_AC;
 
 		/* SI prefix */
 		if (buf[ 9] & 0x01)  floatval[1] *= 1e-6;  /* µ */
@@ -195,42 +195,48 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog[2];
+	struct sr_datafeed_analog analog[2];
+	struct sr_analog_encoding encoding[2];
+	struct sr_analog_meaning meaning[2];
+	struct sr_analog_spec spec[2];
 	float floatval[2];
 
 	devc = sdi->priv;
 
-	analog[0].mq = -1;
-	analog[0].mqflags = 0;
+	sr_analog_init(&analog[0], &encoding[0], &meaning[0], &spec[0], 0);
+	sr_analog_init(&analog[1], &encoding[1], &meaning[1], &spec[1], 0);
 
-	analog[1].mq = -1;
-	analog[1].mqflags = 0;
+	analog[0].meaning->mq = 0;
+	analog[0].meaning->mqflags = 0;
+
+	analog[1].meaning->mq = 0;
+	analog[1].meaning->mqflags = 0;
 
 	brymen_bm86x_parse(buf, floatval, analog);
 
-	if (analog[0].mq != -1) {
+	if (analog[0].meaning->mq != 0) {
 		/* Got a measurement. */
 		analog[0].num_samples = 1;
 		analog[0].data = &floatval[0];
-		analog[0].channels = g_slist_append(NULL, sdi->channels->data);
-		packet.type = SR_DF_ANALOG_OLD;
+		analog[0].meaning->channels = g_slist_append(NULL, sdi->channels->data);
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[0];
 		sr_session_send(sdi, &packet);
-		g_slist_free(analog[0].channels);
+		g_slist_free(analog[0].meaning->channels);
 	}
 
-	if (analog[1].mq != -1) {
+	if (analog[1].meaning->mq != 0) {
 		/* Got a measurement. */
 		analog[1].num_samples = 1;
 		analog[1].data = &floatval[1];
-		analog[1].channels = g_slist_append(NULL, sdi->channels->next->data);
-		packet.type = SR_DF_ANALOG_OLD;
+		analog[1].meaning->channels = g_slist_append(NULL, sdi->channels->next->data);
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[1];
 		sr_session_send(sdi, &packet);
-		g_slist_free(analog[1].channels);
+		g_slist_free(analog[1].meaning->channels);
 	}
 
-	if (analog[0].mq != -1 || analog[1].mq != -1)
+	if (analog[0].meaning->mq != 0 || analog[1].meaning->mq != 0)
 		sr_sw_limits_update_samples_read(&devc->sw_limits, 1);
 }
 
