@@ -110,43 +110,43 @@ static void parse_flags(const uint8_t *buf, struct kern_info *info)
 	/* Byte LF: Always '\n' (newline, 0x0a, 10) */
 }
 
-static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 const struct kern_info *info)
 {
 	(void)floatval;
 
 	/* Measured quantity: mass. */
-	analog->mq = SR_MQ_MASS;
+	analog->meaning->mq = SR_MQ_MASS;
 
 	/* Unit */
 	if (info->is_gram)
-		analog->unit = SR_UNIT_GRAM;
+		analog->meaning->unit = SR_UNIT_GRAM;
 	if (info->is_carat)
-		analog->unit = SR_UNIT_CARAT;
+		analog->meaning->unit = SR_UNIT_CARAT;
 	if (info->is_ounce)
-		analog->unit = SR_UNIT_OUNCE;
+		analog->meaning->unit = SR_UNIT_OUNCE;
 	if (info->is_pound)
-		analog->unit = SR_UNIT_POUND;
+		analog->meaning->unit = SR_UNIT_POUND;
 	if (info->is_troy_ounce)
-		analog->unit = SR_UNIT_TROY_OUNCE;
+		analog->meaning->unit = SR_UNIT_TROY_OUNCE;
 	if (info->is_pennyweight)
-		analog->unit = SR_UNIT_PENNYWEIGHT;
+		analog->meaning->unit = SR_UNIT_PENNYWEIGHT;
 	if (info->is_grain)
-		analog->unit = SR_UNIT_GRAIN;
+		analog->meaning->unit = SR_UNIT_GRAIN;
 	if (info->is_tael)
-		analog->unit = SR_UNIT_TAEL;
+		analog->meaning->unit = SR_UNIT_TAEL;
 	if (info->is_momme)
-		analog->unit = SR_UNIT_MOMME;
+		analog->meaning->unit = SR_UNIT_MOMME;
 	if (info->is_tola)
-		analog->unit = SR_UNIT_TOLA;
+		analog->meaning->unit = SR_UNIT_TOLA;
 	if (info->is_percentage)
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	if (info->is_piece)
-		analog->unit = SR_UNIT_PIECE;
+		analog->meaning->unit = SR_UNIT_PIECE;
 
 	/* Measurement related flags */
 	if (info->is_unstable)
-		analog->mqflags |= SR_MQFLAG_UNSTABLE;
+		analog->meaning->mqflags |= SR_MQFLAG_UNSTABLE;
 }
 
 SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
@@ -187,7 +187,7 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
  *                 result value upon parsing success. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct kern_info. The struct will be filled
@@ -197,7 +197,7 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
-			  struct sr_datafeed_analog_old *analog, void *info)
+			  struct sr_datafeed_analog *analog, void *info)
 {
 	int ret;
 	struct kern_info *info_local;
