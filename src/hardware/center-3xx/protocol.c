@@ -123,7 +123,10 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	struct center_info info;
 	GSList *l;
@@ -131,7 +134,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 	memset(&info, 0, sizeof(struct center_info));
 
 	ret = packet_parse(buf, idx, &info);
@@ -141,17 +144,17 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 	}
 
 	/* Common values for all 4 channels. */
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	analog.mq = SR_MQ_TEMPERATURE;
-	analog.unit = (info.celsius) ? SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
+	analog.meaning->mq = SR_MQ_TEMPERATURE;
+	analog.meaning->unit = (info.celsius) ? SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
 	analog.num_samples = 1;
 
 	/* Send the values for T1 - T4. */
 	for (i = 0; i < NUM_CHANNELS; i++) {
 		l = NULL;
 		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
-		analog.channels = l;
+		analog.meaning->channels = l;
 		analog.data = &(info.temp[i]);
 		sr_session_send(sdi, &packet);
 		g_slist_free(l);
