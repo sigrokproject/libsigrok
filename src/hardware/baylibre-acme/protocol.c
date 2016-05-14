@@ -699,7 +699,10 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 {
 	uint64_t nrexpiration;
 	struct sr_datafeed_packet packet, framep;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
 	struct channel_priv *chp;
@@ -718,9 +721,9 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	if (!devc)
 		return TRUE;
 
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	if (read(devc->timer_fd, &nrexpiration, sizeof(nrexpiration)) < 0) {
 		sr_warn("Failed to read timer information");
@@ -766,10 +769,10 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 				continue;
 			chonly.next = NULL;
 			chonly.data = ch;
-			analog.channels = &chonly;
 			analog.num_samples = 1;
-			analog.mq = channel_to_mq(chl->data);
-			analog.unit = channel_to_unit(ch);
+			analog.meaning->channels = &chonly;
+			analog.meaning->mq = channel_to_mq(chl->data);
+			analog.meaning->unit = channel_to_unit(ch);
 
 			if (i < 1)
 				chp->val = read_sample(ch);
