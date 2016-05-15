@@ -81,7 +81,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Probing serial port %s.", conn);
 
 	drvc = di->context;
-	drvc->instances = NULL;
 	serial_flush(serial);
 
 	/* Let's get a bit of data and see if we can find a packet. */

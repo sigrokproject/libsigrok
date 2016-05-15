@@ -209,7 +209,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int i;
 
 	drvc = di->context;
-	drvc->instances = NULL;
 	conn = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;

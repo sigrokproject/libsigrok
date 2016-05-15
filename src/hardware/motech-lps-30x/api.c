@@ -384,7 +384,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	devices = NULL;
 
 	drvc = drv->context;
-	drvc->instances = NULL;
 
 	sr_spew("scan() called!");
 

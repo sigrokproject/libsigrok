@@ -67,7 +67,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 	drvc = di->context;
-	drvc->instances = NULL;
 
 	usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, USB_VID_PID);
 

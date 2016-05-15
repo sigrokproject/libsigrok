@@ -155,7 +155,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 	drvc = di->context;
-	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 	serialcomm_given = FALSE;
 
@@ -249,7 +248,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	devices = NULL;
 
 	drvc = di->context;
-	drvc->instances = NULL;
 
 	sr_spew("scan_2x_bd232() called!");
 

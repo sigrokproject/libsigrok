@@ -82,7 +82,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 	drvc = di->context;
-	drvc->instances = NULL;
 
 	/* Probe for /dev/beaglelogic */
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))

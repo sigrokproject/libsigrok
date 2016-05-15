@@ -50,7 +50,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 	drvc = di->context;
-	drvc->instances = NULL;
 	conn = serialcomm = NULL;
 
 	for (l = options; l; l = l->next) {
