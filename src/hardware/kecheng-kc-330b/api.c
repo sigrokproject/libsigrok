@@ -124,7 +124,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(VENDOR);
 			sdi->model = model; /* Already g_strndup()'d. */
-			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "SPL");
@@ -142,14 +141,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 			/* TODO: Set date/time? */
 
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 		}
 		g_slist_free(usb_devices);
 	} else
 		g_slist_free_full(usb_devices, g_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

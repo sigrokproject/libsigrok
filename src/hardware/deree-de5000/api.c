@@ -25,16 +25,6 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-static void std_dev_attach(struct sr_dev_driver *di, struct sr_dev_inst *sdi)
-{
-	struct drv_context *drvc;
-
-	drvc = di->context;
-
-	sdi->driver = di;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
-}
-
 #define LOG_PREFIX "deree-de5000"
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -49,9 +39,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!(sdi = es51919_serial_scan(options, "DER EE", "DE-5000")))
 		return NULL;
 
-	std_dev_attach(di, sdi);
-
-	return g_slist_append(NULL, sdi);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static struct sr_dev_driver deree_de5000_driver_info = {

@@ -194,15 +194,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue; /* no match */
 
 		/* Register device instance with driver. */
-		sdi->driver = di;
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)&sr_usb_dev_inst_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 /* Destroy the private device context.

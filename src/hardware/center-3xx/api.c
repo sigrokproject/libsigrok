@@ -60,7 +60,6 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 {
 	int i;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
@@ -70,7 +69,6 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	drvc = center_devs[idx].di->context;
 	devices = NULL;
 	serial_flush(serial);
 
@@ -84,12 +82,10 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;
-	sdi->driver = center_devs[idx].di;
 
 	for (i = 0; i < center_devs[idx].num_channels; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
@@ -126,7 +122,7 @@ static GSList *scan(GSList *options, int idx)
 		devices = center_scan(conn, center_devs[idx].conn, idx);
 	}
 
-	return devices;
+	return std_scan_complete(center_devs[idx].di, devices);
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,

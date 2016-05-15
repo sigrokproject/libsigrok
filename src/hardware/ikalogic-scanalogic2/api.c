@@ -106,7 +106,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->version = g_strdup_printf("%u.%u", dev_info.fw_ver_major, dev_info.fw_ver_minor);
 		sdi->serial_num = g_strdup_printf("%d", dev_info.serial);
 		sdi->priv = devc;
-		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
 
@@ -145,13 +144,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->xfer_data_out = devc->xfer_buf_out +
 			LIBUSB_CONTROL_SETUP_SIZE;
 
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
 	g_slist_free(usb_devices);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static void clear_dev_context(void *priv)

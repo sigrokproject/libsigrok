@@ -72,14 +72,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			}
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = usb;
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 		}
 		g_slist_free(usb_devices);
 	} else
 		g_slist_free_full(usb_devices, g_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

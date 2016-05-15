@@ -366,7 +366,6 @@ SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *b
 static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_channel *ch;
@@ -382,8 +381,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	devc = NULL;
 	conn = serialcomm = NULL;
 	devices = NULL;
-
-	drvc = drv->context;
 
 	sr_spew("scan() called!");
 
@@ -446,7 +443,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	sdi->vendor = g_strdup(VENDOR_MOTECH);
 	sdi->model = g_strdup(models[modelid].modelstr);
 	sdi->version = g_strdup(verstr);
-	sdi->driver = drv;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -472,7 +468,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	/* Query status */
@@ -483,7 +478,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(drv, devices);
 
 exit_err:
 	sr_info("%s: Error!", __func__);

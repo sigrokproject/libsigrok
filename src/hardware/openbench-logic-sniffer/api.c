@@ -89,15 +89,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
 	int ret;
 	unsigned int i;
 	const char *conn, *serialcomm;
 	char buf[8];
-
-	drvc = di->context;
 
 	devices = NULL;
 
@@ -182,7 +179,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup("Sump");
 		sdi->model = g_strdup("Logic Analyzer");
 		sdi->version = g_strdup("v1.0");
-		sdi->driver = di;
 		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
 			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 					ols_channel_names[i]);
@@ -195,12 +191,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -570,7 +565,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver ols_driver_info = {
+static struct sr_dev_driver ols_driver_info = {
 	.name = "ols",
 	.longname = "Openbench Logic Sniffer",
 	.api_version = 1,

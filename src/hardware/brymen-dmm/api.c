@@ -37,7 +37,6 @@ static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct drv_context *drvc;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
 	int ret;
@@ -75,17 +74,14 @@ static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
 	sr_sw_limits_init(&devc->sw_limits);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	drvc = di->context;
 	sdi->priv = devc;
-	sdi->driver = di;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 scan_cleanup:
 	serial_close(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

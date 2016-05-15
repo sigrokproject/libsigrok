@@ -61,19 +61,16 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear(di, clear_helper);
 }
 
-static int add_device(struct sr_dev_driver *di, int model,
-	struct libusb_device_descriptor *des, const char *serial_num,
-	const char *connection_id, libusb_device *usbdev, GSList **devices)
+static int add_device(int model, struct libusb_device_descriptor *des,
+	const char *serial_num, const char *connection_id, libusb_device *usbdev,
+	GSList **devices)
 {
 	int ret;
 	unsigned int i;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 
 	ret = SR_OK;
-
-	drvc = di->context;
 
 	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -116,7 +113,6 @@ static int add_device(struct sr_dev_driver *di, int model,
 	sdi->connection_id = g_strdup(connection_id);
 	sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(usbdev),
 		libusb_get_device_address(usbdev), NULL);
-	sdi->driver = di;
 	sdi->priv = devc;
 
 	for (i = 0; i < devc->prof->num_channels; i++)
@@ -124,7 +120,6 @@ static int add_device(struct sr_dev_driver *di, int model,
 				cv_channel_names[i]);
 
 	*devices = g_slist_append(*devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	if (ret == SR_OK)
 		return SR_OK;
@@ -224,7 +219,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		       libusb_get_bus_number(devlist[i]),
 		       libusb_get_device_address(devlist[i]), connection_id);
 
-		if ((ret = add_device(di, model, &des, serial_num, connection_id,
+		if ((ret = add_device(model, &des, serial_num, connection_id,
 					devlist[i], &devices)) < 0) {
 			sr_dbg("Failed to add device: %d.", ret);
 		}
@@ -233,7 +228,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

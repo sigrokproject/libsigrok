@@ -20,8 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-extern SR_PRIV struct sr_dev_driver p_ols_driver_info;
-
 SR_PRIV int write_shortcommand(struct dev_context *devc, uint8_t command)
 {
 	uint8_t buf[1];
@@ -227,7 +225,6 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->driver = &p_ols_driver_info;
 	sdi->priv = devc;
 
 	devname = g_string_new("");

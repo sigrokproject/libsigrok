@@ -59,7 +59,6 @@ static const uint64_t meas_ranges[][2] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -82,7 +81,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	devices = NULL;
-	drvc = di->context;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -93,14 +91,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->priv = devc;
-	sdi->driver = di;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "SPL");
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

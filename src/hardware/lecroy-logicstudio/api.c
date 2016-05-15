@@ -71,9 +71,8 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(500),
 };
 
-static struct sr_dev_inst *create_device(struct sr_dev_driver *di,
-		struct sr_usb_dev_inst *usb, enum sr_dev_inst_status status,
-		int64_t fw_updated)
+static struct sr_dev_inst *create_device(struct sr_usb_dev_inst *usb,
+		enum sr_dev_inst_status status, int64_t fw_updated)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -84,7 +83,6 @@ static struct sr_dev_inst *create_device(struct sr_dev_driver *di,
 	sdi->status = status;
 	sdi->vendor = g_strdup("LeCroy");
 	sdi->model = g_strdup("LogicStudio16");
-	sdi->driver = di;
 	sdi->inst_type = SR_INST_USB;
 	sdi->conn = usb;
 
@@ -140,7 +138,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
 
-			sdi = create_device(di, usb, SR_ST_INACTIVE, 0);
+			sdi = create_device(usb, SR_ST_INACTIVE, 0);
 			break;
 		case LOGICSTUDIO16_PID_LACK_FIRMWARE:
 			r = ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
@@ -161,7 +159,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				UNKNOWN_ADDRESS, NULL);
 
-			sdi = create_device(di, usb, SR_ST_INITIALIZING,
+			sdi = create_device(usb, SR_ST_INITIALIZING,
 				g_get_monotonic_time());
 			break;
 		default:
@@ -174,13 +172,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sdi->connection_id = g_strdup(connection_id);
 
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
 	libusb_free_device_list(devlist, 1);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int open_device(struct sr_dev_inst *sdi)

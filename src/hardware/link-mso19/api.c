@@ -159,21 +159,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup(manufacturer);
 		sdi->model = g_strdup(product);
 		sdi->version = g_strdup(hwrev);
-		sdi->driver = di;
 		sdi->priv = devc;
 
 		for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
 			sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
 		}
-
-		//Add the driver
-		struct drv_context *drvc = di->context;
-		drvc->instances = g_slist_append(drvc->instances, sdi);
-		devices = g_slist_append(devices, sdi);
 	}
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

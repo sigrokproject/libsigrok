@@ -70,7 +70,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->status = SR_ST_INACTIVE;
 			sdi->vendor = g_strdup(VENDOR);
 			sdi->model = g_strdup(MODEL);
-			sdi->driver = di;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < ARRAY_SIZE(channel_names); i++)
@@ -80,14 +79,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->priv = devc;
 			devc->limit_samples = 0;
 			devc->data_source = DEFAULT_DATA_SOURCE;
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 		}
 		g_slist_free(usb_devices);
 	} else
 		g_slist_free_full(usb_devices, g_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

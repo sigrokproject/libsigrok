@@ -73,7 +73,6 @@ static struct dev_context *beaglelogic_devc_alloc(void)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	GSList *devices, *l;
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
@@ -81,7 +80,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int i, maxch;
 
 	devices = NULL;
-	drvc = di->context;
 
 	/* Probe for /dev/beaglelogic */
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
@@ -91,7 +89,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("BeagleLogic");
 	sdi->version = g_strdup("1.0");
-	sdi->driver = di;
 
 	/* Unless explicitly specified, keep max channels to 8 only */
 	maxch = 8;
@@ -131,10 +128,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				channel_names[i]);
 
 	sdi->priv = devc;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

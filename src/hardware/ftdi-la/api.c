@@ -82,7 +82,7 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft232r_desc,
 };
 
-static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
+static void scan_device(struct ftdi_context *ftdic,
 	struct libusb_device *dev, GSList **devices)
 {
 	struct libusb_device_descriptor usb_desc;
@@ -90,10 +90,8 @@ static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
 	struct dev_context *devc;
 	char *vendor, *model, *serial_num;
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	int rv;
 
-	drvc = di->context;
 	libusb_get_device_descriptor(dev, &usb_desc);
 
 	desc = NULL;
@@ -143,7 +141,6 @@ static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
 	sdi->vendor = vendor;
 	sdi->model = model;
 	sdi->serial_num = serial_num;
-	sdi->driver = di;
 	sdi->priv = devc;
 	sdi->connection_id = g_strdup_printf("d:%u/%u",
 		libusb_get_bus_number(dev), libusb_get_device_address(dev));
@@ -153,7 +150,6 @@ static void scan_device(struct sr_dev_driver *di, struct ftdi_context *ftdic,
 				SR_CHANNEL_LOGIC, TRUE, *chan);
 
 	*devices = g_slist_append(*devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	return;
 
 err_free_strings:
@@ -164,8 +160,7 @@ err_free_strings:
 	g_free(devc);
 }
 
-static GSList *scan_all(struct ftdi_context *ftdic, struct sr_dev_driver *di,
-	GSList *options)
+static GSList *scan_all(struct ftdi_context *ftdic, GSList *options)
 {
 	GSList *devices;
 	struct ftdi_device_list *devlist = 0;
@@ -187,7 +182,7 @@ static GSList *scan_all(struct ftdi_context *ftdic, struct sr_dev_driver *di,
 
 	curdev = devlist;
 	while (curdev) {
-		scan_device(di, ftdic, curdev->dev, &devices);
+		scan_device(ftdic, curdev->dev, &devices);
 		curdev = curdev->next;
 	}
 
@@ -234,17 +229,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				usb = l->data;
 				if (usb->bus == libusb_get_bus_number(devlist[i])
 					&& usb->address == libusb_get_device_address(devlist[i])) {
-					scan_device(di, ftdic, devlist[i], &devices);
+					scan_device(ftdic, devlist[i], &devices);
 				}
 			}
 		}
 		libusb_free_device_list(devlist, 1);
 	} else
-		devices = scan_all(ftdic, di, options);
+		devices = scan_all(ftdic, options);
 
 	ftdi_free(ftdic);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static void clear_helper(void *priv)

@@ -38,7 +38,6 @@ static const uint32_t devopts[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
@@ -73,7 +72,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sr_info("Probing serial port %s.", conn);
 
-	drvc = di->context;
 	serial_flush(serial);
 
 	/* Let's get a bit of data and see if we can find a packet. */
@@ -92,7 +90,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;
-	sdi->driver = di;
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P");
 
@@ -116,13 +113,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "IINST");
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "PAPP");
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 scan_cleanup:
 	serial_close(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,

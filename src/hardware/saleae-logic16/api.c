@@ -191,7 +191,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->vendor = g_strdup("Saleae");
 		sdi->model = g_strdup("Logic16");
-		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 
 		for (j = 0; j < ARRAY_SIZE(channel_names); j++)
@@ -201,7 +200,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc = g_malloc0(sizeof(struct dev_context));
 		devc->selected_voltage_range = VOLTAGE_RANGE_18_33_V;
 		sdi->priv = devc;
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
 		if (check_conf_profile(devlist[i])) {
@@ -227,7 +225,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int logic16_dev_open(struct sr_dev_inst *sdi)

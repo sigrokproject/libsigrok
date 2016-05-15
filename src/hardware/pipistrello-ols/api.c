@@ -78,7 +78,6 @@ static const uint64_t samplerates[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
 	int ret, i;
@@ -86,8 +85,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int bytes_read;
 
 	(void)options;
-
-	drvc = di->context;
 
 	devices = NULL;
 
@@ -177,10 +174,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_dbg("Failed to set default samplerate (%"PRIu64").",
 				DEFAULT_SAMPLERATE);
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 err_close_ftdic:
 	p_ols_close(devc);

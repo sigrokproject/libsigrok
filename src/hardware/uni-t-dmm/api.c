@@ -87,15 +87,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup(dmm->vendor);
 		sdi->model = g_strdup(dmm->device);
 		sdi->priv = devc;
-		sdi->driver = di;
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

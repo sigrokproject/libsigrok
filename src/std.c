@@ -349,3 +349,51 @@ SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di)
 
 	return drvc->instances;
 }
+
+/**
+ * Standard scan() callback API helper.
+ *
+ * This function can be used to perform common tasks required by a driver's
+ * scan() callback. It will initialize the driver for each device on the list
+ * and add the devices on the list to the driver's device instance list.
+ * Usually it should be used as the last step in the scan() callback, right
+ * before returning.
+ *
+ * Note: This function can only be used if std_init() has been called
+ * previously by the driver.
+ *
+ * Example:
+ * @code{c}
+ * static GSList *scan(struct sr_dev_driver *di, GSList *options)
+ * {
+ *     struct GSList *device;
+ *     struct sr_dev_inst *sdi;
+ *
+ *     sdi = g_new0(sr_dev_inst, 1);
+ *     sdi->vendor = ...;
+ *     ...
+ *     devices = g_slist_append(devices, sdi);
+ *     ...
+ *     return std_scan_complete(di, devices);
+ * }
+ * @endcode
+ *
+ * @param di The driver instance to use.
+ * @param devices List of newly discovered devices (struct sr_dev_inst).
+ *
+ * @return The @p devices list.
+ */
+SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices)
+{
+	struct drv_context *drvc = di->context;
+	GSList *l;
+
+	for (l = devices; l; l = l->next) {
+		struct sr_dev_inst *sdi = l->data;
+		sdi->driver = di;
+	}
+
+	drvc->instances = g_slist_concat(drvc->instances, g_slist_copy(devices));
+
+	return devices;
+}

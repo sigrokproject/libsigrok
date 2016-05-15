@@ -76,7 +76,6 @@ static const struct hcs_model models[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i, model_id;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
@@ -85,7 +84,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_serial_dev_inst *serial;
 	char reply[50], **tokens, *dummy;
 
-	drvc = di->context;
 	devices = NULL;
 	conn = NULL;
 	serialcomm = NULL;
@@ -146,7 +144,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup(models[model_id].name);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	sdi->driver = di;
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 
@@ -177,14 +174,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->voltage_max_device = g_strtod(tokens[0], &dummy) * devc->model->voltage[2];
 	g_strfreev(tokens);
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 exit_err:
 	sr_dev_inst_free(sdi);

@@ -68,7 +68,6 @@ static const char *get_typestr(int type, struct sr_dev_driver *drv)
 static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -79,7 +78,6 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 	char req[10];
 
 	devices = NULL;
-	drvc = drv->context;
 	conn = serialcomm = NULL;
 
 	for (l = options; l; l = l->next) {
@@ -138,9 +136,7 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 			devc->version = g_strdup(&buf[9]);
 			sdi->conn = serial;
 			sdi->priv = devc;
-			sdi->driver = drv;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 			break;
 		}
@@ -163,7 +159,7 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(drv, devices);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

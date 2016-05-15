@@ -327,7 +327,6 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 		sdi->vendor = g_strdup(LASCAR_VENDOR);
 		sdi->model = g_strdup(profile->modelname);
 		sdi->version = g_strdup(firmware);
-		sdi->driver = di;
 
 		if (profile->logformat == LOG_TEMP_RH) {
 			/* Model this as two channels: temperature and humidity. */

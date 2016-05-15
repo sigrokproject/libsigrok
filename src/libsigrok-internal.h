@@ -938,6 +938,7 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_callback clear_private);
 SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di);
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
+SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices);
 
 /*--- resource.c ------------------------------------------------------------*/
 

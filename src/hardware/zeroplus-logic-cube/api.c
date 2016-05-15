@@ -212,7 +212,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VENDOR_NAME);
 		sdi->model = g_strdup(prof->model_name);
-		sdi->driver = di;
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);
 
@@ -238,7 +237,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					channel_names[j]);
 
 		devices = g_slist_append(devices, sdi);
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = sr_usb_dev_inst_new(
 			libusb_get_bus_number(devlist[i]),
@@ -246,7 +244,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

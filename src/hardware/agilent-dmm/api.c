@@ -73,7 +73,6 @@ static const struct agdmm_profile supported_agdmm[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -81,8 +80,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int len, i;
 	const char *conn, *serialcomm;
 	char *buf, **tokens;
-
-	drvc = di->context;
 
 	devices = NULL;
 	conn = serialcomm = NULL;
@@ -136,9 +133,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sdi->inst_type = SR_INST_SERIAL;
 			sdi->conn = serial;
 			sdi->priv = devc;
-			sdi->driver = di;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 			break;
 		}
@@ -150,7 +145,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,

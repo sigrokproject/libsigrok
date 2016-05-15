@@ -102,14 +102,12 @@ static const uint8_t coupling_map[] = {
 	0x00, 0x08, 0x04
 };
 
-static GSList *scan_port(GSList *devices, struct sr_dev_driver *di,
-			 struct parport *port)
+static GSList *scan_port(GSList *devices, struct parport *port)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
 	struct sr_channel_group *cg;
 	struct dev_context *devc;
-	struct drv_context *drvc;
 	int i;
 
 	if (ieee1284_open(port, 0, &i) != E1284_OK) {
@@ -135,8 +133,6 @@ static GSList *scan_port(GSList *devices, struct sr_dev_driver *di,
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Hung-Chang");
 	sdi->model = g_strdup("DSO-2100");
-	sdi->driver = di;
-	drvc = di->context;
 	sdi->inst_type = 0; /* FIXME */
 	sdi->conn = port;
 	ieee1284_ref(port);
@@ -169,7 +165,6 @@ static GSList *scan_port(GSList *devices, struct sr_dev_driver *di,
 	devc->last_step = 0; /* buffersize = 1000 */
 	sdi->priv = devc;
 
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 fail3:
@@ -209,7 +204,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; i < ports.portc; i++)
 		if (!strcmp(ports.portv[i]->name, conn)) {
 			port_found = TRUE;
-			devices = scan_port(devices, di, ports.portv[i]);
+			devices = scan_port(devices, ports.portv[i]);
 		}
 
 	if (!port_found) {
@@ -220,7 +215,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	ieee1284_free_ports(&ports);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static void clear_private(void *priv)

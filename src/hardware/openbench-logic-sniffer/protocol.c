@@ -20,8 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-extern SR_PRIV struct sr_dev_driver ols_driver_info;
-
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command)
 {
@@ -149,7 +147,6 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->driver = &ols_driver_info;
 	devc = ols_dev_new();
 	sdi->priv = devc;
 

@@ -158,7 +158,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Atten");
 	sdi->model = g_strdup(model->name);
-	sdi->driver = di;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	for (i = 0; i < MAX_CHANNELS; i++) {
@@ -176,14 +175,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	devc->config = g_malloc0(sizeof(struct per_channel_config) * model->num_channels);
 	devc->delay_ms = delay_ms;
 	sdi->priv = devc;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static GSList *scan_3203(struct sr_dev_driver *di, GSList *options)

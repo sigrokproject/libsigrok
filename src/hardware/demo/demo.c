@@ -284,7 +284,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("Demo device");
-	sdi->driver = di;
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->cur_samplerate = SR_KHZ(200);
@@ -346,9 +345,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi->priv = devc;
 	devices = g_slist_append(devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

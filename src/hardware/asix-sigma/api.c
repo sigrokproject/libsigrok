@@ -64,7 +64,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	GSList *devices;
 	struct ftdi_device_list *devlist;
@@ -74,8 +73,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	unsigned int i;
 
 	(void)options;
-
-	drvc = di->context;
 
 	devices = NULL;
 
@@ -119,19 +116,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(USB_VENDOR_NAME);
 	sdi->model = g_strdup(USB_MODEL_NAME);
-	sdi->driver = di;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 	devices = g_slist_append(devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	sdi->priv = devc;
 
 	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 free:
 	ftdi_deinit(&devc->ftdic);

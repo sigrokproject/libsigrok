@@ -53,7 +53,6 @@ static const uint64_t samplerates[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	GSList *devices;
@@ -62,7 +61,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	(void)options;
 
-	drvc = di->context;
 	devices = NULL;
 
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -72,7 +70,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("BayLibre");
 	sdi->model = g_strdup("ACME");
-	sdi->driver = di;
 	sdi->priv = devc;
 
 	status = bl_acme_is_sane();
@@ -124,9 +121,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_out;
 
 	devices = g_slist_append(devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 err_out:
 	g_free(devc);

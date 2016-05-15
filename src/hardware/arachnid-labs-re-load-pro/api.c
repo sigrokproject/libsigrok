@@ -130,7 +130,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->vendor = g_strdup("Arachnid Labs");
 	sdi->model = g_strdup("Re:load Pro");
 	sdi->version = g_strdup(buf + 8);
-	sdi->driver = di;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -146,14 +145,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	sdi->priv = devc;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int config_list(uint32_t key, GVariant **data,

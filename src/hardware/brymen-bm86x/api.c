@@ -70,7 +70,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model = g_strdup("BM869");
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
-		sdi->driver = di;
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P2");
 
@@ -79,11 +78,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sr_sw_limits_init(&devc->sw_limits);
 
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

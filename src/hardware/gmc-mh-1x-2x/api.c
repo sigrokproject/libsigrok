@@ -217,13 +217,11 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 		devc->settings_ok = FALSE;
 		sdi->conn = serial;
 		sdi->priv = devc;
-		sdi->driver = di;
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 /**
@@ -310,9 +308,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
 			sdi->conn = serial;
 			sdi->priv = devc;
-			sdi->driver = di;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-			drvc->instances = g_slist_append(drvc->instances, sdi);
 			devices = g_slist_append(devices, sdi);
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
@@ -327,7 +323,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 		sr_dev_inst_free(sdi);
 	}
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 exit_err:
 	sr_info("scan_2x_bd232(): Error!");

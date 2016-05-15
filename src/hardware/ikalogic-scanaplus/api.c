@@ -115,19 +115,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(USB_VENDOR_NAME);
 	sdi->model = g_strdup(USB_MODEL_NAME);
-	sdi->driver = di;
 	sdi->priv = devc;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 	devices = g_slist_append(devices, sdi);
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	/* Close device. We'll reopen it again when we need it. */
 	scanaplus_close(devc);
 
-	return devices;
+	return std_scan_complete(di, devices);
 
 	scanaplus_close(devc);
 err_free_ftdic:

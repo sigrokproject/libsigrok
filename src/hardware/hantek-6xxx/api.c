@@ -78,13 +78,11 @@ static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
-static struct sr_dev_inst *hantek_6xxx_dev_new(struct sr_dev_driver *di,
-	const struct hantek_6xxx_profile *prof)
+static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile *prof)
 {
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
 	struct sr_channel_group *cg;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	unsigned int i;
 
@@ -92,7 +90,6 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(struct sr_dev_driver *di,
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(prof->vendor);
 	sdi->model = g_strdup(prof->model);
-	sdi->driver = di;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
@@ -119,8 +116,6 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(struct sr_dev_driver *di,
 	devc->samplerate = DEFAULT_SAMPLERATE;
 
 	sdi->priv = devc;
-	drvc = sdi->driver->context;
-	drvc->instances = g_slist_append(drvc->instances, sdi);
 
 	return sdi;
 }
@@ -222,7 +217,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the pre-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = hantek_6xxx_dev_new(di, prof);
+				sdi = hantek_6xxx_dev_new(prof);
 				sdi->connection_id = g_strdup(connection_id);
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
@@ -241,7 +236,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
-				sdi = hantek_6xxx_dev_new(di, prof);
+				sdi = hantek_6xxx_dev_new(prof);
 				sdi->connection_id = g_strdup(connection_id);
 				sdi->status = SR_ST_INACTIVE;
 				devices = g_slist_append(devices, sdi);
@@ -258,7 +253,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

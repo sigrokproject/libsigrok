@@ -76,7 +76,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VICTOR_VENDOR);
-		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
@@ -87,12 +86,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				libusb_get_device_address(devlist[i]), NULL);
 		sdi->inst_type = SR_INST_USB;
 
-		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 	}
 	libusb_free_device_list(devlist, 1);
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
