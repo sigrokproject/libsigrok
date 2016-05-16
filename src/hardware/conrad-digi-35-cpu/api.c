@@ -45,10 +45,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct drv_context *drvc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
-	GSList *l, *devices;
+	GSList *l;
 	const char *conn, *serialcomm;
 
-	devices = NULL;
 	drvc = di->context;
 	conn = serialcomm = NULL;
 
@@ -91,9 +90,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->conn = serial;
 	sdi->priv = NULL;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
-	devices = g_slist_append(devices, sdi);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,

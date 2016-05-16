@@ -370,7 +370,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	struct sr_serial_dev_inst *serial;
 	struct sr_channel *ch;
 	struct sr_channel_group *cg;
-	GSList *devices;
 	const char *conn, *serialcomm;
 	int cnt, ret;
 	gchar buf[LINELEN_MAX];
@@ -380,7 +379,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	sdi = NULL;
 	devc = NULL;
 	conn = serialcomm = NULL;
-	devices = NULL;
 
 	sr_spew("scan() called!");
 
@@ -468,17 +466,13 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
-	devices = g_slist_append(devices, sdi);
-
 	/* Query status */
 	if (lps_query_status(sdi) != SR_OK)
 		goto exit_err;
 
 	serial_close(serial);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
 
-	return std_scan_complete(drv, devices);
+	return std_scan_complete(drv, g_slist_append(NULL, sdi));
 
 exit_err:
 	sr_info("%s: Error!", __func__);

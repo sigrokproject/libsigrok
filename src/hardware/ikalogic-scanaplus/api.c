@@ -68,15 +68,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	GSList *devices;
 	unsigned int i;
 	int ret;
 
 	(void)options;
 
 	drvc = di->context;
-
-	devices = NULL;
 
 	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
@@ -120,12 +117,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
-	devices = g_slist_append(devices, sdi);
-
 	/* Close device. We'll reopen it again when we need it. */
 	scanaplus_close(devc);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 	scanaplus_close(devc);
 err_free_ftdic:

@@ -259,7 +259,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_channel_group *cg, *acg;
 	struct sr_config *src;
 	struct analog_gen *ag;
-	GSList *devices, *l;
+	GSList *l;
 	int num_logic_channels, num_analog_channels, pattern, i;
 	char channel_name[16];
 
@@ -278,8 +278,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		}
 	}
-
-	devices = NULL;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -344,9 +342,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	sdi->priv = devc;
-	devices = g_slist_append(devices, sdi);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

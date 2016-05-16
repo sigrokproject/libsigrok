@@ -63,7 +63,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	GSList *l, *devices;
+	GSList *l;
 	const char *conn;
 
 	conn = NULL;
@@ -80,8 +80,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDONLY) != SR_OK)
 		return NULL;
 
-	devices = NULL;
-
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("PCE");
@@ -92,11 +90,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->priv = devc;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "SPL");
-	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

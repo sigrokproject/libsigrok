@@ -79,12 +79,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
-	GSList *devices, *l;
+	GSList *l;
 	const char *conn, *serialcomm;
 	struct sr_serial_dev_inst *serial;
 	char reply[50], **tokens, *dummy;
 
-	devices = NULL;
 	conn = NULL;
 	serialcomm = NULL;
 	devc = NULL;
@@ -174,13 +173,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->voltage_max_device = g_strtod(tokens[0], &dummy) * devc->model->voltage[2];
 	g_strfreev(tokens);
 
-	devices = g_slist_append(devices, sdi);
-
 	serial_close(serial);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 exit_err:
 	sr_dev_inst_free(sdi);

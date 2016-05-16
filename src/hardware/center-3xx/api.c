@@ -62,14 +62,12 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	GSList *devices;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	devices = NULL;
 	serial_flush(serial);
 
 	sr_info("Found device on port %s.", conn);
@@ -86,11 +84,9 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	for (i = 0; i < center_devs[idx].num_channels; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 
-	devices = g_slist_append(devices, sdi);
-
 	serial_close(serial);
 
-	return devices;
+	return g_slist_append(NULL, sdi);
 }
 
 static GSList *scan(GSList *options, int idx)

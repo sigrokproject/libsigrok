@@ -55,13 +55,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	GSList *devices;
 	gboolean status;
 	int i;
 
 	(void)options;
-
-	devices = NULL;
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->samplerate = SR_HZ(10);
@@ -120,9 +117,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!sdi->channel_groups)
 		goto err_out;
 
-	devices = g_slist_append(devices, sdi);
-
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 err_out:
 	g_free(devc);

@@ -73,13 +73,11 @@ static struct dev_context *beaglelogic_devc_alloc(void)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	GSList *devices, *l;
+	GSList *l;
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int i, maxch;
-
-	devices = NULL;
 
 	/* Probe for /dev/beaglelogic */
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
@@ -128,9 +126,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				channel_names[i]);
 
 	sdi->priv = devc;
-	devices = g_slist_append(devices, sdi);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

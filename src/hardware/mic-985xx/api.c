@@ -62,14 +62,12 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	GSList *devices;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	devices = NULL;
 	serial_flush(serial);
 
 	/* TODO: Query device type. */
@@ -93,11 +91,9 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	if (mic_devs[idx].has_humidity)
 		sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "Humidity");
 
-	devices = g_slist_append(devices, sdi);
-
 	serial_close(serial);
 
-	return std_scan_complete(mic_devs[idx].di, devices);
+	return std_scan_complete(mic_devs[idx].di, g_slist_append(NULL, sdi));
 }
 
 static GSList *scan(GSList *options, int idx)

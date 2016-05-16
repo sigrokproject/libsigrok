@@ -90,13 +90,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct sr_serial_dev_inst *serial;
-	GSList *l, *devices;
+	GSList *l;
 	int ret;
 	unsigned int i;
 	const char *conn, *serialcomm;
 	char buf[8];
-
-	devices = NULL;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -191,11 +189,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
-	devices = g_slist_append(devices, sdi);
-
 	serial_close(serial);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

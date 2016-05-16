@@ -65,7 +65,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	GSList *devices;
 	struct ftdi_device_list *devlist;
 	char serial_txt[10];
 	uint32_t serial;
@@ -73,8 +72,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	unsigned int i;
 
 	(void)options;
-
-	devices = NULL;
 
 	devc = g_malloc0(sizeof(struct dev_context));
 
@@ -120,13 +117,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
-	devices = g_slist_append(devices, sdi);
 	sdi->priv = devc;
 
 	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 free:
 	ftdi_deinit(&devc->ftdic);

@@ -65,7 +65,7 @@ static const struct korad_kaxxxxp_model models[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct dev_context *devc;
-	GSList *devices, *l;
+	GSList *l;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
 	const char *conn, *serialcomm;
@@ -74,7 +74,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	int i, model_id;
 	unsigned int len;
 
-	devices = NULL;
 	conn = NULL;
 	serialcomm = NULL;
 
@@ -151,13 +150,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* Get current status of device. */
 	if (korad_kaxxxxp_get_all_values(serial, devc) < 0)
 		goto exit_err;
-	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 exit_err:
 	sr_dev_inst_free(sdi);

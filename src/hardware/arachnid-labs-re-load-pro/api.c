@@ -65,14 +65,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_serial_dev_inst *serial;
 	struct sr_channel_group *cg;
 	struct sr_channel *ch;
-	GSList *l, *devices;
+	GSList *l;
 	int ret, len;
 	const char *conn, *serialcomm;
 	char buf[100];
 	char *bufptr;
 	double version;
 
-	devices = NULL;
 	drvc = di->context;
 
 	conn = serialcomm = NULL;
@@ -145,13 +144,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	sdi->priv = devc;
-	devices = g_slist_append(devices, sdi);
 
 	serial_close(serial);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
 
-	return std_scan_complete(di, devices);
+	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
 static int config_list(uint32_t key, GVariant **data,
