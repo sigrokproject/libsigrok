@@ -517,25 +517,25 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			else
 				num_samples = cur_sample_count;
 
-			if(devc->dslogic && devc->trigger_pos > devc->sent_samples
-				&& devc->trigger_pos <= devc->sent_samples + num_samples){
-					/* dslogic trigger in this block. Send trigger position */
+			if (devc->dslogic && devc->trigger_pos > devc->sent_samples
+				&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+					/* DSLogic trigger in this block. Send trigger position. */
 					trigger_offset = devc->trigger_pos - devc->sent_samples;
-					/* pre-trigger samples */
+					/* Pre-trigger samples. */
 					devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
 						trigger_offset * unitsize, unitsize);
 					devc->sent_samples += trigger_offset;
-					/* trigger position */
+					/* Trigger position. */
 					devc->trigger_pos = 0;
 					packet.type = SR_DF_TRIGGER;
 					packet.payload = NULL;
 					sr_session_send(sdi, &packet);
-					/* post trigger samples */
+					/* Post trigger samples. */
 					num_samples -= trigger_offset;
 					devc->send_data_proc(sdi, (uint8_t *)transfer->buffer
-							+ trigger_offset * unitsize,	num_samples * unitsize, unitsize);
+							+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
 					devc->sent_samples += num_samples;
-			}else{
+			} else {
 				devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
 					num_samples * unitsize, unitsize);
 				devc->sent_samples += num_samples;

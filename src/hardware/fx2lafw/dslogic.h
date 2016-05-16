@@ -27,7 +27,7 @@
 #define DS_CMD_START			0xb2
 #define DS_CMD_FPGA_FW			0xb3
 #define DS_CMD_CONFIG			0xb4
-#define DS_CMD_VTH				0xb8
+#define DS_CMD_VTH			0xb8
 
 #define DS_NUM_TRIGGER_STAGES		16
 #define DS_START_FLAGS_STOP		(1 << 7)
@@ -35,8 +35,8 @@
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
 #define DS_START_FLAGS_MODE_LA		(1 << 4)
 
-#define DS_MAX_LOGIC_DEPTH	SR_MHZ(16)
-#define DS_MAX_LOGIC_SAMPLERATE SR_MHZ(100)
+#define DS_MAX_LOGIC_DEPTH		SR_MHZ(16)
+#define DS_MAX_LOGIC_SAMPLERATE		SR_MHZ(100)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
@@ -45,14 +45,14 @@ enum dslogic_operation_modes {
 	DS_OP_LOOPBACK_TEST,
 };
 
-enum  {
-	    DS_VOLTAGE_RANGE_18_33_V,	/* 1.8V and 3.3V logic */
-	    DS_VOLTAGE_RANGE_5_V,	/* 5V logic */
+enum {
+	DS_VOLTAGE_RANGE_18_33_V,	/* 1.8V and 3.3V logic */
+	DS_VOLTAGE_RANGE_5_V,		/* 5V logic */
 };
 
-enum{
+enum {
 	DS_EDGE_RISING,
-	DS_EDGE_FALLING
+	DS_EDGE_FALLING,
 };
 
 struct dslogic_version {
@@ -145,6 +145,6 @@ SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth);
-SR_PRIV int dslogic_get_number_of_transfers(struct dev_context* devc);
+SR_PRIV int dslogic_get_number_of_transfers(struct dev_context *devc);
 
 #endif

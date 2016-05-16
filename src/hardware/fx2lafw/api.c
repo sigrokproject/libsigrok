@@ -143,7 +143,7 @@ static const uint32_t dslogic_devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const int32_t soft_trigger_matches[] = {
@@ -154,8 +154,7 @@ static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_EDGE,
 };
 
-/* Names assigned to available edge slope choices.
- */
+/* Names assigned to available edge slope choices. */
 static const char *const signal_edge_names[] = {
 	[DS_EDGE_RISING] = "rising",
 	[DS_EDGE_FALLING] = "falling",
@@ -166,8 +165,8 @@ static const struct {
 	gdouble low;
 	gdouble high;
 } volt_thresholds[] = {
-	{ DS_VOLTAGE_RANGE_18_33_V, 0.7,     1.4 },
-	{ DS_VOLTAGE_RANGE_5_V,	    1.4,     3.6 },
+	{ DS_VOLTAGE_RANGE_18_33_V, 0.7, 1.4 },
+	{ DS_VOLTAGE_RANGE_5_V, 1.4, 3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -516,6 +515,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
+
 	if (!usb->devhdl)
 		return SR_ERR;
 
@@ -529,8 +529,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -586,7 +586,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		i = devc->dslogic_clock_edge;
 		if (i >= ARRAY_SIZE(signal_edge_names))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(signal_edge_names[0]);//idx]);
+		*data = g_variant_new_string(signal_edge_names[0]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -595,8 +595,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-
-/* Helper for mapping a string-typed configuration value to an index
+/*
+ * Helper for mapping a string-typed configuration value to an index
  * within a table of possible values.
  */
 static int lookup_index(GVariant *value, const char *const *table, int len)
@@ -617,8 +617,8 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 	return -1;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint64_t arg;
@@ -671,7 +671,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_5V);
 			else
 				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_3V3);
-		}else if (!strcmp(devc->profile->model, "DSLogic Pro")){
+		} else if (!strcmp(devc->profile->model, "DSLogic Pro")) {
 			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PRO_FPGA_FIRMWARE);
 		}
 		break;
@@ -695,8 +695,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return ret;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	GVariant *gvar, *range[2];
@@ -711,10 +711,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
+		if (!sdi) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							  drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else{
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		} else {
 			devc = sdi->priv;
 			if (!devc->dslogic)
 				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -725,9 +725,11 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if (!sdi->priv) return SR_ERR_ARG;
+		if (!sdi->priv)
+			return SR_ERR_ARG;
 		devc = sdi->priv;
-		if (!devc->dslogic) return SR_ERR_NA;
+		if (!devc->dslogic)
+			return SR_ERR_NA;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
 			range[0] = g_variant_new_double(volt_thresholds[i].low);
@@ -813,8 +815,8 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	//if (devc->dslogic)
 	//	num_transfers = dslogic_get_number_of_transfers(devc);
 
-	if ( devc->dslogic){
-		if(devc->cur_samplerate == SR_MHZ(100))
+	if (devc->dslogic) {
+		if (devc->cur_samplerate == SR_MHZ(100))
 			num_transfers = 16;
 		else if (devc->cur_samplerate == SR_MHZ(200))
 			num_transfers = 8;
@@ -888,8 +890,9 @@ static void LIBUSB_CALL dslogic_trigger_receive(struct libusb_transfer *transfer
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos, tpos->ram_saddr, tpos->remain_cnt);
-		devc->trigger_pos  = tpos->real_pos;
+		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos,
+			tpos->ram_saddr, tpos->remain_cnt);
+		devc->trigger_pos = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);
 	}
@@ -913,11 +916,11 @@ static int dslogic_trigger_request(const struct sr_dev_inst *sdi)
 	if ((ret = dslogic_fpga_configure(sdi)) != SR_OK)
 		return ret;
 
-	/* if this is a dslogic pro, set the voltage threshold */
+	/* If this is a DSLogic Pro, set the voltage threshold. */
 	if (!strcmp(devc->profile->model, "DSLogic Pro")){
-		if(devc->dslogic_voltage_threshold == DS_VOLTAGE_RANGE_18_33_V){
+		if (devc->dslogic_voltage_threshold == DS_VOLTAGE_RANGE_18_33_V) {
 			dslogic_set_vth(sdi, 1.4);
-		}else{
+		} else {
 			dslogic_set_vth(sdi, 3.3);
 		}
 	}

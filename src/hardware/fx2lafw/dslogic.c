@@ -39,15 +39,17 @@
 SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth)
 {
 	struct sr_usb_dev_inst *usb;
-	usb = sdi->conn;
 	int ret;
 	uint8_t cmd;
 
-	cmd = vth/5.0 * 255;
+	usb = sdi->conn;
+
+	cmd = (vth / 5.0) * 255;
+
 	/* Send the control command. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-	LIBUSB_ENDPOINT_OUT, DS_CMD_VTH, 0x0000, 0x0000,
-		(unsigned char *)&cmd, sizeof(cmd), 3000);
+			LIBUSB_ENDPOINT_OUT, DS_CMD_VTH, 0x0000, 0x0000,
+			(unsigned char *)&cmd, sizeof(cmd), 3000);
 	if (ret < 0) {
 		sr_err("Unable to send VTH command: %s.",
 		libusb_error_name(ret));
@@ -186,12 +188,12 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
-
 	struct dev_context *devc;
-	devc = sdi->priv;
 	const GSList *l, *m;
 	int channelbit, i = 0;
 	uint16_t v16;
+
+	devc = sdi->priv;
 
 	cfg->trig_mask0[0] = 0xffff;
 	cfg->trig_mask1[0] = 0xffff;
@@ -231,7 +233,7 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 
 	sr_dbg("configuring trigger");
 
-	if (!(trigger = sr_session_trigger_get(sdi->session))){
+	if (!(trigger = sr_session_trigger_get(sdi->session))) {
 		sr_dbg("No session trigger found");
 		return SR_OK;
 	}
@@ -265,18 +267,19 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 				cfg->trig_value1[0] |= channelbit;
 				cfg->trig_edge0[0] |= channelbit;
 				cfg->trig_edge1[0] |= channelbit;
-			} else if(match->match == SR_TRIGGER_EDGE){
+			} else if (match->match == SR_TRIGGER_EDGE) {
 				cfg->trig_edge0[0] |= channelbit;
 				cfg->trig_edge1[0] |= channelbit;
 			}
 		}
 	}
+
 	v16 = RL16(&cfg->mode);
 	v16 |= 1 << 0;
 	WL16(&cfg->mode, v16);
+
 	return SR_OK;
 }
-
 
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 {
@@ -289,6 +292,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	int transferred, len, ret;
 
 	sr_dbg("Configuring FPGA.");
+
 	usb = sdi->conn;
 	devc = sdi->priv;
 
@@ -322,7 +326,8 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
 			c, 3, USB_TIMEOUT);
 	if (ret < 0) {
-		sr_err("Failed to send FPGA configure command: %s.", libusb_error_name(ret));
+		sr_err("Failed to send FPGA configure command: %s.",
+			libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -338,9 +343,9 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	 * 5	1 = samplerate 200MHz or analog mode
 	 * 4	0 = logic, 1 = dso or analog
 	 * 3	1 = RLE encoding (enable for more than 16 Megasamples)
-	 * 1-2	00 = internal clock, 
-	 * 		01 = external clock rising, 
-	 * 		11 = external clock falling
+	 * 1-2	00 = internal clock,
+	 * 	01 = external clock rising,
+	 * 	11 = external clock falling
 	 * 0	1 = trigger enabled
 	 */
 	v16 = 0x0000;
@@ -352,17 +357,18 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		v16 = 1 << 13;
 	if (devc->dslogic_continuous_mode)
 		v16 |= 1 << 12;
-	if (devc->dslogic_external_clock){
+	if (devc->dslogic_external_clock) {
 		v16 |= 1 << 1;
-		if (devc->dslogic_clock_edge == DS_EDGE_FALLING){
+		if (devc->dslogic_clock_edge == DS_EDGE_FALLING)
 			v16 |= 1 << 2;
-		}
 	}
-	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH * ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE) 
-		&& !devc->dslogic_continuous_mode){
-		/* enable rle for long captures.
-		   Without this, captured data present errors. */
-		v16 |= 1<< 3;
+	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
+		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE) 
+		&& !devc->dslogic_continuous_mode) {
+		/* Enable RLE for long captures.
+		 * Without this, captured data present errors.
+		 */
+		v16 |= 1 << 3;
 	}
 
 	WL16(&cfg.mode, v16);
@@ -383,30 +389,33 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int to_bytes_per_ms(struct dev_context* devc){
+static int to_bytes_per_ms(struct dev_context *devc)
+{
 	if (devc->cur_samplerate > SR_MHZ(100))
-        return SR_MHZ(100) / 1000 * (devc->sample_wide ? 2 : 1);
-    return devc->cur_samplerate / 1000 * (devc->sample_wide ? 2 : 1);	
+		return SR_MHZ(100) / 1000 * (devc->sample_wide ? 2 : 1);
+
+	return devc->cur_samplerate / 1000 * (devc->sample_wide ? 2 : 1);
 }
 
 static size_t get_buffer_size(struct dev_context *devc)
 {
-    size_t s;
+	size_t s;
 
-    /*
-     * The buffer should be large enough to hold 10ms of data and
-     * a multiple of 512.
-     */
-    s = 10 * to_bytes_per_ms(devc);
-    //s = to_bytes_per_ms(devc->cur_samplerate);
-    return (s + 511) & ~511;
+	/*
+	 * The buffer should be large enough to hold 10ms of data and
+	 * a multiple of 512.
+	 */
+	s = 10 * to_bytes_per_ms(devc);
+	// s = to_bytes_per_ms(devc->cur_samplerate);
+	return (s + 511) & ~511;
 }
 
-SR_PRIV int dslogic_get_number_of_transfers(struct dev_context* devc){
+SR_PRIV int dslogic_get_number_of_transfers(struct dev_context *devc)
+{
 	unsigned int n;
+
 	/* Total buffer size should be able to hold about 100ms of data. */
-	n = (100 * to_bytes_per_ms(devc) /
-		get_buffer_size(devc));
+	n = (100 * to_bytes_per_ms(devc) / get_buffer_size(devc));
 	sr_info("New calculation: %d", n);
 
 	if (n > NUM_SIMUL_TRANSFERS)
