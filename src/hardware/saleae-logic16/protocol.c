@@ -35,11 +35,7 @@
 #define FPGA_FIRMWARE_33	"saleae-logic16-fpga-33.bitstream"
 
 #define MAX_SAMPLE_RATE		SR_MHZ(100)
-#define MAX_4CH_SAMPLE_RATE	SR_MHZ(50)
-#define MAX_7CH_SAMPLE_RATE	SR_MHZ(40)
-#define MAX_8CH_SAMPLE_RATE	SR_MHZ(32)
-#define MAX_10CH_SAMPLE_RATE	SR_MHZ(25)
-#define MAX_13CH_SAMPLE_RATE	SR_MHZ(16)
+#define MAX_SAMPLE_RATE_X_CH	SR_MHZ(300)
 
 #define BASE_CLOCK_0_FREQ	SR_MHZ(100)
 #define BASE_CLOCK_1_FREQ	SR_MHZ(160)
@@ -596,11 +592,7 @@ SR_PRIV int logic16_setup_acquisition(const struct sr_dev_inst *sdi,
 		if (channels & (1U << i))
 			nchan++;
 
-	if ((nchan >= 13 && samplerate > MAX_13CH_SAMPLE_RATE) ||
-	    (nchan >= 10 && samplerate > MAX_10CH_SAMPLE_RATE) ||
-	    (nchan >= 8  && samplerate > MAX_8CH_SAMPLE_RATE) ||
-	    (nchan >= 7  && samplerate > MAX_7CH_SAMPLE_RATE) ||
-	    (nchan >= 4  && samplerate > MAX_4CH_SAMPLE_RATE)) {
+	if (nchan * samplerate > MAX_SAMPLE_RATE_X_CH) {
 		sr_err("Unable to sample at %" PRIu64 "Hz "
 		       "with this many channels.", samplerate);
 		return SR_ERR;
