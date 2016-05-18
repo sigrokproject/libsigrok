@@ -86,9 +86,11 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(10),
 	SR_KHZ(12500),
 	SR_MHZ(16),
+	SR_MHZ(20),
 	SR_MHZ(25),
 	SR_MHZ(32),
 	SR_MHZ(40),
+	SR_MHZ(50),
 	SR_MHZ(80),
 	SR_MHZ(100),
 };
