@@ -349,24 +349,9 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_dev_inst *sdi;
-	GSList *l;
+	struct sr_dev_inst *sdi = cb_data;
+	struct dev_context *devc = sdi->priv;
 	int i;
-
-	struct drv_context *drvc = di->context;
-
-	/* Find this device's devc struct by its fd. */
-	struct dev_context *devc = NULL;
-	for (l = drvc->instances; l; l = l->next) {
-		sdi = l->data;
-		devc = sdi->priv;
-		if (devc->serial->fd == fd)
-			break;
-		devc = NULL;
-	}
-	if (!devc)
-		/* Shouldn't happen. */
-		return TRUE;
 
 	(void)revents;
 
