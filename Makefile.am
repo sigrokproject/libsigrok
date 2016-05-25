@@ -704,26 +704,26 @@ $(RDOC): $(srcdir)/bindings/swig/doc.py $(CPPXMLDOC)
 	$(AM_V_at)test -d $(RDIR) || $(MKDIR_P) $(RDIR)
 	$(AM_V_GEN)$(PYTHON) $(srcdir)/bindings/swig/doc.py ruby $(CPPXMLDOC) > $@
 
-$(RWRAP): $(RDIR)/classes.i $(RDOC) \
+$(RWRAP): $(srcdir)/$(RDIR)/classes.i $(RDOC) \
 		bindings/swig/classes.i bindings/swig/templates.i \
 		bindings/swig/enums.i
-	$(AM_V_GEN)$(SWIG) -ruby -c++ -Ibindings -Ibindings/cxx/include -I$(RDIR) $(local_includes) $(swig_defs) -o $@ $<
+	$(AM_V_GEN)$(SWIG) -ruby -c++ -Ibindings -Ibindings/cxx/include -I$(RDIR) $(local_includes) $(swig_defs) -o $@ $(srcdir)/$(RDIR)/classes.i
 
 $(ROBJ): $(RWRAP) \
 		$(library_include_HEADERS) \
 		$(nodist_library_include_HEADERS) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS)
-	$(AM_V_CXX)$(CXX) $(RBSIGROK_CFLAGS) -I. -Iinclude -Ibindings/cxx/include $(local_includes) -fPIC -o $@ -c $<
+	$(AM_V_CXX)$(CXX) $(RBSIGROK_CFLAGS) -I. -Iinclude -Ibindings/cxx/include $(local_includes) -fPIC -o $@ -c $(RWRAP)
 
 $(REXT): $(ROBJ) @ORDER@ bindings/cxx/libsigrokcxx.la
-	$(AM_V_CXXLD)$(CXX) -shared -o $@ $< -lsigrokcxx -Lbindings/cxx/.libs $(RBSIGROK_LIBS)
+	$(AM_V_CXXLD)$(CXX) -shared -o $@ $(ROBJ) -lsigrokcxx -Lbindings/cxx/.libs $(RBSIGROK_LIBS)
 
 ruby-build: $(REXT)
 
 ruby-install: $(REXT)
 	$(INSTALL) -d $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
-	$(INSTALL) $< $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
+	$(INSTALL) $(REXT) $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)
 
 ruby-uninstall:
 	rm -f $(DESTDIR)$(prefix)/$(RBSIGROK_EXTDIR)/sigrok.$(RUBY_DLEXT)
@@ -733,7 +733,7 @@ ruby-clean:
 	-$(AM_V_at)rm -f $(REXT) $(ROBJ) $(RWRAP) $(RDOC)
 
 ruby-doc: $(RWRAP)
-	$(AM_V_at)yard doc -o $(RDIR)/doc $<
+	$(AM_V_at)yard doc -o $(RDIR)/doc $(RWRAP)
 
 BUILD_EXTRA += ruby-build
 INSTALL_EXTRA += ruby-install
