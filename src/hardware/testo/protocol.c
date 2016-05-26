@@ -27,26 +27,26 @@ SR_PRIV int testo_set_serial_params(struct sr_usb_dev_inst *usb)
 
 	if ((ret = libusb_control_transfer(usb->devhdl, 0x40, FTDI_SET_BAUDRATE,
 			FTDI_BAUDRATE_115200, FTDI_INDEX, NULL, 0, 10)) < 0) {
-			sr_err("Failed to set baudrate: %s", libusb_error_name(ret));
-			return SR_ERR;
+		sr_err("Failed to set baudrate: %s", libusb_error_name(ret));
+		return SR_ERR;
 	}
 
 	if ((ret = libusb_control_transfer(usb->devhdl, 0x40, FTDI_SET_PARAMS,
 			FTDI_PARAMS_8N1, FTDI_INDEX, NULL, 0, 10)) < 0) {
-			sr_err("Failed to set comm parameters: %s", libusb_error_name(ret));
-			return SR_ERR;
+		sr_err("Failed to set comm parameters: %s", libusb_error_name(ret));
+		return SR_ERR;
 	}
 
 	if ((ret = libusb_control_transfer(usb->devhdl, 0x40, FTDI_SET_FLOWCTRL,
 			FTDI_FLOW_NONE, FTDI_INDEX, NULL, 0, 10)) < 0) {
-			sr_err("Failed to set flow control: %s", libusb_error_name(ret));
-			return SR_ERR;
+		sr_err("Failed to set flow control: %s", libusb_error_name(ret));
+		return SR_ERR;
 	}
 
 	if ((ret = libusb_control_transfer(usb->devhdl, 0x40, FTDI_SET_MODEMCTRL,
 			FTDI_MODEM_ALLHIGH, FTDI_INDEX, NULL, 0, 10)) < 0) {
-			sr_err("Failed to set modem control: %s", libusb_error_name(ret));
-			return SR_ERR;
+		sr_err("Failed to set modem control: %s", libusb_error_name(ret));
+		return SR_ERR;
 	}
 
 	return SR_OK;
