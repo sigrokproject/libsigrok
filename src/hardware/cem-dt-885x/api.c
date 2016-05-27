@@ -71,7 +71,6 @@ static const char *data_sources[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -96,7 +95,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	devices = NULL;
-	drvc = di->context;
 	start = g_get_monotonic_time();
 	while (g_get_monotonic_time() - start < MAX_SCAN_TIME_US) {
 		if (serial_read_nonblocking(serial, &c, 1) == 1 && c == 0xa5) {

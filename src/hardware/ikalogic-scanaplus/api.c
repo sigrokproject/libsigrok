@@ -66,14 +66,11 @@ static int dev_clear(const struct sr_dev_driver *di)
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	unsigned int i;
 	int ret;
 
 	(void)options;
-
-	drvc = di->context;
 
 	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));

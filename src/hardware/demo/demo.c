@@ -252,7 +252,6 @@ static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_channel *ch;
@@ -262,8 +261,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l;
 	int num_logic_channels, num_analog_channels, pattern, i;
 	char channel_name[16];
-
-	drvc = di->context;
 
 	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
 	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;

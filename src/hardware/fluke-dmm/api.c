@@ -61,7 +61,6 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 		const char *serialcomm)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
@@ -73,7 +72,6 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	drvc = di->context;
 	b = buf;
 	retry = 0;
 	devices = NULL;

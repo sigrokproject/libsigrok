@@ -144,7 +144,6 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -154,7 +153,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	gboolean serialcomm_given;
 
 	devices = NULL;
-	drvc = di->context;
 	conn = serialcomm = NULL;
 	serialcomm_given = FALSE;
 
@@ -231,7 +229,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -244,8 +241,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	devc = NULL;
 	conn = serialcomm = NULL;
 	devices = NULL;
-
-	drvc = di->context;
 
 	sr_spew("scan_2x_bd232() called!");
 

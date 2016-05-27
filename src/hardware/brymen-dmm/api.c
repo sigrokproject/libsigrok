@@ -86,13 +86,11 @@ scan_cleanup:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct sr_config *src;
 	GSList *devices, *l;
 	const char *conn, *serialcomm;
 
 	devices = NULL;
-	drvc = di->context;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {

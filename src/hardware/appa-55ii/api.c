@@ -44,7 +44,6 @@ static const char *data_sources[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
@@ -80,7 +79,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sr_info("Probing serial port %s.", conn);
 
-	drvc = di->context;
 	serial_flush(serial);
 
 	/* Let's get a bit of data and see if we can find a packet. */

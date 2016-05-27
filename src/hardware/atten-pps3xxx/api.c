@@ -78,7 +78,6 @@ static const struct pps_model models[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_channel *ch;
@@ -91,8 +90,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	int delay_ms, ret;
 	const char *conn, *serialcomm;
 	char channel[10];
-
-	drvc = di->context;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {

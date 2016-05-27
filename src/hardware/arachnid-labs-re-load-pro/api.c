@@ -59,7 +59,6 @@ static const uint32_t devopts_cg[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
-	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -71,8 +70,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char buf[100];
 	char *bufptr;
 	double version;
-
-	drvc = di->context;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
