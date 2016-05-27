@@ -98,7 +98,10 @@ struct analog_gen {
 	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];
 	unsigned int num_samples;
-	struct sr_datafeed_analog_old packet;
+	struct sr_datafeed_analog packet;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	float avg_val; /* Average value */
 	unsigned num_avgs; /* Number of samples averaged */
 };
@@ -323,10 +326,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
-			ag->packet.channels = cg->channels;
-			ag->packet.mq = 0;
-			ag->packet.mqflags = 0;
-			ag->packet.unit = SR_UNIT_VOLT;
+			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 0);
+			ag->packet.meaning->channels = cg->channels;
+			ag->packet.meaning->mq = 0;
+			ag->packet.meaning->mqflags = 0;
+			ag->packet.meaning->unit = SR_UNIT_VOLT;
 			ag->packet.data = ag->pattern_data;
 			ag->pattern = pattern;
 			ag->avg_val = 0.0f;
@@ -671,7 +675,7 @@ static void send_analog_packet(struct analog_gen *ag,
 	unsigned int i;
 
 	devc = sdi->priv;
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &ag->packet;
 
 	if (!devc->avg) {
@@ -817,7 +821,7 @@ static int prepare_data(int fd, int revents, void *cb_data)
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
 				ag = value;
-				packet.type = SR_DF_ANALOG_OLD;
+				packet.type = SR_DF_ANALOG;
 				packet.payload = &ag->packet;
 				ag->packet.data = &ag->avg_val;
 				ag->packet.num_samples = 1;
