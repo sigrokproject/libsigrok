@@ -58,9 +58,9 @@ struct dev_context {
 	int expect_response;
 	int meas_type;
 	int is_relative;
-	int mq;
-	int unit;
-	int mqflags;
+	enum sr_mq mq;
+	enum sr_unit unit;
+	enum sr_mqflag mqflags;
 };
 
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);

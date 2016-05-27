@@ -26,10 +26,13 @@
 #include "libsigrok-internal.h"
 #include "fluke-dmm.h"
 
-static struct sr_datafeed_analog_old *handle_qm_18x(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
-	struct sr_datafeed_analog_old *analog;
+	struct sr_datafeed_analog *analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	float fvalue;
 	char *e, *u;
 	gboolean is_oor;
@@ -59,92 +62,93 @@ static struct sr_datafeed_analog_old *handle_qm_18x(const struct sr_dev_inst *sd
 	while (*e && *e == ' ')
 		e++;
 
-	analog = g_malloc0(sizeof(struct sr_datafeed_analog_old));
+	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
+	sr_analog_init(analog, &encoding, &meaning, &spec, 0);
 	analog->data = g_malloc(sizeof(float));
-	analog->channels = sdi->channels;
+	analog->meaning->channels = sdi->channels;
 	analog->num_samples = 1;
 	if (is_oor)
-		*analog->data = NAN;
+		*((float *)analog->data) = NAN;
 	else
-		*analog->data = fvalue;
-	analog->mq = -1;
+		*((float *)analog->data) = fvalue;
+	analog->meaning->mq = 0;
 
 	if ((u = strstr(e, "V DC")) || (u = strstr(e, "V AC"))) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 		if (!is_oor && e[0] == 'm')
-			*analog->data /= 1000;
+			*((float *)analog->data) /= 1000;
 		/* This catches "V AC", "V DC" and "V AC+DC". */
 		if (strstr(u, "AC"))
-			analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			analog->meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		if (strstr(u, "DC"))
-			analog->mqflags |= SR_MQFLAG_DC;
+			analog->meaning->mqflags |= SR_MQFLAG_DC;
 	} else if ((u = strstr(e, "dBV")) || (u = strstr(e, "dBm"))) {
-		analog->mq = SR_MQ_VOLTAGE;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
 		if (u[2] == 'm')
-			analog->unit = SR_UNIT_DECIBEL_MW;
+			analog->meaning->unit = SR_UNIT_DECIBEL_MW;
 		else
-			analog->unit = SR_UNIT_DECIBEL_VOLT;
-		analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			analog->meaning->unit = SR_UNIT_DECIBEL_VOLT;
+		analog->meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 	} else if ((u = strstr(e, "Ohms"))) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 		if (is_oor)
-			*analog->data = INFINITY;
+			*((float *)analog->data) = INFINITY;
 		else if (e[0] == 'k')
-			*analog->data *= 1000;
+			*((float *)analog->data) *= 1000;
 		else if (e[0] == 'M')
-			*analog->data *= 1000000;
+			*((float *)analog->data) *= 1000000;
 	} else if (!strcmp(e, "nS")) {
-		analog->mq = SR_MQ_CONDUCTANCE;
-		analog->unit = SR_UNIT_SIEMENS;
-		*analog->data /= 1e+9;
+		analog->meaning->mq = SR_MQ_CONDUCTANCE;
+		analog->meaning->unit = SR_UNIT_SIEMENS;
+		*((float *)analog->data) /= 1e+9;
 	} else if ((u = strstr(e, "Farads"))) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 		if (!is_oor) {
 			if (e[0] == 'm')
-				*analog->data /= 1e+3;
+				*((float *)analog->data) /= 1e+3;
 			else if (e[0] == 'u')
-				*analog->data /= 1e+6;
+				*((float *)analog->data) /= 1e+6;
 			else if (e[0] == 'n')
-				*analog->data /= 1e+9;
+				*((float *)analog->data) /= 1e+9;
 		}
 	} else if ((u = strstr(e, "Deg C")) || (u = strstr(e, "Deg F"))) {
-		analog->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
 		if (u[4] == 'C')
-			analog->unit = SR_UNIT_CELSIUS;
+			analog->meaning->unit = SR_UNIT_CELSIUS;
 		else
-			analog->unit = SR_UNIT_FAHRENHEIT;
+			analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	} else if ((u = strstr(e, "A AC")) || (u = strstr(e, "A DC"))) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 		/* This catches "A AC", "A DC" and "A AC+DC". */
 		if (strstr(u, "AC"))
-			analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			analog->meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		if (strstr(u, "DC"))
-			analog->mqflags |= SR_MQFLAG_DC;
+			analog->meaning->mqflags |= SR_MQFLAG_DC;
 		if (!is_oor) {
 			if (e[0] == 'm')
-				*analog->data /= 1e+3;
+				*((float *)analog->data) /= 1e+3;
 			else if (e[0] == 'u')
-				*analog->data /= 1e+6;
+				*((float *)analog->data) /= 1e+6;
 		}
 	} else if ((u = strstr(e, "Hz"))) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 		if (e[0] == 'k')
-			*analog->data *= 1e+3;
+			*((float *)analog->data) *= 1e+3;
 	} else if (!strcmp(e, "%")) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	} else if ((u = strstr(e, "ms"))) {
-		analog->mq = SR_MQ_PULSE_WIDTH;
-		analog->unit = SR_UNIT_SECOND;
-		*analog->data /= 1e+3;
+		analog->meaning->mq = SR_MQ_PULSE_WIDTH;
+		analog->meaning->unit = SR_UNIT_SECOND;
+		*((float *)analog->data) /= 1e+3;
 	}
 
-	if (analog->mq == -1) {
+	if (analog->meaning->mq == 0) {
 		/* Not a valid measurement. */
 		g_free(analog->data);
 		g_free(analog);
@@ -154,10 +158,13 @@ static struct sr_datafeed_analog_old *handle_qm_18x(const struct sr_dev_inst *sd
 	return analog;
 }
 
-static struct sr_datafeed_analog_old *handle_qm_28x(const struct sr_dev_inst *sdi,
+static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 		char **tokens)
 {
-	struct sr_datafeed_analog_old *analog;
+	struct sr_datafeed_analog *analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	float fvalue;
 
 	if (!tokens[1])
@@ -168,91 +175,92 @@ static struct sr_datafeed_analog_old *handle_qm_28x(const struct sr_dev_inst *sd
 		return NULL;
 	}
 
-	analog = g_malloc0(sizeof(struct sr_datafeed_analog_old));
+	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
+	sr_analog_init(analog, &encoding, &meaning, &spec, 0);
 	analog->data = g_malloc(sizeof(float));
-	analog->channels = sdi->channels;
+	analog->meaning->channels = sdi->channels;
 	analog->num_samples = 1;
-	*analog->data = fvalue;
-	analog->mq = -1;
+	*((float *)analog->data) = fvalue;
+	analog->meaning->mq = 0;
 
 	if (!strcmp(tokens[1], "VAC") || !strcmp(tokens[1], "VDC")) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 		if (!strcmp(tokens[2], "NORMAL")) {
 			if (tokens[1][1] == 'A') {
-				analog->mqflags |= SR_MQFLAG_AC;
-				analog->mqflags |= SR_MQFLAG_RMS;
+				analog->meaning->mqflags |= SR_MQFLAG_AC;
+				analog->meaning->mqflags |= SR_MQFLAG_RMS;
 			} else
-				analog->mqflags |= SR_MQFLAG_DC;
+				analog->meaning->mqflags |= SR_MQFLAG_DC;
 		} else if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-			*analog->data = NAN;
+			*((float *)analog->data) = NAN;
 		} else
-			analog->mq = -1;
+			analog->meaning->mq = 0;
 	} else if (!strcmp(tokens[1], "dBV") || !strcmp(tokens[1], "dBm")) {
-		analog->mq = SR_MQ_VOLTAGE;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
 		if (tokens[1][2] == 'm')
-			analog->unit = SR_UNIT_DECIBEL_MW;
+			analog->meaning->unit = SR_UNIT_DECIBEL_MW;
 		else
-			analog->unit = SR_UNIT_DECIBEL_VOLT;
-		analog->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			analog->meaning->unit = SR_UNIT_DECIBEL_VOLT;
+		analog->meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 	} else if (!strcmp(tokens[1], "CEL") || !strcmp(tokens[1], "FAR")) {
 		if (!strcmp(tokens[2], "NORMAL")) {
-			analog->mq = SR_MQ_TEMPERATURE;
+			analog->meaning->mq = SR_MQ_TEMPERATURE;
 			if (tokens[1][0] == 'C')
-				analog->unit = SR_UNIT_CELSIUS;
+				analog->meaning->unit = SR_UNIT_CELSIUS;
 			else
-				analog->unit = SR_UNIT_FAHRENHEIT;
+				analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 		}
 	} else if (!strcmp(tokens[1], "OHM")) {
 		if (!strcmp(tokens[3], "NONE")) {
-			analog->mq = SR_MQ_RESISTANCE;
-			analog->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+			analog->meaning->unit = SR_UNIT_OHM;
 			if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-				*analog->data = INFINITY;
+				*((float *)analog->data) = INFINITY;
 			} else if (strcmp(tokens[2], "NORMAL"))
-				analog->mq = -1;
+				analog->meaning->mq = 0;
 		} else if (!strcmp(tokens[3], "OPEN_CIRCUIT")) {
-			analog->mq = SR_MQ_CONTINUITY;
-			analog->unit = SR_UNIT_BOOLEAN;
-			*analog->data = 0.0;
+			analog->meaning->mq = SR_MQ_CONTINUITY;
+			analog->meaning->unit = SR_UNIT_BOOLEAN;
+			*((float *)analog->data) = 0.0;
 		} else if (!strcmp(tokens[3], "SHORT_CIRCUIT")) {
-			analog->mq = SR_MQ_CONTINUITY;
-			analog->unit = SR_UNIT_BOOLEAN;
-			*analog->data = 1.0;
+			analog->meaning->mq = SR_MQ_CONTINUITY;
+			analog->meaning->unit = SR_UNIT_BOOLEAN;
+			*((float *)analog->data) = 1.0;
 		}
 	} else if (!strcmp(tokens[1], "F")
 			&& !strcmp(tokens[2], "NORMAL")
 			&& !strcmp(tokens[3], "NONE")) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	} else if (!strcmp(tokens[1], "AAC") || !strcmp(tokens[1], "ADC")) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 		if (!strcmp(tokens[2], "NORMAL")) {
 			if (tokens[1][1] == 'A') {
-				analog->mqflags |= SR_MQFLAG_AC;
-				analog->mqflags |= SR_MQFLAG_RMS;
+				analog->meaning->mqflags |= SR_MQFLAG_AC;
+				analog->meaning->mqflags |= SR_MQFLAG_RMS;
 			} else
-				analog->mqflags |= SR_MQFLAG_DC;
+				analog->meaning->mqflags |= SR_MQFLAG_DC;
 		} else if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-			*analog->data = NAN;
+			*((float *)analog->data) = NAN;
 		} else
-			analog->mq = -1;
+			analog->meaning->mq = 0;
 	} if (!strcmp(tokens[1], "Hz") && !strcmp(tokens[2], "NORMAL")) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	} else if (!strcmp(tokens[1], "PCT") && !strcmp(tokens[2], "NORMAL")) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	} else if (!strcmp(tokens[1], "S") && !strcmp(tokens[2], "NORMAL")) {
-		analog->mq = SR_MQ_PULSE_WIDTH;
-		analog->unit = SR_UNIT_SECOND;
+		analog->meaning->mq = SR_MQ_PULSE_WIDTH;
+		analog->meaning->unit = SR_UNIT_SECOND;
 	} else if (!strcmp(tokens[1], "SIE") && !strcmp(tokens[2], "NORMAL")) {
-		analog->mq = SR_MQ_CONDUCTANCE;
-		analog->unit = SR_UNIT_SIEMENS;
+		analog->meaning->mq = SR_MQ_CONDUCTANCE;
+		analog->meaning->unit = SR_UNIT_SIEMENS;
 	}
 
-	if (analog->mq == -1) {
+	if (analog->meaning->mq == 0) {
 		/* Not a valid measurement. */
 		g_free(analog->data);
 		g_free(analog);
@@ -299,8 +307,7 @@ static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 		return;
 	meas_char = strtol(tokens[4], NULL, 10);
 
-	devc->mq = devc->unit = -1;
-	devc->mqflags = 0;
+	devc->mq = devc->unit = devc->mqflags = 0;
 	switch (meas_unit) {
 	case 1:
 		devc->mq = SR_MQ_VOLTAGE;
@@ -344,7 +351,7 @@ static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 	default:
 		sr_dbg("unknown unit: %d", meas_unit);
 	}
-	if (devc->mq == -1 && devc->unit == -1)
+	if (devc->mq == 0 && devc->unit == 0)
 		return;
 
 	/* If we got here, we know how to interpret the measurement. */
@@ -362,7 +369,10 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	float fvalue;
 
 	if (!strcmp(tokens[0], "9.9E+37")) {
@@ -378,7 +388,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	}
 
 	devc = sdi->priv;
-	if (devc->mq == -1 || devc->unit == -1)
+	if (devc->mq == 0 || devc->unit == 0)
 		/* Don't have valid metadata yet. */
 		return;
 
@@ -391,13 +401,14 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			fvalue = 1.0;
 	}
 
-	analog.channels = sdi->channels;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
-	analog.mq = devc->mq;
-	analog.unit = devc->unit;
-	analog.mqflags = 0;
-	packet.type = SR_DF_ANALOG_OLD;
+	analog.meaning->mq = devc->mq;
+	analog.meaning->unit = devc->unit;
+	analog.meaning->mqflags = 0;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
@@ -409,7 +420,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old *analog;
+	struct sr_datafeed_analog *analog;
 	int num_tokens, n, i;
 	char cmd[16], **tokens;
 
@@ -465,7 +476,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	if (analog) {
 		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = analog;
 		sr_session_send(sdi, &packet);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
