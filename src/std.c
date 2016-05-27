@@ -378,18 +378,29 @@ SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di)
  * }
  * @endcode
  *
- * @param di The driver instance to use.
+ * @param di The driver instance to use. Must not be NULL.
  * @param devices List of newly discovered devices (struct sr_dev_inst).
  *
  * @return The @p devices list.
  */
 SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices)
 {
-	struct drv_context *drvc = di->context;
+	struct drv_context *drvc;
 	GSList *l;
+
+	if (!di) {
+		sr_err("Invalid driver instance (di), cannot complete scan.");
+		return NULL;
+	}
+
+	drvc = di->context;
 
 	for (l = devices; l; l = l->next) {
 		struct sr_dev_inst *sdi = l->data;
+		if (!sdi) {
+			sr_err("Invalid driver instance, cannot complete scan.");
+			return NULL;
+		}
 		sdi->driver = di;
 	}
 
