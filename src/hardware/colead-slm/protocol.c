@@ -29,7 +29,10 @@ static void process_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	GString *dbg;
 	float fvalue;
 	int checksum, mode, i;
@@ -71,17 +74,17 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	}
 	fvalue /= 10;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
-	analog.unit = SR_UNIT_DECIBEL_SPL;
-	analog.channels = sdi->channels;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
+	analog.meaning->unit = SR_UNIT_DECIBEL_SPL;
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
 
 	/* High nibble should only have 0x01 or 0x02. */
 	mode = (devc->buf[2] >> 4) & 0x0f;
 	if (mode == 0x02)
-		analog.mqflags |= SR_MQFLAG_HOLD;
+		analog.meaning->mqflags |= SR_MQFLAG_HOLD;
 	else if (mode != 0x01) {
 		sr_dbg("unknown measurement mode 0x%.2x", mode);
 		return;
@@ -93,42 +96,42 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	mode = devc->buf[2] & 0x0f;
 	switch (mode) {
 	case 0x0:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
 	case 0x1:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0x2:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
 	case 0x3:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0x4:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
 	case 0x5:
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0x6:
-		analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
 	case 0x7:
-		analog.mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_PCT_OVER_ALARM \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0x8:
 		/* 10-second mean, but we don't have MQ flags to express it. */
-		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_LAT \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
@@ -136,38 +139,38 @@ static void process_packet(const struct sr_dev_inst *sdi)
 		/* Mean over a time period between 11 seconds and 24 hours.
 		 * Which is so silly that there's no point in expressing
 		 * either this or the previous case.  */
-		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_LAT \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;
 		break;
 	case 0xa:
 		/* 10-second mean. */
-		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_LAT \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0xb:
 		/* Mean over a time period between 11 seconds and 24 hours. */
-		analog.mqflags |= SR_MQFLAG_SPL_LAT \
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_LAT \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		break;
 	case 0xc:
 		/* Internal calibration on 1kHz sine at 94dB, not useful
 		 * to anything but the device. */
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
 		break;
 	case 0xd:
 		/* Internal calibration on 1kHz sine at 94dB, not useful
 		 * to anything but the device. */
-		analog.mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
+		analog.meaning->mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT;
 		break;
 	default:
 		sr_dbg("unknown configuration 0x%.2x", mode);
 		return;
 	}
 
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
