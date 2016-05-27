@@ -90,7 +90,7 @@ enum {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Device state */
-	uint64_t cur_mqflags;
+	enum sr_mqflag cur_mqflags;
 	int recording;
 	int cur_meas_range;
 	int cur_data_source;
