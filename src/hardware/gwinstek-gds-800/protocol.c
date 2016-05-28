@@ -66,7 +66,10 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	char command[32];
 	char *response;
 	float volts_per_division;
@@ -237,16 +240,17 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 				samples[i] = ((float) ((int16_t) (RB16(&devc->rcv_buffer[i*2])))) / 256. * VERTICAL_DIVISIONS * volts_per_division;
 
 			/* Fill frame. */
-			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, devc->cur_acq_channel));
+			sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, devc->cur_acq_channel));
 			analog.num_samples = num_samples;
 			analog.data = samples;
-			analog.mq = SR_MQ_VOLTAGE;
-			analog.unit = SR_UNIT_VOLT;
-			analog.mqflags = 0;
-			packet.type = SR_DF_ANALOG_OLD;
+			analog.meaning->mq = SR_MQ_VOLTAGE;
+			analog.meaning->unit = SR_UNIT_VOLT;
+			analog.meaning->mqflags = 0;
+			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			sr_session_send(sdi, &packet);
-			g_slist_free(analog.channels);
+			g_slist_free(analog.meaning->channels);
 
 			/* All channels acquired. */
 			if (devc->cur_acq_channel == ANALOG_CHANNELS - 1) {
