@@ -1127,25 +1127,25 @@ struct es519xx_info {
 
 SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info);
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info);
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info);
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info);
+		float *floatval, struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/fs9922.c -------------------------------------------------*/
 
@@ -1162,8 +1162,8 @@ struct fs9922_info {
 
 SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog_old *analog, void *info);
+			    struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/fs9721.c -------------------------------------------------*/
 
@@ -1178,12 +1178,12 @@ struct fs9721_info {
 
 SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog_old *analog, void *info);
-SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog_old *analog, void *info);
+			    struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
+SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
 
@@ -1199,7 +1199,7 @@ struct dtm0660_info {
 
 SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
-			struct sr_datafeed_analog_old *analog, void *info);
+			struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/m2110.c --------------------------------------------------*/
 
@@ -1207,7 +1207,7 @@ SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 
 SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog_old *analog, void *info);
+			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/metex14.c ------------------------------------------------*/
 
@@ -1226,7 +1226,7 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog_old *analog, void *info);
+			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/
 
@@ -1237,7 +1237,7 @@ struct rs9lcd_info { int dummy; };
 
 SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog_old *analog, void *info);
+			    struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/bm25x.c --------------------------------------------------*/
 
@@ -1248,7 +1248,7 @@ struct bm25x_info { int dummy; };
 
 SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog_old *analog, void *info);
+			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/ut71x.c --------------------------------------------------*/
 
@@ -1263,7 +1263,7 @@ struct ut71x_info {
 
 SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/vc870.c --------------------------------------------------*/
 
@@ -1284,7 +1284,7 @@ struct vc870_info {
 
 SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
@@ -1314,7 +1314,7 @@ struct ut372_info {
 
 SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/scale/kern.c -------------------------------------------------*/
 
