@@ -60,7 +60,10 @@ static void process_packet(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	GString *spew;
 	float temp;
 	int i;
@@ -87,18 +90,18 @@ static void process_packet(struct sr_dev_inst *sdi)
 		is_valid = FALSE;
 
 	if (is_valid) {
-		memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-		analog.mq = SR_MQ_TEMPERATURE;
-		analog.mqflags = 0;
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+		analog.meaning->mq = SR_MQ_TEMPERATURE;
+		analog.meaning->mqflags = 0;
 		switch (devc->packet[5] - 0x30) {
 		case 1:
-			analog.unit = SR_UNIT_CELSIUS;
+			analog.meaning->unit = SR_UNIT_CELSIUS;
 			break;
 		case 2:
-			analog.unit = SR_UNIT_FAHRENHEIT;
+			analog.meaning->unit = SR_UNIT_FAHRENHEIT;
 			break;
 		case 3:
-			analog.unit = SR_UNIT_KELVIN;
+			analog.meaning->unit = SR_UNIT_KELVIN;
 			break;
 		default:
 			/* We can still pass on the measurement, whatever it is. */
@@ -107,17 +110,17 @@ static void process_packet(struct sr_dev_inst *sdi)
 		switch (devc->packet[13] - 0x30) {
 		case 0:
 			/* Channel T1. */
-			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
+			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
 			break;
 		case 1:
 			/* Channel T2. */
-			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 1));
+			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 1));
 			break;
 		case 2:
 		case 3:
 			/* Channel T1-T2. */
-			analog.channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 2));
-			analog.mqflags |= SR_MQFLAG_RELATIVE;
+			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 2));
+			analog.meaning->mqflags |= SR_MQFLAG_RELATIVE;
 			break;
 		default:
 			sr_err("Unknown channel 0x%.2x.", devc->packet[13]);
@@ -126,10 +129,10 @@ static void process_packet(struct sr_dev_inst *sdi)
 		if (is_valid) {
 			analog.num_samples = 1;
 			analog.data = &temp;
-			packet.type = SR_DF_ANALOG_OLD;
+			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			sr_session_send(sdi, &packet);
-			g_slist_free(analog.channels);
+			g_slist_free(analog.meaning->channels);
 		}
 	}
 
