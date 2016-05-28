@@ -44,7 +44,10 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	struct dmm_info *dmm;
 	float floatval;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 
 	dmm = (struct dmm_info *)sdi->driver;
@@ -52,11 +55,11 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	log_dmm_packet(buf);
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-	analog.channels = sdi->channels;
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
-	analog.mq = -1;
+	analog.meaning->mq = 0;
 
 	dmm->packet_parse(buf, &floatval, &analog, info);
 	analog.data = &floatval;
@@ -65,9 +68,9 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	if (dmm->dmm_details)
 		dmm->dmm_details(&analog, info);
 
-	if (analog.mq != -1) {
+	if (analog.meaning->mq != 0) {
 		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
