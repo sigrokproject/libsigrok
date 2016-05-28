@@ -467,7 +467,7 @@ static int parse_mq(const uint8_t *pkt, int is_secondary, int is_parallel)
 
 	sr_err("Unknown quantity 0x%03x.", is_secondary << 8 | buf[0]);
 
-	return -1;
+	return 0;
 }
 
 static float parse_value(const uint8_t *buf)
@@ -482,7 +482,7 @@ static float parse_value(const uint8_t *buf)
 }
 
 static void parse_measurement(const uint8_t *pkt, float *floatval,
-			      struct sr_datafeed_analog_old *analog,
+			      struct sr_datafeed_analog *analog,
 			      int is_secondary)
 {
 	static const struct {
@@ -510,8 +510,8 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 
 	buf = pkt_to_buf(pkt, is_secondary);
 
-	analog->mq = -1;
-	analog->mqflags = 0;
+	analog->meaning->mq = 0;
+	analog->meaning->mqflags = 0;
 
 	state = buf[4] & 0xf;
 
@@ -525,24 +525,24 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 
 	if (!is_secondary) {
 		if (pkt[2] & 0x01)
-			analog->mqflags |= SR_MQFLAG_HOLD;
+			analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 		if (pkt[2] & 0x02)
-			analog->mqflags |= SR_MQFLAG_REFERENCE;
+			analog->meaning->mqflags |= SR_MQFLAG_REFERENCE;
 	} else {
 		if (pkt[2] & 0x04)
-			analog->mqflags |= SR_MQFLAG_RELATIVE;
+			analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 	}
 
-	if ((analog->mq = parse_mq(pkt, is_secondary, pkt[2] & 0x80)) < 0)
+	if ((analog->meaning->mq = parse_mq(pkt, is_secondary, pkt[2] & 0x80)) < 0)
 		return;
 
 	if ((buf[3] >> 3) >= ARRAY_SIZE(units)) {
 		sr_err("Unknown unit %u.", buf[3] >> 3);
-		analog->mq = -1;
+		analog->meaning->mq = 0;
 		return;
 	}
 
-	analog->unit = units[buf[3] >> 3].unit;
+	analog->meaning->unit = units[buf[3] >> 3].unit;
 
 	*floatval = parse_value(buf);
 	*floatval *= (state == 0) ? units[buf[3] >> 3].mult : INFINITY;
@@ -610,7 +610,10 @@ static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
 static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	unsigned int val;
 	float floatval;
@@ -636,45 +639,45 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 
 	frame = FALSE;
 
-	memset(&analog, 0, sizeof(analog));
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	analog.num_samples = 1;
 	analog.data = &floatval;
 
-	analog.channels = g_slist_append(NULL, sdi->channels->data);
+	analog.meaning->channels = g_slist_append(NULL, sdi->channels->data);
 
 	parse_measurement(pkt, &floatval, &analog, 0);
-	if (analog.mq >= 0) {
+	if (analog.meaning->mq != 0) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
 			frame = TRUE;
 		}
 
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 
 		sr_session_send(sdi, &packet);
 	}
 
-	g_slist_free(analog.channels);
-	analog.channels = g_slist_append(NULL, sdi->channels->next->data);
+	g_slist_free(analog.meaning->channels);
+	analog.meaning->channels = g_slist_append(NULL, sdi->channels->next->data);
 
 	parse_measurement(pkt, &floatval, &analog, 1);
-	if (analog.mq >= 0) {
+	if (analog.meaning->mq != 0) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
 			frame = TRUE;
 		}
 
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 
 		sr_session_send(sdi, &packet);
 	}
 
-	g_slist_free(analog.channels);
+	g_slist_free(analog.meaning->channels);
 
 	if (frame) {
 		packet.type = SR_DF_FRAME_END;
