@@ -321,9 +321,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	pce_322a_disconnect(sdi);
-
-	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
+	return std_serial_dev_acquisition_stop(sdi, dev_close,
 			sdi->conn, LOG_PREFIX);
 }
 
