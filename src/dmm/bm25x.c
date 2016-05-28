@@ -147,61 +147,61 @@ special:
 }
 
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog_old *analog, void *info)
+				struct sr_datafeed_analog *analog, void *info)
 {
 	float val;
 
 	(void)info;
 
-	analog->mq = SR_MQ_GAIN;
-	analog->unit = SR_UNIT_UNITLESS;
-	analog->mqflags = 0;
+	analog->meaning->mq = SR_MQ_GAIN;
+	analog->meaning->unit = SR_UNIT_UNITLESS;
+	analog->meaning->mqflags = 0;
 
 	if (buf[1] & 8)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (buf[1] & 4)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (buf[1] & 2)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (buf[1] & 1)
-		analog->mqflags |= SR_MQFLAG_RELATIVE;
+		analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 	if (buf[11] & 8)
-		analog->mqflags |= SR_MQFLAG_HOLD;
+		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (buf[13] & 8)
-		analog->mqflags |= SR_MQFLAG_MAX;
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 	if (buf[14] & 8)
-		analog->mqflags |= SR_MQFLAG_MIN;
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
 
 	if (buf[14] & 4) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
-		if ((analog->mqflags & (SR_MQFLAG_DC | SR_MQFLAG_AC)) == 0)
-			analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
+		if ((analog->meaning->mqflags & (SR_MQFLAG_DC | SR_MQFLAG_AC)) == 0)
+			analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 	}
 	if (buf[14] & 2) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (buf[12] & 4) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (buf[13] & 4) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (buf[12] & 2) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 
 	if (decode_digit(3, buf) == 'C') {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 	if (decode_digit(3, buf) == 'F') {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 
 	val = decode_value(buf) * decode_prefix(buf);

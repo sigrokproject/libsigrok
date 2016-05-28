@@ -51,16 +51,16 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog_old *analog, void *info)
+				struct sr_datafeed_analog *analog, void *info)
 {
 	float val;
 
 	(void)info;
 
 	/* We don't know the unit, so that's the best we can do. */
-	analog->mq = SR_MQ_GAIN;
-	analog->unit = SR_UNIT_UNITLESS;
-	analog->mqflags = 0;
+	analog->meaning->mq = SR_MQ_GAIN;
+	analog->meaning->unit = SR_UNIT_UNITLESS;
+	analog->meaning->mqflags = 0;
 
 	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		*floatval = INFINITY;

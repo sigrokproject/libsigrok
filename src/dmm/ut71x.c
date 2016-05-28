@@ -212,73 +212,73 @@ static void parse_flags(const uint8_t *buf, struct ut71x_info *info)
 	}
 }
 
-static void handle_flags(struct sr_datafeed_analog_old *analog,
+static void handle_flags(struct sr_datafeed_analog *analog,
 		float *floatval, const struct ut71x_info *info)
 {
 	/* Measurement modes */
 	if (info->is_voltage) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_current) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (info->is_resistance) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (info->is_frequency) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 	if (info->is_capacitance) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (info->is_temperature && info->is_celsius) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 	if (info->is_temperature && info->is_fahrenheit) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 	if (info->is_continuity) {
-		analog->mq = SR_MQ_CONTINUITY;
-		analog->unit = SR_UNIT_BOOLEAN;
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		analog->meaning->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval < 0.0 || *floatval > 60.0) ? 0.0 : 1.0;
 	}
 	if (info->is_diode) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_duty_cycle) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 	if (info->is_power) {
-		analog->mq = SR_MQ_POWER;
-		analog->unit = SR_UNIT_WATT;
+		analog->meaning->mq = SR_MQ_POWER;
+		analog->meaning->unit = SR_UNIT_WATT;
 	}
 	if (info->is_loop_current) {
 		/* 4mA = 0%, 20mA = 100% */
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 
 	/* Measurement related flags */
 	if (info->is_ac)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (info->is_dc)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_ac)
 		/* All AC modes do True-RMS measurements. */
-		analog->mqflags |= SR_MQFLAG_RMS;
+		analog->meaning->mqflags |= SR_MQFLAG_RMS;
 	if (info->is_auto)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 }
 
 static gboolean flags_valid(const struct ut71x_info *info)
@@ -325,7 +325,7 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
-		struct sr_datafeed_analog_old *analog, void *info)
+		struct sr_datafeed_analog *analog, void *info)
 {
 	int ret;
 	struct ut71x_info *info_local;

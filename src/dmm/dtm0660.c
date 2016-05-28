@@ -248,7 +248,7 @@ static void parse_flags(const uint8_t *buf, struct dtm0660_info *info)
 	info->is_max        = (buf[14] & (1 << 3)) != 0;
 }
 
-static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 const struct dtm0660_info *info)
 {
 	/* Factors */
@@ -265,64 +265,64 @@ static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
 
 	/* Measurement modes */
 	if (info->is_volt) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_ampere) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (info->is_ohm) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (info->is_hz) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 	if (info->is_farad) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (info->is_beep) {
-		analog->mq = SR_MQ_CONTINUITY;
-		analog->unit = SR_UNIT_BOOLEAN;
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		analog->meaning->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval == INFINITY) ? 0.0 : 1.0;
 	}
 	if (info->is_diode) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_percent) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 	if (info->is_degc) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 	if (info->is_degf) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 
 	/* Measurement related flags */
 	if (info->is_ac)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (info->is_dc)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_auto)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 	if (info->is_hold)
-		analog->mqflags |= SR_MQFLAG_HOLD;
+		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_rel)
-		analog->mqflags |= SR_MQFLAG_RELATIVE;
+		analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 	if (info->is_min)
-		analog->mqflags |= SR_MQFLAG_MIN;
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
 	if (info->is_max)
-		analog->mqflags |= SR_MQFLAG_MAX;
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 
 	/* Other flags */
 	if (info->is_rs232)
@@ -354,7 +354,7 @@ SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the 15-byte protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
  *                 result value upon parsing success. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct dtm0660_info. The struct will be filled
@@ -364,7 +364,7 @@ SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog_old *analog, void *info)
+			     struct sr_datafeed_analog *analog, void *info)
 {
 	int ret;
 	struct dtm0660_info *info_local;

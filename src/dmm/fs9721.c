@@ -243,7 +243,7 @@ static void parse_flags(const uint8_t *buf, struct fs9721_info *info)
 	info->is_c2c1_00    = (buf[13] & (1 << 0)) != 0;
 }
 
-static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
+static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 const struct fs9721_info *info)
 {
 	/* Factors */
@@ -260,52 +260,52 @@ static void handle_flags(struct sr_datafeed_analog_old *analog, float *floatval,
 
 	/* Measurement modes */
 	if (info->is_volt) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_ampere) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (info->is_ohm) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (info->is_hz) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 	if (info->is_farad) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (info->is_beep) {
-		analog->mq = SR_MQ_CONTINUITY;
-		analog->unit = SR_UNIT_BOOLEAN;
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		analog->meaning->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval == INFINITY) ? 0.0 : 1.0;
 	}
 	if (info->is_diode) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_percent) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 
 	/* Measurement related flags */
 	if (info->is_ac)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (info->is_dc)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_auto)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 	if (info->is_hold)
-		analog->mqflags |= SR_MQFLAG_HOLD;
+		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_rel)
-		analog->mqflags |= SR_MQFLAG_RELATIVE;
+		analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 
 	/* Other flags */
 	if (info->is_rs232)
@@ -337,7 +337,7 @@ SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
  * @param buf Buffer containing the 14-byte protocol packet. Must not be NULL.
  * @param floatval Pointer to a float variable. That variable will contain the
  *                 result value upon parsing success. Must not be NULL.
- * @param analog Pointer to a struct sr_datafeed_analog_old. The struct will be
+ * @param analog Pointer to a struct sr_datafeed_analog. The struct will be
  *               filled with data according to the protocol packet.
  *               Must not be NULL.
  * @param info Pointer to a struct fs9721_info. The struct will be filled
@@ -347,7 +347,7 @@ SR_PRIV gboolean sr_fs9721_packet_valid(const uint8_t *buf)
  *         'analog' variable contents are undefined and should not be used.
  */
 SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog_old *analog, void *info)
+			    struct sr_datafeed_analog *analog, void *info)
 {
 	int ret;
 	struct fs9721_info *info_local;
@@ -365,7 +365,7 @@ SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 	return SR_OK;
 }
 
-SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog_old *analog, void *info)
+SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -373,12 +373,12 @@ SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog_old *analog, void *in
 
 	/* User-defined FS9721_LP3 flag 'c2c1_00' means temperature (C). */
 	if (info_local->is_c2c1_00) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 }
 
-SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog_old *analog, void *info)
+SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -386,12 +386,12 @@ SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog_old *analog, void *in
 
 	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (C). */
 	if (info_local->is_c2c1_01) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 }
 
-SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog_old *analog, void *info)
+SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -399,12 +399,12 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog_old *analog, void *in
 
 	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
 	if (info_local->is_c2c1_10) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 }
 
-SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog_old *analog, void *info)
+SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -412,18 +412,18 @@ SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog_old *analog, voi
 
 	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (F). */
 	if (info_local->is_c2c1_01) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 
 	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
 	if (info_local->is_c2c1_10) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 }
 
-SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog_old *analog, void *info)
+SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
@@ -431,16 +431,16 @@ SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog_old *analog, void *in
 
 	/* User-defined FS9721_LP3 flag 'c2c1_00' means MAX. */
 	if (info_local->is_c2c1_00)
-		analog->mqflags |= SR_MQFLAG_MAX;
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (C). */
 	if (info_local->is_c2c1_01) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 
 	/* User-defined FS9721_LP3 flag 'c2c1_11' means MIN. */
 	if (info_local->is_c2c1_11)
-		analog->mqflags |= SR_MQFLAG_MIN;
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
 
 }

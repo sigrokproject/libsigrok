@@ -318,7 +318,7 @@ static gboolean is_logic_high(const struct rs9lcd_packet *rs_packet)
 }
 
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
-			    struct sr_datafeed_analog_old *analog, void *info)
+			    struct sr_datafeed_analog *analog, void *info)
 {
 	const struct rs9lcd_packet *rs_packet = (void *)buf;
 	double rawval;
@@ -329,95 +329,95 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 
 	switch (rs_packet->mode) {
 	case MODE_DC_V:
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 		break;
 	case MODE_AC_V:
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 		break;
 	case MODE_DC_UA:	/* Fall through */
 	case MODE_DC_MA:	/* Fall through */
 	case MODE_DC_A:
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 		break;
 	case MODE_AC_UA:	/* Fall through */
 	case MODE_AC_MA:	/* Fall through */
 	case MODE_AC_A:
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 		break;
 	case MODE_OHM:
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 		break;
 	case MODE_FARAD:
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 		break;
 	case MODE_CONT:
-		analog->mq = SR_MQ_CONTINUITY;
-		analog->unit = SR_UNIT_BOOLEAN;
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		analog->meaning->unit = SR_UNIT_BOOLEAN;
 		rawval = is_shortcirc(rs_packet);
 		break;
 	case MODE_DIODE:
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
-		analog->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case MODE_HZ:		/* Fall through */
 	case MODE_VOLT_HZ:	/* Fall through */
 	case MODE_AMP_HZ:
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 		break;
 	case MODE_LOGIC:
 		/*
 		 * No matter whether or not we have an actual voltage reading,
 		 * we are measuring voltage, so we set our MQ as VOLTAGE.
 		 */
-		analog->mq = SR_MQ_VOLTAGE;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
 		if (!isnan(rawval)) {
 			/* We have an actual voltage. */
-			analog->unit = SR_UNIT_VOLT;
+			analog->meaning->unit = SR_UNIT_VOLT;
 		} else {
 			/* We have either HI or LOW. */
-			analog->unit = SR_UNIT_BOOLEAN;
+			analog->meaning->unit = SR_UNIT_BOOLEAN;
 			rawval = is_logic_high(rs_packet);
 		}
 		break;
 	case MODE_HFE:
-		analog->mq = SR_MQ_GAIN;
-		analog->unit = SR_UNIT_UNITLESS;
+		analog->meaning->mq = SR_MQ_GAIN;
+		analog->meaning->unit = SR_UNIT_UNITLESS;
 		break;
 	case MODE_DUTY:		/* Fall through */
 	case MODE_VOLT_DUTY:	/* Fall through */
 	case MODE_AMP_DUTY:
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 		break;
 	case MODE_WIDTH:	/* Fall through */
 	case MODE_VOLT_WIDTH:	/* Fall through */
 	case MODE_AMP_WIDTH:
-		analog->mq = SR_MQ_PULSE_WIDTH;
-		analog->unit = SR_UNIT_SECOND;
+		analog->meaning->mq = SR_MQ_PULSE_WIDTH;
+		analog->meaning->unit = SR_UNIT_SECOND;
 		break;
 	case MODE_TEMP:
-		analog->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
 		/* We need to reparse. */
 		rawval = lcd_to_double(rs_packet, READ_TEMP);
-		analog->unit = is_celsius(rs_packet) ?
+		analog->meaning->unit = is_celsius(rs_packet) ?
 				SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
 		break;
 	case MODE_DBM:
-		analog->mq = SR_MQ_POWER;
-		analog->unit = SR_UNIT_DECIBEL_MW;
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mq = SR_MQ_POWER;
+		analog->meaning->unit = SR_UNIT_DECIBEL_MW;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 		break;
 	default:
 		sr_dbg("Unknown mode: %d.", rs_packet->mode);
@@ -425,13 +425,13 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 	}
 
 	if (rs_packet->info & INFO_HOLD)
-		analog->mqflags |= SR_MQFLAG_HOLD;
+		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (rs_packet->digit4 & DIG4_MAX)
-		analog->mqflags |= SR_MQFLAG_MAX;
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 	if (rs_packet->indicatrix2 & IND2_MIN)
-		analog->mqflags |= SR_MQFLAG_MIN;
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
 	if (rs_packet->info & INFO_AUTO)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 
 	*floatval = rawval;
 	return SR_OK;

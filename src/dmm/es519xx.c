@@ -444,7 +444,7 @@ static void parse_flags(const uint8_t *buf, struct es519xx_info *info)
 	}
 }
 
-static void handle_flags(struct sr_datafeed_analog_old *analog,
+static void handle_flags(struct sr_datafeed_analog *analog,
 			 float *floatval, const struct es519xx_info *info)
 {
 	/*
@@ -454,73 +454,73 @@ static void handle_flags(struct sr_datafeed_analog_old *analog,
 
 	/* Measurement modes */
 	if (info->is_voltage) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_current) {
-		analog->mq = SR_MQ_CURRENT;
-		analog->unit = SR_UNIT_AMPERE;
+		analog->meaning->mq = SR_MQ_CURRENT;
+		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (info->is_resistance) {
-		analog->mq = SR_MQ_RESISTANCE;
-		analog->unit = SR_UNIT_OHM;
+		analog->meaning->mq = SR_MQ_RESISTANCE;
+		analog->meaning->unit = SR_UNIT_OHM;
 	}
 	if (info->is_frequency) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_HERTZ;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_HERTZ;
 	}
 	if (info->is_capacitance) {
-		analog->mq = SR_MQ_CAPACITANCE;
-		analog->unit = SR_UNIT_FARAD;
+		analog->meaning->mq = SR_MQ_CAPACITANCE;
+		analog->meaning->unit = SR_UNIT_FARAD;
 	}
 	if (info->is_temperature && info->is_celsius) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_CELSIUS;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_CELSIUS;
 	}
 	if (info->is_temperature && info->is_fahrenheit) {
-		analog->mq = SR_MQ_TEMPERATURE;
-		analog->unit = SR_UNIT_FAHRENHEIT;
+		analog->meaning->mq = SR_MQ_TEMPERATURE;
+		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
 	}
 	if (info->is_continuity) {
-		analog->mq = SR_MQ_CONTINUITY;
-		analog->unit = SR_UNIT_BOOLEAN;
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		analog->meaning->unit = SR_UNIT_BOOLEAN;
 		*floatval = (*floatval < 0.0 || *floatval > 25.0) ? 0.0 : 1.0;
 	}
 	if (info->is_diode) {
-		analog->mq = SR_MQ_VOLTAGE;
-		analog->unit = SR_UNIT_VOLT;
+		analog->meaning->mq = SR_MQ_VOLTAGE;
+		analog->meaning->unit = SR_UNIT_VOLT;
 	}
 	if (info->is_rpm) {
-		analog->mq = SR_MQ_FREQUENCY;
-		analog->unit = SR_UNIT_REVOLUTIONS_PER_MINUTE;
+		analog->meaning->mq = SR_MQ_FREQUENCY;
+		analog->meaning->unit = SR_UNIT_REVOLUTIONS_PER_MINUTE;
 	}
 	if (info->is_duty_cycle) {
-		analog->mq = SR_MQ_DUTY_CYCLE;
-		analog->unit = SR_UNIT_PERCENTAGE;
+		analog->meaning->mq = SR_MQ_DUTY_CYCLE;
+		analog->meaning->unit = SR_UNIT_PERCENTAGE;
 	}
 
 	/* Measurement related flags */
 	if (info->is_ac)
-		analog->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
 	if (info->is_dc)
-		analog->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_auto)
-		analog->mqflags |= SR_MQFLAG_AUTORANGE;
+		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
 	if (info->is_hold)
 		/*
 		* Note: HOLD only affects the number displayed on the LCD,
 		* but not the value sent via the protocol! It also does not
 		* affect the bargraph on the LCD.
 		*/
-		analog->mqflags |= SR_MQFLAG_HOLD;
+		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_max)
-		analog->mqflags |= SR_MQFLAG_MAX;
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 	if (info->is_min)
-		analog->mqflags |= SR_MQFLAG_MIN;
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
 	if (info->is_rel)
-		analog->mqflags |= SR_MQFLAG_RELATIVE;
+		analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 
 	/* Other flags */
 	if (info->is_judge)
@@ -604,7 +604,7 @@ static gboolean sr_es519xx_packet_valid(const uint8_t *buf,
 }
 
 static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
-                            struct sr_datafeed_analog_old *analog,
+                            struct sr_datafeed_analog *analog,
                             struct es519xx_info *info)
 {
 	int ret;
@@ -640,7 +640,7 @@ SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_2400_11b_parse(const uint8_t *buf, float *floatval,
-				struct sr_datafeed_analog_old *analog, void *info)
+				struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -669,7 +669,7 @@ SR_PRIV gboolean sr_es519xx_2400_11b_altfn_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_2400_11b_altfn_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -699,7 +699,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_5digits_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_5digits_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -729,7 +729,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_clamp_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_clamp_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -758,7 +758,7 @@ SR_PRIV gboolean sr_es519xx_19200_11b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_11b_parse(const uint8_t *buf, float *floatval,
-			struct sr_datafeed_analog_old *analog, void *info)
+			struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -786,7 +786,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_14b_parse(const uint8_t *buf, float *floatval,
-			struct sr_datafeed_analog_old *analog, void *info)
+			struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
@@ -815,7 +815,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf)
 }
 
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
-		float *floatval, struct sr_datafeed_analog_old *analog, void *info)
+		float *floatval, struct sr_datafeed_analog *analog, void *info)
 {
 	struct es519xx_info *info_local;
 
