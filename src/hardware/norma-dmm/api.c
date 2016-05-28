@@ -219,11 +219,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 static struct sr_dev_driver norma_dmm_driver_info = {
 	.name = "norma-dmm",
 	.longname = "Norma DM9x0 DMMs",
@@ -239,7 +234,7 @@ static struct sr_dev_driver norma_dmm_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(norma_dmm_driver_info);
@@ -259,7 +254,7 @@ static struct sr_dev_driver siemens_b102x_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(siemens_b102x_driver_info);

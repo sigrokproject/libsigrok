@@ -468,11 +468,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 	return req_meas14(sdi);
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 static struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.name = "gmc-mh-1x-2x-rs232",
 	.longname = "Gossen Metrawatt Metrahit 1x/2x, RS232 interface",
@@ -488,7 +483,7 @@ static struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start_1x_2x_rs232,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(gmc_mh_1x_2x_rs232_driver_info);
@@ -508,7 +503,7 @@ static struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start_2x_bd232,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(gmc_mh_2x_bd232_driver_info);

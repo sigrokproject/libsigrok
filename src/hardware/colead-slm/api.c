@@ -137,11 +137,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 static struct sr_dev_driver colead_slm_driver_info = {
 	.name = "colead-slm",
 	.longname = "Colead SLM",
@@ -157,7 +152,7 @@ static struct sr_dev_driver colead_slm_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(colead_slm_driver_info);

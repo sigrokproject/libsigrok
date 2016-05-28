@@ -195,11 +195,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 #define DMM(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, TIMEOUT, \
 			DELAY, REQUEST, VALID, PARSE, DETAILS) \
 	&((struct dmm_info) { \
@@ -217,7 +212,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.dev_open = std_serial_dev_open, \
 			.dev_close = std_serial_dev_close, \
 			.dev_acquisition_start = dev_acquisition_start, \
-			.dev_acquisition_stop = dev_acquisition_stop, \
+			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
 			.context = NULL, \
 		}, \
 		VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, TIMEOUT, DELAY, \

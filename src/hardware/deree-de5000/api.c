@@ -57,7 +57,7 @@ static struct sr_dev_driver deree_de5000_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = es51919_serial_acquisition_start,
-	.dev_acquisition_stop = es51919_serial_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(deree_de5000_driver_info);

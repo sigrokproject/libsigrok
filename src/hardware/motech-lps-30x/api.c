@@ -780,11 +780,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 static struct sr_dev_driver motech_lps_301_driver_info = {
 	.name = "motech-lps-301",
 	.longname = "Motech LPS-301",
@@ -800,7 +795,7 @@ static struct sr_dev_driver motech_lps_301_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(motech_lps_301_driver_info);

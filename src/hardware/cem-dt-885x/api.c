@@ -364,14 +364,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	return std_serial_dev_acquisition_stop(sdi);
-}
-
 static struct sr_dev_driver cem_dt_885x_driver_info = {
 	.name = "cem-dt-885x",
 	.longname = "CEM DT-885x",
@@ -387,7 +379,7 @@ static struct sr_dev_driver cem_dt_885x_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(cem_dt_885x_driver_info);
