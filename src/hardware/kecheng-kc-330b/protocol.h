@@ -73,7 +73,7 @@ struct dev_context {
 	int sample_interval;
 	int alarm_low;
 	int alarm_high;
-	uint64_t mqflags;
+	enum sr_mqflag mqflags;
 	int data_source;
 
 	/* Operational state */

@@ -102,18 +102,21 @@ static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-	analog.mq = SR_MQ_SOUND_PRESSURE_LEVEL;
-	analog.mqflags = devc->mqflags;
-	analog.unit = SR_UNIT_DECIBEL_SPL;
-	analog.channels = sdi->channels;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
+	analog.meaning->mqflags = devc->mqflags;
+	analog.meaning->unit = SR_UNIT_DECIBEL_SPL;
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = buf_len;
 	analog.data = buf;
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 }
