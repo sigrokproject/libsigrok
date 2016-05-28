@@ -387,7 +387,10 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_channel *ch;
 	float *temp, *rh;
 	uint16_t s;
@@ -395,15 +398,17 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 
 	devc = sdi->priv;
 
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+
 	samples = buflen / devc->sample_size;
 	samples_left = devc->logged_samples - devc->rcvd_samples;
 	if (samples_left < samples)
 		samples = samples_left;
 	switch (devc->profile->logformat) {
 	case LOG_TEMP_RH:
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
-		analog.mqflags = 0;
+		analog.meaning->mqflags = 0;
 		if (!(temp = g_try_malloc(sizeof(float) * samples)))
 			break;
 		if (!(rh = g_try_malloc(sizeof(float) * samples)))
@@ -427,45 +432,45 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 
 		ch = sdi->channels->data;
 		if (ch->enabled) {
-			analog.channels = g_slist_append(NULL, ch);
-			analog.mq = SR_MQ_TEMPERATURE;
+			analog.meaning->channels = g_slist_append(NULL, ch);
+			analog.meaning->mq = SR_MQ_TEMPERATURE;
 			if (devc->temp_unit == 1)
-				analog.unit = SR_UNIT_FAHRENHEIT;
+				analog.meaning->unit = SR_UNIT_FAHRENHEIT;
 			else
-				analog.unit = SR_UNIT_CELSIUS;
-			analog.data = temp;
+				analog.meaning->unit = SR_UNIT_CELSIUS;
+			analog.data = (void *)temp;
 			sr_session_send(sdi, &packet);
-			g_slist_free(analog.channels);
+			g_slist_free(analog.meaning->channels);
 		}
 
 		ch = sdi->channels->next->data;
 		if (ch->enabled) {
-			analog.channels = g_slist_append(NULL, ch);
-			analog.mq = SR_MQ_RELATIVE_HUMIDITY;
-			analog.unit = SR_UNIT_PERCENTAGE;
-			analog.data = rh;
+			analog.meaning->channels = g_slist_append(NULL, ch);
+			analog.meaning->mq = SR_MQ_RELATIVE_HUMIDITY;
+			analog.meaning->unit = SR_UNIT_PERCENTAGE;
+			analog.data = (void *)rh;
 			sr_session_send(sdi, &packet);
-			g_slist_free(analog.channels);
+			g_slist_free(analog.meaning->channels);
 		}
 
 		g_free(temp);
 		g_free(rh);
 		break;
 	case LOG_CO:
-		packet.type = SR_DF_ANALOG_OLD;
+		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
-		analog.channels = sdi->channels;
+		analog.meaning->channels = sdi->channels;
 		analog.num_samples = samples;
-		analog.mq = SR_MQ_CARBON_MONOXIDE;
-		analog.unit = SR_UNIT_CONCENTRATION;
-		analog.mqflags = 0;
+		analog.meaning->mq = SR_MQ_CARBON_MONOXIDE;
+		analog.meaning->unit = SR_UNIT_CONCENTRATION;
+		analog.meaning->mqflags = 0;
 		if (!(analog.data = g_try_malloc(sizeof(float) * samples)))
 			break;
 		for (i = 0; i < samples; i++) {
 			s = (buf[i * 2] << 8) | buf[i * 2 + 1];
-			analog.data[i] = (s * devc->co_high + devc->co_low) / (1000 * 1000);
-			if (analog.data[i] < 0.0)
-				analog.data[i] = 0.0;
+			((float *)analog.data)[i] = (s * devc->co_high + devc->co_low) / (1000 * 1000);
+			if (((float *)analog.data)[i] < 0.0)
+				((float *)analog.data)[i] = 0.0;
 		}
 		sr_session_send(sdi, &packet);
 		g_free(analog.data);
