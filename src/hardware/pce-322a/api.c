@@ -321,7 +321,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, dev_close);
+	return std_serial_dev_acquisition_stop(sdi);
 }
 
 static struct sr_dev_driver pce_322a_driver_info = {

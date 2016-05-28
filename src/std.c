@@ -203,17 +203,13 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  *
  * @param sdi The device instance for which acquisition should stop.
  *            Must not be NULL.
- * @param cb_data Opaque 'cb_data' pointer. Must not be NULL.
- * @param dev_close_fn Function pointer to the driver's dev_close().
- *               	  Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid arguments.
  * @retval SR_ERR_DEV_CLOSED Device is closed.
  * @retval SR_ERR Other errors.
  */
-SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-			dev_close_callback dev_close_fn)
+SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial = sdi->conn;
 	const char *prefix = sdi->driver->name;
@@ -231,7 +227,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	if ((ret = dev_close_fn(sdi)) < 0) {
+	if ((ret = sdi->driver->dev_close(sdi)) < 0) {
 		sr_err("%s: Failed to close device: %d.", prefix, ret);
 		return ret;
 	}
