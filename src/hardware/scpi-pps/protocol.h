@@ -113,13 +113,13 @@ struct channel_group_spec {
 };
 
 struct pps_channel {
-	int mq;
+	enum sr_mq mq;
 	unsigned int hw_output_idx;
 	const char *hwname;
 };
 
 struct pps_channel_instance {
-	int mq;
+	enum sr_mq mq;
 	int command;
 	const char *prefix;
 };
