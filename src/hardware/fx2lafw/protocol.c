@@ -390,6 +390,10 @@ SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 {
 	size_t i;
 	struct dev_context *devc;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 
 	(void)sample_width;
 
@@ -417,17 +421,16 @@ SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 
 	sr_session_send(sdi, &logic_packet);
 
-	const struct sr_datafeed_analog_old analog = {
-		.channels = devc->enabled_analog_channels,
-		.num_samples = length,
-		.mq = SR_MQ_VOLTAGE,
-		.unit = SR_UNIT_VOLT,
-		.mqflags = 0 /*SR_MQFLAG_DC*/,
-		.data = devc->analog_buffer
-	};
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = devc->enabled_analog_channels;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = 0 /* SR_MQFLAG_DC */;
+	analog.num_samples = length;
+	analog.data = devc->analog_buffer;
 
 	const struct sr_datafeed_packet analog_packet = {
-		.type = SR_DF_ANALOG_OLD,
+		.type = SR_DF_ANALOG,
 		.payload = &analog
 	};
 
