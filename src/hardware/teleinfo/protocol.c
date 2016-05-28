@@ -56,10 +56,13 @@ static struct sr_channel *teleinfo_find_channel(struct sr_dev_inst *sdi,
 }
 
 static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_name,
-                                float value, int mq, int unit)
+                                float value, enum sr_mq mq, enum sr_unit unit)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_channel *ch;
 
 	ch = teleinfo_find_channel(sdi, channel_name);
@@ -67,17 +70,17 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 	if (!ch || !ch->enabled)
 		return;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-	analog.channels = g_slist_append(analog.channels, ch);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = g_slist_append(analog.meaning->channels, ch);
 	analog.num_samples = 1;
-	analog.mq = mq;
-	analog.unit = unit;
+	analog.meaning->mq = mq;
+	analog.meaning->unit = unit;
 	analog.data = &value;
 
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
-	g_slist_free(analog.channels);
+	g_slist_free(analog.meaning->channels);
 }
 
 static void teleinfo_handle_measurement(struct sr_dev_inst *sdi,
