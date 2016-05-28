@@ -93,9 +93,9 @@ struct dev_context {
 	gboolean settings_ok;	/**< Settings msg received yet. */
 	int msg_type;       /**< Message type (MSGID_INF, ...). */
 	int msg_len;        /**< Message length (valid when msg, curr. type known).*/
-	int mq;             /**< Measured quantity */
-	int unit;           /**< Measured unit */
-	uint64_t mqflags;	/**< Measured quantity flags */
+	enum sr_mq mq;      /**< Measured quantity */
+	enum sr_unit unit;  /**< Measured unit */
+	enum sr_mqflag mqflags;	/**< Measured quantity flags */
 	float value;		/**< Measured value */
 	float scale;		/**< Scale for value. */
 	int8_t scale1000;   /**< Additional scale factor 1000x. */

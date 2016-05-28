@@ -305,6 +305,9 @@ static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 		devc->scale *= pow(10.0, range - 13);
 		break;
 		/* TODO: 29S Mains measurements. */
+	default:
+		/* Avoid certain compiler warnings due to (-Wswitch). */
+		break;
 	}
 }
 
@@ -551,6 +554,9 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 		devc->scale *= pow(10.0, range - 13);
 		break;
 	/* TODO: 29S Mains measurements. */
+	default:
+		/* Avoid certain compiler warnings due to (-Wswitch). */
+		break;
 	}
 }
 
@@ -652,21 +658,24 @@ static void clean_ctmv_rs_v(struct dev_context *devc)
 static void send_value(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
 
-	memset(&analog, 0, sizeof(struct sr_datafeed_analog_old));
-	analog.channels = sdi->channels;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
-	analog.mq = devc->mq;
-	analog.unit = devc->unit;
-	analog.mqflags = devc->mqflags;
+	analog.meaning->mq = devc->mq;
+	analog.meaning->unit = devc->unit;
+	analog.meaning->mqflags = devc->mqflags;
 	analog.data = &devc->value;
 
 	memset(&packet, 0, sizeof(struct sr_datafeed_packet));
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
 
@@ -858,7 +867,7 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
 	}
 	sr_spew("process_msg_inf_13() value=%f scale=%f scale1000=%d mq=%d "
 		"unit=%d mqflags=0x%02" PRIx64, devc->value, devc->scale,
-		devc->scale1000, devc->mq, devc->unit, devc->mqflags);
+		devc->scale1000, devc->mq, devc->unit, (uint64_t)devc->mqflags);
 	if (devc->value != NAN)
 		devc->value *= devc->scale * pow(1000.0, devc->scale1000);
 
@@ -1074,7 +1083,7 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 		}
 		sr_spew("process_msg14() value=%f scale=%f scale1000=%d mq=%d "
 			"unit=%d mqflags=0x%02" PRIx64, devc->value, devc->scale,
-			devc->scale1000, devc->mq, devc->unit, devc->mqflags);
+			devc->scale1000, devc->mq, devc->unit, (uint64_t)devc->mqflags);
 		if (devc->value != NAN)
 			devc->value *= devc->scale * pow(1000.0, devc->scale1000);
 
