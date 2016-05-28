@@ -128,19 +128,23 @@ SR_PRIV const char *maynuo_m97_mode_to_str(enum maynuo_m97_mode mode)
 static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch, float value, enum sr_mq mq, enum sr_unit unit)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 
-	analog.channels = g_slist_append(NULL, ch);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = g_slist_append(NULL, ch);
 	analog.num_samples = 1;
 	analog.data = &value;
-	analog.mq = mq;
-	analog.unit = unit;
-	analog.mqflags = SR_MQFLAG_DC;
+	analog.meaning->mq = mq;
+	analog.meaning->unit = unit;
+	analog.meaning->mqflags = SR_MQFLAG_DC;
 
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
-	g_slist_free(analog.channels);
+	g_slist_free(analog.meaning->channels);
 }
 
 SR_PRIV int maynuo_m97_capture_start(const struct sr_dev_inst *sdi)
