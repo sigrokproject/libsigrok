@@ -37,8 +37,8 @@ struct dmm_info {
 	int packet_size;
 	gboolean (*packet_valid)(const uint8_t *);
 	int (*packet_parse)(const uint8_t *, float *,
-			    struct sr_datafeed_analog_old *, void *);
-	void (*dmm_details)(struct sr_datafeed_analog_old *, void *);
+			    struct sr_datafeed_analog *, void *);
+	void (*dmm_details)(struct sr_datafeed_analog *, void *);
 	gsize info_size;
 };
 
