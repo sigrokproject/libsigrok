@@ -331,22 +331,26 @@ static void push_samples(const struct sr_dev_inst *sdi, uint8_t *buf, size_t num
 {
 	struct dev_context *devc = sdi->priv;
 	float *data = devc->samples;
-	struct sr_datafeed_analog_old analog = {
-		.channels = devc->enabled_channel,
-		.num_samples = num,
-		.mq = SR_MQ_VOLTAGE,
-		.unit = SR_UNIT_VOLT,
-		.mqflags = 0,
-		.data = data,
-	};
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_datafeed_packet packet = {
-		.type = SR_DF_ANALOG_OLD,
+		.type = SR_DF_ANALOG,
 		.payload = &analog,
 	};
 	float factor = devc->factor;
 
 	while (num--)
 		data[num] = (buf[num] - 0x80) * factor;
+
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = devc->enabled_channel;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = 0;
+	analog.num_samples = num;
+	analog.data = data;
 
 	sr_session_send(sdi, &packet);
 }
