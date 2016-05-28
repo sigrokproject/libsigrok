@@ -222,7 +222,10 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_channel *ch;
 	GString *dbg;
 	float value;
@@ -241,10 +244,11 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 		g_string_free(dbg, TRUE);
 	}
 
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 	analog.num_samples = 1;
-	analog.mqflags = 0;
+	analog.meaning->mqflags = 0;
 	analog.data = &value;
 	/* Decode 7-byte values */
 	for (i = 0; i < devc->reply[6]; i++) {
@@ -252,20 +256,20 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 		value = binary32_le_to_float(buf);
 		switch (buf[4]) {
 		case 1:
-			analog.mq = SR_MQ_TEMPERATURE;
-			analog.unit = SR_UNIT_CELSIUS;
+			analog.meaning->mq = SR_MQ_TEMPERATURE;
+			analog.meaning->unit = SR_UNIT_CELSIUS;
 			break;
 		case 3:
-			analog.mq = SR_MQ_RELATIVE_HUMIDITY;
-			analog.unit = SR_UNIT_HUMIDITY_293K;
+			analog.meaning->mq = SR_MQ_RELATIVE_HUMIDITY;
+			analog.meaning->unit = SR_UNIT_HUMIDITY_293K;
 			break;
 		case 5:
-			analog.mq = SR_MQ_WIND_SPEED;
-			analog.unit = SR_UNIT_METER_SECOND;
+			analog.meaning->mq = SR_MQ_WIND_SPEED;
+			analog.meaning->unit = SR_UNIT_METER_SECOND;
 			break;
 		case 24:
-			analog.mq = SR_MQ_PRESSURE;
-			analog.unit = SR_UNIT_HECTOPASCAL;
+			analog.meaning->mq = SR_MQ_PRESSURE;
+			analog.meaning->unit = SR_UNIT_HECTOPASCAL;
 			break;
 		default:
 			sr_dbg("Unsupported measurement unit %d.", buf[4]);
@@ -283,8 +287,8 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 			return;
 		}
 		ch = g_slist_nth_data(sdi->channels, i);
-		analog.channels = g_slist_append(NULL, ch);
+		analog.meaning->channels = g_slist_append(NULL, ch);
 		sr_session_send(sdi, &packet);
-		g_slist_free(analog.channels);
+		g_slist_free(analog.meaning->channels);
 	}
 }
