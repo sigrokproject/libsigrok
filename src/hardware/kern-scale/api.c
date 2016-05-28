@@ -176,8 +176,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close,
-			sdi->conn);
+	return std_serial_dev_acquisition_stop(sdi, std_serial_dev_close);
 }
 
 #define SCALE(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \

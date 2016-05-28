@@ -338,7 +338,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	return std_serial_dev_acquisition_stop(sdi,
-		std_serial_dev_close, sdi->conn);
+		std_serial_dev_close);
 }
 
 static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {

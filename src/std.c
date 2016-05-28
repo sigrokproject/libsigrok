@@ -206,8 +206,6 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  * @param cb_data Opaque 'cb_data' pointer. Must not be NULL.
  * @param dev_close_fn Function pointer to the driver's dev_close().
  *               	  Must not be NULL.
- * @param serial The serial device instance (struct serial_dev_inst *).
- *               Must not be NULL.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid arguments.
@@ -215,9 +213,9 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
  * @retval SR_ERR Other errors.
  */
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi,
-			dev_close_callback dev_close_fn,
-			struct sr_serial_dev_inst *serial)
+			dev_close_callback dev_close_fn)
 {
+	struct sr_serial_dev_inst *serial = sdi->conn;
 	const char *prefix = sdi->driver->name;
 	int ret;
 
