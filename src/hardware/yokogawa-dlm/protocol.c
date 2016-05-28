@@ -964,7 +964,10 @@ static int dlm_analog_samples_send(GArray *data,
 	struct dev_context *devc;
 	struct scope_state *model_state;
 	struct sr_channel *ch;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
@@ -992,16 +995,17 @@ static int dlm_analog_samples_send(GArray *data,
 		g_array_append_val(float_data, voltage);
 	}
 
-	analog.channels = g_slist_append(NULL, ch);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = g_slist_append(NULL, ch);
 	analog.num_samples = float_data->len;
 	analog.data = (float*)float_data->data;
-	analog.mq = SR_MQ_VOLTAGE;
-	analog.unit = SR_UNIT_VOLT;
-	analog.mqflags = 0;
-	packet.type = SR_DF_ANALOG_OLD;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = 0;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
-	g_slist_free(analog.channels);
+	g_slist_free(analog.meaning->channels);
 
 	g_array_free(float_data, TRUE);
 	g_array_remove_range(data, 0, samples * sizeof(uint8_t));
