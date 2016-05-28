@@ -162,8 +162,6 @@ enum sr_packettype {
 	SR_DF_TRIGGER,
 	/** Payload is struct sr_datafeed_logic. */
 	SR_DF_LOGIC,
-	/** DEPRECATED! Use SR_DF_ANALOG instead. */
-	SR_DF_ANALOG_OLD,
 	/** Beginning of frame. No payload. */
 	SR_DF_FRAME_BEGIN,
 	/** End of frame. No payload. */
@@ -494,24 +492,6 @@ struct sr_datafeed_logic {
 	uint64_t length;
 	uint16_t unitsize;
 	void *data;
-};
-
-/** Analog datafeed payload for type SR_DF_ANALOG_OLD. */
-struct sr_datafeed_analog_old {
-	/** The channels for which data is included in this packet. */
-	GSList *channels;
-	/** Number of samples in data */
-	int num_samples;
-	/** Measured quantity (voltage, current, temperature, and so on).
-	 *  Use SR_MQ_VOLTAGE, ... */
-	int mq;
-	/** Unit in which the MQ is measured. Use SR_UNIT_VOLT, ... */
-	int unit;
-	/** Bitmap with extra information about the MQ. Use SR_MQFLAG_AC, ... */
-	uint64_t mqflags;
-	/** The analog value(s). The data is interleaved according to
-	 * the channels list. */
-	float *data;
 };
 
 /** Analog datafeed payload for type SR_DF_ANALOG. */
