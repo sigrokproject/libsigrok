@@ -688,21 +688,26 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		int num_samples)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog_old analog;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	float ch1, ch2, range;
-	int num_channels, data_offset, i;
+	int num_channels, data_offset;
+	unsigned int i;
 
 	devc = sdi->priv;
 	num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
-	packet.type = SR_DF_ANALOG_OLD;
+	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
-	analog.channels = devc->enabled_channels;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	analog.meaning->channels = devc->enabled_channels;
 	analog.num_samples = num_samples;
-	analog.mq = SR_MQ_VOLTAGE;
-	analog.unit = SR_UNIT_VOLT;
-	analog.mqflags = 0;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = 0;
 	/* TODO: Check malloc return value. */
 	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
 	data_offset = 0;
@@ -725,13 +730,13 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 			ch1 = range / 255 * *(buf + i * 2 + 1);
 			/* Value is centered around 0V. */
 			ch1 -= range / 2;
-			analog.data[data_offset++] = ch1;
+			((float *)analog.data)[data_offset++] = ch1;
 		}
 		if (devc->ch2_enabled) {
 			range = ((float)vdivs[devc->voltage[1]][0] / vdivs[devc->voltage[1]][1]) * 8;
 			ch2 = range / 255 * *(buf + i * 2);
 			ch2 -= range / 2;
-			analog.data[data_offset++] = ch2;
+			((float *)analog.data)[data_offset++] = ch2;
 		}
 	}
 	sr_session_send(sdi, &packet);
