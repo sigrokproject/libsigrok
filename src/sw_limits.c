@@ -31,6 +31,8 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "sw_limits"
+
 /**
  * Initialize a software limit instance
  *
@@ -129,16 +131,22 @@ SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits)
 SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits)
 {
 	if (limits->limit_samples) {
-		if (limits->samples_read >= limits->limit_samples)
+		if (limits->samples_read >= limits->limit_samples) {
+			sr_dbg("Requested number of samples (%" PRIu64
+			       ") reached.", limits->limit_samples);
 			return TRUE;
+		}
 	}
 
 	if (limits->limit_msec) {
 		guint64 now;
 		now = g_get_monotonic_time();
 		if (now > limits->start_time &&
-			now - limits->start_time > limits->limit_msec)
+			now - limits->start_time > limits->limit_msec) {
+			sr_dbg("Requested sampling time (%" PRIu64
+			       "ms) reached.", limits->limit_msec / 1000);
 			return TRUE;
+		}
 	}
 
 	return FALSE;
