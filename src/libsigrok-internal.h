@@ -332,6 +332,8 @@ struct zip_stat;
 #define SR_REGISTER_DEV_DRIVER(name) \
 	SR_REGISTER_DEV_DRIVER_LIST(name##_list, &name);
 
+SR_PRIV void sr_drivers_init(struct sr_context *context);
+
 struct sr_context {
 	struct sr_dev_driver **driver_list;
 #ifdef HAVE_LIBUSB_1_0

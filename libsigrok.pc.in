@@ -9,6 +9,6 @@ URL: http://www.sigrok.org
 Requires: glib-2.0
 Requires.private: @SR_PKGLIBS@
 Version: @SR_PACKAGE_VERSION@
-Libs: -L${libdir} @SR_LINK_BEFORE_LIB@ -lsigrok @SR_LINK_AFTER_LIB@
+Libs: -L${libdir} -lsigrok
 Libs.private: @SR_EXTRA_LIBS@
 Cflags: -I${includedir}

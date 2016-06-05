@@ -174,18 +174,6 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
 
-# Linker flag to retain the objects of a static lib that are not referenced
-AX_CHECK_LINK_FLAG([-Wl,--whole-archive -Wl,--no-whole-archive],
-                   [SR_LINK_BEFORE_LIB=-Wl,--whole-archive
-                    SR_LINK_AFTER_LIB=-Wl,--no-whole-archive], [
-AX_CHECK_LINK_FLAG([-Wl,-force_load],
-                   [SR_LINK_BEFORE_LIB=-Wl,-force_load
-                    SR_LINK_AFTER_LIB=],
-                   [SR_LINK_BEFORE_LIB=
-                    SR_LINK_AFTER_LIB=])])
-AC_SUBST(SR_LINK_BEFORE_LIB)
-AC_SUBST(SR_LINK_AFTER_LIB)
-
 ########################
 ##  Hardware drivers  ##
 ########################
