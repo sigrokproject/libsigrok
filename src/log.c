@@ -163,7 +163,8 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 {
 	uint64_t elapsed_us, minutes;
 	unsigned int rest_us, seconds, microseconds;
-	int ret;
+	char *raw_output, *output;
+	int raw_len, raw_idx, idx, ret;
 
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
@@ -186,9 +187,24 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 		ret = fputs("sr: ", stderr);
 	}
 
-	if (ret < 0 || g_vfprintf(stderr, format, args) < 0
-			|| putc('\n', stderr) < 0)
+	if (ret < 0 || (raw_len = g_vasprintf(&raw_output, format, args)) < 0)
 		return SR_ERR;
+
+	output = g_malloc0(raw_len + 1);
+
+	/* Copy the string without any unwanted newlines. */
+	raw_idx = idx = 0;
+	while (raw_idx < raw_len) {
+		if (raw_output[raw_idx] != '\n') {
+			output[idx] = raw_output[raw_idx];
+			idx++;
+		}
+		raw_idx++;
+	}
+
+	g_fprintf(stderr, "%s\n", output);
+	g_free(raw_output);
+	g_free(output);
 
 	return SR_OK;
 }
