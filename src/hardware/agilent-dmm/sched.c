@@ -459,11 +459,22 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			}
 		} else
 			devc->cur_mqflags |= SR_MQFLAG_DC;
-	} else if (!strcmp(mstr, "CURR")) {
+	} else if (!strncmp(mstr, "CURR", 4)) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		if (mstr[4] == ':') {
+			if (!strncmp(mstr + 5, "ACDC", 4)) {
+				/* AC + DC offset */
+				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
+			} else if (!strncmp(mstr + 5, "AC", 2)) {
+				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			} else if (!strncmp(mstr + 5, "DC", 2)) {
+				devc->cur_mqflags |= SR_MQFLAG_DC;
+			}
+		} else
+			devc->cur_mqflags |= SR_MQFLAG_DC;
 	} else if (!strcmp(mstr, "RES")) {
 		devc->cur_mq = SR_MQ_RESISTANCE;
 		devc->cur_unit = SR_UNIT_OHM;
@@ -561,6 +572,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
 	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
@@ -573,6 +585,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
 	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
