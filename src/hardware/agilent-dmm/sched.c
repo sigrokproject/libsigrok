@@ -449,18 +449,16 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
 		if (mstr[4] == ':') {
-			if (!strncmp(mstr + 5, "AC", 2)) {
+			if (!strncmp(mstr + 5, "ACDC", 4)) {
+				/* AC + DC offset */
+				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
+			} else if (!strncmp(mstr + 5, "AC", 2)) {
 				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "DC", 2)) {
 				devc->cur_mqflags |= SR_MQFLAG_DC;
-			} else if (!strncmp(mstr + 5, "ACDC", 4)) {
-				/* AC + DC offset */
-				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
-			} else {
-				devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 			}
 		} else
-			devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
+			devc->cur_mqflags |= SR_MQFLAG_DC;
 	} else if (!strcmp(mstr, "CURR")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
