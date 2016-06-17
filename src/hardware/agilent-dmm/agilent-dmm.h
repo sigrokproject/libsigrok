@@ -39,6 +39,9 @@ enum {
 	AGILENT_U1251,
 	AGILENT_U1252,
 	AGILENT_U1253,
+
+	KEYSIGHT_U1281,
+	KEYSIGHT_U1282,
 };
 
 /* Supported device profiles */
@@ -67,6 +70,7 @@ struct dev_context {
 	int cur_acdc;
 	int mode_tempaux;
 	int mode_continuity;
+	int mode_squarewave;
 };
 
 struct agdmm_job {

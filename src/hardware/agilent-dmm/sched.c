@@ -255,8 +255,51 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+static int recv_stat_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *s;
+
+	devc = sdi->priv;
+	s = g_match_info_fetch(match, 1);
+	sr_spew("STAT response '%s'.", s);
+
+	/* Max, Min or Avg mode -- no way to tell which, so we'll
+	 * set both flags to denote it's not a normal measurement. */
+	if (s[0] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG;
+	else
+		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG);
+
+	/* Peak hold mode. */
+	if (s[4] == '4')
+		devc->cur_mqflags |= SR_MQFLAG_MAX;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_MAX;
+
+	/* Null function. */
+	if (s[1] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+
+	/* Triggered or auto hold modes. */
+	if (s[7] == '1' || s[11] == '1')
+		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+	else
+		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+
+	g_free(s);
+
+	return SR_OK;
+}
+
 static int send_fetc(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
+	devc = sdi->priv;
+	if (devc->mode_squarewave)
+		return SR_OK;
 	return agdmm_send(sdi, "FETC?");
 }
 
@@ -435,6 +478,8 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
 
+	devc->mode_squarewave = 0;
+
   	rstr = g_match_info_fetch(match, 4);
 	if (rstr && sr_atoi(rstr, &resolution) == SR_OK) {
 		devc->cur_digits = -resolution;
@@ -480,12 +525,17 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_OHM;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+	} else if (!strcmp(mstr, "COND")) {
+		devc->cur_mq = SR_MQ_CONDUCTANCE;
+		devc->cur_unit = SR_UNIT_SIEMENS;
+		devc->cur_mqflags = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
-	} else if (!strcmp(mstr, "FREQ")) {
+	} else if (!strncmp(mstr, "FREQ", 4) || !strncmp(mstr, "FC1", 3)) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
@@ -502,7 +552,8 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_exponent = 0;
 		devc->cur_digits = 4;
 		devc->cur_encoding = 5;
-	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
+	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2) ||
+	           !strncmp(mstr, "TEMP", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
 		if (!strcmp(m2, "FAR"))
@@ -527,6 +578,12 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_exponent = 0;
 		devc->cur_digits = 2;
 		devc->cur_encoding = 3;
+	} else if (!strcmp(mstr, "SQU")) {
+		/*
+		 * Square wave output, not supported. FETC just return
+		 * an error in this mode, so don't even call it.
+		 */
+		devc->mode_squarewave = 1;
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
@@ -589,5 +646,19 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
+	ALL_ZERO
+};
+
+SR_PRIV const struct agdmm_recv agdmm_recvs_u128x[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u128x },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))$", recv_fetc },
+	{ "^\"(VOLT|CURR|RES|COND|CAP|FREQ|FC1|FC100) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(FREQ:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(DIOD|SQU)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
 };

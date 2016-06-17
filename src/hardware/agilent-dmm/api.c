@@ -46,6 +46,7 @@ extern const struct agdmm_job agdmm_jobs_u12xx[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_recv agdmm_recvs_u124x[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
+extern const struct agdmm_recv agdmm_recvs_u128x[];
 
 /* This works on all the Agilent U12xxA series, although the
  * U127xA can apparently also run at 19200/8n1. */
@@ -67,6 +68,9 @@ static const struct agdmm_profile supported_agdmm[] = {
 	{ AGILENT_U1251, "U1251B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
 	{ AGILENT_U1252, "U1252B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
 	{ AGILENT_U1253, "U1253B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+
+	{ KEYSIGHT_U1281, "U1281A", agdmm_jobs_u12xx, agdmm_recvs_u128x },
+	{ KEYSIGHT_U1282, "U1282A", agdmm_jobs_u12xx, agdmm_recvs_u128x },
 	ALL_ZERO
 };
 
