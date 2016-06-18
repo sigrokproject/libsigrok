@@ -42,7 +42,7 @@ extern struct sr_dev_driver *__stop_sr_driver_list;
  *
  * @param ctx Pointer to a libsigrok context struct. Must not be NULL.
  */
-SR_PRIV void sr_drivers_init(struct sr_context *ctx)
+SR_API void sr_drivers_init(struct sr_context *ctx)
 {
 	struct sr_dev_driver **drivers;
 	GArray *array;
