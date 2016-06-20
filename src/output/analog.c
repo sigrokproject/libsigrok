@@ -118,7 +118,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (l = analog->meaning->channels, c = 0; l; l = l->next, c++) {
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
-				number = g_strdup_printf("%.*f", digits,
+				number = g_strdup_printf("%.*f", MAX(digits, 0),
 						fdata[i * num_channels + c]);
 				g_string_append(*out, number);
 				g_free(number);

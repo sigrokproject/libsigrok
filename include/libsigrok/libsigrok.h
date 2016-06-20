@@ -508,7 +508,7 @@ struct sr_analog_encoding {
 	gboolean is_signed;
 	gboolean is_float;
 	gboolean is_bigendian;
-	uint8_t digits;
+	int8_t digits;
 	gboolean is_digits_decimal;
 	struct sr_rational scale;
 	struct sr_rational offset;
@@ -522,7 +522,7 @@ struct sr_analog_meaning {
 };
 
 struct sr_analog_spec {
-	uint8_t spec_digits;
+	int8_t spec_digits;
 };
 
 /** Generic option struct used by various subsystems. */
