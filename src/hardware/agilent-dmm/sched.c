@@ -299,13 +299,15 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			fvalue *= powf(10, devc->cur_exponent);
 	}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec,
+	               devc->cur_digits - devc->cur_exponent);
 	analog.meaning->mq = devc->cur_mq;
 	analog.meaning->unit = devc->cur_unit;
 	analog.meaning->mqflags = devc->cur_mqflags;
 	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
+	encoding.digits = devc->cur_encoding - devc->cur_exponent;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
@@ -323,16 +325,24 @@ static int send_conf(const struct sr_dev_inst *sdi)
 static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
-	char *mstr;
+	char *mstr, *rstr;
+	int resolution;
 
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
+
+	rstr = g_match_info_fetch(match, 2);
+	if (rstr)
+		sr_atoi(rstr, &resolution);
+	g_free(rstr);
+
 	mstr = g_match_info_fetch(match, 1);
 	if (!strcmp(mstr, "V")) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 4 - resolution;
 	} else if (!strcmp(mstr, "MV")) {
 		if (devc->mode_tempaux) {
 			devc->cur_mq = SR_MQ_TEMPERATURE;
@@ -341,27 +351,32 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			devc->cur_unit = SR_UNIT_CELSIUS;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+			devc->cur_digits = 1;
 		} else {
 			devc->cur_mq = SR_MQ_VOLTAGE;
 			devc->cur_unit = SR_UNIT_VOLT;
 			devc->cur_mqflags = 0;
 			devc->cur_exponent = -3;
+			devc->cur_digits = 5 - resolution;
 		}
 	} else if (!strcmp(mstr, "A")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 3 - resolution;
 	} else if (!strcmp(mstr, "UA")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = -6;
+		devc->cur_digits = 8 - resolution;
 	} else if (!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 2 - resolution;
 	} else if (!strcmp(mstr, "RES")) {
 		if (devc->mode_continuity) {
 			devc->cur_mq = SR_MQ_CONTINUITY;
@@ -372,19 +387,25 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		}
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 1 - resolution;
 	} else if (!strcmp(mstr, "DIOD")) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = SR_MQFLAG_DIODE;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 3;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 9 - resolution;
 	} else
 		sr_dbg("Unknown first argument.");
 	g_free(mstr);
+
+	/* This is based on guess, supposing similarity with other models. */
+	devc->cur_encoding = devc->cur_digits + 1;
 
 	if (g_match_info_get_match_count(match) == 4) {
 		mstr = g_match_info_fetch(match, 3);
@@ -408,11 +429,20 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
-	char *mstr, *m2;
+	char *mstr, *rstr, *m2;
+	int resolution;
 
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
-	mstr = g_match_info_fetch(match, 1);
+
+  	rstr = g_match_info_fetch(match, 4);
+	if (rstr && sr_atoi(rstr, &resolution) == SR_OK) {
+		devc->cur_digits = -resolution;
+		devc->cur_encoding = -resolution + 1;
+	}
+	g_free(rstr);
+
+  	mstr = g_match_info_fetch(match, 1);
 	if (!strncmp(mstr, "VOLT", 4)) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
@@ -461,6 +491,8 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = SR_MQFLAG_DIODE;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 4;
+		devc->cur_encoding = 5;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
@@ -471,6 +503,8 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		g_free(m2);
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 1;
+		devc->cur_encoding = 2;
 	} else if (!strcmp(mstr, "SCOU")) {
 		/*
 		 * Switch counter, not supported. Not sure what values
@@ -482,6 +516,8 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_PERCENTAGE;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+		devc->cur_digits = 2;
+		devc->cur_encoding = 3;
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
@@ -525,9 +561,9 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u124x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
@@ -537,9 +573,9 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u125x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
