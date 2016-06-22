@@ -372,6 +372,11 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		}
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+	} else if (!strcmp(mstr, "DIOD")) {
+		devc->cur_mq = SR_MQ_VOLTAGE;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = SR_MQFLAG_DIODE;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
@@ -451,6 +456,11 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit = SR_UNIT_BOOLEAN;
 		devc->cur_mqflags = 0;
 		devc->cur_exponent = 0;
+	} else if (!strcmp(mstr, "DIOD")) {
+		devc->cur_mq = SR_MQ_VOLTAGE;
+		devc->cur_unit = SR_UNIT_VOLT;
+		devc->cur_mqflags = SR_MQFLAG_DIODE;
+		devc->cur_exponent = 0;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
@@ -475,26 +485,6 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
-	g_free(mstr);
-
-	return SR_OK;
-}
-
-static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
-{
-	struct dev_context *devc;
-	char *mstr;
-
-	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
-	devc = sdi->priv;
-	mstr = g_match_info_fetch(match, 1);
-	if (!strcmp(mstr, "DIOD")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = SR_MQFLAG_DIODE;
-		devc->cur_exponent = 0;
-	} else
-		sr_dbg("Unknown single argument.");
 	g_free(mstr);
 
 	return SR_OK;
@@ -527,7 +517,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u123x[] = {
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
 	{ "^\"(V|MV|A|UA|FREQ),(\\d),(AC|DC)\"$", recv_conf_u123x },
 	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
-	{ "^\"(DIOD)\"$", recv_conf },
+	{ "^\"(DIOD)\"$", recv_conf_u123x },
 	ALL_ZERO
 };
 
@@ -539,7 +529,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(DIOD)\"$", recv_conf },
+	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
 };
 
@@ -551,6 +541,6 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9\\.E\\-+]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(DIOD)\"$", recv_conf },
+	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
 };
