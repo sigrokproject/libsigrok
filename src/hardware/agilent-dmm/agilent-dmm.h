@@ -61,7 +61,7 @@ struct dev_context {
 	int cur_mq;
 	int cur_unit;
 	int cur_mqflags;
-	int cur_divider;
+	int cur_exponent;
 	int cur_acdc;
 	int mode_tempaux;
 	int mode_continuity;

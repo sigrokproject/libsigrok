@@ -295,8 +295,8 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			return SR_ERR;
 		}
 		g_free(mstr);
-		if (devc->cur_divider > 0)
-			fvalue /= devc->cur_divider;
+		if (devc->cur_exponent != 0)
+			fvalue *= powf(10, devc->cur_exponent);
 	}
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
@@ -332,7 +332,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "MV")) {
 		if (devc->mode_tempaux) {
 			devc->cur_mq = SR_MQ_TEMPERATURE;
@@ -340,28 +340,28 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			 * is used, so we'll just default to Celsius. */
 			devc->cur_unit = SR_UNIT_CELSIUS;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 		} else {
 			devc->cur_mq = SR_MQ_VOLTAGE;
 			devc->cur_unit = SR_UNIT_VOLT;
 			devc->cur_mqflags = 0;
-			devc->cur_divider = 1000;
+			devc->cur_exponent = -3;
 		}
 	} else if (!strcmp(mstr, "A")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "UA")) {
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 1000000;
+		devc->cur_exponent = -6;
 	} else if (!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "RES")) {
 		if (devc->mode_continuity) {
 			devc->cur_mq = SR_MQ_CONTINUITY;
@@ -371,12 +371,12 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			devc->cur_unit = SR_UNIT_OHM;
 		}
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else
 		sr_dbg("Unknown first argument.");
 	g_free(mstr);
@@ -412,7 +412,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 		if (mstr[4] == ':') {
 			if (!strncmp(mstr + 5, "AC", 2)) {
 				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
@@ -430,27 +430,27 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_AMPERE;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "RES")) {
 		devc->cur_mq = SR_MQ_RESISTANCE;
 		devc->cur_unit = SR_UNIT_OHM;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq = SR_MQ_CAPACITANCE;
 		devc->cur_unit = SR_UNIT_FARAD;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "FREQ")) {
 		devc->cur_mq = SR_MQ_FREQUENCY;
 		devc->cur_unit = SR_UNIT_HERTZ;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "CONT")) {
 		devc->cur_mq = SR_MQ_CONTINUITY;
 		devc->cur_unit = SR_UNIT_BOOLEAN;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
@@ -460,7 +460,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			devc->cur_unit = SR_UNIT_CELSIUS;
 		g_free(m2);
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else if (!strcmp(mstr, "SCOU")) {
 		/*
 		 * Switch counter, not supported. Not sure what values
@@ -471,7 +471,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq = SR_MQ_CURRENT;
 		devc->cur_unit = SR_UNIT_PERCENTAGE;
 		devc->cur_mqflags = 0;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
@@ -492,7 +492,7 @@ static int recv_conf(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
 		devc->cur_mqflags = SR_MQFLAG_DIODE;
-		devc->cur_divider = 0;
+		devc->cur_exponent = 0;
 	} else
 		sr_dbg("Unknown single argument.");
 	g_free(mstr);
