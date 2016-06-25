@@ -769,6 +769,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_channel *ch;
 	char *cmd;
 	unsigned int i;
 	int res;
@@ -782,6 +783,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		g_free(cmd);
 		if (res != SR_OK)
 			return SR_ERR;
+		ch = g_slist_nth_data(sdi->channels, i);
+		ch->enabled = devc->analog_channels[i];
 	}
 	sr_dbg("Current analog channel state:");
 	for (i = 0; i < devc->model->analog_channels; i++)
@@ -804,6 +807,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 			g_free(cmd);
 			if (res != SR_OK)
 				return SR_ERR;
+			ch = g_slist_nth_data(sdi->channels, i + devc->model->analog_channels);
+			ch->enabled = devc->digital_channels[i];
 			sr_dbg("D%d: %s", i, devc->digital_channels[i] ? "on" : "off");
 		}
 	}
