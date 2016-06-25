@@ -964,6 +964,9 @@ enum sr_configkey {
 	/** Under-voltage condition active. */
 	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
 
+	/** Trigger level. */
+	SR_CONF_TRIGGER_LEVEL,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/

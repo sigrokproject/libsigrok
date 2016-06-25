@@ -856,6 +856,11 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	sr_dbg("Current trigger slope %s", devc->trigger_slope);
 
+	/* Trigger level. */
+	if (sr_scpi_get_float(sdi->conn, ":TRIG:EDGE:LEV?", &devc->trigger_level) != SR_OK)
+		return SR_ERR;
+	sr_dbg("Current trigger level %g", devc->trigger_level);
+
 	return SR_OK;
 }
 

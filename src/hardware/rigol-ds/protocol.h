@@ -124,6 +124,7 @@ struct dev_context {
 	char *trigger_source;
 	float horiz_triggerpos;
 	char *trigger_slope;
+	float trigger_level;
 	char *coupling[MAX_ANALOG_CHANNELS];
 
 	/* Operational state */

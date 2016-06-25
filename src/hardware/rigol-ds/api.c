@@ -43,6 +43,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
@@ -588,6 +589,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		}
 		*data = g_variant_new_string(tmp_str);
 		break;
+	case SR_CONF_TRIGGER_LEVEL:
+		*data = g_variant_new_double(devc->trigger_level);
+		break;
 	case SR_CONF_TIMEBASE:
 		for (i = 0; i < devc->num_timebases; i++) {
 			float tb = (float)devc->timebases[i][0] / devc->timebases[i][1];
@@ -696,6 +700,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
 		ret = rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
+		break;
+	case SR_CONF_TRIGGER_LEVEL:
+		t_dbl = g_variant_get_double(data);
+		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", t_dbl);
+		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:LEV %s", buffer);
+		if (ret == SR_OK)
+			devc->trigger_level = t_dbl;
 		break;
 	case SR_CONF_TIMEBASE:
 		g_variant_get(data, "(tt)", &p, &q);
