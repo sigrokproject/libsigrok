@@ -813,29 +813,9 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	sr_dbg("Current timebase %g", devc->timebase);
 
-	/* Vertical gain. */
-	for (i = 0; i < devc->model->analog_channels; i++) {
-		cmd = g_strdup_printf(":CHAN%d:SCAL?", i + 1);
-		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vdiv[i]);
-		g_free(cmd);
-		if (res != SR_OK)
-			return SR_ERR;
-	}
-	sr_dbg("Current vertical gain:");
-	for (i = 0; i < devc->model->analog_channels; i++)
-		sr_dbg("CH%d %g", i + 1, devc->vdiv[i]);
-
-	/* Vertical offset. */
-	for (i = 0; i < devc->model->analog_channels; i++) {
-		cmd = g_strdup_printf(":CHAN%d:OFFS?", i + 1);
-		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vert_offset[i]);
-		g_free(cmd);
-		if (res != SR_OK)
-			return SR_ERR;
-	}
-	sr_dbg("Current vertical offset:");
-	for (i = 0; i < devc->model->analog_channels; i++)
-		sr_dbg("CH%d %g", i + 1, devc->vert_offset[i]);
+	/* Vertical gain and offset. */
+	if (rigol_ds_get_dev_cfg_vertical(sdi) != SR_OK)
+		return SR_ERR;
 
 	/* Coupling. */
 	for (i = 0; i < devc->model->analog_channels; i++) {
@@ -863,6 +843,42 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (sr_scpi_get_string(sdi->conn, ":TRIG:EDGE:SLOP?", &devc->trigger_slope) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current trigger slope %s", devc->trigger_slope);
+
+	return SR_OK;
+}
+
+SR_PRIV int rigol_ds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	char *cmd;
+	unsigned int i;
+	int res;
+
+	devc = sdi->priv;
+
+	/* Vertical gain. */
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:SCAL?", i + 1);
+		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vdiv[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current vertical gain:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %g", i + 1, devc->vdiv[i]);
+
+	/* Vertical offset. */
+	for (i = 0; i < devc->model->analog_channels; i++) {
+		cmd = g_strdup_printf(":CHAN%d:OFFS?", i + 1);
+		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vert_offset[i]);
+		g_free(cmd);
+		if (res != SR_OK)
+			return SR_ERR;
+	}
+	sr_dbg("Current vertical offset:");
+	for (i = 0; i < devc->model->analog_channels; i++)
+		sr_dbg("CH%d %g", i + 1, devc->vert_offset[i]);
 
 	return SR_OK;
 }
