@@ -25,8 +25,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define UNI_T_UT_D04_NEW "1a86.e008"
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
