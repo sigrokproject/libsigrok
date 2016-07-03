@@ -421,7 +421,7 @@ SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 
 	sr_session_send(sdi, &logic_packet);
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	analog.meaning->channels = devc->enabled_analog_channels;
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
