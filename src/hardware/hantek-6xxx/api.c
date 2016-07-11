@@ -219,7 +219,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
 		prof = NULL;
-		for (j = 0; j < (int)ARRAY_SIZE(dev_profiles); j++) {
+		for (j = 0; dev_profiles[j].orig_vid; j++) {
 			if (des.idVendor == dev_profiles[j].orig_vid
 				&& des.idProduct == dev_profiles[j].orig_pid) {
 				/* Device matches the pre-firmware profile. */
