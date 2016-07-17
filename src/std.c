@@ -91,7 +91,7 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
  */
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 {
-	const char *prefix = sdi->driver->name;
+	const char *prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 	int ret;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
@@ -123,7 +123,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 {
-	const char *prefix = sdi->driver->name;
+	const char *prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 	int ret;
 	struct sr_datafeed_packet packet;
 
