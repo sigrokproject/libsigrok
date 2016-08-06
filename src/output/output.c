@@ -38,7 +38,7 @@
  * Output module handling.
  *
  * libsigrok supports several output modules for file formats such as binary,
- * VCD, gnuplot, and so on. It provides an output API that frontends can use.
+ * VCD, csv, and so on. It provides an output API that frontends can use.
  * New output modules can be added/implemented in libsigrok without having
  * to change the frontends at all.
  *
@@ -59,7 +59,6 @@ extern SR_PRIV struct sr_output_module output_ascii;
 extern SR_PRIV struct sr_output_module output_binary;
 extern SR_PRIV struct sr_output_module output_vcd;
 extern SR_PRIV struct sr_output_module output_ols;
-extern SR_PRIV struct sr_output_module output_gnuplot;
 extern SR_PRIV struct sr_output_module output_chronovu_la8;
 extern SR_PRIV struct sr_output_module output_csv;
 extern SR_PRIV struct sr_output_module output_analog;
@@ -72,7 +71,6 @@ static const struct sr_output_module *output_module_list[] = {
 	&output_binary,
 	&output_bits,
 	&output_csv,
-	&output_gnuplot,
 	&output_hex,
 	&output_ols,
 	&output_vcd,
