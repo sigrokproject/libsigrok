@@ -519,7 +519,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 static uint32_t data_amount(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint32_t data_left;
+	uint32_t data_left, data_left_2, i;
 	int32_t time_left;
 
 	if (devc->limit_msec) {
@@ -531,11 +531,14 @@ static uint32_t data_amount(const struct sr_dev_inst *sdi)
 		data_left = devc->samplerate * NUM_CHANNELS;
 	}
 
-	data_left += MIN_PACKET_SIZE; /* Driver does not handle small buffers. */
+	/* Round up to nearest power of two. */
+	for (i = MIN_PACKET_SIZE; i < data_left; i *= 2)
+		;
+	data_left_2 = i;
 
-	sr_spew("data_amount %u", data_left);
+	sr_spew("data_amount: %u (rounded to power of 2: %u)", data_left, data_left_2);
 
-	return data_left;
+	return data_left_2;
 }
 
 static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
