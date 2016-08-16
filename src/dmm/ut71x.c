@@ -35,28 +35,28 @@
 #define LOG_PREFIX "ut71x"
 
 /*
- * Factors for the respective measurement mode (0 means "invalid").
+ * Exponents for the respective measurement mode.
  *
  * The Conrad/Voltcraft protocol descriptions have a typo (they suggest
  * index 0 for the 10A range (which is incorrect, it's range 1).
  */
-static const float factors[16][8] = {
-	{1e-5, 0,     0,     0,     0,    0,    0,    0   }, /* AC mV */
-	{0,    1e-4,  1e-3,  1e-2,  1e-1, 0,    0,    0   }, /* DC V */
-	{0,    1e-4,  1e-3,  1e-2,  1e-1, 0,    0,    0   }, /* AC V */
-	{1e-5, 0,     0,     0,     0,    0,    0,    0   }, /* DC mV */
-	{0,    1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0   }, /* Resistance */
-	{0,    1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6}, /* Capacitance */
-	{1e-1, 0,     0,     0,     0,    0,    0,    0   }, /* Temp (C) */
-	{1e-8, 1e-7,  0,     0,     0,    0,    0,    0   }, /* uA */
-	{1e-6, 1e-5,  0,     0,     0,    0,    0,    0   }, /* mA */
-	{0,    1e-3,  0,     0,     0,    0,    0,    0   }, /* 10A */
-	{1e-1, 0,     0,     0,     0,    0,    0,    0   }, /* Continuity */
-	{1e-4, 0,     0,     0,     0,    0,    0,    0   }, /* Diode */
-	{1e-3, 1e-2,  1e-1,  1,     1e1,  1e2,  1e3,  1e4 }, /* Frequency */
-	{1e-1, 0,     0,     0,     0,    0,    0,    0   }, /* Temp (F) */
-	{0,    0,     0,     1,     0,    0,    0,    0   }, /* Power */
-	{1e-2, 0,     0,     0,     0,    0,    0,    0   }, /* Loop current */
+static const int exponents[16][8] = {
+	{ -5,   0,   0,   0,  0,  0,  0,  0 }, /* AC mV */
+	{  0,  -4,  -3,  -2, -1,  0,  0,  0 }, /* DC V */
+	{  0,  -4,  -3,  -2, -1,  0,  0,  0 }, /* AC V */
+	{ -5,   0,   0,   0,  0,  0,  0,  0 }, /* DC mV */
+	{  0,  -1,   0,   1,  2,  3,  4,  0 }, /* Resistance */
+	{  0, -12, -11, -10, -9, -8, -7, -6 }, /* Capacitance */
+	{ -1,   0,   0,   0,  0,  0,  0,  0 }, /* Temp (C) */
+	{ -8,  -7,   0,   0,  0,  0,  0,  0 }, /* uA */
+	{ -6,  -5,   0,   0,  0,  0,  0,  0 }, /* mA */
+	{  0,  -3,   0,   0,  0,  0,  0,  0 }, /* 10A */
+	{ -1,   0,   0,   0,  0,  0,  0,  0 }, /* Continuity */
+	{ -4,   0,   0,   0,  0,  0,  0,  0 }, /* Diode */
+	{ -3,  -2,  -1,   0,  1,  2,  3,  4 }, /* Frequency */
+	{ -1,   0,   0,   0,  0,  0,  0,  0 }, /* Temp (F) */
+	{  0,   0,   0,   0,  0,  0,  0,  0 }, /* Power */
+	{ -2,   0,   0,   0,  0,  0,  0,  0 }, /* Loop current */
 };
 
 static int parse_value(const uint8_t *buf, struct ut71x_info *info, float *result)
@@ -95,10 +95,9 @@ static int parse_value(const uint8_t *buf, struct ut71x_info *info, float *resul
 	return SR_OK;
 }
 
-static int parse_range(const uint8_t *buf, float *floatval)
+static int parse_range(const uint8_t *buf, float *floatval, int *exponent)
 {
 	int idx, mode;
-	float factor = 0;
 
 	idx = buf[5] - '0';
 	if (idx < 0 || idx > 7) {
@@ -114,15 +113,11 @@ static int parse_range(const uint8_t *buf, float *floatval)
 
 	sr_spew("mode/idx = %d/%d", mode, idx);
 
-	factor = factors[mode][idx];
-	if (factor == 0) {
-		sr_dbg("Invalid factor for range byte: 0x%02x.", buf[5]);
-		return SR_ERR;
-	}
+	*exponent = exponents[mode][idx];
 
-	/* Apply respective factor (mode-dependent) on the value. */
-	*floatval *= factor;
-	sr_dbg("Applying factor %f, new value is %f.", factor, *floatval);
+	/* Apply respective exponent (mode-dependent) on the value. */
+	*floatval *= powf(10, *exponent);
+	sr_dbg("Applying exponent %d, new value is %f.", *exponent, *floatval);
 
 	return SR_OK;
 }
@@ -327,7 +322,7 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, exponent = 0;
 	struct ut71x_info *info_local;
 
 	info_local = (struct ut71x_info *)info;
@@ -343,10 +338,13 @@ SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 		return ret;
 	}
 
-	if ((ret = parse_range(buf, floatval)) != SR_OK)
+	if ((ret = parse_range(buf, floatval, &exponent)) != SR_OK)
 		return ret;
 
 	handle_flags(analog, floatval, info);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
