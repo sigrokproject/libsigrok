@@ -28,39 +28,39 @@
 
 #define LOG_PREFIX "vc870"
 
-/* Factors for the respective measurement mode (0 means "invalid"). */
-static const float factors[][8] = {
-	{1e-4,  1e-3,  1e-2,  1e-1, 0,    0,    0,    0},    /* DCV */
-	{1e-3,  1e-2,  1e-1,  1,    0,    0,    0,    0},    /* ACV */
-	{1e-5,  0,     0,     0,    0,    0,    0,    0},    /* DCmV */
- 	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Temperature (C) */
-//	{1e-2,  0,     0,     0,    0,    0,    0,    0},    /* TODO: Temperature (F) */
+/* Exponents for the respective measurement mode. */
+static const int exponents[][8] = {
+	{  -4,  -3,  -2, -1,  0,  0,  0,  0 }, /* DCV */
+	{  -3,  -2,  -1,  0,  0,  0,  0,  0 }, /* ACV */
+	{  -5,   0,   0,  0,  0,  0,  0,  0 }, /* DCmV */
+	{  -1,   0,   0,  0,  0,  0,  0,  0 }, /* Temperature (C) */
+//	{  -2,   0,   0,  0,  0,  0,  0,  0 }, /* TODO: Temperature (F) */
 	/*
-	 * Note: The sequence 1e-1 -> 1e1 for the resistance
+	 * Note: The sequence -1 -> 1 for the resistance
 	 * value is correct and verified in practice!
 	 * Don't trust the vendor docs on this.
 	 */
-	{1e-2,  1e-1,  1e1,   1e2,  1e3,  1e4,  0,    0},    /* Resistance */
-	{1e-2,  0,     0,     0,    0,    0,    0,    0},    /* Continuity */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 0},    /* Capacitance */
-	{1e-4,  0,     0,     0,    0,    0,    0,    0},    /* Diode */
-	{1e-3,  1e-2,  1e-1,  1,    1e1,  1e2,  1e3,  1e4},  /* Frequency */
-	{1e-2,  0,     0,     0,    0,    0,    0,    0},    /* Loop current */
+	{  -2,  -1,   1,  2,  3,  4,  0,  0 }, /* Resistance */
+	{  -2,   0,   0,  0,  0,  0,  0,  0 }, /* Continuity */
+	{ -12, -11, -10, -9, -8, -7, -6,  0 }, /* Capacitance */
+	{  -4,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
+	{  -3,  -2,  -1,  0,  1,  2,  3,  4 }, /* Frequency */
+	{  -2,   0,   0,  0,  0,  0,  0,  0 }, /* Loop current */
 	/*
 	 * Note: Measurements showed that AC and DC differ
-	 * in the factors used, although docs say they should
+	 * in the exponents used, although docs say they should
 	 * be the same.
 	 */
-	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* DCµA */
-	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* ACµA */
-	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* DCmA */
-	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* ACmA */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* DCA */
-	/* TODO: Verify factor for ACA */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* ACA */
-	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* Act+apparent power */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* Power factor / freq */
-	{1e-1,  0,     0,     0,    0,    0,    0,    0},    /* V eff + A eff */
+	{  -8,  -7,   0,  0,  0,  0,  0,  0 }, /* DCµA */
+	{  -7,  -6,   0,  0,  0,  0,  0,  0 }, /* ACµA */
+	{  -6,  -5,   0,  0,  0,  0,  0,  0 }, /* DCmA */
+	{  -5,  -4,   0,  0,  0,  0,  0,  0 }, /* ACmA */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* DCA */
+	/* TODO: Verify exponent for ACA */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* ACA */
+	{  -1,   0,   0,  0,  0,  0,  0,  0 }, /* Act+apparent power */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* Power exponent / freq */
+	{  -1,   0,   0,  0,  0,  0,  0,  0 }, /* V eff + A eff */
 };
 
 static int parse_value(const uint8_t *buf, struct vc870_info *info,
@@ -100,11 +100,10 @@ static int parse_value(const uint8_t *buf, struct vc870_info *info,
 	return SR_OK;
 }
 
-static int parse_range(uint8_t b, float *floatval,
+static int parse_range(uint8_t b, float *floatval, int *exponent,
                        const struct vc870_info *info)
 {
 	int idx, mode;
-	float factor = 0;
 
 	idx = b - '0';
 
@@ -157,16 +156,11 @@ static int parse_range(uint8_t b, float *floatval,
 		return SR_ERR;
 	}
 
-	factor = factors[mode][idx];
+	*exponent = exponents[mode][idx];
 
-	if (factor == 0) {
-		sr_dbg("Invalid factor for range byte: 0x%02x (mode=%d, idx=%d).", b, mode, idx);
-		return SR_ERR;
-	}
-
-	/* Apply respective factor (mode-dependent) on the value. */
-	*floatval *= factor;
-	sr_dbg("Applying factor %f, new value is %f.", factor, *floatval);
+	/* Apply respective exponent (mode-dependent) on the value. */
+	*floatval *= powf(10, *exponent);
+	sr_dbg("Applying exponent %d, new value is %f.", *exponent, *floatval);
 
 	return SR_OK;
 }
@@ -287,7 +281,7 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 {
 	/*
 	 * Note: is_micro etc. are not used directly to multiply/divide
-	 * floatval, this is handled via parse_range() and factors[][].
+	 * floatval, this is handled via parse_range() and exponents[][].
 	 */
 
 	/* Measurement modes */
@@ -414,7 +408,7 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 			   struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, exponent = 0;
 	struct vc870_info *info_local;
 
 	info_local = (struct vc870_info *)info;
@@ -430,10 +424,13 @@ SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 		return ret;
 	}
 
-	if ((ret = parse_range(buf[2], floatval, info_local)) != SR_OK)
+	if ((ret = parse_range(buf[2], floatval, &exponent, info_local)) != SR_OK)
 		return ret;
 
 	handle_flags(analog, floatval, info_local);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
