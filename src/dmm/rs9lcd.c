@@ -254,12 +254,15 @@ static uint8_t decode_digit(uint8_t raw_digit)
 	}
 }
 
-static double lcd_to_double(const struct rs9lcd_packet *rs_packet, int type)
+static double lcd_to_double(const struct rs9lcd_packet *rs_packet, int type,
+			    int *exponent)
 {
-	double rawval = 0, multiplier = 1;
+	double rawval = 0;
 	uint8_t digit, raw_digit;
 	gboolean dp_reached = FALSE;
 	int i, end;
+
+	*exponent = 0;
 
 	/* end = 1: Don't parse last digit. end = 0: Parse all digits. */
 	end = (type == READ_TEMP) ? 1 : 0;
@@ -279,26 +282,25 @@ static double lcd_to_double(const struct rs9lcd_packet *rs_packet, int type)
 		if ((i < 3) && (raw_digit & DP_MASK))
 			dp_reached = TRUE;
 		if (dp_reached)
-			multiplier /= 10;
+			*exponent -= 1;
 		rawval = rawval * 10 + digit;
 	}
-	rawval *= multiplier;
 	if (rs_packet->info & INFO_NEG)
 		rawval *= -1;
 
 	/* See if we need to multiply our raw value by anything. */
 	if (rs_packet->indicatrix2 & IND2_NANO)
-		rawval *= 1E-9;
+		*exponent -= 9;
 	else if (rs_packet->indicatrix2 & IND2_MICRO)
-		rawval *= 1E-6;
+		*exponent -= 6;
 	else if (rs_packet->indicatrix1 & IND1_MILI)
-		rawval *= 1E-3;
+		*exponent -= 3;
 	else if (rs_packet->indicatrix1 & IND1_KILO)
-		rawval *= 1E3;
+		*exponent += 3;
 	else if (rs_packet->indicatrix1 & IND1_MEGA)
-		rawval *= 1E6;
+		*exponent += 6;
 
-	return rawval;
+	return rawval * powf(10, *exponent);
 }
 
 static gboolean is_celsius(const struct rs9lcd_packet *rs_packet)
@@ -321,11 +323,12 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info)
 {
 	const struct rs9lcd_packet *rs_packet = (void *)buf;
+	int exponent;
 	double rawval;
 
 	(void)info;
 
-	rawval = lcd_to_double(rs_packet, READ_ALL);
+	rawval = lcd_to_double(rs_packet, READ_ALL, &exponent);
 
 	switch (rs_packet->mode) {
 	case MODE_DC_V:
@@ -410,7 +413,7 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 	case MODE_TEMP:
 		analog->meaning->mq = SR_MQ_TEMPERATURE;
 		/* We need to reparse. */
-		rawval = lcd_to_double(rs_packet, READ_TEMP);
+		rawval = lcd_to_double(rs_packet, READ_TEMP, &exponent);
 		analog->meaning->unit = is_celsius(rs_packet) ?
 				SR_UNIT_CELSIUS : SR_UNIT_FAHRENHEIT;
 		break;
@@ -434,5 +437,9 @@ SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 
 	*floatval = rawval;
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
+
 	return SR_OK;
 }
