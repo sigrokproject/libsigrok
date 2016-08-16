@@ -86,7 +86,7 @@ static gboolean flags_valid(const struct fs9922_info *info)
 	return TRUE;
 }
 
-static int parse_value(const uint8_t *buf, float *result)
+static int parse_value(const uint8_t *buf, float *result, int *exponent)
 {
 	int sign, intval;
 	float floatval;
@@ -140,13 +140,13 @@ static int parse_value(const uint8_t *buf, float *result)
 		return SR_ERR;
 	}
 	if (buf[6] == '0')
-		floatval /= 1;
+		*exponent = 0;
 	else if (buf[6] == '1')
-		floatval /= 1000;
+		*exponent = -3;
 	else if (buf[6] == '2')
-		floatval /= 100;
+		*exponent = -2;
 	else if (buf[6] == '4')
-		floatval /= 10;
+		*exponent = -1;
 
 	/* Apply sign. */
 	floatval *= sign;
@@ -224,19 +224,20 @@ static void parse_flags(const uint8_t *buf, struct fs9922_info *info)
 }
 
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
-			 const struct fs9922_info *info)
+			 int *exponent, const struct fs9922_info *info)
 {
 	/* Factors */
 	if (info->is_nano)
-		*floatval /= 1000000000;
+		*exponent -= 9;
 	if (info->is_micro)
-		*floatval /= 1000000;
+		*exponent -= 6;
 	if (info->is_milli)
-		*floatval /= 1000;
+		*exponent -= 3;
 	if (info->is_kilo)
-		*floatval *= 1000;
+		*exponent += 3;
 	if (info->is_mega)
-		*floatval *= 1000000;
+		*exponent += 6;
+	*floatval *= powf(10, *exponent);
 
 	/* Measurement modes */
 	if (info->is_volt || info->is_diode) {
@@ -356,18 +357,21 @@ SR_PRIV gboolean sr_fs9922_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, exponent = 0;
 	struct fs9922_info *info_local;
 
 	info_local = (struct fs9922_info *)info;
 
-	if ((ret = parse_value(buf, floatval)) != SR_OK) {
+	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 
 	parse_flags(buf, info_local);
-	handle_flags(analog, floatval, info_local);
+	handle_flags(analog, floatval, &exponent, info_local);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
