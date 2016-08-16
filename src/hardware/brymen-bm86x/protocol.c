@@ -46,23 +46,32 @@ static const char char_map[128] = {
 
 static int brymen_bm86x_parse_digits(const unsigned char *buf, int length,
                                      char *str, float *floatval,
-                                     char *temp_unit, int flag)
+                                     char *temp_unit, int *digits, int flag)
 {
 	char c, *p = str;
 	int i, ret;
 
+	*digits = INT_MIN;
+
 	if (buf[0] & flag)
 		*p++ = '-';
 	for (i = 0; i < length; i++) {
-		if (i && i < 5 && buf[i+1] & 0x01)
+		if (i && i < 5 && buf[i+1] & 0x01) {
 			*p++ = '.';
+			*digits = 0;
+		}
 		c = char_map[buf[i+1] >> 1];
 		if (i == 5 && (c == 'C' || c == 'F'))
 			*temp_unit = c;
-		else if (c)
+		else if (c) {
 			*p++ = c;
+			(*digits)++;
+		}
 	}
 	*p = 0;
+
+	if (*digits < 0)
+		*digits = 0;
 
 	if ((ret = sr_atof_ascii(str, floatval))) {
 		sr_dbg("invalid float string: '%s'", str);
@@ -76,13 +85,13 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
                                struct sr_datafeed_analog *analog)
 {
 	char str[16], temp_unit;
-	int ret1, ret2, over_limit;
+	int ret1, ret2, digits[2], over_limit;
 
 	ret1 = brymen_bm86x_parse_digits(buf+2, 6, str, &floatval[0],
-	                                 &temp_unit, 0x80);
+	                                 &temp_unit, &digits[0], 0x80);
 	over_limit = strstr(str, "0L") || strstr(str, "0.L");
 	ret2 = brymen_bm86x_parse_digits(buf+9, 4, str, &floatval[1],
-	                                 &temp_unit, 0x10);
+	                                 &temp_unit, &digits[1], 0x10);
 
 	/* main display */
 	if (ret1 == SR_OK || over_limit) {
@@ -144,13 +153,16 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 			buf[15] &= ~0x04;
 
 		/* SI prefix */
-		if (buf[14] & 0x40)  floatval[0] *= 1e-9;  /* n */
-		if (buf[15] & 0x08)  floatval[0] *= 1e-6;  /* µ */
-		if (buf[15] & 0x04)  floatval[0] *= 1e-3;  /* m */
-		if (buf[15] & 0x40)  floatval[0] *= 1e3;   /* k */
-		if (buf[15] & 0x20)  floatval[0] *= 1e6;   /* M */
+		if (buf[14] & 0x40)  { floatval[0] *= 1e-9; digits[0] += 9; }  /* n */
+		if (buf[15] & 0x08)  { floatval[0] *= 1e-6; digits[0] += 6; }  /* µ */
+		if (buf[15] & 0x04)  { floatval[0] *= 1e-3; digits[0] += 3; }  /* m */
+		if (buf[15] & 0x40)  { floatval[0] *= 1e3;  digits[0] -= 3; }  /* k */
+		if (buf[15] & 0x20)  { floatval[0] *= 1e6;  digits[0] -= 6; }  /* M */
 
 		if (over_limit)      floatval[0] = INFINITY;
+
+		analog[0].encoding->digits  = digits[0];
+		analog[0].spec->spec_digits = digits[0];
 	}
 
 	/* secondary display */
@@ -180,10 +192,13 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 		if (buf[9] & 0x20)  analog[1].meaning->mqflags |= SR_MQFLAG_AC;
 
 		/* SI prefix */
-		if (buf[ 9] & 0x01)  floatval[1] *= 1e-6;  /* µ */
-		if (buf[ 9] & 0x02)  floatval[1] *= 1e-3;  /* m */
-		if (buf[14] & 0x02)  floatval[1] *= 1e3;   /* k */
-		if (buf[14] & 0x01)  floatval[1] *= 1e6;   /* M */
+		if (buf[ 9] & 0x01)  { floatval[1] *= 1e-6; digits[1] += 6; }  /* µ */
+		if (buf[ 9] & 0x02)  { floatval[1] *= 1e-3; digits[1] += 3; }  /* m */
+		if (buf[14] & 0x02)  { floatval[1] *= 1e3;  digits[1] -= 3; }  /* k */
+		if (buf[14] & 0x01)  { floatval[1] *= 1e6;  digits[1] -= 6; }  /* M */
+
+		analog[1].encoding->digits  = digits[1];
+		analog[1].spec->spec_digits = digits[1];
 	}
 
 	if (buf[9] & 0x80)
