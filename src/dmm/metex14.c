@@ -43,9 +43,9 @@
 
 /** Parse value from buf, byte 2-8. */
 static int parse_value(const uint8_t *buf, struct metex14_info *info,
-			float *result)
+			float *result, int *exponent)
 {
-	int i, is_ol, cnt;
+	int i, is_ol, cnt, dot_pos;
 	char valstr[7 + 1];
 
 	/* Strip all spaces from bytes 2-8. */
@@ -88,6 +88,12 @@ static int parse_value(const uint8_t *buf, struct metex14_info *info,
 
 	/* Bytes 2-8: Sign, value (up to 5 digits) and decimal point */
 	sscanf((const char *)&valstr, "%f", result);
+
+	dot_pos = strcspn(valstr, ".");
+	if (dot_pos < cnt)
+		*exponent = -(cnt - dot_pos - 1);
+	else
+		*exponent = 0;
 
 	sr_spew("The display value is %f.", *result);
 
@@ -171,21 +177,24 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 }
 
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
-			 const struct metex14_info *info)
+			 int *exponent, const struct metex14_info *info)
 {
+	int factor = 0;
 	/* Factors */
 	if (info->is_pico)
-		*floatval /= 1000000000000ULL;
+		factor -= 12;
 	if (info->is_nano)
-		*floatval /= 1000000000;
+		factor -= 9;
 	if (info->is_micro)
-		*floatval /= 1000000;
+		factor -= 6;
 	if (info->is_milli)
-		*floatval /= 1000;
+		factor -= 3;
 	if (info->is_kilo)
-		*floatval *= 1000;
+		factor += 3;
 	if (info->is_mega)
-		*floatval *= 1000000;
+		factor += 6;
+	*floatval *= powf(10, factor);
+	*exponent += factor;
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -323,7 +332,7 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, exponent = 0;
 	struct metex14_info *info_local;
 
 	info_local = (struct metex14_info *)info;
@@ -333,13 +342,16 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 
 	memset(info_local, 0x00, sizeof(struct metex14_info));
 
-	if ((ret = parse_value(buf, info_local, floatval)) != SR_OK) {
+	if ((ret = parse_value(buf, info_local, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 
 	parse_flags((const char *)buf, info_local);
-	handle_flags(analog, floatval, info_local);
+	handle_flags(analog, floatval, &exponent, info_local);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
