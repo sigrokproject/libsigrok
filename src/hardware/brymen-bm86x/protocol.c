@@ -206,12 +206,6 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 	sr_analog_init(&analog[0], &encoding[0], &meaning[0], &spec[0], 0);
 	sr_analog_init(&analog[1], &encoding[1], &meaning[1], &spec[1], 0);
 
-	analog[0].meaning->mq = 0;
-	analog[0].meaning->mqflags = 0;
-
-	analog[1].meaning->mq = 0;
-	analog[1].meaning->mqflags = 0;
-
 	brymen_bm86x_parse(buf, floatval, analog);
 
 	if (analog[0].meaning->mq != 0) {
