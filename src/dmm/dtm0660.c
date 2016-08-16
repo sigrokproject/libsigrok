@@ -129,7 +129,7 @@ static gboolean flags_valid(const struct dtm0660_info *info)
 	return TRUE;
 }
 
-static int parse_value(const uint8_t *buf, float *result)
+static int parse_value(const uint8_t *buf, float *result, int *exponent)
 {
 	int i, sign, intval = 0, digits[4];
 	uint8_t digit_bytes[4];
@@ -179,14 +179,18 @@ static int parse_value(const uint8_t *buf, float *result)
 	/* Decimal point position. */
 	if ((buf[3] & 0x01) != 0) {
 		floatval /= 1000;
+		*exponent = -3;
 		sr_spew("Decimal point after first digit.");
 	} else if ((buf[5] & 0x01) != 0) {
 		floatval /= 100;
+		*exponent = -2;
 		sr_spew("Decimal point after second digit.");
 	} else if ((buf[7] & 0x01) != 0) {
 		floatval /= 10;
+		*exponent = -1;
 		sr_spew("Decimal point after third digit.");
 	} else {
+		*exponent = 0;
 		sr_spew("No decimal point in the number.");
 	}
 
@@ -249,19 +253,20 @@ static void parse_flags(const uint8_t *buf, struct dtm0660_info *info)
 }
 
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
-			 const struct dtm0660_info *info)
+			 int *exponent, const struct dtm0660_info *info)
 {
 	/* Factors */
 	if (info->is_nano)
-		*floatval /= 1000000000;
+		*exponent -= 9;
 	if (info->is_micro)
-		*floatval /= 1000000;
+		*exponent -= 6;
 	if (info->is_milli)
-		*floatval /= 1000;
+		*exponent -= 3;
 	if (info->is_kilo)
-		*floatval *= 1000;
+		*exponent += 3;
 	if (info->is_mega)
-		*floatval *= 1000000;
+		*exponent += 6;
+	*floatval *= powf(10, *exponent);
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -366,18 +371,21 @@ SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, exponent = 0;
 	struct dtm0660_info *info_local;
 
 	info_local = (struct dtm0660_info *)info;
 
-	if ((ret = parse_value(buf, floatval)) != SR_OK) {
+	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
 
 	parse_flags(buf, info_local);
-	handle_flags(analog, floatval, info_local);
+	handle_flags(analog, floatval, &exponent, info_local);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
