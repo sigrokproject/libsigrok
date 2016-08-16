@@ -53,6 +53,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 				struct sr_datafeed_analog *analog, void *info)
 {
+	int dot_pos, digits = 0;
 	float val;
 
 	(void)info;
@@ -64,8 +65,15 @@ SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 
 	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		*floatval = INFINITY;
-	else if (sscanf((const char *)buf, "%f", &val) == 1)
+	else if (sscanf((const char *)buf, "%f", &val) == 1) {
 		*floatval = val;
+		dot_pos = strcspn((const char *)buf, ".");
+		if (dot_pos < 7)
+			digits = 6 - dot_pos;
+	}
+
+	analog->encoding->digits  = digits;
+	analog->spec->spec_digits = digits;
 
 	return SR_OK;
 }
