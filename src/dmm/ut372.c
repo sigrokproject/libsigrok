@@ -90,8 +90,9 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info)
 {
-	unsigned int i, j, value, divisor;
+	unsigned int i, j, value;
 	uint8_t segments, flags1, flags2;
+	int exponent;
 
 	(void) info;
 
@@ -116,7 +117,7 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_AVG;
 
 	value = 0;
-	divisor = 1;
+	exponent = 0;
 
 	for (i = 0; i < 5; i++) {
 		segments = decode_pair(buf + 1 + (2 * i));
@@ -127,10 +128,13 @@ SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 			}
 		}
 		if (segments & DECIMAL_POINT_MASK)
-			divisor = pow(10, i);
+			exponent = -i;
 	}
 
-	*floatval = (float) value / divisor;
+	*floatval = (float) value * powf(10, exponent);
+
+	analog->encoding->digits  = -exponent;
+	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
 }
