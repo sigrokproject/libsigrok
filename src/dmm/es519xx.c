@@ -35,61 +35,61 @@
 
 #define LOG_PREFIX "es519xx"
 
-/* Factors for the respective measurement mode (0 means "invalid"). */
-static const float factors_2400_11b[9][8] = {
-	{1e-4,  1e-3,  1e-2,  1e-1, 1,    0,    0,    0   }, /* V */
-	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0   }, /* uA */
-	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0   }, /* mA */
-	{1e-2,  0,     0,     0,    0,    0,    0,    0   }, /* A */
-	{1e1,   1e2,   1e3,   1e4,  1e5,  1e6,  0,    0   }, /* RPM */
-	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0   }, /* Resistance */
-	{1,     1e1,   1e2,   1e3,  1e4,  1e5,  0,    0   }, /* Frequency */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
+/* Exponents for the respective measurement mode. */
+static const int exponents_2400_11b[9][8] = {
+	{  -4,  -3,  -2, -1,  0,  0,  0,  0 }, /* V */
+	{  -7,  -6,   0,  0,  0,  0,  0,  0 }, /* uA */
+	{  -5,  -4,   0,  0,  0,  0,  0,  0 }, /* mA */
+	{  -2,   0,   0,  0,  0,  0,  0,  0 }, /* A */
+	{   1,   2,   3,  4,  5,  6,  0,  0 }, /* RPM */
+	{  -1,   0,   1,  2,  3,  4,  0,  0 }, /* Resistance */
+	{   0,   1,   2,  3,  4,  5,  0,  0 }, /* Frequency */
+	{ -12, -11, -10, -9, -8, -7, -6, -5 }, /* Capacitance */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
 };
-static const float factors_19200_11b_5digits[9][8] = {
-	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
-	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
-	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
-	{0,     1e-3,  0,     0,    0,    0,    0,    0},    /* A */
-	{1e-4,  1e-3,  1e-2,  1e-1, 1,    0,    0,    0},    /* Manual A */
-	{1e-2,  1e-1,  1,     1e1,  1e2,  1e3,  1e4,  0},    /* Resistance */
-	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
-	{1e-4,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
+static const int exponents_19200_11b_5digits[9][8] = {
+	{  -4,  -3,  -2, -1, -5,  0,  0,  0 }, /* V */
+	{  -8,  -7,   0,  0,  0,  0,  0,  0 }, /* uA */
+	{  -6,  -5,   0,  0,  0,  0,  0,  0 }, /* mA */
+	{   0,  -3,   0,  0,  0,  0,  0,  0 }, /* A */
+	{  -4,  -3,  -2, -1,  0,  0,  0,  0 }, /* Manual A */
+	{  -2,  -1,   0,  1,  2,  3,  4,  0 }, /* Resistance */
+	{  -1,   0,   0,  1,  2,  3,  4,  0 }, /* Frequency */
+	{ -12, -11, -10, -9, -8, -7, -6, -5 }, /* Capacitance */
+	{  -4,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
 };
-static const float factors_19200_11b_clampmeter[9][8] = {
-	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
-	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
-	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
-	{1e-2,  0,     0,     0,    0,    0,    0,    0},    /* A */
-	{1e-3,  1e-2,  1e-1,  1,    0,    0,    0,    0},    /* Manual A */
-	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0},    /* Resistance */
-	{1e-1,  0,     1,     1e1,  1e2,  1e3,  1e4,  0},    /* Frequency */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
+static const int exponents_19200_11b_clampmeter[9][8] = {
+	{  -3,  -2,  -1,  0, -4,  0,  0,  0 }, /* V */
+	{  -7,  -6,   0,  0,  0,  0,  0,  0 }, /* uA */
+	{  -5,  -4,   0,  0,  0,  0,  0,  0 }, /* mA */
+	{  -2,   0,   0,  0,  0,  0,  0,  0 }, /* A */
+	{  -3,  -2,  -1,  0,  0,  0,  0,  0 }, /* Manual A */
+	{  -1,   0,   1,  2,  3,  4,  0,  0 }, /* Resistance */
+	{  -1,   0,   0,  1,  2,  3,  4,  0 }, /* Frequency */
+	{ -12, -11, -10, -9, -8, -7, -6, -5 }, /* Capacitance */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
 };
-static const float factors_19200_11b[9][8] = {
-	{1e-3,  1e-2,  1e-1,  1,    1e-4, 0,    0,    0},    /* V */
-	{1e-7,  1e-6,  0,     0,    0,    0,    0,    0},    /* uA */
-	{1e-5,  1e-4,  0,     0,    0,    0,    0,    0},    /* mA */
-	{1e-3,  1e-2,  0,     0,    0,    0,    0,    0},    /* A */
-	{0,     0,     0,     0,    0,    0,    0,    0},    /* Manual A */
-	{1e-1,  1,     1e1,   1e2,  1e3,  1e4,  0,    0},    /* Resistance */
-	{1,     1e1,   1e2,   1e3,  1e4,  0,    0,    0},    /* Frequency */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 0},    /* Capacitance */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* Diode */
+static const int exponents_19200_11b[9][8] = {
+	{  -3,  -2,  -1,  0, -4,  0,  0,  0 }, /* V */
+	{  -7,  -6,   0,  0,  0,  0,  0,  0 }, /* uA */
+	{  -5,  -4,   0,  0,  0,  0,  0,  0 }, /* mA */
+	{  -3,  -2,   0,  0,  0,  0,  0,  0 }, /* A */
+	{   0,   0,   0,  0,  0,  0,  0,  0 }, /* Manual A */
+	{  -1,   0,   1,  2,  3,  4,  0,  0 }, /* Resistance */
+	{   0,   1,   2,  3,  4,  0,  0,  0 }, /* Frequency */
+	{ -12, -11, -10, -9, -8, -7, -6,  0 }, /* Capacitance */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
 };
-static const float factors_19200_14b[9][8] = {
-	{1e-4,  1e-3,  1e-2,  1e-1, 1e-5, 0,    0,    0},    /* V */
-	{1e-8,  1e-7,  0,     0,    0,    0,    0,    0},    /* uA */
-	{1e-6,  1e-5,  0,     0,    0,    0,    0,    0},    /* mA */
-	{1e-3,  0,     0,     0,    0,    0,    0,    0},    /* A */
-	{1e-4,  1e-3,  1e-2,  1e-1, 1,    0,    0,    0},    /* Manual A */
-	{1e-2,  1e-1,  1,     1e1,  1e2,  1e3,  1e4,  0},    /* Resistance */
-	{1e-2,  1e-1,  0,     1,    1e1,  1e2,  1e3,  1e4},  /* Frequency */
-	{1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5}, /* Capacitance */
-	{1e-4,  0,     0,     0,    0,    0,    0,    0   }, /* Diode */
+static const int exponents_19200_14b[9][8] = {
+	{  -4,  -3,  -2, -1, -5,  0,  0,  0 }, /* V */
+	{  -8,  -7,   0,  0,  0,  0,  0,  0 }, /* uA */
+	{  -6,  -5,   0,  0,  0,  0,  0,  0 }, /* mA */
+	{  -3,   0,   0,  0,  0,  0,  0,  0 }, /* A */
+	{  -4,  -3,  -2, -1,  0,  0,  0,  0 }, /* Manual A */
+	{  -2,  -1,   0,  1,  2,  3,  4,  0 }, /* Resistance */
+	{  -2,  -1,   0,  0,  1,  2,  3,  4 }, /* Frequency */
+	{ -12, -11, -10, -9, -8, -7, -6, -5 }, /* Capacitance */
+	{  -4,   0,   0,  0,  0,  0,  0,  0 }, /* Diode */
 };
 
 static int parse_value(const uint8_t *buf, struct es519xx_info *info,
@@ -135,11 +135,10 @@ static int parse_value(const uint8_t *buf, struct es519xx_info *info,
 	return SR_OK;
 }
 
-static int parse_range(uint8_t b, float *floatval,
-                       const struct es519xx_info *info)
+static int parse_range(uint8_t b, float *floatval, struct es519xx_info *info)
 {
 	int idx, mode;
-	float factor = 0;
+	int exponent = 0;
 
 	idx = b - '0';
 
@@ -160,7 +159,7 @@ static int parse_range(uint8_t b, float *floatval,
 	else if (info->is_current && !info->is_auto)
 		mode = 4; /* Manual A */
 	else if (info->is_rpm)
-		/* Not a typo, it's really index 4 in factors_2400_11b[][]. */
+		/* Not a typo, it's really index 4 in exponents_2400_11b[][]. */
 		mode = 4; /* RPM */
 	else if (info->is_resistance || info->is_continuity)
 		mode = 5; /* Resistance */
@@ -179,31 +178,28 @@ static int parse_range(uint8_t b, float *floatval,
 
 	if (info->is_vbar) {
 		if (info->is_micro)
-			factor = (const float[]){1e-1, 1}[idx];
+			exponent = (const int[]){-1,  0}[idx];
 		else if (info->is_milli)
-			factor = (const float[]){1e-2, 1e-1}[idx];
+			exponent = (const int[]){-2, -1}[idx];
 	}
 	else if (info->is_duty_cycle)
-		factor = 1e-1;
+		exponent = -1;
 	else if (info->baudrate == 2400)
-		factor = factors_2400_11b[mode][idx];
+		exponent = exponents_2400_11b[mode][idx];
 	else if (info->fivedigits)
-		factor = factors_19200_11b_5digits[mode][idx];
+		exponent = exponents_19200_11b_5digits[mode][idx];
 	else if (info->clampmeter)
-		factor = factors_19200_11b_clampmeter[mode][idx];
+		exponent = exponents_19200_11b_clampmeter[mode][idx];
 	else if (info->packet_size == 11)
-		factor = factors_19200_11b[mode][idx];
+		exponent = exponents_19200_11b[mode][idx];
 	else if (info->packet_size == 14)
-		factor = factors_19200_14b[mode][idx];
+		exponent = exponents_19200_14b[mode][idx];
 
-	if (factor == 0) {
-		sr_dbg("Invalid factor for range byte: 0x%02x.", b);
-		return SR_ERR;
-	}
+	/* Apply respective exponent (mode-dependent) on the value. */
+	*floatval *= powf(10, exponent);
+	sr_dbg("Applying exponent %d, new value is %f.", exponent, *floatval);
 
-	/* Apply respective factor (mode-dependent) on the value. */
-	*floatval *= factor;
-	sr_dbg("Applying factor %f, new value is %f.", factor, *floatval);
+	info->digits = -exponent;
 
 	return SR_OK;
 }
@@ -449,7 +445,7 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 {
 	/*
 	 * Note: is_micro etc. are not used directly to multiply/divide
-	 * floatval, this is handled via parse_range() and factors[][].
+	 * floatval, this is handled via parse_range() and exponents[][].
 	 */
 
 	/* Measurement modes */
@@ -619,6 +615,9 @@ static int sr_es519xx_parse(const uint8_t *buf, float *floatval,
 
 	if ((ret = parse_range(buf[0], floatval, info)) != SR_OK)
 		return ret;
+
+	analog->encoding->digits  = info->digits;
+	analog->spec->spec_digits = info->digits;
 
 	handle_flags(analog, floatval, info);
 	return SR_OK;

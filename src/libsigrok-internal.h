@@ -1125,6 +1125,7 @@ struct es519xx_info {
 	uint32_t baudrate;
 	int packet_size;
 	gboolean alt_functions, fivedigits, clampmeter, selectable_lpf;
+	int digits;
 };
 
 SR_PRIV gboolean sr_es519xx_2400_11b_packet_valid(const uint8_t *buf);
