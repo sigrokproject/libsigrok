@@ -70,7 +70,7 @@ static uint64_t appa_55ii_flags(const uint8_t *buf)
 	return flags;
 }
 
-static float appa_55ii_temp(const uint8_t *buf, int ch)
+static float appa_55ii_temp(const uint8_t *buf, int ch, int *digits)
 {
 	const uint8_t *ptr;
 	int16_t temp;
@@ -79,12 +79,14 @@ static float appa_55ii_temp(const uint8_t *buf, int ch)
 	ptr = buf + 4 + 14 + 3 * ch;
 	temp = RL16(ptr);
 	flags = ptr[2];
+	*digits = 0;
 
 	if (flags & 0x60)
 		return INFINITY;
-	else if (flags & 1)
+	else if (flags & 1) {
+		*digits = 1;
 		return (float)temp / 10;
-	else
+	} else
 		return (float)temp;
 }
 
@@ -97,34 +99,34 @@ static void appa_55ii_live_data(struct sr_dev_inst *sdi, const uint8_t *buf)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct sr_channel *ch;
-	float values[APPA_55II_NUM_CHANNELS], *val_ptr;
-	int i;
+	float value;
+	int i, digits;
 
 	devc = sdi->priv;
 
 	if (devc->data_source != DATA_SOURCE_LIVE)
 		return;
 
-	val_ptr = values;
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-	analog.num_samples = 1;
-	analog.meaning->mq = SR_MQ_TEMPERATURE;
-	analog.meaning->unit = SR_UNIT_CELSIUS;
-	analog.meaning->mqflags = appa_55ii_flags(buf);
-	analog.data = values;
-
 	for (i = 0; i < APPA_55II_NUM_CHANNELS; i++) {
 		ch = g_slist_nth_data(sdi->channels, i);
 		if (!ch->enabled)
 			continue;
-		analog.meaning->channels = g_slist_append(analog.meaning->channels, ch);
-		*val_ptr++ = appa_55ii_temp(buf, i);
-	}
 
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-	sr_session_send(sdi, &packet);
-	g_slist_free(analog.meaning->channels);
+		value = appa_55ii_temp(buf, i, &digits);
+
+		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+		analog.num_samples = 1;
+		analog.data = &value;
+		analog.meaning->mq = SR_MQ_TEMPERATURE;
+		analog.meaning->unit = SR_UNIT_CELSIUS;
+		analog.meaning->mqflags = appa_55ii_flags(buf);
+		analog.meaning->channels = g_slist_append(NULL, ch);
+
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		sr_session_send(sdi, &packet);
+		g_slist_free(analog.meaning->channels);
+	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
