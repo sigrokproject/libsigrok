@@ -125,7 +125,7 @@ SR_PRIV const char *maynuo_m97_mode_to_str(enum maynuo_m97_mode mode)
 }
 
 
-static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch, float value, enum sr_mq mq, enum sr_unit unit)
+static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch, float value, enum sr_mq mq, enum sr_unit unit, int digits)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -133,7 +133,7 @@ static void maynuo_m97_session_send_value(const struct sr_dev_inst *sdi, struct 
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.meaning->channels = g_slist_append(NULL, ch);
 	analog.num_samples = 1;
 	analog.data = &value;
@@ -185,10 +185,10 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 
 		maynuo_m97_session_send_value(sdi, sdi->channels->data,
 		                              RBFL(registers + 0),
-		                              SR_MQ_VOLTAGE, SR_UNIT_VOLT);
+		                              SR_MQ_VOLTAGE, SR_UNIT_VOLT, 3);
 		maynuo_m97_session_send_value(sdi, sdi->channels->next->data,
 		                              RBFL(registers + 2),
-		                              SR_MQ_CURRENT, SR_UNIT_AMPERE);
+		                              SR_MQ_CURRENT, SR_UNIT_AMPERE, 4);
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
