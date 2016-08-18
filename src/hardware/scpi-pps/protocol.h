@@ -100,10 +100,11 @@ struct scpi_pps {
 
 struct channel_spec {
 	const char *name;
-	/* Min, max, programming resolution. */
-	float voltage[3];
-	float current[3];
-	float frequency[3];
+	/* Min, max, programming resolution, spec digits, encoding digits. */
+	float voltage[5];
+	float current[5];
+	float power[5];
+	float frequency[5];
 };
 
 struct channel_group_spec {
@@ -116,6 +117,7 @@ struct pps_channel {
 	enum sr_mq mq;
 	unsigned int hw_output_idx;
 	const char *hwname;
+	int digits;
 };
 
 struct pps_channel_instance {

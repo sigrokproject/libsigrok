@@ -25,7 +25,7 @@
 #include "protocol.h"
 
 #define CH_IDX(x) (1 << x)
-#define FREQ_DC_ONLY {0, 0, 0}
+#define FREQ_DC_ONLY {0, 0, 0, 0, 0}
 
 static const uint32_t devopts_none[] = { };
 
@@ -49,11 +49,11 @@ static const struct channel_group_spec agilent_n5700a_cg[] = {
 };
 
 static const struct channel_spec agilent_n5767a_ch[] = {
-	{ "1", { 0, 60, 0.0001 }, { 0, 25, 0.1 }, FREQ_DC_ONLY },
+	{ "1", { 0, 60, 0.0072, 3, 4 }, { 0, 25, 0.003, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_spec agilent_n5763a_ch[] = {
-	{ "1", { 0, 12.5, 0.001 }, { 0, 25, 0.01 }, FREQ_DC_ONLY },
+	{ "1", { 0, 12.5, 0.0015, 3, 4 }, { 0, 120, 0.0144, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY },
 };
 
 /*
@@ -100,7 +100,7 @@ static const uint32_t chroma_61604_devopts_cg[] = {
 };
 
 static const struct channel_spec chroma_61604_ch[] = {
-	{ "1", { 0, 300, 0.1 }, { 0, 16, 0.1 }, { 1.0, 1000.0, 0.01 } },
+	{ "1", { 0, 300, 0.1, 1, 1 }, { 0, 16, 0.1, 2, 2 }, { 0, 2000, 0, 1, 1 }, { 1.0, 1000.0, 0.01 } },
 };
 
 static const struct channel_group_spec chroma_61604_cg[] = {
@@ -178,30 +178,39 @@ static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
 		struct channel_group_spec **channel_groups,
 		unsigned int *num_channel_groups)
 {
-	unsigned int volts, amps;
+	unsigned int volts, amps, watts;
 	struct channel_spec *channel;
 
 	(void)sdi;
 
-	sscanf(hw_info->model, "%*[^P]P-%u-%u", &volts, &amps);
-	sr_dbg("Found device rated for %d V and %d A", volts, amps);
+	sscanf(hw_info->model, "620%uP-%u-%u", &watts, &volts, &amps);
+	watts *= 100;
+	sr_dbg("Found device rated for %d V, %d A and %d W", volts, amps, watts);
 
 	if (volts > 600) {
 		sr_err("Probed max voltage of %u V is out of spec.", volts);
 		return SR_ERR_BUG;
 	}
 
-	if (volts > 120) {
+	if (amps > 120) {
 		sr_err("Probed max current of %u A is out of spec.", amps);
+		return SR_ERR_BUG;
+	}
+
+	if (watts > 5000) {
+		sr_err("Probed max power of %u W is out of spec.", watts);
 		return SR_ERR_BUG;
 	}
 
 	channel = g_malloc0(sizeof(struct channel_spec));
 	channel->name = "1";
-	channel->voltage[0] = channel->current[0] = 0.0;
+	channel->voltage[0] = channel->current[0] = channel->power[0] = 0.0;
 	channel->voltage[1] = (float)volts;
 	channel->current[1] = (float)amps;
+	channel->power[1]   = (float)watts;
 	channel->voltage[2] = channel->current[2] = 0.01;
+	channel->voltage[3] = channel->voltage[4] = 3;
+	channel->current[3] = channel->current[4] = 4;
 	*channels = channel;
 	*num_channels = 1;
 
@@ -234,20 +243,20 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 };
 
 static const struct channel_spec rigol_dp821a_ch[] = {
-	{ "1", { 0, 60, 0.001 }, { 0, 1, 0.0001 }, FREQ_DC_ONLY },
-	{ "2", { 0, 8, 0.001 }, { 0, 10, 0.001 }, FREQ_DC_ONLY },
+	{ "1", { 0, 60, 0.001, 3, 3 }, { 0, 1, 0.0001, 4, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "2", { 0,  8, 0.001, 3, 3 }, { 0, 10, 0.001, 3, 3 }, { 0, 80, 0, 3, 3 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_spec rigol_dp831_ch[] = {
-	{ "1", { 0, 8, 0.001 }, { 0, 5, 0.0003 }, FREQ_DC_ONLY },
-	{ "2", { 0, 30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
-	{ "3", { 0, -30, 0.001 }, { 0, 2, 0.0001 }, FREQ_DC_ONLY },
+	{ "1", { 0,   8, 0.001, 3, 4 }, { 0, 5, 0.0003, 3, 4 }, { 0, 40, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "2", { 0,  30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "3", { 0, -30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_spec rigol_dp832_ch[] = {
-	{ "1", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
-	{ "2", { 0, 30, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
-	{ "3", { 0, 5, 0.001 }, { 0, 3, 0.001 }, FREQ_DC_ONLY },
+	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_group_spec rigol_dp820_cg[] = {
@@ -320,11 +329,11 @@ static const uint32_t hp_6632b_devopts[] = {
 };
 
 static const struct channel_spec hp_6633a_ch[] = {
-	{ "1", { 0, 51.188, 0.0125 }, { 0, 2.0475, 0.0005 }, FREQ_DC_ONLY },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_spec hp_6632b_ch[] = {
-	{ "1", { 0, 20.475, 0.005 }, { 0, 5.1188, 0.00132 }, FREQ_DC_ONLY },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_group_spec hp_663xx_cg[] = {
@@ -386,17 +395,18 @@ enum philips_pm2800_modules {
 
 static const struct philips_pm2800_module_spec {
 	/* Min, max, programming resolution. */
-	float voltage[3];
-	float current[3];
+	float voltage[5];
+	float current[5];
+	float power[5];
 } philips_pm2800_module_specs[] = {
 	/* Autoranging modules. */
-	[PM2800_MOD_30V_10A] = { { 0, 30, 0.0075 }, { 0, 10, 0.0025 } },
-	[PM2800_MOD_60V_5A] = { { 0, 60, 0.015 }, { 0, 5, 0.00125 } },
-	[PM2800_MOD_60V_10A] = { { 0, 60, 0.015 }, { 0, 10, 0.0025 } },
+	[PM2800_MOD_30V_10A] = { { 0, 30, 0.0075, 2, 4 }, { 0, 10, 0.0025, 2, 4 }, { 0, 60 } },
+	[PM2800_MOD_60V_5A] = { { 0, 60, 0.015, 2, 3 }, { 0, 5, 0.00125, 2, 5 }, { 0, 60 } },
+	[PM2800_MOD_60V_10A] = { { 0, 60, 0.015, 2, 3 }, { 0, 10, 0.0025, 2, 5 }, { 0, 120 } },
 	/* Linear modules. */
-	[PM2800_MOD_8V_15A] = { { 0, 8, 0.002 }, { -15, 15, 0.00375 } },
-	[PM2800_MOD_60V_2A] = { { 0, 60, 0.015 }, { -2, 2, 0.0005 } },
-	[PM2800_MOD_120V_1A] = { { 0, 120, 0.030 }, { -1, 1, 0.00025 } },
+	[PM2800_MOD_8V_15A] = { { 0, 8, 0.002, 3, 3 }, { -15, 15, 0.00375, 3, 5 }, { 0, 120 } },
+	[PM2800_MOD_60V_2A] = { { 0, 60, 0.015, 2, 3 }, { -2, 2, 0.0005, 3, 4 }, { 0, 120 } },
+	[PM2800_MOD_120V_1A] = { { 0, 120, 0.030, 2, 2 }, { -1, 1, 0.00025, 3, 5 }, { 0, 120 } },
 };
 
 static const struct philips_pm2800_model {
@@ -468,11 +478,12 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 	for (i = 0; i < num_modules; i++) {
 		module = model->modules[i];
 		spec = &philips_pm2800_module_specs[module];
-		sr_dbg("output %d: %.0f - %.0fV, %.0f - %.0fA", i + 1,
+		sr_dbg("output %d: %.0f - %.0fV, %.0f - %.0fA, %.0f - %.0fW", i + 1,
 				spec->voltage[0], spec->voltage[1],
-				spec->current[0], spec->current[1]);
+				spec->current[0], spec->current[1],
+				spec->power[0]  , spec->power[1]);
 		(*channels)[i].name = (char *)philips_pm2800_names[i];
-		memcpy(&((*channels)[i].voltage), spec, sizeof(float) * 6);
+		memcpy(&((*channels)[i].voltage), spec, sizeof(float) * 15);
 		(*channel_groups)[i].name = (char *)philips_pm2800_names[i];
 		(*channel_groups)[i].channel_index_mask = 1 << i;
 		(*channel_groups)[i].features = PPS_OTP | PPS_OVP | PPS_OCP;

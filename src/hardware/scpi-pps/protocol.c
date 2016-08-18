@@ -66,6 +66,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *next_channel;
 	struct sr_scpi_dev_inst *scpi;
 	struct pps_channel *pch;
+	const struct channel_spec *ch_spec;
 	float f;
 	int cmd;
 
@@ -83,18 +84,26 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	/* Retrieve requested value for this state. */
 	if (sr_scpi_get_float(scpi, NULL, &f) == SR_OK) {
 		pch = devc->cur_channel->priv;
+		ch_spec = &devc->device->channels[pch->hw_output_idx];
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 		analog.meaning->channels = g_slist_append(NULL, devc->cur_channel);
 		analog.num_samples = 1;
 		analog.meaning->mq = pch->mq;
-		if (pch->mq == SR_MQ_VOLTAGE)
+		if (pch->mq == SR_MQ_VOLTAGE) {
 			analog.meaning->unit = SR_UNIT_VOLT;
-		else if (pch->mq == SR_MQ_CURRENT)
+			analog.encoding->digits = ch_spec->voltage[4];
+			analog.spec->spec_digits = ch_spec->voltage[3];
+		} else if (pch->mq == SR_MQ_CURRENT) {
 			analog.meaning->unit = SR_UNIT_AMPERE;
-		else if (pch->mq == SR_MQ_POWER)
+			analog.encoding->digits = ch_spec->current[4];
+			analog.spec->spec_digits = ch_spec->current[3];
+		} else if (pch->mq == SR_MQ_POWER) {
 			analog.meaning->unit = SR_UNIT_WATT;
+			analog.encoding->digits = ch_spec->power[4];
+			analog.spec->spec_digits = ch_spec->power[3];
+		}
 		analog.meaning->mqflags = SR_MQFLAG_DC;
 		analog.data = &f;
 		sr_session_send(sdi, &packet);
