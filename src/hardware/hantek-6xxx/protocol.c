@@ -220,9 +220,13 @@ SR_PRIV int hantek_6xxx_update_coupling(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	uint8_t coupling = 0xFF & ((devc->coupling[1] << 4) | devc->coupling[0]);
 
-	sr_dbg("update coupling 0x%x", coupling);
-
-	return write_control(sdi, COUPLING_REG, coupling);
+	if (devc->has_coupling) {
+		sr_dbg("update coupling 0x%x", coupling);
+		return write_control(sdi, COUPLING_REG, coupling);
+	} else {
+		sr_dbg("coupling not supported");
+		return SR_OK;
+	}
 }
 
 SR_PRIV int hantek_6xxx_update_channels(const struct sr_dev_inst *sdi)

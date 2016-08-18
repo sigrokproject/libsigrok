@@ -62,12 +62,12 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
 		0x04b4, 0x6022, 0x04b5, 0x6022,
 		"Hantek", "6022BE", "hantek-6022be.fw",
-		dc_coupling, ARRAY_SIZE(dc_coupling),
+		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
 	},
 	{
 		0x8102, 0x8102, 0x1D50, 0x608E,
 		"Sainsmart", "DDS120", "sainsmart-dds120.fw",
-		acdc_coupling, ARRAY_SIZE(acdc_coupling),
+		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
 	},
 	ALL_ZERO
 };
@@ -440,13 +440,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			break;
 		case SR_CONF_COUPLING:
 			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; devc->coupling_vals[i]; i++) {
+			for (i = 0; i < devc->coupling_tab_size; i++) {
 				if (!strcmp(tmp_str, devc->coupling_vals[i])) {
 					devc->coupling[ch_idx] = i;
 					break;
 				}
 			}
-			if (devc->coupling_vals[i] == 0)
+			if (i == devc->coupling_tab_size)
 				ret = SR_ERR_ARG;
 			break;
 		default:
@@ -465,7 +465,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	unsigned int i;
 	GVariant *gvar;
-	struct dev_context *devc;
+	struct dev_context *devc = NULL;
 
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -477,10 +477,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_OK;
 	}
 
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	devc = sdi->priv;
+	if (sdi)
+		devc = sdi->priv;
 
 	if (!cg) {
 		switch (key) {
@@ -506,6 +504,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 			break;
 		case SR_CONF_COUPLING:
+			if (!devc)
+				return SR_ERR_NA;
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
