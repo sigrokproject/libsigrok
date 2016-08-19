@@ -672,7 +672,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		else
 			for (i = 0; i < len; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
-		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+		float vdivlog = log10f(vdiv);
+		int digits = -(int)vdivlog + (vdivlog < 0.0);
+		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 		analog.meaning->channels = g_slist_append(NULL, ch);
 		analog.num_samples = len;
 		analog.data = devc->data;
