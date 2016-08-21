@@ -25,6 +25,7 @@
 
 struct center_info {
 	float temp[NUM_CHANNELS];
+	int digits[NUM_CHANNELS];
 	gboolean rec, std, max, min, maxmin, t1t2, rel, hold, lowbat, celsius;
 	gboolean memfull, autooff;
 	gboolean mode_std, mode_rel, mode_max, mode_min, mode_maxmin;
@@ -97,8 +98,12 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 	/* Byte 43: Specifies whether we need to divide the value(s) by 10. */
 	for (i = 0; i < NUM_CHANNELS; i++) {
 		/* Bit = 0: Divide by 10. Bit = 1: Don't divide by 10. */
-		if ((buf[43] & (1 << i)) == 0)
+		if ((buf[43] & (1 << i)) == 0) {
 			info->temp[i] /= 10;
+			info->digits[i] = 1;
+		} else {
+			info->digits[i] = 0;
+		}
 	}
 
 	/* Bytes 39-42: Overflow/overlimit bits, depending on mode. */
@@ -155,6 +160,8 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		l = NULL;
 		l = g_slist_append(l, g_slist_nth_data(sdi->channels, i));
 		analog.meaning->channels = l;
+		analog.encoding->digits = info.digits[i];
+		analog.spec->spec_digits = info.digits[i];
 		analog.data = &(info.temp[i]);
 		sr_session_send(sdi, &packet);
 		g_slist_free(l);
