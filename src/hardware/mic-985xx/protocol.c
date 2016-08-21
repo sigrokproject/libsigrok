@@ -113,7 +113,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 		return SR_ERR;
 	}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 
 	/* Common values for both channels. */
 	packet.type = SR_DF_ANALOG;
