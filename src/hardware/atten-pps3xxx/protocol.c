@@ -57,6 +57,8 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = SR_MQFLAG_DC;
+	analog.encoding->digits = 2;
+	analog.spec->spec_digits = 2;
 	analog.data = data;
 	for (i = 0; i < devc->model->num_channels; i++) {
 		offset = 2 + i * 4;
@@ -69,6 +71,8 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	analog.meaning->mq = SR_MQ_CURRENT;
 	analog.meaning->unit = SR_UNIT_AMPERE;
 	analog.meaning->mqflags = 0;
+	analog.encoding->digits = 3;
+	analog.spec->spec_digits = 3;
 	analog.data = data;
 	for (i = 0; i < devc->model->num_channels; i++) {
 		offset = 4 + i * 4;
