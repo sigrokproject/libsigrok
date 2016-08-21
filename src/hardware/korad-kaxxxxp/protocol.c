@@ -359,6 +359,8 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			analog.meaning->mq = SR_MQ_CURRENT;
 			analog.meaning->unit = SR_UNIT_AMPERE;
 			analog.meaning->mqflags = 0;
+			analog.encoding->digits = 3;
+			analog.spec->spec_digits = 3;
 			analog.data = &devc->current;
 			sr_session_send(sdi, &packet);
 		}
@@ -366,6 +368,8 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			analog.meaning->mq = SR_MQ_VOLTAGE;
 			analog.meaning->unit = SR_UNIT_VOLT;
 			analog.meaning->mqflags = SR_MQFLAG_DC;
+			analog.encoding->digits = 2;
+			analog.spec->spec_digits = 2;
 			analog.data = &devc->voltage;
 			sr_session_send(sdi, &packet);
 			sr_sw_limits_update_samples_read(&devc->limits, 1);
