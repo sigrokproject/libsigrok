@@ -508,6 +508,11 @@ struct sr_analog_encoding {
 	gboolean is_signed;
 	gboolean is_float;
 	gboolean is_bigendian;
+	/**
+	 * Number of significant digits after the decimal point if positive,
+	 * or number of non-significant digits before the decimal point if
+	 * negative (refers to the value we actually read on the wire).
+	 */
 	int8_t digits;
 	gboolean is_digits_decimal;
 	struct sr_rational scale;
@@ -522,6 +527,12 @@ struct sr_analog_meaning {
 };
 
 struct sr_analog_spec {
+	/**
+ 	 * Number of significant digits after the decimal point if positive,
+	 * or number of non-significant digits before the decimal point if
+	 * negative (refers to vendor specifications/datasheet or actual
+	 * device display).
+	 */
 	int8_t spec_digits;
 };
 
