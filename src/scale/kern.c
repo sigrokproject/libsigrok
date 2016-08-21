@@ -44,9 +44,9 @@ static int get_buflen(const uint8_t *buf)
 }
 
 static int parse_value(const uint8_t *buf, float *result,
-		const struct kern_info *info)
+		int *digits, const struct kern_info *info)
 {
-	char *strval;
+	char *strval, *ptrdot;
 	float floatval;
 	int s2, len;
 
@@ -62,6 +62,9 @@ static int parse_value(const uint8_t *buf, float *result,
 
 	strval = g_strndup((const char *)buf, len);
 	floatval = g_ascii_strtod(strval, NULL);
+	ptrdot = strchr(strval, '.');
+	if (ptrdot)
+		*digits = len - (ptrdot - strval + 1);
 	g_free(strval);
 	*result = floatval;
 
@@ -199,17 +202,20 @@ SR_PRIV gboolean sr_kern_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
 			  struct sr_datafeed_analog *analog, void *info)
 {
-	int ret;
+	int ret, digits = 0;
 	struct kern_info *info_local;
 
 	info_local = (struct kern_info *)info;
 
 	info_local->buflen = get_buflen(buf);
 
-	if ((ret = parse_value(buf, floatval, info_local)) != SR_OK) {
+	if ((ret = parse_value(buf, floatval, &digits, info_local)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
 		return ret;
 	}
+
+	analog->encoding->digits = digits;
+	analog->spec->spec_digits = digits;
 
 	parse_flags(buf, info_local);
 	handle_flags(analog, floatval, info_local);
