@@ -130,7 +130,7 @@ static void send_sample(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
