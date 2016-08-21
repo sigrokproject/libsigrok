@@ -434,10 +434,15 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		if (ch->enabled) {
 			analog.meaning->channels = g_slist_append(NULL, ch);
 			analog.meaning->mq = SR_MQ_TEMPERATURE;
-			if (devc->temp_unit == 1)
+			if (devc->temp_unit == 1) {
 				analog.meaning->unit = SR_UNIT_FAHRENHEIT;
-			else
+				analog.encoding->digits = 0;
+				analog.spec->spec_digits = 0;
+			} else {
 				analog.meaning->unit = SR_UNIT_CELSIUS;
+				analog.encoding->digits = 1;
+				analog.spec->spec_digits = 1;
+			}
 			analog.data = (void *)temp;
 			sr_session_send(sdi, &packet);
 			g_slist_free(analog.meaning->channels);
@@ -448,6 +453,8 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 			analog.meaning->channels = g_slist_append(NULL, ch);
 			analog.meaning->mq = SR_MQ_RELATIVE_HUMIDITY;
 			analog.meaning->unit = SR_UNIT_PERCENTAGE;
+			analog.encoding->digits = 1;
+			analog.spec->spec_digits = 1;
 			analog.data = (void *)rh;
 			sr_session_send(sdi, &packet);
 			g_slist_free(analog.meaning->channels);
