@@ -470,15 +470,16 @@ static int parse_mq(const uint8_t *pkt, int is_secondary, int is_parallel)
 	return 0;
 }
 
-static float parse_value(const uint8_t *buf)
+static float parse_value(const uint8_t *buf, int *digits)
 {
-	static const float decimals[] = {
-		1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7
-	};
+	static const int exponents[] = {0, -1, -2, -3, -4, -5, -6, -7};
+	int exponent;
 	int16_t val;
 
+	exponent = exponents[buf[3] & 7];
+	*digits = -exponent;
 	val = (buf[1] << 8) | buf[2];
-	return (float)val * decimals[buf[3] & 7];
+	return (float)val * powf(10, exponent);
 }
 
 static void parse_measurement(const uint8_t *pkt, float *floatval,
@@ -487,25 +488,26 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 {
 	static const struct {
 		int unit;
-		float mult;
+		int exponent;
 	} units[] = {
-		{ SR_UNIT_UNITLESS, 1 },	/* no unit */
-		{ SR_UNIT_OHM, 1 },		/* Ohm     */
-		{ SR_UNIT_OHM, 1e3 },		/* kOhm    */
-		{ SR_UNIT_OHM, 1e6 },		/* MOhm    */
-		{ -1, 0 },			/* ???     */
-		{ SR_UNIT_HENRY, 1e-6 },	/* uH      */
-		{ SR_UNIT_HENRY, 1e-3 },	/* mH      */
-		{ SR_UNIT_HENRY, 1 },		/* H       */
-		{ SR_UNIT_HENRY, 1e3 },		/* kH      */
-		{ SR_UNIT_FARAD, 1e-12 },	/* pF      */
-		{ SR_UNIT_FARAD, 1e-9 },	/* nF      */
-		{ SR_UNIT_FARAD, 1e-6 },	/* uF      */
-		{ SR_UNIT_FARAD, 1e-3 },	/* mF      */
-		{ SR_UNIT_PERCENTAGE, 1 },	/* %       */
-		{ SR_UNIT_DEGREE, 1 }		/* degree  */
+		{ SR_UNIT_UNITLESS,   0 },	/* no unit */
+		{ SR_UNIT_OHM,        0 },	/* Ohm     */
+		{ SR_UNIT_OHM,        3 },	/* kOhm    */
+		{ SR_UNIT_OHM,        6 },	/* MOhm    */
+		{ -1,                 0 },	/* ???     */
+		{ SR_UNIT_HENRY,     -6 },	/* uH      */
+		{ SR_UNIT_HENRY,     -3 },	/* mH      */
+		{ SR_UNIT_HENRY,      0 },	/* H       */
+		{ SR_UNIT_HENRY,      3 },	/* kH      */
+		{ SR_UNIT_FARAD,    -12 },	/* pF      */
+		{ SR_UNIT_FARAD,     -9 },	/* nF      */
+		{ SR_UNIT_FARAD,     -6 },	/* uF      */
+		{ SR_UNIT_FARAD,     -3 },	/* mF      */
+		{ SR_UNIT_PERCENTAGE, 0 },	/* %       */
+		{ SR_UNIT_DEGREE,     0 },	/* degree  */
 	};
 	const uint8_t *buf;
+	int digits, exponent;
 	int state;
 
 	buf = pkt_to_buf(pkt, is_secondary);
@@ -544,8 +546,11 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 
 	analog->meaning->unit = units[buf[3] >> 3].unit;
 
-	*floatval = parse_value(buf);
-	*floatval *= (state == 0) ? units[buf[3] >> 3].mult : INFINITY;
+	exponent = units[buf[3] >> 3].exponent;
+	*floatval = parse_value(buf, &digits);
+	*floatval *= (state == 0) ? powf(10, exponent) : INFINITY;
+	analog->encoding->digits = digits - exponent;
+	analog->spec->spec_digits = digits - exponent;
 }
 
 static unsigned int parse_freq(const uint8_t *pkt)
