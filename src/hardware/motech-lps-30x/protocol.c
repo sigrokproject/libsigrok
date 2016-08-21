@@ -51,6 +51,8 @@ static void send_data(struct sr_dev_inst *sdi)
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = SR_MQFLAG_DC;
+	analog.encoding->digits = 3;
+	analog.spec->spec_digits = 2;
 	analog.data = data;
 
 	for (i = 0; i < devc->model->num_channels; i++)
@@ -60,6 +62,8 @@ static void send_data(struct sr_dev_inst *sdi)
 	analog.meaning->mq = SR_MQ_CURRENT;
 	analog.meaning->unit = SR_UNIT_AMPERE;
 	analog.meaning->mqflags = 0;
+	analog.encoding->digits = 4;
+	analog.spec->spec_digits = 3;
 	analog.data = data;
 	for (i = 0; i < devc->model->num_channels; i++)
 		((float *)analog.data)[i] = devc->channel_status[i].output_current_last; /* Value always 0 for channel 3, if present! */
