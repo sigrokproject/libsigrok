@@ -90,7 +90,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 		is_valid = FALSE;
 
 	if (is_valid) {
-		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 		analog.meaning->mq = SR_MQ_TEMPERATURE;
 		analog.meaning->mqflags = 0;
 		switch (devc->packet[5] - 0x30) {
