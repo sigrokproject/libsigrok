@@ -74,7 +74,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	}
 	fvalue /= 10;
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 	analog.meaning->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.meaning->unit = SR_UNIT_DECIBEL_SPL;
 	analog.meaning->channels = sdi->channels;
