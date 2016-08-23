@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include <ieee1284.h>
 #include "protocol.h"
 
@@ -344,7 +345,10 @@ static void push_samples(const struct sr_dev_inst *sdi, uint8_t *buf, size_t num
 	while (num--)
 		data[num] = (buf[num] - 0x80) * factor;
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	float vdivlog = log10f(factor);
+	int digits = -(int)vdivlog + (vdivlog < 0.0);
+
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.meaning->channels = devc->enabled_channel;
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
