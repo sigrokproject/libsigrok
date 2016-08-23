@@ -109,7 +109,7 @@ static void send_data(const struct sr_dev_inst *sdi, void *buf, unsigned int buf
 
 	devc = sdi->priv;
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 	analog.meaning->mq = SR_MQ_SOUND_PRESSURE_LEVEL;
 	analog.meaning->mqflags = devc->mqflags;
 	analog.meaning->unit = SR_UNIT_DECIBEL_SPL;
