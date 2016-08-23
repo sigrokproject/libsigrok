@@ -97,7 +97,7 @@ struct dev_context {
 	enum sr_unit unit;  /**< Measured unit */
 	enum sr_mqflag mqflags;	/**< Measured quantity flags */
 	float value;		/**< Measured value */
-	float scale;		/**< Scale for value. */
+	int8_t scale;       /**< Scale for value. */
 	int8_t scale1000;   /**< Additional scale factor 1000x. */
 	int addr;           /**< Device address (1..15). */
 	int cmd_idx;        /**< Parameter "Idx" (Index) of current command, if required. */
