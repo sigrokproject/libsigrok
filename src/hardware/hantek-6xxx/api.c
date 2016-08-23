@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include "protocol.h"
 
 /* Max time in ms before we want to check on USB events */
@@ -561,55 +562,58 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct dev_context *devc = sdi->priv;
-	int num_channels, data_offset, i;
+	GSList *channels = devc->enabled_channels;
 
-	const float ch1_bit = RANGE(0) / 255;
-	const float ch2_bit = RANGE(1) / 255;
-	const float ch1_center = RANGE(0) / 2;
-	const float ch2_center = RANGE(1) / 2;
-
-	const gboolean ch1_ena = !!devc->ch_enabled[0];
-	const gboolean ch2_ena = !!devc->ch_enabled[1];
+	const float ch_bit[] = { RANGE(0) / 255, RANGE(1) / 255 };
+	const float ch_center[] = { RANGE(0) / 2, RANGE(1) / 2 };
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-	num_channels = (ch1_ena && ch2_ena) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 
-	analog.meaning->channels = devc->enabled_channels;
 	analog.num_samples = num_samples;
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = 0;
 
-	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
+	analog.data = g_try_malloc(num_samples * sizeof(float));
 	if (!analog.data) {
 		sr_err("Analog data buffer malloc failed.");
 		devc->dev_state = STOPPING;
 		return;
 	}
 
-	data_offset = 0;
-	for (i = 0; i < num_samples; i++) {
-		/*
-		 * The device always sends data for both channels. If a channel
-		 * is disabled, it contains a copy of the enabled channel's
-		 * data. However, we only send the requested channels to
-		 * the bus.
-		 *
-		 * Voltage values are encoded as a value 0-255, where the
-		 * value is a point in the range represented by the vdiv
-		 * setting. There are 10 vertical divs, so e.g. 500mV/div
-		 * represents 5V peak-to-peak where 0 = -2.5V and 255 = +2.5V.
-		 */
-		if (ch1_ena)
-			((float *)analog.data)[data_offset++] = (ch1_bit * *(buf + i * 2) - ch1_center);
-		if (ch2_ena)
-			((float *)analog.data)[data_offset++] = (ch2_bit * *(buf + i * 2 + 1) - ch2_center);
-	}
+	for (int ch = 0; ch < 2; ch++) {
+		if (!devc->ch_enabled[ch])
+			continue;
 
-	sr_session_send(sdi, &packet);
+		float vdivlog = log10f(ch_bit[ch]);
+		int digits = -(int)vdivlog + (vdivlog < 0.0);
+		analog.encoding->digits = digits;
+		analog.spec->spec_digits = digits;
+		analog.meaning->channels = g_slist_append(NULL, channels->data);
+
+		for (int i = 0; i < num_samples; i++) {
+			/*
+			 * The device always sends data for both channels. If a channel
+			 * is disabled, it contains a copy of the enabled channel's
+			 * data. However, we only send the requested channels to
+			 * the bus.
+			 *
+			 * Voltage values are encoded as a value 0-255, where the
+			 * value is a point in the range represented by the vdiv
+			 * setting. There are 10 vertical divs, so e.g. 500mV/div
+			 * represents 5V peak-to-peak where 0 = -2.5V and 255 = +2.5V.
+			 */
+			((float *)analog.data)[i] = ch_bit[ch] * *(buf + i * 2 + ch) - ch_center[ch];
+		}
+
+		sr_session_send(sdi, &packet);
+		g_slist_free(analog.meaning->channels);
+
+		channels = channels->next;
+	}
 	g_free(analog.data);
 }
 
