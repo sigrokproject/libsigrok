@@ -18,6 +18,7 @@
  */
 
 #include "protocol.h"
+#include <math.h>
 #include <string.h>
 
 #define ANALOG_CHANNELS 2
@@ -235,12 +236,16 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			sr_spew("Received %d number of samples from channel "
 				"%d.", num_samples, devc->cur_acq_channel + 1);
 
+			float vbit = volts_per_division * VERTICAL_DIVISIONS / 256.0;
+			float vbitlog = log10f(vbit);
+			int digits = -(int)vbitlog + (vbitlog < 0.0);
+
 			/* Convert data. */
 			for (i = 0; i < num_samples; i++)
-				samples[i] = ((float) ((int16_t) (RB16(&devc->rcv_buffer[i*2])))) / 256. * VERTICAL_DIVISIONS * volts_per_division;
+				samples[i] = ((float) ((int16_t) (RB16(&devc->rcv_buffer[i*2])))) * vbit;
 
 			/* Fill frame. */
-			sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+			sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, devc->cur_acq_channel));
 			analog.num_samples = num_samples;
 			analog.data = samples;
