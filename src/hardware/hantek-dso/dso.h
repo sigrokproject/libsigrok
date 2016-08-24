@@ -177,8 +177,7 @@ struct dev_context {
 
 	/* Oscilloscope settings. */
 	int timebase;
-	gboolean ch1_enabled;
-	gboolean ch2_enabled;
+	gboolean ch_enabled[2];
 	int voltage[2];
 	int coupling[2];
 	// voltage offset (vertical position)

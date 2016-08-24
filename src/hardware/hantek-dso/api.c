@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -191,8 +192,8 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->timebase = DEFAULT_TIMEBASE;
-	devc->ch1_enabled = TRUE;
-	devc->ch2_enabled = TRUE;
+	devc->ch_enabled[0] = TRUE;
+	devc->ch_enabled[1] = TRUE;
 	devc->voltage[0] = DEFAULT_VOLTAGE;
 	devc->voltage[1] = DEFAULT_VOLTAGE;
 	devc->coupling[0] = DEFAULT_COUPLING;
@@ -219,13 +220,13 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	g_slist_free(devc->enabled_channels);
-	devc->ch1_enabled = devc->ch2_enabled = FALSE;
+	devc->ch_enabled[0] = devc->ch_enabled[1] = FALSE;
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
 		if (p == 0)
-			devc->ch1_enabled = ch->enabled;
+			devc->ch_enabled[0] = ch->enabled;
 		else
-			devc->ch2_enabled = ch->enabled;
+			devc->ch_enabled[1] = ch->enabled;
 		if (ch->enabled)
 			devc->enabled_channels = g_slist_append(devc->enabled_channels, ch);
 	}
@@ -692,54 +693,52 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	struct dev_context *devc;
-	float ch1, ch2, range;
-	int num_channels, data_offset;
-	unsigned int i;
+	struct dev_context *devc = sdi->priv;
+	GSList *channels = devc->enabled_channels;
 
-	devc = sdi->priv;
-	num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* TODO: support for 5xxx series 9-bit samples */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-	analog.meaning->channels = devc->enabled_channels;
 	analog.num_samples = num_samples;
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = 0;
 	/* TODO: Check malloc return value. */
-	analog.data = g_try_malloc(analog.num_samples * sizeof(float) * num_channels);
-	data_offset = 0;
-	for (i = 0; i < analog.num_samples; i++) {
-		/*
-		 * The device always sends data for both channels. If a channel
-		 * is disabled, it contains a copy of the enabled channel's
-		 * data. However, we only send the requested channels to
-		 * the bus.
-		 *
-		 * Voltage values are encoded as a value 0-255 (0-512 on the
-		 * DSO-5200*), where the value is a point in the range
-		 * represented by the vdiv setting. There are 8 vertical divs,
-		 * so e.g. 500mV/div represents 4V peak-to-peak where 0 = -2V
-		 * and 255 = +2V.
-		 */
-		/* TODO: Support for DSO-5xxx series 9-bit samples. */
-		if (devc->ch1_enabled) {
-			range = ((float)vdivs[devc->voltage[0]][0] / vdivs[devc->voltage[0]][1]) * 8;
-			ch1 = range / 255 * *(buf + i * 2 + 1);
-			/* Value is centered around 0V. */
-			ch1 -= range / 2;
-			((float *)analog.data)[data_offset++] = ch1;
+	analog.data = g_try_malloc(num_samples * sizeof(float));
+
+	for (int ch = 0; ch < 2; ch++) {
+		if (!devc->ch_enabled[ch])
+			continue;
+
+		float range = ((float)vdivs[devc->voltage[ch]][0] / vdivs[devc->voltage[ch]][1]) * 8;
+		float vdivlog = log10f(range / 255);
+		int digits = -(int)vdivlog + (vdivlog < 0.0);
+		analog.encoding->digits = digits;
+		analog.spec->spec_digits = digits;
+		analog.meaning->channels = g_slist_append(NULL, channels->data);
+
+		for (int i = 0; i < num_samples; i++) {
+			/*
+			 * The device always sends data for both channels. If a channel
+			 * is disabled, it contains a copy of the enabled channel's
+			 * data. However, we only send the requested channels to
+			 * the bus.
+			 *
+			 * Voltage values are encoded as a value 0-255 (0-512 on the
+			 * DSO-5200*), where the value is a point in the range
+			 * represented by the vdiv setting. There are 8 vertical divs,
+			 * so e.g. 500mV/div represents 4V peak-to-peak where 0 = -2V
+			 * and 255 = +2V.
+			 */
+			/* TODO: Support for DSO-5xxx series 9-bit samples. */
+			((float *)analog.data)[i] = range / 255 * *(buf + i * 2 + 1 - ch) - range / 2;
 		}
-		if (devc->ch2_enabled) {
-			range = ((float)vdivs[devc->voltage[1]][0] / vdivs[devc->voltage[1]][1]) * 8;
-			ch2 = range / 255 * *(buf + i * 2);
-			ch2 -= range / 2;
-			((float *)analog.data)[data_offset++] = ch2;
-		}
+		sr_session_send(sdi, &packet);
+		g_slist_free(analog.meaning->channels);
+
+		channels = channels->next;
 	}
-	sr_session_send(sdi, &packet);
 	g_free(analog.data);
 }
 
@@ -918,7 +917,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* Remember where in the captured frame the trigger is. */
 		devc->trigger_offset = trigger_offset;
 
-		num_channels = (devc->ch1_enabled && devc->ch2_enabled) ? 2 : 1;
+		num_channels = (devc->ch_enabled[0] && devc->ch_enabled[1]) ? 2 : 1;
 		devc->framebuf = g_malloc(devc->framesize * num_channels * 2);
 		devc->samp_buffered = devc->samp_received = 0;
 

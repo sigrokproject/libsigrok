@@ -315,8 +315,8 @@ static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[2] |= (tmp & 0x07) << 5;
 
 	/* Enabled channels: 00=CH1 01=CH2 10=both */
-	sr_dbg("Channels CH1=%d CH2=%d", devc->ch1_enabled, devc->ch2_enabled);
-	tmp = (((devc->ch2_enabled ? 1 : 0) << 1) + (devc->ch1_enabled ? 1 : 0)) - 1;
+	sr_dbg("Channels CH1=%d CH2=%d", devc->ch_enabled[0], devc->ch_enabled[1]);
+	tmp = (((devc->ch_enabled[1] ? 1 : 0) << 1) + (devc->ch_enabled[0] ? 1 : 0)) - 1;
 	cmdstring[3] = tmp;
 
 	/* Fast rates channel */
