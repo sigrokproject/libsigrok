@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -50,6 +51,7 @@ struct channel_group_priv {
 struct channel_priv {
 	int ch_type;
 	int fd;
+	int digits;
 	float val;
 	struct channel_group_priv *probe;
 };
@@ -613,18 +615,18 @@ static int channel_to_unit(struct sr_channel *ch)
 }
 
 /* We need to scale measurements down from the units used by the drivers. */
-static float adjust_data(int val, int type)
+static int type_digits(int type)
 {
 	switch (type) {
 	case ENRG_PWR:
-		return ((float)val) / 1000000.0;
+		return 6;
 	case ENRG_CURR: /* Fallthrough */
 	case ENRG_VOL: /* Fallthrough */
 	case TEMP_IN: /* Fallthrough */
 	case TEMP_OUT:
-		return ((float)val) / 1000.0;
+		return 3;
 	default:
-		return 0.0;
+		return 0;
 	}
 }
 
@@ -648,7 +650,8 @@ static float read_sample(struct sr_channel *ch)
 		return -1.0;
 	}
 
-	return adjust_data(strtol(buf, NULL, 10), chp->ch_type);
+	chp->digits = type_digits(chp->ch_type);
+	return strtol(buf, NULL, 10) * powf(10, -chp->digits);
 }
 
 SR_PRIV int bl_acme_open_channel(struct sr_channel *ch)
@@ -777,6 +780,8 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 			if (i < 1)
 				chp->val = read_sample(ch);
 
+			analog.encoding->digits  = chp->digits;
+			analog.spec->spec_digits = chp->digits;
 			analog.data = &chp->val;
 			sr_session_send(sdi, &packet);
 		}
