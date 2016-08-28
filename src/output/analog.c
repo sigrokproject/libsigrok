@@ -116,13 +116,15 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		sr_analog_unit_to_string(analog, &suffix);
 		for (i = 0; i < analog->num_samples; i++) {
 			for (l = analog->meaning->channels, c = 0; l; l = l->next, c++) {
+				float value = fdata[i * num_channels + c];
+				const char *prefix = sr_analog_si_prefix(&value, &digits);
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
-				number = g_strdup_printf("%.*f", MAX(digits, 0),
-						fdata[i * num_channels + c]);
+				number = g_strdup_printf("%.*f", MAX(digits, 0), value);
 				g_string_append(*out, number);
 				g_free(number);
 				g_string_append(*out, " ");
+				g_string_append(*out, prefix);
 				g_string_append(*out, suffix);
 				g_string_append(*out, "\n");
 			}

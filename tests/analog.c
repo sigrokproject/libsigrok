@@ -124,6 +124,71 @@ START_TEST(test_analog_to_float_null)
 }
 END_TEST
 
+START_TEST(test_analog_si_prefix)
+{
+	struct {
+		float input_value;
+		int input_digits;
+		float output_value;
+		int output_digits;
+		const char *output_si_prefix;
+	} v[] = {
+		{   12.0     ,  0,  12.0  ,    0, ""  },
+		{   12.0     ,  1,  12.0  ,    1, ""  },
+		{   12.0     , -1,   0.012,    2, "k" },
+		{ 1024.0     ,  0,   1.024,    3, "k" },
+		{ 1024.0     , -1,   1.024,    2, "k" },
+		{ 1024.0     , -3,   1.024,    0, "k" },
+		{   12.0e5   ,  0,   1.2,      6, "M" },
+		{    0.123456,  0,   0.123456, 0, ""  },
+		{    0.123456,  1,   0.123456, 1, ""  },
+		{    0.123456,  2,   0.123456, 2, ""  },
+		{    0.123456,  3, 123.456,    0, "m" },
+		{    0.123456,  4, 123.456,    1, "m" },
+		{    0.123456,  5, 123.456,    2, "m" },
+		{    0.123456,  6, 123.456,    3, "m" },
+		{    0.123456,  7, 123.456,    4, "m" },
+		{    0.0123  ,  4,  12.3,      1, "m" },
+		{    0.00123 ,  5,   1.23,     2, "m" },
+		{    0.000123,  4,   0.123,    1, "m" },
+		{    0.000123,  5,   0.123,    2, "m" },
+		{    0.000123,  6, 123.0,      0, "µ" },
+		{    0.000123,  7, 123.0,      1, "µ" },
+	};
+
+	for (unsigned int i = 0; i < ARRAY_SIZE(v); i++) {
+		float value = v[i].input_value;
+		int digits = v[i].input_digits;
+		const char *si_prefix = sr_analog_si_prefix(&value, &digits);
+
+		fail_unless(fabs(value - v[i].output_value) <= 0.00001,
+			"sr_analog_si_prefix() unexpected output value %f (i=%d).",
+			value , i);
+		fail_unless(digits == v[i].output_digits,
+			"sr_analog_si_prefix() unexpected output digits %d (i=%d).",
+			digits, i);
+		fail_unless(!strcmp(si_prefix, v[i].output_si_prefix),
+			"sr_analog_si_prefix() unexpected output prefix \"%s\" (i=%d).",
+			si_prefix, i);
+	}
+}
+END_TEST
+
+START_TEST(test_analog_si_prefix_null)
+{
+	float value = 1.23;
+	int digits = 1;
+	const char *si_prefix;
+
+	si_prefix = sr_analog_si_prefix(NULL, &digits);
+	fail_unless(!strcmp(si_prefix, ""));
+	si_prefix = sr_analog_si_prefix(&value, NULL);
+	fail_unless(!strcmp(si_prefix, ""));
+	si_prefix = sr_analog_si_prefix(NULL, NULL);
+	fail_unless(!strcmp(si_prefix, ""));
+}
+END_TEST
+
 START_TEST(test_analog_unit_to_string)
 {
 	int ret;
@@ -320,6 +385,8 @@ Suite *suite_analog(void)
 	tc = tcase_create("analog_to_float");
 	tcase_add_test(tc, test_analog_to_float);
 	tcase_add_test(tc, test_analog_to_float_null);
+	tcase_add_test(tc, test_analog_si_prefix);
+	tcase_add_test(tc, test_analog_si_prefix_null);
 	tcase_add_test(tc, test_analog_unit_to_string);
 	tcase_add_test(tc, test_analog_unit_to_string_null);
 	tcase_add_test(tc, test_set_rational);

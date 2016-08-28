@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -290,6 +291,37 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 	}
 
 	return SR_OK;
+}
+
+/**
+ * Scale a float value to the appropriate SI prefix.
+ *
+ * @param[in,out] value The float value to convert to appropriate SI prefix.
+ * @param[in,out] digits The number of significant decimal digits in value.
+ *
+ * @return The SI prefix to which value was scaled, as a printable string.
+ *
+ * @since 0.5.0
+ */
+SR_API const char *sr_analog_si_prefix(float *value, int *digits)
+{
+#define NEG_PREFIX_COUNT 5  /* number of prefixes below unity */
+#define POS_PREFIX_COUNT (int)(ARRAY_SIZE(prefixes) - NEG_PREFIX_COUNT - 1)
+	static const char *prefixes[] = { "f","p","n","µ","m","","k","M","G","T" };
+
+	if (value == NULL || digits == NULL || isnan(*value))
+		return prefixes[NEG_PREFIX_COUNT];
+
+	float logval = log10f(fabsf(*value));
+	int prefix = (logval / 3) - (logval < 1);
+
+	if (prefix < -NEG_PREFIX_COUNT) prefix = -NEG_PREFIX_COUNT;
+	if (3 * prefix < -*digits)      prefix = (-*digits + 2 * (*digits < 0)) / 3;
+	if (prefix > POS_PREFIX_COUNT)  prefix = POS_PREFIX_COUNT;
+
+	*value *= powf(10, -3 * prefix);
+	*digits += 3 * prefix;
+	return prefixes[prefix + NEG_PREFIX_COUNT];
 }
 
 /**
