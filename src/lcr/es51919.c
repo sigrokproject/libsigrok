@@ -644,6 +644,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 
 	frame = FALSE;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	analog.num_samples = 1;

@@ -67,6 +67,7 @@ static void decode_packet(struct sr_dev_inst *sdi, const uint8_t *buf)
 
 	devc = sdi->priv;
 	dmm = (struct dmm_info *)sdi->driver;
+	/* Note: digits/spec_digits will be overridden by the DMM parsers. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 	info = g_malloc(dmm->info_size);
 

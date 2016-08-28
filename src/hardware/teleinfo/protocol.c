@@ -70,6 +70,7 @@ static void teleinfo_send_value(struct sr_dev_inst *sdi, const char *channel_nam
 	if (!ch || !ch->enabled)
 		return;
 
+	/* Note: digits/spec_digits is actually really 0 for this device! */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 	analog.meaning->channels = g_slist_append(analog.meaning->channels, ch);
 	analog.num_samples = 1;

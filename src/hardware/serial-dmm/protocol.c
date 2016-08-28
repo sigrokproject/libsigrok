@@ -55,6 +55,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	log_dmm_packet(buf);
 	devc = sdi->priv;
 
+	/* Note: digits/spec_digits will be overridden by the DMM parsers. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	analog.meaning->channels = sdi->channels;

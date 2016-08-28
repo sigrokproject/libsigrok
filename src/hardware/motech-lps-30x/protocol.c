@@ -44,6 +44,7 @@ static void send_data(struct sr_dev_inst *sdi)
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	analog.meaning->channels = sdi->channels;

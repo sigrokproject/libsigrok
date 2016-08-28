@@ -398,6 +398,7 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 
 	devc = sdi->priv;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	samples = buflen / devc->sample_size;

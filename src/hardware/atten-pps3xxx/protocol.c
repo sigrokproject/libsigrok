@@ -47,6 +47,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	dump_packet("received", devc->packet);
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	packet.type = SR_DF_ANALOG;

@@ -348,6 +348,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		/* Get the value. */
 		korad_kaxxxxp_get_reply(serial, devc);
 
+		/* Note: digits/spec_digits will be overridden later. */
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 		/* Send the value forward. */

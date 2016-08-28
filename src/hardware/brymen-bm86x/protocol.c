@@ -218,6 +218,7 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog[0], &encoding[0], &meaning[0], &spec[0], 0);
 	sr_analog_init(&analog[1], &encoding[1], &meaning[1], &spec[1], 0);
 

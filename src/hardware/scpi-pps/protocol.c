@@ -87,6 +87,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		ch_spec = &devc->device->channels[pch->hw_output_idx];
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
+		/* Note: digits/spec_digits will be overridden later. */
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 		analog.meaning->channels = g_slist_append(NULL, devc->cur_channel);
 		analog.num_samples = 1;

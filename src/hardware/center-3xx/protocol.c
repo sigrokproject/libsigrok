@@ -139,6 +139,7 @@ static int handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi, int idx)
 
 	devc = sdi->priv;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 	memset(&info, 0, sizeof(struct center_info));
 

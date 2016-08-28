@@ -43,6 +43,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
+	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
 	analog.meaning->channels = sdi->channels;
