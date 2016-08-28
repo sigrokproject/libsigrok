@@ -163,7 +163,7 @@ static void appa_55ii_log_data_parse(struct sr_dev_inst *sdi)
 		/* FIXME: Timestamp should be sent in the packet. */
 		sr_dbg("Timestamp: %02d:%02d:%02d", buf[2], buf[3], buf[4]);
 
-		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 		analog.num_samples = 1;
 		analog.meaning->mq = SR_MQ_TEMPERATURE;
 		analog.meaning->unit = SR_UNIT_CELSIUS;
