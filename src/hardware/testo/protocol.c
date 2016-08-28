@@ -246,7 +246,8 @@ SR_PRIV void testo_receive_packet(const struct sr_dev_inst *sdi)
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	analog.num_samples = 1;
 	analog.meaning->mqflags = 0;
 	analog.data = &value;

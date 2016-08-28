@@ -764,7 +764,8 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		encoding.is_signed = TRUE;
 		encoding.is_float = TRUE;
 		encoding.is_bigendian = FALSE;
-		encoding.digits = 0;
+		/* TODO: Use proper 'digits' value for this device (and its modes). */
+		encoding.digits = 2;
 		encoding.is_digits_decimal = FALSE;
 		encoding.scale.p = 1;
 		encoding.scale.q = 1;
@@ -779,7 +780,8 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		}
 		meaning.mqflags = 0;
 		meaning.channels = g_slist_append(NULL, ch);
-		spec.spec_digits = 0;
+		/* TODO: Use proper 'digits' value for this device (and its modes). */
+		spec.spec_digits = 2;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
 		g_slist_free(meaning.channels);

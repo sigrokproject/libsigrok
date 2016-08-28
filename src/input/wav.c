@@ -227,7 +227,8 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 		d += inc->unitsize;
 	}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = num_samples;

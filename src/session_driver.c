@@ -142,7 +142,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 		if (vdev->cur_analog_channel != 0) {
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
-			sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+			/* TODO: Use proper 'digits' value for this device (and its modes). */
+			sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 			analog.meaning->channels = g_slist_prepend(NULL,
 					g_array_index(vdev->analog_channels,
 						struct sr_channel *, vdev->cur_analog_channel - 1));

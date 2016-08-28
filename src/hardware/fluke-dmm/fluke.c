@@ -63,7 +63,8 @@ static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		e++;
 
 	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
-	sr_analog_init(analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(analog, &encoding, &meaning, &spec, 2);
 	analog->data = g_malloc(sizeof(float));
 	analog->meaning->channels = sdi->channels;
 	analog->num_samples = 1;
@@ -176,7 +177,8 @@ static struct sr_datafeed_analog *handle_qm_28x(const struct sr_dev_inst *sdi,
 	}
 
 	analog = g_malloc0(sizeof(struct sr_datafeed_analog));
-	sr_analog_init(analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(analog, &encoding, &meaning, &spec, 2);
 	analog->data = g_malloc(sizeof(float));
 	analog->meaning->channels = sdi->channels;
 	analog->num_samples = 1;
@@ -401,7 +403,8 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			fvalue = 1.0;
 	}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;

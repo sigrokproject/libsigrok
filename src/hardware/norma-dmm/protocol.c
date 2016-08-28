@@ -123,7 +123,8 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	/* Start decoding. */
 	value = 0.0;
 	scale = 1.0;
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 
 	/*
 	 * The numbers are hex digits, starting from 0.

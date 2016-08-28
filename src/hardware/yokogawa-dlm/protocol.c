@@ -995,7 +995,8 @@ static int dlm_analog_samples_send(GArray *data,
 		g_array_append_val(float_data, voltage);
 	}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	analog.meaning->channels = g_slist_append(NULL, ch);
 	analog.num_samples = float_data->len;
 	analog.data = (float*)float_data->data;
