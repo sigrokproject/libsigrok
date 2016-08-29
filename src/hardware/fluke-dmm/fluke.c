@@ -309,7 +309,10 @@ static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 		return;
 	meas_char = strtol(tokens[4], NULL, 10);
 
-	devc->mq = devc->unit = devc->mqflags = 0;
+	devc->mq = 0;
+	devc->unit = 0;
+	devc->mqflags = 0;
+
 	switch (meas_unit) {
 	case 1:
 		devc->mq = SR_MQ_VOLTAGE;
