@@ -146,6 +146,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE: {
 		tmp_str = g_variant_get_string(data, NULL);

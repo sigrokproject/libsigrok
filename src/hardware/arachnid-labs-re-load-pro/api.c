@@ -287,6 +287,7 @@ static int config_set(uint32_t key, GVariant *data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
 		ret = reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
