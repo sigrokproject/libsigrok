@@ -41,15 +41,19 @@
  * @{
  */
 
-/** @private
- *  Allocate and initialize new struct sr_channel and add to sdi.
- *  @param[in]  sdi The device instance the channel is connected to.
- *  @param[in]  index @copydoc sr_channel::index
- *  @param[in]  type @copydoc sr_channel::type
- *  @param[in]  enabled @copydoc sr_channel::enabled
- *  @param[in]  name @copydoc sr_channel::name
+/**
+ * Allocate and initialize a new struct sr_channel and add it to sdi.
  *
- *  @return A new struct sr_channel*.
+ * @param[in] sdi The device instance the channel is connected to.
+ *                Must not be NULL.
+ * @param[in] index @copydoc sr_channel::index
+ * @param[in] type @copydoc sr_channel::type
+ * @param[in] enabled @copydoc sr_channel::enabled
+ * @param[in] name @copydoc sr_channel::name
+ *
+ * @return A new struct sr_channel*.
+ *
+ * @private
  */
 SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 		int index, int type, gboolean enabled, const char *name)
@@ -75,9 +79,9 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
  * If the channel already has a different name assigned to it, it will be
  * removed, and the new name will be saved instead.
  *
- * @param[in] channel The channel whose name to set.
- * @param[in] name    The new name that the specified channel should get. A
- *                    copy of the string is made.
+ * @param[in] channel The channel whose name to set. Must not be NULL.
+ * @param[in] name The new name that the specified channel should get.
+ *                 A copy of the string is made.
  *
  * @return SR_OK on success, or SR_ERR_ARG on invalid arguments.
  *
@@ -86,30 +90,28 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 SR_API int sr_dev_channel_name_set(struct sr_channel *channel,
 		const char *name)
 {
-	if (!channel) {
-		sr_err("%s: channel was NULL", __func__);
+	if (!channel)
 		return SR_ERR_ARG;
-	}
 
 	g_free(channel->name);
 	channel->name = g_strdup(name);
+
 	return SR_OK;
 }
 
 /**
  * Enable or disable a channel.
  *
- * @param[in] channel The channel to enable or disable.
- * @param[in] state   TRUE to enable the channel, FALSE to disable.
+ * @param[in] channel The channel to enable or disable. Must not be NULL.
+ * @param[in] state TRUE to enable the channel, FALSE to disable.
  *
- * @return SR_OK on success or SR_ERR on failure.  In case of invalid
+ * @return SR_OK on success or SR_ERR on failure. In case of invalid
  *         arguments, SR_ERR_ARG is returned and the channel enabled state
  *         remains unchanged.
  *
  * @since 0.3.0
  */
-SR_API int sr_dev_channel_enable(struct sr_channel *channel,
-		gboolean state)
+SR_API int sr_dev_channel_enable(struct sr_channel *channel, gboolean state)
 {
 	int ret;
 	gboolean was_enabled;
@@ -163,7 +165,7 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
  * @param[in] key The option that should be checked for is supported by the
  *            specified device.
  *
- * @retval TRUE Device has the specified option
+ * @retval TRUE Device has the specified option.
  * @retval FALSE Device does not have the specified option, invalid input
  *         parameters or other error conditions.
  *
@@ -202,17 +204,17 @@ SR_API gboolean sr_dev_has_option(const struct sr_dev_inst *sdi, int key)
  * @param driver Pointer to the driver to be checked. Must not be NULL.
  * @param sdi Pointer to the device instance to be checked. May be NULL to
  *            check driver options.
- * @param cg  Pointer to a channel group, if a specific channel group is to
- *            be checked. Must be NULL to check device-wide options.
+ * @param cg Pointer to a channel group, if a specific channel group is to
+ *           be checked. Must be NULL to check device-wide options.
+ *
  * @return A GArray * of enum sr_configkey values, or NULL on invalid
  *         arguments. The array must be freed by the caller using
  *         g_array_free().
  *
  * @since 0.4.0
  */
-SR_API GArray *sr_dev_options(
-		const struct sr_dev_driver *driver, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+SR_API GArray *sr_dev_options(const struct sr_dev_driver *driver,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	GVariant *gvar;
 	const uint32_t *opts;
@@ -251,8 +253,8 @@ SR_API GArray *sr_dev_options(
  *            If the device's 'driver' field is NULL (virtual device), this
  *            function will always return FALSE (virtual devices don't have
  *            a hardware capabilities list).
- * @param cg  Pointer to a channel group, if a specific channel group is to
- *            be checked. Must be NULL to check device-wide options.
+ * @param cg Pointer to a channel group, if a specific channel group is to
+ *           be checked. Must be NULL to check device-wide options.
  * @param[in] key The option that should be checked for is supported by the
  *            specified device.
  *
@@ -292,9 +294,9 @@ SR_API int sr_dev_config_capabilities_list(const struct sr_dev_inst *sdi,
 /**
  * Allocate and init a new user-generated device instance.
  *
- * @param vendor Device vendor
- * @param model Device model
- * @param version Device version
+ * @param vendor Device vendor.
+ * @param model Device model.
+ * @param version Device version.
  *
  * @retval struct sr_dev_inst *. Dynamically allocated, free using
  *         sr_dev_inst_free().
@@ -316,6 +318,13 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 
 /**
  * Add a new channel to the specified device instance.
+ *
+ * @param[in] index @copydoc sr_channel::index
+ * @param[in] type @copydoc sr_channel::type
+ * @param[in] name @copydoc sr_channel::name
+ *
+ * @return SR_OK Success.
+ * @return SR_OK Invalid argument.
  */
 SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type, const char *name)
 {
@@ -327,9 +336,12 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 	return SR_OK;
 }
 
-/** @private
- *  Free device instance struct created by sr_dev_inst().
- *  @param sdi device instance to free.
+/**
+ * Free device instance struct created by sr_dev_inst().
+ *
+ * @param sdi Device instance to free. Must not be NULL.
+ *
+ * @private
  */
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
@@ -367,13 +379,16 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 
-/** @private
- *  Allocate and init struct for USB device instance.
- *  @param[in]  bus @copydoc sr_usb_dev_inst::bus
- *  @param[in]  address @copydoc sr_usb_dev_inst::address
- *  @param[in]  hdl @copydoc sr_usb_dev_inst::devhdl
+/**
+ * Allocate and init a struct for a USB device instance.
  *
- *  @retval other struct sr_usb_dev_inst * for USB device instance.
+ * @param[in] bus @copydoc sr_usb_dev_inst::bus
+ * @param[in] address @copydoc sr_usb_dev_inst::address
+ * @param[in] hdl @copydoc sr_usb_dev_inst::devhdl
+ *
+ * @return The struct sr_usb_dev_inst * for USB device instance.
+ *
+ * @private
  */
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 			uint8_t address, struct libusb_device_handle *hdl)
@@ -388,9 +403,12 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 	return udi;
 }
 
-/** @private
- *  Free struct * allocated by sr_usb_dev_inst().
- *  @param usb  struct* to free. Must not be NULL.
+/**
+ * Free struct sr_usb_dev_inst * allocated by sr_usb_dev_inst().
+ *
+ * @param usb The struct sr_usb_dev_inst * to free. Must not be NULL.
+ *
+ * @private
  */
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 {
@@ -402,7 +420,7 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 #ifdef HAVE_LIBSERIALPORT
 
 /**
- * @private
+ * Allocate and init a struct for a serial device instance.
  *
  * Both parameters are copied to newly allocated strings, and freed
  * automatically by sr_serial_dev_inst_free().
@@ -417,6 +435,8 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
  *
  * @return A pointer to a newly initialized struct sr_serial_dev_inst,
  *         or NULL on error.
+ *
+ * @private
  */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm)
@@ -431,9 +451,12 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 	return serial;
 }
 
-/** @private
- *  Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst().
- *  @param serial   struct sr_serial_dev_inst * to free. Must not be NULL.
+/**
+ * Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst().
+ *
+ * @param serial The struct sr_serial_dev_inst * to free. Must not be NULL.
+ *
+ * @private
  */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
@@ -486,8 +509,8 @@ SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
  * @param driver The driver to use. This must be a pointer to one of
  *               the entries returned by sr_driver_list(). Must not be NULL.
  *
- * @retval SR_OK Success
- * @retval SR_ERR_ARG Invalid driver
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid driver.
  *
  * @since 0.2.0
  */
@@ -630,7 +653,7 @@ SR_API const char *sr_dev_inst_sernum_get(const struct sr_dev_inst *sdi)
  *
  * @param sdi Device instance to use. Must not be NULL.
  *
- * @return A copy of the connection id string or NULL. The caller is responsible
+ * @return A copy of the connection ID string or NULL. The caller is responsible
  *         for g_free()ing the string when it is no longer needed.
  */
 SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
