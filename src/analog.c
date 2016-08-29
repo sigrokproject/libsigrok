@@ -156,13 +156,13 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 /**
  * Convert an analog datafeed payload to an array of floats.
  *
+ * Sufficient memory for outbuf must have been pre-allocated by the caller,
+ * who is also responsible for freeing it when no longer needed.
+ *
  * @param[in] analog The analog payload to convert. Must not be NULL.
  *                   analog->data, analog->meaning, and analog->encoding
  *                   must not be NULL.
  * @param[out] outbuf Memory where to store the result. Must not be NULL.
- *
- * Sufficient memory for outbuf must have been pre-allocated by the caller,
- * who is also responsible for freeing it when no longer needed.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Unsupported encoding.
@@ -188,6 +188,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 #else
 	bigendian = FALSE;
 #endif
+
 	if (!analog->encoding->is_float) {
 		float offset = analog->encoding->offset.p / (float)analog->encoding->offset.q;
 		float scale = analog->encoding->scale.p / (float)analog->encoding->scale.q;
@@ -258,8 +259,8 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 			}
 			break;
 		default:
-			sr_err("Unsupported unit size '%d' for analog-to-float conversion.",
-				analog->encoding->unitsize);
+			sr_err("Unsupported unit size '%d' for analog-to-float"
+			       " conversion.", analog->encoding->unitsize);
 			return SR_ERR;
 		}
 		return SR_OK;
@@ -307,32 +308,36 @@ SR_API const char *sr_analog_si_prefix(float *value, int *digits)
 {
 #define NEG_PREFIX_COUNT 5  /* number of prefixes below unity */
 #define POS_PREFIX_COUNT (int)(ARRAY_SIZE(prefixes) - NEG_PREFIX_COUNT - 1)
-	static const char *prefixes[] = { "f","p","n","µ","m","","k","M","G","T" };
+	static const char *prefixes[] = { "f", "p", "n", "µ", "m", "", "k", "M", "G", "T" };
 
-	if (value == NULL || digits == NULL || isnan(*value))
+	if (!value || !digits || isnan(*value))
 		return prefixes[NEG_PREFIX_COUNT];
 
 	float logval = log10f(fabsf(*value));
 	int prefix = (logval / 3) - (logval < 1);
 
-	if (prefix < -NEG_PREFIX_COUNT) prefix = -NEG_PREFIX_COUNT;
-	if (3 * prefix < -*digits)      prefix = (-*digits + 2 * (*digits < 0)) / 3;
-	if (prefix > POS_PREFIX_COUNT)  prefix = POS_PREFIX_COUNT;
+	if (prefix < -NEG_PREFIX_COUNT)
+		prefix = -NEG_PREFIX_COUNT;
+	if (3 * prefix < -*digits)
+		prefix = (-*digits + 2 * (*digits < 0)) / 3;
+	if (prefix > POS_PREFIX_COUNT)
+		prefix = POS_PREFIX_COUNT;
 
 	*value *= powf(10, -3 * prefix);
 	*digits += 3 * prefix;
+
 	return prefixes[prefix + NEG_PREFIX_COUNT];
 }
 
 /**
  * Convert the unit/MQ/MQ flags in the analog struct to a string.
  *
+ * The string is allocated by the function and must be freed by the caller
+ * after use by calling g_free().
+ *
  * @param[in] analog Struct containing the unit, MQ and MQ flags.
  *                   Must not be NULL. analog->meaning must not be NULL.
  * @param[out] result Pointer to store result. Must not be NULL.
- *
- * The string is allocated by the function and must be freed by the caller
- * after use by calling g_free().
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
@@ -432,15 +437,15 @@ static void mult_uint64(struct sr_uint128_t *res, const uint64_t a,
 #endif
 
 /**
- * Compare two sr_rational for equality
+ * Compare two sr_rational for equality.
  *
- * @param[in] a First value
- * @param[in] b Second value
+ * The values are compared for numerical equality, i.e. 2/10 == 1/5.
  *
- * The values are compared for numerical equality, i.e. 2/10 == 1/5
+ * @param[in] a First value.
+ * @param[in] b Second value.
  *
- * @retval 1 if both values are equal
- * @retval 0 otherwise
+ * @retval 1 if both values are equal.
+ * @retval 0 Otherwise.
  *
  * @since 0.5.0
  */
@@ -466,20 +471,20 @@ SR_API int sr_rational_eq(const struct sr_rational *a, const struct sr_rational 
 }
 
 /**
- * Multiply two sr_rational
- *
- * @param[in] a First value
- * @param[in] b Second value
- * @param[out] res Result
+ * Multiply two sr_rational.
  *
  * The resulting nominator/denominator are reduced if the result would not fit
  * otherwise. If the resulting nominator/denominator are relatively prime,
  * this may not be possible.
  *
- * It is save to use the same variable for result and input values
+ * It is safe to use the same variable for result and input values.
+ *
+ * @param[in] a First value.
+ * @param[in] b Second value.
+ * @param[out] res Result.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Resulting value to large
+ * @retval SR_ERR_ARG Resulting value too large.
  *
  * @since 0.5.0
  */
@@ -519,10 +524,12 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
 
 	while (!(p.low & 1) && !(q.low & 1)) {
 		p.low /= 2;
-		if (p.high & 1) p.low |= (1ll << 63);
+		if (p.high & 1)
+			p.low |= (1ll << 63);
 		p.high >>= 1;
 		q.low /= 2;
-		if (q.high & 1) q.low |= (1ll << 63);
+		if (q.high & 1)
+			q.low |= (1ll << 63);
 		q.high >>= 1;
 	}
 
@@ -541,22 +548,22 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
 }
 
 /**
- * Divide rational a by rational b
- *
- * @param[in] num numerator
- * @param[in] div divisor
- * @param[out] res Result
+ * Divide rational a by rational b.
  *
  * The resulting nominator/denominator are reduced if the result would not fit
  * otherwise. If the resulting nominator/denominator are relatively prime,
  * this may not be possible.
  *
- * It is save to use the same variable for result and input values
+ * It is safe to use the same variable for result and input values.
+ *
+ * @param[in] num Numerator.
+ * @param[in] div Divisor.
+ * @param[out] res Result.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Division by zero
- * @retval SR_ERR_ARG Denominator of divisor to large
- * @retval SR_ERR_ARG Resulting value to large
+ * @retval SR_ERR_ARG Division by zero.
+ * @retval SR_ERR_ARG Denominator of divisor too large.
+ * @retval SR_ERR_ARG Resulting value too large.
  *
  * @since 0.5.0
  */
