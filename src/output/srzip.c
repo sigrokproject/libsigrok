@@ -339,7 +339,7 @@ static int zip_append_analog(const struct sr_output *o,
 		if (outc->analog_index_map[index] == channel->index)
 			break;
 	if (outc->analog_index_map[index] == -1)
-		return SR_ERR_ARG;  /* Channel index was not in the list */
+		return SR_ERR_ARG; /* Channel index was not in the list */
 
 	index += outc->first_analog_index;
 

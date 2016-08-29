@@ -18,10 +18,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/** @file
-  * Standard API helper functions.
-  * @internal
-  */
+/**
+ * @file
+ *
+ * Standard API helper functions.
+ *
+ * @internal
+ */
 
 #include <config.h>
 #include <glib.h>

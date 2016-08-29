@@ -31,9 +31,9 @@
 #define LOG_PREFIX "input/raw_analog"
 
 /* How many bytes at a time to process and send to the session bus. */
-#define CHUNK_SIZE 4096
-#define DEFAULT_NUM_CHANNELS  1
-#define DEFAULT_SAMPLERATE    0
+#define CHUNK_SIZE		4096
+#define DEFAULT_NUM_CHANNELS	1
+#define DEFAULT_SAMPLERATE	0
 
 struct context {
 	gboolean started;

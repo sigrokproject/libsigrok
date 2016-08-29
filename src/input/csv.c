@@ -89,7 +89,7 @@ struct context {
 	/* Comment prefix character(s). */
 	GString *comment;
 
-	/* Termination  character(s) used in current stream. */
+	/* Termination character(s) used in current stream. */
 	char *termination;
 
 	/* Determines if sample data is stored in multiple columns. */

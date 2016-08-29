@@ -165,7 +165,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	sr_session_source_add(sdi->session, -1, 0, 10 /* poll_timeout */,
-		      uni_t_dmm_receive_data, (void *)sdi);
+			uni_t_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -181,7 +181,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 #define DMM(ID, CHIPSET, VENDOR, MODEL, BAUDRATE, PACKETSIZE, \
 			VALID, PARSE, DETAILS) \
-    &((struct dmm_info) { \
+	&((struct dmm_info) { \
 		{ \
 			.name = ID, \
 			.longname = VENDOR " " MODEL, \

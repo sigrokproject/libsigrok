@@ -28,14 +28,17 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/** @file
- *  Norma DM9x0/Siemens B102x DMMs driver.
- *  @internal
+/**
+ * @file
+ *
+ * Norma DM9x0/Siemens B102x DMMs driver.
+ *
+ * @internal
  */
 
 #define LOG_PREFIX "norma-dmm"
 
-#define NMADMM_BUFSIZE  256
+#define NMADMM_BUFSIZE 256
 
 #define NMADMM_TIMEOUT_MS 2000 /**< Request timeout. */
 

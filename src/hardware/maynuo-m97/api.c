@@ -53,9 +53,11 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
 };
 
-/* The IDs in this list are only guessed and needs to be verified
-   against some real hardware. If at least a few of them matches,
-   it will probably be safe to enable the others. */
+/*
+ * The IDs in this list are only guessed and needs to be verified
+ * against some real hardware. If at least a few of them matches,
+ * it will probably be safe to enable the others.
+ */
 static const struct maynuo_m97_model supported_models[] = {
 //	{  53, "M9711"     ,   30, 150,    150 },
 //	{  54, "M9712"     ,   30, 150,    300 },
@@ -170,12 +172,12 @@ static int config_compare(gconstpointer a, gconstpointer b)
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config default_serialcomm = {
-	    .key = SR_CONF_SERIALCOMM,
-	    .data = g_variant_new_string("9600/8n1"),
+		.key = SR_CONF_SERIALCOMM,
+		.data = g_variant_new_string("9600/8n1"),
 	};
 	struct sr_config default_modbusaddr = {
-	    .key = SR_CONF_MODBUSADDR,
-	    .data = g_variant_new_uint64(1),
+		.key = SR_CONF_MODBUSADDR,
+		.data = g_variant_new_uint64(1),
 	};
 	GSList *opts = options, *devices;
 
@@ -224,8 +226,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 			/* Wait for the last data that was requested from the device. */
 			uint16_t registers[devc->expecting_registers];
 			sr_modbus_read_holding_registers(modbus, -1,
-			                                 devc->expecting_registers,
-			                                 registers);
+				devc->expecting_registers, registers);
 		}
 
 		maynuo_m97_set_bit(modbus, PC1, 0);

@@ -23,11 +23,11 @@
 #include "protocol.h"
 
 typedef enum {
-    LIVE_DATA    = 0x00,
-    LOG_METADATA = 0x11,
-    LOG_DATA     = 0x14,
-    LOG_START    = 0x18,
-    LOG_END      = 0x19,
+	LIVE_DATA    = 0x00,
+	LOG_METADATA = 0x11,
+	LOG_DATA     = 0x14,
+	LOG_START    = 0x18,
+	LOG_END      = 0x19,
 } packet_type;
 
 static gboolean appa_55ii_checksum(const uint8_t *buf)

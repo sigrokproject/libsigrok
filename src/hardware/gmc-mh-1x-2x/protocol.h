@@ -17,9 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  Gossen Metrawatt Metrahit 1x/2x drivers
- *  @internal
+/**
+ * @file
+ *
+ * Gossen Metrawatt Metrahit 1x/2x drivers
+ *
+ * @internal
  */
 
 #ifndef LIBSIGROK_HARDWARE_GMC_MH_1X_2X_PROTOCOL_H
@@ -42,7 +45,7 @@
 #define MSGID_DTA   0x20 /**< Start of data message, displayed, averaged */
 #define MSGID_DATA  0x30 /**< Data byte in message */
 
-#define MSGC_MASK   0x0f  /**< Mask to get message byte contents in send mode */
+#define MSGC_MASK   0x0f /**< Mask to get message byte contents in send mode */
 
 #define MSGSRC_MASK 0xc0 /**< Mask to get bits related to message source */
 

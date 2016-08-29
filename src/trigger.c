@@ -24,7 +24,7 @@
 /* * @cond PRIVATE */
 #define LOG_PREFIX "trigger"
 /* * @endcond */
-   
+
 /**
  * @file
  *

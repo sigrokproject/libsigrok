@@ -30,16 +30,16 @@
 
 #define LOG_PREFIX "demo"
 
-#define DEFAULT_NUM_LOGIC_CHANNELS     8
-#define DEFAULT_NUM_ANALOG_CHANNELS    4
+#define DEFAULT_NUM_LOGIC_CHANNELS	8
+#define DEFAULT_NUM_ANALOG_CHANNELS	4
 
 /* The size in bytes of chunks to send through the session bus. */
-#define LOGIC_BUFSIZE        4096
+#define LOGIC_BUFSIZE			4096
 /* Size of the analog pattern space per channel. */
-#define ANALOG_BUFSIZE       4096
+#define ANALOG_BUFSIZE			4096
 
-#define DEFAULT_ANALOG_AMPLITUDE 10
-#define ANALOG_SAMPLES_PER_PERIOD 20
+#define DEFAULT_ANALOG_AMPLITUDE	10
+#define ANALOG_SAMPLES_PER_PERIOD	20
 
 /* Logic patterns we can generate. */
 enum {
@@ -663,10 +663,8 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 }
 
 static void send_analog_packet(struct analog_gen *ag,
-			       struct sr_dev_inst *sdi,
-			       uint64_t *analog_sent,
-			       uint64_t analog_pos,
-			       uint64_t analog_todo)
+		struct sr_dev_inst *sdi, uint64_t *analog_sent,
+		uint64_t analog_pos, uint64_t analog_todo)
 {
 	struct sr_datafeed_packet packet;
 	struct dev_context *devc;

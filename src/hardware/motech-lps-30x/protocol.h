@@ -18,9 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  <em>Motech LPS-30x series</em> power supply driver
- *  @internal
+/**
+ * @file
+ *
+ * <em>Motech LPS-30x series</em> power supply driver
+ *
+ * @internal
  */
 
 #ifndef LIBSIGROK_HARDWARE_MOTECH_LPS_30X_PROTOCOL_H

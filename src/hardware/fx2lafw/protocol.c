@@ -403,7 +403,7 @@ SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
 
 	/* Send the logic */
 	for (i = 0; i < length; i++) {
-		devc->logic_buffer[i]  = data[i * 2];
+		devc->logic_buffer[i] = data[i * 2];
 		/* Rescale to -10V - +10V from 0-255. */
 		devc->analog_buffer[i] = (data[i * 2 + 1] - 128.0f) / 12.8f;
 	};

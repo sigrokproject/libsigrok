@@ -224,15 +224,15 @@ SR_API int sr_resource_set_hooks(struct sr_context *ctx,
 		return SR_ERR_ARG;
 	}
 	if (open_cb && close_cb && read_cb) {
-		ctx->resource_open_cb  = open_cb;
+		ctx->resource_open_cb = open_cb;
 		ctx->resource_close_cb = close_cb;
-		ctx->resource_read_cb  = read_cb;
-		ctx->resource_cb_data  = cb_data;
+		ctx->resource_read_cb = read_cb;
+		ctx->resource_cb_data = cb_data;
 	} else if (!open_cb && !close_cb && !read_cb) {
-		ctx->resource_open_cb  = &resource_open_default;
+		ctx->resource_open_cb = &resource_open_default;
 		ctx->resource_close_cb = &resource_close_default;
-		ctx->resource_read_cb  = &resource_read_default;
-		ctx->resource_cb_data  = ctx;
+		ctx->resource_read_cb = &resource_read_default;
+		ctx->resource_cb_data = ctx;
 	} else {
 		sr_err("%s: inconsistent callback pointers.", __func__);
 		return SR_ERR_ARG;
@@ -332,7 +332,7 @@ SR_PRIV gssize sr_resource_read(struct sr_context *ctx,
  * @param max_size Size limit. Error out if the resource is larger than this.
  *
  * @return A buffer containing the resource data, or NULL on failure. Must
- *  be freed by the caller using g_free().
+ *         be freed by the caller using g_free().
  *
  * @private
  */

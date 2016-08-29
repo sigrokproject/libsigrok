@@ -66,8 +66,8 @@ static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
 	}
 
 	tcp->address = g_strdup(params[1]);
-	tcp->port    = g_strdup(params[2]);
-	tcp->socket  = -1;
+	tcp->port = g_strdup(params[2]);
+	tcp->socket = -1;
 
 	return SR_OK;
 }

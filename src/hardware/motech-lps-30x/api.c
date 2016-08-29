@@ -18,9 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  <em>Motech LPS-30x series</em> power supply driver
- *  @internal
+/**
+ * @file
+ *
+ * <em>Motech LPS-30x series</em> power supply driver
+ *
+ * @internal
  */
 
 #include <config.h>
@@ -173,7 +176,7 @@ SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 	va_list args;
 	char buf[LINELEN_MAX];
 	char *bufptr;
-	int  buflen;
+	int buflen;
 
 	/* Send command */
 	va_start(args, fmt);
@@ -194,8 +197,9 @@ SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 	return SR_ERR;
 }
 
-/** Send command and read reply string.
- *  @param reply Pointer to buffer of size LINELEN_MAX. Will be NUL-terminated.
+/**
+ * Send command and read reply string.
+ * @param reply Pointer to buffer of size LINELEN_MAX. Will be NUL-terminated.
  */
 SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
@@ -203,7 +207,7 @@ SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const 
 	va_list args;
 	char buf[LINELEN_MAX];
 	char *bufptr;
-	int  buflen;
+	int buflen;
 
 	reply[0] = '\0';
 
@@ -307,9 +311,11 @@ static gint64 calc_timeout_ms(gint64 start_us)
 	return result;
 }
 
-/** Read message into buf until "OK" received.
- *  @retval SR_OK Msg received; buf and buflen contain result, if any except OK.
- *  @retval SR_ERR Error, including timeout.
+/**
+ * Read message into buf until "OK" received.
+ *
+ * @retval SR_OK Msg received; buf and buflen contain result, if any except OK.
+ * @retval SR_ERR Error, including timeout.
 */
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen)
 {
@@ -431,7 +437,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		g_strstrip(buf);
 		verstr = buf + 4;
 	}
-	else  /* Bug in device FW 1.17: Querying version string fails while output is active.
+	else /* Bug in device FW 1.17: Querying version string fails while output is active.
 		Therefore just print an error message, but do not exit with error. */
 		sr_err("Failed to query for hardware version: %s.",
 			sr_strerror(ret));
@@ -725,10 +731,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				  devopts_ch12, ARRAY_SIZE(devopts_ch12), sizeof(uint32_t));
+				devopts_ch12, ARRAY_SIZE(devopts_ch12), sizeof(uint32_t));
 		else /* Must be CH3 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				  devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
+				devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

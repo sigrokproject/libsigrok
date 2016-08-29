@@ -38,7 +38,7 @@
 #define EP_OUT 2
 
 enum {
-    DATA_SOURCE_LIVE,
+	DATA_SOURCE_LIVE,
 	DATA_SOURCE_MEMORY,
 };
 

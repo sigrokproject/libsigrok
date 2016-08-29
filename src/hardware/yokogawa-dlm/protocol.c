@@ -207,8 +207,8 @@ static const struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 	},
 	{
-		.model_id    = {"710110",  "710120",  "710130",  NULL},
-		.model_name  = {"DLM2024", "DLM2034", "DLM2054", NULL},
+		.model_id   = {"710110",  "710120",  "710130",  NULL},
+		.model_name = {"DLM2024", "DLM2034", "DLM2054", NULL},
 		.analog_channels = 4,
 		.digital_channels = 8,
 		.pods = 1,
@@ -224,9 +224,9 @@ static const struct scope_config scope_models[] = {
 	},
 	{
 		.model_id   = {"701307", "701308",  "701310", "701311",
-				"701312", "701313",  NULL},
+			       "701312", "701313",  NULL},
 		.model_name = {"DL9040", "DL9040L", "DL9140", "DL9140L",
-				"DL9240", "DL9240L", NULL},
+			       "DL9240", "DL9240L", NULL},
 		.analog_channels = 4,
 		.digital_channels = 0,
 		.pods = 0,

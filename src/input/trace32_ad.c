@@ -50,7 +50,7 @@
 #define MAX_POD_COUNT     12
 #define HEADER_SIZE       80
 
-#define TIMESTAMP_RESOLUTION  ((double)0.000000000078125) /* 0.078125 ns */
+#define TIMESTAMP_RESOLUTION ((double)0.000000000078125) /* 0.078125 ns */
 
 /*
  * The resolution equals a sampling freq of 12.8 GHz. That's a bit high
@@ -79,7 +79,7 @@ enum {
 
 enum {
 	AD_COMPR_NONE  = 0, /* File created with /NOCOMPRESS */
-	AD_COMPR_QCOMP = 6  /* File created with /COMPRESS or /QUICKCOMPRESS */
+	AD_COMPR_QCOMP = 6, /* File created with /COMPRESS or /QUICKCOMPRESS */
 };
 
 struct context {
@@ -253,8 +253,8 @@ static int process_header(GString *buf, struct context *inc)
 
 	inc->device       = device_id;
 	inc->trigger_timestamp = RL64(buf->str + 32);
-	inc->compression  = R8(buf->str + 48);        /* Maps to the enum. */
-	inc->record_mode  = R8(buf->str + 55);        /* Maps to the enum. */
+	inc->compression  = R8(buf->str + 48); /* Maps to the enum. */
+	inc->record_mode  = R8(buf->str + 55); /* Maps to the enum. */
 	inc->record_size  = record_size;
 	inc->record_count = RL32(buf->str + 60);
 	inc->last_record  = RL32S(buf->str + 64);

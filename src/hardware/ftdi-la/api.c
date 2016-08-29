@@ -120,7 +120,7 @@ static void scan_device(struct ftdi_context *ftdic,
 	model = g_malloc(32);
 	serial_num = g_malloc(32);
 	rv = ftdi_usb_get_strings(ftdic, dev, vendor, 32,
-			     model, 32, serial_num, 32);
+			model, 32, serial_num, 32);
 	switch (rv) {
 	case 0:
 		break;

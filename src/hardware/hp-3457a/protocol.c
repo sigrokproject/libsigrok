@@ -67,7 +67,7 @@ static const struct rear_card_info rear_card_parameters[] = {
 };
 
 static int send_mq_ac_dc(struct sr_scpi_dev_inst *scpi, const char *mode,
-			   enum sr_mqflag flags)
+			 enum sr_mqflag flags)
 {
 	const char *ac_flag, *dc_flag;
 

@@ -420,7 +420,7 @@ SR_PRIV void analyzer_read_start(libusb_device_handle *devh)
 }
 
 SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
-		       unsigned int size)
+		unsigned int size)
 {
 	return gl_read_bulk(devh, buffer, size);
 }
@@ -555,7 +555,7 @@ SR_PRIV void analyzer_add_filter(int channel, int type)
 	}
 
 	g_filter_status[i] |=
-	    1 << ((2 * channel) + (type == FILTER_LOW ? 1 : 0));
+		1 << ((2 * channel) + (type == FILTER_LOW ? 1 : 0));
 
 	g_filter_enable = 1;
 }

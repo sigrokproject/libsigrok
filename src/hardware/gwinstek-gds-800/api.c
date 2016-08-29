@@ -66,8 +66,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->frame_limit = 1;
-	devc->sample_rate = 0.;
-	devc->df_started  = FALSE;
+	devc->sample_rate = 0.0;
+	devc->df_started = FALSE;
 	sdi->priv = devc;
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");

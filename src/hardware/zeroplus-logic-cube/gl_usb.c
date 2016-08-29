@@ -92,9 +92,10 @@ static int gl_read_data(libusb_device_handle *devh)
 SR_PRIV int gl_read_bulk(libusb_device_handle *devh, void *buffer,
 			 unsigned int size)
 {
-	unsigned char packet[8] =
-	    { 0, 0, 0, 0, size & 0xff, (size & 0xff00) >> 8,
-	      (size & 0xff0000) >> 16, (size & 0xff000000) >> 24 };
+	unsigned char packet[8] = {
+		0, 0, 0, 0, size & 0xff, (size & 0xff00) >> 8,
+		(size & 0xff0000) >> 16, (size & 0xff000000) >> 24
+	};
 	int ret, transferred = 0;
 
 	ret = libusb_control_transfer(devh, CTRL_OUT, 0x4, REQ_READBULK,

@@ -307,7 +307,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	err = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_err("Unable to claim interface: %s.",
-			   libusb_error_name(err));
+			libusb_error_name(err));
 		return SR_ERR;
 	}
 

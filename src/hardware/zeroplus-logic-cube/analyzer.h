@@ -77,7 +77,7 @@
 SR_PRIV void analyzer_set_freq(int freq, int scale);
 SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);
-SR_PRIV unsigned int  analyzer_get_ramsize_trigger_address(void );
+SR_PRIV unsigned int analyzer_get_ramsize_trigger_address(void );
 SR_PRIV unsigned int analyzer_get_triggerbar_address(void);
 SR_PRIV void analyzer_set_compression(unsigned int type);
 SR_PRIV void analyzer_set_memory_size(unsigned int size);
@@ -99,7 +99,7 @@ SR_PRIV void analyzer_initialize(libusb_device_handle *devh);
 SR_PRIV void analyzer_wait(libusb_device_handle *devh, int set, int unset);
 SR_PRIV void analyzer_read_start(libusb_device_handle *devh);
 SR_PRIV int analyzer_read_data(libusb_device_handle *devh, void *buffer,
-			       unsigned int size);
+		unsigned int size);
 SR_PRIV void analyzer_read_stop(libusb_device_handle *devh);
 SR_PRIV void analyzer_start(libusb_device_handle *devh);
 SR_PRIV void analyzer_configure(libusb_device_handle *devh);

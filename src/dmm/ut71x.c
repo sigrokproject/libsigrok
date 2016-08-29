@@ -343,7 +343,7 @@ SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 
 	handle_flags(analog, floatval, info);
 
-	analog->encoding->digits  = -exponent;
+	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;

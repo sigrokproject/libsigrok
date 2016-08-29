@@ -39,8 +39,8 @@
 /* TODO tune this properly */
 #define TICK 1
 
-#define NUM_TIMEBASE  10
-#define NUM_VDIV      8
+#define NUM_TIMEBASE 10
+#define NUM_VDIV     8
 
 #define NUM_BUFFER_SIZES 2
 
@@ -389,7 +389,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	err = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 	if (err != 0) {
 		sr_err("Unable to claim interface: %s.",
-			   libusb_error_name(err));
+			libusb_error_name(err));
 		return SR_ERR;
 	}
 
@@ -767,7 +767,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	num_samples = transfer->actual_length / 2;
 
 	sr_spew("Got %d-%d/%d samples in frame.", devc->samp_received + 1,
-		   devc->samp_received + num_samples, devc->framesize);
+		devc->samp_received + num_samples, devc->framesize);
 
 	/*
 	 * The device always sends a full frame, but the beginning of the frame
@@ -798,7 +798,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 			/* The rest of this chunk starts with the trigger point. */
 			sr_dbg("Reached trigger point, %d samples buffered.",
-				   devc->samp_buffered);
+				devc->samp_buffered);
 
 			/* Avoid the corner case where the chunk ended at
 			 * exactly the trigger point. */
@@ -822,7 +822,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		/* That was the last chunk in this frame. Send the buffered
 		 * pre-trigger samples out now, in one big chunk. */
 		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
-			   devc->samp_buffered);
+			devc->samp_buffered);
 		send_chunk(sdi, devc->framebuf, devc->samp_buffered);
 
 		/* Mark the end of this frame. */

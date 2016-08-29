@@ -17,9 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
-  * @internal
-  */
+/**
+ * @file
+ *
+ * @internal
+ */
 
 #ifndef LIBSIGROK_LIBSIGROK_INTERNAL_H
 #define LIBSIGROK_LIBSIGROK_INTERNAL_H
@@ -428,9 +430,9 @@ struct sr_input_module {
 	 * @retval SR_OK This module knows the format.
 	 * @retval SR_ERR_NA There wasn't enough data for this module to
 	 *   positively identify the format.
-	 * @retval SR_ERR_DATA This module knows the format, but cannot handle it.
-	 *   This means the stream is either corrupt, or indicates a feature
-	 *   that the module does not support.
+	 * @retval SR_ERR_DATA This module knows the format, but cannot handle
+	 *   it. This means the stream is either corrupt, or indicates a
+	 *   feature that the module does not support.
 	 * @retval SR_ERR This module does not know the format.
 	 */
 	int (*format_match) (GHashTable *metadata);
@@ -468,16 +470,16 @@ struct sr_input_module {
 	 */
 	int (*end) (struct sr_input *in);
 
-        /**
-         * Reset the input module's input handling structures.
-         *
-         * Causes the input module to reset its internal state so that we can
-         * re-send the input data from the beginning without having to
-         * re-create the entire input module.
-         *
-         * @retval SR_OK Success.
-         * @retval other Negative error code.
-         */
+	/**
+	 * Reset the input module's input handling structures.
+	 *
+	 * Causes the input module to reset its internal state so that we can
+	 * re-send the input data from the beginning without having to
+	 * re-create the entire input module.
+	 *
+	 * @retval SR_OK Success.
+	 * @retval other Negative error code.
+	 */
 	int (*reset) (struct sr_input *in);
 
 	/**
@@ -495,7 +497,7 @@ struct sr_input_module {
 
 /** Output module instance. */
 struct sr_output {
-	/** A pointer to this output's module.  */
+	/** A pointer to this output's module. */
 	const struct sr_output_module *module;
 
 	/**
@@ -612,7 +614,7 @@ struct sr_output_module {
 
 /** Transform module instance. */
 struct sr_transform {
-	/** A pointer to this transform's module.  */
+	/** A pointer to this transform's module. */
 	const struct sr_transform_module *module;
 
 	/**

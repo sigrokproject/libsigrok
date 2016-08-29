@@ -221,7 +221,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 		return SR_OK;
 
 	if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-			  ch->index + 1) != SR_OK)
+			ch->index + 1) != SR_OK)
 		return SR_ERR;
 	/* Check that the number of samples will be accepted */
 	if (rigol_ds_config_set(sdi, ":WAV:POIN %d", devc->analog_frame_size) != SR_OK)
@@ -432,7 +432,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V3:
 		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-				  ch->index + 1) != SR_OK)
+				ch->index + 1) != SR_OK)
 			return SR_ERR;
 		if (devc->data_source != DATA_SOURCE_LIVE) {
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)

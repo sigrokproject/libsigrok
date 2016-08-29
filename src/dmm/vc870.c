@@ -167,7 +167,7 @@ static int parse_range(uint8_t b, float *floatval, int *exponent,
 
 static void parse_flags(const uint8_t *buf, struct vc870_info *info)
 {
-	/* Bytes 0/1: Function / function select  */
+	/* Bytes 0/1: Function / function select */
 	/* Note: Some of these mappings are fixed up later. */
 	switch (buf[0]) {
 	case 0x30: /* DCV / ACV */
@@ -429,7 +429,7 @@ SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 
 	handle_flags(analog, floatval, info_local);
 
-	analog->encoding->digits  = -exponent;
+	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;

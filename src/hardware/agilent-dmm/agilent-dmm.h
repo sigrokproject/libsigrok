@@ -22,7 +22,7 @@
 
 #define LOG_PREFIX "agilent-dmm"
 
-#define AGDMM_BUFSIZE  256
+#define AGDMM_BUFSIZE 256
 
 /* Always USB-serial, 1ms is plenty. */
 #define SERIAL_WRITE_TIMEOUT_MS 1

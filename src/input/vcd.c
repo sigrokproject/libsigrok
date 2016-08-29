@@ -93,7 +93,7 @@ struct vcd_channel {
 
 /*
  * Reads a single VCD section from input file and parses it to name/contents.
- * e.g. $timescale 1ps $end  => "timescale" "1ps"
+ * e.g. $timescale 1ps $end => "timescale" "1ps"
  */
 static gboolean parse_section(GString *buf, gchar **name, gchar **contents)
 {

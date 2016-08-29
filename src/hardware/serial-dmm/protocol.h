@@ -35,11 +35,15 @@ struct dmm_info {
 	uint32_t baudrate;
 	/** Packet size in bytes. */
 	int packet_size;
-	/** Request timeout [ms] before request is considered lost and a new
-	 *  one is sent. Used only if device needs polling. */
+	/**
+	 * Request timeout [ms] before request is considered lost and a new
+	 * one is sent. Used only if device needs polling.
+	 */
 	int64_t req_timeout_ms;
-	/** Delay between reception of packet and next request. Some DMMs
-	 *  need this. Used only if device needs polling. */
+	/**
+	 * Delay between reception of packet and next request. Some DMMs
+	 * need this. Used only if device needs polling.
+	 */
 	int64_t req_delay_ms;
 	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);
@@ -64,8 +68,10 @@ struct dev_context {
 	int bufoffset;
 	int buflen;
 
-	/** The timestamp [µs] to send the next request.
-	 *  Used only if device needs polling. */
+	/**
+	 * The timestamp [µs] to send the next request.
+	 * Used only if device needs polling.
+	 */
 	int64_t req_next_at;
 };
 

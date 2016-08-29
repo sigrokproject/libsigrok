@@ -17,9 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  Gossen Metrawatt Metrahit 1x/2x drivers
- *  @internal
+/**
+ * @file
+ *
+ * Gossen Metrawatt Metrahit 1x/2x drivers
+ *
+ * @internal
  */
 
 #include <config.h>
@@ -783,7 +786,7 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 		devc->value += pow(10.0, cnt) * dgt;
 	}
 	sr_spew("process_msg_inf_10() value=%f scale=%d scalet=%d",
-		devc->value, devc->scale,  devc->scale1000);
+		devc->value, devc->scale, devc->scale1000);
 
 	if (devc->value != NAN)
 		devc->value *= pow(10, devc->scale) * pow(1000.0, devc->scale1000);
@@ -880,9 +883,11 @@ static void process_msg_inf_13(struct sr_dev_inst *sdi)
 	send_value(sdi);
 }
 
-/** Dump contents of 14-byte message.
- *  @param buf Pointer to array of 14 data bytes.
- *  @param[in] raw Write only data bytes, no interpretation.
+/**
+ * Dump contents of 14-byte message.
+ *
+ * @param buf Pointer to array of 14 data bytes.
+ * @param[in] raw Write only data bytes, no interpretation.
  */
 static void dump_msg14(guchar *buf, gboolean raw)
 {
@@ -903,10 +908,11 @@ static void dump_msg14(guchar *buf, gboolean raw)
 				buf[12], buf[13]);
 }
 
-/** Calc checksum for 14 byte message type.
+/**
+ * Calc checksum for 14 byte message type.
  *
- *  @param[in] dta Pointer to array of 13 data bytes.
- *  @return Checksum.
+ * @param[in] dta Pointer to array of 13 data bytes.
+ * @return Checksum.
  */
 static guchar calc_chksum_14(guchar *dta)
 {
@@ -924,7 +930,7 @@ static int chk_msg14(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int retc;
 	gboolean isreq; /* Message is request to multimeter (otherwise response) */
-	uint8_t addr;  /* Adaptor address */
+	uint8_t addr; /* Adaptor address */
 
 	retc = SR_OK;
 
@@ -1024,7 +1030,7 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 			sr_spew("Measurement Function: %d ", (int)devc->buf[7]);
 			decode_ctmv_2x(devc->buf[7], devc);
 			sr_spew("Range: 0x%x", devc->buf[8]);
-			decode_rs_2x_TR2(devc->buf[8] & 0x0f, devc);  /* Docs wrong, uses conversion table TR_2! */
+			decode_rs_2x_TR2(devc->buf[8] & 0x0f, devc); /* Docs wrong, uses conversion table TR_2! */
 			devc->autorng = (devc->buf[8] & 0x20) == 0;
 			// TODO 9, 10: 29S special functions
 			devc->ubatt = 0.1 * (float)devc->buf[11];
@@ -1035,7 +1041,7 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 			sr_spew("Internal version %d.%d", (int)devc->buf[5], (int)devc->buf[4]);
 			sr_spew("Comm mode: 0x%x", (int)devc->buf[6]);
 			sr_spew("Block cnt%%64: %d", (int)devc->buf[7]);
-			sr_spew("drpCi: %d  drpCh: %d", (int)devc->buf[8], (int)devc->buf[9]);
+			sr_spew("drpCi: %d drpCh: %d", (int)devc->buf[8], (int)devc->buf[9]);
 			// Semantics undocumented. Possibly Metrahit 29S dropouts stuff?
 			break;
 		default:
@@ -1248,13 +1254,15 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-/** Create 14 (42) byte command for Metrahit 2x multimeter in bidir mode.
+/**
+ * Create 14 (42) byte command for Metrahit 2x multimeter in bidir mode.
  *
- *  Actually creates 42 bytes due to the encoding method used.
- *  @param[in] addr Device address (0=adapter, 1..15 multimeter; for byte 0).
- *  @param[in] func Function code (byte 3).
- *  @param[in] params Further parameters (9 bytes)
- *  @param[out] buf Buffer to create msg in (42 bytes).
+ * Actually creates 42 bytes due to the encoding method used.
+ *
+ * @param[in] addr Device address (0=adapter, 1..15 multimeter; for byte 0).
+ * @param[in] func Function code (byte 3).
+ * @param[in] params Further parameters (9 bytes)
+ * @param[out] buf Buffer to create msg in (42 bytes).
  */
 static void create_cmd_14(guchar addr, guchar func, guchar *params, guchar *buf)
 {
@@ -1316,8 +1324,11 @@ int req_meas14(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/** Request status from 2x multimeter (msg 3).
- *  @param[in] power_on Try to power on powered off multimeter by sending additional messages.
+/**
+ * Request status from 2x multimeter (msg 3).
+ *
+ * @param[in] power_on Try to power on powered off multimeter by sending
+ *                     additional messages.
  */
 int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 {
@@ -1412,11 +1423,12 @@ SR_PRIV int gmc_decode_model_sm(uint8_t mcode)
 	}
 }
 
-/** Convert GMC model code in bidirectional mode to sigrok-internal one.
+/**
+ * Convert GMC model code in bidirectional mode to sigrok-internal one.
  *
- *  @param[in] mcode Model code.
+ * @param[in] mcode Model code.
  *
- *  @return Model code.
+ * @return Model code.
  */
 SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 {
@@ -1447,11 +1459,12 @@ SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 	}
 }
 
-/** Convert sigrok-internal model code to string.
+/**
+ * Convert sigrok-internal model code to string.
  *
- *  @param[in] mcode Model code.
+ * @param[in] mcode Model code.
  *
- *  @return Model code string.
+ * @return Model code string.
  */
 SR_PRIV const char *gmc_model_str(enum model mcode)
 {

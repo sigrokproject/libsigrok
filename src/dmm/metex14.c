@@ -153,17 +153,17 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_unitless = TRUE;
 
 	/* Bytes 0-1: Measurement mode, except AC/DC */
-	info->is_resistance  = !strncmp(buf, "OH", 2) ||
+	info->is_resistance = !strncmp(buf, "OH", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_ohm);
-	info->is_capacity    = !strncmp(buf, "CA", 2) ||
+	info->is_capacity = !strncmp(buf, "CA", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_farad);
 	info->is_temperature = !strncmp(buf, "TE", 2);
-	info->is_diode       = !strncmp(buf, "DI", 2) ||
+	info->is_diode = !strncmp(buf, "DI", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_volt && info->is_milli);
-	info->is_frequency   = !strncmp(buf, "FR", 2) ||
+	info->is_frequency = !strncmp(buf, "FR", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_hertz);
-	info->is_gain        = !strncmp(buf, "DB", 2);
-	info->is_hfe         = !strncmp(buf, "HF", 2) ||
+	info->is_gain = !strncmp(buf, "DB", 2);
+	info->is_hfe = !strncmp(buf, "HF", 2) ||
 		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
 		 !info->is_logic && !info->is_farad && !info->is_hertz);
 	/*
@@ -350,7 +350,7 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
 
-	analog->encoding->digits  = -exponent;
+	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;

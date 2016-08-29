@@ -48,8 +48,8 @@ struct scpi_usbtmc_libusb {
 };
 
 /* Some USBTMC-specific enums, as defined in the USBTMC standard. */
-#define SUBCLASS_USBTMC  0x03
-#define USBTMC_USB488    0x01
+#define SUBCLASS_USBTMC 0x03
+#define USBTMC_USB488   0x01
 
 enum {
 	/* USBTMC control requests */
@@ -85,16 +85,16 @@ enum {
 #define USB488_DEV_CAP_SCPI        0x08
 
 /* Bulk messages constants */
-#define USBTMC_BULK_HEADER_SIZE  12
+#define USBTMC_BULK_HEADER_SIZE 12
 
 /* Bulk MsgID values */
-#define DEV_DEP_MSG_OUT         1
-#define REQUEST_DEV_DEP_MSG_IN  2
-#define DEV_DEP_MSG_IN          2
+#define DEV_DEP_MSG_OUT        1
+#define REQUEST_DEV_DEP_MSG_IN 2
+#define DEV_DEP_MSG_IN         2
 
 /* bmTransferAttributes */
-#define EOM                0x01
-#define TERM_CHAR_ENABLED  0x02
+#define EOM               0x01
+#define TERM_CHAR_ENABLED 0x02
 
 struct usbtmc_blacklist {
 	uint16_t vid;
@@ -103,10 +103,10 @@ struct usbtmc_blacklist {
 
 /* Devices that publish RL1 support, but don't support it. */
 static struct usbtmc_blacklist blacklist_remote[] = {
-	{ 0x1ab1, 0x0588 },  /* Rigol DS1000 series */
-	{ 0x1ab1, 0x04b0 },  /* Rigol DS2000 series */
-	{ 0x0957, 0x0588 },  /* Agilent DSO1000 series (rebadged Rigol DS1000) */
-	{ 0x0b21, 0xffff },  /* All Yokogawa devices */
+	{ 0x1ab1, 0x0588 }, /* Rigol DS1000 series */
+	{ 0x1ab1, 0x04b0 }, /* Rigol DS2000 series */
+	{ 0x0957, 0x0588 }, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
+	{ 0x0b21, 0xffff }, /* All Yokogawa devices */
 	ALL_ZERO
 };
 
@@ -218,14 +218,9 @@ static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi)
 		return SR_OK;
 
 	sr_dbg("Locking out local control.");
-	ret = libusb_control_transfer(usb->devhdl,
-			LIBUSB_ENDPOINT_IN         |
-			LIBUSB_REQUEST_TYPE_CLASS  |
-			LIBUSB_RECIPIENT_INTERFACE,
-			REN_CONTROL, 1,
-			uscpi->interface,
-			&status, 1,
-			TRANSFER_TIMEOUT);
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
+		LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
+		REN_CONTROL, 1, uscpi->interface, &status, 1, TRANSFER_TIMEOUT);
 	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
 		if (ret < 0)
 			sr_dbg("Failed to enter REN state: %s.", libusb_error_name(ret));
@@ -234,14 +229,10 @@ static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi)
 		return SR_ERR;
 	}
 
-	ret = libusb_control_transfer(usb->devhdl,
-			LIBUSB_ENDPOINT_IN         |
-			LIBUSB_REQUEST_TYPE_CLASS  |
-			LIBUSB_RECIPIENT_INTERFACE,
-			LOCAL_LOCKOUT, 0,
-			uscpi->interface,
-			&status, 1,
-			TRANSFER_TIMEOUT);
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
+		LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
+		LOCAL_LOCKOUT, 0, uscpi->interface, &status, 1,
+		TRANSFER_TIMEOUT);
 	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
 		if (ret < 0)
 			sr_dbg("Failed to enter local lockout state: %s.",
@@ -272,14 +263,9 @@ static void scpi_usbtmc_local(struct scpi_usbtmc_libusb *uscpi)
 		return;
 
 	sr_dbg("Returning local control.");
-	ret = libusb_control_transfer(usb->devhdl,
-			LIBUSB_ENDPOINT_IN         |
-			LIBUSB_REQUEST_TYPE_CLASS  |
-			LIBUSB_RECIPIENT_INTERFACE,
-			GO_TO_LOCAL, 0,
-			uscpi->interface,
-			&status, 1,
-			TRANSFER_TIMEOUT);
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
+		LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
+		GO_TO_LOCAL, 0, uscpi->interface, &status, 1, TRANSFER_TIMEOUT);
 	if (ret < 0 || status != USBTMC_STATUS_SUCCESS) {
 		if (ret < 0)
 			sr_dbg("Failed to clear local lockout state: %s.",
@@ -323,7 +309,7 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
 			intfdes = confdes->interface[intfidx].altsetting;
 			if (intfdes->bInterfaceClass    != LIBUSB_CLASS_APPLICATION ||
-			    intfdes->bInterfaceSubClass != SUBCLASS_USBTMC          ||
+			    intfdes->bInterfaceSubClass != SUBCLASS_USBTMC ||
 			    intfdes->bInterfaceProtocol != USBTMC_USB488)
 				continue;
 			uscpi->interface = intfdes->bInterfaceNumber;
@@ -385,29 +371,25 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	}
 
 	/* Get capabilities. */
-	ret = libusb_control_transfer(usb->devhdl,
-	                              LIBUSB_ENDPOINT_IN         |
-	                              LIBUSB_REQUEST_TYPE_CLASS  |
-	                              LIBUSB_RECIPIENT_INTERFACE,
-	                              GET_CAPABILITIES, 0,
-	                              uscpi->interface,
-	                              capabilities, sizeof(capabilities),
-	                              TRANSFER_TIMEOUT);
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
+		LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
+		GET_CAPABILITIES, 0, uscpi->interface, capabilities,
+		sizeof(capabilities), TRANSFER_TIMEOUT);
 	if (ret == sizeof(capabilities)) {
 		uscpi->usbtmc_int_cap = capabilities[ 4];
 		uscpi->usbtmc_dev_cap = capabilities[ 5];
 		uscpi->usb488_dev_cap = capabilities[15];
 	}
 	sr_dbg("Device capabilities: %s%s%s%s%s, %s, %s",
-	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SCPI       ? "SCPI, "    : "",
-	       uscpi->usbtmc_dev_cap & USBTMC_DEV_CAP_TERMCHAR   ? "TermChar, ": "",
-	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_LISTEN_ONLY? "L3, " :
-	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_TALK_ONLY  ? ""     : "L4, ",
-	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_TALK_ONLY  ? "T5, " :
-	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_LISTEN_ONLY? ""     : "T6, ",
-	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SR1        ? "SR1"  : "SR0",
-	       uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1        ? "RL1"  : "RL0",
-	       uscpi->usb488_dev_cap & USB488_DEV_CAP_DT1        ? "DT1"  : "DT0");
+	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SCPI        ? "SCPI, "    : "",
+	       uscpi->usbtmc_dev_cap & USBTMC_DEV_CAP_TERMCHAR    ? "TermChar, ": "",
+	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_LISTEN_ONLY ? "L3, " :
+	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_TALK_ONLY   ? ""     : "L4, ",
+	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_TALK_ONLY   ? "T5, " :
+	       uscpi->usbtmc_int_cap & USBTMC_INT_CAP_LISTEN_ONLY ? ""     : "T6, ",
+	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SR1         ? "SR1"  : "SR0",
+	       uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1         ? "RL1"  : "RL0",
+	       uscpi->usb488_dev_cap & USB488_DEV_CAP_DT1         ? "DT1"  : "DT0");
 
 	scpi_usbtmc_remote(uscpi);
 
@@ -436,14 +418,14 @@ static void usbtmc_bulk_out_header_write(void *header, uint8_t MsgID,
                                          uint8_t bmTransferAttributes,
                                          char TermChar)
 {
-	  W8(header+ 0, MsgID);
-	  W8(header+ 1, bTag);
-	  W8(header+ 2, ~bTag);
-	  W8(header+ 3, 0);
-	WL32(header+ 4, TransferSize);
-	  W8(header+ 8, bmTransferAttributes);
-	  W8(header+ 9, TermChar);
-	WL16(header+10, 0);
+	  W8(header +  0, MsgID);
+	  W8(header +  1, bTag);
+	  W8(header +  2, ~bTag);
+	  W8(header +  3, 0);
+	WL32(header +  4, TransferSize);
+	  W8(header +  8, bmTransferAttributes);
+	  W8(header +  9, TermChar);
+	WL16(header + 10, 0);
 }
 
 static int usbtmc_bulk_in_header_read(void *header, uint8_t MsgID,
@@ -451,14 +433,15 @@ static int usbtmc_bulk_in_header_read(void *header, uint8_t MsgID,
                                       int32_t *TransferSize,
                                       uint8_t *bmTransferAttributes)
 {
-	if (R8(header+0) != MsgID ||
-	    R8(header+1) != bTag  ||
-	    R8(header+2) != (unsigned char)~bTag)
+	if (R8(header + 0) != MsgID ||
+	    R8(header + 1) != bTag  ||
+	    R8(header + 2) != (unsigned char)~bTag)
 		return SR_ERR;
 	if (TransferSize)
-		*TransferSize = RL32(header+4);
+		*TransferSize = RL32(header + 4);
 	if (bmTransferAttributes)
-		*bmTransferAttributes = R8(header+8);
+		*bmTransferAttributes = R8(header + 8);
+
 	return SR_OK;
 }
 
@@ -469,23 +452,23 @@ static int scpi_usbtmc_bulkout(struct scpi_usbtmc_libusb *uscpi,
 	struct sr_usb_dev_inst *usb = uscpi->usb;
 	int padded_size, ret, transferred;
 
-	if (data && size+USBTMC_BULK_HEADER_SIZE+3 > (int)sizeof(uscpi->buffer)) {
+	if (data && (size + USBTMC_BULK_HEADER_SIZE + 3) > (int)sizeof(uscpi->buffer)) {
 		sr_err("USBTMC bulk out transfer is too big.");
 		return SR_ERR;
 	}
 
 	uscpi->bTag++;
-	uscpi->bTag += !uscpi->bTag;  /* bTag == 0 is invalid so avoid it. */
+	uscpi->bTag += !uscpi->bTag; /* bTag == 0 is invalid so avoid it. */
 
 	usbtmc_bulk_out_header_write(uscpi->buffer, msg_id, uscpi->bTag,
 	                             size, transfer_attributes, 0);
 	if (data)
-		memcpy(uscpi->buffer+USBTMC_BULK_HEADER_SIZE, data, size);
+		memcpy(uscpi->buffer + USBTMC_BULK_HEADER_SIZE, data, size);
 	else
 		size = 0;
 	size += USBTMC_BULK_HEADER_SIZE;
 	padded_size = (size + 3) & ~0x3;
-	memset(uscpi->buffer+size, 0, padded_size - size);
+	memset(uscpi->buffer + size, 0, padded_size - size);
 
 	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_out_ep,
 	                           uscpi->buffer, padded_size, &transferred,

@@ -95,8 +95,8 @@ SR_PRIV int maynuo_m97_get_model_version(struct sr_modbus_dev_inst *modbus,
 	uint16_t registers[2];
 	int ret;
 	ret = sr_modbus_read_holding_registers(modbus, MODEL, 2, registers);
-	*model   = RB16(registers+0);
-	*version = RB16(registers+1);
+	*model   = RB16(registers + 0);
+	*version = RB16(registers + 1);
 	return ret;
 }
 

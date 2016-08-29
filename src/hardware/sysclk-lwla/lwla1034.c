@@ -284,7 +284,7 @@ static int detect_short_transfer_quirk(const struct sr_dev_inst *sdi)
 	const int lreg_count = 10;
 
 	devc = sdi->priv;
-	usb  = sdi->conn;
+	usb = sdi->conn;
 
 	command[0] = LWLA_WORD(CMD_READ_LREGS);
 	command[1] = LWLA_WORD(0);
@@ -389,8 +389,8 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	int ret;
 
 	devc = sdi->priv;
-	usb  = sdi->conn;
-	acq  = devc->acquisition;
+	usb = sdi->conn;
+	acq = devc->acquisition;
 
 	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
 	if (ret != SR_OK)
@@ -414,7 +414,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 
 	bulk_long_set(acq, LREG_DIV_COUNT, divider_count);
 	bulk_long_set(acq, LREG_TRG_VALUE, devc->trigger_values);
-	bulk_long_set(acq, LREG_TRG_TYPE,  devc->trigger_edge_mask);
+	bulk_long_set(acq, LREG_TRG_TYPE, devc->trigger_edge_mask);
 
 	trigger_mask = devc->trigger_mask;
 
@@ -517,7 +517,7 @@ static int handle_response(const struct sr_dev_inst *sdi)
 	int expect_len;
 
 	devc = sdi->priv;
-	acq  = devc->acquisition;
+	acq = devc->acquisition;
 
 	switch (devc->state) {
 	case STATE_STATUS_REQUEST:
@@ -527,7 +527,7 @@ static int handle_response(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		acq->mem_addr_fill = bulk_long_get(acq, LREG_MEM_FILL) & 0xFFFFFFFF;
-		acq->duration_now  = bulk_long_get(acq, LREG_DURATION);
+		acq->duration_now = bulk_long_get(acq, LREG_DURATION);
 		/* Shift left by one so the bit positions match the LWLA1016. */
 		acq->status = (bulk_long_get(acq, LREG_STATUS) & 0x3F) << 1;
 		/*

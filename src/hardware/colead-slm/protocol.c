@@ -138,7 +138,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	case 0x9:
 		/* Mean over a time period between 11 seconds and 24 hours.
 		 * Which is so silly that there's no point in expressing
-		 * either this or the previous case.  */
+		 * either this or the previous case. */
 		analog.meaning->mqflags |= SR_MQFLAG_SPL_LAT \
 				| SR_MQFLAG_SPL_FREQ_WEIGHT_A \
 				| SR_MQFLAG_SPL_TIME_WEIGHT_F;

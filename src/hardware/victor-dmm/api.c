@@ -31,6 +31,7 @@
 #define VICTOR_VENDOR "Victor"
 #define VICTOR_INTERFACE 0
 #define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
+
 static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static const uint32_t drvopts[] = {
@@ -133,7 +134,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/*  Nothing to do. */
+		/* Nothing to do. */
 		return SR_OK;
 
 	libusb_release_interface(usb->devhdl, VICTOR_INTERFACE);

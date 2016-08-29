@@ -490,21 +490,21 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 		int unit;
 		int exponent;
 	} units[] = {
-		{ SR_UNIT_UNITLESS,   0 },	/* no unit */
-		{ SR_UNIT_OHM,        0 },	/* Ohm     */
-		{ SR_UNIT_OHM,        3 },	/* kOhm    */
-		{ SR_UNIT_OHM,        6 },	/* MOhm    */
-		{ -1,                 0 },	/* ???     */
-		{ SR_UNIT_HENRY,     -6 },	/* uH      */
-		{ SR_UNIT_HENRY,     -3 },	/* mH      */
-		{ SR_UNIT_HENRY,      0 },	/* H       */
-		{ SR_UNIT_HENRY,      3 },	/* kH      */
-		{ SR_UNIT_FARAD,    -12 },	/* pF      */
-		{ SR_UNIT_FARAD,     -9 },	/* nF      */
-		{ SR_UNIT_FARAD,     -6 },	/* uF      */
-		{ SR_UNIT_FARAD,     -3 },	/* mF      */
-		{ SR_UNIT_PERCENTAGE, 0 },	/* %       */
-		{ SR_UNIT_DEGREE,     0 },	/* degree  */
+		{ SR_UNIT_UNITLESS,   0 }, /* no unit */
+		{ SR_UNIT_OHM,        0 }, /* Ohm */
+		{ SR_UNIT_OHM,        3 }, /* kOhm */
+		{ SR_UNIT_OHM,        6 }, /* MOhm */
+		{ -1,                 0 }, /* ??? */
+		{ SR_UNIT_HENRY,     -6 }, /* uH */
+		{ SR_UNIT_HENRY,     -3 }, /* mH */
+		{ SR_UNIT_HENRY,      0 }, /* H */
+		{ SR_UNIT_HENRY,      3 }, /* kH */
+		{ SR_UNIT_FARAD,    -12 }, /* pF */
+		{ SR_UNIT_FARAD,     -9 }, /* nF */
+		{ SR_UNIT_FARAD,     -6 }, /* uF */
+		{ SR_UNIT_FARAD,     -3 }, /* mF */
+		{ SR_UNIT_PERCENTAGE, 0 }, /* % */
+		{ SR_UNIT_DEGREE,     0 }, /* degree */
 	};
 	const uint8_t *buf;
 	int digits, exponent;

@@ -55,7 +55,7 @@
  *
  * @param serial Previously initialized serial port structure.
  * @param[in] flags Flags to use when opening the serial port. Possible flags
- *              include SERIAL_RDWR, SERIAL_RDONLY.
+ *                  include SERIAL_RDWR, SERIAL_RDONLY.
  *
  * If the serial structure contains a serialcomm string, it will be
  * passed to serial_set_paramstr() after the port is opened.
@@ -360,8 +360,8 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
  * @param[in] timeout_ms Timeout in ms, or 0 for no timeout.
  *
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR     Other error.
- * @retval other      The number of bytes read. If this is less than the number
+ * @retval SR_ERR Other error.
+ * @retval other The number of bytes read. If this is less than the number
  * requested, the timeout was reached.
  *
  * @private
@@ -381,8 +381,8 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
  * @param[in] count The number of bytes to read.
  *
  * @retval SR_ERR_ARG Invalid argument.
- * @retval SR_ERR     Other error.
- * @retval other      The number of bytes read.
+ * @retval SR_ERR Other error.
+ * @retval other The number of bytes read.
  *
  * @private
  */
@@ -401,7 +401,7 @@ SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf
  * @param[in] parity The parity setting to use (0 = none, 1 = even, 2 = odd).
  * @param[in] stopbits The number of stop bits to use (1 or 2).
  * @param[in] flowcontrol The flow control settings to use (0 = none,
- *                      1 = RTS/CTS, 2 = XON/XOFF).
+ *                        1 = RTS/CTS, 2 = XON/XOFF).
  * @param[in] rts Status of RTS line (0 or 1; required by some interfaces).
  * @param[in] dtr Status of DTR line (0 or 1; required by some interfaces).
  *
@@ -477,7 +477,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  * @param serial Previously initialized serial port structure.
  * @param[in] paramstr A serial communication parameters string of the form
  * "<baudrate>/<bits><parity><stopbits>{/<option>}".\n
- *  Examples: "9600/8n1", "600/7o2/dtr=1/rts=0" or "460800/8n1/flow=2".\n
+ * Examples: "9600/8n1", "600/7o2/dtr=1/rts=0" or "460800/8n1/flow=2".\n
  * \<baudrate\>=integer Baud rate.\n
  * \<bits\>=5|6|7|8 Number of data bits.\n
  * \<parity\>=n|e|o None, even, odd.\n
@@ -666,10 +666,10 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  * @param[in] packet_size Size, in bytes, of a valid packet.
  * @param is_valid Callback that assesses whether the packet is valid or not.
  * @param[in] timeout_ms The timeout after which, if no packet is detected, to
- *                   abort scanning.
+ *                       abort scanning.
  * @param[in] baudrate The baudrate of the serial port. This parameter is not
- *                 critical, but it helps fine tune the serial port polling
- *                 delay.
+ *                     critical, but it helps fine tune the serial port polling
+ *                     delay.
  *
  * @retval SR_OK Valid packet was found within the given timeout.
  * @retval SR_ERR Failure.

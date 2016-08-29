@@ -384,7 +384,7 @@ SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 	parse_flags(buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
 
-	analog->encoding->digits  = -exponent;
+	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;

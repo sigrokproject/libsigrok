@@ -481,7 +481,7 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 		sr_dbg("output %d: %.0f - %.0fV, %.0f - %.0fA, %.0f - %.0fW", i + 1,
 				spec->voltage[0], spec->voltage[1],
 				spec->current[0], spec->current[1],
-				spec->power[0]  , spec->power[1]);
+				spec->power[0], spec->power[1]);
 		(*channels)[i].name = (char *)philips_pm2800_names[i];
 		memcpy(&((*channels)[i].voltage), spec, sizeof(float) * 15);
 		(*channel_groups)[i].name = (char *)philips_pm2800_names[i];

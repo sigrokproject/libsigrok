@@ -79,11 +79,11 @@
  *  		trigger on (rising or falling)
  *  		The next state is 0x0C
  *  0x0C	Same as state 0x0F but expects the calibration
- *  		value for the first channel's  position
+ *  		value for the first channel's position
  *  		(POS1 in the schematics)
  *  		The next state is 0x0D
  *  0x0D	Same as state 0x0F but expects the calibration
- *  		value for the second channel's  position
+ *  		value for the second channel's position
  *  		(POS2 in the schematics)
  *  		The next state is 0x0E
  *  0x0E	Same as state 0x0F but expects the trigger level

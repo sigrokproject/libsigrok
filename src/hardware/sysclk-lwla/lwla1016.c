@@ -121,7 +121,7 @@ static void read_response(struct acquisition_state *acq)
 	 * alignment is guaranteed.
 	 */
 	out_p = (uint32_t *)&acq->out_packet[acq->out_index * UNIT_SIZE];
-	in_p  = &acq->xfer_buf_in[acq->in_index];
+	in_p = &acq->xfer_buf_in[acq->in_index];
 	/*
 	 * Transfer two samples at a time, taking care to swap the 16-bit
 	 * halves of each input word but keeping the samples themselves in
@@ -201,7 +201,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 	unsigned char reply[512];
 
 	devc = sdi->priv;
-	usb  = sdi->conn;
+	usb = sdi->conn;
 
 	command[0] = LWLA_WORD(CMD_READ_MEM32);
 	command[1] = LWLA_WORD_0(start);
@@ -317,7 +317,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	int ret;
 
 	devc = sdi->priv;
-	usb  = sdi->conn;
+	usb = sdi->conn;
 
 	ret = lwla_write_reg(usb, REG_CHAN_MASK, devc->channel_mask);
 	if (ret != SR_OK)
@@ -349,7 +349,7 @@ static int prepare_request(const struct sr_dev_inst *sdi)
 	unsigned int chunk_len, count;
 
 	devc = sdi->priv;
-	acq  = devc->acquisition;
+	acq = devc->acquisition;
 
 	acq->xfer_out->length = 0;
 	acq->reg_seq_pos = 0;
@@ -409,7 +409,7 @@ static int handle_response(const struct sr_dev_inst *sdi)
 	int expect_len;
 
 	devc = sdi->priv;
-	acq  = devc->acquisition;
+	acq = devc->acquisition;
 
 	switch (devc->state) {
 	case STATE_STATUS_REQUEST:

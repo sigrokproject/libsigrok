@@ -553,9 +553,12 @@ SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
 	}
 }
 
-/** Allocate struct sr_config.
- *  A floating reference can be passed in for data.
- *  @private
+/**
+ * Allocate struct sr_config.
+ *
+ * A floating reference can be passed in for data.
+ *
+ * @private
  */
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
 {
@@ -568,8 +571,10 @@ SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
 	return src;
 }
 
-/** Free struct sr_config.
- *  @private
+/**
+ * Free struct sr_config.
+ *
+ * @private
  */
 SR_PRIV void sr_config_free(struct sr_config *src)
 {
@@ -680,7 +685,7 @@ static int check_key(const struct sr_dev_driver *driver,
  *            Otherwise it must be NULL. If sdi is != NULL, sdi->priv must
  *            also be != NULL.
  * @param[in] cg The channel group on the device for which to list the
- *                    values, or NULL.
+ *               values, or NULL.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param[in,out] data Pointer to a GVariant where the value will be stored.
  *             Must not be NULL. The caller is given ownership of the GVariant
@@ -691,8 +696,8 @@ static int check_key(const struct sr_dev_driver *driver,
  * @retval SR_OK Success.
  * @retval SR_ERR Error.
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
- *          interpreted as an error by the caller; merely as an indication
- *          that it's not applicable.
+ *         interpreted as an error by the caller; merely as an indication
+ *         that it's not applicable.
  *
  * @since 0.3.0
  */
@@ -742,8 +747,8 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
  * @retval SR_OK Success.
  * @retval SR_ERR Error.
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
- *          interpreted as an error by the caller; merely as an indication
- *          that it's not applicable.
+ *         interpreted as an error by the caller; merely as an indication
+ *         that it's not applicable.
  *
  * @since 0.3.0
  */
@@ -814,8 +819,8 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  * @retval SR_OK Success.
  * @retval SR_ERR Error.
  * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
- *          interpreted as an error by the caller; merely as an indication
- *          that it's not applicable.
+ *         interpreted as an error by the caller; merely as an indication
+ *         that it's not applicable.
  *
  * @since 0.3.0
  */

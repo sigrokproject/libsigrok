@@ -195,7 +195,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		for (j = 0; j < ARRAY_SIZE(channel_names); j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
-					    channel_names[j]);
+					channel_names[j]);
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		devc->selected_voltage_range = VOLTAGE_RANGE_18_33_V;

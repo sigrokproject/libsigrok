@@ -90,7 +90,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 	&scpi_libgpib_dev,
 #endif
 #ifdef HAVE_LIBSERIALPORT
-	&scpi_serial_dev,  /* must be last as it matches any resource */
+	&scpi_serial_dev, /* Must be last as it matches any resource. */
 #endif
 };
 
@@ -446,7 +446,7 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 			sr_err("Incompletely read SCPI response.");
 			return SR_ERR;
 		} else if (len > 0) {
-		        laststart = g_get_monotonic_time();
+			laststart = g_get_monotonic_time();
 		}
 		offset += len;
 		g_string_set_size(response, offset);

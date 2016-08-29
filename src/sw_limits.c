@@ -126,7 +126,7 @@ SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits)
  *
  * @param limits software limits instance
  * @returns TRUE if any of the software limits has been reached and the driver
- *   should stop data acquisition, otherwise FALSE.
+ *               should stop data acquisition, otherwise FALSE.
  */
 SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits)
 {

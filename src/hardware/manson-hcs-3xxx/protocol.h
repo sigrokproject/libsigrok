@@ -19,10 +19,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/** @file
-  *  <em>Manson HCS-3xxx Series</em> power supply driver
-  *  @internal
-  */
+/**
+ * @file
+ *
+ * <em>Manson HCS-3xxx Series</em> power supply driver
+ *
+ * @internal
+ */
 
 #ifndef LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H

@@ -109,7 +109,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/*  Nothing to do. */
+		/* Nothing to do. */
 		return SR_OK;
 
 	libusb_release_interface(usb->devhdl, LASCAR_INTERFACE);

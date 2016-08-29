@@ -31,7 +31,7 @@
 #define MAX_RENUM_DELAY_MS	3000
 
 #define DEFAULT_VOLTAGE		2
-#define DEFAULT_COUPLING        COUPLING_DC
+#define DEFAULT_COUPLING	COUPLING_DC
 #define DEFAULT_SAMPLERATE	SR_MHZ(8)
 
 #define NUM_CHANNELS		2
@@ -43,7 +43,7 @@
 	SR_KHZ(100),
 
 #define SAMPLERATE_REGS \
-	48, 30, 24, 16, 8,  4, 1, 50, 20, 10,
+	48, 30, 24, 16, 8, 4, 1, 50, 20, 10,
 
 #define VDIV_VALUES \
 	{ 100, 1000 }, \

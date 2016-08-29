@@ -184,7 +184,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/*  Nothing to do. */
+		/* Nothing to do. */
 		return SR_OK;
 
 	/* This allows a frontend to configure the device without ever

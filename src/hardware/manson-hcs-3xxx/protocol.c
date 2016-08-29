@@ -19,10 +19,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-/** @file
-  *  <em>Manson HCS-3xxx Series</em> power supply driver
-  *  @internal
-  */
+/**
+ * @file
+ *
+ * <em>Manson HCS-3xxx Series</em> power supply driver
+ *
+ * @internal
+ */
 
 #include <config.h>
 #include "protocol.h"
@@ -56,10 +59,12 @@ SR_PRIV int hcs_send_cmd(struct sr_serial_dev_inst *serial, const char *cmd, ...
 /**
  * Read data from interface into buffer blocking until @a lines number of \\r chars
  * received.
+ *
  * @param serial Previously initialized serial port structure.
  * @param[in] lines Number of \\r-terminated lines to read (1-n).
- * @param     buf Buffer for result. Contents is NUL-terminated on success.
+ * @param buf Buffer for result. Contents is NUL-terminated on success.
  * @param[in] buflen Buffer length (>0).
+ *
  * @retval SR_OK Lines received and ending with "OK\r" (success).
  * @retval SR_ERR Error.
  * @retval SR_ERR_ARG Invalid argument.

@@ -480,14 +480,14 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	devc->mode_squarewave = 0;
 
-  	rstr = g_match_info_fetch(match, 4);
+	rstr = g_match_info_fetch(match, 4);
 	if (rstr && sr_atoi(rstr, &resolution) == SR_OK) {
 		devc->cur_digits = -resolution;
 		devc->cur_encoding = -resolution + 1;
 	}
 	g_free(rstr);
 
-  	mstr = g_match_info_fetch(match, 1);
+	mstr = g_match_info_fetch(match, 1);
 	if (!strncmp(mstr, "VOLT", 4)) {
 		devc->cur_mq = SR_MQ_VOLTAGE;
 		devc->cur_unit = SR_UNIT_VOLT;
@@ -553,7 +553,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_digits = 4;
 		devc->cur_encoding = 5;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2) ||
-	           !strncmp(mstr, "TEMP", 2)) {
+		   !strncmp(mstr, "TEMP", 2)) {
 		devc->cur_mq = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
 		if (!strcmp(m2, "FAR"))

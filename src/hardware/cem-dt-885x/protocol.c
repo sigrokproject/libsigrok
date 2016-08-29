@@ -770,11 +770,11 @@ SR_PRIV int cem_dt_885x_meas_range_set(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	if (low == 30 && high == 130)
 		token = TOKEN_MEAS_RANGE_30_130;
-	else if (low == 30 &&  high == 80)
+	else if (low == 30 && high == 80)
 		token = TOKEN_MEAS_RANGE_30_80;
-	else if (low == 50 &&  high == 100)
+	else if (low == 50 && high == 100)
 		token = TOKEN_MEAS_RANGE_50_100;
-	else if (low == 80 &&  high == 130)
+	else if (low == 80 && high == 130)
 		token = TOKEN_MEAS_RANGE_80_130;
 	else
 		return SR_ERR;

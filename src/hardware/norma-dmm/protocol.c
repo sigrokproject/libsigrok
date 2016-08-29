@@ -17,9 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  Norma DM9x0/Siemens B102x DMMs driver.
- *  @internal
+/**
+ * @file
+ *
+ * Norma DM9x0/Siemens B102x DMMs driver.
+ *
+ * @internal
  */
 
 #include <config.h>
@@ -350,13 +353,13 @@ static void nma_process_line(const struct sr_dev_inst *sdi)
 	/* 4: Flags. Evaluating this after setting value! */
 	flags = xgittoint(devc->buf[4]);
 	if (flags & 0x04) /* Invalid value */
-	    value = NAN;
+		value = NAN;
 	else if (flags & 0x01) /* Overload */
-	    value =  INFINITY;
+		value = INFINITY;
 	if (flags & 0x02) { /* Duplicate value, has been sent before. */
-	    sr_spew("Duplicate value, dismissing!");
-	    devc->buflen = 0;
-	    return;
+		sr_spew("Duplicate value, dismissing!");
+		devc->buflen = 0;
+		return;
 	}
 
 	sr_spew("range=%d/scale=%f/value=%f", range,

@@ -43,7 +43,7 @@ struct dev_context {
 	struct sr_sw_limits sw_limits;
 
 	/* Operational state */
-	enum optarif optarif;     /**< The device mode (which measures are reported) */
+	enum optarif optarif; /**< The device mode (which measures are reported) */
 
 	/* Temporary state across callbacks */
 	uint8_t buf[TELEINFO_BUF_SIZE];

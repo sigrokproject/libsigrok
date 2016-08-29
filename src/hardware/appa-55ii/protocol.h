@@ -27,9 +27,9 @@
 
 #define LOG_PREFIX "appa-55ii"
 
-#define APPA_55II_NUM_CHANNELS  2
-#define APPA_55II_BUF_SIZE    (4 + 32 + 1)
-#define DEFAULT_DATA_SOURCE   DATA_SOURCE_LIVE
+#define APPA_55II_NUM_CHANNELS	2
+#define APPA_55II_BUF_SIZE	(4 + 32 + 1)
+#define DEFAULT_DATA_SOURCE	DATA_SOURCE_LIVE
 
 enum {
 	DATA_SOURCE_LIVE,
@@ -40,7 +40,7 @@ enum {
 struct dev_context {
 	/* Acquisition settings */
 	struct sr_sw_limits limits;
-	gboolean data_source;     /**< Whether to read live samples or memory */
+	gboolean data_source; /**< Whether to read live samples or memory */
 
 	/* Temporary state across callbacks */
 	uint8_t buf[APPA_55II_BUF_SIZE];

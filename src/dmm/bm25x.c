@@ -209,7 +209,7 @@ SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 		val = -val;
 
 	*floatval = val;
-	analog->encoding->digits  = -exponent;
+	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;

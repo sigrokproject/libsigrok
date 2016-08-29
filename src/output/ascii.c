@@ -182,7 +182,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					/* Flush line buffers. */
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
-					if (j == ctx->num_enabled_channels  - 1 && ctx->trigger > -1) {
+					if (j == ctx->num_enabled_channels - 1 && ctx->trigger > -1) {
 						offset = ctx->trigger + ctx->trigger / 8;
 						g_string_append_printf(*out, "T:%*s^ %d\n", offset, "", ctx->trigger);
 						ctx->trigger = -1;

@@ -17,9 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  Gossen Metrawatt Metrahit 1x/2x drivers
- *  @internal
+/**
+ * @file
+ *
+ * Gossen Metrawatt Metrahit 1x/2x drivers
+ *
+ * @internal
  */
 
 #include <config.h>
@@ -40,7 +43,7 @@ static const uint32_t scanopts[] = {
 /** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
 static const uint32_t devopts_sm[] = {
 	SR_CONF_MULTIMETER,
-	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
+	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -49,7 +52,7 @@ static const uint32_t devopts_sm[] = {
 /** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
 static const uint32_t devopts_bd[] = {
 	SR_CONF_MULTIMETER,
-	SR_CONF_THERMOMETER,    /**< All GMC 1x/2x multimeters seem to support this */
+	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -118,7 +121,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 			for (cnt = 0; cnt < 4; cnt++) {
 				byte = read_byte(serial, timeout_us);
 				if ((byte == -1) ||
-						((byte & MSGID_MASK) != MSGID_DATA))
+					((byte & MSGID_MASK) != MSGID_DATA))
 				{
 					model = METRAHIT_NONE;
 					bytecnt = 100;

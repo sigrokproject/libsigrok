@@ -19,7 +19,9 @@
 
 /**
  * @file
+ *
  * <em>Conrad DIGI 35 CPU</em> power supply driver
+ *
  * @internal
  */
 

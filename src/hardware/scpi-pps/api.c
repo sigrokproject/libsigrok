@@ -43,9 +43,8 @@ static const struct pps_channel_instance pci[] = {
 };
 
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
-					int (*get_hw_id)(struct sr_scpi_dev_inst *scpi,
-							struct sr_scpi_hw_info **scpi_response)
-			   )
+		int (*get_hw_id)(struct sr_scpi_dev_inst *scpi,
+		struct sr_scpi_hw_info **scpi_response))
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
