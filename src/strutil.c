@@ -212,10 +212,11 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 }
 
 /**
- * Convert a string representation of a numeric value to a @sr_rational. The
- * conversion is strict and will fail if the complete string does not represent
- * a valid number. The function sets errno according to the details of the
- * failure. This version ignores the locale.
+ * Convert a string representation of a numeric value to a sr_rational.
+ *
+ * The conversion is strict and will fail if the complete string does not
+ * represent a valid number. The function sets errno according to the details
+ * of the failure. This version ignores the locale.
  *
  * @param str The string representation to convert.
  * @param ret Pointer to sr_rational where the result of the conversion will be stored.
