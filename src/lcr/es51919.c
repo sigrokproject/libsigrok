@@ -535,7 +535,7 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 			analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
 	}
 
-	if ((analog->meaning->mq = parse_mq(pkt, is_secondary, pkt[2] & 0x80)) < 0)
+	if ((analog->meaning->mq = parse_mq(pkt, is_secondary, pkt[2] & 0x80)) == 0)
 		return;
 
 	if ((buf[3] >> 3) >= ARRAY_SIZE(units)) {
