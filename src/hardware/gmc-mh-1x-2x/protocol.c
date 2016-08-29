@@ -95,10 +95,7 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 	case 0x0d: /* 1101 µF (15S/16S only) */
 		devc->mq = SR_MQ_CAPACITANCE;
 		devc->unit = SR_UNIT_FARAD;
-		if (ctmv == 0x0c)
-			devc->scale1000 = -3;
-		else
-			devc->scale1000 = -2;
+		devc->scale1000 = (ctmv == 0x0c) ? -3 : -2;
 		break;
 	case 0x0e: /* mA, µA */
 		devc->scale1000 = -1; /* Fall through. */
@@ -124,12 +121,8 @@ static void decode_rs_16(uint8_t rs, struct dev_context *devc)
 	if (rs & 0x04) /* Sign */
 		devc->scale = -devc->scale;
 
-	if (devc->mq == SR_MQ_CURRENT) {
-		if (rs & 0x08) /* Current is AC */
-			devc->mqflags |= SR_MQFLAG_AC;
-		else
-			devc->mqflags |= SR_MQFLAG_DC;
-	}
+	if (devc->mq == SR_MQ_CURRENT)
+		devc->mqflags |= (rs & 0x08) ? SR_MQFLAG_AC : SR_MQFLAG_DC;
 
 	switch (rs & 0x03) {
 	case 0:
@@ -290,10 +283,7 @@ static void decode_rs_18(uint8_t rs, struct dev_context *devc)
 			devc->scale += range - 5;
 		break;
 	case SR_MQ_CURRENT:
-		if (devc->scale1000 == -1)
-			devc->scale += range - 5;
-		else
-			devc->scale += range - 4;
+		devc->scale += (devc->scale1000 == -1) ? range - 5 : range - 4;
 		break;
 	case SR_MQ_RESISTANCE:
 		devc->scale += range - 2;
@@ -530,10 +520,7 @@ static void decode_rs_2x(uint8_t rs, struct dev_context *devc)
 	range = rs & 0x07;
 	switch (devc->mq) {
 	case SR_MQ_VOLTAGE:
-		if (devc->unit == SR_UNIT_DECIBEL_VOLT)
-			devc->scale += -3;
-		else
-			devc->scale += range - 6;
+		devc->scale += (devc->unit == SR_UNIT_DECIBEL_VOLT) ? -3 : range - 6;
 		break;
 	case SR_MQ_CURRENT:
 		if (devc->scale1000 != -1) /* uA, mA */
@@ -1434,10 +1421,7 @@ SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 {
 	switch (mcode & 0x1f) {
 	case 2:
-		if (mcode & 0x20)
-			return METRAHIT_22M;
-		else
-			return METRAHIT_22S;
+		return (mcode & 0x20) ? METRAHIT_22M : METRAHIT_22S;
 	case 3:
 		return METRAHIT_23S;
 	case 4:
@@ -1445,10 +1429,7 @@ SR_PRIV int gmc_decode_model_bd(uint8_t mcode)
 	case 5:
 		return METRAHIT_25S;
 	case 1:
-		if (mcode & 0x20)
-			return METRAHIT_26M;
-		else
-			return METRAHIT_26S;
+		return (mcode & 0x20) ? METRAHIT_26M : METRAHIT_26S;
 	case 12:
 		return METRAHIT_28S;
 	case 14:
