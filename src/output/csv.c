@@ -319,7 +319,7 @@ static void process_analog(struct context *ctx,
 	num_channels = g_slist_length(meaning->channels);
 	ctx->channels_seen += num_channels;
 	sr_dbg("Processing packet of %u analog channels", num_channels);
-	fdata = g_malloc(analog->num_samples * num_channels);
+	fdata = g_malloc(analog->num_samples * num_channels * sizeof(float));
 	if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 		sr_warn("Problems converting data to floating point values.");
 
