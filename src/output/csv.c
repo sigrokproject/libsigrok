@@ -236,7 +236,7 @@ static GString *gen_header(const struct sr_output *o,
 		sr_info("Set sample period to %" PRIu64 " %s",
 			ctx->period, ctx->xlabel);
 	}
-	ctx->title = o->sdi->driver->longname;
+	ctx->title = (o->sdi && o->sdi->driver) ? o->sdi->driver->longname : "unknown";
 
 	/* Some metadata */
 	if (ctx->header && !ctx->did_header) {
