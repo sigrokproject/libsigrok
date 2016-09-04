@@ -553,11 +553,6 @@ EXTRA_DIST = \
 	bindings/swig/classes.i \
 	bindings/swig/doc.py \
 	bindings/swig/templates.i \
-	contrib/gnuplot_chronovu_la8.gpi \
-	contrib/gnuplot_rigol_ds1xx2.gpi \
-	contrib/gnuplot_usbeesx.gpi \
-	contrib/gnuplot_usbeedx8.gpi \
-	contrib/gnuplot_usbeedx16.gpi \
 	contrib/sigrok-logo-notext.png \
 	contrib/z60_libsigrok.rules
 
