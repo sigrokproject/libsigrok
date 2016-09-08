@@ -41,8 +41,8 @@
  *
  * header:  Print header comment with capture metadata. Defaults to TRUE.
  *
- * label:   Add a line of channel labels as the first line of output. Defaults
- *          to TRUE.
+ * label:   What to use for channel labels as the first line of output.
+ *          Values are "channel", "units", "off". Defaults to "units".
  *
  * time:    Whether or not the first column should include the time the sample
  *          was taken. Defaults to TRUE.
@@ -66,6 +66,7 @@
 
 struct ctx_channel {
 	struct sr_channel *ch;
+	char *label;
 	float min, max;
 };
 
@@ -78,7 +79,7 @@ struct context {
 	const char *frame;
 	const char *comment;
 	gboolean header, did_header;
-	gboolean label, did_label;
+	gboolean label_do, label_did, label_names;
 	gboolean time;
 	gboolean do_trigger;
 	gboolean dedup;
@@ -113,6 +114,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	unsigned int i, analog_channels, logic_channels;
 	struct context *ctx;
 	struct sr_channel *ch;
+	const char *label_string;
 	GSList *l;
 
 	if (!o || !o->sdi)
@@ -136,7 +138,8 @@ static int init(struct sr_output *o, GHashTable *options)
 	ctx->header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
 	ctx->time = g_variant_get_boolean(g_hash_table_lookup(options, "time"));
 	ctx->do_trigger = g_variant_get_boolean(g_hash_table_lookup(options, "trigger"));
-	ctx->label = g_variant_get_boolean(g_hash_table_lookup(options, "label"));
+	label_string = g_variant_get_string(
+		g_hash_table_lookup(options, "label"), NULL);
 	ctx->dedup = g_variant_get_boolean(g_hash_table_lookup(options, "dedup"));
 	ctx->dedup &= ctx->time;
 
@@ -146,11 +149,15 @@ static int init(struct sr_output *o, GHashTable *options)
 	if (*ctx->gnuplot && strlen(ctx->value) > 1)
 		sr_warn("gnuplot doesn't support multichar value separators.");
 
+	if ((ctx->label_did = ctx->label_do = g_strcmp0(label_string, "off") != 0))
+		ctx->label_names = g_strcmp0(label_string, "units") != 0;
+
 	sr_dbg("gnuplot = '%s', scale = %d", ctx->gnuplot, ctx->scale);
 	sr_dbg("value = '%s', record = '%s', frame = '%s', comment = '%s'",
 	       ctx->value, ctx->record, ctx->frame, ctx->comment);
-	sr_dbg("header = %d, label = %d, time = %d, do_trigger = %d, dedup = %d",
-	       ctx->header, ctx->label, ctx->time, ctx->do_trigger, ctx->dedup);
+	sr_dbg("header = %d, time = %d, do_trigger = %d, dedup = %d",
+	       ctx->header, ctx->time, ctx->do_trigger, ctx->dedup);
+	sr_dbg("label_do = %d, label_names = %d", ctx->label_do, ctx->label_names);
 
 	analog_channels = logic_channels = 0;
 	/* Get the number of channels, and the unitsize. */
@@ -189,6 +196,8 @@ static int init(struct sr_output *o, GHashTable *options)
 			} else {
 				sr_warn("Unknown channel type %d.", ch->type);
 			}
+			if (ctx->label_do && ctx->label_names)
+				ctx->channels[i].label = ch->name;
 			ctx->channels[i++].ch = ch;
 		}
 	}
@@ -331,6 +340,10 @@ static void process_analog(struct context *ctx,
 				struct sr_channel *ch = l->data;
 				sr_dbg("Checking %s", ch->name);
 				if (ctx->channels[i].ch == l->data) {
+					if (ctx->label_do && !ctx->label_names) {
+						sr_analog_unit_to_string(analog,
+							&ctx->channels[i].label);
+					}
 					for (j = 0; j < analog->num_samples; j++)
 						ctx->analog_samples[j * ctx->num_analog_channels + i] = fdata[j * num_channels + c];
 					break;
@@ -369,6 +382,8 @@ static void process_logic(struct context *ctx,
 			for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
 				sample = logic->data + i;
 				idx = ctx->channels[ch].ch->index;
+				if (ctx->label_do && !ctx->label_names)
+					ctx->channels[i].label = "logic";
 				ctx->logic_samples[i * ctx->num_logic_channels + ch] = sample[idx / 8] & (1 << (idx % 8));
 			}
 			ch++;
@@ -393,13 +408,17 @@ static void dump_saved_values(struct context *ctx, GString **out)
 		num_channels =
 		    ctx->num_logic_channels + ctx->num_analog_channels;
 
-		if (ctx->label && !ctx->did_label) {
+		if (ctx->label_do) {
 			if (ctx->time)
-				g_string_append_printf(*out, "Time%s",
-						       ctx->value);
+				g_string_append_printf(*out, "%s%s",
+					ctx->label_names ? "Time" :
+					ctx->xlabel, ctx->value);
 			for (i = 0; i < num_channels; i++) {
 				g_string_append_printf(*out, "%s%s",
-					ctx->channels[i].ch->name, ctx->value);
+					ctx->channels[i].label, ctx->value);
+				if (ctx->channels[i].ch->type == SR_CHANNEL_ANALOG
+						&& ctx->label_names)
+					g_free(ctx->channels[i].label);
 			}
 			if (ctx->do_trigger)
 				g_string_append_printf(*out, "Trigger%s",
@@ -408,7 +427,7 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			g_string_truncate(*out, (*out)->len - 1);
 			g_string_append(*out, ctx->record);
 
-			ctx->did_label = TRUE;
+			ctx->label_do = FALSE;
 		}
 
 		analog_size = ctx->num_analog_channels * sizeof(float);
@@ -490,7 +509,7 @@ static void save_gnuplot(struct context *ctx)
 	script = g_string_sized_new(512);
 	g_string_append_printf(script, "set datafile separator '%s'\n",
 			       ctx->value);
-	if (ctx->did_label)
+	if (ctx->label_did)
 		g_string_append(script, "set key autotitle columnhead\n");
 	if (ctx->xlabel && ctx->time)
 		g_string_append_printf(script, "set xlabel '%s'\n",
@@ -607,7 +626,7 @@ static struct sr_option options[] = {
 	{"frame", "Frame seperator", "String to print between frames", NULL, NULL},
 	{"comment", "Comment start string", "String used at start of comment lines", NULL, NULL},
 	{"header", "Output header", "Output header comment with capture metdata", NULL, NULL},
-	{"label", "Label values", "Output labels for each value", NULL, NULL},
+	{"label", "Label values", "Type of column labels", NULL, NULL},
 	{"time", "Time column", "Output sample time as column 1", NULL, NULL},
 	{"trigger", "Trigger column", "Output trigger indicator as last column ", NULL, NULL},
 	{"dedup", "Dedup rows", "Set to false to output duplicate rows", NULL, NULL},
@@ -624,7 +643,7 @@ static const struct sr_option *get_options(void)
 		options[4].def = g_variant_ref_sink(g_variant_new_string("\n"));
 		options[5].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[6].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
-		options[7].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
+		options[7].def = g_variant_ref_sink(g_variant_new_string("units"));
 		options[8].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[10].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
