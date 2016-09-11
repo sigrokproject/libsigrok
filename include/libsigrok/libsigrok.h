@@ -263,7 +263,7 @@ enum sr_unit {
 	SR_UNIT_SIEMENS,
 	/**
 	 * An absolute measurement of power, in decibels, referenced to
-	 * 1 milliwatt (dBu).
+	 * 1 milliwatt (dBm).
 	 */
 	SR_UNIT_DECIBEL_MW,
 	/** Voltage in decibel, referenced to 1 volt (dBV). */
