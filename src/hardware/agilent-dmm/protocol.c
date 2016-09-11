@@ -242,6 +242,14 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	s = g_match_info_fetch(match, 1);
 	sr_spew("STAT response '%s'.", s);
 
+	/* dBm/dBV modes. */
+	if ((s[2] & ~0x20) == 'M')
+		devc->mode_dbm_dbv = devc->cur_unit[0] = SR_UNIT_DECIBEL_MW;
+	else if ((s[2] & ~0x20) == 'V')
+		devc->mode_dbm_dbv = devc->cur_unit[0] = SR_UNIT_DECIBEL_VOLT;
+	else
+		devc->mode_dbm_dbv = 0;
+
 	/* Peak hold mode. */
 	if (s[4] == '1')
 		devc->cur_mqflags[0] |= SR_MQFLAG_MAX;
@@ -274,6 +282,14 @@ static int recv_stat_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags[0] |= SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG;
 	else
 		devc->cur_mqflags[0] &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG);
+
+	/* dBm/dBV modes. */
+	if ((s[2] & ~0x20) == 'M')
+		devc->mode_dbm_dbv = devc->cur_unit[0] = SR_UNIT_DECIBEL_MW;
+	else if ((s[2] & ~0x20) == 'V')
+		devc->mode_dbm_dbv = devc->cur_unit[0] = SR_UNIT_DECIBEL_VOLT;
+	else
+		devc->mode_dbm_dbv = 0;
 
 	/* Peak hold mode. */
 	if (s[4] == '4')
@@ -322,7 +338,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	float fvalue;
 	const char *s;
 	char *mstr;
-	int i;
+	int i, exp;
 
 	sr_spew("FETC reply '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
@@ -350,6 +366,17 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		g_free(mstr);
 		if (devc->cur_exponent[i] != 0)
 			fvalue *= powf(10, devc->cur_exponent[i]);
+	}
+
+	if (devc->cur_unit[i] == SR_UNIT_DECIBEL_MW ||
+	    devc->cur_unit[i] == SR_UNIT_DECIBEL_VOLT ||
+	    devc->cur_unit[i] == SR_UNIT_PERCENTAGE) {
+		mstr = g_match_info_fetch(match, 2);
+		if (mstr && sr_atoi(mstr, &exp) == SR_OK) {
+			devc->cur_digits[i] = MIN(4 - exp, devc->cur_digits[i]);
+			devc->cur_encoding[i] = MIN(5 - exp, devc->cur_encoding[i]);
+		}
+		g_free(mstr);
 	}
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec,
@@ -519,6 +546,11 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit[i] = SR_UNIT_VOLT;
 		devc->cur_mqflags[i] = 0;
 		devc->cur_exponent[i] = 0;
+		if (i == 0 && devc->mode_dbm_dbv) {
+			devc->cur_unit[i] = devc->mode_dbm_dbv;
+			devc->cur_digits[i] = 3;
+			devc->cur_encoding[i] = 4;
+		}
 		if (mstr[4] == ':') {
 			if (!strncmp(mstr + 5, "ACDC", 4)) {
 				/* AC + DC offset */

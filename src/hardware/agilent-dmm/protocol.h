@@ -74,6 +74,7 @@ struct dev_context {
 	int mode_tempaux;
 	int mode_continuity;
 	int mode_squarewave;
+	int mode_dbm_dbv;
 };
 
 struct agdmm_job {
