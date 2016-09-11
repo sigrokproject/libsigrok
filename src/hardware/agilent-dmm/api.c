@@ -53,24 +53,24 @@ extern const struct agdmm_recv agdmm_recvs_u128x[];
 #define SERIALCOMM "9600/8n1"
 
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1231, "U1231A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
-	{ AGILENT_U1232, "U1232A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
-	{ AGILENT_U1233, "U1233A", agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1231, "U1231A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1232, "U1232A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1233, "U1233A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
 
-	{ AGILENT_U1241, "U1241A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1242, "U1242A", agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1241, "U1241B", agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1242, "U1242B", agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1241, "U1241A", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242A", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1241, "U1241B", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242B", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
 
-	{ AGILENT_U1251, "U1251A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1252, "U1252A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1253, "U1253A", agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1251, "U1251B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1252, "U1252B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1253, "U1253B", agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1251, "U1251A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1251, "U1251B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
 
-	{ KEYSIGHT_U1281, "U1281A", agdmm_jobs_u12xx, agdmm_recvs_u128x },
-	{ KEYSIGHT_U1282, "U1282A", agdmm_jobs_u12xx, agdmm_recvs_u128x },
+	{ KEYSIGHT_U1281, "U1281A", 3, agdmm_jobs_u12xx, agdmm_recvs_u128x },
+	{ KEYSIGHT_U1282, "U1282A", 3, agdmm_jobs_u12xx, agdmm_recvs_u128x },
 	ALL_ZERO
 };
 
@@ -135,11 +135,21 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sr_sw_limits_init(&devc->limits);
 			devc->profile = &supported_agdmm[i];
-			devc->cur_mq = 0;
+			if (supported_agdmm[i].nb_channels > 1) {
+				int temp_chan = supported_agdmm[i].nb_channels - 1;
+				devc->cur_mq[temp_chan] = SR_MQ_TEMPERATURE;
+				devc->cur_unit[temp_chan] = SR_UNIT_CELSIUS;
+				devc->cur_digits[temp_chan] = 1;
+				devc->cur_encoding[temp_chan] = 2;
+			}
 			sdi->inst_type = SR_INST_SERIAL;
 			sdi->conn = serial;
 			sdi->priv = devc;
 			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
+			if (supported_agdmm[i].nb_channels > 1)
+				sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "P2");
+			if (supported_agdmm[i].nb_channels > 2)
+				sr_channel_new(sdi, 2, SR_CHANNEL_ANALOG, TRUE, "P3");
 			devices = g_slist_append(devices, sdi);
 			break;
 		}
@@ -201,6 +211,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
+
+	devc->cur_channel = sr_next_enabled_channel(sdi, NULL);
+	devc->cur_conf = sr_next_enabled_channel(sdi, NULL);
+	devc->cur_mq[0] = -1;
+	if (devc->profile->nb_channels > 2)
+		devc->cur_mq[1] = -1;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);

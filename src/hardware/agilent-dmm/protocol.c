@@ -20,6 +20,7 @@
 #include <config.h>
 #include <glib.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <math.h>
 #include <libsigrok/libsigrok.h>
@@ -127,15 +128,18 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd)
+static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd, ...)
 {
 	struct sr_serial_dev_inst *serial;
+	va_list args;
 	char buf[32];
 
 	serial = sdi->conn;
 
-	sr_spew("Sending '%s'.", cmd);
-	strncpy(buf, cmd, 28);
+	va_start(args, cmd);
+	vsnprintf(buf, sizeof(buf)-3, cmd, args);
+	va_end(args);
+	sr_spew("Sending '%s'.", buf);
 	if (!strncmp(buf, "*IDN?", 5))
 		strcat(buf, "\r\n");
 	else
@@ -165,20 +169,20 @@ static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	/* Max, Min or Avg mode -- no way to tell which, so we'll
 	 * set both flags to denote it's not a normal measurement. */
 	if (s[0] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
 	else
-		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+		devc->cur_mqflags[0] &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
 
 	if (s[1] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] |= SR_MQFLAG_RELATIVE;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_RELATIVE;
 
 	/* Triggered or auto hold modes. */
 	if (s[2] == '1' || s[3] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] |= SR_MQFLAG_HOLD;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_HOLD;
 
 	/* Temp/aux mode. */
 	if (s[7] == '1')
@@ -209,20 +213,20 @@ static int recv_stat_u124x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	/* Max, Min or Avg mode -- no way to tell which, so we'll
 	 * set both flags to denote it's not a normal measurement. */
 	if (s[0] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX | SR_MQFLAG_MIN;
 	else
-		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
+		devc->cur_mqflags[0] &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN);
 
 	if (s[1] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] |= SR_MQFLAG_RELATIVE;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_RELATIVE;
 
 	/* Hold mode. */
 	if (s[7] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] |= SR_MQFLAG_HOLD;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_HOLD;
 
 	g_free(s);
 
@@ -240,15 +244,15 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	/* Peak hold mode. */
 	if (s[4] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_MAX;
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_MAX;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_MAX;
 
 	/* Triggered hold mode. */
 	if (s[7] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] |= SR_MQFLAG_HOLD;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_HOLD;
 
 	g_free(s);
 
@@ -267,27 +271,27 @@ static int recv_stat_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	/* Max, Min or Avg mode -- no way to tell which, so we'll
 	 * set both flags to denote it's not a normal measurement. */
 	if (s[0] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG;
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG;
 	else
-		devc->cur_mqflags &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG);
+		devc->cur_mqflags[0] &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG);
 
 	/* Peak hold mode. */
 	if (s[4] == '4')
-		devc->cur_mqflags |= SR_MQFLAG_MAX;
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_MAX;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_MAX;
 
 	/* Null function. */
 	if (s[1] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] |= SR_MQFLAG_RELATIVE;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_RELATIVE;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_RELATIVE;
 
 	/* Triggered or auto hold modes. */
 	if (s[7] == '1' || s[11] == '1')
-		devc->cur_mqflags |= SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] |= SR_MQFLAG_HOLD;
 	else
-		devc->cur_mqflags &= ~SR_MQFLAG_HOLD;
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_HOLD;
 
 	g_free(s);
 
@@ -300,7 +304,11 @@ static int send_fetc(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	if (devc->mode_squarewave)
 		return SR_OK;
-	return agdmm_send(sdi, "FETC?");
+	devc->cur_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
+	if (devc->cur_channel->index > 0)
+		return agdmm_send(sdi, "FETC? @%d", devc->cur_channel->index + 1);
+	else
+		return agdmm_send(sdi, "FETC?");
 }
 
 static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -314,11 +322,13 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	float fvalue;
 	const char *s;
 	char *mstr;
+	int i;
 
 	sr_spew("FETC reply '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
+	i = devc->cur_channel->index;
 
-	if (devc->cur_mq == -1)
+	if (devc->cur_mq[i] == -1)
 		/* Haven't seen configuration yet, so can't know what
 		 * the fetched float means. Not really an error, we'll
 		 * get metadata soon enough. */
@@ -338,22 +348,23 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 			return SR_ERR;
 		}
 		g_free(mstr);
-		if (devc->cur_exponent != 0)
-			fvalue *= powf(10, devc->cur_exponent);
+		if (devc->cur_exponent[i] != 0)
+			fvalue *= powf(10, devc->cur_exponent[i]);
 	}
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec,
-	               devc->cur_digits - devc->cur_exponent);
-	analog.meaning->mq = devc->cur_mq;
-	analog.meaning->unit = devc->cur_unit;
-	analog.meaning->mqflags = devc->cur_mqflags;
-	analog.meaning->channels = sdi->channels;
+	               devc->cur_digits[i] - devc->cur_exponent[i]);
+	analog.meaning->mq = devc->cur_mq[i];
+	analog.meaning->unit = devc->cur_unit[i];
+	analog.meaning->mqflags = devc->cur_mqflags[i];
+	analog.meaning->channels = g_slist_append(NULL, devc->cur_channel);
 	analog.num_samples = 1;
 	analog.data = &fvalue;
-	encoding.digits = devc->cur_encoding - devc->cur_exponent;
+	encoding.digits = devc->cur_encoding[i] - devc->cur_exponent[i];
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	sr_session_send(sdi, &packet);
+	g_slist_free(analog.meaning->channels);
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
@@ -362,17 +373,31 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 static int send_conf(const struct sr_dev_inst *sdi)
 {
-	return agdmm_send(sdi, "CONF?");
+	struct dev_context *devc = sdi->priv;
+
+	devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+
+	/* Do not try to send CONF? for internal temperature channel. */
+	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
+		devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
+		return SR_ERR_NA;
+
+	if (devc->cur_conf->index > 0)
+		return agdmm_send(sdi, "CONF? @%d", devc->cur_conf->index + 1);
+	else
+		return agdmm_send(sdi, "CONF?");
 }
 
 static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *mstr, *rstr;
-	int resolution;
+	int i, resolution;
 
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
+	i = devc->cur_conf->index;
 
 	rstr = g_match_info_fetch(match, 2);
 	if (rstr)
@@ -381,90 +406,90 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	mstr = g_match_info_fetch(match, 1);
 	if (!strcmp(mstr, "V")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 4 - resolution;
+		devc->cur_mq[i] = SR_MQ_VOLTAGE;
+		devc->cur_unit[i] = SR_UNIT_VOLT;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 4 - resolution;
 	} else if (!strcmp(mstr, "MV")) {
 		if (devc->mode_tempaux) {
-			devc->cur_mq = SR_MQ_TEMPERATURE;
+			devc->cur_mq[i] = SR_MQ_TEMPERATURE;
 			/* No way to detect whether Fahrenheit or Celsius
 			 * is used, so we'll just default to Celsius. */
-			devc->cur_unit = SR_UNIT_CELSIUS;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-			devc->cur_digits = 1;
+			devc->cur_unit[i] = SR_UNIT_CELSIUS;
+			devc->cur_mqflags[i] = 0;
+			devc->cur_exponent[i] = 0;
+			devc->cur_digits[i] = 1;
 		} else {
-			devc->cur_mq = SR_MQ_VOLTAGE;
-			devc->cur_unit = SR_UNIT_VOLT;
-			devc->cur_mqflags = 0;
-			devc->cur_exponent = -3;
-			devc->cur_digits = 5 - resolution;
+			devc->cur_mq[i] = SR_MQ_VOLTAGE;
+			devc->cur_unit[i] = SR_UNIT_VOLT;
+			devc->cur_mqflags[i] = 0;
+			devc->cur_exponent[i] = -3;
+			devc->cur_digits[i] = 5 - resolution;
 		}
 	} else if (!strcmp(mstr, "A")) {
-		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_unit = SR_UNIT_AMPERE;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 3 - resolution;
+		devc->cur_mq[i] = SR_MQ_CURRENT;
+		devc->cur_unit[i] = SR_UNIT_AMPERE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 3 - resolution;
 	} else if (!strcmp(mstr, "UA")) {
-		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_unit = SR_UNIT_AMPERE;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = -6;
-		devc->cur_digits = 8 - resolution;
+		devc->cur_mq[i] = SR_MQ_CURRENT;
+		devc->cur_unit[i] = SR_UNIT_AMPERE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = -6;
+		devc->cur_digits[i] = 8 - resolution;
 	} else if (!strcmp(mstr, "FREQ")) {
-		devc->cur_mq = SR_MQ_FREQUENCY;
-		devc->cur_unit = SR_UNIT_HERTZ;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 2 - resolution;
+		devc->cur_mq[i] = SR_MQ_FREQUENCY;
+		devc->cur_unit[i] = SR_UNIT_HERTZ;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 2 - resolution;
 	} else if (!strcmp(mstr, "RES")) {
 		if (devc->mode_continuity) {
-			devc->cur_mq = SR_MQ_CONTINUITY;
-			devc->cur_unit = SR_UNIT_BOOLEAN;
+			devc->cur_mq[i] = SR_MQ_CONTINUITY;
+			devc->cur_unit[i] = SR_UNIT_BOOLEAN;
 		} else {
-			devc->cur_mq = SR_MQ_RESISTANCE;
-			devc->cur_unit = SR_UNIT_OHM;
+			devc->cur_mq[i] = SR_MQ_RESISTANCE;
+			devc->cur_unit[i] = SR_UNIT_OHM;
 		}
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 1 - resolution;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 1 - resolution;
 	} else if (!strcmp(mstr, "DIOD")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = SR_MQFLAG_DIODE;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 3;
+		devc->cur_mq[i] = SR_MQ_VOLTAGE;
+		devc->cur_unit[i] = SR_UNIT_VOLT;
+		devc->cur_mqflags[i] = SR_MQFLAG_DIODE;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 3;
 	} else if (!strcmp(mstr, "CAP")) {
-		devc->cur_mq = SR_MQ_CAPACITANCE;
-		devc->cur_unit = SR_UNIT_FARAD;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 9 - resolution;
+		devc->cur_mq[i] = SR_MQ_CAPACITANCE;
+		devc->cur_unit[i] = SR_UNIT_FARAD;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 9 - resolution;
 	} else
 		sr_dbg("Unknown first argument.");
 	g_free(mstr);
 
 	/* This is based on guess, supposing similarity with other models. */
-	devc->cur_encoding = devc->cur_digits + 1;
+	devc->cur_encoding[i] = devc->cur_digits[i] + 1;
 
 	if (g_match_info_get_match_count(match) == 4) {
 		mstr = g_match_info_fetch(match, 3);
 		/* Third value, if present, is always AC or DC. */
 		if (!strcmp(mstr, "AC")) {
-			devc->cur_mqflags |= SR_MQFLAG_AC;
-			if (devc->cur_mq == SR_MQ_VOLTAGE)
-				devc->cur_mqflags |= SR_MQFLAG_RMS;
+			devc->cur_mqflags[i] |= SR_MQFLAG_AC;
+			if (devc->cur_mq[i] == SR_MQ_VOLTAGE)
+				devc->cur_mqflags[i] |= SR_MQFLAG_RMS;
 		} else if (!strcmp(mstr, "DC")) {
-			devc->cur_mqflags |= SR_MQFLAG_DC;
+			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 		} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 		}
 		g_free(mstr);
 	} else
-		devc->cur_mqflags &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
+		devc->cur_mqflags[i] &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 
 	return SR_OK;
 }
@@ -473,98 +498,105 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
 	char *mstr, *rstr, *m2;
-	int resolution;
+	int i, resolution;
 
 	sr_spew("CONF? response '%s'.", g_match_info_get_string(match));
 	devc = sdi->priv;
+	i = devc->cur_conf->index;
 
 	devc->mode_squarewave = 0;
 
 	rstr = g_match_info_fetch(match, 4);
 	if (rstr && sr_atoi(rstr, &resolution) == SR_OK) {
-		devc->cur_digits = -resolution;
-		devc->cur_encoding = -resolution + 1;
+		devc->cur_digits[i] = -resolution;
+		devc->cur_encoding[i] = -resolution + 1;
 	}
 	g_free(rstr);
 
 	mstr = g_match_info_fetch(match, 1);
 	if (!strncmp(mstr, "VOLT", 4)) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_VOLTAGE;
+		devc->cur_unit[i] = SR_UNIT_VOLT;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 		if (mstr[4] == ':') {
 			if (!strncmp(mstr + 5, "ACDC", 4)) {
 				/* AC + DC offset */
-				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
+				devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "AC", 2)) {
-				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+				devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "DC", 2)) {
-				devc->cur_mqflags |= SR_MQFLAG_DC;
+				devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 			}
 		} else
-			devc->cur_mqflags |= SR_MQFLAG_DC;
+			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 	} else if (!strncmp(mstr, "CURR", 4)) {
-		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_unit = SR_UNIT_AMPERE;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_CURRENT;
+		devc->cur_unit[i] = SR_UNIT_AMPERE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 		if (mstr[4] == ':') {
 			if (!strncmp(mstr + 5, "ACDC", 4)) {
 				/* AC + DC offset */
-				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
+				devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "AC", 2)) {
-				devc->cur_mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+				devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "DC", 2)) {
-				devc->cur_mqflags |= SR_MQFLAG_DC;
+				devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 			}
 		} else
-			devc->cur_mqflags |= SR_MQFLAG_DC;
+			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 	} else if (!strcmp(mstr, "RES")) {
-		devc->cur_mq = SR_MQ_RESISTANCE;
-		devc->cur_unit = SR_UNIT_OHM;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_RESISTANCE;
+		devc->cur_unit[i] = SR_UNIT_OHM;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 	} else if (!strcmp(mstr, "COND")) {
-		devc->cur_mq = SR_MQ_CONDUCTANCE;
-		devc->cur_unit = SR_UNIT_SIEMENS;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_CONDUCTANCE;
+		devc->cur_unit[i] = SR_UNIT_SIEMENS;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 	} else if (!strcmp(mstr, "CAP")) {
-		devc->cur_mq = SR_MQ_CAPACITANCE;
-		devc->cur_unit = SR_UNIT_FARAD;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_CAPACITANCE;
+		devc->cur_unit[i] = SR_UNIT_FARAD;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 	} else if (!strncmp(mstr, "FREQ", 4) || !strncmp(mstr, "FC1", 3)) {
-		devc->cur_mq = SR_MQ_FREQUENCY;
-		devc->cur_unit = SR_UNIT_HERTZ;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_FREQUENCY;
+		devc->cur_unit[i] = SR_UNIT_HERTZ;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 	} else if (!strcmp(mstr, "CONT")) {
-		devc->cur_mq = SR_MQ_CONTINUITY;
-		devc->cur_unit = SR_UNIT_BOOLEAN;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
+		devc->cur_mq[i] = SR_MQ_CONTINUITY;
+		devc->cur_unit[i] = SR_UNIT_BOOLEAN;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
 	} else if (!strcmp(mstr, "DIOD")) {
-		devc->cur_mq = SR_MQ_VOLTAGE;
-		devc->cur_unit = SR_UNIT_VOLT;
-		devc->cur_mqflags = SR_MQFLAG_DIODE;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 4;
-		devc->cur_encoding = 5;
+		devc->cur_mq[i] = SR_MQ_VOLTAGE;
+		devc->cur_unit[i] = SR_UNIT_VOLT;
+		devc->cur_mqflags[i] = SR_MQFLAG_DIODE;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 4;
+		devc->cur_encoding[i] = 5;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2) ||
 		   !strncmp(mstr, "TEMP", 2)) {
-		devc->cur_mq = SR_MQ_TEMPERATURE;
+		devc->cur_mq[i] = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
-		if (!strcmp(m2, "FAR"))
-			devc->cur_unit = SR_UNIT_FAHRENHEIT;
+		if (!m2)
+			/*
+			 * TEMP without param is for secondary display (channel P2)
+			 * and is identical to channel P3, so discard it.
+			 */
+			devc->cur_mq[i] = -1;
+		else if (!strcmp(m2, "FAR"))
+			devc->cur_unit[i] = SR_UNIT_FAHRENHEIT;
 		else
-			devc->cur_unit = SR_UNIT_CELSIUS;
+			devc->cur_unit[i] = SR_UNIT_CELSIUS;
 		g_free(m2);
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 1;
-		devc->cur_encoding = 2;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 1;
+		devc->cur_encoding[i] = 2;
 	} else if (!strcmp(mstr, "SCOU")) {
 		/*
 		 * Switch counter, not supported. Not sure what values
@@ -572,12 +604,12 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		 * into libsigrok.
 		 */
 	} else if (!strncmp(mstr, "CPER:", 5)) {
-		devc->cur_mq = SR_MQ_CURRENT;
-		devc->cur_unit = SR_UNIT_PERCENTAGE;
-		devc->cur_mqflags = 0;
-		devc->cur_exponent = 0;
-		devc->cur_digits = 2;
-		devc->cur_encoding = 3;
+		devc->cur_mq[i] = SR_MQ_CURRENT;
+		devc->cur_unit[i] = SR_UNIT_PERCENTAGE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 2;
+		devc->cur_encoding[i] = 3;
 	} else if (!strcmp(mstr, "SQU")) {
 		/*
 		 * Square wave output, not supported. FETC just return
@@ -659,6 +691,6 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u128x[] = {
 	{ "^\"(FREQ:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(DIOD|SQU)\"$", recv_conf_u124x_5x },
+	{ "^\"(DIOD|SQU|TEMP)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
 };

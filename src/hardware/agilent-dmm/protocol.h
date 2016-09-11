@@ -22,6 +22,7 @@
 
 #define LOG_PREFIX "agilent-dmm"
 
+#define MAX_CHANNELS 3
 #define AGDMM_BUFSIZE 256
 
 /* Always USB-serial, 1ms is plenty. */
@@ -48,6 +49,7 @@ enum {
 struct agdmm_profile {
 	int model;
 	const char *modelname;
+	int nb_channels;
 	const struct agdmm_job *jobs;
 	const struct agdmm_recv *recvs;
 };
@@ -61,13 +63,14 @@ struct dev_context {
 	int64_t jobqueue[8];
 	unsigned char buf[AGDMM_BUFSIZE];
 	int buflen;
-	int cur_mq;
-	int cur_unit;
-	int cur_mqflags;
-	int cur_digits;
-	int cur_encoding;
-	int cur_exponent;
-	int cur_acdc;
+	struct sr_channel *cur_channel;
+	struct sr_channel *cur_conf;
+	int cur_mq[MAX_CHANNELS];
+	int cur_unit[MAX_CHANNELS];
+	int cur_mqflags[MAX_CHANNELS];
+	int cur_digits[MAX_CHANNELS];
+	int cur_encoding[MAX_CHANNELS];
+	int cur_exponent[MAX_CHANNELS];
 	int mode_tempaux;
 	int mode_continuity;
 	int mode_squarewave;
