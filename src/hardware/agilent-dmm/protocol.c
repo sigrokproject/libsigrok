@@ -137,7 +137,7 @@ static int agdmm_send(const struct sr_dev_inst *sdi, const char *cmd, ...)
 	serial = sdi->conn;
 
 	va_start(args, cmd);
-	vsnprintf(buf, sizeof(buf)-3, cmd, args);
+	vsnprintf(buf, sizeof(buf) - 3, cmd, args);
 	va_end(args);
 	sr_spew("Sending '%s'.", buf);
 	if (!strncmp(buf, "*IDN?", 5))
@@ -598,6 +598,19 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit[i] = SR_UNIT_HERTZ;
 		devc->cur_mqflags[i] = 0;
 		devc->cur_exponent[i] = 0;
+	} else if (!strncmp(mstr, "PULS:PWID", 9)) {
+		devc->cur_mq[i] = SR_MQ_PULSE_WIDTH;
+		devc->cur_unit[i] = SR_UNIT_SECOND;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_encoding[i] = MIN(devc->cur_encoding[i], 6);
+	} else if (!strncmp(mstr, "PULS:PDUT", 9)) {
+		devc->cur_mq[i] = SR_MQ_DUTY_CYCLE;
+		devc->cur_unit[i] = SR_UNIT_PERCENTAGE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 3;
+		devc->cur_encoding[i] = 4;
 	} else if (!strcmp(mstr, "CONT")) {
 		devc->cur_mq[i] = SR_MQ_CONTINUITY;
 		devc->cur_unit[i] = SR_UNIT_BOOLEAN;
@@ -722,7 +735,8 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u128x[] = {
 	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(FREQ:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(PULS:PWID|PULS:PWID:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(DIOD|SQU|TEMP)\"$", recv_conf_u124x_5x },
+	{ "^\"(DIOD|SQU|PULS:PDUT|TEMP)\"$", recv_conf_u124x_5x },
 	ALL_ZERO
 };
