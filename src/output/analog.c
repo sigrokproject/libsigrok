@@ -113,11 +113,14 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			/* TODO we don't know how to print by number of bits yet. */
 			digits = 6;
 		}
+		gboolean si_friendly = sr_analog_si_prefix_friendly(analog->meaning->unit);
 		sr_analog_unit_to_string(analog, &suffix);
 		for (i = 0; i < analog->num_samples; i++) {
 			for (l = analog->meaning->channels, c = 0; l; l = l->next, c++) {
 				float value = fdata[i * num_channels + c];
-				const char *prefix = sr_analog_si_prefix(&value, &digits);
+				const char *prefix = "";
+				if (si_friendly)
+					prefix = sr_analog_si_prefix(&value, &digits);
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
 				number = g_strdup_printf("%.*f", MAX(digits, 0), value);

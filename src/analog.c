@@ -330,6 +330,48 @@ SR_API const char *sr_analog_si_prefix(float *value, int *digits)
 }
 
 /**
+ * Check if a unit "accepts" an SI prefix.
+ *
+ * E.g. SR_UNIT_VOLT is SI prefix friendly while SR_UNIT_DECIBEL_MW or
+ * SR_UNIT_PERCENTAGE are not.
+ *
+ * @param[in] unit The unit to check for SI prefix "friendliness".
+ *
+ * @return TRUE if the unit "accept" an SI prefix.
+ *
+ * @since 0.5.0
+ */
+SR_API gboolean sr_analog_si_prefix_friendly(enum sr_unit unit)
+{
+	static const enum sr_unit prefix_friendly_units[] = {
+		SR_UNIT_VOLT,
+		SR_UNIT_AMPERE,
+		SR_UNIT_OHM,
+		SR_UNIT_FARAD,
+		SR_UNIT_KELVIN,
+		SR_UNIT_HERTZ,
+		SR_UNIT_SECOND,
+		SR_UNIT_SIEMENS,
+		SR_UNIT_VOLT_AMPERE,
+		SR_UNIT_WATT,
+		SR_UNIT_WATT_HOUR,
+		SR_UNIT_METER_SECOND,
+		SR_UNIT_HENRY,
+		SR_UNIT_GRAM
+	};
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(prefix_friendly_units); i++)
+		if (unit == prefix_friendly_units[i])
+			break;
+
+	if (unit != prefix_friendly_units[i])
+		return FALSE;
+
+	return TRUE;
+}
+
+/**
  * Convert the unit/MQ/MQ flags in the analog struct to a string.
  *
  * The string is allocated by the function and must be freed by the caller
