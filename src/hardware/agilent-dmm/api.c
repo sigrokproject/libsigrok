@@ -38,8 +38,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
-	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 };
 
 extern const struct agdmm_job agdmm_jobs_u12xx[];
@@ -164,10 +164,34 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg)
+{
+	struct dev_context *devc;
+	int ret;
+
+	(void)cg;
+
+	devc = sdi->priv;
+
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
+		ret = sr_sw_limits_config_get(&devc->limits, key, data);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return ret;
+}
+
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int ret;
 
 	(void)cg;
 
@@ -176,26 +200,41 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	devc = sdi->priv;
 
-	return sr_sw_limits_config_set(&devc->limits, key, data);
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
+		ret = sr_sw_limits_config_set(&devc->limits, key, data);
+		break;
+	default:
+		ret = SR_ERR_NA;
+	}
+
+	return ret;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
+	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
+		return SR_OK;
+	}
+
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		return SR_OK;
+	}
+
+	if (!sdi || cg)
+		return SR_ERR_ARG;
+
+	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -238,7 +277,7 @@ static struct sr_dev_driver agdmm_driver_info = {
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = NULL,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
