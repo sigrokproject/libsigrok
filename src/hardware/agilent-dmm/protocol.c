@@ -22,28 +22,98 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <limits.h>
 #include <math.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#define JOB_TIMEOUT 300
+
+#define INFINITE_INTERVAL   INT_MAX
+#define SAMPLERATE_INTERVAL -1
+
+static const struct agdmm_job *job_current(const struct dev_context *devc)
+{
+	return &devc->profile->jobs[devc->current_job];
+}
+
+static void job_done(struct dev_context *devc)
+{
+	devc->job_running = FALSE;
+}
+
+static void job_again(struct dev_context *devc)
+{
+	devc->job_again = TRUE;
+}
+
+static gboolean job_is_running(const struct dev_context *devc)
+{
+	return devc->job_running;
+}
+
+static gboolean job_in_interval(const struct dev_context *devc)
+{
+	int64_t job_start = devc->jobs_start[devc->current_job];
+	int64_t now = g_get_monotonic_time() / 1000;
+	int interval = job_current(devc)->interval;
+	if (interval == SAMPLERATE_INTERVAL)
+		interval = 1000 / devc->cur_samplerate;
+	return (now - job_start) < interval || interval == INFINITE_INTERVAL;
+}
+
+static gboolean job_has_timeout(const struct dev_context *devc)
+{
+	int64_t job_start = devc->jobs_start[devc->current_job];
+	int64_t now = g_get_monotonic_time() / 1000;
+	return job_is_running(devc) && (now - job_start) > JOB_TIMEOUT;
+}
+
+static const struct agdmm_job *job_next(struct dev_context *devc)
+{
+	int current_job = devc->current_job;
+	do {
+		devc->current_job++;
+		if (!job_current(devc)->send)
+			devc->current_job = 0;
+	} while(job_in_interval(devc) && devc->current_job != current_job);
+	return job_current(devc);
+}
+
+static void job_run_again(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	devc->job_again = FALSE;
+	devc->job_running = TRUE;
+	if (job_current(devc)->send(sdi) == SR_ERR_NA)
+		job_done(devc);
+}
+
+static void job_run(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	int64_t now = g_get_monotonic_time() / 1000;
+	devc->jobs_start[devc->current_job] = now;
+	job_run_again(sdi);
+}
+
 static void dispatch(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	const struct agdmm_job *jobs;
-	int64_t now;
-	int i;
+	struct dev_context *devc = sdi->priv;
 
-	devc = sdi->priv;
-	jobs = devc->profile->jobs;
-	now = g_get_monotonic_time() / 1000;
-	for (i = 0; (&jobs[i])->interval; i++) {
-		if (now - devc->jobqueue[i] > (&jobs[i])->interval) {
-			sr_spew("Running job %d.", i);
-			(&jobs[i])->send(sdi);
-			devc->jobqueue[i] = now;
-		}
+	if (devc->job_again) {
+		job_run_again(sdi);
+		return;
 	}
+
+	if (!job_is_running(devc))
+		job_next(devc);
+	else if (job_has_timeout(devc))
+		job_done(devc);
+
+	if (!job_is_running(devc) && !job_in_interval(devc))
+		job_run(sdi);
 }
 
 static void receive_line(const struct sr_dev_inst *sdi)
@@ -78,7 +148,11 @@ static void receive_line(const struct sr_dev_inst *sdi)
 		g_regex_unref(reg);
 	}
 	if (recv) {
-		recv->recv(sdi, match);
+		enum job_type type = recv->recv(sdi, match);
+		if (type == job_current(devc)->type)
+			job_done(devc);
+		else if (type == JOB_AGAIN)
+			job_again(devc);
 		g_match_info_unref(match);
 		g_regex_unref(reg);
 	} else
@@ -198,7 +272,7 @@ static int recv_stat_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	g_free(s);
 
-	return SR_OK;
+	return JOB_STAT;
 }
 
 static int recv_stat_u124x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -230,7 +304,7 @@ static int recv_stat_u124x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	g_free(s);
 
-	return SR_OK;
+	return JOB_STAT;
 }
 
 static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -264,7 +338,7 @@ static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	g_free(s);
 
-	return SR_OK;
+	return JOB_STAT;
 }
 
 static int recv_stat_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -311,16 +385,16 @@ static int recv_stat_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	g_free(s);
 
-	return SR_OK;
+	return JOB_STAT;
 }
 
 static int send_fetc(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	devc = sdi->priv;
+	struct dev_context *devc = sdi->priv;
+
 	if (devc->mode_squarewave)
-		return SR_OK;
-	devc->cur_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
+		return SR_ERR_NA;
+
 	if (devc->cur_channel->index > 0)
 		return agdmm_send(sdi, "FETC? @%d", devc->cur_channel->index + 1);
 	else
@@ -345,10 +419,9 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	i = devc->cur_channel->index;
 
 	if (devc->cur_mq[i] == -1)
-		/* Haven't seen configuration yet, so can't know what
-		 * the fetched float means. Not really an error, we'll
-		 * get metadata soon enough. */
-		return SR_OK;
+		/* This detects when channel P2 is reporting TEMP as an identical
+		 * copy of channel P3. In this case, we just skip P2. */
+		goto skip_value;
 
 	s = g_match_info_get_string(match);
 	if (!strcmp(s, "-9.90000000E+37") || !strcmp(s, "+9.90000000E+37")) {
@@ -395,18 +468,20 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
-	return SR_OK;
+skip_value:;
+	struct sr_channel *prev_chan = devc->cur_channel;
+	devc->cur_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
+	if (devc->cur_channel->index > prev_chan->index)
+		return JOB_AGAIN;
+	else
+		return JOB_FETC;
 }
 
 static int send_conf(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
-
 	/* Do not try to send CONF? for internal temperature channel. */
-	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
-		devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
 	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
 		return SR_ERR_NA;
 
@@ -518,7 +593,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else
 		devc->cur_mqflags[i] &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 
-	return SR_OK;
+	return JOB_CONF;
 }
 
 static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -666,7 +741,14 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	}
 	g_free(mstr);
 
-	return SR_OK;
+	struct sr_channel *prev_conf = devc->cur_conf;
+	devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
+		devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+	if (devc->cur_conf->index > prev_conf->index)
+		return JOB_AGAIN;
+	else
+		return JOB_CONF;
 }
 
 /* This comes in whenever the rotary switch is changed to a new position.
@@ -675,18 +757,25 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
  * we do need to catch this here, or it'll show up in some other output. */
 static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
 
 	sr_spew("Switch '%s'.", g_match_info_get_string(match));
+
+	devc->current_job = 0;
+	devc->job_running = FALSE;
+	memset(devc->jobs_start, 0, sizeof(devc->jobs_start));
+	devc->cur_mq[0] = -1;
+	if (devc->profile->nb_channels > 2)
+		devc->cur_mq[1] = -1;
 
 	return SR_OK;
 }
 
-/* Poll keys/switches and values at 7Hz, mode at 1Hz. */
+/* Poll CONF/STAT at 1Hz and values at samplerate. */
 SR_PRIV const struct agdmm_job agdmm_jobs_u12xx[] = {
-	{ 143, send_stat },
-	{ 1000, send_conf },
-	{ 143, send_fetc },
+	{ JOB_FETC, SAMPLERATE_INTERVAL, send_fetc },
+	{ JOB_CONF,                1000, send_conf },
+	{ JOB_STAT,                1000, send_stat },
 	ALL_ZERO
 };
 

@@ -60,9 +60,13 @@ struct dev_context {
 	struct sr_sw_limits limits;
 
 	/* Runtime. */
-	int64_t jobqueue[8];
+	int current_job;
+	gboolean job_running;
+	gboolean job_again;
+	int64_t jobs_start[8];
 	unsigned char buf[AGDMM_BUFSIZE];
 	int buflen;
+	uint64_t cur_samplerate;
 	struct sr_channel *cur_channel;
 	struct sr_channel *cur_conf;
 	int cur_mq[MAX_CHANNELS];
@@ -77,7 +81,16 @@ struct dev_context {
 	int mode_dbm_dbv;
 };
 
+enum job_type {
+	JOB_AGAIN = 1,
+	JOB_CONF,
+	JOB_STAT,
+	JOB_FETC,
+	JOB_LOG,
+};
+
 struct agdmm_job {
+	enum job_type type;
 	int interval;
 	int (*send) (const struct sr_dev_inst *sdi);
 };

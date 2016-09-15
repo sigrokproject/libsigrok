@@ -40,6 +40,13 @@ static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint64_t samplerates[] = {
+	SR_HZ(1),
+	SR_HZ(20),
+	SR_HZ(1),
 };
 
 extern const struct agdmm_job agdmm_jobs_u12xx[];
@@ -135,6 +142,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sr_sw_limits_init(&devc->limits);
 			devc->profile = &supported_agdmm[i];
+			devc->cur_samplerate = 5;
 			if (supported_agdmm[i].nb_channels > 1) {
 				int temp_chan = supported_agdmm[i].nb_channels - 1;
 				devc->cur_mq[temp_chan] = SR_MQ_TEMPERATURE;
@@ -176,6 +184,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		*data = g_variant_new_uint64(devc->cur_samplerate);
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
@@ -191,6 +202,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	uint64_t samplerate;
 	int ret;
 
 	(void)cg;
@@ -202,6 +214,13 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	ret = SR_OK;
 	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		samplerate = g_variant_get_uint64(data);
+		if (samplerate < samplerates[0] || samplerate > samplerates[1])
+			ret = SR_ERR_ARG;
+		else
+			devc->cur_samplerate = g_variant_get_uint64(data);
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		ret = sr_sw_limits_config_set(&devc->limits, key, data);
@@ -216,6 +235,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
+	GVariant *gvar;
+	GVariantBuilder gvb;
+
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
@@ -235,6 +257,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		break;
+	case SR_CONF_SAMPLERATE:
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+				ARRAY_SIZE(samplerates), sizeof(uint64_t));
+		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
+		*data = g_variant_builder_end(&gvb);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -260,9 +289,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	/* Poll every 100ms, or whenever some data comes in. */
+	/* Poll every 10ms, or whenever some data comes in. */
 	serial = sdi->conn;
-	serial_source_add(sdi->session, serial, G_IO_IN, 100,
+	serial_source_add(sdi->session, serial, G_IO_IN, 10,
 			agdmm_receive_data, (void *)sdi);
 
 	return SR_OK;
