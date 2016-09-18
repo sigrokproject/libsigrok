@@ -267,7 +267,9 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_DEMO
 src_libdrivers_la_SOURCES += \
-	src/hardware/demo/demo.c
+	src/hardware/demo/protocol.h \
+	src/hardware/demo/protocol.c \
+	src/hardware/demo/api.c
 endif
 if HW_DEREE_DE5000
 src_libdrivers_la_SOURCES += \

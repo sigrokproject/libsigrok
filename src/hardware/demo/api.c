@@ -27,56 +27,12 @@
 #include <math.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-
-#define LOG_PREFIX "demo"
+#include "protocol.h"
 
 #define DEFAULT_NUM_LOGIC_CHANNELS	8
 #define DEFAULT_NUM_ANALOG_CHANNELS	4
 
-/* The size in bytes of chunks to send through the session bus. */
-#define LOGIC_BUFSIZE			4096
-/* Size of the analog pattern space per channel. */
-#define ANALOG_BUFSIZE			4096
-
 #define DEFAULT_ANALOG_AMPLITUDE	10
-#define ANALOG_SAMPLES_PER_PERIOD	20
-
-/* Logic patterns we can generate. */
-enum {
-	/**
-	 * Spells "sigrok" across 8 channels using '0's (with '1's as
-	 * "background") when displayed using the 'bits' output format.
-	 * The pattern is repeated every 8 channels, shifted to the right
-	 * in time by one bit.
-	 */
-	PATTERN_SIGROK,
-
-	/** Pseudo-random values on all channels. */
-	PATTERN_RANDOM,
-
-	/**
-	 * Incrementing number across 8 channels. The pattern is repeated
-	 * every 8 channels, shifted to the right in time by one bit.
-	 */
-	PATTERN_INC,
-
-	/** All channels have a low logic state. */
-	PATTERN_ALL_LOW,
-
-	/** All channels have a high logic state. */
-	PATTERN_ALL_HIGH,
-};
-
-/* Analog patterns we can generate. */
-enum {
-	/**
-	 * Square wave.
-	 */
-	PATTERN_SQUARE,
-	PATTERN_SINE,
-	PATTERN_TRIANGLE,
-	PATTERN_SAWTOOTH,
-};
 
 static const char *logic_pattern_str[] = {
 	"sigrok",
@@ -84,48 +40,6 @@ static const char *logic_pattern_str[] = {
 	"incremental",
 	"all-low",
 	"all-high",
-};
-
-static const char *analog_pattern_str[] = {
-	"square",
-	"sine",
-	"triangle",
-	"sawtooth",
-};
-
-struct analog_gen {
-	int pattern;
-	float amplitude;
-	float pattern_data[ANALOG_BUFSIZE];
-	unsigned int num_samples;
-	struct sr_datafeed_analog packet;
-	struct sr_analog_encoding encoding;
-	struct sr_analog_meaning meaning;
-	struct sr_analog_spec spec;
-	float avg_val; /* Average value */
-	unsigned num_avgs; /* Number of samples averaged */
-};
-
-/* Private, per-device-instance driver context. */
-struct dev_context {
-	uint64_t cur_samplerate;
-	uint64_t limit_samples;
-	uint64_t limit_msec;
-	uint64_t sent_samples;
-	int64_t start_us;
-	int64_t spent_us;
-	uint64_t step;
-	/* Logic */
-	int32_t num_logic_channels;
-	unsigned int logic_unitsize;
-	/* There is only ever one logic channel group, so its pattern goes here. */
-	uint8_t logic_pattern;
-	unsigned char logic_data[LOGIC_BUFSIZE];
-	/* Analog */
-	int32_t num_analog_channels;
-	GHashTable *ch_ag;
-	gboolean avg; /* True if averaging is enabled */
-	uint64_t avg_samples;
 };
 
 static const uint32_t drvopts[] = {
@@ -166,92 +80,6 @@ static const uint64_t samplerates[] = {
 	SR_GHZ(1),
 	SR_HZ(1),
 };
-
-static const uint8_t pattern_sigrok[] = {
-	0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00, 0x00,
-	0x82, 0xfe, 0xfe, 0x82, 0x00, 0x00, 0x00, 0x00,
-	0x7c, 0x82, 0x82, 0x92, 0x74, 0x00, 0x00, 0x00,
-	0xfe, 0x12, 0x12, 0x32, 0xcc, 0x00, 0x00, 0x00,
-	0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00, 0x00,
-	0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0xbe, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
-static void generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
-{
-	double t, frequency;
-	float value;
-	unsigned int num_samples, i;
-	int last_end;
-
-	sr_dbg("Generating %s pattern.", analog_pattern_str[ag->pattern]);
-
-	num_samples = ANALOG_BUFSIZE / sizeof(float);
-
-	switch (ag->pattern) {
-	case PATTERN_SQUARE:
-		value = ag->amplitude;
-		last_end = 0;
-		for (i = 0; i < num_samples; i++) {
-			if (i % 5 == 0)
-				value = -value;
-			if (i % 10 == 0)
-				last_end = i;
-			ag->pattern_data[i] = value;
-		}
-		ag->num_samples = last_end;
-		break;
-	case PATTERN_SINE:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
-
-		/* Make sure the number of samples we put out is an integer
-		 * multiple of our period size */
-		/* FIXME we actually need only one period. A ringbuffer would be
-		 * useful here. */
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = ag->amplitude *
-						sin(2 * G_PI * frequency * t);
-		}
-
-		ag->num_samples = num_samples;
-		break;
-	case PATTERN_TRIANGLE:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
-
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = (2 * ag->amplitude / G_PI) *
-						asin(sin(2 * G_PI * frequency * t));
-		}
-
-		ag->num_samples = num_samples;
-		break;
-	case PATTERN_SAWTOOTH:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
-
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = 2 * ag->amplitude *
-						((t * frequency) - floor(0.5f + t * frequency));
-		}
-
-		ag->num_samples = num_samples;
-		break;
-	}
-}
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -621,218 +449,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
-{
-	struct dev_context *devc;
-	uint64_t i, j;
-	uint8_t pat;
-
-	devc = sdi->priv;
-
-	switch (devc->logic_pattern) {
-	case PATTERN_SIGROK:
-		memset(devc->logic_data, 0x00, size);
-		for (i = 0; i < size; i += devc->logic_unitsize) {
-			for (j = 0; j < devc->logic_unitsize; j++) {
-				pat = pattern_sigrok[(devc->step + j) % sizeof(pattern_sigrok)] >> 1;
-				devc->logic_data[i + j] = ~pat;
-			}
-			devc->step++;
-		}
-		break;
-	case PATTERN_RANDOM:
-		for (i = 0; i < size; i++)
-			devc->logic_data[i] = (uint8_t)(rand() & 0xff);
-		break;
-	case PATTERN_INC:
-		for (i = 0; i < size; i++) {
-			for (j = 0; j < devc->logic_unitsize; j++) {
-				devc->logic_data[i + j] = devc->step;
-			}
-			devc->step++;
-		}
-		break;
-	case PATTERN_ALL_LOW:
-	case PATTERN_ALL_HIGH:
-		/* These were set when the pattern mode was selected. */
-		break;
-	default:
-		sr_err("Unknown pattern: %d.", devc->logic_pattern);
-		break;
-	}
-}
-
-static void send_analog_packet(struct analog_gen *ag,
-		struct sr_dev_inst *sdi, uint64_t *analog_sent,
-		uint64_t analog_pos, uint64_t analog_todo)
-{
-	struct sr_datafeed_packet packet;
-	struct dev_context *devc;
-	uint64_t sending_now, to_avg;
-	int ag_pattern_pos;
-	unsigned int i;
-
-	devc = sdi->priv;
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &ag->packet;
-
-	if (!devc->avg) {
-		ag_pattern_pos = analog_pos % ag->num_samples;
-		sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
-		ag->packet.data = ag->pattern_data + ag_pattern_pos;
-		ag->packet.num_samples = sending_now;
-		sr_session_send(sdi, &packet);
-
-		/* Whichever channel group gets there first. */
-		*analog_sent = MAX(*analog_sent, sending_now);
-	} else {
-		ag_pattern_pos = analog_pos % ag->num_samples;
-		to_avg = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
-
-		for (i = 0; i < to_avg; i++) {
-			ag->avg_val = (ag->avg_val +
-					*(ag->pattern_data +
-					  ag_pattern_pos + i)) / 2;
-			ag->num_avgs++;
-			/* Time to send averaged data? */
-			if (devc->avg_samples > 0 &&
-			    ag->num_avgs >= devc->avg_samples)
-				goto do_send;
-		}
-
-		if (devc->avg_samples == 0) {
-			/* We're averaging all the samples, so wait with
-			 * sending until the very end.
-			 */
-			*analog_sent = ag->num_avgs;
-			return;
-		}
-
-do_send:
-		ag->packet.data = &ag->avg_val;
-		ag->packet.num_samples = 1;
-
-		sr_session_send(sdi, &packet);
-		*analog_sent = ag->num_avgs;
-
-		ag->num_avgs = 0;
-		ag->avg_val = 0.0f;
-	}
-}
-
-/* Callback handling data */
-static int prepare_data(int fd, int revents, void *cb_data)
-{
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
-	struct analog_gen *ag;
-	GHashTableIter iter;
-	void *value;
-	uint64_t samples_todo, logic_done, analog_done, analog_sent, sending_now;
-	int64_t elapsed_us, limit_us, todo_us;
-
-	(void)fd;
-	(void)revents;
-
-	sdi = cb_data;
-	devc = sdi->priv;
-
-	/* Just in case. */
-	if (devc->cur_samplerate <= 0
-			|| (devc->num_logic_channels <= 0
-			&& devc->num_analog_channels <= 0)) {
-		dev_acquisition_stop(sdi);
-		return G_SOURCE_CONTINUE;
-	}
-
-	/* What time span should we send samples for? */
-	elapsed_us = g_get_monotonic_time() - devc->start_us;
-	limit_us = 1000 * devc->limit_msec;
-	if (limit_us > 0 && limit_us < elapsed_us)
-		todo_us = MAX(0, limit_us - devc->spent_us);
-	else
-		todo_us = MAX(0, elapsed_us - devc->spent_us);
-
-	/* How many samples are outstanding since the last round? */
-	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC - 1)
-			/ G_USEC_PER_SEC;
-	if (devc->limit_samples > 0) {
-		if (devc->limit_samples < devc->sent_samples)
-			samples_todo = 0;
-		else if (devc->limit_samples - devc->sent_samples < samples_todo)
-			samples_todo = devc->limit_samples - devc->sent_samples;
-	}
-	/* Calculate the actual time covered by this run back from the sample
-	 * count, rounded towards zero. This avoids getting stuck on a too-low
-	 * time delta with no samples being sent due to round-off.
-	 */
-	todo_us = samples_todo * G_USEC_PER_SEC / devc->cur_samplerate;
-
-	logic_done  = devc->num_logic_channels  > 0 ? 0 : samples_todo;
-	analog_done = devc->num_analog_channels > 0 ? 0 : samples_todo;
-
-	while (logic_done < samples_todo || analog_done < samples_todo) {
-		/* Logic */
-		if (logic_done < samples_todo) {
-			sending_now = MIN(samples_todo - logic_done,
-					LOGIC_BUFSIZE / devc->logic_unitsize);
-			logic_generator(sdi, sending_now * devc->logic_unitsize);
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = sending_now * devc->logic_unitsize;
-			logic.unitsize = devc->logic_unitsize;
-			logic.data = devc->logic_data;
-			sr_session_send(sdi, &packet);
-			logic_done += sending_now;
-		}
-
-		/* Analog, one channel at a time */
-		if (analog_done < samples_todo) {
-			analog_sent = 0;
-
-			g_hash_table_iter_init(&iter, devc->ch_ag);
-			while (g_hash_table_iter_next(&iter, NULL, &value)) {
-				send_analog_packet(value, sdi, &analog_sent,
-						devc->sent_samples + analog_done,
-						samples_todo - analog_done);
-			}
-			analog_done += analog_sent;
-		}
-	}
-	/* At this point, both logic_done and analog_done should be
-	 * exactly equal to samples_todo, or else.
-	 */
-	if (logic_done != samples_todo || analog_done != samples_todo) {
-		sr_err("BUG: Sample count mismatch.");
-		return G_SOURCE_REMOVE;
-	}
-	devc->sent_samples += samples_todo;
-	devc->spent_us += todo_us;
-
-	if ((devc->limit_samples > 0 && devc->sent_samples >= devc->limit_samples)
-			|| (limit_us > 0 && devc->spent_us >= limit_us)) {
-
-		/* If we're averaging everything - now is the time to send data */
-		if (devc->avg_samples == 0) {
-			g_hash_table_iter_init(&iter, devc->ch_ag);
-			while (g_hash_table_iter_next(&iter, NULL, &value)) {
-				ag = value;
-				packet.type = SR_DF_ANALOG;
-				packet.payload = &ag->packet;
-				ag->packet.data = &ag->avg_val;
-				ag->packet.num_samples = 1;
-				sr_session_send(sdi, &packet);
-			}
-		}
-		sr_dbg("Requested number of samples reached.");
-		dev_acquisition_stop(sdi);
-	}
-
-	return G_SOURCE_CONTINUE;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -847,10 +463,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
-		generate_analog_pattern(value, devc->cur_samplerate);
+		demo_generate_analog_pattern(value, devc->cur_samplerate);
 
 	sr_session_source_add(sdi->session, -1, 0, 100,
-			prepare_data, (struct sr_dev_inst *)sdi);
+			demo_prepare_data, (struct sr_dev_inst *)sdi);
 
 	std_session_send_df_header(sdi);
 
