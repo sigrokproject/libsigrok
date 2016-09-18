@@ -24,7 +24,7 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "fluke-dmm.h"
+#include "protocol.h"
 
 static struct sr_datafeed_analog *handle_qm_18x(const struct sr_dev_inst *sdi,
 		char **tokens)

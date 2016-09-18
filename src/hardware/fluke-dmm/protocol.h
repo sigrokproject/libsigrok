@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FLUKE_DMM_FLUKE_DMM_H
-#define LIBSIGROK_HARDWARE_FLUKE_DMM_FLUKE_DMM_H
+#ifndef LIBSIGROK_HARDWARE_FLUKE_DMM_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_FLUKE_DMM_PROTOCOL_H
 
 #define LOG_PREFIX "fluke-dmm"
 
