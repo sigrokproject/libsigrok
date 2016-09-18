@@ -24,7 +24,7 @@
 #include <math.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "agilent-dmm.h"
+#include "protocol.h"
 
 static void dispatch(const struct sr_dev_inst *sdi)
 {

@@ -179,9 +179,9 @@ src_libdrivers_la_SOURCES = src/drivers.c
 
 if HW_AGILENT_DMM
 src_libdrivers_la_SOURCES += \
-	src/hardware/agilent-dmm/api.c \
-	src/hardware/agilent-dmm/agilent-dmm.h \
-	src/hardware/agilent-dmm/sched.c
+	src/hardware/agilent-dmm/protocol.h \
+	src/hardware/agilent-dmm/protocol.c \
+	src/hardware/agilent-dmm/api.c
 endif
 if HW_APPA_55II
 src_libdrivers_la_SOURCES += \

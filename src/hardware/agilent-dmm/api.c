@@ -25,7 +25,7 @@
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "agilent-dmm.h"
+#include "protocol.h"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
