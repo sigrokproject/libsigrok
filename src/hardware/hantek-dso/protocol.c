@@ -25,7 +25,7 @@
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "dso.h"
+#include "protocol.h"
 
 #define NUM_CHANNELS 2
 

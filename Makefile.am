@@ -319,8 +319,8 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_HANTEK_DSO
 src_libdrivers_la_SOURCES += \
-	src/hardware/hantek-dso/dso.h \
-	src/hardware/hantek-dso/dso.c \
+	src/hardware/hantek-dso/protocol.h \
+	src/hardware/hantek-dso/protocol.c \
 	src/hardware/hantek-dso/api.c
 endif
 if HW_HP_3457A

@@ -33,7 +33,7 @@
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "dso.h"
+#include "protocol.h"
 
 /* Max time in ms before we want to check on USB events */
 /* TODO tune this properly */

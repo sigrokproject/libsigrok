@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_DSO_H
-#define LIBSIGROK_HARDWARE_HANTEK_DSO_DSO_H
+#ifndef LIBSIGROK_HARDWARE_HANTEK_DSO_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_HANTEK_DSO_PROTOCOL_H
 
 #define LOG_PREFIX "hantek-dso"
 
