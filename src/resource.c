@@ -135,7 +135,7 @@ static int resource_open_default(struct sr_resource *res,
 			file = try_open_file(*datadirs++, subdir, name);
 	}
 	if (!file) {
-		sr_err("Failed to locate '%s'.", name);
+		sr_dbg("Failed to locate '%s'.", name);
 		return SR_ERR;
 	}
 
@@ -266,7 +266,8 @@ SR_PRIV int sr_resource_open(struct sr_context *ctx,
 	ret = (*ctx->resource_open_cb)(res, name, ctx->resource_cb_data);
 
 	if (ret != SR_OK)
-		sr_err("Failed to open resource '%s'.", name);
+		sr_err("Failed to open resource '%s' (use loglevel 5/spew for"
+		       " details).", name);
 
 	return ret;
 }
