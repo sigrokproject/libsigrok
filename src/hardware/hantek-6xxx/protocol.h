@@ -94,6 +94,7 @@ struct hantek_6xxx_profile {
 	/* VID/PID after firmware upload */
 	uint16_t fw_vid;
 	uint16_t fw_pid;
+	uint16_t fw_prod_ver;
 	const char *vendor;
 	const char *model;
 	const char *firmware;

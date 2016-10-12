@@ -61,12 +61,12 @@ static const char *acdc_coupling[] = {
 
 static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
-		0x04b4, 0x6022, 0x04b5, 0x6022,
+		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
 		"Hantek", "6022BE", "hantek-6022be.fw",
 		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
 	},
 	{
-		0x8102, 0x8102, 0x1D50, 0x608E,
+		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
 		"Sainsmart", "DDS120", "sainsmart-dds120.fw",
 		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
 	},
@@ -241,7 +241,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
 				break;
 			} else if (des.idVendor == dev_profiles[j].fw_vid
-				&& des.idProduct == dev_profiles[j].fw_pid) {
+				&& des.idProduct == dev_profiles[j].fw_pid
+				&& des.bcdDevice == dev_profiles[j].fw_prod_ver) {
 				/* Device matches the post-firmware profile. */
 				prof = &dev_profiles[j];
 				sr_dbg("Found a %s %s.", prof->vendor, prof->model);
