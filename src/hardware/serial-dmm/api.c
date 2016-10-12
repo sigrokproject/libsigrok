@@ -554,4 +554,11 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
 		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
 	),
+	DMM(
+		"peaktech-3330", fs9721,
+		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_01_10_temp_f_c
+	),
 );
