@@ -41,6 +41,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const uint64_t samplerates[] = {
@@ -49,7 +50,16 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-extern const struct agdmm_job agdmm_jobs_u12xx[];
+static const char *data_sources[] = {
+	"Live",
+	"Log-Hand",
+	"Log-Trig",
+	"Log-Auto",
+	"Log-Export",
+};
+
+extern const struct agdmm_job agdmm_jobs_live[];
+extern const struct agdmm_job agdmm_jobs_log[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_recv agdmm_recvs_u124x[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
@@ -60,24 +70,24 @@ extern const struct agdmm_recv agdmm_recvs_u128x[];
 #define SERIALCOMM "9600/8n1"
 
 static const struct agdmm_profile supported_agdmm[] = {
-	{ AGILENT_U1231, "U1231A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
-	{ AGILENT_U1232, "U1232A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
-	{ AGILENT_U1233, "U1233A", 1, agdmm_jobs_u12xx, agdmm_recvs_u123x },
+	{ AGILENT_U1231, "U1231A", 1, agdmm_jobs_live, NULL, agdmm_recvs_u123x },
+	{ AGILENT_U1232, "U1232A", 1, agdmm_jobs_live, NULL, agdmm_recvs_u123x },
+	{ AGILENT_U1233, "U1233A", 1, agdmm_jobs_live, NULL, agdmm_recvs_u123x },
 
-	{ AGILENT_U1241, "U1241A", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1242, "U1242A", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1241, "U1241B", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
-	{ AGILENT_U1242, "U1242B", 2, agdmm_jobs_u12xx, agdmm_recvs_u124x },
+	{ AGILENT_U1241, "U1241A", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242A", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
+	{ AGILENT_U1241, "U1241B", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
+	{ AGILENT_U1242, "U1242B", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
 
-	{ AGILENT_U1251, "U1251A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1252, "U1252A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1253, "U1253A", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1251, "U1251B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1252, "U1252B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
-	{ AGILENT_U1253, "U1253B", 3, agdmm_jobs_u12xx, agdmm_recvs_u125x },
+	{ AGILENT_U1251, "U1251A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
+	{ AGILENT_U1251, "U1251B", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
+	{ AGILENT_U1252, "U1252B", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
+	{ AGILENT_U1253, "U1253B", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
 
-	{ KEYSIGHT_U1281, "U1281A", 3, agdmm_jobs_u12xx, agdmm_recvs_u128x },
-	{ KEYSIGHT_U1282, "U1282A", 3, agdmm_jobs_u12xx, agdmm_recvs_u128x },
+	{ KEYSIGHT_U1281, "U1281A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
+	{ KEYSIGHT_U1282, "U1282A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
 	ALL_ZERO
 };
 
@@ -142,6 +152,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sr_sw_limits_init(&devc->limits);
 			devc->profile = &supported_agdmm[i];
+			devc->data_source = DEFAULT_DATA_SOURCE;
 			devc->cur_samplerate = 5;
 			if (supported_agdmm[i].nb_channels > 1) {
 				int temp_chan = supported_agdmm[i].nb_channels - 1;
@@ -191,6 +202,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_LIMIT_MSEC:
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_string(data_sources[devc->data_source]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -203,6 +217,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 {
 	struct dev_context *devc;
 	uint64_t samplerate;
+	const char *tmp_str;
+	unsigned int i;
 	int ret;
 
 	(void)cg;
@@ -225,6 +241,17 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_LIMIT_MSEC:
 		ret = sr_sw_limits_config_set(&devc->limits, key, data);
 		break;
+	case SR_CONF_DATA_SOURCE: {
+		tmp_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < ARRAY_SIZE(data_sources); i++)
+			if (!strcmp(tmp_str, data_sources[i])) {
+				devc->data_source = i;
+				break;
+			}
+		if (i == ARRAY_SIZE(data_sources))
+			return SR_ERR;
+		break;
+	}
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -265,6 +292,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -282,9 +312,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->cur_channel = sr_next_enabled_channel(sdi, NULL);
 	devc->cur_conf = sr_next_enabled_channel(sdi, NULL);
+	devc->cur_sample = 1;
 	devc->cur_mq[0] = -1;
 	if (devc->profile->nb_channels > 2)
 		devc->cur_mq[1] = -1;
+
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		devc->jobs = devc->profile->jobs_live;
+	} else {
+		devc->jobs = devc->profile->jobs_log;
+		if (!devc->jobs) {
+			sr_err("Log data source is not implemented for this model.");
+			return SR_ERR_NA;
+		}
+		if (!((struct sr_channel *)sdi->channels->data)->enabled) {
+			sr_err("Log data is only available for channel P1.");
+			return SR_ERR_NA;
+		}
+	}
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);

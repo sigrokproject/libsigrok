@@ -28,6 +28,16 @@
 /* Always USB-serial, 1ms is plenty. */
 #define SERIAL_WRITE_TIMEOUT_MS 1
 
+#define DEFAULT_DATA_SOURCE	DATA_SOURCE_LIVE
+
+enum {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_LOG_HAND,
+	DATA_SOURCE_LOG_TRIG,
+	DATA_SOURCE_LOG_AUTO,
+	DATA_SOURCE_LOG_EXPO,
+};
+
 /* Supported models */
 enum {
 	AGILENT_U1231 = 1,
@@ -50,7 +60,8 @@ struct agdmm_profile {
 	int model;
 	const char *modelname;
 	int nb_channels;
-	const struct agdmm_job *jobs;
+	const struct agdmm_job *jobs_live;
+	const struct agdmm_job *jobs_log;
 	const struct agdmm_recv *recvs;
 };
 
@@ -58,8 +69,10 @@ struct agdmm_profile {
 struct dev_context {
 	const struct agdmm_profile *profile;
 	struct sr_sw_limits limits;
+	int data_source;
 
 	/* Runtime. */
+	const struct agdmm_job *jobs;
 	int current_job;
 	gboolean job_running;
 	gboolean job_again;
@@ -69,6 +82,7 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	struct sr_channel *cur_channel;
 	struct sr_channel *cur_conf;
+	int cur_sample;
 	int cur_mq[MAX_CHANNELS];
 	int cur_unit[MAX_CHANNELS];
 	int cur_mqflags[MAX_CHANNELS];
@@ -83,6 +97,7 @@ struct dev_context {
 
 enum job_type {
 	JOB_AGAIN = 1,
+	JOB_STOP,
 	JOB_CONF,
 	JOB_STAT,
 	JOB_FETC,

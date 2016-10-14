@@ -35,7 +35,7 @@
 
 static const struct agdmm_job *job_current(const struct dev_context *devc)
 {
-	return &devc->profile->jobs[devc->current_job];
+	return &devc->jobs[devc->current_job];
 }
 
 static void job_done(struct dev_context *devc)
@@ -116,12 +116,13 @@ static void dispatch(const struct sr_dev_inst *sdi)
 		job_run(sdi);
 }
 
-static void receive_line(const struct sr_dev_inst *sdi)
+static gboolean receive_line(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const struct agdmm_recv *recvs, *recv;
 	GRegex *reg;
 	GMatchInfo *match;
+	gboolean stop = FALSE;
 	int i;
 
 	devc = sdi->priv;
@@ -153,6 +154,8 @@ static void receive_line(const struct sr_dev_inst *sdi)
 			job_done(devc);
 		else if (type == JOB_AGAIN)
 			job_again(devc);
+		else if (type == JOB_STOP)
+			stop = TRUE;
 		g_match_info_unref(match);
 		g_regex_unref(reg);
 	} else
@@ -160,6 +163,7 @@ static void receive_line(const struct sr_dev_inst *sdi)
 
 	/* Done with this. */
 	devc->buflen = 0;
+	return stop;
 }
 
 SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
@@ -167,6 +171,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	gboolean stop = FALSE;
 	int len;
 
 	(void)fd;
@@ -188,16 +193,16 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 			*(devc->buf + devc->buflen) = '\0';
 			if (*(devc->buf + devc->buflen - 1) == '\n') {
 				/* End of line */
-				receive_line(sdi);
+				stop = receive_line(sdi);
 				break;
 			}
 		}
 	}
 
-	dispatch(sdi);
-
-	if (sr_sw_limits_check(&devc->limits))
+	if (sr_sw_limits_check(&devc->limits) || stop)
 		sdi->driver->dev_acquisition_stop(sdi);
+	else
+		dispatch(sdi);
 
 	return TRUE;
 }
@@ -751,6 +756,102 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		return JOB_CONF;
 }
 
+static int send_log(const struct sr_dev_inst *sdi)
+{
+	const char *source[] = { "LOG:HAND", "LOG:TRIG", "LOG:AUTO", "LOG:EXPO" };
+	struct dev_context *devc = sdi->priv;
+	return agdmm_send(sdi, "%s %d",
+	                  source[devc->data_source - 1], devc->cur_sample);
+}
+
+static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	static const int mqs[] = { SR_MQ_VOLTAGE, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CURRENT, SR_MQ_RESISTANCE, SR_MQ_VOLTAGE, SR_MQ_TEMPERATURE, SR_MQ_CAPACITANCE, SR_MQ_FREQUENCY, SR_MQ_DUTY_CYCLE, SR_MQ_PULSE_WIDTH, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CONDUCTANCE };
+	static const int units[] = { SR_UNIT_VOLT, SR_UNIT_VOLT, SR_UNIT_AMPERE, SR_UNIT_AMPERE, SR_UNIT_OHM, SR_UNIT_VOLT, SR_UNIT_CELSIUS, SR_UNIT_FARAD, SR_UNIT_HERTZ, SR_UNIT_PERCENTAGE, SR_UNIT_SECOND, SR_UNIT_DECIBEL_MW, SR_UNIT_PERCENTAGE, SR_UNIT_SIEMENS };
+	static const int exponents[] = { -6, -4, -9, -4, -3, -4, -1, -12, -3, -3, -6, -3, -2, -11 };
+	struct dev_context *devc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+	char *mstr;
+	unsigned function;
+	int value, negative, overload, exponent, alternate_unit, mq, unit;
+	int mqflags = 0;
+	float fvalue;
+
+	sr_spew("LOG response '%s'.", g_match_info_get_string(match));
+
+	devc = sdi->priv;
+
+	mstr = g_match_info_fetch(match, 2);
+	if (sr_atoi(mstr, (int*)&function) != SR_OK || function >= ARRAY_SIZE(mqs)) {
+		g_free(mstr);
+		sr_dbg("Invalid function.");
+		return SR_ERR;
+	}
+	g_free(mstr);
+
+	mstr = g_match_info_fetch(match, 3);
+	if (sr_atoi(mstr, &value) != SR_OK) {
+		g_free(mstr);
+		sr_dbg("Invalid value.");
+		return SR_ERR;
+	}
+	g_free(mstr);
+
+	mstr = g_match_info_fetch(match, 1);
+	negative = mstr[7] & 2 ? -1 : 1;
+	overload = mstr[8] & 4;
+	exponent = (mstr[9] & 0xF) + exponents[function];
+	alternate_unit = mstr[10] & 1;
+
+	if (mstr[ 8] & 1)  mqflags |= SR_MQFLAG_DC;
+	if (mstr[ 8] & 2)  mqflags |= SR_MQFLAG_AC;
+	if (mstr[11] & 4)  mqflags |= SR_MQFLAG_RELATIVE;
+	if (mstr[12] & 1)  mqflags |= SR_MQFLAG_AVG;
+	if (mstr[12] & 2)  mqflags |= SR_MQFLAG_MIN;
+	if (mstr[12] & 4)  mqflags |= SR_MQFLAG_MAX;
+	if (function == 5) mqflags |= SR_MQFLAG_DIODE;
+	g_free(mstr);
+
+	mq = mqs[function];
+	unit = units[function];
+	if (alternate_unit) {
+		if (mq == SR_MQ_RESISTANCE)
+			mq = SR_MQ_CONTINUITY;
+		if (unit == SR_UNIT_DECIBEL_MW)
+			unit = SR_UNIT_DECIBEL_VOLT;
+		if (unit == SR_UNIT_CELSIUS) {
+			unit = SR_UNIT_FAHRENHEIT;
+			exponent--;
+		}
+	}
+
+	if (overload)
+		fvalue = NAN;
+	else
+		fvalue = negative * value * powf(10, exponent);
+
+	sr_analog_init(&analog, &encoding, &meaning, &spec, -exponent);
+	analog.meaning->mq = mq;
+	analog.meaning->unit = unit;
+	analog.meaning->mqflags = mqflags;
+	analog.meaning->channels = g_slist_append(NULL, devc->cur_channel);
+	analog.num_samples = 1;
+	analog.data = &fvalue;
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(sdi, &packet);
+	g_slist_free(analog.meaning->channels);
+
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
+	devc->cur_sample++;
+
+	return JOB_LOG;
+}
+
 /* This comes in whenever the rotary switch is changed to a new position.
  * We could use it to determine the major measurement mode, but we already
  * have the output of CONF? for that, which is more detailed. However
@@ -771,11 +872,29 @@ static int recv_switch(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return SR_OK;
 }
 
+static int recv_err(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc = sdi->priv;
+
+	(void) match;
+
+	if (devc->data_source != DATA_SOURCE_LIVE)
+		return JOB_STOP; /* In log mode, stop acquisition after receiving *E. */
+	else
+		return JOB_AGAIN;
+}
+
 /* Poll CONF/STAT at 1Hz and values at samplerate. */
-SR_PRIV const struct agdmm_job agdmm_jobs_u12xx[] = {
+SR_PRIV const struct agdmm_job agdmm_jobs_live[] = {
 	{ JOB_FETC, SAMPLERATE_INTERVAL, send_fetc },
 	{ JOB_CONF,                1000, send_conf },
 	{ JOB_STAT,                1000, send_stat },
+	ALL_ZERO
+};
+
+/* Poll LOG as fast as possible. */
+SR_PRIV const struct agdmm_job agdmm_jobs_log[] = {
+	{ JOB_LOG,                    0, send_log  },
 	ALL_ZERO
 };
 
@@ -827,5 +946,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u128x[] = {
 	{ "^\"(PULS:PWID|PULS:PWID:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD|SQU|PULS:PDUT|TEMP)\"$", recv_conf_u124x_5x },
+	{ "^\"((\\d{2})(\\d{5})\\d{7})\"$", recv_log_u128x },
+	{ "^\\*E$", recv_err },
 	ALL_ZERO
 };
