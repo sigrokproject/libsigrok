@@ -530,6 +530,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	drvc = sdi->driver->context;
 	ret = SR_OK;
 
+	/* Reject rates that are not in the list of supported rates. */
 	for (i = 0; i < samplerates_count; i++) {
 		if (samplerates[i] == samplerate)
 			break;
@@ -537,6 +538,11 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	if (i >= samplerates_count || samplerates[i] == 0)
 		return SR_ERR_SAMPLERATE;
 
+	/*
+	 * Depending on the samplerates of 200/100/50- MHz, specific
+	 * firmware is required and higher rates might limit the set
+	 * of available channels.
+	 */
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(drvc->sr_ctx, 0, devc);
 		devc->num_channels = 16;
@@ -548,11 +554,28 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 		devc->num_channels = 4;
 	}
 
+	/*
+	 * Derive the sample period from the sample rate as well as the
+	 * number of samples that the device will communicate within
+	 * an "event" (memory organization internal to the device).
+	 */
 	if (ret == SR_OK) {
 		devc->cur_samplerate = samplerate;
 		devc->period_ps = 1000000000000ULL / samplerate;
 		devc->samples_per_event = 16 / devc->num_channels;
 		devc->state.state = SIGMA_IDLE;
+	}
+
+	/*
+	 * Support for "limit_samples" is implemented by stopping
+	 * acquisition after a corresponding period of time.
+	 * Re-calculate that period of time, in case the limit is
+	 * set first and the samplerate gets (re-)configured later.
+	 */
+	if (ret == SR_OK && devc->limit_samples) {
+		uint64_t msecs;
+		msecs = devc->limit_samples * 1000 / devc->cur_samplerate;
+		devc->limit_msec = msecs;
 	}
 
 	return ret;
