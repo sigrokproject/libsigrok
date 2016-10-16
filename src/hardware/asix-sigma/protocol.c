@@ -388,12 +388,13 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 	int bit, v;
 	int ret = SR_OK;
 
+	/* Retrieve the on-disk firmware file content. */
 	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
 			name, &file_size, 256 * 1024);
 	if (!firmware)
 		return SR_ERR;
 
-	/* Weird magic transformation below, I have no idea what it does. */
+	/* Unscramble the file content (XOR with "random" sequence). */
 	imm = 0x3f6df2ab;
 	for (i = 0; i < file_size; i++) {
 		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
@@ -401,13 +402,20 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 	}
 
 	/*
-	 * Now that the firmware is "transformed", we will transcribe the
-	 * firmware blob into a sequence of toggles of the Dx wires. This
-	 * sequence will be fed directly into the Sigma, which must be in
-	 * the FPGA bitbang programming mode.
+	 * Generate a sequence of bitbang samples. With two samples per
+	 * FPGA configuration bit, providing the level for the DIN signal
+	 * as well as two edges for CCLK. See Xilinx UG332 for details
+	 * ("slave serial" mode).
+	 *
+	 * Note that CCLK is inverted in hardware. That's why the
+	 * respective bit is first set and then cleared in the bitbang
+	 * sample sets. So that the DIN level will be stable when the
+	 * data gets sampled at the rising CCLK edge, and the signals'
+	 * setup time constraint will be met.
+	 *
+	 * The caller will put the FPGA into download mode, will send
+	 * the bitbang samples, and release the allocated memory.
 	 */
-
-	/* Each bit of firmware is transcribed as two toggles of Dx wires. */
 	bb_size = file_size * 8 * 2;
 	bb_stream = (uint8_t *)g_try_malloc(bb_size);
 	if (!bb_stream) {
@@ -415,7 +423,6 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 		ret = SR_ERR_MALLOC;
 		goto exit;
 	}
-
 	bbs = bb_stream;
 	for (i = 0; i < file_size; i++) {
 		for (bit = 7; bit >= 0; bit--) {
