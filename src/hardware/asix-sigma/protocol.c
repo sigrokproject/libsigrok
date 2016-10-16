@@ -51,7 +51,7 @@ SR_PRIV const uint64_t samplerates[] = {
 	SR_MHZ(200),	/* Special FW needed */
 };
 
-SR_PRIV const int SAMPLERATES_COUNT = ARRAY_SIZE(samplerates);
+SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
 
 static const char sigma_firmware_files[][24] = {
 	/* 50 MHz, supports 8 bit fractions */
@@ -523,18 +523,18 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	unsigned int i;
+	size_t i;
 	int ret;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 	ret = SR_OK;
 
-	for (i = 0; i < ARRAY_SIZE(samplerates); i++) {
+	for (i = 0; i < samplerates_count; i++) {
 		if (samplerates[i] == samplerate)
 			break;
 	}
-	if (samplerates[i] == 0)
+	if (i >= samplerates_count || samplerates[i] == 0)
 		return SR_ERR_SAMPLERATE;
 
 	if (samplerate <= SR_MHZ(50)) {

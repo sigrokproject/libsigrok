@@ -259,7 +259,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				SAMPLERATES_COUNT, sizeof(uint64_t));
+				samplerates_count, sizeof(samplerates[0]));
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;

@@ -23,6 +23,7 @@
 #define LIBSIGROK_HARDWARE_ASIX_SIGMA_PROTOCOL_H
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <glib.h>
 #include <ftdi.h>
 #include <string.h>
@@ -221,7 +222,7 @@ struct dev_context {
 };
 
 extern SR_PRIV const uint64_t samplerates[];
-extern SR_PRIV const int SAMPLERATES_COUNT;
+extern SR_PRIV const size_t samplerates_count;
 
 SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len, 
 				 struct dev_context *devc);
