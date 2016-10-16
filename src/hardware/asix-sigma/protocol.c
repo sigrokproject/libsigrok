@@ -105,9 +105,9 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 	uint8_t buf[80];
 	int idx = 0;
 
-	if ((len + 2) > sizeof(buf)) {
+	if ((2 * len + 2) > sizeof(buf)) {
 		sr_err("Attempted to write %zu bytes, but buffer is too small.",
-		       len + 2);
+		       len);
 		return SR_ERR_BUG;
 	}
 
