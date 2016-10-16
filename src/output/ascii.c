@@ -29,6 +29,13 @@
 
 #define DEFAULT_SAMPLES_PER_LINE 74
 
+/*
+ * The string looks ugly with escape characters, here is the readable
+ * version: Use . and " for low and high bits, use \ and / to draw
+ * falling and rising edges respectively.
+ */
+#define DEFAULT_ASCII_CHARS ".\"\\/"
+
 struct context {
 	unsigned int num_enabled_channels;
 	int spl;
@@ -43,6 +50,8 @@ struct context {
 	gboolean header_done;
 	GString **lines;
 	GString *header;
+	const char *charset;
+	gboolean edges;
 };
 
 static int init(struct sr_output *o, GHashTable *options)
@@ -59,6 +68,13 @@ static int init(struct sr_output *o, GHashTable *options)
 	o->priv = ctx;
 	ctx->trigger = -1;
 	ctx->spl = g_variant_get_uint32(g_hash_table_lookup(options, "width"));
+	ctx->charset = g_strdup(g_variant_get_string(
+		g_hash_table_lookup(options, "charset"), NULL));
+	if (!ctx->charset || strlen(ctx->charset) < 2) {
+		g_free((gpointer)ctx->charset);
+		ctx->charset = g_strdup(DEFAULT_ASCII_CHARS);
+	}
+	ctx->edges = (strlen(ctx->charset) >= 4) ? TRUE : FALSE;
 
 	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -133,6 +149,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	int idx, offset, curbit, prevbit;
 	uint64_t i, j;
 	gchar *p, c;
+	size_t charidx;
 
 	*out = NULL;
 	if (!o || !o->sdi)
@@ -169,13 +186,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				curbit = *p & (1 << (idx % 8));
 				prevbit = (ctx->prev_sample[idx / 8] & ((uint8_t) 1 << (idx % 8)));
 
-				c = curbit ? '"' : '.';
-				if (ctx->spl_cnt > 1) {
-					if (curbit < prevbit)
-						c = '\\';
-					else if (curbit > prevbit)
-						c = '/';
+				charidx = curbit ? 1 : 0;
+				if (ctx->edges && ctx->spl_cnt > 1) {
+					if (curbit != prevbit)
+						charidx += 2;
 				}
+				c = ctx->charset[charidx];
 				g_string_append_c(ctx->lines[j], c);
 
 				if (ctx->spl_cnt == ctx->spl) {
@@ -228,6 +244,7 @@ static int cleanup(struct sr_output *o)
 	for (i = 0; i < ctx->num_enabled_channels; i++)
 		g_string_free(ctx->lines[i], TRUE);
 	g_free(ctx->lines);
+	g_free((gpointer)ctx->charset);
 	g_free(ctx);
 	o->priv = NULL;
 
@@ -236,6 +253,7 @@ static int cleanup(struct sr_output *o)
 
 static struct sr_option options[] = {
 	{ "width", "Width", "Number of samples per line", NULL, NULL },
+	{ "charset", "Charset", "Characters for 0/1 bits (and fall/rise edges)", NULL, NULL },
 	ALL_ZERO
 };
 
@@ -244,6 +262,8 @@ static const struct sr_option *get_options(void)
 	if (!options[0].def) {
 		options[0].def = g_variant_new_uint32(DEFAULT_SAMPLES_PER_LINE);
 		g_variant_ref_sink(options[0].def);
+		options[1].def = g_variant_new_string(DEFAULT_ASCII_CHARS);
+		g_variant_ref_sink(options[1].def);
 	}
 
 	return options;
