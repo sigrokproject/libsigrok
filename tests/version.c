@@ -60,21 +60,38 @@ END_TEST
 /*
  * Check the version number API calls and macros.
  *
- * The string representations of the package/lib version must match the
- * version numbers, the string lengths must be >= 5 (e.g. "0.1.0"), and
- * the strings length must be <= 20 characters, otherwise something is
- * probably wrong.
+ * The string representations of the package/lib version must neither be
+ * NULL nor empty, and the length shall be within an expected range.
+ *
+ * The lower limit assumes:
+ * - A version text consists of three parts (major, minor, micro),
+ *   like "0.1.0".
+ * - Three numbers with at least one digit, and their separators,
+ *   result in a minimum length of 5.
+ *
+ * The upper limit assumes:
+ * - The major, minor, and micro parts won't contain more than two
+ *   digits each (this is an arbitrary choice).
+ * - An optional "-git-<hash>" suffix might follow. While git(1)
+ *   defaults to 7 hex digits for abbreviated hashes, projects of
+ *   larger scale might recommend to use more digits to avoid
+ *   potential ambiguity (e.g. Linux recommends core.abbrev=12).
+ *   Again, this is an arbitrary choice.
  */
 START_TEST(test_version_strings)
 {
 	const char *str;
+	const size_t len_min = 5;
+	const size_t len_max = 2 + 1 + 2 + 1 + 2 + 5 + 12;
 
 	str = sr_package_version_string_get();
 	fail_unless(str != NULL);
-	fail_unless(strlen(str) >= 5 && strlen(str) <= 20);
+	fail_unless(strlen(str) >= len_min);
+	fail_unless(strlen(str) <= len_max);
 	str = sr_lib_version_string_get();
 	fail_unless(str != NULL);
-	fail_unless(strlen(str) >= 5 && strlen(str) <= 20);
+	fail_unless(strlen(str) >= len_min);
+	fail_unless(strlen(str) <= len_max);
 }
 END_TEST
 
