@@ -414,6 +414,7 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
+	struct sr_channel *prev_chan;
 	float fvalue;
 	const char *s;
 	char *mstr;
@@ -473,8 +474,8 @@ static int recv_fetc(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
-skip_value:;
-	struct sr_channel *prev_chan = devc->cur_channel;
+skip_value:
+	prev_chan = devc->cur_channel;
 	devc->cur_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
 	if (devc->cur_channel->index > prev_chan->index)
 		return JOB_AGAIN;
