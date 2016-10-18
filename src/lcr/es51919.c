@@ -741,14 +741,11 @@ static const char *const channel_names[] = { "P1", "P2" };
 static int setup_channels(struct sr_dev_inst *sdi)
 {
 	unsigned int i;
-	int ret;
-
-	ret = SR_ERR_BUG;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
 
-	return ret;
+	return SR_OK;
 }
 
 SR_PRIV void es51919_serial_clean(void *priv)
