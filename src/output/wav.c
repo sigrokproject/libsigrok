@@ -305,7 +305,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
 				f = data[i * num_channels + j];
-				if (outc->scale != 0.0)
+				if (outc->scale != 1.0)
 					f /= outc->scale;
 				float_to_le(buf, f);
 			}
@@ -338,7 +338,7 @@ static struct sr_option options[] = {
 static const struct sr_option *get_options(void)
 {
 	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new_double(0.0));
+		options[0].def = g_variant_ref_sink(g_variant_new_double(1.0));
 
 	return options;
 }
