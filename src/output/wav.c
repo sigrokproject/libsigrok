@@ -186,9 +186,9 @@ static GString *gen_header(const struct sr_output *o)
  */
 static void float_to_le(uint8_t *buf, float value)
 {
-	char *old;
+	uint8_t *old;
 
-	old = (char *)&value;
+	old = (uint8_t *)&value;
 #ifdef WORDS_BIGENDIAN
 	buf[0] = old[3];
 	buf[1] = old[2];
@@ -219,9 +219,10 @@ static int check_chanbuf_size(const struct sr_output *o)
 				/* Nothing in all the buffers yet. */
 				size = -1;
 				break;
-			} else
+			} else {
 				/* New high water mark. */
 				size = outc->chanbuf_used[i];
+			}
 		} else if (outc->chanbuf_used[i] != size) {
 			/* All channel buffers are not equally full yet. */
 			size = -1;
@@ -265,8 +266,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if (!outc->header_done) {
 			*out = gen_header(o);
 			outc->header_done = TRUE;
-		} else
+		} else {
 			*out = g_string_sized_new(512);
+		}
 
 		analog = packet->payload;
 		num_samples = analog->num_samples;
