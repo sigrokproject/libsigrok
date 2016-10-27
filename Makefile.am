@@ -430,6 +430,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/rigol-ds/protocol.c \
 	src/hardware/rigol-ds/api.c
 endif
+if HW_ROHDE_SCHWARZ_SME_0X
+src_libdrivers_la_SOURCES += \
+	src/hardware/rohde-schwarz-sme-0x/protocol.h \
+	src/hardware/rohde-schwarz-sme-0x/protocol.c \
+	src/hardware/rohde-schwarz-sme-0x/api.c
+endif
 if HW_SALEAE_LOGIC16
 src_libdrivers_la_SOURCES += \
 	src/hardware/saleae-logic16/protocol.h \
