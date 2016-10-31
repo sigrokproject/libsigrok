@@ -62,12 +62,12 @@ static const char *acdc_coupling[] = {
 static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
 		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
-		"Hantek", "6022BE", "hantek-6022be.fw",
+		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
 		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
 	},
 	{
 		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
-		"Sainsmart", "DDS120", "sainsmart-dds120.fw",
+		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
 		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
 	},
 	ALL_ZERO
