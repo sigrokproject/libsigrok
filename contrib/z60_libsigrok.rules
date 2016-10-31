@@ -118,7 +118,7 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="664", GROUP="plugdev"
 
 # Hantek 6022BE
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", MODE="664", GROUP="plugdev"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="6022", MODE="664", GROUP="plugdev"
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="664", GROUP="plugdev"
 
 # IKALOGIC Scanalogic-2
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="664", GROUP="plugdev"
