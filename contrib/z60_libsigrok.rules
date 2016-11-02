@@ -173,7 +173,7 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", MODE="664", GROUP="plugdev"
 
-# Sainsmart DDS120
+# Sainsmart DDS120 / Rocktech BM102
 ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", MODE="664", GROUP="plugdev"
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="664", GROUP="plugdev"
 
