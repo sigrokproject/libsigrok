@@ -413,7 +413,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		&sr_fs9922_z1_diode
 	),
 	/* }}} */
-	/* meters based on other chips (to get sorted) */
+	/* metex14 based meters {{{ */
 	DMM(
 		"bbcgm-2010", metex14,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
@@ -478,13 +478,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"radioshack-22-812", rs9lcd,
-		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
-		RS9LCD_PACKET_SIZE, 0, 0, NULL,
-		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
-		NULL
-	),
-	DMM(
 		"voltcraft-m3650cr", metex14,
 		"Voltcraft", "M-3650CR", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, 150, 20, sr_metex14_packet_request,
@@ -510,6 +503,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "ME-42", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, 250, 60, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	/* }}} */
+	/* meters based on other chips (to get sorted) */
+	DMM(
+		"radioshack-22-812", rs9lcd,
+		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
+		RS9LCD_PACKET_SIZE, 0, 0, NULL,
+		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
 		NULL
 	),
 	DMM(
