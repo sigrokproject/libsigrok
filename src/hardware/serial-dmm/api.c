@@ -517,20 +517,20 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* }}} */
 	/* ut71x based meters {{{ */
 	DMM(
-		"voltcraft-vc920-ser", ut71x,
-		"Voltcraft", "VC-920 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"tenma-72-7730-ser", ut71x,
+		"Tenma", "72-7730 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"voltcraft-vc940-ser", ut71x,
-		"Voltcraft", "VC-940 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"tenma-72-7732-ser", ut71x,
+		"Tenma", "72-7732 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"voltcraft-vc960-ser", ut71x, 
-		"Voltcraft", "VC-960 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"tenma-72-9380a-ser", ut71x,
+		"Tenma", "72-9380A (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
@@ -565,20 +565,20 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"tenma-72-7730-ser", ut71x,
-		"Tenma", "72-7730 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"voltcraft-vc920-ser", ut71x,
+		"Voltcraft", "VC-920 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"tenma-72-7732-ser", ut71x,
-		"Tenma", "72-7732 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"voltcraft-vc940-ser", ut71x,
+		"Voltcraft", "VC-940 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"tenma-72-9380a-ser", ut71x,
-		"Tenma", "72-9380A (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
+		"voltcraft-vc960-ser", ut71x,
+		"Voltcraft", "VC-960 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
