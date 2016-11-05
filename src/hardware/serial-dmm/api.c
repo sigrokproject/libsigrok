@@ -288,14 +288,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* meters based on other chips (to get sorted) */
-	DMM(
-		"bbcgm-2010", metex14,
-		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
-		BBCGM_M2110_PACKET_SIZE, 0, 0, NULL,
-		sr_m2110_packet_valid, sr_m2110_parse,
-		NULL
-	),
+	/* fs9721 based meters {{{ */
 	DMM(
 		"digitek-dt4000zc", fs9721,
 		"Digitek", "DT4000ZC", "2400/8n1/dtr=1", 2400,
@@ -309,27 +302,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_10_temp_c
-	),
-	DMM(
-		"metex-me31", metex14,
-		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
-		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
-		sr_metex14_packet_valid, sr_metex14_parse,
-		NULL
-	),
-	DMM(
-		"peaktech-3410", metex14,
-		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
-		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
-		sr_metex14_packet_valid, sr_metex14_parse,
-		NULL
-	),
-	DMM(
-		"mastech-mas345", metex14,
-		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
-		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
-		sr_metex14_packet_valid, sr_metex14_parse,
-		NULL
 	),
 	DMM(
 		"mastech-ms8250b", fs9721,
@@ -353,6 +325,92 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_max_c_min
 	),
 	DMM(
+		"pce-pce-dm32", fs9721,
+		"PCE", "PCE-DM32", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_01_10_temp_f_c
+	),
+	DMM(
+		"tecpel-dmm-8061-ser", fs9721,
+		"Tecpel", "DMM-8061 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"voltcraft-vc820-ser", fs9721,
+		"Voltcraft", "VC-820 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL
+	),
+	DMM(
+		"voltcraft-vc840-ser", fs9721,
+		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"uni-t-ut60a-ser", fs9721,
+		"UNI-T", "UT60A (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL
+	),
+	DMM(
+		"uni-t-ut60e-ser", fs9721,
+		"UNI-T", "UT60E (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"tenma-72-7745-ser", fs9721,
+		"Tenma", "72-7745 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"peaktech-3330", fs9721,
+		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_01_10_temp_f_c
+	),
+	/* }}} */
+	/* meters based on other chips (to get sorted) */
+	DMM(
+		"bbcgm-2010", metex14,
+		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
+		BBCGM_M2110_PACKET_SIZE, 0, 0, NULL,
+		sr_m2110_packet_valid, sr_m2110_parse,
+		NULL
+	),
+	DMM(
+		"metex-me31", metex14,
+		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
+		"peaktech-3410", metex14,
+		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
+		"mastech-mas345", metex14,
+		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
 		"metex-m3640d", metex14,
 		"Metex", "M-3640D", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
@@ -374,13 +432,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"pce-pce-dm32", fs9721,
-		"PCE", "PCE-DM32", "2400/8n1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_01_10_temp_f_c
-	),
-	DMM(
 		"radioshack-22-168", metex14,
 		"RadioShack", "22-168", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
@@ -400,13 +451,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		RS9LCD_PACKET_SIZE, 0, 0, NULL,
 		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
 		NULL
-	),
-	DMM(
-		"tecpel-dmm-8061-ser", fs9721,
-		"Tecpel", "DMM-8061 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
 	),
 	DMM(
 		"voltcraft-m3650cr", metex14,
@@ -437,13 +481,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"voltcraft-vc820-ser", fs9721,
-		"Voltcraft", "VC-820 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL
-	),
-	DMM(
 		/*
 		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
 		 * the FS9922 protocol. Instead, it only sets the user-defined
@@ -454,13 +491,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		&sr_fs9922_z1_diode
-	),
-	DMM(
-		"voltcraft-vc840-ser", fs9721,
-		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
 	),
 	DMM(
 		"voltcraft-vc870-ser", vc870,
@@ -485,20 +515,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "VC-960 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"uni-t-ut60a-ser", fs9721,
-		"UNI-T", "UT60A (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL
-	),
-	DMM(
-		"uni-t-ut60e-ser", fs9721,
-		"UNI-T", "UT60E (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
 	),
 	DMM(
 		"uni-t-ut61b-ser", fs9922,
@@ -565,19 +581,5 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Tenma", "72-9380A (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"tenma-72-7745-ser", fs9721,
-		"Tenma", "72-7745 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
-	),
-	DMM(
-		"peaktech-3330", fs9721,
-		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_01_10_temp_f_c
 	),
 );
