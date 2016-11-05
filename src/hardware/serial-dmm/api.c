@@ -515,13 +515,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* meters based on other chips (to get sorted) */
-	DMM(
-		"voltcraft-vc870-ser", vc870,
-		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
-		9600, VC870_PACKET_SIZE, 0, 0, NULL,
-		sr_vc870_packet_valid, sr_vc870_parse, NULL
-	),
+	/* ut71x based meters {{{ */
 	DMM(
 		"voltcraft-vc920-ser", ut71x,
 		"Voltcraft", "VC-920 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
@@ -587,5 +581,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Tenma", "72-9380A (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	/* }}} */
+	/* meters based on other chips (to get sorted) */
+	DMM(
+		"voltcraft-vc870-ser", vc870,
+		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
+		9600, VC870_PACKET_SIZE, 0, 0, NULL,
+		sr_vc870_packet_valid, sr_vc870_parse, NULL
 	),
 );
