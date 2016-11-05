@@ -255,6 +255,39 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
 	),
 	/* }}} */
+	/* es519xx based meters {{{ */
+	DMM(
+		"iso-tech-idm103n", es519xx,
+		"ISO-TECH", "IDM103N", "2400/7o1/rts=0/dtr=1",
+		2400, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
+		sr_es519xx_2400_11b_packet_valid, sr_es519xx_2400_11b_parse,
+		NULL
+	),
+	DMM(
+		"tenma-72-7750-ser", es519xx,
+		/* Note: ES51986 baudrate is actually 19230! */
+		"Tenma", "72-7750 (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
+		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL
+	),
+	DMM(
+		/* Note: ES51986 baudrate is actually 19230! */
+		"uni-t-ut60g-ser", es519xx,
+		"UNI-T", "UT60G (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
+		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL
+	),
+	DMM(
+		"uni-t-ut61e-ser", es519xx,
+		/* Note: ES51922 baudrate is actually 19230! */
+		"UNI-T", "UT61E (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
+		19200, ES519XX_14B_PACKET_SIZE, 0, 0, NULL,
+		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
+		NULL
+	),
+	/* }}} */
 	/* meters based on other chips (to get sorted) */
 	DMM(
 		"bbcgm-2010", metex14,
@@ -468,14 +501,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_00_temp_c
 	),
 	DMM(
-		/* Note: ES51986 baudrate is actually 19230! */
-		"uni-t-ut60g-ser", es519xx,
-		"UNI-T", "UT60G (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
-		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
-		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
-		NULL
-	),
-	DMM(
 		"uni-t-ut61b-ser", fs9922,
 		"UNI-T", "UT61B (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
@@ -492,14 +517,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"UNI-T", "UT61D (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
-	),
-	DMM(
-		"uni-t-ut61e-ser", es519xx,
-		/* Note: ES51922 baudrate is actually 19230! */
-		"UNI-T", "UT61E (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
-		19200, ES519XX_14B_PACKET_SIZE, 0, 0, NULL,
-		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
-		NULL
 	),
 	DMM(
 		"uni-t-ut71a-ser", ut71x,
@@ -532,13 +549,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"iso-tech-idm103n", es519xx,
-		"ISO-TECH", "IDM103N", "2400/7o1/rts=0/dtr=1",
-		2400, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
-		sr_es519xx_2400_11b_packet_valid, sr_es519xx_2400_11b_parse,
-		NULL
-	),
-	DMM(
 		"tenma-72-7730-ser", ut71x,
 		"Tenma", "72-7730 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
@@ -562,14 +572,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
-	),
-	DMM(
-		"tenma-72-7750-ser", es519xx,
-		/* Note: ES51986 baudrate is actually 19230! */
-		"Tenma", "72-7750 (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
-		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
-		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
-		NULL
 	),
 	DMM(
 		"peaktech-3330", fs9721,
