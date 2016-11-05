@@ -220,6 +220,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}).di
 
 SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
+	/*
+	 * The items are sorted by chipset first and then model name.
+	 *
+	 * This reflects the developer's perspective and is preferrable
+	 * during maintenance, as a vendor/product based sort order does
+	 * not work well for rebranded models, and from a support point
+	 * of view it's more important to identify similarities between
+	 * models and compatible devices.
+	 *
+	 * Fold marks {{{ }}} with matching braces were added, to further
+	 * speed up navigation in the long list.
+	 */
+	/* bm25x based meters {{{ */
+	DMM(
+		"brymen-bm25x", bm25x,
+		"Brymen", "BM25x", "9600/8n1/rts=1/dtr=1",
+		9600, BRYMEN_BM25X_PACKET_SIZE, 0, 0, NULL,
+		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
+		NULL
+	),
+	/* }}} */
+	/* meters based on other chips (to get sorted) */
 	DMM(
 		"bbcgm-2010", metex14,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
@@ -533,13 +555,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Tenma", "72-7750 (UT-D02 cable)", "19200/7o1/rts=0/dtr=1",
 		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
 		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
-		NULL
-	),
-	DMM(
-		"brymen-bm25x", bm25x,
-		"Brymen", "BM25x", "9600/8n1/rts=1/dtr=1",
-		9600, BRYMEN_BM25X_PACKET_SIZE, 0, 0, NULL,
-		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
 		NULL
 	),
 	DMM(
