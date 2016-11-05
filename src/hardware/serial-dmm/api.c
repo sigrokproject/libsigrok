@@ -506,7 +506,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* meters based on other chips (to get sorted) */
+	/* rs9lcd based meters {{{ */
 	DMM(
 		"radioshack-22-812", rs9lcd,
 		"RadioShack", "22-812", "4800/8n1/rts=0/dtr=1", 4800,
@@ -514,6 +514,8 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_rs9lcd_packet_valid, sr_rs9lcd_parse,
 		NULL
 	),
+	/* }}} */
+	/* meters based on other chips (to get sorted) */
 	DMM(
 		"voltcraft-vc870-ser", vc870,
 		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
