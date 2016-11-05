@@ -241,6 +241,20 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
+	/* dtm0660 based meters {{{ */
+	DMM(
+		"peaktech-3415", dtm0660,
+		"Peaktech", "3415", "2400/8n1/rts=0/dtr=1",
+		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
+		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
+	),
+	DMM(
+		"velleman-dvm4100", dtm0660,
+		"Velleman", "DVM4100", "2400/8n1/rts=0/dtr=1",
+		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
+		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
+	),
+	/* }}} */
 	/* meters based on other chips (to get sorted) */
 	DMM(
 		"bbcgm-2010", metex14,
@@ -556,18 +570,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		19200, ES519XX_11B_PACKET_SIZE, 0, 0, NULL,
 		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
 		NULL
-	),
-	DMM(
-		"velleman-dvm4100", dtm0660,
-		"Velleman", "DVM4100", "2400/8n1/rts=0/dtr=1",
-		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
-		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
-	),
-	DMM(
-		"peaktech-3415", dtm0660,
-		"Peaktech", "3415", "2400/8n1/rts=0/dtr=1",
-		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
-		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
 	),
 	DMM(
 		"peaktech-3330", fs9721,
