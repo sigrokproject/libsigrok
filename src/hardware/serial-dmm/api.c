@@ -297,13 +297,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_10_temp_c
 	),
 	DMM(
-		"tekpower-tp4000ZC", fs9721,
-		"TekPower", "TP4000ZC", "2400/8n1/dtr=1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_10_temp_c
-	),
-	DMM(
 		"mastech-ms8250b", fs9721,
 		"MASTECH", "MS8250B", "2400/8n1/rts=0/dtr=1",
 		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
@@ -311,22 +304,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"va-va18b", fs9721,
-		"V&A", "VA18B", "2400/8n1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_01_temp_c
-	),
-	DMM(
-		"va-va40b", fs9721,
-		"V&A", "VA40B", "2400/8n1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_max_c_min
-	),
-	DMM(
 		"pce-pce-dm32", fs9721,
 		"PCE", "PCE-DM32", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_01_10_temp_f_c
+	),
+	DMM(
+		"peaktech-3330", fs9721,
+		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
 		FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_01_10_temp_f_c
@@ -339,15 +325,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_00_temp_c
 	),
 	DMM(
-		"voltcraft-vc820-ser", fs9721,
-		"Voltcraft", "VC-820 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		"tekpower-tp4000ZC", fs9721,
+		"TekPower", "TP4000ZC", "2400/8n1/dtr=1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL
+		sr_fs9721_10_temp_c
 	),
 	DMM(
-		"voltcraft-vc840-ser", fs9721,
-		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		"tenma-72-7745-ser", fs9721,
+		"Tenma", "72-7745 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
@@ -367,18 +353,32 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_00_temp_c
 	),
 	DMM(
-		"tenma-72-7745-ser", fs9721,
-		"Tenma", "72-7745 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		"va-va18b", fs9721,
+		"V&A", "VA18B", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_01_temp_c
+	),
+	DMM(
+		"va-va40b", fs9721,
+		"V&A", "VA40B", "2400/8n1", 2400,
+		FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_max_c_min
+	),
+	DMM(
+		"voltcraft-vc820-ser", fs9721,
+		"Voltcraft", "VC-820 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL
+	),
+	DMM(
+		"voltcraft-vc840-ser", fs9721,
+		"Voltcraft", "VC-840 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
-	),
-	DMM(
-		"peaktech-3330", fs9721,
-		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
-		FS9721_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_01_10_temp_f_c
 	),
 	/* }}} */
 	/* meters based on other chips (to get sorted) */
