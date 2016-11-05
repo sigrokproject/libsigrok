@@ -381,6 +381,38 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9721_00_temp_c
 	),
 	/* }}} */
+	/* fs9922 based meters {{{ */
+	DMM(
+		"uni-t-ut61b-ser", fs9922,
+		"UNI-T", "UT61B (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
+		"uni-t-ut61c-ser", fs9922,
+		"UNI-T", "UT61C (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
+		"uni-t-ut61d-ser", fs9922,
+		"UNI-T", "UT61D (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
+		/*
+		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
+		 * the FS9922 protocol. Instead, it only sets the user-defined
+		 * bit "z1" to indicate "diode mode" and "voltage".
+		 */
+		"voltcraft-vc830-ser", fs9922,
+		"Voltcraft", "VC-830 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse,
+		&sr_fs9922_z1_diode
+	),
+	/* }}} */
 	/* meters based on other chips (to get sorted) */
 	DMM(
 		"bbcgm-2010", metex14,
@@ -481,18 +513,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		/*
-		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
-		 * the FS9922 protocol. Instead, it only sets the user-defined
-		 * bit "z1" to indicate "diode mode" and "voltage".
-		 */
-		"voltcraft-vc830-ser", fs9922,
-		"Voltcraft", "VC-830 (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9922_packet_valid, sr_fs9922_parse,
-		&sr_fs9922_z1_diode
-	),
-	DMM(
 		"voltcraft-vc870-ser", vc870,
 		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
 		9600, VC870_PACKET_SIZE, 0, 0, NULL,
@@ -515,24 +535,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "VC-960 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"uni-t-ut61b-ser", fs9922,
-		"UNI-T", "UT61B (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
-	),
-	DMM(
-		"uni-t-ut61c-ser", fs9922,
-		"UNI-T", "UT61C (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
-	),
-	DMM(
-		"uni-t-ut61d-ser", fs9922,
-		"UNI-T", "UT61D (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
-		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
-		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
 	),
 	DMM(
 		"uni-t-ut71a-ser", ut71x,
