@@ -583,11 +583,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	/* }}} */
-	/* meters based on other chips (to get sorted) */
+	/* vc870 based meters {{{ */
 	DMM(
 		"voltcraft-vc870-ser", vc870,
 		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
 		9600, VC870_PACKET_SIZE, 0, 0, NULL,
 		sr_vc870_packet_valid, sr_vc870_parse, NULL
 	),
+	/* }}} */
+	/*
+	 * The list is sorted. Add new items in the respective chip's group.
+	 */
 );
