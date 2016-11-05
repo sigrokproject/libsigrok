@@ -422,20 +422,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"metex-me31", metex14,
-		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
-		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
-		sr_metex14_packet_valid, sr_metex14_parse,
-		NULL
-	),
-	DMM(
-		"peaktech-3410", metex14,
-		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
-		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
-		sr_metex14_packet_valid, sr_metex14_parse,
-		NULL
-	),
-	DMM(
 		"mastech-mas345", metex14,
 		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
@@ -452,6 +438,20 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	DMM(
 		"metex-m4650cr", metex14,
 		"Metex", "M-4650CR", "1200/7n2/rts=0/dtr=1", 1200,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
+		"metex-me31", metex14,
+		"Metex", "ME-31", "600/7n2/rts=0/dtr=1", 600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
+		"peaktech-3410", metex14,
+		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL
