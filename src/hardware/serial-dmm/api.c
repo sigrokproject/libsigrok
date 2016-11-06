@@ -268,6 +268,9 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * "out" by .15%, and so is well within the typical 1% margin
 	 * that is considered acceptable in UART communication, and thus
 	 * should not cause an issue.
+	 *
+	 * However, using 19230 as baudrate here will not work, as most DMM
+	 * cables do not support that baudrate!
 	 */
 	DMM(
 		"tenma-72-7750-ser", es519xx,
