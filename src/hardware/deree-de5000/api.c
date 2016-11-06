@@ -25,7 +25,13 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "deree-de5000"
+#define LOG_PREFIX "serial-lcr-es51919"
+
+struct lcr_es51919_info {
+	struct sr_dev_driver di;
+	const char *vendor;
+	const char *model;
+};
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
@@ -34,30 +40,40 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	struct lcr_es51919_info *lcr;
 	struct sr_dev_inst *sdi;
 
-	if (!(sdi = es51919_serial_scan(options, "DER EE", "DE-5000")))
+	lcr = (struct lcr_es51919_info *)di;
+
+	if (!(sdi = es51919_serial_scan(options, lcr->vendor, lcr->model)))
 		return NULL;
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static struct sr_dev_driver deree_de5000_driver_info = {
-	.name = "deree-de5000",
-	.longname = "DER EE DE-5000",
-	.api_version = 1,
-	.init = std_init,
-	.cleanup = std_cleanup,
-	.scan = scan,
-	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
-	.config_get = es51919_serial_config_get,
-	.config_set = es51919_serial_config_set,
-	.config_list = es51919_serial_config_list,
-	.dev_open = std_serial_dev_open,
-	.dev_close = std_serial_dev_close,
-	.dev_acquisition_start = es51919_serial_acquisition_start,
-	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
-	.context = NULL,
-};
-SR_REGISTER_DEV_DRIVER(deree_de5000_driver_info);
+#define LCR_ES51919(id, vendor, model) \
+	&((struct lcr_es51919_info) { \
+		{ \
+			.name = id, \
+			.longname = vendor " " model, \
+			.api_version = 1, \
+			.init = std_init, \
+			.cleanup = std_cleanup, \
+			.scan = scan, \
+			.dev_list = std_dev_list, \
+			.dev_clear = dev_clear, \
+			.config_get = es51919_serial_config_get, \
+			.config_set = es51919_serial_config_set, \
+			.config_list = es51919_serial_config_list, \
+			.dev_open = std_serial_dev_open, \
+			.dev_close = std_serial_dev_close, \
+			.dev_acquisition_start = es51919_serial_acquisition_start, \
+			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
+			.context = NULL, \
+		}, \
+		vendor, model, \
+	}).di
+
+SR_REGISTER_DEV_DRIVER_LIST(lcr_es51919_drivers,
+	LCR_ES51919("deree-de5000", "DER EE", "DE-5000"),
+);
