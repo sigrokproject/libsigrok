@@ -123,6 +123,35 @@ static const char *hmo_compact4_trigger_sources[] = {
 	NULL,
 };
 
+static const char *hmo_compact4_dig16_trigger_sources[] = {
+	"CH1",
+	"CH2",
+	"CH3",
+	"CH4",
+	"LINE",
+	"EXT",
+	"PATT",
+	"BUS1",
+	"BUS2",
+	"D0",
+	"D1",
+	"D2",
+	"D3",
+	"D4",
+	"D5",
+	"D6",
+	"D7",
+	"D8",
+	"D9",
+	"D10",
+	"D11",
+	"D12",
+	"D13",
+	"D14",
+	"D15",
+	NULL,
+};
+
 static const uint64_t hmo_timebases[][2] = {
 	/* nanoseconds */
 	{ 2, 1000000000 },
@@ -242,9 +271,7 @@ static const struct scope_config scope_models[] = {
 		.scpi_dialect = &hameg_scpi_dialect,
 	},
 	{
-		/* HMO2524/3034/3044/3054 support 16 digital channels but they're not supported yet. */
-		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", "HMO2524",
-				"HMO3034", "HMO3044", "HMO3054", NULL},
+		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
 		.analog_channels = 4,
 		.digital_channels = 8,
 		.digital_pods = 1,
@@ -260,6 +287,36 @@ static const struct scope_config scope_models[] = {
 
 		.coupling_options = &hmo_coupling_options,
 		.trigger_sources = &hmo_compact4_trigger_sources,
+		.trigger_slopes = &scope_trigger_slopes,
+
+		.timebases = &hmo_timebases,
+		.num_timebases = ARRAY_SIZE(hmo_timebases),
+
+		.vdivs = &hmo_vdivs,
+		.num_vdivs = ARRAY_SIZE(hmo_vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &hmo_devopts,
+		.num_devopts = ARRAY_SIZE(hmo_devopts),
+
+		.analog_devopts = &hmo_analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(hmo_analog_devopts),
+
+		.coupling_options = &hmo_coupling_options,
+		.trigger_sources = &hmo_compact4_dig16_trigger_sources,
 		.trigger_slopes = &scope_trigger_slopes,
 
 		.timebases = &hmo_timebases,
