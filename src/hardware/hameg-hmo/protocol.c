@@ -631,7 +631,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 {
 	char tmp[25];
 	int model_index;
-	unsigned int i, j;
+	unsigned int i, j, group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 
@@ -684,7 +684,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 		devc->digital_groups[i]->name = g_strdup(tmp);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				   devc->digital_groups[i < 8 ? 0 : 1]);
+				   devc->digital_groups[i]);
 	}
 
 	/* Add digital channels. */
@@ -692,8 +692,9 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i]);
 
-		devc->digital_groups[i < 8 ? 0 : 1]->channels = g_slist_append(
-			devc->digital_groups[i < 8 ? 0 : 1]->channels, ch);
+		group = i / 8;
+		devc->digital_groups[group]->channels = g_slist_append(
+			devc->digital_groups[group]->channels, ch);
 	}
 
 	devc->model_config = &scope_models[model_index];
