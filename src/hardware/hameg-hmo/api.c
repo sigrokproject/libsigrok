@@ -705,6 +705,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	int ret;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -734,12 +735,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	if (hmo_check_channels(devc->enabled_channels) != SR_OK) {
 		sr_err("Invalid channel configuration specified!");
-		return SR_ERR_NA;
+		ret = SR_ERR_NA;
+		goto free_enabled;
 	}
 
 	if (hmo_setup_channels(sdi) != SR_OK) {
 		sr_err("Failed to setup channel configuration!");
-		return SR_ERR;
+		ret = SR_ERR;
+		goto free_enabled;
 	}
 
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
@@ -750,6 +753,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->current_channel = devc->enabled_channels;
 
 	return hmo_request_data(sdi);
+
+free_enabled:
+	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
+	return ret;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
