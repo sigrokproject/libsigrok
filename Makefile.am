@@ -647,7 +647,7 @@ PDIR = bindings/python
 PDOC_START = bindings/python/sigrok/core/doc_start.i
 PDOC_END = bindings/python/sigrok/core/doc_end.i
 
-setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CXX)' CFLAGS='$(CXXFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' CXXFLAGS='$(CXXFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' LDADD='$(PYSIGROK_LIBS)'
+setup_vars = VERSION='$(PACKAGE_VERSION)' CC='$(CC)' CXX='$(CXX)' CFLAGS='$(CFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' CXXFLAGS='$(CXXFLAGS) $(SR_WXXFLAGS) $(PYSIGROK_CFLAGS)' LDADD='$(PYSIGROK_LIBS)'
 setup_quiet = --quiet
 setup_py = $(PYTHON) $(srcdir)/$(PDIR)/setup.py $(setup_vars) $(setup_quiet)
 
