@@ -335,7 +335,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					des.idProduct == supported_fx2[j].pid &&
 					(!supported_fx2[j].usb_manufacturer ||
 					 !strcmp(manufacturer, supported_fx2[j].usb_manufacturer)) &&
-					(!supported_fx2[j].usb_manufacturer ||
+					(!supported_fx2[j].usb_product ||
 					 !strcmp(product, supported_fx2[j].usb_product))) {
 				prof = &supported_fx2[j];
 				break;
