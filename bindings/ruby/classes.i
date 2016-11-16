@@ -140,7 +140,7 @@ static VALUE variant_to_ruby(Glib::VariantBase variant)
 
         VALUE string_obj = rb_external_str_new_with_enc(message.c_str(), message.length(), rb_utf8_encoding());
 
-        VALUE args = rb_ary_new_from_args(2, log_obj, string_obj);
+        VALUE args = rb_ary_new3(2, log_obj, string_obj);
         rb_proc_call(*proc.get(), args);
     };
 }
@@ -176,7 +176,7 @@ static VALUE variant_to_ruby(Glib::VariantBase variant)
             SWIG_as_voidptr(new std::shared_ptr<sigrok::Packet>(packet)),
             SWIGTYPE_p_std__shared_ptrT_sigrok__Packet_t, SWIG_POINTER_OWN);
 
-        VALUE args = rb_ary_new_from_args(2, device_obj, packet_obj);
+        VALUE args = rb_ary_new3(2, device_obj, packet_obj);
         rb_proc_call(*proc.get(), args);
     };
 }
