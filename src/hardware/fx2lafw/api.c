@@ -214,6 +214,20 @@ static const uint64_t dslogic_samplerates[] = {
 	SR_MHZ(400),
 };
 
+static gboolean is_plausible(const struct libusb_device_descriptor *des)
+{
+	int i;
+
+	for (i = 0; supported_fx2[i].vid; i++) {
+		if (des->idVendor != supported_fx2[i].vid)
+			continue;
+		if (des->idProduct == supported_fx2[i].pid)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -271,8 +285,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor( devlist[i], &des);
 
-		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
+		if (!is_plausible(&des))
 			continue;
+
+		if ((ret = libusb_open(devlist[i], &hdl)) < 0) {
+			sr_warn("Failed to open potential device with "
+				"VID:PID %04x:%04x: %s.", des.idVendor,
+				des.idProduct, libusb_error_name(ret));
+			continue;
+		}
 
 		if (des.iManufacturer == 0) {
 			manufacturer[0] = '\0';
