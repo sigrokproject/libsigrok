@@ -1321,6 +1321,31 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/asycii.c -------------------------------------------------*/
+
+#define ASYCII_PACKET_SIZE 16
+
+struct asycii_info {
+	gboolean is_ac, is_dc, is_ac_and_dc;
+	gboolean is_resistance, is_capacitance, is_diode, is_gain;
+	gboolean is_frequency, is_duty_cycle, is_duty_pos, is_duty_neg;
+	gboolean is_pulse_width, is_period_pos, is_period_neg;
+	gboolean is_pulse_count, is_count_pos, is_count_neg;
+	gboolean is_ampere, is_volt, is_volt_ampere, is_farad, is_ohm;
+	gboolean is_hertz, is_percent, is_seconds, is_decibel;
+	gboolean is_pico, is_nano, is_micro, is_milli, is_kilo, is_mega;
+	gboolean is_unitless;
+	gboolean is_peak_min, is_peak_max;
+	gboolean is_invalid;
+};
+
+#ifdef HAVE_LIBSERIALPORT
+SR_PRIV int sr_asycii_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
+			    struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/scale/kern.c -------------------------------------------------*/
 
 struct kern_info {
