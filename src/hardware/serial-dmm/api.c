@@ -232,6 +232,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * Fold marks {{{ }}} with matching braces were added, to further
 	 * speed up navigation in the long list.
 	 */
+	/* asycii based meters {{{ */
+	DMM(
+		"metrix-mx56c", asycii, "Metrix", "MX56C",
+		"2400/8n1", 2400, ASYCII_PACKET_SIZE, 0, 0, NULL,
+		sr_asycii_packet_valid, sr_asycii_parse, NULL
+	),
+	/* }}} */
 	/* bm25x based meters {{{ */
 	DMM(
 		"brymen-bm25x", bm25x,
