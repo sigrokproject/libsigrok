@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2016 George Hopkins <george-hopkins@null.net>
+ * Copyright (C) 2016 Matthieu Guillaumin <matthieu@guillaum.in>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +38,25 @@ static int send_command(const struct sr_dev_inst *sdi, uint16_t command)
 	return SR_OK;
 }
 
+static int send_long_command(const struct sr_dev_inst *sdi, uint32_t command)
+{
+	struct sr_serial_dev_inst *serial;
+	uint8_t buffer[4];
+
+	buffer[0] = command >> 24;
+	buffer[1] = command >> 16;
+	buffer[2] = command >> 8;
+	buffer[3] = command;
+
+	if (!(serial = sdi->conn))
+		return SR_ERR;
+
+	if (serial_write_nonblocking(serial, (const void *)buffer, 4) != 4)
+		return SR_ERR;
+
+	return SR_OK;
+}
+
 static void send_data(const struct sr_dev_inst *sdi, float sample)
 {
 	struct dev_context *devc;
@@ -60,7 +80,8 @@ static void send_data(const struct sr_dev_inst *sdi, float sample)
 	sr_session_send(sdi, &packet);
 
 	devc->num_samples++;
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+	/* Limiting number of samples is only supported for live data. */
+	if (devc->cur_data_source == DATA_SOURCE_LIVE && devc->limit_samples && devc->num_samples >= devc->limit_samples)
 		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
@@ -104,6 +125,18 @@ static void process_measurement(const struct sr_dev_inst *sdi)
 	send_data(sdi, value / 10.0);
 }
 
+static void process_memory_measurement(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	uint16_t value;
+
+	devc = sdi->priv;
+	value = devc->buffer[devc->buffer_len - 1] << 8;
+	value |= devc->buffer[devc->buffer_len - 2];
+
+	send_data(sdi, value / 10.0);
+}
+
 static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 {
 	struct dev_context *devc;
@@ -117,10 +150,99 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 		for (i = 1; i < BUFFER_SIZE; i++)
 			devc->buffer[i - 1] = devc->buffer[i];
 		devc->buffer[BUFFER_SIZE - 1] = c;
-		if (devc->buffer[0] == 0x7f && devc->buffer[BUFFER_SIZE - 1] == 0x00) {
-			process_measurement(sdi);
-			devc->buffer_len = 0;
+	}
+
+	if (devc->buffer_len == BUFFER_SIZE && devc->buffer[0] == 0x7f
+			&& devc->buffer[BUFFER_SIZE - 1] == 0x00) {
+		process_measurement(sdi);
+		devc->buffer_len = 0;
+	}
+}
+
+static void process_usage_byte(const struct sr_dev_inst *sdi, uint8_t c)
+{
+	struct dev_context *devc;
+	unsigned int i;
+
+	devc = sdi->priv;
+
+	if (devc->buffer_len < MEM_USAGE_BUFFER_SIZE) {
+		devc->buffer[devc->buffer_len++] = c;
+	} else {
+		for (i = 1; i < MEM_USAGE_BUFFER_SIZE; i++)
+			devc->buffer[i - 1] = devc->buffer[i];
+		devc->buffer[MEM_USAGE_BUFFER_SIZE - 1] = c;
+	}
+
+	if (devc->buffer_len == MEM_USAGE_BUFFER_SIZE && devc->buffer[0] == 0xd1
+			&& devc->buffer[1] == 0x05 && devc->buffer[2] == 0x00
+			&& devc->buffer[3] == 0x01 && devc->buffer[4] == 0xd2
+			&& devc->buffer[MEM_USAGE_BUFFER_SIZE - 1] == 0x20) {
+		devc->memory_block_usage = devc->buffer[5] << 8 | devc->buffer[6];
+		devc->memory_last_block_usage = devc->buffer[7];
+		sr_warn("Memory usage: %d blocks of 256 bytes, 1 block of %d bytes",
+			devc->memory_block_usage - 1, devc->memory_last_block_usage);
+		devc->buffer_len = 0;
+		devc->buffer_skip = 1;
+		devc->memory_state = MEM_STATE_REQUEST_MEMORY_BLOCK;
+		devc->memory_block_cursor = 0;
+		devc->memory_block_counter = 0;
+	}
+}
+
+static void process_memory_byte(const struct sr_dev_inst *sdi, uint8_t c)
+{
+	struct dev_context *devc;
+	unsigned int i;
+
+	devc = sdi->priv;
+
+	if (devc->buffer_len < MEM_DATA_BUFFER_SIZE) {
+		devc->buffer[devc->buffer_len++] = c;
+	} else {
+		for (i = 1; i < MEM_DATA_BUFFER_SIZE; i++)
+			devc->buffer[i - 1] = devc->buffer[i];
+		devc->buffer[MEM_DATA_BUFFER_SIZE - 1] = c;
+	}
+
+	if (devc->buffer_skip == 0 \
+			&& (devc->buffer[devc->buffer_len-2] & 0x7f) == 0x7f
+			&& (devc->buffer[devc->buffer_len-1] & 0xf7) == 0xf7) {
+		/* Recording session header bytes found, load next 7 bytes. */
+		devc->buffer_skip = MEM_DATA_BUFFER_SIZE - 2;
+	}
+
+	if (devc->buffer_skip == 0 && devc->buffer_len == MEM_DATA_BUFFER_SIZE
+			&& (devc->buffer[0] & 0x7f) == 0x7f && (devc->buffer[1] & 0xf7) == 0xf7
+			&& devc->buffer[2] == 0x01 && devc->buffer[3] == 0x00) {
+		/* Print information about recording. */
+		sr_err("Recording dB(%X) %02x/%02x/%02x %02x:%02x:%02x ",
+			devc->buffer[4], devc->buffer[5], devc->buffer[6], devc->buffer[7],
+			devc->buffer[8] & 0x3f, devc->buffer[9], devc->buffer[10]);
+		/* Set dBA/dBC flag for recording. */
+		if (devc->buffer[4] == 0x0c) {
+			devc->cur_mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_C;
+			devc->cur_mqflags &= ~SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+		} else {
+			devc->cur_mqflags |= SR_MQFLAG_SPL_FREQ_WEIGHT_A;
+			devc->cur_mqflags &= ~SR_MQFLAG_SPL_FREQ_WEIGHT_C;
 		}
+		send_data(sdi, -1.0); /* Signal switch of recording. */
+		devc->buffer_skip = 2;
+	}
+
+	if (devc->buffer_skip == 0) {
+		process_memory_measurement(sdi);
+		devc->buffer_skip = 1;
+	} else {
+		devc->buffer_skip -= 1;
+	}
+
+	devc->memory_block_cursor++; /* uint8_t goes back to 0 after 255. */
+	if (devc->memory_block_cursor == 0) {
+		/* Current block is completed. */
+		devc->memory_block_counter++;
+		devc->memory_state = MEM_STATE_REQUEST_MEMORY_BLOCK;
 	}
 }
 
@@ -142,10 +264,62 @@ SR_PRIV int pce_322a_receive_data(int fd, int revents, void *cb_data)
 	if (!(serial = sdi->conn))
 		return TRUE;
 
-	if (revents == G_IO_IN) {
-		if (serial_read_nonblocking(serial, &c, 1) != 1)
-			return TRUE;
-		process_byte(sdi, c);
+	if (devc->cur_data_source == DATA_SOURCE_MEMORY) {
+		switch (devc->memory_state) {
+		case MEM_STATE_REQUEST_MEMORY_USAGE:
+			/* At init, disconnect and request the memory status. */
+			sr_warn("Requesting memory usage.");
+			pce_322a_disconnect(sdi);
+			devc->memory_state = MEM_STATE_GET_MEMORY_USAGE;
+			devc->memory_block_usage = 0;
+			devc->memory_last_block_usage = 0;
+			devc->memory_block_counter = 0;
+			devc->memory_block_cursor = 0;
+			pce_322a_memory_status(sdi);
+			break;
+		case MEM_STATE_GET_MEMORY_USAGE:
+			/* Listen for memory usage answer. */
+			if (revents == G_IO_IN) {
+				if (serial_read_nonblocking(serial, &c, 1) != 1)
+					return TRUE;
+				process_usage_byte(sdi, c);
+			}
+			break;
+		case MEM_STATE_REQUEST_MEMORY_BLOCK:
+			/* When cursor is 0, request next memory block. */
+			if (devc->memory_block_counter <= devc->memory_block_usage) {
+				sr_warn("Requesting memory block %d.", devc->memory_block_counter);
+				pce_322a_memory_block(sdi, devc->memory_block_counter);
+				devc->memory_state = MEM_STATE_GET_MEMORY_BLOCK;
+			} else {
+				sr_warn("Exhausted memory blocks.");
+				return FALSE;
+			}
+			break;
+		case MEM_STATE_GET_MEMORY_BLOCK:
+			/* Stop after reading last byte of last block. */
+			if (devc->memory_block_counter >= devc->memory_block_usage
+					&& devc->memory_block_cursor >= devc->memory_last_block_usage) {
+				sr_warn("Done reading memory (%d bytes).",
+					256 * (devc->memory_block_counter - 1)
+					+ devc->memory_block_cursor);
+				return FALSE;
+			}
+			/* Listen for memory data. */
+			if (revents == G_IO_IN) {
+				if (serial_read_nonblocking(serial, &c, 1) != 1)
+					return TRUE;
+				process_memory_byte(sdi, c);
+			}
+			break;
+		}
+	} else {
+		/* Listen for live data. */
+		if (revents == G_IO_IN) {
+			if (serial_read_nonblocking(serial, &c, 1) != 1)
+				return TRUE;
+			process_byte(sdi, c);
+		}
 	}
 
 	return TRUE;
@@ -159,6 +333,24 @@ SR_PRIV int pce_322a_connect(const struct sr_dev_inst *sdi)
 SR_PRIV int pce_322a_disconnect(const struct sr_dev_inst *sdi)
 {
 	return send_command(sdi, CMD_DISCONNECT);
+}
+
+SR_PRIV int pce_322a_memory_status(const struct sr_dev_inst *sdi)
+{
+	return send_command(sdi, CMD_MEMORY_STATUS);
+}
+
+SR_PRIV int pce_322a_memory_clear(const struct sr_dev_inst *sdi)
+{
+	return send_command(sdi, CMD_MEMORY_CLEAR);
+}
+
+SR_PRIV int pce_322a_memory_block(const struct sr_dev_inst *sdi, uint16_t memblk)
+{
+	uint8_t buf0 = memblk;
+	uint8_t buf1 = memblk >> 8;
+	uint32_t command = CMD_MEMORY_TRANSFER << 16 | buf0 << 8 | buf1;
+	return send_long_command(sdi, command);
 }
 
 SR_PRIV uint64_t pce_322a_weight_freq_get(const struct sr_dev_inst *sdi)

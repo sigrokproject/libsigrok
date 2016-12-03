@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2016 George Hopkins <george-hopkins@null.net>
+ * Copyright (C) 2016 Matthieu Guillaumin <matthieu@guillaum.in>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +29,8 @@
 #define LOG_PREFIX "pce-322a"
 
 #define BUFFER_SIZE 13
+#define MEM_USAGE_BUFFER_SIZE 9
+#define MEM_DATA_BUFFER_SIZE 11
 
 enum {
 	CMD_CONNECT = 0xacff,
@@ -53,6 +56,18 @@ enum {
 	MEAS_RANGE_80_130 = 3,
 };
 
+enum {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
+};
+
+enum {
+	MEM_STATE_REQUEST_MEMORY_USAGE,
+	MEM_STATE_GET_MEMORY_USAGE,
+	MEM_STATE_REQUEST_MEMORY_BLOCK,
+	MEM_STATE_GET_MEMORY_BLOCK,
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
@@ -60,18 +75,30 @@ struct dev_context {
 	uint8_t cur_meas_range;
 
 	/* Acquisition settings */
+	uint8_t cur_data_source;
 	uint64_t limit_samples;
 
 	/* Operational state */
 	uint64_t num_samples;
 
-	/* Temporary state across callbacks */
+	/* Memory reading state */
+	uint8_t memory_state; /* State for requesting memory usage before memory blocks. */
+	uint16_t memory_block_usage; /* Store number of memory blocks used. */
+	uint8_t memory_last_block_usage; /* Store size of last memory block. */
+	uint16_t memory_block_counter; /* Number of memory blocks retrieved so far. */
+	uint8_t memory_block_cursor; /* Number of bytes retrieved in current memory block. */
+
+	/* Temporary state across callbacks. */
 	uint8_t buffer[BUFFER_SIZE];
 	int buffer_len;
+	int buffer_skip; /* Number of bytes to skip in memory mode. */
 };
 
 SR_PRIV int pce_322a_connect(const struct sr_dev_inst *sdi);
 SR_PRIV int pce_322a_disconnect(const struct sr_dev_inst *sdi);
+SR_PRIV int pce_322a_memory_status(const struct sr_dev_inst *sdi);
+SR_PRIV int pce_322a_memory_clear(const struct sr_dev_inst *sdi);
+SR_PRIV int pce_322a_memory_block(const struct sr_dev_inst *sdi, uint16_t memblk);
 SR_PRIV int pce_322a_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV uint64_t pce_322a_weight_freq_get(const struct sr_dev_inst *sdi);
 SR_PRIV int pce_322a_weight_freq_set(const struct sr_dev_inst *sdi, uint64_t freqw);

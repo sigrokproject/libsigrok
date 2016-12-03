@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2016 George Hopkins <george-hopkins@null.net>
+ * Copyright (C) 2016 Matthieu Guillaumin <matthieu@guillaum.in>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +39,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SPL_WEIGHT_TIME | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SPL_MEASUREMENT_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_POWER_OFF | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *weight_freq[] = {
@@ -55,6 +57,11 @@ static const uint64_t meas_ranges[][2] = {
 	{ 30, 80 },
 	{ 50, 100 },
 	{ 80, 130 },
+};
+
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -149,6 +156,12 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		if (devc->cur_data_source == DATA_SOURCE_LIVE)
+			*data = g_variant_new_string("Live");
+		else
+			*data = g_variant_new_string("Memory");
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -215,6 +228,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		if (g_variant_get_boolean(data))
 			ret = pce_322a_power_off(sdi);
 		break;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		if (!strcmp(tmp_str, "Live"))
+			devc->cur_data_source = DATA_SOURCE_LIVE;
+		else if (!strcmp(tmp_str, "Memory"))
+			devc->cur_data_source = DATA_SOURCE_MEMORY;
+		else
+			return SR_ERR;
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -268,6 +290,9 @@ static int config_list(uint32_t key, GVariant **data,
 			}
 			*data = g_variant_builder_end(&gvb);
 			break;
+		case SR_CONF_DATA_SOURCE:
+			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+			break;
 		default:
 			return SR_ERR_NA;
 		}
@@ -308,6 +333,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	devc->buffer_len = 0;
+	devc->memory_state = MEM_STATE_REQUEST_MEMORY_USAGE;
 
 	std_session_send_df_header(sdi);
 
