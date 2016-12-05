@@ -244,7 +244,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* dtm0660 based meters {{{ */
 	DMM(
 		"peaktech-3415", dtm0660,
-		"Peaktech", "3415", "2400/8n1/rts=0/dtr=1",
+		"PeakTech", "3415", "2400/8n1/rts=0/dtr=1",
 		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
 		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
 	),
@@ -318,7 +318,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	),
 	DMM(
 		"peaktech-3330", fs9721,
-		"Peaktech", "3330", "2400/8n1/dtr=1", 2400,
+		"PeakTech", "3330", "2400/8n1/dtr=1", 2400,
 		FS9721_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_01_10_temp_f_c
@@ -457,7 +457,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	),
 	DMM(
 		"peaktech-3410", metex14,
-		"Peaktech", "3410", "600/7n2/rts=0/dtr=1", 600,
+		"PeakTech", "3410", "600/7n2/rts=0/dtr=1", 600,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
 		NULL

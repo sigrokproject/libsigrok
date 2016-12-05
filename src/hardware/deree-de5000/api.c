@@ -76,5 +76,5 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 SR_REGISTER_DEV_DRIVER_LIST(lcr_es51919_drivers,
 	LCR_ES51919("deree-de5000", "DER EE", "DE-5000"),
-	LCR_ES51919("peaktech-2170", "Peaktech", "2170"),
+	LCR_ES51919("peaktech-2170", "PeakTech", "2170"),
 );
