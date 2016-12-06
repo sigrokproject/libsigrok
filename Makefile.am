@@ -594,7 +594,7 @@ lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
 
 bindings_cxx_libsigrokcxx_la_SOURCES = bindings/cxx/classes.cpp
 
-bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(SR_EXTRA_LIBS) $(LIBSIGROKCXX_LIBS)
+bindings_cxx_libsigrokcxx_la_LIBADD = libsigrok.la $(SR_EXTRA_LIBS) $(LIBSIGROKCXX_LIBS) $(SR_EXTRA_CXX_LIBS)
 bindings_cxx_libsigrokcxx_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
 
 bindings_cxx_libsigrokcxx_la_includedir = $(includedir)/libsigrokcxx
@@ -782,9 +782,9 @@ $(JLIB): $(JCXX) \
 		$(bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		$(nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS) \
 		@ORDER@ bindings/cxx/libsigrokcxx.la
-	$(AM_V_GEN)$(CXXCOMPILE) $(JNI_CPPFLAGS) -L.libs -Lbindings/cxx/.libs \
+	$(AM_V_GEN)$(CXXCOMPILE) $(JNI_CPPFLAGS) $(LDFLAGS) -L.libs -Lbindings/cxx/.libs \
 		-fno-strict-aliasing -fPIC -shared $(JCLS)/classes_wrap.cxx \
-		-lsigrokcxx $(LIBSIGROKCXX_LIBS) -o $(JLIB)
+		-lsigrokcxx $(LIBSIGROKCXX_LIBS) $(SR_EXTRA_CXX_LIBS) -o $(JLIB)
 
 java-install:
 	$(INSTALL) -d $(DESTDIR)$(libdir)/jni

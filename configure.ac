@@ -94,6 +94,7 @@ SR_PKGLIBS_CXX=
 SR_PKGLIBS_PYTHON=
 SR_PKGLIBS_RUBY=
 SR_EXTRA_LIBS=
+SR_EXTRA_CXX_LIBS=
 
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
 	[libserialport >= 0.1.1])
@@ -320,6 +321,9 @@ AS_IF([test "x$sr_have_glibmm" != xyes],
 AC_CHECK_PROG([HAVE_DOXYGEN], [doxygen], [yes], [no])
 AS_IF([test "x$HAVE_DOXYGEN" != xyes],
 	[SR_APPEND([sr_cxx_missing], [', '], [Doxygen])])
+
+# Link C++ code with gnustl_shared if it exists (Android)
+SR_SEARCH_LIBS([SR_EXTRA_CXX_LIBS], [__cxa_throw], [gnustl_shared])
 
 # Python is needed for the C++ bindings.
 AM_PATH_PYTHON([2.7],
