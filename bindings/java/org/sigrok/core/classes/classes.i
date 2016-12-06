@@ -76,7 +76,7 @@ namespace Glib {
   for (auto entry : $1)
   {
     *(CValue **) &value = new CValue(entry);
-    jenv->CallObjectMethod($result, Vector_add,
+    jenv->CallBooleanMethod($result, Vector_add,
       jenv->NewObject(Value, Value_init, value, true));
   }
 }
