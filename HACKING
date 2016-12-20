@@ -140,6 +140,22 @@ Random notes
 Doxygen
 -------
 
+ - Use the @ notation for all Doxygen comments (e.g. @param, not \param).
+
+ - Do not use the @brief tag, it's unnecessary as we use JAVADOC_AUTOBRIEF.
+
+ - Generally use the following item order in Doxygen comments:
+    - Brief function description (1 line), followed by an empty line.
+    - Optionally, a longer function description (and another empty line).
+    - The list of parameter descriptions (@param).
+    - The return value description (@return or @retval).
+    - An optional @since tag (only for public SR_API functions).
+    - An optional @private tag (for private SR_PRIV functions).
+
+ - In @param lines, the name of the parameter is followed by a space and
+   then a sentence describing the parameter (starts with a capital letter,
+   ends with a full stop).
+
  - In Doxygen comments, put an empty line between the block of @param lines
    and the final @return line. The @param lines themselves (if there is more
    than one) are not separated by empty lines.
@@ -166,6 +182,58 @@ Doxygen
 
    The @since tag should be the last one, i.e. it should come after @param,
    @return, @see, and so on.
+
+ - Examples:
+
+/**
+ * Tell a hardware driver to scan for devices.
+ *
+ * In addition to the detection, the devices that are found are also
+ * initialized automatically. On some devices, this involves a firmware upload,
+ * or other such measures.
+ *
+ * The order in which the system is scanned for devices is not specified. The
+ * caller should not assume or rely on any specific order.
+ *
+ * Before calling sr_driver_scan(), the user must have previously initialized
+ * the driver by calling sr_driver_init().
+ *
+ * @param[in] driver The driver that should scan. Must be a pointer to one of
+ *                   the entries returned by sr_driver_list(). Must not be NULL.
+ * @param[in] options List of 'struct sr_hwopt' options to pass to the driver's
+ *                    scanner. Can be NULL/empty.
+ *
+ * @return A GSList * of 'struct sr_dev_inst', or NULL if no devices were
+ *         found (or errors were encountered). This list must be freed by the
+ *         caller using g_slist_free(), but without freeing the data pointed
+ *         to in the list.
+ *
+ * @since 0.2.0
+ */
+
+/**
+ * Query value of a configuration key at the given driver or device instance.
+ *
+ * @param[in] driver The sr_dev_driver struct to query. Must not be NULL.
+ * @param[in] sdi (optional) If the key is specific to a device, this must
+ *            contain a pointer to the struct sr_dev_inst to be checked.
+ *            Otherwise it must be NULL. If sdi is != NULL, sdi->priv must
+ *            also be != NULL.
+ * @param[in,out] data Pointer to a GVariant where the value will be stored.
+ *             Must not be NULL. The caller is given ownership of the GVariant
+ *             and must thus decrease the refcount after use. However if
+ *             this function returns an error code, the field should be
+ *             considered unused, and should not be unreferenced.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR Error.
+ * @retval SR_ERR_ARG The driver doesn't know that key, but this is not to be
+ *         interpreted as an error by the caller; merely as an indication
+ *         that it's not applicable.
+ *
+ * @since 0.3.0
+ * @private
+ */
 
 
 Testsuite
