@@ -89,7 +89,6 @@ The following drivers/devices do not need any firmware upload:
  - colead-slm
  - conrad-digi-35-cpu
  - demo
- - deree-de5000
  - fluke-dmm
  - ftdi-la
  - gmc-mh-1x-2x (including all subdrivers)
@@ -114,6 +113,7 @@ The following drivers/devices do not need any firmware upload:
  - rigol-ds
  - scpi-pps
  - serial-dmm (including all subdrivers)
+ - serial-lcr (including all subdrivers)
  - teleinfo
  - testo
  - tondaj-sl-814
@@ -157,6 +157,7 @@ The following drivers/devices require a serial port specification:
  - openbench-logic-sniffer
  - rigol-ds (for RS232; not required for USBTMC or TCP)
  - serial-dmm (including all subdrivers)
+ - serial-lcr (including all subdrivers)
  - teleinfo
  - tondaj-sl-814
 
