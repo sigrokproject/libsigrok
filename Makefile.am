@@ -272,10 +272,6 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/demo/protocol.c \
 	src/hardware/demo/api.c
 endif
-if HW_DEREE_DE5000
-src_libdrivers_la_SOURCES += \
-	src/hardware/deree-de5000/api.c
-endif
 if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
@@ -452,6 +448,10 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/serial-dmm/protocol.h \
 	src/hardware/serial-dmm/protocol.c \
 	src/hardware/serial-dmm/api.c
+endif
+if HW_SERIAL_LCR
+src_libdrivers_la_SOURCES += \
+	src/hardware/serial-lcr/api.c
 endif
 if HW_SYSCLK_LWLA
 src_libdrivers_la_SOURCES += \
