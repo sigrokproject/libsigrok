@@ -70,6 +70,11 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
 		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
 	},
+	{
+		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
+		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
+		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
+	},
 	ALL_ZERO
 };
 
