@@ -29,7 +29,7 @@
 #define LOG_PREFIX "hameg-hmo"
 
 #define MAX_INSTRUMENT_VERSIONS 10
-#define MAX_COMMAND_SIZE 31
+#define MAX_COMMAND_SIZE 48
 
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];

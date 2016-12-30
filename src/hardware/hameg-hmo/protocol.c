@@ -31,7 +31,8 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_COUPLING]		    = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	    = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	    = ":%s:DATA:POINTS?",
-	[SCPI_CMD_GET_ANALOG_DATA]	    = ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_ANALOG_DATA]	    = ":FORM:BORD %s;" \
+					      ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_DIV]	    = ":CHAN%d:SCAL?",
 	[SCPI_CMD_SET_VERTICAL_DIV]	    = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	    = ":POD%d:STAT?",
@@ -821,7 +822,11 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		encoding.unitsize = sizeof(float);
 		encoding.is_signed = TRUE;
 		encoding.is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+		encoding.is_bigendian = TRUE;
+#else
 		encoding.is_bigendian = FALSE;
+#endif
 		/* TODO: Use proper 'digits' value for this device (and its modes). */
 		encoding.digits = 2;
 		encoding.is_digits_decimal = FALSE;

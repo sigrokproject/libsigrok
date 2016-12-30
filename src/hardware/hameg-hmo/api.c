@@ -568,6 +568,11 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 	case SR_CHANNEL_ANALOG:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_ANALOG_DATA],
+#ifdef WORDS_BIGENDIAN
+			   "MSBF",
+#else
+			   "LSBF",
+#endif
 			   ch->index + 1);
 		break;
 	case SR_CHANNEL_LOGIC:
