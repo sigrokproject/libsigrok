@@ -743,55 +743,74 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString* response;
-
-	char buf[10] = { 0 };
+	char buf[10];
 	long llen;
 	long datalen;
 
+	/*
+	 * Assume an initial maximum length, optionally gets adjusted below.
+	 * Prepare a NULL return value for when error paths will be taken.
+	 */
 	response = g_string_sized_new(1024);
 	*scpi_response = NULL;
 
+	/* Get (the first chunk of) the response. */
 	ret = sr_scpi_get_data(scpi, command, &response);
 	if (ret != SR_OK) {
 		g_string_free(response, TRUE);
 		return ret;
 	}
 
+	/*
+	 * SCPI protocol data blocks are preceeded with a length spec.
+	 * The length spec consists of a '#' marker, one digit which
+	 * specifies the character count of the length spec, and the
+	 * respective number of characters which specify the data block's
+	 * length. Raw data bytes follow (thus one must no longer assume
+	 * that the received input stream would be an ASCIIZ string).
+	 *
+	 * Get the data block length, and strip off the length spec from
+	 * the input buffer, leaving just the data bytes.
+	 */
 	if (response->str[0] != '#') {
 		g_string_free(response, TRUE);
 		return SR_ERR_DATA;
 	}
-
 	buf[0] = response->str[1];
+	buf[1] = '\0';
 	ret = sr_atol(buf, &llen);
 	if ((ret != SR_OK) || (llen == 0)) {
 		g_string_free(response, TRUE);
 		return ret;
 	}
-
 	memcpy(buf, &response->str[2], llen);
+	buf[llen] = '\0';
 	ret = sr_atol(buf, &datalen);
 	if ((ret != SR_OK) || (datalen == 0)) {
 		g_string_free(response, TRUE);
 		return ret;
 	}
-
-	// strip header
 	g_string_erase(response, 0, 2 + llen);
 
+	/*
+	 * If the initially assumed length does not cover the data block
+	 * length, then re-allocate the buffer size to the now known
+	 * length, and keep reading more chunks of response data.
+	 */
 	if (response->len < (unsigned long)(datalen)) {
 		int oldlen = response->len;
 		g_string_set_size(response, datalen);
 		g_string_set_size(response, oldlen);
 	}
-
 	while (response->len < (unsigned long)(datalen)) {
-		if (sr_scpi_get_data(scpi, NULL, &response) != SR_OK) {
+		ret = sr_scpi_get_data(scpi, NULL, &response);
+		if (ret != SR_OK) {
 			g_string_free(response, TRUE);
 			return ret;
 		}
 	}
 
+	/* Convert received data to byte array. */
 	*scpi_response = g_byte_array_new_take(
 		(guint8*)g_string_free(response, FALSE), datalen);
 
