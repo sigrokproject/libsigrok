@@ -419,12 +419,13 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 	GString *response;
 	gint64 laststart;
 	unsigned int elapsed_ms;
-	unsigned int offset = 0;
+	unsigned int offset;
 	int space;
 
-	if (command)
+	if (command) {
 		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
+	}
 
 	if (sr_scpi_read_begin(scpi) != SR_OK)
 		return SR_ERR;
@@ -723,6 +724,7 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 
 	return ret;
 }
+
 /**
  * Send a SCPI command, read the reply, parse it as binary data with a
  * "definite length block" header and store the as an result in scpi_response.
@@ -795,7 +797,6 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 
 	return ret;
 }
-
 
 /**
  * Send the *IDN? SCPI command, receive the reply, parse it and store the
