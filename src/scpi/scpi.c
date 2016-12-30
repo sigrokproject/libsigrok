@@ -453,9 +453,9 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 			return SR_ERR;
 		} else if (len > 0) {
 			laststart = g_get_monotonic_time();
+			offset += len;
+			g_string_set_size(response, offset);
 		}
-		offset += len;
-		g_string_set_size(response, offset);
 		/* Quit reading after a period of time without receive data. */
 		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
 		if (elapsed_ms >= scpi->read_timeout_ms) {
