@@ -87,6 +87,9 @@ struct scope_state {
 	int trigger_source;
 	int trigger_slope;
 	uint64_t sample_rate;
+
+	/** SCPI data block byte order. 'l'/'b' when known, '?' otherwise. */
+	char byteorder;
 };
 
 /** Private, per-device-instance driver context. */
