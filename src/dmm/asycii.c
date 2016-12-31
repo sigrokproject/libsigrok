@@ -60,7 +60,8 @@ static int parse_value(const char *buf, struct asycii_info *info,
 {
 	char valstr[7 + 1];
 	const char *valp;
-	int i, cnt, is_ol, dot_pos;
+	int i, cnt, is_ol;
+	const char *dot_pos;
 
 	/*
 	 * Strip all spaces from bytes 0-6. By copying all
@@ -102,12 +103,13 @@ static int parse_value(const char *buf, struct asycii_info *info,
 		sr_spew("%s(), cannot convert number", __func__);
 		return SR_ERR_DATA;
 	}
-	dot_pos = strcspn(valstr, ".");
-	if (dot_pos < cnt)
-		*exponent = -(cnt - dot_pos - 1);
+	dot_pos = g_strstr_len(valstr, -1, ".");
+	if (dot_pos)
+		*exponent = -(valstr + strlen(valstr) - dot_pos - 1);
 	else
 		*exponent = 0;
-	sr_spew("%s(), display value is %f", __func__, *result);
+	sr_spew("%s(), display value is %f, exponent %d",
+		__func__, *result, *exponent);
 	return SR_OK;
 }
 
