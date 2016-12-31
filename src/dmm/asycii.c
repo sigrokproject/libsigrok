@@ -124,12 +124,16 @@ static int parse_value(const char *buf, struct asycii_info *info,
  * variable length. Flags immediately follow the unit. The remainder
  * of the text buffer is SPACE padded, and terminated with CR.
  *
- * Notice the implementation detail of case *sensitive* comparison.
- * This would break correct operation. It's essential that e.g. "Vac"
- * gets split into the "V" unit and the "ac" flag, not into "VA" and
- * the unknown "c" flag! In the absence of separators or fixed
- * positions and with ambiguous text (when abbreviated), order of
- * comparison matters, too.
+ * Notice the implementation detail of case @b sensitive comparison.
+ * Since the measurement unit and flags are directly adjacent and are
+ * not separated from each other, case insensitive comparison would
+ * yield wrong results. It's essential that e.g. "Vac" gets split into
+ * the "V" unit and the "ac" flag, not into "VA" and the unknown "c"
+ * flag!
+ *
+ * Notice, too, that order of comparison matters in the absence of
+ * separators or fixed positions and with ambiguous text (note that we do
+ * partial comparison). It's essential to e.g. correctly tell "VA" from "V".
  *
  * @param[in]	buf The text buffer received from the DMM.
  * @param[out]	info Broken down measurement details.
