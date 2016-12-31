@@ -61,7 +61,6 @@ static int parse_value(const char *buf, struct asycii_info *info,
 	char valstr[7 + 1];
 	const char *valp;
 	int i, cnt, is_ol, dot_pos;
-	char *endp;
 
 	/*
 	 * Strip all spaces from bytes 0-6. By copying all
@@ -96,12 +95,9 @@ static int parse_value(const char *buf, struct asycii_info *info,
 
 	/*
 	 * Convert the textual number representation to a float, and
-	 * an exponent. Apply sanity checks (optional sign, digits and
-	 * dot expected here, exclusively).
+	 * an exponent.
 	 */
-	endp = NULL;
-	*result = strtof(valp, &endp);
-	if (endp == NULL || *endp != '\0') {
+	if (sr_atof_ascii(valp, result) != SR_OK) {
 		info->is_invalid = TRUE;
 		sr_spew("%s(), cannot convert number", __func__);
 		return SR_ERR_DATA;
@@ -184,32 +180,32 @@ static void parse_flags(const char *buf, struct asycii_info *info)
 
 	/* Scan for the measurement unit. */
 	sr_spew("%s(): scanning unit, buffer [%s]", __func__, u);
-	if (strncmp(u, "A", strlen("A")) == 0) {
+	if (g_str_has_prefix(u, "A")) {
 		u += strlen("A");
 		info->is_ampere = TRUE;
-	} else if (strncmp(u, "VA", strlen("VA")) == 0) {
+	} else if (g_str_has_prefix(u, "VA")) {
 		u += strlen("VA");
 		info->is_volt_ampere = TRUE;
-	} else if (strncmp(u, "V", strlen("V")) == 0) {
+	} else if (g_str_has_prefix(u, "V")) {
 		u += strlen("V");
 		info->is_volt = TRUE;
-	} else if (strncmp(u, "ohm", strlen("ohm")) == 0) {
+	} else if (g_str_has_prefix(u, "ohm")) {
 		u += strlen("ohm");
 		info->is_resistance = TRUE;
 		info->is_ohm = TRUE;
-	} else if (strncmp(u, "F", strlen("F")) == 0) {
+	} else if (g_str_has_prefix(u, "F")) {
 		u += strlen("F");
 		info->is_capacitance = TRUE;
 		info->is_farad = TRUE;
-	} else if (strncmp(u, "dB", strlen("dB")) == 0) {
+	} else if (g_str_has_prefix(u, "dB")) {
 		u += strlen("dB");
 		info->is_gain = TRUE;
 		info->is_decibel = TRUE;
-	} else if (strncmp(u, "Hz", strlen("Hz")) == 0) {
+	} else if (g_str_has_prefix(u, "Hz")) {
 		u += strlen("Hz");
 		info->is_frequency = TRUE;
 		info->is_hertz = TRUE;
-	} else if (strncmp(u, "%", strlen("%")) == 0) {
+	} else if (g_str_has_prefix(u, "%")) {
 		u += strlen("%");
 		info->is_duty_cycle = TRUE;
 		if (*u == '+') {
@@ -221,7 +217,7 @@ static void parse_flags(const char *buf, struct asycii_info *info)
 		} else {
 			info->is_invalid = TRUE;
 		}
-	} else if (strncmp(u, "Cnt", strlen("Cnt")) == 0) {
+	} else if (g_str_has_prefix(u, "Cnt")) {
 		u += strlen("Cnt");
 		info->is_pulse_count = TRUE;
 		info->is_unitless = TRUE;
@@ -234,7 +230,7 @@ static void parse_flags(const char *buf, struct asycii_info *info)
 		} else {
 			info->is_invalid = TRUE;
 		}
-	} else if (strncmp(u, "s", strlen("s")) == 0) {
+	} else if (g_str_has_prefix(u, "s")) {
 		u += strlen("s");
 		info->is_pulse_width = TRUE;
 		info->is_seconds = TRUE;
@@ -255,19 +251,19 @@ static void parse_flags(const char *buf, struct asycii_info *info)
 
 	/* Scan for additional flags. */
 	sr_spew("%s(): scanning flags, buffer [%s]", __func__, u);
-	if (strncmp(u, "ac+dc", strlen("ac+dc")) == 0) {
+	if (g_str_has_prefix(u, "ac+dc")) {
 		u += strlen("ac+dc");
 		info->is_ac_and_dc = TRUE;
-	} else if (strncmp(u, "ac", strlen("ac")) == 0) {
+	} else if (g_str_has_prefix(u, "ac")) {
 		u += strlen("ac");
 		info->is_ac = TRUE;
-	} else if (strncmp(u, "dc", strlen("dc")) == 0) {
+	} else if (g_str_has_prefix(u, "dc")) {
 		u += strlen("dc");
 		info->is_dc = TRUE;
-	} else if (strncmp(u, "d", strlen("d")) == 0) {
+	} else if (g_str_has_prefix(u, "d")) {
 		u += strlen("d");
 		info->is_diode = TRUE;
-	} else if (strncmp(u, "Pk", strlen("Pk")) == 0) {
+	} else if (g_str_has_prefix(u, "Pk")) {
 		u += strlen("Pk");
 		if (*u == '+') {
 			u++;
@@ -278,7 +274,7 @@ static void parse_flags(const char *buf, struct asycii_info *info)
 		} else {
 			info->is_invalid = TRUE;
 		}
-	} else if (strcmp(u, "") == 0) {
+	} else if (*u == '\0') {
 		/* Absence of any flags is acceptable. */
 	} else {
 		/* Presence of unknown flags is not. */
