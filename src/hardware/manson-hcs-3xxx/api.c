@@ -250,11 +250,15 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
-		if (bval == devc->output_enabled) /* Nothing to do. */
-			break;
-		if ((hcs_send_cmd(sdi->conn, "SOUT%1d\r", !bval) < 0) ||
-		    (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0))
+
+		if (hcs_send_cmd(sdi->conn, "SOUT%1d\r", !bval) < 0) {
+			sr_err("Could not send SR_CONF_ENABLED command.");
 			return SR_ERR;
+		}
+		if (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0) {
+			sr_err("Could not read SR_CONF_ENABLED reply.");
+			return SR_ERR;
+		}
 		devc->output_enabled = bval;
 		break;
 	default:
