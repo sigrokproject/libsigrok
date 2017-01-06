@@ -799,6 +799,18 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	ch = devc->current_channel->data;
 	state = devc->model_state;
 
+	/*
+	 * Send "frame begin" packet upon reception of data for the
+	 * first enabled channel.
+	 */
+	if (devc->current_channel == devc->enabled_channels) {
+		packet.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(sdi, &packet);
+	}
+
+	/*
+	 * Pass on the received data of the channel(s).
+	 */
 	switch (ch->type) {
 	case SR_CHANNEL_ANALOG:
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
@@ -807,9 +819,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 			return TRUE;
 		}
-
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
 
 		packet.type = SR_DF_ANALOG;
 
@@ -857,8 +866,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 		}
 
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
 
 		logic.length = data->len;
 		logic.unitsize = 1;
@@ -874,13 +881,24 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		break;
 	}
 
-	packet.type = SR_DF_FRAME_END;
-	sr_session_send(sdi, &packet);
-
+	/*
+	 * Advance to the next enabled channel. When data for all enabled
+	 * channels was received, then send the "frame end" packet.
+	 */
 	if (devc->current_channel->next) {
 		devc->current_channel = devc->current_channel->next;
 		hmo_request_data(sdi);
-	} else if (++devc->num_frames == devc->frame_limit) {
+		return TRUE;
+	}
+	packet.type = SR_DF_FRAME_END;
+	sr_session_send(sdi, &packet);
+
+	/*
+	 * End of frame was reached. Stop acquisition after the specified
+	 * number of frames, or continue reception by starting over at
+	 * the first enabled channel.
+	 */
+	if (++devc->num_frames == devc->frame_limit) {
 		sdi->driver->dev_acquisition_stop(sdi);
 	} else {
 		devc->current_channel = devc->enabled_channels;
