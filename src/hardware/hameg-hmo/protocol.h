@@ -30,6 +30,7 @@
 
 #define MAX_INSTRUMENT_VERSIONS 10
 #define MAX_COMMAND_SIZE 48
+#define MAX_DIGITAL_GROUP_COUNT	2
 
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];

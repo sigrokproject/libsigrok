@@ -706,7 +706,8 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
-	gboolean digital_added;
+	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
+	size_t group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
@@ -717,39 +718,56 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
-	digital_added = FALSE;
 
+	/* Preset empty results. */
+	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
+		digital_added[group] = FALSE;
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
 
+	/*
+	 * Contruct the list of enabled channels.
+	 */
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (!ch->enabled)
 			continue;
-		/* Only add a single digital channel. */
-		if (ch->type != SR_CHANNEL_LOGIC || !digital_added) {
+		/* Only add a single digital channel per group (pod). */
+		group = ch->index / 8;
+		if (ch->type != SR_CHANNEL_LOGIC || !digital_added[group]) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
 			if (ch->type == SR_CHANNEL_LOGIC)
-				digital_added = TRUE;
+				digital_added[group] = TRUE;
 		}
 	}
-
 	if (!devc->enabled_channels)
 		return SR_ERR;
 
+	/*
+	 * Check constraints. Some channels can be either analog or
+	 * digital, but not both at the same time.
+	 */
 	if (hmo_check_channels(devc->enabled_channels) != SR_OK) {
 		sr_err("Invalid channel configuration specified!");
 		ret = SR_ERR_NA;
 		goto free_enabled;
 	}
 
+	/*
+	 * Configure the analog and digital channels and the
+	 * corresponding digital pods.
+	 */
 	if (hmo_setup_channels(sdi) != SR_OK) {
 		sr_err("Failed to setup channel configuration!");
 		ret = SR_ERR;
 		goto free_enabled;
 	}
 
+	/*
+	 * Start acquisition on the first enabled channel. The
+	 * receive routine will continue driving the acquisition.
+	 */
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			hmo_receive_data, (void *)sdi);
 
