@@ -707,7 +707,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
-	size_t group;
+	size_t group, pod_count;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
@@ -726,8 +726,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->enabled_channels = NULL;
 
 	/*
-	 * Contruct the list of enabled channels.
+	 * Contruct the list of enabled channels. Determine the highest
+	 * number of digital pods involved in the acquisition.
 	 */
+	pod_count = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (!ch->enabled)
@@ -737,12 +739,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (ch->type != SR_CHANNEL_LOGIC || !digital_added[group]) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
-			if (ch->type == SR_CHANNEL_LOGIC)
+			if (ch->type == SR_CHANNEL_LOGIC) {
 				digital_added[group] = TRUE;
+				if (pod_count < group + 1)
+					pod_count = group + 1;
+			}
 		}
 	}
 	if (!devc->enabled_channels)
 		return SR_ERR;
+	devc->pod_count = pod_count;
+	devc->logic_data = NULL;
 
 	/*
 	 * Check constraints. Some channels can be either analog or

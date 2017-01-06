@@ -23,6 +23,12 @@
 #include "scpi.h"
 #include "protocol.h"
 
+SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
+				  size_t group, GByteArray *pod_data);
+SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
+				   struct dev_context *devc);
+SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc);
+
 static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		    = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		    = ":TIM:SCAL?",
@@ -764,6 +770,89 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/* Queue data of one channel group, for later submission. */
+SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
+				  size_t group, GByteArray *pod_data)
+{
+	size_t size;
+	GByteArray *store;
+	uint8_t *logic_data;
+	size_t idx, logic_step;
+
+	/*
+	 * Upon first invocation, allocate the array which can hold the
+	 * combined logic data for all channels. Assume that each channel
+	 * will yield an identical number of samples per receive call.
+	 *
+	 * As a poor man's safety measure: (Silently) skip processing
+	 * for unexpected sample counts, and ignore samples for
+	 * unexpected channel groups. Don't bother with complicated
+	 * resize logic, considering that many models only support one
+	 * pod, and the most capable supported models have two pods of
+	 * identical size. We haven't yet seen any "odd" configuration.
+	 */
+	if (!devc->logic_data) {
+		size = pod_data->len * devc->pod_count;
+		store = g_byte_array_sized_new(size);
+		memset(store->data, 0, size);
+		store = g_byte_array_set_size(store, size);
+		devc->logic_data = store;
+	} else {
+		store = devc->logic_data;
+		size = store->len / devc->pod_count;
+		if (size != pod_data->len)
+			return;
+		if (group >= devc->pod_count)
+			return;
+	}
+
+	/*
+	 * Fold the data of the most recently received channel group into
+	 * the storage, where data resides for all channels combined.
+	 */
+	logic_data = store->data;
+	logic_data += group;
+	logic_step = devc->pod_count;
+	for (idx = 0; idx < pod_data->len; idx++) {
+		*logic_data = pod_data->data[idx];
+		logic_data += logic_step;
+	}
+}
+
+/* Submit data for all channels, after the individual groups got collected. */
+SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
+				   struct dev_context *devc)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+
+	if (!devc->logic_data)
+		return;
+
+	logic.data = devc->logic_data->data;
+	logic.length = devc->logic_data->len;
+	logic.unitsize = devc->pod_count;
+
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+
+	sr_session_send(sdi, &packet);
+}
+
+/* Undo previous resource allocation. */
+SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc)
+{
+
+	if (devc->logic_data) {
+		g_byte_array_free(devc->logic_data, TRUE);
+		devc->logic_data = NULL;
+	}
+	/*
+	 * Keep 'pod_count'! It's required when more frames will be
+	 * received, and does not harm when kept after acquisition.
+	 */
+}
+
 SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_channel *ch;
@@ -777,6 +866,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
+	size_t group;
 
 	(void)fd;
 	(void)revents;
@@ -866,13 +956,31 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			return TRUE;
 		}
 
+		/*
+		 * If only data from the first pod is involved in the
+		 * acquisition, then the raw input bytes can get passed
+		 * forward for performance reasons. When the second pod
+		 * is involved (either alone, or in combination with the
+		 * first pod), then the received bytes need to be put
+		 * into memory in such a layout that all channel groups
+		 * get combined, and a unitsize larger than a single byte
+		 * applies. The "queue" logic transparently copes with
+		 * any such configuration. This works around the lack
+		 * of support for "meaning" to logic data, which is used
+		 * above for analog data.
+		 */
+		if (devc->pod_count == 1) {
+			packet.type = SR_DF_LOGIC;
+			logic.data = data->data;
+			logic.length = data->len;
+			logic.unitsize = 1;
+			packet.payload = &logic;
+			sr_session_send(sdi, &packet);
+		} else {
+			group = ch->index / 8;
+			hmo_queue_logic_data(devc, group, data);
+		}
 
-		logic.length = data->len;
-		logic.unitsize = 1;
-		logic.data = data->data;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		sr_session_send(sdi, &packet);
 		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
@@ -883,13 +991,24 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 	/*
 	 * Advance to the next enabled channel. When data for all enabled
-	 * channels was received, then send the "frame end" packet.
+	 * channels was received, then flush potentially queued logic data,
+	 * and send the "frame end" packet.
 	 */
 	if (devc->current_channel->next) {
 		devc->current_channel = devc->current_channel->next;
 		hmo_request_data(sdi);
 		return TRUE;
 	}
+	hmo_send_logic_packet(sdi, devc);
+
+	/*
+	 * Release the logic data storage after each frame. This copes
+	 * with sample counts that differ in length per frame. -- Is
+	 * this a real constraint when acquiring multiple frames with
+	 * identical device settings?
+	 */
+	hmo_cleanup_logic_data(devc);
+
 	packet.type = SR_DF_FRAME_END;
 	sr_session_send(sdi, &packet);
 
@@ -900,6 +1019,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 */
 	if (++devc->num_frames == devc->frame_limit) {
 		sdi->driver->dev_acquisition_stop(sdi);
+		hmo_cleanup_logic_data(devc);
 	} else {
 		devc->current_channel = devc->enabled_channels;
 		hmo_request_data(sdi);

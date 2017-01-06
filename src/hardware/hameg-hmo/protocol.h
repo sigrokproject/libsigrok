@@ -103,6 +103,9 @@ struct dev_context {
 	uint64_t num_frames;
 
 	uint64_t frame_limit;
+
+	size_t pod_count;
+	GByteArray *logic_data;
 };
 
 SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi);
