@@ -592,34 +592,50 @@ static int hmo_check_channels(GSList *channels)
 {
 	GSList *l;
 	struct sr_channel *ch;
-	gboolean enabled_pod1, enabled_pod2, enabled_chan3, enabled_chan4;
+	gboolean enabled_chan[MAX_ANALOG_CHANNEL_COUNT];
+	gboolean enabled_pod[MAX_DIGITAL_GROUP_COUNT];
+	size_t idx;
 
-	enabled_pod1 = enabled_pod2 = enabled_chan3 = enabled_chan4 = FALSE;
+	/* Preset "not enabled" for all channels / pods. */
+	for (idx = 0; idx < ARRAY_SIZE(enabled_chan); idx++)
+		enabled_chan[idx] = FALSE;
+	for (idx = 0; idx < ARRAY_SIZE(enabled_pod); idx++)
+		enabled_pod[idx] = FALSE;
 
+	/*
+	 * Determine which channels / pods are required for the caller's
+	 * specified configuration.
+	 */
 	for (l = channels; l; l = l->next) {
 		ch = l->data;
 		switch (ch->type) {
 		case SR_CHANNEL_ANALOG:
-			if (ch->index == 2)
-				enabled_chan3 = TRUE;
-			else if (ch->index == 3)
-				enabled_chan4 = TRUE;
+			idx = ch->index;
+			if (idx < ARRAY_SIZE(enabled_chan))
+				enabled_chan[idx] = TRUE;
 			break;
 		case SR_CHANNEL_LOGIC:
-			if (ch->index < 8)
-				enabled_pod1 = TRUE;
-			else
-				enabled_pod2 = TRUE;
+			idx = ch->index / 8;
+			if (idx < ARRAY_SIZE(enabled_pod))
+				enabled_pod[idx] = TRUE;
 			break;
 		default:
 			return SR_ERR;
 		}
 	}
 
-	if ((enabled_pod1 && enabled_chan3) ||
-	    (enabled_pod2 && enabled_chan4))
+	/*
+	 * Check for resource conflicts. Some channels can be either
+	 * analog or digital, but never both at the same time.
+	 *
+	 * Note that the constraints might depend on the specific model.
+	 * These tests might need some adjustment when support for more
+	 * models gets added to the driver.
+	 */
+	if (enabled_pod[0] && enabled_chan[2])
 		return SR_ERR;
-
+	if (enabled_pod[1] && enabled_chan[3])
+		return SR_ERR;
 	return SR_OK;
 }
 
