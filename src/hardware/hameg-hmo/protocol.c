@@ -48,7 +48,6 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_GET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT?",
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
 	[SCPI_CMD_GET_PROBE_UNIT]	    = ":PROB%d:SET:ATT:UNIT?",
-	[SCPI_CMD_GET_BYTE_ORDER]	    = ":FORM:BORD?",
 };
 
 static const uint32_t hmo_devopts[] = {
@@ -496,22 +495,6 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		g_free(tmp_str);
 	}
 
-	/*
-	 * Determine the byte order which will be used for data blocks.
-	 * A ":FORM:BORD?" request will yield either an "MSBF" or "LSBF"
-	 * response.
-	 */
-	state->byteorder = '?';
-	if (sr_scpi_get_string(scpi,
-			       (*config->scpi_dialect)[SCPI_CMD_GET_BYTE_ORDER],
-			       &tmp_str) != SR_OK)
-		return SR_ERR;
-	if (tmp_str[0] == 'M')
-		state->byteorder = 'b';
-	else if (tmp_str[0] == 'L')
-		state->byteorder = 'l';
-	g_free(tmp_str);
-
 	return SR_OK;
 }
 
@@ -838,8 +821,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		encoding.unitsize = sizeof(float);
 		encoding.is_signed = TRUE;
 		encoding.is_float = TRUE;
-		/* Assume LE format when unknown for backwards compat. */
-		encoding.is_bigendian = (state->byteorder == 'b') ? TRUE : FALSE;
+		encoding.is_bigendian = FALSE;
 		/* TODO: Use proper 'digits' value for this device (and its modes). */
 		encoding.digits = 2;
 		encoding.is_digits_decimal = FALSE;
