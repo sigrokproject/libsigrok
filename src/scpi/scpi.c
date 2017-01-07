@@ -422,26 +422,31 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 	unsigned int offset;
 	int space;
 
+	/* Optionally send caller provided command. */
 	if (command) {
 		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 	}
 
+	/* Initiate SCPI read operation. */
 	if (sr_scpi_read_begin(scpi) != SR_OK)
 		return SR_ERR;
 
+	/* Keep reading until completion or until timeout. */
 	laststart = g_get_monotonic_time();
 
 	response = *scpi_response;
-
 	offset = response->len;
 
 	while (!sr_scpi_read_complete(scpi)) {
+		/* Resize the buffer when free space drops below a threshold. */
 		space = response->allocated_len - response->len;
 		if (space < 128) {
 			g_string_set_size(response, response->len + 1024);
+			g_string_set_size(response, offset);
 			space = response->allocated_len - response->len;
 		}
+		/* Read another chunk of the response. */
 		len = sr_scpi_read_data(scpi, &response->str[offset], space);
 		if (len < 0) {
 			sr_err("Incompletely read SCPI response.");
@@ -451,6 +456,7 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		}
 		offset += len;
 		g_string_set_size(response, offset);
+		/* Quit reading after a period of time without receive data. */
 		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
 		if (elapsed_ms >= scpi->read_timeout_ms) {
 			sr_err("Timed out waiting for SCPI response.");
