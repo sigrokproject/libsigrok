@@ -28,13 +28,9 @@
 
 #define LOG_PREFIX "scpi_serial"
 
-#define BUFFER_SIZE 1024
-
 struct scpi_serial {
 	struct sr_serial_dev_inst *serial;
-	char buffer[BUFFER_SIZE];
-	size_t count;
-	size_t read;
+	char got_newline;
 };
 
 static const struct {
@@ -97,8 +93,7 @@ static int scpi_serial_open(struct sr_scpi_dev_inst *scpi)
 	if (serial_flush(serial) != SR_OK)
 		return SR_ERR;
 
-	sscpi->count = 0;
-	sscpi->read = 0;
+	sscpi->got_newline = 0;
 
 	return SR_OK;
 }
@@ -145,7 +140,8 @@ static int scpi_serial_send(void *priv, const char *command)
 
 static int scpi_serial_read_begin(void *priv)
 {
-	(void) priv;
+	struct scpi_serial *sscpi = priv;
+	sscpi->got_newline = 0;
 
 	return SR_OK;
 }
@@ -153,56 +149,33 @@ static int scpi_serial_read_begin(void *priv)
 static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_serial *sscpi = priv;
-	int len, ret;
+	int ret;
 
-	len = BUFFER_SIZE - sscpi->count;
+	/* Try to read new data into the buffer. */
+	ret = serial_read_nonblocking(sscpi->serial, buf, maxlen);
 
-	/* Try to read new data into the buffer if there is space. */
-	if (len > 0) {
-		ret = serial_read_nonblocking(sscpi->serial, sscpi->buffer + sscpi->count,
-				BUFFER_SIZE - sscpi->count);
+	if (ret < 0)
+		return ret;
 
-		if (ret < 0)
-			return ret;
+	if (ret > 0) {
+		sr_spew("Read %d bytes into buffer.", ret);
 
-		sscpi->count += ret;
-
-		if (ret > 0)
-			sr_spew("Read %d bytes into buffer.", ret);
-	}
-
-	/* Return as many bytes as possible from buffer, excluding any trailing newline. */
-	if (sscpi->read < sscpi->count) {
-		len = sscpi->count - sscpi->read;
-		if (len > maxlen)
-			len = maxlen;
-		if (sscpi->buffer[sscpi->read + len - 1] == '\n')
-			len--;
-		sr_spew("Returning %d bytes from buffer.", len);
-		memcpy(buf, sscpi->buffer + sscpi->read, len);
-		sscpi->read += len;
-		if (sscpi->read == BUFFER_SIZE) {
-			sr_spew("Resetting buffer.");
-			sscpi->count = 0;
-			sscpi->read = 0;
+		if (buf[ret - 1] == '\n') {
+			sscpi->got_newline = 1;
+			sr_spew("Received terminator");
+		} else {
+			sscpi->got_newline = 0;
 		}
-		return len;
 	}
 
-	return 0;
+	return ret;
 }
 
 static int scpi_serial_read_complete(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
 
-	/* If the next character is a newline, discard it and report complete. */
-	if (sscpi->read < sscpi->count && sscpi->buffer[sscpi->read] == '\n') {
-		sscpi->read++;
-		return 1;
-	} else {
-		return 0;
-	}
+	return sscpi->got_newline;
 }
 
 static int scpi_serial_close(struct sr_scpi_dev_inst *scpi)
