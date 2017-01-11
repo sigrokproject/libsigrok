@@ -364,8 +364,9 @@ static void scope_state_dump(const struct scope_config *config,
 			state->digital_pods[i] ? "On" : "Off");
 	}
 
-	tmp = sr_period_string((*config->timebases)[state->timebase][0] *
-			       (*config->timebases)[state->timebase][1]);
+	/* FIXME: this is wrong for TB > 1 second */
+	tmp = sr_period_string((*config->timebases)[state->timebase][1] /
+			       (*config->timebases)[state->timebase][0]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
