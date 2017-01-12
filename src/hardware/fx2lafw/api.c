@@ -383,8 +383,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = fx2lafw_dev_new();
 		devc->profile = prof;
-		if ((prof->dev_caps & DEV_CAPS_16BIT) || (prof->dev_caps & DEV_CAPS_AX_ANALOG))
-			devc->sample_wide = TRUE;
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
 
@@ -981,6 +979,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	const GSList *l;
 	int p;
 	struct sr_channel *ch;
+	uint32_t channel_mask = 0, num_analog = 0;
 
 	devc = sdi->priv;
 
@@ -991,11 +990,17 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
 		if ((p <= NUM_CHANNELS) && (ch->type == SR_CHANNEL_ANALOG)) {
+			num_analog++;
 			devc->ch_enabled[p] = ch->enabled;
 			devc->enabled_analog_channels =
 			    g_slist_append(devc->enabled_analog_channels, ch);
+		} else {
+			channel_mask |= ch->enabled << p;
 		}
 	}
+
+	/* Use no wide sampling if we have only the first 8 channels set. */
+	devc->sample_wide = (channel_mask > 0xff || num_analog > 0);
 
 	return SR_OK;
 }
