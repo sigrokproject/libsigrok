@@ -94,7 +94,7 @@ struct sr_scpi_dev_inst {
 	int (*read_complete)(void *priv);
 	int (*close)(struct sr_scpi_dev_inst *scpi);
 	void (*free)(void *priv);
-	unsigned int read_timeout_ms;
+	unsigned int read_timeout_us;
 	void *priv;
 	/* Only used for quirk workarounds, notably the Rigol DS1000 series. */
 	uint64_t firmware_version;

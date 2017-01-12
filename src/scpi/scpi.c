@@ -190,7 +190,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 			scpi = g_malloc(sizeof(*scpi));
 			*scpi = *scpi_dev;
 			scpi->priv = g_malloc0(scpi->priv_size);
-			scpi->read_timeout_ms = 1000;
+			scpi->read_timeout_us = 1000 * 1000;
 			params = g_strsplit(resource, "/", 0);
 			if (scpi->dev_inst_new(scpi->priv, drvc, resource,
 			                       params, serialcomm) != SR_OK) {
@@ -417,8 +417,7 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 {
 	int len;
 	GString *response;
-	gint64 laststart;
-	unsigned int elapsed_ms;
+	gint64 laststart, now;
 	unsigned int offset;
 	int space;
 
@@ -451,16 +450,18 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		if (len < 0) {
 			sr_err("Incompletely read SCPI response.");
 			return SR_ERR;
-		} else if (len > 0) {
-			laststart = g_get_monotonic_time();
+		}
+
+		now = g_get_monotonic_time();
+
+		if (len > 0) {
+			laststart = now;
 			offset += len;
 			g_string_set_size(response, offset);
-		}
-		/* Quit reading after a period of time without receive data. */
-		elapsed_ms = (g_get_monotonic_time() - laststart) / 1000;
-		if (elapsed_ms >= scpi->read_timeout_ms) {
+		} else if ((now - laststart) >= scpi->read_timeout_us) {
+			/* Quit reading after a period of time without receiving data. */
 			sr_err("Timed out waiting for SCPI response.");
-			return SR_ERR;
+			return SR_ERR_TIMEOUT;
 		}
 	}
 
