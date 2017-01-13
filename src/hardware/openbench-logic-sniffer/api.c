@@ -161,6 +161,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sr_hexdump_free(id);
 		return NULL;
+	} else {
+		sr_dbg("Successful detection, got '%c%c%c%c' (0x%02x 0x%02x 0x%02x 0x%02x).",
+		       buf[0], buf[1], buf[2], buf[3],
+		       buf[0], buf[1], buf[2], buf[3]);
 	}
 
 	/* Definitely using the OLS protocol, check if it supports
