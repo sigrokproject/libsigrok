@@ -412,14 +412,49 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 	return SR_OK;
 }
 
+/**
+ * Do a non-blocking read of up to the allocated length, and
+ * check if a timeout has occured.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param response Buffer to which the response is appended.
+ * @param abs_timeout_us Absolute timeout in microseconds
+ *
+ * @return read length on success, SR_ERR* on failure.
+ */
+SR_PRIV int sr_scpi_read_response(struct sr_scpi_dev_inst *scpi,
+				  GString *response, gint64 abs_timeout_us)
+{
+	int len, space;
+
+	space = response->allocated_len - response->len;
+	len = sr_scpi_read_data(scpi, &response->str[response->len], space);
+
+	if (len < 0) {
+		sr_err("Incompletely read SCPI response.");
+		return SR_ERR;
+	}
+
+	if (len > 0) {
+		g_string_set_size(response, response->len + len);
+		return len;
+	}
+
+	if (g_get_monotonic_time() > abs_timeout_us) {
+		sr_err("Timed out waiting for SCPI response.");
+		return SR_ERR_TIMEOUT;
+	}
+
+	return 0;
+}
+
 SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 			     const char *command, GString **scpi_response)
 {
-	int len;
+	int ret;
 	GString *response;
-	gint64 laststart, now;
-	unsigned int offset;
 	int space;
+	gint64 timeout;
 
 	/* Optionally send caller provided command. */
 	if (command) {
@@ -432,37 +467,26 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		return SR_ERR;
 
 	/* Keep reading until completion or until timeout. */
-	laststart = g_get_monotonic_time();
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 
 	response = *scpi_response;
-	offset = response->len;
 
 	while (!sr_scpi_read_complete(scpi)) {
 		/* Resize the buffer when free space drops below a threshold. */
 		space = response->allocated_len - response->len;
 		if (space < 128) {
-			g_string_set_size(response, response->len + 1024);
-			g_string_set_size(response, offset);
-			space = response->allocated_len - response->len;
+			int oldlen = response->len;
+			g_string_set_size(response, oldlen + 1024);
+			g_string_set_size(response, oldlen);
 		}
+
 		/* Read another chunk of the response. */
-		len = sr_scpi_read_data(scpi, &response->str[offset], space);
-		if (len < 0) {
-			sr_err("Incompletely read SCPI response.");
-			return SR_ERR;
-		}
+		ret = sr_scpi_read_response(scpi, response, timeout);
 
-		now = g_get_monotonic_time();
-
-		if (len > 0) {
-			laststart = now;
-			offset += len;
-			g_string_set_size(response, offset);
-		} else if ((now - laststart) >= scpi->read_timeout_us) {
-			/* Quit reading after a period of time without receiving data. */
-			sr_err("Timed out waiting for SCPI response.");
-			return SR_ERR_TIMEOUT;
-		}
+		if (ret < 0)
+			return ret;
+		if (ret > 0)
+			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	}
 
 	return SR_OK;
@@ -753,19 +777,32 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	char buf[10];
 	long llen;
 	long datalen;
+	gint64 timeout;
+
+	if (command)
+		if (sr_scpi_send(scpi, command) != SR_OK)
+			return SR_ERR;
+
+	if (sr_scpi_read_begin(scpi) != SR_OK)
+		return SR_ERR;
 
 	/*
 	 * Assume an initial maximum length, optionally gets adjusted below.
 	 * Prepare a NULL return value for when error paths will be taken.
 	 */
 	response = g_string_sized_new(1024);
+
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+
 	*scpi_response = NULL;
 
 	/* Get (the first chunk of) the response. */
-	ret = sr_scpi_get_data(scpi, command, &response);
-	if (ret != SR_OK) {
-		g_string_free(response, TRUE);
-		return ret;
+	while (response->len < 2) {
+		ret = sr_scpi_read_response(scpi, response, timeout);
+		if (ret < 0) {
+			g_string_free(response, TRUE);
+			return ret;
+		}
 	}
 
 	/*
@@ -790,6 +827,15 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 		g_string_free(response, TRUE);
 		return ret;
 	}
+
+	while (response->len < (unsigned long)(2 + llen)) {
+		ret = sr_scpi_read_response(scpi, response, timeout);
+		if (ret < 0) {
+			g_string_free(response, TRUE);
+			return ret;
+		}
+	}
+
 	memcpy(buf, &response->str[2], llen);
 	buf[llen] = '\0';
 	ret = sr_atol(buf, &datalen);
@@ -809,19 +855,22 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 		g_string_set_size(response, datalen);
 		g_string_set_size(response, oldlen);
 	}
+
 	while (response->len < (unsigned long)(datalen)) {
-		ret = sr_scpi_get_data(scpi, NULL, &response);
-		if (ret != SR_OK) {
+		ret = sr_scpi_read_response(scpi, response, timeout);
+		if (ret < 0) {
 			g_string_free(response, TRUE);
 			return ret;
 		}
+		if (ret > 0)
+			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	}
 
 	/* Convert received data to byte array. */
 	*scpi_response = g_byte_array_new_take(
 		(guint8*)g_string_free(response, FALSE), datalen);
 
-	return ret;
+	return SR_OK;
 }
 
 /**

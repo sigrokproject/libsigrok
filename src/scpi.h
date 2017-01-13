@@ -120,6 +120,8 @@ SR_PRIV int sr_scpi_read_complete(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi);
 SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi);
 
+SR_PRIV int sr_scpi_read_response(struct sr_scpi_dev_inst *scpi,
+			GString *response, gint64 abs_timeout_us);
 SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			const char *command, char **scpi_response);
 SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
