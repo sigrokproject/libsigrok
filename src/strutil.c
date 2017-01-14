@@ -369,13 +369,13 @@ SR_API char *sr_period_string(uint64_t frequency)
 	o = g_malloc0(30 + 1);
 
 	if (frequency >= SR_GHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " ns", frequency / 1000000000);
+		r = snprintf(o, 30, "%lld ps", 1000000000000ull / frequency);
 	else if (frequency >= SR_MHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " us", frequency / 1000000);
+		r = snprintf(o, 30, "%lld ns", 1000000000ull / frequency);
 	else if (frequency >= SR_KHZ(1))
-		r = snprintf(o, 30, "%" PRIu64 " ms", frequency / 1000);
+		r = snprintf(o, 30, "%lld us", 1000000ull / frequency);
 	else
-		r = snprintf(o, 30, "%" PRIu64 " s", frequency);
+		r = snprintf(o, 30, "%lld ms", 1000ull / frequency);
 
 	if (r < 0) {
 		/* Something went wrong... */
