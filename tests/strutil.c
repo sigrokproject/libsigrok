@@ -33,6 +33,17 @@ static void test_samplerate(uint64_t samplerate, const char *expected)
 	g_free(s);
 }
 
+static void test_period(uint64_t frequency, const char *expected)
+{
+	char *s;
+
+	s = sr_period_string(frequency);
+	fail_unless(s != NULL);
+	fail_unless(!strcmp(s, expected),
+		    "Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
 static void test_rational(const char *input, struct sr_rational expected)
 {
 	int ret;
@@ -166,6 +177,38 @@ START_TEST(test_ghz)
 }
 END_TEST
 
+START_TEST(test_hz_period)
+{
+	test_period(1, "1000 ms");
+	test_period(5, "200 ms");
+	test_period(72, "13 ms");
+	test_period(388, "2 ms");
+
+	/* Again, but now using SR_HZ(). */
+	test_period(SR_HZ(1), "1000 ms");
+	test_period(SR_HZ(5), "200 ms");
+	test_period(SR_HZ(72), "13 ms");
+	test_period(SR_HZ(388), "2 ms");
+}
+END_TEST
+
+START_TEST(test_ghz_period)
+{
+	/* Note: Numbers > 2^32 need a ULL suffix. */
+
+	test_period(1000000000, "1000 ps");
+	test_period(5000000000ULL, "200 ps");
+	test_period(72000000000ULL, "13 ps");
+	test_period(388000000000ULL, "2 ps");
+
+	/* Again, but now using SR_GHZ(). */
+	test_period(SR_GHZ(1), "1000 ps");
+	test_period(SR_GHZ(5), "200 ps");
+	test_period(SR_GHZ(72), "13 ps");
+	test_period(SR_GHZ(388), "2 ps");
+}
+END_TEST
+
 START_TEST(test_integral)
 {
 	test_rational("1", (struct sr_rational){1, 1});
@@ -214,6 +257,8 @@ Suite *suite_strutil(void)
 	tcase_add_test(tc, test_khz);
 	tcase_add_test(tc, test_mhz);
 	tcase_add_test(tc, test_ghz);
+	tcase_add_test(tc, test_hz_period);
+	tcase_add_test(tc, test_ghz_period);
 	tcase_add_test(tc, test_integral);
 	tcase_add_test(tc, test_fractional);
 	tcase_add_test(tc, test_exponent);
