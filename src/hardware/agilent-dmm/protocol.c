@@ -772,11 +772,10 @@ static int send_log(const struct sr_dev_inst *sdi)
 	                  source[devc->data_source - 1], devc->cur_sample);
 }
 
-static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+static int recv_log(const struct sr_dev_inst *sdi, GMatchInfo *match,
+                    const int mqs[], const int units[], const int exponents[],
+                    unsigned int num_functions)
 {
-	static const int mqs[] = { SR_MQ_VOLTAGE, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CURRENT, SR_MQ_RESISTANCE, SR_MQ_VOLTAGE, SR_MQ_TEMPERATURE, SR_MQ_CAPACITANCE, SR_MQ_FREQUENCY, SR_MQ_DUTY_CYCLE, SR_MQ_PULSE_WIDTH, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CONDUCTANCE };
-	static const int units[] = { SR_UNIT_VOLT, SR_UNIT_VOLT, SR_UNIT_AMPERE, SR_UNIT_AMPERE, SR_UNIT_OHM, SR_UNIT_VOLT, SR_UNIT_CELSIUS, SR_UNIT_FARAD, SR_UNIT_HERTZ, SR_UNIT_PERCENTAGE, SR_UNIT_SECOND, SR_UNIT_DECIBEL_MW, SR_UNIT_PERCENTAGE, SR_UNIT_SIEMENS };
-	static const int exponents[] = { -6, -4, -9, -4, -3, -4, -1, -12, -3, -3, -6, -3, -2, -11 };
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -794,7 +793,7 @@ static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	devc = sdi->priv;
 
 	mstr = g_match_info_fetch(match, 2);
-	if (sr_atoi(mstr, (int*)&function) != SR_OK || function >= ARRAY_SIZE(mqs)) {
+	if (sr_atoi(mstr, (int*)&function) != SR_OK || function >= num_functions) {
 		g_free(mstr);
 		sr_dbg("Invalid function.");
 		return SR_ERR;
@@ -858,6 +857,15 @@ static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	devc->cur_sample++;
 
 	return JOB_LOG;
+}
+
+static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	static const int mqs[] = { SR_MQ_VOLTAGE, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CURRENT, SR_MQ_RESISTANCE, SR_MQ_VOLTAGE, SR_MQ_TEMPERATURE, SR_MQ_CAPACITANCE, SR_MQ_FREQUENCY, SR_MQ_DUTY_CYCLE, SR_MQ_PULSE_WIDTH, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CONDUCTANCE };
+	static const int units[] = { SR_UNIT_VOLT, SR_UNIT_VOLT, SR_UNIT_AMPERE, SR_UNIT_AMPERE, SR_UNIT_OHM, SR_UNIT_VOLT, SR_UNIT_CELSIUS, SR_UNIT_FARAD, SR_UNIT_HERTZ, SR_UNIT_PERCENTAGE, SR_UNIT_SECOND, SR_UNIT_DECIBEL_MW, SR_UNIT_PERCENTAGE, SR_UNIT_SIEMENS };
+	static const int exponents[] = { -6, -4, -9, -4, -3, -4, -1, -12, -3, -3, -6, -3, -2, -11 };
+
+	return recv_log(sdi, match, mqs, units, exponents, ARRAY_SIZE(mqs));
 }
 
 /* This comes in whenever the rotary switch is changed to a new position.
