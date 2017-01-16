@@ -62,6 +62,7 @@ extern const struct agdmm_job agdmm_jobs_live[];
 extern const struct agdmm_job agdmm_jobs_log[];
 extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_recv agdmm_recvs_u124x[];
+extern const struct agdmm_recv agdmm_recvs_u124xc[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
 extern const struct agdmm_recv agdmm_recvs_u128x[];
 
@@ -78,6 +79,9 @@ static const struct agdmm_profile supported_agdmm[] = {
 	{ AGILENT_U1242, "U1242A", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
 	{ AGILENT_U1241, "U1241B", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
 	{ AGILENT_U1242, "U1242B", 2, agdmm_jobs_live, NULL, agdmm_recvs_u124x },
+
+	{ KEYSIGHT_U1241C, "U1241C", 2, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u124xc },
+	{ KEYSIGHT_U1242C, "U1242C", 2, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u124xc },
 
 	{ AGILENT_U1251, "U1251A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
 	{ AGILENT_U1252, "U1252A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },

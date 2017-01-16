@@ -312,6 +312,39 @@ static int recv_stat_u124x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	return JOB_STAT;
 }
 
+static int recv_stat_u124xc(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	struct dev_context *devc;
+	char *s;
+
+	devc = sdi->priv;
+	s = g_match_info_fetch(match, 1);
+	sr_spew("STAT response '%s'.", s);
+
+	/* Max, Min or Avg mode -- no way to tell which, so we'll
+	 * set both flags to denote it's not a normal measurement. */
+	if (s[0] == '1')
+		devc->cur_mqflags[0] |= SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG;
+	else
+		devc->cur_mqflags[0] &= ~(SR_MQFLAG_MAX | SR_MQFLAG_MIN | SR_MQFLAG_AVG);
+
+	/* Null function. */
+	if (s[1] == '1')
+		devc->cur_mqflags[0] |= SR_MQFLAG_RELATIVE;
+	else
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_RELATIVE;
+
+	/* Triggered or auto hold modes. */
+	if (s[7] == '1' || s[11] == '1')
+		devc->cur_mqflags[0] |= SR_MQFLAG_HOLD;
+	else
+		devc->cur_mqflags[0] &= ~SR_MQFLAG_HOLD;
+
+	g_free(s);
+
+	return JOB_STAT;
+}
+
 static int recv_stat_u125x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 {
 	struct dev_context *devc;
@@ -640,6 +673,11 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 				devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 			} else if (!strncmp(mstr + 5, "DC", 2)) {
 				devc->cur_mqflags[i] |= SR_MQFLAG_DC;
+			} else if (!strncmp(mstr + 5, "HRAT", 4)) {
+				devc->cur_mq[i] = SR_MQ_HARMONIC_RATIO;
+				devc->cur_unit[i] = SR_UNIT_PERCENTAGE;
+				devc->cur_digits[i] = 2;
+				devc->cur_encoding[i] = 3;
 			}
 		} else
 			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
@@ -702,8 +740,14 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_unit[i] = SR_UNIT_VOLT;
 		devc->cur_mqflags[i] = SR_MQFLAG_DIODE;
 		devc->cur_exponent[i] = 0;
-		devc->cur_digits[i] = 4;
-		devc->cur_encoding[i] = 5;
+		if (devc->profile->model == KEYSIGHT_U1281 ||
+		    devc->profile->model == KEYSIGHT_U1282) {
+			devc->cur_digits[i] = 4;
+			devc->cur_encoding[i] = 5;
+		} else {
+			devc->cur_digits[i] = 3;
+			devc->cur_encoding[i] = 4;
+		}
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2) ||
 		   !strncmp(mstr, "TEMP", 4)) {
 		devc->cur_mq[i] = SR_MQ_TEMPERATURE;
@@ -746,9 +790,16 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mq[i] = SR_MQ_VOLTAGE;
 		devc->cur_unit[i] = SR_UNIT_VOLT;
 		devc->cur_mqflags[i] = SR_MQFLAG_AC;
-		devc->cur_exponent[i] = -3;
-		devc->cur_digits[i] = -1;
-		devc->cur_encoding[i] = 0;
+		if (devc->profile->model == KEYSIGHT_U1281 ||
+		    devc->profile->model == KEYSIGHT_U1282) {
+			devc->cur_exponent[i] = -3;
+			devc->cur_digits[i] = -1;
+			devc->cur_encoding[i] = 0;
+		} else {
+			devc->cur_exponent[i] = 0;
+			devc->cur_digits[i] = 2;
+			devc->cur_encoding[i] = 3;
+		}
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
@@ -832,7 +883,9 @@ static int recv_log(const struct sr_dev_inst *sdi, GMatchInfo *match,
 			unit = SR_UNIT_DECIBEL_VOLT;
 		if (unit == SR_UNIT_CELSIUS) {
 			unit = SR_UNIT_FAHRENHEIT;
-			exponent--;
+			if (devc->profile->model == KEYSIGHT_U1281 ||
+			    devc->profile->model == KEYSIGHT_U1282)
+				exponent--;
 		}
 	}
 
@@ -857,6 +910,15 @@ static int recv_log(const struct sr_dev_inst *sdi, GMatchInfo *match,
 	devc->cur_sample++;
 
 	return JOB_LOG;
+}
+
+static int recv_log_u124xc(const struct sr_dev_inst *sdi, GMatchInfo *match)
+{
+	static const int mqs[] = { SR_MQ_VOLTAGE, SR_MQ_VOLTAGE, SR_MQ_CURRENT, SR_MQ_CURRENT, SR_MQ_RESISTANCE, SR_MQ_VOLTAGE, SR_MQ_TEMPERATURE, SR_MQ_CAPACITANCE, SR_MQ_FREQUENCY, SR_MQ_HARMONIC_RATIO, SR_MQ_CURRENT };
+	static const int units[] = { SR_UNIT_VOLT, SR_UNIT_VOLT, SR_UNIT_AMPERE, SR_UNIT_AMPERE, SR_UNIT_OHM, SR_UNIT_VOLT, SR_UNIT_CELSIUS, SR_UNIT_FARAD, SR_UNIT_HERTZ, SR_UNIT_PERCENTAGE, SR_UNIT_PERCENTAGE };
+	static const int exponents[] = { -5, -4, -7, -3, -2, -3, -1, -10, -2, -2, -2 };
+
+	return recv_log(sdi, match, mqs, units, exponents, ARRAY_SIZE(mqs));
 }
 
 static int recv_log_u128x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -934,6 +996,20 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u124x[] = {
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
+	ALL_ZERO
+};
+
+SR_PRIV const struct agdmm_recv agdmm_recvs_u124xc[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u124xc },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))$", recv_fetc },
+	{ "^\"(VOLT|VOLT:AC|VOLT:HRAT|CURR|CURR:AC|RES|CONT|CAP|FREQ|FREQ:AC) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(NCV) (HI|LO)\"$", recv_conf_u124x_5x },
+	{ "^\"(DIOD|TEMP)\"$", recv_conf_u124x_5x },
+	{ "^\"((\\d{2})(\\d{5})\\d{7})\"$", recv_log_u124xc },
+	{ "^\\*E$", recv_err },
 	ALL_ZERO
 };
 
