@@ -705,7 +705,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_digits[i] = 4;
 		devc->cur_encoding[i] = 5;
 	} else if (!strncmp(mstr, "T1", 2) || !strncmp(mstr, "T2", 2) ||
-		   !strncmp(mstr, "TEMP", 2)) {
+		   !strncmp(mstr, "TEMP", 4)) {
 		devc->cur_mq[i] = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
 		if (!m2)
