@@ -231,6 +231,8 @@ enum sr_mq {
 	SR_MQ_APPARENT_POWER,
 	/** Mass */
 	SR_MQ_MASS,
+	/** Harmonic ratio */
+	SR_MQ_HARMONIC_RATIO,
 
 	/* Update sr_key_info_mq[] (hwdriver.c) upon changes! */
 };

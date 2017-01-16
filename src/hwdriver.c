@@ -247,6 +247,7 @@ static struct sr_key_info sr_key_info_mq[] = {
 	{SR_MQ_POWER_FACTOR, 0, "power_factor", "Power factor", NULL},
 	{SR_MQ_APPARENT_POWER, 0, "apparent_power", "Apparent power", NULL},
 	{SR_MQ_MASS, 0, "mass", "Mass", NULL},
+	{SR_MQ_HARMONIC_RATIO, 0, "harmonic_ratio", "Harmonic ratio", NULL},
 	ALL_ZERO
 };
 
