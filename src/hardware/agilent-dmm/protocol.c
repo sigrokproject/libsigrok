@@ -742,6 +742,13 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		 * an error in this mode, so don't even call it.
 		 */
 		devc->mode_squarewave = 1;
+	} else if (!strcmp(mstr, "NCV")) {
+		devc->cur_mq[i] = SR_MQ_VOLTAGE;
+		devc->cur_unit[i] = SR_UNIT_VOLT;
+		devc->cur_mqflags[i] = SR_MQFLAG_AC;
+		devc->cur_exponent[i] = -3;
+		devc->cur_digits[i] = -1;
+		devc->cur_encoding[i] = 0;
 	} else {
 		sr_dbg("Unknown first argument '%s'.", mstr);
 	}
@@ -946,6 +953,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u128x[] = {
 	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(PULS:PWID|PULS:PWID:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
 	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
+	{ "^\"(NCV) (HIGH|LOW)\"$", recv_conf_u124x_5x },
 	{ "^\"(DIOD|SQU|PULS:PDUT|TEMP)\"$", recv_conf_u124x_5x },
 	{ "^\"((\\d{2})(\\d{5})\\d{7})\"$", recv_log_u128x },
 	{ "^\\*E$", recv_err },
