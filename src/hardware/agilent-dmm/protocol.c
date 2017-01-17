@@ -488,7 +488,7 @@ static int send_conf(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Do not try to send CONF? for internal temperature channel. */
-	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
+	if (devc->cur_conf->index >= MIN(devc->profile->nb_channels, 2))
 		return SR_ERR_NA;
 
 	if (devc->cur_conf->index > 0)
@@ -708,13 +708,13 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		   !strncmp(mstr, "TEMP", 4)) {
 		devc->cur_mq[i] = SR_MQ_TEMPERATURE;
 		m2 = g_match_info_fetch(match, 2);
-		if (!m2)
+		if (!m2 && devc->profile->nb_channels == 3)
 			/*
 			 * TEMP without param is for secondary display (channel P2)
 			 * and is identical to channel P3, so discard it.
 			 */
 			devc->cur_mq[i] = -1;
-		else if (!strcmp(m2, "FAR"))
+		else if (m2 && !strcmp(m2, "FAR"))
 			devc->cur_unit[i] = SR_UNIT_FAHRENHEIT;
 		else
 			devc->cur_unit[i] = SR_UNIT_CELSIUS;
@@ -749,7 +749,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 
 	struct sr_channel *prev_conf = devc->cur_conf;
 	devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
-	if (devc->cur_conf->index == MAX(devc->profile->nb_channels - 1, 1))
+	if (devc->cur_conf->index >= MIN(devc->profile->nb_channels, 2))
 		devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
 	if (devc->cur_conf->index > prev_conf->index)
 		return JOB_AGAIN;
