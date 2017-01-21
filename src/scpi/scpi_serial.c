@@ -30,7 +30,7 @@
 
 struct scpi_serial {
 	struct sr_serial_dev_inst *serial;
-	char got_newline;
+	gboolean got_newline;
 };
 
 static const struct {
@@ -93,7 +93,7 @@ static int scpi_serial_open(struct sr_scpi_dev_inst *scpi)
 	if (serial_flush(serial) != SR_OK)
 		return SR_ERR;
 
-	sscpi->got_newline = 0;
+	sscpi->got_newline = FALSE;
 
 	return SR_OK;
 }
@@ -141,7 +141,7 @@ static int scpi_serial_send(void *priv, const char *command)
 static int scpi_serial_read_begin(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
-	sscpi->got_newline = 0;
+	sscpi->got_newline = FALSE;
 
 	return SR_OK;
 }
@@ -161,10 +161,10 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 		sr_spew("Read %d bytes into buffer.", ret);
 
 		if (buf[ret - 1] == '\n') {
-			sscpi->got_newline = 1;
+			sscpi->got_newline = TRUE;
 			sr_spew("Received terminator");
 		} else {
-			sscpi->got_newline = 0;
+			sscpi->got_newline = FALSE;
 		}
 	}
 
