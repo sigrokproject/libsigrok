@@ -79,7 +79,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	GSList *l;
 	float *fdata;
 	unsigned int i;
-	int num_channels, c, ret, digits;
+	int num_channels, c, ret, digits, actual_digits;
 	char *number, *suffix;
 
 	*out = NULL;
@@ -119,11 +119,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			for (l = analog->meaning->channels, c = 0; l; l = l->next, c++) {
 				float value = fdata[i * num_channels + c];
 				const char *prefix = "";
+				actual_digits = digits;
 				if (si_friendly)
-					prefix = sr_analog_si_prefix(&value, &digits);
+					prefix = sr_analog_si_prefix(&value, &actual_digits);
 				ch = l->data;
 				g_string_append_printf(*out, "%s: ", ch->name);
-				number = g_strdup_printf("%.*f", MAX(digits, 0), value);
+				number = g_strdup_printf("%.*f", MAX(actual_digits, 0), value);
 				g_string_append(*out, number);
 				g_free(number);
 				g_string_append(*out, " ");
