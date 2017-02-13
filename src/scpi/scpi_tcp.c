@@ -183,6 +183,21 @@ static int scpi_tcp_raw_read_data(void *priv, char *buf, int maxlen)
 	return len;
 }
 
+static int scpi_tcp_raw_write_data(void *priv, char *buf, int len)
+{
+	struct scpi_tcp *tcp = priv;
+	int sentlen;
+
+	sentlen = send(tcp->socket, buf, len, 0);
+
+	if (sentlen < 0) {
+		sr_err("Send error: %s.", g_strerror(errno));
+		return SR_ERR;
+	}
+
+	return sentlen;
+}
+
 static int scpi_tcp_rigol_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_tcp *tcp = priv;
@@ -256,6 +271,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
 	.send          = scpi_tcp_send,
 	.read_begin    = scpi_tcp_read_begin,
 	.read_data     = scpi_tcp_raw_read_data,
+	.write_data    = scpi_tcp_raw_write_data,
 	.read_complete = scpi_tcp_read_complete,
 	.close         = scpi_tcp_close,
 	.free          = scpi_tcp_free,

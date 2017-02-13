@@ -338,6 +338,21 @@ SR_PRIV int sr_scpi_read_data(struct sr_scpi_dev_inst *scpi,
 }
 
 /**
+ * Send data to SCPI device.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param buf Buffer with data to send.
+ * @param len Number of bytes to send.
+ *
+ * @return Number of bytes read, or SR_ERR upon failure.
+ */
+SR_PRIV int sr_scpi_write_data(struct sr_scpi_dev_inst *scpi,
+			char *buf, int maxlen)
+{
+	return scpi->write_data(scpi->priv, buf, maxlen);
+}
+
+/**
  * Check whether a complete SCPI response has been received.
  *
  * @param scpi Previously initialised SCPI device structure.
