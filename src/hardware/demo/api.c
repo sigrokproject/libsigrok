@@ -472,6 +472,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->start_us = g_get_monotonic_time();
 	devc->spent_us = 0;
+	devc->step = 0;
 
 	return SR_OK;
 }
