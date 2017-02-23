@@ -31,7 +31,7 @@ enum {
 	RS_CMD_GET_POWER
 };
 
-static char * commands[] = {
+static char *commands[] = {
 	[RS_CMD_CONTROL_REMOTE] = "\n",
 	[RS_CMD_SET_FREQ] = "FREQ %.1fHz",
 	[RS_CMD_SET_POWER] = "POW %.1fdBm",
@@ -43,7 +43,7 @@ SR_PRIV int rs_sme0x_mode_remote(struct sr_scpi_dev_inst *scpi) {
 	return sr_scpi_send(scpi, commands[RS_CMD_CONTROL_REMOTE]);
 }
 
-SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double * freq) {
+SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq) {
 	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_FREQ], freq) != SR_OK) {
 		return SR_ERR;
 	}
@@ -51,7 +51,7 @@ SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double * freq) {
 	return SR_OK;
 }
 
-SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double * power) {
+SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power) {
 	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_POWER], power) != SR_OK) {
 		return SR_ERR;
 	}
@@ -66,7 +66,7 @@ SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq) {
 	devc = sdi->priv;
 	config = devc->model_config;
 
-	if (freq > config->freq_max || freq < config->freq_min) {
+	if ((freq > config->freq_max) || (freq < config->freq_min)) {
 		return SR_ERR_ARG;
 	}
 
@@ -80,7 +80,7 @@ SR_PRIV int rs_sme0x_set_power(const struct sr_dev_inst *sdi, double power) {
 	devc = sdi->priv;
 	config = devc->model_config;
 
-	if (power > config->power_max || power < config->power_min) {
+	if ((power > config->power_max) || (power < config->power_min)) {
 		return SR_ERR_ARG;
 	}
 

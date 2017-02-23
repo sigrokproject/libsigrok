@@ -26,39 +26,45 @@
 
 SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info;
 
-static const char * manufacturer = "Rohde&Schwarz";
+static const char *manufacturer = "Rohde&Schwarz";
 
-static const struct rs_device_model device_models[] = {{
-	.model_str = "SME02",
-	.freq_max = SR_GHZ(1.5),
-	.freq_min = SR_KHZ(5),
-	.power_max = 16,
-	.power_min = -144
-}, {
-	.model_str = "SME03E",
-	.freq_max = SR_GHZ(2.2),
-	.freq_min = SR_KHZ(5),
-	.power_max = 16,
-	.power_min = -144
-}, {
-	.model_str = "SME03A",
-	.freq_max = SR_GHZ(3),
-	.freq_min = SR_KHZ(5),
-	.power_max = 16,
-	.power_min = -144
-}, {
-	.model_str = "SME03",
-	.freq_max = SR_GHZ(3),
-	.freq_min = SR_KHZ(5),
-	.power_max = 16,
-	.power_min = -144
-}, {
-	.model_str = "SME06",
-	.freq_max = SR_GHZ(1.5),
-	.freq_min = SR_KHZ(5),
-	.power_max = 16,
-	.power_min = -144
-}};
+static const struct rs_device_model device_models[] = {
+	{
+		.model_str = "SME02",
+		.freq_max = SR_GHZ(1.5),
+		.freq_min = SR_KHZ(5),
+		.power_max = 16,
+		.power_min = -144
+	},
+	{
+		.model_str = "SME03E",
+		.freq_max = SR_GHZ(2.2),
+		.freq_min = SR_KHZ(5),
+		.power_max = 16,
+		.power_min = -144
+	},
+	{
+		.model_str = "SME03A",
+		.freq_max = SR_GHZ(3),
+		.freq_min = SR_KHZ(5),
+		.power_max = 16,
+		.power_min = -144
+	},
+	{
+		.model_str = "SME03",
+		.freq_max = SR_GHZ(3),
+		.freq_min = SR_KHZ(5),
+		.power_max = 16,
+		.power_min = -144
+	},
+	{
+		.model_str = "SME06",
+		.freq_max = SR_GHZ(1.5),
+		.freq_min = SR_KHZ(5),
+		.power_max = 16,
+		.power_min = -144
+	}
+};
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -69,15 +75,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
-
-static int check_manufacturer(const char *str)
-{
-	if (!strcmp(str, manufacturer)) {
-		return SR_OK;
-	}
-
-	return SR_ERR;
-}
 
 static int rs_init_device(struct sr_dev_inst *sdi)
 {
@@ -119,7 +116,7 @@ static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 	}
 
-	if (check_manufacturer(hw_info->manufacturer) != SR_OK) {
+	if (strcmp(hw_info->manufacturer, manufacturer) != 0) {
 		goto fail;
 	}
 
@@ -169,7 +166,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE && sr_scpi_open(sdi->conn) != SR_OK) {
+	if ((sdi->status != SR_ST_ACTIVE) && (sr_scpi_open(sdi->conn) != SR_OK)) {
 		return SR_ERR;
 	}
 

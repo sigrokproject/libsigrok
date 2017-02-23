@@ -34,7 +34,7 @@ struct rs_sme0x_info {
 };
 
 struct rs_device_model {
-	const char * model_str;
+	const char *model_str;
 	double freq_max;
 	double freq_min;
 	double power_max;
@@ -44,14 +44,14 @@ struct rs_device_model {
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Model-specific information */
-	const struct rs_device_model * model_config;
+	const struct rs_device_model *model_config;
 };
 
 SR_PRIV int rs_sme0x_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int rs_sme0x_mode_remote(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int rs_sme0x_close(struct sr_dev_inst *sdi);
-SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double * freq);
-SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double * power);
+SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq);
+SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power);
 SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq);
 SR_PRIV int rs_sme0x_set_power(const struct sr_dev_inst *sdi, double power);
 
