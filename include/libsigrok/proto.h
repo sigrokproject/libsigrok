@@ -226,7 +226,7 @@ SR_API int sr_resource_set_hooks(struct sr_context *ctx,
 
 SR_API char *sr_si_string_u64(uint64_t x, const char *unit);
 SR_API char *sr_samplerate_string(uint64_t samplerate);
-SR_API char *sr_period_string(uint64_t frequency);
+SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q);
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q);
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);

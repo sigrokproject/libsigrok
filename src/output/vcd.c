@@ -129,7 +129,7 @@ static GString *gen_header(const struct sr_output *o)
 		ctx->period = SR_MHZ(1);
 	else
 		ctx->period = SR_KHZ(1);
-	frequency_s = sr_period_string(ctx->period);
+	frequency_s = sr_period_string(1, ctx->period);
 	g_string_append_printf(header, "$timescale %s $end\n", frequency_s);
 	g_free(frequency_s);
 

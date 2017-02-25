@@ -33,11 +33,11 @@ static void test_samplerate(uint64_t samplerate, const char *expected)
 	g_free(s);
 }
 
-static void test_period(uint64_t frequency, const char *expected)
+static void test_period(uint64_t v_p, uint64_t v_q, const char *expected)
 {
 	char *s;
 
-	s = sr_period_string(frequency);
+	s = sr_period_string(v_p, v_q);
 	fail_unless(s != NULL);
 	fail_unless(!strcmp(s, expected),
 		    "Invalid result for '%s': %s.", expected, s);
@@ -179,33 +179,38 @@ END_TEST
 
 START_TEST(test_hz_period)
 {
-	test_period(1, "1000 ms");
-	test_period(5, "200 ms");
-	test_period(72, "13 ms");
-	test_period(388, "2 ms");
+	test_period(1, 1, "1 s");
+	test_period(1, 5, "200 ms");
+	test_period(1, 72, "13.889 ms");
+	test_period(1, 388, "2.577 ms");
+	test_period(10, 1000, "10 ms");
 
 	/* Again, but now using SR_HZ(). */
-	test_period(SR_HZ(1), "1000 ms");
-	test_period(SR_HZ(5), "200 ms");
-	test_period(SR_HZ(72), "13 ms");
-	test_period(SR_HZ(388), "2 ms");
+	test_period(1, SR_HZ(1), "1 s");
+	test_period(1, SR_HZ(5), "200 ms");
+	test_period(1, SR_HZ(72), "13.889 ms");
+	test_period(1, SR_HZ(388), "2.577 ms");
+	test_period(10, SR_HZ(100), "100 ms");
 }
 END_TEST
 
 START_TEST(test_ghz_period)
 {
 	/* Note: Numbers > 2^32 need a ULL suffix. */
-
-	test_period(1000000000, "1000 ps");
-	test_period(5000000000ULL, "200 ps");
-	test_period(72000000000ULL, "13 ps");
-	test_period(388000000000ULL, "2 ps");
+	test_period(1, 1000000000, "1 ns");
+	test_period(1, 5000000000ULL, "200 ps");
+	test_period(1, 72000000000ULL, "13.889 ps");
+	test_period(1, 388000000000ULL, "2.577 ps");
+	test_period(10, 1000000000000, "10 ps");
+	test_period(200, 1000000000000ULL, "200 ps");
 
 	/* Again, but now using SR_GHZ(). */
-	test_period(SR_GHZ(1), "1000 ps");
-	test_period(SR_GHZ(5), "200 ps");
-	test_period(SR_GHZ(72), "13 ps");
-	test_period(SR_GHZ(388), "2 ps");
+	test_period(1, SR_GHZ(1), "1 ns");
+	test_period(1, SR_GHZ(5), "200 ps");
+	test_period(1, SR_GHZ(72), "13.889 ps");
+	test_period(1, SR_GHZ(388), "2.577 ps");
+	test_period(10, SR_GHZ(1), "10 ns");
+	test_period(200, SR_GHZ(1000), "200 ps");
 }
 END_TEST
 

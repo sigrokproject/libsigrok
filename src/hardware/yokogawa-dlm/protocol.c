@@ -305,8 +305,8 @@ static void scope_state_dump(const struct scope_config *config,
 				state->pod_states[i] ? "On" : "Off");
 	}
 
-	tmp = sr_period_string(dlm_timebases[state->timebase][1] /
-			dlm_timebases[state->timebase][0]);
+	tmp = sr_period_string(dlm_timebases[state->timebase][0],
+			dlm_timebases[state->timebase][1]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 

@@ -360,22 +360,37 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
  *
  * @since 0.1.0
  */
-SR_API char *sr_period_string(uint64_t frequency)
+SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
 {
+	double freq, v;
 	char *o;
-	int r;
+	int prec, r;
 
-	/* Allocate enough for a uint64_t as string + " ms". */
+	freq = 1 / ((double)v_p / v_q);
+
 	o = g_malloc0(30 + 1);
 
-	if (frequency >= SR_GHZ(1))
-		r = snprintf(o, 30, "%lld ps", 1000000000000ull / frequency);
-	else if (frequency >= SR_MHZ(1))
-		r = snprintf(o, 30, "%lld ns", 1000000000ull / frequency);
-	else if (frequency >= SR_KHZ(1))
-		r = snprintf(o, 30, "%lld us", 1000000ull / frequency);
-	else
-		r = snprintf(o, 30, "%lld ms", 1000ull / frequency);
+	if (freq > SR_GHZ(1)) {
+		v = (double)v_p / v_q * 1000000000000.0;
+		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
+		r = snprintf(o, 30, "%.*f ps", prec, v);
+	} else if (freq > SR_MHZ(1)) {
+		v = (double)v_p / v_q * 1000000000.0;
+		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
+		r = snprintf(o, 30, "%.*f ns", prec, v);
+	} else if (freq > SR_KHZ(1)) {
+		v = (double)v_p / v_q * 1000000.0;
+		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
+		r = snprintf(o, 30, "%.*f us", prec, v);
+	} else if (freq > 1) {
+		v = (double)v_p / v_q * 1000.0;
+		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
+		r = snprintf(o, 30, "%.*f ms", prec, v);
+	} else {
+		v = (double)v_p / v_q;
+		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
+		r = snprintf(o, 30, "%.*f s", prec, v);
+	}
 
 	if (r < 0) {
 		/* Something went wrong... */

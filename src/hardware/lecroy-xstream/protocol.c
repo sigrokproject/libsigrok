@@ -236,8 +236,8 @@ static void scope_state_dump(const struct scope_config *config,
 			tmp, state->analog_channels[i].vertical_offset);
 	}
 
-	tmp = sr_period_string(((float)config->timebases[state->timebase].q) /
-				((float)config->timebases[state->timebase].p));
+	tmp = sr_period_string(config->timebases[state->timebase].p,
+				config->timebases[state->timebase].q);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
