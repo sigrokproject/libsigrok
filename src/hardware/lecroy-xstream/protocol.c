@@ -528,6 +528,9 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
 		return SR_ERR_MALLOC;
 
+	/* Set the desired response mode. */
+	sr_scpi_send(sdi->conn, "COMM_HEADER OFF,WORD,BIN");
+
 	return SR_OK;
 }
 

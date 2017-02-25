@@ -53,7 +53,6 @@ static struct sr_dev_inst *probe_serial_device(struct sr_scpi_dev_inst *scpi)
 	devc = NULL;
 	hw_info = NULL;
 
-	sr_scpi_send(scpi, "COMM_HEADER OFF,WORD,BIN");
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response.");
 		goto fail;
