@@ -409,6 +409,7 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 	if (sr_scpi_get_string(sdi->conn, "TRIG_SELECT?", &tmp_str) != SR_OK)
 		return SR_ERR;
 
+	key = tmpp = NULL;
 	tmp_str2 = tmp_str;
 	i = 0;
 	while((p = strtok_r(tmp_str2, ",", &tmpp))) {
