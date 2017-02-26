@@ -37,8 +37,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -852,13 +855,17 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	unsigned int i;
 	struct dev_context *devc = NULL;
 
+	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && !cg) {
+	}
+
+	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		return SR_OK;
 	}
 
@@ -876,8 +883,11 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg) {
-			sr_err("No channel group specified.");
-			return SR_ERR_CHANNEL_GROUP;
+			/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
+			 * specific to a channel group must be returned. */
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+			return SR_OK;
 		}
 		if (cg == devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
