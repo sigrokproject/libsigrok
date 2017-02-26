@@ -391,7 +391,6 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 		return SR_ERR_ARG;
 	}
 
-	sr_spew("Initializing driver '%s'.", driver->name);
 	if ((ret = driver->init(driver, ctx)) < 0)
 		sr_err("Failed to initialize the driver: %d.", ret);
 
