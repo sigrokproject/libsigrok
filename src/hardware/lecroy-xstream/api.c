@@ -32,6 +32,26 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
+static const uint32_t drvopts[] = {
+	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_NUM_HDIV | SR_CONF_GET,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET,
+};
+
+static const uint32_t analog_devopts[] = {
+	SR_CONF_NUM_VDIV | SR_CONF_GET,
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
 static int check_manufacturer(const char *manufacturer)
 {
 	unsigned int i;
@@ -402,24 +422,38 @@ static int config_list(uint32_t key, GVariant **data,
 
 	(void)cg;
 
-	if (sdi) {
-		devc = sdi->priv;
-		model = devc->model_config;
-	}
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
+	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
+	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
+		return SR_OK;
+	}
+
+	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		return SR_OK;
+	}
+
+        /* Every other option requires a valid device instance. */
+        if (!sdi)
+                return SR_ERR_ARG;
+
+	devc = sdi->priv;
+	model = devc->model_config;
+
+	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg) {
+			/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
+			 * specific to a channel group must be returned. */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->devopts, model->num_devopts, sizeof(uint32_t));
-			break;
+					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+                        return SR_OK;
 		}
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			model->analog_devopts, model->num_analog_devopts,
+			analog_devopts, ARRAY_SIZE(analog_devopts),
 			sizeof(uint32_t));
 		break;
 	case SR_CONF_COUPLING:

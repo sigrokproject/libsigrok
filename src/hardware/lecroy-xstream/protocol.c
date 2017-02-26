@@ -74,23 +74,6 @@ struct lecroy_wavedesc {
 	};
 } __attribute__((packed));
 
-static const uint32_t devopts[] = {
-	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_NUM_HDIV | SR_CONF_GET,
-	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_SAMPLERATE | SR_CONF_GET,
-};
-
-static const uint32_t analog_devopts[] = {
-	SR_CONF_NUM_VDIV | SR_CONF_GET,
-	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-};
-
 static const char *coupling_options[] = {
 	"A1M", // AC with 1 MOhm termination
 	"D50", // DC with 50 Ohm termination
@@ -199,12 +182,6 @@ static const struct scope_config scope_models[] = {
 
 		.analog_channels = 4,
 		.analog_names = &scope_analog_channel_names,
-
-		.devopts = &devopts,
-		.num_devopts = ARRAY_SIZE(devopts),
-
-		.analog_devopts = &analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
 
 		.coupling_options = &coupling_options,
 		.trigger_sources = &trigger_sources,
