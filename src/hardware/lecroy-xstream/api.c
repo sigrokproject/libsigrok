@@ -603,7 +603,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver lecroy_xstream_driver_info = {
 	.name = "lecroy-xstream",
-	.longname = "LeCroy Xstream based scopes",
+	.longname = "LeCroy X-Stream",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
