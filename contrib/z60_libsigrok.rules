@@ -17,6 +17,9 @@
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ##
 
+# NOTE: On a systemd based system, using tag=uaccess, this file _must_ be
+# named/numbered to come before the seat rules are applied in 70-xxx.
+
 ##
 ## Please keep this list sorted alphabetically by vendor/device name.
 ##
