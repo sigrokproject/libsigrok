@@ -71,6 +71,10 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
+static const uint32_t drvopts[] = {
+        SR_CONF_SIGNAL_GENERATOR,
+};
+
 static const uint32_t devopts[] = {
 	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -239,6 +243,13 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	(void)sdi;
 	(void)cg;
+
+	/* Return drvopts without sdi (and devopts with sdi, see below). */
+	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+		return SR_OK;
+	}
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
