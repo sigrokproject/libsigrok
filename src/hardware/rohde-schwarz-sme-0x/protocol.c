@@ -28,7 +28,7 @@ enum {
 	RS_CMD_SET_FREQ,
 	RS_CMD_SET_POWER,
 	RS_CMD_GET_FREQ,
-	RS_CMD_GET_POWER
+	RS_CMD_GET_POWER,
 };
 
 static char *commands[] = {
@@ -36,53 +36,54 @@ static char *commands[] = {
 	[RS_CMD_SET_FREQ] = "FREQ %.1fHz",
 	[RS_CMD_SET_POWER] = "POW %.1fdBm",
 	[RS_CMD_GET_FREQ] = "FREQ?",
-	[RS_CMD_GET_POWER] = "POW?"
+	[RS_CMD_GET_POWER] = "POW?",
 };
 
-SR_PRIV int rs_sme0x_mode_remote(struct sr_scpi_dev_inst *scpi) {
+SR_PRIV int rs_sme0x_mode_remote(struct sr_scpi_dev_inst *scpi)
+{
 	return sr_scpi_send(scpi, commands[RS_CMD_CONTROL_REMOTE]);
 }
 
-SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq) {
-	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_FREQ], freq) != SR_OK) {
+SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq)
+{
+	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_FREQ], freq) != SR_OK)
 		return SR_ERR;
-	}
 
 	return SR_OK;
 }
 
-SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power) {
-	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_POWER], power) != SR_OK) {
+SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power)
+{
+	if (sr_scpi_get_double(sdi->conn, commands[RS_CMD_GET_POWER], power) != SR_OK)
 		return SR_ERR;
-	}
 
 	return SR_OK;
 }
 
-SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq) {
+SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq)
+{
 	struct dev_context *devc;
 	const struct rs_device_model *config;
 
 	devc = sdi->priv;
 	config = devc->model_config;
 
-	if ((freq > config->freq_max) || (freq < config->freq_min)) {
+	if ((freq > config->freq_max) || (freq < config->freq_min))
 		return SR_ERR_ARG;
-	}
 
 	return sr_scpi_send(sdi->conn, commands[RS_CMD_SET_FREQ], freq);
 }
 
-SR_PRIV int rs_sme0x_set_power(const struct sr_dev_inst *sdi, double power) {
+SR_PRIV int rs_sme0x_set_power(const struct sr_dev_inst *sdi, double power)
+{
 	struct dev_context *devc;
 	const struct rs_device_model *config;
 
 	devc = sdi->priv;
 	config = devc->model_config;
 
-	if ((power > config->power_max) || (power < config->power_min)) {
+	if ((power > config->power_max) || (power < config->power_min))
 		return SR_ERR_ARG;
-	}
 
 	return sr_scpi_send(sdi->conn, commands[RS_CMD_SET_POWER], power);
 }

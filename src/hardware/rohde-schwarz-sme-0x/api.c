@@ -34,35 +34,35 @@ static const struct rs_device_model device_models[] = {
 		.freq_max = SR_GHZ(1.5),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
-		.power_min = -144
+		.power_min = -144,
 	},
 	{
 		.model_str = "SME03E",
 		.freq_max = SR_GHZ(2.2),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
-		.power_min = -144
+		.power_min = -144,
 	},
 	{
 		.model_str = "SME03A",
 		.freq_max = SR_GHZ(3),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
-		.power_min = -144
+		.power_min = -144,
 	},
 	{
 		.model_str = "SME03",
 		.freq_max = SR_GHZ(3),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
-		.power_min = -144
+		.power_min = -144,
 	},
 	{
 		.model_str = "SME06",
 		.freq_max = SR_GHZ(1.5),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
-		.power_min = -144
+		.power_min = -144,
 	}
 };
 
@@ -93,7 +93,8 @@ static int rs_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (!model_found) {
-		sr_dbg("Device %s %s is not supported by this driver", manufacturer, sdi->model);
+		sr_dbg("Device %s %s is not supported by this driver.",
+			manufacturer, sdi->model);
 		return SR_ERR_NA;
 	}
 
@@ -112,13 +113,11 @@ static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
 
 	rs_sme0x_mode_remote(scpi);
 
-	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK)
 		goto fail;
-	}
 
-	if (strcmp(hw_info->manufacturer, manufacturer) != 0) {
+	if (strcmp(hw_info->manufacturer, manufacturer) != 0)
 		goto fail;
-	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->vendor = g_strdup(hw_info->manufacturer);
@@ -135,20 +134,17 @@ static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
 	devc = g_malloc0(sizeof(struct dev_context));
 	sdi->priv = devc;
 
-	if (rs_init_device(sdi) != SR_OK) {
+	if (rs_init_device(sdi) != SR_OK)
 		goto fail;
-	}
 
 	return sdi;
 
 fail:
-	if (hw_info) {
+	if (hw_info)
 		sr_scpi_hw_info_free(hw_info);
-	}
 
-	if (sdi) {
+	if (sdi)
 		sr_dev_inst_free(sdi);
-	}
 
 	g_free(devc);
 	return NULL;
@@ -166,9 +162,8 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if ((sdi->status != SR_ST_ACTIVE) && (sr_scpi_open(sdi->conn) != SR_OK)) {
+	if ((sdi->status != SR_ST_ACTIVE) && (sr_scpi_open(sdi->conn) != SR_OK))
 		return SR_ERR;
-	}
 
 	sdi->status = SR_ST_ACTIVE;
 
@@ -177,9 +172,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	if (sdi->status == SR_ST_INACTIVE) {
+	if (sdi->status == SR_ST_INACTIVE)
 		return SR_OK;
-	}
 
 	sr_scpi_close(sdi->conn);
 
@@ -218,13 +212,11 @@ static int config_set(uint32_t key, GVariant *data,
 
 	(void)cg;
 
-	if (!sdi) {
+	if (!sdi)
 		return SR_ERR_ARG;
-	}
 
-	if (sdi->status != SR_ST_ACTIVE) {
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
-	}
 
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
@@ -250,10 +242,12 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -264,9 +258,8 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE) {
+	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
-	}
 
 	return SR_OK;
 }
