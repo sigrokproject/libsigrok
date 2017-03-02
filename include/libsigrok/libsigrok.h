@@ -700,6 +700,9 @@ enum sr_configkey {
 	/** The device can act as a scale. */
 	SR_CONF_SCALE,
 
+	/** The device can act as a function generator. */
+	SR_CONF_SIGNAL_GENERATOR,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/

@@ -61,6 +61,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_LCRMETER, SR_T_STRING, NULL, "LCR meter", NULL},
 	{SR_CONF_ELECTRONIC_LOAD, SR_T_STRING, NULL, "Electronic load", NULL},
 	{SR_CONF_SCALE, SR_T_STRING, NULL, "Scale", NULL},
+	{SR_CONF_SIGNAL_GENERATOR, SR_T_STRING, NULL, "Signal generator", NULL},
 
 	/* Driver scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
