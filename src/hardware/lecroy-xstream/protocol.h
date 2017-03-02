@@ -100,7 +100,6 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi);
 SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV struct scope_state *lecroy_xstream_state_new(struct scope_config *config);
 SR_PRIV void lecroy_xstream_state_free(struct scope_state *state);
 SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi);
 SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi);

@@ -23,12 +23,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV void lecroy_queue_logic_data(struct dev_context *devc,
-				  size_t group, GByteArray *pod_data);
-SR_PRIV void lecroy_send_logic_packet(struct sr_dev_inst *sdi,
-				   struct dev_context *devc);
-SR_PRIV void lecroy_cleanup_logic_data(struct dev_context *devc);
-
 struct lecroy_wavedesc_2_x {
 	uint16_t comm_type;
 	uint16_t comm_order; /* 1 - little endian */
