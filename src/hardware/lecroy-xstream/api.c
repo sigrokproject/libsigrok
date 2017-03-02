@@ -472,7 +472,7 @@ SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi)
 	return sr_scpi_send(sdi->conn, command);
 }
 
-static int lecroy_setup_channels(const struct sr_dev_inst *sdi)
+static int setup_channels(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	gboolean setup_changed;
@@ -550,7 +550,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Configure the analog channels and the
 	 * corresponding digital pods.
 	 */
-	if (lecroy_setup_channels(sdi) != SR_OK) {
+	if (setup_channels(sdi) != SR_OK) {
 		sr_err("Failed to setup channel configuration!");
 		ret = SR_ERR;
 		goto free_enabled;

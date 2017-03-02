@@ -74,7 +74,7 @@ struct lecroy_wavedesc {
 	};
 } __attribute__((packed));
 
-static const uint32_t lecroy_devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -85,13 +85,13 @@ static const uint32_t lecroy_devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 };
 
-static const uint32_t lecroy_analog_devopts[] = {
+static const uint32_t analog_devopts[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const char *lecroy_coupling_options[] = {
+static const char *coupling_options[] = {
 	"A1M", // AC with 1 MOhm termination
 	"D50", // DC with 50 Ohm termination
 	"D1M", // DC with 1 MOhm termination
@@ -106,7 +106,7 @@ static const char *scope_trigger_slopes[] = {
 	NULL,
 };
 
-static const char *lecroy_xstream_trigger_sources[] = {
+static const char *trigger_sources[] = {
 	"C1",
 	"C2",
 	"C3",
@@ -116,7 +116,7 @@ static const char *lecroy_xstream_trigger_sources[] = {
 	NULL,
 };
 
-static const struct sr_rational lecroy_timebases[] = {
+static const struct sr_rational timebases[] = {
 	/* picoseconds */
 	{ 20, 1000000000000 },
 	{ 50, 1000000000000 },
@@ -166,7 +166,7 @@ static const struct sr_rational lecroy_timebases[] = {
 	{ 1000, 1 },
 };
 
-static const struct sr_rational lecroy_vdivs[] = {
+static const struct sr_rational vdivs[] = {
 	/* millivolts */
 	{ 1, 1000 },
 	{ 2, 1000 },
@@ -200,21 +200,21 @@ static const struct scope_config scope_models[] = {
 		.analog_channels = 4,
 		.analog_names = &scope_analog_channel_names,
 
-		.devopts = &lecroy_devopts,
-		.num_devopts = ARRAY_SIZE(lecroy_devopts),
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &lecroy_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(lecroy_analog_devopts),
+		.analog_devopts = &analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
 
-		.coupling_options = &lecroy_coupling_options,
-		.trigger_sources = &lecroy_xstream_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources,
 		.trigger_slopes = &scope_trigger_slopes,
 
-		.timebases = lecroy_timebases,
-		.num_timebases = ARRAY_SIZE(lecroy_timebases),
+		.timebases = timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = lecroy_vdivs,
-		.num_vdivs = ARRAY_SIZE(lecroy_vdivs),
+		.vdivs = vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -315,8 +315,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-                if (array_float_get(tmp_str, lecroy_vdivs, ARRAY_SIZE(lecroy_vdivs),
-				    &j) != SR_OK) {
+                if (array_float_get(tmp_str, vdivs, ARRAY_SIZE(vdivs), &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
@@ -390,8 +389,7 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 	if (sr_scpi_get_string(sdi->conn, "TIME_DIV?", &tmp_str) != SR_OK)
 		return SR_ERR;
 
-	if (array_float_get(tmp_str, lecroy_timebases, ARRAY_SIZE(lecroy_timebases),
-			    &i) != SR_OK) {
+	if (array_float_get(tmp_str, timebases, ARRAY_SIZE(timebases), &i) != SR_OK) {
 		g_free(tmp_str);
 		sr_err("Could not determine array index for timbase scale.");
 		return SR_ERR;
