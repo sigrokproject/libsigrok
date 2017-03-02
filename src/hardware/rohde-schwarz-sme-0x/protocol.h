@@ -47,9 +47,7 @@ struct dev_context {
 	const struct rs_device_model *model_config;
 };
 
-SR_PRIV int rs_sme0x_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int rs_sme0x_mode_remote(struct sr_scpi_dev_inst *scpi);
-SR_PRIV int rs_sme0x_close(struct sr_dev_inst *sdi);
 SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq);
 SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power);
 SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq);
