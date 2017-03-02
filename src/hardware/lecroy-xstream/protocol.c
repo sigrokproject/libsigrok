@@ -99,7 +99,7 @@ static const uint32_t lecroy_analog_devopts[] = {
 
 static const char *lecroy_coupling_options[] = {
 	"A1M", // AC with 1 MOhm termination
-	"D50",  // DC with 50 Ohm termination
+	"D50", // DC with 50 Ohm termination
 	"D1M", // DC with 1 MOhm termination
 	"GND",
 	"OVL",
@@ -243,7 +243,7 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	tmp = sr_period_string(((float)config->timebases[state->timebase].q) /
-				      ((float)config->timebases[state->timebase].p));
+				((float)config->timebases[state->timebase].p));
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
@@ -258,8 +258,7 @@ static void scope_state_dump(const struct scope_config *config,
 }
 
 static int scope_state_get_array_option(const char *resp,
-					const char *(*array)[],
-					int *result)
+					const char *(*array)[], int *result)
 {
 	unsigned int i;
 
@@ -293,7 +292,7 @@ static int array_float_get(gchar *value, const struct sr_rational *aval,
 		return SR_ERR;
 
 	for (int i = 0; i < array_len; i++) {
-		if (sr_rational_eq(&rval, aval+i)) {
+		if (sr_rational_eq(&rval, aval + i)) {
 			*result = i;
 			return SR_OK;
 		}
@@ -311,13 +310,13 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	char *tmp_str;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		g_snprintf(command, sizeof(command), "C%d:TRACE?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:TRACE?", i + 1);
 
 		if (sr_scpi_get_bool(scpi, command,
-					&state->analog_channels[i].state) != SR_OK)
+				&state->analog_channels[i].state) != SR_OK)
 			return SR_ERR;
 
-		g_snprintf(command, sizeof(command), "C%d:VDIV?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:VDIV?", i + 1);
 
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
@@ -332,19 +331,19 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		g_free(tmp_str);
 		state->analog_channels[i].vdiv = j;
 
-		g_snprintf(command, sizeof(command), "C%d:OFFSET?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:OFFSET?", i + 1);
 
 		if (sr_scpi_get_float(scpi, command, &state->analog_channels[i].vertical_offset) != SR_OK)
 			return SR_ERR;
 
-		g_snprintf(command, sizeof(command), "C%d:COUPLING?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:COUPLING?", i + 1);
 
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
 
 		if (scope_state_get_array_option(tmp_str, config->coupling_options,
-					 &state->analog_channels[i].coupling) != SR_OK)
+				 &state->analog_channels[i].coupling) != SR_OK)
 			return SR_ERR;
 
 		g_free(tmp_str);
@@ -365,12 +364,12 @@ SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi)
 	config = devc->model_config;
 
 	if (sr_scpi_get_float(sdi->conn, "MEMORY_SIZE?", &memsize) != SR_OK)
-			return SR_ERR;
+		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn, "TIME_DIV?", &timediv) != SR_OK)
 		return SR_ERR;
 
-	state->sample_rate = 1/((timediv * config->num_xdivs) / memsize);
+	state->sample_rate = 1 / ((timediv * config->num_xdivs) / memsize);
 
 	return SR_OK;
 }
@@ -378,8 +377,8 @@ SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi)
 SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct scope_state *state
-;	const struct scope_config *config;
+	struct scope_state *state;
+	const struct scope_config *config;
 	unsigned int i;
 	char *tmp_str, *tmp_str2, *tmpp, *p, *key;
 	char command[MAX_COMMAND_SIZE];
@@ -412,7 +411,7 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 	key = tmpp = NULL;
 	tmp_str2 = tmp_str;
 	i = 0;
-	while((p = strtok_r(tmp_str2, ",", &tmpp))) {
+	while ((p = strtok_r(tmp_str2, ",", &tmpp))) {
 		tmp_str2 = NULL;
 		if (i == 0) {
 			/* trigger type */
@@ -426,10 +425,8 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		i++;
 	}
 
-	if (!trig_source || scope_state_get_array_option(trig_source, config->trigger_sources,
-							&state->trigger_source) != SR_OK)
+	if (!trig_source || scope_state_get_array_option(trig_source, config->trigger_sources, &state->trigger_source) != SR_OK)
 		return SR_ERR;
-
 
 	g_snprintf(command, sizeof(command), "%s:TRIG_SLOPE?", trig_source);
 	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
@@ -493,22 +490,21 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (model_index == -1) {
-		sr_dbg("Unsupported LECROY device.");
+		sr_dbg("Unsupported LeCroy device.");
 		return SR_ERR_NA;
 	}
 
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
-					scope_models[model_index].analog_channels);
+				scope_models[model_index].analog_channels);
 
 	/* Add analog channels. */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
-
-		g_snprintf(command, sizeof(command), "C%d:TRACE?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:TRACE?", i + 1);
 
 		if (sr_scpi_get_bool(sdi->conn, command, &channel_enabled) != SR_OK)
 			return SR_ERR;
 
-		g_snprintf(command, sizeof(command), "C%d:VDIV?", i+1);
+		g_snprintf(command, sizeof(command), "C%d:VDIV?", i + 1);
 
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, channel_enabled,
 			   (*scope_models[model_index].analog_names)[i]);
@@ -546,18 +542,17 @@ static int lecroy_waveform_2_x_to_analog(GByteArray *data,
 	int16_t *waveform_data;
 	unsigned int i, num_samples;
 
-	data_float  = g_malloc(desc->version_2_x.wave_array_count * sizeof(float));
+	data_float = g_malloc(desc->version_2_x.wave_array_count * sizeof(float));
 	num_samples = desc->version_2_x.wave_array_count;
 
 	waveform_data = (int16_t *)(data->data +
 				    + desc->version_2_x.wave_descriptor_length
 				    + desc->version_2_x.user_text_len);
 
-	for(i = 0; i  < num_samples; i++)
+	for (i = 0; i < num_samples; i++)
 		data_float[i] = (float)waveform_data[i]
 			* desc->version_2_x.vertical_gain
 			+ desc->version_2_x.vertical_offset;
-
 
 	analog->data = data_float;
 	analog->num_samples = num_samples;
@@ -578,13 +573,14 @@ static int lecroy_waveform_2_x_to_analog(GByteArray *data,
 		meaning->mq = SR_MQ_CURRENT;
 		meaning->unit = SR_UNIT_AMPERE;
 	} else {
-		/* default to voltage */
+		/* Default to voltage. */
 		meaning->mq = SR_MQ_VOLTAGE;
 		meaning->unit = SR_UNIT_VOLT;
 	}
 
 	meaning->mqflags = 0;
 	spec->spec_digits = 3;
+
 	return SR_OK;
 }
 
@@ -603,7 +599,9 @@ static int lecroy_waveform_to_analog(GByteArray *data,
 		return lecroy_waveform_2_x_to_analog(data, desc, analog);
 	}
 
-	sr_err("Waveformat template '%.16s' not supported\n", desc->template_name);
+	sr_err("Waveformat template '%.16s' not supported.",
+	       desc->template_name);
+
 	return SR_ERR;
 }
 
@@ -619,6 +617,7 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	char buf[8];
+
 	(void)fd;
 	(void)revents;
 
@@ -643,11 +642,10 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 
 	if (ch->type != SR_CHANNEL_ANALOG)
 		return SR_ERR;
-	/*
-	 * Pass on the received data of the channel(s).
-	 */
+
+	/* Pass on the received data of the channel(s). */
 	if (sr_scpi_read_data(sdi->conn, buf, 4) != 4) {
-		sr_err("reading header failed\n");
+		sr_err("Reading header failed.");
 		return TRUE;
 	}
 
@@ -674,7 +672,6 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 
 	g_slist_free(meaning.channels);
 	g_free(analog.data);
-
 
 	/*
 	 * Advance to the next enabled channel. When data for all enabled

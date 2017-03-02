@@ -140,8 +140,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-			const struct sr_dev_inst *sdi,
-			const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret;
 	unsigned int i;
@@ -158,6 +157,7 @@ static int config_get(uint32_t key, GVariant **data,
 	model = devc->model_config;
 	state = devc->model_state;
 	*data = NULL;
+
 	switch (key) {
 	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(model->num_xdivs);
@@ -165,8 +165,8 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)",
-					model->timebases[state->timebase].p,
-					model->timebases[state->timebase].q);
+				model->timebases[state->timebase].p,
+				model->timebases[state->timebase].q);
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
@@ -182,8 +182,8 @@ static int config_get(uint32_t key, GVariant **data,
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new("(tt)",
-				      model->vdivs[state->analog_channels[i].vdiv].p,
-				      model->vdivs[state->analog_channels[i].vdiv].q);
+				model->vdivs[state->analog_channels[i].vdiv].p,
+				model->vdivs[state->analog_channels[i].vdiv].q);
 			ret = SR_OK;
 		}
 		break;
@@ -200,11 +200,9 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
-
 		for (i = 0; i < model->analog_channels; i++) {
-			if (cg != devc->analog_groups[i]) {
+			if (cg != devc->analog_groups[i])
 				continue;
-			}
 			*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
 			ret = SR_OK;
 		}
@@ -220,6 +218,7 @@ static int config_get(uint32_t key, GVariant **data,
 	default:
 		ret = SR_ERR_NA;
 	}
+
 	return ret;
 }
 
@@ -242,8 +241,8 @@ static GVariant *build_tuples(const struct sr_rational *array, unsigned int n)
 	return g_variant_builder_end(&gvb);
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret;
 	unsigned int i, j;
@@ -358,7 +357,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		break;
 	case SR_CONF_COUPLING:
-
 		tmp = g_variant_get_string(data, NULL);
 
 		for (i = 0; (*model->coupling_options)[i]; i++) {
@@ -367,7 +365,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
 					continue;
-				state->analog_channels[j-1].coupling = i;
+				state->analog_channels[j - 1].coupling = i;
 
 				g_snprintf(command, sizeof(command),
 						"C%d:COUPLING %s", j, tmp);
@@ -396,11 +394,12 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return ret;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = NULL;
 	const struct scope_config *model = NULL;
+
 	(void)cg;
 
 	if (sdi) {
@@ -416,15 +415,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							  model->devopts,
-							  model->num_devopts,
-							  sizeof(uint32_t));
+				model->devopts, model->num_devopts, sizeof(uint32_t));
 			break;
 		}
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  model->analog_devopts,
-						  model->num_analog_devopts,
-						  sizeof(uint32_t));
+			model->analog_devopts, model->num_analog_devopts,
+			sizeof(uint32_t));
 		break;
 	case SR_CONF_COUPLING:
 		*data = g_variant_new_strv(*model->coupling_options,
@@ -472,7 +468,7 @@ SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	g_snprintf(command, sizeof(command),
-			"COMM_FORMAT DEF9,WORD,BIN;C%d:WAVEFORM?", ch->index+1);
+		"COMM_FORMAT DEF9,WORD,BIN;C%d:WAVEFORM?", ch->index + 1);
 	return sr_scpi_send(sdi->conn, command);
 }
 
@@ -498,7 +494,7 @@ static int lecroy_setup_channels(const struct sr_dev_inst *sdi)
 			if (ch->enabled == state->analog_channels[ch->index].state)
 				break;
 			g_snprintf(command, sizeof(command), "C%d:TRACE %s",
-				   ch->index+1, ch->enabled ? "ON" : "OFF");
+				   ch->index + 1, ch->enabled ? "ON" : "OFF");
 
 			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
@@ -576,6 +572,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 free_enabled:
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
+
 	return ret;
 }
 

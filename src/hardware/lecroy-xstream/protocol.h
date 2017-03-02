@@ -94,7 +94,6 @@ struct dev_context {
 	uint64_t num_frames;
 
 	uint64_t frame_limit;
-
 };
 
 SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi);
