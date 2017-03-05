@@ -579,6 +579,7 @@ Compile configuration:
  - C++ compiler version............ $sr_cxx_version
  - C++ compiler flags.............. $CXXFLAGS
  - C++ compiler warnings........... $SR_WXXFLAGS
+ - Linker flags.................... $LDFLAGS
 
 Detected libraries (required):
  - glib-2.0 >= 2.32.0.............. $sr_glib_version
