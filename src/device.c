@@ -339,7 +339,7 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 /**
  * Free device instance struct created by sr_dev_inst().
  *
- * @param sdi Device instance to free. Must not be NULL.
+ * @param sdi Device instance to free. If NULL, the function will do nothing.
  *
  * @private
  */
@@ -348,6 +348,9 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct sr_channel_group *cg;
 	GSList *l;
+
+	if (!sdi)
+		return;
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;

@@ -592,8 +592,7 @@ SR_API void sr_input_free(const struct sr_input *in)
 
 	if (in->module->cleanup)
 		in->module->cleanup((struct sr_input *)in);
-	if (in->sdi)
-		sr_dev_inst_free(in->sdi);
+	sr_dev_inst_free(in->sdi);
 	if (in->buf->len > 64) {
 		/* That seems more than just some sub-unitsize leftover... */
 		sr_warn("Found %" G_GSIZE_FORMAT

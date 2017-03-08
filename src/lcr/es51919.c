@@ -799,8 +799,7 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 
 scan_cleanup:
 	es51919_serial_clean(devc);
-	if (sdi)
-		sr_dev_inst_free(sdi);
+	sr_dev_inst_free(sdi);
 	if (serial)
 		sr_serial_dev_inst_free(serial);
 

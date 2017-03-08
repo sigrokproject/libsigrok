@@ -146,10 +146,7 @@ static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
 fail:
 	if (hw_info)
 		sr_scpi_hw_info_free(hw_info);
-
-	if (sdi)
-		sr_dev_inst_free(sdi);
-
+	sr_dev_inst_free(sdi);
 	g_free(devc);
 	return NULL;
 }

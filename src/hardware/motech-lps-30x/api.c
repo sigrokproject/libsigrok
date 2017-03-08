@@ -488,8 +488,7 @@ exit_err:
 		sr_serial_dev_inst_free(serial);
 	}
 	g_free(devc);
-	if (sdi)
-		sr_dev_inst_free(sdi);
+	sr_dev_inst_free(sdi);
 
 	return NULL;
 }
