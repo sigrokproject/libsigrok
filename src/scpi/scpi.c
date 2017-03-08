@@ -364,12 +364,14 @@ SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi)
 /**
  * Free SCPI device.
  *
- * @param scpi Previously initialized SCPI device structure.
- *
- * @return SR_OK on success, SR_ERR on failure.
+ * @param scpi Previously initialized SCPI device structure. If NULL,
+ *             this function does nothing.
  */
 SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 {
+	if (!scpi)
+		return;
+
 	scpi->free(scpi->priv);
 	g_free(scpi->priv);
 	g_free(scpi);
