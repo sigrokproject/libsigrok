@@ -489,6 +489,9 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 /** @private */
 SR_PRIV void sr_usbtmc_dev_inst_free(struct sr_usbtmc_dev_inst *usbtmc)
 {
+	if (!usbtmc)
+		return;
+
 	g_free(usbtmc->device);
 	g_free(usbtmc);
 }
