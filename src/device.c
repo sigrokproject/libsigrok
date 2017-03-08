@@ -409,7 +409,8 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 /**
  * Free struct sr_usb_dev_inst * allocated by sr_usb_dev_inst().
  *
- * @param usb The struct sr_usb_dev_inst * to free. Must not be NULL.
+ * @param usb The struct sr_usb_dev_inst * to free. If NULL, this
+ *            function does nothing.
  *
  * @private
  */
