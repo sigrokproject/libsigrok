@@ -323,8 +323,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 exit_err:
 	sr_info("scan_2x_bd232(): Error!");
 
-	if (serial)
-		sr_serial_dev_inst_free(serial);
+	sr_serial_dev_inst_free(serial);
 	g_free(devc);
 	sr_dev_inst_free(sdi);
 

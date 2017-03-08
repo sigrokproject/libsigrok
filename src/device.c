@@ -457,12 +457,16 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 /**
  * Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst().
  *
- * @param serial The struct sr_serial_dev_inst * to free. Must not be NULL.
+ * @param serial The struct sr_serial_dev_inst * to free. If NULL, this
+ *               function will do nothing.
  *
  * @private
  */
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 {
+	if (!serial)
+		return;
+
 	g_free(serial->port);
 	g_free(serial->serialcomm);
 	g_free(serial);

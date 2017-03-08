@@ -483,10 +483,9 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 exit_err:
 	sr_info("%s: Error!", __func__);
 
-	if (serial) {
+	if (serial)
 		serial_close(serial);
-		sr_serial_dev_inst_free(serial);
-	}
+	sr_serial_dev_inst_free(serial);
 	g_free(devc);
 	sr_dev_inst_free(sdi);
 
