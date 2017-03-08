@@ -347,18 +347,21 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
 }
 
 /**
- * Convert a numeric frequency value to the "natural" string representation
- * of its period.
+ * Convert a numeric period value to the "natural" string representation
+ * of its period value.
  *
- * E.g. a value of 3000000 would be converted to "3 us", 20000 to "50 ms".
+ * The period is specified as a rational number's numerator and denominator.
  *
- * @param frequency The frequency in Hz.
+ * E.g. a pair of (1, 5) would be converted to "200 ms", (10, 100) to "100 ms".
  *
- * @return A newly allocated string representation of the frequency value,
+ * @param v_p The period numerator.
+ * @param v_q The period denominator.
+ *
+ * @return A newly allocated string representation of the period value,
  *         or NULL upon errors. The caller is responsible to g_free() the
  *         memory.
  *
- * @since 0.1.0
+ * @since 0.5.0
  */
 SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
 {
