@@ -934,17 +934,17 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 /**
  * Free a sr_scpi_hw_info struct.
  *
- * @param hw_info Pointer to the struct to free.
- *
- * This function is safe to call with a NULL pointer.
+ * @param hw_info Pointer to the struct to free. If NULL, this
+ *                function does nothing.
  */
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info)
 {
-	if (hw_info) {
-		g_free(hw_info->manufacturer);
-		g_free(hw_info->model);
-		g_free(hw_info->serial_number);
-		g_free(hw_info->firmware_version);
-		g_free(hw_info);
-	}
+	if (!hw_info)
+		return;
+
+	g_free(hw_info->manufacturer);
+	g_free(hw_info->model);
+	g_free(hw_info->serial_number);
+	g_free(hw_info->firmware_version);
+	g_free(hw_info);
 }
