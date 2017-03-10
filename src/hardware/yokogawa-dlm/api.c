@@ -488,7 +488,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct dev_context *devc = NULL;
 	const struct scope_config *model = NULL;
 
-	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or probe group. */
+	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				dlm_scanopts, ARRAY_SIZE(dlm_scanopts), sizeof(uint32_t));
@@ -510,7 +510,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	/*
 	 * If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-	 * specific to a probe group must be returned.
+	 * specific to a channel group must be returned.
 	 */
 	if (!cg) {
 		switch (key) {
