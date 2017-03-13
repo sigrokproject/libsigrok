@@ -72,6 +72,7 @@
 struct context {
 	gboolean started;
 	gboolean got_header;
+	uint64_t prev_timestamp;
 	uint64_t samplerate;
 	unsigned int maxchannels;
 	unsigned int channelcount;
@@ -367,12 +368,11 @@ static void process_bit(struct context *inc, char *identifier, unsigned int bit)
 static void parse_contents(const struct sr_input *in, char *data)
 {
 	struct context *inc;
-	uint64_t timestamp, prev_timestamp;
+	uint64_t timestamp;
 	unsigned int bit, i;
 	char **tokens;
 
 	inc = in->priv;
-	prev_timestamp = 0;
 
 	/* Read one space-delimited token at a time. */
 	tokens = g_strsplit_set(data, " \t\r\n", 0);
@@ -399,22 +399,22 @@ static void parse_contents(const struct sr_input *in, char *data)
 			 */
 			if (inc->skip < 0) {
 				inc->skip = timestamp;
-				prev_timestamp = timestamp;
+				inc->prev_timestamp = timestamp;
 			} else if (inc->skip > 0 && timestamp < (uint64_t)inc->skip) {
-				prev_timestamp = inc->skip;
-			} else if (timestamp == prev_timestamp) {
+				inc->prev_timestamp = inc->skip;
+			} else if (timestamp == inc->prev_timestamp) {
 				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
 			} else {
-				if (inc->compress != 0 && timestamp - prev_timestamp > inc->compress) {
+				if (inc->compress != 0 && timestamp - inc->prev_timestamp > inc->compress) {
 					/* Compress long idle periods */
-					prev_timestamp = timestamp - inc->compress;
+					inc->prev_timestamp = timestamp - inc->compress;
 				}
 
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				add_samples(in, timestamp - prev_timestamp);
-				prev_timestamp = timestamp;
+				add_samples(in, timestamp - inc->prev_timestamp);
+				inc->prev_timestamp = timestamp;
 			}
 		} else if (tokens[i][0] == '$' && tokens[i][1] != '\0') {
 			/*
