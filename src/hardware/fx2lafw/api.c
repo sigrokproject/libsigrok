@@ -878,7 +878,12 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		devc->submitted_transfers++;
 	}
 
-	if (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG)
+	/*
+	 * If this device has analog channels and at least one of them is
+	 * enabled, use mso_send_data_proc() to properly handle the analog
+	 * data. Otherwise use la_send_data_proc().
+	 */
+	if (g_slist_length(devc->enabled_analog_channels) > 0)
 		devc->send_data_proc = mso_send_data_proc;
 	else
 		devc->send_data_proc = la_send_data_proc;
@@ -988,7 +993,8 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
-		if ((p <= NUM_CHANNELS) && (ch->type == SR_CHANNEL_ANALOG)) {
+		if ((p <= NUM_CHANNELS) && (ch->type == SR_CHANNEL_ANALOG)
+				&& (ch->enabled)) {
 			num_analog++;
 			devc->enabled_analog_channels =
 			    g_slist_append(devc->enabled_analog_channels, ch);
@@ -997,7 +1003,10 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	/* Use no wide sampling if we have only the first 8 channels set. */
+	/*
+	 * Use wide sampling if either any of the LA channels 8..15 is enabled
+	 * and/or at least one analog channel is enabled.
+	 */
 	devc->sample_wide = (channel_mask > 0xff || num_analog > 0);
 
 	return SR_OK;
@@ -1036,7 +1045,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	} else {
 		size = fx2lafw_get_buffer_size(devc);
 		/* Prepare for analog sampling. */
-		if (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG) {
+		if (g_slist_length(devc->enabled_analog_channels) > 0) {
 			/* We need a buffer half the size of a transfer. */
 			devc->logic_buffer = g_try_malloc(size / 2);
 			devc->analog_buffer = g_try_malloc(

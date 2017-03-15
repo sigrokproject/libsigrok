@@ -126,7 +126,7 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 	cmd.flags |= devc->sample_wide ? CMD_START_FLAGS_SAMPLE_16BIT :
 		CMD_START_FLAGS_SAMPLE_8BIT;
 	/* Enable CTL2 clock. */
-	cmd.flags |= (devc->profile->dev_caps & DEV_CAPS_AX_ANALOG) ? CMD_START_FLAGS_CLK_CTL2 : 0;
+	cmd.flags |= (g_slist_length(devc->enabled_analog_channels) > 0) ? CMD_START_FLAGS_CLK_CTL2 : 0;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
@@ -338,9 +338,11 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
 
-	/* Free the deinterlace buffers if we had them */
-	g_free(devc->logic_buffer);
-	g_free(devc->analog_buffer);
+	/* Free the deinterlace buffers if we had them. */
+	if (g_slist_length(devc->enabled_analog_channels) > 0) {
+		g_free(devc->logic_buffer);
+		g_free(devc->analog_buffer);
+	}
 
 	if (devc->stl) {
 		soft_trigger_logic_free(devc->stl);
