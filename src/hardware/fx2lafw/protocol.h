@@ -95,7 +95,6 @@ struct fx2lafw_profile {
 struct dev_context {
 	const struct fx2lafw_profile *profile;
 	GSList *enabled_analog_channels;
-	gboolean ch_enabled[NUM_CHANNELS];
 	/*
 	 * Since we can't keep track of an fx2lafw device after upgrading
 	 * the firmware (it renumerates into a different device address

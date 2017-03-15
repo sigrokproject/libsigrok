@@ -985,13 +985,11 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 
 	g_slist_free(devc->enabled_analog_channels);
 	devc->enabled_analog_channels = NULL;
-	memset(devc->ch_enabled, 0, sizeof(devc->ch_enabled));
 
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
 		if ((p <= NUM_CHANNELS) && (ch->type == SR_CHANNEL_ANALOG)) {
 			num_analog++;
-			devc->ch_enabled[p] = ch->enabled;
 			devc->enabled_analog_channels =
 			    g_slist_append(devc->enabled_analog_channels, ch);
 		} else {
