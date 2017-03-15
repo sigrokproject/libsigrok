@@ -751,6 +751,7 @@ struct sr_serial_dev_inst {
 #ifdef HAVE_LIBHIDAPI
 	enum ser_hid_chip_t {
 		SER_HID_CHIP_UNKNOWN,		/**!< place holder */
+		SER_HID_CHIP_WCH_CH9325,	/**!< WCH CH9325 */
 		SER_HID_CHIP_LAST,		/**!< sentinel */
 	} hid_chip;
 	struct ser_hid_chip_functions *hid_chip_funcs;
@@ -1217,6 +1218,7 @@ struct ser_hid_chip_functions {
 	int (*flush)(struct sr_serial_dev_inst *serial);
 	int (*drain)(struct sr_serial_dev_inst *serial);
 };
+extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_ch9325;
 SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid);
 #endif
 #endif

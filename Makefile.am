@@ -120,6 +120,7 @@ if NEED_SERIAL
 libsigrok_la_SOURCES += \
 	src/serial.c \
 	src/serial_hid.c \
+	src/serial_hid_ch9325.c \
 	src/serial_libsp.c \
 	src/scpi/scpi_serial.c
 endif

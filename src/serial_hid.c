@@ -550,6 +550,7 @@ SR_PRIV int ser_hid_hidapi_set_data(struct sr_serial_dev_inst *serial,
 
 static struct ser_hid_chip_functions **chips[SER_HID_CHIP_LAST] = {
 	[SER_HID_CHIP_UNKNOWN] = NULL,
+	[SER_HID_CHIP_WCH_CH9325] = &ser_hid_chip_funcs_ch9325,
 };
 
 static struct ser_hid_chip_functions *get_hid_chip_funcs(enum ser_hid_chip_t chip)
