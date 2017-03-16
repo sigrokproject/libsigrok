@@ -31,7 +31,7 @@
 
 /* size of payloads sent across the session bus */
 /** @cond PRIVATE */
-#define CHUNKSIZE (512 * 1024)
+#define CHUNKSIZE (4 * 1024 * 1024)
 /** @endcond */
 
 SR_PRIV struct sr_dev_driver session_driver_info;
