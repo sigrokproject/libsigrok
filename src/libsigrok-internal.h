@@ -730,6 +730,7 @@ struct sr_usb_dev_inst {
 struct sr_serial_dev_inst;
 #ifdef HAVE_SERIAL_COMM
 struct ser_lib_functions;
+struct ser_hid_chip_functions;
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
@@ -748,8 +749,16 @@ struct sr_serial_dev_inst {
 	struct sp_port *sp_data;
 #endif
 #ifdef HAVE_LIBHIDAPI
-	/* TODO */
+	enum ser_hid_chip_t {
+		SER_HID_CHIP_UNKNOWN,		/**!< place holder */
+		SER_HID_CHIP_LAST,		/**!< sentinel */
+	} hid_chip;
+	struct ser_hid_chip_functions *hid_chip_funcs;
+	char *usb_path;
+	char *usb_serno;
+	const char *hid_path;
 	hid_device *hid_dev;
+	GSList *hid_source_args;
 #endif
 };
 #endif
@@ -1186,6 +1195,30 @@ struct ser_lib_functions {
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp;
 SR_PRIV int ser_name_is_hid(struct sr_serial_dev_inst *serial);
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_hid;
+
+#ifdef HAVE_LIBHIDAPI
+struct vid_pid_item {
+	uint16_t vid, pid;
+};
+#define VID_PID_TERM	ALL_ZERO
+
+struct ser_hid_chip_functions {
+	const char *chipname;
+	const char *chipdesc;
+	const struct vid_pid_item *vid_pid_items;
+	const int max_bytes_per_request;
+	int (*set_params)(struct sr_serial_dev_inst *serial,
+			int baudrate, int bits, int parity, int stopbits,
+			int flowcontrol, int rts, int dtr);
+	int (*read_bytes)(struct sr_serial_dev_inst *serial,
+			uint8_t *data, int space, unsigned int timeout);
+	int (*write_bytes)(struct sr_serial_dev_inst *serial,
+			const uint8_t *data, int space);
+	int (*flush)(struct sr_serial_dev_inst *serial);
+	int (*drain)(struct sr_serial_dev_inst *serial);
+};
+SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid);
+#endif
 #endif
 
 /*--- ezusb.c ---------------------------------------------------------------*/
