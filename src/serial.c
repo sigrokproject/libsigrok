@@ -68,8 +68,6 @@
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 {
 	int ret;
-	char *error;
-	int sp_flags = 0;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
@@ -78,26 +76,9 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
-	sp_get_port_by_name(serial->port, &serial->sp_data);
-
-	if (flags & SERIAL_RDWR)
-		sp_flags = (SP_MODE_READ | SP_MODE_WRITE);
-	else if (flags & SERIAL_RDONLY)
-		sp_flags = SP_MODE_READ;
-
-	ret = sp_open(serial->sp_data, sp_flags);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Attempt to open serial port with invalid parameters.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Error opening port (%d): %s.",
-			sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
+	ret = sr_ser_libsp_open(serial, flags);
+	if (ret != SR_OK)
+		return ret;
 
 	if (serial->serialcomm)
 		return serial_set_paramstr(serial, serial->serialcomm);
@@ -117,39 +98,14 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
  */
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 {
-	int ret;
-	char *error;
-
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
-		sr_dbg("Cannot close unopened serial port %s.", serial->port);
-		return SR_ERR;
-	}
-
 	sr_spew("Closing serial port %s.", serial->port);
 
-	ret = sp_close(serial->sp_data);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Attempt to close an invalid serial port.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Error closing port (%d): %s.",
-			sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
-
-	sp_free_port(serial->sp_data);
-	serial->sp_data = NULL;
-
-	return SR_OK;
+	return sr_ser_libsp_close(serial);
 }
 
 /**
@@ -164,36 +120,14 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
  */
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 {
-	int ret;
-	char *error;
-
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
-		sr_dbg("Cannot flush unopened serial port %s.", serial->port);
-		return SR_ERR;
-	}
-
 	sr_spew("Flushing serial port %s.", serial->port);
 
-	ret = sp_flush(serial->sp_data, SP_BUF_BOTH);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Attempt to flush an invalid serial port.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Error flushing port (%d): %s.",
-			sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
-
-	return SR_OK;
+	return sr_ser_libsp_flush(serial);
 }
 
 /**
@@ -208,66 +142,28 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
  */
 SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 {
-	int ret;
-	char *error;
-
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
-		return SR_ERR;
-	}
-
-	if (!serial->sp_data) {
-		sr_dbg("Cannot drain unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	sr_spew("Draining serial port %s.", serial->port);
 
-	ret = sp_drain(serial->sp_data);
-
-	if (ret == SP_ERR_FAIL) {
-		error = sp_last_error_message();
-		sr_err("Error draining port (%d): %s.",
-			sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
-
-	return SR_OK;
+	return sr_ser_libsp_drain(serial);
 }
 
 static int _serial_write(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count, int nonblocking, unsigned int timeout_ms)
+	const void *buf, size_t count,
+	int nonblocking, unsigned int timeout_ms)
 {
 	ssize_t ret;
-	char *error;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
-		sr_dbg("Cannot use unopened serial port %s.", serial->port);
-		return SR_ERR;
-	}
-
-	if (nonblocking)
-		ret = sp_nonblocking_write(serial->sp_data, buf, count);
-	else
-		ret = sp_blocking_write(serial->sp_data, buf, count, timeout_ms);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Attempted serial port write with invalid arguments.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Write error (%d): %s.", sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
-
+	ret = sr_ser_libsp_write(serial, buf, count, nonblocking, timeout_ms);
 	sr_spew("Wrote %zd/%zu bytes.", ret, count);
 
 	return ret;
@@ -289,7 +185,7 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
  * @private
  */
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count, unsigned int timeout_ms)
+	const void *buf, size_t count, unsigned int timeout_ms)
 {
 	return _serial_write(serial, buf, count, 0, timeout_ms);
 }
@@ -308,43 +204,22 @@ SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
  * @private
  */
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count)
+	const void *buf, size_t count)
 {
 	return _serial_write(serial, buf, count, 1, 0);
 }
 
-static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count, int nonblocking, unsigned int timeout_ms)
+static int _serial_read(struct sr_serial_dev_inst *serial,
+	void *buf, size_t count, int nonblocking, unsigned int timeout_ms)
 {
 	ssize_t ret;
-	char *error;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
-		sr_dbg("Cannot use unopened serial port %s.", serial->port);
-		return SR_ERR;
-	}
-
-	if (nonblocking)
-		ret = sp_nonblocking_read(serial->sp_data, buf, count);
-	else
-		ret = sp_blocking_read(serial->sp_data, buf, count, timeout_ms);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Attempted serial port read with invalid arguments.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Read error (%d): %s.", sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
-	}
-
+	ret = sr_ser_libsp_read(serial, buf, count, nonblocking, timeout_ms);
 	if (ret > 0)
 		sr_spew("Read %zd/%zu bytes.", ret, count);
 
@@ -366,8 +241,8 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
  *
  * @private
  */
-SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count, unsigned int timeout_ms)
+SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial,
+	void *buf, size_t count, unsigned int timeout_ms)
 {
 	return _serial_read(serial, buf, count, 0, timeout_ms);
 }
@@ -386,8 +261,8 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
  *
  * @private
  */
-SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
-		size_t count)
+SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial,
+	void *buf, size_t count)
 {
 	return _serial_read(serial, buf, count, 1, 0);
 }
@@ -410,74 +285,33 @@ SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf
  *
  * @private
  */
-SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
-			      int bits, int parity, int stopbits,
-			      int flowcontrol, int rts, int dtr)
+SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial,
+	int baudrate, int bits, int parity, int stopbits,
+	int flowcontrol, int rts, int dtr)
 {
 	int ret;
-	char *error;
-	struct sp_port_config *config;
 
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
-		sr_dbg("Cannot configure unopened serial port %s.", serial->port);
-		return SR_ERR;
-	}
-
 	sr_spew("Setting serial parameters on port %s.", serial->port);
 
-	sp_new_config(&config);
-	sp_set_config_baudrate(config, baudrate);
-	sp_set_config_bits(config, bits);
-	switch (parity) {
-	case 0:
-		sp_set_config_parity(config, SP_PARITY_NONE);
-		break;
-	case 1:
-		sp_set_config_parity(config, SP_PARITY_EVEN);
-		break;
-	case 2:
-		sp_set_config_parity(config, SP_PARITY_ODD);
-		break;
-	default:
-		return SR_ERR_ARG;
-	}
-	sp_set_config_stopbits(config, stopbits);
-	sp_set_config_rts(config, flowcontrol == 1 ? SP_RTS_FLOW_CONTROL : rts);
-	sp_set_config_cts(config, flowcontrol == 1 ? SP_CTS_FLOW_CONTROL : SP_CTS_IGNORE);
-	sp_set_config_dtr(config, dtr);
-	sp_set_config_dsr(config, SP_DSR_IGNORE);
-	sp_set_config_xon_xoff(config, flowcontrol == 2 ? SP_XONXOFF_INOUT : SP_XONXOFF_DISABLED);
-
-	ret = sp_set_config(serial->sp_data, config);
-	sp_free_config(config);
-
-	switch (ret) {
-	case SP_ERR_ARG:
-		sr_err("Invalid arguments for setting serial port parameters.");
-		return SR_ERR_ARG;
-	case SP_ERR_FAIL:
-		error = sp_last_error_message();
-		sr_err("Error setting serial port parameters (%d): %s.",
-			sp_last_error_code(), error);
-		sp_free_error_message(error);
-		return SR_ERR;
+	ret = sr_ser_libsp_set_params(serial,
+		baudrate, bits, parity, stopbits, flowcontrol, rts, dtr);
+	if (ret == SR_OK) {
+		serial->comm_params.bit_rate = baudrate;
+		serial->comm_params.data_bits = bits;
+		serial->comm_params.parity_bits = parity ? 1 : 0;
+		serial->comm_params.stop_bits = stopbits;
+		sr_dbg("DBG: %s() rate %d, %d%s%d", __func__,
+				baudrate, bits,
+				(parity == 0) ? "n" : "x",
+				stopbits);
 	}
 
-	serial->comm_params.bit_rate = baudrate;
-	serial->comm_params.data_bits = bits;
-	serial->comm_params.parity_bits = parity ? 1 : 0;
-	serial->comm_params.stop_bits = stopbits;
-	sr_dbg("DBG: %s() rate %d, %d%s%d", __func__,
-			baudrate, bits,
-			(parity == 0) ? "n" : "x",
-			stopbits);
-
-	return SR_OK;
+	return ret;
 }
 
 /**
@@ -504,7 +338,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
  * @private
  */
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
-		const char *paramstr)
+	const char *paramstr)
 {
 /** @cond PRIVATE */
 #define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
@@ -616,8 +450,8 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
  *
  * @private
  */
-SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
-		int *buflen, gint64 timeout_ms)
+SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
+	char **buf, int *buflen, gint64 timeout_ms)
 {
 	gint64 start, remaining;
 	int maxlen, len;
@@ -641,7 +475,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
-		len = sp_blocking_read(serial->sp_data, *buf + *buflen, 1, remaining);
+		len = serial_read_blocking(serial, *buf + *buflen, 1, remaining);
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
@@ -686,10 +520,10 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
  * @private
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
-				 uint8_t *buf, size_t *buflen,
-				 size_t packet_size,
-				 packet_valid_callback is_valid,
-				 uint64_t timeout_ms, int baudrate)
+	uint8_t *buf, size_t *buflen,
+	size_t packet_size,
+	packet_valid_callback is_valid,
+	uint64_t timeout_ms, int baudrate)
 {
 	uint64_t start, time, byte_delay_us;
 	size_t ibuf, i, maxlen;
@@ -770,8 +604,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
  *
  * @private
  */
-SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
-				      const char **serial_options)
+SR_PRIV int sr_serial_extract_options(GSList *options,
+	const char **serial_device, const char **serial_options)
 {
 	GSList *l;
 	struct sr_config *src;
@@ -800,77 +634,35 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 	return SR_OK;
 }
 
-/** @cond PRIVATE */
-#ifdef _WIN32
-typedef HANDLE event_handle;
-#else
-typedef int event_handle;
-#endif
-/** @endcond */
-
 /** @private */
 SR_PRIV int serial_source_add(struct sr_session *session,
-		struct sr_serial_dev_inst *serial, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data)
+	struct sr_serial_dev_inst *serial, int events, int timeout,
+	sr_receive_data_callback cb, void *cb_data)
 {
-	struct sp_event_set *event_set;
-	gintptr poll_fd;
-	unsigned int poll_events;
-	enum sp_event mask = 0;
-
-	if ((events & (G_IO_IN|G_IO_ERR)) && (events & G_IO_OUT)) {
+	if ((events & (G_IO_IN | G_IO_ERR)) && (events & G_IO_OUT)) {
 		sr_err("Cannot poll input/error and output simultaneously.");
 		return SR_ERR_ARG;
 	}
 
-	if (sp_new_event_set(&event_set) != SP_OK)
-		return SR_ERR;
-
-	if (events & G_IO_IN)
-		mask |= SP_EVENT_RX_READY;
-	if (events & G_IO_OUT)
-		mask |= SP_EVENT_TX_READY;
-	if (events & G_IO_ERR)
-		mask |= SP_EVENT_ERROR;
-
-	if (sp_add_port_events(event_set, serial->sp_data, mask) != SP_OK) {
-		sp_free_event_set(event_set);
-		return SR_ERR;
-	}
-	if (event_set->count != 1) {
-		sr_err("Unexpected number (%u) of event handles to poll.",
-			event_set->count);
-		sp_free_event_set(event_set);
-		return SR_ERR;
+	if (!serial->sp_data) {
+		sr_err("Invalid serial port.");
+		return SR_ERR_ARG;
 	}
 
-	poll_fd = (gintptr) ((event_handle *)event_set->handles)[0];
-	mask = event_set->masks[0];
-
-	sp_free_event_set(event_set);
-
-	poll_events = 0;
-	if (mask & SP_EVENT_RX_READY)
-		poll_events |= G_IO_IN;
-	if (mask & SP_EVENT_TX_READY)
-		poll_events |= G_IO_OUT;
-	if (mask & SP_EVENT_ERROR)
-		poll_events |= G_IO_ERR;
-	/*
-	 * Using serial->sp_data as the key for the event source is not quite
-	 * proper, as it makes it impossible to create another event source
-	 * for the same serial port. However, these fixed keys will soon be
-	 * removed from the API anyway, so this is OK for now.
-	 */
-	return sr_session_fd_source_add(session, serial->sp_data,
-			poll_fd, poll_events, timeout, cb, cb_data);
+	return sr_ser_libsp_source_add(session, serial,
+		events, timeout, cb, cb_data);
 }
 
 /** @private */
 SR_PRIV int serial_source_remove(struct sr_session *session,
-		struct sr_serial_dev_inst *serial)
+	struct sr_serial_dev_inst *serial)
 {
-	return sr_session_source_remove_internal(session, serial->sp_data);
+	if (!serial->sp_data) {
+		sr_err("Invalid serial port.");
+		return SR_ERR_ARG;
+	}
+
+	return sr_ser_libsp_source_remove(session, serial);
 }
 
 /**
@@ -884,7 +676,7 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
  * @return The newly allocated sr_serial_port struct.
  */
 static struct sr_serial_port *sr_serial_new(const char *name,
-		const char *description)
+	const char *description)
 {
 	struct sr_serial_port *serial;
 
@@ -912,6 +704,11 @@ SR_API void sr_serial_free(struct sr_serial_port *serial)
 	g_free(serial);
 }
 
+static GSList *append_port_list(GSList *devs, const char *name, const char *desc)
+{
+	return g_slist_append(devs, sr_serial_new(name, desc));
+}
+
 /**
  * List available serial devices.
  *
@@ -921,26 +718,23 @@ SR_API void sr_serial_free(struct sr_serial_port *serial)
  */
 SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 {
-	GSList *tty_devs = NULL;
-	struct sp_port **ports;
-	struct sr_serial_port *port;
-	int i;
+	GSList *tty_devs;
 
 	/* Currently unused, but will be used by some drivers later on. */
 	(void)driver;
 
-	if (sp_list_ports(&ports) != SP_OK)
-		return NULL;
-
-	for (i = 0; ports[i]; i++) {
-		port = sr_serial_new(sp_get_port_name(ports[i]),
-				     sp_get_port_description(ports[i]));
-		tty_devs = g_slist_append(tty_devs, port);
-	}
-
-	sp_free_port_list(ports);
+	tty_devs = NULL;
+	tty_devs = sr_ser_libsp_list(tty_devs, append_port_list);
 
 	return tty_devs;
+}
+
+static GSList *append_port_find(GSList *devs, const char *name)
+{
+	if (!name || !*name)
+		return devs;
+
+	return g_slist_append(devs, g_strdup(name));
 }
 
 /**
@@ -957,22 +751,11 @@ SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
  */
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 {
-	GSList *tty_devs = NULL;
-	struct sp_port **ports;
-	int i, vid, pid;
+	GSList *tty_devs;
 
-	if (sp_list_ports(&ports) != SP_OK)
-		return NULL;
-
-	for (i = 0; ports[i]; i++)
-		if (sp_get_port_transport(ports[i]) == SP_TRANSPORT_USB &&
-		    sp_get_port_usb_vid_pid(ports[i], &vid, &pid) == SP_OK &&
-		    vid == vendor_id && pid == product_id) {
-			tty_devs = g_slist_prepend(tty_devs,
-					g_strdup(sp_get_port_name(ports[i])));
-		}
-
-	sp_free_port_list(ports);
+	tty_devs = NULL;
+	tty_devs = sr_ser_libsp_find_usb(tty_devs, append_port_find,
+		vendor_id, product_id);
 
 	return tty_devs;
 }
@@ -980,33 +763,15 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 /** @private */
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 {
-	struct sp_port_config *config;
-	int timeout_ms, bits, baud, tmp;
-
-	/* Default to 1s. */
-	timeout_ms = 1000;
-
-	if (sp_new_config(&config) < 0)
-		return timeout_ms;
+	int bits, baud;
+	int ret;
+	int timeout_ms;
 
 	/* Get the bitrate and frame length. */
 	bits = baud = 0;
-	do {
-		if (sp_get_config(port->sp_data, config) < 0)
-			break;
-
-		/* Start bit. */
-		bits = 1;
-		if (sp_get_config_bits(config, &tmp) < 0)
-			break;
-		bits += tmp;
-		if (sp_get_config_stopbits(config, &tmp) < 0)
-			break;
-		bits += tmp;
-		if (sp_get_config_baudrate(config, &tmp) < 0)
-			break;
-		baud = tmp;
-	} while (FALSE);
+	ret = sr_ser_libsp_get_frame_format(port, &baud, &bits);
+	if (ret != SR_OK)
+		bits = baud = 0;
 	if (!bits || !baud) {
 		baud = port->comm_params.bit_rate;
 		bits = 1 + port->comm_params.data_bits +
@@ -1014,14 +779,13 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 			port->comm_params.stop_bits;
 	}
 
-	/* Derive the timeout. */
+	/* Derive the timeout. Default to 1s. */
+	timeout_ms = 1000;
 	if (bits && baud) {
 		/* Throw in 10ms for misc OS overhead. */
 		timeout_ms = 10;
 		timeout_ms += ((1000.0 / baud) * bits) * num_bytes;
 	}
-
-	sp_free_config(config);
 
 	return timeout_ms;
 }

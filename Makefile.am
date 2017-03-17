@@ -119,6 +119,7 @@ endif
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
 	src/serial.c \
+	src/serial_libsp.c \
 	src/scpi/scpi_serial.c
 endif
 if NEED_USB

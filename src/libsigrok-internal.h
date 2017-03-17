@@ -35,6 +35,7 @@
 #endif
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 struct zip;
 struct zip_stat;
@@ -1070,6 +1071,10 @@ enum {
 
 typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
 
+typedef GSList *(*sr_ser_list_append_t)(GSList *devs, const char *name,
+		const char *desc);
+typedef GSList *(*sr_ser_find_append_t)(GSList *devs, const char *name);
+
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
@@ -1102,6 +1107,31 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
+
+SR_PRIV int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags);
+SR_PRIV int sr_ser_libsp_close(struct sr_serial_dev_inst *serial);
+SR_PRIV int sr_ser_libsp_flush(struct sr_serial_dev_inst *serial);
+SR_PRIV int sr_ser_libsp_drain(struct sr_serial_dev_inst *serial);
+SR_PRIV int sr_ser_libsp_write(struct sr_serial_dev_inst *serial,
+		const void *buf, size_t count,
+		int nonblocking, unsigned int timeout_ms);
+SR_PRIV int sr_ser_libsp_read(struct sr_serial_dev_inst *serial,
+		void *buf, size_t count,
+		int nonblocking, unsigned int timeout_ms);
+SR_PRIV int sr_ser_libsp_set_params(struct sr_serial_dev_inst *serial,
+		int baudrate, int bits, int parity, int stopbits,
+		int flowcontrol, int rts, int dtr);
+SR_PRIV int sr_ser_libsp_source_add(struct sr_session *session,
+		struct sr_serial_dev_inst *serial,
+		int events, int timeout,
+		sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_ser_libsp_source_remove(struct sr_session *session,
+		struct sr_serial_dev_inst *serial);
+SR_PRIV GSList *sr_ser_libsp_list(GSList *list, sr_ser_list_append_t append);
+SR_PRIV GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
+		uint16_t vendor_id, uint16_t product_id);
+SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
+		int *baud, int *bits);
 #endif
 
 /*--- ezusb.c ---------------------------------------------------------------*/
