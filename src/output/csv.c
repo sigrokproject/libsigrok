@@ -457,7 +457,7 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			}
 
 			if (ctx->time)
-				g_string_append_printf(*out, "%lu%s",
+				g_string_append_printf(*out, "%" PRIu64 "%s",
 					ctx->sample_time, ctx->value);
 
 			for (j = 0; j < num_channels; j++) {
