@@ -153,7 +153,7 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 }
 
 /**
- * Flush serial port buffers.
+ * Flush serial port buffers. Empty buffers, discard pending RX and TX data.
  *
  * @param serial Previously initialized serial port structure.
  *
@@ -197,7 +197,7 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 }
 
 /**
- * Drain serial port buffers.
+ * Drain serial port buffers. Wait for pending TX data to be sent.
  *
  * @param serial Previously initialized serial port structure.
  *
@@ -595,12 +595,12 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 /**
  * Read a line from the specified serial port.
  *
- * @param serial Previously initialized serial port structure.
- * @param buf Buffer where to store the bytes that are read.
- * @param buflen Size of the buffer.
+ * @param[in] serial Previously initialized serial port structure.
+ * @param[out] buf Buffer where to store the bytes that are read.
+ * @param[in] buflen Size of the buffer.
  * @param[in] timeout_ms How long to wait for a line to come in.
  *
- * Reading stops when CR of LR is found, which is stripped from the buffer.
+ * Reading stops when CR or LF is found, which is stripped from the buffer.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Failure.
