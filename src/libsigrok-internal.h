@@ -726,6 +726,12 @@ struct sr_serial_dev_inst {
 	char *port;
 	/** Comm params for serial_set_paramstr(). */
 	char *serialcomm;
+	struct {
+		int bit_rate;
+		int data_bits;
+		int parity_bits;
+		int stop_bits;
+	} comm_params;
 	/** libserialport port handle */
 	struct sp_port *sp_data;
 };

@@ -468,6 +468,15 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
+	serial->comm_params.bit_rate = baudrate;
+	serial->comm_params.data_bits = bits;
+	serial->comm_params.parity_bits = parity ? 1 : 0;
+	serial->comm_params.stop_bits = stopbits;
+	sr_dbg("DBG: %s() rate %d, %d%s%d", __func__,
+			baudrate, bits,
+			(parity == 0) ? "n" : "x",
+			stopbits);
+
 	return SR_OK;
 }
 
@@ -980,6 +989,7 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 	if (sp_new_config(&config) < 0)
 		return timeout_ms;
 
+	/* Get the bitrate and frame length. */
 	bits = baud = 0;
 	do {
 		if (sp_get_config(port->sp_data, config) < 0)
@@ -997,7 +1007,14 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 			break;
 		baud = tmp;
 	} while (FALSE);
+	if (!bits || !baud) {
+		baud = port->comm_params.bit_rate;
+		bits = 1 + port->comm_params.data_bits +
+			port->comm_params.parity_bits +
+			port->comm_params.stop_bits;
+	}
 
+	/* Derive the timeout. */
 	if (bits && baud) {
 		/* Throw in 10ms for misc OS overhead. */
 		timeout_ms = 10;
