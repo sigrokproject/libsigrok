@@ -540,22 +540,22 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	if (sanity_check_all_drivers(context) < 0) {
 		sr_err("Internal driver error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_input_modules() < 0) {
 		sr_err("Internal input module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_output_modules() < 0) {
 		sr_err("Internal output module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_transform_modules() < 0) {
 		sr_err("Internal transform module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 #ifdef _WIN32
@@ -580,9 +580,7 @@ SR_API int sr_init(struct sr_context **ctx)
 	context = NULL;
 	ret = SR_OK;
 
-#if defined(HAVE_LIBUSB_1_0) || defined(_WIN32)
 done:
-#endif
 	g_free(context);
 	return ret;
 }
