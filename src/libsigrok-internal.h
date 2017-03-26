@@ -29,6 +29,9 @@
 #include "config.h"
 
 #include <glib.h>
+#ifdef HAVE_LIBHIDAPI
+#include <hidapi.h>
+#endif
 #ifdef HAVE_LIBSERIALPORT
 #include <libserialport.h>
 #endif
@@ -744,6 +747,10 @@ struct sr_serial_dev_inst {
 	/** libserialport port handle */
 	struct sp_port *sp_data;
 #endif
+#ifdef HAVE_LIBHIDAPI
+	/* TODO */
+	hid_device *hid_dev;
+#endif
 };
 #endif
 
@@ -1177,6 +1184,8 @@ struct ser_lib_functions {
 	size_t (*get_rx_avail)(struct sr_serial_dev_inst *serial);
 };
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp;
+SR_PRIV int ser_name_is_hid(struct sr_serial_dev_inst *serial);
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_hid;
 #endif
 
 /*--- ezusb.c ---------------------------------------------------------------*/

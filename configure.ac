@@ -101,6 +101,9 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
+SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
+	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
+
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
 # On Windows, require the latest version we can get our hands on,
@@ -130,7 +133,7 @@ SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
 AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
 
-AS_IF([test "x$sr_have_libserialport" = xyes],
+AS_IF([test "x$sr_have_libserialport" = xyes -o "x$sr_have_libhidapi" = xyes],
 	sr_have_serial_comm=yes, sr_have_serial_comm=no)
 AS_IF([test "x$sr_have_serial_comm" = xyes],
 	[AC_DEFINE([HAVE_SERIAL_COMM], [1], [Specifies whether serial communication is supported.])])
@@ -612,6 +615,7 @@ $sr_driver_summary
 Enabled serial communication transports:
   - serial comm ................... $sr_have_serial_comm
   - libserialport ................. $sr_have_libserialport
+  - hidapi ........................ $sr_have_libhidapi
 
 Enabled SCPI backends:
  - TCP............................. yes

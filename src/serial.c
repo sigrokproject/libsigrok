@@ -91,8 +91,15 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
-	/* Default to the libserialport transport layer. */
-	serial->lib_funcs = ser_lib_funcs_libsp;
+	/*
+	 * Determine which serial transport library to use. Derive the
+	 * variant from the serial port's name. Default to libserialport
+	 * for backwards compatibility.
+	 */
+	if (ser_name_is_hid(serial))
+		serial->lib_funcs = ser_lib_funcs_hid;
+	else
+		serial->lib_funcs = ser_lib_funcs_libsp;
 	if (!serial->lib_funcs)
 		return SR_ERR_NA;
 
@@ -930,6 +937,10 @@ SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 		list_func = ser_lib_funcs_libsp->list;
 		tty_devs = list_func(tty_devs, append_port_list);
 	}
+	if (ser_lib_funcs_hid && ser_lib_funcs_hid->list) {
+		list_func = ser_lib_funcs_hid->list;
+		tty_devs = list_func(tty_devs, append_port_list);
+	}
 
 	return tty_devs;
 }
@@ -963,6 +974,11 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 	tty_devs = NULL;
 	if (ser_lib_funcs_libsp && ser_lib_funcs_libsp->find_usb) {
 		find_func = ser_lib_funcs_libsp->find_usb;
+		tty_devs = find_func(tty_devs, append_port_find,
+			vendor_id, product_id);
+	}
+	if (ser_lib_funcs_hid && ser_lib_funcs_hid->find_usb) {
+		find_func = ser_lib_funcs_hid->find_usb;
 		tty_devs = find_func(tty_devs, append_port_find,
 			vendor_id, product_id);
 	}

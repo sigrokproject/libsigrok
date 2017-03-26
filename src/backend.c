@@ -164,6 +164,11 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 #endif
 	l = g_slist_append(l, m);
 #endif
+#ifdef HAVE_LIBHIDAPI
+	m = g_slist_append(NULL, g_strdup("hidapi"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBHIDAPI_VERSION));
+	l = g_slist_append(l, m);
+#endif
 #ifdef HAVE_LIBFTDI
 	m = g_slist_append(NULL, g_strdup("libftdi"));
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBFTDI_VERSION));
@@ -592,6 +597,20 @@ SR_API int sr_init(struct sr_context **ctx)
 		goto done;
 	}
 #endif
+#ifdef HAVE_LIBHIDAPI
+	/*
+	 * According to <hidapi.h>, the hid_init() routine just returns
+	 * zero or non-zero, and hid_error() appears to relate to calls
+	 * for a specific device after hid_open(). Which means that there
+	 * is no more detailled information available beyond success/fail
+	 * at this point in time.
+	 */
+	if (hid_init() != 0) {
+		sr_err("HIDAPI hid_init() failed.");
+		ret = SR_ERR;
+		goto done;
+	}
+#endif
 	sr_resource_set_hooks(context, NULL, NULL, NULL, NULL);
 
 	*ctx = context;
@@ -626,6 +645,9 @@ SR_API int sr_exit(struct sr_context *ctx)
 	WSACleanup();
 #endif
 
+#ifdef HAVE_LIBHIDAPI
+	hid_exit();
+#endif
 #ifdef HAVE_LIBUSB_1_0
 	libusb_exit(ctx->libusb_ctx);
 #endif
