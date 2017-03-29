@@ -515,6 +515,53 @@ static const struct scpi_command philips_pm2800_cmd[] = {
 	ALL_ZERO
 };
 
+static const uint32_t rs_hmc8043_devopts[] = {
+	SR_CONF_CONTINUOUS,
+};
+
+static const uint32_t rs_hmc8043_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec rs_hmc8043_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_group_spec rs_hmc8043_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP },
+	{ "2", CH_IDX(1), PPS_OVP },
+	{ "3", CH_IDX(2), PPS_OVP },
+};
+
+static const struct scpi_command rs_hmc8043_cmd[] = {
+	{ SCPI_CMD_SELECT_CHANNEL, "INST:NSEL %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE, "VOLT:PROT:TRIP?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV %.6f" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED, "VOLT:PROT:STAT?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE, "VOLT:PROT:STAT ON" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE, "VOLT:PROT:STAT OFF" },
+	ALL_ZERO
+};
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
 	{ "Agilent", "N5763A", 0,
@@ -606,6 +653,16 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		philips_pm2800_cmd,
 		philips_pm2800_probe_channels,
+	},
+
+	/* Rohde & Schwarz HMC8043 */
+	{ "Rohde&Schwarz", "HMC8043", 0,
+		ARRAY_AND_SIZE(rs_hmc8043_devopts),
+		ARRAY_AND_SIZE(rs_hmc8043_devopts_cg),
+		ARRAY_AND_SIZE(rs_hmc8043_ch),
+		ARRAY_AND_SIZE(rs_hmc8043_cg),
+		rs_hmc8043_cmd,
+		.probe_channels = NULL,
 	},
 };
 
