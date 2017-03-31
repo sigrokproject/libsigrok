@@ -52,8 +52,8 @@ Requirements for the C++ bindings:
 
  - libsigrok >= 0.4.0 (the libsigrok C library, see above)
  - A C++ compiler with C++11 support (-std=c++11 option), e.g.
-   - g++ (>= 4.7)
-   - clang++ (>= 3.1)
+   - g++ (>= 4.8.1)
+   - clang++ (>= 3.3)
  - autoconf-archive (only needed when building from git)
  - doxygen (required for building the bindings, not only for C++ API docs!)
  - graphviz (optional, only needed for the C++ API docs)
