@@ -57,29 +57,29 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	/* DreamSourceLab DSLogic (before FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
-		DEV_CAPS_16BIT, NULL, NULL},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, NULL, NULL},
 	/* DreamSourceLab DSLogic (after FW upload) */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
-		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSLogic"},
 
 	/* DreamSourceLab DSCope (before FW upload) */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
-		DEV_CAPS_16BIT, NULL, NULL},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, NULL, NULL},
 	/* DreamSourceLab DSCope (after FW upload) */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
-		DEV_CAPS_16BIT, "DreamSourceLab", "DSCope"},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSCope"},
 
 	/* DreamSourceLab DSLogic Pro (before FW upload) */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
-		DEV_CAPS_16BIT, NULL, NULL},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, NULL, NULL},
 	/* DreamSourceLab DSLogic Pro (after FW upload) */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
-		DEV_CAPS_16BIT, "DreamSourceLab", "DSLogic"},
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSLogic"},
 
 	/*
 	 * Saleae Logic
@@ -1004,10 +1004,13 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	}
 
 	/*
-	 * Use wide sampling if either any of the LA channels 8..15 is enabled
-	 * and/or at least one analog channel is enabled.
+	 * Use wide sampling if either any of the LA channels 8..15 is enabled,
+	 * and/or at least one analog channel is enabled, and/or the device
+	 * is running DSLogic firmware (not fx2lafw).
 	 */
-	devc->sample_wide = (channel_mask > 0xff || num_analog > 0);
+	devc->sample_wide = (channel_mask > 0xff
+			|| num_analog > 0
+			|| (devc->profile->dev_caps & DEV_CAPS_DSLOGIC_FW));
 
 	return SR_OK;
 }

@@ -51,9 +51,11 @@
 
 #define DEV_CAPS_16BIT_POS	0
 #define DEV_CAPS_AX_ANALOG_POS	1
+#define DEV_CAPS_DSLOGIC_FW_POS 2
 
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 #define DEV_CAPS_AX_ANALOG	(1 << DEV_CAPS_AX_ANALOG_POS)
+#define DEV_CAPS_DSLOGIC_FW	(1 << DEV_CAPS_DSLOGIC_FW_POS)
 
 #define DSLOGIC_FPGA_FIRMWARE_5V "dreamsourcelab-dslogic-fpga-5v.fw"
 #define DSLOGIC_FPGA_FIRMWARE_3V3 "dreamsourcelab-dslogic-fpga-3v3.fw"
