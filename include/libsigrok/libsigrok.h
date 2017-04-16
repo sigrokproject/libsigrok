@@ -530,7 +530,7 @@ struct sr_analog_meaning {
 
 struct sr_analog_spec {
 	/**
- 	 * Number of significant digits after the decimal point if positive,
+	 * Number of significant digits after the decimal point if positive,
 	 * or number of non-significant digits before the decimal point if
 	 * negative (refers to vendor specifications/datasheet or actual
 	 * device display).
@@ -797,7 +797,7 @@ enum sr_configkey {
 	/** Coupling. */
 	SR_CONF_COUPLING,
 
-	/** Trigger matches.  */
+	/** Trigger matches. */
 	SR_CONF_TRIGGER_MATCH,
 
 	/** The device supports setting its sample interval, in ms. */
@@ -806,16 +806,16 @@ enum sr_configkey {
 	/** Number of horizontal divisions, as related to SR_CONF_TIMEBASE. */
 	SR_CONF_NUM_HDIV,
 
-	/** Number of vertical divisions, as related to SR_CONF_VDIV.  */
+	/** Number of vertical divisions, as related to SR_CONF_VDIV. */
 	SR_CONF_NUM_VDIV,
 
-	/** Sound pressure level frequency weighting.  */
+	/** Sound pressure level frequency weighting. */
 	SR_CONF_SPL_WEIGHT_FREQ,
 
-	/** Sound pressure level time weighting.  */
+	/** Sound pressure level time weighting. */
 	SR_CONF_SPL_WEIGHT_TIME,
 
-	/** Sound pressure level measurement range.  */
+	/** Sound pressure level measurement range. */
 	SR_CONF_SPL_MEASUREMENT_RANGE,
 
 	/** Max hold mode. */
