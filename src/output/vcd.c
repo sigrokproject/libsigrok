@@ -29,7 +29,6 @@
 
 struct context {
 	int num_enabled_channels;
-	GArray *channelindices;
 	uint8_t *prevsample;
 	gboolean header_done;
 	int period;
