@@ -230,6 +230,8 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
 SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);
 SR_PRIV void sigma_clear_helper(void *priv);
+SR_PRIV uint64_t sigma_limit_samples_to_msec(const struct dev_context *devc,
+					     uint64_t limit_samples);
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);

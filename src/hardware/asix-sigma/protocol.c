@@ -519,6 +519,30 @@ static int upload_firmware(struct sr_context *ctx,
 	return SR_OK;
 }
 
+/*
+ * Sigma doesn't support limiting the number of samples, so we have to
+ * translate the number and the samplerate to an elapsed time.
+ *
+ * In addition we need to ensure that the last data cluster has passed
+ * the hardware pipeline, and became available to the PC side. With RLE
+ * compression up to 327ms could pass before another cluster accumulates
+ * at 200kHz samplerate when input pins don't change.
+ */
+SR_PRIV uint64_t sigma_limit_samples_to_msec(const struct dev_context *devc,
+					     uint64_t limit_samples)
+{
+	uint64_t limit_msec;
+	uint64_t worst_cluster_time_ms;
+
+	limit_msec = limit_samples * 1000 / devc->cur_samplerate;
+	worst_cluster_time_ms = 65536 * 1000 / devc->cur_samplerate;
+	/*
+	 * One cluster time is not enough to flush pipeline when sampling
+	 * grounded pins with 1 sample limit at 200kHz. Hence the 2* fix.
+	 */
+	return limit_msec + 2 * worst_cluster_time_ms;
+}
+
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
 {
 	struct dev_context *devc;
@@ -574,7 +598,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 */
 	if (ret == SR_OK && devc->limit_samples) {
 		uint64_t msecs;
-		msecs = devc->limit_samples * 1000 / devc->cur_samplerate;
+		msecs = sigma_limit_samples_to_msec(devc, devc->limit_samples);
 		devc->limit_msec = msecs;
 	}
 

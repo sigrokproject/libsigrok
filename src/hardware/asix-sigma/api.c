@@ -228,7 +228,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp = g_variant_get_uint64(data);
 		devc->limit_samples = tmp;
-		devc->limit_msec = tmp * 1000 / devc->cur_samplerate;
+		devc->limit_msec = sigma_limit_samples_to_msec(devc, tmp);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		tmp = g_variant_get_uint64(data);
