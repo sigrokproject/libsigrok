@@ -723,7 +723,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 
 	ts = sigma_dram_cluster_ts(dram_cluster);
 	tsdiff = ts - ss->lastts;
-	ss->lastts = ts;
+	ss->lastts = ts + EVENTS_PER_CLUSTER;
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
@@ -741,7 +741,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	 * sample in the cluster happens at the time of the timestamp
 	 * and the remaining samples happen at timestamp +1...+6 .
 	 */
-	for (ts = 0; ts < tsdiff - (EVENTS_PER_CLUSTER - 1); ts++) {
+	for (ts = 0; ts < tsdiff; ts++) {
 		i = ts % 1024;
 		samples[2 * i + 0] = ss->lastsample & 0xff;
 		samples[2 * i + 1] = ss->lastsample >> 8;
@@ -751,7 +751,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		 * end of submitting the padding samples, submit
 		 * the packet to Sigrok.
 		 */
-		if ((i == 1023) || (ts == (tsdiff - EVENTS_PER_CLUSTER))) {
+		if ((i == 1023) || (ts == tsdiff - 1)) {
 			logic.length = (i + 1) * logic.unitsize;
 			sr_session_send(sdi, &packet);
 		}
