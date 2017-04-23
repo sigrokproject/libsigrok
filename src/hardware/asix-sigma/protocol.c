@@ -740,11 +740,58 @@ static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
 	return sample;
 }
 
+/*
+ * Deinterlace sample data that was retrieved at 100MHz samplerate.
+ * One 16bit item contains two samples of 8bits each. The bits of
+ * multiple samples are interleaved.
+ */
+static uint16_t sigma_deinterlace_100mhz_data(uint16_t indata, int idx)
+{
+	uint16_t outdata;
+
+	indata >>= idx;
+	outdata = 0;
+	outdata |= (indata >> (0 * 2 - 0)) & (1 << 0);
+	outdata |= (indata >> (1 * 2 - 1)) & (1 << 1);
+	outdata |= (indata >> (2 * 2 - 2)) & (1 << 2);
+	outdata |= (indata >> (3 * 2 - 3)) & (1 << 3);
+	outdata |= (indata >> (4 * 2 - 4)) & (1 << 4);
+	outdata |= (indata >> (5 * 2 - 5)) & (1 << 5);
+	outdata |= (indata >> (6 * 2 - 6)) & (1 << 6);
+	outdata |= (indata >> (7 * 2 - 7)) & (1 << 7);
+	return outdata;
+}
+
+/*
+ * Deinterlace sample data that was retrieved at 200MHz samplerate.
+ * One 16bit item contains four samples of 4bits each. The bits of
+ * multiple samples are interleaved.
+ */
+static uint16_t sigma_deinterlace_200mhz_data(uint16_t indata, int idx)
+{
+	uint16_t outdata;
+
+	indata >>= idx;
+	outdata = 0;
+	outdata |= (indata >> (0 * 4 - 0)) & (1 << 0);
+	outdata |= (indata >> (1 * 4 - 1)) & (1 << 1);
+	outdata |= (indata >> (2 * 4 - 2)) & (1 << 2);
+	outdata |= (indata >> (3 * 4 - 3)) & (1 << 3);
+	return outdata;
+}
+
 static void store_sr_sample(uint8_t *samples, int idx, uint16_t data)
 {
 	samples[2 * idx + 0] = (data >> 0) & 0xff;
 	samples[2 * idx + 1] = (data >> 8) & 0xff;
 }
+
+/*
+ * This size translates to: event count (1K events per cluster), times
+ * the sample width (unitsize, 16bits per event), times the maximum
+ * number of samples per event.
+ */
+#define SAMPLES_BUFFER_SIZE	(1024 * 2 * 4)
 
 static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 				      unsigned int events_in_cluster,
@@ -755,9 +802,12 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	struct sigma_state *ss = &devc->state;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint16_t tsdiff, ts, sample;
-	uint8_t samples[2048];
+	uint16_t tsdiff, ts, sample, item16;
+	uint8_t samples[SAMPLES_BUFFER_SIZE];
+	uint8_t *send_ptr;
+	size_t send_count, trig_count;
 	unsigned int i;
+	int j;
 
 	ts = sigma_dram_cluster_ts(dram_cluster);
 	tsdiff = ts - ss->lastts;
@@ -786,22 +836,45 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		/*
 		 * If we have 1024 samples ready or we're at the
 		 * end of submitting the padding samples, submit
-		 * the packet to Sigrok.
+		 * the packet to Sigrok. Since constant data is
+		 * sent, duplication of data for rates above 50MHz
+		 * is simple.
 		 */
 		if ((i == 1023) || (ts == tsdiff - 1)) {
 			logic.length = (i + 1) * logic.unitsize;
-			sr_session_send(sdi, &packet);
+			for (j = 0; j < devc->samples_per_event; j++)
+				sr_session_send(sdi, &packet);
 		}
 	}
 
 	/*
 	 * Parse the samples in current cluster and prepare them
-	 * to be submitted to Sigrok.
+	 * to be submitted to Sigrok. Cope with memory layouts that
+	 * vary with the samplerate.
 	 */
+	send_ptr = &samples[0];
+	send_count = 0;
 	sample = 0;
 	for (i = 0; i < events_in_cluster; i++) {
-		sample = sigma_dram_cluster_data(dram_cluster, i);
-		store_sr_sample(samples, i, sample);
+		item16 = sigma_dram_cluster_data(dram_cluster, i);
+		if (devc->cur_samplerate == SR_MHZ(200)) {
+			sample = sigma_deinterlace_200mhz_data(item16, 0);
+			store_sr_sample(samples, send_count++, sample);
+			sample = sigma_deinterlace_200mhz_data(item16, 1);
+			store_sr_sample(samples, send_count++, sample);
+			sample = sigma_deinterlace_200mhz_data(item16, 2);
+			store_sr_sample(samples, send_count++, sample);
+			sample = sigma_deinterlace_200mhz_data(item16, 3);
+			store_sr_sample(samples, send_count++, sample);
+		} else if (devc->cur_samplerate == SR_MHZ(100)) {
+			sample = sigma_deinterlace_100mhz_data(item16, 0);
+			store_sr_sample(samples, send_count++, sample);
+			sample = sigma_deinterlace_100mhz_data(item16, 1);
+			store_sr_sample(samples, send_count++, sample);
+		} else {
+			sample = item16;
+			store_sr_sample(samples, send_count++, sample);
+		}
 	}
 
 	/*
@@ -821,10 +894,12 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 					ss->lastsample, &devc->trigger);
 
 		if (trigger_offset > 0) {
+			trig_count = trigger_offset * devc->samples_per_event;
 			packet.type = SR_DF_LOGIC;
-			logic.length = trigger_offset * logic.unitsize;
+			logic.length = trig_count * logic.unitsize;
 			sr_session_send(sdi, &packet);
-			events_in_cluster -= trigger_offset;
+			send_ptr += trig_count * logic.unitsize;
+			send_count -= trig_count;
 		}
 
 		/* Only send trigger if explicitly enabled. */
@@ -838,10 +913,10 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	 * Send the data after the trigger, or all of the received data
 	 * if no trigger position applies.
 	 */
-	if (events_in_cluster > 0) {
+	if (send_count) {
 		packet.type = SR_DF_LOGIC;
-		logic.length = events_in_cluster * logic.unitsize;
-		logic.data = samples + (trigger_offset * logic.unitsize);
+		logic.length = send_count * logic.unitsize;
+		logic.data = send_ptr;
 		sr_session_send(sdi, &packet);
 	}
 
