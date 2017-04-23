@@ -726,6 +726,25 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
 	return (cluster->timestamp_hi << 8) | cluster->timestamp_lo;
 }
 
+/*
+ * Return one 16bit data entity of a DRAM cluster at the specified index.
+ */
+static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
+{
+	uint16_t sample;
+
+	sample = 0;
+	sample |= cl->samples[idx].sample_lo << 0;
+	sample |= cl->samples[idx].sample_hi << 8;
+	return sample;
+}
+
+static void store_sr_sample(uint8_t *samples, int idx, uint16_t data)
+{
+	samples[2 * idx + 0] = (data >> 0) & 0xff;
+	samples[2 * idx + 1] = (data >> 8) & 0xff;
+}
+
 static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 				      unsigned int events_in_cluster,
 				      unsigned int triggered,
@@ -735,7 +754,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	struct sigma_state *ss = &devc->state;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	uint16_t tsdiff, ts;
+	uint16_t tsdiff, ts, sample;
 	uint8_t samples[2048];
 	unsigned int i;
 
@@ -761,8 +780,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	 */
 	for (ts = 0; ts < tsdiff; ts++) {
 		i = ts % 1024;
-		samples[2 * i + 0] = ss->lastsample & 0xff;
-		samples[2 * i + 1] = ss->lastsample >> 8;
+		store_sr_sample(samples, i, ss->lastsample);
 
 		/*
 		 * If we have 1024 samples ready or we're at the
@@ -779,9 +797,10 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	 * Parse the samples in current cluster and prepare them
 	 * to be submitted to Sigrok.
 	 */
+	sample = 0;
 	for (i = 0; i < events_in_cluster; i++) {
-		samples[2 * i + 1] = dram_cluster->samples[i].sample_lo;
-		samples[2 * i + 0] = dram_cluster->samples[i].sample_hi;
+		sample = sigma_dram_cluster_data(dram_cluster, i);
+		store_sr_sample(samples, i, sample);
 	}
 
 	/*
@@ -825,10 +844,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		sr_session_send(sdi, &packet);
 	}
 
-	ss->lastsample =
-		samples[2 * (events_in_cluster - 1) + 0] |
-		(samples[2 * (events_in_cluster - 1) + 1] << 8);
-
+	ss->lastsample = sample;
 }
 
 /*
