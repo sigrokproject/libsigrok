@@ -57,6 +57,18 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
+SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial)
+{
+	unsigned int i;
+
+	for (i = 0; i < 5; i++) {
+		if (send_shortcommand(serial, CMD_RESET) != SR_OK)
+			return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 /* Configures the channel mask based on which channels are enabled. */
 SR_PRIV void ols_channel_mask(const struct sr_dev_inst *sdi)
 {

@@ -107,6 +107,7 @@ SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command);
 SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command, uint8_t *data);
+SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial);
 SR_PRIV void ols_channel_mask(const struct sr_dev_inst *sdi);
 SR_PRIV int ols_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV struct dev_context *ols_dev_new(void);

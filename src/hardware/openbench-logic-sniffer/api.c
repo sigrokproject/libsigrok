@@ -126,14 +126,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	ret = SR_OK;
-	for (i = 0; i < 5; i++) {
-		if ((ret = send_shortcommand(serial, CMD_RESET)) != SR_OK) {
-			sr_err("Port %s is not writable.", conn);
-			break;
-		}
-	}
-	if (ret != SR_OK) {
+	if (ols_send_reset(serial) != SR_OK) {
 		serial_close(serial);
 		sr_err("Could not use port %s. Quitting.", conn);
 		return NULL;
