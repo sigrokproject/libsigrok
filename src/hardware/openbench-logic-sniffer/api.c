@@ -473,6 +473,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 	if (devc->num_stages > 0) {
+		/*
+		 * According to http://mygizmos.org/ols/Logic-Sniffer-FPGA-Spec.pdf
+		 * reset command must be send prior each arm command
+		 */
+		sr_dbg("Send reset command before trigger configure");
+		if (ols_send_reset(serial) != SR_OK)
+			return SR_ERR;
+
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at = (readcount - delaycount) * 4 - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {
