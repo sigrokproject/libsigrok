@@ -123,6 +123,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 				return TRUE;
 			} else {
 				/* We got all the chunks, finish up. */
+				g_free(vdev->capturefile);
+				vdev->capturefile = NULL;
 				return FALSE;
 			}
 		}
