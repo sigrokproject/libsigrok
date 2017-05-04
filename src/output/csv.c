@@ -260,7 +260,7 @@ static GString *gen_header(const struct sr_output *o,
 		g_string_append_printf(header, "%s Channels (%d/%d):",
 			ctx->comment, ctx->num_analog_channels +
 			ctx->num_logic_channels, num_channels);
-		for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+		for (l = o->sdi->channels; l; l = l->next) {
 			ch = l->data;
 			if (ch->enabled)
 				g_string_append_printf(header, " %s,", ch->name);
