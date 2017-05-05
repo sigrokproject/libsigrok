@@ -28,9 +28,12 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_NUM_ANALOG_CHANNELS	4
+#define DEFAULT_NUM_LOGIC_CHANNELS	128
+#define DEFAULT_ENABLED_LOGIC_CHANNELS	8
+#define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
 
+#define DEFAULT_NUM_ANALOG_CHANNELS	4
+#define DEFAULT_ENABLED_ANALOG_CHANNELS	4
 #define DEFAULT_ANALOG_AMPLITUDE	10
 
 static const char *logic_pattern_str[] = {
@@ -92,6 +95,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l;
 	int num_logic_channels, num_analog_channels, pattern, i;
 	char channel_name[16];
+	gboolean enabled;
 
 	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
 	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;
@@ -115,7 +119,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
-	devc->logic_pattern = PATTERN_SIGROK;
+	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
 
 	if (num_logic_channels > 0) {
@@ -124,7 +128,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		cg->name = g_strdup("Logic");
 		for (i = 0; i < num_logic_channels; i++) {
 			sprintf(channel_name, "D%d", i);
-			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
+			enabled = (i < DEFAULT_ENABLED_LOGIC_CHANNELS) ? TRUE : FALSE;
+			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, enabled, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
 		sdi->channel_groups = g_slist_append(NULL, cg);
@@ -141,8 +146,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 		for (i = 0; i < num_analog_channels; i++) {
 			snprintf(channel_name, 16, "A%d", i);
+			enabled = (i < DEFAULT_ENABLED_ANALOG_CHANNELS) ? TRUE : FALSE;
 			ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
-					TRUE, channel_name);
+					enabled, channel_name);
 			acg->channels = g_slist_append(acg->channels, ch);
 
 			/* Every analog channel gets its own channel group as well. */
