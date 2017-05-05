@@ -80,6 +80,13 @@ enum {
 
 	/** All channels have a high logic state. */
 	PATTERN_ALL_HIGH,
+
+	/**
+	 * Mimics a cable squid. Derived from the "works with" logo
+	 * to occupy a larger number of channels yet "painting"
+	 * something that can get recognized.
+	 */
+	PATTERN_SQUID,
 };
 
 /* Analog patterns we can generate. */

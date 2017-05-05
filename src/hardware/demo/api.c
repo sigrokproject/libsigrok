@@ -39,6 +39,7 @@ static const char *logic_pattern_str[] = {
 	"incremental",
 	"all-low",
 	"all-high",
+	"squid",
 };
 
 static const uint32_t drvopts[] = {
