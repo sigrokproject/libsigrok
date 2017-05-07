@@ -308,7 +308,7 @@ static const struct scope_config scope_models[] = {
 		.scpi_dialect = &hameg_scpi_dialect,
 	},
 	{
-		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", NULL},
+		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
 		.digital_pods = 2,
