@@ -382,7 +382,7 @@ static void process_logic(struct context *ctx,
 				sample = logic->data + i;
 				idx = ctx->channels[ch].ch->index;
 				if (ctx->label_do && !ctx->label_names)
-					ctx->channels[i].label = "logic";
+					ctx->channels[j].label = "logic";
 				ctx->logic_samples[i * ctx->num_logic_channels + ch] = sample[idx / 8] & (1 << (idx % 8));
 			}
 			ch++;
