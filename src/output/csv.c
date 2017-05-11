@@ -608,6 +608,7 @@ static int cleanup(struct sr_output *o)
 		g_free((gpointer)ctx->frame);
 		g_free((gpointer)ctx->comment);
 		g_free((gpointer)ctx->gnuplot);
+		g_free((gpointer)ctx->value);
 		g_free(ctx->previous_sample);
 		g_free(ctx->channels);
 		g_free(o->priv);
