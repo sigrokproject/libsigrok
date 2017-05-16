@@ -388,6 +388,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ikalogic-scanaplus/protocol.c \
 	src/hardware/ikalogic-scanaplus/api.c
 endif
+if HW_IPDBG_LOGIC_ANALYSER
+src_libdrivers_la_SOURCES += \
+	src/hardware/ipdbg-logic-analyser/protocol.h \
+	src/hardware/ipdbg-logic-analyser/protocol.c \
+	src/hardware/ipdbg-logic-analyser/api.c
+endif
 if HW_KECHENG_KC_330B
 src_libdrivers_la_SOURCES += \
 	src/hardware/kecheng-kc-330b/protocol.h \
