@@ -220,11 +220,19 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 	if (devc->model->series->protocol != PROTOCOL_V3)
 		return SR_OK;
 
-	if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-			ch->index + 1) != SR_OK)
-		return SR_ERR;
+	if (ch->type == SR_CHANNEL_LOGIC) {
+		if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+			return SR_ERR;
+	} else {
+		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
+				ch->index + 1) != SR_OK)
+			return SR_ERR;
+	}
 	/* Check that the number of samples will be accepted */
-	if (rigol_ds_config_set(sdi, ":WAV:POIN %d", devc->analog_frame_size) != SR_OK)
+	if (rigol_ds_config_set(sdi, ":WAV:POIN %d",
+			ch->type == SR_CHANNEL_LOGIC ?
+				devc->digital_frame_size :
+				devc->analog_frame_size) != SR_OK)
 		return SR_ERR;
 	if (sr_scpi_get_int(sdi->conn, "*ESR?", &tmp) != SR_OK)
 		return SR_ERR;
@@ -431,9 +439,14 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		rigol_ds_set_wait_event(devc, WAIT_NONE);
 		break;
 	case PROTOCOL_V3:
-		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
-				ch->index + 1) != SR_OK)
-			return SR_ERR;
+		if (ch->type == SR_CHANNEL_LOGIC) {
+			if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+				return SR_ERR;
+		} else {
+			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
+					ch->index + 1) != SR_OK)
+				return SR_ERR;
+		}
 		if (devc->data_source != DATA_SOURCE_LIVE) {
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
@@ -795,7 +808,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	/* Digital channel state. */
 	if (devc->model->has_digital) {
 		if (sr_scpi_get_bool(sdi->conn,
-				devc->model->series->protocol >= PROTOCOL_V4 ?
+				devc->model->series->protocol >= PROTOCOL_V3 ?
 					":LA:STAT?" : ":LA:DISP?",
 				&devc->la_enabled) != SR_OK)
 			return SR_ERR;
@@ -803,7 +816,7 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			cmd = g_strdup_printf(
-				devc->model->series->protocol >= PROTOCOL_V4 ?
+				devc->model->series->protocol >= PROTOCOL_V3 ?
 					":LA:DIG%d:DISP?" : ":DIG%d:TURN?", i);
 			res = sr_scpi_get_bool(sdi->conn, cmd, &devc->digital_channels[i]);
 			g_free(cmd);

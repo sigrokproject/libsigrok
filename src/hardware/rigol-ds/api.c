@@ -1021,10 +1021,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				devc->analog_channels[ch->index] = ch->enabled;
 			}
 		} else if (ch->type == SR_CHANNEL_LOGIC) {
-			/* Only one list entry for DS1000D series. All channels are retrieved
-			 * together when this entry is processed. */
+			/* Only one list entry for older protocols. All channels are
+			 * retrieved together when this entry is processed. */
 			if (ch->enabled && (
-						devc->model->series->protocol > PROTOCOL_V2 ||
+						devc->model->series->protocol > PROTOCOL_V3 ||
 						!some_digital))
 				devc->enabled_channels = g_slist_append(
 						devc->enabled_channels, ch);
@@ -1033,7 +1033,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
 					if (rigol_ds_config_set(sdi,
-							devc->model->series->protocol >= PROTOCOL_V4 ?
+							devc->model->series->protocol >= PROTOCOL_V3 ?
 								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
@@ -1042,7 +1042,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
 				if (rigol_ds_config_set(sdi,
-						devc->model->series->protocol >= PROTOCOL_V4 ?
+						devc->model->series->protocol >= PROTOCOL_V3 ?
 							":LA:DIG%d:DISP %s" : ":DIG%d:TURN %s", ch->index,
 						ch->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
@@ -1057,7 +1057,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Turn off LA module if on and no digital channels selected. */
 	if (devc->la_enabled && !some_digital)
 		if (rigol_ds_config_set(sdi,
-				devc->model->series->protocol >= PROTOCOL_V4 ?
+				devc->model->series->protocol >= PROTOCOL_V3 ?
 					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
 
