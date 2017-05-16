@@ -52,7 +52,7 @@ static const char *channel_names[] = {
 };
 
 static const char *dc_coupling[] = {
-	"DC", "DC",
+	"DC",
 };
 
 static const char *acdc_coupling[] = {
@@ -385,7 +385,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
 			break;
 		case SR_CONF_COUPLING:
-			*data = g_variant_new_string(devc->coupling_vals[devc->coupling[ch_idx]]);
+			*data = g_variant_new_string((devc->coupling[ch_idx] \
+					== COUPLING_DC) ? "DC" : "AC");
 			break;
 		}
 	}
