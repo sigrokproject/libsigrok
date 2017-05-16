@@ -120,6 +120,7 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	}
 	devc->coupling_vals = prof->coupling_vals;
 	devc->coupling_tab_size = prof->coupling_tab_size;
+	devc->has_coupling = prof->has_coupling;
 
 	devc->sample_buf = NULL;
 	devc->sample_buf_write = 0;
