@@ -44,7 +44,7 @@ struct session_vdev {
 	int bytes_read;
 	uint64_t samplerate;
 	int unitsize;
-	int num_channels;
+	int num_logic_channels;
 	int num_analog_channels;
 	int cur_analog_channel;
 	GArray *analog_channels;
@@ -117,7 +117,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 				sr_dbg("Opened %s.", capturefile);
 			} else if (vdev->cur_analog_channel < vdev->num_analog_channels) {
 				vdev->capturefile = g_strdup_printf("analog-1-%d",
-						vdev->num_channels + vdev->cur_analog_channel + 1);
+						vdev->num_logic_channels + vdev->cur_analog_channel + 1);
 				vdev->cur_analog_channel++;
 				vdev->cur_chunk = 0;
 				return TRUE;
@@ -308,7 +308,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		vdev->unitsize = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_NUM_LOGIC_CHANNELS:
-		vdev->num_channels = g_variant_get_int32(data);
+		vdev->num_logic_channels = g_variant_get_int32(data);
 		break;
 	case SR_CONF_NUM_ANALOG_CHANNELS:
 		vdev->num_analog_channels = g_variant_get_int32(data);
