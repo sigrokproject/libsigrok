@@ -124,7 +124,17 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 			} else {
 				/* We got all the chunks, finish up. */
 				g_free(vdev->capturefile);
-				vdev->capturefile = NULL;
+
+				/* If the file has logic channels, the initial value for
+				 * capturefile is set by stream_session_data() - however only
+				 * once. In order to not mess this mechanism up, we simulate
+				 * this here if needed. For purely analog files, capturefile
+				 * is not set.
+				 */
+				if (vdev->num_logic_channels)
+					vdev->capturefile = g_strdup("logic-1");
+				else
+					vdev->capturefile = NULL;
 				return FALSE;
 			}
 		}
