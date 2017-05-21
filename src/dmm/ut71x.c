@@ -116,7 +116,7 @@ static int parse_range(const uint8_t *buf, float *floatval, int *exponent)
 
 	/* Apply respective exponent (mode-dependent) on the value. */
 	*floatval *= powf(10, *exponent);
-	sr_dbg("Applying exponent %d, new value is %f.", *exponent, *floatval);
+	sr_dbg("Applying exponent %d, new value is %g.", *exponent, *floatval);
 
 	return SR_OK;
 }
