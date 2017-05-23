@@ -246,6 +246,8 @@ static int get_and_handle_data(struct sr_dev_inst *sdi)
 	for (i = 0; i < num_databytes_in_chunk; i++, devc->buflen++) {
 		pbuf[devc->buflen] = buf[1 + i];
 		if ((dmm->packet_parse == sr_es519xx_19200_14b_parse) ||
+		    (dmm->packet_parse == sr_es519xx_19200_11b_parse) ||
+		    (dmm->packet_parse == sr_es519xx_2400_11b_parse) ||
 		    (dmm->packet_parse == sr_ut71x_parse)) {
 			/* Mask off the parity bit. */
 			pbuf[devc->buflen] &= ~(1 << 7);
