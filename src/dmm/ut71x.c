@@ -44,7 +44,7 @@ static const int exponents[16][8] = {
 	{  0,  -4,  -3,  -2, -1,  0,  0,  0 }, /* DC V */
 	{  0,  -4,  -3,  -2, -1,  0,  0,  0 }, /* AC V */
 	{ -5,   0,   0,   0,  0,  0,  0,  0 }, /* DC mV */
-	{  0,  -1,   0,   1,  2,  3,  4,  0 }, /* Resistance */
+	{  0,  -2,  -1,   0,  1,  2,  3,  0 }, /* Resistance */
 	{  0, -12, -11, -10, -9, -8, -7, -6 }, /* Capacitance */
 	{ -1,   0,   0,   0,  0,  0,  0,  0 }, /* Temp (C) */
 	{ -8,  -7,   0,   0,  0,  0,  0,  0 }, /* uA */
@@ -81,8 +81,20 @@ static int parse_value(const uint8_t *buf, struct ut71x_info *info, float *resul
 		       buf[0], buf[1], buf[2], buf[3], buf[4]);
 		return SR_ERR;
 	}
+
 	for (i = 0, intval = 0; i < num_digits; i++)
 		intval = 10 * intval + (buf[i] - '0');
+
+	/*
+	 * For measurements that only have 4000 instead of 40000 counts
+ 	 * (resistance, continuity) we have to use an additional factor of 10.
+ 	 *
+ 	 * This seems to vary between DMMs. E.g. the Voltcraft VC920 and VC940
+ 	 * have 4000 counts for resistance, whereas the Tenma 72-9380A,
+ 	 * 72-7730 and 72-7732 have 40000 counts for resistance.
+ 	 */
+	if (num_digits == 4)
+		intval *= 10;
 
 	/* Apply sign. */
 	intval *= info->is_sign ? -1 : 1;
