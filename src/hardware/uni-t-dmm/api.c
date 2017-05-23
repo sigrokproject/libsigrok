@@ -358,7 +358,7 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"tenma-72-7745", es519xx,
+		"tenma-72-7745", fs9721,
 		"Tenma", "72-7745", 2400,
 		FS9721_PACKET_SIZE,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
