@@ -40,6 +40,8 @@ static const char *logic_pattern_str[] = {
 	"sigrok",
 	"random",
 	"incremental",
+	"walking one",
+	"walking zero",
 	"all-low",
 	"all-high",
 	"squid",

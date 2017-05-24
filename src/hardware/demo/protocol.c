@@ -279,6 +279,35 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 			devc->step++;
 		}
 		break;
+	case PATTERN_WALKING_ONE:
+		/* j contains the value of the highest bit */
+	        j = 1 << (devc->num_logic_channels - 1);
+		for (i = 0; i < size; i++) {
+			devc->logic_data[i] = devc->step;
+			if (devc->step == 0)
+				devc->step = 1;
+			else
+				if (devc->step == j)
+					devc->step = 0;
+				else
+					devc->step <<= 1;
+		}
+		break;
+	case PATTERN_WALKING_ZERO:
+		/* Same as walking one, only with inverted output */
+		/* j contains the value of the highest bit */
+	        j = 1 << (devc->num_logic_channels - 1);
+		for (i = 0; i < size; i++) {
+			devc->logic_data[i] = ~devc->step;
+			if (devc->step == 0)
+				devc->step = 1;
+			else
+				if (devc->step == j)
+					devc->step = 0;
+				else
+					devc->step <<= 1;
+		}
+		break;
 	case PATTERN_ALL_LOW:
 	case PATTERN_ALL_HIGH:
 		/* These were set when the pattern mode was selected. */

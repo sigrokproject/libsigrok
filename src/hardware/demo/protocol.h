@@ -75,6 +75,16 @@ enum {
 	 */
 	PATTERN_INC,
 
+	/**
+	 * Single bit "walking" across all logic channels by being
+	 * shifted across data lines, restarting after the last line
+	 * was used. An all-zero (all-one) state is inserted to prevent
+	 * repetitive patterns (e.g. with 8 data lines, every 8th state
+	 * would show the same line state)
+	 */
+	PATTERN_WALKING_ONE,
+	PATTERN_WALKING_ZERO,
+
 	/** All channels have a low logic state. */
 	PATTERN_ALL_LOW,
 
