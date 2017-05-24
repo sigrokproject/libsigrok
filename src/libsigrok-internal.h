@@ -1210,6 +1210,9 @@ SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 
 #define BBCGM_M2110_PACKET_SIZE 9
 
+/* Dummy info struct. The parser does not use it. */
+struct m2110_info { int dummy; };
+
 SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);

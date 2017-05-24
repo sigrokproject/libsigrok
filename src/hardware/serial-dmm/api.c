@@ -426,14 +426,16 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		&sr_fs9922_z1_diode
 	),
 	/* }}} */
-	/* metex14 based meters {{{ */
+	/* m2110 based meters {{{ */
 	DMM(
-		"bbcgm-2010", metex14,
+		"bbcgm-2010", m2110,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
 		BBCGM_M2110_PACKET_SIZE, 0, 0, NULL,
 		sr_m2110_packet_valid, sr_m2110_parse,
 		NULL
 	),
+	/* }}} */
+	/* metex14 based meters {{{ */
 	DMM(
 		"mastech-mas345", metex14,
 		"MASTECH", "MAS345", "600/7n2/rts=0/dtr=1", 600,
