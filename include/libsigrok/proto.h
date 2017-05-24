@@ -46,6 +46,10 @@ SR_API int sr_rational_div(struct sr_rational *res, const struct sr_rational *nu
 SR_API int sr_init(struct sr_context **ctx);
 SR_API int sr_exit(struct sr_context *ctx);
 
+SR_API GSList *sr_buildinfo_libs_get(void);
+SR_API char *sr_buildinfo_host_get(void);
+SR_API char *sr_buildinfo_scpi_backends_get(void);
+
 /*--- log.c -----------------------------------------------------------------*/
 
 typedef int (*sr_log_callback)(void *cb_data, int loglevel,

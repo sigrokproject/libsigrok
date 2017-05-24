@@ -122,63 +122,78 @@
  * @{
  */
 
-static void print_versions(void)
+SR_API GSList *sr_buildinfo_libs_get(void)
 {
-	GString *s;
+	GSList *l = NULL, *m = NULL;
 #if defined(HAVE_LIBUSB_1_0) && !defined(__FreeBSD__)
 	const struct libusb_version *lv;
 #endif
 
-	s = g_string_sized_new(200);
-
-	sr_dbg("libsigrok %s/%s (rt: %s/%s).",
-		SR_PACKAGE_VERSION_STRING, SR_LIB_VERSION_STRING,
-		sr_package_version_string_get(), sr_lib_version_string_get());
-
-	g_string_append(s, "Libs: ");
-	g_string_append_printf(s, "glib %d.%d.%d (rt: %d.%d.%d/%d:%d), ",
+	m = g_slist_append(NULL, g_strdup("glib"));
+	m = g_slist_append(m, g_strdup_printf("%d.%d.%d (rt: %d.%d.%d/%d:%d)",
 		GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION,
 		glib_major_version, glib_minor_version, glib_micro_version,
-		glib_binary_age, glib_interface_age);
-	g_string_append_printf(s, "libzip %s, ", CONF_LIBZIP_VERSION);
+		glib_binary_age, glib_interface_age));
+	l = g_slist_append(l, m);
+
+	m = g_slist_append(NULL, g_strdup("libzip"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBZIP_VERSION));
+	l = g_slist_append(l, m);
+
 #ifdef HAVE_LIBSERIALPORT
-	g_string_append_printf(s, "libserialport %s/%s (rt: %s/%s), ",
+	m = g_slist_append(NULL, g_strdup("libserialport"));
+	m = g_slist_append(m, g_strdup_printf("%s/%s (rt: %s/%s)",
 		SP_PACKAGE_VERSION_STRING, SP_LIB_VERSION_STRING,
-		sp_get_package_version_string(), sp_get_lib_version_string());
+		sp_get_package_version_string(), sp_get_lib_version_string()));
+	l = g_slist_append(l, m);
 #endif
 #ifdef HAVE_LIBUSB_1_0
+	m = g_slist_append(NULL, g_strdup("libusb-1.0"));
 #ifdef __FreeBSD__
-	g_string_append_printf(s, "libusb-1.0 %s, ", CONF_LIBUSB_1_0_VERSION);
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBUSB_1_0_VERSION));
 #else
 	lv = libusb_get_version();
-	g_string_append_printf(s, "libusb-1.0 %d.%d.%d.%d%s, ",
-		lv->major, lv->minor, lv->micro, lv->nano, lv->rc);
+	m = g_slist_append(m, g_strdup_printf("%d.%d.%d.%d%s",
+		lv->major, lv->minor, lv->micro, lv->nano, lv->rc));
 #endif
+	l = g_slist_append(l, m);
 #endif
 #ifdef HAVE_LIBFTDI
-	g_string_append_printf(s, "libftdi %s, ", CONF_LIBFTDI_VERSION);
+	m = g_slist_append(NULL, g_strdup("libftdi"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBFTDI_VERSION));
+	l = g_slist_append(l, m);
 #endif
 #ifdef HAVE_LIBGPIB
-	g_string_append_printf(s, "libgpib %s, ", CONF_LIBGPIB_VERSION);
+	m = g_slist_append(NULL, g_strdup("libgpib"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBGPIB_VERSION));
+	l = g_slist_append(l, m);
 #endif
 #ifdef HAVE_LIBREVISA
-	g_string_append_printf(s, "librevisa %s, ", CONF_LIBREVISA_VERSION);
+	m = g_slist_append(NULL, g_strdup("librevisa"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBREVISA_VERSION));
+	l = g_slist_append(l, m);
 #endif
-	s->str[s->len - 2] = '.';
-	s->str[s->len - 1] = '\0';
-	sr_dbg("%s", s->str);
 
-	s = g_string_truncate(s, 0);
-	g_string_append_printf(s, "Host: %s, ", CONF_HOST);
+	return l;
+}
+
+SR_API char *sr_buildinfo_host_get(void)
+{
+	return g_strdup_printf("%s, %s-endian", CONF_HOST,
 #ifdef WORDS_BIGENDIAN
-	g_string_append_printf(s, "big-endian.");
+	"big"
 #else
-	g_string_append_printf(s, "little-endian.");
+	"little"
 #endif
-	sr_dbg("%s", s->str);
+	);
+}
 
-	s = g_string_truncate(s, 0);
-	g_string_append_printf(s, "SCPI backends: ");
+SR_API char *sr_buildinfo_scpi_backends_get(void)
+{
+	GString *s;
+	char *str;
+
+	s = g_string_sized_new(200);
 
 	g_string_append_printf(s, "TCP, ");
 #if HAVE_RPC
@@ -196,11 +211,48 @@ static void print_versions(void)
 #ifdef HAVE_LIBUSB_1_0
 	g_string_append_printf(s, "USBTMC, ");
 #endif
+	s->str[s->len - 2] = '\0';
+
+	str = g_strdup(s->str);
+	g_string_free(s, TRUE);
+
+	return str;
+}
+
+static void print_versions(void)
+{
+	GString *s;
+	GSList *l, *l_orig, *m;
+	char *str;
+	const char *lib, *version;
+
+	sr_dbg("libsigrok %s/%s (rt: %s/%s).",
+		SR_PACKAGE_VERSION_STRING, SR_LIB_VERSION_STRING,
+		sr_package_version_string_get(), sr_lib_version_string_get());
+
+	s = g_string_sized_new(200);
+	g_string_append(s, "Libs: ");
+	l_orig = sr_buildinfo_libs_get();
+	for (l = l_orig; l; l = l->next) {
+		m = l->data;
+		lib = m->data;
+		version = m->next->data;
+		g_string_append_printf(s, "%s %s, ", lib, version);
+		g_slist_free_full(m, g_free);
+	}
+	g_slist_free(l_orig);
 	s->str[s->len - 2] = '.';
 	s->str[s->len - 1] = '\0';
 	sr_dbg("%s", s->str);
-
 	g_string_free(s, TRUE);
+
+	str = sr_buildinfo_host_get();
+	sr_dbg("Host: %s.", str);
+	g_free(str);
+
+	str = sr_buildinfo_scpi_backends_get();
+	sr_dbg("SCPI backends: %s.", str);
+	g_free(str);
 }
 
 /**
