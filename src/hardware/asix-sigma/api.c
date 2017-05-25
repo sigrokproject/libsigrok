@@ -295,6 +295,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
+	uint8_t regval;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -383,7 +384,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Start acqusition. */
 	gettimeofday(&devc->start_tv, 0);
-	sigma_set_register(WRITE_MODE, 0x0d, devc);
+	regval =  WMR_TRGRES | WMR_SDRAMWRITEEN;
+#if ASIX_SIGMA_WITH_TRIGGER
+	regval |= WMR_TRGEN;
+#endif
+	sigma_set_register(WRITE_MODE, regval, devc);
 
 	std_session_send_df_header(sdi);
 

@@ -98,6 +98,26 @@ enum sigma_read_register {
 
 #define CHUNK_SIZE		1024
 
+/* WRITE_MODE register fields. */
+#define WMR_SDRAMWRITEEN	(1 << 0)
+#define WMR_SDRAMREADEN		(1 << 1)
+#define WMR_TRGRES		(1 << 2)
+#define WMR_TRGEN		(1 << 3)
+#define WMR_FORCESTOP		(1 << 4)
+#define WMR_TRGSW		(1 << 5)
+/* not used: bit position 6 */
+#define WMR_SDRAMINIT		(1 << 7)
+
+/* READ_MODE register fields. */
+#define RMR_SDRAMWRITEEN	(1 << 0)
+#define RMR_SDRAMREADEN		(1 << 1)
+/* not used: bit position 2 */
+#define RMR_TRGEN		(1 << 3)
+#define RMR_ROUND		(1 << 4)
+#define RMR_TRIGGERED		(1 << 5)
+#define RMR_POSTTRIGGERED	(1 << 6)
+/* not used: bit position 7 */
+
 /*
  * The entire ASIX Sigma DRAM is an array of struct sigma_dram_line[1024];
  */

@@ -330,6 +330,7 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 static int sigma_fpga_init_la(struct dev_context *devc)
 {
 	/* Initialize the logic analyzer mode. */
+	uint8_t mode_regval = WMR_SDRAMINIT;
 	uint8_t logic_mode_start[] = {
 		REG_ADDR_LOW  | (READ_ID & 0xf),
 		REG_ADDR_HIGH | (READ_ID >> 4),
@@ -345,8 +346,8 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 		REG_READ_ADDR,	/* Read scratch register. */
 
 		REG_ADDR_LOW | (WRITE_MODE & 0xf),
-		REG_DATA_LOW | 0x0,
-		REG_DATA_HIGH_WRITE | 0x8,
+		REG_DATA_LOW | (mode_regval & 0xf),
+		REG_DATA_HIGH_WRITE | (mode_regval >> 4),
 	};
 
 	uint8_t result[3];
@@ -1017,18 +1018,26 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	sr_info("Downloading sample data.");
 
-	/* Stop acquisition. */
-	sigma_set_register(WRITE_MODE, 0x11, devc);
+	/*
+	 * Ask the hardware to stop data acquisition. Reception of the
+	 * FORCESTOP request makes the hardware "disable RLE" (store
+	 * clusters to DRAM regardless of whether pin state changes) and
+	 * raise the POSTTRIGGERED flag.
+	 */
+	sigma_set_register(WRITE_MODE, WMR_FORCESTOP | WMR_SDRAMWRITEEN, devc);
+	do {
+		modestatus = sigma_get_register(READ_MODE, devc);
+	} while (!(modestatus & RMR_POSTTRIGGERED));
 
 	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, 0x02, devc);
+	sigma_set_register(WRITE_MODE, WMR_SDRAMREADEN, devc);
 
 	/* Get the current position. */
 	sigma_read_pos(&stoppos, &triggerpos, devc);
 
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, devc);
-	if (modestatus & 0x20) {
+	if (modestatus & RMR_TRIGGERED) {
 		trg_line = triggerpos >> 9;
 		trg_event = triggerpos & 0x1ff;
 	}
