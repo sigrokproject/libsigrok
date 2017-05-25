@@ -736,6 +736,7 @@ static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
 	sample = 0;
 	sample |= cl->samples[idx].sample_lo << 0;
 	sample |= cl->samples[idx].sample_hi << 8;
+	sample = (sample >> 8) | (sample << 8);
 	return sample;
 }
 
