@@ -798,6 +798,34 @@ static void store_sr_sample(uint8_t *samples, int idx, uint16_t data)
 }
 
 /*
+ * Local wrapper around sr_session_send() calls. Make sure to not send
+ * more samples to the session's datafeed than what was requested by a
+ * previously configured (optional) sample count.
+ */
+static void sigma_session_send(struct sr_dev_inst *sdi,
+				struct sr_datafeed_packet *packet)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_logic *logic;
+	uint64_t send_now;
+
+	devc = sdi->priv;
+	if (devc->limit_samples) {
+		logic = (void *)packet->payload;
+		send_now = logic->length / logic->unitsize;
+		if (devc->sent_samples + send_now > devc->limit_samples) {
+			send_now = devc->limit_samples - devc->sent_samples;
+			logic->length = send_now * logic->unitsize;
+		}
+		if (!send_now)
+			return;
+		devc->sent_samples += send_now;
+	}
+
+	sr_session_send(sdi, packet);
+}
+
+/*
  * This size translates to: event count (1K events per cluster), times
  * the sample width (unitsize, 16bits per event), times the maximum
  * number of samples per event.
@@ -854,7 +882,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		if ((i == 1023) || (ts == tsdiff - 1)) {
 			logic.length = (i + 1) * logic.unitsize;
 			for (j = 0; j < devc->samples_per_event; j++)
-				sr_session_send(sdi, &packet);
+				sigma_session_send(sdi, &packet);
 		}
 	}
 
@@ -908,7 +936,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 			trig_count = trigger_offset * devc->samples_per_event;
 			packet.type = SR_DF_LOGIC;
 			logic.length = trig_count * logic.unitsize;
-			sr_session_send(sdi, &packet);
+			sigma_session_send(sdi, &packet);
 			send_ptr += trig_count * logic.unitsize;
 			send_count -= trig_count;
 		}
@@ -928,7 +956,7 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		packet.type = SR_DF_LOGIC;
 		logic.length = send_count * logic.unitsize;
 		logic.data = send_ptr;
-		sr_session_send(sdi, &packet);
+		sigma_session_send(sdi, &packet);
 	}
 
 	ss->lastsample = sample;
@@ -1041,6 +1069,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 		trg_line = triggerpos >> 9;
 		trg_event = triggerpos & 0x1ff;
 	}
+
+	devc->sent_samples = 0;
 
 	/*
 	 * Determine how many 1024b "DRAM lines" do we need to read from the
