@@ -292,7 +292,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct clockselect_50 clockselect;
 	int frac, triggerpin, ret;
-	uint8_t triggerselect = 0;
+	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 
@@ -315,8 +315,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Enter trigger programming mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, devc);
 
-	/* 100 and 200 MHz mode. */
+	triggerselect = 0;
 	if (devc->cur_samplerate >= SR_MHZ(100)) {
+		/* 100 and 200 MHz mode. */
 		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, devc);
 
 		/* Find which pin to trigger on from mask. */
@@ -332,8 +333,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (devc->trigger.fallingmask)
 			triggerselect |= 1 << 3;
 
-	/* All other modes. */
 	} else if (devc->cur_samplerate <= SR_MHZ(50)) {
+		/* All other modes. */
 		sigma_build_basic_trigger(&lut, devc);
 
 		sigma_write_trigger_lut(&lut, devc);

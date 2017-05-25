@@ -184,14 +184,16 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 {
 	size_t i;
 	uint8_t buf[4096];
-	int idx = 0;
+	int idx;
 
 	/* Send the startchunk. Index start with 1. */
-	buf[0] = startchunk >> 8;
-	buf[1] = startchunk & 0xff;
-	sigma_write_register(WRITE_MEMROW, buf, 2, devc);
+	idx = 0;
+	buf[idx++] = startchunk >> 8;
+	buf[idx++] = startchunk & 0xff;
+	sigma_write_register(WRITE_MEMROW, buf, idx, devc);
 
 	/* Read the DRAM. */
+	idx = 0;
 	buf[idx++] = REG_DRAM_BLOCK;
 	buf[idx++] = REG_DRAM_WAIT_ACK;
 
@@ -946,12 +948,18 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 			   struct sr_dev_inst *sdi)
 {
 	struct sigma_dram_cluster *dram_cluster;
-	struct dev_context *devc = sdi->priv;
-	unsigned int clusters_in_line =
-		(events_in_line + (EVENTS_PER_CLUSTER - 1)) / EVENTS_PER_CLUSTER;
+	struct dev_context *devc;
+	unsigned int clusters_in_line;
 	unsigned int events_in_cluster;
 	unsigned int i;
-	uint32_t trigger_cluster = ~0, triggered = 0;
+	uint32_t trigger_cluster, triggered;
+
+	devc = sdi->priv;
+	clusters_in_line = events_in_line;
+	clusters_in_line += EVENTS_PER_CLUSTER - 1;
+	clusters_in_line /= EVENTS_PER_CLUSTER;
+	trigger_cluster = ~0;
+	triggered = 0;
 
 	/* Check if trigger is in this chunk. */
 	if (trigger_event < (64 * 7)) {
@@ -986,17 +994,22 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 
 static int download_capture(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
 	const uint32_t chunks_per_read = 32;
+
+	struct dev_context *devc;
 	struct sigma_dram_line *dram_line;
 	int bufsz;
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
-
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
-	uint32_t dl_events_in_line = 64 * 7;
-	uint32_t trg_line = ~0, trg_event = ~0;
+	uint32_t dl_events_in_line;
+	uint32_t trg_line, trg_event;
+
+	devc = sdi->priv;
+	dl_events_in_line = 64 * 7;
+	trg_line = ~0;
+	trg_event = ~0;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1080,12 +1093,12 @@ static int download_capture(struct sr_dev_inst *sdi)
  */
 static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-
+	struct dev_context *devc;
 	uint64_t running_msec;
 	struct timeval tv;
-
 	uint32_t stoppos, triggerpos;
+
+	devc = sdi->priv;
 
 	/* Check if the selected sampling duration passed. */
 	gettimeofday(&tv, 0);
