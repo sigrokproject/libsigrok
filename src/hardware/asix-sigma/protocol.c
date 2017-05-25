@@ -330,7 +330,7 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 	/* Initialize the logic analyzer mode. */
 	uint8_t logic_mode_start[] = {
 		REG_ADDR_LOW  | (READ_ID & 0xf),
-		REG_ADDR_HIGH | (READ_ID >> 8),
+		REG_ADDR_HIGH | (READ_ID >> 4),
 		REG_READ_ADDR,	/* Read ID register. */
 
 		REG_ADDR_LOW | (WRITE_TEST & 0xf),
