@@ -26,12 +26,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define USB_VENDOR			0xa600
-#define USB_PRODUCT			0xa000
-#define USB_DESCRIPTION			"ASIX SIGMA"
-#define USB_VENDOR_NAME			"ASIX"
-#define USB_MODEL_NAME			"SIGMA"
-
 /*
  * The ASIX Sigma supports arbitrary integer frequency divider in
  * the 50MHz mode. The divider is in range 1...256 , allowing for
