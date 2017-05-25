@@ -291,11 +291,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct clockselect_50 clockselect;
-	int frac, triggerpin, ret;
+	int triggerpin, ret;
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 	uint8_t regval;
+	uint8_t clock_bytes[sizeof(clockselect)];
+	size_t clock_idx;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
@@ -356,27 +358,31 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect, devc);
 
 	/* Set clock select register. */
-	if (devc->cur_samplerate == SR_MHZ(200))
+	clockselect.async = 0;
+	clockselect.fraction = 1 - 1;		/* Divider 1. */
+	clockselect.disabled_channels = 0x0000;	/* All channels enabled. */
+	if (devc->cur_samplerate == SR_MHZ(200)) {
 		/* Enable 4 channels. */
-		sigma_set_register(WRITE_CLOCK_SELECT, 0xf0, devc);
-	else if (devc->cur_samplerate == SR_MHZ(100))
+		clockselect.disabled_channels = 0xf0ff;
+	} else if (devc->cur_samplerate == SR_MHZ(100)) {
 		/* Enable 8 channels. */
-		sigma_set_register(WRITE_CLOCK_SELECT, 0x00, devc);
-	else {
+		clockselect.disabled_channels = 0x00ff;
+	} else {
 		/*
-		 * 50 MHz mode (or fraction thereof). Any fraction down to
-		 * 50 MHz / 256 can be used, but is not supported by sigrok API.
+		 * 50 MHz mode, or fraction thereof. The 50MHz reference
+		 * can get divided by any integer in the range 1 to 256.
+		 * Divider minus 1 gets written to the hardware.
+		 * (The driver lists a discrete set of sample rates, but
+		 * all of them fit the above description.)
 		 */
-		frac = SR_MHZ(50) / devc->cur_samplerate - 1;
-
-		clockselect.async = 0;
-		clockselect.fraction = frac;
-		clockselect.disabled_channels = 0;
-
-		sigma_write_register(WRITE_CLOCK_SELECT,
-				     (uint8_t *) &clockselect,
-				     sizeof(clockselect), devc);
+		clockselect.fraction = SR_MHZ(50) / devc->cur_samplerate - 1;
 	}
+	clock_idx = 0;
+	clock_bytes[clock_idx++] = clockselect.async;
+	clock_bytes[clock_idx++] = clockselect.fraction;
+	clock_bytes[clock_idx++] = clockselect.disabled_channels & 0xff;
+	clock_bytes[clock_idx++] = clockselect.disabled_channels >> 8;
+	sigma_write_register(WRITE_CLOCK_SELECT, clock_bytes, clock_idx, devc);
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(WRITE_POST_TRIGGER,
