@@ -784,7 +784,11 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		samples[2 * i + 0] = dram_cluster->samples[i].sample_hi;
 	}
 
-	/* Send data up to trigger point (if triggered). */
+	/*
+	 * If a trigger position applies, then provide the datafeed with
+	 * the first part of data up to that position, then send the
+	 * trigger marker.
+	 */
 	int trigger_offset = 0;
 	if (triggered) {
 		/*
@@ -810,6 +814,10 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		}
 	}
 
+	/*
+	 * Send the data after the trigger, or all of the received data
+	 * if no trigger position applies.
+	 */
 	if (events_in_cluster > 0) {
 		packet.type = SR_DF_LOGIC;
 		logic.length = events_in_cluster * logic.unitsize;

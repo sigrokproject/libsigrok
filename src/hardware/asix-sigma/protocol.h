@@ -30,6 +30,14 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+/*
+ * Triggers are not working in this implementation. Stop claiming
+ * support for the feature which effectively is not available, until
+ * the implementation got fixed. Yet keep the code in place and allow
+ * developers to turn on this switch during development.
+ */
+#define ASIX_SIGMA_WITH_TRIGGER	0
+
 #define LOG_PREFIX "asix-sigma"
 
 #define USB_VENDOR			0xa600

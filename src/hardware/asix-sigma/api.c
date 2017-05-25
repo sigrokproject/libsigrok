@@ -44,8 +44,10 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+#if ASIX_SIGMA_WITH_TRIGGER
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+#endif
 };
 
 static const int32_t trigger_matches[] = {
@@ -189,9 +191,11 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
+#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
+#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -230,13 +234,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->limit_samples = tmp;
 		devc->limit_msec = sigma_limit_samples_to_msec(devc, tmp);
 		break;
+#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		tmp = g_variant_get_uint64(data);
-		if (tmp <= 100)
-			devc->capture_ratio = tmp;
-		else
-			ret = SR_ERR;
+		if (tmp > 100)
+			return SR_ERR;
+		devc->capture_ratio = tmp;
 		break;
+#endif
 	default:
 		ret = SR_ERR_NA;
 	}
@@ -268,11 +273,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
 		*data = g_variant_builder_end(&gvb);
 		break;
+#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				trigger_matches, ARRAY_SIZE(trigger_matches),
 				sizeof(int32_t));
 		break;
+#endif
 	default:
 		return SR_ERR_NA;
 	}
