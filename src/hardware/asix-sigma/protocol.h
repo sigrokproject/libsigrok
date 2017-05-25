@@ -119,7 +119,30 @@ enum sigma_read_register {
 /* not used: bit position 7 */
 
 /*
- * The entire ASIX Sigma DRAM is an array of struct sigma_dram_line[1024];
+ * Layout of the sample data DRAM, which will be downloaded to the PC:
+ *
+ * Sigma memory is organized in 32K rows. Each row contains 64 clusters.
+ * Each cluster contains a timestamp (16bit) and 7 samples (16bits each).
+ * Total memory size is 32K x 64 x 8 x 2 bytes == 32 MB (256 Mbit).
+ *
+ * Sample data is represented in 16bit quantities. The first sample in
+ * the cluster corresponds to the cluster's timestamp. Each next sample
+ * corresponds to the timestamp + 1, timestamp + 2, etc (the distance is
+ * one sample period, according to the samplerate). In the absence of
+ * pin level changes, no data is provided (RLE compression). A cluster
+ * is enforced for each 64K ticks of the timestamp, to reliably handle
+ * rollover and determination of the next timestamp of the next cluster.
+ *
+ * For samplerates of 100MHz, there is one 16 bit entity for each 20ns
+ * period (50MHz rate). The 16 bit memory contains 2 samples of up to
+ * 8 channels. Bits of multiple samples are interleaved. For samplerates
+ * of 200MHz one 16bit entity contains 4 samples of up to 4 channels,
+ * each 5ns apart.
+ *
+ * Memory addresses (sample count, trigger position) are kept in 24bit
+ * entities. The upper 15 bit refer to the "row", the lower 9 bit refer
+ * to the "event" within the row. Because there is one timestamp for
+ * seven samples each, one memory row can hold up to 64x7 == 448 samples.
  */
 
 /* One "DRAM cluster" contains a timestamp and 7 samples, 16b total. */
