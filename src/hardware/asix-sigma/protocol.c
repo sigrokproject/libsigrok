@@ -442,10 +442,18 @@ static int upload_firmware(struct sr_context *ctx,
 	unsigned char *buf;
 	unsigned char pins;
 	size_t buf_size;
-	const char *firmware = sigma_firmware_files[firmware_idx];
-	struct ftdi_context *ftdic = &devc->ftdic;
+	const char *firmware;
+	struct ftdi_context *ftdic;
+
+	/* Avoid downloading the same firmware multiple times. */
+	firmware = sigma_firmware_files[firmware_idx];
+	if (devc->cur_firmware == firmware_idx) {
+		sr_info("Not uploading firmware file '%s' again.", firmware);
+		return SR_OK;
+	}
 
 	/* Make sure it's an ASIX SIGMA. */
+	ftdic = &devc->ftdic;
 	ret = ftdi_usb_open_desc(ftdic, USB_VENDOR, USB_PRODUCT,
 				 USB_DESCRIPTION, NULL);
 	if (ret < 0) {
