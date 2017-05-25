@@ -119,7 +119,7 @@ SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *b
 {
 	int out;
 
-	out = send(tcp->socket, buf, len, 0);
+	out = send(tcp->socket, (char*)buf, len, 0);
 
 	if (out < 0) {
 		sr_err("Send error: %s", g_strerror(errno));
@@ -142,7 +142,7 @@ SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf,
 
         int len;
 
-        len = recv(tcp->socket, buf+received, bufsize-received, 0);
+        len = recv(tcp->socket, (char*)(buf+received), bufsize-received, 0);
 
         if (len < 0) {
             sr_err("Receive error: %s", g_strerror(errno));
