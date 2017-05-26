@@ -590,7 +590,6 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 */
 	if (ret == SR_OK) {
 		devc->cur_samplerate = samplerate;
-		devc->period_ps = 1000000000000ULL / samplerate;
 		devc->samples_per_event = 16 / devc->num_channels;
 		devc->state.state = SIGMA_IDLE;
 	}

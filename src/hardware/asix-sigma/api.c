@@ -102,7 +102,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Found ASIX SIGMA - Serial: %s", serial_txt);
 
 	devc->cur_samplerate = samplerates[0];
-	devc->period_ps = 0;
 	devc->limit_msec = 0;
 	devc->limit_samples = 0;
 	devc->cur_firmware = -1;

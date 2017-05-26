@@ -259,7 +259,6 @@ struct sigma_state {
 struct dev_context {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
-	uint64_t period_ps;
 	uint64_t limit_msec;
 	uint64_t limit_samples;
 	uint64_t sent_samples;
