@@ -1076,7 +1076,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	while (dl_lines_total > dl_lines_done) {
 		/* We can download only up-to 32 DRAM lines in one go! */
-		dl_lines_curr = MIN(chunks_per_read, dl_lines_total);
+		dl_lines_curr = MIN(chunks_per_read, dl_lines_total - dl_lines_done);
 
 		bufsz = sigma_read_dram(dl_lines_done, dl_lines_curr,
 					(uint8_t *)dram_line, devc);
