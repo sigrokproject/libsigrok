@@ -857,15 +857,9 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	logic.data = samples;
 
 	/*
-	 * First of all, send Sigrok a copy of the last sample from
-	 * previous cluster as many times as needed to make up for
-	 * the differential characteristics of data we get from the
-	 * Sigma. Sigrok needs one sample of data per period.
-	 *
-	 * One DRAM cluster contains a timestamp and seven samples,
-	 * the units of timestamp are "devc->period_ps" , the first
-	 * sample in the cluster happens at the time of the timestamp
-	 * and the remaining samples happen at timestamp +1...+6 .
+	 * If this cluster is not adjacent to the previously received
+	 * cluster, then send the appropriate number of samples with the
+	 * previous values to the sigrok session. This "decodes RLE".
 	 */
 	for (ts = 0; ts < tsdiff; ts++) {
 		i = ts % 1024;
