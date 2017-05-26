@@ -388,7 +388,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			   (devc->capture_ratio * 255) / 100, devc);
 
 	/* Start acqusition. */
-	gettimeofday(&devc->start_tv, 0);
+	devc->start_time = g_get_monotonic_time();
 	regval =  WMR_TRGRES | WMR_SDRAMWRITEEN;
 #if ASIX_SIGMA_WITH_TRIGGER
 	regval |= WMR_TRGEN;

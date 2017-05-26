@@ -1138,7 +1138,7 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint64_t running_msec;
-	struct timeval tv;
+	uint64_t current_time;
 
 	devc = sdi->priv;
 
@@ -1146,9 +1146,8 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 	 * Check if the selected sampling duration passed. Sample count
 	 * limits are covered by this enforced timeout as well.
 	 */
-	gettimeofday(&tv, 0);
-	running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
-		       (tv.tv_usec - devc->start_tv.tv_usec) / 1000;
+	current_time = g_get_monotonic_time();
+	running_msec = (current_time - devc->start_time) / 1000;
 	if (running_msec >= devc->limit_msec)
 		return download_capture(sdi);
 

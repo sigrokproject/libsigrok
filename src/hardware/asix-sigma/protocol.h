@@ -262,7 +262,7 @@ struct dev_context {
 	uint64_t limit_msec;
 	uint64_t limit_samples;
 	uint64_t sent_samples;
-	struct timeval start_tv;
+	uint64_t start_time;
 	int cur_firmware;
 	int num_channels;
 	int cur_channels;
