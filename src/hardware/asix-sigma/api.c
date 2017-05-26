@@ -50,13 +50,14 @@ static const uint32_t devopts[] = {
 #endif
 };
 
+#if ASIX_SIGMA_WITH_TRIGGER
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
 };
-
+#endif
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
