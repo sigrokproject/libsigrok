@@ -1025,6 +1025,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint8_t modestatus;
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
+	uint32_t dl_first_line, dl_line;
 	uint32_t dl_events_in_line;
 	uint32_t trg_line, trg_event;
 
@@ -1066,19 +1067,31 @@ static int download_capture(struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 
 	/*
-	 * Determine how many 1024b "DRAM lines" do we need to read from the
-	 * Sigma so we have a complete set of samples. Note that the last
-	 * line can be only partial, containing less than 64 clusters.
+	 * Determine how many "DRAM lines" of 1024 bytes each we need to
+	 * retrieve from the Sigma hardware, so that we have a complete
+	 * set of samples. Note that the last line need not contain 64
+	 * clusters, it might be partially filled only.
+	 *
+	 * When RMR_ROUND is set, the circular buffer in DRAM has wrapped
+	 * around. Since the status of the very next line is uncertain in
+	 * that case, we skip it and start reading from the next line. The
+	 * circular buffer has 32K lines (0x8000).
 	 */
 	dl_lines_total = (stoppos >> 9) + 1;
-
+	if (modestatus & RMR_ROUND) {
+		dl_first_line = dl_lines_total + 1;
+		dl_lines_total = 0x8000 - 2;
+	} else {
+		dl_first_line = 0;
+	}
 	dl_lines_done = 0;
-
 	while (dl_lines_total > dl_lines_done) {
 		/* We can download only up-to 32 DRAM lines in one go! */
 		dl_lines_curr = MIN(chunks_per_read, dl_lines_total - dl_lines_done);
 
-		bufsz = sigma_read_dram(dl_lines_done, dl_lines_curr,
+		dl_line = dl_first_line + dl_lines_done;
+		dl_line %= 0x8000;
+		bufsz = sigma_read_dram(dl_line, dl_lines_curr,
 					(uint8_t *)dram_line, devc);
 		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
 		(void)bufsz;
@@ -1117,32 +1130,26 @@ static int download_capture(struct sr_dev_inst *sdi)
 }
 
 /*
- * Handle the Sigma when in CAPTURE mode. This function checks:
- * - Sampling time ended
- * - DRAM capacity overflow
- * This function triggers download of the samples from Sigma
- * in case either of the above conditions is true.
+ * Periodically check the Sigma status when in CAPTURE mode. This routine
+ * checks whether the configured sample count or sample time have passed,
+ * and will stop acquisition and download the acquired samples.
  */
 static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint64_t running_msec;
 	struct timeval tv;
-	uint32_t stoppos, triggerpos;
 
 	devc = sdi->priv;
 
-	/* Check if the selected sampling duration passed. */
+	/*
+	 * Check if the selected sampling duration passed. Sample count
+	 * limits are covered by this enforced timeout as well.
+	 */
 	gettimeofday(&tv, 0);
 	running_msec = (tv.tv_sec - devc->start_tv.tv_sec) * 1000 +
 		       (tv.tv_usec - devc->start_tv.tv_usec) / 1000;
 	if (running_msec >= devc->limit_msec)
-		return download_capture(sdi);
-
-	/* Get the position in DRAM to which the FPGA is writing now. */
-	sigma_read_pos(&stoppos, &triggerpos, devc);
-	/* Test if DRAM is full and if so, download the data. */
-	if ((stoppos >> 9) == 32767)
 		return download_capture(sdi);
 
 	return TRUE;
