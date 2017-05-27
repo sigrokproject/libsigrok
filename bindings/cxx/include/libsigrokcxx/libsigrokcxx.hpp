@@ -768,6 +768,11 @@ class SR_API Analog :
 public:
 	/** Pointer to data. */
 	void *data_pointer();
+	/**
+	 * Fills dest pointer with the analog data converted to float.
+	 * The pointer must have space for num_samples() floats.
+	 */
+	void get_data_as_float(float *dest);
 	/** Number of samples in this packet. */
 	unsigned int num_samples() const;
 	/** Channels for which this packet contains data. */

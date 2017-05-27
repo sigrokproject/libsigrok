@@ -1212,6 +1212,11 @@ void *Analog::data_pointer()
 	return _structure->data;
 }
 
+void Analog::get_data_as_float(float *dest)
+{
+	check(sr_analog_to_float(_structure, dest));
+}
+
 unsigned int Analog::num_samples() const
 {
 	return _structure->num_samples;
