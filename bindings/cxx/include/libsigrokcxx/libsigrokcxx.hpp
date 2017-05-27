@@ -115,6 +115,7 @@ class SR_API PacketType;
 class SR_API Quantity;
 class SR_API Unit;
 class SR_API QuantityFlag;
+class SR_API Rational;
 class SR_API Input;
 class SR_API InputDevice;
 class SR_API Output;
@@ -771,6 +772,26 @@ public:
 	unsigned int num_samples() const;
 	/** Channels for which this packet contains data. */
 	vector<shared_ptr<Channel> > channels();
+	/** Size of a single sample in bytes. */
+	unsigned int unitsize() const;
+	/** Samples use a signed data type. */
+	bool is_signed() const;
+	/** Samples use float. */
+	bool is_float() const;
+	/** Samples are stored in big-endian order. */
+	bool is_bigendian() const;
+	/**
+	 * Number of significant digits after the decimal point if positive,
+	 * or number of non-significant digits before the decimal point if negative
+	 * (refers to the value we actually read on the wire).
+	 */
+	int digits() const;
+	/** TBD */
+	bool is_digits_decimal() const;
+	/** TBD */
+	shared_ptr<Rational> scale();
+	/** TBD */
+	shared_ptr<Rational> offset();
 	/** Measured quantity of the samples in this packet. */
 	const Quantity *mq() const;
 	/** Unit of the samples in this packet. */
@@ -785,6 +806,28 @@ private:
 	const struct sr_datafeed_analog *_structure;
 
 	friend class Packet;
+};
+
+/** Number represented by a numerator/denominator integer pair */
+class SR_API Rational :
+	public ParentOwned<Rational, Analog>
+{
+public:
+	/** Numerator, i.e. the dividend. */
+	int64_t numerator() const;
+	/** Denominator, i.e. the divider. */
+	uint64_t denominator() const;
+	/** Actual (lossy) value. */
+	float value() const;
+private:
+	explicit Rational(const struct sr_rational *structure);
+	~Rational();
+	shared_ptr<Rational> share_owned_by(shared_ptr<Analog> parent);
+
+	const struct sr_rational *_structure;
+
+	friend class Analog;
+	friend struct std::default_delete<Rational>;
 };
 
 /** An input format supported by the library */

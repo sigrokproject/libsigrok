@@ -1227,6 +1227,58 @@ vector<shared_ptr<Channel>> Analog::channels()
 	return result;
 }
 
+unsigned int Analog::unitsize() const
+{
+	return _structure->encoding->unitsize;
+}
+
+bool Analog::is_signed() const
+{
+	return _structure->encoding->is_signed;
+}
+
+bool Analog::is_float() const
+{
+	return _structure->encoding->is_float;
+}
+
+bool Analog::is_bigendian() const
+{
+	return _structure->encoding->is_bigendian;
+}
+
+int Analog::digits() const
+{
+	return _structure->encoding->digits;
+}
+
+bool Analog::is_digits_decimal() const
+{
+	return _structure->encoding->is_digits_decimal;
+}
+
+shared_ptr<Rational> Analog::scale()
+{
+	unique_ptr<Rational> scale;
+	scale.reset(new Rational(&(_structure->encoding->scale)));
+
+	if (scale)
+		return scale->share_owned_by(shared_from_this());
+	else
+		throw Error(SR_ERR_NA);
+}
+
+shared_ptr<Rational> Analog::offset()
+{
+	unique_ptr<Rational> offset;
+	offset.reset(new Rational(&(_structure->encoding->offset)));
+
+	if (offset)
+		return offset->share_owned_by(shared_from_this());
+	else
+		throw Error(SR_ERR_NA);
+}
+
 const Quantity *Analog::mq() const
 {
 	return Quantity::get(_structure->meaning->mq);
@@ -1240,6 +1292,36 @@ const Unit *Analog::unit() const
 vector<const QuantityFlag *> Analog::mq_flags() const
 {
 	return QuantityFlag::flags_from_mask(_structure->meaning->mqflags);
+}
+
+Rational::Rational(const struct sr_rational *structure) :
+	_structure(structure)
+{
+}
+
+Rational::~Rational()
+{
+}
+
+shared_ptr<Rational> Rational::share_owned_by(shared_ptr<Analog> _parent)
+{
+	return static_pointer_cast<Rational>(
+		ParentOwned::share_owned_by(_parent));
+}
+
+int64_t Rational::numerator() const
+{
+	return _structure->p;
+}
+
+uint64_t Rational::denominator() const
+{
+	return _structure->q;
+}
+
+float Rational::value() const
+{
+	return (float)(_structure->p) / (float)(_structure->q);
 }
 
 InputFormat::InputFormat(const struct sr_input_module *structure) :
