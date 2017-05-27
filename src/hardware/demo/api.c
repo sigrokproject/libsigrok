@@ -36,12 +36,13 @@
 #define DEFAULT_ENABLED_ANALOG_CHANNELS	4
 #define DEFAULT_ANALOG_AMPLITUDE	10
 
+/* Note: No spaces allowed because of sigrok-cli. */
 static const char *logic_pattern_str[] = {
 	"sigrok",
 	"random",
 	"incremental",
-	"walking one",
-	"walking zero",
+	"walking-one",
+	"walking-zero",
 	"all-low",
 	"all-high",
 	"squid",
