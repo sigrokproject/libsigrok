@@ -78,4 +78,5 @@ SR_REGISTER_DEV_DRIVER_LIST(lcr_es51919_drivers,
 	LCR_ES51919("deree-de5000", "DER EE", "DE-5000"),
 	LCR_ES51919("mastech-ms5308", "MASTECH", "MS5308"),
 	LCR_ES51919("peaktech-2170", "PeakTech", "2170"),
+	LCR_ES51919("uni-t-ut612", "UNI-T", "UT612"),
 );
