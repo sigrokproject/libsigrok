@@ -601,6 +601,11 @@ INSTALL_EXTRA =
 UNINSTALL_EXTRA =
 CLEAN_EXTRA =
 
+libsigrok-uninstall:
+	-rmdir $(DESTDIR)$(includedir)/libsigrok
+
+UNINSTALL_EXTRA += libsigrok-uninstall
+
 if BINDINGS_CXX
 
 lib_LTLIBRARIES += bindings/cxx/libsigrokcxx.la
@@ -642,6 +647,11 @@ cxx-clean:
 	rm -f bindings/cxx/enums.timestamp
 
 CLEAN_EXTRA += cxx-clean
+
+cxx-uninstall:
+	-rmdir $(DESTDIR)$(includedir)/libsigrokcxx
+
+UNINSTALL_EXTRA += cxx-uninstall
 
 endif
 
@@ -825,7 +835,7 @@ endif
 
 all-local: $(BUILD_EXTRA)
 install-exec-local: $(INSTALL_EXTRA)
-uninstall-local: $(UNINSTALL_EXTRA)
+uninstall-hook: $(UNINSTALL_EXTRA)
 clean-local: $(CLEAN_EXTRA)
 
 .PHONY: dist-changelog
