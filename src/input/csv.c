@@ -613,6 +613,27 @@ out:
 	return ret;
 }
 
+/*
+ * Gets called from initial_receive(), which runs until the end-of-line
+ * encoding of the input stream could get determined. Assumes that this
+ * routine receives enough buffered initial input data to either see the
+ * BOM when there is one, or that no BOM will follow when a text line
+ * termination sequence was seen. Silently drops the UTF-8 BOM sequence
+ * from the input buffer if one was seen. Does not care to protect
+ * against multiple execution or dropping the BOM multiple times --
+ * there should be at most one in the input stream.
+ */
+static void initial_bom_check(const struct sr_input *in)
+{
+	static const char *utf8_bom = "\xef\xbb\xbf";
+
+	if (in->buf->len < strlen(utf8_bom))
+		return;
+	if (strncmp(in->buf->str, utf8_bom, strlen(utf8_bom)) != 0)
+		return;
+	g_string_erase(in->buf, 0, strlen(utf8_bom));
+}
+
 static int initial_receive(const struct sr_input *in)
 {
 	struct context *inc;
@@ -620,6 +641,8 @@ static int initial_receive(const struct sr_input *in)
 	int len, ret;
 	char *p;
 	const char *termination;
+
+	initial_bom_check(in);
 
 	inc = in->priv;
 
