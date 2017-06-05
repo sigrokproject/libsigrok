@@ -657,6 +657,7 @@ static int process_buffer(struct sr_input *in)
 	if (!p)
 		return SR_ERR;
 	*p = '\0';
+	p += strlen(inc->termination);
 	g_strstrip(in->buf->str);
 
 	ret = SR_OK;
@@ -725,7 +726,7 @@ static int process_buffer(struct sr_input *in)
 		g_strfreev(columns);
 	}
 	g_strfreev(lines);
-	g_string_erase(in->buf, 0, p - in->buf->str + 1);
+	g_string_erase(in->buf, 0, p - in->buf->str);
 
 	return ret;
 }
