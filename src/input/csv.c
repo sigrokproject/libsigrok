@@ -638,6 +638,12 @@ static int process_buffer(struct sr_input *in)
 		inc->started = TRUE;
 	}
 
+	/* Limit the number of columns to parse. */
+	if (inc->multi_column_mode)
+		max_columns = inc->num_channels;
+	else
+		max_columns = 1;
+
 	p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
 	if (!p)
 		/* Don't have a full line. */
@@ -645,12 +651,6 @@ static int process_buffer(struct sr_input *in)
 
 	*p = '\0';
 	g_strstrip(in->buf->str);
-
-	/* Limit the number of columns to parse. */
-	if (inc->multi_column_mode)
-		max_columns = inc->num_channels;
-	else
-		max_columns = 1;
 
 	ret = SR_OK;
 	lines = g_strsplit_set(in->buf->str, delim_set, 0);
