@@ -313,20 +313,22 @@ static char **parse_line(char *buf, struct context *inc, int max_columns)
 static int parse_multi_columns(char **columns, struct context *inc)
 {
 	gsize i;
+	char *column;
 
 	/* Clear buffer in order to set bits only. */
 	memset(inc->sample_buffer, 0, (inc->num_channels + 7) >> 3);
 
 	for (i = 0; i < inc->num_channels; i++) {
-		if (columns[i][0] == '1') {
+		column = columns[i];
+		if (column[0] == '1') {
 			inc->sample_buffer[i / 8] |= (1 << (i % 8));
-		} else if (!strlen(columns[i])) {
+		} else if (!strlen(column)) {
 			sr_err("Column %zu in line %zu is empty.",
 				inc->first_channel + i, inc->line_number);
 			return SR_ERR;
-		} else if (columns[i][0] != '0') {
+		} else if (column[0] != '0') {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
-				columns[i], inc->first_channel + i,
+				column, inc->first_channel + i,
 				inc->line_number);
 			return SR_ERR;
 		}
@@ -371,7 +373,8 @@ static int send_samples(const struct sr_dev_inst *sdi, uint8_t *buffer,
 	logic.data = buffer;
 
 	for (i = 0; i < count; i++) {
-		if ((res = sr_session_send(sdi, &packet)) != SR_OK)
+		res = sr_session_send(sdi, &packet);
+		if (res != SR_OK)
 			return res;
 	}
 
@@ -466,7 +469,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	unsigned int num_columns, i;
 	size_t line_number, l;
 	int ret;
-	char **lines, **columns;
+	char **lines, *line, **columns, *column;
 
 	ret = SR_OK;
 	inc = in->priv;
@@ -476,16 +479,17 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	lines = g_strsplit_set(buf->str, "\r\n", 0);
 	for (l = 0; lines[l]; l++) {
 		line_number++;
+		line = lines[l];
 		if (inc->start_line > line_number) {
 			sr_spew("Line %zu skipped.", line_number);
 			continue;
 		}
-		if (lines[l][0] == '\0') {
+		if (line[0] == '\0') {
 			sr_spew("Blank line %zu skipped.", line_number);
 			continue;
 		}
-		strip_comment(lines[l], inc->comment);
-		if (lines[l][0] == '\0') {
+		strip_comment(line, inc->comment);
+		if (line[0] == '\0') {
 			sr_spew("Comment-only line %zu skipped.", line_number);
 			continue;
 		}
@@ -503,7 +507,8 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * In order to determine the number of columns parse the current line
 	 * without limiting the number of columns.
 	 */
-	if (!(columns = parse_line(lines[l], inc, -1))) {
+	columns = parse_line(line, inc, -1);
+	if (!columns) {
 		sr_err("Error while parsing line %zu.", line_number);
 		ret = SR_ERR;
 		goto out;
@@ -543,8 +548,9 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 
 	channel_name = g_string_sized_new(64);
 	for (i = 0; i < inc->num_channels; i++) {
-		if (inc->header && inc->multi_column_mode && columns[i][0] != '\0')
-			g_string_assign(channel_name, columns[i]);
+		column = columns[i];
+		if (inc->header && inc->multi_column_mode && column[0] != '\0')
+			g_string_assign(channel_name, column);
 		else
 			g_string_printf(channel_name, "%u", i);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
@@ -576,11 +582,13 @@ static int initial_receive(const struct sr_input *in)
 
 	inc = in->priv;
 
-	if (!(termination = get_line_termination(in->buf)))
+	termination = get_line_termination(in->buf);
+	if (!termination)
 		/* Don't have a full line yet. */
 		return SR_ERR_NA;
 
-	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, termination)))
+	p = g_strrstr_len(in->buf->str, in->buf->len, termination);
+	if (!p)
 		/* Don't have a full line yet. */
 		return SR_ERR_NA;
 	len = p - in->buf->str - 1;
@@ -608,7 +616,7 @@ static int process_buffer(struct sr_input *in)
 	gsize num_columns;
 	uint64_t samplerate;
 	int max_columns, ret, l;
-	char *p, **lines, **columns;
+	char *p, **lines, *line, **columns;
 
 	inc = in->priv;
 	if (!inc->started) {
@@ -628,7 +636,8 @@ static int process_buffer(struct sr_input *in)
 		inc->started = TRUE;
 	}
 
-	if (!(p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination)))
+	p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
+	if (!p)
 		/* Don't have a full line. */
 		return SR_ERR;
 
@@ -645,14 +654,15 @@ static int process_buffer(struct sr_input *in)
 	lines = g_strsplit_set(in->buf->str, "\r\n", 0);
 	for (l = 0; lines[l]; l++) {
 		inc->line_number++;
-		if (lines[l][0] == '\0') {
+		line = lines[l];
+		if (line[0] == '\0') {
 			sr_spew("Blank line %zu skipped.", inc->line_number);
 			continue;
 		}
 
 		/* Remove trailing comment. */
-		strip_comment(lines[l], inc->comment);
-		if (lines[l][0] == '\0') {
+		strip_comment(line, inc->comment);
+		if (line[0] == '\0') {
 			sr_spew("Comment-only line %zu skipped.", inc->line_number);
 			continue;
 		}
@@ -664,7 +674,8 @@ static int process_buffer(struct sr_input *in)
 			continue;
 		}
 
-		if (!(columns = parse_line(lines[l], inc, max_columns))) {
+		columns = parse_line(line, inc, max_columns);
+		if (!columns) {
 			sr_err("Error while parsing line %zu.", inc->line_number);
 			return SR_ERR;
 		}
@@ -719,7 +730,8 @@ static int receive(struct sr_input *in, GString *buf)
 
 	inc = in->priv;
 	if (!inc->termination) {
-		if ((ret = initial_receive(in)) == SR_ERR_NA)
+		ret = initial_receive(in);
+		if (ret == SR_ERR_NA)
 			/* Not enough data yet. */
 			return SR_OK;
 		else if (ret != SR_OK)
