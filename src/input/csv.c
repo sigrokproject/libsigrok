@@ -644,11 +644,18 @@ static int process_buffer(struct sr_input *in)
 	else
 		max_columns = 1;
 
+	/*
+	 * Consider empty input non-fatal. Keep accumulating input until
+	 * at least one full text line has become available. Grab the
+	 * maximum amount of accumulated data that consists of full text
+	 * lines, and process what has been received so far, leaving not
+	 * yet complete lines for the next invocation.
+	 */
+	if (!in->buf->len)
+		return SR_OK;
 	p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
 	if (!p)
-		/* Don't have a full line. */
 		return SR_ERR;
-
 	*p = '\0';
 	g_strstrip(in->buf->str);
 
