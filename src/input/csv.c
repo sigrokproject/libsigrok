@@ -671,7 +671,7 @@ static int initial_receive(const struct sr_input *in)
 	return ret;
 }
 
-static int process_buffer(struct sr_input *in)
+static int process_buffer(struct sr_input *in, gboolean is_eof)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
@@ -712,14 +712,24 @@ static int process_buffer(struct sr_input *in)
 	 * maximum amount of accumulated data that consists of full text
 	 * lines, and process what has been received so far, leaving not
 	 * yet complete lines for the next invocation.
+	 *
+	 * Enforce that all previously buffered data gets processed in
+	 * the "EOF" condition. Do not insist in the presence of the
+	 * termination sequence for the last line (may often be missing
+	 * on Windows). A present termination sequence will just result
+	 * in the "execution of an empty line", and does not harm.
 	 */
 	if (!in->buf->len)
 		return SR_OK;
-	p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
-	if (!p)
-		return SR_ERR;
-	*p = '\0';
-	p += strlen(inc->termination);
+	if (is_eof) {
+		p = in->buf->str + in->buf->len;
+	} else {
+		p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
+		if (!p)
+			return SR_ERR;
+		*p = '\0';
+		p += strlen(inc->termination);
+	}
 	g_strstrip(in->buf->str);
 
 	ret = SR_OK;
@@ -814,7 +824,7 @@ static int receive(struct sr_input *in, GString *buf)
 		return SR_OK;
 	}
 
-	ret = process_buffer(in);
+	ret = process_buffer(in, FALSE);
 
 	return ret;
 }
@@ -825,7 +835,7 @@ static int end(struct sr_input *in)
 	int ret;
 
 	if (in->sdi_ready)
-		ret = process_buffer(in);
+		ret = process_buffer(in, TRUE);
 	else
 		ret = SR_OK;
 
