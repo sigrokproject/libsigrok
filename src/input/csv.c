@@ -447,6 +447,8 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
+static const char *delim_set = "\r\n";
+
 static const char *get_line_termination(GString *buf)
 {
 	const char *term;
@@ -476,7 +478,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	columns = NULL;
 
 	line_number = 0;
-	lines = g_strsplit_set(buf->str, "\r\n", 0);
+	lines = g_strsplit_set(buf->str, delim_set, 0);
 	for (l = 0; lines[l]; l++) {
 		line_number++;
 		line = lines[l];
@@ -651,7 +653,7 @@ static int process_buffer(struct sr_input *in)
 		max_columns = 1;
 
 	ret = SR_OK;
-	lines = g_strsplit_set(in->buf->str, "\r\n", 0);
+	lines = g_strsplit_set(in->buf->str, delim_set, 0);
 	for (l = 0; lines[l]; l++) {
 		inc->line_number++;
 		line = lines[l];
