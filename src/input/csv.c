@@ -67,6 +67,45 @@
  *                than 0. The default line number to start processing is 1.
  */
 
+/*
+ * TODO
+ *
+ * - Determine how the text line handling can get improved, regarding
+ *   all of robustness and flexibility and correctness.
+ *   - The current implementation splits on "any run of CR and LF". Which
+ *     translates to: Line numbers are wrong in the presence of empty
+ *     lines in the input stream.
+ *   - The current implementation insists in the presence of end-of-line
+ *     markers on _every_ line in the input stream. "Incomplete" text
+ *     files that are so typical on the Windows platform get rejected as
+ *     invalid.
+ *   - Dropping support for CR style end-of-line markers could improve
+ *     the situation a lot. Code could search for and split on LF, and
+ *     trim optional trailing CR. This would result in proper support
+ *     for CRLF (Windows) as well as LF (Unix), and allow for correct
+ *     line number counts.
+ *   - When support for CR-only line termination cannot get dropped,
+ *     then the current implementation is inappropriate. Currently the
+ *     input stream is scanned for the first occurance of either of the
+ *     supported termination styles (which is good). For the remaining
+ *     session a consistent encoding of the text lines is assumed (which
+ *     is acceptable). Potential absence of the terminator for the last
+ *     line is orthogonal, and can get handled by a "force" flag when
+ *     the end() routine calls the process_buffer() routine.
+ *   - When line numbers need to be correct and reliable, _and_ the full
+ *     set of previously supported line termination sequences are required,
+ *     and potentially more are to get added for improved compatibility
+ *     with more platforms or generators, then the current approach of
+ *     splitting on runs of termination characters needs to get replaced,
+ *     by the more expensive approach to scan for and count the initially
+ *     determined termination sequence.
+ *
+ * - Add support for analog input data? (optional)
+ *   - Needs a syntax first for user specs which channels (columns) are
+ *     logic and which are analog. May need heuristics(?) to guess from
+ *     input data in the absence of user provided specs.
+ */
+
 /* Single column formats. */
 enum {
 	FORMAT_BIN,
