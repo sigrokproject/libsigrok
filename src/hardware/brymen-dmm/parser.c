@@ -130,21 +130,21 @@ SR_PRIV gboolean brymen_packet_is_valid(const uint8_t *buf)
 	int i;
 	uint8_t chksum = 0;
 	uint8_t *payload;
-	
+
 	payload = (uint8_t *)(buf + sizeof(struct brymen_header));
 
 	hdr = (void *)buf;
 	tail = (void *)(payload + hdr->len);
-	
+
 	for (i = 0; i< hdr->len; i++)
 		chksum ^= payload[i];
-	
+
 	if (tail->checksum != chksum) {
 		sr_dbg("Packet has invalid checksum 0x%.2x. Expected 0x%.2x.",
 		       chksum, tail->checksum);
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 

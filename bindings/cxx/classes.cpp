@@ -768,7 +768,7 @@ vector<shared_ptr<Channel>> ChannelGroup::channels()
 	return result;
 }
 
-Trigger::Trigger(shared_ptr<Context> context, string name) : 
+Trigger::Trigger(shared_ptr<Context> context, string name) :
 	_structure(sr_trigger_new(name.c_str())),
 	_context(move(context))
 {
@@ -812,7 +812,7 @@ TriggerStage::TriggerStage(struct sr_trigger_stage *structure) :
 TriggerStage::~TriggerStage()
 {
 }
-	
+
 int TriggerStage::number() const
 {
 	return _structure->stage;

@@ -137,7 +137,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR_DEV_CLOSED;
 
 	std_session_send_df_header(sdi);
-	
+
 	sr_sw_limits_acquisition_start(&devc->limits);
 
 	/* Poll every 500ms, or whenever some data comes in. */

@@ -276,7 +276,7 @@ struct dev_context {
 extern SR_PRIV const uint64_t samplerates[];
 extern SR_PRIV const size_t samplerates_count;
 
-SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len, 
+SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 				 struct dev_context *devc);
 SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
 SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);

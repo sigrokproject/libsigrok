@@ -363,7 +363,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 			v16 |= 1 << 2;
 	}
 	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
-		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE) 
+		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE)
 		&& !devc->dslogic_continuous_mode) {
 		/* Enable RLE for long captures.
 		 * Without this, captured data present errors.

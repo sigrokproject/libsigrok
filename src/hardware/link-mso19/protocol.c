@@ -100,7 +100,7 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 		trigger_config |= 0x20;	//DSO level trigger & width < trigger_width
 		break;
 	case 2:
-		trigger_config |= 0x40;	//DSO level trigger & width >= trigger_width 
+		trigger_config |= 0x40;	//DSO level trigger & width >= trigger_width
 		break;
 	case 3:
 		trigger_config |= 0x60;	//LA combination trigger

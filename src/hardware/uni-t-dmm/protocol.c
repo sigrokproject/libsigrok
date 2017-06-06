@@ -102,7 +102,7 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
-	
+
 	/* Detach kernel drivers which grabbed this device (if any). */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, 0);

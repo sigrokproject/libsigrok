@@ -11,25 +11,25 @@
 %pragma(java) jniclassimports=%{
 /**
  * @mainpage API Reference
- * 
+ *
  * Introduction
  * ------------
- * 
+ *
  * The sigrok-java API provides an object-oriented Java interface to the
  * functionality in libsigrok. It is built on top of the libsigrokcxx C++ API.
- * 
+ *
  * Getting started
  * ---------------
- * 
+ *
  * Usage of the sigrok-java API needs to begin with a call to Context.create().
  * This will create the global libsigrok context and returns a Context object.
  * Methods on this object provide access to the hardware drivers, input and
  * output formats supported by the library, as well as means of creating other
  * objects such as sessions and triggers.
- * 
+ *
  * Error handling
  * --------------
- * 
+ *
  * When any libsigrok C API call returns an error, an Error exception is raised,
  * which provides access to the error code and description.
  */
@@ -197,7 +197,7 @@ MAP_COMMON(const sigrok::ConfigKey *, Glib::VariantBase, ConfigKey, Variant)
 
 %typemap(in, numinputs=0) JNIEnv * %{
    $1 = jenv;
-%} 
+%}
 
 /* Thread safe JNIEnv handling */
 

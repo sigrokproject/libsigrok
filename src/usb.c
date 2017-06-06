@@ -393,7 +393,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	libusb_free_device_list(devlist, 1);
 
 	sr_dbg("Found %d device(s).", g_slist_length(devices));
-	
+
 	return devices;
 }
 

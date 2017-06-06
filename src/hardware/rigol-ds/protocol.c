@@ -177,7 +177,7 @@ static int rigol_ds_trigger_wait(const struct sr_dev_inst *sdi)
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	/* 
+	/*
 	 * If timebase < 50 msecs/DIV just sleep about one sweep time except
 	 * for really fast sweeps.
 	 */

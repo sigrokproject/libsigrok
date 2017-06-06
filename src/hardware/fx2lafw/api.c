@@ -709,7 +709,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (i < 0)
 			return SR_ERR_ARG;
 		devc->dslogic_clock_edge = i;
-		break;		
+		break;
 	default:
 		ret = SR_ERR_NA;
 	}

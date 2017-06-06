@@ -617,7 +617,7 @@ static int scpi_usbtmc_libusb_close(struct sr_scpi_dev_inst *scpi)
 	if ((ret = libusb_release_interface(usb->devhdl, uscpi->interface)) < 0)
 		sr_err("Failed to release interface: %s.",
 		       libusb_error_name(ret));
-	
+
 	if (uscpi->detached_kernel_driver) {
 		if ((ret = libusb_attach_kernel_driver(usb->devhdl,
 						uscpi->interface)) < 0)

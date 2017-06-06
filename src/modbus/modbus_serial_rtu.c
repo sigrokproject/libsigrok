@@ -152,11 +152,11 @@ static int modbus_serial_rtu_read_data(void *priv, uint8_t *buf, int maxlen)
 	struct modbus_serial_rtu *modbus = priv;
 	int ret;
 
-	ret = serial_read_nonblocking(modbus->serial, buf, maxlen); 
+	ret = serial_read_nonblocking(modbus->serial, buf, maxlen);
 	if (ret < 0)
 		return ret;
-	modbus->crc = modbus_serial_rtu_crc(modbus->crc, buf, ret); 
-	return ret; 
+	modbus->crc = modbus_serial_rtu_crc(modbus->crc, buf, ret);
+	return ret;
 }
 
 static int modbus_serial_rtu_read_end(void *priv)

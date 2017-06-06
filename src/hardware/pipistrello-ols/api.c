@@ -113,7 +113,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (p_ols_open(devc) != SR_OK) {
 		goto err_free_ftdic;
 	}
-	
+
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere
 	 * in a 5-byte command. Then send the ID command (0x02).
@@ -642,8 +642,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_dbg("flag_reg = %x", devc->flag_reg);
 
 	/*
-	* In demux mode the OLS is processing two 8-bit or 16-bit samples 
-	* in parallel and for this to work the lower two bits of the four 
+	* In demux mode the OLS is processing two 8-bit or 16-bit samples
+	* in parallel and for this to work the lower two bits of the four
 	* "channel_disable" bits must be replicated to the upper two bits.
 	*/
 	flag_tmp = devc->flag_reg;

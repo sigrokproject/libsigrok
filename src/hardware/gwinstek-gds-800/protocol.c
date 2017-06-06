@@ -135,7 +135,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 				if (devc->cur_acq_frame == devc->frame_limit - 1) {
 					/* All frames accquired. */
 					sr_spew("All frames acquired.");
-					
+
 					sdi->driver->dev_acquisition_stop(sdi);
 					return TRUE;
 				} else {
@@ -143,7 +143,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 					if (devc->df_started) {
 						packet.type = SR_DF_FRAME_END;
 						sr_session_send(sdi, &packet);
-						
+
 						packet.type = SR_DF_FRAME_BEGIN;
 						sr_session_send(sdi, &packet);
 					}
@@ -271,7 +271,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 					if (devc->df_started) {
 						packet.type = SR_DF_FRAME_END;
 						sr_session_send(sdi, &packet);
-						
+
 						packet.type = SR_DF_FRAME_BEGIN;
 						sr_session_send(sdi, &packet);
 					}

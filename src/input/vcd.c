@@ -26,7 +26,7 @@
  *
  * skip:        Allows skipping until given timestamp in the file.
  *              This can speed up analyzing of long captures.
- *            
+ *
  *              Value < 0: Skip until first timestamp listed in
  *              the file. (default)
  *

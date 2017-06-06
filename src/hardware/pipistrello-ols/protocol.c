@@ -128,7 +128,7 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		goto err_open_close_ftdic;
 	}
 	sr_dbg("FTDI chip read data chunk size set successfully.");
-	
+
 	return SR_OK;
 
 err_open_close_ftdic:
@@ -443,7 +443,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 			sr_spew("Received byte 0x%.2x.", byte);
 
 			if ((devc->flag_reg & FLAG_DEMUX) && (devc->flag_reg & FLAG_RLE)) {
-				/* RLE in demux mode must be processed differently 
+				/* RLE in demux mode must be processed differently
 				* since in this case the RLE encoder is operating on pairs of samples.
 				*/
 				if (devc->num_bytes == num_channels * 2) {
@@ -499,7 +499,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 							 * sample.
 							 */
 							devc->tmp_sample[i] = devc->sample[j++];
-						} 
+						}
 					}
 					/* Clear out the most significant bit of the sample */
 					devc->tmp_sample[devc->num_bytes - 1] &= 0x7f;
@@ -517,7 +517,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 							 * sample.
 							 */
 							devc->tmp_sample2[i] = devc->sample[j++];
-						} 
+						}
 					}
 					/* Clear out the most significant bit of the sample */
 					devc->tmp_sample2[devc->num_bytes - 1] &= 0x7f;
@@ -597,7 +597,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 								 * sample.
 								 */
 								devc->tmp_sample[i] = devc->sample[j++];
-							} 
+							}
 						}
 						memcpy(devc->sample, devc->tmp_sample, 4);
 						sr_spew("Expanded sample: 0x%.8x.", sample);

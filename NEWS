@@ -155,7 +155,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
    - Check for the numpy Python module (bug #533).
    - Check for zip_discard(), provide alternative if not available (bug #674).
  * Portability:
-   - Android: Add fallbacks for missing stoi()/stod(). 
+   - Android: Add fallbacks for missing stoi()/stod().
    - FreeBSD: Fix a libusb related compiler error.
    - FreeBSD: Fix an issue with libusb_get_port_numbers().
    - FreeBSD: Fix an issue with BSD Make (bug #556).

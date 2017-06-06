@@ -46,7 +46,7 @@ static int realloc_chanbufs(const struct sr_output *o, int size)
 
 	outc = o->priv;
 	for (i = 0; i < outc->num_channels; i++) {
-		if (!(outc->chanbuf[i] = g_try_realloc(outc->chanbuf[i], sizeof(float) * size))) { 
+		if (!(outc->chanbuf[i] = g_try_realloc(outc->chanbuf[i], sizeof(float) * size))) {
 			sr_err("Unable to allocate enough output buffer memory.");
 			return SR_ERR;
 		}
