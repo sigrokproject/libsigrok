@@ -824,7 +824,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;
 
-	g_free(devc->sample_buf); devc->sample_buf = NULL;
+	g_free(devc->sample_buf);
+	devc->sample_buf = NULL;
 
 	return SR_OK;
 }

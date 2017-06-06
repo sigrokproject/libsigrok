@@ -260,8 +260,11 @@ static int zip_append(const struct sr_output *o, unsigned char *buf,
 		if (!entry_name || strncmp(entry_name, "logic-1", 7) != 0)
 			continue;
 		if (entry_name[7] == '\0') {
-			/* This file has no extra chunks, just a single "logic-1".
-			 * Rename it to "logic-1-1" * and continue with chunk 2. */
+			/*
+			 * This file has no extra chunks, just a single
+			 * "logic-1". Rename it to "logic-1-1" and continue
+			 * with chunk 2.
+			 */
 			if (zip_rename(archive, i, "logic-1-1") < 0) {
 				sr_err("Failed to rename 'logic-1' to 'logic-1-1': %s",
 					zip_strerror(archive));
