@@ -48,7 +48,7 @@ SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth)
 
 	/* Send the control command. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-			LIBUSB_ENDPOINT_OUT, DS_CMD_VTH, 0x0000, 0x0000,
+			LIBUSB_ENDPOINT_OUT, DS_CMD_WR_REG, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), 3000);
 	if (ret < 0) {
 		sr_err("Unable to send VTH command: %s.",
@@ -85,7 +85,7 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	/* Tell the device firmware is coming. */
 	memset(cmd, 0, sizeof(cmd));
 	if ((ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-			LIBUSB_ENDPOINT_OUT, DS_CMD_FPGA_FW, 0x0000, 0x0000,
+			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT)) < 0) {
 		sr_err("Failed to upload FPGA firmware: %s.", libusb_error_name(ret));
 		sr_resource_close(drvc->sr_ctx, &bitstream);

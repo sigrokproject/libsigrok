@@ -25,9 +25,16 @@
 #define DS_CMD_GET_FW_VERSION		0xb0
 #define DS_CMD_GET_REVID_VERSION	0xb1
 #define DS_CMD_START			0xb2
-#define DS_CMD_FPGA_FW			0xb3
-#define DS_CMD_CONFIG			0xb4
-#define DS_CMD_VTH			0xb8
+#define DS_CMD_CONFIG			0xb3
+#define DS_CMD_SETTING			0xb4
+#define DS_CMD_CONTROL			0xb5
+#define DS_CMD_STATUS			0xb6
+#define DS_CMD_STATUS_INFO		0xb7
+#define DS_CMD_WR_REG			0xb8
+#define DS_CMD_WR_NVM			0xb9
+#define DS_CMD_RD_NVM			0xba
+#define DS_CMD_RD_NVM_PRE		0xbb
+#define DS_CMD_GET_HW_INFO		0xbc
 
 #define DS_NUM_TRIGGER_STAGES		16
 #define DS_START_FLAGS_STOP		(1 << 7)
