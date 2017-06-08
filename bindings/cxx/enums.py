@@ -80,6 +80,8 @@ print("namespace sigrok {", file=header)
 
 # Template for beginning of class declaration and public members.
 header_public_template = """
+template<> const SR_API std::map<const enum {enumname}, const {classname} * const> EnumValue<{classname}, enum {enumname}>::_values;
+
 /** {brief} */
 class SR_API {classname} : public EnumValue<{classname}, enum {enumname}>
 {{
