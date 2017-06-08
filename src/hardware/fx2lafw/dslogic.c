@@ -40,15 +40,15 @@ SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth)
 {
 	struct sr_usb_dev_inst *usb;
 	int ret;
-	uint8_t cmd;
+	const uint8_t value = (vth / 5.0) * 255;
+	const uint16_t cmd = value | (DS_ADDR_VTH << 8);
 
 	usb = sdi->conn;
 
-	cmd = (vth / 5.0) * 255;
-
 	/* Send the control command. */
-	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-			LIBUSB_ENDPOINT_OUT, DS_CMD_WR_REG, 0x0000, 0x0000,
+	ret = libusb_control_transfer(usb->devhdl,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
+			DS_CMD_WR_REG, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), 3000);
 	if (ret < 0) {
 		sr_err("Unable to send VTH command: %s.",
