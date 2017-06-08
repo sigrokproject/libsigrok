@@ -42,6 +42,10 @@
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
 #define DS_START_FLAGS_MODE_LA		(1 << 4)
 
+#define DS_ADDR_COMB			0x68
+#define DS_ADDR_EEWP			0x70
+#define DS_ADDR_VTH			0x78
+
 #define DS_MAX_LOGIC_DEPTH		SR_MHZ(16)
 #define DS_MAX_LOGIC_SAMPLERATE		SR_MHZ(100)
 
