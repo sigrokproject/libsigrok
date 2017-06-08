@@ -70,7 +70,7 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	ssize_t chunksize;
 	int transferred;
 	int result, ret;
-	uint8_t cmd[3];
+	const uint8_t cmd[3] = {0, 0, 0};
 
 	drvc = sdi->driver->context;
 	usb = sdi->conn;
@@ -83,7 +83,6 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		return result;
 
 	/* Tell the device firmware is coming. */
-	memset(cmd, 0, sizeof(cmd));
 	if ((ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
 			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT)) < 0) {
