@@ -113,6 +113,7 @@ static VALUE variant_to_ruby(Glib::VariantBase variant)
     } else {
         SWIG_exception(SWIG_TypeError, ("TODO: GVariant(" + variant.get_type().get_string() + ") -> Ruby").c_str());
     }
+    return 0; /* Dummy, to avoid a compiler warning. */
 }
 %}
 
