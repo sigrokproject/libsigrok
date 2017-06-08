@@ -83,6 +83,10 @@ ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", MODE="660", GROUP="plugdev", 
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0003", MODE="660", GROUP="plugdev", TAG+="uaccess"
 # DreamSourceLab DScope
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0002", MODE="660", GROUP="plugdev", TAG+="uaccess"
+# DreamSourceLab DSLogic Plus
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", MODE="660", GROUP="plugdev", TAG+="uaccess"
+# DreamSourceLab DSLogic Basic
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # HAMEG HO720
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", MODE="660", GROUP="plugdev", TAG+="uaccess"

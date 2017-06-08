@@ -61,6 +61,8 @@
 #define DSLOGIC_FPGA_FIRMWARE_3V3 "dreamsourcelab-dslogic-fpga-3v3.fw"
 #define DSCOPE_FPGA_FIRMWARE "dreamsourcelab-dscope-fpga.fw"
 #define DSLOGIC_PRO_FPGA_FIRMWARE "dreamsourcelab-dslogic-pro-fpga.fw"
+#define DSLOGIC_PLUS_FPGA_FIRMWARE "dreamsourcelab-dslogic-plus-fpga.fw"
+#define DSLOGIC_BASIC_FPGA_FIRMWARE "dreamsourcelab-dslogic-basic-fpga.fw"
 
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0

@@ -81,6 +81,24 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"dreamsourcelab-dslogic-pro-fx2.fw",
 		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSLogic"},
 
+	/* DreamSourceLab DSLogic Plus (before FW upload) */
+	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
+		"dreamsourcelab-dslogic-plus-fx2.fw",
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, NULL, NULL},
+	/* DreamSourceLab DSLogic Plus (after FW upload) */
+	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
+		"dreamsourcelab-dslogic-plus-fx2.fw",
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSLogic"},
+
+	/* DreamSourceLab DSLogic Basic (before FW upload) */
+	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
+		"dreamsourcelab-dslogic-basic-fx2.fw",
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, NULL, NULL},
+	/* DreamSourceLab DSLogic Basic (after FW upload) */
+	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
+		"dreamsourcelab-dslogic-basic-fx2.fw",
+		DEV_CAPS_16BIT | DEV_CAPS_DSLOGIC_FW, "DreamSourceLab", "DSLogic"},
+
 	/*
 	 * Saleae Logic
 	 * EE Electronics ESLA100
@@ -388,6 +406,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		if (!strcmp(prof->model, "DSLogic")
 				|| !strcmp(prof->model, "DSLogic Pro")
+				|| !strcmp(prof->model, "DSLogic Plus")
+				|| !strcmp(prof->model, "DSLogic Basic")
 				|| !strcmp(prof->model, "DSCope")) {
 			devc->dslogic = TRUE;
 			devc->samplerates = dslogic_samplerates;
@@ -517,6 +537,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 				fpga_firmware = DSLOGIC_FPGA_FIRMWARE_5V;
 		} else if (!strcmp(devc->profile->model, "DSLogic Pro")){
 			fpga_firmware = DSLOGIC_PRO_FPGA_FIRMWARE;
+		} else if (!strcmp(devc->profile->model, "DSLogic Plus")){
+			fpga_firmware = DSLOGIC_PLUS_FPGA_FIRMWARE;
+		} else if (!strcmp(devc->profile->model, "DSLogic Basic")){
+			fpga_firmware = DSLOGIC_BASIC_FPGA_FIRMWARE;
 		} else if (!strcmp(devc->profile->model, "DSCope")) {
 			fpga_firmware = DSCOPE_FPGA_FIRMWARE;
 		}
@@ -695,6 +719,10 @@ static int config_set(uint32_t key, GVariant *data,
 				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_3V3);
 		} else if (!strcmp(devc->profile->model, "DSLogic Pro")) {
 			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PRO_FPGA_FIRMWARE);
+		} else if (!strcmp(devc->profile->model, "DSLogic Plus")) {
+			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PLUS_FPGA_FIRMWARE);
+		} else if (!strcmp(devc->profile->model, "DSLogic Basic")) {
+			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_BASIC_FPGA_FIRMWARE);
 		}
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
