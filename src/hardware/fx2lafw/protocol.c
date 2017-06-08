@@ -593,6 +593,9 @@ SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc)
 {
 	unsigned int n;
 
+	if (devc->dslogic)
+		return dslogic_get_number_of_transfers(devc);
+
 	/* Total buffer size should be able to hold about 500ms of data. */
 	n = (500 * to_bytes_per_ms(devc->cur_samplerate) /
 		fx2lafw_get_buffer_size(devc));

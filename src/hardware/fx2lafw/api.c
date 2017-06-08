@@ -860,9 +860,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 
 	num_transfers = fx2lafw_get_number_of_transfers(devc);
 
-	//if (devc->dslogic)
-	//	num_transfers = dslogic_get_number_of_transfers(devc);
-
 	if (devc->dslogic) {
 		if (devc->cur_samplerate == SR_MHZ(100))
 			num_transfers = 16;
