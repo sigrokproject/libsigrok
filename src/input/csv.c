@@ -625,7 +625,6 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 */
 	inc->sample_unit_size = (inc->num_channels + 7) / 8;
 	inc->datafeed_buf_size = DATAFEED_MAX_SAMPLES;
-	inc->datafeed_buf_size /= inc->sample_unit_size;
 	inc->datafeed_buf_size *= inc->sample_unit_size;
 	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
 	inc->datafeed_buf_fill = 0;
