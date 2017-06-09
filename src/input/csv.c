@@ -784,6 +784,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 		columns = parse_line(line, inc, max_columns);
 		if (!columns) {
 			sr_err("Error while parsing line %zu.", inc->line_number);
+			g_strfreev(lines);
 			return SR_ERR;
 		}
 		num_columns = g_strv_length(columns);
@@ -791,6 +792,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			sr_err("Column %u in line %zu is out of bounds.",
 				inc->first_column, inc->line_number);
 			g_strfreev(columns);
+			g_strfreev(lines);
 			return SR_ERR;
 		}
 		/*
@@ -801,6 +803,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			sr_err("Not enough columns for desired number of channels in line %zu.",
 				inc->line_number);
 			g_strfreev(columns);
+			g_strfreev(lines);
 			return SR_ERR;
 		}
 
@@ -810,6 +813,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			ret = parse_single_column(columns[0], inc);
 		if (ret != SR_OK) {
 			g_strfreev(columns);
+			g_strfreev(lines);
 			return SR_ERR;
 		}
 
@@ -818,6 +822,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 		if (ret != SR_OK) {
 			sr_err("Sending samples failed.");
 			g_strfreev(columns);
+			g_strfreev(lines);
 			return SR_ERR;
 		}
 
