@@ -194,6 +194,12 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
+	cfg->ch_en = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		const struct sr_channel *const probe = (struct sr_channel *)l->data;
+		cfg->ch_en |= probe->enabled << probe->index;
+	}
+
 	cfg->trig_mask0[0] = 0xffff;
 	cfg->trig_mask1[0] = 0xffff;
 
@@ -206,25 +212,20 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	cfg->trig_logic0[0] = 0;
 	cfg->trig_logic1[0] = 0;
 
-	cfg->trig_count0[0] = 0;
-	cfg->trig_count1[0] = 0;
+	cfg->trig_count[0] = 0;
 
-	cfg->trig_pos = 0;
-	cfg->trig_sda = 0;
 	cfg->trig_glb = 0;
-	cfg->trig_adp = cfg->count - cfg->trig_pos - 1;
 
-	for (i = 1; i < 16; i++) {
+	for (i = 1; i < DS_NUM_TRIGGER_STAGES; i++) {
 		cfg->trig_mask0[i] = 0xff;
 		cfg->trig_mask1[i] = 0xff;
 		cfg->trig_value0[i] = 0;
 		cfg->trig_value1[i] = 0;
 		cfg->trig_edge0[i] = 0;
 		cfg->trig_edge1[i] = 0;
-		cfg->trig_count0[i] = 0;
-		cfg->trig_count1[i] = 0;
 		cfg->trig_logic0[i] = 2;
 		cfg->trig_logic1[i] = 2;
+		cfg->trig_count[i] = 0;
 	}
 
 	cfg->trig_pos = (uint32_t)(devc->capture_ratio / 100.0 * devc->limit_samples);
@@ -297,22 +298,12 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 
 	WL32(&cfg.sync, DS_CFG_START);
 	WL16(&cfg.mode_header, DS_CFG_MODE);
-	WL32(&cfg.divider_header, DS_CFG_DIVIDER);
-	WL32(&cfg.count_header, DS_CFG_COUNT);
-	WL32(&cfg.trig_pos_header, DS_CFG_TRIG_POS);
+	WL16(&cfg.divider_header, DS_CFG_DIVIDER);
+	WL16(&cfg.count_header, DS_CFG_COUNT);
+	WL16(&cfg.trig_pos_header, DS_CFG_TRIG_POS);
 	WL16(&cfg.trig_glb_header, DS_CFG_TRIG_GLB);
-	WL32(&cfg.trig_adp_header, DS_CFG_TRIG_ADP);
-	WL32(&cfg.trig_sda_header, DS_CFG_TRIG_SDA);
-	WL32(&cfg.trig_mask0_header, DS_CFG_TRIG_MASK0);
-	WL32(&cfg.trig_mask1_header, DS_CFG_TRIG_MASK1);
-	WL32(&cfg.trig_value0_header, DS_CFG_TRIG_VALUE0);
-	WL32(&cfg.trig_value1_header, DS_CFG_TRIG_VALUE1);
-	WL32(&cfg.trig_edge0_header, DS_CFG_TRIG_EDGE0);
-	WL32(&cfg.trig_edge1_header, DS_CFG_TRIG_EDGE1);
-	WL32(&cfg.trig_count0_header, DS_CFG_TRIG_COUNT0);
-	WL32(&cfg.trig_count1_header, DS_CFG_TRIG_COUNT1);
-	WL32(&cfg.trig_logic0_header, DS_CFG_TRIG_LOGIC0);
-	WL32(&cfg.trig_logic1_header, DS_CFG_TRIG_LOGIC1);
+	WL16(&cfg.ch_en_header, DS_CFG_CH_EN);
+	WL16(&cfg.trig_header, DS_CFG_TRIG);
 	WL32(&cfg.end_sync, DS_CFG_END);
 
 	/* Pass in the length of a fixed-size struct. Really. */
@@ -322,8 +313,8 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	c[2] = (len >> 16) & 0xff;
 
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
-			c, 3, USB_TIMEOUT);
+			LIBUSB_ENDPOINT_OUT, DS_CMD_SETTING, 0x0000, 0x0000,
+			c, sizeof(c), USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Failed to send FPGA configure command: %s.",
 			libusb_error_name(ret));
@@ -331,6 +322,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	}
 
 	v16 = 0x0000;
+
 	if (devc->dslogic_mode == DS_OP_INTERNAL_TEST)
 		v16 = DS_MODE_INT_TEST;
 	else if (devc->dslogic_mode == DS_OP_EXTERNAL_TEST)

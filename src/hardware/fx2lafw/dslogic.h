@@ -102,69 +102,52 @@ struct dslogic_trigger_pos {
 
 /*
  * The FPGA is configured with TLV tuples. Length is specified as the
- * number of 16-bit words, and the (type, length) header is in some
- * cases padded with 0xffff.
+ * number of 16-bit words.
  */
 #define _DS_CFG(variable, wordcnt) ((variable << 8) | wordcnt)
-#define _DS_CFG_PAD(variable, wordcnt) ((_DS_CFG(variable, wordcnt) << 16) | 0xffff)
 #define DS_CFG_START		0xf5a5f5a5
 #define DS_CFG_MODE		_DS_CFG(0, 1)
-#define DS_CFG_DIVIDER		_DS_CFG_PAD(1, 2)
-#define DS_CFG_COUNT		_DS_CFG_PAD(3, 2)
-#define DS_CFG_TRIG_POS		_DS_CFG_PAD(5, 2)
+#define DS_CFG_DIVIDER		_DS_CFG(1, 2)
+#define DS_CFG_COUNT		_DS_CFG(3, 2)
+#define DS_CFG_TRIG_POS		_DS_CFG(5, 2)
 #define DS_CFG_TRIG_GLB		_DS_CFG(7, 1)
-#define DS_CFG_TRIG_ADP		_DS_CFG_PAD(10, 2)
-#define DS_CFG_TRIG_SDA		_DS_CFG_PAD(12, 2)
-#define DS_CFG_TRIG_MASK0	_DS_CFG_PAD(16, 16)
-#define DS_CFG_TRIG_MASK1	_DS_CFG_PAD(17, 16)
-#define DS_CFG_TRIG_VALUE0	_DS_CFG_PAD(20, 16)
-#define DS_CFG_TRIG_VALUE1	_DS_CFG_PAD(21, 16)
-#define DS_CFG_TRIG_EDGE0	_DS_CFG_PAD(24, 16)
-#define DS_CFG_TRIG_EDGE1	_DS_CFG_PAD(25, 16)
-#define DS_CFG_TRIG_COUNT0	_DS_CFG_PAD(28, 16)
-#define DS_CFG_TRIG_COUNT1	_DS_CFG_PAD(29, 16)
-#define DS_CFG_TRIG_LOGIC0	_DS_CFG_PAD(32, 16)
-#define DS_CFG_TRIG_LOGIC1	_DS_CFG_PAD(33, 16)
+#define DS_CFG_CH_EN		_DS_CFG(8, 1)
+#define DS_CFG_TRIG		_DS_CFG(64, 160)
 #define DS_CFG_END		0xfa5afa5a
+
+#pragma pack(push, 1)
 
 struct dslogic_fpga_config {
 	uint32_t sync;
+
 	uint16_t mode_header;
 	uint16_t mode;
-	uint32_t divider_header;
+	uint16_t divider_header;
 	uint32_t divider;
-	uint32_t count_header;
+	uint16_t count_header;
 	uint32_t count;
-	uint32_t trig_pos_header;
+	uint16_t trig_pos_header;
 	uint32_t trig_pos;
 	uint16_t trig_glb_header;
 	uint16_t trig_glb;
-	uint32_t trig_adp_header;
-	uint32_t trig_adp;
-	uint32_t trig_sda_header;
-	uint32_t trig_sda;
-	uint32_t trig_mask0_header;
+	uint16_t ch_en_header;
+	uint16_t ch_en;
+
+	uint16_t trig_header;
 	uint16_t trig_mask0[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_mask1_header;
 	uint16_t trig_mask1[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_value0_header;
 	uint16_t trig_value0[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_value1_header;
 	uint16_t trig_value1[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_edge0_header;
 	uint16_t trig_edge0[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_edge1_header;
 	uint16_t trig_edge1[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_count0_header;
-	uint16_t trig_count0[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_count1_header;
-	uint16_t trig_count1[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_logic0_header;
 	uint16_t trig_logic0[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_logic1_header;
 	uint16_t trig_logic1[DS_NUM_TRIGGER_STAGES];
+	uint32_t trig_count[DS_NUM_TRIGGER_STAGES];
+
 	uint32_t end_sync;
 };
+
+#pragma pack(pop)
 
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 		const char *name);
