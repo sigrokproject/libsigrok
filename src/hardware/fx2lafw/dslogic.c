@@ -330,36 +330,19 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/*
-	 * 15	1 = internal test mode
-	 * 14	1 = external test mode
-	 * 13	1 = loopback test mode
-	 * 12	1 = stream mode
-	 * 11	1 = serial trigger
-	 * 8-10 unused
-	 * 7	1 = analog mode
-	 * 6	1 = samplerate 400MHz
-	 * 5	1 = samplerate 200MHz or analog mode
-	 * 4	0 = logic, 1 = dso or analog
-	 * 3	1 = RLE encoding (enable for more than 16 Megasamples)
-	 * 1-2	00 = internal clock,
-	 * 	01 = external clock rising,
-	 * 	11 = external clock falling
-	 * 0	1 = trigger enabled
-	 */
 	v16 = 0x0000;
 	if (devc->dslogic_mode == DS_OP_INTERNAL_TEST)
-		v16 = 1 << 15;
+		v16 = DS_MODE_INT_TEST;
 	else if (devc->dslogic_mode == DS_OP_EXTERNAL_TEST)
-		v16 = 1 << 14;
+		v16 = DS_MODE_EXT_TEST;
 	else if (devc->dslogic_mode == DS_OP_LOOPBACK_TEST)
-		v16 = 1 << 13;
+		v16 = DS_MODE_LPB_TEST;
 	if (devc->dslogic_continuous_mode)
-		v16 |= 1 << 12;
+		v16 |= DS_MODE_STREAM_MODE;
 	if (devc->dslogic_external_clock) {
-		v16 |= 1 << 1;
+		v16 |= DS_MODE_CLK_TYPE;
 		if (devc->dslogic_clock_edge == DS_EDGE_FALLING)
-			v16 |= 1 << 2;
+			v16 |= DS_MODE_CLK_EDGE;
 	}
 	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
 		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE)
@@ -367,7 +350,7 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		/* Enable RLE for long captures.
 		 * Without this, captured data present errors.
 		 */
-		v16 |= 1 << 3;
+		v16 |= DS_MODE_RLE_MODE;
 	}
 
 	WL16(&cfg.mode, v16);
