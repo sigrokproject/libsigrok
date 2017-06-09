@@ -1407,7 +1407,7 @@ void Input::send(void *data, size_t length)
 {
 	auto gstr = g_string_new_len(static_cast<char *>(data), length);
 	auto ret = sr_input_send(_structure, gstr);
-	g_string_free(gstr, false);
+	g_string_free(gstr, true);
 	check(ret);
 }
 
