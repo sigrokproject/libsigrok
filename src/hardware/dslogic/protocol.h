@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FX2LAFW_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_FX2LAFW_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_DSLOGIC_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_DSLOGIC_PROTOCOL_H
 
 #include <glib.h>
 #include <stdint.h>
@@ -29,49 +29,31 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "fx2lafw"
+#define LOG_PREFIX "dslogic"
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
-#define NUM_TRIGGER_STAGES	4
 
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
 #define MAX_EMPTY_TRANSFERS	(NUM_SIMUL_TRANSFERS * 2)
 
 #define NUM_CHANNELS		16
+#define NUM_TRIGGER_STAGES	16
 
-#define FX2LAFW_REQUIRED_VERSION_MAJOR	1
-
-#define MAX_8BIT_SAMPLE_RATE	SR_MHZ(24)
-#define MAX_16BIT_SAMPLE_RATE	SR_MHZ(12)
+#define DSLOGIC_REQUIRED_VERSION_MAJOR	1
 
 /* 6 delay states of up to 256 clock ticks */
 #define MAX_SAMPLE_DELAY	(6 * 256)
 
-#define DEV_CAPS_16BIT_POS	0
-#define DEV_CAPS_AX_ANALOG_POS	1
+#define DSLOGIC_FPGA_FIRMWARE_5V "dreamsourcelab-dslogic-fpga-5v.fw"
+#define DSLOGIC_FPGA_FIRMWARE_3V3 "dreamsourcelab-dslogic-fpga-3v3.fw"
+#define DSCOPE_FPGA_FIRMWARE "dreamsourcelab-dscope-fpga.fw"
+#define DSLOGIC_PRO_FPGA_FIRMWARE "dreamsourcelab-dslogic-pro-fpga.fw"
+#define DSLOGIC_PLUS_FPGA_FIRMWARE "dreamsourcelab-dslogic-plus-fpga.fw"
+#define DSLOGIC_BASIC_FPGA_FIRMWARE "dreamsourcelab-dslogic-basic-fpga.fw"
 
-#define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
-#define DEV_CAPS_AX_ANALOG	(1 << DEV_CAPS_AX_ANALOG_POS)
-
-/* Protocol commands */
-#define CMD_GET_FW_VERSION		0xb0
-#define CMD_START			0xb1
-#define CMD_GET_REVID_VERSION		0xb2
-
-#define CMD_START_FLAGS_CLK_CTL2_POS	4
-#define CMD_START_FLAGS_WIDE_POS	5
-#define CMD_START_FLAGS_CLK_SRC_POS	6
-
-#define CMD_START_FLAGS_CLK_CTL2	(1 << CMD_START_FLAGS_CLK_CTL2_POS)
-#define CMD_START_FLAGS_SAMPLE_8BIT	(0 << CMD_START_FLAGS_WIDE_POS)
-#define CMD_START_FLAGS_SAMPLE_16BIT	(1 << CMD_START_FLAGS_WIDE_POS)
-
-#define CMD_START_FLAGS_CLK_30MHZ	(0 << CMD_START_FLAGS_CLK_SRC_POS)
-#define CMD_START_FLAGS_CLK_48MHZ	(1 << CMD_START_FLAGS_CLK_SRC_POS)
-
-struct fx2lafw_profile {
+struct dslogic_profile {
 	uint16_t vid;
 	uint16_t pid;
 
@@ -88,10 +70,9 @@ struct fx2lafw_profile {
 };
 
 struct dev_context {
-	const struct fx2lafw_profile *profile;
-	GSList *enabled_analog_channels;
+	const struct dslogic_profile *profile;
 	/*
-	 * Since we can't keep track of an fx2lafw device after upgrading
+	 * Since we can't keep track of an dslogic device after upgrading
 	 * the firmware (it renumerates into a different device address
 	 * after the upgrade) this is like a global lock. No device will open
 	 * until a proper delay after the last device was upgraded.
@@ -110,8 +91,6 @@ struct dev_context {
 	/* Operational settings */
 	gboolean trigger_fired;
 	gboolean acq_aborted;
-	gboolean sample_wide;
-	struct soft_trigger_logic *stl;
 
 	unsigned int sent_samples;
 	int submitted_transfers;
@@ -120,23 +99,23 @@ struct dev_context {
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
 	struct sr_context *ctx;
-	void (*send_data_proc)(struct sr_dev_inst *sdi,
-		uint8_t *data, size_t length, size_t sample_width);
-	uint8_t *logic_buffer;
-	float *analog_buffer;
+
+	uint16_t mode;
+	uint32_t trigger_pos;
+	gboolean external_clock;
+	gboolean continuous_mode;
+	int clock_edge;
+	int voltage_threshold;
 };
 
-SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
-SR_PRIV struct dev_context *fx2lafw_dev_new(void);
-SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
-SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer);
-SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
-SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
-SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
+SR_PRIV int dslogic_command_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
+SR_PRIV struct dev_context *dslogic_dev_new(void);
+SR_PRIV void dslogic_abort_acquisition(struct dev_context *devc);
+SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV size_t dslogic_get_buffer_size(struct dev_context *devc);
+SR_PRIV unsigned int dslogic_get_timeout(struct dev_context *devc);
+SR_PRIV void dslogic_send_data(struct sr_dev_inst *sdi, uint8_t *data,
 		size_t length, size_t sample_width);
 
 #endif

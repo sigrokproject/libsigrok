@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_FX2LAFW_DSLOGIC_H
-#define LIBSIGROK_HARDWARE_FX2LAFW_DSLOGIC_H
+#ifndef LIBSIGROK_HARDWARE_DSLOGIC_DSLOGIC_H
+#define LIBSIGROK_HARDWARE_DSLOGIC_DSLOGIC_H
 
 /* Modified protocol commands & flags used by DSLogic */
 #define DS_CMD_GET_FW_VERSION		0xb0
@@ -36,7 +36,6 @@
 #define DS_CMD_RD_NVM_PRE		0xbb
 #define DS_CMD_GET_HW_INFO		0xbc
 
-#define DS_NUM_TRIGGER_STAGES		16
 #define DS_START_FLAGS_STOP		(1 << 7)
 #define DS_START_FLAGS_CLK_48MHZ	(1 << 6)
 #define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
@@ -134,15 +133,15 @@ struct dslogic_fpga_config {
 	uint16_t ch_en;
 
 	uint16_t trig_header;
-	uint16_t trig_mask0[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_mask1[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_value0[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_value1[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_edge0[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_edge1[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_logic0[DS_NUM_TRIGGER_STAGES];
-	uint16_t trig_logic1[DS_NUM_TRIGGER_STAGES];
-	uint32_t trig_count[DS_NUM_TRIGGER_STAGES];
+	uint16_t trig_mask0[NUM_TRIGGER_STAGES];
+	uint16_t trig_mask1[NUM_TRIGGER_STAGES];
+	uint16_t trig_value0[NUM_TRIGGER_STAGES];
+	uint16_t trig_value1[NUM_TRIGGER_STAGES];
+	uint16_t trig_edge0[NUM_TRIGGER_STAGES];
+	uint16_t trig_edge1[NUM_TRIGGER_STAGES];
+	uint16_t trig_logic0[NUM_TRIGGER_STAGES];
+	uint16_t trig_logic1[NUM_TRIGGER_STAGES];
+	uint32_t trig_count[NUM_TRIGGER_STAGES];
 
 	uint32_t end_sync;
 };

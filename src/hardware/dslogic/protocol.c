@@ -22,6 +22,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
+#include "dslogic.h"
 
 #pragma pack(push, 1)
 
@@ -46,7 +47,7 @@ static int command_get_fw_version(libusb_device_handle *devhdl,
 	int ret;
 
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-		LIBUSB_ENDPOINT_IN, CMD_GET_FW_VERSION, 0x0000, 0x0000,
+		LIBUSB_ENDPOINT_IN, DS_CMD_GET_FW_VERSION, 0x0000, 0x0000,
 		(unsigned char *)vi, sizeof(struct version_info), USB_TIMEOUT);
 
 	if (ret < 0) {
@@ -65,7 +66,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	int ret;
 
 	ret = libusb_control_transfer(devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-		LIBUSB_ENDPOINT_IN, CMD_GET_REVID_VERSION, 0x0000, 0x0000,
+		LIBUSB_ENDPOINT_IN, DS_CMD_GET_REVID_VERSION, 0x0000, 0x0000,
 		revid, 1, USB_TIMEOUT);
 
 	if (ret < 0) {
@@ -76,70 +77,7 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	return SR_OK;
 }
 
-SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-	uint64_t samplerate;
-	struct cmd_start_acquisition cmd;
-	int delay, ret;
-
-	devc = sdi->priv;
-	usb = sdi->conn;
-	samplerate = devc->cur_samplerate;
-
-	/* Compute the sample rate. */
-	if (devc->sample_wide && samplerate > MAX_16BIT_SAMPLE_RATE) {
-		sr_err("Unable to sample at %" PRIu64 "Hz "
-		       "when collecting 16-bit samples.", samplerate);
-		return SR_ERR;
-	}
-
-	delay = 0;
-	cmd.flags = cmd.sample_delay_h = cmd.sample_delay_l = 0;
-	if ((SR_MHZ(48) % samplerate) == 0) {
-		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
-		delay = SR_MHZ(48) / samplerate - 1;
-		if (delay > MAX_SAMPLE_DELAY)
-			delay = 0;
-	}
-
-	if (delay == 0 && (SR_MHZ(30) % samplerate) == 0) {
-		cmd.flags = CMD_START_FLAGS_CLK_30MHZ;
-		delay = SR_MHZ(30) / samplerate - 1;
-	}
-
-	sr_dbg("GPIF delay = %d, clocksource = %sMHz.", delay,
-		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
-
-	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
-		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
-		return SR_ERR;
-	}
-
-	cmd.sample_delay_h = (delay >> 8) & 0xff;
-	cmd.sample_delay_l = delay & 0xff;
-
-	/* Select the sampling width. */
-	cmd.flags |= devc->sample_wide ? CMD_START_FLAGS_SAMPLE_16BIT :
-		CMD_START_FLAGS_SAMPLE_8BIT;
-	/* Enable CTL2 clock. */
-	cmd.flags |= (g_slist_length(devc->enabled_analog_channels) > 0) ? CMD_START_FLAGS_CLK_CTL2 : 0;
-
-	/* Send the control message. */
-	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
-			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
-			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT);
-	if (ret < 0) {
-		sr_err("Unable to send start command: %s.",
-		       libusb_error_name(ret));
-		return SR_ERR;
-	}
-
-	return SR_OK;
-}
-
-SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
+SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 {
 	libusb_device **devlist;
 	struct sr_usb_dev_inst *usb;
@@ -224,9 +162,9 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		 * bail out if we encounter an incompatible version.
 		 * Different minor versions are OK, they should be compatible.
 		 */
-		if (vi.major != FX2LAFW_REQUIRED_VERSION_MAJOR) {
+		if (vi.major != DSLOGIC_REQUIRED_VERSION_MAJOR) {
 			sr_err("Expected firmware version %d.x, "
-			       "got %d.%d.", FX2LAFW_REQUIRED_VERSION_MAJOR,
+			       "got %d.%d.", DSLOGIC_REQUIRED_VERSION_MAJOR,
 			       vi.major, vi.minor);
 			break;
 		}
@@ -250,7 +188,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	return SR_OK;
 }
 
-SR_PRIV struct dev_context *fx2lafw_dev_new(void)
+SR_PRIV struct dev_context *dslogic_dev_new(void)
 {
 	struct dev_context *devc;
 
@@ -260,13 +198,13 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->cur_samplerate = 0;
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
-	devc->sample_wide = FALSE;
-	devc->stl = NULL;
+	devc->continuous_mode = FALSE;
+	devc->clock_edge = DS_EDGE_RISING;
 
 	return devc;
 }
 
-SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc)
+SR_PRIV void dslogic_abort_acquisition(struct dev_context *devc)
 {
 	int i;
 
@@ -290,17 +228,6 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
-
-	/* Free the deinterlace buffers if we had them. */
-	if (g_slist_length(devc->enabled_analog_channels) > 0) {
-		g_free(devc->logic_buffer);
-		g_free(devc->analog_buffer);
-	}
-
-	if (devc->stl) {
-		soft_trigger_logic_free(devc->stl);
-		devc->stl = NULL;
-	}
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -340,59 +267,7 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
-SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi,
-	uint8_t *data, size_t length, size_t sample_width)
-{
-	size_t i;
-	struct dev_context *devc;
-	struct sr_datafeed_analog analog;
-	struct sr_analog_encoding encoding;
-	struct sr_analog_meaning meaning;
-	struct sr_analog_spec spec;
-
-	(void)sample_width;
-
-	devc = sdi->priv;
-
-	length /= 2;
-
-	/* Send the logic */
-	for (i = 0; i < length; i++) {
-		devc->logic_buffer[i] = data[i * 2];
-		/* Rescale to -10V - +10V from 0-255. */
-		devc->analog_buffer[i] = (data[i * 2 + 1] - 128.0f) / 12.8f;
-	};
-
-	const struct sr_datafeed_logic logic = {
-		.length = length,
-		.unitsize = 1,
-		.data = devc->logic_buffer
-	};
-
-	const struct sr_datafeed_packet logic_packet = {
-		.type = SR_DF_LOGIC,
-		.payload = &logic
-	};
-
-	sr_session_send(sdi, &logic_packet);
-
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
-	analog.meaning->channels = devc->enabled_analog_channels;
-	analog.meaning->mq = SR_MQ_VOLTAGE;
-	analog.meaning->unit = SR_UNIT_VOLT;
-	analog.meaning->mqflags = 0 /* SR_MQFLAG_DC */;
-	analog.num_samples = length;
-	analog.data = devc->analog_buffer;
-
-	const struct sr_datafeed_packet analog_packet = {
-		.type = SR_DF_ANALOG,
-		.payload = &analog
-	};
-
-	sr_session_send(sdi, &analog_packet);
-}
-
-SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi,
+SR_PRIV void dslogic_send_data(struct sr_dev_inst *sdi,
 	uint8_t *data, size_t length, size_t sample_width)
 {
 	const struct sr_datafeed_logic logic = {
@@ -409,14 +284,15 @@ SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi,
 	sr_session_send(sdi, &packet);
 }
 
-SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer)
+SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	gboolean packet_has_error = FALSE;
+	struct sr_datafeed_packet packet;
 	unsigned int num_samples;
-	int trigger_offset, cur_sample_count, unitsize;
-	int pre_trigger_samples;
+	int trigger_offset, cur_sample_count;
+	const int unitsize = 2;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
@@ -434,12 +310,11 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 		libusb_error_name(transfer->status), transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
-	unitsize = devc->sample_wide ? 2 : 1;
 	cur_sample_count = transfer->actual_length / unitsize;
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
-		fx2lafw_abort_acquisition(devc);
+		dslogic_abort_acquisition(devc);
 		free_transfer(transfer);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
@@ -457,7 +332,7 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			fx2lafw_abort_acquisition(devc);
+			dslogic_abort_acquisition(devc);
 			free_transfer(transfer);
 		} else {
 			resubmit_transfer(transfer);
@@ -474,31 +349,34 @@ SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transf
 			else
 				num_samples = cur_sample_count;
 
-			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
-				num_samples * unitsize, unitsize);
-			devc->sent_samples += num_samples;
-		}
-	} else {
-		trigger_offset = soft_trigger_logic_check(devc->stl,
-			transfer->buffer, transfer->actual_length, &pre_trigger_samples);
-		if (trigger_offset > -1) {
-			devc->sent_samples += pre_trigger_samples;
-			num_samples = cur_sample_count - trigger_offset;
-			if (devc->limit_samples &&
-					num_samples > devc->limit_samples - devc->sent_samples)
-				num_samples = devc->limit_samples - devc->sent_samples;
-
-			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer
-					+ trigger_offset * unitsize,
+			if (devc->trigger_pos > devc->sent_samples
+				&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+					/* DSLogic trigger in this block. Send trigger position. */
+					trigger_offset = devc->trigger_pos - devc->sent_samples;
+					/* Pre-trigger samples. */
+					dslogic_send_data(sdi, (uint8_t *)transfer->buffer,
+						trigger_offset * unitsize, unitsize);
+					devc->sent_samples += trigger_offset;
+					/* Trigger position. */
+					devc->trigger_pos = 0;
+					packet.type = SR_DF_TRIGGER;
+					packet.payload = NULL;
+					sr_session_send(sdi, &packet);
+					/* Post trigger samples. */
+					num_samples -= trigger_offset;
+					dslogic_send_data(sdi, (uint8_t *)transfer->buffer
+							+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
+					devc->sent_samples += num_samples;
+			} else {
+				dslogic_send_data(sdi, (uint8_t *)transfer->buffer,
 					num_samples * unitsize, unitsize);
-			devc->sent_samples += num_samples;
-
-			devc->trigger_fired = TRUE;
+				devc->sent_samples += num_samples;
+			}
 		}
 	}
 
 	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
-		fx2lafw_abort_acquisition(devc);
+		dslogic_abort_acquisition(devc);
 		free_transfer(transfer);
 	} else
 		resubmit_transfer(transfer);
@@ -509,7 +387,7 @@ static unsigned int to_bytes_per_ms(unsigned int samplerate)
 	return samplerate / 1000;
 }
 
-SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc)
+SR_PRIV size_t dslogic_get_buffer_size(struct dev_context *devc)
 {
 	size_t s;
 
@@ -521,27 +399,13 @@ SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc)
 	return (s + 511) & ~511;
 }
 
-SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc)
-{
-	unsigned int n;
-
-	/* Total buffer size should be able to hold about 500ms of data. */
-	n = (500 * to_bytes_per_ms(devc->cur_samplerate) /
-		fx2lafw_get_buffer_size(devc));
-
-	if (n > NUM_SIMUL_TRANSFERS)
-		return NUM_SIMUL_TRANSFERS;
-
-	return n;
-}
-
-SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc)
+SR_PRIV unsigned int dslogic_get_timeout(struct dev_context *devc)
 {
 	size_t total_size;
 	unsigned int timeout;
 
-	total_size = fx2lafw_get_buffer_size(devc) *
-			fx2lafw_get_number_of_transfers(devc);
+	total_size = dslogic_get_buffer_size(devc) *
+			dslogic_get_number_of_transfers(devc);
 	timeout = total_size / to_bytes_per_ms(devc->cur_samplerate);
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
 }

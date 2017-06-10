@@ -272,6 +272,14 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/demo/protocol.c \
 	src/hardware/demo/api.c
 endif
+if HW_DSLOGIC
+src_libdrivers_la_SOURCES += \
+	src/hardware/dslogic/dslogic.h \
+	src/hardware/dslogic/dslogic.c \
+	src/hardware/dslogic/protocol.h \
+	src/hardware/dslogic/protocol.c \
+	src/hardware/dslogic/api.c
+endif
 if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
@@ -288,9 +296,7 @@ if HW_FX2LAFW
 src_libdrivers_la_SOURCES += \
 	src/hardware/fx2lafw/protocol.h \
 	src/hardware/fx2lafw/protocol.c \
-	src/hardware/fx2lafw/api.c \
-	src/hardware/fx2lafw/dslogic.c \
-	src/hardware/fx2lafw/dslogic.h
+	src/hardware/fx2lafw/api.c
 endif
 if HW_GMC_MH_1X_2X
 src_libdrivers_la_SOURCES += \

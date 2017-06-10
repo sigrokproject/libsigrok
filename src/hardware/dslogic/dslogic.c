@@ -133,16 +133,12 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 
 SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_mode mode;
 	int ret;
 
-	devc = sdi->priv;
-	mode.flags = DS_START_FLAGS_MODE_LA;
+	mode.flags = DS_START_FLAGS_MODE_LA | DS_START_FLAGS_SAMPLE_WIDE;
 	mode.sample_delay_h = mode.sample_delay_l = 0;
-	if (devc->sample_wide)
-		mode.flags |= DS_START_FLAGS_SAMPLE_WIDE;
 
 	usb = sdi->conn;
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
@@ -216,7 +212,7 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 
 	cfg->trig_glb = 0;
 
-	for (i = 1; i < DS_NUM_TRIGGER_STAGES; i++) {
+	for (i = 1; i < NUM_TRIGGER_STAGES; i++) {
 		cfg->trig_mask0[i] = 0xff;
 		cfg->trig_mask1[i] = 0xff;
 		cfg->trig_value0[i] = 0;
@@ -323,22 +319,22 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 
 	v16 = 0x0000;
 
-	if (devc->dslogic_mode == DS_OP_INTERNAL_TEST)
+	if (devc->mode == DS_OP_INTERNAL_TEST)
 		v16 = DS_MODE_INT_TEST;
-	else if (devc->dslogic_mode == DS_OP_EXTERNAL_TEST)
+	else if (devc->mode == DS_OP_EXTERNAL_TEST)
 		v16 = DS_MODE_EXT_TEST;
-	else if (devc->dslogic_mode == DS_OP_LOOPBACK_TEST)
+	else if (devc->mode == DS_OP_LOOPBACK_TEST)
 		v16 = DS_MODE_LPB_TEST;
-	if (devc->dslogic_continuous_mode)
+	if (devc->continuous_mode)
 		v16 |= DS_MODE_STREAM_MODE;
-	if (devc->dslogic_external_clock) {
+	if (devc->external_clock) {
 		v16 |= DS_MODE_CLK_TYPE;
-		if (devc->dslogic_clock_edge == DS_EDGE_FALLING)
+		if (devc->clock_edge == DS_EDGE_FALLING)
 			v16 |= DS_MODE_CLK_EDGE;
 	}
 	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
 		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE)
-		&& !devc->dslogic_continuous_mode) {
+		&& !devc->continuous_mode) {
 		/* Enable RLE for long captures.
 		 * Without this, captured data present errors.
 		 */
@@ -366,9 +362,8 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 static int to_bytes_per_ms(struct dev_context *devc)
 {
 	if (devc->cur_samplerate > SR_MHZ(100))
-		return SR_MHZ(100) / 1000 * (devc->sample_wide ? 2 : 1);
-
-	return devc->cur_samplerate / 1000 * (devc->sample_wide ? 2 : 1);
+		return SR_MHZ(100) / 1000 * 2;
+	return devc->cur_samplerate / 1000 * 2;
 }
 
 static size_t get_buffer_size(struct dev_context *devc)
