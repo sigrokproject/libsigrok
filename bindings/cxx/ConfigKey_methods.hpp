@@ -7,4 +7,5 @@
     /** Get configuration key by string identifier. */
     static const ConfigKey *get_by_identifier(string identifier);
     /** Parse a string argument into the appropriate type for this key. */
+    static Glib::VariantBase parse_string(string value, enum sr_datatype dt);
     Glib::VariantBase parse_string(string value) const;

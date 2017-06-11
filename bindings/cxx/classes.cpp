@@ -1483,6 +1483,28 @@ vector<Glib::VariantBase> Option::values() const
 	return result;
 }
 
+Glib::VariantBase Option::parse_string(string value)
+{
+	enum sr_datatype dt;
+	Glib::VariantBase dflt = default_value();
+	GVariant *tmpl = dflt.gobj();
+
+	if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_UINT64)) {
+		dt = SR_T_UINT64;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_STRING)) {
+		dt = SR_T_STRING;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_BOOLEAN)) {
+		dt = SR_T_BOOL;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_DOUBLE)) {
+		dt = SR_T_FLOAT;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_INT32)) {
+		dt = SR_T_INT32;
+	} else {
+		throw Error(SR_ERR_BUG);
+	}
+	return ConfigKey::parse_string(value, dt);
+}
+
 OutputFormat::OutputFormat(const struct sr_output_module *structure) :
 	_structure(structure)
 {

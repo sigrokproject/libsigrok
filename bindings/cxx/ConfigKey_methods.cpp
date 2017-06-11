@@ -70,12 +70,12 @@ static inline double stod( const std::string& str )
 }
 #endif
 
-Glib::VariantBase ConfigKey::parse_string(string value) const
+Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
 {
 	GVariant *variant;
 	uint64_t p, q;
 
-	switch (data_type()->id())
+	switch (dt)
 	{
 		case SR_T_UINT64:
 			check(sr_parse_sizestring(value.c_str(), &p));
@@ -116,3 +116,8 @@ Glib::VariantBase ConfigKey::parse_string(string value) const
 	return Glib::VariantBase(variant, false);
 }
 
+Glib::VariantBase ConfigKey::parse_string(string value) const
+{
+	enum sr_datatype dt = (enum sr_datatype)(data_type()->id());
+	return parse_string(value, dt);
+}

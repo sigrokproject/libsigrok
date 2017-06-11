@@ -917,6 +917,8 @@ public:
 	Glib::VariantBase default_value() const;
 	/** Possible values for this option, if a limited set. */
 	vector<Glib::VariantBase> values() const;
+	/** Parse a string argument into the appropriate type for this option. */
+	Glib::VariantBase parse_string(string value);
 private:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
