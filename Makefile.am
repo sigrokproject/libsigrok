@@ -544,6 +544,15 @@ noinst_HEADERS = src/libsigrok-internal.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
 
+mimeappdir = $(datadir)/mime/application
+mimeapp_DATA = contrib/vnd.sigrok.session.xml
+
+mimeicondir = $(datadir)/icons/hicolor/48x48/mimetypes
+mimeicon_DATA = contrib/libsigrok.png
+
+mimeiconscalabledir = $(datadir)/icons/hicolor/scalable/mimetypes
+mimeiconscalable_DATA = contrib/libsigrok.svg
+
 EXTRA_DIST = \
 	Doxyfile \
 	HACKING \
@@ -569,6 +578,9 @@ EXTRA_DIST = \
 	bindings/swig/doc.py \
 	bindings/swig/templates.i \
 	contrib/libsigrok_112x112.png \
+	contrib/libsigrok.png \
+	contrib/libsigrok.svg \
+	contrib/vnd.sigrok.session.xml \
 	contrib/z60_libsigrok.rules
 
 if HAVE_CHECK
