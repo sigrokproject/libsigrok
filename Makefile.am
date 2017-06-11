@@ -568,7 +568,7 @@ EXTRA_DIST = \
 	bindings/swig/classes.i \
 	bindings/swig/doc.py \
 	bindings/swig/templates.i \
-	contrib/sigrok-logo-notext.png \
+	contrib/libsigrok_112x112.png \
 	contrib/z60_libsigrok.rules
 
 if HAVE_CHECK
