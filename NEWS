@@ -1,3 +1,197 @@
+0.5.0 (2017-06-12)
+------------------
+
+Note: This release DOES change the libsigrok API. That means it is NOT
+      backwards-compatible and frontends will need updates.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - CWAV USBee ZX (bug #764)
+     - DreamSourceLab DSLogic
+     - DreamSourceLab DSLogic Pro
+     - FTDI LA (simple, limited logic analyzer using FTDI chips directly)
+   - Oscilloscopes:
+     - Hameg HMO3524
+     - Hantek 6022BE
+     - LeCroy X-Stream series
+     - Rigol DS1074Z Plus
+     - Rigol DS1104Z Plus
+     - Rigol MSO2000A series
+     - Rocktech BM102
+     - Rohde&Schwarz HMO 1002
+     - Sainsmart DDS120
+   - Logic analyzers / oscilloscopes (but not MSOs):
+     - Hantek 6022BL
+   - Programmable power supplies:
+     - Agilent N5763A
+     - HP 6633A
+     - Rohde&Schwarz HMC8043
+   - Electronic loads:
+     - Arachnid Labs Re:load Pro
+   - Multimeters:
+     - Agilent U1241C
+     - Agilent U1242C
+     - Fluke 289
+     - HP 3457A
+     - Keysight U1281
+     - Keysight U1282
+     - Metrix MX56C
+     - PeakTech 3330
+   - Sound level meters:
+     - PCE PCE-322A
+   - LCR meters:
+     - PeakTech 2170
+   - Signal generators:
+     - Rohde&Schwarz SME0x series
+ * New build dependencies (libsigrokcxx C++ library):
+    - libsigrok >= 0.5.0 (the libsigrok C library)
+    - A C++ compiler with full C++11 support (g++ >= 4.8.1 or clang++ >= 3.3)
+ * New config keys:
+   - SR_CONF_ADC_POWERLINE_CYCLES
+   - SR_CONF_PROBE_FACTOR
+   - SR_CONF_SIGNAL_GENERATOR
+   - SR_CONF_TRIGGER_LEVEL
+   - SR_CONF_UNDER_VOLTAGE_CONDITION
+   - SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE
+ * New measurement quantity keys:
+   - SR_MQ_HARMONIC_RATIO
+ * New measurement quantity flags:
+   - SR_MQFLAG_FOUR_WIRE
+ * agilent-dmm:
+   - Fix handling of AC/DC flags in volts mode.
+   - Add support for AC/DC flags in current mode.
+   - Add support for Keysight branded meters.
+   - Add support for reading secondary display and temperature.
+   - Add support for dBm/dBV modes.
+   - Rework job management to allow for faster and configurable samplerate.
+   - Add support for Log-Hand/-Trig/-Auto/-Export data sources.
+   - Fix handling of the second channel of 2 channels models.
+   - Add support for Vsense (Non-Contact Voltage).
+ * asix-sigma:
+   - Fix RLE decoder.
+   - Disable support for triggers, they don't work right now (bug #359).
+   - Properly decode data gathered at 100 and 200 MHz (bug #840).
+   - Only download firmware when necessary.
+   - Enforce optionally specified sample count (bug #838).
+   - Fixup the download of the last data acquisition chunk (bug #838).
+   - Various other bugfixes and internal code improvements.
+ * demo:
+   - Add "cable squid" logic waveform (works-with logo, many channels).
+   - Add walking one/walking zero pattern.
+ * deree-de5000:
+   - Rename the driver to serial-lcr, allow support for multiple devices.
+ * fx2lafw:
+   - CWAV USBee SX: Add support for one analog channel.
+   - Fix analog scaling.
+   - Fix a -Wself-assign compiler warning (bug #793).
+   - Warn on fail to open plausible devices (bug #867).
+   - Use wide_sampling only if necessary (depends on channel config).
+ * hameg-hmo:
+   - Support triggering on either falling or rising edge (bug #740).
+   - Terminate all commands with a linefeed for all transports (bug #784).
+   - Add PATTern and BUS1/BUS2 trigger sources.
+   - Fix index access for models with 2 pods / 16 digital channels.
+   - Support BE format for SCPI sample downloads.
+ * hantek-6xxx:
+   - Fix some issues by using power-of-two data sizes (bug #821).
+   - Fix AC/DC coupling selection (bug #836).
+   - Only list DC coupling once (bug #822).
+ * lecroy-xstream:
+   - Fix config_list() capabilities listing (bug #913).
+ * openbench-logic-sniffer:
+   - Fix acquisition restart with trigger enabled (bug #809).
+ * rigol-ds:
+   - Add support for getting/setting the trigger level.
+   - Properly report which channel is enabled.
+   - Add probe factor support.
+   - Send *OPC? after commands that don't return a value (bug #933).
+ * saleae-logic16:
+   - Add 20MHz and 50MHz to samplerate preset list (bug #799).
+ * uni-t-ut32x:
+   - Accept SR_CONF_CONN to fix the device scan.
+ * ut71x:
+   - Fix float printing issue in a debug message (bug #700).
+   - Fix incorrect resistance values on some DMMs.
+ * session:
+   - Fix memory allocation issue in sr_packet_copy().
+   - Increase chunk size for slightly better performance.
+   - Fix a segfault when input files were read multiple times.
+   - Fix missing data when input files were read multiple times (bug #944).
+ * analog:
+   - Improve output readability by using SI prefix.
+ * scpi:
+   - Fix remote locking according to USBTMC spec (bug #783).
+   - Various internal improvements to better handle corner cases.
+ * scpi/vxi:
+   - Fix incomplete reads (bug #790).
+ * input/vcd:
+   - Skip BOM at beginning of file (bug #755).
+ * input/trace32_ad:
+   - Make the sample rate an option.
+ * output/srzip:
+   - Add support for storing analog channels.
+ * output/analog:
+   - Drop obsolete and duplicate functions (bug #636).
+   - Fix incorrect displaying of the values for certain digits settings.
+ * output/csv:
+   - Fix a segfault when using non-hardware input.
+   - Fix a segfault due to a g_malloc() allocating too few bytes.
+   - Add an option to output units for column labels.
+   - Fix segfaults related to incorrect indices and unitsizes (bug #844).
+   - Fix a false negative after successful import causing frontend issues.
+   - Skip leading UTF-8 BOM in the input stream (bug #756).
+   - Correctly skip over last processed end-of-line sequence and accept
+     absence of last end-of-line termination sequence (bug #635).
+   - Send larger datafeed chunks, to speed up import.
+ * output/ascii:
+   - Add support for user configurable character set.
+ * output/gnuplot:
+   - Remove, obsoleted by the improved CSV module.
+ * bindings:
+   - Link C++ code with gnustl_shared if it exists (Android).
+   - Flesh out the analog payload bindings.
+ * bindings/cxx:
+   - Fixup memory leak in input module receive() calls (bug #976).
+   - Fix various -Wundefined-var-template clang warnings (bug #915).
+ * bindings/ruby:
+   - Fix out-of-tree build (bug #797).
+   - Fix distribution of Ruby bindings (bug #741).
+   - Fix Ruby bindings build on Mac OS X and FreeBSD (bug #800).
+   - Fix the build with BSD Make (bug #801).
+   - Make the Ruby bindings build with Ruby 2.0 again.
+ * bindings/java:
+   - Use correct JNI function when calling Vector.add.
+ * Build system:
+   - Use latest AX_CXX_COMPILE_STDCXX (bug #795).
+   - Fix linker issues related to --whole-archive (bug #802).
+   - Don't access the sr_driver_list with no driver compiled (bug #820).
+   - Fix a build issue related to C++ compiler flags (bug #865).
+   - configure summary: Show whether shared/static build is enabled.
+   - configure summary: Show linker flags.
+   - uninstall: Remove empty include directories (bug #861).
+ * udev rules file:
+   - Add TAG+="uaccess" for systemd, keep plugdev group as well (bug #665).
+   - Use 660 permissions (bug #665).
+   - Add various new USB VID/PID pairs for newly-supported hardware.
+ * Add a MIME info file (and icons) for sigrok session files (bug #857).
+ * Various internal refactorings and improvements.
+   - Add sr_sw_limits_*() helper functions for software limits.
+   - Add and use the standard cleanup helper std_cleanup().
+   - Add std_scan_complete() helper function for scan completion.
+ * All drivers were converted to use the new SR_DF_ANALOG format, support
+   for SR_DF_ANALOG_OLD has been dropped (bug #728).
+ * Many drivers now report the correct number of digits in analog packets.
+ * resource: Improve logging output (bug #806).
+ * Fix an issue with analog packets with digits=0 (bug #815).
+ * Fix a crash when scanning for devices with no options provided (bug #786).
+ * Fix a segfault with input/ouput modules (bug #813).
+ * Fix various compiler warnings.
+ * Fix various memory leaks.
+ * Remove FSF postal address from boiler plate license text.
+ * Various Doxygen fixes and improvements.
+ * README.devices: Update firmware related (and other) information.
+ * HACKING: Update URL to Linux kernel coding style.
+
 0.4.0 (2016-01-29)
 ------------------
 
@@ -155,7 +349,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
    - Check for the numpy Python module (bug #533).
    - Check for zip_discard(), provide alternative if not available (bug #674).
  * Portability:
-   - Android: Add fallbacks for missing stoi()/stod().
+   - Android: Add fallbacks for missing stoi()/stod(). 
    - FreeBSD: Fix a libusb related compiler error.
    - FreeBSD: Fix an issue with libusb_get_port_numbers().
    - FreeBSD: Fix an issue with BSD Make (bug #556).
