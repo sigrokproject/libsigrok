@@ -333,7 +333,7 @@ public:
 	set<const Capability *> config_capabilities(const ConfigKey *key) const;
 	/** Check whether a configuration capability is supported for a given key.
 	 * @param key ConfigKey to check.
-     * @param capability Capability to check for. */
+	 * @param capability Capability to check for. */
 	bool config_check(const ConfigKey *key, const Capability *capability) const;
 protected:
 	Configurable(
@@ -845,7 +845,7 @@ public:
 	/** Description of this input format. */
 	string description() const;
 	/** A list of preferred file name extensions for this file format.
-         * @note This list is a recommendation only. */
+	 * @note This list is a recommendation only. */
 	vector<string> extensions() const;
 	/** Options supported by this input format. */
 	map<string, shared_ptr<Option> > options();
@@ -941,7 +941,7 @@ public:
 	/** Description of this output format. */
 	string description() const;
 	/** A list of preferred file name extensions for this file format.
-         * @note This list is a recommendation only. */
+	 * @note This list is a recommendation only. */
 	vector<string> extensions() const;
 	/** Options supported by this output format. */
 	map<string, shared_ptr<Option> > options();

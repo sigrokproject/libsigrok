@@ -157,8 +157,7 @@ string Context::lib_version()
 map<string, shared_ptr<Driver>> Context::drivers()
 {
 	map<string, shared_ptr<Driver>> result;
-	for (const auto &entry: _drivers)
-	{
+	for (const auto &entry: _drivers) {
 		const auto &name = entry.first;
 		const auto &driver = entry.second;
 		result.insert({name, driver->share_owned_by(shared_from_this())});
@@ -169,8 +168,7 @@ map<string, shared_ptr<Driver>> Context::drivers()
 map<string, shared_ptr<InputFormat>> Context::input_formats()
 {
 	map<string, shared_ptr<InputFormat>> result;
-	for (const auto &entry: _input_formats)
-	{
+	for (const auto &entry: _input_formats) {
 		const auto &name = entry.first;
 		const auto &input_format = entry.second;
 		result.insert({name, input_format->share_owned_by(shared_from_this())});
@@ -181,8 +179,7 @@ map<string, shared_ptr<InputFormat>> Context::input_formats()
 map<string, shared_ptr<OutputFormat>> Context::output_formats()
 {
 	map<string, shared_ptr<OutputFormat>> result;
-	for (const auto &entry: _output_formats)
-	{
+	for (const auto &entry: _output_formats) {
 		const auto &name = entry.first;
 		const auto &output_format = entry.second;
 		result.insert({name, output_format->share_owned_by(shared_from_this())});
@@ -213,12 +210,9 @@ static int call_log_callback(void *cb_data, int loglevel,
 
 	auto *const callback = static_cast<LogCallbackFunction *>(cb_data);
 
-	try
-	{
+	try {
 		(*callback)(LogLevel::get(loglevel), message.get());
-	}
-	catch (Error e)
-	{
+	} catch (Error e) {
 		return e.result;
 	}
 
@@ -281,8 +275,7 @@ shared_ptr<Packet> Context::create_meta_packet(
 	map<const ConfigKey *, Glib::VariantBase> config)
 {
 	auto meta = g_new0(struct sr_datafeed_meta, 1);
-	for (const auto &input : config)
-	{
+	for (const auto &input : config) {
 		const auto &key = input.first;
 		const auto &value = input.second;
 		auto *const output = g_new(struct sr_config, 1);
@@ -446,16 +439,14 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	map<const ConfigKey *, Glib::VariantBase> options)
 {
 	/* Initialise the driver if not yet done. */
-	if (!_initialized)
-	{
+	if (!_initialized) {
 		check(sr_driver_init(_parent->_structure, _structure));
 		_initialized = true;
 	}
 
 	/* Translate scan options to GSList of struct sr_config pointers. */
 	GSList *option_list = nullptr;
-	for (const auto &entry : options)
-	{
+	for (const auto &entry : options) {
 		const auto &key = entry.first;
 		const auto &value = entry.second;
 		auto *const config = g_new(struct sr_config, 1);
@@ -473,8 +464,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 
 	/* Create device objects. */
 	vector<shared_ptr<HardwareDevice>> result;
-	for (GSList *device = device_list; device; device = device->next)
-	{
+	for (GSList *device = device_list; device; device = device->next) {
 		auto *const sdi = static_cast<struct sr_dev_inst *>(device->data);
 		shared_ptr<HardwareDevice> hwdev {
 			new HardwareDevice{shared_from_this(), sdi},
@@ -570,15 +560,13 @@ Device::Device(struct sr_dev_inst *structure) :
 	Configurable(sr_dev_inst_driver_get(structure), structure, nullptr),
 	_structure(structure)
 {
-	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next)
-	{
+	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next) {
 		auto *const ch = static_cast<struct sr_channel *>(entry->data);
 		unique_ptr<Channel> channel {new Channel{ch}};
 		_channels.insert(make_pair(ch, move(channel)));
 	}
 
-	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next)
-	{
+	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next) {
 		auto *const cg = static_cast<struct sr_channel_group *>(entry->data);
 		unique_ptr<ChannelGroup> group {new ChannelGroup{this, cg}};
 		_channel_groups.insert(make_pair(group->name(), move(group)));
@@ -586,7 +574,8 @@ Device::Device(struct sr_dev_inst *structure) :
 }
 
 Device::~Device()
-{}
+{
+}
 
 string Device::vendor() const
 {
@@ -632,8 +621,7 @@ map<string, shared_ptr<ChannelGroup>>
 Device::channel_groups()
 {
 	map<string, shared_ptr<ChannelGroup>> result;
-	for (const auto &entry: _channel_groups)
-	{
+	for (const auto &entry: _channel_groups) {
 		const auto &name = entry.first;
 		const auto &channel_group = entry.second;
 		result.insert({name, channel_group->share_owned_by(get_shared_from_this())});
@@ -1361,8 +1349,7 @@ map<string, shared_ptr<Option>> InputFormat::options()
 {
 	map<string, shared_ptr<Option>> result;
 
-	if (const struct sr_option **options = sr_input_options_get(_structure))
-	{
+	if (const struct sr_option **options = sr_input_options_get(_structure)) {
 		shared_ptr<const struct sr_option *> option_array
 			{options, &sr_input_options_free};
 		for (int i = 0; options[i]; i++) {
@@ -1392,8 +1379,7 @@ Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
 
 shared_ptr<InputDevice> Input::device()
 {
-	if (!_device)
-	{
+	if (!_device) {
 		auto sdi = sr_input_dev_inst_get(_structure);
 		if (!sdi)
 			throw Error(SR_ERR_NA);
@@ -1537,8 +1523,7 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 {
 	map<string, shared_ptr<Option>> result;
 
-	if (const struct sr_option **options = sr_output_options_get(_structure))
-	{
+	if (const struct sr_option **options = sr_output_options_get(_structure)) {
 		shared_ptr<const struct sr_option *> option_array
 			{options, &sr_output_options_free};
 		for (int i = 0; options[i]; i++) {
@@ -1601,14 +1586,11 @@ string Output::receive(shared_ptr<Packet> packet)
 {
 	GString *out;
 	check(sr_output_send(_structure, packet->_structure, &out));
-	if (out)
-	{
+	if (out) {
 		auto result = string(out->str, out->str + out->len);
 		g_string_free(out, true);
 		return result;
-	}
-	else
-	{
+	} else {
 		return string();
 	}
 }
