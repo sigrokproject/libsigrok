@@ -332,7 +332,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
-	const char *fpga_firmware = NULL;
 	int ret;
 	int64_t timediff_us, timediff_ms;
 
@@ -392,22 +391,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (!strcmp(devc->profile->model, "DSLogic")) {
-		if (devc->voltage_threshold == DS_VOLTAGE_RANGE_18_33_V)
-			fpga_firmware = DSLOGIC_FPGA_FIRMWARE_3V3;
-		else
-			fpga_firmware = DSLOGIC_FPGA_FIRMWARE_5V;
-	} else if (!strcmp(devc->profile->model, "DSLogic Pro")){
-		fpga_firmware = DSLOGIC_PRO_FPGA_FIRMWARE;
-	} else if (!strcmp(devc->profile->model, "DSLogic Plus")){
-		fpga_firmware = DSLOGIC_PLUS_FPGA_FIRMWARE;
-	} else if (!strcmp(devc->profile->model, "DSLogic Basic")){
-		fpga_firmware = DSLOGIC_BASIC_FPGA_FIRMWARE;
-	} else if (!strcmp(devc->profile->model, "DSCope")) {
-		fpga_firmware = DSCOPE_FPGA_FIRMWARE;
-	}
 
-	if ((ret = dslogic_fpga_firmware_upload(sdi, fpga_firmware)) != SR_OK)
+	if ((ret = dslogic_fpga_firmware_upload(sdi)) != SR_OK)
 		return ret;
 
 	if (devc->cur_samplerate == 0) {
@@ -574,18 +559,7 @@ static int config_set(uint32_t key, GVariant *data,
 				break;
 			}
 		}
-		if (!strcmp(devc->profile->model, "DSLogic")) {
-			if (devc->voltage_threshold == DS_VOLTAGE_RANGE_5_V)
-				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_5V);
-			else
-				ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_FPGA_FIRMWARE_3V3);
-		} else if (!strcmp(devc->profile->model, "DSLogic Pro")) {
-			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PRO_FPGA_FIRMWARE);
-		} else if (!strcmp(devc->profile->model, "DSLogic Plus")) {
-			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_PLUS_FPGA_FIRMWARE);
-		} else if (!strcmp(devc->profile->model, "DSLogic Basic")) {
-			ret = dslogic_fpga_firmware_upload(sdi, DSLOGIC_BASIC_FPGA_FIRMWARE);
-		}
+		ret = dslogic_fpga_firmware_upload(sdi);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);

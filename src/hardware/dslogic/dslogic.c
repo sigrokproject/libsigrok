@@ -59,12 +59,13 @@ SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth)
 	return SR_OK;
 }
 
-SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
-		const char *name)
+SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 {
+	const char *name = NULL;
 	uint64_t sum;
 	struct sr_resource bitstream;
 	struct drv_context *drvc;
+	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	unsigned char *buf;
 	ssize_t chunksize;
@@ -73,7 +74,26 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi,
 	const uint8_t cmd[3] = {0, 0, 0};
 
 	drvc = sdi->driver->context;
+	devc = sdi->priv;
 	usb = sdi->conn;
+
+	if (!strcmp(devc->profile->model, "DSLogic")) {
+		if (devc->voltage_threshold == DS_VOLTAGE_RANGE_18_33_V)
+			name = DSLOGIC_FPGA_FIRMWARE_3V3;
+		else
+			name = DSLOGIC_FPGA_FIRMWARE_5V;
+	} else if (!strcmp(devc->profile->model, "DSLogic Pro")){
+		name = DSLOGIC_PRO_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSLogic Plus")){
+		name = DSLOGIC_PLUS_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSLogic Basic")){
+		name = DSLOGIC_BASIC_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSCope")) {
+		name = DSCOPE_FPGA_FIRMWARE;
+	} else {
+		sr_err("Failed to select FPGA firmware.");
+		return SR_ERR;
+	}
 
 	sr_dbg("Uploading FPGA firmware '%s'.", name);
 
