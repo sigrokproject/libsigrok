@@ -781,6 +781,7 @@ RECURSIVE              = YES
 EXCLUDE                = config.h src/libsigrok-internal.h src/session_driver.c
 EXCLUDE               += src/std.c src/drivers.c src/ezusb.c src/fallback.c
 EXCLUDE               += src/soft-trigger.c src/usb.c src/sw_limits.c
+EXCLUDE               += src/scpi.h
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -807,6 +808,8 @@ EXCLUDE_SYMLINKS       = NO
 #  - src/fallback.c: Fallback functions to API calls from serial.c.
 #  - src/soft-trigger.c: Non-public helpers, no public API stuff in there.
 #  - src/usb.c: Non-public helpers, no public API stuff in there.
+#  - src/sw_limits.c: Non-public helpers, no public API stuff in there.
+#  - src/scpi.h: Non-public helpers, no public API stuff in there.
 #  - src/hardware/*: Only driver-specific stuff, no public API stuff in there.
 #  - src/input/*: Only input.c contains public API, everything else doesn't.
 #  - src/output/*: Only output.c contains public API, everything else doesn't.
@@ -814,12 +817,15 @@ EXCLUDE_SYMLINKS       = NO
 #  - src/scpi/*: Non-public helpers, no public API stuff in there.
 #  - src/dmm/*: Non-public helpers, no public API stuff in there.
 #  - src/lcr/*: Non-public helpers, no public API stuff in there.
+#  - src/modbus/*: Non-public helpers, no public API stuff in there.
+#  - src/scale/*: Non-public helpers, no public API stuff in there.
 #  - tests/*: Unit tests, no public API stuff in there.
 #  - bindings/*: Language bindings, no public API stuff in there.
 #  - doxy/*: Potentially already generated docs, should not be scanned.
 #
 EXCLUDE_PATTERNS       = */src/hardware/* */src/input/* */src/output/* */src/transform/*
 EXCLUDE_PATTERNS      += */src/scpi/* */src/dmm/* */src/lcr/*
+EXCLUDE_PATTERNS      += */src/modbus/* */src/scale/*
 EXCLUDE_PATTERNS      += */src/tests/* */src/bindings/* */src/doxy/*
 INPUT                 += src/input/input.c src/output/output.c
 INPUT                 += src/transform/transform.c

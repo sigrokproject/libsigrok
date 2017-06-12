@@ -287,6 +287,7 @@ static struct sr_key_info sr_key_info_mqflag[] = {
 };
 
 /* This must handle all the keys from enum sr_datatype (libsigrok.h). */
+/** @private */
 SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 {
 	switch (datatype) {
@@ -314,6 +315,7 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 	}
 }
 
+/** @private */
 SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *value)
 {
 	const struct sr_key_info *info;

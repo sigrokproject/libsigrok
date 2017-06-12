@@ -119,6 +119,7 @@ static struct unit_mq_string mq_strings[] = {
 	ALL_ZERO
 };
 
+/** @private */
 SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 		struct sr_analog_encoding *encoding,
 		struct sr_analog_meaning *meaning,
@@ -306,8 +307,10 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
  */
 SR_API const char *sr_analog_si_prefix(float *value, int *digits)
 {
+/** @cond PRIVATE */
 #define NEG_PREFIX_COUNT 5  /* number of prefixes below unity */
 #define POS_PREFIX_COUNT (int)(ARRAY_SIZE(prefixes) - NEG_PREFIX_COUNT - 1)
+/** @endcond */
 	static const char *prefixes[] = { "f", "p", "n", "µ", "m", "", "k", "M", "G", "T" };
 
 	if (!value || !digits || isnan(*value))

@@ -1189,6 +1189,7 @@ SR_PRIV int sr_session_source_add_internal(struct sr_session *session,
 	return SR_OK;
 }
 
+/** @private */
 SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
 		void *key, gintptr fd, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data)
@@ -1450,6 +1451,7 @@ static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)
 	                                   g_memdup(src, sizeof(struct sr_config)));
 }
 
+/** @private */
 SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy)
 {
