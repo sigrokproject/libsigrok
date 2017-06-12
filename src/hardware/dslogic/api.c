@@ -24,47 +24,23 @@
 #include <math.h>
 
 static const struct dslogic_profile supported_device[] = {
-	/* DreamSourceLab DSLogic (before FW upload) */
-	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
-		"dreamsourcelab-dslogic-fx2.fw",
-		0, NULL, NULL},
-	/* DreamSourceLab DSLogic (after FW upload) */
+	/* DreamSourceLab DSLogic */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
 		0, "DreamSourceLab", "DSLogic"},
-
-	/* DreamSourceLab DSCope (before FW upload) */
-	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
-		"dreamsourcelab-dscope-fx2.fw",
-		0, NULL, NULL},
-	/* DreamSourceLab DSCope (after FW upload) */
+	/* DreamSourceLab DSCope */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
 		0, "DreamSourceLab", "DSCope"},
-
-	/* DreamSourceLab DSLogic Pro (before FW upload) */
-	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
-		"dreamsourcelab-dslogic-pro-fx2.fw",
-		0, NULL, NULL},
-	/* DreamSourceLab DSLogic Pro (after FW upload) */
+	/* DreamSourceLab DSLogic Pro */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
 		0, "DreamSourceLab", "DSLogic"},
-
-	/* DreamSourceLab DSLogic Plus (before FW upload) */
-	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
-		"dreamsourcelab-dslogic-plus-fx2.fw",
-		0, NULL, NULL},
-	/* DreamSourceLab DSLogic Plus (after FW upload) */
+	/* DreamSourceLab DSLogic Plus */
 	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
 		"dreamsourcelab-dslogic-plus-fx2.fw",
 		0, "DreamSourceLab", "DSLogic"},
-
-	/* DreamSourceLab DSLogic Basic (before FW upload) */
-	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
-		"dreamsourcelab-dslogic-basic-fx2.fw",
-		0, NULL, NULL},
-	/* DreamSourceLab DSLogic Basic (after FW upload) */
+	/* DreamSourceLab DSLogic Basic */
 	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
 		"dreamsourcelab-dslogic-basic-fx2.fw",
 		0, "DreamSourceLab", "DSLogic"},
@@ -244,10 +220,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (j = 0; supported_device[j].vid; j++) {
 			if (des.idVendor == supported_device[j].vid &&
 					des.idProduct == supported_device[j].pid &&
-					(!supported_device[j].usb_manufacturer ||
-					 !strcmp(manufacturer, supported_device[j].usb_manufacturer)) &&
-					(!supported_device[j].usb_product ||
-					 !strcmp(product, supported_device[j].usb_product))) {
+					(!strcmp(manufacturer, supported_device[j].usb_manufacturer)) &&
+					(!strcmp(product, "USB-based Instrument") ||
+						!strcmp(product, supported_device[j].usb_product))) {
 				prof = &supported_device[j];
 				break;
 			}
