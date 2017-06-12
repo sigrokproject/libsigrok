@@ -345,6 +345,12 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 		v16 = DS_MODE_EXT_TEST;
 	else if (devc->mode == DS_OP_LOOPBACK_TEST)
 		v16 = DS_MODE_LPB_TEST;
+
+	if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 2)
+		v16 |= DS_MODE_HALF_MODE;
+	else if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 4)
+		v16 |= DS_MODE_QUAR_MODE;
+
 	if (devc->continuous_mode)
 		v16 |= DS_MODE_STREAM_MODE;
 	if (devc->external_clock) {
