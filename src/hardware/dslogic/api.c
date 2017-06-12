@@ -244,7 +244,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup("Logic");
 		for (j = 0; j < 16; j++) {
-			sprintf(channel_name, "D%d", j);
+			sprintf(channel_name, "%d", j);
 			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
 						TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
