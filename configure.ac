@@ -68,7 +68,7 @@ SR_PKG_VERSION_SET([SR_PACKAGE_VERSION], [AC_PACKAGE_VERSION])
 # The algorithm for determining which number to change (and how) is nontrivial!
 # http://www.gnu.org/software/libtool/manual/libtool.html#Updating-version-info
 # Format: current:revision:age.
-SR_LIB_VERSION_SET([SR_LIB_VERSION], [3:0:0])
+SR_LIB_VERSION_SET([SR_LIB_VERSION], [4:0:0])
 
 AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}" || test -z "${host_os##cygwin*}"])
 
