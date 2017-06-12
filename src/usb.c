@@ -510,3 +510,47 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 
 	return SR_OK;
 }
+
+/**
+ * Check the USB configuration to determine if this device has a given 
+ * manufacturer and product string.
+ *
+ * @return TRUE if the device's configuration profile strings
+ *         configuration, FALSE otherwise.
+ */
+SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
+		const char *manufacturer, const char *product)
+{
+	struct libusb_device_descriptor des;
+	struct libusb_device_handle *hdl;
+	gboolean ret;
+	unsigned char strdesc[64];
+
+	hdl = NULL;
+	ret = FALSE;
+	while (!ret) {
+		/* Assume the FW has not been loaded, unless proven wrong. */
+		libusb_get_device_descriptor(dev, &des);
+
+		if (libusb_open(dev, &hdl) != 0)
+			break;
+
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
+			break;
+		if (strcmp((const char *)strdesc, manufacturer))
+			break;
+
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, strdesc, sizeof(strdesc)) < 0)
+			break;
+		if (strcmp((const char *)strdesc, product))
+			break;
+
+		ret = TRUE;
+	}
+	if (hdl)
+		libusb_close(hdl);
+
+	return ret;
+}

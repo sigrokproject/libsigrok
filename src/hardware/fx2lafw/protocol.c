@@ -141,49 +141,6 @@ SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/**
- * Check the USB configuration to determine if this is an fx2lafw device.
- *
- * @return TRUE if the device's configuration profile matches fx2lafw
- *         configuration, FALSE otherwise.
- */
-SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
-		const char *product)
-{
-	struct libusb_device_descriptor des;
-	struct libusb_device_handle *hdl;
-	gboolean ret;
-	unsigned char strdesc[64];
-
-	hdl = NULL;
-	ret = FALSE;
-	while (!ret) {
-		/* Assume the FW has not been loaded, unless proven wrong. */
-		libusb_get_device_descriptor(dev, &des);
-
-		if (libusb_open(dev, &hdl) != 0)
-			break;
-
-		if (libusb_get_string_descriptor_ascii(hdl,
-				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
-			break;
-		if (strcmp((const char *)strdesc, manufacturer))
-			break;
-
-		if (libusb_get_string_descriptor_ascii(hdl,
-				des.iProduct, strdesc, sizeof(strdesc)) < 0)
-			break;
-		if (strcmp((const char *)strdesc, product))
-			break;
-
-		ret = TRUE;
-	}
-	if (hdl)
-		libusb_close(hdl);
-
-	return ret;
-}
-
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 {
 	libusb_device **devlist;

@@ -1050,6 +1050,8 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx);
 SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len);
+SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
+		const char *manufacturer, const char *product);
 #endif
 
 

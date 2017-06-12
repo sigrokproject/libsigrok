@@ -412,13 +412,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			devc->dslogic = TRUE;
 			devc->samplerates = dslogic_samplerates;
 			devc->num_samplerates = ARRAY_SIZE(dslogic_samplerates);
-			has_firmware = match_manuf_prod(devlist[i], "DreamSourceLab", "DSLogic")
-					|| match_manuf_prod(devlist[i], "DreamSourceLab", "DSCope");
+			has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "DSLogic")
+					|| usb_match_manuf_prod(devlist[i], "DreamSourceLab", "DSCope");
 		} else {
 			devc->dslogic = FALSE;
 			devc->samplerates = samplerates;
 			devc->num_samplerates = ARRAY_SIZE(samplerates);
-			has_firmware = match_manuf_prod(devlist[i],
+			has_firmware = usb_match_manuf_prod(devlist[i],
 					"sigrok", "fx2lafw");
 		}
 
