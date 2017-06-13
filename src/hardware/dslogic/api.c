@@ -258,8 +258,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
-		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "DSLogic")
-				|| usb_match_manuf_prod(devlist[i], "DreamSourceLab", "DSCope");
+		has_firmware = usb_match_manuf_prod(devlist[i], "DreamSourceLab", "USB-based Instrument");
 
 		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
