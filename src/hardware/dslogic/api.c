@@ -75,12 +75,11 @@ static const char *const signal_edge_names[] = {
 };
 
 static const struct {
-	int range;
 	gdouble low;
 	gdouble high;
-} volt_thresholds[] = {
-	{ DS_VOLTAGE_RANGE_18_33_V, 0.7, 1.4 },
-	{ DS_VOLTAGE_RANGE_5_V, 1.4, 3.6 },
+} dslogic_voltage_thresholds[] = {
+	{ 0.7, 1.4 },
+	{ 1.4, 3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -374,6 +373,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 		devc->cur_samplerate = devc->samplerates[0];
 	}
 
+	if (devc->cur_threshold == 0.0)
+		devc->cur_threshold = 1.5;
+
 	return SR_OK;
 }
 
@@ -402,7 +404,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	GVariant *range[2];
-	unsigned int i;
+	unsigned int i, voltage_range;
 	char str[128];
 
 	(void)cg;
@@ -425,14 +427,25 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(str);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (volt_thresholds[i].range != devc->voltage_threshold)
-				continue;
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			*data = g_variant_new_tuple(range, 2);
-			break;
+		if (!strcmp(devc->profile->model, "DSLogic")) {
+			voltage_range = 0;
+
+			for (i = 0; i < ARRAY_SIZE(dslogic_voltage_thresholds); i++)
+				if (dslogic_voltage_thresholds[i].low ==
+					devc->cur_threshold) {
+					voltage_range = i;
+					break;
+				}
+
+			range[0] = g_variant_new_double(
+				dslogic_voltage_thresholds[voltage_range].low);
+			range[1] = g_variant_new_double(
+				dslogic_voltage_thresholds[voltage_range].high);
+		} else {
+			range[0] = g_variant_new_double(devc->cur_threshold);
+			range[1] = g_variant_new_double(devc->cur_threshold);
 		}
+		*data = g_variant_new_tuple(range, 2);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -525,15 +538,20 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
-		ret = SR_ERR_ARG;
-		for (i = 0; (unsigned int)i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
-			    fabs(volt_thresholds[i].high - high) < 0.1) {
-				devc->voltage_threshold = volt_thresholds[i].range;
-				break;
+		if (!strcmp(devc->profile->model, "DSLogic")) {
+			for (i = 0; (unsigned int)i <
+				ARRAY_SIZE(dslogic_voltage_thresholds); i++) {
+				if (fabs(dslogic_voltage_thresholds[i].low - low) < 0.1 &&
+				    fabs(dslogic_voltage_thresholds[i].high - high) < 0.1) {
+					devc->cur_threshold =
+						dslogic_voltage_thresholds[i].low;
+					break;
+				}
 			}
+			ret = dslogic_fpga_firmware_upload(sdi);
+		} else {
+			ret = dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
 		}
-		ret = dslogic_fpga_firmware_upload(sdi);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);
@@ -558,10 +576,11 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = NULL;
 	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
 	unsigned int i;
+	double v;
 
 	(void)cg;
 
@@ -581,15 +600,23 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if (!sdi->priv)
-			return SR_ERR_ARG;
-		devc = sdi->priv;
+		if (sdi->priv)
+			devc = sdi->priv;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			gvar = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, gvar);
+		if (devc && !strcmp(devc->profile->model, "DSLogic")) {
+			for (i = 0; i < ARRAY_SIZE(dslogic_voltage_thresholds); i++) {
+				range[0] = g_variant_new_double(dslogic_voltage_thresholds[i].low);
+				range[1] = g_variant_new_double(dslogic_voltage_thresholds[i].high);
+				gvar = g_variant_new_tuple(range, 2);
+				g_variant_builder_add_value(&gvb, gvar);
+			}
+		} else {
+			for (v = 0.0; v <= 5.0; v += 0.1) {
+				range[0] = g_variant_new_double(v);
+				range[1] = g_variant_new_double(v);
+				gvar = g_variant_new_tuple(range, 2);
+				g_variant_builder_add_value(&gvb, gvar);
+			}
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
@@ -736,15 +763,6 @@ static int trigger_request(const struct sr_dev_inst *sdi)
 
 	if ((ret = dslogic_fpga_configure(sdi)) != SR_OK)
 		return ret;
-
-	/* If this is a DSLogic Pro, set the voltage threshold. */
-	if (!strcmp(devc->profile->model, "DSLogic Pro")){
-		if (devc->voltage_threshold == DS_VOLTAGE_RANGE_18_33_V) {
-			dslogic_set_vth(sdi, 1.4);
-		} else {
-			dslogic_set_vth(sdi, 3.3);
-		}
-	}
 
 	if ((ret = dslogic_start_acquisition(sdi)) != SR_OK)
 		return ret;

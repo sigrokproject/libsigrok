@@ -105,9 +105,10 @@ struct dev_context {
 	gboolean external_clock;
 	gboolean continuous_mode;
 	int clock_edge;
-	int voltage_threshold;
+	double cur_threshold;
 };
 
+SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold);
 SR_PRIV int dslogic_command_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *dslogic_dev_new(void);

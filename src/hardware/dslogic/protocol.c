@@ -77,6 +77,30 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 	return SR_OK;
 }
 
+SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold)
+{
+	int ret;
+	struct dev_context *const devc = sdi->priv;
+	const struct sr_usb_dev_inst *const usb = sdi->conn;
+	const uint8_t value = (threshold / 5.0) * 255;
+	const uint16_t cmd = value | (DS_ADDR_VTH << 8);
+
+	/* Send the control command. */
+	ret = libusb_control_transfer(usb->devhdl,
+			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
+			DS_CMD_WR_REG, 0x0000, 0x0000,
+			(unsigned char *)&cmd, sizeof(cmd), 3000);
+	if (ret < 0) {
+		sr_err("Unable to set voltage-threshold register: %s.",
+		libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	devc->cur_threshold = threshold;
+
+	return SR_OK;
+}
+
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 {
 	libusb_device **devlist;

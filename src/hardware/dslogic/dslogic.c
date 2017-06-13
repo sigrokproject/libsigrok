@@ -36,29 +36,6 @@
 
 #define USB_TIMEOUT (3 * 1000)
 
-SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth)
-{
-	struct sr_usb_dev_inst *usb;
-	int ret;
-	const uint8_t value = (vth / 5.0) * 255;
-	const uint16_t cmd = value | (DS_ADDR_VTH << 8);
-
-	usb = sdi->conn;
-
-	/* Send the control command. */
-	ret = libusb_control_transfer(usb->devhdl,
-			LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
-			DS_CMD_WR_REG, 0x0000, 0x0000,
-			(unsigned char *)&cmd, sizeof(cmd), 3000);
-	if (ret < 0) {
-		sr_err("Unable to send VTH command: %s.",
-		libusb_error_name(ret));
-		return SR_ERR;
-	}
-
-	return SR_OK;
-}
-
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 {
 	const char *name = NULL;
@@ -78,7 +55,7 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!strcmp(devc->profile->model, "DSLogic")) {
-		if (devc->voltage_threshold == DS_VOLTAGE_RANGE_18_33_V)
+		if (devc->cur_threshold < 1.40)
 			name = DSLOGIC_FPGA_FIRMWARE_3V3;
 		else
 			name = DSLOGIC_FPGA_FIRMWARE_5V;

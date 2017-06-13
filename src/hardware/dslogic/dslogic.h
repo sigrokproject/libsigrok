@@ -72,11 +72,6 @@ enum dslogic_operation_modes {
 };
 
 enum {
-	DS_VOLTAGE_RANGE_18_33_V,	/* 1.8V and 3.3V logic */
-	DS_VOLTAGE_RANGE_5_V,		/* 5V logic */
-};
-
-enum {
 	DS_EDGE_RISING,
 	DS_EDGE_FALLING,
 };
@@ -152,7 +147,6 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi);
-SR_PRIV int dslogic_set_vth(const struct sr_dev_inst *sdi, double vth);
 SR_PRIV int dslogic_get_number_of_transfers(struct dev_context *devc);
 
 #endif
