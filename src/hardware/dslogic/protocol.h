@@ -67,6 +67,9 @@ struct dslogic_profile {
 
 	const char *usb_manufacturer;
 	const char *usb_product;
+
+	/* Memory depth in bits. */
+	uint64_t mem_depth;
 };
 
 struct dev_context {
