@@ -47,6 +47,7 @@
 
 #define DS_MAX_LOGIC_DEPTH		SR_MHZ(16)
 #define DS_MAX_LOGIC_SAMPLERATE		SR_MHZ(100)
+#define DS_MAX_TRIG_PERCENT		90
 
 #define DS_MODE_TRIG_EN			(1 << 0)
 #define DS_MODE_CLK_TYPE		(1 << 1)
@@ -63,6 +64,8 @@
 #define DS_MODE_LPB_TEST		(1 << 13)
 #define DS_MODE_EXT_TEST		(1 << 14)
 #define DS_MODE_INT_TEST		(1 << 15)
+
+#define DSLOGIC_ATOMIC_SAMPLES		(1 << 6)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,

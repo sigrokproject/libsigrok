@@ -174,7 +174,7 @@ SR_PRIV int dslogic_stop_acquisition(const struct sr_dev_inst *sdi)
  * Get the session trigger and configure the FPGA structure
  * accordingly.
  */
-static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
+static void dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	struct dslogic_fpga_config *cfg)
 {
 	struct sr_trigger *trigger;
@@ -182,15 +182,19 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	struct sr_trigger_match *match;
 	struct dev_context *devc;
 	const GSList *l, *m;
+	int num_enabled_channels = 0, num_trigger_stages = 0;
 	int channelbit, i = 0;
-	uint16_t v16;
+	uint32_t trigger_point;
 
 	devc = sdi->priv;
 
 	cfg->ch_en = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		const struct sr_channel *const probe = (struct sr_channel *)l->data;
-		cfg->ch_en |= probe->enabled << probe->index;
+		if (probe->enabled) {
+			num_enabled_channels++;
+			cfg->ch_en |= 1 << probe->index;
+		}
 	}
 
 	cfg->trig_mask0[0] = 0xffff;
@@ -202,16 +206,16 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 	cfg->trig_edge0[0] = 0;
 	cfg->trig_edge1[0] = 0;
 
-	cfg->trig_logic0[0] = 0;
-	cfg->trig_logic1[0] = 0;
+	cfg->trig_logic0[0] = 2;
+	cfg->trig_logic1[0] = 2;
 
 	cfg->trig_count[0] = 0;
 
-	cfg->trig_glb = 0;
+	cfg->trig_glb = num_enabled_channels << 4;
 
 	for (i = 1; i < NUM_TRIGGER_STAGES; i++) {
-		cfg->trig_mask0[i] = 0xff;
-		cfg->trig_mask1[i] = 0xff;
+		cfg->trig_mask0[i] = 0xffff;
+		cfg->trig_mask1[i] = 0xffff;
 		cfg->trig_value0[i] = 0;
 		cfg->trig_value1[i] = 0;
 		cfg->trig_edge0[i] = 0;
@@ -221,18 +225,24 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 		cfg->trig_count[i] = 0;
 	}
 
-	cfg->trig_pos = (uint32_t)(devc->capture_ratio / 100.0 * devc->limit_samples);
-	sr_dbg("pos: %d", cfg->trig_pos);
-
-	sr_dbg("configuring trigger");
+	trigger_point = (devc->capture_ratio * devc->limit_samples) / 100;
+	if (trigger_point < DSLOGIC_ATOMIC_SAMPLES)
+		trigger_point = DSLOGIC_ATOMIC_SAMPLES;
+	const uint32_t mem_depth = devc->profile->mem_depth;
+	const uint32_t max_trigger_point = devc->continuous_mode ? ((mem_depth * 10) / 100) :
+		((mem_depth * DS_MAX_TRIG_PERCENT) / 100);
+	if (trigger_point > max_trigger_point)
+		trigger_point = max_trigger_point;
+	cfg->trig_pos = trigger_point & ~(DSLOGIC_ATOMIC_SAMPLES - 1);
 
 	if (!(trigger = sr_session_trigger_get(sdi->session))) {
 		sr_dbg("No session trigger found");
-		return SR_OK;
+		return;
 	}
 
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
+		num_trigger_stages++;
 		for (m = stage->matches; m; m = m->next) {
 			match = m->data;
 			if (!match->channel->enabled)
@@ -267,11 +277,9 @@ static int dslogic_set_trigger(const struct sr_dev_inst *sdi,
 		}
 	}
 
-	v16 = RL16(&cfg->mode);
-	v16 |= 1 << 0;
-	WL16(&cfg->mode, v16);
+	cfg->trig_glb |= num_trigger_stages;
 
-	return SR_OK;
+	return;
 }
 
 SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
@@ -347,7 +355,9 @@ SR_PRIV int dslogic_fpga_configure(const struct sr_dev_inst *sdi)
 	WL16(&cfg.mode, v16);
 	v32 = ceil(DS_MAX_LOGIC_SAMPLERATE * 1.0 / devc->cur_samplerate);
 	WL32(&cfg.divider, v32);
-	WL32(&cfg.count, devc->limit_samples);
+
+	/* Number of 16-sample units. */
+	WL32(&cfg.count, devc->limit_samples / 16);
 
 	dslogic_set_trigger(sdi, &cfg);
 
