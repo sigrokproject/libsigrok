@@ -544,7 +544,7 @@ noinst_HEADERS = src/libsigrok-internal.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsigrok.pc
 
-mimeappdir = $(datadir)/mime/application
+mimeappdir = $(datadir)/mime/packages
 mimeapp_DATA = contrib/vnd.sigrok.session.xml
 
 mimeicondir = $(datadir)/icons/hicolor/48x48/mimetypes
