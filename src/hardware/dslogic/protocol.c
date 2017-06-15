@@ -310,6 +310,28 @@ SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
 	return result;
 }
 
+static unsigned int enabled_channel_count(const struct sr_dev_inst *sdi)
+{
+	unsigned int count = 0;
+	for (const GSList *l = sdi->channels; l; l = l->next) {
+		const struct sr_channel *const probe = (struct sr_channel *)l->data;
+		if (probe->enabled)
+			count++;
+	}
+	return count;
+}
+
+static uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
+{
+	unsigned int mask = 0;
+	for (const GSList *l = sdi->channels; l; l = l->next) {
+		const struct sr_channel *const probe = (struct sr_channel *)l->data;
+		if (probe->enabled)
+			mask |= 1 << probe->index;
+	}
+	return mask;
+}
+
 /*
  * Get the session trigger and configure the FPGA structure
  * accordingly.
@@ -322,20 +344,15 @@ static void set_trigger(const struct sr_dev_inst *sdi,
 	struct sr_trigger_match *match;
 	struct dev_context *devc;
 	const GSList *l, *m;
-	int num_enabled_channels = 0, num_trigger_stages = 0;
+	const unsigned int num_enabled_channels = enabled_channel_count(sdi);
+	int num_trigger_stages = 0;
+
 	int channelbit, i = 0;
 	uint32_t trigger_point;
 
 	devc = sdi->priv;
 
-	cfg->ch_en = 0;
-	for (l = sdi->channels; l; l = l->next) {
-		const struct sr_channel *const probe = (struct sr_channel *)l->data;
-		if (probe->enabled) {
-			num_enabled_channels++;
-			cfg->ch_en |= 1 << probe->index;
-		}
-	}
+	cfg->ch_en = enabled_channel_mask(sdi);
 
 	cfg->trig_mask0[0] = 0xffff;
 	cfg->trig_mask1[0] = 0xffff;
