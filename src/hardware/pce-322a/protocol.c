@@ -32,10 +32,7 @@ static int send_command(const struct sr_dev_inst *sdi, uint16_t command)
 	if (!(serial = sdi->conn))
 		return SR_ERR;
 
-	if (serial_write_nonblocking(serial, (const void *)buffer, 2) != 2)
-		return SR_ERR;
-
-	return SR_OK;
+	return serial_write_blocking(serial, (const void *)buffer, 2, 0);
 }
 
 static int send_long_command(const struct sr_dev_inst *sdi, uint32_t command)
@@ -51,10 +48,7 @@ static int send_long_command(const struct sr_dev_inst *sdi, uint32_t command)
 	if (!(serial = sdi->conn))
 		return SR_ERR;
 
-	if (serial_write_nonblocking(serial, (const void *)buffer, 4) != 4)
-		return SR_ERR;
-
-	return SR_OK;
+	return serial_write_blocking(serial, (const void *)buffer, 4, 0);
 }
 
 static void send_data(const struct sr_dev_inst *sdi, float sample)

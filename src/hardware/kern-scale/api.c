@@ -82,7 +82,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	serial_flush(serial);
 
 	sr_spew("Set O1 mode (continuous values, stable and unstable ones).");
-	if (serial_write_nonblocking(serial, "O1\r\n", 4) != 4)
+	if (serial_write_blocking(serial, "O1\r\n", 4, 0) < 0)
 		goto scan_cleanup;
 	/* Device replies with "A00\r\n" (OK) or "E01\r\n" (Error). Ignore. */
 
@@ -140,7 +140,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 
 	sr_spew("Set O1 mode (continuous values, stable and unstable ones).");
-	if (serial_write_nonblocking(serial, "O1\r\n", 4) != 4)
+	if (serial_write_blocking(serial, "O1\r\n", 4, 0) < 0)
 		return SR_ERR;
 	/* Device replies with "A00\r\n" (OK) or "E01\r\n" (Error). Ignore. */
 

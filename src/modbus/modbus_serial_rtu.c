@@ -109,18 +109,18 @@ static int modbus_serial_rtu_send(void *priv,
 	uint8_t slave_addr = modbus->slave_addr;
 	uint16_t crc;
 
-	result = serial_write_nonblocking(serial, &slave_addr, sizeof(slave_addr));
+	result = serial_write_blocking(serial, &slave_addr, sizeof(slave_addr), 0);
 	if (result < 0)
 		return result;
 
-	result = serial_write_nonblocking(serial, buffer, buffer_size);
+	result = serial_write_blocking(serial, buffer, buffer_size, 0);
 	if (result < 0)
 		return result;
 
 	crc = modbus_serial_rtu_crc(0xFFFF, &slave_addr, sizeof(slave_addr));
 	crc = modbus_serial_rtu_crc(crc, buffer, buffer_size);
 
-	result = serial_write_nonblocking(serial, &crc, sizeof(crc));
+	result = serial_write_blocking(serial, &crc, sizeof(crc), 0);
 	if (result < 0)
 		return result;
 

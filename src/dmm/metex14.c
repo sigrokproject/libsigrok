@@ -293,7 +293,7 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Requesting DMM packet.");
 
-	return (serial_write_nonblocking(serial, &wbuf, 1) == 1) ? SR_OK : SR_ERR;
+	return serial_write_blocking(serial, &wbuf, 1, 0);
 }
 #endif
 

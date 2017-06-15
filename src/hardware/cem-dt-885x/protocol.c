@@ -400,7 +400,7 @@ SR_PRIV int cem_dt_885x_receive_data(int fd, int revents, void *cb_data)
 			} else {
 				/* Tell device to start transferring from memory. */
 				cmd = CMD_TRANSFER_MEMORY;
-				serial_write_nonblocking(serial, &cmd, 1);
+				serial_write_blocking(serial, &cmd, 1, 0);
 			}
 		}
 	}
@@ -456,7 +456,7 @@ static int cem_dt_885x_toggle(const struct sr_dev_inst *sdi, uint8_t cmd,
 	 * only thing to do is wait for the token that will confirm
 	 * whether the command worked or not, and resend if needed. */
 	while (TRUE) {
-		if (serial_write_nonblocking(serial, (const void *)&cmd, 1) != 1)
+		if (serial_write_blocking(serial, (const void *)&cmd, 1, 0) < 0)
 			return SR_ERR;
 		if (wait_for_token(sdi, tokens, timeout) == SR_ERR)
 			return SR_ERR;
@@ -817,7 +817,7 @@ SR_PRIV int cem_dt_885x_power_off(const struct sr_dev_inst *sdi)
 	cmd = CMD_TOGGLE_POWER_OFF;
 	while (TRUE) {
 		serial_flush(serial);
-		if (serial_write_nonblocking(serial, (const void *)&cmd, 1) != 1)
+		if (serial_write_blocking(serial, (const void *)&cmd, 1, 0) < 0)
 			return SR_ERR;
 		/* It never takes more than 23ms for the next token to arrive. */
 		g_usleep(25 * 1000);
