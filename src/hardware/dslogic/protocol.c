@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <assert.h>
 #include <math.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -705,6 +706,7 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
+	g_free(devc->deinterleave_buffer);
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -744,12 +746,34 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
+static void deinterleave_buffer(const uint8_t *src, size_t length,
+	uint16_t *dst_ptr, size_t channel_count, uint16_t channel_mask)
+{
+	uint16_t sample;
+
+	for (const uint64_t *src_ptr = (uint64_t*)src;
+		src_ptr < (uint64_t*)(src + length);
+		src_ptr += channel_count) {
+		for (int bit = 0; bit != 64; bit++) {
+			const uint64_t *word_ptr = src_ptr;
+			sample = 0;
+			for (size_t channel = 0; channel != channel_count;
+				channel++) {
+				if ((channel_mask & (1 << channel)) &&
+					(*word_ptr++ & (1ULL << bit)))
+					sample |= 1 << channel;
+			}
+			*dst_ptr++ = sample;
+		}
+	}
+}
+
 static void send_data(struct sr_dev_inst *sdi,
-	uint8_t *data, size_t length, size_t sample_width)
+	uint16_t *data, size_t sample_count)
 {
 	const struct sr_datafeed_logic logic = {
-		.length = length,
-		.unitsize = sample_width,
+		.length = sample_count * sizeof(uint16_t),
+		.unitsize = sizeof(uint16_t),
 		.data = data
 	};
 
@@ -763,16 +787,18 @@ static void send_data(struct sr_dev_inst *sdi,
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	struct sr_dev_inst *const sdi = transfer->user_data;
+	struct dev_context *const devc = sdi->priv;
+	const size_t channel_count = enabled_channel_count(sdi);
+	const uint16_t channel_mask = enabled_channel_mask(sdi);
+	const unsigned int cur_sample_count = DSLOGIC_ATOMIC_SAMPLES *
+		transfer->actual_length /
+		(DSLOGIC_ATOMIC_BYTES * channel_count);
+
 	gboolean packet_has_error = FALSE;
 	struct sr_datafeed_packet packet;
 	unsigned int num_samples;
-	int trigger_offset, cur_sample_count;
-	const int unitsize = 2;
-
-	sdi = transfer->user_data;
-	devc = sdi->priv;
+	int trigger_offset;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -787,7 +813,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		libusb_error_name(transfer->status), transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
-	cur_sample_count = transfer->actual_length / unitsize;
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
@@ -820,19 +845,33 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	}
 
 	if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-		/* Send the incoming transfer to the session bus. */
 		if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
 			num_samples = devc->limit_samples - devc->sent_samples;
 		else
 			num_samples = cur_sample_count;
 
+		/**
+		 * The DSLogic emits sample data as sequences of 64-bit sample words
+		 * in a round-robin i.e. 64-bits from channel 0, 64-bits from channel 1
+		 * etc. for each of the enabled channels, then looping back to the
+		 * channel.
+		 *
+		 * Because sigrok's internal representation is bit-interleaved channels
+		 * we must recast the data.
+		 *
+		 * Hopefully in future it will be possible to pass the data on as-is.
+		 */
+		assert(transfer->actual_length % (DSLOGIC_ATOMIC_BYTES * channel_count) == 0);
+		deinterleave_buffer(transfer->buffer, transfer->actual_length,
+			devc->deinterleave_buffer, channel_count, channel_mask);
+
+		/* Send the incoming transfer to the session bus. */
 		if (devc->trigger_pos > devc->sent_samples
 			&& devc->trigger_pos <= devc->sent_samples + num_samples) {
 			/* DSLogic trigger in this block. Send trigger position. */
 			trigger_offset = devc->trigger_pos - devc->sent_samples;
 			/* Pre-trigger samples. */
-			send_data(sdi, (uint8_t *)transfer->buffer,
-				trigger_offset * unitsize, unitsize);
+			send_data(sdi, devc->deinterleave_buffer, trigger_offset);
 			devc->sent_samples += trigger_offset;
 			/* Trigger position. */
 			devc->trigger_pos = 0;
@@ -841,12 +880,11 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			sr_session_send(sdi, &packet);
 			/* Post trigger samples. */
 			num_samples -= trigger_offset;
-			send_data(sdi, (uint8_t *)transfer->buffer
-					+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
+			send_data(sdi, devc->deinterleave_buffer
+				+ trigger_offset, num_samples);
 			devc->sent_samples += num_samples;
 		} else {
-			send_data(sdi, (uint8_t *)transfer->buffer,
-				num_samples * unitsize, unitsize);
+			send_data(sdi, devc->deinterleave_buffer, num_samples);
 			devc->sent_samples += num_samples;
 		}
 	}
@@ -918,6 +956,7 @@ static unsigned int get_timeout(const struct sr_dev_inst *sdi)
 
 static int start_transfers(const struct sr_dev_inst *sdi)
 {
+	const size_t channel_count = enabled_channel_count(sdi);
 	const size_t size = get_buffer_size(sdi);
 	const unsigned int num_transfers = get_number_of_transfers(sdi);
 	const unsigned int timeout = get_timeout(sdi);
@@ -941,6 +980,14 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
 	if (!devc->transfers) {
 		sr_err("USB transfers malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+
+	devc->deinterleave_buffer = g_try_malloc(DSLOGIC_ATOMIC_SAMPLES *
+		(size / (channel_count * DSLOGIC_ATOMIC_BYTES)) * sizeof(uint16_t));
+	if (!devc->deinterleave_buffer) {
+		sr_err("Deinterleave buffer malloc failed.");
+		g_free(devc->deinterleave_buffer);
 		return SR_ERR_MALLOC;
 	}
 

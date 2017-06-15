@@ -132,6 +132,8 @@ struct dev_context {
 	struct libusb_transfer **transfers;
 	struct sr_context *ctx;
 
+	uint16_t *deinterleave_buffer;
+
 	uint16_t mode;
 	uint32_t trigger_pos;
 	gboolean external_clock;
