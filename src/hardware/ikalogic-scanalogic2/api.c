@@ -20,8 +20,11 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
@@ -101,8 +104,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_NAME);
-		sdi->model = g_strdup(MODEL_NAME);
+		sdi->vendor = g_strdup("IKALOGIC");
+		sdi->model = g_strdup("Scanalogic-2");
 		sdi->version = g_strdup_printf("%u.%u", dev_info.fw_ver_major, dev_info.fw_ver_minor);
 		sdi->serial_num = g_strdup_printf("%d", dev_info.serial);
 		sdi->priv = devc;
@@ -152,22 +155,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_dev_context(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
-
-	sr_dbg("Device context cleared.");
-
 	libusb_free_transfer(devc->xfer_in);
 	libusb_free_transfer(devc->xfer_out);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, &clear_dev_context);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -185,10 +181,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
 		return SR_ERR;
 
-	/*
-	 * Determine if a kernel driver is active on this interface and, if so,
-	 * detach it.
-	 */
 	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE);
 		if (ret < 0) {
@@ -232,8 +224,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
@@ -244,26 +234,23 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
-	ret = SR_OK;
 	devc = sdi->priv;
 
 	switch (key) {
@@ -277,79 +264,56 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	uint64_t samplerate, limit_samples, capture_ratio;
-	int ret;
+	struct dev_context *devc;
+	uint64_t samplerate, limit_samples;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		limit_samples = g_variant_get_uint64(data);
-		ret = sl2_set_limit_samples(sdi, limit_samples);
-		break;
+		return sl2_set_limit_samples(sdi, limit_samples);
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
-		ret = sl2_set_samplerate(sdi, samplerate);
-		break;
+		return sl2_set_samplerate(sdi, samplerate);
 	case SR_CONF_CAPTURE_RATIO:
-		capture_ratio = g_variant_get_uint64(data);
-		ret = sl2_set_capture_ratio(sdi, capture_ratio);
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
-	int ret;
-
-	(void)sdi;
-	(void)cg;
-
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-			sl2_samplerates, ARRAY_SIZE(sl2_samplerates),
-			sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(sl2_samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		grange[0] = g_variant_new_uint64(0);
-		grange[1] = g_variant_new_uint64(MAX_SAMPLES);
-		*data = g_variant_new_tuple(grange, 2);
+		*data = std_gvar_tuple_u64(0, MAX_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -360,9 +324,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint16_t trigger_bytes, tmp;
 	unsigned int i, j;
 	int ret;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	drvc = di->context;
@@ -432,8 +393,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			ikalogic_scanalogic2_receive_data, (void *)sdi);
 
-	sr_dbg("Acquisition started successfully.");
-
 	std_session_send_df_header(sdi);
 
 	devc->next_state = STATE_SAMPLE;
@@ -443,11 +402,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	sr_dbg("Stopping acquisition.");
-
 	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;

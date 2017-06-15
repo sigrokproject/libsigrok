@@ -26,8 +26,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -95,12 +98,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	devc = sdi->priv;
 
-	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
-		sdi->status = SR_ST_ACTIVE;
-	else
+	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) < 0)
 		return SR_ERR;
 
-	/* Detach kernel drivers which grabbed this device (if any). */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, 0);
 		if (ret < 0) {
@@ -109,20 +109,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		devc->detached_kernel_driver = 1;
-		sr_dbg("Successfully detached kernel driver.");
-	} else {
-		sr_dbg("No need to detach a kernel driver.");
 	}
 
-	/* Claim interface 0. */
 	if ((ret = libusb_claim_interface(usb->devhdl, 0)) < 0) {
 		sr_err("Failed to claim interface 0: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sr_dbg("Successfully claimed interface 0.");
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -131,36 +126,30 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	usb = sdi->conn;
 	devc = sdi->priv;
 
+	if (!usb->devhdl)
+		return SR_OK;
+
 	if ((ret = libusb_release_interface(usb->devhdl, 0)))
 		sr_err("Failed to release interface 0: %s.\n", libusb_error_name(ret));
-	else
-		sr_dbg("Successfully released interface 0.\n");
 
 	if (!ret && devc->detached_kernel_driver) {
-		if ((ret = libusb_attach_kernel_driver(usb->devhdl, 0))) {
+		if ((ret = libusb_attach_kernel_driver(usb->devhdl, 0)))
 			sr_err("Failed to attach kernel driver: %s.\n",
 			       libusb_error_name(ret));
-		} else {
+		else
 			devc->detached_kernel_driver = 0;
-			sr_dbg("Successfully attached kernel driver.\n");
-		}
 	}
 
 	libusb_close(usb->devhdl);
 
-	sdi->status = SR_ST_INACTIVE;
-
-	return ret;
+	return (ret == 0) ? SR_OK : SR_ERR;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 
@@ -169,49 +158,27 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return sr_sw_limits_config_get(&devc->sw_limits, key, data);
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
 	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -227,9 +194,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_end(sdi);
 
 	sr_session_source_remove(sdi->session, -1);
@@ -245,7 +209,7 @@ static struct sr_dev_driver brymen_bm86x_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

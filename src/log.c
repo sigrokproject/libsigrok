@@ -160,6 +160,28 @@ SR_API int sr_log_callback_set_default(void)
 	return SR_OK;
 }
 
+/**
+ * Get the libsigrok log callback routine and callback data.
+ *
+ * @param[out] cb Pointer to a function pointer to receive the log callback
+ * 	function. Optional, can be NULL.
+ * @param[out] cb_data Pointer to a void pointer to receive the log callback's
+ * 	additional arguments. Optional, can be NULL.
+ *
+ * @return SR_OK upon success.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_log_callback_get(sr_log_callback *cb, void **cb_data)
+{
+	if (cb)
+		*cb = sr_log_cb;
+	if (cb_data)
+		*cb_data = sr_log_cb_data;
+
+	return SR_OK;
+}
+
 static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args)
 {
 	uint64_t elapsed_us, minutes;
@@ -170,9 +192,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
 
-	/* Only output messages of at least the selected loglevel(s). */
-	if (loglevel > cur_loglevel)
-		return SR_OK;
+	(void)loglevel;
 
 	if (cur_loglevel >= LOGLEVEL_TIMESTAMP) {
 		elapsed_us = g_get_monotonic_time() - sr_log_start_time;
@@ -204,6 +224,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	}
 
 	g_fprintf(stderr, "%s\n", output);
+	fflush(stderr);
 	g_free(raw_output);
 	g_free(output);
 
@@ -215,6 +236,10 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 {
 	int ret;
 	va_list args;
+
+	/* Only output messages of at least the selected loglevel(s). */
+	if (loglevel > cur_loglevel)
+		return SR_OK;
 
 	va_start(args, format);
 	ret = sr_log_cb(sr_log_cb_data, loglevel, format, args);

@@ -72,7 +72,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 	struct sr_analog_spec spec;
 	struct zip_stat zs;
 	int ret, got_data;
-	char capturefile[16];
+	char capturefile[128];
 	void *buf;
 
 	got_data = FALSE;
@@ -92,7 +92,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 				sr_dbg("Opened %s.", vdev->capturefile);
 			} else {
 				/* Try as first chunk filename. */
-				snprintf(capturefile, 15, "%s-1", vdev->capturefile);
+				snprintf(capturefile, sizeof(capturefile) - 1, "%s-1", vdev->capturefile);
 				if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
 					vdev->cur_chunk = 1;
 					if (!(vdev->capfile = zip_fopen(vdev->archive,
@@ -108,7 +108,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 		} else {
 			/* Capture data is chunked, advance to the next chunk. */
 			vdev->cur_chunk++;
-			snprintf(capturefile, 15, "%s-%d", vdev->capturefile,
+			snprintf(capturefile, sizeof(capturefile) - 1, "%s-%d", vdev->capturefile,
 					vdev->cur_chunk);
 			if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
 				if (!(vdev->capfile = zip_fopen(vdev->archive,
@@ -150,8 +150,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
 
 	if (ret > 0) {
-		got_data = TRUE;
 		if (vdev->cur_analog_channel != 0) {
+			got_data = TRUE;
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			/* TODO: Use proper 'digits' value for this device (and its modes). */
@@ -164,7 +164,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 			analog.meaning->unit = SR_UNIT_VOLT;
 			analog.meaning->mqflags = SR_MQFLAG_DC;
 			analog.data = (float *) buf;
-		} else {
+		} else if (vdev->unitsize) {
+			got_data = TRUE;
 			if (ret % vdev->unitsize != 0)
 				sr_warn("Read size %d not a multiple of the"
 					" unit size %d.", ret, vdev->unitsize);
@@ -173,9 +174,17 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 			logic.length = ret;
 			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
+		} else {
+			/*
+			 * Neither analog data, nor logic which has
+			 * unitsize, must be an unexpected API use.
+			 */
+			sr_warn("Neither analog nor logic data. Ignoring.");
 		}
-		vdev->bytes_read += ret;
-		sr_session_send(sdi, &packet);
+		if (got_data) {
+			vdev->bytes_read += ret;
+			sr_session_send(sdi, &packet);
+		}
 	} else {
 		/* done with this capture file */
 		zip_fclose(vdev->capfile);
@@ -223,20 +232,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 /* driver callbacks */
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	struct drv_context *drvc;
-	GSList *l;
-
-	drvc = di->context;
-	for (l = drvc->instances; l; l = l->next)
-		sr_dev_inst_free(l->data);
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
@@ -264,8 +259,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct session_vdev *vdev;
 
@@ -290,8 +285,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct session_vdev *vdev;
 
@@ -330,22 +325,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, NO_OPTS, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -402,10 +385,10 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.longname = "Session-emulating driver",
 	.api_version = 1,
 	.init = std_init,
-	.cleanup = dev_clear,
+	.cleanup = std_cleanup,
 	.scan = NULL,
 	.dev_list = NULL,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

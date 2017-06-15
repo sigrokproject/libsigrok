@@ -28,18 +28,15 @@
 
 #define VICTOR_VID 0x1244
 #define VICTOR_PID 0xd237
-#define VICTOR_VENDOR "Victor"
 #define VICTOR_INTERFACE 0
 #define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
 
 static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
-};
-
-static const uint32_t scanopts[] = {
-	SR_CONF_CONN,
 };
 
 static const uint32_t devopts[] = {
@@ -72,11 +69,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (des.idVendor != VICTOR_VID || des.idProduct != VICTOR_PID)
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VICTOR_VENDOR);
+		sdi->vendor = g_strdup("Victor");
 		sdi->connection_id = g_strdup(connection_id);
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
@@ -107,8 +105,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	/* The device reports as HID class, so the kernel would have
-	 * claimed it. */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
 		if ((ret = libusb_detach_kernel_driver(usb->devhdl, 0)) < 0) {
 			sr_err("Failed to detach kernel driver: %s.",
@@ -122,7 +118,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -134,23 +129,20 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	libusb_release_interface(usb->devhdl, VICTOR_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
 
 	(void)cg;
 
@@ -159,8 +151,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
@@ -172,45 +163,22 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
 	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
@@ -223,13 +191,13 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc = sdi->priv;
 	if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		sr_dbg("Got %d-byte packet.", transfer->actual_length);
 		if (transfer->actual_length == DMM_DATA_SIZE) {
 			victor_dmm_receive_data(sdi, transfer->buffer);
 			if (sr_sw_limits_check(&devc->limits))
-				dev_acquisition_stop(sdi);
+				sr_dev_acquisition_stop(sdi);
 		}
 	}
 	/* Anything else is either an error or a timeout, which is fine:
@@ -242,7 +210,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
@@ -269,7 +237,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	drvc = di->context;
 
 	if (sr_sw_limits_check(&devc->limits))
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
@@ -292,9 +260,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct libusb_transfer *transfer;
 	int ret;
 	unsigned char *buf;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	usb = sdi->conn;
 
@@ -324,11 +289,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device not active, can't stop acquisition.");
-		return SR_ERR;
-	}
-
 	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;
@@ -342,7 +302,7 @@ static struct sr_dev_driver victor_dmm_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

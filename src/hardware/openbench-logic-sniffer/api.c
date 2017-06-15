@@ -22,13 +22,13 @@
 
 #define SERIALCOMM "115200/8n1"
 
-static const uint32_t drvopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 static const uint32_t devopts[] = {
@@ -187,8 +187,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -198,6 +198,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -226,19 +227,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint16_t flag;
 	uint64_t tmp_u64;
-	int ret;
 	const char *stropt;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -247,21 +244,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
 			return SR_ERR_SAMPLERATE;
-		ret = ols_set_samplerate(sdi, g_variant_get_uint64(data));
-		break;
+		return ols_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-			ret = SR_ERR;
-		else
-			ret = SR_OK;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {
@@ -271,28 +262,24 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabled external clock.");
 			devc->flag_reg &= ~FLAG_CLOCK_EXTERNAL;
 		}
-		ret = SR_OK;
 		break;
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);
-		ret = SR_OK;
-		flag = 0xffff;
 		if (!strcmp(stropt, STR_PATTERN_NONE)) {
 			sr_info("Disabling test modes.");
 			flag = 0x0000;
-		}else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
+		} else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
 			sr_info("Enabling internal test mode.");
 			flag = FLAG_INTERNAL_TEST_MODE;
 		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
 			sr_info("Enabling external test mode.");
 			flag = FLAG_EXTERNAL_TEST_MODE;
 		} else {
-			ret = SR_ERR;
+			return SR_ERR;
 		}
-		if (flag != 0xffff) {
-			devc->flag_reg &= ~(FLAG_INTERNAL_TEST_MODE | FLAG_EXTERNAL_TEST_MODE);
-			devc->flag_reg |= flag;
-		}
+		devc->flag_reg &= ~FLAG_INTERNAL_TEST_MODE;
+		devc->flag_reg &= ~FLAG_EXTERNAL_TEST_MODE;
+		devc->flag_reg |= flag;
 		break;
 	case SR_CONF_SWAP:
 		if (g_variant_get_boolean(data)) {
@@ -302,9 +289,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabling channel swapping.");
 			devc->flag_reg &= ~FLAG_SWAP_CHANNELS;
 		}
-		ret = SR_OK;
 		break;
-
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
@@ -313,52 +298,32 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabling RLE.");
 			devc->flag_reg &= ~FLAG_RLE;
 		}
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
 	int num_ols_changrp, i;
-
-	(void)cg;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_PATTERN_MODE:
-		*data = g_variant_new_strv(patterns, ARRAY_SIZE(patterns));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!sdi)
@@ -379,12 +344,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			if (devc->channel_mask & (0xff << (i * 8)))
 				num_ols_changrp++;
 		}
-		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		if (num_ols_changrp)
-			grange[1] = g_variant_new_uint64(devc->max_samples / num_ols_changrp);
-		else
-			grange[1] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		*data = g_variant_new_tuple(grange, 2);
+
+		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES,
+			(num_ols_changrp) ? devc->max_samples / num_ols_changrp : MIN_NUM_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -438,9 +400,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t ols_changrp_mask, arg[4];
 	int num_ols_changrp;
 	int ret, i;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -570,7 +529,7 @@ static struct sr_dev_driver ols_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

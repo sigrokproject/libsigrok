@@ -29,11 +29,9 @@
 #include "protocol.h"
 
 #define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_ENABLED_LOGIC_CHANNELS	8
 #define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
 
 #define DEFAULT_NUM_ANALOG_CHANNELS	4
-#define DEFAULT_ENABLED_ANALOG_CHANNELS	4
 #define DEFAULT_ANALOG_AMPLITUDE	10
 
 /* Note: No spaces allowed because of sigrok-cli. */
@@ -46,6 +44,13 @@ static const char *logic_pattern_str[] = {
 	"all-low",
 	"all-high",
 	"squid",
+	"graycode",
+};
+
+static const uint32_t scanopts[] = {
+	SR_CONF_NUM_LOGIC_CHANNELS,
+	SR_CONF_NUM_ANALOG_CHANNELS,
+	SR_CONF_LIMIT_FRAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -54,18 +59,16 @@ static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 };
 
-static const uint32_t scanopts[] = {
-	SR_CONF_NUM_LOGIC_CHANNELS,
-	SR_CONF_NUM_ANALOG_CHANNELS,
-};
-
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_logic[] = {
@@ -79,6 +82,14 @@ static const uint32_t devopts_cg_analog_group[] = {
 static const uint32_t devopts_cg_analog_channel[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const uint64_t samplerates[] = {
@@ -97,11 +108,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct analog_gen *ag;
 	GSList *l;
 	int num_logic_channels, num_analog_channels, pattern, i;
+	uint64_t limit_frames;
 	char channel_name[16];
-	gboolean enabled;
 
 	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
 	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;
+	limit_frames = DEFAULT_LIMIT_FRAMES;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -110,6 +122,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case SR_CONF_NUM_ANALOG_CHANNELS:
 			num_analog_channels = g_variant_get_int32(src->data);
+			break;
+		case SR_CONF_LIMIT_FRAMES:
+			limit_frames = g_variant_get_uint64(src->data);
 			break;
 		}
 	}
@@ -122,8 +137,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
+	devc->all_logic_channels_mask = 1UL << 0;
+	devc->all_logic_channels_mask <<= devc->num_logic_channels;
+	devc->all_logic_channels_mask--;
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
+	devc->limit_frames = limit_frames;
+	devc->capture_ratio = 20;
+	devc->stl = NULL;
 
 	if (num_logic_channels > 0) {
 		/* Logic channels, all in one channel group. */
@@ -131,14 +152,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		cg->name = g_strdup("Logic");
 		for (i = 0; i < num_logic_channels; i++) {
 			sprintf(channel_name, "D%d", i);
-			enabled = (i < DEFAULT_ENABLED_LOGIC_CHANNELS) ? TRUE : FALSE;
-			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, enabled, channel_name);
+			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
 		sdi->channel_groups = g_slist_append(NULL, cg);
 	}
 
 	/* Analog channels, channel groups and pattern generators. */
+	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 	if (num_analog_channels > 0) {
 		pattern = 0;
 		/* An "Analog" channel group with all analog channels in it. */
@@ -146,12 +167,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		acg->name = g_strdup("Analog");
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
 
-		devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 		for (i = 0; i < num_analog_channels; i++) {
 			snprintf(channel_name, 16, "A%d", i);
-			enabled = (i < DEFAULT_ENABLED_ANALOG_CHANNELS) ? TRUE : FALSE;
 			ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
-					enabled, channel_name);
+					TRUE, channel_name);
 			acg->channels = g_slist_append(acg->channels, ch);
 
 			/* Every analog channel gets its own channel group as well. */
@@ -162,6 +181,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));
+			ag->ch = ch;
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
@@ -184,43 +204,25 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
+static void clear_helper(struct dev_context *devc)
 {
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
-}
-
-static void clear_helper(void *priv)
-{
-	struct dev_context *devc;
 	GHashTableIter iter;
 	void *value;
-
-	devc = priv;
 
 	/* Analog generators. */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		g_free(value);
 	g_hash_table_unref(devc->ch_ag);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -240,6 +242,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		break;
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
+		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limit_frames);
 		break;
 	case SR_CONF_AVERAGING:
 		*data = g_variant_new_boolean(devc->avg);
@@ -272,6 +277,9 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		ag = g_hash_table_lookup(devc->ch_ag, ch);
 		*data = g_variant_new_double(ag->amplitude);
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		*data = g_variant_new_uint64(devc->capture_ratio);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -279,23 +287,17 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct analog_gen *ag;
 	struct sr_channel *ch;
 	GSList *l;
-	int logic_pattern, analog_pattern, ret;
-	unsigned int i;
-	const char *stropt;
+	int logic_pattern, analog_pattern;
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
@@ -308,6 +310,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
 		break;
+	case SR_CONF_LIMIT_FRAMES:
+		devc->limit_frames = g_variant_get_uint64(data);
+		break;
 	case SR_CONF_AVERAGING:
 		devc->avg = g_variant_get_boolean(data);
 		sr_dbg("%s averaging", devc->avg ? "Enabling" : "Disabling");
@@ -319,21 +324,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		stropt = g_variant_get_string(data, NULL);
-		logic_pattern = analog_pattern = -1;
-		for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
-			if (!strcmp(stropt, logic_pattern_str[i])) {
-				logic_pattern = i;
-				break;
-			}
-		}
-		for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
-			if (!strcmp(stropt, analog_pattern_str[i])) {
-				analog_pattern = i;
-				break;
-			}
-		}
-		if (logic_pattern == -1 && analog_pattern == -1)
+		logic_pattern = std_str_idx(data, ARRAY_AND_SIZE(logic_pattern_str));
+		analog_pattern = std_str_idx(data, ARRAY_AND_SIZE(analog_pattern_str));
+		if (logic_pattern < 0 && analog_pattern < 0)
 			return SR_ERR_ARG;
 		for (l = cg->channels; l; l = l->next) {
 			ch = l->data;
@@ -370,47 +363,31 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			ag->amplitude = g_variant_get_double(data);
 		}
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		devc->capture_ratio = g_variant_get_uint64(data);
+		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct sr_channel *ch;
-	GVariant *gvar;
-	GVariantBuilder gvb;
-
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
 
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-					ARRAY_SIZE(samplerates), sizeof(uint64_t));
-			g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+			break;
+		case SR_CONF_TRIGGER_MATCH:
+			*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -420,18 +397,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
-						sizeof(uint32_t));
+				*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_logic));
 			else if (ch->type == SR_CHANNEL_ANALOG) {
 				if (strcmp(cg->name, "Analog") == 0)
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							devopts_cg_analog_group, ARRAY_SIZE(devopts_cg_analog_group),
-							sizeof(uint32_t));
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_group));
 				else
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							devopts_cg_analog_channel, ARRAY_SIZE(devopts_cg_analog_channel),
-							sizeof(uint32_t));
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_channel));
 			}
 			else
 				return SR_ERR_BUG;
@@ -442,11 +413,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				return SR_ERR_NA;
 
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = g_variant_new_strv(logic_pattern_str,
-						ARRAY_SIZE(logic_pattern_str));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_pattern_str));
 			else if (ch->type == SR_CHANNEL_ANALOG)
-				*data = g_variant_new_strv(analog_pattern_str,
-						ARRAY_SIZE(analog_pattern_str));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(analog_pattern_str));
 			else
 				return SR_ERR_BUG;
 			break;
@@ -461,15 +430,82 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GSList *l;
+	struct sr_channel *ch;
+	int bitpos;
+	uint8_t mask;
 	GHashTableIter iter;
 	void *value;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
+	struct sr_trigger *trigger;
 
 	devc = sdi->priv;
 	devc->sent_samples = 0;
+	devc->sent_frame_samples = 0;
 
+	/* Setup triggers */
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
+		int pre_trigger_samples = 0;
+		if (devc->limit_samples > 0)
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
+		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
+		if (!devc->stl)
+			return SR_ERR_MALLOC;
+
+		/* Disable all analog channels since using them when there are logic
+		 * triggers set up would require having pre-trigger sample buffers
+		 * for analog sample data.
+		 */
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type == SR_CHANNEL_ANALOG)
+				ch->enabled = FALSE;
+		}
+	}
+	devc->trigger_fired = FALSE;
+
+	/*
+	 * Determine the numbers of logic and analog channels that are
+	 * involved in the acquisition. Determine an offset and a mask to
+	 * remove excess logic data content before datafeed submission.
+	 */
+	devc->enabled_logic_channels = 0;
+	devc->enabled_analog_channels = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch->enabled)
+			continue;
+		if (ch->type == SR_CHANNEL_ANALOG) {
+			devc->enabled_analog_channels++;
+			continue;
+		}
+		if (ch->type != SR_CHANNEL_LOGIC)
+			continue;
+		/*
+		 * TODO: Need we create a channel map here, such that the
+		 * session datafeed packets will have a dense representation
+		 * of the enabled channels' data? For example store channels
+		 * D3 and D5 in bit positions 0 and 1 respectively, when all
+		 * other channels are disabled? The current implementation
+		 * generates a sparse layout, might provide data for logic
+		 * channels that are disabled while it might suppress data
+		 * from enabled channels at the same time.
+		 */
+		devc->enabled_logic_channels++;
+	}
+	devc->first_partial_logic_index = devc->enabled_logic_channels / 8;
+	bitpos = devc->enabled_logic_channels % 8;
+	mask = (1 << bitpos) - 1;
+	devc->first_partial_logic_mask = mask;
+	sr_dbg("num logic %zu, partial off %zu, mask 0x%02x.",
+		devc->enabled_logic_channels,
+		devc->first_partial_logic_index,
+		devc->first_partial_logic_mask);
+
+	/*
+	 * Have the waveform for analog patterns pre-generated. It's
+	 * supposed to be periodic, so the generator just needs to
+	 * access the prepared sample data (DDS style).
+	 */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		demo_generate_analog_pattern(value, devc->cur_samplerate);
@@ -478,6 +514,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			demo_prepare_data, (struct sr_dev_inst *)sdi);
 
 	std_session_send_df_header(sdi);
+
+	if (devc->limit_frames > 0)
+		std_session_send_frame_begin(sdi);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->start_us = g_get_monotonic_time();
@@ -489,9 +528,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	sr_dbg("Stopping acquisition.");
+	struct dev_context *devc;
+
 	sr_session_source_remove(sdi->session, -1);
+
+	devc = sdi->priv;
+	if (devc->limit_frames > 0)
+		std_session_send_frame_end(sdi);
+
 	std_session_send_df_end(sdi);
+
+	if (devc->stl) {
+		soft_trigger_logic_free(devc->stl);
+		devc->stl = NULL;
+	}
 
 	return SR_OK;
 }
@@ -508,8 +558,8 @@ static struct sr_dev_driver demo_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_dummy_dev_open,
+	.dev_close = std_dummy_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,

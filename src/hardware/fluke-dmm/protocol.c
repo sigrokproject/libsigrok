@@ -324,7 +324,7 @@ static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 		else if (meas_char == 3)
 			devc->mqflags |= SR_MQFLAG_DC | SR_MQFLAG_AC;
 		else if (meas_char == 15)
-			devc->mqflags |= SR_MQFLAG_DIODE;
+			devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 2:
 		devc->mq = SR_MQ_CURRENT;
@@ -526,7 +526,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

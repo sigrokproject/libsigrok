@@ -71,15 +71,11 @@ struct per_channel_config {
 	gboolean output_enabled_set;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct pps_model *model;
 
-	/* Acquisition state */
 	gboolean acquisition_running;
 
-	/* Operational state */
 	gboolean config_dirty;
 	struct per_channel_config *config;
 	/* Blocking write timeout for packet. */
@@ -91,7 +87,6 @@ struct dev_context {
 	int channel_mode_set;
 	gboolean over_current_protection_set;
 
-	/* Temporary state across callbacks */
 	uint8_t packet[PACKET_SIZE];
 	int packet_size;
 

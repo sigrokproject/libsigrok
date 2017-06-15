@@ -41,7 +41,7 @@ static void abort_acquisition(struct sr_dev_inst *sdi)
 
 	std_session_send_df_end(sdi);
 
-	sdi->driver->dev_close(sdi);
+	sr_dev_close(sdi);
 }
 
 static void buffer_sample_data(const struct sr_dev_inst *sdi)
@@ -531,25 +531,6 @@ SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
-				  uint64_t capture_ratio)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (capture_ratio > 100) {
-		sr_err("Invalid capture ratio: %" PRIu64 " %%.", capture_ratio);
-		return SR_ERR_ARG;
-	}
-
-	sr_info("Capture ratio set to %" PRIu64 " %%.", capture_ratio);
-
-	devc->capture_ratio = capture_ratio;
-
-	return SR_OK;
-}
-
 SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
 					uint64_t after_trigger_delay)
 {
@@ -640,10 +621,6 @@ SR_PRIV int sl2_get_device_info(struct sr_dev_driver *di,
 	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, &usb) != SR_OK)
 		return SR_ERR;
 
-	/*
-	 * Determine if a kernel driver is active on this interface and, if so,
-	 * detach it.
-	 */
 	if (libusb_kernel_driver_active(usb.devhdl, USB_INTERFACE) == 1) {
 		ret = libusb_detach_kernel_driver(usb.devhdl,
 			USB_INTERFACE);

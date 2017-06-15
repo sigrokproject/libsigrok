@@ -22,11 +22,13 @@
 #include "protocol.h"
 
 #define USB_CONN "1041.8101"
-#define VENDOR "Kecheng"
 #define USB_INTERFACE 0
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLE_INTERVAL | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -47,18 +49,15 @@ SR_PRIV const uint64_t kecheng_kc_330b_sample_intervals[][2] = {
 };
 
 static const char *weight_freq[] = {
-	"A",
-	"C",
+	"A", "C",
 };
 
 static const char *weight_time[] = {
-	"F",
-	"S",
+	"F", "S",
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static int scan_kecheng(struct sr_dev_driver *di,
@@ -122,7 +121,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR);
+			sdi->vendor = g_strdup("Kecheng");
 			sdi->model = model; /* Already g_strndup()'d. */
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
@@ -171,9 +170,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sdi->status = SR_ST_ACTIVE;
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -184,8 +182,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	/* This allows a frontend to configure the device without ever
 	 * doing an acquisition step. */
@@ -196,16 +193,14 @@ static int dev_close(struct sr_dev_inst *sdi)
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *rational[2];
 	const uint64_t *si;
 
 	(void)cg;
@@ -217,14 +212,11 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
 		si = kecheng_kc_330b_sample_intervals[devc->sample_interval];
-		rational[0] = g_variant_new_uint64(si[0]);
-		rational[1] = g_variant_new_uint64(si[1]);
-		*data = g_variant_new_tuple(rational, 2);
+		*data = std_gvar_tuple_u64(si[0], si[1]);
 		break;
 	case SR_CONF_DATALOG:
 		/* There really isn't a way to be sure the device is logging. */
 		return SR_ERR_NA;
-		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if (devc->mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
 			*data = g_variant_new_string("A");
@@ -250,114 +242,69 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
-	unsigned int i;
-	int tmp, ret;
-	const char *tmp_str;
+	int idx;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
-			if (kecheng_kc_330b_sample_intervals[i][0] != p || kecheng_kc_330b_sample_intervals[i][1] != q)
-				continue;
-			devc->sample_interval = i;
-			devc->config_dirty = TRUE;
-			break;
-		}
-		if (i == ARRAY_SIZE(kecheng_kc_330b_sample_intervals))
-			ret = SR_ERR_ARG;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals))) < 0)
+			return SR_ERR_ARG;
+		devc->sample_interval = idx;
+		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "A"))
-			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_A;
-		else if (!strcmp(tmp_str, "C"))
-			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_C;
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
-		devc->mqflags |= tmp;
+		devc->mqflags |= (weight_freq[idx][0] == 'A') ? SR_MQFLAG_SPL_FREQ_WEIGHT_A : SR_MQFLAG_SPL_FREQ_WEIGHT_C;
 		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "F"))
-			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_F;
-		else if (!strcmp(tmp_str, "S"))
-			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_S;
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_time))) < 0)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_TIME_WEIGHT_F | SR_MQFLAG_SPL_TIME_WEIGHT_S);
-		devc->mqflags |= tmp;
+		devc->mqflags |= (weight_time[idx][0] == 'F') ? SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->data_source = idx;
 		devc->config_dirty = TRUE;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-
-	(void)sdi;
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
-			rational[0] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][0]);
-			rational[1] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_freq));
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
-		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_time));
 		break;
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -375,13 +322,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_datafeed_meta meta;
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
-	GVariant *gvar, *rational[2];
+	GVariant *gvar;
 	const uint64_t *si;
 	int req_len, buf_len, len, ret;
 	unsigned char buf[9];
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	drvc = di->context;
 	devc = sdi->priv;
@@ -420,9 +364,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->stored_samples = devc->limit_samples;
 
 		si = kecheng_kc_330b_sample_intervals[buf[1]];
-		rational[0] = g_variant_new_uint64(si[0]);
-		rational[1] = g_variant_new_uint64(si[1]);
-		gvar = g_variant_new_tuple(rational, 2);
+		gvar = std_gvar_tuple_u64(si[0], si[1]);
+
 		src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, gvar);
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
@@ -478,9 +421,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Signal USB transfer handler to clean up and stop. */
 	sdi->status = SR_ST_STOPPING;
 
@@ -506,7 +446,7 @@ static struct sr_dev_driver kecheng_kc_330b_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

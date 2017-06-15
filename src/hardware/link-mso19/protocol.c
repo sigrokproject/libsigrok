@@ -48,8 +48,8 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	p += sizeof(mso_head);
 
 	for (i = 0; i < n; i++) {
-		*(uint16_t *) p = g_htons(payload[i]);
-		p += 2;
+		WB16(p, payload[i]);
+		p += sizeof(uint16_t);
 	}
 	memcpy(p, mso_foot, sizeof(mso_foot));
 
@@ -405,7 +405,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return TRUE;

@@ -174,8 +174,7 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
-	float offset;
-	unsigned int b, i, count;
+	unsigned int b, count;
 	gboolean bigendian;
 
 	if (!analog || !(analog->data) || !(analog->meaning)
@@ -275,7 +274,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		/* The data is already in the right format. */
 		memcpy(outbuf, analog->data, count * sizeof(float));
 	} else {
-		for (i = 0; i < count; i += analog->encoding->unitsize) {
+		for (unsigned int i = 0; i < count; i += analog->encoding->unitsize) {
 			for (b = 0; b < analog->encoding->unitsize; b++) {
 				if (analog->encoding->is_bigendian == bigendian)
 					((uint8_t *)outbuf)[i + b] =
@@ -287,7 +286,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 			if (analog->encoding->scale.p != 1
 					|| analog->encoding->scale.q != 1)
 				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
-			offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
+			float offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
 			outbuf[i] += offset;
 		}
 	}
@@ -308,7 +307,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 SR_API const char *sr_analog_si_prefix(float *value, int *digits)
 {
 /** @cond PRIVATE */
-#define NEG_PREFIX_COUNT 5  /* number of prefixes below unity */
+#define NEG_PREFIX_COUNT 5 /* number of prefixes below unity */
 #define POS_PREFIX_COUNT (int)(ARRAY_SIZE(prefixes) - NEG_PREFIX_COUNT - 1)
 /** @endcond */
 	static const char *prefixes[] = { "f", "p", "n", "µ", "m", "", "k", "M", "G", "T" };
@@ -366,12 +365,9 @@ SR_API gboolean sr_analog_si_prefix_friendly(enum sr_unit unit)
 
 	for (i = 0; i < ARRAY_SIZE(prefix_friendly_units); i++)
 		if (unit == prefix_friendly_units[i])
-			break;
+			return TRUE;
 
-	if (unit != prefix_friendly_units[i])
-		return FALSE;
-
-	return TRUE;
+	return FALSE;
 }
 
 /**
@@ -555,8 +551,8 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
 		return SR_ERR_ARG;
 	}
 
-	res->p = (int64_t)(p);
-	res->q = (uint64_t)(q);
+	res->p = (int64_t)p;
+	res->q = (uint64_t)q;
 
 	return SR_OK;
 

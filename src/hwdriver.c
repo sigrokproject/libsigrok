@@ -62,6 +62,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_ELECTRONIC_LOAD, SR_T_STRING, NULL, "Electronic load", NULL},
 	{SR_CONF_SCALE, SR_T_STRING, NULL, "Scale", NULL},
 	{SR_CONF_SIGNAL_GENERATOR, SR_T_STRING, NULL, "Signal generator", NULL},
+	{SR_CONF_POWERMETER, SR_T_STRING, NULL, "Power meter", NULL},
 
 	/* Driver scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
@@ -176,8 +177,12 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Under-voltage condition", NULL},
 	{SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE, SR_T_BOOL, "uvc_active",
 		"Under-voltage condition active", NULL},
+	{SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD, SR_T_FLOAT, "uvc_threshold",
+		"Under-voltage condition threshold", NULL},
 	{SR_CONF_TRIGGER_LEVEL, SR_T_FLOAT, "triggerlevel",
 		"Trigger level", NULL},
+	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
+		"External clock source", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
@@ -394,6 +399,8 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 		return SR_ERR_ARG;
 	}
 
+	/* No log message here, too verbose and not very useful. */
+
 	if ((ret = driver->init(driver, ctx)) < 0)
 		sr_err("Failed to initialize the driver: %d.", ret);
 
@@ -527,8 +534,7 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 
 	l = driver->scan(driver, options);
 
-	sr_spew("Scan of '%s' found %d devices.", driver->name,
-		g_slist_length(l));
+	sr_spew("Scan found %d devices (%s).", g_slist_length(l), driver->name);
 
 	return l;
 }
@@ -547,6 +553,8 @@ SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
 
 	if (!ctx)
 		return;
+
+	sr_dbg("Cleaning up all drivers.");
 
 	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
@@ -581,7 +589,6 @@ SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
  */
 SR_PRIV void sr_config_free(struct sr_config *src)
 {
-
 	if (!src || !src->data) {
 		sr_err("%s: invalid data!", __func__);
 		return;
@@ -589,11 +596,49 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 
 	g_variant_unref(src->data);
 	g_free(src);
+}
 
+/** @private */
+SR_PRIV int sr_dev_acquisition_start(struct sr_dev_inst *sdi)
+{
+	if (!sdi || !sdi->driver) {
+		sr_err("%s: Invalid arguments.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't start.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
+
+	sr_dbg("%s: Starting acquisition.", sdi->driver->name);
+
+	return sdi->driver->dev_acquisition_start(sdi);
+}
+
+/** @private */
+SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	if (!sdi || !sdi->driver) {
+		sr_err("%s: Invalid arguments.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't stop.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
+
+	sr_dbg("%s: Stopping acquisition.", sdi->driver->name);
+
+	return sdi->driver->dev_acquisition_stop(sdi);
 }
 
 static void log_key(const struct sr_dev_inst *sdi,
-	const struct sr_channel_group *cg, uint32_t key, int op, GVariant *data)
+	const struct sr_channel_group *cg, uint32_t key, unsigned int op,
+	GVariant *data)
 {
 	const char *opstr;
 	const struct sr_key_info *srci;
@@ -615,7 +660,7 @@ static void log_key(const struct sr_dev_inst *sdi,
 
 static int check_key(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
-		uint32_t key, int op, GVariant *data)
+		uint32_t key, unsigned int op, GVariant *data)
 {
 	const struct sr_key_info *srci;
 	gsize num_opts, i;
@@ -626,9 +671,9 @@ static int check_key(const struct sr_dev_driver *driver,
 	const char *opstr;
 
 	if (sdi && cg)
-		suffix = " for this device and channel group";
+		suffix = " for this device instance and channel group";
 	else if (sdi)
-		suffix = " for this device";
+		suffix = " for this device instance";
 	else
 		suffix = "";
 
@@ -647,6 +692,15 @@ static int check_key(const struct sr_dev_driver *driver,
 			break;
 		if (g_variant_get_uint64(data) == 0) {
 			sr_err("Cannot set '%s' to 0.", srci->id);
+			return SR_ERR_ARG;
+		}
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		/* Capture ratio must always be between 0 and 100. */
+		if (op != SR_CONF_SET || !data)
+			break;
+		if (g_variant_get_uint64(data) > 100) {
+			sr_err("Capture ratio must be 0..100.");
 			return SR_ERR_ARG;
 		}
 		break;
@@ -732,6 +786,10 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		g_variant_ref_sink(*data);
 	}
 
+	if (ret == SR_ERR_CHANNEL_GROUP)
+		sr_err("%s: No channel group specified.",
+			(sdi) ? sdi->driver->name : "unknown");
+
 	return ret;
 }
 
@@ -767,7 +825,11 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
-	else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET, data) != SR_OK)
+	else if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't set config.",
+			sdi->driver->name);
+		ret = SR_ERR_DEV_CLOSED;
+	} else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET, data) != SR_OK)
 		return SR_ERR_ARG;
 	else if ((ret = sr_variant_type_check(key, data)) == SR_OK) {
 		log_key(sdi, cg, key, SR_CONF_SET, data);
@@ -775,6 +837,10 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 	}
 
 	g_variant_unref(data);
+
+	if (ret == SR_ERR_CHANNEL_GROUP)
+		sr_err("%s: No channel group specified.",
+			(sdi) ? sdi->driver->name : "unknown");
 
 	return ret;
 }
@@ -796,7 +862,11 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
 		ret = SR_ERR;
 	else if (!sdi->driver->config_commit)
 		ret = SR_OK;
-	else
+	else if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't commit config.",
+			sdi->driver->name);
+		ret = SR_ERR_DEV_CLOSED;
+	} else
 		ret = sdi->driver->config_commit(sdi);
 
 	return ret;
@@ -806,18 +876,22 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  * List all possible values for a configuration key.
  *
  * @param[in] driver The sr_dev_driver struct to query. Must not be NULL.
- * @param[in] sdi (optional) If the key is specific to a device, this must
- *            contain a pointer to the struct sr_dev_inst to be checked.
+ * @param[in] sdi (optional) If the key is specific to a device instance, this
+ *            must contain a pointer to the struct sr_dev_inst to be checked.
  *            Otherwise it must be NULL. If sdi is != NULL, sdi->priv must
  *            also be != NULL.
- * @param[in] cg The channel group on the device for which to list the
- *                    values, or NULL.
+ * @param[in] cg The channel group on the device instance for which to list
+ *            the values, or NULL. If this device instance doesn't
+ *            have channel groups, this must not be != NULL.
+ *            If cg is NULL, this function will return the "common" device
+ *            instance options that are channel-group independent. Otherwise
+ *            it will return the channel-group specific options.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param[in,out] data A pointer to a GVariant where the list will be stored.
- *             The caller is given ownership of the GVariant and must thus
- *             unref the GVariant after use. However if this function
- *             returns an error code, the field should be considered
- *             unused, and should not be unreferenced.
+ *                The caller is given ownership of the GVariant and must thus
+ *                unref the GVariant after use. However if this function
+ *                returns an error code, the field should be considered
+ *                unused, and should not be unreferenced.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR Error.
@@ -836,20 +910,49 @@ SR_API int sr_config_list(const struct sr_dev_driver *driver,
 
 	if (!driver || !data)
 		return SR_ERR;
-	else if (!driver->config_list)
+
+	if (!driver->config_list)
 		return SR_ERR_ARG;
-	else if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS) {
+
+	if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS) {
 		if (check_key(driver, sdi, cg, key, SR_CONF_LIST, NULL) != SR_OK)
 			return SR_ERR_ARG;
 	}
+
 	if (sdi && !sdi->priv) {
 		sr_err("Can't list config (sdi != NULL, sdi->priv == NULL).");
 		return SR_ERR;
 	}
+
+	if (key != SR_CONF_SCAN_OPTIONS && key != SR_CONF_DEVICE_OPTIONS && !sdi) {
+		sr_err("Config keys other than SR_CONF_SCAN_OPTIONS and "
+		       "SR_CONF_DEVICE_OPTIONS always need an sdi.");
+		return SR_ERR_ARG;
+	}
+
+	if (cg && sdi && !sdi->channel_groups) {
+		sr_err("Can't list config for channel group, there are none.");
+		return SR_ERR_ARG;
+	}
+
+	if (cg && sdi && !g_slist_find(sdi->channel_groups, cg)) {
+		sr_err("If a channel group is specified, it must be a valid one.");
+		return SR_ERR_ARG;
+	}
+
+	if (cg && !sdi) {
+		sr_err("Need sdi when a channel group is specified.");
+		return SR_ERR_ARG;
+	}
+
 	if ((ret = driver->config_list(key, data, sdi, cg)) == SR_OK) {
 		log_key(sdi, cg, key, SR_CONF_LIST, *data);
 		g_variant_ref_sink(*data);
 	}
+
+	if (ret == SR_ERR_CHANNEL_GROUP)
+		sr_err("%s: No channel group specified.",
+			(sdi) ? sdi->driver->name : "unknown");
 
 	return ret;
 }

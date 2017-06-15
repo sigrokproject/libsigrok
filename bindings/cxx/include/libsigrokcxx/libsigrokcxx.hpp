@@ -252,6 +252,8 @@ public:
 	map<string, shared_ptr<Driver> > drivers();
 	/** Available input formats, indexed by name. */
 	map<string, shared_ptr<InputFormat> > input_formats();
+	/** Lookup the responsible input module for an input file. */
+	shared_ptr<InputFormat> input_format_match(string filename);
 	/** Available output formats, indexed by name. */
 	map<string, shared_ptr<OutputFormat> > output_formats();
 	/** Current log level. */
@@ -283,7 +285,7 @@ public:
 	/** Create an analog packet. */
 	shared_ptr<Packet> create_analog_packet(
 		vector<shared_ptr<Channel> > channels,
-		float *data_pointer, unsigned int num_samples, const Quantity *mq,
+		const float *data_pointer, unsigned int num_samples, const Quantity *mq,
 		const Unit *unit, vector<const QuantityFlag *> mqflags);
 	/** Load a saved session.
 	 * @param filename File name string. */
@@ -333,7 +335,7 @@ public:
 	set<const Capability *> config_capabilities(const ConfigKey *key) const;
 	/** Check whether a configuration capability is supported for a given key.
 	 * @param key ConfigKey to check.
-     * @param capability Capability to check for. */
+	 * @param capability Capability to check for. */
 	bool config_check(const ConfigKey *key, const Capability *capability) const;
 protected:
 	Configurable(
@@ -758,6 +760,8 @@ private:
 	const struct sr_datafeed_logic *_structure;
 
 	friend class Packet;
+	friend class Analog;
+	friend struct std::default_delete<Logic>;
 };
 
 /** Payload of a datafeed packet with analog data */
@@ -803,6 +807,34 @@ public:
 	const Unit *unit() const;
 	/** Measurement flags associated with the samples in this packet. */
 	vector<const QuantityFlag *> mq_flags() const;
+	/**
+	 * Provides a Logic packet that contains a conversion of the analog
+	 * data using a simple threshold.
+	 *
+	 * @param threshold Threshold to use.
+	 * @param data_ptr Pointer to num_samples() bytes where the logic
+	 *                 samples are stored. When nullptr, memory for
+	 *                 logic->data_pointer() will be allocated and must
+	 *                 be freed by the caller.
+	 */
+	shared_ptr<Logic> get_logic_via_threshold(float threshold,
+		uint8_t *data_ptr=nullptr) const;
+	/**
+	 * Provides a Logic packet that contains a conversion of the analog
+	 * data using a Schmitt-Trigger.
+	 *
+	 * @param lo_thr Low threshold to use (anything below this is low).
+	 * @param hi_thr High threshold to use (anything above this is high).
+	 * @param state Points to a byte that contains the current state of the
+	 *              converter. For best results, set to value of logic
+	 *              sample n-1.
+	 * @param data_ptr Pointer to num_samples() bytes where the logic
+	 *                 samples are stored. When nullptr, memory for
+	 *                 logic->data_pointer() will be allocated and must be
+	 *                 freed by the caller.
+	 */
+	shared_ptr<Logic> get_logic_via_schmitt_trigger(float lo_thr,
+		float hi_thr, uint8_t *state, uint8_t *data_ptr=nullptr) const;
 private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
@@ -845,7 +877,7 @@ public:
 	/** Description of this input format. */
 	string description() const;
 	/** A list of preferred file name extensions for this file format.
-         * @note This list is a recommendation only. */
+	 * @note This list is a recommendation only. */
 	vector<string> extensions() const;
 	/** Options supported by this input format. */
 	map<string, shared_ptr<Option> > options();
@@ -917,6 +949,8 @@ public:
 	Glib::VariantBase default_value() const;
 	/** Possible values for this option, if a limited set. */
 	vector<Glib::VariantBase> values() const;
+	/** Parse a string argument into the appropriate type for this option. */
+	Glib::VariantBase parse_string(string value);
 private:
 	Option(const struct sr_option *structure,
 		shared_ptr<const struct sr_option *> structure_array);
@@ -939,7 +973,7 @@ public:
 	/** Description of this output format. */
 	string description() const;
 	/** A list of preferred file name extensions for this file format.
-         * @note This list is a recommendation only. */
+	 * @note This list is a recommendation only. */
 	vector<string> extensions() const;
 	/** Options supported by this output format. */
 	map<string, shared_ptr<Option> > options();

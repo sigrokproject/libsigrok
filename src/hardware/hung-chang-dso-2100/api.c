@@ -39,7 +39,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t cgopts[] = {
+static const uint32_t devopts_cg[] = {
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
@@ -218,10 +218,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_private(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc = priv;
-
 	g_slist_free(devc->enabled_channel);
 }
 
@@ -238,16 +236,13 @@ static int dev_clear(const struct sr_dev_driver *di)
 		}
 	}
 
-	return std_dev_clear(di, clear_private);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	int i;
-
-	if (sdi->status != SR_ST_INACTIVE)
-		goto fail1;
 
 	if (ieee1284_open(sdi->conn, 0, &i) != E1284_OK)
 		goto fail1;
@@ -265,8 +260,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (!devc->samples)
 		goto fail3;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 
 fail3:
@@ -282,82 +275,24 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_OK;
-
 	g_free(devc->samples);
 	hung_chang_dso_2100_reset_port(sdi->conn);
 	ieee1284_release(sdi->conn);
 	ieee1284_close(sdi->conn);
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int find_in_array(GVariant *data, const GVariantType *type,
-			 const void *arr, int n)
-{
-	const char * const *sarr;
-	const char *s;
-	const uint64_t *u64arr;
-	const uint8_t *u8arr;
-	uint64_t u64;
-	uint8_t u8;
-	int i;
-
-	if (!g_variant_is_of_type(data, type))
-		return -1;
-
-	switch (g_variant_classify(data)) {
-	case G_VARIANT_CLASS_STRING:
-		s = g_variant_get_string(data, NULL);
-		sarr = arr;
-
-		for (i = 0; i < n; i++)
-			if (!strcmp(s, sarr[i]))
-				return i;
-		break;
-	case G_VARIANT_CLASS_UINT64:
-		u64 = g_variant_get_uint64(data);
-		u64arr = arr;
-
-		for (i = 0; i < n; i++)
-			if (u64 == u64arr[i])
-				return i;
-		break;
-	case G_VARIANT_CLASS_BYTE:
-		u8 = g_variant_get_byte(data);
-		u8arr = arr;
-
-		for (i = 0; i < n; i++)
-			if (u8 == u8arr[i])
-				return i;
-	default:
-		break;
-	}
-
-	return -1;
-}
-
-static int reverse_map(uint8_t u, const uint8_t *arr, int n)
-{
-	GVariant *v = g_variant_new_byte(u);
-	int i = find_in_array(v, G_VARIANT_TYPE_BYTE, arr, n);
-	g_variant_unref(v);
-	return i;
-}
-
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	struct parport *port;
-	int ret, i, ch = -1;
+	int idx, ch = -1;
 
 	if (cg) /* sr_config_get will validate cg using config_list */
 		ch = ((struct sr_channel *)cg->channels->data)->index;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_CONN:
 		port = sdi->conn;
@@ -370,177 +305,128 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_uint64(samplerates[devc->rate]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		i = reverse_map(devc->cctl[0] & 0xC0, trigger_sources_map,
-				ARRAY_SIZE(trigger_sources_map));
-		if (i == -1)
-			ret = SR_ERR;
-		else
-			*data = g_variant_new_string(trigger_sources[i]);
+		if ((idx = std_u8_idx_s(devc->cctl[0] & 0xC0, ARRAY_AND_SIZE(trigger_sources_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(trigger_sources[idx]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if (devc->edge >= ARRAY_SIZE(trigger_slopes))
-			ret = SR_ERR;
-		else
-			*data = g_variant_new_string(trigger_slopes[devc->edge]);
+			return SR_ERR;
+		*data = g_variant_new_string(trigger_slopes[devc->edge]);
 		break;
 	case SR_CONF_BUFFERSIZE:
 		*data = g_variant_new_uint64(buffersizes[devc->last_step]);
 		break;
 	case SR_CONF_VDIV:
-		if (ch == -1) {
-			ret = SR_ERR_CHANNEL_GROUP;
-		} else {
-			i = reverse_map(devc->cctl[ch] & 0x33, vdivs_map,
-					ARRAY_SIZE(vdivs_map));
-			if (i == -1)
-				ret = SR_ERR;
-			else
-				*data = g_variant_new("(tt)", vdivs[i][0],
-						      vdivs[i][1]);
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
 		break;
 	case SR_CONF_COUPLING:
-		if (ch == -1) {
-			ret = SR_ERR_CHANNEL_GROUP;
-		} else {
-			i = reverse_map(devc->cctl[ch] & 0x0C, coupling_map,
-					ARRAY_SIZE(coupling_map));
-			if (i == -1)
-				ret = SR_ERR;
-			else
-				*data = g_variant_new_string(coupling[i]);
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(coupling[idx]);
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (ch == -1)
-			ret = SR_ERR_CHANNEL_GROUP;
-		else
-			*data = g_variant_new_uint64(devc->probe[ch]);
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		*data = g_variant_new_uint64(devc->probe[ch]);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
-	int ret, i, ch = -1;
-	uint64_t u, v;
+	int idx, ch = -1;
+	uint64_t u;
 
 	if (cg) /* sr_config_set will validate cg using config_list */
 		ch = ((struct sr_channel *)cg->channels->data)->index;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SAMPLERATE:
-		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  samplerates, ARRAY_SIZE(samplerates));
-		if (i == -1)
-			ret = SR_ERR_ARG;
-		else
-			devc->rate = i;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(samplerates))) < 0)
+			return SR_ERR_ARG;
+		devc->rate = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  trigger_sources, ARRAY_SIZE(trigger_sources));
-		if (i == -1)
-			ret = SR_ERR_ARG;
-		else
-			devc->cctl[0] = (devc->cctl[0] & 0x3F)
-				      | trigger_sources_map[i];
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->cctl[0] = (devc->cctl[0] & 0x3F) | trigger_sources_map[idx];
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  trigger_slopes, ARRAY_SIZE(trigger_slopes));
-		if (i == -1)
-			ret = SR_ERR_ARG;
-		else
-			devc->edge = i;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
+			return SR_ERR_ARG;
+		devc->edge = idx;
 		break;
 	case SR_CONF_BUFFERSIZE:
-		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  buffersizes, ARRAY_SIZE(buffersizes));
-		if (i == -1)
-			ret = SR_ERR_ARG;
-		else
-			devc->last_step = i;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(buffersizes))) < 0)
+			return SR_ERR_ARG;
+		devc->last_step = idx;
 		break;
 	case SR_CONF_VDIV:
-		if (ch == -1) {
-			ret = SR_ERR_CHANNEL_GROUP;
-		} else if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)"))) {
-			ret = SR_ERR_ARG;
-		} else {
-			g_variant_get(data, "(tt)", &u, &v);
-			for (i = 0; i < (int)ARRAY_SIZE(vdivs); i++)
-				if (vdivs[i][0] == u && vdivs[i][1] == v)
-					break;
-			if (i == ARRAY_SIZE(vdivs))
-				ret = SR_ERR_ARG;
-			else
-				devc->cctl[ch] = (devc->cctl[ch] & 0xCC)
-					       | vdivs_map[i];
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)")))
+			return SR_ERR_ARG;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			return SR_ERR_ARG;
+		devc->cctl[ch] = (devc->cctl[ch] & 0xCC) | vdivs_map[idx];
 		break;
 	case SR_CONF_COUPLING:
-		if (ch == -1) {
-			ret = SR_ERR_CHANNEL_GROUP;
-		} else {
-			i = find_in_array(data, G_VARIANT_TYPE_STRING,
-					  coupling, ARRAY_SIZE(coupling));
-			if (i == -1)
-				ret = SR_ERR_ARG;
-			else
-				devc->cctl[ch] = (devc->cctl[ch] & 0xF3)
-					       | coupling_map[i];
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
+			return SR_ERR_ARG;
+		devc->cctl[ch] = (devc->cctl[ch] & 0xF3) | coupling_map[idx];
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (ch == -1) {
-			ret = SR_ERR_CHANNEL_GROUP;
-		} else {
-			u = g_variant_get_uint64(data);
-			if (!u)
-				ret = SR_ERR_ARG;
-			else
-				devc->probe[ch] = u;
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		u = g_variant_get_uint64(data);
+		if (!u)
+			return SR_ERR_ARG;
+		devc->probe[ch] = u;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_channel_set(const struct sr_dev_inst *sdi,
-			      struct sr_channel *ch,
-			      unsigned int changes)
+	struct sr_channel *ch, unsigned int changes)
 {
 	struct dev_context *devc = sdi->priv;
 	uint8_t v;
 
-	if (changes & SR_CHANNEL_SET_ENABLED) {
-		if (ch->enabled) {
-			v = devc->channel | (1 << ch->index);
-			if (v & (v - 1))
-				return SR_ERR;
-			devc->channel = v;
-			devc->enabled_channel->data = ch;
-		} else {
-			devc->channel &= ~(1 << ch->index);
-		}
+	if (!(changes & SR_CHANNEL_SET_ENABLED))
+		return SR_OK;
+
+	if (ch->enabled) {
+		v = devc->channel | (1 << ch->index);
+		if (v & (v - 1))
+			return SR_ERR;
+		devc->channel = v;
+		devc->enabled_channel->data = ch;
+	} else {
+		devc->channel &= ~(1 << ch->index);
 	}
+
 	return SR_OK;
 }
 
@@ -548,9 +434,6 @@ static int config_commit(const struct sr_dev_inst *sdi)
 {
 	uint8_t state = hung_chang_dso_2100_read_mbox(sdi->conn, 0.02);
 	int ret;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	switch (state) {
 	case 0x03:
@@ -560,10 +443,12 @@ static int config_commit(const struct sr_dev_inst *sdi)
 		break;
 	case 0x00:
 		state = 0x01;
+		/* Fallthrough */
 	default:
 		ret = hung_chang_dso_2100_move_to(sdi, 1);
 		if (ret != SR_OK)
 			return ret;
+		/* Fallthrough */
 	case 0x01:
 		hung_chang_dso_2100_write_mbox(sdi->conn, 4);
 	}
@@ -573,16 +458,13 @@ static int config_commit(const struct sr_dev_inst *sdi)
 	return hung_chang_dso_2100_move_to(sdi, state);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariantBuilder gvb;
-	GVariant *gvar, *rational[2];
 	GSList *l;
-	int i;
 
 	switch (key) {
-		case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -608,49 +490,29 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NO_OPTS, NO_OPTS);
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else if (!cg)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					cgopts, ARRAY_SIZE(cgopts), sizeof(uint32_t));
+		if (!cg)
+			return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
+		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 		break;
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = g_variant_new_strv(trigger_sources, ARRAY_SIZE(trigger_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_BUFFERSIZE:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				buffersizes, ARRAY_SIZE(buffersizes), sizeof(uint64_t));
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(buffersizes));
 		break;
 	case SR_CONF_VDIV:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < (int)ARRAY_SIZE(vdivs); i++) {
-			rational[0] = g_variant_new_uint64(vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(vdivs[i][1]);
-			gvar = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 		break;
 	case SR_CONF_COUPLING:
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	}
 
@@ -661,9 +523,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	int ret;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	if (devc->channel) {
 		static const float res_array[] = {0.5, 1, 2, 5};
@@ -690,21 +549,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_end(sdi);
 	sr_session_source_remove(sdi->session, -1);
 	hung_chang_dso_2100_move_to(sdi, 1);
 
 	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return hung_chang_dso_2100_dev_acquisition_stop(sdi);
 }
 
 static struct sr_dev_driver hung_chang_dso_2100_driver_info = {

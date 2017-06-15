@@ -34,7 +34,7 @@
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
-	SR_CONF_SERIALCOMM
+	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t drvopts[] = {
@@ -53,7 +53,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t analog_devopts[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -126,56 +126,30 @@ static const uint64_t vdivs[][2] = {
 	{ 100, 1 },
 };
 
-#define NUM_TIMEBASE  ARRAY_SIZE(timebases)
-#define NUM_VDIV      ARRAY_SIZE(vdivs)
+static const char *trigger_sources_2_chans[] = {
+	"CH1", "CH2",
+	"EXT", "AC Line",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
 
-static const char *trigger_sources[] = {
-	"CH1",
-	"CH2",
-	"CH3",
-	"CH4",
-	"EXT",
-	"AC Line",
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
-	"D8",
-	"D9",
-	"D10",
-	"D11",
-	"D12",
-	"D13",
-	"D14",
-	"D15",
+static const char *trigger_sources_4_chans[] = {
+	"CH1", "CH2", "CH3", "CH4",
+	"EXT", "AC Line",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
 static const char *trigger_slopes[] = {
-	"r",
-	"f",
+	"r", "f",
 };
 
 static const char *coupling[] = {
-	"AC",
-	"DC",
-	"GND",
+	"AC", "DC", "GND",
 };
 
 static const uint64_t probe_factor[] = {
-	1,
-	2,
-	5,
-	10,
-	20,
-	50,
-	100,
-	200,
-	500,
-	1000,
+	1, 2, 5, 10, 20, 50, 100, 200, 500, 1000,
 };
 
 /* Do not change the order of entries */
@@ -183,6 +157,16 @@ static const char *data_sources[] = {
 	"Live",
 	"Memory",
 	"Segmented",
+};
+
+static const struct rigol_ds_command std_cmd[] = {
+	{ CMD_GET_HORIZ_TRIGGERPOS, ":TIM:OFFS?" },
+	{ CMD_SET_HORIZ_TRIGGERPOS, ":TIM:OFFS %s" },
+};
+
+static const struct rigol_ds_command mso7000a_cmd[] = {
+	{ CMD_GET_HORIZ_TRIGGERPOS, ":TIM:POS?" },
+	{ CMD_SET_HORIZ_TRIGGERPOS, ":TIM:POS %s" },
 };
 
 enum vendor {
@@ -197,6 +181,8 @@ enum series {
 	DS2000A,
 	DSO1000,
 	DS1000Z,
+	DS4000,
+	MSO7000A,
 };
 
 /* short name, full name */
@@ -206,8 +192,8 @@ static const struct rigol_ds_vendor supported_vendors[] = {
 };
 
 #define VENDOR(x) &supported_vendors[x]
-/* vendor, series, protocol, max timebase, min vdiv, number of horizontal divs,
- * live waveform samples, memory buffer samples */
+/* vendor, series/name, protocol, data format, max timebase, min vdiv,
+ * number of horizontal divs, live waveform samples, memory buffer samples */
 static const struct rigol_ds_series supported_series[] = {
 	[VS5000] = {VENDOR(RIGOL), "VS5000", PROTOCOL_V1, FORMAT_RAW,
 		{50, 1}, {2, 1000}, 14, 2048, 0},
@@ -221,66 +207,78 @@ static const struct rigol_ds_series supported_series[] = {
 		{50, 1}, {2, 1000}, 12, 600, 20480},
 	[DS1000Z] = {VENDOR(RIGOL), "DS1000Z", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {1, 1000}, 12, 1200, 12000000},
+	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V4, FORMAT_IEEE488_2,
+		{1000, 1}, {1, 1000}, 14, 1400, 14000},
+	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
+		{50, 1}, {2, 1000}, 10, 1000, 8000000},
 };
 
 #define SERIES(x) &supported_series[x]
+/*
+ * Use a macro to select the correct list of trigger sources and its length
+ * based on the number of analog channels and presence of digital channels.
+ */
+#define CH_INFO(num, digital) \
+	num, digital, trigger_sources_##num##_chans, \
+	digital ? ARRAY_SIZE(trigger_sources_##num##_chans) : (num + 2)
 /* series, model, min timebase, analog channels, digital */
 static const struct rigol_ds_model supported_models[] = {
-	{SERIES(VS5000), "VS5022", {20, 1000000000}, 2, false},
-	{SERIES(VS5000), "VS5042", {10, 1000000000}, 2, false},
-	{SERIES(VS5000), "VS5062", {5, 1000000000}, 2, false},
-	{SERIES(VS5000), "VS5102", {2, 1000000000}, 2, false},
-	{SERIES(VS5000), "VS5202", {2, 1000000000}, 2, false},
-	{SERIES(VS5000), "VS5022D", {20, 1000000000}, 2, true},
-	{SERIES(VS5000), "VS5042D", {10, 1000000000}, 2, true},
-	{SERIES(VS5000), "VS5062D", {5, 1000000000}, 2, true},
-	{SERIES(VS5000), "VS5102D", {2, 1000000000}, 2, true},
-	{SERIES(VS5000), "VS5202D", {2, 1000000000}, 2, true},
-	{SERIES(DS1000), "DS1052E", {5, 1000000000}, 2, false},
-	{SERIES(DS1000), "DS1102E", {2, 1000000000}, 2, false},
-	{SERIES(DS1000), "DS1152E", {2, 1000000000}, 2, false},
-	{SERIES(DS1000), "DS1052D", {5, 1000000000}, 2, true},
-	{SERIES(DS1000), "DS1102D", {2, 1000000000}, 2, true},
-	{SERIES(DS1000), "DS1152D", {2, 1000000000}, 2, true},
-	{SERIES(DS2000), "DS2072", {5, 1000000000}, 2, false},
-	{SERIES(DS2000), "DS2102", {5, 1000000000}, 2, false},
-	{SERIES(DS2000), "DS2202", {2, 1000000000}, 2, false},
-	{SERIES(DS2000), "DS2302", {1, 1000000000}, 2, false},
-	{SERIES(DS2000A), "DS2072A", {5, 1000000000}, 2, false},
-	{SERIES(DS2000A), "DS2102A", {5, 1000000000}, 2, false},
-	{SERIES(DS2000A), "DS2202A", {2, 1000000000}, 2, false},
-	{SERIES(DS2000A), "DS2302A", {1, 1000000000}, 2, false},
-	{SERIES(DS2000A), "MSO2072A", {5, 1000000000}, 2, true},
-	{SERIES(DS2000A), "MSO2102A", {5, 1000000000}, 2, true},
-	{SERIES(DS2000A), "MSO2202A", {2, 1000000000}, 2, true},
-	{SERIES(DS2000A), "MSO2302A", {1, 1000000000}, 2, true},
-	{SERIES(DSO1000), "DSO1002A", {5, 1000000000}, 2, false},
-	{SERIES(DSO1000), "DSO1004A", {5, 1000000000}, 4, false},
-	{SERIES(DSO1000), "DSO1012A", {2, 1000000000}, 2, false},
-	{SERIES(DSO1000), "DSO1014A", {2, 1000000000}, 4, false},
-	{SERIES(DSO1000), "DSO1022A", {2, 1000000000}, 2, false},
-	{SERIES(DSO1000), "DSO1024A", {2, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1054Z", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1074Z", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1104Z", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1074Z-S", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1074Z Plus", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "DS1104Z Plus", {5, 1000000000}, 4, false},
-	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, 4, true},
-	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, 4, true},
-	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, 4, true},
-	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, 4, true},
+	{SERIES(VS5000), "VS5022", {20, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5042", {10, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5062", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5102", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5022D", {20, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5042D", {10, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5062D", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5102D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5202D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1052E", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1102E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1152E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1052D", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1102D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1152D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000), "DS2072", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2102", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2302", {1, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2072A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2102A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2202A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2302A", {1, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "MSO2072A", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2102A", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2202A", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2302A", {1, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DSO1000), "DSO1002A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1004A", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DSO1000), "DSO1012A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1014A", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DSO1000), "DSO1022A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1024A", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1054Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z-S", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false), std_cmd},
+	/* TODO: Digital channels are not yet supported on MSO7000A. */
+	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
 	unsigned int i;
 
-	devc = priv;
 	g_free(devc->data);
 	g_free(devc->buffer);
 	for (i = 0; i < ARRAY_SIZE(devc->coupling); i++)
@@ -288,12 +286,11 @@ static void clear_helper(void *priv)
 	g_free(devc->trigger_source);
 	g_free(devc->trigger_slope);
 	g_free(devc->analog_groups);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
@@ -400,18 +397,18 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 				devc->digital_group);
 	}
 
-	for (i = 0; i < NUM_TIMEBASE; i++) {
+	for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 		if (!memcmp(&devc->model->min_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->timebases = &timebases[i];
 		if (!memcmp(&devc->model->series->max_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->num_timebases = &timebases[i] - devc->timebases + 1;
 	}
 
-	for (i = 0; i < NUM_VDIV; i++) {
+	for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 		if (!memcmp(&devc->model->series->min_vdiv,
 					&vdivs[i], sizeof(uint64_t[2]))) {
 			devc->vdivs = &vdivs[i];
-			devc->num_vdivs = NUM_VDIV - i;
+			devc->num_vdivs = ARRAY_SIZE(vdivs) - i;
 		}
 	}
 
@@ -445,8 +442,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
@@ -455,22 +450,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	scpi = sdi->conn;
 	devc = sdi->priv;
+
+	if (!scpi)
+		return SR_ERR_BUG;
 
 	if (devc->model->series->protocol == PROTOCOL_V2)
 		rigol_ds_config_set(sdi, ":KEY:LOCK DISABLE");
 
-	if (scpi) {
-		if (sr_scpi_close(scpi) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
-	}
-
-	return SR_OK;
+	return sr_scpi_close(scpi);
 }
 
 static int analog_frame_size(const struct sr_dev_inst *sdi)
@@ -513,8 +502,8 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 	}
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -657,21 +646,17 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
+	uint64_t p;
 	double t_dbl;
-	unsigned int i, j;
-	int ret;
+	int ret, idx, i;
 	const char *tmp_str;
 	char buffer[16];
 
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	/* If a channel group is specified, it must be a valid one. */
 	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
@@ -679,24 +664,16 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR;
 	}
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_str = g_variant_get_string(data, NULL);
-
-		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r')) {
-			sr_err("Unknown trigger slope: '%s'.",
-			       (tmp_str) ? tmp_str : "NULL");
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 			return SR_ERR_ARG;
-		}
-
 		g_free(devc->trigger_slope);
-		devc->trigger_slope = g_strdup((tmp_str[0] == 'r') ? "POS" : "NEG");
-		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
-		break;
+		devc->trigger_slope = g_strdup((trigger_slopes[idx][0] == 'r') ? "POS" : "NEG");
+		return rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
 		if (t_dbl < 0.0 || t_dbl > 1.0) {
@@ -708,127 +685,73 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
-		ret = rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
-		break;
+		return rigol_ds_config_set(sdi,
+			devc->model->cmds[CMD_SET_HORIZ_TRIGGERPOS].str, buffer);
 	case SR_CONF_TRIGGER_LEVEL:
 		t_dbl = g_variant_get_double(data);
 		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", t_dbl);
 		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:LEV %s", buffer);
 		if (ret == SR_OK)
 			devc->trigger_level = t_dbl;
-		break;
+		return ret;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < devc->num_timebases; i++) {
-			if (devc->timebases[i][0] == p && devc->timebases[i][1] == q) {
-				devc->timebase = (float)p / q;
-				g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
-				                devc->timebase);
-				ret = rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
-				break;
-			}
-		}
-		if (i == devc->num_timebases) {
-			sr_err("Invalid timebase index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
-		break;
+		if ((idx = std_u64_tuple_idx(data, devc->timebases, devc->num_timebases)) < 0)
+			return SR_ERR_ARG;
+		devc->timebase = (float)devc->timebases[idx][0] / devc->timebases[idx][1];
+		g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
+		                devc->timebase);
+		return rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
 	case SR_CONF_TRIGGER_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(trigger_sources); i++) {
-			if (!strcmp(trigger_sources[i], tmp_str)) {
-				g_free(devc->trigger_source);
-				devc->trigger_source = g_strdup(trigger_sources[i]);
-				if (!strcmp(devc->trigger_source, "AC Line"))
-					tmp_str = "ACL";
-				else if (!strcmp(devc->trigger_source, "CH1"))
-					tmp_str = "CHAN1";
-				else if (!strcmp(devc->trigger_source, "CH2"))
-					tmp_str = "CHAN2";
-				else if (!strcmp(devc->trigger_source, "CH3"))
-					tmp_str = "CHAN3";
-				else if (!strcmp(devc->trigger_source, "CH4"))
-					tmp_str = "CHAN4";
-				else
-					tmp_str = (char *)devc->trigger_source;
-				ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
-				break;
-			}
-		}
-		if (i == ARRAY_SIZE(trigger_sources)) {
-			sr_err("Invalid trigger source index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
-		break;
+		if ((idx = std_str_idx(data, devc->model->trigger_sources, devc->model->num_trigger_sources)) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->trigger_source);
+		devc->trigger_source = g_strdup(devc->model->trigger_sources[idx]);
+		if (!strcmp(devc->trigger_source, "AC Line"))
+			tmp_str = "ACL";
+		else if (!strcmp(devc->trigger_source, "CH1"))
+			tmp_str = "CHAN1";
+		else if (!strcmp(devc->trigger_source, "CH2"))
+			tmp_str = "CHAN2";
+		else if (!strcmp(devc->trigger_source, "CH3"))
+			tmp_str = "CHAN3";
+		else if (!strcmp(devc->trigger_source, "CH4"))
+			tmp_str = "CHAN4";
+		else
+			tmp_str = (char *)devc->trigger_source;
+		return rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
 	case SR_CONF_VDIV:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
-					if (vdivs[j][0] != p || vdivs[j][1] != q)
-						continue;
-					devc->vdiv[i] = (float)p / q;
-					g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
-					                devc->vdiv[i]);
-					return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
-							buffer);
-				}
-				sr_err("Invalid vdiv index: %d.", j);
-				return SR_ERR_ARG;
-			}
-		}
-		sr_dbg("Didn't set vdiv, unknown channel(group).");
-		return SR_ERR_NA;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			return SR_ERR_ARG;
+		devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
+		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", devc->vdiv[i]);
+		return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1, buffer);
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
-					if (!strcmp(tmp_str, coupling[j])) {
-						g_free(devc->coupling[i]);
-						devc->coupling[i] = g_strdup(coupling[j]);
-						return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1,
-								devc->coupling[i]);
-					}
-				}
-				sr_err("Invalid coupling index: %d.", j);
-				return SR_ERR_ARG;
-			}
-		}
-		sr_dbg("Didn't set coupling, unknown channel(group).");
-		return SR_ERR_NA;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->coupling[i]);
+		devc->coupling[i] = g_strdup(coupling[idx]);
+		return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1, devc->coupling[i]);
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
+			return SR_ERR_ARG;
 		p = g_variant_get_uint64(data);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(probe_factor); j++) {
-					if (p == probe_factor[j]) {
-						devc->attenuation[i] = p;
-						ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64,
-						                          i + 1, p);
-						if (ret == SR_OK)
-							rigol_ds_get_dev_cfg_vertical(sdi);
-						return ret;
-					}
-				}
-				sr_err("Invalid probe factor: %"PRIu64".", p);
-				return SR_ERR_ARG;
-			}
-		}
-		sr_dbg("Didn't set probe factor, unknown channel(group).");
-		return SR_ERR_NA;
+		devc->attenuation[i] = probe_factor[idx];
+		ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64, i + 1, p);
+		if (ret == SR_OK)
+			rigol_ds_get_dev_cfg_vertical(sdi);
+		return ret;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
 		if (!strcmp(tmp_str, "Live"))
@@ -848,97 +771,50 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-	struct dev_context *devc = NULL;
+	struct dev_context *devc;
 
-	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* Every other option requires a valid device instance. */
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
-
-	/* If a channel group is specified, it must be a valid one. */
-	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
-		sr_err("Invalid channel group specified.");
-		return SR_ERR;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!cg) {
-			/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-			 * specific to a channel group must be returned. */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			return SR_OK;
-		}
+		if (!cg)
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		if (!devc)
+			return SR_ERR_ARG;
 		if (cg == devc->digital_group) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				NULL, 0, sizeof(uint32_t));
+			*data = std_gvar_array_u32(NULL, 0);
 			return SR_OK;
 		} else {
-			for (i = 0; i < devc->model->analog_channels; i++) {
-				if (cg == devc->analog_groups[i]) {
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						analog_devopts, ARRAY_SIZE(analog_devopts), sizeof(uint32_t));
-					return SR_OK;
-				}
-			}
-			return SR_ERR_NA;
+			if (std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels) < 0)
+				return SR_ERR_ARG;
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
+			return SR_OK;
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(probe_factor));
 		break;
 	case SR_CONF_VDIV:
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->num_vdivs; i++) {
-			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(devc->vdivs[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(devc->vdivs, devc->num_vdivs);
 		break;
 	case SR_CONF_TIMEBASE:
 		if (!devc)
@@ -946,24 +822,16 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_ARG;
 		if (devc->num_timebases <= 0)
 			return SR_ERR_NA;
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->num_timebases; i++) {
-			rational[0] = g_variant_new_uint64(devc->timebases[i][0]);
-			rational[1] = g_variant_new_uint64(devc->timebases[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(devc->timebases, devc->num_timebases);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		*data = g_variant_new_strv(trigger_sources,
-				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
+		*data = g_variant_new_strv(devc->model->trigger_sources, devc->model->num_trigger_sources);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (!devc)
@@ -977,7 +845,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		default:
-			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
 		break;
@@ -996,9 +864,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_datafeed_packet packet;
 	gboolean some_digital;
 	GSList *l;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -1118,11 +983,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
 
 	std_session_send_df_end(sdi);
 

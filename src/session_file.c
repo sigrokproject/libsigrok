@@ -167,7 +167,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 
 	return SR_OK;
 }
- 
+
 /** @private */
 SR_PRIV struct sr_dev_inst *sr_session_prepare_sdi(const char *filename, struct sr_session **session)
 {
@@ -175,7 +175,7 @@ SR_PRIV struct sr_dev_inst *sr_session_prepare_sdi(const char *filename, struct 
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->driver = &session_driver;
-	sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 	if (!session_driver_initialized) {
 		/* first device, init the driver */
 		session_driver_initialized = 1;

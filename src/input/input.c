@@ -29,6 +29,8 @@
 #define LOG_PREFIX "input"
 /** @endcond */
 
+#define CHUNK_SIZE	(4 * 1024 * 1024)
+
 /**
  * @file
  *
@@ -66,6 +68,8 @@ extern SR_PRIV struct sr_input_module input_trace32_ad;
 extern SR_PRIV struct sr_input_module input_vcd;
 extern SR_PRIV struct sr_input_module input_wav;
 extern SR_PRIV struct sr_input_module input_raw_analog;
+extern SR_PRIV struct sr_input_module input_logicport;
+extern SR_PRIV struct sr_input_module input_null;
 /* @endcond */
 
 static const struct sr_input_module *input_module_list[] = {
@@ -76,6 +80,8 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_vcd,
 	&input_wav,
 	&input_raw_analog,
+	&input_logicport,
+	&input_null,
 	NULL,
 };
 
@@ -334,11 +340,15 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * Try to find an input module that can parse the given buffer.
  *
  * The buffer must contain enough of the beginning of the file for
- * the input modules to find a match. This is format-dependent, but
- * 128 bytes is normally enough.
+ * the input modules to find a match. This is format-dependent. When
+ * magic strings get checked, 128 bytes normally could be enough. Note
+ * that some formats try to parse larger header sections, and benefit
+ * from seeing a larger scope.
  *
  * If an input module is found, an instance is created into *in.
- * Otherwise, *in contains NULL.
+ * Otherwise, *in contains NULL. When multiple input moduless claim
+ * support for the format, the one with highest confidence takes
+ * precedence. Applications will see at most one input module spec.
  *
  * If an instance is created, it has the given buffer used for scanning
  * already submitted to it, to be processed before more data is sent.
@@ -349,9 +359,10 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  */
 SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 {
-	const struct sr_input_module *imod;
+	const struct sr_input_module *imod, *best_imod;
 	GHashTable *meta;
 	unsigned int m, i;
+	unsigned int conf, best_conf;
 	int ret;
 	uint8_t mitem, avail_metadata[8];
 
@@ -360,7 +371,8 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 	avail_metadata[1] = 0;
 
 	*in = NULL;
-	ret = SR_ERR;
+	best_imod = NULL;
+	best_conf = ~0;
 	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
@@ -384,45 +396,55 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 			continue;
 		}
 		sr_spew("Trying module %s.", imod->id);
-		ret = imod->format_match(meta);
+		ret = imod->format_match(meta, &conf);
 		g_hash_table_destroy(meta);
 		if (ret == SR_ERR_DATA) {
 			/* Module recognized this buffer, but cannot handle it. */
-			break;
+			continue;
 		} else if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
 			/* Can be SR_ERR_NA. */
-			return ret;
+			continue;
 		}
 
 		/* Found a matching module. */
-		sr_spew("Module %s matched.", imod->id);
-		*in = sr_input_new(imod, NULL);
-		g_string_insert_len((*in)->buf, 0, buf->str, buf->len);
-		break;
+		sr_spew("Module %s matched, confidence %u.", imod->id, conf);
+		if (conf >= best_conf)
+			continue;
+		best_imod = imod;
+		best_conf = conf;
 	}
 
-	return ret;
+	if (best_imod) {
+		*in = sr_input_new(best_imod, NULL);
+		g_string_insert_len((*in)->buf, 0, buf->str, buf->len);
+		return SR_OK;
+	}
+
+	return SR_ERR;
 }
 
 /**
  * Try to find an input module that can parse the given file.
  *
  * If an input module is found, an instance is created into *in.
- * Otherwise, *in contains NULL.
+ * Otherwise, *in contains NULL. When multiple input moduless claim
+ * support for the format, the one with highest confidence takes
+ * precedence. Applications will see at most one input module spec.
  *
  */
 SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 {
 	int64_t filesize;
 	FILE *stream;
-	const struct sr_input_module *imod;
+	const struct sr_input_module *imod, *best_imod;
 	GHashTable *meta;
 	GString *header;
 	size_t count;
 	unsigned int midx, i;
+	unsigned int conf, best_conf;
 	int ret;
 	uint8_t avail_metadata[8];
 
@@ -444,11 +466,9 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 		fclose(stream);
 		return SR_ERR;
 	}
-	/* This actually allocates 256 bytes to allow for NUL termination. */
-	header = g_string_sized_new(255);
+	header = g_string_sized_new(CHUNK_SIZE);
 	count = fread(header->str, 1, header->allocated_len - 1, stream);
-
-	if (count != header->allocated_len - 1 && ferror(stream)) {
+	if (count < 1 || ferror(stream)) {
 		sr_err("Failed to read %s: %s", filename, g_strerror(errno));
 		fclose(stream);
 		g_string_free(header, TRUE);
@@ -471,8 +491,8 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 	avail_metadata[midx] = 0;
 	/* TODO: MIME type */
 
-	ret = SR_ERR;
-
+	best_imod = NULL;
+	best_conf = ~0;
 	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
@@ -486,24 +506,46 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 
 		sr_dbg("Trying module %s.", imod->id);
 
-		ret = imod->format_match(meta);
+		ret = imod->format_match(meta, &conf);
 		if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
 			/* Module recognized this buffer, but cannot handle it. */
-			break;
+			continue;
 		}
 		/* Found a matching module. */
-		sr_dbg("Module %s matched.", imod->id);
-
-		*in = sr_input_new(imod, NULL);
-		break;
+		sr_dbg("Module %s matched, confidence %u.", imod->id, conf);
+		if (conf >= best_conf)
+			continue;
+		best_imod = imod;
+		best_conf = conf;
 	}
 	g_hash_table_destroy(meta);
 	g_string_free(header, TRUE);
 
-	return ret;
+	if (best_imod) {
+		*in = sr_input_new(best_imod, NULL);
+		return SR_OK;
+	}
+
+	return SR_ERR;
+}
+
+/**
+ * Return the input instance's module "class". This can be used to find out
+ * which input module handles a specific input file. This is especially
+ * useful when an application did not create the input stream by specifying
+ * an input module, but instead some shortcut or convenience wrapper did.
+ *
+ * @since 0.6.0
+ */
+SR_API const struct sr_input_module *sr_input_module_get(const struct sr_input *in)
+{
+	if (!in)
+		return NULL;
+
+	return in->module;
 }
 
 /**
@@ -540,8 +582,10 @@ SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
  */
 SR_API int sr_input_send(const struct sr_input *in, GString *buf)
 {
-	sr_spew("Sending %" G_GSIZE_FORMAT " bytes to %s module.",
-		buf->len, in->module->id);
+	size_t len;
+
+	len = buf ? buf->len : 0;
+	sr_spew("Sending %zu bytes to %s module.", len, in->module->id);
 	return in->module->receive((struct sr_input *)in, buf);
 }
 
@@ -568,16 +612,49 @@ SR_API int sr_input_end(const struct sr_input *in)
  *
  * @since 0.5.0
  */
-SR_API int sr_input_reset(const struct sr_input *in)
+SR_API int sr_input_reset(const struct sr_input *in_ro)
 {
-	if (!in->module->reset) {
+	struct sr_input *in;
+	int rc;
+
+	in = (struct sr_input *)in_ro;	/* "un-const" */
+	if (!in || !in->module)
+		return SR_ERR_ARG;
+
+	/*
+	 * Run the optional input module's .reset() method. This shall
+	 * take care of the context (kept in the 'inc' variable).
+	 */
+	if (in->module->reset) {
+		sr_spew("Resetting %s module.", in->module->id);
+		rc = in->module->reset(in);
+	} else {
 		sr_spew("Tried to reset %s module but no reset handler found.",
 			in->module->id);
-		return SR_OK;
+		rc = SR_OK;
 	}
 
-	sr_spew("Resetting %s module.", in->module->id);
-	return in->module->reset((struct sr_input *)in);
+	/*
+	 * Handle input module status (kept in the 'in' variable) here
+	 * in common logic. This agrees with how input module's receive()
+	 * and end() routines "amend but never seed" the 'in' information.
+	 *
+	 * Void potentially accumulated receive() buffer content, and
+	 * clear the sdi_ready flag. This makes sure that subsequent
+	 * processing will scan the header again before sample data gets
+	 * interpreted, and stale content from previous calls won't affect
+	 * the result.
+	 *
+	 * This common logic does not harm when the input module implements
+	 * .reset() and contains identical assignments. In the absence of
+	 * an individual .reset() method, simple input modules can completely
+	 * rely on common code and keep working across resets.
+	 */
+	if (in->buf)
+		g_string_truncate(in->buf, 0);
+	in->sdi_ready = FALSE;
+
+	return rc;
 }
 
 /**
@@ -590,8 +667,19 @@ SR_API void sr_input_free(const struct sr_input *in)
 	if (!in)
 		return;
 
+	/*
+	 * Run the input module's optional .cleanup() routine. This
+	 * takes care of the context (kept in the 'inc' variable).
+	 */
 	if (in->module->cleanup)
 		in->module->cleanup((struct sr_input *)in);
+
+	/*
+	 * Common code releases the input module's state (kept in the
+	 * 'in' variable). Release the device instance, the receive()
+	 * buffer, the shallow 'in->priv' block which is 'inc' (after
+	 * .cleanup() released potentially nested resources under 'inc').
+	 */
 	sr_dev_inst_free(in->sdi);
 	if (in->buf->len > 64) {
 		/* That seems more than just some sub-unitsize leftover... */

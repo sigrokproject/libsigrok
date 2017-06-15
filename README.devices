@@ -14,6 +14,7 @@ the device is connected to the PC (usually via USB), before it can be used.
 
 The default locations where libsigrok expects the firmware files are:
 
+  $SIGROK_FIRMWARE_DIR (environment variable)
   $HOME/.local/share/sigrok-firmware
   $prefix/share/sigrok-firmware
   /usr/local/share/sigrok-firmware
@@ -114,6 +115,7 @@ The following drivers/devices do not need any firmware upload:
  - scpi-pps
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
+ - siglent-sds
  - teleinfo
  - testo
  - tondaj-sl-814
@@ -138,7 +140,8 @@ Example:
 
  $ sigrok-cli --driver <somedriver>:conn=/dev/ttyUSB0 ...
 
-The following drivers/devices require a serial port specification:
+The following drivers/devices require a serial port specification. Some of
+the drivers implement a default for the connection.
 
  - agilent-dmm
  - appa-55ii
@@ -183,6 +186,21 @@ The following drivers/devices do not require a serial port specification:
  - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
 
+Beyond strict serial communication over COM ports (e.g. /dev/ttyUSB0), the
+conn= property can also address specific USB devices, as well as specify TCP
+or VXI communication parameters. See these examples:
+
+ $ sigrok-cli --driver <somedriver>:conn=<vid>.<pid> ...
+ $ sigrok-cli --driver <somedriver>:conn=tcp-raw/<ipaddr>/<port> ...
+ $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
+
+The following drivers/devices accept network communication parameters:
+
+ - hameg-hmo
+ - rigol-ds
+ - siglent-sds
+ - yokogawa-dlm
+
 
 Specifying serial port parameters
 ---------------------------------
@@ -212,33 +230,39 @@ For USB-to-serial based devices, we recommended using our udev rules file
 (see below for details).
 
 
-Permissions for USB devices (udev rules file)
----------------------------------------------
+Permissions for USB devices (udev rules files)
+----------------------------------------------
 
 When using USB-based devices supported by libsigrok, the user running the
 libsigrok frontend (e.g. sigrok-cli) has to have (read/write) permissions
 for the respective USB device.
 
-On Linux, this is accomplished using either 'chmod' (not recommended) or
-using the udev rules file shipped with libsigrok (recommended).
+On Linux, this is accomplished using udev rules. libsigrok ships a rules
+file containing all supported devices which can be detected reliably
+(generic USB-to-serial converters are omitted, as these are used for a wide
+range of devices, e.g. GPS receivers, which are not handled by libsigrok).
 
-The file is available in contrib/z60_libsigrok.rules. It contains entries
-for all libsigrok-supported (USB-based) devices and changes their group
-to 'plugdev' and the permissions to '664'.
+The file is available in contrib/60-libsigrok.rules. This file just contains
+the list of devices and flags these devices with ID_SIGROK="1". Access is
+granted by the 61-libsigrok-plugdev.rules or 61-libsigrok-uaccess.rules files,
+allowing access to members of the plugdev group or to currently logged in
+users, respectively.
 
 When using a libsigrok package from your favorite Linux distribution, the
-packager will have already taken care of properly installing the udev file
-in the correct (distro-specific) place, and you don't have to do anything.
-The packager might also have adapted 'plugdev' and '664' as needed.
+files should already be installed in /usr/lib/udev/rules.d/, i.e.
+60-libsigrok.rules and one of the access granting rules files. Use of
+61-libsigrok-uaccess.rules is encouraged on systemd distributions.
+
+The access policy can be locally overridden by placing appropriate rules in
+/etc/udev/rules.d/, disabling or ammending the default policy. See the
+udev documentation, e.g. man 7 udev, for details.
 
 If you're building from source, you need to copy the file to the place
-where your distro expects such files. This is beyond the scope of this README,
-but generally the location could be e.g. /etc/udev/rules.d, or maybe
-/lib/udev/rules.d, or something else. Afterwards you might have to restart
-udev, e.g. via '/etc/init.d/udev restart' or similar, and you'll have to
-re-attach your device via USB.
+where udev will read these rules. Local rules should go to /etc/udev/rules.d.
+Keep the file naming, otherwise interaction between the libsigrok rules and
+rules shipped by the system will be broken.
 
-Please consult the udev docs of your distro for details.
+Please consult the udev docs for details.
 
 
 Cypress FX2 based devices
@@ -349,6 +373,9 @@ a short list for convenience:
       'SI232 online' (28-29S) or 'SI232 store' (22-26x). The interface must
       be configured to the same baud rate as the host (default 9600).
       Multimeter and interface must be configured to the same address.
+ - Metrix MX56C: Press the PRINT button to have the meter send acquisition
+   data via IR. Hold the PRINT button to adjust the meter's transmission
+   interval.
  - Norma DM950: If the interface doesn't work (e.g. USB-RS232 converter), power
    on the device with "FUNC" pressed (to power the interface from the DMM).
  - PCE PCE-DM32: Briefly press the "RS232" button.

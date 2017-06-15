@@ -41,10 +41,10 @@ which provides access to the error code and description."
 %module(docstring=DOCSTRING) sigrok
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <glibmm.h>
-
-#include "config.h"
 %}
 
 %include "../swig/templates.i"

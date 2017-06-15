@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include <config.h>
+#include <string.h>
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1"
@@ -43,13 +43,11 @@ static const uint32_t devopts[] = {
 };
 
 static const char *weight_freq[] = {
-	"A",
-	"C",
+	"A", "C",
 };
 
 static const char *weight_time[] = {
-	"F",
-	"S",
+	"F", "S",
 };
 
 static const uint64_t meas_ranges[][2] = {
@@ -60,8 +58,7 @@ static const uint64_t meas_ranges[][2] = {
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -103,16 +100,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
-}
-
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *range[2];
 	uint64_t low, high;
 	uint64_t tmp;
 	int ret;
@@ -123,7 +114,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -147,11 +138,10 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR;
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		if ((ret = pce_322a_meas_range_get(sdi, &low, &high)) == SR_OK) {
-			range[0] = g_variant_new_uint64(low);
-			range[1] = g_variant_new_uint64(high);
-			*data = g_variant_new_tuple(range, 2);
-		}
+		if ((ret = pce_322a_meas_range_get(sdi, &low, &high)) == SR_OK)
+			*data = std_gvar_tuple_u64(low, high);
+		else
+			return ret;
 		break;
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
@@ -166,139 +156,77 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64, low, high;
-	unsigned int i;
-	int ret;
-	const char *tmp_str;
+	int idx;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp_u64 = g_variant_get_uint64(data);
-		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
+		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "A"))
-			ret = pce_322a_weight_freq_set(sdi,
-					SR_MQFLAG_SPL_FREQ_WEIGHT_A);
-		else if (!strcmp(tmp_str, "C"))
-			ret = pce_322a_weight_freq_set(sdi,
-					SR_MQFLAG_SPL_FREQ_WEIGHT_C);
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
-		break;
+		return pce_322a_weight_freq_set(sdi, (weight_freq[idx][0] == 'A') ?
+			SR_MQFLAG_SPL_FREQ_WEIGHT_A : SR_MQFLAG_SPL_FREQ_WEIGHT_C);
 	case SR_CONF_SPL_WEIGHT_TIME:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "F"))
-			ret = pce_322a_weight_time_set(sdi,
-					SR_MQFLAG_SPL_TIME_WEIGHT_F);
-		else if (!strcmp(tmp_str, "S"))
-			ret = pce_322a_weight_time_set(sdi,
-					SR_MQFLAG_SPL_TIME_WEIGHT_S);
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_time))) < 0)
 			return SR_ERR_ARG;
-		break;
+		return pce_322a_weight_time_set(sdi, (weight_time[idx][0] == 'F') ?
+			SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S);
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		g_variant_get(data, "(tt)", &low, &high);
-		ret = SR_ERR_ARG;
-		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
-			if (meas_ranges[i][0] == low && meas_ranges[i][1] == high) {
-				ret = pce_322a_meas_range_set(sdi, low, high);
-				break;
-			}
-		}
-		break;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(meas_ranges))) < 0)
+			return SR_ERR_ARG;
+		return pce_322a_meas_range_set(sdi, meas_ranges[idx][0], meas_ranges[idx][1]);
 	case SR_CONF_POWER_OFF:
 		if (g_variant_get_boolean(data))
-			ret = pce_322a_power_off(sdi);
+			return pce_322a_power_off(sdi);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->cur_data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->cur_data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->cur_data_source = idx;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *range[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-	int ret;
-
-	(void)cg;
-
-	ret = SR_OK;
-	if (!sdi) {
-		switch (key) {
-		case SR_CONF_SCAN_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-			break;
-		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-			break;
-		default:
-			return SR_ERR_NA;
-		}
-	} else {
-		switch (key) {
-		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
-		case SR_CONF_SPL_WEIGHT_FREQ:
-			*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
-			break;
-		case SR_CONF_SPL_WEIGHT_TIME:
-			*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
-			break;
-		case SR_CONF_SPL_MEASUREMENT_RANGE:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
-				range[0] = g_variant_new_uint64(meas_ranges[i][0]);
-				range[1] = g_variant_new_uint64(meas_ranges[i][1]);
-				tuple = g_variant_new_tuple(range, 2);
-				g_variant_builder_add_value(&gvb, tuple);
-			}
-			*data = g_variant_builder_end(&gvb);
-			break;
-		case SR_CONF_DATA_SOURCE:
-			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
-			break;
-		default:
-			return SR_ERR_NA;
-		}
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	case SR_CONF_SPL_WEIGHT_FREQ:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_freq));
+		break;
+	case SR_CONF_SPL_WEIGHT_TIME:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_time));
+		break;
+	case SR_CONF_SPL_MEASUREMENT_RANGE:
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(meas_ranges));
+		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
+		break;
+	default:
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -328,16 +256,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	devc->buffer_len = 0;
 	devc->memory_state = MEM_STATE_REQUEST_MEMORY_USAGE;
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 150ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 150,
 			pce_322a_receive_data, (void *)sdi);
@@ -353,7 +277,7 @@ static struct sr_dev_driver pce_322a_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

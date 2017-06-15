@@ -27,6 +27,8 @@
 
 #define LOG_PREFIX "output/analog"
 
+#define BIN_TO_DEC_DIGITS (log(2) / log(10))
+
 struct context {
 	int num_enabled_channels;
 	GPtrArray *channellist;
@@ -75,6 +77,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 {
 	struct context *ctx;
 	const struct sr_datafeed_analog *analog;
+	const struct sr_datafeed_meta *meta;
+	const struct sr_config *src;
+	const struct sr_key_info *srci;
 	struct sr_channel *ch;
 	GSList *l;
 	float *fdata;
@@ -94,6 +99,29 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	case SR_DF_FRAME_END:
 		*out = g_string_new("FRAME-END\n");
 		break;
+	case SR_DF_META:
+		meta = packet->payload;
+		for (l = meta->config; l; l = l->next) {
+			src = l->data;
+			if (!(srci = sr_key_info_get(SR_KEY_CONFIG, src->key)))
+				return SR_ERR;
+			*out = g_string_sized_new(512);
+			g_string_append(*out, "META ");
+			g_string_append_printf(*out, "%s: ", srci->id);
+			if (srci->datatype == SR_T_BOOL) {
+				g_string_append_printf(*out, "%u",
+					g_variant_get_boolean(src->data));
+			} else if (srci->datatype == SR_T_FLOAT) {
+				g_string_append_printf(*out, "%f",
+					g_variant_get_double(src->data));
+			} else if (srci->datatype == SR_T_UINT64) {
+				g_string_append_printf(*out, "%"
+					G_GUINT64_FORMAT,
+					g_variant_get_uint64(src->data));
+			}
+			g_string_append(*out, "\n");
+		}
+		break;
 	case SR_DF_ANALOG:
 		analog = packet->payload;
 		num_channels = g_slist_length(analog->meaning->channels);
@@ -104,15 +132,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 			return ret;
 		*out = g_string_sized_new(512);
-		if (analog->encoding->is_digits_decimal) {
-			if (ctx->digits == DIGITS_ALL)
-				digits = analog->encoding->digits;
-			else
-				digits = analog->spec->spec_digits;
-		} else {
-			/* TODO we don't know how to print by number of bits yet. */
-			digits = 6;
-		}
+		if (ctx->digits == DIGITS_ALL)
+			digits = analog->encoding->digits;
+		else
+			digits = analog->spec->spec_digits;
+		if (!analog->encoding->is_digits_decimal)
+			digits = copysign(ceil(abs(digits) * BIN_TO_DEC_DIGITS), digits);
 		gboolean si_friendly = sr_analog_si_prefix_friendly(analog->meaning->unit);
 		sr_analog_unit_to_string(analog, &suffix);
 		for (i = 0; i < analog->num_samples; i++) {
@@ -179,7 +204,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_analog = {
 	.id = "analog",
 	.name = "Analog",
-	.desc = "Analog data and types",
+	.desc = "ASCII analog data values and units",
 	.exts = NULL,
 	.flags = 0,
 	.options = get_options,

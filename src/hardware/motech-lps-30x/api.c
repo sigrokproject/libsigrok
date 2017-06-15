@@ -18,56 +18,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Motech LPS-30x series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
+
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen);
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args);
 SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...);
 SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const char *fmt, ...);
 SR_PRIV int lps_query_status(struct sr_dev_inst *sdi);
 
-/* Serial communication parameters */
 #define SERIALCOMM "2400/8n1/dtr=1/rts=1/flow=0"
 
-#define VENDOR_MOTECH "Motech"
-
-/** Driver capabilities generic. */
-static const uint32_t drvopts[] = {
-	/* Device class */
-	SR_CONF_POWER_SUPPLY,
-};
-
-/** Driver scanning options. */
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-/** Hardware capabilities generic. */
-static const uint32_t devopts[] = {
-	/* Device class */
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	/* Acquisition modes. */
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	/* Device configuration */
 	SR_CONF_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 /** Hardware capabilities channel 1, 2. */
-static const uint32_t devopts_ch12[] = {
+static const uint32_t devopts_cg_ch12[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -75,8 +57,8 @@ static const uint32_t devopts_ch12[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-/** Hardware capabilities channel 3. (LPS-304/305 only). */
-static const uint32_t devopts_ch3[] = {
+/** Hardware capabilities channel 3 (LPS-304/305 only). */
+static const uint32_t devopts_cg_ch3[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
@@ -133,8 +115,7 @@ static const struct lps_modelspec models[] = {
 	},
 };
 
-/** Send command to device with va_list.
- */
+/** Send command to device with va_list. */
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args)
 {
 	int retc;
@@ -155,8 +136,7 @@ SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_l
 	return SR_OK;
 }
 
-/** Send command to device.
- */
+/** Send command to device. */
 SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
 	int retc;
@@ -367,8 +347,7 @@ SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *b
 	return SR_ERR; /* Timeout! */
 }
 
-/** Scan for LPS-300 series device.
- */
+/** Scan for LPS-300 series device. */
 static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -385,8 +364,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	sdi = NULL;
 	devc = NULL;
 	conn = serialcomm = NULL;
-
-	sr_spew("scan() called!");
 
 	/* Process and check options. */
 	if (sr_serial_extract_options(options, &conn, &serialcomm) != SR_OK)
@@ -444,7 +421,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(VENDOR_MOTECH);
+	sdi->vendor = g_strdup("Motech");
 	sdi->model = g_strdup(models[modelid].modelstr);
 	sdi->version = g_strdup(verstr);
 	sdi->inst_type = SR_INST_SERIAL;
@@ -464,7 +441,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		devc->channel_status[cnt].info = g_slist_append(NULL, ch);
 
 		cg = g_malloc(sizeof(struct sr_channel_group));
-		snprintf(channel, sizeof(channel), "CG%d", cnt+1);
+		snprintf(channel, sizeof(channel), "CG%d", cnt + 1);
 		cg->name = g_strdup(channel);
 		cg->priv = NULL;
 		cg->channels = g_slist_append(NULL, ch);
@@ -498,7 +475,7 @@ static GSList *scan_lps301(struct sr_dev_driver *di, GSList *options)
 	return do_scan(LPS_301, di, options);
 }
 
-static void dev_clear_private(struct dev_context *devc)
+static void clear_helper(struct dev_context *devc)
 {
 	int ch_idx;
 
@@ -507,13 +484,13 @@ static void dev_clear_private(struct dev_context *devc)
 		g_slist_free(devc->channel_status[ch_idx].info);
 }
 
-static int dev_clear_lps301(const struct sr_dev_driver *di)
+static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, (std_dev_clear_callback)dev_clear_private);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -525,7 +502,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	devc = sdi->priv;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_SAMPLES:
 		case SR_CONF_LIMIT_MSEC:
@@ -540,6 +516,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		ch_idx = ch->index;
+
 		switch (key) {
 		case SR_CONF_VOLTAGE:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_last);
@@ -564,20 +541,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	gdouble dval;
 	int ch_idx;
-	const char *sval;
 	gboolean bval;
 	int idx;
-	gboolean found;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -587,34 +559,25 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_NA;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_MSEC:
 		case SR_CONF_LIMIT_SAMPLES:
 			return sr_sw_limits_config_set(&devc->limits, key, data);
 		case SR_CONF_CHANNEL_CONFIG:
-			sval = g_variant_get_string(data, NULL);
-			found = FALSE;
-			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++) {
-				if (!strcmp(sval, channel_modes[idx])) {
-					found = TRUE;
-					if (devc->tracking_mode == idx)
-						break;	/* Nothing to do! */
-					devc->tracking_mode = idx;
-					if (devc->model->modelid >= LPS_304) /* No use to set anything in the smaller models. */
-						return lps_cmd_ok(sdi->conn, "TRACK%1d", devc->tracking_mode);
-				}
-				if (devc->model->modelid <= LPS_303) /* Only first setting possible for smaller models. */
-					break;
-			}
-			if (!found)
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
+			if (devc->model->modelid <= LPS_303 && idx != 0)
+				break; /* Only first setting possible for smaller models. */
+			if (devc->tracking_mode == idx)
+				break;	/* Nothing to do! */
+			devc->tracking_mode = idx;
+			if (devc->model->modelid >= LPS_304) /* No use to set anything in the smaller models. */
+				return lps_cmd_ok(sdi->conn, "TRACK%1d", devc->tracking_mode);
 			break;
 		default:
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		ch_idx = ch->index;
@@ -649,7 +612,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				return SR_ERR_NA;
 			devc->channel_status[ch_idx].output_current_max = dval;
 			return lps_cmd_ok(sdi->conn, "ISET%d %05.4f", ch_idx+1, dval);
-			break;
 		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->channel_status[ch_idx].output_enabled) /* Nothing to do. */
@@ -673,48 +635,29 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	int ch_idx, i;
-	GVariant *gvar;
-	GVariantBuilder gvb;
+	int ch_idx;
 
-	/* Driver options, no device instance necessary. */
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (sdi)
-			break;
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	default:
-		if (!sdi)
-			return SR_ERR_ARG;
-		devc = sdi->priv;
-		break;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
-	/* Device options, independent from channel groups. */
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			return SR_OK;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			if (devc->model->modelid <= LPS_303) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);
 			} else {
 				/* The other models support all modes. */
-				*data = g_variant_new_strv(channel_modes, ARRAY_SIZE(channel_modes));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_modes));
 			}
 			return SR_OK;
 		default:
@@ -722,35 +665,26 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	}
 
-	/* Device options, depending on channel groups. */
+	/* We only ever have one channel per channel group in this driver. */
 	ch = cg->channels->data;
 	ch_idx = ch->index;
+
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_ch12, ARRAY_SIZE(devopts_ch12), sizeof(uint32_t));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_ch12));
 		else /* Must be CH3 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_ch3));
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		/* Min, max, step. */
-		for (i = 0; i < 3; i++) {
-			gvar = g_variant_new_double(devc->model->channels[ch_idx].voltage[i]);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
+		*data = std_gvar_min_max_step_array(devc->model->channels[ch_idx].voltage);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		/* Min, max, step. */
-		for (i = 0; i < 3; i++) {
-			gvar = g_variant_new_double(devc->model->channels[ch_idx].current[i]);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
+		*data = std_gvar_min_max_step_array(devc->model->channels[ch_idx].current);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -763,9 +697,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -792,7 +723,7 @@ static struct sr_dev_driver motech_lps_301_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan_lps301,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear_lps301,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

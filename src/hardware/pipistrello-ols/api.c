@@ -20,8 +20,11 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
@@ -88,31 +91,24 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
-	/* Device-specific settings */
 	devc->max_samplebytes = devc->max_samplerate = devc->protocol_version = 0;
 
-	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
 	devc->channel_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
-	/* Allocate memory for the incoming ftdi data. */
 	devc->ftdi_buf = g_malloc0(FTDI_BUF_SIZE);
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
 		sr_err("Failed to initialize libftdi.");
 		goto err_free_ftdi_buf;;
 	}
 
-	/* Try to open the FTDI device */
-	if (p_ols_open(devc) != SR_OK) {
+	if (p_ols_open(devc) != SR_OK)
 		goto err_free_ftdic;
-	}
 
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere
@@ -163,7 +159,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_close_ftdic;
 	}
 
-	/* Close device. We'll reopen it again when we need it. */
 	p_ols_close(devc);
 
 	/* Parse the metadata. */
@@ -181,7 +176,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 err_close_ftdic:
 	p_ols_close(devc);
 err_free_ftdic:
-	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
+	ftdi_free(devc->ftdic);
 err_free_ftdi_buf:
 	g_free(devc->ftdi_buf);
 	g_free(devc);
@@ -189,23 +184,19 @@ err_free_ftdi_buf:
 	return NULL;
 }
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
-
 	ftdi_free(devc->ftdic);
 	g_free(devc->ftdi_buf);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -215,6 +206,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -246,19 +238,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint16_t flag;
 	uint64_t tmp_u64;
-	int ret;
 	const char *stropt;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -267,21 +255,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
 			return SR_ERR_SAMPLERATE;
-		ret = p_ols_set_samplerate(sdi, g_variant_get_uint64(data));
-		break;
+		return p_ols_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-			ret = SR_ERR;
-		else
-			ret = SR_OK;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {
@@ -291,28 +273,24 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabled external clock.");
 			devc->flag_reg &= ~FLAG_CLOCK_EXTERNAL;
 		}
-		ret = SR_OK;
 		break;
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);
-		ret = SR_OK;
-		flag = 0xffff;
 		if (!strcmp(stropt, STR_PATTERN_NONE)) {
 			sr_info("Disabling test modes.");
 			flag = 0x0000;
-		}else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
+		} else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
 			sr_info("Enabling internal test mode.");
 			flag = FLAG_INTERNAL_TEST_MODE;
 		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
 			sr_info("Enabling external test mode.");
 			flag = FLAG_EXTERNAL_TEST_MODE;
 		} else {
-			ret = SR_ERR;
+			return SR_ERR;
 		}
-		if (flag != 0xffff) {
-			devc->flag_reg &= ~(FLAG_INTERNAL_TEST_MODE | FLAG_EXTERNAL_TEST_MODE);
-			devc->flag_reg |= flag;
-		}
+		devc->flag_reg &= ~FLAG_INTERNAL_TEST_MODE;
+		devc->flag_reg &= ~FLAG_EXTERNAL_TEST_MODE;
+		devc->flag_reg |= flag;
 		break;
 	case SR_CONF_SWAP:
 		if (g_variant_get_boolean(data)) {
@@ -322,9 +300,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabling channel swapping.");
 			devc->flag_reg &= ~FLAG_SWAP_CHANNELS;
 		}
-		ret = SR_OK;
 		break;
-
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
@@ -333,44 +309,31 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			sr_info("Disabling RLE.");
 			devc->flag_reg &= ~FLAG_RLE;
 		}
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
 	int num_pols_changrp, i;
-
-	(void)cg;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_PATTERN_MODE:
-		*data = g_variant_new_strv(patterns, ARRAY_SIZE(patterns));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!sdi)
@@ -394,12 +357,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		/* 3 channel groups takes as many bytes as 4 channel groups */
 		if (num_pols_changrp == 3)
 			num_pols_changrp = 4;
-		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		if (num_pols_changrp)
-			grange[1] = g_variant_new_uint64(devc->max_samplebytes / num_pols_changrp);
-		else
-			grange[1] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		*data = g_variant_new_tuple(grange, 2);
+
+		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES,
+			(num_pols_changrp) ? devc->max_samplebytes / num_pols_changrp : MIN_NUM_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -414,32 +374,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (p_ols_open(devc) != SR_OK) {
-		return SR_ERR;
-	} else {
-		sdi->status = SR_ST_ACTIVE;
-		return SR_OK;
-	}
+	return p_ols_open(devc);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
-	ret = SR_OK;
 	devc = sdi->priv;
 
-	if (sdi->status == SR_ST_ACTIVE) {
-		sr_dbg("Status ACTIVE, closing device.");
-		ret = p_ols_close(devc);
-	} else {
-		sr_spew("Status not ACTIVE, nothing to do.");
-	}
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return ret;
+	return p_ols_close(devc);
 }
 
 static int set_trigger(const struct sr_dev_inst *sdi, int stage)
@@ -522,9 +466,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint16_t flag_tmp;
 	int num_pols_changrp, samplespercount;
 	int ret, i;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -682,7 +623,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sr_dbg("Stopping acquisition.");
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);

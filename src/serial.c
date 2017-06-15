@@ -28,7 +28,7 @@
 #include <libserialport.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 #include <windows.h> /* for HANDLE */
 #endif
 
@@ -715,7 +715,11 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		time /= 1000;
 
 		if ((ibuf - i) >= packet_size) {
+			GString *text;
 			/* We have at least a packet's worth of data. */
+			text = sr_hexdump_new(&buf[i], packet_size);
+			sr_spew("Trying packet: %s", text->str);
+			sr_hexdump_free(text);
 			if (is_valid(&buf[i])) {
 				sr_spew("Found valid %zu-byte packet after "
 					"%" PRIu64 "ms.", (ibuf - i), time);
@@ -788,7 +792,7 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 }
 
 /** @cond PRIVATE */
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 typedef HANDLE event_handle;
 #else
 typedef int event_handle;

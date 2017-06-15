@@ -17,7 +17,17 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Needed for POSIX.1-2008 locale functions */
+#define _XOPEN_SOURCE 700
 #include <config.h>
+#include <ctype.h>
+#include <locale.h>
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#include <xlocale.h>
+#endif
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,6 +75,9 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 
 	errno = 0;
 	tmp = strtol(str, &endptr, 10);
+
+	while (endptr && isspace(*endptr))
+		endptr++;
 
 	if (!endptr || *endptr || errno) {
 		if (!errno)
@@ -128,6 +141,9 @@ SR_PRIV int sr_atod(const char *str, double *ret)
 	errno = 0;
 	tmp = strtof(str, &endptr);
 
+	while (endptr && isspace(*endptr))
+		endptr++;
+
 	if (!endptr || *endptr || errno) {
 		if (!errno)
 			errno = EINVAL;
@@ -165,6 +181,38 @@ SR_PRIV int sr_atof(const char *str, float *ret)
 	}
 
 	*ret = (float) tmp;
+	return SR_OK;
+}
+
+/**
+ * @private
+ *
+ * Convert a string representation of a numeric value to a double. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid double. The function sets errno according to the details of the
+ * failure. This version ignores the locale.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to double where the result of the conversion will be stored.
+ *
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
+ */
+SR_PRIV int sr_atod_ascii(const char *str, double *ret)
+{
+	double tmp;
+	char *endptr = NULL;
+
+	errno = 0;
+	tmp = g_ascii_strtod(str, &endptr);
+
+	if (!endptr || *endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+
+	*ret = tmp;
 	return SR_OK;
 }
 
@@ -211,6 +259,374 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 }
 
 /**
+ * Compose a string with a format string in the buffer pointed to by buf.
+ *
+ * It is up to the caller to ensure that the allocated buffer is large enough
+ * to hold the formatted result.
+ *
+ * A terminating NUL character is automatically appended after the content
+ * written.
+ *
+ * After the format parameter, the function expects at least as many additional
+ * arguments as needed for format.
+ *
+ * This version ignores the current locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param format C string that contains a format string (see printf).
+ * @param ... A sequence of additional arguments, each containing a value to be
+ *        used to replace a format specifier in the format string.
+ *
+ * @return On success, the number of characters that would have been written,
+ *         not counting the terminating NUL character.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_sprintf_ascii(char *buf, const char *format, ...)
+{
+	int ret;
+	va_list args;
+
+	va_start(args, format);
+	ret = sr_vsprintf_ascii(buf, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+/**
+ * Compose a string with a format string in the buffer pointed to by buf.
+ *
+ * It is up to the caller to ensure that the allocated buffer is large enough
+ * to hold the formatted result.
+ *
+ * Internally, the function retrieves arguments from the list identified by
+ * args as if va_arg was used on it, and thus the state of args is likely to
+ * be altered by the call.
+ *
+ * In any case, args should have been initialized by va_start at some point
+ * before the call, and it is expected to be released by va_end at some point
+ * after the call.
+ *
+ * This version ignores the current locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param format C string that contains a format string (see printf).
+ * @param args A value identifying a variable arguments list initialized with
+ *        va_start.
+ *
+ * @return On success, the number of characters that would have been written,
+ *         not counting the terminating NUL character.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args)
+{
+#if defined(_WIN32)
+	int ret;
+
+#if 0
+	/*
+	 * TODO: This part compiles with mingw-w64 but doesn't run with Win7.
+	 *       Doesn't start because of "Procedure entry point _create_locale
+	 *       not found in msvcrt.dll".
+	 *       mingw-w64 should link to msvcr100.dll not msvcrt.dll!
+	 * See: https://msdn.microsoft.com/en-us/en-en/library/1kt27hek.aspx
+	 */
+	_locale_t locale;
+
+	locale = _create_locale(LC_NUMERIC, "C");
+	ret = _vsprintf_l(buf, format, locale, args);
+	_free_locale(locale);
+#endif
+
+	/* vsprintf() uses the current locale, may not work correctly for floats. */
+	ret = vsprintf(buf, format, args);
+
+	return ret;
+#elif defined(__APPLE__)
+	/*
+	 * See:
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/printf_l.3.html
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/xlocale.3.html
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsprintf_l(buf, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__FreeBSD__) && __FreeBSD_version >= 901000
+	/*
+	 * See:
+	 * https://www.freebsd.org/cgi/man.cgi?query=printf_l&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 * https://www.freebsd.org/cgi/man.cgi?query=xlocale&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsprintf_l(buf, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__ANDROID__)
+	/*
+	 * The Bionic libc only has two locales ("C" aka "POSIX" and "C.UTF-8"
+	 * aka "en_US.UTF-8"). The decimal point is hard coded as "."
+	 * See: https://android.googlesource.com/platform/bionic/+/master/libc/bionic/locale.cpp
+	 */
+	int ret;
+
+	ret = vsprintf(buf, format, args);
+
+	return ret;
+#elif defined(__linux__)
+	int ret;
+	locale_t old_locale, temp_locale;
+
+	/* Switch to C locale for proper float/double conversion. */
+	temp_locale = newlocale(LC_NUMERIC, "C", NULL);
+	old_locale = uselocale(temp_locale);
+
+	ret = vsprintf(buf, format, args);
+
+	/* Switch back to original locale. */
+	uselocale(old_locale);
+	freelocale(temp_locale);
+
+	return ret;
+#elif defined(__unix__) || defined(__unix)
+	/*
+	 * This is a fallback for all other BSDs, *nix and FreeBSD <= 9.0, by
+	 * using the current locale for snprintf(). This may not work correctly
+	 * for floats!
+	 */
+	int ret;
+
+	ret = vsprintf(buf, format, args);
+
+	return ret;
+#else
+	/* No implementation for unknown systems! */
+	return -1;
+#endif
+}
+
+/**
+ * Composes a string with a format string (like printf) in the buffer pointed
+ * by buf (taking buf_size as the maximum buffer capacity to fill).
+ * If the resulting string would be longer than n - 1 characters, the remaining
+ * characters are discarded and not stored, but counted for the value returned
+ * by the function.
+ * A terminating NUL character is automatically appended after the content
+ * written.
+ * After the format parameter, the function expects at least as many additional
+ * arguments as needed for format.
+ *
+ * This version ignores the current locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param buf_size Maximum number of bytes to be used in the buffer. The
+ *        generated string has a length of at most buf_size - 1, leaving space
+ *        for the additional terminating NUL character.
+ * @param format C string that contains a format string (see printf).
+ * @param ... A sequence of additional arguments, each containing a value to be
+ *        used to replace a format specifier in the format string.
+ *
+ * @return On success, the number of characters that would have been written if
+ *         buf_size had been sufficiently large, not counting the terminating
+ *         NUL character. On failure, a negative number is returned.
+ *         Notice that only when this returned value is non-negative and less
+ *         than buf_size, the string has been completely written.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,
+	const char *format, ...)
+{
+	int ret;
+	va_list args;
+
+	va_start(args, format);
+	ret = sr_vsnprintf_ascii(buf, buf_size, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+/**
+ * Composes a string with a format string (like printf) in the buffer pointed
+ * by buf (taking buf_size as the maximum buffer capacity to fill).
+ * If the resulting string would be longer than n - 1 characters, the remaining
+ * characters are discarded and not stored, but counted for the value returned
+ * by the function.
+ * A terminating NUL character is automatically appended after the content
+ * written.
+ * Internally, the function retrieves arguments from the list identified by
+ * args as if va_arg was used on it, and thus the state of args is likely to
+ * be altered by the call.
+ * In any case, arg should have been initialized by va_start at some point
+ * before the call, and it is expected to be released by va_end at some point
+ * after the call.
+ *
+ * This version ignores the current locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param buf_size Maximum number of bytes to be used in the buffer. The
+ *        generated string has a length of at most buf_size - 1, leaving space
+ *        for the additional terminating NUL character.
+ * @param format C string that contains a format string (see printf).
+ * @param args A value identifying a variable arguments list initialized with
+ *        va_start.
+ *
+ * @return On success, the number of characters that would have been written if
+ *         buf_size had been sufficiently large, not counting the terminating
+ *         NUL character. On failure, a negative number is returned.
+ *         Notice that only when this returned value is non-negative and less
+ *         than buf_size, the string has been completely written.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
+	const char *format, va_list args)
+{
+#if defined(_WIN32)
+	int ret;
+
+#if 0
+	/*
+	 * TODO: This part compiles with mingw-w64 but doesn't run with Win7.
+	 *       Doesn't start because of "Procedure entry point _create_locale
+	 *       not found in msvcrt.dll".
+	 *       mingw-w64 should link to msvcr100.dll not msvcrt.dll!.
+	 * See: https://msdn.microsoft.com/en-us/en-en/library/1kt27hek.aspx
+	 */
+	_locale_t locale;
+
+	locale = _create_locale(LC_NUMERIC, "C");
+	ret = _vsnprintf_l(buf, buf_size, format, locale, args);
+	_free_locale(locale);
+#endif
+
+	/* vsprintf uses the current locale, may cause issues for floats. */
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#elif defined(__APPLE__)
+	/*
+	 * See:
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/printf_l.3.html
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/xlocale.3.html
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsnprintf_l(buf, buf_size, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__FreeBSD__) && __FreeBSD_version >= 901000
+	/*
+	 * See:
+	 * https://www.freebsd.org/cgi/man.cgi?query=printf_l&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 * https://www.freebsd.org/cgi/man.cgi?query=xlocale&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsnprintf_l(buf, buf_size, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__ANDROID__)
+	/*
+	 * The Bionic libc only has two locales ("C" aka "POSIX" and "C.UTF-8"
+	 * aka "en_US.UTF-8"). The decimal point is hard coded as ".".
+	 * See: https://android.googlesource.com/platform/bionic/+/master/libc/bionic/locale.cpp
+	 */
+	int ret;
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#elif defined(__linux__)
+	int ret;
+	locale_t old_locale, temp_locale;
+
+	/* Switch to C locale for proper float/double conversion. */
+	temp_locale = newlocale(LC_NUMERIC, "C", NULL);
+	old_locale = uselocale(temp_locale);
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	/* Switch back to original locale. */
+	uselocale(old_locale);
+	freelocale(temp_locale);
+
+	return ret;
+#elif defined(__unix__) || defined(__unix)
+	/*
+	 * This is a fallback for all other BSDs, *nix and FreeBSD <= 9.0, by
+	 * using the current locale for snprintf(). This may not work correctly
+	 * for floats!
+	 */
+	int ret;
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#else
+	/* No implementation for unknown systems! */
+	return -1;
+#endif
+}
+
+/**
+ * Convert a sequence of bytes to its textual representation ("hex dump").
+ *
+ * Callers should free the allocated GString. See @ref sr_hexdump_free().
+ *
+ * @param[in] data Pointer to the byte sequence to print.
+ * @param[in] len Number of bytes to print.
+ *
+ * @return #NULL upon error, newly allocated GString pointer otherwise.
+ */
+SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len)
+{
+	GString *s;
+	size_t i;
+
+	s = g_string_sized_new(3 * len);
+	for (i = 0; i < len; i++) {
+		if (i)
+			g_string_append_c(s, ' ');
+		g_string_append_printf(s, "%02x", data[i]);
+	}
+
+	return s;
+}
+
+/**
+ * Free a hex dump text that was created by @ref sr_hexdump_new().
+ *
+ * @param[in] s Pointer to the GString to release.
+ */
+SR_PRIV void sr_hexdump_free(GString *s)
+{
+	if (s)
+		g_string_free(s, TRUE);
+}
+
+/**
  * Convert a string representation of a numeric value to a sr_rational.
  *
  * The conversion is strict and will fail if the complete string does not
@@ -233,21 +649,49 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	int64_t denominator = 1;
 	int32_t fractional_len = 0;
 	int32_t exponent = 0;
+	gboolean is_negative = FALSE;
+	gboolean no_integer, no_fractional;
+
+	while (isspace(*str))
+		str++;
 
 	errno = 0;
 	integral = g_ascii_strtoll(str, &endptr, 10);
 
-	if (errno)
+	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.') {
+		endptr += 1;
+		no_integer = TRUE;
+	} else if (str == endptr && str[0] == '.') {
+		no_integer = TRUE;
+	} else if (errno) {
 		return SR_ERR;
+	} else {
+		no_integer = FALSE;
+	}
 
+	if (integral < 0 || str[0] == '-')
+		is_negative = TRUE;
+
+	errno = 0;
 	if (*endptr == '.') {
-		const char* start = endptr + 1;
+		gboolean is_exp, is_eos;
+		const char *start = endptr + 1;
 		fractional = g_ascii_strtoll(start, &endptr, 10);
+		is_exp = *endptr == 'E' || *endptr == 'e';
+		is_eos = *endptr == '\0';
+		if (endptr == start && (is_exp || is_eos)) {
+			fractional = 0;
+			errno = 0;
+		}
 		if (errno)
+			return SR_ERR;
+		no_fractional = endptr == start;
+		if (no_integer && no_fractional)
 			return SR_ERR;
 		fractional_len = endptr - start;
 	}
 
+	errno = 0;
 	if ((*endptr == 'E') || (*endptr == 'e')) {
 		exponent = g_ascii_strtoll(endptr + 1, &endptr, 10);
 		if (errno)
@@ -261,7 +705,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 		integral *= 10;
 	exponent -= fractional_len;
 
-	if (integral >= 0)
+	if (!is_negative)
 		integral += fractional;
 	else
 		integral -= fractional;
@@ -366,42 +810,31 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
 SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
 {
 	double freq, v;
-	char *o;
-	int prec, r;
+	int prec;
 
 	freq = 1 / ((double)v_p / v_q);
-
-	o = g_malloc0(30 + 1);
 
 	if (freq > SR_GHZ(1)) {
 		v = (double)v_p / v_q * 1000000000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ps", prec, v);
+		return g_strdup_printf("%.*f ps", prec, v);
 	} else if (freq > SR_MHZ(1)) {
 		v = (double)v_p / v_q * 1000000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ns", prec, v);
+		return g_strdup_printf("%.*f ns", prec, v);
 	} else if (freq > SR_KHZ(1)) {
 		v = (double)v_p / v_q * 1000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f us", prec, v);
+		return g_strdup_printf("%.*f us", prec, v);
 	} else if (freq > 1) {
 		v = (double)v_p / v_q * 1000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ms", prec, v);
+		return g_strdup_printf("%.*f ms", prec, v);
 	} else {
 		v = (double)v_p / v_q;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f s", prec, v);
+		return g_strdup_printf("%.*f s", prec, v);
 	}
-
-	if (r < 0) {
-		/* Something went wrong... */
-		g_free(o);
-		return NULL;
-	}
-
-	return o;
 }
 
 /**
@@ -422,25 +855,12 @@ SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
  */
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 {
-	int r;
-	char *o;
-
-	o = g_malloc0(30 + 1);
-
 	if (v_q == 1000)
-		r = snprintf(o, 30, "%" PRIu64 "mV", v_p);
+		return g_strdup_printf("%" PRIu64 " mV", v_p);
 	else if (v_q == 1)
-		r = snprintf(o, 30, "%" PRIu64 "V", v_p);
+		return g_strdup_printf("%" PRIu64 " V", v_p);
 	else
-		r = snprintf(o, 30, "%gV", (float)v_p / (float)v_q);
-
-	if (r < 0) {
-		/* Something went wrong... */
-		g_free(o);
-		return NULL;
-	}
-
-	return o;
+		return g_strdup_printf("%g V", (float)v_p / (float)v_q);
 }
 
 /**
@@ -462,7 +882,8 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
  */
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
-	int multiplier, done;
+	uint64_t multiplier;
+	int done;
 	double frac_part;
 	char *s;
 
@@ -489,6 +910,18 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 		case 'G':
 			multiplier = SR_GHZ(1);
 			break;
+		case 't':
+		case 'T':
+			multiplier = SR_GHZ(1000);
+			break;
+		case 'p':
+		case 'P':
+			multiplier = SR_GHZ(1000 * 1000);
+			break;
+		case 'e':
+		case 'E':
+			multiplier = SR_GHZ(1000 * 1000 * 1000);
+			break;
 		default:
 			done = TRUE;
 			s--;
@@ -498,8 +931,9 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 	if (multiplier > 0) {
 		*size *= multiplier;
 		*size += frac_part * multiplier;
-	} else
+	} else {
 		*size += frac_part;
+	}
 
 	if (s && *s && g_ascii_strcasecmp(s, "Hz"))
 		return SR_ERR;
@@ -555,8 +989,13 @@ SR_API uint64_t sr_parse_timestring(const char *timestring)
 /** @since 0.1.0 */
 SR_API gboolean sr_parse_boolstring(const char *boolstr)
 {
-	if (!boolstr)
-		return FALSE;
+	/*
+	 * Complete absence of an input spec is assumed to mean TRUE,
+	 * as in command line option strings like this:
+	 *   ...:samplerate=100k:header:numchannels=4:...
+	 */
+	if (!boolstr || !*boolstr)
+		return TRUE;
 
 	if (!g_ascii_strncasecmp(boolstr, "true", 4) ||
 	    !g_ascii_strncasecmp(boolstr, "yes", 3) ||
@@ -581,11 +1020,11 @@ SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q)
 		while (*s == ' ')
 			s++;
 		if (!strcmp(s, "fs"))
-			*q = 1000000000000000ULL;
+			*q = UINT64_C(1000000000000000);
 		else if (!strcmp(s, "ps"))
-			*q = 1000000000000ULL;
+			*q = UINT64_C(1000000000000);
 		else if (!strcmp(s, "ns"))
-			*q = 1000000000ULL;
+			*q = UINT64_C(1000000000);
 		else if (!strcmp(s, "us"))
 			*q = 1000000;
 		else if (!strcmp(s, "ms"))

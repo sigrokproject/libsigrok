@@ -46,8 +46,8 @@ struct scope_config {
 	const uint32_t (*devopts)[];
 	const uint8_t num_devopts;
 
-	const uint32_t (*analog_devopts)[];
-	const uint8_t num_analog_devopts;
+	const uint32_t (*devopts_cg_analog)[];
+	const uint8_t num_devopts_cg_analog;
 
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
@@ -56,6 +56,7 @@ struct scope_config {
 	const uint8_t num_trigger_sources;
 
 	const char *(*trigger_slopes)[];
+	const uint8_t num_trigger_slopes;
 
 	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
@@ -92,7 +93,6 @@ struct scope_state {
 	uint64_t sample_rate;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const void *model_config;
 	void *model_state;

@@ -245,6 +245,19 @@ SR_PRIV void demo_generate_analog_pattern(struct analog_gen *ag, uint64_t sample
 	}
 }
 
+static uint64_t encode_number_to_gray(uint64_t nr)
+{
+	return nr ^ (nr >> 1);
+}
+
+static void set_logic_data(uint64_t bits, uint8_t *data, size_t len)
+{
+	while (len--) {
+		*data++ = bits & 0xff;
+		bits >>= 8;
+	}
+}
+
 static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 {
 	struct dev_context *devc;
@@ -253,6 +266,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	uint8_t *sample;
 	const uint8_t *image_col;
 	size_t col_count, col_height;
+	uint64_t gray;
 
 	devc = sdi->priv;
 
@@ -273,15 +287,14 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 		break;
 	case PATTERN_INC:
 		for (i = 0; i < size; i++) {
-			for (j = 0; j < devc->logic_unitsize; j++) {
+			for (j = 0; j < devc->logic_unitsize; j++)
 				devc->logic_data[i + j] = devc->step;
-			}
 			devc->step++;
 		}
 		break;
 	case PATTERN_WALKING_ONE:
 		/* j contains the value of the highest bit */
-	        j = 1 << (devc->num_logic_channels - 1);
+		j = 1 << (devc->num_logic_channels - 1);
 		for (i = 0; i < size; i++) {
 			devc->logic_data[i] = devc->step;
 			if (devc->step == 0)
@@ -296,7 +309,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	case PATTERN_WALKING_ZERO:
 		/* Same as walking one, only with inverted output */
 		/* j contains the value of the highest bit */
-	        j = 1 << (devc->num_logic_channels - 1);
+		j = 1 << (devc->num_logic_channels - 1);
 		for (i = 0; i < size; i++) {
 			devc->logic_data[i] = ~devc->step;
 			if (devc->step == 0)
@@ -327,9 +340,46 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 			devc->step %= col_count;
 		}
 		break;
+	case PATTERN_GRAYCODE:
+		for (i = 0; i < size; i += devc->logic_unitsize) {
+			devc->step++;
+			devc->step &= devc->all_logic_channels_mask;
+			gray = encode_number_to_gray(devc->step);
+			gray &= devc->all_logic_channels_mask;
+			set_logic_data(gray, &devc->logic_data[i], devc->logic_unitsize);
+		}
+		break;
 	default:
 		sr_err("Unknown pattern: %d.", devc->logic_pattern);
 		break;
+	}
+}
+
+/*
+ * Fixup a memory image of generated logic data before it gets sent to
+ * the session's datafeed. Mask out content from disabled channels.
+ *
+ * TODO: Need we apply a channel map, and enforce a dense representation
+ * of the enabled channels' data?
+ */
+static void logic_fixup_feed(struct dev_context *devc,
+		struct sr_datafeed_logic *logic)
+{
+	size_t fp_off;
+	uint8_t fp_mask;
+	size_t off, idx;
+	uint8_t *sample;
+
+	fp_off = devc->first_partial_logic_index;
+	fp_mask = devc->first_partial_logic_mask;
+	if (fp_off == logic->unitsize)
+		return;
+
+	for (off = 0; off < logic->length; off += logic->unitsize) {
+		sample = logic->data + off;
+		sample[fp_off] &= fp_mask;
+		for (idx = fp_off + 1; idx < logic->unitsize; idx++)
+			sample[idx] = 0x00;
 	}
 }
 
@@ -343,13 +393,16 @@ static void send_analog_packet(struct analog_gen *ag,
 	int ag_pattern_pos;
 	unsigned int i;
 
+	if (!ag->ch || !ag->ch->enabled)
+		return;
+
 	devc = sdi->priv;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &ag->packet;
 
 	if (!devc->avg) {
 		ag_pattern_pos = analog_pos % ag->num_samples;
-		sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+		sending_now = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
 		ag->packet.data = ag->pattern_data + ag_pattern_pos;
 		ag->packet.num_samples = sending_now;
 		sr_session_send(sdi, &packet);
@@ -358,7 +411,7 @@ static void send_analog_packet(struct analog_gen *ag,
 		*analog_sent = MAX(*analog_sent, sending_now);
 	} else {
 		ag_pattern_pos = analog_pos % ag->num_samples;
-		to_avg = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+		to_avg = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
 
 		for (i = 0; i < to_avg; i++) {
 			ag->avg_val = (ag->avg_val +
@@ -366,8 +419,7 @@ static void send_analog_packet(struct analog_gen *ag,
 					  ag_pattern_pos + i)) / 2;
 			ag->num_avgs++;
 			/* Time to send averaged data? */
-			if (devc->avg_samples > 0 &&
-			    ag->num_avgs >= devc->avg_samples)
+			if ((devc->avg_samples > 0) && (ag->num_avgs >= devc->avg_samples))
 				goto do_send;
 		}
 
@@ -403,6 +455,8 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	void *value;
 	uint64_t samples_todo, logic_done, analog_done, analog_sent, sending_now;
 	int64_t elapsed_us, limit_us, todo_us;
+	int64_t trigger_offset;
+	int pre_trigger_samples;
 
 	(void)fd;
 	(void)revents;
@@ -414,7 +468,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	if (devc->cur_samplerate <= 0
 			|| (devc->num_logic_channels <= 0
 			&& devc->num_analog_channels <= 0)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return G_SOURCE_CONTINUE;
 	}
 
@@ -429,20 +483,38 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	/* How many samples are outstanding since the last round? */
 	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC - 1)
 			/ G_USEC_PER_SEC;
+
 	if (devc->limit_samples > 0) {
 		if (devc->limit_samples < devc->sent_samples)
 			samples_todo = 0;
 		else if (devc->limit_samples - devc->sent_samples < samples_todo)
 			samples_todo = devc->limit_samples - devc->sent_samples;
 	}
+
+	if (samples_todo == 0)
+		return G_SOURCE_CONTINUE;
+
+	if (devc->limit_frames) {
+		/* Never send more samples than a frame can fit... */
+		samples_todo = MIN(samples_todo, SAMPLES_PER_FRAME);
+		/* ...or than we need to finish the current frame. */
+		samples_todo = MIN(samples_todo,
+			SAMPLES_PER_FRAME - devc->sent_frame_samples);
+	}
+
 	/* Calculate the actual time covered by this run back from the sample
 	 * count, rounded towards zero. This avoids getting stuck on a too-low
 	 * time delta with no samples being sent due to round-off.
 	 */
 	todo_us = samples_todo * G_USEC_PER_SEC / devc->cur_samplerate;
 
-	logic_done  = devc->num_logic_channels  > 0 ? 0 : samples_todo;
+	logic_done = devc->num_logic_channels > 0 ? 0 : samples_todo;
+	if (!devc->enabled_logic_channels)
+		logic_done = samples_todo;
+
 	analog_done = devc->num_analog_channels > 0 ? 0 : samples_todo;
+	if (!devc->enabled_analog_channels)
+		analog_done = samples_todo;
 
 	while (logic_done < samples_todo || analog_done < samples_todo) {
 		/* Logic */
@@ -450,13 +522,47 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			sending_now = MIN(samples_todo - logic_done,
 					LOGIC_BUFSIZE / devc->logic_unitsize);
 			logic_generator(sdi, sending_now * devc->logic_unitsize);
+			/* Check for trigger and send pre-trigger data if needed */
+			if (devc->stl && (!devc->trigger_fired)) {
+				trigger_offset = soft_trigger_logic_check(devc->stl,
+						devc->logic_data, sending_now * devc->logic_unitsize,
+						&pre_trigger_samples);
+				if (trigger_offset > -1) {
+					devc->trigger_fired = TRUE;
+					logic_done = pre_trigger_samples;
+				}
+			} else
+				trigger_offset = 0;
+
+			/* Send logic samples if needed */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			logic.length = sending_now * devc->logic_unitsize;
 			logic.unitsize = devc->logic_unitsize;
-			logic.data = devc->logic_data;
-			sr_session_send(sdi, &packet);
-			logic_done += sending_now;
+
+			if (devc->stl) {
+				if (devc->trigger_fired && (trigger_offset < (int)sending_now)) {
+					/* Send after-trigger data */
+					logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
+					logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
+					logic_fixup_feed(devc, &logic);
+					sr_session_send(sdi, &packet);
+					logic_done += sending_now - trigger_offset;
+					/* End acquisition */
+					sr_dbg("Triggered, stopping acquisition.");
+					sr_dev_acquisition_stop(sdi);
+					break;
+				} else {
+					/* Send nothing */
+					logic_done += sending_now;
+				}
+			} else if (!devc->stl) {
+				/* No trigger defined, send logic samples */
+				logic.length = sending_now * devc->logic_unitsize;
+				logic.data = devc->logic_data;
+				logic_fixup_feed(devc, &logic);
+				sr_session_send(sdi, &packet);
+				logic_done += sending_now;
+			}
 		}
 
 		/* Analog, one channel at a time */
@@ -472,21 +578,27 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			analog_done += analog_sent;
 		}
 	}
-	/* At this point, both logic_done and analog_done should be
-	 * exactly equal to samples_todo, or else.
-	 */
-	if (logic_done != samples_todo || analog_done != samples_todo) {
-		sr_err("BUG: Sample count mismatch.");
-		return G_SOURCE_REMOVE;
-	}
-	devc->sent_samples += samples_todo;
+
+	uint64_t min = MIN(logic_done, analog_done);
+	devc->sent_samples += min;
+	devc->sent_frame_samples += min;
 	devc->spent_us += todo_us;
+
+	if (devc->limit_frames && devc->sent_frame_samples >= SAMPLES_PER_FRAME) {
+		std_session_send_frame_end(sdi);
+		devc->sent_frame_samples = 0;
+		devc->limit_frames--;
+		if (!devc->limit_frames) {
+			sr_dbg("Requested number of frames reached.");
+			sr_dev_acquisition_stop(sdi);
+		}
+	}
 
 	if ((devc->limit_samples > 0 && devc->sent_samples >= devc->limit_samples)
 			|| (limit_us > 0 && devc->spent_us >= limit_us)) {
 
 		/* If we're averaging everything - now is the time to send data */
-		if (devc->avg_samples == 0) {
+		if (devc->avg && devc->avg_samples == 0) {
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
 				ag = value;
@@ -498,7 +610,10 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			}
 		}
 		sr_dbg("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
+	} else if (devc->limit_frames) {
+		if (devc->sent_frame_samples == 0)
+			std_session_send_frame_begin(sdi);
 	}
 
 	return G_SOURCE_CONTINUE;

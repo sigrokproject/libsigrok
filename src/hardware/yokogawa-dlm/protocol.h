@@ -31,6 +31,7 @@
 #include "protocol_wrappers.h"
 
 #define LOG_PREFIX "yokogawa-dlm"
+
 #define MAX_INSTRUMENT_VERSIONS 8
 
 #define RECEIVE_BUFFER_SIZE 4096
@@ -48,7 +49,7 @@ enum trigger_slopes {
 	SLOPE_NEGATIVE
 };
 
-extern const char *dlm_trigger_slopes[3];
+extern const char *dlm_trigger_slopes[2];
 extern const uint64_t dlm_timebases[36][2];
 extern const uint64_t dlm_vdivs[17][2];
 
@@ -95,7 +96,6 @@ struct scope_state {
 	uint32_t samples_per_frame;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const void *model_config;
 	void *model_state;

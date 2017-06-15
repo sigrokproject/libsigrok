@@ -28,8 +28,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -47,14 +50,8 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 	.product = 0x6010,
 	.samplerate_div = 20,
 	.channel_names = {
-		"ADBUS0",
-		"ADBUS1",
-		"ADBUS2",
-		"ADBUS3",
-		"ADBUS4",
-		"ADBUS5",
-		"ADBUS6",
-		"ADBUS7",
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",
+		"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
 		/* TODO: BDBUS[0..7] channels. */
 		NULL
 	}
@@ -65,14 +62,7 @@ static const struct ftdi_chip_desc ft232r_desc = {
 	.product = 0x6001,
 	.samplerate_div = 30,
 	.channel_names = {
-		"TXD",
-		"RXD",
-		"RTS#",
-		"CTS#",
-		"DTR#",
-		"DSR#",
-		"DCD#",
-		"RI#",
+		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
 		NULL
 	}
 };
@@ -108,7 +98,6 @@ static void scan_device(struct ftdi_context *ftdic,
 		return;
 	}
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Allocate memory for the incoming data. */
@@ -135,7 +124,6 @@ static void scan_device(struct ftdi_context *ftdic,
 	}
 	sr_dbg("Found an FTDI device: %s.", model);
 
-	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = vendor;
@@ -178,8 +166,6 @@ static GSList *scan_all(struct ftdi_context *ftdic, GSList *options)
 		return NULL;
 	}
 
-	sr_dbg("Number of FTDI devices found: %d", ret);
-
 	curdev = devlist;
 	while (curdev) {
 		scan_device(ftdic, curdev->dev, &devices);
@@ -213,7 +199,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	ftdic = ftdi_new();
 	if (!ftdic) {
 		sr_err("Failed to initialize libftdi.");
@@ -242,18 +227,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
 	g_free(devc->data_buf);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -276,23 +257,19 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_ftdi_free;
 	}
 
-	/* Purge RX/TX buffers in the FTDI chip. */
 	ret = ftdi_usb_purge_buffers(devc->ftdic);
 	if (ret < 0) {
 		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip buffers purged successfully.");
 
-	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitmode reset successfully.");
 
 	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_BITBANG);
 	if (ret < 0) {
@@ -300,15 +277,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitbang mode entered successfully.");
-
-	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
+
 err_dev_open_close_ftdic:
 	ftdi_usb_close(devc->ftdic);
+
 err_ftdi_free:
 	ftdi_free(devc->ftdic);
+
 	return SR_ERR;
 }
 
@@ -318,13 +295,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->ftdic) {
-		ftdi_usb_close(devc->ftdic);
-		ftdi_free(devc->ftdic);
-		devc->ftdic = NULL;
-	}
+	if (!devc->ftdic)
+		return SR_ERR_BUG;
 
-	sdi->status = SR_ST_INACTIVE;
+	ftdi_usb_close(devc->ftdic);
+	ftdi_free(devc->ftdic);
+	devc->ftdic = NULL;
 
 	return SR_OK;
 }
@@ -332,16 +308,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -350,40 +323,32 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	uint64_t value;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
 		value = g_variant_get_uint64(data);
 		/* TODO: Implement. */
-		ret = SR_ERR_NA;
-		break;
+		(void)value;
+		return SR_ERR_NA;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -393,44 +358,27 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->cur_samplerate = value;
 		return ftdi_la_set_samplerate(devc);
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-	GVariant *gvar;
-	GVariantBuilder gvb;
-
-	(void)sdi;
-	(void)cg;
-
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-			samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -438,9 +386,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	if (!devc->ftdic)
 		return SR_ERR_BUG;
@@ -462,10 +407,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 
 	std_session_send_df_end(sdi);

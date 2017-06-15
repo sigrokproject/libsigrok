@@ -51,7 +51,6 @@ extern SR_PRIV const struct mic_dev_info mic_devs[];
 
 #define SERIAL_BUFSIZE 256
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 

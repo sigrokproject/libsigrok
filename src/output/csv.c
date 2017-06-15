@@ -49,12 +49,12 @@
  * trigger: Whether or not to add a "trigger" column as the last column.
  *          Defaults to FALSE.
  *
- * dedup:   Don't output duplicate rows. Defaults to TRUE. If time is off, then
+ * dedup:   Don't output duplicate rows. Defaults to FALSE. If time is off, then
  *          this is forced to be off.
  */
 
-#include <math.h>
 #include <config.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
@@ -216,7 +216,7 @@ static GString *gen_header(const struct sr_output *o,
 	struct sr_channel *ch;
 	GVariant *gvar;
 	GString *header;
-	GSList *l;
+	GSList *channels, *l;
 	unsigned int num_channels, i;
 	uint64_t samplerate = 0, sr;
 	char *samplerate_s;
@@ -256,18 +256,20 @@ static GString *gen_header(const struct sr_output *o,
 			ctx->title, ctime(&hdr->starttime.tv_sec));
 
 		/* Columns / channels */
-		num_channels = g_slist_length(o->sdi->channels);
+		channels = o->sdi ? o->sdi->channels : NULL;
+		num_channels = g_slist_length(channels);
 		g_string_append_printf(header, "%s Channels (%d/%d):",
 			ctx->comment, ctx->num_analog_channels +
 			ctx->num_logic_channels, num_channels);
-		for (l = o->sdi->channels; l; l = l->next) {
+		for (l = channels; l; l = l->next) {
 			ch = l->data;
 			if (ch->enabled)
 				g_string_append_printf(header, " %s,", ch->name);
 		}
-		if (o->sdi->channels)
+		if (channels) {
 			/* Drop last separator. */
 			g_string_truncate(header, header->len - 1);
+		}
 		g_string_append_printf(header, "\n");
 		if (samplerate != 0) {
 			samplerate_s = sr_samplerate_string(samplerate);
@@ -308,10 +310,13 @@ static void process_analog(struct context *ctx,
 			   const struct sr_datafeed_analog *analog)
 {
 	int ret;
-	unsigned int i, j, c, num_channels;
+	size_t num_rcvd_ch, num_have_ch;
+	size_t idx_have, idx_smpl, idx_rcvd;
+	size_t idx_send;
 	struct sr_analog_meaning *meaning;
 	GSList *l;
 	float *fdata = NULL;
+	struct sr_channel *ch;
 
 	if (!ctx->analog_samples) {
 		ctx->analog_samples = g_malloc(analog->num_samples
@@ -324,31 +329,34 @@ static void process_analog(struct context *ctx,
 			ctx->num_samples, analog->num_samples);
 
 	meaning = analog->meaning;
-	num_channels = g_slist_length(meaning->channels);
-	ctx->channels_seen += num_channels;
-	sr_dbg("Processing packet of %u analog channels", num_channels);
-	fdata = g_malloc(analog->num_samples * num_channels * sizeof(float));
+	num_rcvd_ch = g_slist_length(meaning->channels);
+	ctx->channels_seen += num_rcvd_ch;
+	sr_dbg("Processing packet of %zu analog channels", num_rcvd_ch);
+	fdata = g_malloc(analog->num_samples * num_rcvd_ch * sizeof(float));
 	if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 		sr_warn("Problems converting data to floating point values.");
 
-	for (i = 0; i < ctx->num_analog_channels + ctx->num_logic_channels; i++) {
-		if (ctx->channels[i].ch->type == SR_CHANNEL_ANALOG) {
-			sr_dbg("Looking for channel %s",
-			       ctx->channels[i].ch->name);
-			for (l = meaning->channels, c = 0; l; l = l->next, c++) {
-				struct sr_channel *ch = l->data;
-				sr_dbg("Checking %s", ch->name);
-				if (ctx->channels[i].ch == l->data) {
-					if (ctx->label_do && !ctx->label_names) {
-						sr_analog_unit_to_string(analog,
-							&ctx->channels[i].label);
-					}
-					for (j = 0; j < analog->num_samples; j++)
-						ctx->analog_samples[j * ctx->num_analog_channels + i] = fdata[j * num_channels + c];
-					break;
-				}
+	num_have_ch = ctx->num_analog_channels + ctx->num_logic_channels;
+	idx_send = 0;
+	for (idx_have = 0; idx_have < num_have_ch; idx_have++) {
+		if (ctx->channels[idx_have].ch->type != SR_CHANNEL_ANALOG)
+			continue;
+		sr_dbg("Looking for channel %s",
+		       ctx->channels[idx_have].ch->name);
+		for (l = meaning->channels, idx_rcvd = 0; l; l = l->next, idx_rcvd++) {
+			ch = l->data;
+			sr_dbg("Checking %s", ch->name);
+			if (ctx->channels[idx_have].ch != ch)
+				continue;
+			if (ctx->label_do && !ctx->label_names) {
+				sr_analog_unit_to_string(analog,
+					&ctx->channels[idx_have].label);
 			}
+			for (idx_smpl = 0; idx_smpl < analog->num_samples; idx_smpl++)
+				ctx->analog_samples[idx_smpl * ctx->num_analog_channels + idx_send] = fdata[idx_smpl * num_rcvd_ch + idx_rcvd];
+			break;
 		}
+		idx_send++;
 	}
 	g_free(fdata);
 }
@@ -578,7 +586,7 @@ static int receive(const struct sr_output *o,
 		break;
 	case SR_DF_FRAME_BEGIN:
 		*out = g_string_new(ctx->frame);
-		/* And then fall through to... */
+		/* Fallthrough */
 	case SR_DF_END:
 		/* Got to end of frame/session with part of the data. */
 		if (ctx->channels_seen)
@@ -623,7 +631,7 @@ static struct sr_option options[] = {
 	{"scale", "scale", "Scale gnuplot graphs", NULL, NULL},
 	{"value", "Value separator", "Character to print between values", NULL, NULL},
 	{"record", "Record separator", "String to print between records", NULL, NULL},
-	{"frame", "Frame seperator", "String to print between frames", NULL, NULL},
+	{"frame", "Frame separator", "String to print between frames", NULL, NULL},
 	{"comment", "Comment start string", "String used at start of comment lines", NULL, NULL},
 	{"header", "Output header", "Output header comment with capture metdata", NULL, NULL},
 	{"label", "Label values", "Type of column labels", NULL, NULL},
@@ -635,6 +643,8 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
+	GSList *l = NULL;
+
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
 		options[1].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
@@ -644,9 +654,13 @@ static const struct sr_option *get_options(void)
 		options[5].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[6].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[7].def = g_variant_ref_sink(g_variant_new_string("units"));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("units")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("channel")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("off")));
+		options[7].values = l;
 		options[8].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
-		options[10].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
+		options[10].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 	}
 
 	return options;

@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * Gossen Metrawatt Metrahit 1x/2x drivers
- *
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_GMC_MH_1X_2X_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_GMC_MH_1X_2X_PROTOCOL_H
 
@@ -84,15 +76,11 @@ enum model {
 	METRAHIT_29S		= METRAHIT_28S + 1,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	enum model model;	/**< Model code. */
 
-	/* Acquisition settings */
 	struct sr_sw_limits limits;
 
-	/* Operational state */
 	gboolean settings_ok;	/**< Settings msg received yet. */
 	int msg_type;       /**< Message type (MSGID_INF, ...). */
 	int msg_len;        /**< Message length (valid when msg, curr. type known).*/
@@ -112,12 +100,10 @@ struct dev_context {
 	int64_t req_sent_at;    /**< Request sent. */
 	gboolean response_pending; /**< Request sent, response is pending. */
 
-	/* Temporary state across callbacks */
 	uint8_t buf[GMC_BUFSIZE];	/**< Buffer for read callback */
 	int buflen;			/**< Data len in buf */
 };
 
-/* Forward declarations */
 SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg);
 SR_PRIV int gmc_decode_model_bd(uint8_t mcode);

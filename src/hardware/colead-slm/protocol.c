@@ -177,7 +177,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+		sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
 SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
@@ -202,7 +202,7 @@ SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)
 
 	serial = sdi->conn;
 	if (devc->state == IDLE) {
-		if (serial_read_nonblocking(serial, buf, 128) != 1 || buf[0] != 0x10)
+		if (serial_read_nonblocking(serial, buf, sizeof(buf)) != 1 || buf[0] != 0x10)
 			/* Nothing there, or caught the tail end of a previous packet,
 			 * or some garbage. Unless it's a single "data ready" byte,
 			 * we don't want it. */

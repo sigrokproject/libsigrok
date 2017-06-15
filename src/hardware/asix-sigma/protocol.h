@@ -30,6 +30,8 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "asix-sigma"
+
 /*
  * Triggers are not working in this implementation. Stop claiming
  * support for the feature which effectively is not available, until
@@ -38,13 +40,9 @@
  */
 #define ASIX_SIGMA_WITH_TRIGGER	0
 
-#define LOG_PREFIX "asix-sigma"
-
 #define USB_VENDOR			0xa600
 #define USB_PRODUCT			0xa000
 #define USB_DESCRIPTION			"ASIX SIGMA"
-#define USB_VENDOR_NAME			"ASIX"
-#define USB_MODEL_NAME			"SIGMA"
 
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
@@ -248,14 +246,13 @@ struct sigma_state {
 		SIGMA_UNINITIALIZED = 0,
 		SIGMA_IDLE,
 		SIGMA_CAPTURE,
+		SIGMA_STOPPING,
 		SIGMA_DOWNLOAD,
 	} state;
-
 	uint16_t lastts;
 	uint16_t lastsample;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
@@ -267,7 +264,7 @@ struct dev_context {
 	int num_channels;
 	int cur_channels;
 	int samples_per_event;
-	int capture_ratio;
+	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;
@@ -280,7 +277,6 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 				 struct dev_context *devc);
 SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
 SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);
-SR_PRIV void sigma_clear_helper(void *priv);
 SR_PRIV uint64_t sigma_limit_samples_to_msec(const struct dev_context *devc,
 					     uint64_t limit_samples);
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);

@@ -68,17 +68,13 @@ enum {
 	MEM_STATE_GET_MEMORY_BLOCK,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	uint64_t cur_mqflags;
 	uint8_t cur_meas_range;
 
-	/* Acquisition settings */
 	uint8_t cur_data_source;
 	uint64_t limit_samples;
 
-	/* Operational state */
 	uint64_t num_samples;
 
 	/* Memory reading state */
@@ -88,7 +84,6 @@ struct dev_context {
 	uint16_t memory_block_counter; /* Number of memory blocks retrieved so far. */
 	uint8_t memory_block_cursor; /* Number of bytes retrieved in current memory block. */
 
-	/* Temporary state across callbacks. */
 	uint8_t buffer[BUFFER_SIZE];
 	int buffer_len;
 	int buffer_skip; /* Number of bytes to skip in memory mode. */

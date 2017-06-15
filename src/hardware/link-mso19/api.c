@@ -22,9 +22,12 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_TYPE | SR_CONF_LIST,
@@ -48,6 +51,10 @@ static const uint64_t samplerates[] = {
 	SR_HZ(100),
 	SR_MHZ(200),
 	SR_HZ(100),
+};
+
+static const char *trigger_slopes[2] = {
+	"r", "f",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -180,8 +187,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (serial_open(devc->serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	/* FIXME: discard serial buffer */
 	mso_check_trigger(devc->serial, &devc->trigger_state);
 	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);
@@ -201,8 +206,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(int key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -224,10 +229,9 @@ static int config_get(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(int key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	uint64_t num_samples;
 	const char *slope;
@@ -238,82 +242,51 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME
 		return mso_configure_rate(sdi, g_variant_get_uint64(data));
-		ret = SR_OK;
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		num_samples = g_variant_get_uint64(data);
 		if (num_samples != 1024) {
 			sr_err("Only 1024 samples are supported.");
-			ret = SR_ERR_ARG;
-		} else {
-			devc->limit_samples = num_samples;
-			ret = SR_OK;
+			return SR_ERR_ARG;
 		}
+		devc->limit_samples = num_samples;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		slope = g_variant_get_string(data, NULL);
-
-		if (!slope || !(slope[0] == 'f' || slope[0] == 'r'))
-			sr_err("Invalid trigger slope");
-			ret = SR_ERR_ARG;
-		} else {
-			devc->trigger_slope = (slope[0] == 'r')
-				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
-			ret = SR_OK;
-		}
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
+			return SR_ERR_ARG;
+		devc->trigger_slope = idx;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
 		if (pos < 0 || pos > 255) {
 			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
-			ret = SR_ERR_ARG;
-		} else {
-			trigger_pos = (int)pos;
-			devc->trigger_holdoff[0] = trigger_pos & 0xff;
-			ret = SR_OK;
+			return SR_ERR_ARG;
 		}
+		trigger_pos = (int)pos;
+		devc->trigger_holdoff[0] = trigger_pos & 0xff;
 		break;
 	case SR_CONF_RLE:
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
-		break;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(int key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *gvar;
-	GVariantBuilder gvb;
-
-	(void)cg;
-	(void)sdi;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerate-steps", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPE);
@@ -329,9 +302,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret = SR_ERR;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -391,7 +361,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring dev_index. */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	stop_acquisition(sdi);
@@ -407,6 +376,7 @@ static struct sr_dev_driver link_mso19_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

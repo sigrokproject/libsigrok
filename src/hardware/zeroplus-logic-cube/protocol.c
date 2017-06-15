@@ -79,20 +79,6 @@ SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 	return SR_OK;
 }
 
-SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio)
-{
-	if (ratio > 100) {
-		sr_err("Invalid capture ratio: %" PRIu64 ".", ratio);
-		return SR_ERR_ARG;
-	}
-
-	devc->capture_ratio = ratio;
-
-	sr_info("Setting capture ratio to %d%%.", devc->capture_ratio);
-
-	return SR_OK;
-}
-
 SR_PRIV int set_voltage_threshold(struct dev_context *devc, double thresh)
 {
 	if (thresh > 6.0)
@@ -118,7 +104,7 @@ SR_PRIV void set_triggerbar(struct dev_context *devc)
 		trigger_depth = devc->limit_samples;
 
 	if (devc->trigger)
-		triggerbar = trigger_depth * devc->capture_ratio / 100;
+		triggerbar = (trigger_depth * devc->capture_ratio) / 100;
 	else
 		triggerbar = 0;
 

@@ -66,9 +66,7 @@ enum {
 	DEVICE_INACTIVE,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	uint64_t limit_samples;
 	int sample_interval;
 	int alarm_low;
@@ -76,7 +74,6 @@ struct dev_context {
 	enum sr_mqflag mqflags;
 	int data_source;
 
-	/* Operational state */
 	int state;
 	gboolean config_dirty;
 	uint64_t num_samples;
@@ -84,9 +81,7 @@ struct dev_context {
 	struct libusb_transfer *xfer;
 	unsigned char buf[128];
 
-	/* Temporary state across callbacks */
 	gint64 last_live_request;
-
 };
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data);

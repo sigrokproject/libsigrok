@@ -103,7 +103,6 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 
 	usb = sdi->conn;
 
-	/* Detach kernel drivers which grabbed this device (if any). */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, 0);
 		if (ret < 0) {
@@ -111,18 +110,13 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 			       libusb_error_name(ret));
 			return SR_ERR;
 		}
-		sr_dbg("Successfully detached kernel driver.");
-	} else {
-		sr_dbg("No need to detach a kernel driver.");
 	}
 
-	/* Claim interface 0. */
 	if ((ret = libusb_claim_interface(usb->devhdl, 0)) < 0) {
 		sr_err("Failed to claim interface 0: %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sr_dbg("Successfully claimed interface 0.");
 
 	/* Set data for the HID feature report (e.g. baudrate). */
 	buf[0] = baudrate & 0xff;        /* Baudrate, LSB */
@@ -158,8 +152,6 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 		return SR_ERR;
 	}
 
-	sr_dbg("Successfully sent initial HID feature report.");
-
 	return SR_OK;
 }
 
@@ -172,10 +164,11 @@ static void log_8byte_chunk(const uint8_t *buf)
 
 static void log_dmm_packet(const uint8_t *buf)
 {
-	sr_dbg("DMM packet:   %02x %02x %02x %02x %02x %02x %02x"
-	       " %02x %02x %02x %02x %02x %02x %02x",
-	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
+	GString *text;
+
+	text = sr_hexdump_new(buf, 14);
+	sr_dbg("DMM packet:   %s", text->str);
+	sr_hexdump_free(text);
 }
 
 static int get_and_handle_data(struct sr_dev_inst *sdi)
@@ -266,8 +259,8 @@ static int get_and_handle_data(struct sr_dev_inst *sdi)
 	}
 
 	/* Move remaining bytes to beginning of buffer. */
-	for (i = 0; i < devc->buflen - devc->bufoffset; i++)
-		pbuf[i] = pbuf[devc->bufoffset + i];
+	if (devc->bufoffset < devc->buflen)
+		memmove(pbuf, pbuf + devc->bufoffset, devc->buflen - devc->bufoffset);
 	devc->buflen -= devc->bufoffset;
 
 	return SR_OK;
@@ -290,7 +283,7 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 
 	/* Abort acquisition if we acquired enough samples. */
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

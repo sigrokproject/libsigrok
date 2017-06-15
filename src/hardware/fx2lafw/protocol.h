@@ -51,16 +51,9 @@
 
 #define DEV_CAPS_16BIT_POS	0
 #define DEV_CAPS_AX_ANALOG_POS	1
-#define DEV_CAPS_DSLOGIC_FW_POS 2
 
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 #define DEV_CAPS_AX_ANALOG	(1 << DEV_CAPS_AX_ANALOG_POS)
-#define DEV_CAPS_DSLOGIC_FW	(1 << DEV_CAPS_DSLOGIC_FW_POS)
-
-#define DSLOGIC_FPGA_FIRMWARE_5V "dreamsourcelab-dslogic-fpga-5v.fw"
-#define DSLOGIC_FPGA_FIRMWARE_3V3 "dreamsourcelab-dslogic-fpga-3v3.fw"
-#define DSCOPE_FPGA_FIRMWARE "dreamsourcelab-dscope-fpga.fw"
-#define DSLOGIC_PRO_FPGA_FIRMWARE "dreamsourcelab-dslogic-pro-fpga.fw"
 
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0
@@ -105,16 +98,13 @@ struct dev_context {
 	 */
 	int64_t fw_updated;
 
-	/* Supported samplerates */
 	const uint64_t *samplerates;
 	int num_samplerates;
 
-	/* Device/capture settings */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 
-	/* Operational settings */
 	gboolean trigger_fired;
 	gboolean acq_aborted;
 	gboolean sample_wide;
@@ -131,30 +121,11 @@ struct dev_context {
 		uint8_t *data, size_t length, size_t sample_width);
 	uint8_t *logic_buffer;
 	float *analog_buffer;
-
-	/* Is this a DSLogic? */
-	gboolean dslogic;
-	uint16_t dslogic_mode;
-	uint32_t trigger_pos;
-	gboolean dslogic_external_clock;
-	gboolean dslogic_continuous_mode;
-	int dslogic_clock_edge;
-	int dslogic_voltage_threshold;
 };
 
-SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV gboolean match_manuf_prod(libusb_device *dev, const char *manufacturer,
-		const char *product);
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
+SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
-SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer);
-SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
-SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
-SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
 
 #endif

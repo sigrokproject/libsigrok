@@ -109,55 +109,30 @@ static GSList *scan(GSList *options, int idx)
 	if (!conn)
 		return NULL;
 
-	if (serialcomm) {
-		/* Use the provided comm specs. */
+	if (serialcomm)
 		devices = center_scan(conn, serialcomm, idx);
-	} else {
-		/* Try the default. */
+	else
 		devices = center_scan(conn, center_devs[idx].conn, idx);
-	}
 
 	return std_scan_complete(center_devs[idx].di, devices);
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
 	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
@@ -165,16 +140,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	sr_sw_limits_acquisition_start(&devc->sw_limits);
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 500ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 500,
 		      center_devs[idx].receive_data, (void *)sdi);
@@ -202,6 +173,7 @@ static struct sr_dev_driver ID##_driver_info = { \
 	.cleanup = std_cleanup, \
 	.scan = scan_##ID_UPPER, \
 	.dev_list = std_dev_list, \
+	.dev_clear = std_dev_clear, \
 	.config_get = NULL, \
 	.config_set = config_set, \
 	.config_list = config_list, \

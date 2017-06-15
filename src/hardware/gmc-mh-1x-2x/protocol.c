@@ -17,20 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * Gossen Metrawatt Metrahit 1x/2x drivers
- *
- * @internal
- */
-
 #include <config.h>
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
 
-/* Internal Headers */
 static guchar calc_chksum_14(guchar *dta);
 static int chk_msg14(struct sr_dev_inst *sdi);
 
@@ -82,7 +73,7 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 	case 0x08: /* 1000 Diode */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
-		devc->mqflags |= SR_MQFLAG_DIODE;
+		devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 0x09: /* 1001 Ohm, °C */
 	case 0x0a: /* 1010 kOhm */
@@ -206,7 +197,7 @@ static void decode_ctmv_18(uint8_t ctmv, struct dev_context *devc)
 	case 0x05: /* 0101 Diode/Diode with buzzer */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
-		devc->mqflags |= SR_MQFLAG_DIODE;
+		devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 0x06: /* 0110 °C */
 		devc->mq = SR_MQ_TEMPERATURE;
@@ -419,7 +410,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_VOLT;
 		if (ctmv == 0x0f) {
 			devc->mq = SR_MQ_VOLTAGE;
-			devc->mqflags |= SR_MQFLAG_DIODE;
+			devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		} else {
 			devc->mq = SR_MQ_CONTINUITY;
 			devc->scale += -5;
@@ -764,8 +755,7 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 		dgt = bc(devc->buf[5 + cnt]);
 		if (dgt == 11) { /* Empty digit */
 			dgt = 0;
-		}
-		else if (dgt >= 12) { /* Overload */
+		} else if (dgt >= 12) { /* Overload */
 			devc->value = NAN;
 			devc->scale = 0;
 			break;
@@ -962,8 +952,7 @@ static int chk_msg14(struct sr_dev_inst *sdi)
 			sr_err("Device: Unknown error code!");
 		}
 		retc = SR_ERR_ARG;
-	}
-	else if (!isreq && ((devc->buf[1] != 0x27) || (devc->buf[2] != 0x3f))) {
+	} else if (!isreq && ((devc->buf[1] != 0x27) || (devc->buf[2] != 0x3f))) {
 		sr_err("process_msg_14(): byte 1/2 unexpected!");
 		retc = SR_ERR_ARG;
 	}
@@ -1064,11 +1053,9 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 				devc->value = NAN;
 				devc->scale = 0;
 				break;
-			}
-			else if (dgt == 13) { /* FUSE */
+			} else if (dgt == 13) { /* FUSE */
 				sr_err("FUSE!");
-			}
-			else if (dgt == 14) { /* Function recognition mode, OPEN */
+			} else if (dgt == 14) { /* Function recognition mode, OPEN */
 				sr_info("Function recognition mode, OPEN!");
 				devc->value = NAN;
 				devc->scale = 0;
@@ -1144,8 +1131,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					process_msg_inf_10(sdi);
 					devc->buflen = 0;
 					continue;
-				}
-				else if ((devc->buflen >= 5) &&
+				} else if ((devc->buflen >= 5) &&
 					 (devc->buf[devc->buflen - 1] &
 					  MSGID_MASK) != MSGID_DATA) {
 					/*
@@ -1153,8 +1139,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					 * of next message.
 					 */
 					process_msg_inf_5(sdi);
-					devc->buf[0] =
-							devc->buf[devc->buflen - 1];
+					devc->buf[0] = devc->buf[devc->buflen - 1];
 					devc->buflen = 1;
 					continue;
 				}
@@ -1175,7 +1160,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -1218,7 +1203,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	/* Request next data set, if required */
 	if (sdi->status == SR_ST_ACTIVE) {
@@ -1232,8 +1217,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 			if (devc->cmd_seq % 10 == 0) {
 				if (req_stat14(sdi, FALSE) != SR_OK)
 					return FALSE;
-			}
-			else if (req_meas14(sdi) != SR_OK)
+			} else if (req_meas14(sdi) != SR_OK)
 				return FALSE;
 		}
 	}
@@ -1283,9 +1267,7 @@ static void create_cmd_14(guchar addr, guchar func, guchar *params, guchar *buf)
 	}
 }
 
-/** Request one measurement from 2x multimeter (msg 8).
- *
- */
+/** Request one measurement from 2x multimeter (msg 8). */
 int req_meas14(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -1361,7 +1343,8 @@ int req_stat14(const struct sr_dev_inst *sdi, gboolean power_on)
 	return SR_OK;
 }
 
-/** Decode model in "send mode".
+/**
+ * Decode model in "send mode".
  *
  * @param[in] mcode Model code.
  * @return Model code.
@@ -1504,9 +1487,6 @@ SR_PRIV int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *s
 	uint8_t msg[42];
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 

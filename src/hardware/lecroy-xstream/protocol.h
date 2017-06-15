@@ -45,11 +45,12 @@ struct scope_config {
 	const uint8_t num_trigger_sources;
 
 	const char *(*trigger_slopes)[];
+	const uint8_t num_trigger_slopes;
 
-	const struct sr_rational *timebases;
+	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
 
-	const struct sr_rational *vdivs;
+	const uint64_t (*vdivs)[][2];
 	const uint8_t num_vdivs;
 
 	const uint8_t num_xdivs;
@@ -76,7 +77,6 @@ struct scope_state {
 	uint64_t sample_rate;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const void *model_config;
 	void *model_state;
@@ -96,6 +96,9 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void lecroy_xstream_state_free(struct scope_state *state);
 SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi);
-SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi);
+SR_PRIV int lecroy_xstream_channel_state_set(const struct sr_dev_inst *sdi,
+		const int ch_index, gboolean ch_state);
+SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi,
+		int num_of_samples);
 
 #endif

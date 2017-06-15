@@ -29,13 +29,14 @@
 
 #define LOG_PREFIX "input/binary"
 
-#define MAX_CHUNK_SIZE       4096
+#define CHUNK_SIZE           (4 * 1024 * 1024)
 #define DEFAULT_NUM_CHANNELS 8
 #define DEFAULT_SAMPLERATE   0
 
 struct context {
 	gboolean started;
 	uint64_t samplerate;
+	uint16_t unitsize;
 };
 
 static int init(struct sr_input *in, GHashTable *options)
@@ -56,9 +57,11 @@ static int init(struct sr_input *in, GHashTable *options)
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, 16, "%d", i);
+		snprintf(name, sizeof(name), "%d", i);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
+
+	inc->unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
 
 	return SR_OK;
 }
@@ -92,14 +95,14 @@ static int process_buffer(struct sr_input *in)
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
+	logic.unitsize = inc->unitsize;
 
 	/* Cut off at multiple of unitsize. */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
 
 	for (i = 0; i < chunk_size; i += chunk) {
 		logic.data = in->buf->str + i;
-		chunk = MIN(MAX_CHUNK_SIZE, chunk_size - i);
+		chunk = MIN(CHUNK_SIZE, chunk_size - i);
 		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}
@@ -153,8 +156,8 @@ static int reset(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels in the data", NULL, NULL },
+	{ "samplerate", "Sample rate (Hz)", "The sample rate of the (logic) data in Hz", NULL, NULL },
 	ALL_ZERO
 };
 
@@ -171,7 +174,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_input_module input_binary = {
 	.id = "binary",
 	.name = "Binary",
-	.desc = "Raw binary",
+	.desc = "Raw binary logic data",
 	.exts = NULL,
 	.options = get_options,
 	.init = init,

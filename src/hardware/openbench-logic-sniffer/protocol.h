@@ -26,7 +26,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "ols"
+#define LOG_PREFIX "openbench-logic-sniffer"
 
 #define NUM_CHANNELS               32
 #define NUM_TRIGGER_STAGES         4
@@ -66,19 +66,16 @@
 #define FLAG_FILTER                (1 << 1)
 #define FLAG_DEMUX                 (1 << 0)
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
-	/* Fixed device settings */
 	int max_channels;
 	uint32_t max_samples;
 	uint32_t max_samplerate;
 	uint32_t protocol_version;
 
-	/* Acquisition settings */
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
 	uint64_t limit_samples;
-	int capture_ratio;
+	uint64_t capture_ratio;
 	int trigger_at;
 	uint32_t channel_mask;
 	uint32_t trigger_mask[NUM_TRIGGER_STAGES];
@@ -86,7 +83,6 @@ struct dev_context {
 	int num_stages;
 	uint16_t flag_reg;
 
-	/* Operational states */
 	unsigned int num_transfers;
 	unsigned int num_samples;
 	int num_bytes;
@@ -94,7 +90,6 @@ struct dev_context {
 	int cnt_samples;
 	int cnt_samples_rle;
 
-	/* Temporary variables */
 	unsigned int rle_count;
 	unsigned char sample[4];
 	unsigned char tmp_sample[4];

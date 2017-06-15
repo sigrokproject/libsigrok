@@ -117,20 +117,15 @@ static int scpi_serial_source_remove(struct sr_session *session, void *priv)
 
 static int scpi_serial_send(void *priv, const char *command)
 {
-	int len, result, written;
+	int result;
 	struct scpi_serial *sscpi = priv;
 	struct sr_serial_dev_inst *serial = sscpi->serial;
 
-	len = strlen(command);
-	written = 0;
-	while (written < len) {
-		result = serial_write_nonblocking(serial,
-				command + written, len - written);
-		if (result < 0) {
-			sr_err("Error while sending SCPI command: '%s'.", command);
-			return SR_ERR;
-		}
-		written += result;
+	result = serial_write_blocking(serial, command, strlen(command), 0);
+	if (result < 0) {
+		sr_err("Error while sending SCPI command '%s': %d.",
+			command, result);
+		return SR_ERR;
 	}
 
 	sr_spew("Successfully sent SCPI command: '%s'.", command);
@@ -158,8 +153,6 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 		return ret;
 
 	if (ret > 0) {
-		sr_spew("Read %d bytes into buffer.", ret);
-
 		if (buf[ret - 1] == '\n') {
 			sscpi->got_newline = TRUE;
 			sr_spew("Received terminator");

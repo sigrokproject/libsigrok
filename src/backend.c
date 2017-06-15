@@ -153,8 +153,14 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBUSB_1_0_VERSION));
 #else
 	lv = libusb_get_version();
-	m = g_slist_append(m, g_strdup_printf("%d.%d.%d.%d%s",
-		lv->major, lv->minor, lv->micro, lv->nano, lv->rc));
+	m = g_slist_append(m, g_strdup_printf("%d.%d.%d.%d%s API 0x%08x",
+		lv->major, lv->minor, lv->micro, lv->nano, lv->rc,
+#if defined(LIBUSB_API_VERSION)
+		LIBUSB_API_VERSION
+#elif defined(LIBUSBX_API_VERSION)
+		LIBUSBX_API_VERSION
+#endif
+		));
 #endif
 	l = g_slist_append(l, m);
 #endif
@@ -255,6 +261,17 @@ static void print_versions(void)
 	g_free(str);
 }
 
+static void print_resourcepaths(void)
+{
+	GSList *l, *l_orig;
+
+	sr_dbg("Firmware search paths:");
+	l_orig = sr_resourcepaths_get(SR_RESOURCE_FIRMWARE);
+	for (l = l_orig; l; l = l->next)
+		sr_dbg(" - %s", (const char *)l->data);
+	g_slist_free_full(l_orig, g_free);
+}
+
 /**
  * Sanity-check all libsigrok drivers.
  *
@@ -309,7 +326,10 @@ static int sanity_check_all_drivers(const struct sr_context *ctx)
 			sr_err("No dev_list in driver %d ('%s').", i, d);
 			errors++;
 		}
-		/* Note: dev_clear() is optional. */
+		if (!drivers[i]->dev_clear) {
+			sr_err("No dev_clear in driver %d ('%s').", i, d);
+			errors++;
+		}
 		/* Note: config_get() is optional. */
 		if (!drivers[i]->config_set) {
 			sr_err("No config_set in driver %d ('%s').", i, d);
@@ -526,6 +546,8 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	print_versions();
 
+	print_resourcepaths();
+
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);
 		return SR_ERR;
@@ -537,22 +559,22 @@ SR_API int sr_init(struct sr_context **ctx)
 
 	if (sanity_check_all_drivers(context) < 0) {
 		sr_err("Internal driver error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_input_modules() < 0) {
 		sr_err("Internal input module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_output_modules() < 0) {
 		sr_err("Internal output module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 	if (sanity_check_all_transform_modules() < 0) {
 		sr_err("Internal transform module error(s), aborting.");
-		return ret;
+		goto done;
 	}
 
 #ifdef _WIN32
@@ -577,9 +599,7 @@ SR_API int sr_init(struct sr_context **ctx)
 	context = NULL;
 	ret = SR_OK;
 
-#if defined(HAVE_LIBUSB_1_0) || defined(_WIN32)
 done:
-#endif
 	g_free(context);
 	return ret;
 }

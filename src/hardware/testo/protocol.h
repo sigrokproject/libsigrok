@@ -51,19 +51,13 @@ struct testo_model {
 	const uint8_t *request;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct testo_model *model;
-
-	/* Acquisition settings */
 	struct sr_sw_limits sw_limits;
 
-	/* Operational state */
 	uint8_t channel_units[MAX_CHANNELS];
 	int num_channels;
 
-	/* Temporary state across callbacks */
 	struct libusb_transfer *out_transfer;
 	uint8_t reply[MAX_REPLY_SIZE];
 	int reply_size;

@@ -360,7 +360,7 @@ static void handle_flags(struct sr_datafeed_analog *analog,
 	if (info->is_auto)
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_hold)
 		/*
 		 * Note: HOLD only affects the number displayed on the LCD,
@@ -410,7 +410,7 @@ SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct vc870_info *info_local;
 
-	info_local = (struct vc870_info *)info;
+	info_local = info;
 	memset(info_local, 0, sizeof(struct vc870_info));
 
 	if (!sr_vc870_packet_valid(buf))

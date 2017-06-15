@@ -60,7 +60,11 @@
 #define FLUSH_PACKET_SIZE	1024
 
 #define MIN_PACKET_SIZE		512
+#ifdef _WIN32
+#define MAX_PACKET_SIZE		(2 * 1024 * 1024)
+#else
 #define MAX_PACKET_SIZE		(12 * 1024 * 1024)
+#endif
 
 #define HANTEK_EP_IN		0x86
 #define USB_INTERFACE		0
@@ -118,11 +122,6 @@ struct dev_context {
 	uint64_t aq_started;
 
 	uint64_t read_start_ts;
-	uint32_t read_data_amount;
-
-	struct libusb_transfer **sample_buf;
-	uint32_t sample_buf_write;
-	uint32_t sample_buf_size;
 
 	gboolean ch_enabled[NUM_CHANNELS];
 	int voltage[NUM_CHANNELS];

@@ -99,8 +99,10 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 		if (buf[8] & 0x01) {
 			analog[0].meaning->mq = SR_MQ_VOLTAGE;
 			analog[0].meaning->unit = SR_UNIT_VOLT;
-			if (!strcmp(str, "diod"))
+			if (!strcmp(str, "diod")) {
 				analog[0].meaning->mqflags |= SR_MQFLAG_DIODE;
+				analog[0].meaning->mqflags |= SR_MQFLAG_DC;
+			}
 		} else if (buf[14] & 0x80) {
 			analog[0].meaning->mq = SR_MQ_CURRENT;
 			analog[0].meaning->unit = SR_UNIT_AMPERE;
@@ -214,6 +216,8 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 	struct sr_analog_encoding encoding[2];
 	struct sr_analog_meaning meaning[2];
 	struct sr_analog_spec spec[2];
+	struct sr_channel *channel;
+	int sent_ch1, sent_ch2;
 	float floatval[2];
 
 	devc = sdi->priv;
@@ -223,30 +227,35 @@ static void brymen_bm86x_handle_packet(const struct sr_dev_inst *sdi,
 	sr_analog_init(&analog[1], &encoding[1], &meaning[1], &spec[1], 0);
 
 	brymen_bm86x_parse(buf, floatval, analog);
+	sent_ch1 = sent_ch2 = 0;
 
-	if (analog[0].meaning->mq != 0) {
+	channel = sdi->channels->data;
+	if (analog[0].meaning->mq != 0 && channel->enabled) {
 		/* Got a measurement. */
+		sent_ch1 = 1;
 		analog[0].num_samples = 1;
 		analog[0].data = &floatval[0];
-		analog[0].meaning->channels = g_slist_append(NULL, sdi->channels->data);
+		analog[0].meaning->channels = g_slist_append(NULL, channel);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[0];
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog[0].meaning->channels);
 	}
 
-	if (analog[1].meaning->mq != 0) {
+	channel = sdi->channels->next->data;
+	if (analog[1].meaning->mq != 0 && channel->enabled) {
 		/* Got a measurement. */
+		sent_ch2 = 1;
 		analog[1].num_samples = 1;
 		analog[1].data = &floatval[1];
-		analog[1].meaning->channels = g_slist_append(NULL, sdi->channels->next->data);
+		analog[1].meaning->channels = g_slist_append(NULL, channel);
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog[1];
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog[1].meaning->channels);
 	}
 
-	if (analog[0].meaning->mq != 0 || analog[1].meaning->mq != 0)
+	if (sent_ch1 || sent_ch2)
 		sr_sw_limits_update_samples_read(&devc->sw_limits, 1);
 }
 
@@ -344,7 +353,7 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

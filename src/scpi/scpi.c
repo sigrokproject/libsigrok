@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2015 Bert Vermeulen <bert@biot.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +29,15 @@
 
 #define SCPI_READ_RETRIES 100
 #define SCPI_READ_RETRY_TIMEOUT_US (10 * 1000)
+
+static const char *scpi_vendors[][2] = {
+	{ "HEWLETT-PACKARD", "HP" },
+	{ "Agilent Technologies", "Agilent" },
+	{ "RIGOL TECHNOLOGIES", "Rigol" },
+	{ "PHILIPS", "Philips" },
+	{ "CHROMA", "Chroma" },
+	{ "Chroma ATE", "Chroma" },
+};
 
 /**
  * Parse a string representation of a boolean-like value into a gboolean.
@@ -122,6 +132,183 @@ static struct sr_dev_inst *sr_scpi_scan_resource(struct drv_context *drvc,
 	return sdi;
 }
 
+/**
+ * Send a SCPI command with a variadic argument list without mutex.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param format Format string.
+ * @param args Argument list.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+static int scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
+			 const char *format, va_list args)
+{
+	va_list args_copy;
+	char *buf;
+	int len, ret;
+
+	/* Get length of buffer required. */
+	va_copy(args_copy, args);
+	len = sr_vsnprintf_ascii(NULL, 0, format, args_copy);
+	va_end(args_copy);
+
+	/* Allocate buffer and write out command. */
+	buf = g_malloc0(len + 2);
+	sr_vsprintf_ascii(buf, format, args);
+	if (buf[len - 1] != '\n')
+		buf[len] = '\n';
+
+	/* Send command. */
+	ret = scpi->send(scpi->priv, buf);
+
+	/* Free command buffer. */
+	g_free(buf);
+
+	return ret;
+}
+
+/**
+ * Send a SCPI command without mutex.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param format Format string, to be followed by any necessary arguments.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+static int scpi_send(struct sr_scpi_dev_inst *scpi, const char *format, ...)
+{
+	va_list args;
+	int ret;
+
+	va_start(args, format);
+	ret = scpi_send_variadic(scpi, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+/**
+ * Send data to SCPI device without mutex.
+ *
+ * TODO: This is only implemented in TcpRaw, but never used.
+ * TODO: Use Mutex at all?
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param buf Buffer with data to send.
+ * @param len Number of bytes to send.
+ *
+ * @return Number of bytes read, or SR_ERR upon failure.
+ */
+static int scpi_write_data(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen)
+{
+	return scpi->write_data(scpi->priv, buf, maxlen);
+}
+
+/**
+ * Read part of a response from SCPI device without mutex.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param buf Buffer to store result.
+ * @param maxlen Maximum number of bytes to read.
+ *
+ * @return Number of bytes read, or SR_ERR upon failure.
+ */
+static int scpi_read_data(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen)
+{
+	return scpi->read_data(scpi->priv, buf, maxlen);
+}
+
+/**
+ * Do a non-blocking read of up to the allocated length, and
+ * check if a timeout has occured, without mutex.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param response Buffer to which the response is appended.
+ * @param abs_timeout_us Absolute timeout in microseconds
+ *
+ * @return read length on success, SR_ERR* on failure.
+ */
+static int scpi_read_response(struct sr_scpi_dev_inst *scpi,
+				GString *response, gint64 abs_timeout_us)
+{
+	int len, space;
+
+	space = response->allocated_len - response->len;
+	len = scpi->read_data(scpi->priv, &response->str[response->len], space);
+
+	if (len < 0) {
+		sr_err("Incompletely read SCPI response.");
+		return SR_ERR;
+	}
+
+	if (len > 0) {
+		g_string_set_size(response, response->len + len);
+		return len;
+	}
+
+	if (g_get_monotonic_time() > abs_timeout_us) {
+		sr_err("Timed out waiting for SCPI response.");
+		return SR_ERR_TIMEOUT;
+	}
+
+	return 0;
+}
+
+/**
+ * Send a SCPI command, receive the reply and store the reply in
+ * scpi_response, without mutex.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param command The SCPI command to send to the device.
+ * @param scpi_response Pointer where to store the SCPI response.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
+				const char *command, GString **scpi_response)
+{
+	int ret;
+	GString *response;
+	int space;
+	gint64 timeout;
+
+	/* Optionally send caller provided command. */
+	if (command) {
+		if (scpi_send(scpi, command) != SR_OK)
+			return SR_ERR;
+	}
+
+	/* Initiate SCPI read operation. */
+	if (sr_scpi_read_begin(scpi) != SR_OK)
+		return SR_ERR;
+
+	/* Keep reading until completion or until timeout. */
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+
+	response = *scpi_response;
+
+	while (!sr_scpi_read_complete(scpi)) {
+		/* Resize the buffer when free space drops below a threshold. */
+		space = response->allocated_len - response->len;
+		if (space < 128) {
+			int oldlen = response->len;
+			g_string_set_size(response, oldlen + 1024);
+			g_string_set_size(response, oldlen);
+		}
+
+		/* Read another chunk of the response. */
+		ret = scpi_read_response(scpi, response, timeout);
+
+		if (ret < 0)
+			return ret;
+		if (ret > 0)
+			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi))
 {
@@ -214,6 +401,8 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
  */
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 {
+	g_mutex_init(&scpi->scpi_mutex);
+
 	return scpi->open(scpi);
 }
 
@@ -268,7 +457,9 @@ SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 	int ret;
 
 	va_start(args, format);
-	ret = sr_scpi_send_variadic(scpi, format, args);
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_send_variadic(scpi, format, args);
+	g_mutex_unlock(&scpi->scpi_mutex);
 	va_end(args);
 
 	return ret;
@@ -286,26 +477,11 @@ SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
 			 const char *format, va_list args)
 {
-	va_list args_copy;
-	char *buf;
-	int len, ret;
+	int ret;
 
-	/* Get length of buffer required. */
-	va_copy(args_copy, args);
-	len = vsnprintf(NULL, 0, format, args_copy);
-	va_end(args_copy);
-
-	/* Allocate buffer and write out command. */
-	buf = g_malloc0(len + 2);
-	vsprintf(buf, format, args);
-	if (buf[len - 1] != '\n')
-		buf[len] = '\n';
-
-	/* Send command. */
-	ret = scpi->send(scpi->priv, buf);
-
-	/* Free command buffer. */
-	g_free(buf);
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_send_variadic(scpi, format, args);
+	g_mutex_unlock(&scpi->scpi_mutex);
 
 	return ret;
 }
@@ -334,11 +510,20 @@ SR_PRIV int sr_scpi_read_begin(struct sr_scpi_dev_inst *scpi)
 SR_PRIV int sr_scpi_read_data(struct sr_scpi_dev_inst *scpi,
 			char *buf, int maxlen)
 {
-	return scpi->read_data(scpi->priv, buf, maxlen);
+	int ret;
+
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_read_data(scpi, buf, maxlen);
+	g_mutex_unlock(&scpi->scpi_mutex);
+
+	return ret;
 }
 
 /**
  * Send data to SCPI device.
+ *
+ * TODO: This is only implemented in TcpRaw, but never used.
+ * TODO: Use Mutex at all?
  *
  * @param scpi Previously initialised SCPI device structure.
  * @param buf Buffer with data to send.
@@ -349,7 +534,13 @@ SR_PRIV int sr_scpi_read_data(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_write_data(struct sr_scpi_dev_inst *scpi,
 			char *buf, int maxlen)
 {
-	return scpi->write_data(scpi->priv, buf, maxlen);
+	int ret;
+
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_write_data(scpi, buf, maxlen);
+	g_mutex_unlock(&scpi->scpi_mutex);
+
+	return ret;
 }
 
 /**
@@ -373,7 +564,14 @@ SR_PRIV int sr_scpi_read_complete(struct sr_scpi_dev_inst *scpi)
  */
 SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi)
 {
-	return scpi->close(scpi);
+	int ret;
+
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi->close(scpi);
+	g_mutex_unlock(&scpi->scpi_mutex);
+	g_mutex_clear(&scpi->scpi_mutex);
+
+	return ret;
 }
 
 /**
@@ -389,6 +587,7 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 
 	scpi->free(scpi->priv);
 	g_free(scpi->priv);
+	g_free(scpi->actual_channel_name);
 	g_free(scpi);
 }
 
@@ -442,71 +641,25 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_read_response(struct sr_scpi_dev_inst *scpi,
 				  GString *response, gint64 abs_timeout_us)
 {
-	int len, space;
+	int ret;
 
-	space = response->allocated_len - response->len;
-	len = sr_scpi_read_data(scpi, &response->str[response->len], space);
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_read_response(scpi, response, abs_timeout_us);
+	g_mutex_unlock(&scpi->scpi_mutex);
 
-	if (len < 0) {
-		sr_err("Incompletely read SCPI response.");
-		return SR_ERR;
-	}
-
-	if (len > 0) {
-		g_string_set_size(response, response->len + len);
-		return len;
-	}
-
-	if (g_get_monotonic_time() > abs_timeout_us) {
-		sr_err("Timed out waiting for SCPI response.");
-		return SR_ERR_TIMEOUT;
-	}
-
-	return 0;
+	return ret;
 }
 
 SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 			     const char *command, GString **scpi_response)
 {
 	int ret;
-	GString *response;
-	int space;
-	gint64 timeout;
 
-	/* Optionally send caller provided command. */
-	if (command) {
-		if (sr_scpi_send(scpi, command) != SR_OK)
-			return SR_ERR;
-	}
+	g_mutex_lock(&scpi->scpi_mutex);
+	ret = scpi_get_data(scpi, command, scpi_response);
+	g_mutex_unlock(&scpi->scpi_mutex);
 
-	/* Initiate SCPI read operation. */
-	if (sr_scpi_read_begin(scpi) != SR_OK)
-		return SR_ERR;
-
-	/* Keep reading until completion or until timeout. */
-	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-
-	response = *scpi_response;
-
-	while (!sr_scpi_read_complete(scpi)) {
-		/* Resize the buffer when free space drops below a threshold. */
-		space = response->allocated_len - response->len;
-		if (space < 128) {
-			int oldlen = response->len;
-			g_string_set_size(response, oldlen + 1024);
-			g_string_set_size(response, oldlen);
-		}
-
-		/* Read another chunk of the response. */
-		ret = sr_scpi_read_response(scpi, response, timeout);
-
-		if (ret < 0)
-			return ret;
-		if (ret > 0)
-			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-	}
-
-	return SR_OK;
+	return ret;
 }
 
 /**
@@ -627,7 +780,7 @@ SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 	if (ret != SR_OK && !response)
 		return ret;
 
-	if (sr_atod(response, scpi_response) == SR_OK)
+	if (sr_atod_ascii(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
 		ret = SR_ERR_DATA;
@@ -651,6 +804,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 	gboolean opc;
 
 	for (i = 0; i < SCPI_READ_RETRIES; i++) {
+		opc = FALSE;
 		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
 		if (opc)
 			return SR_OK;
@@ -796,12 +950,18 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	long datalen;
 	gint64 timeout;
 
-	if (command)
-		if (sr_scpi_send(scpi, command) != SR_OK)
-			return SR_ERR;
+	g_mutex_lock(&scpi->scpi_mutex);
 
-	if (sr_scpi_read_begin(scpi) != SR_OK)
+	if (command)
+		if (scpi_send(scpi, command) != SR_OK) {
+			g_mutex_unlock(&scpi->scpi_mutex);
+			return SR_ERR;
+		}
+
+	if (sr_scpi_read_begin(scpi) != SR_OK) {
+		g_mutex_unlock(&scpi->scpi_mutex);
 		return SR_ERR;
+	}
 
 	/*
 	 * Assume an initial maximum length, optionally gets adjusted below.
@@ -815,8 +975,9 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 
 	/* Get (the first chunk of) the response. */
 	while (response->len < 2) {
-		ret = sr_scpi_read_response(scpi, response, timeout);
+		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
@@ -834,6 +995,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	 * the input buffer, leaving just the data bytes.
 	 */
 	if (response->str[0] != '#') {
+		g_mutex_unlock(&scpi->scpi_mutex);
 		g_string_free(response, TRUE);
 		return SR_ERR_DATA;
 	}
@@ -841,13 +1003,15 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	buf[1] = '\0';
 	ret = sr_atol(buf, &llen);
 	if ((ret != SR_OK) || (llen == 0)) {
+		g_mutex_unlock(&scpi->scpi_mutex);
 		g_string_free(response, TRUE);
 		return ret;
 	}
 
 	while (response->len < (unsigned long)(2 + llen)) {
-		ret = sr_scpi_read_response(scpi, response, timeout);
+		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
@@ -857,6 +1021,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	buf[llen] = '\0';
 	ret = sr_atol(buf, &datalen);
 	if ((ret != SR_OK) || (datalen == 0)) {
+		g_mutex_unlock(&scpi->scpi_mutex);
 		g_string_free(response, TRUE);
 		return ret;
 	}
@@ -874,14 +1039,17 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	}
 
 	while (response->len < (unsigned long)(datalen)) {
-		ret = sr_scpi_read_response(scpi, response, timeout);
+		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
 		if (ret > 0)
 			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	}
+
+	g_mutex_unlock(&scpi->scpi_mutex);
 
 	/* Convert received data to byte array. */
 	*scpi_response = g_byte_array_new_take(
@@ -908,6 +1076,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	char *response;
 	gchar **tokens;
 	struct sr_scpi_hw_info *hw_info;
+	gchar *idn_substr;
 
 	response = NULL;
 	tokens = NULL;
@@ -915,8 +1084,6 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	ret = sr_scpi_get_string(scpi, SCPI_CMD_IDN, &response);
 	if (ret != SR_OK && !response)
 		return ret;
-
-	sr_info("Got IDN string: '%s'", response);
 
 	/*
 	 * The response to a '*IDN?' is specified by the SCPI spec. It contains
@@ -936,7 +1103,13 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	g_free(response);
 
 	hw_info = g_malloc0(sizeof(struct sr_scpi_hw_info));
-	hw_info->manufacturer = g_strstrip(g_strdup(tokens[0]));
+
+	idn_substr = g_strstr_len(tokens[0], -1, "IDN ");
+	if (idn_substr == NULL)
+		hw_info->manufacturer = g_strstrip(g_strdup(tokens[0]));
+	else
+		hw_info->manufacturer = g_strstrip(g_strdup(idn_substr + 4));
+
 	hw_info->model = g_strstrip(g_strdup(tokens[1]));
 	hw_info->serial_number = g_strstrip(g_strdup(tokens[2]));
 	hw_info->firmware_version = g_strstrip(g_strdup(tokens[3]));
@@ -964,4 +1137,161 @@ SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info)
 	g_free(hw_info->serial_number);
 	g_free(hw_info->firmware_version);
 	g_free(hw_info);
+}
+
+SR_PRIV const char *sr_vendor_alias(const char *raw_vendor)
+{
+	unsigned int i;
+
+	for (i = 0; i < ARRAY_SIZE(scpi_vendors); i++) {
+		if (!g_ascii_strcasecmp(raw_vendor, scpi_vendors[i][0]))
+			return scpi_vendors[i][1];
+	}
+
+	return raw_vendor;
+}
+
+SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable,
+		int command)
+{
+	unsigned int i;
+	const char *cmd;
+
+	if (!cmdtable)
+		return NULL;
+
+	cmd = NULL;
+	for (i = 0; cmdtable[i].string; i++) {
+		if (cmdtable[i].command == command) {
+			cmd = cmdtable[i].string;
+			break;
+		}
+	}
+
+	return cmd;
+}
+
+SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
+		const struct scpi_command *cmdtable,
+		int channel_command, const char *channel_name,
+		int command, ...)
+{
+	struct sr_scpi_dev_inst *scpi;
+	va_list args;
+	int ret;
+	const char *channel_cmd;
+	const char *cmd;
+
+	scpi = sdi->conn;
+
+	if (!(cmd = sr_scpi_cmd_get(cmdtable, command))) {
+		/* Device does not implement this command, that's OK. */
+		return SR_OK;
+	}
+
+	g_mutex_lock(&scpi->scpi_mutex);
+
+	/* Select channel. */
+	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
+	if (channel_cmd && channel_name &&
+			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+		sr_spew("sr_scpi_cmd(): new channel = %s", channel_name);
+		g_free(scpi->actual_channel_name);
+		scpi->actual_channel_name = g_strdup(channel_name);
+		ret = scpi_send(scpi, channel_cmd, channel_name);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	va_start(args, command);
+	ret = scpi_send_variadic(scpi, cmd, args);
+	va_end(args);
+
+	g_mutex_unlock(&scpi->scpi_mutex);
+
+	return ret;
+}
+
+SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
+		const struct scpi_command *cmdtable,
+		int channel_command, const char *channel_name,
+		GVariant **gvar, const GVariantType *gvtype, int command, ...)
+{
+	struct sr_scpi_dev_inst *scpi;
+	va_list args;
+	const char *channel_cmd;
+	const char *cmd;
+	GString *response;
+	char *s;
+	gboolean b;
+	double d;
+	int ret;
+
+	scpi = sdi->conn;
+
+	if (!(cmd = sr_scpi_cmd_get(cmdtable, command))) {
+		/* Device does not implement this command. */
+		return SR_ERR_NA;
+	}
+
+	g_mutex_lock(&scpi->scpi_mutex);
+
+	/* Select channel. */
+	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
+	if (channel_cmd && channel_name &&
+			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+		sr_spew("sr_scpi_cmd_get(): new channel = %s", channel_name);
+		g_free(scpi->actual_channel_name);
+		scpi->actual_channel_name = g_strdup(channel_name);
+		ret = scpi_send(scpi, channel_cmd, channel_name);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	va_start(args, command);
+	ret = scpi_send_variadic(scpi, cmd, args);
+	va_end(args);
+	if (ret != SR_OK) {
+		g_mutex_unlock(&scpi->scpi_mutex);
+		return ret;
+	}
+
+	response = g_string_sized_new(1024);
+	ret = scpi_get_data(scpi, NULL, &response);
+	if (ret != SR_OK) {
+		g_mutex_unlock(&scpi->scpi_mutex);
+		if (response)
+			g_string_free(response, TRUE);
+		return ret;
+	}
+
+	g_mutex_unlock(&scpi->scpi_mutex);
+
+	/* Get rid of trailing linefeed if present */
+	if (response->len >= 1 && response->str[response->len - 1] == '\n')
+		g_string_truncate(response, response->len - 1);
+
+	/* Get rid of trailing carriage return if present */
+	if (response->len >= 1 && response->str[response->len - 1] == '\r')
+		g_string_truncate(response, response->len - 1);
+
+	s = g_string_free(response, FALSE);
+
+	ret = SR_OK;
+	if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_BOOLEAN)) {
+		if ((ret = parse_strict_bool(s, &b)) == SR_OK)
+			*gvar = g_variant_new_boolean(b);
+	} else if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_DOUBLE)) {
+		if ((ret = sr_atod_ascii(s, &d)) == SR_OK)
+			*gvar = g_variant_new_double(d);
+	} else if (g_variant_type_equal(gvtype, G_VARIANT_TYPE_STRING)) {
+		*gvar = g_variant_new_string(s);
+	} else {
+		sr_err("Unable to convert to desired GVariant type.");
+		ret = SR_ERR_NA;
+	}
+
+	g_free(s);
+
+	return ret;
 }

@@ -18,8 +18,9 @@
  */
 
 /* Needed for isascii(), as used in the GNU libstdc++ headers */
+/* Needed in strutil.c for POSIX.1-2008 locale functions */
 #ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 700
 #endif
 
 #include <config.h>
@@ -128,19 +129,19 @@ Context::Context() :
 	if (struct sr_dev_driver **driver_list = sr_driver_list(_structure))
 		for (int i = 0; driver_list[i]; i++) {
 			unique_ptr<Driver> driver {new Driver{driver_list[i]}};
-			_drivers.insert(make_pair(driver->name(), move(driver)));
+			_drivers.emplace(driver->name(), move(driver));
 		}
 
 	if (const struct sr_input_module **input_list = sr_input_list())
 		for (int i = 0; input_list[i]; i++) {
 			unique_ptr<InputFormat> input {new InputFormat{input_list[i]}};
-			_input_formats.insert(make_pair(input->name(), move(input)));
+			_input_formats.emplace(input->name(), move(input));
 		}
 
 	if (const struct sr_output_module **output_list = sr_output_list())
 		for (int i = 0; output_list[i]; i++) {
 			unique_ptr<OutputFormat> output {new OutputFormat{output_list[i]}};
-			_output_formats.insert(make_pair(output->name(), move(output)));
+			_output_formats.emplace(output->name(), move(output));
 		}
 }
 
@@ -157,11 +158,10 @@ string Context::lib_version()
 map<string, shared_ptr<Driver>> Context::drivers()
 {
 	map<string, shared_ptr<Driver>> result;
-	for (const auto &entry: _drivers)
-	{
+	for (const auto &entry: _drivers) {
 		const auto &name = entry.first;
 		const auto &driver = entry.second;
-		result.insert({name, driver->share_owned_by(shared_from_this())});
+		result.emplace(name, driver->share_owned_by(shared_from_this()));
 	}
 	return result;
 }
@@ -169,23 +169,47 @@ map<string, shared_ptr<Driver>> Context::drivers()
 map<string, shared_ptr<InputFormat>> Context::input_formats()
 {
 	map<string, shared_ptr<InputFormat>> result;
-	for (const auto &entry: _input_formats)
-	{
+	for (const auto &entry: _input_formats) {
 		const auto &name = entry.first;
 		const auto &input_format = entry.second;
-		result.insert({name, input_format->share_owned_by(shared_from_this())});
+		result.emplace(name, input_format->share_owned_by(shared_from_this()));
 	}
 	return result;
+}
+
+shared_ptr<InputFormat> Context::input_format_match(string filename)
+{
+	const struct sr_input *input;
+	const struct sr_input_module *imod;
+	int rc;
+
+	/*
+	 * Have the input module looked up for the specified file.
+	 * Failed lookup (or "successful lookup" with an empty result)
+	 * are non-fatal. Free the sr_input that was created by the
+	 * lookup routine, but grab the input module kind and return an
+	 * InputFormat instance to the application. This works because
+	 * the application passes a filename, no input data got buffered
+	 * in the sr_input that we release.
+	 */
+	input = NULL;
+	rc = sr_input_scan_file(filename.c_str(), &input);
+	if (rc != SR_OK)
+		return nullptr;
+	if (!input)
+		return nullptr;
+	imod = sr_input_module_get(input);
+	sr_input_free(input);
+	return shared_ptr<InputFormat>{new InputFormat{imod}, default_delete<InputFormat>{}};
 }
 
 map<string, shared_ptr<OutputFormat>> Context::output_formats()
 {
 	map<string, shared_ptr<OutputFormat>> result;
-	for (const auto &entry: _output_formats)
-	{
+	for (const auto &entry: _output_formats) {
 		const auto &name = entry.first;
 		const auto &output_format = entry.second;
-		result.insert({name, output_format->share_owned_by(shared_from_this())});
+		result.emplace(name, output_format->share_owned_by(shared_from_this()));
 	}
 	return result;
 }
@@ -213,12 +237,9 @@ static int call_log_callback(void *cb_data, int loglevel,
 
 	auto *const callback = static_cast<LogCallbackFunction *>(cb_data);
 
-	try
-	{
+	try {
 		(*callback)(LogLevel::get(loglevel), message.get());
-	}
-	catch (Error e)
-	{
+	} catch (Error &e) {
 		return e.result;
 	}
 
@@ -281,8 +302,7 @@ shared_ptr<Packet> Context::create_meta_packet(
 	map<const ConfigKey *, Glib::VariantBase> config)
 {
 	auto meta = g_new0(struct sr_datafeed_meta, 1);
-	for (const auto &input : config)
-	{
+	for (const auto &input : config) {
 		const auto &key = input.first;
 		const auto &value = input.second;
 		auto *const output = g_new(struct sr_config, 1);
@@ -312,7 +332,7 @@ shared_ptr<Packet> Context::create_logic_packet(
 
 shared_ptr<Packet> Context::create_analog_packet(
 	vector<shared_ptr<Channel> > channels,
-	float *data_pointer, unsigned int num_samples, const Quantity *mq,
+	const float *data_pointer, unsigned int num_samples, const Quantity *mq,
 	const Unit *unit, vector<const QuantityFlag *> mqflags)
 {
 	auto analog = g_new0(struct sr_datafeed_analog, 1);
@@ -350,7 +370,7 @@ shared_ptr<Packet> Context::create_analog_packet(
 	spec->spec_digits = 0;
 
 	analog->num_samples = num_samples;
-	analog->data = data_pointer;
+	analog->data = (float*)data_pointer;
 	auto packet = g_new(struct sr_datafeed_packet, 1);
 	packet->type = SR_DF_ANALOG;
 	packet->payload = analog;
@@ -446,16 +466,14 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 	map<const ConfigKey *, Glib::VariantBase> options)
 {
 	/* Initialise the driver if not yet done. */
-	if (!_initialized)
-	{
+	if (!_initialized) {
 		check(sr_driver_init(_parent->_structure, _structure));
 		_initialized = true;
 	}
 
 	/* Translate scan options to GSList of struct sr_config pointers. */
 	GSList *option_list = nullptr;
-	for (const auto &entry : options)
-	{
+	for (const auto &entry : options) {
 		const auto &key = entry.first;
 		const auto &value = entry.second;
 		auto *const config = g_new(struct sr_config, 1);
@@ -473,8 +491,7 @@ vector<shared_ptr<HardwareDevice>> Driver::scan(
 
 	/* Create device objects. */
 	vector<shared_ptr<HardwareDevice>> result;
-	for (GSList *device = device_list; device; device = device->next)
-	{
+	for (GSList *device = device_list; device; device = device->next) {
 		auto *const sdi = static_cast<struct sr_dev_inst *>(device->data);
 		shared_ptr<HardwareDevice> hwdev {
 			new HardwareDevice{shared_from_this(), sdi},
@@ -570,23 +587,22 @@ Device::Device(struct sr_dev_inst *structure) :
 	Configurable(sr_dev_inst_driver_get(structure), structure, nullptr),
 	_structure(structure)
 {
-	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next)
-	{
+	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next) {
 		auto *const ch = static_cast<struct sr_channel *>(entry->data);
 		unique_ptr<Channel> channel {new Channel{ch}};
-		_channels.insert(make_pair(ch, move(channel)));
+		_channels.emplace(ch, move(channel));
 	}
 
-	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next)
-	{
+	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next) {
 		auto *const cg = static_cast<struct sr_channel_group *>(entry->data);
 		unique_ptr<ChannelGroup> group {new ChannelGroup{this, cg}};
-		_channel_groups.insert(make_pair(group->name(), move(group)));
+		_channel_groups.emplace(group->name(), move(group));
 	}
 }
 
 Device::~Device()
-{}
+{
+}
 
 string Device::vendor() const
 {
@@ -632,11 +648,10 @@ map<string, shared_ptr<ChannelGroup>>
 Device::channel_groups()
 {
 	map<string, shared_ptr<ChannelGroup>> result;
-	for (const auto &entry: _channel_groups)
-	{
+	for (const auto &entry: _channel_groups) {
 		const auto &name = entry.first;
 		const auto &channel_group = entry.second;
-		result.insert({name, channel_group->share_owned_by(get_shared_from_this())});
+		result.emplace(name, channel_group->share_owned_by(get_shared_from_this()));
 	}
 	return result;
 }
@@ -695,7 +710,7 @@ shared_ptr<Channel> UserDevice::add_channel(unsigned int index,
 	GSList *const last = g_slist_last(sr_dev_inst_channels_get(Device::_structure));
 	auto *const ch = static_cast<struct sr_channel *>(last->data);
 	unique_ptr<Channel> channel {new Channel{ch}};
-	_channels.insert(make_pair(ch, move(channel)));
+	_channels.emplace(ch, move(channel));
 	return get_channel(ch);
 }
 
@@ -918,7 +933,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	for (GSList *dev = dev_list; dev; dev = dev->next) {
 		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		unique_ptr<SessionDevice> device {new SessionDevice{sdi}};
-		_owned_devices.insert(make_pair(sdi, move(device)));
+		_owned_devices.emplace(sdi, move(device));
 	}
 	_context->_session = this;
 }
@@ -1299,6 +1314,48 @@ vector<const QuantityFlag *> Analog::mq_flags() const
 	return QuantityFlag::flags_from_mask(_structure->meaning->mqflags);
 }
 
+shared_ptr<Logic> Analog::get_logic_via_threshold(float threshold,
+	uint8_t *data_ptr) const
+{
+	auto datafeed = g_new(struct sr_datafeed_logic, 1);
+	datafeed->length = num_samples();
+	datafeed->unitsize = 1;
+
+	if (data_ptr)
+		datafeed->data = data_ptr;
+	else
+		datafeed->data = g_malloc(datafeed->length);
+
+	shared_ptr<Logic> logic =
+		shared_ptr<Logic>{new Logic{datafeed}, default_delete<Logic>{}};
+
+	check(sr_a2l_threshold(_structure, threshold,
+		(uint8_t*)datafeed->data, datafeed->length));
+
+	return logic;
+}
+
+shared_ptr<Logic> Analog::get_logic_via_schmitt_trigger(float lo_thr,
+	float hi_thr, uint8_t *state, uint8_t *data_ptr) const
+{
+	auto datafeed = g_new(struct sr_datafeed_logic, 1);
+	datafeed->length = num_samples();
+	datafeed->unitsize = 1;
+
+	if (data_ptr)
+		datafeed->data = data_ptr;
+	else
+		datafeed->data = g_malloc(datafeed->length);
+
+	shared_ptr<Logic> logic =
+		shared_ptr<Logic>{new Logic{datafeed}, default_delete<Logic>{}};
+
+	check(sr_a2l_schmitt_trigger(_structure, lo_thr, hi_thr, state,
+		(uint8_t*)datafeed->data, datafeed->length));
+
+	return logic;
+}
+
 Rational::Rational(const struct sr_rational *structure) :
 	_structure(structure)
 {
@@ -1361,15 +1418,14 @@ map<string, shared_ptr<Option>> InputFormat::options()
 {
 	map<string, shared_ptr<Option>> result;
 
-	if (const struct sr_option **options = sr_input_options_get(_structure))
-	{
+	if (const struct sr_option **options = sr_input_options_get(_structure)) {
 		shared_ptr<const struct sr_option *> option_array
 			{options, &sr_input_options_free};
 		for (int i = 0; options[i]; i++) {
 			shared_ptr<Option> opt {
 				new Option{options[i], option_array},
 				default_delete<Option>{}};
-			result.insert({opt->id(), move(opt)});
+			result.emplace(opt->id(), move(opt));
 		}
 	}
 	return result;
@@ -1392,8 +1448,7 @@ Input::Input(shared_ptr<Context> context, const struct sr_input *structure) :
 
 shared_ptr<InputDevice> Input::device()
 {
-	if (!_device)
-	{
+	if (!_device) {
 		auto sdi = sr_input_dev_inst_get(_structure);
 		if (!sdi)
 			throw Error(SR_ERR_NA);
@@ -1483,6 +1538,28 @@ vector<Glib::VariantBase> Option::values() const
 	return result;
 }
 
+Glib::VariantBase Option::parse_string(string value)
+{
+	enum sr_datatype dt;
+	Glib::VariantBase dflt = default_value();
+	GVariant *tmpl = dflt.gobj();
+
+	if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_UINT64)) {
+		dt = SR_T_UINT64;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_STRING)) {
+		dt = SR_T_STRING;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_BOOLEAN)) {
+		dt = SR_T_BOOL;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_DOUBLE)) {
+		dt = SR_T_FLOAT;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_INT32)) {
+		dt = SR_T_INT32;
+	} else {
+		throw Error(SR_ERR_BUG);
+	}
+	return ConfigKey::parse_string(value, dt);
+}
+
 OutputFormat::OutputFormat(const struct sr_output_module *structure) :
 	_structure(structure)
 {
@@ -1515,15 +1592,14 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 {
 	map<string, shared_ptr<Option>> result;
 
-	if (const struct sr_option **options = sr_output_options_get(_structure))
-	{
+	if (const struct sr_option **options = sr_output_options_get(_structure)) {
 		shared_ptr<const struct sr_option *> option_array
 			{options, &sr_output_options_free};
 		for (int i = 0; options[i]; i++) {
 			shared_ptr<Option> opt {
 				new Option{options[i], option_array},
 				default_delete<Option>{}};
-			result.insert({opt->id(), move(opt)});
+			result.emplace(opt->id(), move(opt));
 		}
 	}
 	return result;
@@ -1579,14 +1655,11 @@ string Output::receive(shared_ptr<Packet> packet)
 {
 	GString *out;
 	check(sr_output_send(_structure, packet->_structure, &out));
-	if (out)
-	{
+	if (out) {
 		auto result = string(out->str, out->str + out->len);
 		g_string_free(out, true);
 		return result;
-	}
-	else
-	{
+	} else {
 		return string();
 	}
 }

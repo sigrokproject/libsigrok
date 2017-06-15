@@ -47,6 +47,10 @@ struct dmm_info {
 	int64_t req_delay_ms;
 	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);
+	/** Number of channels / displays. */
+	size_t channel_count;
+	/** (Optional) printf formats for channel names. */
+	const char **channel_formats;
 	/** Packet validation function. */
 	gboolean (*packet_valid)(const uint8_t *);
 	/** Packet parsing function. */
@@ -60,7 +64,6 @@ struct dmm_info {
 
 #define DMM_BUFSIZE 256
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 

@@ -224,7 +224,7 @@ static void appa_55ii_log_end(struct sr_dev_inst *sdi)
 	if (devc->data_source != DATA_SOURCE_MEMORY)
 		return;
 
-	sdi->driver->dev_acquisition_stop(sdi);
+	sr_dev_acquisition_stop(sdi);
 }
 
 static const uint8_t *appa_55ii_parse_data(struct sr_dev_inst *sdi,
@@ -309,7 +309,7 @@ SR_PRIV int appa_55ii_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

@@ -18,35 +18,22 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Manson HCS-3xxx series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
-
-static const uint32_t drvopts[] = {
-	/* Device class */
-	SR_CONF_POWER_SUPPLY,
-};
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
-	/* Device class */
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	/* Acquisition modes. */
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	/* Device configuration */
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -66,6 +53,7 @@ static const struct hcs_model models[] = {
 	{ MANSON_HCS_3300, "HCS-3300-USB", "3300", { 1, 16, 0.1 }, { 0, 30,   0.10 } },
 	{ MANSON_HCS_3302, "HCS-3302-USB", "3302", { 1, 32, 0.1 }, { 0, 15,   0.10 } },
 	{ MANSON_HCS_3304, "HCS-3304-USB", "3304", { 1, 60, 0.1 }, { 0,  8,   0.10 } },
+	{ MANSON_HCS_3304, "HCS-3304-USB", "HCS-3304", { 1, 60, 0.1 }, { 0,  8,   0.10 } },
 	{ MANSON_HCS_3400, "HCS-3400-USB", "3400", { 1, 16, 0.1 }, { 0, 40,   0.10 } },
 	{ MANSON_HCS_3402, "HCS-3402-USB", "3402", { 1, 32, 0.1 }, { 0, 20,   0.10 } },
 	{ MANSON_HCS_3404, "HCS-3404-USB", "3404", { 1, 60, 0.1 }, { 0, 10,   0.10 } },
@@ -138,7 +126,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	g_strfreev(tokens);
 
-	/* Init device instance, etc. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Manson");
@@ -186,8 +173,8 @@ exit_err:
 	return NULL;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -224,17 +211,14 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	gboolean bval;
 	gdouble dval;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -266,11 +250,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
-		if (bval == devc->output_enabled) /* Nothing to do. */
-			break;
-		if ((hcs_send_cmd(sdi->conn, "SOUT%1d\r", !bval) < 0) ||
-		    (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0))
+
+		if (hcs_send_cmd(sdi->conn, "SOUT%1d\r", !bval) < 0) {
+			sr_err("Could not send SR_CONF_ENABLED command.");
 			return SR_ERR;
+		}
+		if (hcs_read_reply(sdi->conn, 1, devc->buf, sizeof(devc->buf)) < 0) {
+			sr_err("Could not read SR_CONF_ENABLED reply.");
+			return SR_ERR;
+		}
 		devc->output_enabled = bval;
 		break;
 	default:
@@ -280,66 +268,29 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	const double *a;
 	struct dev_context *devc;
-	GVariant *gvar;
-	GVariantBuilder gvb;
-	double dval;
-	int idx;
 
-	(void)cg;
-
-	/* Always available (with or without sdi). */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* Return drvopts without sdi (and devopts with sdi, see below). */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* Every other key needs an sdi. */
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_TARGET:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		/* Min, max, step. */
-		for (idx = 0; idx < 3; idx++) {
-			if (idx == 1)
-				dval = devc->voltage_max_device;
-			else
-				dval = devc->model->voltage[idx];
-			gvar = g_variant_new_double(dval);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
+		a = devc->model->voltage;
+		*data = std_gvar_min_max_step(a[0], devc->voltage_max_device, a[2]);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		/* Min, max, step. */
-		for (idx = 0; idx < 3; idx++) {
-			if (idx == 1)
-				dval = devc->current_max_device;
-			else
-				dval = devc->model->current[idx];
-			gvar = g_variant_new_double(dval);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
+		a = devc->model->current;
+		*data = std_gvar_min_max_step(a[0], devc->current_max_device, a[2]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -353,9 +304,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
@@ -364,7 +312,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->reply_pending = FALSE;
 	devc->req_sent_at = 0;
 
-	/* Poll every 10ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 10,
 			hcs_receive_data, (void *)sdi);
@@ -380,6 +327,7 @@ static struct sr_dev_driver manson_hcs_3xxx_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

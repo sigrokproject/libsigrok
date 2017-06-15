@@ -31,7 +31,7 @@
 #define LOG_PREFIX "input/raw_analog"
 
 /* How many bytes at a time to process and send to the session bus. */
-#define CHUNK_SIZE		4096
+#define CHUNK_SIZE		(4 * 1024 * 1024)
 #define DEFAULT_NUM_CHANNELS	1
 #define DEFAULT_SAMPLERATE	0
 
@@ -54,20 +54,21 @@ struct sample_format {
 
 static const struct sample_format sample_formats[] =
 {
-	{ "S8",         { 1, TRUE,  FALSE, FALSE, 0, TRUE, { 1,                     128}, { 0, 1}}},
-	{ "U8",         { 1, FALSE, FALSE, FALSE, 0, TRUE, { 1,                     255}, {-1, 2}}},
-	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 0, TRUE, { 1,           INT16_MAX + 1}, { 0, 1}}},
-	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 0, TRUE, { 1,              UINT16_MAX}, {-1, 2}}},
-	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  0, TRUE, { 1,           INT16_MAX + 1}, { 0, 1}}},
-	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  0, TRUE, { 1,              UINT16_MAX}, {-1, 2}}},
-	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 0, TRUE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
-	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 0, TRUE, { 1,              UINT32_MAX}, {-1, 2}}},
-	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  0, TRUE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
-	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  0, TRUE, { 1,              UINT32_MAX}, {-1, 2}}},
-	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,                       1}, { 0, 1}}},
-	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,                       1}, { 0, 1}}},
-	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE, 0, TRUE, { 1,                       1}, { 0, 1}}},
-	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,  0, TRUE, { 1,                       1}, { 0, 1}}},
+	                // bytes, signed, floating, bigendian, digits, digits decimal, scale, offset
+	{ "S8",         { 1, TRUE,  FALSE, FALSE,  7, FALSE, { 1,                     128}, { 0, 1}}},
+	{ "U8",         { 1, FALSE, FALSE, FALSE,  8, FALSE, { 1,                     255}, {-1, 2}}},
+	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE,   6, TRUE,  { 1,                       1}, { 0, 1}}},
+	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,    6, TRUE,  { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE,  15, TRUE,  { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,   15, TRUE,  { 1,                       1}, { 0, 1}}},
 };
 
 static int parse_format_string(const char *format)
@@ -105,7 +106,7 @@ static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
 	int num_channels;
-	char channelname[8];
+	char channelname[16];
 	const char *format;
 	int fmt_index;
 
@@ -130,7 +131,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = inc = g_malloc0(sizeof(struct context));
 
 	for (int i = 0; i < num_channels; i++) {
-		snprintf(channelname, 8, "CH%d", i + 1);
+		snprintf(channelname, sizeof(channelname) - 1, "CH%d", i + 1);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
 	}
 
@@ -233,9 +234,9 @@ static int end(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
-	{ "format", "Format", "Numeric format", NULL, NULL },
+	{ "numchannels", "Number of analog channels", "The number of (analog) channels in the data", NULL, NULL },
+	{ "samplerate", "Sample rate (Hz)", "The sample rate of the (analog) data in Hz", NULL, NULL },
+	{ "format", "Data format", "The format of the data (data type, signedness, endianness)", NULL, NULL },
 	ALL_ZERO
 };
 
@@ -256,23 +257,21 @@ static const struct sr_option *get_options(void)
 
 static void cleanup(struct sr_input *in)
 {
-	struct context *inc;
+	g_free(in->priv);
+	in->priv = NULL;
 
-	inc = in->priv;
 	g_variant_unref(options[0].def);
 	g_variant_unref(options[1].def);
 	g_variant_unref(options[2].def);
 	g_slist_free_full(options[2].values, (GDestroyNotify)g_variant_unref);
-	g_free(inc);
-	in->priv = NULL;
 }
 
 static int reset(struct sr_input *in)
 {
 	struct context *inc = in->priv;
 
-	cleanup(in);
 	inc->started = FALSE;
+
 	g_string_truncate(in->buf, 0);
 
 	return SR_OK;
@@ -281,7 +280,7 @@ static int reset(struct sr_input *in)
 SR_PRIV struct sr_input_module input_raw_analog = {
 	.id = "raw_analog",
 	.name = "RAW analog",
-	.desc = "analog signals without header",
+	.desc = "Raw analog data without header",
 	.exts = (const char*[]){"raw", "bin", NULL},
 	.options = get_options,
 	.init = init,

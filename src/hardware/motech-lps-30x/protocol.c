@@ -18,14 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Motech LPS-30x series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include <errno.h>
 #include <string.h>
@@ -84,6 +76,8 @@ static void process_line(struct sr_dev_inst *sdi)
 	int auxint;
 
 	devc = sdi->priv;
+	if (!devc)
+		return;
 
 	switch (devc->acq_req_pending) {
 	case 0: /* Should not happen... */
@@ -95,13 +89,15 @@ static void process_line(struct sr_dev_inst *sdi)
 		case AQ_U2:
 		case AQ_I1:
 		case AQ_I2:
-			if (sr_atod(devc->buf, &dbl) != SR_OK) {
+			dbl = 0.0;
+			if (sr_atod_ascii(devc->buf, &dbl) != SR_OK) {
 				sr_err("Failed to convert '%s' to double, errno=%d %s",
 					devc->buf, errno, g_strerror(errno));
 				dbl = 0.0;
 			}
 			break;
 		case AQ_STATUS:
+			auxint = 0;
 			if (sr_atoi(devc->buf, &auxint) != SR_OK) {
 				sr_err("Failed to convert '%s' to int, errno=%d %s",
 					devc->buf, errno, g_strerror(errno));
@@ -193,7 +189,7 @@ SR_PRIV int motech_lps_30x_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	/* Only request the next packet if required. */
 	if (!((sdi->status == SR_ST_ACTIVE) && (devc->acq_running)))

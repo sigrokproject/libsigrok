@@ -426,6 +426,8 @@ struct sr_input_module {
 	 * Check if this input module can load and parse the specified stream.
 	 *
 	 * @param[in] metadata Metadata the module can use to identify the stream.
+	 * @param[out] confidence "Strength" of the detection.
+	 *   Specialized handlers can take precedence over generic/basic support.
 	 *
 	 * @retval SR_OK This module knows the format.
 	 * @retval SR_ERR_NA There wasn't enough data for this module to
@@ -434,8 +436,15 @@ struct sr_input_module {
 	 *   it. This means the stream is either corrupt, or indicates a
 	 *   feature that the module does not support.
 	 * @retval SR_ERR This module does not know the format.
+	 *
+	 * Lower numeric values of 'confidence' mean that the input module
+	 * stronger believes in its capability to handle this specific format.
+	 * This way, multiple input modules can claim support for a format,
+	 * and the application can pick the best match, or try fallbacks
+	 * in case of errors. This approach also copes with formats that
+	 * are unreliable to detect in the absence of magic signatures.
 	 */
-	int (*format_match) (GHashTable *metadata);
+	int (*format_match) (GHashTable *metadata, unsigned int *confidence);
 
 	/**
 	 * Initialize the input module.
@@ -736,7 +745,7 @@ struct drv_context {
 
 /*--- log.c -----------------------------------------------------------------*/
 
-#if defined(G_OS_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+#if defined(_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
 /*
  * On MinGW, we need to specify the gnu_printf format flavor or GCC
  * will assume non-standard Microsoft printf syntax.
@@ -773,8 +782,12 @@ enum {
 
 SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 		int index, int type, gboolean enabled, const char *name);
+SR_PRIV void sr_channel_free(struct sr_channel *ch);
+SR_PRIV void sr_channel_free_cb(void *p);
 SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
 		struct sr_channel *cur_channel);
+SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2);
+SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2);
 
 /** Device instance data */
 struct sr_dev_inst {
@@ -834,6 +847,8 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *data);
 SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx);
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
+SR_PRIV int sr_dev_acquisition_start(struct sr_dev_inst *sdi);
+SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 /*--- session.c -------------------------------------------------------------*/
 
@@ -898,9 +913,6 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 SR_PRIV int sr_sessionfile_check(const char *filename);
 SR_PRIV struct sr_dev_inst *sr_session_prepare_sdi(const char *filename,
 		struct sr_session **session);
-SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
-		struct sr_datafeed_packet **copy);
-SR_PRIV void sr_packet_free(struct sr_datafeed_packet *packet);
 
 /*--- session_file.c --------------------------------------------------------*/
 
@@ -928,17 +940,66 @@ typedef void (*std_dev_clear_callback)(void *priv);
 
 SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx);
 SR_PRIV int std_cleanup(const struct sr_dev_driver *di);
+SR_PRIV int std_dummy_dev_open(struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_close(struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_acquisition_start(const struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_acquisition_stop(struct sr_dev_inst *sdi);
 #ifdef HAVE_LIBSERIALPORT
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi);
 #endif
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi);
 SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi);
-SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
+SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi);
+SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi);
+SR_PRIV int std_dev_clear_with_callback(const struct sr_dev_driver *driver,
 		std_dev_clear_callback clear_private);
+SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver);
 SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di);
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
 SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices);
+
+SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
+	const uint32_t scanopts[], size_t scansize, const uint32_t drvopts[],
+	size_t drvsize, const uint32_t devopts[], size_t devsize);
+
+extern SR_PRIV const uint32_t NO_OPTS[1];
+
+#define STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts) \
+	std_opts_config_list(key, data, sdi, cg, ARRAY_AND_SIZE(scanopts), \
+		ARRAY_AND_SIZE(drvopts), ARRAY_AND_SIZE(devopts))
+
+SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t a[][2], unsigned int n);
+SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned int n);
+SR_PRIV GVariant *std_gvar_samplerates(const uint64_t samplerates[], unsigned int n);
+SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsigned int n);
+SR_PRIV GVariant *std_gvar_min_max_step(double min, double max, double step);
+SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3]);
+SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double dmin, const double dmax, const double dstep);
+
+SR_PRIV GVariant *std_gvar_tuple_u64(uint64_t low, uint64_t high);
+SR_PRIV GVariant *std_gvar_tuple_double(double low, double high);
+
+SR_PRIV GVariant *std_gvar_array_i32(const int32_t a[], unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u32(const uint32_t a[], unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u64(const uint64_t a[], unsigned int n);
+SR_PRIV GVariant *std_gvar_array_str(const char *a[], unsigned int n);
+
+SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n);
+
+SR_PRIV int std_str_idx(GVariant *data, const char *a[], unsigned int n);
+SR_PRIV int std_u64_idx(GVariant *data, const uint64_t a[], unsigned int n);
+SR_PRIV int std_u8_idx(GVariant *data, const uint8_t a[], unsigned int n);
+
+SR_PRIV int std_str_idx_s(const char *s, const char *a[], unsigned int n);
+SR_PRIV int std_u8_idx_s(uint8_t b, const uint8_t a[], unsigned int n);
+
+SR_PRIV int std_u64_tuple_idx(GVariant *data, const uint64_t a[][2], unsigned int n);
+SR_PRIV int std_double_tuple_idx(GVariant *data, const double a[][2], unsigned int n);
+SR_PRIV int std_double_tuple_idx_d0(const double d, const double a[][2], unsigned int n);
+
+SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_group *a[], unsigned int n);
 
 /*--- resource.c ------------------------------------------------------------*/
 
@@ -962,7 +1023,11 @@ SR_PRIV int sr_atol(const char *str, long *ret);
 SR_PRIV int sr_atoi(const char *str, int *ret);
 SR_PRIV int sr_atod(const char *str, double *ret);
 SR_PRIV int sr_atof(const char *str, float *ret);
+SR_PRIV int sr_atod_ascii(const char *str, double *ret);
 SR_PRIV int sr_atof_ascii(const char *str, float *ret);
+
+SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len);
+SR_PRIV void sr_hexdump_free(GString *s);
 
 /*--- soft-trigger.c --------------------------------------------------------*/
 
@@ -979,6 +1044,7 @@ struct soft_trigger_logic {
 	int pre_trigger_fill;
 };
 
+SR_PRIV int logic_channel_unitsize(GSList *channels);
 SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 		const struct sr_dev_inst *sdi, struct sr_trigger *trigger,
 		int pre_trigger_samples);
@@ -1050,6 +1116,8 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int usb_source_remove(struct sr_session *session, struct sr_context *ctx);
 SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len);
+SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
+		const char *manufacturer, const char *product);
 #endif
 
 
@@ -1190,6 +1258,21 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/ms8250d.c ------------------------------------------------*/
+
+#define MS8250D_PACKET_SIZE 18
+
+struct ms8250d_info {
+	gboolean is_ac, is_dc, is_auto, is_rs232, is_micro, is_nano, is_kilo;
+	gboolean is_diode, is_milli, is_percent, is_mega, is_beep, is_farad;
+	gboolean is_ohm, is_rel, is_hold, is_ampere, is_volt, is_hz, is_bat;
+	gboolean is_ncv, is_min, is_max, is_sign, is_autotimer;
+};
+
+SR_PRIV gboolean sr_ms8250d_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ms8250d_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
 
 #define DTM0660_PACKET_SIZE 15
@@ -1222,11 +1305,13 @@ SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 #define METEX14_PACKET_SIZE 14
 
 struct metex14_info {
+	size_t ch_idx;
 	gboolean is_ac, is_dc, is_resistance, is_capacity, is_temperature;
 	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
-	gboolean is_hertz, is_ohm, is_celsius, is_pico, is_nano, is_micro;
-	gboolean is_milli, is_kilo, is_mega, is_gain, is_decibel, is_hfe;
-	gboolean is_unitless, is_logic;
+	gboolean is_hertz, is_ohm, is_celsius, is_fahrenheit, is_watt;
+	gboolean is_pico, is_nano, is_micro, is_milli, is_kilo, is_mega;
+	gboolean is_gain, is_decibel, is_power, is_decibel_mw, is_power_factor;
+	gboolean is_hfe, is_unitless, is_logic, is_min, is_max, is_avg;
 };
 
 #ifdef HAVE_LIBSERIALPORT
@@ -1234,6 +1319,9 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf);
+SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/
@@ -1294,6 +1382,21 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/vc96.c ---------------------------------------------------*/
+
+#define VC96_PACKET_SIZE 13
+
+struct vc96_info {
+	size_t ch_idx;
+	gboolean is_ac, is_dc, is_resistance, is_diode, is_ampere, is_volt;
+	gboolean is_ohm, is_micro, is_milli, is_kilo, is_mega, is_hfe;
+	gboolean is_unitless;
+};
+
+SR_PRIV gboolean sr_vc96_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);
@@ -1348,6 +1451,49 @@ SR_PRIV int sr_asycii_packet_request(struct sr_serial_dev_inst *serial);
 SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
+
+/*--- src/dmm/eev121gw.c ----------------------------------------------------*/
+
+#define EEV121GW_PACKET_SIZE 19
+
+enum eev121gw_display {
+	EEV121GW_DISPLAY_MAIN,
+	EEV121GW_DISPLAY_SUB,
+	EEV121GW_DISPLAY_BAR,
+	EEV121GW_DISPLAY_COUNT,
+};
+
+struct eev121gw_info {
+	/* Selected channel. */
+	size_t ch_idx;
+	/*
+	 * Measured value, number and sign/overflow flags, scale factor
+	 * and significant digits.
+	 */
+	uint32_t uint_value;
+	gboolean is_ofl, is_neg;
+	int factor, digits;
+	/* Currently active mode (meter's function). */
+	gboolean is_ac, is_dc, is_voltage, is_current, is_power, is_gain;
+	gboolean is_resistance, is_capacitance, is_diode, is_temperature;
+	gboolean is_continuity, is_frequency, is_period, is_duty_cycle;
+	/* Quantities associated with mode/function. */
+	gboolean is_ampere, is_volt, is_volt_ampere, is_dbm;
+	gboolean is_ohm, is_farad, is_celsius, is_fahrenheit;
+	gboolean is_hertz, is_seconds, is_percent, is_loop_current;
+	gboolean is_unitless, is_logic;
+	/* Other indicators. */
+	gboolean is_min, is_max, is_avg, is_1ms_peak, is_rel, is_hold;
+	gboolean is_low_pass, is_mem, is_bt, is_auto_range, is_test;
+	gboolean is_auto_poweroff, is_low_batt;
+};
+
+extern SR_PRIV const char *eev121gw_channel_formats[];
+SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/scale/kern.c -------------------------------------------------*/
 

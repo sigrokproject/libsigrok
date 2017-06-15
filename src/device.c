@@ -18,8 +18,9 @@
  */
 
 #include <config.h>
-#include <stdio.h>
 #include <glib.h>
+#include <stdio.h>
+#include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -71,6 +72,30 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 	sdi->channels = g_slist_append(sdi->channels, ch);
 
 	return ch;
+}
+
+/**
+ * Release a previously allocated struct sr_channel.
+ *
+ * @param[in] ch Pointer to struct sr_channel.
+ *
+ * @private
+ */
+SR_PRIV void sr_channel_free(struct sr_channel *ch)
+{
+	if (!ch)
+		return;
+	g_free(ch->name);
+	g_free(ch->priv);
+	g_free(ch);
+}
+
+/**
+ * Wrapper around @ref sr_channel_free(), suitable for glib iterators.
+ */
+SR_PRIV void sr_channel_free_cb(void *p)
+{
+	sr_channel_free(p);
 }
 
 /**
@@ -135,10 +160,18 @@ SR_API int sr_dev_channel_enable(struct sr_channel *channel, gboolean state)
 	return SR_OK;
 }
 
-/* Returns the next enabled channel, wrapping around if necessary. */
-/** @private */
+/**
+ * Returns the next enabled channel, wrapping around if necessary.
+ *
+ * @param[in] sdi The device instance the channel is connected to.
+ *                Must not be NULL.
+ * @param[in] cur_channel The current channel.
+ *
+ * @return A pointer to the next enabled channel of this device.
+ *
+ * @private
+ */
 SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
-
 		struct sr_channel *cur_channel)
 {
 	struct sr_channel *next_channel;
@@ -154,6 +187,69 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
 	} while (!next_channel->enabled);
 
 	return next_channel;
+}
+
+/**
+ * Compare two channels, return whether they differ.
+ *
+ * The channels' names and types are checked. The enabled state is not
+ * considered a condition for difference. The test is motivated by the
+ * desire to detect changes in the configuration of acquisition setups
+ * between re-reads of an input file.
+ *
+ * @param[in] ch1 First channel.
+ * @param[in] ch2 Second channel.
+ *
+ * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ *
+ * @internal
+ */
+SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2)
+{
+	if (!ch1 || !ch2)
+		return TRUE;
+
+	if (ch1->type != ch2->type)
+		return TRUE;
+	if (strcmp(ch1->name, ch2->name))
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
+ * Compare two channel lists, return whether they differ.
+ *
+ * Listing the same set of channels but in a different order is considered
+ * a difference in the lists.
+ *
+ * @param[in] l1 First channel list.
+ * @param[in] l2 Second channel list.
+ *
+ * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ *
+ * @internal
+ */
+SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2)
+{
+	struct sr_channel *ch1, *ch2;
+
+	while (l1 && l2) {
+		ch1 = l1->data;
+		ch2 = l2->data;
+		l1 = l1->next;
+		l2 = l2->next;
+		if (!ch1 || !ch2)
+			return TRUE;
+		if (sr_channels_differ(ch1, ch2))
+			return TRUE;
+		if (ch1->index != ch2->index)
+			return TRUE;
+	}
+	if (l1 || l2)
+		return TRUE;
+
+	return FALSE;
 }
 
 /**
@@ -356,9 +452,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		g_free(ch->name);
-		g_free(ch->priv);
-		g_free(ch);
+		sr_channel_free(ch);
 	}
 	g_slist_free(sdi->channels);
 
@@ -529,27 +623,40 @@ SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
  */
 SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 {
-	int ret;
-
 	if (!driver) {
 		sr_err("Invalid driver.");
 		return SR_ERR_ARG;
 	}
 
-	if (driver->dev_clear)
-		ret = driver->dev_clear(driver);
-	else
-		ret = std_dev_clear(driver, NULL);
+	if (!driver->context) {
+		/*
+		 * Driver was never initialized, nothing to do.
+		 *
+		 * No log message since this usually gets called for all
+		 * drivers, whether they were initialized or not.
+		 */
+		return SR_OK;
+	}
 
-	return ret;
+	/* No log message here, too verbose and not very useful. */
+
+	return driver->dev_clear(driver);
 }
 
 /**
- * Open the specified device.
+ * Open the specified device instance.
+ *
+ * If the device instance is already open (sdi->status == SR_ST_ACTIVE),
+ * SR_ERR will be returned and no re-opening of the device will be attempted.
+ *
+ * If opening was successful, sdi->status is set to SR_ST_ACTIVE, otherwise
+ * it will be left unchanged.
  *
  * @param sdi Device instance to use. Must not be NULL.
  *
- * @return SR_OK upon success, a negative error code upon errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR Device instance was already active, or other error.
  *
  * @since 0.2.0
  */
@@ -558,32 +665,59 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!sdi || !sdi->driver || !sdi->driver->dev_open)
+		return SR_ERR_ARG;
+
+	if (sdi->status == SR_ST_ACTIVE) {
+		sr_err("%s: Device instance already active, can't re-open.",
+			sdi->driver->name);
 		return SR_ERR;
+	}
+
+	sr_dbg("%s: Opening device instance.", sdi->driver->name);
 
 	ret = sdi->driver->dev_open(sdi);
+
+	if (ret == SR_OK)
+		sdi->status = SR_ST_ACTIVE;
 
 	return ret;
 }
 
 /**
- * Close the specified device.
+ * Close the specified device instance.
+ *
+ * If the device instance is not open (sdi->status != SR_ST_ACTIVE),
+ * SR_ERR_DEV_CLOSED will be returned and no closing will be attempted.
+ *
+ * Note: sdi->status will be set to SR_ST_INACTIVE, regardless of whether
+ * there are any errors during closing of the device instance (any errors
+ * will be reported via error code and log message, though).
  *
  * @param sdi Device instance to use. Must not be NULL.
  *
- * @return SR_OK upon success, a negative error code upon errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR_DEV_CLOSED Device instance was not active.
+ * @retval SR_ERR Other error.
  *
  * @since 0.2.0
  */
 SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
-
 	if (!sdi || !sdi->driver || !sdi->driver->dev_close)
-		return SR_ERR;
+		return SR_ERR_ARG;
 
-	ret = sdi->driver->dev_close(sdi);
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't close.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
 
-	return ret;
+	sdi->status = SR_ST_INACTIVE;
+
+	sr_dbg("%s: Closing device instance.", sdi->driver->name);
+
+	return sdi->driver->dev_close(sdi);
 }
 
 /**
@@ -713,7 +847,9 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 			if (b != usb->bus || a != usb->address)
 				continue;
 
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			((struct sr_dev_inst *)sdi)->connection_id = g_strdup(connection_id);
 			break;
 		}

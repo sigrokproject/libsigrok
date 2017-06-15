@@ -25,8 +25,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_THERMOMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -37,8 +40,7 @@ static const char *channel_names[] = {
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -72,8 +74,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (l = usb_devices; l; l = l->next) {
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR);
-			sdi->model = g_strdup(MODEL);
+			sdi->vendor = g_strdup("UNI-T");
+			sdi->model = g_strdup("UT32x");
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < ARRAY_SIZE(channel_names); i++)
@@ -127,9 +129,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sdi->status = SR_ST_ACTIVE;
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -137,20 +138,19 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
+
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -174,16 +174,13 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	const char *tmp_str;
+	int idx;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -192,13 +189,9 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->data_source = idx;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -207,23 +200,15 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -240,9 +225,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	int len, ret;
 	unsigned char cmd[2];
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	drvc = di->context;
 	devc = sdi->priv;
@@ -296,9 +278,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Signal USB transfer handler to clean up and stop. */
 	sdi->status = SR_ST_STOPPING;
 
@@ -313,7 +292,7 @@ static struct sr_dev_driver uni_t_ut32x_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

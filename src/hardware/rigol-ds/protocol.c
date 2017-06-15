@@ -221,7 +221,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 		return SR_OK;
 
 	if (ch->type == SR_CHANNEL_LOGIC) {
-		if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":WAV:SOUR LA") != SR_OK)
 			return SR_ERR;
 	} else {
 		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
@@ -337,8 +337,12 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	sr_dbg("Starting data capture for frameset %" PRIu64 " of %" PRIu64,
-	       devc->num_frames + 1, devc->limit_frames);
+	if (devc->limit_frames == 0)
+		sr_dbg("Starting data capture for frameset %" PRIu64,
+		       devc->num_frames + 1);
+	else
+		sr_dbg("Starting data capture for frameset %" PRIu64 " of %"
+		       PRIu64, devc->num_frames + 1, devc->limit_frames);
 
 	switch (devc->model->series->protocol) {
 	case PROTOCOL_V1:
@@ -440,7 +444,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V3:
 		if (ch->type == SR_CHANNEL_LOGIC) {
-			if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+			if (rigol_ds_config_set(sdi, ":WAV:SOUR LA") != SR_OK)
 				return SR_ERR;
 		} else {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
@@ -474,10 +478,20 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	if (devc->model->series->protocol >= PROTOCOL_V3 &&
 			ch->type == SR_CHANNEL_ANALOG) {
+		/* Vertical increment. */
+		if (sr_scpi_get_float(sdi->conn, ":WAV:YINC?",
+				&devc->vert_inc[ch->index]) != SR_OK)
+			return SR_ERR;
+		/* Vertical origin. */
+		if (sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
+			&devc->vert_origin[ch->index]) != SR_OK)
+			return SR_ERR;
 		/* Vertical reference. */
 		if (sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
 				&devc->vert_reference[ch->index]) != SR_OK)
 			return SR_ERR;
+	} else if (ch->type == SR_CHANNEL_ANALOG) {
+		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25.6;
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_BLOCK);
@@ -557,7 +571,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
-	double vdiv, offset;
+	double vdiv, offset, origin;
 	int len, i, vref;
 	struct sr_channel *ch;
 	gsize expected_data_bytes;
@@ -631,10 +645,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Still reading the header. */
 				return TRUE;
 			if (len == -1) {
-				sr_err("Read error, aborting capture.");
+				sr_err("Error while reading block header, aborting capture.");
 				packet.type = SR_DF_FRAME_END;
 				sr_session_send(sdi, &packet);
-				sdi->driver->dev_acquisition_stop(sdi);
+				sr_dev_acquisition_stop(sdi);
 				return TRUE;
 			}
 			/* At slow timebases in live capture the DS2072
@@ -664,10 +678,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
 	if (len == -1) {
-		sr_err("Read error, aborting capture.");
+		sr_err("Error while reading block data, aborting capture.");
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -677,11 +691,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	if (ch->type == SR_CHANNEL_ANALOG) {
 		vref = devc->vert_reference[ch->index];
-		vdiv = devc->vdiv[ch->index] / 25.6;
+		vdiv = devc->vert_inc[ch->index];
+		origin = devc->vert_origin[ch->index];
 		offset = devc->vert_offset[ch->index];
 		if (devc->model->series->protocol >= PROTOCOL_V3)
 			for (i = 0; i < len; i++)
-				devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
+				devc->data[i] = ((int)devc->buffer[i] - vref - origin) * vdiv;
 		else
 			for (i = 0; i < len; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;
@@ -723,11 +738,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 		}
-		if (!sr_scpi_read_complete(scpi)) {
+		/* End acquisition when data for all channels is acquired. */
+		if (!sr_scpi_read_complete(scpi) && !devc->channel_entry->next) {
 			sr_err("Read should have been completed");
 			packet.type = SR_DF_FRAME_END;
 			sr_session_send(sdi, &packet);
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 		devc->num_block_read = 0;
@@ -765,7 +781,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		if (++devc->num_frames == devc->limit_frames) {
 			/* Last frame, stop capture. */
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		} else {
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;
@@ -867,7 +883,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	sr_dbg("Current trigger source %s", devc->trigger_source);
 
 	/* Horizontal trigger position. */
-	if (sr_scpi_get_float(sdi->conn, ":TIM:OFFS?", &devc->horiz_triggerpos) != SR_OK)
+	if (sr_scpi_get_float(sdi->conn, devc->model->cmds[CMD_GET_HORIZ_TRIGGERPOS].str,
+			&devc->horiz_triggerpos) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current horizontal trigger position %g", devc->horiz_triggerpos);
 

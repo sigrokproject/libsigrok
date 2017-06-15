@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Conrad DIGI 35 CPU</em> power supply driver
- *
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 
@@ -35,6 +27,10 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "conrad-digi-35-cpu"
+
+struct dev_context {
+	struct sr_sw_limits limits;
+};
 
 SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param);
 

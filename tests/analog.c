@@ -197,13 +197,15 @@ START_TEST(test_analog_unit_to_string)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	const char *r[] = {" V RMS"};
+	const int u[] = {SR_UNIT_VOLT, SR_UNIT_AMPERE, SR_UNIT_CELSIUS};
+	const int f[] = {SR_MQFLAG_RMS, 0, 0};
+	const char *r[] = {"V RMS", "A", "°C"};
 
 	sr_analog_init_(&analog, &encoding, &meaning, &spec, 3);
 
-	for (i = -1; i < ARRAY_SIZE(r); i++) {
-		meaning.unit = SR_UNIT_VOLT;
-		meaning.mqflags = SR_MQFLAG_RMS;
+	for (i = 0; i < ARRAY_SIZE(r); i++) {
+		meaning.unit = u[i];
+		meaning.mqflags = f[i];
 		ret = sr_analog_unit_to_string(&analog, &result);
 		fail_unless(ret == SR_OK);
 		fail_unless(result != NULL);

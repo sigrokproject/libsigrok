@@ -25,6 +25,7 @@
 static int set_mq_volt(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 static int set_mq_amp(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 static int set_mq_ohm(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
+
 /*
  * The source for the frequency measurement can be either AC voltage, AC+DC
  * voltage, AC current, or AC+DC current. Configuring this is not yet
@@ -435,7 +436,7 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 		ret = sr_scpi_get_double(scpi, NULL, &devc->last_channel_sync);
 		if (ret != SR_OK) {
 			sr_err("Cannot check channel synchronization.");
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 			return FALSE;
 		}
 		devc->acq_state = ACQ_GOT_CHANNEL_SYNC;
@@ -456,7 +457,7 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 			sr_err("Expected channel %u, but device says %u",
 			       chanc->index,
 			       (unsigned int)devc->last_channel_sync);
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 			return FALSE;
 		}
 		/* All is good. Back to business. */
@@ -464,7 +465,7 @@ SR_PRIV int hp_3457a_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->limit_samples && (devc->num_samples >= devc->limit_samples)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return FALSE;
 	}
 

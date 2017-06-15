@@ -365,7 +365,7 @@ SR_API int sr_session_dev_add(struct sr_session *session,
 			       sr_strerror(ret));
 			return ret;
 		}
-		if ((ret = sdi->driver->dev_acquisition_start(sdi)) != SR_OK) {
+		if ((ret = sr_dev_acquisition_start(sdi)) != SR_OK) {
 			sr_err("Failed to start acquisition of device in "
 			       "running session (%s)", sr_strerror(ret));
 			return ret;
@@ -816,7 +816,7 @@ SR_API int sr_session_start(struct sr_session *session)
 			ret = SR_ERR;
 			break;
 		}
-		ret = sdi->driver->dev_acquisition_start(sdi);
+		ret = sr_dev_acquisition_start(sdi);
 		if (ret != SR_OK) {
 			sr_err("Could not start %s device %s acquisition.",
 				sdi->driver->name, sdi->connection_id);
@@ -830,7 +830,7 @@ SR_API int sr_session_start(struct sr_session *session)
 		lend = l->next;
 		for (l = session->devs; l != lend; l = l->next) {
 			sdi = l->data;
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 		/* TODO: Handle delayed stops. Need to iterate the event
 		 * sources... */
@@ -913,8 +913,7 @@ static gboolean session_stop_sync(void *user_data)
 
 	for (node = session->devs; node; node = node->next) {
 		sdi = node->data;
-		if (sdi->driver && sdi->driver->dev_acquisition_stop)
-			sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return G_SOURCE_REMOVE;
@@ -1295,7 +1294,7 @@ SR_PRIV int sr_session_source_add_channel(struct sr_session *session,
 	/* We should be using g_io_create_watch(), but can't without
 	 * changing the driver API, as the callback signature is different.
 	 */
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 	g_io_channel_win32_make_pollfd(channel, events, &pollfd);
 #else
 	pollfd.fd = g_io_channel_unix_get_fd(channel);
@@ -1451,8 +1450,7 @@ static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)
 	                                   g_memdup(src, sizeof(struct sr_config)));
 }
 
-/** @private */
-SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
+SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy)
 {
 	const struct sr_datafeed_meta *meta;
@@ -1485,8 +1483,15 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	case SR_DF_LOGIC:
 		logic = packet->payload;
 		logic_copy = g_malloc(sizeof(*logic_copy));
+		if (!logic_copy)
+			return SR_ERR;
 		logic_copy->length = logic->length;
 		logic_copy->unitsize = logic->unitsize;
+		logic_copy->data = g_malloc(logic->length * logic->unitsize);
+		if (!logic_copy->data) {
+			g_free(logic_copy);
+			return SR_ERR;
+		}
 		memcpy(logic_copy->data, logic->data, logic->length * logic->unitsize);
 		(*copy)->payload = logic_copy;
 		break;
@@ -1516,7 +1521,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	return SR_OK;
 }
 
-void sr_packet_free(struct sr_datafeed_packet *packet)
+SR_API void sr_packet_free(struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
@@ -1561,7 +1566,6 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 		sr_err("Unknown packet type %d", packet->type);
 	}
 	g_free(packet);
-
 }
 
 /** @} */

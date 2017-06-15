@@ -25,24 +25,40 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "re-load-pro"
+#define LOG_PREFIX "arachnid-labs-re-load-pro"
 
 #define RELOADPRO_BUFSIZE 100
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
-	uint8_t buf[RELOADPRO_BUFSIZE];
+
+	char buf[RELOADPRO_BUFSIZE];
 	int buflen;
+
+	float current_limit;
+	float voltage;
+	float current;
 	gboolean otp_active;
 	gboolean uvc_active;
+	float uvc_threshold;
+
+	gboolean acquisition_running;
+	GMutex acquisition_mutex;
+
+	GCond current_limit_cond;
+	GCond voltage_cond;
+	GCond uvc_threshold_cond;
 };
 
 SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 		float current);
 SR_PRIV int reloadpro_set_on_off(const struct sr_dev_inst *sdi, gboolean on);
+SR_PRIV int reloadpro_set_under_voltage_threshold(const struct sr_dev_inst *sdi,
+		float uvc_threshold);
 SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
-		float *current);
+		float *current_limit);
+SR_PRIV int reloadpro_get_under_voltage_threshold(const struct sr_dev_inst *sdi,
+		float *uvc_threshold);
 SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 		float *voltage, float *current);
 SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data);

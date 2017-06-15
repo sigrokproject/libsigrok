@@ -57,13 +57,10 @@ enum channel_conn {
 	CONN_REAR,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	/* Information about rear card option, or NULL if unknown */
 	const struct rear_card_info *rear_card;
 
-	/* Acquisition settings */
 	enum sr_mq measurement_mq;
 	enum sr_mqflag measurement_mq_flags;
 	enum sr_unit measurement_unit;
@@ -73,7 +70,6 @@ struct dev_context {
 	unsigned int num_active_channels;
 	struct sr_channel *current_channel;
 
-	/* Operational state */
 	enum acquisition_state acq_state;
 	enum channel_conn input_loc;
 	uint64_t num_samples;

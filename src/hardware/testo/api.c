@@ -22,14 +22,16 @@
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1"
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_GET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET | SR_CONF_GET,
@@ -107,9 +109,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (strncmp(manufacturer, "testo", 5))
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
-		/* Hardcode the 435 for now.*/
+		/* Hardcode the 435 for now. */
 		if (strcmp(product, "testo 435/635/735"))
 			continue;
 
@@ -117,7 +120,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Testo");
 		sdi->model = g_strdup("435/635/735");
-		sdi->driver = di;
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 				libusb_get_device_address(devlist[i]), NULL);
@@ -163,7 +165,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -173,24 +174,22 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
+
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	libusb_release_interface(usb->devhdl, 0);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
 
 	(void)cg;
 
@@ -199,8 +198,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
@@ -212,39 +210,20 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
@@ -285,7 +264,7 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 
 	devc->reply_size = 0;
 	if (sr_sw_limits_check(&devc->sw_limits))
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	else
 		testo_request_packet(sdi);
 
@@ -305,7 +284,7 @@ SR_PRIV void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		/* First two bytes in any transfer are FTDI status bytes. */
 		if (transfer->actual_length > 2)
@@ -320,7 +299,7 @@ SR_PRIV void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
@@ -347,7 +326,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	drvc = di->context;
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
@@ -373,10 +352,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	unsigned char *buf;
 
 	drvc = di->context;
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-
 	devc = sdi->priv;
 	usb = sdi->conn;
 	devc->reply_size = 0;
@@ -412,9 +387,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;
@@ -428,6 +400,7 @@ static struct sr_dev_driver testo_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

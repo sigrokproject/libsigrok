@@ -254,6 +254,8 @@ static void parse_flags(const uint8_t *buf, struct dtm0660_info *info)
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 int *exponent, const struct dtm0660_info *info)
 {
+	int initial_exponent = *exponent;
+
 	/* Factors */
 	if (info->is_nano)
 		*exponent -= 9;
@@ -265,7 +267,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		*exponent += 3;
 	if (info->is_mega)
 		*exponent += 6;
-	*floatval *= powf(10, *exponent);
+	*floatval *= powf(10, (*exponent - initial_exponent));
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -318,7 +320,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_auto)
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_hold)
 		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_rel)
@@ -373,7 +375,7 @@ SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct dtm0660_info *info_local;
 
-	info_local = (struct dtm0660_info *)info;
+	info_local = info;
 
 	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);

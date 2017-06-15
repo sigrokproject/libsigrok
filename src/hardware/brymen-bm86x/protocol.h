@@ -27,15 +27,9 @@
 
 #define LOG_PREFIX "brymen-bm86x"
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	struct sr_sw_limits sw_limits;
-
-	/* Operational state */
-	int detached_kernel_driver;/**< Whether kernel driver was detached or not */
-
-	/* Temporary state across callbacks */
+	int detached_kernel_driver; /**< Whether kernel driver was detached or not */
 	int interrupt_pending;
 };
 

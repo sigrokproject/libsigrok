@@ -149,7 +149,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_ols = {
 	.id = "ols",
 	.name = "OLS",
-	.desc = "OpenBench Logic Sniffer",
+	.desc = "OpenBench Logic Sniffer data",
 	.exts = (const char*[]){"ols", NULL},
 	.flags = 0,
 	.options = NULL,

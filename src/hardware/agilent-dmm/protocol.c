@@ -77,7 +77,7 @@ static const struct agdmm_job *job_next(struct dev_context *devc)
 		devc->current_job++;
 		if (!job_current(devc)->send)
 			devc->current_job = 0;
-	} while(job_in_interval(devc) && devc->current_job != current_job);
+	} while (job_in_interval(devc) && devc->current_job != current_job);
 	return job_current(devc);
 }
 
@@ -200,7 +200,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits) || stop)
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	else
 		dispatch(sdi);
 
@@ -600,7 +600,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else if (!strcmp(mstr, "DIOD")) {
 		devc->cur_mq[i] = SR_MQ_VOLTAGE;
 		devc->cur_unit[i] = SR_UNIT_VOLT;
-		devc->cur_mqflags[i] = SR_MQFLAG_DIODE;
+		devc->cur_mqflags[i] = SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		devc->cur_exponent[i] = 0;
 		devc->cur_digits[i] = 3;
 	} else if (!strcmp(mstr, "CAP")) {
@@ -626,7 +626,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		} else if (!strcmp(mstr, "DC")) {
 			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 		} else {
-		sr_dbg("Unknown first argument '%s'.", mstr);
+			sr_dbg("Unknown first argument '%s'.", mstr);
 		}
 		g_free(mstr);
 	} else
@@ -738,7 +738,7 @@ static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else if (!strcmp(mstr, "DIOD")) {
 		devc->cur_mq[i] = SR_MQ_VOLTAGE;
 		devc->cur_unit[i] = SR_UNIT_VOLT;
-		devc->cur_mqflags[i] = SR_MQFLAG_DIODE;
+		devc->cur_mqflags[i] = SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		devc->cur_exponent[i] = 0;
 		if (devc->profile->model == KEYSIGHT_U1281 ||
 		    devc->profile->model == KEYSIGHT_U1282) {
@@ -871,7 +871,7 @@ static int recv_log(const struct sr_dev_inst *sdi, GMatchInfo *match,
 	if (mstr[12] & 1)  mqflags |= SR_MQFLAG_AVG;
 	if (mstr[12] & 2)  mqflags |= SR_MQFLAG_MIN;
 	if (mstr[12] & 4)  mqflags |= SR_MQFLAG_MAX;
-	if (function == 5) mqflags |= SR_MQFLAG_DIODE;
+	if (function == 5) mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	g_free(mstr);
 
 	mq = mqs[function];

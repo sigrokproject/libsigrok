@@ -86,7 +86,7 @@ static int parse_value(const uint8_t *buf, struct metex14_info *info,
 		return SR_OK;
 
 	/* Bytes 2-8: Sign, value (up to 5 digits) and decimal point */
-	sscanf((const char *)&valstr, "%f", result);
+	sr_atof_ascii((const char *)&valstr, result);
 
 	dot_pos = strcspn(valstr, ".");
 	if (dot_pos < cnt)
@@ -146,8 +146,14 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_kilo = info->is_hertz = TRUE;
 	else if (!g_ascii_strcasecmp(u, "C"))
 		info->is_celsius = TRUE;
+	else if (!g_ascii_strcasecmp(u, "F"))
+		info->is_fahrenheit = TRUE;
 	else if (!g_ascii_strcasecmp(u, "DB"))
 		info->is_decibel = TRUE;
+	else if (!g_ascii_strcasecmp(u, "dBm"))
+		info->is_decibel_mw = TRUE;
+	else if (!g_ascii_strcasecmp(u, "W"))
+		info->is_watt = TRUE;
 	else if (!g_ascii_strcasecmp(u, ""))
 		info->is_unitless = TRUE;
 
@@ -156,15 +162,25 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		(!strncmp(buf, "  ", 2) && info->is_ohm);
 	info->is_capacity = !strncmp(buf, "CA", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_farad);
-	info->is_temperature = !strncmp(buf, "TE", 2);
+	info->is_temperature = !strncmp(buf, "TE", 2) ||
+		info->is_celsius || info->is_fahrenheit;
 	info->is_diode = !strncmp(buf, "DI", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_volt && info->is_milli);
 	info->is_frequency = !strncmp(buf, "FR", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_hertz);
-	info->is_gain = !strncmp(buf, "DB", 2);
+	info->is_gain = !strncmp(buf, "DB", 2) && info->is_decibel;
+	info->is_power = (!strncmp(buf, "dB", 2) && info->is_decibel_mw) ||
+		((!strncmp(buf, "WT", 2) && info->is_watt));
+	info->is_power_factor = !strncmp(buf, "CO", 2) && info->is_unitless;
 	info->is_hfe = !strncmp(buf, "HF", 2) ||
-		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
-		 !info->is_logic && !info->is_farad && !info->is_hertz);
+		(!strncmp(buf, "  ", 2) && !info->is_ampere &&!info->is_volt &&
+		!info->is_resistance && !info->is_capacity && !info->is_frequency &&
+		!info->is_temperature && !info->is_power && !info->is_power_factor &&
+		!info->is_gain && !info->is_logic && !info->is_diode);
+	info->is_min = !strncmp(buf, "MN", 2);
+	info->is_max = !strncmp(buf, "MX", 2);
+	info->is_avg = !strncmp(buf, "AG", 2);
+
 	/*
 	 * Note:
 	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
@@ -178,8 +194,12 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 int *exponent, const struct metex14_info *info)
 {
-	int factor = 0;
+	int factor;
+
+	(void)exponent;
+
 	/* Factors */
+	factor = 0;
 	if (info->is_pico)
 		factor -= 12;
 	if (info->is_nano)
@@ -193,7 +213,6 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_mega)
 		factor += 6;
 	*floatval *= powf(10, factor);
-	*exponent += factor;
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -216,13 +235,31 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->meaning->mq = SR_MQ_CAPACITANCE;
 		analog->meaning->unit = SR_UNIT_FARAD;
 	}
-	if (info->is_celsius) {
+	if (info->is_temperature) {
 		analog->meaning->mq = SR_MQ_TEMPERATURE;
-		analog->meaning->unit = SR_UNIT_CELSIUS;
+		if (info->is_celsius)
+			analog->meaning->unit = SR_UNIT_CELSIUS;
+		else if (info->is_fahrenheit)
+			analog->meaning->unit = SR_UNIT_FAHRENHEIT;
+		else
+			analog->meaning->unit = SR_UNIT_UNITLESS;
 	}
 	if (info->is_diode) {
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
+	}
+	if (info->is_power) {
+		analog->meaning->mq = SR_MQ_POWER;
+		if (info->is_decibel_mw)
+			analog->meaning->unit = SR_UNIT_DECIBEL_MW;
+		else if (info->is_watt)
+			analog->meaning->unit = SR_UNIT_WATT;
+		else
+			analog->meaning->unit = SR_UNIT_UNITLESS;
+	}
+	if (info->is_power_factor) {
+		analog->meaning->mq = SR_MQ_POWER_FACTOR;
+		analog->meaning->unit = SR_UNIT_UNITLESS;
 	}
 	if (info->is_gain) {
 		analog->meaning->mq = SR_MQ_GAIN;
@@ -243,7 +280,13 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_dc)
 		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
+	if (info->is_min)
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
+	if (info->is_max)
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
+	if (info->is_avg)
+		analog->meaning->mqflags |= SR_MQFLAG_AVG;
 }
 
 static gboolean flags_valid(const struct metex14_info *info)
@@ -293,7 +336,7 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Requesting DMM packet.");
 
-	return (serial_write_nonblocking(serial, &wbuf, 1) == 1) ? SR_OK : SR_ERR;
+	return serial_write_blocking(serial, &wbuf, 1, 0);
 }
 #endif
 
@@ -310,6 +353,25 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
 	if (buf[13] != '\r')
 		return FALSE;
 
+	return TRUE;
+}
+
+SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf)
+{
+	struct metex14_info info;
+	size_t ch_idx;
+	const uint8_t *ch_buf;
+
+	ch_buf = buf;
+	for (ch_idx = 0; ch_idx < 4; ch_idx++) {
+		if (ch_buf[13] != '\r')
+			return FALSE;
+		memset(&info, 0x00, sizeof(info));
+		parse_flags((const char *)ch_buf, &info);
+		if (!flags_valid(&info))
+			return FALSE;
+		ch_buf += METEX14_PACKET_SIZE;
+	}
 	return TRUE;
 }
 
@@ -334,7 +396,7 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct metex14_info *info_local;
 
-	info_local = (struct metex14_info *)info;
+	info_local = info;
 
 	/* Don't print byte 13. That one contains the carriage return. */
 	sr_dbg("DMM packet: \"%.13s\"", buf);
@@ -353,4 +415,35 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
+}
+
+/**
+ * Parse one out of four values of a four-display Metex14 variant.
+ *
+ * The caller's 'info' parameter can be used to track the channel index,
+ * as long as the information is kept across calls to the 14-byte packet
+ * parse routine (which clears the 'info' container).
+ *
+ * Since analog values have further details in the 'analog' parameter,
+ * passing multiple values per parse routine call is problematic. So we
+ * prefer the approach of passing one value per call, which is most
+ * reliable and shall fit every similar device with multiple displays.
+ *
+ * The meters which use this parse routine send one 14-byte packet per
+ * display. Each packet has the regular Metex14 layout.
+ */
+SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info)
+{
+	struct metex14_info *info_local;
+	size_t ch_idx;
+	const uint8_t *ch_buf;
+	int rc;
+
+	info_local = info;
+	ch_idx = info_local->ch_idx;
+	ch_buf = buf + ch_idx * METEX14_PACKET_SIZE;
+	rc = sr_metex14_parse(ch_buf, floatval, analog, info);
+	info_local->ch_idx = ch_idx + 1;
+	return rc;
 }

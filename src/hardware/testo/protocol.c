@@ -67,7 +67,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	sr_dbg("Probing for channels.");
-	if (sdi->driver->dev_open(sdi) != SR_OK)
+	if (sr_dev_open(sdi) != SR_OK)
 		return SR_ERR;
 	if (testo_set_serial_params(usb) != SR_OK)
 		return SR_ERR;
@@ -108,7 +108,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 			/* Got a complete packet. */
 			break;
 	}
-	sdi->driver->dev_close(sdi);
+	sr_dev_close(sdi);
 
 	if (packet[6] > MAX_CHANNELS) {
 		sr_err("Device says it has %d channels!", packet[6]);
@@ -158,7 +158,7 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
 			receive_transfer, (void *)sdi, 100);
 	if ((ret = libusb_submit_transfer(devc->out_transfer) != 0)) {
 		sr_err("Failed to request packet: %s.", libusb_error_name(ret));
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+		sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 		return SR_ERR;
 	}
 	sr_dbg("Requested new packet.");
@@ -170,8 +170,8 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
  * Testo 175/177/400/650/950/435/635/735/445/645/945/946/545. */
 SR_PRIV gboolean testo_check_packet_prefix(unsigned char *buf, int len)
 {
+	static const unsigned char check[] = { 0x21, 0, 0, 0, 1 };
 	int i;
-	unsigned char check[] = { 0x21, 0, 0, 0, 1 };
 
 	if (len < 5)
 		return FALSE;

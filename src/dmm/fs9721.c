@@ -302,7 +302,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_auto)
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_hold)
 		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_rel)
@@ -353,7 +353,7 @@ SR_PRIV int sr_fs9721_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
@@ -373,7 +373,7 @@ SR_PRIV void sr_fs9721_00_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_00' means temperature (C). */
 	if (info_local->is_c2c1_00) {
@@ -386,7 +386,7 @@ SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (C). */
 	if (info_local->is_c2c1_01) {
@@ -399,7 +399,7 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_10' means temperature (C). */
 	if (info_local->is_c2c1_10) {
@@ -412,7 +412,7 @@ SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *i
 {
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_01' means temperature (F). */
 	if (info_local->is_c2c1_01) {
@@ -431,7 +431,7 @@ SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9721_info *info_local;
 
-	info_local = (struct fs9721_info *)info;
+	info_local = info;
 
 	/* User-defined FS9721_LP3 flag 'c2c1_00' means MAX. */
 	if (info_local->is_c2c1_00)

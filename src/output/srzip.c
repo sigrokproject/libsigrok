@@ -150,6 +150,7 @@ static int zip_create(const struct sr_output *o)
 		if (!ch->enabled)
 			continue;
 
+		s = NULL;
 		switch (ch->type) {
 		case SR_CHANNEL_LOGIC:
 			s = g_strdup_printf("probe%d", ch->index + 1);
@@ -160,8 +161,10 @@ static int zip_create(const struct sr_output *o)
 			index++;
 			break;
 		}
-		g_key_file_set_string(meta, devgroup, s, ch->name);
-		g_free(s);
+		if (s) {
+			g_key_file_set_string(meta, devgroup, s, ch->name);
+			g_free(s);
+		}
 	}
 
 	metabuf = g_key_file_to_data(meta, &metalen, NULL);
@@ -379,12 +382,13 @@ static int zip_append_analog(const struct sr_output *o,
 	analogsrc = zip_source_buffer(archive, chunkbuf, chunksize, FALSE);
 	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
 	i = zip_add(archive, chunkname, analogsrc);
-	g_free(chunkname);
 	if (i < 0) {
 		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
+		g_free(chunkname);
 		zip_source_free(analogsrc);
 		goto err_free_chunkbuf;
 	}
+	g_free(chunkname);
 	if (zip_close(archive) < 0) {
 		sr_err("Error saving session file: %s", zip_strerror(archive));
 		goto err_free_chunkbuf;
@@ -464,9 +468,6 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
-	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
-
 	return options;
 }
 
@@ -475,7 +476,6 @@ static int cleanup(struct sr_output *o)
 	struct out_context *outc;
 
 	outc = o->priv;
-	g_variant_unref(options[0].def);
 	g_free(outc->analog_index_map);
 	g_free(outc->filename);
 	g_free(outc);
@@ -487,7 +487,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_srzip = {
 	.id = "srzip",
 	.name = "srzip",
-	.desc = "srzip session file",
+	.desc = "srzip session file format data",
 	.exts = (const char*[]){"sr", NULL},
 	.flags = SR_OUTPUT_INTERNAL_IO_HANDLING,
 	.options = get_options,

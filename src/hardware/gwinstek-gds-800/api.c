@@ -25,8 +25,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 };
@@ -98,8 +101,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
@@ -107,21 +108,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	scpi = sdi->conn;
-	if (scpi) {
-		if (sr_scpi_close(scpi) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
-	}
 
-	return SR_OK;
+	if (!scpi)
+		return SR_ERR_BUG;
+
+	return sr_scpi_close(scpi);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -143,8 +139,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -152,9 +148,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 
 	if (!sdi)
 		return SR_ERR_ARG;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -169,26 +162,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		return SR_OK;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -198,9 +175,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc->state = START_ACQUISITION;
 	devc->cur_acq_frame = 0;
@@ -219,11 +193,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
 
 	if (devc->df_started) {
 		packet.type = SR_DF_FRAME_END;
@@ -247,6 +216,7 @@ static struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -49,7 +49,6 @@ enum probe_type {
 	PROBE_TEMP,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t samplerate;
 	struct sr_sw_limits limits;

@@ -45,10 +45,13 @@
 
 #define LOG_PREFIX "input/trace32_ad"
 
-#define MAX_CHUNK_SIZE    4096
-#define OUTBUF_FLUSH_SIZE 10240
+#define CHUNK_SIZE        (4 * 1024 * 1024)
 #define MAX_POD_COUNT     12
 #define HEADER_SIZE       80
+
+#define SPACE             ' '
+#define CTRLZ             '\x1a'
+#define TRACE32           "trace32"
 
 #define TIMESTAMP_RESOLUTION ((double)0.000000000078125) /* 0.078125 ns */
 
@@ -59,12 +62,13 @@
  */
 #define DEFAULT_SAMPLERATE 200
 
-enum {
-	AD_FORMAT_BINHDR = 1, /* Binary header, binary data, textual setup info */
-	AD_FORMAT_TXTHDR      /* Textual header, binary data */
+enum ad_format {
+	AD_FORMAT_UNKNOWN,
+	AD_FORMAT_BINHDR,	/* Binary header, binary data, textual setup info */
+	AD_FORMAT_TXTHDR,	/* Textual header, binary data */
 };
 
-enum {
+enum ad_device {
 	AD_DEVICE_PI = 1, /* Data recorded by LA-7940 PowerIntegrator or */
                           /* LA-394x PowerIntegrator II. */
 	AD_DEVICE_IPROBE  /* Data recorded by LA-769x PowerTrace II IProbe. */
@@ -72,12 +76,12 @@ enum {
 	/* Missing file format info for LA-4530 uTrace analog probe */
 };
 
-enum {
+enum ad_mode {
 	AD_MODE_250MHZ = 0,
 	AD_MODE_500MHZ = 1
 };
 
-enum {
+enum ad_compr {
 	AD_COMPR_NONE  = 0, /* File created with /NOCOMPRESS */
 	AD_COMPR_QCOMP = 6, /* File created with /COMPRESS or /QUICKCOMPRESS */
 };
@@ -85,7 +89,10 @@ enum {
 struct context {
 	gboolean meta_sent;
 	gboolean header_read, records_read, trigger_sent;
-	char format, device, record_mode, compression;
+	enum ad_format format;
+	enum ad_device device;
+	enum ad_mode record_mode;
+	enum ad_compr compression;
 	char pod_status[MAX_POD_COUNT];
 	struct sr_channel *channels[MAX_POD_COUNT][17]; /* 16 + CLK */
 	uint64_t trigger_timestamp;
@@ -98,6 +105,29 @@ struct context {
 
 static int process_header(GString *buf, struct context *inc);
 static void create_channels(struct sr_input *in);
+
+/* Transform non-printable chars to '\xNN' presentation. */
+static char *printable_name(const char *name)
+{
+	size_t l, i;
+	char *s, *p;
+
+	if (!name)
+		return NULL;
+	l = strlen(name);
+	s = g_malloc0(l * strlen("\\x00") + 1);
+	for (p = s, i = 0; i < l; i++) {
+		if (g_ascii_isprint(name[i])) {
+			*p++ = name[i];
+		} else {
+			snprintf(p, 5, "\\x%02x", name[i]);
+			p += strlen("\\x00");
+		}
+	}
+	*p = '\0';
+
+	return s;
+}
 
 static char get_pod_name_from_id(int id)
 {
@@ -152,24 +182,34 @@ static int init(struct sr_input *in, GHashTable *options)
 		return SR_ERR;
 	}
 
-	inc->out_buf = g_string_sized_new(OUTBUF_FLUSH_SIZE);
+	inc->out_buf = g_string_sized_new(CHUNK_SIZE);
 
 	return SR_OK;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf;
+	int rc;
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
+	rc = process_header(buf, NULL);
 
-	return process_header(buf, NULL);
+	if (rc != SR_OK)
+		return rc;
+	*confidence = 10;
+
+	return SR_OK;
 }
 
 static int process_header(GString *buf, struct context *inc)
 {
 	char *format_name, *format_name_sig;
-	int i, record_size, device_id;
+	char *p;
+	int has_trace32;
+	size_t record_size;
+	enum ad_device device_id;
+	enum ad_format format;
 
 	/*
 	 * 00-31 (0x00-1F) file format name
@@ -190,40 +230,58 @@ static int process_header(GString *buf, struct context *inc)
 	 * 78-79 (0x4E-4F) ??
 	 */
 
-	/* Note: inc is off-limits until we check whether it's a valid pointer. */
+	/*
+	 * Note: The routine is called from different contexts. Either
+	 * to auto-detect the file format (format_match(), 'inc' is NULL),
+	 * or to process the data during acquisition (receive(), 'inc'
+	 * is a valid pointer). This header parse routine shall gracefully
+	 * deal with unexpected or incorrect input data.
+	 */
 
+	/*
+	 * Get up to the first 32 bytes of the file content. File format
+	 * names end on SPACE or CTRL-Z (or NUL). Trim trailing SPACE
+	 * before further processing.
+	 */
 	format_name = g_strndup(buf->str, 32);
+	p = strchr(format_name, CTRLZ);
+	if (p)
+		*p = '\0';
+	g_strchomp(format_name);
 
-	/* File format name ends on 0x20/0x1A, let's remove both. */
-	for (i = 1; i < 31; i++) {
-		if (format_name[i] == 0x1A) {
-			format_name[i - 1] = 0;
-			format_name[i] = 0;
-		}
-	}
-	g_strchomp(format_name); /* This is for additional padding spaces. */
+	/*
+	 * File format names either start with the "trace32" literal,
+	 * or with a digit and SPACE.
+	 */
+	format_name_sig = g_strndup(format_name, strlen(TRACE32));
+	has_trace32 = g_strcmp0(format_name_sig, TRACE32) == 0;
+	g_free(format_name_sig);
 
-	format_name_sig = g_strndup(format_name, 5);
-
-	/* Desired file formats either start with digit+space or "trace32". */
-	if (g_strcmp0(format_name_sig, "trace32")) {
-		if (inc)
-			inc->format = AD_FORMAT_BINHDR;
-	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == 0x20)) {
-		if (inc)
-			inc->format = AD_FORMAT_TXTHDR;
-		g_free(format_name_sig);
+	format = AD_FORMAT_UNKNOWN;
+	if (has_trace32) {
+		/* Literal "trace32" leader, binary header follows. */
+		format = AD_FORMAT_BINHDR;
+	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == SPACE)) {
+		/* Digit and SPACE leader, currently unsupported text header. */
+		format = AD_FORMAT_TXTHDR;
 		g_free(format_name);
-		sr_err("This format isn't implemented yet, aborting.");
+		if (inc)
+			sr_err("This format isn't implemented yet, aborting.");
 		return SR_ERR;
 	} else {
-		g_free(format_name_sig);
+		/* Unknown kind of format name. Unsupported. */
 		g_free(format_name);
-		sr_err("Don't know this file format, aborting.");
+		if (inc)
+			sr_err("Don't know this file format, aborting.");
 		return SR_ERR;
 	}
+	if (!format)
+		return SR_ERR;
 
-	sr_dbg("File says it's \"%s\"", format_name);
+	p = printable_name(format_name);
+	if (inc)
+		sr_dbg("File says it's \"%s\" -> format type %u.", p, format);
+	g_free(p);
 
 	record_size = R8(buf->str + 56);
 	device_id = 0;
@@ -237,20 +295,20 @@ static int process_header(GString *buf, struct context *inc)
 	}
 
 	if (!device_id) {
-		g_free(format_name_sig);
 		g_free(format_name);
-		sr_err("Don't know how to handle this file with record size %d.",
-			record_size);
+		if (inc)
+			sr_err("Cannot handle file with record size %zu.",
+				record_size);
 		return SR_ERR;
 	}
 
-	g_free(format_name_sig);
 	g_free(format_name);
 
 	/* Stop processing the header if we just want to identify the file. */
 	if (!inc)
 		return SR_OK;
 
+	inc->format       = format;
 	inc->device       = device_id;
 	inc->trigger_timestamp = RL64(buf->str + 32);
 	inc->compression  = R8(buf->str + 48); /* Maps to the enum. */
@@ -266,7 +324,7 @@ static int process_header(GString *buf, struct context *inc)
 		inc->last_record);
 
 	/* Check if we can work with this compression. */
-	if (inc->compression != AD_COMPR_NONE) {
+	if (inc->compression) {
 		sr_err("File uses unsupported compression (0x%02X), can't continue.",
 			inc->compression);
 		return SR_ERR;
@@ -291,13 +349,13 @@ static void create_channels(struct sr_input *in)
 			continue;
 
 		for (channel = 0; channel < 16; channel++) {
-			snprintf(name, 8, "%c%d", get_pod_name_from_id(pod), channel);
+			snprintf(name, sizeof(name), "%c%d", get_pod_name_from_id(pod), channel);
 			inc->channels[pod][channel] =
 				sr_channel_new(in->sdi, chan_id, SR_CHANNEL_LOGIC, TRUE, name);
 			chan_id++;
 		}
 
-		snprintf(name, 8, "CLK%c", get_pod_name_from_id(pod));
+		snprintf(name, sizeof(name), "CLK%c", get_pod_name_from_id(pod));
 		inc->channels[pod][16] =
 			sr_channel_new(in->sdi, chan_id, SR_CHANNEL_LOGIC, TRUE, name);
 		chan_id++;
@@ -502,7 +560,7 @@ static void process_record_pi(struct sr_input *in, gsize start)
 			g_string_append_len(inc->out_buf, single_payload, payload_len);
 	}
 
-	if (inc->out_buf->len >= OUTBUF_FLUSH_SIZE)
+	if (inc->out_buf->len >= CHUNK_SIZE)
 		flush_output_buffer(in);
 }
 
@@ -555,7 +613,7 @@ static void process_record_iprobe(struct sr_input *in, gsize start)
 			g_string_append_len(inc->out_buf, single_payload, payload_len);
 	}
 
-	if (inc->out_buf->len >= OUTBUF_FLUSH_SIZE)
+	if (inc->out_buf->len >= CHUNK_SIZE)
 		flush_output_buffer(in);
 }
 
@@ -787,7 +845,7 @@ static struct sr_option options[] = {
 	{ "podN", "Import pod N", "Create channels and data for pod N", NULL, NULL },
 	{ "podO", "Import pod O", "Create channels and data for pod O", NULL, NULL },
 
-	{ "samplerate", "Reduced sample rate in MHz", "Reduced sample rate in MHz", NULL, NULL },
+	{ "samplerate", "Reduced sample rate (MHz)", "Reduce the original sample rate of 12.8 GHz to the specified sample rate in MHz", NULL, NULL },
 
 	ALL_ZERO
 };

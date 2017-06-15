@@ -26,7 +26,6 @@
 
 #define LOG_PREFIX "lascar-el-usb"
 
-#define LASCAR_VENDOR "Lascar"
 #define LASCAR_INTERFACE 0
 #define LASCAR_EP_IN 0x82
 #define LASCAR_EP_OUT 2
@@ -39,9 +38,9 @@
 #define SLEEP_US_LONG (5 * 1000)
 #define SLEEP_US_SHORT (1 * 1000)
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const struct elusb_profile *profile;
+
 	/* Generic EL-USB */
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 	unsigned int log_size;
@@ -50,6 +49,7 @@ struct dev_context {
 	unsigned int logged_samples;
 	unsigned int rcvd_samples;
 	uint64_t limit_samples;
+
 	/* Model-specific */
 	/* EL-USB-CO: these are something like scaling and calibration values
 	 * fixed per device, used to convert the sample values to CO ppm. */
@@ -79,6 +79,5 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi);
-SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 #endif

@@ -20,7 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define VENDOR_NAME			"ZEROPLUS"
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
@@ -43,6 +42,7 @@ struct zp_model {
  */
 static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x7002, "LAP-16128U",    16, 128,  200},
+	{0x0c12, 0x7007, "LAP-16032U",    16, 32,   200},
 	{0x0c12, 0x7009, "LAP-C(16064)",  16, 64,   100},
 	{0x0c12, 0x700a, "LAP-C(16128)",  16, 128,  200},
 	{0x0c12, 0x700b, "LAP-C(32128)",  32, 128,  200},
@@ -50,7 +50,9 @@ static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x700d, "LAP-C(322000)", 32, 2048, 200},
 	{0x0c12, 0x700e, "LAP-C(16032)",  16, 32,   100},
 	{0x0c12, 0x7016, "LAP-C(162000)", 16, 2048, 200},
-	{0x0c12, 0x7100, "AKIP-9101", 16, 256, 200},
+	{0x0c12, 0x7025, "LAP-C(16128+)", 16, 128,  200},
+	{0x0c12, 0x7064, "Logian-16L",    16, 128,  200},
+	{0x0c12, 0x7100, "AKIP-9101",     16, 256,  200},
 	ALL_ZERO
 };
 
@@ -127,8 +129,6 @@ const uint64_t samplerates_200[] = {
 	SR_MHZ(200),
 };
 
-static int dev_close(struct sr_dev_inst *sdi);
-
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 {
 	int i;
@@ -196,7 +196,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_close(hdl);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		prof = NULL;
 		for (j = 0; j < zeroplus_models[j].vid; j++) {
@@ -205,20 +206,18 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				prof = &zeroplus_models[j];
 			}
 		}
-		/* Skip if the device was not found. */
+
 		if (!prof)
 			continue;
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
-		/* Register the device with libsigrok. */
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_NAME);
+		sdi->vendor = g_strdup("ZEROPLUS");
 		sdi->model = g_strdup(prof->model_name);
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);
 
-		/* Allocate memory for our private driver context. */
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 		devc->prof = prof;
@@ -234,7 +233,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->memory_size = MEMORY_SIZE_8K;
 		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
-		/* Fill in channellist according to this device's profile. */
 		for (j = 0; j < devc->num_channels; j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
@@ -265,8 +263,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
 	if (ret != SR_OK)
 		return ret;
-
-	sdi->status = SR_ST_ACTIVE;
 
 	ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
@@ -323,7 +319,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		return SR_ERR;
+		return SR_ERR_BUG;
 
 	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
@@ -331,16 +327,14 @@ static int dev_close(struct sr_dev_inst *sdi)
 	libusb_reset_device(usb->devhdl);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *range[2];
 
 	(void)cg;
 
@@ -357,9 +351,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		range[0] = g_variant_new_double(devc->cur_threshold);
-		range[1] = g_variant_new_double(devc->cur_threshold);
-		*data = g_variant_new_tuple(range, 2);
+		*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -368,16 +360,13 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	gdouble low, high;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -387,7 +376,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_LIMIT_SAMPLES:
 		return set_limit_samples(devc, g_variant_get_uint64(data));
 	case SR_CONF_CAPTURE_RATIO:
-		return set_capture_ratio(devc, g_variant_get_uint64(data));
+		devc->capture_ratio = g_variant_get_uint64(data);
+		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		return set_voltage_threshold(devc, (low + high) / 2.0);
@@ -398,68 +388,37 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
-	double v;
-	GVariant *range[2];
-
-	(void)cg;
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		} else {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		}
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		if (devc->prof->max_sampling_freq == 100) {
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-					samplerates_100, ARRAY_SIZE(samplerates_100),
-					sizeof(uint64_t));
-		} else if (devc->prof->max_sampling_freq == 200) {
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-					samplerates_200, ARRAY_SIZE(samplerates_200),
-					sizeof(uint64_t));
-		} else {
+		if (devc->prof->max_sampling_freq == 100)
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_100));
+		else if (devc->prof->max_sampling_freq == 200)
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_200));
+		else {
 			sr_err("Internal error: Unknown max. samplerate: %d.",
 			       devc->prof->max_sampling_freq);
 			return SR_ERR_ARG;
 		}
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (v = -6.0; v <= 6.0; v += 0.1) {
-			range[0] = g_variant_new_double(v);
-			range[1] = g_variant_new_double(v);
-			gvar = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_min_max_step_thresholds(-6.0, 6.0, 0.1);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!sdi)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		grange[0] = g_variant_new_uint64(0);
-		grange[1] = g_variant_new_uint64(devc->max_sample_depth);
-		*data = g_variant_new_tuple(grange, 2);
+		*data = std_gvar_tuple_u64(0, devc->max_sample_depth);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -489,9 +448,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	unsigned int valid_samples;
 	unsigned int discard;
 	int trigger_now;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -591,8 +547,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		unsigned int buf_offset;
 
 		res = analyzer_read_data(usb->devhdl, buf, PACKET_SIZE);
-		sr_info("Tried to read %d bytes, actually read %d bytes.",
-			PACKET_SIZE, res);
+		if (res != PACKET_SIZE)
+			sr_warn("Tried to read %d bytes, actually read %d.",
+				PACKET_SIZE, res);
 
 		if (discard >= PACKET_SIZE / 4) {
 			discard -= PACKET_SIZE / 4;
@@ -647,7 +604,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
@@ -669,7 +625,7 @@ static struct sr_dev_driver zeroplus_logic_cube_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -22,6 +22,11 @@
 #include <time.h>
 #include <sys/timerfd.h>
 
+static const uint32_t drvopts[] = {
+	SR_CONF_THERMOMETER,
+	SR_CONF_POWERMETER,
+};
+
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -126,27 +131,8 @@ err_out:
 	return NULL;
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
-}
-
 static int config_get(uint32_t key, GVariant **data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	int ret;
@@ -156,11 +142,11 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_get(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->samplerate);
 		break;
@@ -186,30 +172,22 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint64_t samplerate;
-	int ret;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
 		if (samplerate > MAX_SAMPLE_RATE) {
 			sr_err("Maximum sample rate is %d", MAX_SAMPLE_RATE);
-			ret = SR_ERR_SAMPLERATE;
-			break;
+			return SR_ERR_SAMPLERATE;
 		}
 		devc->samplerate = samplerate;
 		bl_acme_maybe_set_update_interval(sdi, samplerate);
@@ -217,46 +195,30 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		ret = bl_acme_set_shunt(cg, g_variant_get_uint64(data));
-		break;
+		return bl_acme_set_shunt(cg, g_variant_get_uint64(data));
 	case SR_CONF_POWER_OFF:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		ret = bl_acme_set_power_off(cg, g_variant_get_boolean(data));
-		break;
+		return bl_acme_set_power_off(cg, g_variant_get_boolean(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	uint32_t devopts_cg[MAX_DEVOPTS_CG];
-	GVariant *gvar;
-	GVariantBuilder gvb;
-	int ret, num_devopts_cg = 0;
+	int num_devopts_cg = 0;
 
-	(void)sdi;
-	(void)cg;
-
-	ret = SR_OK;
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
+			return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
-			g_variant_builder_add(&gvb, "{sv}",
-					      "samplerate-steps", gvar);
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -269,15 +231,14 @@ static int config_list(uint32_t key, GVariant **data,
 			if (bl_acme_probe_has_pws(cg))
 				devopts_cg[num_devopts_cg++] = HAS_POWER_OFF;
 
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, num_devopts_cg, sizeof(uint32_t));
+			*data = std_gvar_array_u32(devopts_cg, num_devopts_cg);
 			break;
 		default:
 			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static void dev_acquisition_close(const struct sr_dev_inst *sdi)
@@ -315,9 +276,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		.it_interval = { 0, 0 },
 		.it_value = { 0, 0 }
 	};
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	if (dev_acquisition_open(sdi))
 		return SR_ERR;
@@ -360,9 +318,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	dev_acquisition_close(sdi);
 	sr_session_source_remove_channel(sdi->session, devc->channel);
 	g_io_channel_shutdown(devc->channel, FALSE, NULL);
@@ -385,11 +340,12 @@ static struct sr_dev_driver baylibre_acme_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_dummy_dev_open,
+	.dev_close = std_dummy_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,

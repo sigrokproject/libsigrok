@@ -31,7 +31,7 @@
 #define LOG_PREFIX "input/wav"
 
 /* How many bytes at a time to process and send to the session bus. */
-#define CHUNK_SIZE               4096
+#define CHUNK_SIZE               (1 * 1024 * 1024 * sizeof(float))
 
 /* Minimum size of header + 1 8-bit mono PCM sample. */
 #define MIN_DATA_CHUNK_OFFSET    45
@@ -51,6 +51,7 @@ struct context {
 	int num_channels;
 	int unitsize;
 	gboolean found_data;
+	gboolean create_channels;
 };
 
 static int parse_wav_header(GString *buf, struct context *inc)
@@ -124,7 +125,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	return SR_OK;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf;
 	int ret;
@@ -143,15 +144,22 @@ static int format_match(GHashTable *metadata)
 	if ((ret = parse_wav_header(buf, NULL)) != SR_OK)
 		return ret;
 
+	*confidence = 1;
+
 	return SR_OK;
 }
 
 static int init(struct sr_input *in, GHashTable *options)
 {
+	struct context *inc;
+
 	(void)options;
 
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = g_malloc0(sizeof(struct context));
+	inc = in->priv;
+
+	inc->create_channels = TRUE;
 
 	return SR_OK;
 }
@@ -189,16 +197,17 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct context *inc;
-	float fdata[CHUNK_SIZE];
+	float *fdata;
 	int total_samples, samplenum;
 	char *s, *d;
 
 	inc = in->priv;
 
+	total_samples = num_samples * inc->num_channels;
+	fdata = g_malloc0(total_samples * sizeof(float));
 	s = in->buf->str + offset;
 	d = (char *)fdata;
-	memset(fdata, 0, CHUNK_SIZE);
-	total_samples = num_samples * inc->num_channels;
+
 	for (samplenum = 0; samplenum < total_samples; samplenum++) {
 		if (inc->fmt_code == WAVE_FORMAT_PCM_) {
 			switch (inc->unitsize) {
@@ -238,6 +247,7 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	analog.meaning->mqflags = 0;
 	analog.meaning->unit = 0;
 	sr_session_send(in->sdi, &packet);
+	g_free(fdata);
 }
 
 static int process_buffer(struct sr_input *in)
@@ -310,7 +320,7 @@ static int receive(struct sr_input *in, GString *buf)
 {
 	struct context *inc;
 	int ret;
-	char channelname[8];
+	char channelname[16];
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
@@ -330,10 +340,14 @@ static int receive(struct sr_input *in, GString *buf)
 		else if (ret != SR_OK)
 			return ret;
 
-		for (int i = 0; i < inc->num_channels; i++) {
-			snprintf(channelname, 8, "CH%d", i + 1);
-			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
+		if (inc->create_channels) {
+			for (int i = 0; i < inc->num_channels; i++) {
+				snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
+				sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
+			}
 		}
+
+		inc->create_channels = FALSE;
 
 		/* sdi is ready, notify frontend. */
 		in->sdi_ready = TRUE;
@@ -364,9 +378,13 @@ static int end(struct sr_input *in)
 
 static int reset(struct sr_input *in)
 {
-	struct context *inc = in->priv;
+	memset(in->priv, 0, sizeof(struct context));
 
-	inc->started = FALSE;
+	/*
+	 * We only want to create the sigrok channels once, so
+	 * inc->create_channels won't be set to TRUE this time around.
+	 */
+
 	g_string_truncate(in->buf, 0);
 
 	return SR_OK;
@@ -375,7 +393,7 @@ static int reset(struct sr_input *in)
 SR_PRIV struct sr_input_module input_wav = {
 	.id = "wav",
 	.name = "WAV",
-	.desc = "WAV file",
+	.desc = "Microsoft WAV file format data",
 	.exts = (const char*[]){"wav", NULL},
 	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.format_match = format_match,

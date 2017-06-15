@@ -27,15 +27,13 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static void log_dmm_packet(const uint8_t *buf)
+static void log_dmm_packet(const uint8_t *buf, size_t len)
 {
-	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x "
-	       "%02x %02x %02x %02x %02x %02x %02x %02x %02x "
-	       "%02x %02x %02x %02x %02x %02x %02x",
-	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13],
-	       buf[14], buf[15], buf[16], buf[17], buf[18], buf[19], buf[20],
-	       buf[21], buf[22]);
+	GString *text;
+
+	text = sr_hexdump_new(buf, len);
+	sr_dbg("DMM packet: %s", text->str);
+	sr_hexdump_free(text);
 }
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
@@ -49,31 +47,43 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct dev_context *devc;
+	gboolean sent_sample;
+	struct sr_channel *channel;
+	size_t ch_idx;
 
 	dmm = (struct dmm_info *)sdi->driver;
 
-	log_dmm_packet(buf);
+	log_dmm_packet(buf, dmm->packet_size);
 	devc = sdi->priv;
 
-	/* Note: digits/spec_digits will be overridden by the DMM parsers. */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sent_sample = FALSE;
+	memset(info, 0, dmm->info_size);
+	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
+		/* Note: digits/spec_digits will be overridden by the DMM parsers. */
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-	analog.meaning->channels = sdi->channels;
-	analog.num_samples = 1;
-	analog.meaning->mq = 0;
+		channel = g_slist_nth_data(sdi->channels, ch_idx);
+		analog.meaning->channels = g_slist_append(NULL, channel);
+		analog.num_samples = 1;
+		analog.meaning->mq = 0;
 
-	dmm->packet_parse(buf, &floatval, &analog, info);
-	analog.data = &floatval;
+		dmm->packet_parse(buf, &floatval, &analog, info);
+		analog.data = &floatval;
 
-	/* If this DMM needs additional handling, call the resp. function. */
-	if (dmm->dmm_details)
-		dmm->dmm_details(&analog, info);
+		/* If this DMM needs additional handling, call the resp. function. */
+		if (dmm->dmm_details)
+			dmm->dmm_details(&analog, info);
 
-	if (analog.meaning->mq != 0) {
-		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		sr_session_send(sdi, &packet);
+		if (analog.meaning->mq != 0 && channel->enabled) {
+			/* Got a measurement. */
+			packet.type = SR_DF_ANALOG;
+			packet.payload = &analog;
+			sr_session_send(sdi, &packet);
+			sent_sample = TRUE;
+		}
+	}
+
+	if (sent_sample) {
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 }
@@ -116,7 +126,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 {
 	struct dmm_info *dmm;
 	struct dev_context *devc;
-	int len, i, offset = 0;
+	int len, offset;
 	struct sr_serial_dev_inst *serial;
 
 	dmm = (struct dmm_info *)sdi->driver;
@@ -136,6 +146,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
+	offset = 0;
 	while ((devc->buflen - offset) >= dmm->packet_size) {
 		if (dmm->packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, info);
@@ -154,8 +165,8 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 	}
 
 	/* If we have any data left, move it to the beginning of our buffer. */
-	for (i = 0; i < devc->buflen - offset; i++)
-		devc->buf[i] = devc->buf[offset + i];
+	if (devc->buflen > offset)
+		memmove(devc->buf, devc->buf + offset, devc->buflen - offset);
 	devc->buflen -= offset;
 }
 
@@ -188,7 +199,7 @@ int receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

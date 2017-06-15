@@ -251,32 +251,6 @@ static int serial_stream_check(struct sr_serial_dev_inst *serial,
 				       is_valid, timeout_ms, baudrate);
 }
 
-struct std_opt_desc {
-	const uint32_t *scanopts;
-	const int num_scanopts;
-	const uint32_t *devopts;
-	const int num_devopts;
-};
-
-static int std_config_list(uint32_t key, GVariant **data,
-			   const struct std_opt_desc *d)
-{
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			d->scanopts, d->num_scanopts, sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			d->devopts, d->num_devopts, sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
 static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
 {
 	struct sr_datafeed_packet packet;
@@ -413,15 +387,11 @@ static const char *const models[] = {
 	"NONE", "PARALLEL", "SERIES", "AUTO",
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The number of frames. */
 	struct dev_limit_counter frame_count;
 
-	/** The time limit counter. */
 	struct dev_time_counter time_count;
 
-	/** Data buffer. */
 	struct dev_buffer *buf;
 
 	/** The frequency of the test signal (index to frequencies[]). */
@@ -623,6 +593,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	unsigned int val;
 	float floatval;
 	gboolean frame;
+	struct sr_channel *channel;
 
 	devc = sdi->priv;
 
@@ -650,10 +621,11 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	analog.num_samples = 1;
 	analog.data = &floatval;
 
-	analog.meaning->channels = g_slist_append(NULL, sdi->channels->data);
+	channel = sdi->channels->data;
+	analog.meaning->channels = g_slist_append(NULL, channel);
 
 	parse_measurement(pkt, &floatval, &analog, 0);
-	if (analog.meaning->mq != 0) {
+	if (analog.meaning->mq != 0 && channel->enabled) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
@@ -667,10 +639,12 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	}
 
 	g_slist_free(analog.meaning->channels);
-	analog.meaning->channels = g_slist_append(NULL, sdi->channels->next->data);
+
+	channel = sdi->channels->next->data;
+	analog.meaning->channels = g_slist_append(NULL, channel);
 
 	parse_measurement(pkt, &floatval, &analog, 1);
-	if (analog.meaning->mq != 0) {
+	if (analog.meaning->mq != 0 && channel->enabled) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
@@ -731,7 +705,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (dev_limit_counter_limit_reached(&devc->frame_count) ||
 	    dev_time_limit_reached(&devc->time_count))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -756,7 +730,6 @@ SR_PRIV void es51919_serial_clean(void *priv)
 		return;
 
 	dev_buffer_destroy(devc->buf);
-	g_free(devc);
 }
 
 SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
@@ -865,8 +838,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LCRMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
@@ -874,28 +850,20 @@ static const uint32_t devopts[] = {
 	SR_CONF_EQUIV_CIRCUIT_MODEL | SR_CONF_GET | SR_CONF_LIST,
 };
 
-static const struct std_opt_desc opts = {
-	scanopts, ARRAY_SIZE(scanopts),
-	devopts, ARRAY_SIZE(devopts),
-};
-
 SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 				       const struct sr_dev_inst *sdi,
 				       const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	if (std_config_list(key, data, &opts) == SR_OK)
-		return SR_OK;
-
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
-			frequencies, ARRAY_SIZE(frequencies), sizeof(double));
+			ARRAY_AND_SIZE(frequencies), sizeof(double));
 		break;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
-		*data = g_variant_new_strv(models, ARRAY_SIZE(models));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(models));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -909,9 +877,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (!(devc = sdi->priv))
 		return SR_ERR_BUG;
 
@@ -920,7 +885,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			  receive_data, (void *)sdi);

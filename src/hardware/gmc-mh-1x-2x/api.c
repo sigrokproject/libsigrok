@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * Gossen Metrawatt Metrahit 1x/2x drivers
- *
- * @internal
- */
-
 #include <config.h>
 #include <string.h>
 #include "protocol.h"
@@ -33,17 +25,19 @@
 #define SERIALCOMM_1X_RS232 "8228/6n1/dtr=1/rts=1/flow=0" /* =8192, closer with divider */
 #define SERIALCOMM_2X_RS232 "9600/6n1/dtr=1/rts=1/flow=0"
 #define SERIALCOMM_2X "9600/8n1/dtr=1/rts=1/flow=0"
-#define VENDOR_GMC "Gossen Metrawatt"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-/** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
-static const uint32_t devopts_sm[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
+};
+
+/** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
+static const uint32_t devopts_sm[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -51,8 +45,6 @@ static const uint32_t devopts_sm[] = {
 
 /** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
 static const uint32_t devopts_bd[] = {
-	SR_CONF_MULTIMETER,
-	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -159,8 +151,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	conn = serialcomm = NULL;
 	serialcomm_given = FALSE;
 
-	sr_spew("scan_1x_2x_rs232() called!");
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -204,10 +194,10 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	}
 
 	if (model != METRAHIT_NONE) {
-		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
+		sr_spew("%s detected!", gmc_model_str(model));
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_GMC);
+		sdi->vendor = g_strdup("Gossen Metrawatt");
 		sdi->model = g_strdup(gmc_model_str(model));
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
@@ -242,8 +232,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	conn = serialcomm = NULL;
 	devices = NULL;
 
-	sr_spew("scan_2x_bd232() called!");
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -269,7 +257,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(VENDOR_GMC);
+	sdi->vendor = g_strdup("Gossen Metrawatt");
 	sdi->priv = devc;
 
 	/* Send message 03 "Query multimeter version and status" */
@@ -297,7 +285,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 		devc->buflen = 0;
 
 		if (devc->model != METRAHIT_NONE) {
-			sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(devc->model));
+			sr_spew("%s detected!", gmc_model_str(devc->model));
 			sr_sw_limits_init(&devc->limits);
 			sdi->model = g_strdup(gmc_model_str(devc->model));
 			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
@@ -308,21 +296,17 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR_GMC);
+			sdi->vendor = g_strdup("Gossen Metrawatt");
 		}
 	};
 
-	/* Free last alloc if no device found */
-	if (devc->model == METRAHIT_NONE) {
-		g_free(devc);
-		sr_dev_inst_free(sdi);
-	}
+	/* Free last alloc that was done in preparation. */
+	g_free(devc);
+	sr_dev_inst_free(sdi);
 
 	return std_scan_complete(di, devices);
 
 exit_err:
-	sr_info("scan_2x_bd232(): Error!");
-
 	sr_serial_dev_inst_free(serial);
 	g_free(devc);
 	sr_dev_inst_free(sdi);
@@ -334,19 +318,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	std_serial_dev_close(sdi);
+	devc = sdi->priv;
 
-	sdi->status = SR_ST_INACTIVE;
-	if ((devc = sdi->priv))
-		devc->model = METRAHIT_NONE;
+	devc->model = METRAHIT_NONE;
 
-	return SR_OK;
+	return std_serial_dev_close(sdi);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 
 	(void)cg;
@@ -356,7 +337,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
@@ -368,67 +348,27 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		return SR_ERR_NA;
 	}
 
-	return ret;
-}
-
-/** Implementation of config_list, auxiliary function for common parts. */
-static int config_list_common(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
-{
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
 	return SR_OK;
 }
 
 /** Implementation of config_list for Metrahit 1x/2x send mode */
-static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_channel_group *cg)
+static int config_list_sm(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_sm, ARRAY_SIZE(devopts_sm), sizeof(uint32_t));
-		break;
-	default:
-		return config_list_common(key, data, sdi, cg);
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_sm);
 }
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
-static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_channel_group *cg)
+static int config_list_bd(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_bd, ARRAY_SIZE(devopts_bd), sizeof(uint32_t));
-		break;
-	default:
-		return config_list_common(key, data, sdi, cg);
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_bd);
 }
 
 static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	devc->settings_ok = FALSE;
@@ -437,7 +377,6 @@ static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 40,
 			gmc_mh_1x_2x_receive_data, (void *)sdi);
@@ -450,9 +389,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
@@ -460,7 +396,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	/* Poll every 40ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 40,
 			gmc_mh_2x_receive_data, (void *)sdi);
@@ -477,7 +412,7 @@ static struct sr_dev_driver gmc_mh_1x_2x_rs232_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan_1x_2x_rs232,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list_sm,
@@ -497,7 +432,7 @@ static struct sr_dev_driver gmc_mh_2x_bd232_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan_2x_bd232,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list_bd,

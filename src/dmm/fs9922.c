@@ -290,7 +290,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_auto)
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_hold)
 		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_max)
@@ -359,7 +359,7 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct fs9922_info *info_local;
 
-	info_local = (struct fs9922_info *)info;
+	info_local = info;
 
 	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
@@ -379,12 +379,12 @@ SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info)
 {
 	struct fs9922_info *info_local;
 
-	info_local = (struct fs9922_info *)info;
+	info_local = info;
 
 	/* User-defined z1 flag means "diode mode". */
 	if (info_local->is_z1) {
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	}
 }

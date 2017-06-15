@@ -27,15 +27,11 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
-	int err, i;
+	int err = SR_ERR, i;
 	char connection_id[64];
 
 	devc = sdi->priv;
 	usb = sdi->conn;
-
-	if (sdi->status == SR_ST_ACTIVE)
-		/* Already in use. */
-		return SR_ERR;
 
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
@@ -50,7 +46,9 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 			/*
 			 * Check device by its physical USB bus/port address.
 			 */
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;
@@ -65,14 +63,16 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 				usb->address = libusb_get_device_address(devlist[i]);
 			}
 
-			sdi->status = SR_ST_ACTIVE;
 			sr_info("Opened device on %d.%d (logical) / "
 					"%s (physical) interface %d.",
 				usb->bus, usb->address,
 				sdi->connection_id, USB_INTERFACE);
+
+			err = SR_OK;
 		} else {
 			sr_err("Failed to open device: %s.",
 			       libusb_error_name(err));
+			err = SR_ERR;
 		}
 
 		/* If we made it here, we handled the device (somehow). */
@@ -81,10 +81,7 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
-	return SR_OK;
+	return err;
 }
 
 SR_PRIV void hantek_6xxx_close(struct sr_dev_inst *sdi)

@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Conrad DIGI 35 CPU</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -35,15 +27,19 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
-	SR_CONF_VOLTAGE | SR_CONF_SET,
-	SR_CONF_CURRENT | SR_CONF_SET,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -88,91 +84,66 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Conrad");
 	sdi->model = g_strdup("DIGI 35 CPU");
+	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
+	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	sdi->priv = NULL;
+	sdi->priv = devc;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	double dblval;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	switch (key) {
-	case SR_CONF_VOLTAGE:
+	case SR_CONF_VOLTAGE_TARGET:
 		dblval = g_variant_get_double(data);
 		if ((dblval < 0.0) || (dblval > 35.0)) {
 			sr_err("Voltage out of range (0 - 35.0)!");
 			return SR_ERR_ARG;
 		}
-		ret = send_msg1(sdi, 'V', (int) (dblval * 10 + 0.5));
-		break;
-	case SR_CONF_CURRENT:
+		return send_msg1(sdi, 'V', (int) (dblval * 10 + 0.5));
+	case SR_CONF_CURRENT_LIMIT:
 		dblval = g_variant_get_double(data);
-		if ((dblval < 0.01) || (dblval > 2.55)) {
+		if ((dblval < 0.00) || (dblval > 2.55)) {
 			sr_err("Current out of range (0 - 2.55)!");
 			return SR_ERR_ARG;
 		}
-		ret = send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
-		break;
+		return send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			ret = send_msg1(sdi, 'V', 900);
+			return send_msg1(sdi, 'V', 900);
 		else /* Constant current mode */
-			ret = send_msg1(sdi, 'V', 901);
-		break;
-	default:
-		ret = SR_ERR_NA;
-	}
-
-	return ret;
-}
-
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
-{
-	int ret;
-
-	(void)sdi;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+			return send_msg1(sdi, 'V', 901);
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	case SR_CONF_VOLTAGE_TARGET:
+		*data = std_gvar_min_max_step(0.0, 35.0, 0.1);
+		break;
+	case SR_CONF_CURRENT_LIMIT:
+		*data = std_gvar_min_max_step(0.0, 2.55, 0.01);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
 
 	return SR_OK;
 }
@@ -185,14 +156,14 @@ static struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
+	.dev_acquisition_stop = std_dummy_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(conrad_digi_35_cpu_driver_info);

@@ -19,10 +19,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * ASIX SIGMA/SIGMA2 logic analyzer driver
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -59,9 +55,14 @@ static const int32_t trigger_matches[] = {
 };
 #endif
 
+static void clear_helper(struct dev_context *devc)
+{
+	ftdi_deinit(&devc->ftdic);
+}
+
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, sigma_clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -79,8 +80,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(struct dev_context));
 
 	ftdi_init(&devc->ftdic);
-
-	/* Look for SIGMAs. */
 
 	if ((ret = ftdi_usb_find_all(&devc->ftdic, &devlist,
 	    USB_VENDOR, USB_PRODUCT)) <= 0) {
@@ -111,18 +110,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->capture_ratio = 50;
 	devc->use_triggers = 0;
 
-	/* Register SIGMA device. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
-	sdi->vendor = g_strdup(USB_VENDOR_NAME);
-	sdi->model = g_strdup(USB_MODEL_NAME);
+	sdi->vendor = g_strdup("ASIX");
+	sdi->model = g_strdup("SIGMA");
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
 	sdi->priv = devc;
 
-	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
@@ -140,17 +137,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
-		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-
-		sr_err("ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
-
-		return 0;
+			USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
+		sr_err("Failed to open device (%d): %s.",
+		       ret, ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR;
 	}
-
-	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
@@ -161,17 +153,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* TODO */
-	if (sdi->status == SR_ST_ACTIVE)
-		ftdi_usb_close(&devc->ftdic);
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
+	return (ftdi_usb_close(&devc->ftdic) == 0) ? SR_OK : SR_ERR;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -203,81 +189,50 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp;
-	int ret;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		ret = sigma_set_samplerate(sdi, g_variant_get_uint64(data));
-		break;
+		return sigma_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_MSEC:
-		tmp = g_variant_get_uint64(data);
-		if (tmp > 0)
-			devc->limit_msec = g_variant_get_uint64(data);
-		else
-			ret = SR_ERR;
+		devc->limit_msec = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp = g_variant_get_uint64(data);
-		devc->limit_samples = tmp;
-		devc->limit_msec = sigma_limit_samples_to_msec(devc, tmp);
+		devc->limit_samples = g_variant_get_uint64(data);
+		devc->limit_msec = sigma_limit_samples_to_msec(devc,
+						devc->limit_samples);
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
-		tmp = g_variant_get_uint64(data);
-		if (tmp > 100)
-			return SR_ERR;
-		devc->capture_ratio = tmp;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 #endif
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *gvar;
-	GVariantBuilder gvb;
-
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
-				samplerates_count, sizeof(samplerates[0]));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates(samplerates, samplerates_count);
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 #endif
 	default:
@@ -298,9 +253,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t regval;
 	uint8_t clock_bytes[sizeof(clockselect)];
 	size_t clock_idx;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 
@@ -411,9 +363,20 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-	devc->state.state = SIGMA_IDLE;
 
-	sr_session_source_remove(sdi->session, -1);
+	/*
+	 * When acquisition is currently running, keep the receive
+	 * routine registered and have it stop the acquisition upon the
+	 * next invocation. Else unregister the receive routine here
+	 * already. The detour is required to have sample data retrieved
+	 * for forced acquisition stops.
+	 */
+	if (devc->state.state == SIGMA_CAPTURE) {
+		devc->state.state = SIGMA_STOPPING;
+	} else {
+		devc->state.state = SIGMA_IDLE;
+		sr_session_source_remove(sdi->session, -1);
+	}
 
 	return SR_OK;
 }

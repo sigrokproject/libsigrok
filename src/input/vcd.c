@@ -67,11 +67,12 @@
 
 #define LOG_PREFIX "input/vcd"
 
-#define CHUNKSIZE (1024 * 1024)
+#define CHUNK_SIZE (4 * 1024 * 1024)
 
 struct context {
 	gboolean started;
 	gboolean got_header;
+	uint64_t prev_timestamp;
 	uint64_t samplerate;
 	unsigned int maxchannels;
 	unsigned int channelcount;
@@ -84,6 +85,7 @@ struct context {
 	size_t samples_in_buffer;
 	uint8_t *buffer;
 	uint8_t *current_levels;
+	GSList *prev_sr_channels;
 };
 
 struct vcd_channel {
@@ -150,7 +152,11 @@ static gboolean parse_section(GString *buf, gchar **name, gchar **contents)
 
 static void free_channel(void *data)
 {
-	struct vcd_channel *vcd_ch = data;
+	struct vcd_channel *vcd_ch;
+
+	vcd_ch = data;
+	if (!vcd_ch)
+		return;
 	g_free(vcd_ch->name);
 	g_free(vcd_ch->identifier);
 	g_free(vcd_ch);
@@ -168,6 +174,56 @@ static void remove_empty_parts(gchar **parts)
 	}
 
 	*dest = NULL;
+}
+
+/*
+ * Keep track of a previously created channel list, in preparation of
+ * re-reading the input file. Gets called from reset()/cleanup() paths.
+ */
+static void keep_header_for_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
+	g_slist_free_full(inc->prev_sr_channels, sr_channel_free_cb);
+	inc->prev_sr_channels = in->sdi->channels;
+	in->sdi->channels = NULL;
+}
+
+/*
+ * Check whether the input file is being re-read, and refuse operation
+ * when essential parameters of the acquisition have changed in ways
+ * that are unexpected to calling applications. Gets called after the
+ * file header got parsed (again).
+ *
+ * Changing the channel list across re-imports of the same file is not
+ * supported, by design and for valid reasons, see bug #1215 for details.
+ * Users are expected to start new sessions when they change these
+ * essential parameters in the acquisition's setup. When we accept the
+ * re-read file, then make sure to keep using the previous channel list,
+ * applications may still reference them.
+ */
+static int check_header_in_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	if (!in)
+		return FALSE;
+	inc = in->priv;
+	if (!inc)
+		return FALSE;
+	if (!inc->prev_sr_channels)
+		return TRUE;
+
+	if (sr_channel_lists_differ(inc->prev_sr_channels, in->sdi->channels)) {
+		sr_err("Channel list change not supported for file re-read.");
+		return FALSE;
+	}
+	g_slist_free_full(in->sdi->channels, sr_channel_free_cb);
+	in->sdi->channels = inc->prev_sr_channels;
+	inc->prev_sr_channels = NULL;
+
+	return TRUE;
 }
 
 /*
@@ -260,11 +316,13 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 	inc->current_levels = g_malloc0(inc->bytes_per_sample);
 
 	inc->got_header = status;
+	if (status)
+		status = check_header_in_reread(in);
 
 	return status;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf, *tmpbuf;
 	gboolean status;
@@ -282,7 +340,11 @@ static int format_match(GHashTable *metadata)
 	g_free(name);
 	g_free(contents);
 
-	return status ? SR_OK : SR_ERR;
+	if (!status)
+		return SR_ERR;
+	*confidence = 1;
+
+	return SR_OK;
 }
 
 /* Send all accumulated bytes from inc->buffer. */
@@ -318,7 +380,7 @@ static void add_samples(const struct sr_input *in, size_t count)
 	uint8_t *p;
 
 	inc = in->priv;
-	samples_per_chunk = CHUNKSIZE / inc->bytes_per_sample;
+	samples_per_chunk = CHUNK_SIZE / inc->bytes_per_sample;
 
 	while (count) {
 		space_left = samples_per_chunk - inc->samples_in_buffer;
@@ -367,12 +429,11 @@ static void process_bit(struct context *inc, char *identifier, unsigned int bit)
 static void parse_contents(const struct sr_input *in, char *data)
 {
 	struct context *inc;
-	uint64_t timestamp, prev_timestamp;
+	uint64_t timestamp;
 	unsigned int bit, i;
 	char **tokens;
 
 	inc = in->priv;
-	prev_timestamp = 0;
 
 	/* Read one space-delimited token at a time. */
 	tokens = g_strsplit_set(data, " \t\r\n", 0);
@@ -399,22 +460,26 @@ static void parse_contents(const struct sr_input *in, char *data)
 			 */
 			if (inc->skip < 0) {
 				inc->skip = timestamp;
-				prev_timestamp = timestamp;
+				inc->prev_timestamp = timestamp;
 			} else if (inc->skip > 0 && timestamp < (uint64_t)inc->skip) {
-				prev_timestamp = inc->skip;
-			} else if (timestamp == prev_timestamp) {
+				inc->prev_timestamp = inc->skip;
+			} else if (timestamp == inc->prev_timestamp) {
 				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
+			} else if (timestamp < inc->prev_timestamp) {
+				sr_err("Invalid timestamp: %" PRIu64 " (smaller than previous timestamp).", timestamp);
+				inc->skip_until_end = TRUE;
+				break;
 			} else {
-				if (inc->compress != 0 && timestamp - prev_timestamp > inc->compress) {
+				if (inc->compress != 0 && timestamp - inc->prev_timestamp > inc->compress) {
 					/* Compress long idle periods */
-					prev_timestamp = timestamp - inc->compress;
+					inc->prev_timestamp = timestamp - inc->compress;
 				}
 
 				sr_dbg("New timestamp: %" PRIu64, timestamp);
 
 				/* Generate samples from prev_timestamp up to timestamp - 1. */
-				add_samples(in, timestamp - prev_timestamp);
-				prev_timestamp = timestamp;
+				add_samples(in, timestamp - inc->prev_timestamp);
+				inc->prev_timestamp = timestamp;
 			}
 		} else if (tokens[i][0] == '$' && tokens[i][1] != '\0') {
 			/*
@@ -498,7 +563,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = inc;
 
-	inc->buffer = g_malloc(CHUNKSIZE);
+	inc->buffer = g_malloc(CHUNK_SIZE);
 
 	return SR_OK;
 }
@@ -606,7 +671,10 @@ static void cleanup(struct sr_input *in)
 	struct context *inc;
 
 	inc = in->priv;
+	keep_header_for_reread(in);
 	g_slist_free_full(inc->channels, free_channel);
+	inc->channels = NULL;
+
 	g_free(inc->buffer);
 	inc->buffer = NULL;
 	g_free(inc->current_levels);
@@ -618,17 +686,25 @@ static int reset(struct sr_input *in)
 	struct context *inc = in->priv;
 
 	cleanup(in);
-	inc->started = FALSE;
 	g_string_truncate(in->buf, 0);
+
+	inc->started = FALSE;
+	inc->got_header = FALSE;
+	inc->prev_timestamp = 0;
+	inc->skip_until_end = FALSE;
+	inc->channelcount = 0;
+	/* The inc->channels list was released in cleanup() above. */
+	inc->buffer = g_malloc(CHUNK_SIZE);
 
 	return SR_OK;
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
-	{ "downsample", "Downsample", "Divide samplerate by factor", NULL, NULL },
-	{ "compress", "Compress", "Compress idle periods longer than this value", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels in the data", NULL, NULL },
+	{ "skip", "Skip samples until timestamp", "Skip samples until the specified timestamp; "
+		"< 0: Skip until first timestamp listed; 0: Don't skip", NULL, NULL },
+	{ "downsample", "Downsampling factor", "Downsample, i.e. divide the samplerate by the specified factor", NULL, NULL },
+	{ "compress", "Compress idle periods", "Compress idle periods longer than the specified value", NULL, NULL },
 	ALL_ZERO
 };
 
@@ -647,7 +723,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
 	.name = "VCD",
-	.desc = "Value Change Dump",
+	.desc = "Value Change Dump data",
 	.exts = (const char*[]){"vcd", NULL},
 	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.options = get_options,

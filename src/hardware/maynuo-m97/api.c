@@ -23,7 +23,7 @@
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
-	SR_CONF_MODBUSADDR
+	SR_CONF_MODBUSADDR,
 };
 
 static const uint32_t drvopts[] = {
@@ -140,7 +140,7 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Maynuo");
 	sdi->model = g_strdup(model->name);
-	sdi->version = g_strdup_printf("v%d.%d", version/10, version%10);
+	sdi->version = g_strdup_printf("v%d.%d", version / 10, version % 10);
 	sdi->conn = modbus;
 	sdi->driver = &maynuo_m97_driver_info;
 	sdi->inst_type = SR_INST_MODBUS;
@@ -203,8 +203,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_modbus_open(modbus) < 0)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	maynuo_m97_set_bit(modbus, PC1, 1);
 
 	return SR_OK;
@@ -215,32 +213,27 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	modbus = sdi->conn;
 
-	if (modbus) {
-		devc = sdi->priv;
-		if (devc->expecting_registers) {
-			/* Wait for the last data that was requested from the device. */
-			uint16_t registers[devc->expecting_registers];
-			sr_modbus_read_holding_registers(modbus, -1,
-				devc->expecting_registers, registers);
-		}
+	if (!modbus)
+		return SR_ERR_BUG;
 
-		maynuo_m97_set_bit(modbus, PC1, 0);
+	devc = sdi->priv;
 
-		if (sr_modbus_close(modbus) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
+	if (devc->expecting_registers) {
+		/* Wait for the last data that was requested from the device. */
+		uint16_t registers[devc->expecting_registers];
+		sr_modbus_read_holding_registers(modbus, -1,
+			devc->expecting_registers, registers);
 	}
 
-	return SR_OK;
+	maynuo_m97_set_bit(modbus, PC1, 0);
+
+	return sr_modbus_close(modbus);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
@@ -323,110 +316,68 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return ret;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
-	int ret;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	modbus = sdi->conn;
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
-		ret = maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
-		break;
+		return maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
 	case SR_CONF_VOLTAGE_TARGET:
-		ret = maynuo_m97_set_float(modbus, UFIX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, UFIX, g_variant_get_double(data));
 	case SR_CONF_CURRENT_LIMIT:
-		ret = maynuo_m97_set_float(modbus, IFIX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, IFIX, g_variant_get_double(data));
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		ret = maynuo_m97_set_float(modbus, UMAX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, UMAX, g_variant_get_double(data));
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		ret = maynuo_m97_set_float(modbus, IMAX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, IMAX, g_variant_get_double(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariantBuilder gvb;
-	int ret;
 
-	/* Always available, even without sdi. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
-
-	ret = SR_OK;
 	if (!cg) {
-		/* No channel group: global options. */
-		switch (key) {
-		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
-		default:
-			return SR_ERR_NA;
-		}
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, write resolution. */
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.0));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(devc->model->max_voltage));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.001));
-			*data = g_variant_builder_end(&gvb);
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
+			*data = std_gvar_min_max_step(0.0, devc->model->max_voltage, 0.001);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.0));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(devc->model->max_current));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.0001));
-			*data = g_variant_builder_end(&gvb);
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
+			*data = std_gvar_min_max_step(0.0, devc->model->max_current, 0.0001);
 			break;
 		default:
 			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -434,9 +385,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 	int ret;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	modbus = sdi->conn;
 	devc = sdi->priv;
@@ -455,9 +403,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_modbus_dev_inst *modbus;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_end(sdi);
 
 	modbus = sdi->conn;
@@ -474,6 +419,7 @@ static struct sr_dev_driver maynuo_m97_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

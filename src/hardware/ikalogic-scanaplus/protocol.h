@@ -31,15 +31,9 @@
 
 #define COMPRESSED_BUF_SIZE (64 * 1024)
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
-	/** FTDI device context (used by libftdi). */
 	struct ftdi_context *ftdic;
-
-	/** The current sampling limit (in ms). */
 	uint64_t limit_msec;
-
-	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
 	uint8_t *compressed_buf;

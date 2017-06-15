@@ -105,7 +105,7 @@ static int rs_init_device(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -152,34 +152,17 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	return sr_scpi_scan(di->context, options, rs_probe_serial_device);
-}
-
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if ((sdi->status != SR_ST_ACTIVE) && (sr_scpi_open(sdi->conn) != SR_OK))
-		return SR_ERR;
-
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
+	return sr_scpi_open(sdi->conn);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	if (sdi->status == SR_ST_INACTIVE)
-		return SR_OK;
-
-	sr_scpi_close(sdi->conn);
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
+	return sr_scpi_close(sdi->conn);
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -215,9 +198,6 @@ static int config_set(uint32_t key, GVariant *data,
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
 		value_f = g_variant_get_double(data);
@@ -237,38 +217,7 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	/* Return drvopts without sdi (and devopts with sdi, see below). */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
@@ -279,13 +228,13 @@ SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
 	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };

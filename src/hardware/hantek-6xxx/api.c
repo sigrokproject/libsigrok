@@ -61,19 +61,33 @@ static const char *acdc_coupling[] = {
 
 static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
+		/* Windows: "Hantek6022BE DRIVER 1": 04b4:6022 */
 		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
 		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
-		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+	},
+	{
+		/* Windows: "Hantek6022BE DRIVER 2": 04b5:6022 */
+		0x04b5, 0x6022, 0x1d50, 0x608e, 0x0001,
+		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
 	{
 		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
 		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
-		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
+		ARRAY_AND_SIZE(acdc_coupling), TRUE,
 	},
 	{
+		/* Windows: "Hantek6022BL DRIVER 1": 04b4:602a */
 		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
 		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
-		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+	},
+	{
+		/* Windows: "Hantek6022BL DRIVER 2": 04b5:602a */
+		0x04b5, 0x602a, 0x1d50, 0x608e, 0x0003,
+		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
 	ALL_ZERO
 };
@@ -87,8 +101,6 @@ static const uint64_t vdivs[][2] = {
 };
 
 static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile *prof)
 {
@@ -122,10 +134,6 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	devc->coupling_tab_size = prof->coupling_tab_size;
 	devc->has_coupling = prof->has_coupling;
 
-	devc->sample_buf = NULL;
-	devc->sample_buf_write = 0;
-	devc->sample_buf_size = 0;
-
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->samplerate = DEFAULT_SAMPLERATE;
@@ -158,18 +166,14 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static void clear_dev_context(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
 	g_slist_free(devc->enabled_channels);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, clear_dev_context);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -223,7 +227,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		prof = NULL;
 		for (j = 0; dev_profiles[j].orig_vid; j++) {
@@ -237,11 +242,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
 				if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-						USB_CONFIGURATION, prof->firmware) == SR_OK)
+						USB_CONFIGURATION, prof->firmware) == SR_OK) {
 					/* Remember when the firmware on this device was updated. */
 					devc->fw_updated = g_get_monotonic_time();
-				else
-					sr_err("Firmware upload failed.");
+				} else {
+					sr_err("Firmware upload failed, name %s.", prof->firmware);
+				}
 				/* Dummy USB address of 0xff will get overwritten later. */
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);
@@ -328,12 +334,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
 	const uint64_t *vdiv;
 	int ch_idx;
 
@@ -366,8 +371,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 				/* Device still needs to re-enumerate after firmware
 				 * upload, so we don't know its (future) address. */
 				return SR_ERR;
-			snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-			*data = g_variant_new_string(str);
+			*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -394,19 +398,12 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
-	int tmp_int, ch_idx, ret;
-	unsigned int i;
-	const char *tmp_str;
+	int ch_idx, idx;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	ret = SR_OK;
 	devc = sdi->priv;
 	if (!cg) {
 		switch (key) {
@@ -421,8 +418,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			devc->limit_samples = g_variant_get_uint64(data);
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	} else {
 		if (sdi->channel_groups->data == cg)
@@ -433,75 +429,39 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR_ARG;
 		switch (key) {
 		case SR_CONF_VDIV:
-			g_variant_get(data, "(tt)", &p, &q);
-			tmp_int = -1;
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				if (vdivs[i][0] == p && vdivs[i][1] == q) {
-					tmp_int = i;
-					break;
-				}
-			}
-			if (tmp_int >= 0) {
-				devc->voltage[ch_idx] = tmp_int;
-				hantek_6xxx_update_vdiv(sdi);
-			} else
-				ret = SR_ERR_ARG;
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+				return SR_ERR_ARG;
+			devc->voltage[ch_idx] = idx;
+			hantek_6xxx_update_vdiv(sdi);
 			break;
 		case SR_CONF_COUPLING:
-			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; i < devc->coupling_tab_size; i++) {
-				if (!strcmp(tmp_str, devc->coupling_vals[i])) {
-					devc->coupling[ch_idx] = i;
-					break;
-				}
-			}
-			if (i == devc->coupling_tab_size)
-				ret = SR_ERR_ARG;
+			if ((idx = std_str_idx(data, devc->coupling_vals,
+						devc->coupling_tab_size)) < 0)
+				return SR_ERR_ARG;
+			devc->coupling[ch_idx] = idx;
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-	GVariant *gvar;
-	struct dev_context *devc = NULL;
+	struct dev_context *devc;
 
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (sdi)
-		devc = sdi->priv;
+	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				samplerates, ARRAY_SIZE(samplerates),
-				sizeof(uint64_t));
-			g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -509,23 +469,15 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_COUPLING:
 			if (!devc)
-				return SR_ERR_NA;
+				return SR_ERR_ARG;
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				rational[0] = g_variant_new_uint64(vdivs[i][0]);
-				rational[1] = g_variant_new_uint64(vdivs[i][1]);
-				tuple = g_variant_new_tuple(rational, 2);
-				g_variant_builder_add_value(&gvb, tuple);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -592,7 +544,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		return;
 	}
 
-	for (int ch = 0; ch < 2; ch++) {
+	for (int ch = 0; ch < NUM_CHANNELS; ch++) {
 		if (!devc->ch_enabled[ch])
 			continue;
 
@@ -625,27 +577,6 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	g_free(analog.data);
 }
 
-static void send_data(struct sr_dev_inst *sdi, struct libusb_transfer *buf[], uint64_t samples)
-{
-	int i = 0;
-	uint64_t send = 0;
-	uint32_t chunk;
-
-	while (send < samples) {
-		chunk = MIN(samples - send, (uint64_t)(buf[i]->actual_length / NUM_CHANNELS));
-		send += chunk;
-		send_chunk(sdi, buf[i]->buffer, chunk);
-
-		/*
-		 * Everything in this transfer was either copied to the buffer
-		 * or sent to the session bus.
-		 */
-		g_free(buf[i]->buffer);
-		libusb_free_transfer(buf[i]);
-		i++;
-	}
-}
-
 /*
  * Called by libusb (as triggered by handle_event()) when a transfer comes in.
  * Only channel data comes in asynchronously, and all transfers for this are
@@ -672,26 +603,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	if (devc->dev_state != CAPTURE)
 		return;
 
-	if (!devc->sample_buf) {
-		devc->sample_buf_size = 10;
-		devc->sample_buf = g_try_malloc(devc->sample_buf_size * sizeof(transfer));
-		devc->sample_buf_write = 0;
-	}
-
-	if (devc->sample_buf_write >= devc->sample_buf_size) {
-		devc->sample_buf_size += 10;
-		devc->sample_buf = g_try_realloc(devc->sample_buf,
-				devc->sample_buf_size * sizeof(transfer));
-		if (!devc->sample_buf) {
-			sr_err("Sample buffer malloc failed.");
-			devc->dev_state = STOPPING;
-			return;
-		}
-	}
-
-	devc->sample_buf[devc->sample_buf_write++] = transfer;
-	devc->samp_received += transfer->actual_length / NUM_CHANNELS;
-
 	sr_spew("receive_transfer(): calculated samplerate == %" PRIu64 "ks/s",
 		(uint64_t)(transfer->actual_length * 1000 /
 		(g_get_monotonic_time() - devc->read_start_ts + 1) /
@@ -704,21 +615,24 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		/* Nothing to send to the bus. */
 		return;
 
+	unsigned samples_received = transfer->actual_length / NUM_CHANNELS;
+	send_chunk(sdi, transfer->buffer, samples_received);
+	devc->samp_received += samples_received;
+
+	g_free(transfer->buffer);
+	libusb_free_transfer(transfer);
+
 	if (devc->limit_samples && devc->samp_received >= devc->limit_samples) {
 		sr_info("Requested number of samples reached, stopping. %"
 			PRIu64 " <= %" PRIu64, devc->limit_samples,
 			devc->samp_received);
-		send_data(sdi, devc->sample_buf, devc->limit_samples);
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else if (devc->limit_msec && (g_get_monotonic_time() -
 			devc->aq_started) / 1000 >= devc->limit_msec) {
 		sr_info("Requested time limit reached, stopping. %d <= %d",
 			(uint32_t)devc->limit_msec,
 			(uint32_t)(g_get_monotonic_time() - devc->aq_started) / 1000);
-		send_data(sdi, devc->sample_buf, devc->samp_received);
-		g_free(devc->sample_buf);
-		devc->sample_buf = NULL;
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else {
 		read_channel(sdi, data_amount(sdi));
 	}
@@ -734,7 +648,6 @@ static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount)
 	amount = MIN(amount, MAX_PACKET_SIZE);
 	ret = hantek_6xxx_get_channeldata(sdi, receive_transfer, amount);
 	devc->read_start_ts = g_get_monotonic_time();
-	devc->read_data_amount = amount;
 
 	return ret;
 }
@@ -786,9 +699,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc = di->context;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (configure_channels(sdi) != SR_OK) {
@@ -818,14 +728,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;
-
-	g_free(devc->sample_buf);
-	devc->sample_buf = NULL;
 
 	return SR_OK;
 }

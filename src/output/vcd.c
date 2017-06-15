@@ -96,7 +96,7 @@ static GString *gen_header(const struct sr_output *o)
 	/* timestamp */
 	t = time(NULL);
 	timestamp = g_strdup(ctime(&t));
-	timestamp[strlen(timestamp)-1] = 0;
+	timestamp[strlen(timestamp) - 1] = 0;
 	g_string_printf(header, "$date %s $end\n", timestamp);
 	g_free(timestamp);
 
@@ -136,7 +136,7 @@ static GString *gen_header(const struct sr_output *o)
 	g_string_append_printf(header, "$scope module %s $end\n", PACKAGE_NAME);
 
 	/* Wires / channels */
-	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+	for (i = 0, l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
@@ -144,6 +144,7 @@ static GString *gen_header(const struct sr_output *o)
 			continue;
 		g_string_append_printf(header, "$var wire 1 %c %s $end\n",
 				(char)('!' + i), ch->name);
+		i++;
 	}
 
 	g_string_append(header, "$upscope $end\n$enddefinitions $end\n");
@@ -199,7 +200,16 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			timestamp_written = FALSE;
 
 			for (p = 0; p < ctx->num_enabled_channels; p++) {
-				index = ctx->channel_index[p];
+				/*
+				 * TODO Check whether the mapping from
+				 * data image positions to channel numbers
+				 * is required. Experiments suggest that
+				 * the data image "is dense", and packs
+				 * bits of enabled channels, and leaves no
+				 * room for positions of disabled channels.
+				 */
+				/* index = ctx->channel_index[p]; */
+				index = p;
 
 				curbit = ((unsigned)sample[index / 8]
 						>> (index % 8)) & 1;
@@ -260,7 +270,7 @@ static int cleanup(struct sr_output *o)
 struct sr_output_module output_vcd = {
 	.id = "vcd",
 	.name = "VCD",
-	.desc = "Value Change Dump",
+	.desc = "Value Change Dump data",
 	.exts = (const char*[]){"vcd", NULL},
 	.flags = 0,
 	.options = NULL,

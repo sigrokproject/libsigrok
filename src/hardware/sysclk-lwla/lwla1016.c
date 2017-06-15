@@ -21,28 +21,22 @@
 #include "lwla.h"
 #include "protocol.h"
 
-/* Number of logic channels.
- */
+/* Number of logic channels. */
 #define NUM_CHANNELS	16
 
-/* Unit size for the sigrok logic datafeed.
- */
+/* Unit size for the sigrok logic datafeed. */
 #define UNIT_SIZE	((NUM_CHANNELS + 7) / 8)
 
-/* Size of the acquisition buffer in device memory units.
- */
+/* Size of the acquisition buffer in device memory units. */
 #define MEMORY_DEPTH	(256 * 1024)	/* 256k x 32 bit */
 
-/* Capture memory read start address.
- */
+/* Capture memory read start address. */
 #define READ_START_ADDR	2
 
-/* Number of device memory units (32 bit) to read at a time.
- */
+/* Number of device memory units (32 bit) to read at a time. */
 #define READ_CHUNK_LEN	250
 
-/** LWLA1016 register addresses.
- */
+/** LWLA1016 register addresses. */
 enum reg_addr {
 	REG_CHAN_MASK	= 0x1000, /* bit mask of enabled channels */
 
@@ -64,15 +58,13 @@ enum reg_addr {
 	REG_DIV_COUNT	= 0x10BC, /* write */
 };
 
-/** Flag bits for REG_MEM_CTRL.
- */
+/** Flag bits for REG_MEM_CTRL. */
 enum mem_ctrl_flag {
 	MEM_CTRL_RESET	= 1 << 0,
 	MEM_CTRL_WRITE	= 1 << 1,
 };
 
-/** Flag bits for REG_CAP_CTRL.
- */
+/** Flag bits for REG_CAP_CTRL. */
 enum cap_ctrl_flag {
 	CAP_CTRL_FIFO32_FULL	= 1 << 0, /* "fifo32_ful" bit */
 	CAP_CTRL_FIFO64_FULL	= 1 << 1, /* "fifo64_ful" bit */
@@ -83,22 +75,19 @@ enum cap_ctrl_flag {
 	CAP_CTRL_CNTR_NOT_ENDR	= 1 << 6, /* "cntr_not_endr" bit */
 };
 
-/* Available FPGA configurations.
- */
+/* Available FPGA configurations. */
 enum fpga_config {
 	FPGA_100 = 0,	/* 100 MS/s, no compression */
 	FPGA_100_TS,	/* 100 MS/s, timing-state mode */
 };
 
-/* FPGA bitstream resource filenames.
- */
+/* FPGA bitstream resource filenames. */
 static const char bitstream_map[][32] = {
 	[FPGA_100]	= "sysclk-lwla1016-100.rbf",
 	[FPGA_100_TS]	= "sysclk-lwla1016-100-ts.rbf",
 };
 
-/* Demangle incoming sample data from the transfer buffer.
- */
+/* Demangle incoming sample data from the transfer buffer. */
 static void read_response(struct acquisition_state *acq)
 {
 	uint32_t *in_p, *out_p;
@@ -136,8 +125,7 @@ static void read_response(struct acquisition_state *acq)
 	acq->samples_done += run_samples;
 }
 
-/* Demangle and decompress incoming sample data from the transfer buffer.
- */
+/* Demangle and decompress incoming sample data from the transfer buffer. */
 static void read_response_rle(struct acquisition_state *acq)
 {
 	uint32_t *in_p;
@@ -209,7 +197,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 	command[3] = LWLA_WORD_0(count);
 	command[4] = LWLA_WORD_1(count);
 
-	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
+	ret = lwla_send_command(usb, ARRAY_AND_SIZE(command));
 	if (ret != SR_OK)
 		return ret;
 
@@ -233,8 +221,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* Select and transfer FPGA bitstream for the current configuration.
- */
+/* Select and transfer FPGA bitstream for the current configuration. */
 static int apply_fpga_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -259,8 +246,7 @@ static int apply_fpga_config(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-/* Perform initialization self test.
- */
+/* Perform initialization self test. */
 static int device_init_check(const struct sr_dev_inst *sdi)
 {
 	static const struct regval mem_reset[] = {
@@ -283,7 +269,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	ret = lwla_write_regs(sdi->conn, mem_reset, ARRAY_SIZE(mem_reset));
+	ret = lwla_write_regs(sdi->conn, ARRAY_AND_SIZE(mem_reset));
 	if (ret != SR_OK)
 		return ret;
 
@@ -332,7 +318,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
+	ret = lwla_write_regs(usb, ARRAY_AND_SIZE(capture_init));
 	if (ret != SR_OK)
 		return ret;
 
@@ -443,8 +429,7 @@ static int handle_response(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* Model descriptor for the LWLA1016.
- */
+/* Model descriptor for the LWLA1016. */
 SR_PRIV const struct model_info lwla1016_info = {
 	.name = "LWLA1016",
 	.num_channels = NUM_CHANNELS,

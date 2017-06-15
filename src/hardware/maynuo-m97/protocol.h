@@ -34,15 +34,9 @@ struct maynuo_m97_model {
 	unsigned int max_power;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct maynuo_m97_model *model;
-
-	/* Acquisition settings */
 	struct sr_sw_limits limits;
-
-	/* Operational state */
 	int expecting_registers;
 };
 

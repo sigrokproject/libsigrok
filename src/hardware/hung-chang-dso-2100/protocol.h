@@ -26,12 +26,11 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "hung-chang-dso-2100"
+
 #define MAX_RETRIES 4
 #define NUM_CHANNELS 2
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	GSList *enabled_channel;
 	uint8_t channel;
 	uint8_t rate;
@@ -42,7 +41,6 @@ struct dev_context {
 	uint8_t offset[2];
 	uint8_t gain[2];
 
-	/* Operational state */
 	uint64_t frame_limit;
 	uint64_t frame;
 	uint64_t probe[2];
@@ -51,7 +49,6 @@ struct dev_context {
 	uint8_t retries;
 	gboolean adc2;
 
-	/* Temporary state across callbacks */
 	float *samples;
 	float factor;
 	gboolean state_known;
@@ -63,6 +60,5 @@ SR_PRIV void hung_chang_dso_2100_write_mbox(struct parport *port, uint8_t val);
 SR_PRIV uint8_t hung_chang_dso_2100_read_mbox(struct parport *port, float timeout);
 SR_PRIV int hung_chang_dso_2100_move_to(const struct sr_dev_inst *sdi, uint8_t target);
 SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data);
-SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi);
 
 #endif

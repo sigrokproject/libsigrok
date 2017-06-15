@@ -186,9 +186,9 @@ static GString *gen_header(const struct sr_output *o)
  */
 static void float_to_le(uint8_t *buf, float value)
 {
-	char *old;
+	uint8_t *old;
 
-	old = (char *)&value;
+	old = (uint8_t *)&value;
 #ifdef WORDS_BIGENDIAN
 	buf[0] = old[3];
 	buf[1] = old[2];
@@ -219,9 +219,10 @@ static int check_chanbuf_size(const struct sr_output *o)
 				/* Nothing in all the buffers yet. */
 				size = -1;
 				break;
-			} else
+			} else {
 				/* New high water mark. */
 				size = outc->chanbuf_used[i];
+			}
 		} else if (outc->chanbuf_used[i] != size) {
 			/* All channel buffers are not equally full yet. */
 			size = -1;
@@ -265,8 +266,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if (!outc->header_done) {
 			*out = gen_header(o);
 			outc->header_done = TRUE;
-		} else
+		} else {
 			*out = g_string_sized_new(512);
+		}
 
 		analog = packet->payload;
 		num_samples = analog->num_samples;
@@ -305,7 +307,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				idx = chan_idx[j];
 				buf = outc->chanbuf[idx] + outc->chanbuf_used[idx]++ * 4;
 				f = data[i * num_channels + j];
-				if (outc->scale != 0.0)
+				if (outc->scale != 1.0)
 					f /= outc->scale;
 				float_to_le(buf, f);
 			}
@@ -338,7 +340,7 @@ static struct sr_option options[] = {
 static const struct sr_option *get_options(void)
 {
 	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new_double(0.0));
+		options[0].def = g_variant_ref_sink(g_variant_new_double(1.0));
 
 	return options;
 }
@@ -365,7 +367,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_wav = {
 	.id = "wav",
 	.name = "WAV",
-	.desc = "Microsoft WAV file format",
+	.desc = "Microsoft WAV file format data",
 	.exts = (const char*[]){"wav", NULL},
 	.flags = 0,
 	.options = get_options,

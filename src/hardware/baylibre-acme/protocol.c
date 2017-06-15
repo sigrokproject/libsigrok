@@ -166,8 +166,10 @@ SR_PRIV gboolean bl_acme_detect_probe(unsigned int addr,
 	probe_name_path(addr, path);
 	status = g_file_get_contents(path->str, &buf, &size, &err);
 	if (!status) {
-		sr_dbg("Name for probe %d can't be read: %s",
-		       prb_num, err->message);
+		/* Don't log "No such file or directory" messages. */
+		if (err->code != G_FILE_ERROR_NOENT)
+			sr_dbg("Name for probe %d can't be read (%d): %s",
+			       prb_num, err->code, err->message);
 		g_string_free(path, TRUE);
 		g_error_free(err);
 		return ret;
@@ -308,11 +310,11 @@ static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 static int revB_addr_to_num(unsigned int addr)
 {
 	switch (addr) {
-	case 0x44:	return 5;
-	case 0x45:	return 6;
-	case 0x42:	return 3;
-	case 0x43:	return 4;
-	default:	return addr - 0x3f;
+	case 0x44: return 5;
+	case 0x45: return 6;
+	case 0x42: return 3;
+	case 0x43: return 4;
+	default:   return addr - 0x3f;
 	}
 }
 
@@ -793,7 +795,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

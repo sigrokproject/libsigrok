@@ -298,50 +298,52 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 
 	modelid = config[0];
 	sdi = NULL;
-	if (modelid) {
-		profile = NULL;
-		for (i = 0; profiles[i].modelid; i++) {
-			if (profiles[i].modelid == modelid) {
-				profile = &profiles[i];
-				break;
-			}
+
+	if (!modelid)
+		return sdi;
+
+	profile = NULL;
+	for (i = 0; profiles[i].modelid; i++) {
+		if (profiles[i].modelid == modelid) {
+			profile = &profiles[i];
+			break;
 		}
-		if (!profile) {
-			sr_dbg("unknown EL-USB modelid %d", modelid);
-			return NULL;
-		}
-
-		i = config[52] | (config[53] << 8);
-		memcpy(firmware, config + 0x30, 4);
-		firmware[4] = '\0';
-		sr_dbg("found %s with firmware version %s serial %d",
-				profile->modelname, firmware, i);
-
-		if (profile->logformat == LOG_UNSUPPORTED) {
-			sr_dbg("unsupported EL-USB logformat for %s", profile->modelname);
-			return NULL;
-		}
-
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
-		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(LASCAR_VENDOR);
-		sdi->model = g_strdup(profile->modelname);
-		sdi->version = g_strdup(firmware);
-
-		if (profile->logformat == LOG_TEMP_RH) {
-			/* Model this as two channels: temperature and humidity. */
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temp");
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Hum");
-		} else if (profile->logformat == LOG_CO) {
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CO");
-		} else {
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		}
-
-		devc = g_malloc0(sizeof(struct dev_context));
-		sdi->priv = devc;
-		devc->profile = profile;
 	}
+	if (!profile) {
+		sr_dbg("unknown EL-USB modelid %d", modelid);
+		return NULL;
+	}
+
+	i = config[52] | (config[53] << 8);
+	memcpy(firmware, config + 0x30, 4);
+	firmware[4] = '\0';
+	sr_dbg("found %s with firmware version %s serial %d",
+			profile->modelname, firmware, i);
+
+	if (profile->logformat == LOG_UNSUPPORTED) {
+		sr_dbg("unsupported EL-USB logformat for %s", profile->modelname);
+		return NULL;
+	}
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Lascar");
+	sdi->model = g_strdup(profile->modelname);
+	sdi->version = g_strdup(firmware);
+
+	if (profile->logformat == LOG_TEMP_RH) {
+		/* Model this as two channels: temperature and humidity. */
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temp");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Hum");
+	} else if (profile->logformat == LOG_CO) {
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CO");
+	} else {
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
+	}
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	sdi->priv = devc;
+	devc->profile = profile;
 
 	return sdi;
 }
@@ -410,10 +412,13 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		analog.meaning->mqflags = 0;
-		if (!(temp = g_try_malloc(sizeof(float) * samples)))
+		temp = g_try_malloc(sizeof(float) * samples);
+		rh = g_try_malloc(sizeof(float) * samples);
+		if (!temp || !rh) {
+			g_free(temp);
+			g_free(rh);
 			break;
-		if (!(rh = g_try_malloc(sizeof(float) * samples)))
-			break;
+		}
 		for (i = 0, j = 0; i < samples; i++) {
 			/* Both Celsius and Fahrenheit stored at base -40. */
 			if (devc->temp_unit == 0)
@@ -528,7 +533,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though */
@@ -547,7 +552,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 				devc->rcvd_bytes, devc->log_size,
 				devc->rcvd_samples, devc->logged_samples);
 		if (devc->rcvd_bytes >= devc->log_size)
-			dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 	}
 
 	if (sdi->status == SR_ST_ACTIVE) {
@@ -557,7 +562,7 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so

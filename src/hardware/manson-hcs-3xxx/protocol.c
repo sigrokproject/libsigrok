@@ -18,14 +18,6 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Manson HCS-3xxx Series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -236,7 +228,7 @@ SR_PRIV int hcs_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

@@ -47,7 +47,7 @@ SR_PRIV const uint64_t samplerates[] = {
 
 SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
 
-static const char sigma_firmware_files[][24] = {
+static const char firmware_files[][24] = {
 	/* 50 MHz, supports 8 bit fractions */
 	"asix-sigma-50.fw",
 	/* 100 MHz */
@@ -78,12 +78,11 @@ static int sigma_write(void *buf, size_t size, struct dev_context *devc)
 	int ret;
 
 	ret = ftdi_write_data(&devc->ftdic, (unsigned char *)buf, size);
-	if (ret < 0) {
+	if (ret < 0)
 		sr_err("ftdi_write_data failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
-	} else if ((size_t) ret != size) {
+	else if ((size_t) ret != size)
 		sr_err("ftdi_write_data did not complete write.");
-	}
 
 	return ret;
 }
@@ -272,15 +271,6 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 	return SR_OK;
 }
 
-SR_PRIV void sigma_clear_helper(void *priv)
-{
-	struct dev_context *devc;
-
-	devc = priv;
-
-	ftdi_deinit(&devc->ftdic);
-}
-
 /*
  * Configure the FPGA for bitbang mode.
  * This sequence is documented in section 2. of the ASIX Sigma programming
@@ -446,38 +436,27 @@ static int upload_firmware(struct sr_context *ctx,
 	unsigned char pins;
 	size_t buf_size;
 	const char *firmware;
-	struct ftdi_context *ftdic;
 
 	/* Avoid downloading the same firmware multiple times. */
-	firmware = sigma_firmware_files[firmware_idx];
+	firmware = firmware_files[firmware_idx];
 	if (devc->cur_firmware == firmware_idx) {
 		sr_info("Not uploading firmware file '%s' again.", firmware);
 		return SR_OK;
 	}
 
-	/* Make sure it's an ASIX SIGMA. */
-	ftdic = &devc->ftdic;
-	ret = ftdi_usb_open_desc(ftdic, USB_VENDOR, USB_PRODUCT,
-				 USB_DESCRIPTION, NULL);
-	if (ret < 0) {
-		sr_err("ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(ftdic));
-		return 0;
-	}
-
-	ret = ftdi_set_bitmode(ftdic, 0xdf, BITMODE_BITBANG);
+	ret = ftdi_set_bitmode(&devc->ftdic, 0xdf, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(ftdic));
-		return 0;
+		       ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
-	ret = ftdi_set_baudrate(ftdic, 750 * 1000);
+	ret = ftdi_set_baudrate(&devc->ftdic, 750 * 1000);
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
-		       ftdi_get_error_string(ftdic));
-		return 0;
+		       ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR;
 	}
 
 	/* Initialize the FPGA for firmware upload. */
@@ -499,14 +478,14 @@ static int upload_firmware(struct sr_context *ctx,
 
 	g_free(buf);
 
-	ret = ftdi_set_bitmode(ftdic, 0x00, BITMODE_RESET);
+	ret = ftdi_set_bitmode(&devc->ftdic, 0x00, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(ftdic));
+		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
-	ftdi_usb_purge_buffers(ftdic);
+	ftdi_usb_purge_buffers(&devc->ftdic);
 
 	/* Discard garbage. */
 	while (sigma_read(&pins, 1, devc) == 1)
@@ -554,6 +533,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	struct drv_context *drvc;
 	size_t i;
 	int ret;
+	int num_channels;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
@@ -572,15 +552,16 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 * firmware is required and higher rates might limit the set
 	 * of available channels.
 	 */
+	num_channels = devc->num_channels;
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(drvc->sr_ctx, 0, devc);
-		devc->num_channels = 16;
+		num_channels = 16;
 	} else if (samplerate == SR_MHZ(100)) {
 		ret = upload_firmware(drvc->sr_ctx, 1, devc);
-		devc->num_channels = 8;
+		num_channels = 8;
 	} else if (samplerate == SR_MHZ(200)) {
 		ret = upload_firmware(drvc->sr_ctx, 2, devc);
-		devc->num_channels = 4;
+		num_channels = 4;
 	}
 
 	/*
@@ -589,6 +570,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 * an "event" (memory organization internal to the device).
 	 */
 	if (ret == SR_OK) {
+		devc->num_channels = num_channels;
 		devc->cur_samplerate = samplerate;
 		devc->samples_per_event = 16 / devc->num_channels;
 		devc->state.state = SIGMA_IDLE;
@@ -663,16 +645,13 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				if (match->match == SR_TRIGGER_ONE) {
 					devc->trigger.simplevalue |= channelbit;
 					devc->trigger.simplemask |= channelbit;
-				}
-				else if (match->match == SR_TRIGGER_ZERO) {
+				} else if (match->match == SR_TRIGGER_ZERO) {
 					devc->trigger.simplevalue &= ~channelbit;
 					devc->trigger.simplemask |= channelbit;
-				}
-				else if (match->match == SR_TRIGGER_FALLING) {
+				} else if (match->match == SR_TRIGGER_FALLING) {
 					devc->trigger.fallingmask |= channelbit;
 					trigger_set++;
-				}
-				else if (match->match == SR_TRIGGER_RISING) {
+				} else if (match->match == SR_TRIGGER_RISING) {
 					devc->trigger.risingmask |= channelbit;
 					trigger_set++;
 				}
@@ -693,7 +672,6 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 
 	return SR_OK;
 }
-
 
 /* Software trigger to determine exact trigger position. */
 static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
@@ -1039,6 +1017,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 		return FALSE;
 
 	sr_info("Downloading sample data.");
+	devc->state.state = SIGMA_DOWNLOAD;
 
 	/*
 	 * Ask the hardware to stop data acquisition. Reception of the
@@ -1119,12 +1098,12 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 		dl_lines_done += dl_lines_curr;
 	}
+	g_free(dram_line);
 
 	std_session_send_df_end(sdi);
 
-	sdi->driver->dev_acquisition_stop(sdi);
-
-	g_free(dram_line);
+	devc->state.state = SIGMA_IDLE;
+	sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -1168,6 +1147,14 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 	if (devc->state.state == SIGMA_IDLE)
 		return TRUE;
 
+	/*
+	 * When the application has requested to stop the acquisition,
+	 * then immediately start downloading sample data. Otherwise
+	 * keep checking configured limits which will terminate the
+	 * acquisition and initiate download.
+	 */
+	if (devc->state.state == SIGMA_STOPPING)
+		return download_capture(sdi);
 	if (devc->state.state == SIGMA_CAPTURE)
 		return sigma_capture_mode(sdi);
 

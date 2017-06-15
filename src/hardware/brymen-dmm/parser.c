@@ -276,7 +276,7 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	}
 
 	if (flags.is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	/* We can have both AC+DC in a single measurement. */
 	if (flags.is_ac)
 		analog->meaning->mqflags |= SR_MQFLAG_AC;

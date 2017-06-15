@@ -379,7 +379,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_dc)
 		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_peak_max)
 		analog->meaning->mqflags |= SR_MQFLAG_MAX;
 	if (info->is_peak_min)
@@ -519,7 +519,7 @@ SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent;
 	struct asycii_info *info_local;
 
-	info_local = (struct asycii_info *)info;
+	info_local = info;
 
 	/* Don't print byte 15. That one contains the carriage return. */
 	sr_dbg("DMM packet: \"%.15s\"", buf);

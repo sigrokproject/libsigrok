@@ -26,7 +26,7 @@
 
 #define LOG_PREFIX "input/csv"
 
-#define DATAFEED_MAX_SAMPLES	(128 * 1024)
+#define CHUNK_SIZE	(4 * 1024 * 1024)
 
 /*
  * The CSV input module has the following options:
@@ -624,7 +624,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * to a location within that large buffer.
 	 */
 	inc->sample_unit_size = (inc->num_channels + 7) / 8;
-	inc->datafeed_buf_size = DATAFEED_MAX_SAMPLES;
+	inc->datafeed_buf_size = CHUNK_SIZE;
 	inc->datafeed_buf_size *= inc->sample_unit_size;
 	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
 	inc->datafeed_buf_fill = 0;
@@ -911,25 +911,32 @@ static int reset(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "single-column", "Single column", "Enable/specify single column", NULL, NULL },
-	{ "numchannels", "Max channels", "Number of channels", NULL, NULL },
-	{ "delimiter", "Delimiter", "Column delimiter", NULL, NULL },
-	{ "format", "Format", "Numeric format", NULL, NULL },
-	{ "comment", "Comment", "Comment prefix character", NULL, NULL },
-	{ "samplerate", "Samplerate", "Samplerate used during capture", NULL, NULL },
-	{ "first-channel", "First channel", "Column number of first channel", NULL, NULL },
-	{ "header", "Header", "Treat first line as header with channel names", NULL, NULL },
-	{ "startline", "Start line", "Line number at which to start processing samples", NULL, NULL },
+	{ "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
+	{ "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
+	{ "format", "Data format (single-col. mode)", "The numeric format of the data (single-col. mode): bin, hex, oct", NULL, NULL },
+	{ "comment", "Comment character(s)", "The comment prefix character(s)", NULL, NULL },
+	{ "samplerate", "Samplerate (Hz)", "The sample rate (used during capture) in Hz", NULL, NULL },
+	{ "first-channel", "First channel", "The column number of the first channel (multi-col. mode); bit position for the first channel (single-col. mode)", NULL, NULL },
+	{ "header", "Interpret first line as header (multi-col. mode)", "Treat the first line as header with channel names (multi-col. mode)", NULL, NULL },
+	{ "startline", "Start line", "The line number at which to start processing samples (>= 1)", NULL, NULL },
 	ALL_ZERO
 };
 
 static const struct sr_option *get_options(void)
 {
+	GSList *l;
+
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[1].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[2].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[3].def = g_variant_ref_sink(g_variant_new_string("bin"));
+		l = NULL;
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("bin")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("hex")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
+		options[3].values = l;
 		options[4].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[5].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[6].def = g_variant_ref_sink(g_variant_new_int32(0));

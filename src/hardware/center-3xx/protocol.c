@@ -177,7 +177,7 @@ static gboolean handle_new_data(struct sr_dev_inst *sdi, int idx)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int len, i, offset = 0, ret = FALSE;
+	int len, offset, ret = FALSE;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -193,6 +193,7 @@ static gboolean handle_new_data(struct sr_dev_inst *sdi, int idx)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
+	offset = 0;
 	while ((devc->buflen - offset) >= center_devs[idx].packet_size) {
 		if (center_devs[idx].packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, idx);
@@ -204,8 +205,8 @@ static gboolean handle_new_data(struct sr_dev_inst *sdi, int idx)
 	}
 
 	/* If we have any data left, move it to the beginning of our buffer. */
-	for (i = 0; i < devc->buflen - offset; i++)
-		devc->buf[i] = devc->buf[offset + i];
+	if (offset < devc->buflen)
+		memmove(devc->buf, devc->buf + offset, devc->buflen - offset);
 	devc->buflen -= offset;
 
 	return ret;
@@ -243,7 +244,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

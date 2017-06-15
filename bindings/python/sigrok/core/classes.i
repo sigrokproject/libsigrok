@@ -45,6 +45,8 @@ which provides access to the error code and description."
 %module(docstring=DOCSTRING) classes
 
 %{
+#include "config.h"
+
 #include <stdio.h>
 #include <pygobject.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -52,8 +54,6 @@ which provides access to the error code and description."
 
 PyObject *PyGObject_lib;
 PyObject *GLib;
-
-#include "config.h"
 
 #if PYGOBJECT_FLAGS_SIGNED
 typedef gint pyg_flags_type;

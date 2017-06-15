@@ -43,8 +43,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_CONN | SR_CONF_GET,
@@ -54,7 +57,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const int32_t soft_trigger_matches[] = {
+static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
@@ -69,11 +72,14 @@ static const char *channel_names[] = {
 
 static const struct {
 	enum voltage_range range;
-	gdouble low;
-	gdouble high;
-} volt_thresholds[] = {
-	{ VOLTAGE_RANGE_18_33_V, 0.7, 1.4 },
-	{ VOLTAGE_RANGE_5_V,     1.4, 3.6 },
+} thresholds_ranges[] = {
+	{ VOLTAGE_RANGE_18_33_V, },
+	{ VOLTAGE_RANGE_5_V, },
+};
+
+static const double thresholds[][2] = {
+	{ 0.7, 1.4 },
+	{ 1.4, 3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -182,7 +188,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
@@ -212,11 +219,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK)
+					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
-			else
-				sr_err("Firmware upload failed.");
+			} else {
+				sr_err("Firmware upload failed, name %s.", FX2_FIRMWARE);
+			}
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]), 0xff, NULL);
@@ -235,16 +243,12 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	struct drv_context *drvc;
-	int ret, i, device_count;
+	int ret = SR_ERR, i, device_count;
 	char connection_id[64];
 
 	di = sdi->driver;
 	drvc = di->context;
 	usb = sdi->conn;
-
-	if (sdi->status == SR_ST_ACTIVE)
-		/* Device is already in use. */
-		return SR_ERR;
 
 	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	if (device_count < 0) {
@@ -264,7 +268,9 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			/*
 			 * Check device by its physical USB bus/port address.
 			 */
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;
@@ -280,6 +286,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 		} else {
 			sr_err("Failed to open device: %s.",
 			       libusb_error_name(ret));
+			ret = SR_ERR;
 			break;
 		}
 
@@ -287,13 +294,16 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 		if (ret == LIBUSB_ERROR_BUSY) {
 			sr_err("Unable to claim USB interface. Another "
 			       "program or driver has already claimed it.");
+			ret = SR_ERR;
 			break;
 		} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
 			sr_err("Device has been disconnected.");
+			ret = SR_ERR;
 			break;
 		} else if (ret != 0) {
 			sr_err("Unable to claim interface: %s.",
 			       libusb_error_name(ret));
+			ret = SR_ERR;
 			break;
 		}
 
@@ -302,15 +312,17 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			break;
 		}
 
-		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device on %d.%d (logical) / %s (physical), interface %d.",
 			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 
+		ret = SR_OK;
+
 		break;
 	}
+
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi->status != SR_ST_ACTIVE) {
+	if (ret != SR_OK) {
 		if (usb->devhdl) {
 			libusb_release_interface(usb->devhdl, USB_INTERFACE);
 			libusb_close(usb->devhdl);
@@ -377,32 +389,28 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
+
 	if (!usb->devhdl)
-		return SR_ERR;
+		return SR_ERR_BUG;
 
 	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	GVariant *range[2];
-	char str[128];
-	int ret;
 	unsigned int i;
 
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
@@ -412,8 +420,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 			/* Device still needs to re-enumerate after firmware
 			 * upload, so we don't know its (future) address. */
 			return SR_ERR;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
@@ -431,41 +438,30 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (!sdi)
 			return SR_ERR;
 		devc = sdi->priv;
-		ret = SR_ERR;
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (devc->selected_voltage_range !=
-			    volt_thresholds[i].range)
+		for (i = 0; i < ARRAY_SIZE(thresholds); i++) {
+			if (devc->selected_voltage_range != thresholds_ranges[i].range)
 				continue;
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			*data = g_variant_new_tuple(range, 2);
-			ret = SR_OK;
-			break;
+			*data = std_gvar_tuple_double(thresholds[i][0], thresholds[i][1]);
+			return SR_OK;
 		}
-		break;
+		return SR_ERR;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	gdouble low, high;
-	int ret;
-	unsigned int i;
+	int idx;
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
@@ -475,76 +471,40 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_get(data, "(dd)", &low, &high);
-		ret = SR_ERR_ARG;
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
-			    fabs(volt_thresholds[i].high - high) < 0.1) {
-				devc->selected_voltage_range =
-					volt_thresholds[i].range;
-				ret = SR_OK;
-				break;
-			}
-		}
-		break;
-	default:
-		ret = SR_ERR_NA;
-	}
-
-	return ret;
-}
-
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
-{
-	GVariant *gvar, *range[2];
-	GVariantBuilder gvb;
-	int ret;
-	unsigned int i;
-
-	(void)sdi;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-			samplerates, ARRAY_SIZE(samplerates), sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			gvar = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
-		break;
-	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
-				sizeof(int32_t));
+		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(thresholds))) < 0)
+			return SR_ERR_ARG;
+		devc->selected_voltage_range = thresholds_ranges[idx].range;
 		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
+}
+
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	case SR_CONF_SAMPLERATE:
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		*data = std_gvar_thresholds(ARRAY_AND_SIZE(thresholds));
+		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
 }
 
 static void abort_acquisition(struct dev_context *devc)
@@ -674,9 +634,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	unsigned char *buf;
 	size_t size, convsize;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;
@@ -695,7 +652,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		int pre_trigger_samples = 0;
 		if (devc->limit_samples > 0)
-			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
 		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
 		if (!devc->stl)
 			return SR_ERR_MALLOC;
@@ -775,9 +732,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	ret = logic16_abort_acquisition(sdi);
 
 	abort_acquisition(sdi->priv);
@@ -793,7 +747,7 @@ static struct sr_dev_driver saleae_logic16_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

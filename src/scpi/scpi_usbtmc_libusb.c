@@ -105,8 +105,16 @@ struct usbtmc_blacklist {
 static struct usbtmc_blacklist blacklist_remote[] = {
 	{ 0x1ab1, 0x0588 }, /* Rigol DS1000 series */
 	{ 0x1ab1, 0x04b0 }, /* Rigol DS2000 series */
+	{ 0x1ab1, 0x04b1 }, /* Rigol DS4000 series */
 	{ 0x0957, 0x0588 }, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
 	{ 0x0b21, 0xffff }, /* All Yokogawa devices */
+	{ 0xf4ec, 0xffff }, /* All Siglent SDS devices */
+	ALL_ZERO
+};
+
+/* Devices that shall get reset during open(). */
+static struct usbtmc_blacklist whitelist_usb_reset[] = {
+	{ 0xf4ec, 0xffff }, /* All Siglent SDS devices */
 	ALL_ZERO
 };
 
@@ -131,8 +139,9 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 
 		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 			if ((ret = libusb_get_config_descriptor(devlist[i], confidx, &confdes)) < 0) {
-				sr_dbg("Failed to get configuration descriptor: %s, "
-				       "ignoring device.", libusb_error_name(ret));
+				if (ret != LIBUSB_ERROR_NOT_FOUND)
+					sr_dbg("Failed to get configuration descriptor: %s, "
+					       "ignoring device.", libusb_error_name(ret));
 				break;
 			}
 			for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
@@ -155,7 +164,7 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	sr_dbg("Found %d device(s).", g_slist_length(resources));
+	/* No log message for #devices found (caller will log that). */
 
 	return resources;
 }
@@ -290,6 +299,7 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	int confidx, intfidx, epidx, config = 0, current_config;
 	uint8_t capabilities[24];
 	int ret, found = 0;
+	int do_reset;
 
 	if (usb->devhdl)
 		return SR_OK;
@@ -302,8 +312,9 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 
 	for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 		if ((ret = libusb_get_config_descriptor(dev, confidx, &confdes)) < 0) {
-			sr_dbg("Failed to get configuration descriptor: %s, "
-			       "ignoring device.", libusb_error_name(ret));
+			if (ret != LIBUSB_ERROR_NOT_FOUND)
+				sr_dbg("Failed to get configuration descriptor: %s, "
+				       "ignoring device.", libusb_error_name(ret));
 			continue;
 		}
 		for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
@@ -369,6 +380,12 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
+
+	/* Optionally reset the USB device. */
+	do_reset = check_usbtmc_blacklist(whitelist_usb_reset,
+		des.idVendor, des.idProduct);
+	if (do_reset)
+		libusb_reset_device(usb->devhdl);
 
 	/* Get capabilities. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |

@@ -28,7 +28,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "la8/la16"
+#define LOG_PREFIX "chronovu-la"
 
 #define SDRAM_SIZE			(8 * 1024 * 1024)
 #define MAX_NUM_SAMPLES			SDRAM_SIZE
@@ -44,28 +44,18 @@ enum {
 struct cv_profile {
 	int model;
 	const char *modelname;
-	const char *iproduct; /* USB iProduct string */
+	const char *iproduct;
 	unsigned int num_channels;
 	uint64_t max_samplerate;
 	const int num_trigger_matches;
 	float trigger_constant;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
-	/** Device profile struct for this device. */
 	const struct cv_profile *prof;
-
-	/** FTDI device context (used by libftdi). */
 	struct ftdi_context *ftdic;
-
-	/** The currently configured samplerate of the device. */
 	uint64_t cur_samplerate;
-
-	/** The current sampling limit (in ms). */
 	uint64_t limit_msec;
-
-	/** The current sampling limit (in number of samples). */
 	uint64_t limit_samples;
 
 	/**
@@ -124,7 +114,6 @@ struct dev_context {
 	uint64_t samplerates[255];
 };
 
-/* protocol.c */
 extern SR_PRIV const char *cv_channel_names[];
 extern const struct cv_profile cv_profiles[];
 SR_PRIV void cv_fill_samplerates_if_needed(const struct sr_dev_inst *sdi);

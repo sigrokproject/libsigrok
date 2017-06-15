@@ -184,7 +184,7 @@ static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
 		return;
 
 	pollfd = g_slice_new(GPollFD);
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 	events = G_IO_IN;
 #endif
 	pollfd->fd = (gintptr)fd;
@@ -329,8 +329,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		if ((mstr = g_match_info_fetch(match, 2)))
 			pid = strtoul(mstr, NULL, 16);
 		g_free(mstr);
-		sr_dbg("Trying to find USB device with VID:PID = %04x:%04x.",
-		       vid, pid);
+		/* Trying to find USB device via VID:PID. */
 	} else {
 		g_match_info_unref(match);
 		g_regex_unref(reg);
@@ -343,8 +342,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 			if ((mstr = g_match_info_fetch(match, 2)))
 				addr = strtoul(mstr, NULL, 10);
 			g_free(mstr);
-			sr_dbg("Trying to find USB device with bus.address = "
-			       "%d.%d.", bus, addr);
+			/* Trying to find USB device via bus.address. */
 		}
 	}
 	g_match_info_unref(match);
@@ -386,13 +384,12 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "
 		       "%d.%d).", des.idVendor, des.idProduct, b, a);
 
-		usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL);
+		usb = sr_usb_dev_inst_new(b, a, NULL);
 		devices = g_slist_append(devices, usb);
 	}
 	libusb_free_device_list(devlist, 1);
 
-	sr_dbg("Found %d device(s).", g_slist_length(devices));
+	/* No log message for #devices found (caller will log that). */
 
 	return devices;
 }
@@ -509,4 +506,48 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 		len += snprintf(path+len, path_len-len, ".%d", port_numbers[i]);
 
 	return SR_OK;
+}
+
+/**
+ * Check the USB configuration to determine if this device has a given
+ * manufacturer and product string.
+ *
+ * @return TRUE if the device's configuration profile strings
+ *         configuration, FALSE otherwise.
+ */
+SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
+		const char *manufacturer, const char *product)
+{
+	struct libusb_device_descriptor des;
+	struct libusb_device_handle *hdl;
+	gboolean ret;
+	unsigned char strdesc[64];
+
+	hdl = NULL;
+	ret = FALSE;
+	while (!ret) {
+		/* Assume the FW has not been loaded, unless proven wrong. */
+		libusb_get_device_descriptor(dev, &des);
+
+		if (libusb_open(dev, &hdl) != 0)
+			break;
+
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iManufacturer, strdesc, sizeof(strdesc)) < 0)
+			break;
+		if (strcmp((const char *)strdesc, manufacturer))
+			break;
+
+		if (libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, strdesc, sizeof(strdesc)) < 0)
+			break;
+		if (strcmp((const char *)strdesc, product))
+			break;
+
+		ret = TRUE;
+	}
+	if (hdl)
+		libusb_close(hdl);
+
+	return ret;
 }

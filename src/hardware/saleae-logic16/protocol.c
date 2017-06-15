@@ -913,46 +913,50 @@ SR_PRIV void LIBUSB_CALL logic16_receive_transfer(struct libusb_transfer *transf
 	new_samples = convert_sample_data(devc, devc->convbuffer,
 			devc->convbuffer_size, transfer->buffer, transfer->actual_length);
 
-	if (new_samples > 0) {
-		if (devc->trigger_fired) {
-			/* Send the incoming transfer to the session bus. */
+	if (new_samples <= 0) {
+		resubmit_transfer(transfer);
+		return;
+	}
+
+	/* At least one new sample. */
+	if (devc->trigger_fired) {
+		/* Send the incoming transfer to the session bus. */
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		if (devc->limit_samples &&
+				new_samples > devc->limit_samples - devc->sent_samples)
+			new_samples = devc->limit_samples - devc->sent_samples;
+		logic.length = new_samples * 2;
+		logic.unitsize = 2;
+		logic.data = devc->convbuffer;
+		sr_session_send(sdi, &packet);
+		devc->sent_samples += new_samples;
+	} else {
+		trigger_offset = soft_trigger_logic_check(devc->stl,
+				devc->convbuffer, new_samples * 2, &pre_trigger_samples);
+		if (trigger_offset > -1) {
+			devc->sent_samples += pre_trigger_samples;
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
+			num_samples = new_samples - trigger_offset;
 			if (devc->limit_samples &&
-					new_samples > devc->limit_samples - devc->sent_samples)
-				new_samples = devc->limit_samples - devc->sent_samples;
-			logic.length = new_samples * 2;
+					num_samples > devc->limit_samples - devc->sent_samples)
+				num_samples = devc->limit_samples - devc->sent_samples;
+			logic.length = num_samples * 2;
 			logic.unitsize = 2;
-			logic.data = devc->convbuffer;
+			logic.data = devc->convbuffer + trigger_offset * 2;
 			sr_session_send(sdi, &packet);
-			devc->sent_samples += new_samples;
-		} else {
-			trigger_offset = soft_trigger_logic_check(devc->stl,
-					devc->convbuffer, new_samples * 2, &pre_trigger_samples);
-			if (trigger_offset > -1) {
-				devc->sent_samples += pre_trigger_samples;
-				packet.type = SR_DF_LOGIC;
-				packet.payload = &logic;
-				num_samples = new_samples - trigger_offset;
-				if (devc->limit_samples &&
-						num_samples > devc->limit_samples - devc->sent_samples)
-					num_samples = devc->limit_samples - devc->sent_samples;
-				logic.length = num_samples * 2;
-				logic.unitsize = 2;
-				logic.data = devc->convbuffer + trigger_offset * 2;
-				sr_session_send(sdi, &packet);
-				devc->sent_samples += num_samples;
+			devc->sent_samples += num_samples;
 
-				devc->trigger_fired = TRUE;
-			}
+			devc->trigger_fired = TRUE;
 		}
+	}
 
-		if (devc->limit_samples &&
-				(uint64_t)devc->sent_samples >= devc->limit_samples) {
-			devc->sent_samples = -2;
-			free_transfer(transfer);
-			return;
-		}
+	if (devc->limit_samples &&
+			(uint64_t)devc->sent_samples >= devc->limit_samples) {
+		devc->sent_samples = -2;
+		free_transfer(transfer);
+		return;
 	}
 
 	resubmit_transfer(transfer);

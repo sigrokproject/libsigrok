@@ -29,8 +29,6 @@
 
 #define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
 #define USB_CONN "1a86.e008"
-#define VENDOR "UNI-T"
-#define MODEL "UT32x"
 #define USB_INTERFACE 0
 #define USB_CONFIGURATION 1
 
@@ -48,18 +46,14 @@ enum {
 	CMD_GET_STORED = 7,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	uint64_t limit_samples;
 	gboolean data_source;
 
-	/* Operational state */
 	uint64_t num_samples;
 	unsigned char buf[8];
 	struct libusb_transfer *xfer;
 
-	/* Temporary state across callbacks */
 	unsigned char packet[32];
 	int packet_len;
 };

@@ -84,11 +84,11 @@ enum sr_error_code {
 
 /* Handy little macros */
 #define SR_HZ(n)  (n)
-#define SR_KHZ(n) ((n) * (uint64_t)(1000ULL))
-#define SR_MHZ(n) ((n) * (uint64_t)(1000000ULL))
-#define SR_GHZ(n) ((n) * (uint64_t)(1000000000ULL))
+#define SR_KHZ(n) ((n) * UINT64_C(1000))
+#define SR_MHZ(n) ((n) * UINT64_C(1000000))
+#define SR_GHZ(n) ((n) * UINT64_C(1000000000))
 
-#define SR_HZ_TO_NS(n) ((uint64_t)(1000000000ULL) / (n))
+#define SR_HZ_TO_NS(n) (UINT64_C(1000000000) / (n))
 
 /** libsigrok loglevels. */
 enum sr_loglevel {
@@ -650,11 +650,11 @@ struct sr_key_info {
 /** Configuration capabilities. */
 enum sr_configcap {
 	/** Value can be read. */
-	SR_CONF_GET = (1 << 31),
+	SR_CONF_GET = (1UL << 31),
 	/** Value can be written. */
-	SR_CONF_SET = (1 << 30),
+	SR_CONF_SET = (1UL << 30),
 	/** Possible values can be enumerated. */
-	SR_CONF_LIST = (1 << 29),
+	SR_CONF_LIST = (1UL << 29),
 };
 
 /** Configuration keys */
@@ -702,6 +702,9 @@ enum sr_configkey {
 
 	/** The device can act as a function generator. */
 	SR_CONF_SIGNAL_GENERATOR,
+
+	/** The device can measure power. */
+	SR_CONF_POWERMETER,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
@@ -982,6 +985,15 @@ enum sr_configkey {
 
 	/** Trigger level. */
 	SR_CONF_TRIGGER_LEVEL,
+
+	/** Under-voltage condition threshold. */
+	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD,
+
+	/**
+	 * Which external clock source to use if the device supports
+	 * multiple external clock channels.
+	 */
+	SR_CONF_EXTERNAL_CLOCK_SOURCE,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 

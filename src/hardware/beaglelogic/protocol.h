@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2014 Kumar Abhishek <abhishek@theembeddedkitchen.net>
+ * Copyright (C) 2014-2017 Kumar Abhishek <abhishek@theembeddedkitchen.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,11 +32,22 @@
 
 #define SAMPLEUNIT_TO_BYTES(x)	((x) == 1 ? 1 : 2)
 
+#define TCP_BUFFER_SIZE         (128 * 1024)
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	int max_channels;
 	uint32_t fw_ver;
+
+	/* Operations */
+	const struct beaglelogic_ops *beaglelogic;
+
+	/* TCP Settings */
+	char *address;
+	char *port;
+	int socket;
+	unsigned int read_timeout;
+	unsigned char *tcp_buffer;
 
 	/* Acquisition settings: see beaglelogic.h */
 	uint64_t cur_samplerate;
@@ -49,7 +60,6 @@ struct dev_context {
 	uint32_t bufunitsize;
 	uint32_t buffersize;
 
-	/* Operational state */
 	int fd;
 	GPollFD pollfd;
 	int last_error;
@@ -64,6 +74,7 @@ struct dev_context {
 	gboolean trigger_fired;
 };
 
-SR_PRIV int beaglelogic_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int beaglelogic_native_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int beaglelogic_tcp_receive_data(int fd, int revents, void *cb_data);
 
 #endif

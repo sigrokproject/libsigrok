@@ -205,17 +205,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 	sr_scpi_send(scpi, "TRIG HOLD");
 	sr_scpi_get_float(scpi, "NPLC?", &devc->nplc);
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	/* Disable scan-advance (preserve relay life). */
 	sr_scpi_send(scpi, "SADV HOLD");
@@ -224,22 +219,18 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	sr_scpi_close(scpi);
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_ADC_POWERLINE_CYCLES:
 		*data = g_variant_new_double(devc->nplc);
@@ -248,14 +239,12 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	enum sr_mq mq;
 	enum sr_mqflag mq_flags;
 	struct dev_context *devc;
@@ -263,12 +252,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 	(void)cg;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -278,54 +263,26 @@ static int config_set(uint32_t key, GVariant *data,
 		mq = g_variant_get_uint32(tuple_child);
 		tuple_child = g_variant_get_child_value(data, 1);
 		mq_flags = g_variant_get_uint64(tuple_child);
-		ret = hp_3457a_set_mq(sdi, mq, mq_flags);
 		g_variant_unref(tuple_child);
-		break;
+		return hp_3457a_set_mq(sdi, mq, mq_flags);
 	case SR_CONF_ADC_POWERLINE_CYCLES:
-		ret = hp_3457a_set_nplc(sdi, g_variant_get_double(data));
-		break;
+		return hp_3457a_set_nplc(sdi, g_variant_get_double(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if ((key == SR_CONF_DEVICE_OPTIONS) && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if ((key == SR_CONF_DEVICE_OPTIONS) && !cg) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* From here on, we're only concerned with channel group config. */
-	if (!cg)
-		return SR_ERR_NA;
-
 	/*
 	 * TODO: Implement channel group configuration when adding support for
 	 * plug-in cards.
 	 */
 
-	ret = SR_OK;
-	switch (key) {
-	default:
-		ret = SR_ERR_NA;
-	}
-
-	return ret;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static void create_channel_index_list(GSList *channels, GArray **arr)
@@ -367,9 +324,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	GArray *ch_list;
 	GSList *channels;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
@@ -405,8 +359,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 	}
 
-	devc->current_channel = devc->active_channels->data;
 	devc->num_active_channels = g_slist_length(devc->active_channels);
+	if (!devc->num_active_channels) {
+		sr_err("Need at least one active channel!");
+		g_slist_free(devc->active_channels);
+		return SR_ERR_ARG;
+	}
+	devc->current_channel = devc->active_channels->data;
 
 	hp_3457a_select_input(sdi, front_selected ? CONN_FRONT : CONN_REAR);
 
@@ -445,6 +404,7 @@ static struct sr_dev_driver hp_3457a_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

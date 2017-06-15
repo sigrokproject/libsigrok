@@ -182,21 +182,19 @@ static GSList *scan_3203(struct sr_dev_driver *di, GSList *options)
 	return scan(di, options, PPS_3203T_3S);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	int channel, ret;
+	int channel;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->channel_mode]);
@@ -233,64 +231,36 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int find_str(const char *str, const char **strings, int array_size)
-{
-	int idx, i;
-
-	idx = -1;
-	for (i = 0; i < array_size; i++) {
-		if (!strcmp(str, strings[i])) {
-			idx = i;
-			break;
-		}
-	}
-
-	return idx;
-}
-
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	gdouble dval;
-	int channel, ret, ival;
-	const char *sval;
+	int channel, ival;
 	gboolean bval;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	ret = SR_OK;
 	devc = sdi->priv;
+
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
-			sval = g_variant_get_string(data, NULL);
-			if ((ival = find_str(sval, channel_modes,
-							ARRAY_SIZE(channel_modes))) == -1) {
-				ret = SR_ERR_ARG;
-				break;
-			}
-			if (devc->model->channel_modes && (1 << ival) == 0) {
-				/* Not supported on this model. */
-				ret = SR_ERR_ARG;
-			}
+			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
+				return SR_ERR_ARG;
+			if (devc->model->channel_modes && (1 << ival) == 0)
+				return SR_ERR_ARG; /* Not supported on this model. */
 			if (ival == devc->channel_mode_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->channel_mode_set = ival;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->over_current_protection_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->over_current_protection_set = bval;
 			devc->config_dirty = TRUE;
 			break;
@@ -298,7 +268,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;
@@ -307,116 +276,85 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		case SR_CONF_VOLTAGE_TARGET:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[channel].voltage[1])
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			devc->config[channel].output_voltage_max = dval;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_CURRENT_LIMIT:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[channel].current[1])
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			devc->config[channel].output_current_max = dval;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->config[channel].output_enabled_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->config[channel].output_enabled_set = bval;
 			devc->config_dirty = TRUE;
 			break;
 		default:
-			ret = SR_ERR_NA;
+			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	GVariant *gvar;
-	GVariantBuilder gvb;
-	int channel, ret, i;
+	int channel;
 
-	/* Always available. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	devc = sdi->priv;
-	ret = SR_OK;
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);
 			} else {
 				/* The other models support all modes. */
-				*data = g_variant_new_strv(channel_modes, ARRAY_SIZE(channel_modes));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_modes));
 			}
 			break;
 		default:
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
-		if (!sdi)
-			return SR_ERR_ARG;
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(devc->model->channels[channel].voltage[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
+			*data = std_gvar_min_max_step_array(devc->model->channels[channel].voltage);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(devc->model->channels[channel].current[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
+			*data = std_gvar_min_max_step_array(devc->model->channels[channel].current);
 			break;
 		default:
 			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -424,6 +362,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
+
 	if (devc->config_dirty)
 		/* Some configuration changes were queued up but didn't
 		 * get sent to the device, likely because we were never
@@ -438,9 +377,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	uint8_t packet[PACKET_SIZE];
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	memset(devc->packet, 0x44, PACKET_SIZE);
@@ -466,9 +402,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	devc->acquisition_running = FALSE;
 
@@ -483,7 +416,7 @@ static struct sr_dev_driver atten_pps3203_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan_3203,
 	.dev_list = std_dev_list,
-	.dev_clear = NULL,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

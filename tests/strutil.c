@@ -19,8 +19,76 @@
 
 #include <config.h>
 #include <check.h>
+#include <errno.h>
+#include <locale.h>
 #include <libsigrok/libsigrok.h>
 #include "lib.h"
+
+#if 0
+static void test_vsnprintf(const char *expected, char *format, ...)
+{
+	va_list args;
+	char *s;
+	int len;
+
+	len = 16;
+	s = g_malloc0(len + 1);
+
+	va_start(args, format);
+	len = vsnprintf(s, len, format, args);
+	va_end(args);
+
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
+	fail_unless(!strcmp(s, expected),
+			"Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+#endif
+
+static void test_sr_vsnprintf_ascii(const char *expected, char *format, ...)
+{
+	va_list args;
+	char *s;
+	int len;
+
+	len = 16;
+	s = g_malloc0(len + 1);
+
+	va_start(args, format);
+	len = sr_vsnprintf_ascii(s, len, format, args);
+	va_end(args);
+
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
+	fail_unless(!strcmp(s, expected),
+			"Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
+static void test_sr_vsprintf_ascii(const char *expected, char *format, ...)
+{
+	va_list args, args_copy;
+	char *s;
+	int len;
+
+	/* Get length of buffer required. */
+	va_start(args, format);
+	va_copy(args_copy, args);
+	len = sr_vsnprintf_ascii(NULL, 0, format, args);
+	va_end(args);
+
+	/* Allocate buffer and write out command. */
+	s = g_malloc0(len + 1);
+	len = sr_vsprintf_ascii(s, format, args_copy);
+	va_end(args_copy);
+
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
+	fail_unless(!strcmp(s, expected),
+			"Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
 
 static void test_samplerate(uint64_t samplerate, const char *expected)
 {
@@ -50,11 +118,94 @@ static void test_rational(const char *input, struct sr_rational expected)
 	struct sr_rational rational;
 
 	ret = sr_parse_rational(input, &rational);
-	fail_unless(ret == SR_OK);
+	fail_unless(ret == SR_OK, "Unexpected rc for '%s': %d, errno %d.",
+		input, ret, errno);
 	fail_unless((expected.p == rational.p) && (expected.q == rational.q),
 		    "Invalid result for '%s': %ld/%ld'.",
 		    input, rational.p, rational.q);
 }
+
+static void test_rational_fail(const char *input)
+{
+	int ret;
+	struct sr_rational rational;
+
+	ret = sr_parse_rational(input, &rational);
+	fail_unless(ret != SR_OK, "Unexpected success for '%s'.", input);
+}
+
+static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
+{
+	char *s;
+
+	s = sr_voltage_string(v_p, v_q);
+	fail_unless(s != NULL);
+	fail_unless(!strcmp(s, expected),
+		    "Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
+START_TEST(test_locale)
+{
+	char *old_locale, *saved_locale;
+
+	/* Get the the current locale. */
+	old_locale = setlocale(LC_NUMERIC, NULL);
+	fprintf(stderr, "Old locale = %s\n", old_locale);
+	/* Copy the name so it won’t be clobbered by setlocale. */
+	saved_locale = g_strdup(old_locale);
+	ck_assert_msg(saved_locale != NULL);
+
+#ifdef _WIN32
+	/*
+	 * See: https://msdn.microsoft.com/en-us/library/cc233982.aspx
+	 * Doesn't work! Locale is not set!
+	 */
+	setlocale(LC_NUMERIC, "de-DE");
+#else
+	/*
+	 * For all *nix and OSX systems, change the locale for all threads to
+	 * one that is known for not working correctly with printf(), e.g.
+	 * "de_DE.UTF-8".
+	 *
+	 * Find all your available system locales with "locale -a".
+	 */
+	setlocale(LC_NUMERIC, "de_DE.UTF-8");
+#endif
+	fprintf(stderr, "New locale = %s\n", setlocale(LC_NUMERIC, NULL));
+
+	test_sr_vsnprintf_ascii("0.1", "%.1f", (double)0.1);
+	test_sr_vsnprintf_ascii("0.12", "%.2f", (double)0.12);
+	test_sr_vsnprintf_ascii("0.123", "%.3f", (double)0.123);
+	test_sr_vsnprintf_ascii("0.1234", "%.4f", (double)0.1234);
+	test_sr_vsnprintf_ascii("0.12345", "%.5f", (double)0.12345);
+	test_sr_vsnprintf_ascii("0.123456", "%.6f", (double)0.123456);
+
+	test_sr_vsprintf_ascii("0.1", "%.1f", (double)0.1);
+	test_sr_vsprintf_ascii("0.12", "%.2f", (double)0.12);
+	test_sr_vsprintf_ascii("0.123", "%.3f", (double)0.123);
+	test_sr_vsprintf_ascii("0.1234", "%.4f", (double)0.1234);
+	test_sr_vsprintf_ascii("0.12345", "%.5f", (double)0.12345);
+	test_sr_vsprintf_ascii("0.123456", "%.6f", (double)0.123456);
+
+#if 0
+	/*
+	 * These tests can be used to tell on which platforms the printf()
+	 * functions are locale-dependent (i.e. these tests will fail).
+	 */
+	test_vsnprintf("0.1", "%.1f", (double)0.1);
+	test_vsnprintf("0.12", "%.2f", (double)0.12);
+	test_vsnprintf("0.123", "%.3f", (double)0.123);
+	test_vsnprintf("0.1234", "%.4f", (double)0.1234);
+	test_vsnprintf("0.12345", "%.5f", (double)0.12345);
+	test_vsnprintf("0.123456", "%.6f", (double)0.123456);
+#endif
+
+	/* Restore the original locale. */
+	setlocale(LC_NUMERIC, saved_locale);
+	g_free(saved_locale);
+}
+END_TEST
 
 /*
  * Check various inputs for sr_samplerate_string():
@@ -144,19 +295,17 @@ END_TEST
 
 START_TEST(test_ghz)
 {
-	/* Note: Numbers > 2^32 need a ULL suffix. */
-
-	test_samplerate(1000000000, "1 GHz");
-	test_samplerate(5000000000ULL, "5 GHz");
-	test_samplerate(72000000000ULL, "72 GHz");
-	test_samplerate(388000000000ULL, "388 GHz");
-	test_samplerate(4417594444ULL, "4.417594444 GHz");
-	test_samplerate(44175944444ULL, "44.175944444 GHz");
-	test_samplerate(441759444441ULL, "441.759444441 GHz");
-	test_samplerate(441759000001ULL, "441.759000001 GHz");
-	test_samplerate(441050000000ULL, "441.05 GHz");
-	test_samplerate(441000000005ULL, "441.000000005 GHz");
-	test_samplerate(441500000000ULL, "441.5 GHz");
+	test_samplerate(UINT64_C(1000000000), "1 GHz");
+	test_samplerate(UINT64_C(5000000000), "5 GHz");
+	test_samplerate(UINT64_C(72000000000), "72 GHz");
+	test_samplerate(UINT64_C(388000000000), "388 GHz");
+	test_samplerate(UINT64_C(4417594444), "4.417594444 GHz");
+	test_samplerate(UINT64_C(44175944444), "44.175944444 GHz");
+	test_samplerate(UINT64_C(441759444441), "441.759444441 GHz");
+	test_samplerate(UINT64_C(441759000001), "441.759000001 GHz");
+	test_samplerate(UINT64_C(441050000000), "441.05 GHz");
+	test_samplerate(UINT64_C(441000000005), "441.000000005 GHz");
+	test_samplerate(UINT64_C(441500000000), "441.5 GHz");
 
 	/* Again, but now using SR_GHZ(). */
 	test_samplerate(SR_GHZ(1), "1 GHz");
@@ -172,8 +321,8 @@ START_TEST(test_ghz)
 	test_samplerate(SR_GHZ(441.500000000), "441.5 GHz");
 
 	/* Now check the biggest-possible samplerate (2^64 Hz). */
-	// test_samplerate(18446744073709551615ULL, "18446744073.709551615 GHz");
-	// test_samplerate(SR_GHZ(18446744073ULL), "18446744073 GHz");
+	// test_samplerate(UINT64_C(18446744073709551615), "18446744073.709551615 GHz");
+	// test_samplerate(SR_GHZ(UINT64_C(18446744073)), "18446744073 GHz");
 }
 END_TEST
 
@@ -196,13 +345,12 @@ END_TEST
 
 START_TEST(test_ghz_period)
 {
-	/* Note: Numbers > 2^32 need a ULL suffix. */
-	test_period(1, 1000000000, "1 ns");
-	test_period(1, 5000000000ULL, "200 ps");
-	test_period(1, 72000000000ULL, "13.889 ps");
-	test_period(1, 388000000000ULL, "2.577 ps");
-	test_period(10, 1000000000000, "10 ps");
-	test_period(200, 1000000000000ULL, "200 ps");
+	test_period(1, UINT64_C(1000000000), "1 ns");
+	test_period(1, UINT64_C(5000000000), "200 ps");
+	test_period(1, UINT64_C(72000000000), "13.889 ps");
+	test_period(1, UINT64_C(388000000000), "2.577 ps");
+	test_period(10, UINT64_C(1000000000000), "10 ps");
+	test_period(200, UINT64_C(1000000000000), "200 ps");
 
 	/* Again, but now using SR_GHZ(). */
 	test_period(1, SR_GHZ(1), "1 ns");
@@ -211,6 +359,19 @@ START_TEST(test_ghz_period)
 	test_period(1, SR_GHZ(388), "2.577 ps");
 	test_period(10, SR_GHZ(1), "10 ns");
 	test_period(200, SR_GHZ(1000), "200 ps");
+}
+END_TEST
+
+START_TEST(test_volt)
+{
+	test_voltage(34, 1, "34 V");
+	test_voltage(34, 2, "17 V");
+	test_voltage(1, 1, "1 V");
+	test_voltage(1, 5, "0.2 V");
+	test_voltage(200, 1000, "200 mV");
+	test_voltage(1, 72, "0.0138889 V");
+	test_voltage(1, 388, "0.00257732 V");
+	test_voltage(10, 1000, "10 mV");
 }
 END_TEST
 
@@ -231,6 +392,21 @@ START_TEST(test_fractional)
 	test_rational("12.34", (struct sr_rational){1234, 100});
 	test_rational("-12.34", (struct sr_rational){-1234, 100});
 	test_rational("10.00", (struct sr_rational){1000, 100});
+	test_rational(".1", (struct sr_rational){1, 10});
+	test_rational("+0.1", (struct sr_rational){1, 10});
+	test_rational("+.1", (struct sr_rational){1, 10});
+	test_rational("-0.1", (struct sr_rational){-1, 10});
+	test_rational("-.1", (struct sr_rational){-1, 10});
+	test_rational(".1", (struct sr_rational){1, 10});
+	test_rational(".123", (struct sr_rational){123, 1000});
+	test_rational("1.", (struct sr_rational){1, 1});
+	test_rational("123.", (struct sr_rational){123, 1});
+	test_rational("-.1", (struct sr_rational){-1, 10});
+	test_rational(" .1", (struct sr_rational){1, 10});
+	test_rational("+.1", (struct sr_rational){1, 10});
+	test_rational_fail(".");
+	test_rational_fail(".e");
+	test_rational_fail(".e1");
 }
 END_TEST
 
@@ -246,6 +422,11 @@ START_TEST(test_exponent)
 	test_rational("0.001e3", (struct sr_rational){1, 1});
 	test_rational("0.001e0", (struct sr_rational){1, 1000});
 	test_rational("0.001e-3", (struct sr_rational){1, 1000000});
+	test_rational("43.737E-3", (struct sr_rational){43737, 1000000});
+	test_rational("-0.1e-2", (struct sr_rational){-1, 1000});
+	test_rational("-.1e-2", (struct sr_rational){-1, 1000});
+	test_rational("-.0e-2", (struct sr_rational){0, 1000});
+	test_rational("+.0e-2", (struct sr_rational){0, 1000});
 }
 END_TEST
 
@@ -258,12 +439,14 @@ Suite *suite_strutil(void)
 
 	tc = tcase_create("sr_samplerate_string");
 	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
+	tcase_add_test(tc, test_locale);
 	tcase_add_test(tc, test_hz);
 	tcase_add_test(tc, test_khz);
 	tcase_add_test(tc, test_mhz);
 	tcase_add_test(tc, test_ghz);
 	tcase_add_test(tc, test_hz_period);
 	tcase_add_test(tc, test_ghz_period);
+	tcase_add_test(tc, test_volt);
 	tcase_add_test(tc, test_integral);
 	tcase_add_test(tc, test_fractional);
 	tcase_add_test(tc, test_exponent);

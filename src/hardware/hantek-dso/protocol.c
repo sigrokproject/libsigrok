@@ -27,8 +27,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define NUM_CHANNELS 2
-
 static int send_begin(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
@@ -119,10 +117,6 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (sdi->status == SR_ST_ACTIVE)
-		/* already in use */
-		return SR_ERR;
-
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);
@@ -136,7 +130,9 @@ SR_PRIV int dso_open(struct sr_dev_inst *sdi)
 			/*
 			 * Check device by its physical USB bus/port address.
 			 */
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;
@@ -190,7 +186,6 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
-
 }
 
 static int get_channel_offsets(const struct sr_dev_inst *sdi)
@@ -247,7 +242,161 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
+static void dso2250_set_triggerpos(int value, int long_buffer, uint8_t dest[], int offset)
+{
+	uint32_t min, max;
+	uint32_t tmp, diff;
+
+	min = long_buffer ? 0 : 0x7d7ff;
+	max = 0x7ffff;
+
+	diff = max - min;
+	tmp = min + diff * value / 100;
+	sr_dbg("2250 trigger pos: %3d%% * [0x%x,0x%x] == 0x%x", value, min, max, tmp);
+
+	dest[offset + 0] = tmp & 0xff;
+	dest[offset + 1] = (tmp >> 8) & 0xff;
+	dest[offset + 2] = (tmp >> 16) & 0x7;
+}
+
+/* See http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028 */
+static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	int ret, tmp;
+	uint64_t base;
+	uint8_t cmdstring[12];
+	int trig;
+
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	memset(cmdstring, 0, sizeof(cmdstring));
+	/* Command */
+	cmdstring[0] = CMD_2250_SET_TRIGGERSOURCE;
+	sr_dbg("Trigger source %s.", devc->triggersource);
+	if (!strcmp("CH2", devc->triggersource))
+		tmp = 3;
+	else if (!strcmp("CH1", devc->triggersource))
+		tmp = 2;
+	else if (!strcmp("EXT", devc->triggersource))
+		tmp = 0;
+	else {
+		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
+		return SR_ERR_ARG;
+	}
+	cmdstring[2] = tmp;
+
+	sr_dbg("Trigger slope: %d.", devc->triggerslope);
+	cmdstring[2] |= (devc->triggerslope == SLOPE_NEGATIVE ? 1 : 0) << 3;
+
+	if (send_begin(sdi) != SR_OK)
+		return SR_ERR;
+
+	if ((ret = libusb_bulk_transfer(usb->devhdl, DSO_EP_OUT,
+			cmdstring, 8, &tmp, 100)) != 0) {
+		sr_err("Failed to set trigger/samplerate: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	/* Frame size */
+	sr_dbg("Frame size: %d.", devc->framesize);
+	cmdstring[0] = CMD_2250_SET_RECORD_LENGTH;
+	cmdstring[2] = (devc->framesize == FRAMESIZE_SMALL) ? 0x01 : 0x02;
+
+	if (send_begin(sdi) != SR_OK)
+		return SR_ERR;
+
+	if ((ret = libusb_bulk_transfer(usb->devhdl, DSO_EP_OUT,
+			cmdstring, 4, &tmp, 100)) != 0) {
+		sr_err("Failed to set record length: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	memset(cmdstring, 0, sizeof(cmdstring));
+	cmdstring[0] = CMD_2250_SET_SAMPLERATE;
+	base = 100e6;
+	if (devc->samplerate > base) {
+		/* Timebase fast */
+		sr_err("Sample rate > 100MHz not yet supported.");
+		return SR_ERR_ARG;
+	}
+
+	tmp = base / devc->samplerate;
+	if (tmp) {
+		/* Downsampling on */
+		cmdstring[2] |= 2;
+		/* Downsampler = 1comp((Base / Samplerate) - 2)
+		 *  Base == 100Msa resp. 200MSa
+		 *
+		 * Example for 500kSa/s:
+		 *  100e6 / 500e3 => 200
+		 *  200 - 2 => 198
+		 *  1comp(198) => ff39 */
+		tmp -= 2;
+		tmp = ~tmp;
+		sr_dbg("Down sampler value: 0x%x.", tmp & 0xffff);
+		cmdstring[4] = (tmp >> 0) & 0xff;
+		cmdstring[5] = (tmp >> 8) & 0xff;
+	}
+
+	if (send_begin(sdi) != SR_OK)
+		return SR_ERR;
+
+	if ((ret = libusb_bulk_transfer(usb->devhdl, DSO_EP_OUT,
+			cmdstring, 8, &tmp, 100)) != 0) {
+		sr_err("Failed to set sample rate: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+	sr_dbg("Sent CMD_2250_SET_SAMPLERATE.");
+
+	/* Enabled channels: 00=CH1, 01=CH2, 10=both. */
+	memset(cmdstring, 0, sizeof(cmdstring));
+	cmdstring[0] = CMD_2250_SET_CHANNELS;
+	sr_dbg("Channels: CH1=%d, CH2=%d.", devc->ch_enabled[0], devc->ch_enabled[1]);
+	cmdstring[2] = (devc->ch_enabled[0] ? 0 : 1) + (devc->ch_enabled[1] ? 2 : 0);
+
+	if (send_begin(sdi) != SR_OK)
+		return SR_ERR;
+
+	if ((ret = libusb_bulk_transfer(usb->devhdl, DSO_EP_OUT,
+			cmdstring, 4, &tmp, 100)) != 0) {
+		sr_err("Failed to set channels: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+	sr_dbg("Sent CMD_2250_SET_CHANNELS.");
+
+	/* Trigger slope: 0=positive, 1=negative. */
+	memset(cmdstring, 0, sizeof(cmdstring));
+	cmdstring[0] = CMD_2250_SET_TRIGGERPOS_AND_BUFFER;
+
+	sr_dbg("Capture ratio: %" PRIu64 ".", devc->capture_ratio);
+	trig = devc->capture_ratio;
+	dso2250_set_triggerpos(trig,
+			devc->framesize != FRAMESIZE_SMALL, cmdstring, 2);
+	dso2250_set_triggerpos(100 - trig,
+			devc->framesize != FRAMESIZE_SMALL, cmdstring, 6);
+
+	if (send_begin(sdi) != SR_OK)
+		return SR_ERR;
+
+	/* TODO: 12 bytes according to documentation? */
+	if ((ret = libusb_bulk_transfer(usb->devhdl, DSO_EP_OUT,
+			cmdstring, 10, &tmp, 100)) != 0) {
+		sr_err("Failed to set trigger position: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -258,9 +407,12 @@ static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	uint16_t timebase_large[] = { 0xffff, 0x0000, 0xfffc, 0xfff7, 0xffe8,
 		0xffce, 0xff9d, 0xff07, 0xfe0d, 0xfc19, 0xf63d, 0xec79 };
 
+	devc = sdi->priv;
+	if (devc->profile->fw_pid == 0x2250)
+		return dso2250_set_trigger_samplerate(sdi);
+
 	sr_dbg("Preparing CMD_SET_TRIGGER_SAMPLERATE.");
 
-	devc = sdi->priv;
 	usb = sdi->conn;
 
 	memset(cmdstring, 0, sizeof(cmdstring));
@@ -344,8 +496,8 @@ static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[5] = (tmp >> 8) & 0xff;
 
 	/* Horizontal trigger position */
-	sr_dbg("Trigger position: %3.2f.", devc->triggerposition);
-	tmp = 0x77fff + 0x8000 * devc->triggerposition;
+	sr_dbg("Capture ratio: %" PRIu64 ".", devc->capture_ratio);
+	tmp = 0x77fff + 0x8000 * devc->capture_ratio / 100;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
 	cmdstring[10] = (tmp >> 16) & 0xff;
@@ -419,10 +571,16 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_SET_VOLTAGE;
-	cmdstring[1] = 0x0f;
-	cmdstring[2] = 0x30;
 
-	/* CH1 volts/div is encoded in bits 0-1 */
+	if (devc->profile->fw_pid == 0x2250) {
+		cmdstring[1] = 0x00;
+		cmdstring[2] = 0x08;
+	} else {
+		cmdstring[1] = 0x0f;
+		cmdstring[2] = 0x30;
+	}
+
+	/* CH1 volts/div is encoded in bits 0-1. */
 	sr_dbg("CH1 vdiv index: %d.", devc->voltage[0]);
 	switch (devc->voltage[0]) {
 	case VDIV_1V:
@@ -442,7 +600,7 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	/* CH2 volts/div is encoded in bits 2-3 */
+	/* CH2 volts/div is encoded in bits 2-3. */
 	sr_dbg("CH2 vdiv index: %d.", devc->voltage[1]);
 	switch (devc->voltage[1]) {
 	case VDIV_1V:
@@ -532,7 +690,7 @@ static int dso_set_relays(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dso_set_voffsets(const struct sr_dev_inst *sdi)
+SR_PRIV int dso_set_voffsets(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -634,7 +792,6 @@ SR_PRIV int dso_force_trigger(const struct sr_dev_inst *sdi)
 
 SR_PRIV int dso_init(const struct sr_dev_inst *sdi)
 {
-
 	sr_dbg("Initializing DSO.");
 
 	if (get_channel_offsets(sdi) != SR_OK)
