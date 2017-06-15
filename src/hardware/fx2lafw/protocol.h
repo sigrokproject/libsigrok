@@ -126,17 +126,9 @@ struct dev_context {
 	float *analog_buffer;
 };
 
-SR_PRIV int fx2lafw_command_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *fx2lafw_dev_new(void);
+SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV void fx2lafw_abort_acquisition(struct dev_context *devc);
-SR_PRIV void LIBUSB_CALL fx2lafw_receive_transfer(struct libusb_transfer *transfer);
-SR_PRIV size_t fx2lafw_get_buffer_size(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_number_of_transfers(struct dev_context *devc);
-SR_PRIV unsigned int fx2lafw_get_timeout(struct dev_context *devc);
-SR_PRIV void la_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
-SR_PRIV void mso_send_data_proc(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
 
 #endif
