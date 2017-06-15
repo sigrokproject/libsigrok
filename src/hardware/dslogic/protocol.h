@@ -122,7 +122,6 @@ struct dev_context {
 	uint64_t capture_ratio;
 
 	/* Operational settings */
-	gboolean trigger_fired;
 	gboolean acq_aborted;
 
 	unsigned int sent_samples;

@@ -800,37 +800,36 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	} else {
 		devc->empty_transfer_count = 0;
 	}
-	if (devc->trigger_fired) {
-		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-			/* Send the incoming transfer to the session bus. */
-			if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
-				num_samples = devc->limit_samples - devc->sent_samples;
-			else
-				num_samples = cur_sample_count;
 
-			if (devc->trigger_pos > devc->sent_samples
-				&& devc->trigger_pos <= devc->sent_samples + num_samples) {
-					/* DSLogic trigger in this block. Send trigger position. */
-					trigger_offset = devc->trigger_pos - devc->sent_samples;
-					/* Pre-trigger samples. */
-					send_data(sdi, (uint8_t *)transfer->buffer,
-						trigger_offset * unitsize, unitsize);
-					devc->sent_samples += trigger_offset;
-					/* Trigger position. */
-					devc->trigger_pos = 0;
-					packet.type = SR_DF_TRIGGER;
-					packet.payload = NULL;
-					sr_session_send(sdi, &packet);
-					/* Post trigger samples. */
-					num_samples -= trigger_offset;
-					send_data(sdi, (uint8_t *)transfer->buffer
-							+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
-					devc->sent_samples += num_samples;
-			} else {
-				send_data(sdi, (uint8_t *)transfer->buffer,
-					num_samples * unitsize, unitsize);
-				devc->sent_samples += num_samples;
-			}
+	if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
+		/* Send the incoming transfer to the session bus. */
+		if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
+			num_samples = devc->limit_samples - devc->sent_samples;
+		else
+			num_samples = cur_sample_count;
+
+		if (devc->trigger_pos > devc->sent_samples
+			&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+			/* DSLogic trigger in this block. Send trigger position. */
+			trigger_offset = devc->trigger_pos - devc->sent_samples;
+			/* Pre-trigger samples. */
+			send_data(sdi, (uint8_t *)transfer->buffer,
+				trigger_offset * unitsize, unitsize);
+			devc->sent_samples += trigger_offset;
+			/* Trigger position. */
+			devc->trigger_pos = 0;
+			packet.type = SR_DF_TRIGGER;
+			packet.payload = NULL;
+			sr_session_send(sdi, &packet);
+			/* Post trigger samples. */
+			num_samples -= trigger_offset;
+			send_data(sdi, (uint8_t *)transfer->buffer
+					+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
+			devc->sent_samples += num_samples;
+		} else {
+			send_data(sdi, (uint8_t *)transfer->buffer,
+				num_samples * unitsize, unitsize);
+			devc->sent_samples += num_samples;
 		}
 	}
 
@@ -912,7 +911,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
-	devc->trigger_fired = TRUE;
 
 	num_transfers = get_number_of_transfers(devc);
 
