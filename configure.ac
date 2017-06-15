@@ -21,7 +21,7 @@
 # We require at least autoconf 2.63 (AC_INIT format changed there).
 AC_PREREQ([2.63])
 
-AC_INIT([libsigrok], [0.5.0],
+AC_INIT([libsigrok], [0.6.0],
 	[sigrok-devel@lists.sourceforge.net],
 	[libsigrok], [http://www.sigrok.org])
 AC_CONFIG_MACRO_DIR([m4])
