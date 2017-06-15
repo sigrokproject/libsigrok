@@ -924,6 +924,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	size = get_buffer_size(devc);
 	devc->submitted_transfers = 0;
 
+	g_free(devc->transfers);
 	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
 	if (!devc->transfers) {
 		sr_err("USB transfers malloc failed.");
