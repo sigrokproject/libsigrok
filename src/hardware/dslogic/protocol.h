@@ -53,6 +53,36 @@
 #define DSLOGIC_PLUS_FPGA_FIRMWARE "dreamsourcelab-dslogic-plus-fpga.fw"
 #define DSLOGIC_BASIC_FPGA_FIRMWARE "dreamsourcelab-dslogic-basic-fpga.fw"
 
+enum dslogic_operation_modes {
+	DS_OP_NORMAL,
+	DS_OP_INTERNAL_TEST,
+	DS_OP_EXTERNAL_TEST,
+	DS_OP_LOOPBACK_TEST,
+};
+
+enum dslogic_edge_modes {
+	DS_EDGE_RISING,
+	DS_EDGE_FALLING,
+};
+
+struct dslogic_version {
+	uint8_t major;
+	uint8_t minor;
+};
+
+struct dslogic_mode {
+	uint8_t flags;
+	uint8_t sample_delay_h;
+	uint8_t sample_delay_l;
+};
+
+struct dslogic_trigger_pos {
+	uint32_t real_pos;
+	uint32_t ram_saddr;
+	uint32_t remain_cnt;
+	uint8_t first_block[500];
+};
+
 struct dslogic_profile {
 	uint16_t vid;
 	uint16_t pid;
@@ -111,15 +141,11 @@ struct dev_context {
 	double cur_threshold;
 };
 
+SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_set_voltage_threshold(const struct sr_dev_inst *sdi, double threshold);
-SR_PRIV int dslogic_command_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di);
 SR_PRIV struct dev_context *dslogic_dev_new(void);
-SR_PRIV void dslogic_abort_acquisition(struct dev_context *devc);
-SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transfer);
-SR_PRIV size_t dslogic_get_buffer_size(struct dev_context *devc);
-SR_PRIV unsigned int dslogic_get_timeout(struct dev_context *devc);
-SR_PRIV void dslogic_send_data(struct sr_dev_inst *sdi, uint8_t *data,
-		size_t length, size_t sample_width);
+SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi);
+SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi);
 
 #endif

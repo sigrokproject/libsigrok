@@ -19,9 +19,8 @@
  */
 
 #include <config.h>
-#include "protocol.h"
-#include "dslogic.h"
 #include <math.h>
+#include "protocol.h"
 
 static const struct dslogic_profile supported_device[] = {
 	/* DreamSourceLab DSLogic */
@@ -639,195 +638,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int receive_data(int fd, int revents, void *cb_data)
-{
-	struct timeval tv;
-	struct drv_context *drvc;
-
-	(void)fd;
-	(void)revents;
-
-	drvc = (struct drv_context *)cb_data;
-
-	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
-
-	return TRUE;
-}
-
-static int start_transfers(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-	struct libusb_transfer *transfer;
-	unsigned int i, num_transfers;
-	int timeout, ret;
-	unsigned char *buf;
-	size_t size;
-
-	devc = sdi->priv;
-	usb = sdi->conn;
-
-	devc->sent_samples = 0;
-	devc->acq_aborted = FALSE;
-	devc->empty_transfer_count = 0;
-	devc->trigger_fired = TRUE;
-
-	num_transfers = dslogic_get_number_of_transfers(devc);
-
-	if (devc->cur_samplerate == SR_MHZ(100))
-		num_transfers = 16;
-	else if (devc->cur_samplerate == SR_MHZ(200))
-		num_transfers = 8;
-	else if (devc->cur_samplerate == SR_MHZ(400))
-		num_transfers = 4;
-
-	size = dslogic_get_buffer_size(devc);
-	devc->submitted_transfers = 0;
-
-	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
-	if (!devc->transfers) {
-		sr_err("USB transfers malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
-	timeout = dslogic_get_timeout(devc);
-	devc->num_transfers = num_transfers;
-	for (i = 0; i < num_transfers; i++) {
-		if (!(buf = g_try_malloc(size))) {
-			sr_err("USB transfer buffer malloc failed.");
-			return SR_ERR_MALLOC;
-		}
-		transfer = libusb_alloc_transfer(0);
-		libusb_fill_bulk_transfer(transfer, usb->devhdl,
-				6 | LIBUSB_ENDPOINT_IN, buf, size,
-				dslogic_receive_transfer, (void *)sdi, timeout);
-		sr_info("submitting transfer: %d", i);
-		if ((ret = libusb_submit_transfer(transfer)) != 0) {
-			sr_err("Failed to submit transfer: %s.",
-			       libusb_error_name(ret));
-			libusb_free_transfer(transfer);
-			g_free(buf);
-			dslogic_abort_acquisition(devc);
-			return SR_ERR;
-		}
-		devc->transfers[i] = transfer;
-		devc->submitted_transfers++;
-	}
-
-	std_session_send_df_header(sdi);
-
-	return SR_OK;
-}
-
-static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
-{
-	const struct sr_dev_inst *sdi;
-	struct dslogic_trigger_pos *tpos;
-	struct dev_context *devc;
-
-	sdi = transfer->user_data;
-	devc = sdi->priv;
-	if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-		sr_dbg("Trigger transfer canceled.");
-		/* Terminate session. */
-		std_session_send_df_end(sdi);
-		usb_source_remove(sdi->session, devc->ctx);
-		devc->num_transfers = 0;
-		g_free(devc->transfers);
-	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
-			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
-		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos,
-			tpos->ram_saddr, tpos->remain_cnt);
-		devc->trigger_pos = tpos->real_pos;
-		g_free(tpos);
-		start_transfers(sdi);
-	}
-	libusb_free_transfer(transfer);
-}
-
-static int trigger_request(const struct sr_dev_inst *sdi)
-{
-	struct sr_usb_dev_inst *usb;
-	struct libusb_transfer *transfer;
-	struct dslogic_trigger_pos *tpos;
-	struct dev_context *devc;
-	int ret;
-
-	usb = sdi->conn;
-	devc = sdi->priv;
-
-	if ((ret = dslogic_stop_acquisition(sdi)) != SR_OK)
-		return ret;
-
-	if ((ret = dslogic_fpga_configure(sdi)) != SR_OK)
-		return ret;
-
-	if ((ret = dslogic_start_acquisition(sdi)) != SR_OK)
-		return ret;
-
-	sr_dbg("Getting trigger.");
-	tpos = g_malloc(sizeof(struct dslogic_trigger_pos));
-	transfer = libusb_alloc_transfer(0);
-	libusb_fill_bulk_transfer(transfer, usb->devhdl, 6 | LIBUSB_ENDPOINT_IN,
-			(unsigned char *)tpos, sizeof(struct dslogic_trigger_pos),
-			trigger_receive, (void *)sdi, 0);
-	if ((ret = libusb_submit_transfer(transfer)) < 0) {
-		sr_err("Failed to request trigger: %s.", libusb_error_name(ret));
-		libusb_free_transfer(transfer);
-		g_free(tpos);
-		return SR_ERR;
-	}
-
-	devc->transfers = g_try_malloc0(sizeof(*devc->transfers));
-	if (!devc->transfers) {
-		sr_err("USB trigger_pos transfer malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-	devc->num_transfers = 1;
-	devc->submitted_transfers++;
-	devc->transfers[0] = transfer;
-
-	return ret;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	struct sr_dev_driver *di;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	int timeout;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	di = sdi->driver;
-	drvc = di->context;
-	devc = sdi->priv;
-
-	devc->ctx = drvc->sr_ctx;
-	devc->sent_samples = 0;
-	devc->empty_transfer_count = 0;
-	devc->acq_aborted = FALSE;
-
-	timeout = dslogic_get_timeout(devc);
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
-
-	trigger_request(sdi);
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	dslogic_stop_acquisition(sdi);
-
-	dslogic_abort_acquisition(sdi->priv);
-
-	return SR_OK;
-}
-
 static struct sr_dev_driver dslogic_driver_info = {
 	.name = "dslogic",
 	.longname = "DreamSourceLabs DSLogic",
@@ -842,8 +652,8 @@ static struct sr_dev_driver dslogic_driver_info = {
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = dslogic_acquisition_start,
+	.dev_acquisition_stop = dslogic_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(dslogic_driver_info);

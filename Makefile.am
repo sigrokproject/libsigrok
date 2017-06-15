@@ -274,8 +274,6 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_DSLOGIC
 src_libdrivers_la_SOURCES += \
-	src/hardware/dslogic/dslogic.h \
-	src/hardware/dslogic/dslogic.c \
 	src/hardware/dslogic/protocol.h \
 	src/hardware/dslogic/protocol.c \
 	src/hardware/dslogic/api.c

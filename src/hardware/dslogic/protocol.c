@@ -19,10 +19,70 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
-#include "dslogic.h"
+
+#define DS_CMD_GET_FW_VERSION		0xb0
+#define DS_CMD_GET_REVID_VERSION	0xb1
+#define DS_CMD_START			0xb2
+#define DS_CMD_CONFIG			0xb3
+#define DS_CMD_SETTING			0xb4
+#define DS_CMD_CONTROL			0xb5
+#define DS_CMD_STATUS			0xb6
+#define DS_CMD_STATUS_INFO		0xb7
+#define DS_CMD_WR_REG			0xb8
+#define DS_CMD_WR_NVM			0xb9
+#define DS_CMD_RD_NVM			0xba
+#define DS_CMD_RD_NVM_PRE		0xbb
+#define DS_CMD_GET_HW_INFO		0xbc
+
+#define DS_START_FLAGS_STOP		(1 << 7)
+#define DS_START_FLAGS_CLK_48MHZ	(1 << 6)
+#define DS_START_FLAGS_SAMPLE_WIDE	(1 << 5)
+#define DS_START_FLAGS_MODE_LA		(1 << 4)
+
+#define DS_ADDR_COMB			0x68
+#define DS_ADDR_EEWP			0x70
+#define DS_ADDR_VTH			0x78
+
+#define DS_MAX_LOGIC_DEPTH		SR_MHZ(16)
+#define DS_MAX_LOGIC_SAMPLERATE		SR_MHZ(100)
+#define DS_MAX_TRIG_PERCENT		90
+
+#define DS_MODE_TRIG_EN			(1 << 0)
+#define DS_MODE_CLK_TYPE		(1 << 1)
+#define DS_MODE_CLK_EDGE		(1 << 2)
+#define DS_MODE_RLE_MODE		(1 << 3)
+#define DS_MODE_DSO_MODE		(1 << 4)
+#define DS_MODE_HALF_MODE		(1 << 5)
+#define DS_MODE_QUAR_MODE		(1 << 6)
+#define DS_MODE_ANALOG_MODE		(1 << 7)
+#define DS_MODE_FILTER			(1 << 8)
+#define DS_MODE_INSTANT			(1 << 9)
+#define DS_MODE_STRIG_MODE		(1 << 11)
+#define DS_MODE_STREAM_MODE		(1 << 12)
+#define DS_MODE_LPB_TEST		(1 << 13)
+#define DS_MODE_EXT_TEST		(1 << 14)
+#define DS_MODE_INT_TEST		(1 << 15)
+
+#define DSLOGIC_ATOMIC_SAMPLES		(1 << 6)
+
+/*
+ * The FPGA is configured with TLV tuples. Length is specified as the
+ * number of 16-bit words.
+ */
+#define _DS_CFG(variable, wordcnt) ((variable << 8) | wordcnt)
+#define DS_CFG_START		0xf5a5f5a5
+#define DS_CFG_MODE		_DS_CFG(0, 1)
+#define DS_CFG_DIVIDER		_DS_CFG(1, 2)
+#define DS_CFG_COUNT		_DS_CFG(3, 2)
+#define DS_CFG_TRIG_POS		_DS_CFG(5, 2)
+#define DS_CFG_TRIG_GLB		_DS_CFG(7, 1)
+#define DS_CFG_CH_EN		_DS_CFG(8, 1)
+#define DS_CFG_TRIG		_DS_CFG(64, 160)
+#define DS_CFG_END		0xfa5afa5a
 
 #pragma pack(push, 1)
 
@@ -37,9 +97,48 @@ struct cmd_start_acquisition {
 	uint8_t sample_delay_l;
 };
 
+struct dslogic_fpga_config {
+	uint32_t sync;
+
+	uint16_t mode_header;
+	uint16_t mode;
+	uint16_t divider_header;
+	uint32_t divider;
+	uint16_t count_header;
+	uint32_t count;
+	uint16_t trig_pos_header;
+	uint32_t trig_pos;
+	uint16_t trig_glb_header;
+	uint16_t trig_glb;
+	uint16_t ch_en_header;
+	uint16_t ch_en;
+
+	uint16_t trig_header;
+	uint16_t trig_mask0[NUM_TRIGGER_STAGES];
+	uint16_t trig_mask1[NUM_TRIGGER_STAGES];
+	uint16_t trig_value0[NUM_TRIGGER_STAGES];
+	uint16_t trig_value1[NUM_TRIGGER_STAGES];
+	uint16_t trig_edge0[NUM_TRIGGER_STAGES];
+	uint16_t trig_edge1[NUM_TRIGGER_STAGES];
+	uint16_t trig_logic0[NUM_TRIGGER_STAGES];
+	uint16_t trig_logic1[NUM_TRIGGER_STAGES];
+	uint32_t trig_count[NUM_TRIGGER_STAGES];
+
+	uint32_t end_sync;
+};
+
 #pragma pack(pop)
 
-#define USB_TIMEOUT 100
+/*
+ * This should be larger than the FPGA bitstream image so that it'll get
+ * uploaded in one big operation. There seem to be issues when uploading
+ * it in chunks.
+ */
+#define FW_BUFSIZE (1024 * 1024)
+
+#define FPGA_UPLOAD_DELAY (10 * 1000)
+
+#define USB_TIMEOUT (3 * 1000)
 
 static int command_get_fw_version(libusb_device_handle *devhdl,
 				  struct version_info *vi)
@@ -71,6 +170,342 @@ static int command_get_revid_version(struct sr_dev_inst *sdi, uint8_t *revid)
 
 	if (ret < 0) {
 		sr_err("Unable to get REVID: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int command_start_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_usb_dev_inst *usb;
+	struct dslogic_mode mode;
+	int ret;
+
+	mode.flags = DS_START_FLAGS_MODE_LA | DS_START_FLAGS_SAMPLE_WIDE;
+	mode.sample_delay_h = mode.sample_delay_l = 0;
+
+	usb = sdi->conn;
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+			LIBUSB_ENDPOINT_OUT, DS_CMD_START, 0x0000, 0x0000,
+			(unsigned char *)&mode, sizeof(mode), USB_TIMEOUT);
+	if (ret < 0) {
+		sr_err("Failed to send start command: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int command_stop_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_usb_dev_inst *usb;
+	struct dslogic_mode mode;
+	int ret;
+
+	mode.flags = DS_START_FLAGS_STOP;
+	mode.sample_delay_h = mode.sample_delay_l = 0;
+
+	usb = sdi->conn;
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+			LIBUSB_ENDPOINT_OUT, DS_CMD_START, 0x0000, 0x0000,
+			(unsigned char *)&mode, sizeof(struct dslogic_mode), USB_TIMEOUT);
+	if (ret < 0) {
+		sr_err("Failed to send stop command: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi)
+{
+	const char *name = NULL;
+	uint64_t sum;
+	struct sr_resource bitstream;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	unsigned char *buf;
+	ssize_t chunksize;
+	int transferred;
+	int result, ret;
+	const uint8_t cmd[3] = {0, 0, 0};
+
+	drvc = sdi->driver->context;
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	if (!strcmp(devc->profile->model, "DSLogic")) {
+		if (devc->cur_threshold < 1.40)
+			name = DSLOGIC_FPGA_FIRMWARE_3V3;
+		else
+			name = DSLOGIC_FPGA_FIRMWARE_5V;
+	} else if (!strcmp(devc->profile->model, "DSLogic Pro")){
+		name = DSLOGIC_PRO_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSLogic Plus")){
+		name = DSLOGIC_PLUS_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSLogic Basic")){
+		name = DSLOGIC_BASIC_FPGA_FIRMWARE;
+	} else if (!strcmp(devc->profile->model, "DSCope")) {
+		name = DSCOPE_FPGA_FIRMWARE;
+	} else {
+		sr_err("Failed to select FPGA firmware.");
+		return SR_ERR;
+	}
+
+	sr_dbg("Uploading FPGA firmware '%s'.", name);
+
+	result = sr_resource_open(drvc->sr_ctx, &bitstream,
+			SR_RESOURCE_FIRMWARE, name);
+	if (result != SR_OK)
+		return result;
+
+	/* Tell the device firmware is coming. */
+	if ((ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+			LIBUSB_ENDPOINT_OUT, DS_CMD_CONFIG, 0x0000, 0x0000,
+			(unsigned char *)&cmd, sizeof(cmd), USB_TIMEOUT)) < 0) {
+		sr_err("Failed to upload FPGA firmware: %s.", libusb_error_name(ret));
+		sr_resource_close(drvc->sr_ctx, &bitstream);
+		return SR_ERR;
+	}
+
+	/* Give the FX2 time to get ready for FPGA firmware upload. */
+	g_usleep(FPGA_UPLOAD_DELAY);
+
+	buf = g_malloc(FW_BUFSIZE);
+	sum = 0;
+	result = SR_OK;
+	while (1) {
+		chunksize = sr_resource_read(drvc->sr_ctx, &bitstream,
+				buf, FW_BUFSIZE);
+		if (chunksize < 0)
+			result = SR_ERR;
+		if (chunksize <= 0)
+			break;
+
+		if ((ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
+				buf, chunksize, &transferred, USB_TIMEOUT)) < 0) {
+			sr_err("Unable to configure FPGA firmware: %s.",
+					libusb_error_name(ret));
+			result = SR_ERR;
+			break;
+		}
+		sum += transferred;
+		sr_spew("Uploaded %" PRIu64 "/%" PRIu64 " bytes.",
+			sum, bitstream.size);
+
+		if (transferred != chunksize) {
+			sr_err("Short transfer while uploading FPGA firmware.");
+			result = SR_ERR;
+			break;
+		}
+	}
+	g_free(buf);
+	sr_resource_close(drvc->sr_ctx, &bitstream);
+
+	if (result == SR_OK)
+		sr_dbg("FPGA firmware upload done.");
+
+	return result;
+}
+
+/*
+ * Get the session trigger and configure the FPGA structure
+ * accordingly.
+ */
+static void set_trigger(const struct sr_dev_inst *sdi,
+	struct dslogic_fpga_config *cfg)
+{
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	struct dev_context *devc;
+	const GSList *l, *m;
+	int num_enabled_channels = 0, num_trigger_stages = 0;
+	int channelbit, i = 0;
+	uint32_t trigger_point;
+
+	devc = sdi->priv;
+
+	cfg->ch_en = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		const struct sr_channel *const probe = (struct sr_channel *)l->data;
+		if (probe->enabled) {
+			num_enabled_channels++;
+			cfg->ch_en |= 1 << probe->index;
+		}
+	}
+
+	cfg->trig_mask0[0] = 0xffff;
+	cfg->trig_mask1[0] = 0xffff;
+
+	cfg->trig_value0[0] = 0;
+	cfg->trig_value1[0] = 0;
+
+	cfg->trig_edge0[0] = 0;
+	cfg->trig_edge1[0] = 0;
+
+	cfg->trig_logic0[0] = 2;
+	cfg->trig_logic1[0] = 2;
+
+	cfg->trig_count[0] = 0;
+
+	cfg->trig_glb = num_enabled_channels << 4;
+
+	for (i = 1; i < NUM_TRIGGER_STAGES; i++) {
+		cfg->trig_mask0[i] = 0xffff;
+		cfg->trig_mask1[i] = 0xffff;
+		cfg->trig_value0[i] = 0;
+		cfg->trig_value1[i] = 0;
+		cfg->trig_edge0[i] = 0;
+		cfg->trig_edge1[i] = 0;
+		cfg->trig_logic0[i] = 2;
+		cfg->trig_logic1[i] = 2;
+		cfg->trig_count[i] = 0;
+	}
+
+	trigger_point = (devc->capture_ratio * devc->limit_samples) / 100;
+	if (trigger_point < DSLOGIC_ATOMIC_SAMPLES)
+		trigger_point = DSLOGIC_ATOMIC_SAMPLES;
+	const uint32_t mem_depth = devc->profile->mem_depth;
+	const uint32_t max_trigger_point = devc->continuous_mode ? ((mem_depth * 10) / 100) :
+		((mem_depth * DS_MAX_TRIG_PERCENT) / 100);
+	if (trigger_point > max_trigger_point)
+		trigger_point = max_trigger_point;
+	cfg->trig_pos = trigger_point & ~(DSLOGIC_ATOMIC_SAMPLES - 1);
+
+	if (!(trigger = sr_session_trigger_get(sdi->session))) {
+		sr_dbg("No session trigger found");
+		return;
+	}
+
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		num_trigger_stages++;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			channelbit = 1 << (match->channel->index);
+			/* Simple trigger support (event). */
+			if (match->match == SR_TRIGGER_ONE) {
+				cfg->trig_mask0[0] &= ~channelbit;
+				cfg->trig_mask1[0] &= ~channelbit;
+				cfg->trig_value0[0] |= channelbit;
+				cfg->trig_value1[0] |= channelbit;
+			} else if (match->match == SR_TRIGGER_ZERO) {
+				cfg->trig_mask0[0] &= ~channelbit;
+				cfg->trig_mask1[0] &= ~channelbit;
+			} else if (match->match == SR_TRIGGER_FALLING) {
+				cfg->trig_mask0[0] &= ~channelbit;
+				cfg->trig_mask1[0] &= ~channelbit;
+				cfg->trig_edge0[0] |= channelbit;
+				cfg->trig_edge1[0] |= channelbit;
+			} else if (match->match == SR_TRIGGER_RISING) {
+				cfg->trig_mask0[0] &= ~channelbit;
+				cfg->trig_mask1[0] &= ~channelbit;
+				cfg->trig_value0[0] |= channelbit;
+				cfg->trig_value1[0] |= channelbit;
+				cfg->trig_edge0[0] |= channelbit;
+				cfg->trig_edge1[0] |= channelbit;
+			} else if (match->match == SR_TRIGGER_EDGE) {
+				cfg->trig_edge0[0] |= channelbit;
+				cfg->trig_edge1[0] |= channelbit;
+			}
+		}
+	}
+
+	cfg->trig_glb |= num_trigger_stages;
+
+	return;
+}
+
+static int fpga_configure(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	uint8_t c[3];
+	struct dslogic_fpga_config cfg;
+	uint16_t v16;
+	uint32_t v32;
+	int transferred, len, ret;
+
+	sr_dbg("Configuring FPGA.");
+
+	usb = sdi->conn;
+	devc = sdi->priv;
+
+	WL32(&cfg.sync, DS_CFG_START);
+	WL16(&cfg.mode_header, DS_CFG_MODE);
+	WL16(&cfg.divider_header, DS_CFG_DIVIDER);
+	WL16(&cfg.count_header, DS_CFG_COUNT);
+	WL16(&cfg.trig_pos_header, DS_CFG_TRIG_POS);
+	WL16(&cfg.trig_glb_header, DS_CFG_TRIG_GLB);
+	WL16(&cfg.ch_en_header, DS_CFG_CH_EN);
+	WL16(&cfg.trig_header, DS_CFG_TRIG);
+	WL32(&cfg.end_sync, DS_CFG_END);
+
+	/* Pass in the length of a fixed-size struct. Really. */
+	len = sizeof(struct dslogic_fpga_config) / 2;
+	c[0] = len & 0xff;
+	c[1] = (len >> 8) & 0xff;
+	c[2] = (len >> 16) & 0xff;
+
+	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
+			LIBUSB_ENDPOINT_OUT, DS_CMD_SETTING, 0x0000, 0x0000,
+			c, sizeof(c), USB_TIMEOUT);
+	if (ret < 0) {
+		sr_err("Failed to send FPGA configure command: %s.",
+			libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	v16 = 0x0000;
+
+	if (devc->mode == DS_OP_INTERNAL_TEST)
+		v16 = DS_MODE_INT_TEST;
+	else if (devc->mode == DS_OP_EXTERNAL_TEST)
+		v16 = DS_MODE_EXT_TEST;
+	else if (devc->mode == DS_OP_LOOPBACK_TEST)
+		v16 = DS_MODE_LPB_TEST;
+
+	if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 2)
+		v16 |= DS_MODE_HALF_MODE;
+	else if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 4)
+		v16 |= DS_MODE_QUAR_MODE;
+
+	if (devc->continuous_mode)
+		v16 |= DS_MODE_STREAM_MODE;
+	if (devc->external_clock) {
+		v16 |= DS_MODE_CLK_TYPE;
+		if (devc->clock_edge == DS_EDGE_FALLING)
+			v16 |= DS_MODE_CLK_EDGE;
+	}
+	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
+		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE)
+		&& !devc->continuous_mode) {
+		/* Enable RLE for long captures.
+		 * Without this, captured data present errors.
+		 */
+		v16 |= DS_MODE_RLE_MODE;
+	}
+
+	WL16(&cfg.mode, v16);
+	v32 = ceil(DS_MAX_LOGIC_SAMPLERATE * 1.0 / devc->cur_samplerate);
+	WL32(&cfg.divider, v32);
+
+	/* Number of 16-sample units. */
+	WL32(&cfg.count, devc->limit_samples / 16);
+
+	set_trigger(sdi, &cfg);
+
+	len = sizeof(struct dslogic_fpga_config);
+	ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
+			(unsigned char *)&cfg, len, &transferred, USB_TIMEOUT);
+	if (ret < 0 || transferred != len) {
+		sr_err("Failed to send FPGA configuration: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -228,7 +663,7 @@ SR_PRIV struct dev_context *dslogic_dev_new(void)
 	return devc;
 }
 
-SR_PRIV void dslogic_abort_acquisition(struct dev_context *devc)
+static void abort_acquisition(struct dev_context *devc)
 {
 	int i;
 
@@ -291,7 +726,7 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 
 }
 
-SR_PRIV void dslogic_send_data(struct sr_dev_inst *sdi,
+static void send_data(struct sr_dev_inst *sdi,
 	uint8_t *data, size_t length, size_t sample_width)
 {
 	const struct sr_datafeed_logic logic = {
@@ -308,7 +743,7 @@ SR_PRIV void dslogic_send_data(struct sr_dev_inst *sdi,
 	sr_session_send(sdi, &packet);
 }
 
-SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transfer)
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -338,7 +773,7 @@ SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transf
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
-		dslogic_abort_acquisition(devc);
+		abort_acquisition(devc);
 		free_transfer(transfer);
 		return;
 	case LIBUSB_TRANSFER_COMPLETED:
@@ -356,7 +791,7 @@ SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transf
 			 * The FX2 gave up. End the acquisition, the frontend
 			 * will work out that the samplecount is short.
 			 */
-			dslogic_abort_acquisition(devc);
+			abort_acquisition(devc);
 			free_transfer(transfer);
 		} else {
 			resubmit_transfer(transfer);
@@ -378,7 +813,7 @@ SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transf
 					/* DSLogic trigger in this block. Send trigger position. */
 					trigger_offset = devc->trigger_pos - devc->sent_samples;
 					/* Pre-trigger samples. */
-					dslogic_send_data(sdi, (uint8_t *)transfer->buffer,
+					send_data(sdi, (uint8_t *)transfer->buffer,
 						trigger_offset * unitsize, unitsize);
 					devc->sent_samples += trigger_offset;
 					/* Trigger position. */
@@ -388,11 +823,11 @@ SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transf
 					sr_session_send(sdi, &packet);
 					/* Post trigger samples. */
 					num_samples -= trigger_offset;
-					dslogic_send_data(sdi, (uint8_t *)transfer->buffer
+					send_data(sdi, (uint8_t *)transfer->buffer
 							+ trigger_offset * unitsize, num_samples * unitsize, unitsize);
 					devc->sent_samples += num_samples;
 			} else {
-				dslogic_send_data(sdi, (uint8_t *)transfer->buffer,
+				send_data(sdi, (uint8_t *)transfer->buffer,
 					num_samples * unitsize, unitsize);
 				devc->sent_samples += num_samples;
 			}
@@ -400,36 +835,234 @@ SR_PRIV void LIBUSB_CALL dslogic_receive_transfer(struct libusb_transfer *transf
 	}
 
 	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
-		dslogic_abort_acquisition(devc);
+		abort_acquisition(devc);
 		free_transfer(transfer);
 	} else
 		resubmit_transfer(transfer);
 }
 
-static unsigned int to_bytes_per_ms(unsigned int samplerate)
+static int receive_data(int fd, int revents, void *cb_data)
 {
-	return samplerate / 1000;
+	struct timeval tv;
+	struct drv_context *drvc;
+
+	(void)fd;
+	(void)revents;
+
+	drvc = (struct drv_context *)cb_data;
+
+	tv.tv_sec = tv.tv_usec = 0;
+	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	return TRUE;
 }
 
-SR_PRIV size_t dslogic_get_buffer_size(struct dev_context *devc)
+static unsigned int to_bytes_per_ms(unsigned int samplerate)
 {
-	size_t s;
+	if (samplerate > SR_MHZ(100))
+		return SR_MHZ(100) / 1000 * 2;
+	return samplerate / 1000 * 2;
+}
 
+static size_t get_buffer_size(struct dev_context *devc)
+{
 	/*
 	 * The buffer should be large enough to hold 10ms of data and
 	 * a multiple of 512.
 	 */
-	s = 10 * to_bytes_per_ms(devc->cur_samplerate);
+	const size_t s = 10 * to_bytes_per_ms(devc->cur_samplerate);
 	return (s + 511) & ~511;
 }
 
-SR_PRIV unsigned int dslogic_get_timeout(struct dev_context *devc)
+static int get_number_of_transfers(struct dev_context *devc)
 {
-	size_t total_size;
-	unsigned int timeout;
+	/* Total buffer size should be able to hold about 100ms of data. */
+	const unsigned int n = (100 * to_bytes_per_ms(devc->cur_samplerate)) /
+		get_buffer_size(devc);
+	sr_info("New calculation: %d", n);
 
-	total_size = dslogic_get_buffer_size(devc) *
-			dslogic_get_number_of_transfers(devc);
-	timeout = total_size / to_bytes_per_ms(devc->cur_samplerate);
+	if (n > NUM_SIMUL_TRANSFERS)
+		return NUM_SIMUL_TRANSFERS;
+
+	return n;
+}
+
+static unsigned int get_timeout(struct dev_context *devc)
+{
+	const size_t total_size = get_buffer_size(devc) *
+		get_number_of_transfers(devc);
+	const unsigned int timeout =
+		total_size / to_bytes_per_ms(devc->cur_samplerate);
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
+}
+
+static int start_transfers(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	struct libusb_transfer *transfer;
+	unsigned int i, num_transfers;
+	int timeout, ret;
+	unsigned char *buf;
+	size_t size;
+
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	devc->sent_samples = 0;
+	devc->acq_aborted = FALSE;
+	devc->empty_transfer_count = 0;
+	devc->trigger_fired = TRUE;
+
+	num_transfers = get_number_of_transfers(devc);
+
+	if (devc->cur_samplerate == SR_MHZ(100))
+		num_transfers = 16;
+	else if (devc->cur_samplerate == SR_MHZ(200))
+		num_transfers = 8;
+	else if (devc->cur_samplerate == SR_MHZ(400))
+		num_transfers = 4;
+
+	size = get_buffer_size(devc);
+	devc->submitted_transfers = 0;
+
+	devc->transfers = g_try_malloc0(sizeof(*devc->transfers) * num_transfers);
+	if (!devc->transfers) {
+		sr_err("USB transfers malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+
+	timeout = get_timeout(devc);
+	devc->num_transfers = num_transfers;
+	for (i = 0; i < num_transfers; i++) {
+		if (!(buf = g_try_malloc(size))) {
+			sr_err("USB transfer buffer malloc failed.");
+			return SR_ERR_MALLOC;
+		}
+		transfer = libusb_alloc_transfer(0);
+		libusb_fill_bulk_transfer(transfer, usb->devhdl,
+				6 | LIBUSB_ENDPOINT_IN, buf, size,
+				receive_transfer, (void *)sdi, timeout);
+		sr_info("submitting transfer: %d", i);
+		if ((ret = libusb_submit_transfer(transfer)) != 0) {
+			sr_err("Failed to submit transfer: %s.",
+			       libusb_error_name(ret));
+			libusb_free_transfer(transfer);
+			g_free(buf);
+			abort_acquisition(devc);
+			return SR_ERR;
+		}
+		devc->transfers[i] = transfer;
+		devc->submitted_transfers++;
+	}
+
+	std_session_send_df_header(sdi);
+
+	return SR_OK;
+}
+
+static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
+{
+	const struct sr_dev_inst *sdi;
+	struct dslogic_trigger_pos *tpos;
+	struct dev_context *devc;
+
+	sdi = transfer->user_data;
+	devc = sdi->priv;
+	if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
+		sr_dbg("Trigger transfer canceled.");
+		/* Terminate session. */
+		std_session_send_df_end(sdi);
+		usb_source_remove(sdi->session, devc->ctx);
+		devc->num_transfers = 0;
+		g_free(devc->transfers);
+	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
+			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
+		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
+		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos,
+			tpos->ram_saddr, tpos->remain_cnt);
+		devc->trigger_pos = tpos->real_pos;
+		g_free(tpos);
+		start_transfers(sdi);
+	}
+	libusb_free_transfer(transfer);
+}
+
+static int trigger_request(const struct sr_dev_inst *sdi)
+{
+	struct sr_usb_dev_inst *usb;
+	struct libusb_transfer *transfer;
+	struct dslogic_trigger_pos *tpos;
+	struct dev_context *devc;
+	int ret;
+
+	usb = sdi->conn;
+	devc = sdi->priv;
+
+	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
+		return ret;
+
+	if ((ret = fpga_configure(sdi)) != SR_OK)
+		return ret;
+
+	if ((ret = command_start_acquisition(sdi)) != SR_OK)
+		return ret;
+
+	sr_dbg("Getting trigger.");
+	tpos = g_malloc(sizeof(struct dslogic_trigger_pos));
+	transfer = libusb_alloc_transfer(0);
+	libusb_fill_bulk_transfer(transfer, usb->devhdl, 6 | LIBUSB_ENDPOINT_IN,
+			(unsigned char *)tpos, sizeof(struct dslogic_trigger_pos),
+			trigger_receive, (void *)sdi, 0);
+	if ((ret = libusb_submit_transfer(transfer)) < 0) {
+		sr_err("Failed to request trigger: %s.", libusb_error_name(ret));
+		libusb_free_transfer(transfer);
+		g_free(tpos);
+		return SR_ERR;
+	}
+
+	devc->transfers = g_try_malloc0(sizeof(*devc->transfers));
+	if (!devc->transfers) {
+		sr_err("USB trigger_pos transfer malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+	devc->num_transfers = 1;
+	devc->submitted_transfers++;
+	devc->transfers[0] = transfer;
+
+	return ret;
+}
+
+SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
+{
+	struct sr_dev_driver *di;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	int timeout;
+
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	di = sdi->driver;
+	drvc = di->context;
+	devc = sdi->priv;
+
+	devc->ctx = drvc->sr_ctx;
+	devc->sent_samples = 0;
+	devc->empty_transfer_count = 0;
+	devc->acq_aborted = FALSE;
+
+	timeout = get_timeout(devc);
+	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
+
+	trigger_request(sdi);
+
+	return SR_OK;
+}
+
+SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	command_stop_acquisition(sdi);
+	abort_acquisition(sdi->priv);
+	return SR_OK;
 }
