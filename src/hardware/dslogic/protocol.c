@@ -67,7 +67,8 @@
 #define DS_MODE_EXT_TEST		(1 << 14)
 #define DS_MODE_INT_TEST		(1 << 15)
 
-#define DSLOGIC_ATOMIC_SAMPLES		(1 << 6)
+#define DSLOGIC_ATOMIC_SAMPLES		(sizeof(uint64_t) * 8)
+#define DSLOGIC_ATOMIC_BYTES		sizeof(uint64_t)
 
 /*
  * The FPGA is configured with TLV tuples. Length is specified as the
@@ -873,54 +874,60 @@ static int receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static unsigned int to_bytes_per_ms(unsigned int samplerate)
+static size_t to_bytes_per_ms(const struct sr_dev_inst *sdi)
 {
-	if (samplerate > SR_MHZ(100))
-		return SR_MHZ(100) / 1000 * 2;
-	return samplerate / 1000 * 2;
+	const struct dev_context *const devc = sdi->priv;
+	const size_t ch_count = enabled_channel_count(sdi);
+
+	if (devc->continuous_mode)
+		return (devc->cur_samplerate * ch_count) / (1000 * 8);
+
+
+	/* If we're in buffered mode, the transfer rate is not so important,
+	 * but we expect to get at least 10% of the high-speed USB bandwidth.
+	 */
+	return 35000000 / (1000 * 10);
 }
 
-static size_t get_buffer_size(struct dev_context *devc)
+static size_t get_buffer_size(const struct sr_dev_inst *sdi)
 {
 	/*
 	 * The buffer should be large enough to hold 10ms of data and
-	 * a multiple of 512.
+	 * a multiple of the size of a data atom.
 	 */
-	const size_t s = 10 * to_bytes_per_ms(devc->cur_samplerate);
-	return (s + 511) & ~511;
+	const size_t block_size = enabled_channel_count(sdi) * 512;
+	const size_t s = 10 * to_bytes_per_ms(sdi);
+	return ((s + block_size - 1) / block_size) * block_size;
 }
 
-static int get_number_of_transfers(struct dev_context *devc)
+static unsigned int get_number_of_transfers(const struct sr_dev_inst *sdi)
 {
 	/* Total buffer size should be able to hold about 100ms of data. */
-	const unsigned int n = (100 * to_bytes_per_ms(devc->cur_samplerate)) /
-		get_buffer_size(devc);
-	sr_info("New calculation: %d", n);
-
-	if (n > NUM_SIMUL_TRANSFERS)
-		return NUM_SIMUL_TRANSFERS;
-
-	return n;
+	const unsigned int s = get_buffer_size(sdi);
+	const unsigned int n = (100 * to_bytes_per_ms(sdi) + s - 1) / s;
+	return (n > NUM_SIMUL_TRANSFERS) ? NUM_SIMUL_TRANSFERS : n;
 }
 
-static unsigned int get_timeout(struct dev_context *devc)
+static unsigned int get_timeout(const struct sr_dev_inst *sdi)
 {
-	const size_t total_size = get_buffer_size(devc) *
-		get_number_of_transfers(devc);
-	const unsigned int timeout =
-		total_size / to_bytes_per_ms(devc->cur_samplerate);
+	const size_t total_size = get_buffer_size(sdi) *
+		get_number_of_transfers(sdi);
+	const unsigned int timeout = total_size / to_bytes_per_ms(sdi);
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
 }
 
 static int start_transfers(const struct sr_dev_inst *sdi)
 {
+	const size_t size = get_buffer_size(sdi);
+	const unsigned int num_transfers = get_number_of_transfers(sdi);
+	const unsigned int timeout = get_timeout(sdi);
+
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
-	unsigned int i, num_transfers;
-	int timeout, ret;
+	unsigned int i;
+	int ret;
 	unsigned char *buf;
-	size_t size;
 
 	devc = sdi->priv;
 	usb = sdi->conn;
@@ -928,17 +935,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 	devc->acq_aborted = FALSE;
 	devc->empty_transfer_count = 0;
-
-	num_transfers = get_number_of_transfers(devc);
-
-	if (devc->cur_samplerate == SR_MHZ(100))
-		num_transfers = 16;
-	else if (devc->cur_samplerate == SR_MHZ(200))
-		num_transfers = 8;
-	else if (devc->cur_samplerate == SR_MHZ(400))
-		num_transfers = 4;
-
-	size = get_buffer_size(devc);
 	devc->submitted_transfers = 0;
 
 	g_free(devc->transfers);
@@ -948,7 +944,6 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		return SR_ERR_MALLOC;
 	}
 
-	timeout = get_timeout(devc);
 	devc->num_transfers = num_transfers;
 	for (i = 0; i < num_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
@@ -1006,13 +1001,14 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 
 SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 {
+	const unsigned int timeout = get_timeout(sdi);
+
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	struct dslogic_trigger_pos *tpos;
 	struct libusb_transfer *transfer;
-	int timeout;
 	int ret;
 
 	if (sdi->status != SR_ST_ACTIVE)
@@ -1028,7 +1024,6 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
 
-	timeout = get_timeout(devc);
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
 	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
