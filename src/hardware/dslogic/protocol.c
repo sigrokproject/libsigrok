@@ -988,16 +988,32 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 	libusb_free_transfer(transfer);
 }
 
-static int trigger_request(const struct sr_dev_inst *sdi)
+SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct sr_usb_dev_inst *usb;
-	struct libusb_transfer *transfer;
-	struct dslogic_trigger_pos *tpos;
+	struct sr_dev_driver *di;
+	struct drv_context *drvc;
 	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	struct dslogic_trigger_pos *tpos;
+	struct libusb_transfer *transfer;
+	int timeout;
 	int ret;
 
-	usb = sdi->conn;
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
+
+	di = sdi->driver;
+	drvc = di->context;
 	devc = sdi->priv;
+	usb = sdi->conn;
+
+	devc->ctx = drvc->sr_ctx;
+	devc->sent_samples = 0;
+	devc->empty_transfer_count = 0;
+	devc->acq_aborted = FALSE;
+
+	timeout = get_timeout(devc);
+	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
 	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
 		return ret;
@@ -1031,33 +1047,6 @@ static int trigger_request(const struct sr_dev_inst *sdi)
 	devc->transfers[0] = transfer;
 
 	return ret;
-}
-
-SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	struct sr_dev_driver *di;
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	int timeout;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
-	di = sdi->driver;
-	drvc = di->context;
-	devc = sdi->priv;
-
-	devc->ctx = drvc->sr_ctx;
-	devc->sent_samples = 0;
-	devc->empty_transfer_count = 0;
-	devc->acq_aborted = FALSE;
-
-	timeout = get_timeout(devc);
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
-
-	trigger_request(sdi);
-
-	return SR_OK;
 }
 
 SR_PRIV int dslogic_acquisition_stop(struct sr_dev_inst *sdi)
