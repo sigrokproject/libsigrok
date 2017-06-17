@@ -343,6 +343,9 @@ static void send_analog_packet(struct analog_gen *ag,
 	int ag_pattern_pos;
 	unsigned int i;
 
+	if (!ag->ch || !ag->ch->enabled)
+		return;
+
 	devc = sdi->priv;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &ag->packet;

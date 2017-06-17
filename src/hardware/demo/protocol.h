@@ -118,6 +118,7 @@ static const char *analog_pattern_str[] = {
 };
 
 struct analog_gen {
+	struct sr_channel *ch;
 	int pattern;
 	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];

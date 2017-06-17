@@ -157,6 +157,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));
+			ag->ch = ch;
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
