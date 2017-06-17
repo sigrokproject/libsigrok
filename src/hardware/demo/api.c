@@ -135,6 +135,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	/* Analog channels, channel groups and pattern generators. */
+	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 	if (num_analog_channels > 0) {
 		pattern = 0;
 		/* An "Analog" channel group with all analog channels in it. */
@@ -142,7 +143,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		acg->name = g_strdup("Analog");
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
 
-		devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 		for (i = 0; i < num_analog_channels; i++) {
 			snprintf(channel_name, 16, "A%d", i);
 			ch = sr_channel_new(sdi, i + num_logic_channels, SR_CHANNEL_ANALOG,
