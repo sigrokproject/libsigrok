@@ -457,6 +457,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GSList *l;
+	struct sr_channel *ch;
 	GHashTableIter iter;
 	void *value;
 
@@ -465,6 +467,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	devc->sent_samples = 0;
+
+	devc->enabled_logic_channels = 0;
+	devc->enabled_analog_channels = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch->enabled)
+			continue;
+		if (ch->type == SR_CHANNEL_ANALOG) {
+			devc->enabled_analog_channels++;
+			continue;
+		}
+		if (ch->type == SR_CHANNEL_LOGIC) {
+			devc->enabled_logic_channels++;
+			continue;
+		}
+	}
 
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))

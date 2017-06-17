@@ -54,6 +54,8 @@ struct dev_context {
 	GHashTable *ch_ag;
 	gboolean avg; /* True if averaging is enabled */
 	uint64_t avg_samples;
+	size_t enabled_logic_channels;
+	size_t enabled_analog_channels;
 };
 
 /* Logic patterns we can generate. */

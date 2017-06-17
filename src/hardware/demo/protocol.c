@@ -448,7 +448,11 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	todo_us = samples_todo * G_USEC_PER_SEC / devc->cur_samplerate;
 
 	logic_done  = devc->num_logic_channels  > 0 ? 0 : samples_todo;
+	if (!devc->enabled_logic_channels)
+		logic_done = samples_todo;
 	analog_done = devc->num_analog_channels > 0 ? 0 : samples_todo;
+	if (!devc->enabled_analog_channels)
+		analog_done = samples_todo;
 
 	while (logic_done < samples_todo || analog_done < samples_todo) {
 		/* Logic */
