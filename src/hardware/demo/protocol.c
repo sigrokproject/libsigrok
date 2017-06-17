@@ -349,16 +349,17 @@ static void send_analog_packet(struct analog_gen *ag,
 
 	if (!devc->avg) {
 		ag_pattern_pos = analog_pos % ag->num_samples;
-		sending_now = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+		sending_now = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
 		ag->packet.data = ag->pattern_data + ag_pattern_pos;
 		ag->packet.num_samples = sending_now;
 		sr_session_send(sdi, &packet);
+		sr_dbg("DBG: %s() sending now: %lu", __func__, (unsigned long)sending_now);
 
 		/* Whichever channel group gets there first. */
 		*analog_sent = MAX(*analog_sent, sending_now);
 	} else {
 		ag_pattern_pos = analog_pos % ag->num_samples;
-		to_avg = MIN(analog_todo, ag->num_samples-ag_pattern_pos);
+		to_avg = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
 
 		for (i = 0; i < to_avg; i++) {
 			ag->avg_val = (ag->avg_val +
@@ -429,12 +430,14 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	/* How many samples are outstanding since the last round? */
 	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC - 1)
 			/ G_USEC_PER_SEC;
+	sr_dbg("DBG: %s() samples_todo before adjustment: %lu", __func__, (unsigned long)samples_todo);
 	if (devc->limit_samples > 0) {
 		if (devc->limit_samples < devc->sent_samples)
 			samples_todo = 0;
 		else if (devc->limit_samples - devc->sent_samples < samples_todo)
 			samples_todo = devc->limit_samples - devc->sent_samples;
 	}
+	sr_dbg("DBG: %s() samples_todo after adjustment: %lu", __func__, (unsigned long)samples_todo);
 	/* Calculate the actual time covered by this run back from the sample
 	 * count, rounded towards zero. This avoids getting stuck on a too-low
 	 * time delta with no samples being sent due to round-off.
@@ -468,8 +471,10 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 				send_analog_packet(value, sdi, &analog_sent,
 						devc->sent_samples + analog_done,
 						samples_todo - analog_done);
+				sr_dbg("DBG: %s() analog_sent: %lu", __func__, (unsigned long)analog_sent);
 			}
 			analog_done += analog_sent;
+			sr_dbg("DBG: %s() analog_done: %lu", __func__, (unsigned long)analog_done);
 		}
 	}
 	/* At this point, both logic_done and analog_done should be
@@ -486,7 +491,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			|| (limit_us > 0 && devc->spent_us >= limit_us)) {
 
 		/* If we're averaging everything - now is the time to send data */
-		if (devc->avg_samples == 0) {
+		if (devc->avg && devc->avg_samples == 0) {
 			g_hash_table_iter_init(&iter, devc->ch_ag);
 			while (g_hash_table_iter_next(&iter, NULL, &value)) {
 				ag = value;
