@@ -333,6 +333,34 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	}
 }
 
+/*
+ * Fixup a memory image of generated logic data before it gets sent to
+ * the session's datafeed. Mask out content from disabled channels.
+ *
+ * TODO: Need we apply a channel map, and enforce a dense representation
+ * of the enabled channels' data?
+ */
+static void logic_fixup_feed(struct dev_context *devc,
+		struct sr_datafeed_logic *logic)
+{
+	size_t fp_off;
+	uint8_t fp_mask;
+	size_t off, idx;
+	uint8_t *sample;
+
+	fp_off = devc->first_partial_logic_index;
+	fp_mask = devc->first_partial_logic_mask;
+	if (fp_off == logic->unitsize)
+		return;
+
+	for (off = 0; off < logic->length; off += logic->unitsize) {
+		sample = logic->data + off;
+		sample[fp_off] &= fp_mask;
+		for (idx = fp_off + 1; idx < logic->unitsize; idx++)
+			sample[idx] = 0x00;
+	}
+}
+
 static void send_analog_packet(struct analog_gen *ag,
 		struct sr_dev_inst *sdi, uint64_t *analog_sent,
 		uint64_t analog_pos, uint64_t analog_todo)
@@ -465,6 +493,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			logic.length = sending_now * devc->logic_unitsize;
 			logic.unitsize = devc->logic_unitsize;
 			logic.data = devc->logic_data;
+			logic_fixup_feed(devc, &logic);
 			sr_session_send(sdi, &packet);
 			logic_done += sending_now;
 		}

@@ -56,6 +56,8 @@ struct dev_context {
 	uint64_t avg_samples;
 	size_t enabled_logic_channels;
 	size_t enabled_analog_channels;
+	size_t first_partial_logic_index;
+	uint8_t first_partial_logic_mask;
 };
 
 /* Logic patterns we can generate. */

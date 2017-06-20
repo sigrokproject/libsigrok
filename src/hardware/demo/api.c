@@ -459,6 +459,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	GSList *l;
 	struct sr_channel *ch;
+	int bitpos;
+	uint8_t mask;
 	GHashTableIter iter;
 	void *value;
 
@@ -468,6 +470,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	devc->sent_samples = 0;
 
+	/*
+	 * Determine the numbers of logic and analog channels that are
+	 * involved in the acquisition. Determine an offset and a mask to
+	 * remove excess logic data content before datafeed submission.
+	 */
 	devc->enabled_logic_channels = 0;
 	devc->enabled_analog_channels = 0;
 	for (l = sdi->channels; l; l = l->next) {
@@ -478,12 +485,34 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->enabled_analog_channels++;
 			continue;
 		}
-		if (ch->type == SR_CHANNEL_LOGIC) {
-			devc->enabled_logic_channels++;
+		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
-		}
+		/*
+		 * TODO: Need we create a channel map here, such that the
+		 * session datafeed packets will have a dense representation
+		 * of the enabled channels' data? For example store channels
+		 * D3 and D5 in bit positions 0 and 1 respectively, when all
+		 * other channels are disabled? The current implementation
+		 * generates a sparse layout, might provide data for logic
+		 * channels that are disabled while it might suppress data
+		 * from enabled channels at the same time.
+		 */
+		devc->enabled_logic_channels++;
 	}
+	devc->first_partial_logic_index = devc->enabled_logic_channels / 8;
+	bitpos = devc->enabled_logic_channels % 8;
+	mask = (1 << bitpos) - 1;
+	devc->first_partial_logic_mask = mask;
+	sr_dbg("DBG: %s(), num logic %zu, partial off %zu, mask 0x%02x",
+		__func__, devc->enabled_logic_channels,
+		devc->first_partial_logic_index,
+		devc->first_partial_logic_mask);
 
+	/*
+	 * Have the waveform for analog patterns pre-generated. It's
+	 * supposed to be periodic, so the generator just needs to
+	 * access the prepared sample data (DDS style).
+	 */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		demo_generate_analog_pattern(value, devc->cur_samplerate);
