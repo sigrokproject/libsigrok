@@ -26,23 +26,23 @@ static const struct dslogic_profile supported_device[] = {
 	/* DreamSourceLab DSLogic */
 	{ 0x2a0e, 0x0001, "DreamSourceLab", "DSLogic", NULL,
 		"dreamsourcelab-dslogic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1048576ULL},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
 	/* DreamSourceLab DSCope */
 	{ 0x2a0e, 0x0002, "DreamSourceLab", "DSCope", NULL,
 		"dreamsourcelab-dscope-fx2.fw",
-		0, "DreamSourceLab", "DSCope", 256 * 1048576ULL},
+		0, "DreamSourceLab", "DSCope", 256 * 1024 * 1024},
 	/* DreamSourceLab DSLogic Pro */
 	{ 0x2a0e, 0x0003, "DreamSourceLab", "DSLogic Pro", NULL,
 		"dreamsourcelab-dslogic-pro-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1048576ULL},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
 	/* DreamSourceLab DSLogic Plus */
 	{ 0x2a0e, 0x0020, "DreamSourceLab", "DSLogic Plus", NULL,
 		"dreamsourcelab-dslogic-plus-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1048576ULL},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024 * 1024},
 	/* DreamSourceLab DSLogic Basic */
 	{ 0x2a0e, 0x0021, "DreamSourceLab", "DSLogic Basic", NULL,
 		"dreamsourcelab-dslogic-basic-fx2.fw",
-		0, "DreamSourceLab", "DSLogic", 256 * 1024ULL},
+		0, "DreamSourceLab", "DSLogic", 256 * 1024},
 
 	ALL_ZERO
 };
@@ -150,7 +150,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	else
 		conn_devices = NULL;
 
-	/* Find all dslogic compatible devices and upload firmware to them. */
+	/* Find all DSLogic compatible devices and upload firmware to them. */
 	devices = NULL;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
@@ -168,7 +168,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 		}
 
-		libusb_get_device_descriptor( devlist[i], &des);
+		libusb_get_device_descriptor(devlist[i], &des);
 
 		if (!is_plausible(&des))
 			continue;
@@ -260,7 +260,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
-			sr_dbg("Found an dslogic device.");
+			sr_dbg("Found a DSLogic device.");
 			sdi->status = SR_ST_INACTIVE;
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
@@ -387,7 +387,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!usb->devhdl)
 		return SR_ERR;
 
-	sr_info("dslogic: Closing device on %d.%d (logical) / %s (physical) interface %d.",
+	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
@@ -638,9 +638,9 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static struct sr_dev_driver dslogic_driver_info = {
-	.name = "dslogic",
-	.longname = "DreamSourceLabs DSLogic",
+static struct sr_dev_driver dreamsourcelab_dslogic_driver_info = {
+	.name = "dreamsourcelab-dslogic",
+	.longname = "DreamSourceLab DSLogic",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
@@ -656,4 +656,4 @@ static struct sr_dev_driver dslogic_driver_info = {
 	.dev_acquisition_stop = dslogic_acquisition_stop,
 	.context = NULL,
 };
-SR_REGISTER_DEV_DRIVER(dslogic_driver_info);
+SR_REGISTER_DEV_DRIVER(dreamsourcelab_dslogic_driver_info);

@@ -272,11 +272,11 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/demo/protocol.c \
 	src/hardware/demo/api.c
 endif
-if HW_DSLOGIC
+if HW_DREAMSOURCELAB_DSLOGIC
 src_libdrivers_la_SOURCES += \
-	src/hardware/dslogic/protocol.h \
-	src/hardware/dslogic/protocol.c \
-	src/hardware/dslogic/api.c
+	src/hardware/dreamsourcelab-dslogic/protocol.h \
+	src/hardware/dreamsourcelab-dslogic/protocol.c \
+	src/hardware/dreamsourcelab-dslogic/api.c
 endif
 if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \

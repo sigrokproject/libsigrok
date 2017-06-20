@@ -76,15 +76,15 @@
  * number of 16-bit words.
  */
 #define _DS_CFG(variable, wordcnt) ((variable << 8) | wordcnt)
-#define DS_CFG_START		0xf5a5f5a5
-#define DS_CFG_MODE		_DS_CFG(0, 1)
-#define DS_CFG_DIVIDER		_DS_CFG(1, 2)
-#define DS_CFG_COUNT		_DS_CFG(3, 2)
-#define DS_CFG_TRIG_POS		_DS_CFG(5, 2)
-#define DS_CFG_TRIG_GLB		_DS_CFG(7, 1)
-#define DS_CFG_CH_EN		_DS_CFG(8, 1)
-#define DS_CFG_TRIG		_DS_CFG(64, 160)
-#define DS_CFG_END		0xfa5afa5a
+#define DS_CFG_START			0xf5a5f5a5
+#define DS_CFG_MODE			_DS_CFG(0, 1)
+#define DS_CFG_DIVIDER			_DS_CFG(1, 2)
+#define DS_CFG_COUNT			_DS_CFG(3, 2)
+#define DS_CFG_TRIG_POS			_DS_CFG(5, 2)
+#define DS_CFG_TRIG_GLB			_DS_CFG(7, 1)
+#define DS_CFG_CH_EN			_DS_CFG(8, 1)
+#define DS_CFG_TRIG			_DS_CFG(64, 160)
+#define DS_CFG_END			0xfa5afa5a
 
 #pragma pack(push, 1)
 
@@ -437,8 +437,6 @@ static void set_trigger(const struct sr_dev_inst *sdi,
 	}
 
 	cfg->trig_glb |= num_trigger_stages;
-
-	return;
 }
 
 static int fpga_configure(const struct sr_dev_inst *sdi)

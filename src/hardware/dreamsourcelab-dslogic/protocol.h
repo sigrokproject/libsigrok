@@ -18,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_DSLOGIC_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_DSLOGIC_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_DREAMSOURCELAB_DSLOGIC_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_DREAMSOURCELAB_DSLOGIC_PROTOCOL_H
 
 #include <glib.h>
 #include <stdint.h>
@@ -105,7 +105,7 @@ struct dslogic_profile {
 struct dev_context {
 	const struct dslogic_profile *profile;
 	/*
-	 * Since we can't keep track of an dslogic device after upgrading
+	 * Since we can't keep track of a DSLogic device after upgrading
 	 * the firmware (it renumerates into a different device address
 	 * after the upgrade) this is like a global lock. No device will open
 	 * until a proper delay after the last device was upgraded.
