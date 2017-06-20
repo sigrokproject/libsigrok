@@ -76,7 +76,7 @@ static const char *const signal_edge_names[] = {
 static const struct {
 	gdouble low;
 	gdouble high;
-} dslogic_voltage_thresholds[] = {
+} voltage_thresholds[] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -429,17 +429,16 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!strcmp(devc->profile->model, "DSLogic")) {
 			voltage_range = 0;
 
-			for (i = 0; i < ARRAY_SIZE(dslogic_voltage_thresholds); i++)
-				if (dslogic_voltage_thresholds[i].low ==
-					devc->cur_threshold) {
+			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++)
+				if (voltage_thresholds[i].low == devc->cur_threshold) {
 					voltage_range = i;
 					break;
 				}
 
 			range[0] = g_variant_new_double(
-				dslogic_voltage_thresholds[voltage_range].low);
+				voltage_thresholds[voltage_range].low);
 			range[1] = g_variant_new_double(
-				dslogic_voltage_thresholds[voltage_range].high);
+				voltage_thresholds[voltage_range].high);
 		} else {
 			range[0] = g_variant_new_double(devc->cur_threshold);
 			range[1] = g_variant_new_double(devc->cur_threshold);
@@ -538,12 +537,11 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		if (!strcmp(devc->profile->model, "DSLogic")) {
-			for (i = 0; (unsigned int)i <
-				ARRAY_SIZE(dslogic_voltage_thresholds); i++) {
-				if (fabs(dslogic_voltage_thresholds[i].low - low) < 0.1 &&
-				    fabs(dslogic_voltage_thresholds[i].high - high) < 0.1) {
+			for (i = 0; (unsigned int)i < ARRAY_SIZE(voltage_thresholds); i++) {
+				if (fabs(voltage_thresholds[i].low - low) < 0.1 &&
+				    fabs(voltage_thresholds[i].high - high) < 0.1) {
 					devc->cur_threshold =
-						dslogic_voltage_thresholds[i].low;
+						voltage_thresholds[i].low;
 					break;
 				}
 			}
@@ -603,9 +601,9 @@ static int config_list(uint32_t key, GVariant **data,
 			devc = sdi->priv;
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		if (devc && !strcmp(devc->profile->model, "DSLogic")) {
-			for (i = 0; i < ARRAY_SIZE(dslogic_voltage_thresholds); i++) {
-				range[0] = g_variant_new_double(dslogic_voltage_thresholds[i].low);
-				range[1] = g_variant_new_double(dslogic_voltage_thresholds[i].high);
+			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++) {
+				range[0] = g_variant_new_double(voltage_thresholds[i].low);
+				range[1] = g_variant_new_double(voltage_thresholds[i].high);
 				gvar = g_variant_new_tuple(range, 2);
 				g_variant_builder_add_value(&gvb, gvar);
 			}
