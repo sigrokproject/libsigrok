@@ -217,10 +217,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		prof = NULL;
 		for (j = 0; supported_device[j].vid; j++) {
 			if (des.idVendor == supported_device[j].vid &&
-					des.idProduct == supported_device[j].pid &&
-					(!strcmp(manufacturer, supported_device[j].usb_manufacturer)) &&
-					(!strcmp(product, "USB-based Instrument") ||
-						!strcmp(product, supported_device[j].usb_product))) {
+					des.idProduct == supported_device[j].pid) {
 				prof = &supported_device[j];
 				break;
 			}
