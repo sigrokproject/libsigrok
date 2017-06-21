@@ -19,7 +19,6 @@
  */
 
 #include <config.h>
-#include <assert.h>
 #include <math.h>
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -859,7 +858,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		 *
 		 * Hopefully in future it will be possible to pass the data on as-is.
 		 */
-		assert(transfer->actual_length % (DSLOGIC_ATOMIC_BYTES * channel_count) == 0);
+		if (transfer->actual_length % (DSLOGIC_ATOMIC_BYTES * channel_count) != 0)
+			sr_err("Invalid transfer length!");
 		deinterleave_buffer(transfer->buffer, transfer->actual_length,
 			devc->deinterleave_buffer, channel_count, channel_mask);
 
