@@ -560,10 +560,12 @@ static int config_commit(const struct sr_dev_inst *sdi)
 		break;
 	case 0x00:
 		state = 0x01;
+		/* Fallthrough */
 	default:
 		ret = hung_chang_dso_2100_move_to(sdi, 1);
 		if (ret != SR_OK)
 			return ret;
+		/* Fallthrough */
 	case 0x01:
 		hung_chang_dso_2100_write_mbox(sdi->conn, 4);
 	}
