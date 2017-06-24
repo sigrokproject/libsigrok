@@ -578,7 +578,7 @@ static int receive(const struct sr_output *o,
 		break;
 	case SR_DF_FRAME_BEGIN:
 		*out = g_string_new(ctx->frame);
-		/* And then fall through to... */
+		/* Fallthrough */
 	case SR_DF_END:
 		/* Got to end of frame/session with part of the data. */
 		if (ctx->channels_seen)
