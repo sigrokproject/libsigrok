@@ -105,7 +105,7 @@ static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
 	int num_channels;
-	char channelname[8];
+	char channelname[16];
 	const char *format;
 	int fmt_index;
 
@@ -130,7 +130,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = inc = g_malloc0(sizeof(struct context));
 
 	for (int i = 0; i < num_channels; i++) {
-		snprintf(channelname, 8, "CH%d", i + 1);
+		snprintf(channelname, sizeof(channelname) - 1, "CH%d", i + 1);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
 	}
 
