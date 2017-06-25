@@ -446,7 +446,6 @@ static int upload_firmware(struct sr_context *ctx,
 	unsigned char pins;
 	size_t buf_size;
 	const char *firmware;
-	struct ftdi_context *ftdic;
 
 	/* Avoid downloading the same firmware multiple times. */
 	firmware = sigma_firmware_files[firmware_idx];
@@ -455,28 +454,18 @@ static int upload_firmware(struct sr_context *ctx,
 		return SR_OK;
 	}
 
-	/* Make sure it's an ASIX SIGMA. */
-	ftdic = &devc->ftdic;
-	ret = ftdi_usb_open_desc(ftdic, USB_VENDOR, USB_PRODUCT,
-				 USB_DESCRIPTION, NULL);
-	if (ret < 0) {
-		sr_err("ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(ftdic));
-		return SR_ERR;
-	}
-
-	ret = ftdi_set_bitmode(ftdic, 0xdf, BITMODE_BITBANG);
+	ret = ftdi_set_bitmode(&devc->ftdic, 0xdf, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(ftdic));
+		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
-	ret = ftdi_set_baudrate(ftdic, 750 * 1000);
+	ret = ftdi_set_baudrate(&devc->ftdic, 750 * 1000);
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
-		       ftdi_get_error_string(ftdic));
+		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
@@ -499,14 +488,14 @@ static int upload_firmware(struct sr_context *ctx,
 
 	g_free(buf);
 
-	ret = ftdi_set_bitmode(ftdic, 0x00, BITMODE_RESET);
+	ret = ftdi_set_bitmode(&devc->ftdic, 0x00, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(ftdic));
+		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
-	ftdi_usb_purge_buffers(ftdic);
+	ftdi_usb_purge_buffers(&devc->ftdic);
 
 	/* Discard garbage. */
 	while (sigma_read(&pins, 1, devc) == 1)
