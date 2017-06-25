@@ -554,6 +554,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	struct drv_context *drvc;
 	size_t i;
 	int ret;
+	int num_channels;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
@@ -572,15 +573,16 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 * firmware is required and higher rates might limit the set
 	 * of available channels.
 	 */
+	num_channels = devc->num_channels;
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(drvc->sr_ctx, 0, devc);
-		devc->num_channels = 16;
+		num_channels = 16;
 	} else if (samplerate == SR_MHZ(100)) {
 		ret = upload_firmware(drvc->sr_ctx, 1, devc);
-		devc->num_channels = 8;
+		num_channels = 8;
 	} else if (samplerate == SR_MHZ(200)) {
 		ret = upload_firmware(drvc->sr_ctx, 2, devc);
-		devc->num_channels = 4;
+		num_channels = 4;
 	}
 
 	/*
@@ -589,6 +591,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	 * an "event" (memory organization internal to the device).
 	 */
 	if (ret == SR_OK) {
+		devc->num_channels = num_channels;
 		devc->cur_samplerate = samplerate;
 		devc->samples_per_event = 16 / devc->num_channels;
 		devc->state.state = SIGMA_IDLE;
