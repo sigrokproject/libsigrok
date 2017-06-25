@@ -462,14 +462,14 @@ static int upload_firmware(struct sr_context *ctx,
 	if (ret < 0) {
 		sr_err("ftdi_usb_open failed: %s",
 		       ftdi_get_error_string(ftdic));
-		return 0;
+		return SR_ERR;
 	}
 
 	ret = ftdi_set_bitmode(ftdic, 0xdf, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(ftdic));
-		return 0;
+		return SR_ERR;
 	}
 
 	/* Four times the speed of sigmalogan - Works well. */
@@ -477,7 +477,7 @@ static int upload_firmware(struct sr_context *ctx,
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
 		       ftdi_get_error_string(ftdic));
-		return 0;
+		return SR_ERR;
 	}
 
 	/* Initialize the FPGA for firmware upload. */
