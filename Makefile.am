@@ -452,6 +452,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/saleae-logic16/protocol.c \
 	src/hardware/saleae-logic16/api.c
 endif
+if HW_SALEAE_LOGICPRO
+src_libdrivers_la_SOURCES += \
+	src/hardware/saleae-logicpro/protocol.h \
+	src/hardware/saleae-logicpro/protocol.c \
+	src/hardware/saleae-logicpro/api.c
+endif
 if HW_SCPI_PPS
 src_libdrivers_la_SOURCES += \
 	src/hardware/scpi-pps/protocol.h \
