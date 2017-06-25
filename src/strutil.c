@@ -555,8 +555,13 @@ SR_API uint64_t sr_parse_timestring(const char *timestring)
 /** @since 0.1.0 */
 SR_API gboolean sr_parse_boolstring(const char *boolstr)
 {
-	if (!boolstr)
-		return FALSE;
+	/*
+	 * Complete absence of an input spec is assumed to mean TRUE,
+	 * as in command line option strings like this:
+	 *   ...:samplerate=100k:header:numchannels=4:...
+	 */
+	if (!boolstr || !*boolstr)
+		return TRUE;
 
 	if (!g_ascii_strncasecmp(boolstr, "true", 4) ||
 	    !g_ascii_strncasecmp(boolstr, "yes", 3) ||
