@@ -27,18 +27,40 @@
 
 #define LOG_PREFIX "saleae-logicpro"
 
+/* 16 channels * 32 samples */
+#define CONV_BATCH_SIZE (2*32)
+/* one packet + one partial conversion:
+ * worst case is only one active channel converted to 2 bytes per sample, with
+ * 8*16384 samples per packet
+ */
+#define CONV_BUFFER_SIZE (2*8*16384 + CONV_BATCH_SIZE)
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
-
 	/* Acquisition settings */
+	unsigned int dig_channel_cnt;
+	uint16_t dig_channel_mask;
+	uint16_t dig_channel_masks[16];
+	uint64_t dig_samplerate;
 
 	/* Operational state */
+	uint32_t lfsr;
 
 	/* Temporary state across callbacks */
+	unsigned int num_transfers;
+	unsigned int submitted_transfers;
+	struct libusb_transfer **transfers;
 
+	/* Conversion buffer */
+	uint8_t *conv_buffer;
+	unsigned int conv_size;
+	unsigned int batch_index;
 };
 
-SR_PRIV int saleae_logicpro_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int saleae_logicpro_init(const struct sr_dev_inst *sdi);
+SR_PRIV int saleae_logicpro_prepare(const struct sr_dev_inst *sdi);
+SR_PRIV int saleae_logicpro_start(const struct sr_dev_inst *sdi);
+SR_PRIV int saleae_logicpro_stop(const struct sr_dev_inst *sdi);
+SR_PRIV void LIBUSB_CALL saleae_logicpro_receive_data(struct libusb_transfer *transfer);
 
 #endif
