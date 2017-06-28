@@ -128,19 +128,19 @@ Context::Context() :
 	if (struct sr_dev_driver **driver_list = sr_driver_list(_structure))
 		for (int i = 0; driver_list[i]; i++) {
 			unique_ptr<Driver> driver {new Driver{driver_list[i]}};
-			_drivers.insert(make_pair(driver->name(), move(driver)));
+			_drivers.emplace(driver->name(), move(driver));
 		}
 
 	if (const struct sr_input_module **input_list = sr_input_list())
 		for (int i = 0; input_list[i]; i++) {
 			unique_ptr<InputFormat> input {new InputFormat{input_list[i]}};
-			_input_formats.insert(make_pair(input->name(), move(input)));
+			_input_formats.emplace(input->name(), move(input));
 		}
 
 	if (const struct sr_output_module **output_list = sr_output_list())
 		for (int i = 0; output_list[i]; i++) {
 			unique_ptr<OutputFormat> output {new OutputFormat{output_list[i]}};
-			_output_formats.insert(make_pair(output->name(), move(output)));
+			_output_formats.emplace(output->name(), move(output));
 		}
 }
 
@@ -160,7 +160,7 @@ map<string, shared_ptr<Driver>> Context::drivers()
 	for (const auto &entry: _drivers) {
 		const auto &name = entry.first;
 		const auto &driver = entry.second;
-		result.insert({name, driver->share_owned_by(shared_from_this())});
+		result.emplace(name, driver->share_owned_by(shared_from_this()));
 	}
 	return result;
 }
@@ -171,7 +171,7 @@ map<string, shared_ptr<InputFormat>> Context::input_formats()
 	for (const auto &entry: _input_formats) {
 		const auto &name = entry.first;
 		const auto &input_format = entry.second;
-		result.insert({name, input_format->share_owned_by(shared_from_this())});
+		result.emplace(name, input_format->share_owned_by(shared_from_this()));
 	}
 	return result;
 }
@@ -182,7 +182,7 @@ map<string, shared_ptr<OutputFormat>> Context::output_formats()
 	for (const auto &entry: _output_formats) {
 		const auto &name = entry.first;
 		const auto &output_format = entry.second;
-		result.insert({name, output_format->share_owned_by(shared_from_this())});
+		result.emplace(name, output_format->share_owned_by(shared_from_this()));
 	}
 	return result;
 }
@@ -563,13 +563,13 @@ Device::Device(struct sr_dev_inst *structure) :
 	for (GSList *entry = sr_dev_inst_channels_get(structure); entry; entry = entry->next) {
 		auto *const ch = static_cast<struct sr_channel *>(entry->data);
 		unique_ptr<Channel> channel {new Channel{ch}};
-		_channels.insert(make_pair(ch, move(channel)));
+		_channels.emplace(ch, move(channel));
 	}
 
 	for (GSList *entry = sr_dev_inst_channel_groups_get(structure); entry; entry = entry->next) {
 		auto *const cg = static_cast<struct sr_channel_group *>(entry->data);
 		unique_ptr<ChannelGroup> group {new ChannelGroup{this, cg}};
-		_channel_groups.insert(make_pair(group->name(), move(group)));
+		_channel_groups.emplace(group->name(), move(group));
 	}
 }
 
@@ -624,7 +624,7 @@ Device::channel_groups()
 	for (const auto &entry: _channel_groups) {
 		const auto &name = entry.first;
 		const auto &channel_group = entry.second;
-		result.insert({name, channel_group->share_owned_by(get_shared_from_this())});
+		result.emplace(name, channel_group->share_owned_by(get_shared_from_this()));
 	}
 	return result;
 }
@@ -683,7 +683,7 @@ shared_ptr<Channel> UserDevice::add_channel(unsigned int index,
 	GSList *const last = g_slist_last(sr_dev_inst_channels_get(Device::_structure));
 	auto *const ch = static_cast<struct sr_channel *>(last->data);
 	unique_ptr<Channel> channel {new Channel{ch}};
-	_channels.insert(make_pair(ch, move(channel)));
+	_channels.emplace(ch, move(channel));
 	return get_channel(ch);
 }
 
@@ -906,7 +906,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 	for (GSList *dev = dev_list; dev; dev = dev->next) {
 		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		unique_ptr<SessionDevice> device {new SessionDevice{sdi}};
-		_owned_devices.insert(make_pair(sdi, move(device)));
+		_owned_devices.emplace(sdi, move(device));
 	}
 	_context->_session = this;
 }
@@ -1356,7 +1356,7 @@ map<string, shared_ptr<Option>> InputFormat::options()
 			shared_ptr<Option> opt {
 				new Option{options[i], option_array},
 				default_delete<Option>{}};
-			result.insert({opt->id(), move(opt)});
+			result.emplace(opt->id(), move(opt));
 		}
 	}
 	return result;
@@ -1530,7 +1530,7 @@ map<string, shared_ptr<Option>> OutputFormat::options()
 			shared_ptr<Option> opt {
 				new Option{options[i], option_array},
 				default_delete<Option>{}};
-			result.insert({opt->id(), move(opt)});
+			result.emplace(opt->id(), move(opt));
 		}
 	}
 	return result;
