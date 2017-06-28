@@ -269,13 +269,13 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 
 SR_PRIV int victor_dmm_receive_data(struct sr_dev_inst *sdi, unsigned char *buf)
 {
+	static const unsigned char obfuscation[DMM_DATA_SIZE] = "jodenxunickxia";
+	static const unsigned char shuffle[DMM_DATA_SIZE] = {
+		6, 13, 5, 11, 2, 7, 9, 8, 3, 10, 12, 0, 4, 1
+	};
 	GString *dbg;
 	int i;
 	unsigned char data[DMM_DATA_SIZE];
-	unsigned char obfuscation[DMM_DATA_SIZE] = "jodenxunickxia";
-	unsigned char shuffle[DMM_DATA_SIZE] = {
-		6, 13, 5, 11, 2, 7, 9, 8, 3, 10, 12, 0, 4, 1
-	};
 
 	for (i = 0; i < DMM_DATA_SIZE && buf[i] == 0; i++);
 	if (i == DMM_DATA_SIZE) {

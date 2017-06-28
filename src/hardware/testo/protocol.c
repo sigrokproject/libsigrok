@@ -170,8 +170,8 @@ SR_PRIV int testo_request_packet(const struct sr_dev_inst *sdi)
  * Testo 175/177/400/650/950/435/635/735/445/645/945/946/545. */
 SR_PRIV gboolean testo_check_packet_prefix(unsigned char *buf, int len)
 {
+	static const unsigned char check[] = { 0x21, 0, 0, 0, 1 };
 	int i;
-	unsigned char check[] = { 0x21, 0, 0, 0, 1 };
 
 	if (len < 5)
 		return FALSE;
