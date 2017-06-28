@@ -22,9 +22,9 @@
 #include <string.h>
 #include "protocol.h"
 
-#define BUF_COUNT (8)
-#define BUF_SIZE (16*1024)
-#define BUF_TIMEOUT (1000*1000)
+#define BUF_COUNT 8
+#define BUF_SIZE (16 * 1024)
+#define BUF_TIMEOUT (1000 * 1000)
 
 SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info;
 
@@ -201,7 +201,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* configure default samplerate */
+	/* Configure default samplerate. */
 	if (devc->dig_samplerate == 0)
 		devc->dig_samplerate = samplerates[3];
 
@@ -289,21 +289,15 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						  scanopts,
-						  ARRAY_SIZE(scanopts),
-						  sizeof(uint32_t));
+			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							  drvopts,
-							  ARRAY_SIZE(drvopts),
-							  sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							  devopts,
-							  ARRAY_SIZE(devopts),
-							  sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -375,8 +369,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		buf = g_malloc(BUF_SIZE);
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
-					  2 | LIBUSB_ENDPOINT_IN, buf, BUF_SIZE,
-					  saleae_logic_pro_receive_data, (void *)sdi, BUF_TIMEOUT);
+			2 | LIBUSB_ENDPOINT_IN, buf, BUF_SIZE,
+			saleae_logic_pro_receive_data, (void *)sdi, BUF_TIMEOUT);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));

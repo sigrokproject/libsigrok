@@ -63,7 +63,7 @@ static void encrypt(const struct sr_dev_inst *sdi, const uint8_t *in, uint8_t *o
 
 	for (i = 0; i < len; i++) {
 		value = in[i];
-		mask = lfsr >> (i%4*8);
+		mask = lfsr >> (i % 4 * 8);
 		if (i == 0)
 			value = (value & 0x28) | ((value ^ mask) & ~0x28);
 		else
@@ -79,9 +79,8 @@ static void decrypt(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t len)
 	uint32_t lfsr = devc->lfsr;
 	int i;
 
-	for (i = 0; i < len; i++) {
-		data[i] ^= (lfsr >> (i%4*8));
-	}
+	for (i = 0; i < len; i++)
+		data[i] ^= (lfsr >> (i % 4 * 8));
 	iterate_lfsr(sdi);
 }
 
@@ -113,7 +112,7 @@ static int transact(const struct sr_dev_inst *sdi,
 		return SR_ERR;
 	}
 
-	if (req[0] == 0x20) { // reseed
+	if (req[0] == 0x20) { /* Reseed. */
 		return SR_OK;
 	} else if (rsp_len == 0) {
 		rsp = rsp_dummy;
@@ -164,7 +163,7 @@ static int write_regs(const struct sr_dev_inst *sdi, uint8_t (*regs)[2], uint8_t
 		req[4 + 2 * i] = regs[i][1];
 	}
 
-	return transact(sdi, req, 3 + 2*cnt, NULL, 0);
+	return transact(sdi, req, 3 + (2 * cnt), NULL, 0);
 }
 
 static int write_reg(const struct sr_dev_inst *sdi,
@@ -193,7 +192,7 @@ static int get_firmware_version(const struct sr_dev_inst *sdi)
 static int read_i2c(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t len)
 {
 	uint8_t req[5];
-	uint8_t rsp[1+128];
+	uint8_t rsp[1 + 128];
 	int ret;
 
 	if (len < 1 || len > 128 || !data)
@@ -201,20 +200,19 @@ static int read_i2c(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t len)
 
 	req[0] = 0x00;
 	req[1] = COMMAND_READ_I2C;
-	req[2] = 0xc0; // fixed address
+	req[2] = 0xc0; /* Fixed address */
 	req[3] = len;
-	req[4] = 0; // len msb?
+	req[4] = 0; /* Len MSB? */
 
 	ret = transact(sdi, req, sizeof(req), rsp, 1 + len);
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 	if (rsp[0] != 0x02) {
 		sr_dbg("Failed to do I2C read (0x%02x).", rsp[0]);
 		return SR_ERR;
 	}
 
-	memcpy(data, rsp+1, len);
+	memcpy(data, rsp + 1, len);
 	return SR_OK;
 }
 
@@ -229,15 +227,14 @@ static int write_i2c(const struct sr_dev_inst *sdi, const uint8_t *data, uint8_t
 
 	req[0] = 0x00;
 	req[1] = COMMAND_WRITE_I2C;
-	req[2] = 0xc0; // fixed address
+	req[2] = 0xc0; /* Fixed address */
 	req[3] = len;
-	req[4] = 0; // len msb?
+	req[4] = 0; /* Len MSB? */
 	memcpy(req + 5, data, len);
 
 	ret = transact(sdi, req, 5 + len, rsp, sizeof(rsp));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 	if (rsp[0] != 0x02) {
 		sr_dbg("Failed to do I2C write (0x%02x).", rsp[0]);
 		return SR_ERR;
@@ -250,13 +247,12 @@ static int wake_i2c(const struct sr_dev_inst *sdi)
 {
 	uint8_t req[] = {0x00, COMMAND_WAKE_I2C};
 	uint8_t rsp[1] = {};
-	uint8_t i2c_rsp[1+1+2] = {};
+	uint8_t i2c_rsp[1 + 1 + 2] = {};
 	int ret;
 
 	ret = transact(sdi, req, sizeof(req), rsp, sizeof(rsp));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 	if (rsp[0] != 0x00) {
 		sr_dbg("Failed to do I2C wake trigger (0x%02x).", rsp[0]);
 		return SR_ERR;
@@ -277,53 +273,47 @@ static int wake_i2c(const struct sr_dev_inst *sdi)
 static int crypto_random(const struct sr_dev_inst *sdi, uint8_t *data)
 {
 	uint8_t i2c_req[8] = {0x03, 0x07, 0x1b, 0x00, 0x00, 0x00, 0x24, 0xcd};
-	uint8_t i2c_rsp[1+32+2] = {};
+	uint8_t i2c_rsp[1 + 32 + 2] = {};
 	int ret;
 
 	ret = write_i2c(sdi, i2c_req, sizeof(i2c_req));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	g_usleep(100000); // TODO: poll instead
+	g_usleep(100000); /* TODO: Poll instead. */
 
 	ret = read_i2c(sdi, i2c_rsp, sizeof(i2c_rsp));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	if (data) {
-		memcpy(data, i2c_rsp+1, 32);
-	}
+	if (data)
+		memcpy(data, i2c_rsp + 1, 32);
 
 	return SR_OK;
 }
 
 static int crypto_nonce(const struct sr_dev_inst *sdi, uint8_t *data)
 {
-	uint8_t i2c_req[6+20+2] = {0x03, 0x1b, 0x16, 0x00, 0x00, 0x00};
-	uint8_t i2c_rsp[1+32+2] = {};
+	uint8_t i2c_req[6 + 20 + 2] = {0x03, 0x1b, 0x16, 0x00, 0x00, 0x00};
+	uint8_t i2c_rsp[1 + 32 + 2] = {};
 	int ret;
 
-	// CRC
+	/* CRC */
 	i2c_req[26] = 0x7d;
 	i2c_req[27] = 0xe0;
 
 	ret = write_i2c(sdi, i2c_req, sizeof(i2c_req));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	g_usleep(100000); // TODO: poll instead
+	g_usleep(100000); /* TODO: Poll instead. */
 
 	ret = read_i2c(sdi, i2c_rsp, sizeof(i2c_rsp));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	if (data) {
-		memcpy(data, i2c_rsp+1, 32);
-	}
+	if (data)
+		memcpy(data, i2c_rsp + 1, 32);
 
 	return SR_OK;
 }
@@ -331,23 +321,21 @@ static int crypto_nonce(const struct sr_dev_inst *sdi, uint8_t *data)
 static int crypto_sign(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t *crc)
 {
 	uint8_t i2c_req[8] = {0x03, 0x07, 0x41, 0x80, 0x00, 0x00, 0x28, 0x05};
-	uint8_t i2c_rsp[1+64+2] = {};
+	uint8_t i2c_rsp[1 + 64 + 2] = {};
 	int ret;
 
 	ret = write_i2c(sdi, i2c_req, sizeof(i2c_req));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	g_usleep(100000); // TODO: poll instead
+	g_usleep(100000); /* TODO: Poll instead. */
 
 	ret = read_i2c(sdi, i2c_rsp, sizeof(i2c_rsp));
-	if (ret != SR_OK) {
+	if (ret != SR_OK)
 		return ret;
-	}
 
-	memcpy(data, i2c_rsp+1, 64);
-	memcpy(crc, i2c_rsp+1+64, 2);
+	memcpy(data, i2c_rsp + 1, 64);
+	memcpy(crc, i2c_rsp + 1 + 64, 2);
 
 	return SR_OK;
 }
@@ -389,7 +377,7 @@ static int authenticate(const struct sr_dev_inst *sdi)
 
 	lfsr = 0;
 	for (i = 0; i < 28; i++)
-		lfsr ^= nonce[i] << (8*(i%4));
+		lfsr ^= nonce[i] << (8 * (i % 4));
 	lfsr ^= sig_crc[0] | sig_crc[1] << 8;
 
 	sr_dbg("Authenticate 0x%08x -> 0x%08x", devc->lfsr, lfsr);
@@ -431,8 +419,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 
 	}
 	sr_dbg("%d channels enabled (0x%04x)",
-	       devc->dig_channel_cnt,
-	       devc->dig_channel_mask);
+	       devc->dig_channel_cnt, devc->dig_channel_mask);
 
 	return SR_OK;
 }
@@ -441,7 +428,7 @@ SR_PRIV int saleae_logic_pro_init(const struct sr_dev_inst *sdi)
 {
 	reseed(sdi);
 	get_firmware_version(sdi);
-	/* setting the LED doesn't work yet */
+	/* Setting the LED doesn't work yet. */
 	/* set_led(sdi, 0x00, 0x00, 0xff); */
 
 	return SR_OK;
@@ -457,30 +444,30 @@ SR_PRIV int saleae_logic_pro_prepare(const struct sr_dev_inst *sdi)
 	};
 	uint8_t regs_config[][2] = {
 		{0x00, 0x00},
-		{0x08, 0x00}, /* analog channel mask (LSB) */
-		{0x09, 0x00}, /* analog channel mask (MSB) */
-		{0x06, 0x01}, /* digital channel mask (LSB) */
-		{0x07, 0x00}, /* digital channel mask (MSB) */
-		{0x0a, 0x00}, /* analog sample rate? */
-		{0x0b, 0x64}, /* digital sample rate? */
+		{0x08, 0x00}, /* Analog channel mask (LSB) */
+		{0x09, 0x00}, /* Analog channel mask (MSB) */
+		{0x06, 0x01}, /* Digital channel mask (LSB) */
+		{0x07, 0x00}, /* Digital channel mask (MSB) */
+		{0x0a, 0x00}, /* Analog sample rate? */
+		{0x0b, 0x64}, /* Digital sample rate? */
 		{0x0c, 0x00},
-		{0x0d, 0x00}, /* analog mux rate? */
-		{0x0e, 0x01}, /* digital mux rate? */
+		{0x0d, 0x00}, /* Analog mux rate? */
+		{0x0e, 0x01}, /* Digital mux rate? */
 		{0x12, 0x04},
 		{0x13, 0x00},
-		{0x14, 0xff}, /* pre-divider? */
+		{0x14, 0xff}, /* Pre-divider? */
 	};
 	uint8_t start_req[] = {0x00, 0x01};
 	uint8_t start_rsp[2] = {};
 
 	configure_channels(sdi);
 
-	/* digital channel mask and muxing */
+	/* Digital channel mask and muxing */
 	regs_config[3][1] = devc->dig_channel_mask;
 	regs_config[4][1] = devc->dig_channel_mask >> 8;
 	regs_config[9][1] = devc->dig_channel_cnt;
 
-	/* samplerate */
+	/* Samplerate */
 	switch (devc->dig_samplerate) {
 	case SR_MHZ(1):
 		regs_config[6][1] = 0x64;
@@ -571,9 +558,9 @@ static void saleae_logic_pro_convert_data(const struct sr_dev_inst *sdi,
 	unsigned int sample_index, batch_index;
 	uint16_t *dst_batch;
 
-	/* copy partial batch to the beginning */
-	memcpy(dst, dst+devc->conv_size, CONV_BATCH_SIZE);
-	/* reset converted size */
+	/* Copy partial batch to the beginning. */
+	memcpy(dst, dst + devc->conv_size, CONV_BATCH_SIZE);
+	/* Reset converted size. */
 	devc->conv_size = 0;
 
 	batch_index = devc->batch_index;
@@ -581,17 +568,17 @@ static void saleae_logic_pro_convert_data(const struct sr_dev_inst *sdi,
 		samples = *src++;
 		dst_batch = (uint16_t*)dst;
 
-		/* first index of the batch */
+		/* First index of the batch. */
 		if (batch_index == 0)
 			memset(dst, 0, CONV_BATCH_SIZE);
 
-		/* convert one channel */
+		/* Convert one channel. */
 		channel_mask = devc->dig_channel_masks[batch_index];
 		for (sample_index = 0; sample_index <= 31; sample_index++)
-			if ((samples >> (31-sample_index)) & 1)
+			if ((samples >> (31 - sample_index)) & 1)
 				dst_batch[sample_index] |= channel_mask;
 
-		/* last index of the batch */
+		/* Last index of the batch. */
 		if (++batch_index == devc->dig_channel_cnt) {
 			devc->conv_size += CONV_BATCH_SIZE;
 			batch_index = 0;
@@ -615,11 +602,11 @@ SR_PRIV void LIBUSB_CALL saleae_logic_pro_receive_data(struct libusb_transfer *t
 	case LIBUSB_TRANSFER_TIMED_OUT: /* We may have received some data though. */
 		break;
 	default:
-		// FIXME
+		/* FIXME */
 		return;
 	}
 
-	saleae_logic_pro_convert_data(sdi, (uint32_t*)transfer->buffer, 16*1024/4);
+	saleae_logic_pro_convert_data(sdi, (uint32_t*)transfer->buffer, 16 * 1024 / 4);
 	saleae_logic_pro_send_data(sdi, devc->conv_buffer, devc->conv_size, 2);
 
 	if ((ret = libusb_submit_transfer(transfer)) != LIBUSB_SUCCESS)

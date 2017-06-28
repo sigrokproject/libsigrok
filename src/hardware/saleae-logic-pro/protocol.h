@@ -28,12 +28,13 @@
 #define LOG_PREFIX "saleae-logic-pro"
 
 /* 16 channels * 32 samples */
-#define CONV_BATCH_SIZE (2*32)
-/* one packet + one partial conversion:
- * worst case is only one active channel converted to 2 bytes per sample, with
- * 8*16384 samples per packet
+#define CONV_BATCH_SIZE (2 * 32)
+
+/*
+ * One packet + one partial conversion: Worst case is only one active
+ * channel converted to 2 bytes per sample, with 8 * 16384 samples per packet.
  */
-#define CONV_BUFFER_SIZE (2*8*16384 + CONV_BATCH_SIZE)
+#define CONV_BUFFER_SIZE (2 * 8 * 16384 + CONV_BATCH_SIZE)
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
