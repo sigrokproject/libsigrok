@@ -26,7 +26,7 @@
 #define BUF_SIZE (16*1024)
 #define BUF_TIMEOUT (1000*1000)
 
-SR_PRIV struct sr_dev_driver saleae_logicpro_driver_info;
+SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info;
 
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
@@ -357,11 +357,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	ret = saleae_logicpro_init(sdi);
+	ret = saleae_logic_pro_init(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	ret = saleae_logicpro_prepare(sdi);
+	ret = saleae_logic_pro_prepare(sdi);
 	if (ret != SR_OK)
 		return ret;
 
@@ -376,7 +376,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 					  2 | LIBUSB_ENDPOINT_IN, buf, BUF_SIZE,
-					  saleae_logicpro_receive_data, (void *)sdi, BUF_TIMEOUT);
+					  saleae_logic_pro_receive_data, (void *)sdi, BUF_TIMEOUT);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
@@ -393,7 +393,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	saleae_logicpro_start(sdi);
+	saleae_logic_pro_start(sdi);
 	if (ret != SR_OK)
 		return ret;
 
@@ -408,7 +408,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	saleae_logicpro_stop(sdi);
+	saleae_logic_pro_stop(sdi);
 
 	std_session_send_df_end(sdi);
 
@@ -419,9 +419,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver saleae_logicpro_driver_info = {
-	.name = "saleae-logicpro",
-	.longname = "saleae-logicpro",
+SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info = {
+	.name = "saleae-logic-pro",
+	.longname = "Saleae Logic Pro",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
@@ -438,4 +438,4 @@ SR_PRIV struct sr_dev_driver saleae_logicpro_driver_info = {
 	.context = NULL,
 };
 
-SR_REGISTER_DEV_DRIVER(saleae_logicpro_driver_info);
+SR_REGISTER_DEV_DRIVER(saleae_logic_pro_driver_info);
