@@ -396,6 +396,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* }}} */
 	/* fs9922 based meters {{{ */
 	DMM(
+		"sparkfun-70c", fs9922,
+		"SparkFun", "70C", "2400/8n1/rts=0/dtr=1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
 		"uni-t-ut61b-ser", fs9922,
 		"UNI-T", "UT61B (UT-D02 cable)", "2400/8n1/rts=0/dtr=1",
 		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
