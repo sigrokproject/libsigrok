@@ -1287,6 +1287,48 @@ vector<const QuantityFlag *> Analog::mq_flags() const
 	return QuantityFlag::flags_from_mask(_structure->meaning->mqflags);
 }
 
+shared_ptr<Logic> Analog::get_logic_via_threshold(float threshold,
+	uint8_t *data_ptr) const
+{
+	auto datafeed = g_new(struct sr_datafeed_logic, 1);
+	datafeed->length = num_samples();
+	datafeed->unitsize = 1;
+
+	if (data_ptr)
+		datafeed->data = data_ptr;
+	else
+		datafeed->data = g_malloc(datafeed->length);
+
+	shared_ptr<Logic> logic =
+		shared_ptr<Logic>{new Logic{datafeed}, default_delete<Logic>{}};
+
+	check(sr_a2l_threshold(_structure, threshold,
+		(uint8_t*)datafeed->data, datafeed->length));
+
+	return logic;
+}
+
+shared_ptr<Logic> Analog::get_logic_via_schmitt_trigger(float lo_thr,
+	float hi_thr, uint8_t *state, uint8_t *data_ptr) const
+{
+	auto datafeed = g_new(struct sr_datafeed_logic, 1);
+	datafeed->length = num_samples();
+	datafeed->unitsize = 1;
+
+	if (data_ptr)
+		datafeed->data = data_ptr;
+	else
+		datafeed->data = g_malloc(datafeed->length);
+
+	shared_ptr<Logic> logic =
+		shared_ptr<Logic>{new Logic{datafeed}, default_delete<Logic>{}};
+
+	check(sr_a2l_schmitt_trigger(_structure, lo_thr, hi_thr, state,
+		(uint8_t*)datafeed->data, datafeed->length));
+
+	return logic;
+}
+
 Rational::Rational(const struct sr_rational *structure) :
 	_structure(structure)
 {

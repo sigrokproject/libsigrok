@@ -50,6 +50,14 @@ SR_API GSList *sr_buildinfo_libs_get(void);
 SR_API char *sr_buildinfo_host_get(void);
 SR_API char *sr_buildinfo_scpi_backends_get(void);
 
+/*--- conversion.c ----------------------------------------------------------*/
+
+SR_API int sr_a2l_threshold(const struct sr_datafeed_analog *analog,
+		float threshold, uint8_t *output, uint64_t count);
+SR_API int sr_a2l_schmitt_trigger(const struct sr_datafeed_analog *analog,
+		float lo_thr, float hi_thr, uint8_t *state, uint8_t *output,
+		uint64_t count);
+
 /*--- log.c -----------------------------------------------------------------*/
 
 typedef int (*sr_log_callback)(void *cb_data, int loglevel,

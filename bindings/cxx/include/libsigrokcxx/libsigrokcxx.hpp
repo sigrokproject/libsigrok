@@ -758,6 +758,8 @@ private:
 	const struct sr_datafeed_logic *_structure;
 
 	friend class Packet;
+	friend class Analog;
+	friend struct std::default_delete<Logic>;
 };
 
 /** Payload of a datafeed packet with analog data */
@@ -803,6 +805,34 @@ public:
 	const Unit *unit() const;
 	/** Measurement flags associated with the samples in this packet. */
 	vector<const QuantityFlag *> mq_flags() const;
+	/**
+	 * Provides a Logic packet that contains a conversion of the analog
+	 * data using a simple threshold.
+	 *
+	 * @param threshold Threshold to use.
+	 * @param data_ptr Pointer to num_samples() bytes where the logic
+	 *                 samples are stored. When nullptr, memory for
+	 *                 logic->data_pointer() will be allocated and must
+	 *                 be freed by the caller.
+	 */
+	shared_ptr<Logic> get_logic_via_threshold(float threshold,
+		uint8_t *data_ptr=nullptr) const;
+	/**
+	 * Provides a Logic packet that contains a conversion of the analog
+	 * data using a Schmitt-Trigger.
+	 *
+	 * @param lo_thr Low threshold to use (anything below this is low).
+	 * @param hi_thr High threshold to use (anything above this is high).
+	 * @param state Points to a byte that contains the current state of the
+	 *              converter. For best results, set to value of logic
+	 *              sample n-1.
+	 * @param data_ptr Pointer to num_samples() bytes where the logic
+	 *                 samples are stored. When nullptr, memory for
+	 *                 logic->data_pointer() will be allocated and must be
+	 *                 freed by the caller.
+	 */
+	shared_ptr<Logic> get_logic_via_schmitt_trigger(float lo_thr,
+		float hi_thr, uint8_t *state, uint8_t *data_ptr=nullptr) const;
 private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
