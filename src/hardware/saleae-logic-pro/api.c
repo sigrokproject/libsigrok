@@ -329,7 +329,7 @@ static int dev_acquisition_handle(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi = cb_data;
 	struct drv_context *drvc = sdi->driver->context;
-	struct timeval tv = {};
+	struct timeval tv = ALL_ZERO;
 
 	(void)fd;
 	(void)revents;

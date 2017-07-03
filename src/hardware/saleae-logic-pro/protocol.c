@@ -386,6 +386,7 @@ static int authenticate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+#if 0
 static int set_led(const struct sr_dev_inst *sdi, uint8_t r, uint8_t g, uint8_t b)
 {
 	uint8_t regs[][2] = {
@@ -398,6 +399,7 @@ static int set_led(const struct sr_dev_inst *sdi, uint8_t r, uint8_t g, uint8_t 
 
 	return write_regs(sdi, regs, G_N_ELEMENTS(regs));
 }
+#endif
 
 static int configure_channels(const struct sr_dev_inst *sdi)
 {
