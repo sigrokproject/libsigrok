@@ -12,6 +12,7 @@
 # Editor/IDE cruft
 *.kate-swp
 *~
+.*.sw*
 /*.kdev4
 /Makefile.am.user
 
