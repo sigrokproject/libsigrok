@@ -909,9 +909,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (!(devc = sdi->priv))
 		return SR_ERR_BUG;
 

@@ -439,9 +439,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	int num_ols_changrp;
 	int ret, i;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	serial = sdi->conn;
 

@@ -664,9 +664,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (devc->channel) {
 		static const float res_array[] = {0.5, 1, 2, 5};
 		static const uint8_t relays[] = {100, 10, 10, 1};

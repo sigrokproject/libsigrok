@@ -464,9 +464,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	GHashTableIter iter;
 	void *value;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	devc->sent_samples = 0;
 

@@ -834,6 +834,7 @@ SR_PRIV int sr_variant_type_check(uint32_t key, GVariant *data);
 SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx);
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data);
 SR_PRIV void sr_config_free(struct sr_config *src);
+SR_PRIV int sr_dev_acquisition_start(struct sr_dev_inst *sdi);
 SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 /*--- session.c -------------------------------------------------------------*/

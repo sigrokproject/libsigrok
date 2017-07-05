@@ -683,9 +683,6 @@ SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi)
 	int timeout, ret;
 	size_t size;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	di = sdi->driver;
 	drvc = di->context;
 	devc = sdi->priv;

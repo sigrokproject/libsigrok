@@ -330,9 +330,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	int ret = SR_ERR;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (mso_configure_channels(sdi) != SR_OK) {

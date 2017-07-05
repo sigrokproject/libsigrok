@@ -954,9 +954,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di = sdi->driver;
 	struct drv_context *drvc = di->context;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (configure_channels(sdi) != SR_OK) {

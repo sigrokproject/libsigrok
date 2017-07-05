@@ -299,9 +299,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t clock_bytes[sizeof(clockselect)];
 	size_t clock_idx;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (sigma_convert_trigger(sdi) != SR_OK) {

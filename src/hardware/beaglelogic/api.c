@@ -294,9 +294,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_trigger *trigger;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Clear capture state */
 	devc->bytes_read = 0;
 	devc->offset = 0;

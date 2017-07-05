@@ -642,9 +642,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct pps_channel *pch;
 	int cmd, ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	scpi = sdi->conn;
 

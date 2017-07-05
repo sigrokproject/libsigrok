@@ -484,9 +484,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t buf[8];
 	int bytes_to_write, bytes_written;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (!devc->ftdic) {

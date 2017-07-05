@@ -427,9 +427,6 @@ static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	devc->settings_ok = FALSE;
 	devc->buflen = 0;
@@ -449,9 +446,6 @@ static int dev_acquisition_start_2x_bd232(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	devc = sdi->priv;
 	devc->settings_ok = FALSE;

@@ -439,9 +439,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 	uint8_t packet[PACKET_SIZE];
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 	memset(devc->packet, 0x44, PACKET_SIZE);
 	devc->packet_size = 0;

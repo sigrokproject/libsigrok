@@ -98,8 +98,6 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
 
-	sr_dbg("%s: Starting acquisition.", prefix);
-
 	/* Send header packet to the session bus. */
 	sr_dbg("%s: Sending SR_DF_HEADER packet.", prefix);
 	packet.type = SR_DF_HEADER;

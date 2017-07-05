@@ -997,9 +997,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gboolean some_digital;
 	GSList *l;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	scpi = sdi->conn;
 	devc = sdi->priv;
 

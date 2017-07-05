@@ -293,9 +293,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	int ret;
 	unsigned char cmd[3], resp[4], *buf;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	drvc = di->context;
 	devc = sdi->priv;
 	usb = sdi->conn;

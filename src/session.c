@@ -365,7 +365,7 @@ SR_API int sr_session_dev_add(struct sr_session *session,
 			       sr_strerror(ret));
 			return ret;
 		}
-		if ((ret = sdi->driver->dev_acquisition_start(sdi)) != SR_OK) {
+		if ((ret = sr_dev_acquisition_start(sdi)) != SR_OK) {
 			sr_err("Failed to start acquisition of device in "
 			       "running session (%s)", sr_strerror(ret));
 			return ret;
@@ -816,7 +816,7 @@ SR_API int sr_session_start(struct sr_session *session)
 			ret = SR_ERR;
 			break;
 		}
-		ret = sdi->driver->dev_acquisition_start(sdi);
+		ret = sr_dev_acquisition_start(sdi);
 		if (ret != SR_OK) {
 			sr_err("Could not start %s device %s acquisition.",
 				sdi->driver->name, sdi->connection_id);

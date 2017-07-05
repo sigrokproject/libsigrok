@@ -472,9 +472,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	drvc = sdi->driver->context;
 
 	if ((ret = lls_start_acquisition(sdi)) < 0)

@@ -348,9 +348,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t *buf;
 	unsigned int i, ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	ret = saleae_logic_pro_init(sdi);
 	if (ret != SR_OK)
 		return ret;

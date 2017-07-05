@@ -311,9 +311,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc->cur_channel = sr_next_enabled_channel(sdi, NULL);
 	devc->cur_conf = sr_next_enabled_channel(sdi, NULL);
 	devc->cur_sample = 1;

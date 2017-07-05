@@ -1056,9 +1056,6 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 	struct libusb_transfer *transfer;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	di = sdi->driver;
 	drvc = di->context;
 	devc = sdi->priv;

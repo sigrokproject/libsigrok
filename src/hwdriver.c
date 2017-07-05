@@ -593,6 +593,25 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 }
 
 /** @private */
+SR_PRIV int sr_dev_acquisition_start(struct sr_dev_inst *sdi)
+{
+	if (!sdi || !sdi->driver) {
+		sr_err("%s: Invalid arguments.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't start.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
+
+	sr_dbg("%s: Starting acquisition.", sdi->driver->name);
+
+	return sdi->driver->dev_acquisition_start(sdi);
+}
+
+/** @private */
 SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	if (!sdi || !sdi->driver) {

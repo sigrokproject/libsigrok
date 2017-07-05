@@ -133,9 +133,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_header(sdi);
 
 	sr_sw_limits_acquisition_start(&devc->limits);

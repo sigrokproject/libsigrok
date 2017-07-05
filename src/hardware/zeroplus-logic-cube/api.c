@@ -490,9 +490,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	unsigned int discard;
 	int trigger_now;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	if (analyzer_add_triggers(sdi) != SR_OK) {

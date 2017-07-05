@@ -316,9 +316,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		.it_value = { 0, 0 }
 	};
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (dev_acquisition_open(sdi))
 		return SR_ERR;
 
