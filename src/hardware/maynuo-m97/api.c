@@ -455,9 +455,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_modbus_dev_inst *modbus;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_end(sdi);
 
 	modbus = sdi->conn;

@@ -63,6 +63,5 @@ SR_PRIV void hung_chang_dso_2100_write_mbox(struct parport *port, uint8_t val);
 SR_PRIV uint8_t hung_chang_dso_2100_read_mbox(struct parport *port, float timeout);
 SR_PRIV int hung_chang_dso_2100_move_to(const struct sr_dev_inst *sdi, uint8_t target);
 SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data);
-SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi);
 
 #endif

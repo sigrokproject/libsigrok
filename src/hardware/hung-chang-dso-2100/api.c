@@ -692,21 +692,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int hung_chang_dso_2100_dev_acquisition_stop(const struct sr_dev_inst *sdi)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	std_session_send_df_end(sdi);
 	sr_session_source_remove(sdi->session, -1);
 	hung_chang_dso_2100_move_to(sdi, 1);
 
 	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	return hung_chang_dso_2100_dev_acquisition_stop(sdi);
 }
 
 static struct sr_dev_driver hung_chang_dso_2100_driver_info = {

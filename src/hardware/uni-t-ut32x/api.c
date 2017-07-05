@@ -296,9 +296,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Signal USB transfer handler to clean up and stop. */
 	sdi->status = SR_ST_STOPPING;
 

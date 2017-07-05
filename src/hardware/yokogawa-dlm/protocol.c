@@ -1171,7 +1171,7 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 		 * As of now we only support importing the current acquisition
 		 * data so we're going to stop at this point.
 		 */
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	} else
 		devc->current_channel = devc->current_channel->next;

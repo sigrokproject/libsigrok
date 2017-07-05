@@ -1175,7 +1175,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -1218,7 +1218,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	/* Request next data set, if required */
 	if (sdi->status == SR_ST_ACTIVE) {

@@ -793,7 +793,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

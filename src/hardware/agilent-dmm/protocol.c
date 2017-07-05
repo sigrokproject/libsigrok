@@ -200,7 +200,7 @@ SR_PRIV int agdmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits) || stop)
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	else
 		dispatch(sdi);
 

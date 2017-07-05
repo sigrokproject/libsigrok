@@ -22,7 +22,6 @@
 #include "protocol.h"
 
 #define SERIALCOMM "115200/8n1"
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -285,7 +284,7 @@ static void receive_data(struct sr_dev_inst *sdi, unsigned char *data, int len)
 
 	devc->reply_size = 0;
 	if (sr_sw_limits_check(&devc->sw_limits))
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	else
 		testo_request_packet(sdi);
 
@@ -305,7 +304,7 @@ SR_PRIV void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	if (transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
 		/* USB device was unplugged. */
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
 		/* First two bytes in any transfer are FTDI status bytes. */
 		if (transfer->actual_length > 2)
@@ -320,7 +319,7 @@ SR_PRIV void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			       libusb_error_name(ret));
 			g_free(transfer->buffer);
 			libusb_free_transfer(transfer);
-			dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 	} else {
 		/* This was the last transfer we're going to receive, so
@@ -347,7 +346,7 @@ static int handle_events(int fd, int revents, void *cb_data)
 	drvc = di->context;
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
 		usb_source_remove(sdi->session, drvc->sr_ctx);
@@ -412,9 +411,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;

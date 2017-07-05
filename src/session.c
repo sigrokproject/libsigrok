@@ -830,7 +830,7 @@ SR_API int sr_session_start(struct sr_session *session)
 		lend = l->next;
 		for (l = session->devs; l != lend; l = l->next) {
 			sdi = l->data;
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		}
 		/* TODO: Handle delayed stops. Need to iterate the event
 		 * sources... */
@@ -913,8 +913,7 @@ static gboolean session_stop_sync(void *user_data)
 
 	for (node = session->devs; node; node = node->next) {
 		sdi = node->data;
-		if (sdi->driver && sdi->driver->dev_acquisition_stop)
-			sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return G_SOURCE_REMOVE;

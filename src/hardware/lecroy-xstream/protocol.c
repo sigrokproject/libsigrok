@@ -662,7 +662,7 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	 * the first enabled channel.
 	 */
 	if (++devc->num_frames == devc->frame_limit) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else {
 		devc->current_channel = devc->enabled_channels;
 		lecroy_xstream_request_data(sdi);

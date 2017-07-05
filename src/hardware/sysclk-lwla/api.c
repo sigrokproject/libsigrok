@@ -759,12 +759,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (devc->state != STATE_IDLE && !devc->cancel_requested) {
 		devc->cancel_requested = TRUE;
-		sr_dbg("Stopping acquisition.");
+		sr_dbg("Requesting cancel.");
 	}
 
 	return SR_OK;

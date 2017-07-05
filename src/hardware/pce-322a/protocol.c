@@ -82,7 +82,7 @@ static void send_data(const struct sr_dev_inst *sdi, float sample)
 	devc->num_samples++;
 	/* Limiting number of samples is only supported for live data. */
 	if (devc->cur_data_source == DATA_SOURCE_LIVE && devc->limit_samples && devc->num_samples >= devc->limit_samples)
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+		sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
 static void process_measurement(const struct sr_dev_inst *sdi)

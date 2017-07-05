@@ -387,7 +387,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 

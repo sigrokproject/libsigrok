@@ -290,7 +290,7 @@ SR_PRIV int uni_t_dmm_receive_data(int fd, int revents, void *cb_data)
 
 	/* Abort acquisition if we acquired enough samples. */
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

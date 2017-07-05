@@ -217,13 +217,6 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 	const char *prefix = sdi->driver->name;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("%s: Device inactive, can't stop acquisition.", prefix);
-		return SR_ERR_DEV_CLOSED;
-	}
-
-	sr_dbg("%s: Stopping acquisition.", prefix);
-
 	if ((ret = serial_source_remove(sdi->session, serial)) < 0) {
 		sr_err("%s: Failed to remove source: %d.", prefix, ret);
 		return ret;

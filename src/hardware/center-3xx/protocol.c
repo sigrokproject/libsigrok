@@ -243,7 +243,7 @@ static int receive_data(int fd, int revents, int idx, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

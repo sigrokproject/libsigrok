@@ -417,7 +417,7 @@ SR_PRIV int norma_dmm_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else {
 		/* Request next package. */
 		if (devc->last_req_pending) {

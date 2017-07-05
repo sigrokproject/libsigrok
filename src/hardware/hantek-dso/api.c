@@ -161,8 +161,6 @@ static const char *coupling[] = {
 	"GND",
 };
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
 static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 {
 	struct sr_dev_inst *sdi;
@@ -983,9 +981,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
 
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;

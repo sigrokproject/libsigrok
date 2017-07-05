@@ -395,13 +395,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
-
 	sdi->status = SR_ST_STOPPING;
 	/* TODO: free ongoing transfers? */
 

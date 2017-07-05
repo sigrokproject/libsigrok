@@ -399,9 +399,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct drv_context *drvc = sdi->driver->context;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	saleae_logic_pro_stop(sdi);
 
 	std_session_send_df_end(sdi);

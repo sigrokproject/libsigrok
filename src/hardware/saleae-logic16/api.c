@@ -775,9 +775,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	ret = logic16_abort_acquisition(sdi);
 
 	abort_acquisition(sdi->priv);

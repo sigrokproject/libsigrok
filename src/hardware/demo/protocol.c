@@ -446,7 +446,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	if (devc->cur_samplerate <= 0
 			|| (devc->num_logic_channels <= 0
 			&& devc->num_analog_channels <= 0)) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return G_SOURCE_CONTINUE;
 	}
 
@@ -539,7 +539,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			}
 		}
 		sr_dbg("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return G_SOURCE_CONTINUE;

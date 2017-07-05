@@ -220,11 +220,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
-
 	if (devc->df_started) {
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);

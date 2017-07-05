@@ -682,7 +682,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sr_dbg("Stopping acquisition.");
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);
 	write_shortcommand(devc, CMD_RESET);

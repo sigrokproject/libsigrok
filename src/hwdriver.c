@@ -592,6 +592,25 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 
 }
 
+/** @private */
+SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	if (!sdi || !sdi->driver) {
+		sr_err("%s: Invalid arguments.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't stop.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
+
+	sr_dbg("%s: Stopping acquisition.", sdi->driver->name);
+
+	return sdi->driver->dev_acquisition_stop(sdi);
+}
+
 static void log_key(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg, uint32_t key, int op, GVariant *data)
 {

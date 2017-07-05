@@ -634,7 +634,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				sr_err("Read error, aborting capture.");
 				packet.type = SR_DF_FRAME_END;
 				sr_session_send(sdi, &packet);
-				sdi->driver->dev_acquisition_stop(sdi);
+				sr_dev_acquisition_stop(sdi);
 				return TRUE;
 			}
 			/* At slow timebases in live capture the DS2072
@@ -667,7 +667,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		sr_err("Read error, aborting capture.");
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
@@ -727,7 +727,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			sr_err("Read should have been completed");
 			packet.type = SR_DF_FRAME_END;
 			sr_session_send(sdi, &packet);
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		}
 		devc->num_block_read = 0;
@@ -765,7 +765,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 		if (++devc->num_frames == devc->limit_frames) {
 			/* Last frame, stop capture. */
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 		} else {
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;

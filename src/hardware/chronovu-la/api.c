@@ -43,8 +43,6 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
@@ -452,7 +450,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	/* Get one block of data. */
 	if ((ret = cv_read_block(devc)) < 0) {
 		sr_err("Failed to read data block: %d.", ret);
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return FALSE;
 	}
 
@@ -475,7 +473,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 	for (i = 0; i < NUM_BLOCKS; i++)
 		cv_send_block_to_session_bus(sdi, i);
 
-	dev_acquisition_stop(sdi);
+	sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -552,7 +550,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi);
 

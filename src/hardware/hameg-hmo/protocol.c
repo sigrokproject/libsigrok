@@ -1018,7 +1018,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 * the first enabled channel.
 	 */
 	if (++devc->num_frames == devc->frame_limit) {
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		hmo_cleanup_logic_data(devc);
 	} else {
 		devc->current_channel = devc->enabled_channels;

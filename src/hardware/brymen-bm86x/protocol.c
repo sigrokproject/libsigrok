@@ -344,7 +344,7 @@ SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data)
 		return FALSE;
 
 	if (sr_sw_limits_check(&devc->sw_limits))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

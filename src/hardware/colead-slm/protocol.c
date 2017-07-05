@@ -177,7 +177,7 @@ static void process_packet(const struct sr_dev_inst *sdi)
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 
 	if (sr_sw_limits_check(&devc->limits))
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+		sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 }
 
 SR_PRIV int colead_slm_receive_data(int fd, int revents, void *cb_data)

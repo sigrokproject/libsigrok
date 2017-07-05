@@ -79,6 +79,5 @@ SR_PRIV void LIBUSB_CALL lascar_el_usb_receive_transfer(struct libusb_transfer *
 SR_PRIV int lascar_start_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_stop_logging(const struct sr_dev_inst *sdi);
 SR_PRIV int lascar_is_logging(const struct sr_dev_inst *sdi);
-SR_PRIV int dev_acquisition_stop(struct sr_dev_inst *sdi);
 
 #endif

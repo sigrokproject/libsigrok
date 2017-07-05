@@ -532,7 +532,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi);
 

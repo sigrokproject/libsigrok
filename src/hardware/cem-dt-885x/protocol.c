@@ -147,7 +147,7 @@ static void process_mset(const struct sr_dev_inst *sdi)
 
 		devc->num_samples++;
 		if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
-			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+			sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 		break;
 	case TOKEN_RECORDING_ON:
 		devc->recording = TRUE;
@@ -208,7 +208,7 @@ static void send_data(const struct sr_dev_inst *sdi, unsigned char *data,
 
 	devc->num_samples += analog.num_samples;
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
-		sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+		sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 
 	return;
 }
@@ -321,7 +321,7 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c,
 			 * records. Otherwise the frontend would have no
 			 * way to tell where stored data ends and live
 			 * measurements begin. */
-			sdi->driver->dev_acquisition_stop((struct sr_dev_inst *)sdi);
+			sr_dev_acquisition_stop((struct sr_dev_inst *)sdi);
 		} else if (c == RECORD_DATA) {
 			devc->buf_len = 0;
 			devc->state = ST_GET_LOG_RECORD_DATA;

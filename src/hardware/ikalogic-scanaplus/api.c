@@ -43,8 +43,6 @@ static const char *channel_names[] = {
 /* Note: The IKALOGIC ScanaPLUS always samples at 100MHz. */
 static const uint64_t samplerates[1] = { SR_MHZ(100) };
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
@@ -358,7 +356,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	sr_dbg("Stopping acquisition.");
 	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi);
 

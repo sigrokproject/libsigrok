@@ -332,9 +332,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Execute a stop on BeagleLogic */
 	beaglelogic_stop(devc);
 

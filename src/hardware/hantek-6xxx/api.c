@@ -88,8 +88,6 @@ static const uint64_t vdivs[][2] = {
 
 static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
 static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile *prof)
 {
 	struct sr_dev_inst *sdi;
@@ -709,7 +707,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			PRIu64 " <= %" PRIu64, devc->limit_samples,
 			devc->samp_received);
 		send_data(sdi, devc->sample_buf, devc->limit_samples);
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else if (devc->limit_msec && (g_get_monotonic_time() -
 			devc->aq_started) / 1000 >= devc->limit_msec) {
 		sr_info("Requested time limit reached, stopping. %d <= %d",
@@ -718,7 +716,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		send_data(sdi, devc->sample_buf, devc->samp_received);
 		g_free(devc->sample_buf);
 		devc->sample_buf = NULL;
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	} else {
 		read_channel(sdi, data_amount(sdi));
 	}
@@ -817,9 +815,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
 
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;

@@ -424,7 +424,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 		if (bytes_read < 0) {
 			sr_err("Failed to read FTDI data (%d): %s.",
 			       bytes_read, ftdi_get_error_string(devc->ftdic));
-			sdi->driver->dev_acquisition_stop(sdi);
+			sr_dev_acquisition_stop(sdi);
 			return FALSE;
 		}
 		if (bytes_read == 0) {
@@ -672,7 +672,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 		}
 		g_free(devc->raw_sample_buf);
 
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return TRUE;

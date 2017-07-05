@@ -731,7 +731,7 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 	if (dev_limit_counter_limit_reached(&devc->frame_count) ||
 	    dev_time_limit_reached(&devc->time_count))
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

@@ -1119,11 +1119,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
-
 	std_session_send_df_end(sdi);
 
 	g_slist_free(devc->enabled_channels);

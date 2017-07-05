@@ -79,7 +79,7 @@ SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 	if (bytes_read < 0) {
 		sr_err("Failed to read FTDI data (%d): %s.",
 		       bytes_read, ftdi_get_error_string(devc->ftdic));
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return FALSE;
 	}
 	if (bytes_read == 0) {
@@ -94,7 +94,7 @@ SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
 	if (devc->limit_samples && (n >= devc->limit_samples)) {
 		send_samples(sdi, devc->limit_samples - devc->samples_sent);
 		sr_info("Requested number of samples reached.");
-		sdi->driver->dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	} else {
 		send_samples(sdi, devc->bytes_received);
