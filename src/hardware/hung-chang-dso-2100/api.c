@@ -546,9 +546,6 @@ static int config_commit(const struct sr_dev_inst *sdi)
 	uint8_t state = hung_chang_dso_2100_read_mbox(sdi->conn, 0.02);
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	switch (state) {
 	case 0x03:
 	case 0x14:

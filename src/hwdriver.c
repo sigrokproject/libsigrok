@@ -838,7 +838,11 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
 		ret = SR_ERR;
 	else if (!sdi->driver->config_commit)
 		ret = SR_OK;
-	else
+	else if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't commit config.",
+			sdi->driver->name);
+		ret = SR_ERR_DEV_CLOSED;
+	} else
 		ret = sdi->driver->config_commit(sdi);
 
 	return ret;

@@ -645,9 +645,6 @@ static int config_commit(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (devc->acquisition) {
 		sr_err("Acquisition still in progress?");
 		return SR_ERR;
