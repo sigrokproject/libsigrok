@@ -504,9 +504,6 @@ static int config_set(uint32_t key, GVariant *data,
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
 	devc = sdi->priv;
 
 	ret = SR_OK;

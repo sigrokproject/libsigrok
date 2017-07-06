@@ -576,9 +576,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	int idx;
 	gboolean found;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	/* Cannot change settings while acquisition active, would cause a mess with commands.

@@ -238,9 +238,6 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME

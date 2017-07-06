@@ -434,9 +434,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	if (cg) /* sr_config_set will validate cg using config_list */
 		ch = ((struct sr_channel *)cg->channels->data)->index;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:

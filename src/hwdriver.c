@@ -805,7 +805,11 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 		ret = SR_ERR;
 	else if (!sdi->driver->config_set)
 		ret = SR_ERR_ARG;
-	else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET, data) != SR_OK)
+	else if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't set config.",
+			sdi->driver->name);
+		ret = SR_ERR_DEV_CLOSED;
+	} else if (check_key(sdi->driver, sdi, cg, key, SR_CONF_SET, data) != SR_OK)
 		return SR_ERR_ARG;
 	else if ((ret = sr_variant_type_check(key, data)) == SR_OK) {
 		log_key(sdi, cg, key, SR_CONF_SET, data);

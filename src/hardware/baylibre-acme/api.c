@@ -193,9 +193,6 @@ static int config_set(uint32_t key, GVariant *data,
 	uint64_t samplerate;
 	int ret;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	devc = sdi->priv;
 
 	ret = SR_OK;

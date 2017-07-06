@@ -450,9 +450,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	if (cg)
 		/* Channel group specified. */
 		select_channel(sdi, cg->channels->data);
