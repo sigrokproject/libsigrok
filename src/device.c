@@ -581,6 +581,14 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 	if (!sdi || !sdi->driver || !sdi->driver->dev_close)
 		return SR_ERR;
 
+	if (sdi->status != SR_ST_ACTIVE) {
+		sr_err("%s: Device instance not active, can't close.",
+			sdi->driver->name);
+		return SR_ERR_DEV_CLOSED;
+	}
+
+	sr_dbg("%s: Closing device.", sdi->driver->name)
+
 	ret = sdi->driver->dev_close(sdi);
 
 	return ret;

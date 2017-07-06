@@ -218,22 +218,13 @@ err_dev_open_close_ftdic:
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
-	ret = SR_OK;
 	devc = sdi->priv;
-
-	if (sdi->status == SR_ST_ACTIVE) {
-		sr_dbg("Status ACTIVE, closing device.");
-		ret = scanaplus_close(devc);
-	} else {
-		sr_spew("Status not ACTIVE, nothing to do.");
-	}
 
 	sdi->status = SR_ST_INACTIVE;
 
-	return ret;
+	return scanaplus_close(devc);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

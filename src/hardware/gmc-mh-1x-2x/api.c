@@ -336,7 +336,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	std_serial_dev_close(sdi);
 
-	sdi->status = SR_ST_INACTIVE;
 	if ((devc = sdi->priv))
 		devc->model = METRAHIT_NONE;
 

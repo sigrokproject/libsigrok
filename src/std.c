@@ -181,16 +181,21 @@ SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
  * to SR_ST_INACTIVE.
  *
  * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
  */
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
+	sdi->status = SR_ST_INACTIVE;
+
 	serial = sdi->conn;
-	if (serial && sdi->status == SR_ST_ACTIVE) {
-		serial_close(serial);
-		sdi->status = SR_ST_INACTIVE;
+	if (!serial) {
+		sr_err("%s: Can't close invalid serial port.", sdi->driver->name);
+		return SR_ERR_ARG;
 	}
+
+	serial_close(serial);
 
 	return SR_OK;
 }
@@ -220,7 +225,7 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	if ((ret = sdi->driver->dev_close(sdi)) < 0) {
+	if ((ret = sr_dev_close(sdi)) < 0) {
 		sr_err("%s: Failed to close device: %d.", prefix, ret);
 		return ret;
 	}

@@ -214,9 +214,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	/* Disable scan-advance (preserve relay life). */
 	sr_scpi_send(scpi, "SADV HOLD");
 	/* Switch back to auto-triggering. */

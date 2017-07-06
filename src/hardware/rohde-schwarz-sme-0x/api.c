@@ -172,9 +172,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	if (sdi->status == SR_ST_INACTIVE)
-		return SR_OK;
-
 	sr_scpi_close(sdi->conn);
 
 	sdi->status = SR_ST_INACTIVE;

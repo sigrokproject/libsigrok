@@ -108,7 +108,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 			/* Got a complete packet. */
 			break;
 	}
-	sdi->driver->dev_close(sdi);
+	sr_dev_close(sdi);
 
 	if (packet[6] > MAX_CHANNELS) {
 		sr_err("Device says it has %d channels!", packet[6]);

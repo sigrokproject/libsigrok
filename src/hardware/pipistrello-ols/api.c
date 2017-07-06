@@ -421,22 +421,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
 	struct dev_context *devc;
 
-	ret = SR_OK;
 	devc = sdi->priv;
-
-	if (sdi->status == SR_ST_ACTIVE) {
-		sr_dbg("Status ACTIVE, closing device.");
-		ret = p_ols_close(devc);
-	} else {
-		sr_spew("Status not ACTIVE, nothing to do.");
-	}
 
 	sdi->status = SR_ST_INACTIVE;
 
-	return ret;
+	return p_ols_close(devc);
 }
 
 static int set_trigger(const struct sr_dev_inst *sdi, int stage)

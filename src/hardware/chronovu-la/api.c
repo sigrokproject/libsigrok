@@ -288,14 +288,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 	int ret;
 	struct dev_context *devc;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_OK;
-
 	devc = sdi->priv;
 
 	if (devc->ftdic && (ret = ftdi_usb_close(devc->ftdic)) < 0)
 		sr_err("Failed to close FTDI device (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
+
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;

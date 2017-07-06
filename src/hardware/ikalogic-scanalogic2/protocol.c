@@ -41,7 +41,7 @@ static void abort_acquisition(struct sr_dev_inst *sdi)
 
 	std_session_send_df_end(sdi);
 
-	sdi->driver->dev_close(sdi);
+	sr_dev_close(sdi);
 }
 
 static void buffer_sample_data(const struct sr_dev_inst *sdi)

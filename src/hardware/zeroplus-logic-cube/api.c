@@ -127,8 +127,6 @@ const uint64_t samplerates_200[] = {
 	SR_MHZ(200),
 };
 
-static int dev_close(struct sr_dev_inst *sdi);
-
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate)
 {
 	int i;

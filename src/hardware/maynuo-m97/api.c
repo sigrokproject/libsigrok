@@ -215,9 +215,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	modbus = sdi->conn;
 
 	if (modbus) {

@@ -166,12 +166,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	if (sdi->status == SR_ST_ACTIVE) {
-		/* Close the memory mapping and the file */
-		beaglelogic_munmap(devc);
-		beaglelogic_close(devc);
-	}
+	/* Close the memory mapping and the file */
+	beaglelogic_munmap(devc);
+	beaglelogic_close(devc);
+
 	sdi->status = SR_ST_INACTIVE;
+
 	return SR_OK;
 }
 

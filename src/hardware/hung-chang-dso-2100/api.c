@@ -282,13 +282,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_OK;
-
 	g_free(devc->samples);
 	hung_chang_dso_2100_reset_port(sdi->conn);
 	ieee1284_release(sdi->conn);
 	ieee1284_close(sdi->conn);
+
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;

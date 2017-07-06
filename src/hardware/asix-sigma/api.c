@@ -161,9 +161,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* TODO */
-	if (sdi->status == SR_ST_ACTIVE)
-		ftdi_usb_close(&devc->ftdic);
+	ftdi_usb_close(&devc->ftdic);
 
 	sdi->status = SR_ST_INACTIVE;
 

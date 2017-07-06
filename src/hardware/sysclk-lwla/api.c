@@ -343,10 +343,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (sdi->status == SR_ST_INACTIVE) {
-		sr_dbg("Device already closed.");
-		return SR_OK;
-	}
 	if (devc->acquisition) {
 		sr_err("Cannot close device during acquisition!");
 		/* Request stop, leak handle, and prepare for the worst. */
