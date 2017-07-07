@@ -273,11 +273,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (sdi->status != SR_ST_INACTIVE) {
-		sr_err("Device already open.");
-		return SR_ERR;
-	}
-
 	/* Try the whole shebang three times, fingers crossed. */
 	for (i = 0; i < 3; i++) {
 		ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);

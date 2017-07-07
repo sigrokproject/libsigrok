@@ -411,12 +411,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (p_ols_open(devc) != SR_OK) {
+	if (p_ols_open(devc) != SR_OK)
 		return SR_ERR;
-	} else {
-		sdi->status = SR_ST_ACTIVE;
-		return SR_OK;
-	}
+
+	sdi->status = SR_ST_ACTIVE;
+
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

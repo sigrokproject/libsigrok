@@ -246,9 +246,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	int i;
 
-	if (sdi->status != SR_ST_INACTIVE)
-		goto fail1;
-
 	if (ieee1284_open(sdi->conn, 0, &i) != E1284_OK)
 		goto fail1;
 

@@ -560,6 +560,14 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 	if (!sdi || !sdi->driver || !sdi->driver->dev_open)
 		return SR_ERR;
 
+	if (sdi->status == SR_ST_ACTIVE) {
+		sr_err("%s: Device instance already active, can't re-open.",
+			sdi->driver->name);
+		return SR_ERR;
+	}
+
+	sr_dbg("%s: Opening device.", sdi->driver->name)
+
 	ret = sdi->driver->dev_open(sdi);
 
 	return ret;

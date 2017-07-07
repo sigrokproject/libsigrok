@@ -67,7 +67,7 @@ SR_PRIV int testo_probe_channels(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	sr_dbg("Probing for channels.");
-	if (sdi->driver->dev_open(sdi) != SR_OK)
+	if (sr_dev_open(sdi) != SR_OK)
 		return SR_ERR;
 	if (testo_set_serial_params(usb) != SR_OK)
 		return SR_ERR;

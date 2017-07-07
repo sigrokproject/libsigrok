@@ -162,7 +162,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	if ((sdi->status != SR_ST_ACTIVE) && (sr_scpi_open(sdi->conn) != SR_OK))
+	if (sr_scpi_open(sdi->conn) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;

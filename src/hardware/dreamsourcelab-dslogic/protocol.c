@@ -568,10 +568,6 @@ SR_PRIV int dslogic_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (sdi->status == SR_ST_ACTIVE)
-		/* Device is already in use. */
-		return SR_ERR;
-
 	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	if (device_count < 0) {
 		sr_err("Failed to get device list: %s.",

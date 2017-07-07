@@ -33,10 +33,6 @@ SR_PRIV int hantek_6xxx_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if (sdi->status == SR_ST_ACTIVE)
-		/* Already in use. */
-		return SR_ERR;
-
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);

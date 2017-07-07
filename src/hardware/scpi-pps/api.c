@@ -251,9 +251,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	GVariant *beeper;
 
-	if (sdi->status != SR_ST_INACTIVE)
-		return SR_ERR;
-
 	scpi = sdi->conn;
 	if (sr_scpi_open(scpi) < 0)
 		return SR_ERR;

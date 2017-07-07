@@ -191,9 +191,6 @@ static int open_device(struct sr_dev_inst *sdi)
 	size_t i;
 	int r;
 
-	if (sdi->status == SR_ST_ACTIVE)
-		return SR_ERR;
-
 	drvc = sdi->driver->context;
 	usb = sdi->conn;
 
