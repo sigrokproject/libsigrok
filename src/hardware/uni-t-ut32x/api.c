@@ -136,14 +136,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
+
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

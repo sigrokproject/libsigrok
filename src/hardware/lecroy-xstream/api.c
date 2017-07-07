@@ -146,11 +146,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	sr_scpi_close(sdi->conn);
-
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
+	return sr_scpi_close(sdi->conn);
 }
 
 static int config_get(uint32_t key, GVariant **data,

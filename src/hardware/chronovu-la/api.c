@@ -287,13 +287,14 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->ftdic && (ret = ftdi_usb_close(devc->ftdic)) < 0)
+	if (!devc->ftdic)
+		return SR_ERR_BUG;
+
+	if ((ret = ftdi_usb_close(devc->ftdic)) < 0)
 		sr_err("Failed to close FTDI device (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 
-	sdi->status = SR_ST_INACTIVE;
-
-	return SR_OK;
+	return (ret == 0) ? SR_OK : SR_ERR;
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

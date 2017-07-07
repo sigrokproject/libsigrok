@@ -334,12 +334,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	std_serial_dev_close(sdi);
+	devc = sdi->priv;
 
-	if ((devc = sdi->priv))
-		devc->model = METRAHIT_NONE;
+	devc->model = METRAHIT_NONE;
 
-	return SR_OK;
+	return std_serial_dev_close(sdi);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

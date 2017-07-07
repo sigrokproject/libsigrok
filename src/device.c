@@ -585,11 +585,21 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 }
 
 /**
- * Close the specified device.
+ * Close the specified device instance.
+ *
+ * If the device instance is not open (sdi->status != SR_ST_ACTIVE),
+ * SR_ERR_DEV_CLOSED will be returned and no closing will be attempted.
+ *
+ * Note: sdi->status will be set to SR_ST_INACTIVE, regardless of whether
+ * there are any errors during closing of the device instance (any errors
+ * will be reported via error code and log message, though).
  *
  * @param sdi Device instance to use. Must not be NULL.
  *
- * @return SR_OK upon success, a negative error code upon errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR_DEV_CLOSED Device instance was not active.
+ * @retval SR_ERR Other error.
  *
  * @since 0.2.0
  */
@@ -598,7 +608,7 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!sdi || !sdi->driver || !sdi->driver->dev_close)
-		return SR_ERR;
+		return SR_ERR_ARG;
 
 	if (sdi->status != SR_ST_ACTIVE) {
 		sr_err("%s: Device instance not active, can't close.",
@@ -606,7 +616,9 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 		return SR_ERR_DEV_CLOSED;
 	}
 
-	sr_dbg("%s: Closing device.", sdi->driver->name)
+	sdi->status = SR_ST_INACTIVE;
+
+	sr_dbg("%s: Closing device instance.", sdi->driver->name);
 
 	ret = sdi->driver->dev_close(sdi);
 

@@ -210,11 +210,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_usb_dev_inst *usb = sdi->conn;
-
-	sr_usb_close(usb);
-
-	sdi->status = SR_ST_INACTIVE;
+	sr_usb_close(sdi->conn);
 
 	return SR_OK;
 }

@@ -324,8 +324,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return ret;
 }
 
-/* Shutdown and close device.
- */
+/* Shutdown and close device. */
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -342,17 +341,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 	}
 
-	sdi->status = SR_ST_INACTIVE;
-
 	/* Download of the shutdown bitstream, if any. */
 	ret = (*devc->model->apply_fpga_config)(sdi);
 	if (ret != SR_OK)
 		sr_warn("Unable to shut down device.");
 
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+
 	sr_usb_close(usb);
 
-	return ret;
+	return SR_OK;
 }
 
 /* Check whether the device options contain a specific key.

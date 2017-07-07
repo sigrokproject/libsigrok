@@ -106,13 +106,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 
 	scpi = sdi->conn;
-	if (scpi) {
-		if (sr_scpi_close(scpi) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
-	}
 
-	return SR_OK;
+	if (!scpi)
+		return SR_ERR_BUG;
+
+	return sr_scpi_close(scpi);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

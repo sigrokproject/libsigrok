@@ -137,8 +137,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return SR_OK;
 }
 

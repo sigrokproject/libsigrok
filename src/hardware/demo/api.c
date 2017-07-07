@@ -189,7 +189,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	sdi->status = SR_ST_INACTIVE;
+	(void)sdi;
 
 	return SR_OK;
 }

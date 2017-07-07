@@ -168,8 +168,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	beaglelogic_munmap(devc);
 	beaglelogic_close(devc);
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return SR_OK;
 }
 

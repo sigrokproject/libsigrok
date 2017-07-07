@@ -174,27 +174,20 @@ SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
  * This function can be used to implement the dev_close() driver API
  * callback in drivers that use a serial port.
  *
- * After closing the port, the status field of the given sdi is set
- * to SR_ST_INACTIVE.
- *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR Serial port close failed.
  */
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
-	sdi->status = SR_ST_INACTIVE;
+	if (!sdi || !sdi->conn)
+		return SR_ERR_ARG;
 
 	serial = sdi->conn;
-	if (!serial) {
-		sr_err("%s: Can't close invalid serial port.", sdi->driver->name);
-		return SR_ERR_ARG;
-	}
 
-	serial_close(serial);
-
-	return SR_OK;
+	return serial_close(serial);
 }
 
 /**

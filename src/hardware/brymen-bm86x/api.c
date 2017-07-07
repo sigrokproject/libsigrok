@@ -134,24 +134,18 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	if ((ret = libusb_release_interface(usb->devhdl, 0)))
 		sr_err("Failed to release interface 0: %s.\n", libusb_error_name(ret));
-	else
-		sr_dbg("Successfully released interface 0.\n");
 
 	if (!ret && devc->detached_kernel_driver) {
-		if ((ret = libusb_attach_kernel_driver(usb->devhdl, 0))) {
+		if ((ret = libusb_attach_kernel_driver(usb->devhdl, 0)))
 			sr_err("Failed to attach kernel driver: %s.\n",
 			       libusb_error_name(ret));
-		} else {
+		else
 			devc->detached_kernel_driver = 0;
-			sr_dbg("Successfully attached kernel driver.\n");
-		}
 	}
 
 	libusb_close(usb->devhdl);
 
-	sdi->status = SR_ST_INACTIVE;
-
-	return ret;
+	return (ret == 0) ? SR_OK : SR_ERR;
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

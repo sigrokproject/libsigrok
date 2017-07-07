@@ -183,8 +183,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 
 	if (!usb->devhdl)
-		/* Nothing to do. */
-		return SR_OK;
+		return SR_ERR_BUG;
 
 	/* This allows a frontend to configure the device without ever
 	 * doing an acquisition step. */
@@ -195,7 +194,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

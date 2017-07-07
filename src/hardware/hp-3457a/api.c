@@ -219,8 +219,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	sr_scpi_close(scpi);
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return SR_OK;
 }
 

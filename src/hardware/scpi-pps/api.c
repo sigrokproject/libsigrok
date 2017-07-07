@@ -277,15 +277,15 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	scpi = sdi->conn;
-	if (scpi) {
-		if (devc->beeper_was_set)
-			scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_ENABLE);
-		scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
-		sr_scpi_close(scpi);
-		sdi->status = SR_ST_INACTIVE;
-	}
 
-	return SR_OK;
+	if (!scpi)
+		return SR_ERR_BUG;
+
+	if (devc->beeper_was_set)
+		scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_ENABLE);
+	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
+
+	return sr_scpi_close(scpi);
 }
 
 static void clear_helper(void *priv)

@@ -215,23 +215,21 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	modbus = sdi->conn;
 
-	if (modbus) {
-		devc = sdi->priv;
-		if (devc->expecting_registers) {
-			/* Wait for the last data that was requested from the device. */
-			uint16_t registers[devc->expecting_registers];
-			sr_modbus_read_holding_registers(modbus, -1,
-				devc->expecting_registers, registers);
-		}
+	if (!modbus)
+		return SR_ERR_BUG;
 
-		maynuo_m97_set_bit(modbus, PC1, 0);
+	devc = sdi->priv;
 
-		if (sr_modbus_close(modbus) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
+	if (devc->expecting_registers) {
+		/* Wait for the last data that was requested from the device. */
+		uint16_t registers[devc->expecting_registers];
+		sr_modbus_read_holding_registers(modbus, -1,
+			devc->expecting_registers, registers);
 	}
 
-	return SR_OK;
+	maynuo_m97_set_bit(modbus, PC1, 0);
+
+	return sr_modbus_close(modbus);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

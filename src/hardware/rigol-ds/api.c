@@ -456,16 +456,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	if (!scpi)
+		return SR_ERR_BUG;
+
 	if (devc->model->series->protocol == PROTOCOL_V2)
 		rigol_ds_config_set(sdi, ":KEY:LOCK DISABLE");
 
-	if (scpi) {
-		if (sr_scpi_close(scpi) < 0)
-			return SR_ERR;
-		sdi->status = SR_ST_INACTIVE;
-	}
-
-	return SR_OK;
+	return sr_scpi_close(scpi);
 }
 
 static int analog_frame_size(const struct sr_dev_inst *sdi)

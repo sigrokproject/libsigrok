@@ -319,13 +319,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->ftdic) {
-		ftdi_usb_close(devc->ftdic);
-		ftdi_free(devc->ftdic);
-		devc->ftdic = NULL;
-	}
+	if (!devc->ftdic)
+		return SR_ERR_BUG;
 
-	sdi->status = SR_ST_INACTIVE;
+	ftdi_usb_close(devc->ftdic);
+	ftdi_free(devc->ftdic);
+	devc->ftdic = NULL;
 
 	return SR_OK;
 }

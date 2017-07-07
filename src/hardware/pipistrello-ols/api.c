@@ -420,8 +420,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return p_ols_close(devc);
 }
 

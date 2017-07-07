@@ -421,6 +421,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
+
 	if (devc->config_dirty)
 		/* Some configuration changes were queued up but didn't
 		 * get sent to the device, likely because we were never

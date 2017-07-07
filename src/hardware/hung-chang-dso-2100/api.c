@@ -282,8 +282,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	ieee1284_release(sdi->conn);
 	ieee1284_close(sdi->conn);
 
-	sdi->status = SR_ST_INACTIVE;
-
 	return SR_OK;
 }
 
