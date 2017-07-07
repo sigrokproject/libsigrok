@@ -262,8 +262,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (!devc->samples)
 		goto fail3;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 
 fail3:

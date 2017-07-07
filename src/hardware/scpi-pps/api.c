@@ -255,8 +255,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_scpi_open(scpi) < 0)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	devc = sdi->priv;
 	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_REMOTE);
 	devc->beeper_was_set = FALSE;

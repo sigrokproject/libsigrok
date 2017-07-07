@@ -147,8 +147,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (dlm_scope_state_query(sdi) != SR_OK)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 

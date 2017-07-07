@@ -302,13 +302,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 	sr_dbg("FTDI chip bitbang mode entered successfully.");
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
+
 err_dev_open_close_ftdic:
 	ftdi_usb_close(devc->ftdic);
+
 err_ftdi_free:
 	ftdi_free(devc->ftdic);
+
 	return SR_ERR;
 }
 

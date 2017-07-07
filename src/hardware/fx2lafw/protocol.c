@@ -147,7 +147,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct version_info vi;
-	int ret, i, device_count;
+	int ret = SR_ERR, i, device_count;
 	uint8_t revid;
 	char connection_id[64];
 
@@ -190,6 +190,7 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		} else {
 			sr_err("Failed to open device: %s.",
 			       libusb_error_name(ret));
+			ret = SR_ERR;
 			break;
 		}
 
@@ -198,7 +199,8 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 				if ((ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE)) < 0) {
 					sr_err("Failed to detach kernel driver: %s.",
 						libusb_error_name(ret));
-					return SR_ERR;
+					ret = SR_ERR;
+					break;
 				}
 			}
 		}
@@ -227,7 +229,6 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			break;
 		}
 
-		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device on %d.%d (logical) / %s (physical), "
 			"interface %d, firmware %d.%d.",
 			usb->bus, usb->address, connection_id,
@@ -236,14 +237,14 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 		sr_info("Detected REVID=%d, it's a Cypress CY7C68013%s.",
 			revid, (revid != 1) ? " (FX2)" : "A (FX2LP)");
 
+		ret = SR_OK;
+
 		break;
 	}
+
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR;
-
-	return SR_OK;
+	return ret;
 }
 
 SR_PRIV struct dev_context *fx2lafw_dev_new(void)

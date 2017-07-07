@@ -152,23 +152,20 @@ SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
  * callback in drivers that use a serial port. The port is opened
  * with the SERIAL_RDWR flag.
  *
- * If the open succeeded, the status field of the given sdi is set
- * to SR_ST_ACTIVE.
- *
  * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
  * @retval SR_ERR Serial port open failed.
  */
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
+	if (!sdi || !sdi->conn)
+		return SR_ERR_ARG;
+
 	serial = sdi->conn;
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
-		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
-	return SR_OK;
+	return serial_open(serial, SERIAL_RDWR);
 }
 
 /**

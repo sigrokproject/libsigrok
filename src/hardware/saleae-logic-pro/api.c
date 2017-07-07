@@ -205,8 +205,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (devc->dig_samplerate == 0)
 		devc->dig_samplerate = samplerates[3];
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 

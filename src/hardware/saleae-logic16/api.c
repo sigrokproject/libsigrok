@@ -235,7 +235,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	struct drv_context *drvc;
-	int ret, i, device_count;
+	int ret = SR_ERR, i, device_count;
 	char connection_id[64];
 
 	di = sdi->driver;
@@ -276,6 +276,7 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 		} else {
 			sr_err("Failed to open device: %s.",
 			       libusb_error_name(ret));
+			ret = SR_ERR;
 			break;
 		}
 
@@ -283,13 +284,16 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 		if (ret == LIBUSB_ERROR_BUSY) {
 			sr_err("Unable to claim USB interface. Another "
 			       "program or driver has already claimed it.");
+			ret = SR_ERR;
 			break;
 		} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
 			sr_err("Device has been disconnected.");
+			ret = SR_ERR;
 			break;
 		} else if (ret != 0) {
 			sr_err("Unable to claim interface: %s.",
 			       libusb_error_name(ret));
+			ret = SR_ERR;
 			break;
 		}
 
@@ -298,15 +302,17 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			break;
 		}
 
-		sdi->status = SR_ST_ACTIVE;
 		sr_info("Opened device on %d.%d (logical) / %s (physical), interface %d.",
 			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 
+		ret = SR_OK;
+
 		break;
 	}
+
 	libusb_free_device_list(devlist, 1);
 
-	if (sdi->status != SR_ST_ACTIVE) {
+	if (ret != SR_OK) {
 		if (usb->devhdl) {
 			libusb_release_interface(usb->devhdl, USB_INTERFACE);
 			libusb_close(usb->devhdl);

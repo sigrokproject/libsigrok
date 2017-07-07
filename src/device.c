@@ -545,11 +545,19 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 }
 
 /**
- * Open the specified device.
+ * Open the specified device instance.
+ *
+ * If the device instance is already open (sdi->status == SR_ST_ACTIVE),
+ * SR_ERR will be returned and no re-opening of the device will be attempted.
+ *
+ * If opening was successful, sdi->status is set to SR_ST_ACTIVE, otherwise
+ * it will be left unchanged.
  *
  * @param sdi Device instance to use. Must not be NULL.
  *
- * @return SR_OK upon success, a negative error code upon errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid arguments.
+ * @retval SR_ERR Device instance was already active, or other error.
  *
  * @since 0.2.0
  */
@@ -558,7 +566,7 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	if (!sdi || !sdi->driver || !sdi->driver->dev_open)
-		return SR_ERR;
+		return SR_ERR_ARG;
 
 	if (sdi->status == SR_ST_ACTIVE) {
 		sr_err("%s: Device instance already active, can't re-open.",
@@ -566,9 +574,12 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sr_dbg("%s: Opening device.", sdi->driver->name)
+	sr_dbg("%s: Opening device instance.", sdi->driver->name);
 
 	ret = sdi->driver->dev_open(sdi);
+
+	if (ret == SR_OK)
+		sdi->status = SR_ST_ACTIVE;
 
 	return ret;
 }

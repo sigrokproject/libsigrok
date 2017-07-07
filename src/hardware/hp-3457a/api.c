@@ -205,8 +205,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	sr_scpi_send(scpi, "TRIG HOLD");
 	sr_scpi_get_float(scpi, "NPLC?", &devc->nplc);
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 

@@ -95,9 +95,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	devc = sdi->priv;
 
-	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
-		sdi->status = SR_ST_ACTIVE;
-	else
+	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) < 0)
 		return SR_ERR;
 
 	/* Detach kernel drivers which grabbed this device (if any). */
@@ -122,7 +120,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 	sr_dbg("Successfully claimed interface 0.");
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

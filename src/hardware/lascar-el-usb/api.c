@@ -97,9 +97,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sdi->status = SR_ST_ACTIVE;
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

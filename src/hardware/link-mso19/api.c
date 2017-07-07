@@ -180,8 +180,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (serial_open(devc->serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	/* FIXME: discard serial buffer */
 	mso_check_trigger(devc->serial, &devc->trigger_state);
 	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);

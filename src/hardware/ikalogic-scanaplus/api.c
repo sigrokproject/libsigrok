@@ -207,12 +207,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 	sr_dbg("Received ScanaPLUS device ID successfully: %02x %02x %02x.",
 	       devc->devid[0], devc->devid[1], devc->devid[2]);
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 
 err_dev_open_close_ftdic:
 	scanaplus_close(devc);
+
 	return SR_ERR;
 }
 

@@ -141,8 +141,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (lecroy_xstream_state_get(sdi) != SR_OK)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 

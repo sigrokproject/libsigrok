@@ -98,8 +98,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 

@@ -98,16 +98,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
-	int ret;
 
 	di = sdi->driver;
 	drvc = di->context;
 	usb = sdi->conn;
 
-	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) == SR_OK)
-		sdi->status = SR_ST_ACTIVE;
-
-	return ret;
+	return sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

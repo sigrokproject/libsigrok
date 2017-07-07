@@ -203,8 +203,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_modbus_open(modbus) < 0)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	maynuo_m97_set_bit(modbus, PC1, 1);
 
 	return SR_OK;

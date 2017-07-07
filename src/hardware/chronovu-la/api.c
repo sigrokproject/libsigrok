@@ -272,15 +272,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 	/* Wait 100ms. */
 	g_usleep(100 * 1000);
 
-	sdi->status = SR_ST_ACTIVE;
-
-	if (ret == SR_OK)
-		return SR_OK;
+	return SR_OK;
 
 err_ftdi_free:
 	ftdi_free(devc->ftdic); /* Close device (if open), free FTDI context. */
 	devc->ftdic = NULL;
-	return ret;
+	return SR_ERR;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

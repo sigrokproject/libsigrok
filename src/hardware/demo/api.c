@@ -182,7 +182,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	sdi->status = SR_ST_ACTIVE;
+	(void)sdi;
 
 	return SR_OK;
 }

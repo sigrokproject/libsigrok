@@ -264,8 +264,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION);
 	if (ret < 0) {
 		sr_err("Unable to set USB configuration %d: %s.",

@@ -157,8 +157,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* We're good to go now */
-	sdi->status = SR_ST_ACTIVE;
 	return SR_OK;
 }
 

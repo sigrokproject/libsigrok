@@ -303,8 +303,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		/* This delay appears to be necessary for reliable operation. */
 		g_usleep(30 * 1000);
 
-		sdi->status = SR_ST_ACTIVE;
-
 		devc->active_fpga_config = FPGA_NOCONF;
 		devc->short_transfer_quirk = FALSE;
 		devc->state = STATE_IDLE;
@@ -317,7 +315,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 			break;
 
 		/* Rinse and repeat. */
-		sdi->status = SR_ST_INACTIVE;
 		sr_usb_close(usb);
 	}
 

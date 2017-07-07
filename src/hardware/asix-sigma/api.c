@@ -140,17 +140,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Make sure it's an ASIX SIGMA. */
 	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
-		USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-
-		sr_err("ftdi_usb_open failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
-
-		return 0;
+			USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
+		sr_err("Failed to open device (%d): %s.",
+		       ret, ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR;
 	}
-
-	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
