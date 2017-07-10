@@ -34,21 +34,27 @@
 #define LOG_PREFIX "std"
 
 /**
- * Standard sr_driver_init() API helper.
+ * Standard driver init() callback API helper.
  *
  * This function can be used to simplify most driver's init() API callback.
  *
- * It creates a new 'struct drv_context' (drvc), assigns sr_ctx to it, and
- * then 'drvc' is assigned to the 'struct sr_dev_driver' (di) that is passed.
+ * Create a new 'struct drv_context' (drvc), assign sr_ctx to it, and
+ * then assign 'drvc' to the 'struct sr_dev_driver' (di) that is passed.
  *
- * @param di The driver instance to use.
- * @param sr_ctx The libsigrok context to assign.
+ * @param[in] di The driver instance to use. Must not be NULL.
+ * @param[in] sr_ctx The libsigrok context to assign. May be NULL.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
  */
 SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
 	struct drv_context *drvc;
+
+	if (!di) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
 
 	drvc = g_malloc0(sizeof(struct drv_context));
 	drvc->sr_ctx = sr_ctx;
@@ -59,20 +65,27 @@ SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 }
 
 /**
- * Standard driver cleanup() callback API helper
+ * Standard driver cleanup() callback API helper.
  *
- * @param di The driver instance to use.
+ * This function can be used to simplify most driver's cleanup() API callback.
  *
- * Frees all device instances by calling sr_dev_clear() and then releases any
+ * Free all device instances by calling sr_dev_clear() and then release any
  * resources allocated by std_init().
  *
- * @retval SR_OK Success
- * @retval SR_ERR_ARG Invalid driver
+ * @param[in] di The driver instance to use. Must not be NULL.
  *
-*/
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
+ */
 SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
 {
 	int ret;
+
+	if (!di) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
 
 	ret = sr_dev_clear(di);
 	g_free(di->context);
@@ -83,20 +96,28 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
 /**
  * Standard API helper for sending an SR_DF_HEADER packet.
  *
- * This function can be used to simplify most driver's
+ * This function can be used to simplify most drivers'
  * dev_acquisition_start() API callback.
  *
- * @param sdi The device instance to use.
+ * @param[in] sdi The device instance to use. Must not be NULL.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR upon other errors.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
  */
 SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 {
-	const char *prefix = (sdi->driver) ? sdi->driver->name : "unknown";
+	const char *prefix;
 	int ret;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_header header;
+
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 
 	/* Send header packet to the session bus. */
 	sr_dbg("%s: Sending SR_DF_HEADER packet.", prefix);
@@ -106,7 +127,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 	gettimeofday(&header.starttime, NULL);
 
 	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%s: Failed to send header packet: %d.", prefix, ret);
+		sr_err("%s: Failed to send SR_DF_HEADER packet: %d.", prefix, ret);
 		return ret;
 	}
 
@@ -116,19 +137,27 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 /**
  * Standard API helper for sending an SR_DF_END packet.
  *
- * @param sdi The device instance to use. Must not be NULL.
+ * This function can be used to simplify most drivers'
+ * dev_acquisition_stop() API callback.
  *
- * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments, or
- *         SR_ERR upon other errors.
+ * @param[in] sdi The device instance to use. Must not be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
  */
 SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 {
-	const char *prefix = (sdi->driver) ? sdi->driver->name : "unknown";
+	const char *prefix;
 	int ret;
 	struct sr_datafeed_packet packet;
 
-	if (!sdi)
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
 		return SR_ERR_ARG;
+	}
+
+	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 
 	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
 
@@ -146,22 +175,26 @@ SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 #ifdef HAVE_LIBSERIALPORT
 
 /**
- * Standard serial driver dev_open() helper.
+ * Standard serial driver dev_open() callback API helper.
  *
  * This function can be used to implement the dev_open() driver API
  * callback in drivers that use a serial port. The port is opened
  * with the SERIAL_RDWR flag.
  *
+ * @param[in] sdi The device instance to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Invalid arguments.
- * @retval SR_ERR Serial port open failed.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Serial port open failed.
  */
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
-	if (!sdi || !sdi->conn)
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
 		return SR_ERR_ARG;
+	}
 
 	serial = sdi->conn;
 
@@ -169,21 +202,25 @@ SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi)
 }
 
 /**
- * Standard serial driver dev_close() helper.
+ * Standard serial driver dev_close() callback API helper.
  *
  * This function can be used to implement the dev_close() driver API
  * callback in drivers that use a serial port.
  *
+ * @param[in] sdi The device instance to use. Must not be NULL.
+ *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Invalid arguments.
- * @retval SR_ERR Serial port close failed.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Serial port close failed.
  */
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_serial_dev_inst *serial;
 
-	if (!sdi || !sdi->conn)
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
 		return SR_ERR_ARG;
+	}
 
 	serial = sdi->conn;
 
@@ -191,24 +228,31 @@ SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi)
 }
 
 /**
- * Standard sr_session_stop() API helper.
+ * Standard serial driver dev_acquisition_stop() callback API helper.
  *
- * This function can be used to simplify most (serial port based) driver's
+ * This function can be used to simplify most (serial port based) drivers'
  * dev_acquisition_stop() API callback.
  *
- * @param sdi The device instance for which acquisition should stop.
- *            Must not be NULL.
+ * @param[in] sdi The device instance for which acquisition should stop.
+ *                Must not be NULL.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Invalid arguments.
- * @retval SR_ERR_DEV_CLOSED Device is closed.
- * @retval SR_ERR Other errors.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
  */
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct sr_serial_dev_inst *serial = sdi->conn;
-	const char *prefix = sdi->driver->name;
+	struct sr_serial_dev_inst *serial;
+	const char *prefix;
 	int ret;
+
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	serial = sdi->conn;
+	prefix = sdi->driver->name;
 
 	if ((ret = serial_source_remove(sdi->session, serial)) < 0) {
 		sr_err("%s: Failed to remove source: %d.", prefix, ret);
@@ -220,15 +264,13 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	std_session_send_df_end(sdi);
-
-	return SR_OK;
+	return std_session_send_df_end(sdi);
 }
 
 #endif
 
 /**
- * Standard driver dev_clear() helper.
+ * Standard driver dev_clear() callback API helper.
  *
  * Clear driver, this means, close all instances.
  *
@@ -239,13 +281,17 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
  * These are freed, but any dynamic allocation within structs stored
  * there cannot be freed.
  *
- * @param driver The driver which will have its instances released.
- * @param clear_private If not NULL, this points to a function called
- * with sdi->priv as argument. The function can then clear any device
- * instance-specific resources kept there. It must also clear the struct
- * pointed to by sdi->priv.
+ * @param[in] driver The driver which will have its instances released.
+ *                   Must not be NULL.
+ * @param[in] clear_private If not NULL, this points to a function called
+ *            with sdi->priv as argument. The function can then clear
+ *            any device instance-specific resources kept there.
+ *            It must also clear the struct pointed to by sdi->priv.
  *
- * @return SR_OK on success.
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR_BUG Implementation bug.
+ * @retval other Other error.
  */
 SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 		std_dev_clear_callback clear_private)
@@ -255,13 +301,17 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 	GSList *l;
 	int ret;
 
-	if (!(drvc = driver->context))
-		/* Driver was never initialized, nothing to do. */
-		return SR_OK;
+	if (!driver) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	drvc = driver->context; /* Caller checked for context != NULL. */
 
 	ret = SR_OK;
 	for (l = drvc->instances; l; l = l->next) {
 		if (!(sdi = l->data)) {
+			sr_err("%s: Invalid device instance.", __func__);
 			ret = SR_ERR_BUG;
 			continue;
 		}
@@ -299,26 +349,33 @@ SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver,
 }
 
 /**
- * Standard implementation for the driver dev_list() callback
+ * Standard driver dev_list() callback API helper.
  *
- * This function can be used as the dev_list callback by most drivers that use
- * the standard helper functions. It returns the devices contained in the driver
- * context instances list.
+ * This function can be used as the dev_list() callback by most drivers.
  *
- * @param di The driver instance to use.
+ * Return the devices contained in the driver context instances list.
  *
- * @return The list of devices/instances of this driver, or NULL upon errors
- *         or if the list is empty.
+ * @param[in] di The driver instance to use. Must not be NULL.
+ *
+ * @retval NULL Error, or the list is empty.
+ * @retval other The list of device instances of this driver.
  */
 SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di)
 {
-	struct drv_context *drvc = di->context;
+	struct drv_context *drvc;
+
+	if (!di) {
+		sr_err("%s: Invalid argument.", __func__);
+		return NULL;
+	}
+
+	drvc = di->context;
 
 	return drvc->instances;
 }
 
 /**
- * Standard scan() callback API helper.
+ * Standard driver scan() callback API helper.
  *
  * This function can be used to perform common tasks required by a driver's
  * scan() callback. It will initialize the driver for each device on the list
@@ -345,8 +402,9 @@ SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di)
  * }
  * @endcode
  *
- * @param di The driver instance to use. Must not be NULL.
- * @param devices List of newly discovered devices (struct sr_dev_inst).
+ * @param[in] di The driver instance to use. Must not be NULL.
+ * @param[in] devices List of newly discovered devices (struct sr_dev_inst).
+ *                    May be NULL.
  *
  * @return The @p devices list.
  */
@@ -365,7 +423,7 @@ SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices)
 	for (l = devices; l; l = l->next) {
 		struct sr_dev_inst *sdi = l->data;
 		if (!sdi) {
-			sr_err("Invalid driver instance, cannot complete scan.");
+			sr_err("Invalid device instance, cannot complete scan.");
 			return NULL;
 		}
 		sdi->driver = di;

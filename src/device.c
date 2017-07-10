@@ -536,6 +536,16 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 		return SR_ERR_ARG;
 	}
 
+	if (!driver->context) {
+		/*
+		 * Driver was never initialized, nothing to do.
+		 *
+		 * No log message since this usually gets called for all
+		 * drivers, whether they were initialized or not.
+		 */
+		return SR_OK;
+	}
+
 	if (driver->dev_clear)
 		ret = driver->dev_clear(driver);
 	else
