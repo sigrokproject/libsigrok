@@ -156,7 +156,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static void clear_dev_context(void *priv)
+static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
 
@@ -167,7 +167,7 @@ static void clear_dev_context(void *priv)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_dev_context);
+	return std_dev_clear_with_callback(di, clear_helper);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

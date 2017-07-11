@@ -496,7 +496,7 @@ static GSList *scan_lps301(struct sr_dev_driver *di, GSList *options)
 	return do_scan(LPS_301, di, options);
 }
 
-static void dev_clear_private(struct dev_context *devc)
+static void clear_helper(struct dev_context *devc)
 {
 	int ch_idx;
 
@@ -505,9 +505,9 @@ static void dev_clear_private(struct dev_context *devc)
 		g_slist_free(devc->channel_status[ch_idx].info);
 }
 
-static int dev_clear_lps301(const struct sr_dev_driver *di)
+static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, (std_dev_clear_callback)dev_clear_private);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
@@ -784,7 +784,7 @@ static struct sr_dev_driver motech_lps_301_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan_lps301,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear_lps301,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -272,15 +272,6 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 	return SR_OK;
 }
 
-SR_PRIV void sigma_clear_helper(void *priv)
-{
-	struct dev_context *devc;
-
-	devc = priv;
-
-	ftdi_deinit(&devc->ftdic);
-}
-
 /*
  * Configure the FPGA for bitbang mode.
  * This sequence is documented in section 2. of the ASIX Sigma programming

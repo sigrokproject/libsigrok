@@ -203,9 +203,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-/* Destroy the private device context.
- */
-static void clear_dev_context(void *priv)
+static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
 
@@ -215,16 +213,13 @@ static void clear_dev_context(void *priv)
 		sr_err("Cannot clear device context during acquisition!");
 		return; /* Leak and pray. */
 	}
-	sr_dbg("Device context cleared.");
 
 	g_free(devc);
 }
 
-/* Destroy all device instances.
- */
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, &clear_dev_context);
+	return std_dev_clear_with_callback(di, clear_helper);
 }
 
 /* Drain any pending data from the USB transfer buffers on the device.

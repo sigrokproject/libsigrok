@@ -152,13 +152,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_dev_context(void *priv)
+static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
 
 	devc = priv;
-
-	sr_dbg("Device context cleared.");
 
 	libusb_free_transfer(devc->xfer_in);
 	libusb_free_transfer(devc->xfer_out);
@@ -167,7 +165,7 @@ static void clear_dev_context(void *priv)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, &clear_dev_context);
+	return std_dev_clear_with_callback(di, clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
