@@ -275,12 +275,10 @@ static const struct rigol_ds_model supported_models[] = {
 
 static struct sr_dev_driver rigol_ds_driver_info;
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
 	unsigned int i;
 
-	devc = priv;
 	g_free(devc->data);
 	g_free(devc->buffer);
 	for (i = 0; i < ARRAY_SIZE(devc->coupling); i++)
@@ -292,7 +290,7 @@ static void clear_helper(void *priv)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)

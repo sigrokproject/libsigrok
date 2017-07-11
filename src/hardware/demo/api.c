@@ -180,13 +180,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
 	GHashTableIter iter;
 	void *value;
-
-	devc = priv;
 
 	/* Analog generators. */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
@@ -197,7 +194,7 @@ static void clear_helper(void *priv)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

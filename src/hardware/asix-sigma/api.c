@@ -59,18 +59,14 @@ static const int32_t trigger_matches[] = {
 };
 #endif
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
-
 	ftdi_deinit(&devc->ftdic);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

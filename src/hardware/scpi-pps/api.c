@@ -288,18 +288,15 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return sr_scpi_close(scpi);
 }
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
 	g_free(devc->channels);
 	g_free(devc->channel_groups);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

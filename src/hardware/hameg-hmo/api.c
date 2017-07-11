@@ -110,21 +110,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return sr_scpi_scan(di->context, options, hmo_probe_serial_device);
 }
 
-static void clear_helper(void *priv)
+static void clear_helper(struct dev_context *devc)
 {
-	struct dev_context *devc;
-
-	devc = priv;
-
 	hmo_scope_state_free(devc->model_state);
-
 	g_free(devc->analog_groups);
 	g_free(devc->digital_groups);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, clear_helper);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
