@@ -404,6 +404,11 @@ SR_PRIV int std_dev_clear_with_callback(const struct sr_dev_driver *driver,
 	return ret;
 }
 
+SR_PRIV int std_dev_clear(const struct sr_dev_driver *driver)
+{
+	return std_dev_clear_with_callback(driver, NULL);
+}
+
 /**
  * Standard driver dev_list() callback API helper.
  *

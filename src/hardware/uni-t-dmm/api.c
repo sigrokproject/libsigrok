@@ -175,6 +175,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.cleanup = std_cleanup, \
 			.scan = scan, \
 			.dev_list = std_dev_list, \
+			.dev_clear = std_dev_clear, \
 			.config_get = NULL, \
 			.config_set = config_set, \
 			.config_list = config_list, \

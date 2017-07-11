@@ -196,6 +196,7 @@ static struct sr_dev_driver ID##_driver_info = { \
 	.cleanup = std_cleanup, \
 	.scan = scan_##ID_UPPER, \
 	.dev_list = std_dev_list, \
+	.dev_clear = std_dev_clear, \
 	.config_get = NULL, \
 	.config_set = config_set, \
 	.config_list = config_list, \

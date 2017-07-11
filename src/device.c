@@ -529,8 +529,6 @@ SR_API GSList *sr_dev_list(const struct sr_dev_driver *driver)
  */
 SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 {
-	int ret;
-
 	if (!driver) {
 		sr_err("Invalid driver.");
 		return SR_ERR_ARG;
@@ -548,12 +546,7 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 
 	/* No log message here, too verbose and not very useful. */
 
-	if (driver->dev_clear)
-		ret = driver->dev_clear(driver);
-	else
-		ret = std_dev_clear_with_callback(driver, NULL);
-
-	return ret;
+	return driver->dev_clear(driver);
 }
 
 /**

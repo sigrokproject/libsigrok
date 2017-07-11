@@ -103,11 +103,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear_with_callback(di, NULL);
-}
-
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -347,7 +342,7 @@ static struct sr_dev_driver pce_322a_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,

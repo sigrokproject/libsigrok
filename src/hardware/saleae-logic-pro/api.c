@@ -180,11 +180,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear_with_callback(di, NULL);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di = sdi->driver;
@@ -407,7 +402,7 @@ SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
