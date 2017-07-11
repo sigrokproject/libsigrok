@@ -94,6 +94,62 @@ SR_PRIV int std_cleanup(const struct sr_dev_driver *di)
 }
 
 /**
+ * Dummmy driver dev_open() callback API helper.
+ *
+ * @param[in] sdi The device instance to use. May be NULL (unused).
+ *
+ * @retval SR_OK Success.
+ */
+SR_PRIV int std_dummy_dev_open(struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	return SR_OK;
+}
+
+/**
+ * Dummmy driver dev_close() callback API helper.
+ *
+ * @param[in] sdi The device instance to use. May be NULL (unused).
+ *
+ * @retval SR_OK Success.
+ */
+SR_PRIV int std_dummy_dev_close(struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	return SR_OK;
+}
+
+/**
+ * Dummmy driver dev_acquisition_start() callback API helper.
+ *
+ * @param[in] sdi The device instance to use. May be NULL (unused).
+ *
+ * @retval SR_OK Success.
+ */
+SR_PRIV int std_dummy_dev_acquisition_start(const struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	return SR_OK;
+}
+
+/**
+ * Dummmy driver dev_acquisition_stop() callback API helper.
+ *
+ * @param[in] sdi The device instance to use. May be NULL (unused).
+ *
+ * @retval SR_OK Success.
+ */
+SR_PRIV int std_dummy_dev_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	return SR_OK;
+}
+
+/**
  * Standard API helper for sending an SR_DF_HEADER packet.
  *
  * This function can be used to simplify most drivers'

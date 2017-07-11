@@ -248,13 +248,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	return SR_OK;
-}
-
 SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
 	.name = "rohde-schwarz-sme-0x",
 	.longname = "Rohde&Schwarz SME-0x",
@@ -269,7 +262,7 @@ SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
 	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };

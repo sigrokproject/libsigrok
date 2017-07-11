@@ -106,15 +106,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
 }
 
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO */
-
-	return SR_OK;
-}
-
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -188,7 +179,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			.config_set = config_set, \
 			.config_list = config_list, \
 			.dev_open = dev_open, \
-			.dev_close = dev_close, \
+			.dev_close = std_dummy_dev_close /* TODO */, \
 			.dev_acquisition_start = dev_acquisition_start, \
 			.dev_acquisition_stop = dev_acquisition_stop, \
 			.context = NULL, \

@@ -158,20 +158,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	return SR_OK;
-}
-
 static struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.name = "conrad-digi-35-cpu",
 	.longname = "Conrad DIGI 35 CPU",
@@ -186,8 +172,8 @@ static struct sr_dev_driver conrad_digi_35_cpu_driver_info = {
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
 	.dev_close = std_serial_dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
+	.dev_acquisition_stop = std_dummy_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(conrad_digi_35_cpu_driver_info);

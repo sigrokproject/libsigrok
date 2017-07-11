@@ -930,6 +930,10 @@ typedef void (*std_dev_clear_callback)(void *priv);
 
 SR_PRIV int std_init(struct sr_dev_driver *di, struct sr_context *sr_ctx);
 SR_PRIV int std_cleanup(const struct sr_dev_driver *di);
+SR_PRIV int std_dummy_dev_open(struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_close(struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_acquisition_start(const struct sr_dev_inst *sdi);
+SR_PRIV int std_dummy_dev_acquisition_stop(struct sr_dev_inst *sdi);
 #ifdef HAVE_LIBSERIALPORT
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi);

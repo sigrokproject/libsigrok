@@ -180,20 +180,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	return SR_OK;
-}
-
 static void clear_helper(void *priv)
 {
 	struct dev_context *devc;
@@ -544,8 +530,8 @@ static struct sr_dev_driver demo_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_dummy_dev_open,
+	.dev_close = std_dummy_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
