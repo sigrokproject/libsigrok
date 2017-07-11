@@ -223,20 +223,6 @@ static int receive_data(int fd, int revents, void *cb_data)
 
 /* driver callbacks */
 
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	struct drv_context *drvc;
-	GSList *l;
-
-	drvc = di->context;
-	for (l = drvc->instances; l; l = l->next)
-		sr_dev_inst_free(l->data);
-	g_slist_free(drvc->instances);
-	drvc->instances = NULL;
-
-	return SR_OK;
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
@@ -402,10 +388,10 @@ SR_PRIV struct sr_dev_driver session_driver = {
 	.longname = "Session-emulating driver",
 	.api_version = 1,
 	.init = std_init,
-	.cleanup = dev_clear,
+	.cleanup = std_dev_clear,
 	.scan = NULL,
 	.dev_list = NULL,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
