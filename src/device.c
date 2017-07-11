@@ -551,7 +551,7 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 	if (driver->dev_clear)
 		ret = driver->dev_clear(driver);
 	else
-		ret = std_dev_clear(driver, NULL);
+		ret = std_dev_clear_with_callback(driver, NULL);
 
 	return ret;
 }

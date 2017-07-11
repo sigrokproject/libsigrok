@@ -238,7 +238,7 @@ static int dev_clear(const struct sr_dev_driver *di)
 		}
 	}
 
-	return std_dev_clear(di, clear_private);
+	return std_dev_clear_with_callback(di, clear_private);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

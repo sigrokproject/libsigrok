@@ -507,7 +507,7 @@ static void dev_clear_private(struct dev_context *devc)
 
 static int dev_clear_lps301(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, (std_dev_clear_callback)dev_clear_private);
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)dev_clear_private);
 }
 
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

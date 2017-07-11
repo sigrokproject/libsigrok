@@ -224,7 +224,7 @@ static void clear_dev_context(void *priv)
  */
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, &clear_dev_context);
+	return std_dev_clear_with_callback(di, &clear_dev_context);
 }
 
 /* Drain any pending data from the USB transfer buffers on the device.

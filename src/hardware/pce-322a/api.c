@@ -105,7 +105,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, NULL);
+	return std_dev_clear_with_callback(di, NULL);
 }
 
 static int config_get(uint32_t key, GVariant **data,

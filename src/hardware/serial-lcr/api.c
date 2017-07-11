@@ -35,7 +35,7 @@ struct lcr_es51919_info {
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear(di, es51919_serial_clean);
+	return std_dev_clear_with_callback(di, es51919_serial_clean);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
