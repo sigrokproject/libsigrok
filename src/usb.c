@@ -329,8 +329,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		if ((mstr = g_match_info_fetch(match, 2)))
 			pid = strtoul(mstr, NULL, 16);
 		g_free(mstr);
-		sr_dbg("Trying to find USB device with VID:PID = %04x:%04x.",
-		       vid, pid);
+		/* Trying to find USB device via VID:PID. */
 	} else {
 		g_match_info_unref(match);
 		g_regex_unref(reg);
@@ -343,8 +342,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 			if ((mstr = g_match_info_fetch(match, 2)))
 				addr = strtoul(mstr, NULL, 10);
 			g_free(mstr);
-			sr_dbg("Trying to find USB device with bus.address = "
-			       "%d.%d.", bus, addr);
+			/* Trying to find USB device via bus.address. */
 		}
 	}
 	g_match_info_unref(match);
@@ -392,7 +390,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	sr_dbg("Found %d device(s).", g_slist_length(devices));
+	/* No log message for #devices found (caller will log that). */
 
 	return devices;
 }

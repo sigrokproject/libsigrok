@@ -155,7 +155,7 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 	}
 	libusb_free_device_list(devlist, 1);
 
-	sr_dbg("Found %d device(s).", g_slist_length(resources));
+	/* No log message for #devices found (caller will log that). */
 
 	return resources;
 }

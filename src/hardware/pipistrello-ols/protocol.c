@@ -80,7 +80,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		       ftdi_get_error_string(devc->ftdic));
 		return SR_ERR;
 	}
-	sr_dbg("FTDI chip interface B set successfully.");
 
 	/* Check for the device and temporarily open it. */
 	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
@@ -92,7 +91,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 			       ftdi_get_error_string(devc->ftdic));
 		return SR_ERR;
 	}
-	sr_dbg("FTDI device opened successfully.");
 
 	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
@@ -100,7 +98,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip buffers purged successfully.");
 
 	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_RESET);
@@ -109,7 +106,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitmode reset successfully.");
 
 	/* Set the FTDI latency timer to 16. */
 	ret = ftdi_set_latency_timer(devc->ftdic, 16);
@@ -118,7 +114,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip latency timer set successfully.");
 
 	/* Set the FTDI read data chunk size to 64kB. */
 	ret = ftdi_read_data_set_chunksize(devc->ftdic, 64 * 1024);
@@ -127,7 +122,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip read data chunk size set successfully.");
 
 	return SR_OK;
 

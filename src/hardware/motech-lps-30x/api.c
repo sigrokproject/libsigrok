@@ -386,8 +386,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 	devc = NULL;
 	conn = serialcomm = NULL;
 
-	sr_spew("scan() called!");
-
 	/* Process and check options. */
 	if (sr_serial_extract_options(options, &conn, &serialcomm) != SR_OK)
 		return NULL;

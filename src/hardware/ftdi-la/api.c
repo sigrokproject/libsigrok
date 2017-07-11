@@ -178,8 +178,6 @@ static GSList *scan_all(struct ftdi_context *ftdic, GSList *options)
 		return NULL;
 	}
 
-	sr_dbg("Number of FTDI devices found: %d", ret);
-
 	curdev = devlist;
 	while (curdev) {
 		scan_device(ftdic, curdev->dev, &devices);
@@ -283,7 +281,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip buffers purged successfully.");
 
 	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_RESET);
@@ -292,7 +289,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitmode reset successfully.");
 
 	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_BITBANG);
 	if (ret < 0) {
@@ -300,7 +296,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitbang mode entered successfully.");
 
 	return SR_OK;
 

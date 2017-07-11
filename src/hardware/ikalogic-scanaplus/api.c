@@ -143,7 +143,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ftdi_get_error_string(devc->ftdic));
 		return SR_ERR;
 	}
-	sr_dbg("FTDI chip interface A set successfully.");
 
 	/* Open the device. */
 	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
@@ -153,7 +152,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ftdi_get_error_string(devc->ftdic));
 		return SR_ERR;
 	}
-	sr_dbg("FTDI device opened successfully.");
 
 	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
@@ -161,7 +159,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip buffers purged successfully.");
 
 	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_RESET);
@@ -170,7 +167,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip bitmode reset successfully.");
 
 	/* Set FTDI bitmode to "sync FIFO". */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_SYNCFF);
@@ -179,7 +175,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip sync FIFO mode entered successfully.");
 
 	/* Set the FTDI latency timer to 2. */
 	ret = ftdi_set_latency_timer(devc->ftdic, 2);
@@ -188,7 +183,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip latency timer set successfully.");
 
 	/* Set the FTDI read data chunk size to 64kB. */
 	ret = ftdi_read_data_set_chunksize(devc->ftdic, 64 * 1024);
@@ -197,7 +191,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
-	sr_dbg("FTDI chip read data chunk size set successfully.");
 
 	/* Get the ScanaPLUS device ID from the FTDI EEPROM. */
 	if ((ret = scanaplus_get_device_id(devc)) < 0) {

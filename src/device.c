@@ -546,6 +546,8 @@ SR_API int sr_dev_clear(const struct sr_dev_driver *driver)
 		return SR_OK;
 	}
 
+	/* No log message here, too verbose and not very useful. */
+
 	if (driver->dev_clear)
 		ret = driver->dev_clear(driver);
 	else

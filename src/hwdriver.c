@@ -394,6 +394,8 @@ SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 		return SR_ERR_ARG;
 	}
 
+	/* No log message here, too verbose and not very useful. */
+
 	if ((ret = driver->init(driver, ctx)) < 0)
 		sr_err("Failed to initialize the driver: %d.", ret);
 
@@ -527,8 +529,7 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 
 	l = driver->scan(driver, options);
 
-	sr_spew("Scan of '%s' found %d devices.", driver->name,
-		g_slist_length(l));
+	sr_spew("Scan found %d devices (%s).", g_slist_length(l), driver->name);
 
 	return l;
 }
@@ -547,6 +548,8 @@ SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
 
 	if (!ctx)
 		return;
+
+	sr_dbg("Cleaning up all drivers.");
 
 	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
@@ -581,7 +584,6 @@ SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)
  */
 SR_PRIV void sr_config_free(struct sr_config *src)
 {
-
 	if (!src || !src->data) {
 		sr_err("%s: invalid data!", __func__);
 		return;
@@ -589,7 +591,6 @@ SR_PRIV void sr_config_free(struct sr_config *src)
 
 	g_variant_unref(src->data);
 	g_free(src);
-
 }
 
 /** @private */

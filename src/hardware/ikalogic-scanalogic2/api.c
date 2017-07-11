@@ -423,8 +423,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	usb_source_add(sdi->session, drvc->sr_ctx, 100,
 			ikalogic_scanalogic2_receive_data, (void *)sdi);
 
-	sr_dbg("Acquisition started successfully.");
-
 	std_session_send_df_header(sdi);
 
 	devc->next_state = STATE_SAMPLE;

@@ -159,8 +159,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	conn = serialcomm = NULL;
 	serialcomm_given = FALSE;
 
-	sr_spew("scan_1x_2x_rs232() called!");
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -242,8 +240,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	conn = serialcomm = NULL;
 	devices = NULL;
 
-	sr_spew("scan_2x_bd232() called!");
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -321,8 +317,6 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 
 exit_err:
-	sr_info("scan_2x_bd232(): Error!");
-
 	sr_serial_dev_inst_free(serial);
 	g_free(devc);
 	sr_dev_inst_free(sdi);

@@ -107,9 +107,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		devc->detached_kernel_driver = 1;
-		sr_dbg("Successfully detached kernel driver.");
-	} else {
-		sr_dbg("No need to detach a kernel driver.");
 	}
 
 	/* Claim interface 0. */
@@ -118,7 +115,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sr_dbg("Successfully claimed interface 0.");
 
 	return SR_OK;
 }

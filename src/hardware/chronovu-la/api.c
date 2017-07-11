@@ -251,7 +251,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
-	sr_dbg("Device opened successfully.");
 
 	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
@@ -259,7 +258,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
-	sr_dbg("FTDI buffers purged successfully.");
 
 	/* Enable flow control in the FTDI chip. */
 	if ((ret = ftdi_setflowctrl(devc->ftdic, SIO_RTS_CTS_HS)) < 0) {
@@ -267,7 +265,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
-	sr_dbg("FTDI flow control enabled successfully.");
 
 	/* Wait 100ms. */
 	g_usleep(100 * 1000);
@@ -521,8 +518,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		sr_err("Acquisition failed to start.");
 		return SR_ERR;
 	}
-
-	sr_dbg("Hardware acquisition started successfully.");
 
 	std_session_send_df_header(sdi);
 

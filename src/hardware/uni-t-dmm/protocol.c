@@ -111,9 +111,6 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 			       libusb_error_name(ret));
 			return SR_ERR;
 		}
-		sr_dbg("Successfully detached kernel driver.");
-	} else {
-		sr_dbg("No need to detach a kernel driver.");
 	}
 
 	/* Claim interface 0. */
@@ -122,7 +119,6 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
-	sr_dbg("Successfully claimed interface 0.");
 
 	/* Set data for the HID feature report (e.g. baudrate). */
 	buf[0] = baudrate & 0xff;        /* Baudrate, LSB */
@@ -157,8 +153,6 @@ static int hid_chip_init(struct sr_dev_inst *sdi, uint16_t baudrate)
 		sr_err("Short packet: sent %d/5 bytes.", ret);
 		return SR_ERR;
 	}
-
-	sr_dbg("Successfully sent initial HID feature report.");
 
 	return SR_OK;
 }

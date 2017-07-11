@@ -497,8 +497,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	bitpos = devc->enabled_logic_channels % 8;
 	mask = (1 << bitpos) - 1;
 	devc->first_partial_logic_mask = mask;
-	sr_dbg("DBG: %s(), num logic %zu, partial off %zu, mask 0x%02x",
-		__func__, devc->enabled_logic_channels,
+	sr_dbg("num logic %zu, partial off %zu, mask 0x%02x.",
+		devc->enabled_logic_channels,
 		devc->first_partial_logic_index,
 		devc->first_partial_logic_mask);
 
