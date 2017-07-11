@@ -124,8 +124,6 @@ static void clear_helper(void *priv)
 	lecroy_xstream_state_free(devc->model_state);
 
 	g_free(devc->analog_groups);
-
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

@@ -203,25 +203,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_helper(void *priv)
-{
-	struct dev_context *devc;
-
-	devc = priv;
-
-	if (devc->acquisition) {
-		sr_err("Cannot clear device context during acquisition!");
-		return; /* Leak and pray. */
-	}
-
-	g_free(devc);
-}
-
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear_with_callback(di, clear_helper);
-}
-
 /* Drain any pending data from the USB transfer buffers on the device.
  * This may be necessary e.g. after a crash or generally to clean up after
  * an abnormal condition.
@@ -750,7 +731,7 @@ static struct sr_dev_driver sysclk_lwla_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_channel_set = config_channel_set,

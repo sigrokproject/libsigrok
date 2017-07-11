@@ -333,16 +333,18 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
  * This function can be used to implement the dev_clear() driver API
  * callback. dev_close() is called before every sr_dev_inst is cleared.
  *
- * The only limitation is driver-specific device contexts (sdi->priv).
+ * The only limitation is driver-specific device contexts (sdi->priv / devc).
  * These are freed, but any dynamic allocation within structs stored
  * there cannot be freed.
  *
  * @param[in] driver The driver which will have its instances released.
  *                   Must not be NULL.
  * @param[in] clear_private If not NULL, this points to a function called
- *            with sdi->priv as argument. The function can then clear
+ *            with sdi->priv (devc) as argument. The function can then clear
  *            any device instance-specific resources kept there.
- *            It must also clear the struct pointed to by sdi->priv.
+ *            It must NOT clear the struct pointed to by sdi->priv (devc),
+ *            since this function will always free it after clear_private()
+ *            has run.
  *
  * @retval SR_OK Success.
  * @retval SR_ERR_ARG Invalid argument.
@@ -388,12 +390,13 @@ SR_PRIV int std_dev_clear_with_callback(const struct sr_dev_driver *driver,
 			if (sdi->inst_type == SR_INST_MODBUS)
 				sr_modbus_free(sdi->conn);
 		}
+
+		/* Clear driver-specific stuff, if any. */
 		if (clear_private)
-			/* The helper function is responsible for freeing
-			 * its own sdi->priv! */
 			clear_private(sdi->priv);
-		else
-			g_free(sdi->priv);
+
+		/* Clear sdi->priv (devc). */
+		g_free(sdi->priv);
 
 		sr_dev_inst_free(sdi);
 	}

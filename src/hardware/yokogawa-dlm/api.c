@@ -131,7 +131,6 @@ static void clear_helper(void *priv)
 
 	g_free(devc->analog_groups);
 	g_free(devc->digital_groups);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

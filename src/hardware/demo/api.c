@@ -193,7 +193,6 @@ static void clear_helper(void *priv)
 	while (g_hash_table_iter_next(&iter, NULL, &value))
 		g_free(value);
 	g_hash_table_unref(devc->ch_ag);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

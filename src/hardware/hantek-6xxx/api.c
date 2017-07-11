@@ -162,7 +162,6 @@ static void clear_helper(void *priv)
 
 	devc = priv;
 	g_slist_free(devc->enabled_channels);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)

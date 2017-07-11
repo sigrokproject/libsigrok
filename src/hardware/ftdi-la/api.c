@@ -246,7 +246,6 @@ static void clear_helper(void *priv)
 
 	devc = priv;
 	g_free(devc->data_buf);
-	g_free(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
