@@ -253,13 +253,12 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct dev_context *devc;
 	uint64_t p, q;
 	unsigned int i;
-	int tmp, ret;
+	int tmp;
 	const char *tmp_str;
 
 	(void)cg;
 
 	devc = sdi->priv;
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -276,7 +275,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			break;
 		}
 		if (i == ARRAY_SIZE(kecheng_kc_330b_sample_intervals))
-			ret = SR_ERR_ARG;
+			return SR_ERR_ARG;
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		tmp_str = g_variant_get_string(data, NULL);
@@ -313,10 +312,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->config_dirty = TRUE;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

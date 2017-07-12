@@ -264,13 +264,12 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct analog_gen *ag;
 	struct sr_channel *ch;
 	GSList *l;
-	int logic_pattern, analog_pattern, ret;
+	int logic_pattern, analog_pattern;
 	unsigned int i;
 	const char *stropt;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
@@ -346,10 +345,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

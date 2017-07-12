@@ -145,7 +145,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	unsigned int i;
 	struct dev_context *devc;
 	const struct scope_config *model;
@@ -156,7 +155,6 @@ static int config_get(uint32_t key, GVariant **data,
 
 	devc = sdi->priv;
 
-	ret = SR_ERR_NA;
 	model = devc->model_config;
 	state = devc->model_state;
 	*data = NULL;
@@ -164,20 +162,17 @@ static int config_get(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(model->num_xdivs);
-		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)",
 				model->timebases[state->timebase].p,
 				model->timebases[state->timebase].q);
-		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
 		for (i = 0; i < model->analog_channels; i++) {
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new_int32(model->num_ydivs);
-			ret = SR_OK;
 		}
 		break;
 	case SR_CONF_VDIV:
@@ -187,42 +182,35 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new("(tt)",
 				model->vdivs[state->analog_channels[i].vdiv].p,
 				model->vdivs[state->analog_channels[i].vdiv].q);
-			ret = SR_OK;
 		}
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
-		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
-		ret = SR_OK;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(state->horiz_triggerpos);
-		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
 		for (i = 0; i < model->analog_channels; i++) {
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
-			ret = SR_OK;
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
-		ret = SR_OK;
 		break;
 	case SR_CONF_ENABLED:
 		*data = g_variant_new_boolean(FALSE);
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static GVariant *build_tuples(const struct sr_rational *array, unsigned int n)

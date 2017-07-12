@@ -242,14 +242,12 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
 	(void)sdi;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -275,7 +273,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 /* get a sane timeout for poll() */

@@ -501,13 +501,11 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 {
 	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
-	int ret;
 	unsigned int i;
 
 	(void)sdi;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -543,7 +541,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static void abort_acquisition(struct dev_context *devc)

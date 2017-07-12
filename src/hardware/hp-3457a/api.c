@@ -225,14 +225,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_ADC_POWERLINE_CYCLES:
 		*data = g_variant_new_double(devc->nplc);
@@ -241,7 +239,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
@@ -284,8 +282,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-
 	if (key == SR_CONF_SCAN_OPTIONS) {
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
@@ -309,13 +305,12 @@ static int config_list(uint32_t key, GVariant **data,
 	 * plug-in cards.
 	 */
 
-	ret = SR_OK;
 	switch (key) {
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static void create_channel_index_list(GSList *channels, GArray **arr)

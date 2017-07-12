@@ -151,7 +151,6 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	GVariantBuilder gvb;
-	int ret;
 
 	/* Always available. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
@@ -168,8 +167,6 @@ static int config_list(uint32_t key, GVariant **data,
 
 	if (!sdi)
 		return SR_ERR_ARG;
-
-	ret = SR_OK;
 
 	if (!cg) {
 		/* No channel group: global options. */
@@ -200,14 +197,13 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 	float fvalue;
 
 	(void)cg;
@@ -223,7 +219,6 @@ static int config_get(uint32_t key, GVariant **data,
 	 *  - SR_CONF_ENABLED (state cannot be queried, only set)
 	 */
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
@@ -267,7 +262,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,

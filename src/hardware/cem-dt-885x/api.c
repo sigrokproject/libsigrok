@@ -287,11 +287,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariant *tuple, *range[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	int ret;
 
 	(void)cg;
 
-	ret = SR_OK;
 	if (!sdi) {
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
@@ -335,7 +333,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

@@ -187,14 +187,13 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	int channel, ret;
+	int channel;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
@@ -233,7 +232,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int find_str(const char *str, const char **strings, int array_size)
@@ -338,7 +337,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct sr_channel *ch;
 	GVariant *gvar;
 	GVariantBuilder gvb;
-	int channel, ret, i;
+	int channel, i;
 
 	/* Always available. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
@@ -357,7 +356,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
@@ -413,7 +412,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)

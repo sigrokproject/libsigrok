@@ -215,11 +215,9 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
@@ -237,29 +235,27 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->dig_samplerate = g_variant_get_uint64(data);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
@@ -267,12 +263,10 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	GVariant *gvar;
 	GVariantBuilder gvb;
-	int ret;
 
 	(void)sdi;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -298,7 +292,7 @@ static int config_list(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static void dev_acquisition_abort(const struct sr_dev_inst *sdi)

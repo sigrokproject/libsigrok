@@ -483,11 +483,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	struct dev_context *devc;
 	double tmp_double;
 	uint64_t tmp_u64, p, q;
-	int tmp_int, ch_idx, ret;
+	int tmp_int, ch_idx;
 	unsigned int i;
 	const char *tmp_str;
 
-	ret = SR_OK;
 	devc = sdi->priv;
 	if (!cg) {
 		switch (key) {
@@ -505,7 +504,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			tmp_double = g_variant_get_double(data);
 			if (tmp_double < 0.0 || tmp_double > 1.0) {
 				sr_err("Trigger position should be between 0.0 and 1.0.");
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			} else
 				devc->triggerposition = tmp_double;
 			break;
@@ -518,7 +517,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				}
 			}
 			if (i == NUM_BUFFER_SIZES)
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		case SR_CONF_TIMEBASE:
 			g_variant_get(data, "(tt)", &p, &q);
@@ -532,7 +531,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			if (tmp_int >= 0)
 				devc->timebase = tmp_int;
 			else
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			tmp_str = g_variant_get_string(data, NULL);
@@ -543,11 +542,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				}
 			}
 			if (trigger_sources[i] == 0)
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	} else {
 		if (sdi->channel_groups->data == cg)
@@ -572,7 +570,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			if (tmp_int >= 0) {
 				devc->voltage[ch_idx] = tmp_int;
 			} else
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		case SR_CONF_COUPLING:
 			tmp_str = g_variant_get_string(data, NULL);
@@ -583,15 +581,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				}
 			}
 			if (coupling[i] == 0)
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

@@ -393,11 +393,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 {
 	struct dev_context *devc;
 	uint64_t p, q;
-	int tmp_int, ch_idx, ret;
+	int tmp_int, ch_idx;
 	unsigned int i;
 	const char *tmp_str;
 
-	ret = SR_OK;
 	devc = sdi->priv;
 	if (!cg) {
 		switch (key) {
@@ -412,8 +411,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			devc->limit_samples = g_variant_get_uint64(data);
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	} else {
 		if (sdi->channel_groups->data == cg)
@@ -436,7 +434,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				devc->voltage[ch_idx] = tmp_int;
 				hantek_6xxx_update_vdiv(sdi);
 			} else
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		case SR_CONF_COUPLING:
 			tmp_str = g_variant_get_string(data, NULL);
@@ -447,15 +445,14 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 				}
 			}
 			if (i == devc->coupling_tab_size)
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			break;
 		default:
-			ret = SR_ERR_NA;
-			break;
+			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,

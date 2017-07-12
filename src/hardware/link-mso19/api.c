@@ -236,24 +236,21 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
+	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME
 		return mso_configure_rate(sdi, g_variant_get_uint64(data));
-		ret = SR_OK;
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		num_samples = g_variant_get_uint64(data);
 		if (num_samples != 1024) {
 			sr_err("Only 1024 samples are supported.");
 			ret = SR_ERR_ARG;
-		} else {
-			devc->limit_samples = num_samples;
-			ret = SR_OK;
-		}
+			break;
+		};
+		devc->limit_samples = num_samples;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		slope = g_variant_get_string(data, NULL);
@@ -261,29 +258,25 @@ static int config_set(int key, GVariant *data, const struct sr_dev_inst *sdi,
 		if (!slope || !(slope[0] == 'f' || slope[0] == 'r'))
 			sr_err("Invalid trigger slope");
 			ret = SR_ERR_ARG;
-		} else {
-			devc->trigger_slope = (slope[0] == 'r')
-				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
-			ret = SR_OK;
+			break;
 		}
+		devc->trigger_slope = (slope[0] == 'r')
+			? SLOPE_POSITIVE : SLOPE_NEGATIVE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
 		if (pos < 0 || pos > 255) {
 			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
 			ret = SR_ERR_ARG;
-		} else {
-			trigger_pos = (int)pos;
-			devc->trigger_holdoff[0] = trigger_pos & 0xff;
-			ret = SR_OK;
+			break;
 		}
+		trigger_pos = (int)pos;
+		devc->trigger_holdoff[0] = trigger_pos & 0xff;
 		break;
 	case SR_CONF_RLE:
-		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;
-		break;
 	}
 
 	return ret;

@@ -338,7 +338,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 
 	(void)cg;
@@ -348,7 +347,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
@@ -360,7 +358,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 /** Implementation of config_list, auxiliary function for common parts. */

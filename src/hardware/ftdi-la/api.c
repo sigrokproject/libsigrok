@@ -323,7 +323,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	char str[128];
@@ -332,7 +331,6 @@ static int config_get(uint32_t key, GVariant **data,
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -348,13 +346,12 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	uint64_t value;
 
@@ -362,13 +359,11 @@ static int config_set(uint32_t key, GVariant *data,
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
 		value = g_variant_get_uint64(data);
 		/* TODO: Implement. */
-		ret = SR_ERR_NA;
-		break;
+		return SR_ERR_NA;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (g_variant_get_uint64(data) == 0)
 			return SR_ERR_ARG;
@@ -381,23 +376,21 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->cur_samplerate = value;
 		return ftdi_la_set_samplerate(devc);
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
 	(void)sdi;
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
@@ -418,7 +411,7 @@ static int config_list(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

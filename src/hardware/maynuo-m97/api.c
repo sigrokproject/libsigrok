@@ -361,7 +361,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 {
 	struct dev_context *devc;
 	GVariantBuilder gvb;
-	int ret;
 
 	/* Always available, even without sdi. */
 	if (key == SR_CONF_SCAN_OPTIONS) {
@@ -378,7 +377,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return SR_ERR_ARG;
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
@@ -416,7 +414,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

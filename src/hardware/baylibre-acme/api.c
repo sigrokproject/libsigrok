@@ -217,12 +217,11 @@ static int config_list(uint32_t key, GVariant **data,
 	uint32_t devopts_cg[MAX_DEVOPTS_CG];
 	GVariant *gvar;
 	GVariantBuilder gvb;
-	int ret, num_devopts_cg = 0;
+	int num_devopts_cg = 0;
 
 	(void)sdi;
 	(void)cg;
 
-	ret = SR_OK;
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
@@ -256,7 +255,7 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static void dev_acquisition_close(const struct sr_dev_inst *sdi)
