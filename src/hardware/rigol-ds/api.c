@@ -843,42 +843,15 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	struct dev_context *devc = NULL;
+	struct dev_context *devc;
 
-	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* Every other option requires a valid device instance. */
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
-
-	/* If a channel group is specified, it must be a valid one. */
-	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
-		sr_err("Invalid channel group specified.");
-		return SR_ERR;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!cg) {
-			/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-			 * specific to a channel group must be returned. */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			return SR_OK;
-		}
+		if (!cg)
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		if (cg == devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				NULL, 0, sizeof(uint32_t));
@@ -895,17 +868,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
 		break;
@@ -913,10 +882,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < devc->num_vdivs; i++) {
 			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);

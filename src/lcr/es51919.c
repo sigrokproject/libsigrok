@@ -251,32 +251,6 @@ static int serial_stream_check(struct sr_serial_dev_inst *serial,
 				       is_valid, timeout_ms, baudrate);
 }
 
-struct std_opt_desc {
-	const uint32_t *scanopts;
-	const int num_scanopts;
-	const uint32_t *devopts;
-	const int num_devopts;
-};
-
-static int std_config_list(uint32_t key, GVariant **data,
-			   const struct std_opt_desc *d)
-{
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			d->scanopts, d->num_scanopts, sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			d->devopts, d->num_devopts, sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
 static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
 {
 	struct sr_datafeed_packet packet;
@@ -874,22 +848,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_EQUIV_CIRCUIT_MODEL | SR_CONF_GET | SR_CONF_LIST,
 };
 
-static const struct std_opt_desc opts = {
-	scanopts, ARRAY_SIZE(scanopts),
-	devopts, ARRAY_SIZE(devopts),
-};
-
 SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 				       const struct sr_dev_inst *sdi,
 				       const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	if (std_config_list(key, data, &opts) == SR_OK)
-		return SR_OK;
-
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts);
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
 			frequencies, ARRAY_SIZE(frequencies), sizeof(double));

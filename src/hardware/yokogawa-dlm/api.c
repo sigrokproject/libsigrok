@@ -470,28 +470,11 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		const struct sr_channel_group *cg)
 {
 	int cg_type = CG_NONE;
-	struct dev_context *devc = NULL;
-	const struct scope_config *model = NULL;
+	struct dev_context *devc;
+	const struct scope_config *model;
 
-	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				dlm_scanopts, ARRAY_SIZE(dlm_scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				dlm_drvopts, ARRAY_SIZE(dlm_drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	devc = sdi->priv;
-	model = devc->model_config;
+	devc = (sdi) ? sdi->priv : NULL;
+	model = (devc) ? devc->model_config : NULL;
 
 	/*
 	 * If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
@@ -499,10 +482,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	 */
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					dlm_devopts, ARRAY_SIZE(dlm_devopts), sizeof(uint32_t));
-			return SR_OK;
+			return STD_CONFIG_LIST(key, data, sdi, cg, dlm_scanopts, dlm_drvopts, dlm_devopts);
 		case SR_CONF_TIMEBASE:
 			*data = build_tuples(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
 			return SR_OK;

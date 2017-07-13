@@ -497,3 +497,46 @@ SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices)
 
 	return devices;
 }
+
+SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
+	const uint32_t scanopts[], size_t scansize, const uint32_t drvopts[],
+	size_t drvsize, const uint32_t devopts[], size_t devsize)
+{
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		/* Always return scanopts, regardless of sdi or cg. */
+		if (!scanopts)
+			return SR_ERR_ARG;
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			scanopts, scansize, sizeof(uint32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		if (!sdi) {
+			/* sdi == NULL: return drvopts. */
+			if (!drvopts)
+				return SR_ERR_ARG;
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				drvopts, drvsize, sizeof(uint32_t));
+		} else if (sdi && !cg) {
+			/* sdi != NULL, cg == NULL: return devopts. */
+			if (!devopts)
+				return SR_ERR_ARG;
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts, devsize, sizeof(uint32_t));
+		} else {
+			/*
+			 * Note: sdi != NULL, cg != NULL is not handled by
+			 * this function since it's very driver-specific.
+			 */
+			sr_err("%s: %s: sdi/cg != NULL: not handling.",
+			       sdi->driver->name, __func__);
+			return SR_ERR_ARG;
+		}
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}

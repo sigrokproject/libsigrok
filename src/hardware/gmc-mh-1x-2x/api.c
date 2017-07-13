@@ -361,55 +361,18 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-/** Implementation of config_list, auxiliary function for common parts. */
-static int config_list_common(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
-{
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
 /** Implementation of config_list for Metrahit 1x/2x send mode */
 static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_sm, ARRAY_SIZE(devopts_sm), sizeof(uint32_t));
-		break;
-	default:
-		return config_list_common(key, data, sdi, cg);
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts_sm);
 }
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
 static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	switch (key) {
-	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_bd, ARRAY_SIZE(devopts_bd), sizeof(uint32_t));
-		break;
-	default:
-		return config_list_common(key, data, sdi, cg);
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts_bd);
 }
 
 static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)

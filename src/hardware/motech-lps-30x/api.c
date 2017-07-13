@@ -677,32 +677,14 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	/* Driver options, no device instance necessary. */
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (sdi)
-			break;
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	default:
-		if (!sdi)
-			return SR_ERR_ARG;
-		devc = sdi->priv;
-		break;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
 	/* Device options, independent from channel groups. */
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			return SR_OK;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
 			if (devc->model->modelid <= LPS_303) {
 				/* The 1-channel models. */

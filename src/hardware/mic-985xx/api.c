@@ -142,32 +142,18 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg, int idx)
 {
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi && !mic_devs[idx].has_humidity) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts_temp, ARRAY_SIZE(drvopts_temp),
-				sizeof(uint32_t));
-		} else if (!sdi && mic_devs[idx].has_humidity) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts_temp_hum, ARRAY_SIZE(drvopts_temp_hum),
-				sizeof(uint32_t));
-		} else {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		}
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	/*
+	 * We can't use the ternary operator here! The result would contain
+	 * sizeof((cond) ? A : B) where A/B are arrays of different type/size.
+	 * The ternary operator always returns the "common" type of A and B,
+	 * which would be a pointer instead of either the A or B arrays.
+	 * Thus, sizeof() would yield the size of a pointer, not the size
+	 * of either the A or B array, which is not what we want.
+	 */
+	if (mic_devs[idx].has_humidity)
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts_temp_hum, devopts);
+	else
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts_temp, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)

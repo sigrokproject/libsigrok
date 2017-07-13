@@ -520,28 +520,18 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	int i;
 	const char *s[16];
 
-	/* Always available, even without sdi. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
+	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devc->device->devopts, devc->device->num_devopts,
-					sizeof(uint32_t));
+			return std_opts_config_list(key, data, sdi, cg,
+				scanopts, ARRAY_SIZE(scanopts),
+				drvopts, ARRAY_SIZE(drvopts),
+				(devc) ? devc->device->devopts : NULL,
+				(devc) ? devc->device->num_devopts : 0);
 			break;
 		case SR_CONF_CHANNEL_CONFIG:
 			/* Not used. */

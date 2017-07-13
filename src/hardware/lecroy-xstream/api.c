@@ -388,41 +388,18 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc = NULL;
-	const struct scope_config *model = NULL;
+	struct dev_context *devc;
+	const struct scope_config *model;
 
-	(void)cg;
-
-	/* SR_CONF_SCAN_OPTIONS is always valid, regardless of sdi or channel group. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* If sdi is NULL, nothing except SR_CONF_DEVICE_OPTIONS can be provided. */
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-        /* Every other option requires a valid device instance. */
-        if (!sdi)
-                return SR_ERR_ARG;
-
-	devc = sdi->priv;
-	model = devc->model_config;
+	devc = (sdi) ? sdi->priv : NULL;
+	model = (devc) ? devc->model_config : NULL;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, NULL);
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!cg) {
-			/* If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-			 * specific to a channel group must be returned. */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-                        return SR_OK;
-		}
+		if (!cg)
+			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 			analog_devopts, ARRAY_SIZE(analog_devopts),
 			sizeof(uint32_t));

@@ -182,27 +182,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	(void)sdi;
-	(void)cg;
-
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
-	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)

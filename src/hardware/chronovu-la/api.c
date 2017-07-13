@@ -357,25 +357,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	struct dev_context *devc;
 
-	(void)cg;
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		if (!sdi)
-			return SR_ERR_BUG;
-		devc = sdi->priv;
 		cv_fill_samplerates_if_needed(sdi);
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
@@ -386,7 +374,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
+		if (!devc->prof)
 			return SR_ERR_BUG;
 		grange[0] = g_variant_new_uint64(0);
 		if (devc->prof->model == CHRONOVU_LA8)
@@ -396,7 +384,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_tuple(grange, 2);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		if (!sdi || !sdi->priv || !(devc = sdi->priv) || !devc->prof)
+		if (!devc->prof)
 			return SR_ERR_BUG;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				trigger_matches, devc->prof->num_trigger_matches,

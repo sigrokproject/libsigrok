@@ -152,32 +152,9 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	GVariantBuilder gvb;
 
-	/* Always available. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
-
 	if (!cg) {
 		/* No channel group: global options. */
-		switch (key) {
-		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
-		default:
-			return SR_ERR_NA;
-		}
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:

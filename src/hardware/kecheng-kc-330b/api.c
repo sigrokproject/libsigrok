@@ -325,14 +325,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	unsigned int i;
 
-	(void)sdi;
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, NULL, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {

@@ -339,31 +339,14 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	GVariantBuilder gvb;
 	int channel, i;
 
-	/* Always available. */
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (key == SR_CONF_DEVICE_OPTIONS && !sdi) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	if (!sdi)
-		return SR_ERR_ARG;
-
-	devc = sdi->priv;
+	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
 		/* No channel group: global options. */
 		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-			break;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
 				/* The 1-channel models. */
@@ -378,8 +361,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	} else {
 		/* Channel group specified: per-channel options. */
-		if (!sdi)
-			return SR_ERR_ARG;
+
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;

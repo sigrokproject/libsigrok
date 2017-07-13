@@ -625,8 +625,6 @@ static int config_commit(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* List available choices for a configuration setting.
- */
 static int config_list(uint32_t key, GVariant **data,
 		       const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
@@ -635,31 +633,16 @@ static int config_list(uint32_t key, GVariant **data,
 	GVariant *gvar;
 	GVariantBuilder gvb;
 
-	(void)cg;
+	devc = (sdi) ? sdi->priv : NULL;
 
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(scanopts[0]));
-		return SR_OK;
-	}
-	if (!sdi) {
-		if (key != SR_CONF_DEVICE_OPTIONS)
-			return SR_ERR_ARG;
-
-		/* List driver capabilities. */
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			drvopts, ARRAY_SIZE(drvopts), sizeof(drvopts[0]));
-		return SR_OK;
-	}
-
-	devc = sdi->priv;
-
-	/* List the model's device options. */
-	if (key == SR_CONF_DEVICE_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devc->model->devopts, devc->model->num_devopts,
-			sizeof(devc->model->devopts[0]));
-		return SR_OK;
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return std_opts_config_list(key, data, sdi, cg,
+			scanopts, ARRAY_SIZE(scanopts),
+			drvopts, ARRAY_SIZE(drvopts),
+			(devc) ? devc->model->devopts : NULL,
+			(devc) ? devc->model->num_devopts : 0);
 	}
 
 	if (!has_devopt(devc->model, key | SR_CONF_LIST))

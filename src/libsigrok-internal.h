@@ -947,6 +947,15 @@ SR_PRIV GSList *std_dev_list(const struct sr_dev_driver *di);
 SR_PRIV int std_serial_dev_close(struct sr_dev_inst *sdi);
 SR_PRIV GSList *std_scan_complete(struct sr_dev_driver *di, GSList *devices);
 
+SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
+	const uint32_t scanopts[], size_t scansize, const uint32_t drvopts[],
+	size_t drvsize, const uint32_t devopts[], size_t devsize);
+
+#define STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts) \
+	std_opts_config_list(key, data, sdi, cg, ARRAY_AND_SIZE(scanopts), \
+		ARRAY_AND_SIZE(drvopts), ARRAY_AND_SIZE(devopts))
+
 /*--- resource.c ------------------------------------------------------------*/
 
 SR_PRIV int64_t sr_file_get_size(FILE *file);
