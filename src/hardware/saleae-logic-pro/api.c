@@ -22,9 +22,9 @@
 #include <string.h>
 #include "protocol.h"
 
-#define BUF_COUNT 8
+#define BUF_COUNT 512
 #define BUF_SIZE (16 * 1024)
-#define BUF_TIMEOUT (1000 * 1000)
+#define BUF_TIMEOUT 1000
 
 SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info;
 
@@ -395,6 +395,8 @@ static void dev_acquisition_abort(const struct sr_dev_inst *sdi)
 	}
 }
 
+static int dev_acquisition_stop(struct sr_dev_inst *sdi);
+
 static int dev_acquisition_handle(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi = cb_data;
@@ -402,9 +404,12 @@ static int dev_acquisition_handle(int fd, int revents, void *cb_data)
 	struct timeval tv = ALL_ZERO;
 
 	(void)fd;
-	(void)revents;
 
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	/* Handle timeout */
+	if (!revents)
+		dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
@@ -433,7 +438,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		transfer = libusb_alloc_transfer(0);
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 			2 | LIBUSB_ENDPOINT_IN, buf, BUF_SIZE,
-			saleae_logic_pro_receive_data, (void *)sdi, BUF_TIMEOUT);
+			saleae_logic_pro_receive_data, (void *)sdi, 0);
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
