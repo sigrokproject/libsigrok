@@ -56,6 +56,78 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(50),
 };
 
+#define FW_HEADER_SIZE 7
+#define FW_MAX_PART_SIZE (4 * 1024)
+
+static int upload_firmware(struct sr_context *ctx, libusb_device *dev, const char *name)
+{
+	struct libusb_device_handle *hdl = NULL;
+	unsigned char *firmware = NULL;
+	int ret = SR_ERR;
+	size_t fw_size, fw_offset = 0;
+	uint32_t part_address = 0;
+	uint16_t part_size = 0;
+	uint8_t part_final = 0;
+
+	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
+				    name, &fw_size, 256 * 1024);
+	if (!firmware)
+		goto out;
+
+	sr_info("Uploading firmware '%s'.", name);
+
+	if (libusb_open(dev, &hdl) != 0)
+		goto out;
+
+	while ((fw_offset + FW_HEADER_SIZE) <= fw_size) {
+		part_size = GUINT16_FROM_LE(*(uint16_t*)(firmware + fw_offset));
+		part_address = GUINT32_FROM_LE(*(uint32_t*)(firmware + fw_offset + 2));
+		part_final = *(uint8_t*)(firmware + fw_offset + 6);
+		if (part_size > FW_MAX_PART_SIZE) {
+			sr_err("Part too large (%d).", part_size);
+			goto out;
+		}
+		fw_offset += FW_HEADER_SIZE;
+		if ((fw_offset + part_size) > fw_size) {
+			sr_err("Truncated firmware file.");
+			goto out;
+		}
+		ret = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR |
+					      LIBUSB_ENDPOINT_OUT, 0xa0,
+					      part_address & 0xffff, part_address >> 16,
+					      firmware + fw_offset, part_size,
+					      100);
+		if (ret < 0) {
+			sr_err("Unable to send firmware to device: %s.",
+			       libusb_error_name(ret));
+			ret = SR_ERR;
+			goto out;
+		}
+		if (part_size)
+			sr_spew("Uploaded %d bytes.", part_size);
+		else
+			sr_info("Started firmware at 0x%x.", part_address);
+		fw_offset += part_size;
+	}
+
+	if ((!part_final) || (part_size != 0)) {
+		sr_err("Missing final part.");
+		goto out;
+	}
+
+	ret = SR_OK;
+
+	sr_info("Firmware upload done.");
+
+ out:
+	if (hdl)
+		libusb_close(hdl);
+
+	g_free(firmware);
+
+	return ret;
+}
+
 static gboolean scan_firmware(libusb_device *dev)
 {
 	struct libusb_device_descriptor des;
@@ -102,8 +174,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_descriptor des;
 	const char *conn;
 	char connection_id[64];
+	gboolean fw_loaded = FALSE;
 
 	devices = NULL;
+	conn_devices = NULL;
 	drvc = di->context;
 	drvc->instances = NULL;
 
@@ -118,14 +192,34 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	if (conn)
-		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
-	else
-		conn_devices = NULL;
-
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (unsigned int i = 0; devlist[i]; i++) {
-		if (conn) {
+		libusb_get_device_descriptor(devlist[i], &des);
+
+		if (des.idVendor != 0x21a9 || des.idProduct != 0x1006)
+			continue;
+
+		if (!scan_firmware(devlist[i])) {
+			sr_info("Found a Logic Pro 16 device (no firmware loaded).");
+			if (upload_firmware(drvc->sr_ctx, devlist[i],
+					    "saleae-logicpro16-fx3.fw") != SR_OK) {
+				sr_err("Firmware upload failed.");
+				continue;
+			};
+			fw_loaded = TRUE;
+		}
+
+	}
+	if (fw_loaded) {
+		/* Give the device some time to come back and scan again */
+		libusb_free_device_list(devlist, 1);
+		g_usleep(500 * 1000);
+		libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	}
+	if (conn)
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	for (unsigned int i = 0; devlist[i]; i++) {
+		if (conn_devices) {
 			struct sr_usb_dev_inst *usb = NULL;
 			GSList *l;
 
@@ -143,15 +237,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-
 		if (des.idVendor != 0x21a9 || des.idProduct != 0x1006)
 			continue;
 
-		if (!scan_firmware(devlist[i])) {
-			sr_err("Found a Logic Pro device, but firmware is not loaded (use Saleae application).");
-			continue;
-		}
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
@@ -174,8 +263,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devices = g_slist_append(devices, sdi);
 
 	}
-	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
+	libusb_free_device_list(devlist, 1);
 
 	return std_scan_complete(di, devices);
 }
