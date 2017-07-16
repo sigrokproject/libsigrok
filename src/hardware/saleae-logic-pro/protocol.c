@@ -24,16 +24,23 @@
 #define COMMAND_START_CAPTURE	0x01
 #define COMMAND_STOP_CAPTURE	0x02
 #define COMMAND_READ_EEPROM	0x07
+#define COMMAND_INIT_BITSTREAM  0x7e
+#define COMMAND_SEND_BITSTREAM  0x7f
 #define COMMAND_WRITE_REG	0x80
 #define COMMAND_READ_REG	0x81
+#define COMMAND_READ_TEMP	0x86
 #define COMMAND_WRITE_I2C	0x87
 #define COMMAND_READ_I2C	0x88
 #define COMMAND_WAKE_I2C	0x89
 #define COMMAND_READ_FW_VER	0x8b
 
+#define REG_ADC_IDX		0x03
+#define REG_ADC_VAL_LSB		0x04
+#define REG_ADC_VAL_MSB		0x05
 #define REG_LED_RED		0x0f
 #define REG_LED_GREEN		0x10
 #define REG_LED_BLUE		0x11
+#define REG_STATUS		0x40
 
 static void iterate_lfsr(const struct sr_dev_inst *sdi)
 {
@@ -50,11 +57,11 @@ static void iterate_lfsr(const struct sr_dev_inst *sdi)
 			  (lfsr >> 31)		\
 			  ) << 31);
 	}
-	sr_dbg("Iterate 0x%08x -> 0x%08x", devc->lfsr, lfsr);
+	sr_spew("Iterate 0x%08x -> 0x%08x", devc->lfsr, lfsr);
 	devc->lfsr = lfsr;
 }
 
-static void encrypt(const struct sr_dev_inst *sdi, const uint8_t *in, uint8_t *out, uint8_t len)
+static void encrypt(const struct sr_dev_inst *sdi, const uint8_t *in, uint8_t *out, uint16_t len)
 {
 	struct dev_context *devc = sdi->priv;
 	uint32_t lfsr = devc->lfsr;
@@ -73,7 +80,7 @@ static void encrypt(const struct sr_dev_inst *sdi, const uint8_t *in, uint8_t *o
 	iterate_lfsr(sdi);
 }
 
-static void decrypt(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t len)
+static void decrypt(const struct sr_dev_inst *sdi, uint8_t *data, uint16_t len)
 {
 	struct dev_context *devc = sdi->priv;
 	uint32_t lfsr = devc->lfsr;
@@ -85,15 +92,15 @@ static void decrypt(const struct sr_dev_inst *sdi, uint8_t *data, uint8_t len)
 }
 
 static int transact(const struct sr_dev_inst *sdi,
-		    const uint8_t *req, uint8_t req_len,
-		    uint8_t *rsp, uint8_t rsp_len)
+		    const uint8_t *req, uint16_t req_len,
+		    uint8_t *rsp, uint16_t rsp_len)
 {
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	uint8_t *req_enc;
 	uint8_t rsp_dummy[1] = {};
 	int ret, xfer;
 
-	if (req_len < 2 || req_len > 64 || rsp_len > 128 ||
+	if (req_len < 2 || req_len > 1024 || rsp_len > 128 ||
 	    !req || (rsp_len > 0 && !rsp))
 		return SR_ERR_ARG;
 
@@ -172,6 +179,77 @@ static int write_reg(const struct sr_dev_inst *sdi,
 	uint8_t regs[2] = {address, value};
 
 	return write_regs(sdi, &regs, 1);
+}
+
+static int read_regs(const struct sr_dev_inst *sdi,
+		     const uint8_t *regs, uint8_t *values,
+		     uint8_t cnt)
+{
+	uint8_t req[33];
+	int i;
+
+	if (cnt < 1 || cnt > 30)
+		return SR_ERR_ARG;
+
+	req[0] = 0x00;
+	req[1] = COMMAND_READ_REG;
+	req[2] = cnt;
+
+	for (i = 0; i < cnt; i++) {
+		req[3 + i] = regs[i];
+	}
+
+	return transact(sdi, req, 3 + cnt, values, cnt);
+}
+
+static int read_reg(const struct sr_dev_inst *sdi,
+		    uint8_t address, uint8_t *value)
+{
+	return read_regs(sdi, &address, value, 1);
+}
+
+static int write_adc(const struct sr_dev_inst *sdi,
+		     uint8_t address, uint16_t value)
+{
+	uint8_t regs[][2] = {
+		{REG_ADC_IDX, address},
+		{REG_ADC_VAL_LSB, value},
+		{REG_ADC_VAL_MSB, value >> 8},
+	};
+
+	return write_regs(sdi, regs, G_N_ELEMENTS(regs));
+}
+
+static int read_eeprom(const struct sr_dev_inst *sdi,
+		       uint16_t address, uint8_t *data, uint16_t len)
+{
+	uint8_t req[8] = {
+		0x00, COMMAND_READ_EEPROM,
+		0x33, 0x81, /* Unknown values */
+		address, address >> 8,
+		len, len >> 8
+	};
+
+	return transact(sdi, req, sizeof(req), data, len);
+}
+
+static int read_eeprom_serial(const struct sr_dev_inst *sdi,
+			      uint8_t data[8])
+{
+	return read_eeprom(sdi, 0x08, data, 0x8);
+}
+
+static int read_eeprom_magic(const struct sr_dev_inst *sdi,
+			     uint8_t data[16])
+{
+	return read_eeprom(sdi, 0x10, data, 0x10);
+}
+
+static int read_temperature(const struct sr_dev_inst *sdi, int8_t *temp)
+{
+	uint8_t req[2] = {0x00, COMMAND_READ_TEMP};
+
+	return transact(sdi, req, sizeof(req), (uint8_t*)temp, 1);
 }
 
 static int get_firmware_version(const struct sr_dev_inst *sdi)
@@ -386,6 +464,95 @@ static int authenticate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int upload_bitstream_part(const struct sr_dev_inst *sdi,
+				 const uint8_t *data, uint16_t len)
+{
+	uint8_t req[4 + 1020];
+	uint8_t rsp[1];
+	int ret;
+
+	if (len < 1 || len > 1020 || !data)
+		return SR_ERR_ARG;
+
+	req[0] = 0x00;
+	req[1] = COMMAND_SEND_BITSTREAM;
+	req[2] = len;
+	req[3] = len >> 8;
+	memcpy(req + 4, data, len);
+
+	ret = transact(sdi, req, 4 + len, rsp, sizeof(rsp));
+	if (ret != SR_OK)
+		return ret;
+	if (rsp[0] != 0x00) {
+		sr_dbg("Failed to do bitstream upload (0x%02x).", rsp[0]);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+static int upload_bitstream(const struct sr_dev_inst *sdi,
+			    const char *name)
+{
+	struct drv_context *drvc = sdi->driver->context;
+	unsigned char *bitstream = NULL;
+	uint8_t req[2];
+	uint8_t rsp[1];
+	uint8_t reg_val;
+	int ret = SR_ERR;
+	size_t bs_size, bs_offset = 0, bs_part_size;
+
+	bitstream = sr_resource_load(drvc->sr_ctx, SR_RESOURCE_FIRMWARE,
+				     name, &bs_size, 512 * 1024);
+	if (!bitstream)
+		goto out;
+
+	sr_info("Uploading bitstream '%s'.", name);
+
+	req[0] = 0x00;
+	req[1] = COMMAND_INIT_BITSTREAM;
+
+	ret = transact(sdi, req, sizeof(req), rsp, sizeof(rsp));
+	if (ret != SR_OK)
+		return ret;
+	if (rsp[0] != 0x00) {
+		sr_err("Failed to start bitstream upload (0x%02x).", rsp[0]);
+		ret = SR_ERR;
+		goto out;
+	}
+
+	while (bs_offset < bs_size) {
+		bs_part_size = MIN(bs_size - bs_offset, 1020);
+		sr_spew("Uploading %zd bytes.", bs_part_size);
+		ret = upload_bitstream_part(sdi, bitstream + bs_offset, bs_part_size);
+		if (ret != SR_OK)
+			goto out;
+		bs_offset += bs_part_size;
+	}
+
+	ret = SR_OK;
+
+	sr_info("Bitstream upload done.");
+
+	/* Check a scratch register? */
+	ret = write_reg(sdi, 0x7f, 0xaa);
+	if (ret != SR_OK)
+		goto out;
+	ret = read_reg(sdi, 0x7f, &reg_val);
+	if (ret != SR_OK)
+		goto out;
+	if (reg_val != 0xaa) {
+		sr_err("Failed FPGA register read-back (0x%02x != 0xaa).", rsp[0]);
+		ret = SR_ERR;
+		goto out;
+	}
+
+ out:
+	g_free(bitstream);
+
+	return ret;
+}
+
 #if 0
 static int set_led(const struct sr_dev_inst *sdi, uint8_t r, uint8_t g, uint8_t b)
 {
@@ -428,8 +595,131 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 
 SR_PRIV int saleae_logic_pro_init(const struct sr_dev_inst *sdi)
 {
-	reseed(sdi);
-	get_firmware_version(sdi);
+	uint8_t reg_val;
+	uint8_t dummy[8];
+	uint8_t serial[8];
+	uint8_t magic[16];
+	int8_t temperature;
+	int ret, i;
+
+	ret = reseed(sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = get_firmware_version(sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	sr_dbg("read serial");
+	ret = read_eeprom_serial(sdi, serial);
+	if (ret != SR_OK)
+		return ret;
+
+	/* Check if we need to upload the bitstream. */
+	ret = read_reg(sdi, 0x7f, &reg_val);
+	if (ret != SR_OK)
+		return ret;
+	if (reg_val == 0xaa) {
+		sr_info("Skipping bitstream upload.");
+	} else {
+		ret = upload_bitstream(sdi, "saleae-logicpro16-fpga.bitstream");
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	/* Reset the ADC? */
+	sr_dbg("reset ADC");
+	ret = write_reg(sdi, 0x00, 0x00);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x80);
+	if (ret != SR_OK)
+		return ret;
+
+	sr_dbg("init ADC");
+	ret = write_adc(sdi, 0x11, 0x0444);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x12, 0x0777);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x25, 0x0000);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x45, 0x0000);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x2a, 0x1111);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x2b, 0x1111);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x46, 0x0004);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x50, 0x0000);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x55, 0x0020);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_adc(sdi, 0x56, 0x0000);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = write_reg(sdi, 0x15, 0x00);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = write_adc(sdi, 0x0f, 0x0100);
+	if (ret != SR_OK)
+		return ret;
+
+	/* Resets? */
+	sr_dbg("resets");
+	ret = write_reg(sdi, 0x00, 0x02); /* bit 1 */
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x00);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x04); /* bit 2 */
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x00);
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x08); /* bit 3 */
+	if (ret != SR_OK)
+		return ret;
+	ret = write_reg(sdi, 0x00, 0x00);
+	if (ret != SR_OK)
+		return ret;
+
+	sr_dbg("read dummy");
+	for (i = 0; i < 8; i++) {
+		ret = read_reg(sdi, 0x41 + i, &dummy[i]);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	/* Read and write back magic EEPROM value. */
+	sr_dbg("read/write magic");
+	ret = read_eeprom_magic(sdi, magic);
+	if (ret != SR_OK)
+		return ret;
+	for (i = 0; i < 16; i++) {
+		ret = write_reg(sdi, 0x17, magic[i]);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	ret = read_temperature(sdi, &temperature);
+	if (ret != SR_OK)
+		return ret;
+	sr_dbg("temperature = %d", temperature);
+
 	/* Setting the LED doesn't work yet. */
 	/* set_led(sdi, 0x00, 0x00, 0xff); */
 
@@ -522,9 +812,19 @@ SR_PRIV int saleae_logic_pro_stop(const struct sr_dev_inst *sdi)
 {
 	uint8_t stop_req[] = {0x00, 0x02};
 	uint8_t stop_rsp[2] = {};
+	uint8_t status;
+	int ret;
 
 	write_reg(sdi, 0x00, 0x00);
 	transact(sdi, stop_req, sizeof(stop_req), stop_rsp, sizeof(stop_rsp));
+
+	ret = read_reg(sdi, 0x40, &status);
+	if (ret != SR_OK)
+		return ret;
+	if (status != 0x20) {
+		sr_err("Capture error (status reg = 0x%02x).", status);
+		return SR_ERR;
+	}
 
 	return SR_OK;
 }

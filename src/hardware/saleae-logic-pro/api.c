@@ -289,7 +289,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (devc->dig_samplerate == 0)
 		devc->dig_samplerate = samplerates[3];
 
-	return SR_OK;
+	return saleae_logic_pro_init(sdi);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -417,10 +417,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	uint8_t *buf;
 	unsigned int i, ret;
-
-	ret = saleae_logic_pro_init(sdi);
-	if (ret != SR_OK)
-		return ret;
 
 	ret = saleae_logic_pro_prepare(sdi);
 	if (ret != SR_OK)
