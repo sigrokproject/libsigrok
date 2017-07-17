@@ -395,8 +395,6 @@ static void dev_acquisition_abort(const struct sr_dev_inst *sdi)
 	}
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi);
-
 static int dev_acquisition_handle(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi = cb_data;
@@ -409,7 +407,7 @@ static int dev_acquisition_handle(int fd, int revents, void *cb_data)
 
 	/* Handle timeout */
 	if (!revents)
-		dev_acquisition_stop(sdi);
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }
