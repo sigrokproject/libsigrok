@@ -35,8 +35,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
@@ -96,7 +99,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts);
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

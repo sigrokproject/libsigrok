@@ -839,8 +839,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LCRMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
@@ -855,7 +858,7 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
 			frequencies, ARRAY_SIZE(frequencies), sizeof(double));

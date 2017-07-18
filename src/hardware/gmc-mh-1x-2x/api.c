@@ -40,10 +40,13 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-/** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
-static const uint32_t devopts_sm[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
 	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
+};
+
+/** Hardware capabilities for Metrahit 1x/2x devices in send mode. */
+static const uint32_t devopts_sm[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -51,8 +54,6 @@ static const uint32_t devopts_sm[] = {
 
 /** Hardware capabilities for Metrahit 2x devices in bidirectional Mode. */
 static const uint32_t devopts_bd[] = {
-	SR_CONF_MULTIMETER,
-	SR_CONF_THERMOMETER, /**< All GMC 1x/2x multimeters seem to support this */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -365,14 +366,14 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts_sm);
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_sm);
 }
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
 static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 			  const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts_bd);
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_bd);
 }
 
 static int dev_acquisition_start_1x_2x_rs232(const struct sr_dev_inst *sdi)

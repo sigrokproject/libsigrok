@@ -32,7 +32,6 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	/* Device class */
-	SR_CONF_POWER_SUPPLY,
 	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,

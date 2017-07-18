@@ -31,6 +31,7 @@
 #include <math.h>
 #include <string.h>
 #include "protocol.h"
+
 SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *buflen);
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args);
 SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...);
@@ -57,7 +58,6 @@ static const uint32_t drvopts[] = {
 /** Hardware capabilities generic. */
 static const uint32_t devopts[] = {
 	/* Device class */
-	SR_CONF_POWER_SUPPLY,
 	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,

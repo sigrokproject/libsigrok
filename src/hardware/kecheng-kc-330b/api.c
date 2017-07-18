@@ -25,8 +25,11 @@
 #define VENDOR "Kecheng"
 #define USB_INTERFACE 0
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_SOUNDLEVELMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLE_INTERVAL | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -327,7 +330,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, NULL, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {

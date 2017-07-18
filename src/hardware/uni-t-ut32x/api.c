@@ -25,8 +25,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_THERMOMETER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -208,7 +211,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_DATA_SOURCE:
 		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
 		break;

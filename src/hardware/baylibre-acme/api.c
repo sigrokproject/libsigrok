@@ -22,6 +22,10 @@
 #include <time.h>
 #include <sys/timerfd.h>
 
+static const uint32_t drvopts[] = {
+	SR_CONF_THERMOMETER,
+};
+
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -222,7 +226,7 @@ static int config_list(uint32_t key, GVariant **data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, NULL, devopts);
+			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
 			g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
 			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),

@@ -35,8 +35,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_POWER_SUPPLY,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_VOLTAGE | SR_CONF_SET,
 	SR_CONF_CURRENT | SR_CONF_SET,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
@@ -136,7 +139,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, devopts);
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static struct sr_dev_driver conrad_digi_35_cpu_driver_info = {

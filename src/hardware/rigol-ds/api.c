@@ -34,7 +34,7 @@
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
-	SR_CONF_SERIALCOMM
+	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t drvopts[] = {
