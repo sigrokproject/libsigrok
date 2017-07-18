@@ -47,12 +47,12 @@ static const struct dslogic_profile supported_device[] = {
 	ALL_ZERO
 };
 
-static const uint32_t drvopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 static const uint32_t devopts[] = {

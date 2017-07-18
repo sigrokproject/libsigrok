@@ -20,14 +20,14 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t drvopts[] = {
-	/* Device class */
-	SR_CONF_POWER_SUPPLY,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t drvopts[] = {
+	/* Device class */
+	SR_CONF_POWER_SUPPLY,
 };
 
 static const uint32_t devopts[] = {

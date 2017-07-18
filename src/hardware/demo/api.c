@@ -46,15 +46,15 @@ static const char *logic_pattern_str[] = {
 	"squid",
 };
 
+static const uint32_t scanopts[] = {
+	SR_CONF_NUM_LOGIC_CHANNELS,
+	SR_CONF_NUM_ANALOG_CHANNELS,
+};
+
 static const uint32_t drvopts[] = {
 	SR_CONF_DEMO_DEV,
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_OSCILLOSCOPE,
-};
-
-static const uint32_t scanopts[] = {
-	SR_CONF_NUM_LOGIC_CHANNELS,
-	SR_CONF_NUM_ANALOG_CHANNELS,
 };
 
 static const uint32_t devopts[] = {

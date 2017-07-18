@@ -42,16 +42,16 @@ SR_PRIV int lps_query_status(struct sr_dev_inst *sdi);
 
 #define VENDOR_MOTECH "Motech"
 
-/** Driver capabilities generic. */
-static const uint32_t drvopts[] = {
-	/* Device class */
-	SR_CONF_POWER_SUPPLY,
-};
-
 /** Driver scanning options. */
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+};
+
+/** Driver capabilities generic. */
+static const uint32_t drvopts[] = {
+	/* Device class */
+	SR_CONF_POWER_SUPPLY,
 };
 
 /** Hardware capabilities generic. */

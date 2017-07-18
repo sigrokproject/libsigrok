@@ -32,12 +32,12 @@
 #define VICTOR_INTERFACE 0
 #define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
 
-static const uint32_t drvopts[] = {
-	SR_CONF_MULTIMETER,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_MULTIMETER,
 };
 
 static const uint32_t devopts[] = {

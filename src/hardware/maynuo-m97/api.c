@@ -23,7 +23,7 @@
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
-	SR_CONF_MODBUSADDR
+	SR_CONF_MODBUSADDR,
 };
 
 static const uint32_t drvopts[] = {

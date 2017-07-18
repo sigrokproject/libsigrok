@@ -31,13 +31,13 @@ static const char *manufacturers[] = {
 	"Rohde&Schwarz",
 };
 
-static const uint32_t drvopts[] = {
-	SR_CONF_OSCILLOSCOPE,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_OSCILLOSCOPE,
 };
 
 enum {

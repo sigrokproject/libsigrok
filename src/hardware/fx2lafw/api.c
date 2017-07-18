@@ -96,12 +96,12 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	ALL_ZERO
 };
 
-static const uint32_t drvopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 static const uint32_t devopts[] = {

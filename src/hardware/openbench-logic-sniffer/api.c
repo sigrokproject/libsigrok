@@ -22,13 +22,13 @@
 
 #define SERIALCOMM "115200/8n1"
 
-static const uint32_t drvopts[] = {
-	SR_CONF_LOGIC_ANALYZER,
-};
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 static const uint32_t devopts[] = {
