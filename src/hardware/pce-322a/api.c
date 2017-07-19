@@ -239,10 +239,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *range[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -254,14 +250,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
-			range[0] = g_variant_new_uint64(meas_ranges[i][0]);
-			range[1] = g_variant_new_uint64(meas_ranges[i][1]);
-			tuple = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(&meas_ranges, ARRAY_SIZE(meas_ranges));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));

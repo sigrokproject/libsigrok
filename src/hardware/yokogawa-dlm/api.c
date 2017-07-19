@@ -283,25 +283,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return ret;
 }
 
-static GVariant *build_tuples(const uint64_t (*array)[][2], unsigned int n)
-{
-	unsigned int i;
-	GVariant *rational[2];
-	GVariantBuilder gvb;
-
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-
-	for (i = 0; i < n; i++) {
-		rational[0] = g_variant_new_uint64((*array)[i][0]);
-		rational[1] = g_variant_new_uint64((*array)[i][1]);
-
-		/* FIXME: Valgrind reports a memory leak here. */
-		g_variant_builder_add_value(&gvb, g_variant_new_tuple(rational, 2));
-	}
-
-	return g_variant_builder_end(&gvb);
-}
-
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
@@ -482,7 +463,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_DEVICE_OPTIONS:
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_TIMEBASE:
-			*data = build_tuples(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
+			*data = std_gvar_tuple_array(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
 			return SR_OK;
 		case SR_CONF_TRIGGER_SOURCE:
 			if (!model)
@@ -527,7 +508,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = build_tuples(&dlm_vdivs, ARRAY_SIZE(dlm_vdivs));
+		*data = std_gvar_tuple_array(&dlm_vdivs, ARRAY_SIZE(dlm_vdivs));
 		break;
 	default:
 		return SR_ERR_NA;

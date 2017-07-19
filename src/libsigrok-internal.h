@@ -956,6 +956,10 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 	std_opts_config_list(key, data, sdi, cg, ARRAY_AND_SIZE(scanopts), \
 		ARRAY_AND_SIZE(drvopts), ARRAY_AND_SIZE(devopts))
 
+SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t (*a)[][2], unsigned int n);
+SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned int n);
+
+
 /*--- resource.c ------------------------------------------------------------*/
 
 SR_PRIV int64_t sr_file_get_size(FILE *file);

@@ -324,22 +324,12 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
-			rational[0] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][0]);
-			rational[1] = g_variant_new_uint64(kecheng_kc_330b_sample_intervals[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(&kecheng_kc_330b_sample_intervals,
+				ARRAY_SIZE(kecheng_kc_330b_sample_intervals));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));

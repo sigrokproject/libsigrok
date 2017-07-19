@@ -560,9 +560,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		const struct sr_channel_group *cg)
 {
 	GVariantBuilder gvb;
-	GVariant *gvar, *rational[2];
+	GVariant *gvar;
 	GSList *l;
-	int i;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -616,14 +615,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				buffersizes, ARRAY_SIZE(buffersizes), sizeof(uint64_t));
 		break;
 	case SR_CONF_VDIV:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < (int)ARRAY_SIZE(vdivs); i++) {
-			rational[0] = g_variant_new_uint64(vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(vdivs[i][1]);
-			gvar = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
 		break;
 	case SR_CONF_COUPLING:
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));

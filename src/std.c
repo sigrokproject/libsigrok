@@ -540,3 +540,41 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 
 	return SR_OK;
 }
+
+SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t (*a)[][2], unsigned int n)
+{
+	unsigned int i;
+	GVariant *rational[2];
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	for (i = 0; i < n; i++) {
+		rational[0] = g_variant_new_uint64((*a)[i][0]);
+		rational[1] = g_variant_new_uint64((*a)[i][1]);
+
+		/* FIXME: Valgrind reports a memory leak here. */
+		g_variant_builder_add_value(&gvb, g_variant_new_tuple(rational, 2));
+	}
+
+	return g_variant_builder_end(&gvb);
+}
+
+SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned int n)
+{
+	unsigned int i;
+	GVariant *rational[2];
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	for (i = 0; i < n; i++) {
+		rational[0] = g_variant_new_uint64(r[i].p);
+		rational[1] = g_variant_new_uint64(r[i].q);
+
+		/* FIXME: Valgrind reports a memory leak here. */
+		g_variant_builder_add_value(&gvb, g_variant_new_tuple(rational, 2));
+	}
+
+	return g_variant_builder_end(&gvb);
+}

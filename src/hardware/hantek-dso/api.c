@@ -595,9 +595,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
 
 	if (!cg) {
 		switch (key) {
@@ -612,14 +609,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devc->profile->buffersizes, NUM_BUFFER_SIZES, sizeof(uint64_t));
 			break;
 		case SR_CONF_TIMEBASE:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-				rational[0] = g_variant_new_uint64(timebases[i][0]);
-				rational[1] = g_variant_new_uint64(timebases[i][1]);
-				tuple = g_variant_new_tuple(rational, 2);
-				g_variant_builder_add_value(&gvb, tuple);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_tuple_array(&timebases, ARRAY_SIZE(timebases));
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			*data = g_variant_new_strv(trigger_sources,
@@ -642,14 +632,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 			break;
 		case SR_CONF_VDIV:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				rational[0] = g_variant_new_uint64(vdivs[i][0]);
-				rational[1] = g_variant_new_uint64(vdivs[i][1]);
-				tuple = g_variant_new_tuple(rational, 2);
-				g_variant_builder_add_value(&gvb, tuple);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
 			break;
 		default:
 			return SR_ERR_NA;

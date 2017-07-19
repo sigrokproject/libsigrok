@@ -213,25 +213,6 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static GVariant *build_tuples(const struct sr_rational *array, unsigned int n)
-{
-	unsigned int i;
-	GVariant *rational[2];
-	GVariantBuilder gvb;
-
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-
-	for (i = 0; i < n; i++) {
-		rational[0] = g_variant_new_uint64(array[i].p);
-		rational[1] = g_variant_new_uint64(array[i].q);
-
-		/* FIXME: Valgrind reports a memory leak here. */
-		g_variant_builder_add_value(&gvb, g_variant_new_tuple(rational, 2));
-	}
-
-	return g_variant_builder_end(&gvb);
-}
-
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -423,12 +404,12 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_TIMEBASE:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = build_tuples(model->timebases, model->num_timebases);
+		*data = std_gvar_tuple_rational(model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = build_tuples(model->vdivs, model->num_vdivs);
+		*data = std_gvar_tuple_rational(model->vdivs, model->num_vdivs);
 		break;
 	default:
 		return SR_ERR_NA;

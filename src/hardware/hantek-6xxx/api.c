@@ -458,9 +458,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
 	GVariantBuilder gvb;
-	unsigned int i;
 	GVariant *gvar;
 	struct dev_context *devc;
 
@@ -492,14 +490,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				rational[0] = g_variant_new_uint64(vdivs[i][0]);
-				rational[1] = g_variant_new_uint64(vdivs[i][1]);
-				tuple = g_variant_new_tuple(rational, 2);
-				g_variant_builder_add_value(&gvb, tuple);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
 			break;
 		default:
 			return SR_ERR_NA;
