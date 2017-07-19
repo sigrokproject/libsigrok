@@ -22,7 +22,7 @@
 #include "scpi.h"
 #include "protocol.h"
 
-static const char *dlm_coupling_options[] = {
+static const char *coupling_options[] = {
 	"AC",
 	"DC",
 	"DC50",
@@ -30,7 +30,7 @@ static const char *dlm_coupling_options[] = {
 	NULL,
 };
 
-static const char *dlm_2ch_trigger_sources[] = {
+static const char *trigger_sources_2ch[] = {
 	"1",
 	"2",
 	"LINE",
@@ -39,7 +39,7 @@ static const char *dlm_2ch_trigger_sources[] = {
 };
 
 /* TODO: Is BITx handled correctly or is Dx required? */
-static const char *dlm_4ch_trigger_sources[] = {
+static const char *trigger_sources_4ch[] = {
 	"1",
 	"2",
 	"3",
@@ -193,8 +193,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_8,
 
-		.coupling_options = &dlm_coupling_options,
-		.trigger_sources = &dlm_2ch_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources_2ch,
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -209,8 +209,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_8,
 
-		.coupling_options = &dlm_coupling_options,
-		.trigger_sources = &dlm_4ch_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources_4ch,
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -227,8 +227,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = NULL,
 
-		.coupling_options = &dlm_coupling_options,
-		.trigger_sources = &dlm_4ch_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources_4ch,
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -243,8 +243,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_32,
 
-		.coupling_options = &dlm_coupling_options,
-		.trigger_sources = &dlm_4ch_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources_4ch,
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -259,8 +259,8 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names_32,
 
-		.coupling_options = &dlm_coupling_options,
-		.trigger_sources = &dlm_4ch_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &trigger_sources_4ch,
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,

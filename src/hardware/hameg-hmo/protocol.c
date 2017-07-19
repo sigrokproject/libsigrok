@@ -57,7 +57,7 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_GET_PROBE_UNIT]	    = ":PROB%d:SET:ATT:UNIT?",
 };
 
-static const uint32_t hmo_devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
@@ -68,13 +68,13 @@ static const uint32_t hmo_devopts[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t hmo_analog_devopts[] = {
+static const uint32_t analog_devopts[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const char *hmo_coupling_options[] = {
+static const char *coupling_options[] = {
 	"AC",  // AC with 50 Ohm termination (152x, 202x, 30xx, 1202)
 	"ACL", // AC with 1 MOhm termination
 	"DC",  // DC with 50 Ohm termination
@@ -90,7 +90,7 @@ static const char *scope_trigger_slopes[] = {
 	NULL,
 };
 
-static const char *hmo_compact2_trigger_sources[] = {
+static const char *compact2_trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"LINE",
@@ -109,7 +109,7 @@ static const char *hmo_compact2_trigger_sources[] = {
 	NULL,
 };
 
-static const char *hmo_compact4_trigger_sources[] = {
+static const char *compact4_trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"CH3",
@@ -130,7 +130,7 @@ static const char *hmo_compact4_trigger_sources[] = {
 	NULL,
 };
 
-static const char *hmo_compact4_dig16_trigger_sources[] = {
+static const char *compact4_dig16_trigger_sources[] = {
 	"CH1",
 	"CH2",
 	"CH3",
@@ -159,7 +159,7 @@ static const char *hmo_compact4_dig16_trigger_sources[] = {
 	NULL,
 };
 
-static const uint64_t hmo_timebases[][2] = {
+static const uint64_t timebases[][2] = {
 	/* nanoseconds */
 	{ 2, 1000000000 },
 	{ 5, 1000000000 },
@@ -198,7 +198,7 @@ static const uint64_t hmo_timebases[][2] = {
 	{ 50, 1 },
 };
 
-static const uint64_t hmo_vdivs[][2] = {
+static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 1, 1000 },
 	{ 2, 1000 },
@@ -256,21 +256,21 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.devopts = &hmo_devopts,
-		.num_devopts = ARRAY_SIZE(hmo_devopts),
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &hmo_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(hmo_analog_devopts),
+		.analog_devopts = &analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
 
-		.coupling_options = &hmo_coupling_options,
-		.trigger_sources = &hmo_compact2_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &compact2_trigger_sources,
 		.trigger_slopes = &scope_trigger_slopes,
 
-		.timebases = &hmo_timebases,
-		.num_timebases = ARRAY_SIZE(hmo_timebases),
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &hmo_vdivs,
-		.num_vdivs = ARRAY_SIZE(hmo_vdivs),
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
 
 		.num_xdivs = 12,
 		.num_ydivs = 8,
@@ -286,21 +286,21 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.devopts = &hmo_devopts,
-		.num_devopts = ARRAY_SIZE(hmo_devopts),
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &hmo_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(hmo_analog_devopts),
+		.analog_devopts = &analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
 
-		.coupling_options = &hmo_coupling_options,
-		.trigger_sources = &hmo_compact4_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &compact4_trigger_sources,
 		.trigger_slopes = &scope_trigger_slopes,
 
-		.timebases = &hmo_timebases,
-		.num_timebases = ARRAY_SIZE(hmo_timebases),
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &hmo_vdivs,
-		.num_vdivs = ARRAY_SIZE(hmo_vdivs),
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
 
 		.num_xdivs = 12,
 		.num_ydivs = 8,
@@ -316,21 +316,21 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.devopts = &hmo_devopts,
-		.num_devopts = ARRAY_SIZE(hmo_devopts),
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &hmo_analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(hmo_analog_devopts),
+		.analog_devopts = &analog_devopts,
+		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
 
-		.coupling_options = &hmo_coupling_options,
-		.trigger_sources = &hmo_compact4_dig16_trigger_sources,
+		.coupling_options = &coupling_options,
+		.trigger_sources = &compact4_dig16_trigger_sources,
 		.trigger_slopes = &scope_trigger_slopes,
 
-		.timebases = &hmo_timebases,
-		.num_timebases = ARRAY_SIZE(hmo_timebases),
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &hmo_vdivs,
-		.num_vdivs = ARRAY_SIZE(hmo_vdivs),
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
 
 		.num_xdivs = 12,
 		.num_ydivs = 8,
@@ -462,8 +462,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(tmp_str, hmo_vdivs, ARRAY_SIZE(hmo_vdivs),
-				&j) != SR_OK) {
+		if (array_float_get(tmp_str, vdivs, ARRAY_SIZE(vdivs), &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
@@ -628,8 +627,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			&tmp_str) != SR_OK)
 		return SR_ERR;
 
-	if (array_float_get(tmp_str, hmo_timebases, ARRAY_SIZE(hmo_timebases),
-			&i) != SR_OK) {
+	if (array_float_get(tmp_str, timebases, ARRAY_SIZE(timebases), &i) != SR_OK) {
 		g_free(tmp_str);
 		sr_err("Could not determine array index for time base.");
 		return SR_ERR;

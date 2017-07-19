@@ -47,7 +47,7 @@ SR_PRIV const uint64_t samplerates[] = {
 
 SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
 
-static const char sigma_firmware_files[][24] = {
+static const char firmware_files[][24] = {
 	/* 50 MHz, supports 8 bit fractions */
 	"asix-sigma-50.fw",
 	/* 100 MHz */
@@ -439,7 +439,7 @@ static int upload_firmware(struct sr_context *ctx,
 	const char *firmware;
 
 	/* Avoid downloading the same firmware multiple times. */
-	firmware = sigma_firmware_files[firmware_idx];
+	firmware = firmware_files[firmware_idx];
 	if (devc->cur_firmware == firmware_idx) {
 		sr_info("Not uploading firmware file '%s' again.", firmware);
 		return SR_OK;

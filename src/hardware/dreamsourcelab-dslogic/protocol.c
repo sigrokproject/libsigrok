@@ -98,7 +98,7 @@ struct cmd_start_acquisition {
 	uint8_t sample_delay_l;
 };
 
-struct dslogic_fpga_config {
+struct fpga_config {
 	uint32_t sync;
 
 	uint16_t mode_header;
@@ -337,8 +337,7 @@ static uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
  * Get the session trigger and configure the FPGA structure
  * accordingly.
  */
-static void set_trigger(const struct sr_dev_inst *sdi,
-	struct dslogic_fpga_config *cfg)
+static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 {
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
@@ -443,7 +442,7 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	uint8_t c[3];
-	struct dslogic_fpga_config cfg;
+	struct fpga_config cfg;
 	uint16_t v16;
 	uint32_t v32;
 	int transferred, len, ret;
@@ -464,7 +463,7 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	WL32(&cfg.end_sync, DS_CFG_END);
 
 	/* Pass in the length of a fixed-size struct. Really. */
-	len = sizeof(struct dslogic_fpga_config) / 2;
+	len = sizeof(struct fpga_config) / 2;
 	c[0] = len & 0xff;
 	c[1] = (len >> 8) & 0xff;
 	c[2] = (len >> 16) & 0xff;
@@ -517,7 +516,7 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 
 	set_trigger(sdi, &cfg);
 
-	len = sizeof(struct dslogic_fpga_config);
+	len = sizeof(struct fpga_config);
 	ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
 			(unsigned char *)&cfg, len, &transferred, USB_TIMEOUT);
 	if (ret < 0 || transferred != len) {

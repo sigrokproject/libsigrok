@@ -28,16 +28,16 @@ static struct sr_dev_driver yokogawa_dlm_driver_info;
 static const char *MANUFACTURER_ID = "YOKOGAWA";
 static const char *MANUFACTURER_NAME = "Yokogawa";
 
-static const uint32_t dlm_scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t dlm_drvopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 	SR_CONF_OSCILLOSCOPE,
 };
 
-static const uint32_t dlm_devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -47,13 +47,13 @@ static const uint32_t dlm_devopts[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t dlm_analog_devopts[] = {
+static const uint32_t analog_devopts[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t dlm_digital_devopts[] = {
+static const uint32_t digital_devopts[] = {
 };
 
 enum {
@@ -480,7 +480,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
-			return STD_CONFIG_LIST(key, data, sdi, cg, dlm_scanopts, dlm_drvopts, dlm_devopts);
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_TIMEBASE:
 			*data = build_tuples(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
 			return SR_OK;
@@ -509,10 +509,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				dlm_analog_devopts, ARRAY_SIZE(dlm_analog_devopts), sizeof(uint32_t));
+				analog_devopts, ARRAY_SIZE(analog_devopts), sizeof(uint32_t));
 		} else if (cg_type == CG_DIGITAL) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				dlm_digital_devopts, ARRAY_SIZE(dlm_digital_devopts), sizeof(uint32_t));
+				digital_devopts, ARRAY_SIZE(digital_devopts), sizeof(uint32_t));
 		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				NULL, 0, sizeof(uint32_t));

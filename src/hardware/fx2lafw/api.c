@@ -435,7 +435,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!usb->devhdl)
 		return SR_ERR_BUG;
 
-	sr_info("fx2lafw: Closing device on %d.%d (logical) / %s (physical) interface %d.",
+	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
