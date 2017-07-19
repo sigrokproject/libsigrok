@@ -24,6 +24,7 @@
 
 static const uint32_t drvopts[] = {
 	SR_CONF_THERMOMETER,
+	SR_CONF_POWERMETER,
 };
 
 static const uint32_t devopts[] = {
