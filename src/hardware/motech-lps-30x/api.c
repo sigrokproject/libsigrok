@@ -51,7 +51,7 @@ static const uint32_t devopts[] = {
 };
 
 /** Hardware capabilities channel 1, 2. */
-static const uint32_t devopts_ch12[] = {
+static const uint32_t devopts_cg_ch12[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -60,7 +60,7 @@ static const uint32_t devopts_ch12[] = {
 };
 
 /** Hardware capabilities channel 3 (LPS-304/305 only). */
-static const uint32_t devopts_ch3[] = {
+static const uint32_t devopts_cg_ch3[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
@@ -685,10 +685,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_ch12, ARRAY_SIZE(devopts_ch12), sizeof(uint32_t));
+				devopts_cg_ch12, ARRAY_SIZE(devopts_cg_ch12), sizeof(uint32_t));
 		else /* Must be CH3 */
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_ch3, ARRAY_SIZE(devopts_ch3), sizeof(uint32_t));
+				devopts_cg_ch3, ARRAY_SIZE(devopts_cg_ch3), sizeof(uint32_t));
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);

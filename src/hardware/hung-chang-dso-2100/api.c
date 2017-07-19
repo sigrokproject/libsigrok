@@ -39,7 +39,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t cgopts[] = {
+static const uint32_t devopts_cg[] = {
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
@@ -596,7 +596,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				cgopts, ARRAY_SIZE(cgopts), sizeof(uint32_t));
+				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 		break;
 	case SR_CONF_SAMPLERATE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));

@@ -492,7 +492,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		} else if (cg_type == CG_ANALOG) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->analog_devopts, model->num_analog_devopts,
+				model->devopts_cg_analog, model->num_devopts_cg_analog,
 				sizeof(uint32_t));
 		} else {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,

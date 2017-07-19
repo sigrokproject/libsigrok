@@ -53,7 +53,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t analog_devopts[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -860,7 +860,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
 					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						analog_devopts, ARRAY_SIZE(analog_devopts), sizeof(uint32_t));
+						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog), sizeof(uint32_t));
 					return SR_OK;
 				}
 			}

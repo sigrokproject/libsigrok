@@ -68,7 +68,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t analog_devopts[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -259,8 +259,8 @@ static const struct scope_config scope_models[] = {
 		.devopts = &devopts,
 		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
 		.trigger_sources = &compact2_trigger_sources,
@@ -289,8 +289,8 @@ static const struct scope_config scope_models[] = {
 		.devopts = &devopts,
 		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
 		.trigger_sources = &compact4_trigger_sources,
@@ -319,8 +319,8 @@ static const struct scope_config scope_models[] = {
 		.devopts = &devopts,
 		.num_devopts = ARRAY_SIZE(devopts),
 
-		.analog_devopts = &analog_devopts,
-		.num_analog_devopts = ARRAY_SIZE(analog_devopts),
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
 		.trigger_sources = &compact4_dig16_trigger_sources,

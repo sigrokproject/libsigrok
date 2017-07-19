@@ -46,7 +46,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t analog_devopts[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -401,7 +401,7 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			analog_devopts, ARRAY_SIZE(analog_devopts),
+			devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
 			sizeof(uint32_t));
 		break;
 	case SR_CONF_COUPLING:

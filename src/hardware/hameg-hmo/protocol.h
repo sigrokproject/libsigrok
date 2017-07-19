@@ -46,8 +46,8 @@ struct scope_config {
 	const uint32_t (*devopts)[];
 	const uint8_t num_devopts;
 
-	const uint32_t (*analog_devopts)[];
-	const uint8_t num_analog_devopts;
+	const uint32_t (*devopts_cg_analog)[];
+	const uint8_t num_devopts_cg_analog;
 
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
