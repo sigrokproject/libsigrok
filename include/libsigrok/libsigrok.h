@@ -703,6 +703,9 @@ enum sr_configkey {
 	/** The device can act as a function generator. */
 	SR_CONF_SIGNAL_GENERATOR,
 
+	/** The device can measure power. */
+	SR_CONF_POWERMETER,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/
