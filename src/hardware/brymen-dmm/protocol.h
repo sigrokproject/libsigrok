@@ -38,7 +38,6 @@ enum packet_len_status {
 	PACKET_INVALID_HEADER,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits sw_limits;
 

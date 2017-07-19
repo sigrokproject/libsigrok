@@ -18,14 +18,6 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Manson HCS-3xxx Series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 

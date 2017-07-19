@@ -65,7 +65,6 @@ static int add_device(int model, struct libusb_device_descriptor *des,
 
 	ret = SR_OK;
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Set some sane defaults. */
@@ -97,7 +96,6 @@ static int add_device(int model, struct libusb_device_descriptor *des,
 	/* We now know the device, set its max. samplerate as default. */
 	devc->cur_samplerate = devc->prof->max_samplerate;
 
-	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("ChronoVu");
@@ -231,7 +229,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Allocate memory for the FTDI context and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
 		sr_err("Failed to initialize libftdi.");
 		return SR_ERR;
@@ -240,7 +237,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	sr_dbg("Opening %s device (%04x:%04x).", devc->prof->modelname,
 	       devc->usb_vid, devc->usb_pid);
 
-	/* Open the device. */
 	if ((ret = ftdi_usb_open_desc(devc->ftdic, devc->usb_vid,
 			devc->usb_pid, devc->prof->iproduct, NULL)) < 0) {
 		sr_err("Failed to open FTDI device (%d): %s.",
@@ -248,21 +244,18 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_ftdi_free;
 	}
 
-	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
 		sr_err("Failed to purge FTDI buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
 
-	/* Enable flow control in the FTDI chip. */
 	if ((ret = ftdi_setflowctrl(devc->ftdic, SIO_RTS_CTS_HS)) < 0) {
 		sr_err("Failed to enable FTDI flow control (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_ftdi_free;
 	}
 
-	/* Wait 100ms. */
 	g_usleep(100 * 1000);
 
 	return SR_OK;

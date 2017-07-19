@@ -101,7 +101,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if ((ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb)) < 0)
 		return SR_ERR;
 
-	/* Detach kernel drivers which grabbed this device (if any). */
 	if (libusb_kernel_driver_active(usb->devhdl, 0) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, 0);
 		if (ret < 0) {
@@ -112,7 +111,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		devc->detached_kernel_driver = 1;
 	}
 
-	/* Claim interface 0. */
 	if ((ret = libusb_claim_interface(usb->devhdl, 0)) < 0) {
 		sr_err("Failed to claim interface 0: %s.",
 		       libusb_error_name(ret));

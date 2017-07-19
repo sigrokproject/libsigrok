@@ -439,7 +439,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_ARG;
 
 	if (cg)
-		/* Channel group specified. */
 		select_channel(sdi, cg->channels->data);
 
 	devc = sdi->priv;
@@ -523,7 +522,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
@@ -555,7 +553,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified. */
 		/*
 		 * Per-channel-group options depending on a channel are actually
 		 * done with the first channel. Channel groups in PPS can have

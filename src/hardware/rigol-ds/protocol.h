@@ -89,9 +89,7 @@ enum wait_events {
 	WAIT_STOP,    /* Wait for scope stopping (only single shots) */
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Device model */
 	const struct rigol_ds_model *model;
 	enum data_format format;
 
@@ -126,8 +124,6 @@ struct dev_context {
 	char *trigger_slope;
 	float trigger_level;
 	char *coupling[MAX_ANALOG_CHANNELS];
-
-	/* Operational state */
 
 	/* Number of frames received in total. */
 	uint64_t num_frames;

@@ -28,14 +28,6 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/**
- * @file
- *
- * Norma DM9x0/Siemens B102x DMMs driver.
- *
- * @internal
- */
-
 #define LOG_PREFIX "norma-dmm"
 
 #define NMADMM_BUFSIZE 256
@@ -57,21 +49,16 @@ struct nmadmm_req {
 /** Strings for requests. */
 extern const struct nmadmm_req nmadmm_requests[];
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	int type;		/**< DM9x0, e.g. 5 = DM950 */
 
-	/* Acquisition settings */
 	struct sr_sw_limits limits;
 
-	/* Operational state */
 	int last_req;			/**< Last request. */
 	int64_t req_sent_at;		/**< Request sent. */
 	gboolean last_req_pending;	/**< Last request not answered yet. */
 	int lowbatt;			/**< Low battery. 1=low, 2=critical. */
 
-	/* Temporary state across callbacks */
 	uint8_t buf[NMADMM_BUFSIZE];	/**< Buffer for read callback */
 	int buflen;			/**< Data len in buf */
 };

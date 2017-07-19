@@ -18,14 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Motech LPS-30x series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include <ctype.h>
 #include <math.h>
@@ -38,31 +30,23 @@ SR_PRIV int lps_cmd_ok(struct sr_serial_dev_inst *serial, const char *fmt, ...);
 SR_PRIV int lps_cmd_reply(char *reply, struct sr_serial_dev_inst *serial, const char *fmt, ...);
 SR_PRIV int lps_query_status(struct sr_dev_inst *sdi);
 
-/* Serial communication parameters */
 #define SERIALCOMM "2400/8n1/dtr=1/rts=1/flow=0"
 
 #define VENDOR_MOTECH "Motech"
 
-/** Driver scanning options. */
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
 };
 
-/** Driver capabilities generic. */
 static const uint32_t drvopts[] = {
-	/* Device class */
 	SR_CONF_POWER_SUPPLY,
 };
 
-/** Hardware capabilities generic. */
 static const uint32_t devopts[] = {
-	/* Device class */
-	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	/* Device configuration */
 	SR_CONF_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -75,7 +59,7 @@ static const uint32_t devopts_ch12[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
-/** Hardware capabilities channel 3. (LPS-304/305 only). */
+/** Hardware capabilities channel 3 (LPS-304/305 only). */
 static const uint32_t devopts_ch3[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
@@ -133,8 +117,7 @@ static const struct lps_modelspec models[] = {
 	},
 };
 
-/** Send command to device with va_list.
- */
+/** Send command to device with va_list. */
 SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_list args)
 {
 	int retc;
@@ -155,8 +138,7 @@ SR_PRIV int lps_send_va(struct sr_serial_dev_inst *serial, const char *fmt, va_l
 	return SR_OK;
 }
 
-/** Send command to device.
- */
+/** Send command to device. */
 SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char *fmt, ...)
 {
 	int retc;
@@ -367,8 +349,7 @@ SR_PRIV int lps_read_reply(struct sr_serial_dev_inst *serial, char **buf, int *b
 	return SR_ERR; /* Timeout! */
 }
 
-/** Scan for LPS-300 series device.
- */
+/** Scan for LPS-300 series device. */
 static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *options)
 {
 	struct sr_dev_inst *sdi;
@@ -523,7 +504,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	devc = sdi->priv;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_SAMPLES:
 		case SR_CONF_LIMIT_MSEC:
@@ -538,6 +518,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		ch_idx = ch->index;
+
 		switch (key) {
 		case SR_CONF_VOLTAGE:
 			*data = g_variant_new_double(devc->channel_status[ch_idx].output_voltage_last);
@@ -582,7 +563,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		return SR_ERR_NA;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_LIMIT_MSEC:
 		case SR_CONF_LIMIT_SAMPLES:
@@ -609,7 +589,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		ch_idx = ch->index;
@@ -679,7 +658,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	devc = (sdi) ? sdi->priv : NULL;
 
-	/* Device options, independent from channel groups. */
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
@@ -699,9 +677,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 	}
 
-	/* Device options, depending on channel groups. */
+	/* We only ever have one channel per channel group in this driver. */
 	ch = cg->channels->data;
 	ch_idx = ch->index;
+
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */

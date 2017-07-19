@@ -861,6 +861,9 @@ SR_API int sr_config_commit(const struct sr_dev_inst *sdi)
  * @param[in] cg The channel group on the device instance for which to list
  *            the values, or NULL. If this device instance doesn't
  *            have channel groups, this must not be != NULL.
+ *            If cg is NULL, this function will return the "common" device
+ *            instance options that are channel-group independent. Otherwise
+ *            it will return the channel-group specific options.
  * @param[in] key The configuration key (SR_CONF_*).
  * @param[in,out] data A pointer to a GVariant where the list will be stored.
  *                The caller is given ownership of the GVariant and must thus

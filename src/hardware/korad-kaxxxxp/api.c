@@ -26,17 +26,13 @@ static const uint32_t scanopts[] = {
 };
 
 static const uint32_t drvopts[] = {
-	/* Device class */
 	SR_CONF_POWER_SUPPLY,
 };
 
 static const uint32_t devopts[] = {
-	/* Device class */
-	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	/* Device configuration */
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -129,7 +125,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_dbg("Found: %s %s (idx %d, ID '%s').", models[model_id].vendor,
 		models[model_id].name, model_id, models[model_id].id);
 
-	/* Init device instance, etc. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(models[model_id].vendor);

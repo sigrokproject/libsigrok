@@ -195,7 +195,6 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	devc = sdi->priv;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->channel_mode]);
@@ -263,7 +262,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	ret = SR_OK;
 	devc = sdi->priv;
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
@@ -294,7 +292,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;
@@ -342,7 +339,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
@@ -360,8 +356,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_NA;
 		}
 	} else {
-		/* Channel group specified: per-channel options. */
-
 		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;

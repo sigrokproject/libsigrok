@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * Norma DM9x0/Siemens B102x DMMs driver.
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 

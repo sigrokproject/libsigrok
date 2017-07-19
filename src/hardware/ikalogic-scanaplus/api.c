@@ -38,7 +38,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-/* Channels are numbered 1-9. */
 static const char *channel_names[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8", "9",
 };
@@ -67,7 +66,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	(void)options;
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Allocate memory for the incoming compressed samples. */
@@ -82,13 +80,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_free_compressed_buf;
 	}
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
 		sr_err("Failed to initialize libftdi.");
 		goto err_free_sample_buf;
 	}
 
-	/* Check for the device and temporarily open it. */
 	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
 				 USB_IPRODUCT, NULL);
 	if (ret < 0) {
@@ -99,7 +95,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_free_ftdic;
 	}
 
-	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(USB_VENDOR_NAME);
@@ -109,14 +104,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
 
-	/* Close device. We'll reopen it again when we need it. */
 	scanaplus_close(devc);
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 	scanaplus_close(devc);
 err_free_ftdic:
-	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
+	ftdi_free(devc->ftdic);
 err_free_sample_buf:
 	g_free(devc->sample_buf);
 err_free_compressed_buf:
@@ -134,7 +128,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Select interface A, otherwise communication will fail. */
 	ret = ftdi_set_interface(devc->ftdic, INTERFACE_A);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI interface A (%d): %s", ret,
@@ -142,7 +135,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* Open the device. */
 	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
 				 USB_IPRODUCT, NULL);
 	if (ret < 0) {
@@ -151,14 +143,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
 		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_dev_open_close_ftdic;
 	}
 
-	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",
@@ -166,7 +156,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_dev_open_close_ftdic;
 	}
 
-	/* Set FTDI bitmode to "sync FIFO". */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_SYNCFF);
 	if (ret < 0) {
 		sr_err("Failed to put FTDI chip into sync FIFO mode (%d): %s.",
@@ -174,7 +163,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_dev_open_close_ftdic;
 	}
 
-	/* Set the FTDI latency timer to 2. */
 	ret = ftdi_set_latency_timer(devc->ftdic, 2);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI latency timer (%d): %s.",
@@ -182,7 +170,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_dev_open_close_ftdic;
 	}
 
-	/* Set the FTDI read data chunk size to 64kB. */
 	ret = ftdi_read_data_set_chunksize(devc->ftdic, 64 * 1024);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI read data chunk size (%d): %s.",

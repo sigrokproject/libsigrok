@@ -41,7 +41,6 @@ enum fpga_variant {
 	FPGA_VARIANT_MCUPRO    /* mcupro clone v4.6 with Actel FPGA */
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	/** Distinguishing between original Logic16 and clones */
 	enum fpga_variant fpga_variant;

@@ -32,13 +32,10 @@
 
 #define SAMPLEUNIT_TO_BYTES(x)	((x) == 1 ? 1 : 2)
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	int max_channels;
 	uint32_t fw_ver;
 
-	/* Acquisition settings: see beaglelogic.h */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint32_t sampleunit;
@@ -49,7 +46,6 @@ struct dev_context {
 	uint32_t bufunitsize;
 	uint32_t buffersize;
 
-	/* Operational state */
 	int fd;
 	GPollFD pollfd;
 	int last_error;

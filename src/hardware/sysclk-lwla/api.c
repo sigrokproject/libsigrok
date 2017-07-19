@@ -26,20 +26,14 @@
 #include <libsigrok-internal.h>
 #include "protocol.h"
 
-/* Supported device scan options.
- */
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-/* Driver capabilities.
- */
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
 
-/* Supported trigger match conditions.
- */
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
@@ -47,22 +41,16 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-/* Names assigned to available trigger sources.
- */
 static const char *const trigger_source_names[] = {
 	[TRIGGER_CHANNELS] = "CH",
 	[TRIGGER_EXT_TRG] = "TRG",
 };
 
-/* Names assigned to available edge slope choices.
- */
 static const char *const signal_edge_names[] = {
 	[EDGE_POSITIVE] = "r",
 	[EDGE_NEGATIVE] = "f",
 };
 
-/* Create a new sigrok device instance for the indicated LWLA model.
- */
 static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 {
 	struct sr_dev_inst *sdi;
@@ -70,7 +58,6 @@ static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 	int i;
 	char name[8];
 
-	/* Initialize private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->model = model;
 	devc->active_fpga_config = FPGA_NOCONF;
@@ -78,16 +65,13 @@ static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 	devc->samplerate = model->samplerates[0];
 	devc->channel_mask = (UINT64_C(1) << model->num_channels) - 1;
 
-	/* Create sigrok device instance. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(VENDOR_NAME);
 	sdi->model = g_strdup(model->name);
 	sdi->priv = devc;
 
-	/* Generate list of logic channels. */
 	for (i = 0; i < model->num_channels; i++) {
-		/* The LWLA series simply number channels from CH1 to CHxx. */
 		g_snprintf(name, sizeof(name), "CH%d", i + 1);
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
@@ -148,8 +132,6 @@ static struct sr_dev_inst *dev_inst_new_matching(GSList *conn_matches,
 	return sdi;
 }
 
-/* Scan for SysClk LWLA devices and create a device instance for each one.
- */
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	GSList *conn_devices, *devices, *node;
@@ -236,8 +218,6 @@ static int drain_usb(struct sr_usb_dev_inst *usb, unsigned int endpoint)
 	return SR_OK;
 }
 
-/* Open and initialize device.
- */
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct drv_context *drvc;
@@ -300,7 +280,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return ret;
 }
 
-/* Shutdown and close device. */
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -344,8 +323,6 @@ static int has_devopt(const struct model_info *model, uint32_t key)
 	return FALSE;
 }
 
-/* Read device configuration setting.
- */
 static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
@@ -426,8 +403,6 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 	return -1;
 }
 
-/* Write device configuration setting.
- */
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
@@ -501,8 +476,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-/* Apply channel configuration change.
- */
 static int config_channel_set(const struct sr_dev_inst *sdi,
 			      struct sr_channel *ch, unsigned int changes)
 {
@@ -532,8 +505,7 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-/* Derive trigger masks from the session's trigger configuration.
- */
+/* Derive trigger masks from the session's trigger configuration. */
 static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 {
 	uint64_t trigger_mask, trigger_values, trigger_edge_mask;
@@ -598,8 +570,6 @@ static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* Apply current device configuration to the hardware.
- */
 static int config_commit(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -688,8 +658,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return lwla_start_acquisition(sdi);
 }
 
-/* Request that a running capture operation be stopped.
- */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -704,8 +672,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* SysClk LWLA driver descriptor.
- */
 static struct sr_dev_driver sysclk_lwla_driver_info = {
 	.name = "sysclk-lwla",
 	.longname = "SysClk LWLA series",

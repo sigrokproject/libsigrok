@@ -120,7 +120,6 @@ enum {
 	STATE_WAIT_DEVICE_READY
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Current selected samplerate. */
 	uint64_t samplerate;

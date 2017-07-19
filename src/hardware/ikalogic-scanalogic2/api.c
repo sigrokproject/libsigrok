@@ -181,10 +181,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
 		return SR_ERR;
 
-	/*
-	 * Determine if a kernel driver is active on this interface and, if so,
-	 * detach it.
-	 */
 	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
 		ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE);
 		if (ret < 0) {

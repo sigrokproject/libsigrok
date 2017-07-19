@@ -39,9 +39,9 @@
 #define SLEEP_US_LONG (5 * 1000)
 #define SLEEP_US_SHORT (1 * 1000)
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const struct elusb_profile *profile;
+
 	/* Generic EL-USB */
 	unsigned char config[MAX_CONFIGBLOCK_SIZE];
 	unsigned int log_size;
@@ -50,6 +50,7 @@ struct dev_context {
 	unsigned int logged_samples;
 	unsigned int rcvd_samples;
 	uint64_t limit_samples;
+
 	/* Model-specific */
 	/* EL-USB-CO: these are something like scaling and calibration values
 	 * fixed per device, used to convert the sample values to CO ppm. */

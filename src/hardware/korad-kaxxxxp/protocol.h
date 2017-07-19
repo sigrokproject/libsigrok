@@ -17,12 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- * Korad KAxxxxP power supply driver
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_KORAD_KAXXXXP_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_KORAD_KAXXXXP_PROTOCOL_H
 
@@ -70,17 +64,13 @@ enum {
 	KAXXXXP_RECALL,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct korad_kaxxxxp_model *model; /**< Model information. */
 
-	/* Acquisition settings */
 	struct sr_sw_limits limits;
 	int64_t req_sent_at;
 	gboolean reply_pending;
 
-	/* Operational state */
 	float current;          /**< Last current value [A] read from device. */
 	float current_max;      /**< Output current set. */
 	float voltage;          /**< Last voltage value [V] read from device. */
@@ -92,7 +82,6 @@ struct dev_context {
 	gboolean ocp_enabled;    /**< Output current protection enabled. */
 	gboolean ovp_enabled;    /**< Output voltage protection enabled. */
 
-	/* Temporary state across callbacks */
 	int target;              /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */
 	char reply[6];

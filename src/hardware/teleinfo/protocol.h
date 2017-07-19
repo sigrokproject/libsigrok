@@ -37,15 +37,9 @@ enum optarif {
 
 #define TELEINFO_BUF_SIZE 256
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	struct sr_sw_limits sw_limits;
-
-	/* Operational state */
 	enum optarif optarif; /**< The device mode (which measures are reported) */
-
-	/* Temporary state across callbacks */
 	uint8_t buf[TELEINFO_BUF_SIZE];
 	int buf_len;
 };

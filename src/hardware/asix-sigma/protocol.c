@@ -677,7 +677,6 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 /* Software trigger to determine exact trigger position. */
 static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 			      struct sigma_trigger *t)

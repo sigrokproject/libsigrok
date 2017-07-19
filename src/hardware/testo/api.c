@@ -111,7 +111,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
-		/* Hardcode the 435 for now.*/
+		/* Hardcode the 435 for now. */
 		if (strcmp(product, "testo 435/635/735"))
 			continue;
 

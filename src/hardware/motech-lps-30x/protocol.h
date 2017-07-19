@@ -18,14 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Motech LPS-30x series</em> power supply driver
- *
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_MOTECH_LPS_30X_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_MOTECH_LPS_30X_PROTOCOL_H
 
@@ -93,22 +85,17 @@ struct channel_status {
 	gdouble output_current_max;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct lps_modelspec *model;
 
-	/* Acquisition status */
 	gboolean acq_running;		/**< Acquisition is running. */
 	struct sr_sw_limits limits;
 	acquisition_req acq_req;	/**< Current request. */
 	uint8_t	acq_req_pending;	/**< Request pending. 0=none, 1=reply, 2=OK */
 
-	/* Operational state */
 	struct channel_status channel_status[MAX_CHANNELS];
 	guint8 tracking_mode;		/**< 0=off, 1=Tracking from CH1, 2=Tracking from CH2. */
 
-	/* Temporary state across callbacks */
 	int64_t req_sent_at;    /**< Request sent. */
 	gchar buf[LINELEN_MAX];	/**< Buffer for read callback */
 	int buflen;		/**< Data len in buf */

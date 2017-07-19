@@ -26,7 +26,6 @@
 
 #define LOG_PREFIX "tondaj-sl-814"
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 	int state;

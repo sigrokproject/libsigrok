@@ -18,13 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Yokogawa DL/DLM series</em> oscilloscope driver
- * @internal
- */
-
 #include <config.h>
 #include "scpi.h"
 #include "protocol.h"

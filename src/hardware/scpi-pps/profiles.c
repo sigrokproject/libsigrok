@@ -130,7 +130,6 @@ static const struct scpi_command chroma_61604_cmd[] = {
 };
 
 /* Chroma 62000 series DC source */
-
 static const uint32_t chroma_62000_devopts[] = {
 	SR_CONF_CONTINUOUS,
 };
@@ -307,7 +306,6 @@ static const struct scpi_command rigol_dp800_cmd[] = {
 };
 
 /* HP 663xx series */
-
 static const uint32_t hp_6630a_devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_ENABLED | SR_CONF_SET,
@@ -572,6 +570,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
 	},
+
 	/* Agilent N5767A */
 	{ "Agilent", "N5767A", 0,
 		ARRAY_AND_SIZE(agilent_n5700a_devopts),
@@ -581,6 +580,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
 	},
+
 	/* Chroma 61604 */
 	{ "Chroma", "61604", 0,
 		ARRAY_AND_SIZE(chroma_61604_devopts),
@@ -590,6 +590,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		chroma_61604_cmd,
 		.probe_channels = NULL,
 	},
+
 	/* Chroma 62000 series */
 	{ "Chroma", "620[0-9]{2}P-[0-9]{2,3}-[0-9]{1,3}", 0,
 		ARRAY_AND_SIZE(chroma_62000_devopts),
@@ -599,6 +600,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		chroma_62000_cmd,
 		.probe_channels = chroma_62000p_probe_channels,
 	},
+
 	/* HP 6633A */
 	{ "HP", "6633A", 0,
 		ARRAY_AND_SIZE(hp_6630a_devopts),

@@ -69,8 +69,7 @@ struct sr_usb_dev_inst;
  */
 #define PACKET_SIZE		(5000 * 4 * 5)
 
-/** LWLA protocol command ID codes.
- */
+/** LWLA protocol command ID codes. */
 enum command_id {
 	CMD_READ_REG	= 1,
 	CMD_WRITE_REG	= 2,
@@ -89,22 +88,19 @@ enum status_flag {
 	STATUS_MEM_AVAIL = 1 << 6,
 };
 
-/** LWLA1034 run-length encoding states.
- */
+/** LWLA1034 run-length encoding states. */
 enum rle_state {
 	RLE_STATE_DATA,
 	RLE_STATE_LEN
 };
 
-/** Register address/value pair.
- */
+/** Register address/value pair. */
 struct regval {
 	unsigned int reg;
 	uint32_t val;
 };
 
-/** LWLA sample acquisition and decompression state.
- */
+/** LWLA sample acquisition and decompression state. */
 struct acquisition_state {
 	uint64_t samples_max;	/* maximum number of samples to process */
 	uint64_t samples_done;	/* number of samples sent to the session bus */

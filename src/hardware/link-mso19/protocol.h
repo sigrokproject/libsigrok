@@ -84,7 +84,6 @@ struct mso_prototrig {
 	uint8_t spimode;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	/* info */
 	uint8_t hwmodel;
@@ -97,10 +96,11 @@ struct dev_context {
 	uint16_t offset_range;
 	uint64_t limit_samples;
 	uint64_t num_samples;
+
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
-	/* state */
+
 	uint8_t la_threshold;
 	uint64_t cur_rate;
 	uint8_t dso_probe_attn;

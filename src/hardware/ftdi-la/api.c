@@ -111,7 +111,6 @@ static void scan_device(struct ftdi_context *ftdic,
 		return;
 	}
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
 	/* Allocate memory for the incoming data. */
@@ -138,7 +137,6 @@ static void scan_device(struct ftdi_context *ftdic,
 	}
 	sr_dbg("Found an FTDI device: %s.", model);
 
-	/* Register the device with libsigrok. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = vendor;
@@ -214,7 +212,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	ftdic = ftdi_new();
 	if (!ftdic) {
 		sr_err("Failed to initialize libftdi.");
@@ -273,7 +270,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_ftdi_free;
 	}
 
-	/* Purge RX/TX buffers in the FTDI chip. */
 	ret = ftdi_usb_purge_buffers(devc->ftdic);
 	if (ret < 0) {
 		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
@@ -281,7 +277,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_dev_open_close_ftdic;
 	}
 
-	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",

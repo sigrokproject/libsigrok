@@ -387,15 +387,11 @@ static const char *const models[] = {
 	"NONE", "PARALLEL", "SERIES", "AUTO",
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/** The number of frames. */
 	struct dev_limit_counter frame_count;
 
-	/** The time limit counter. */
 	struct dev_time_counter time_count;
 
-	/** Data buffer. */
 	struct dev_buffer *buf;
 
 	/** The frequency of the test signal (index to frequencies[]). */
@@ -886,7 +882,6 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			  receive_data, (void *)sdi);

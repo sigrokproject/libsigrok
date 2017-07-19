@@ -255,7 +255,6 @@ struct sigma_state {
 	uint16_t lastsample;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;

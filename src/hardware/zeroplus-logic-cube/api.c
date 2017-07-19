@@ -203,12 +203,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				prof = &zeroplus_models[j];
 			}
 		}
-		/* Skip if the device was not found. */
+
 		if (!prof)
 			continue;
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
-		/* Register the device with libsigrok. */
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup(VENDOR_NAME);
@@ -216,7 +215,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);
 
-		/* Allocate memory for our private driver context. */
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 		devc->prof = prof;
@@ -232,7 +230,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->memory_size = MEMORY_SIZE_8K;
 		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
-		/* Fill in channellist according to this device's profile. */
 		for (j = 0; j < devc->num_channels; j++)
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
@@ -627,7 +624,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* TODO: This stops acquisition on ALL devices, ignoring dev_index. */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;

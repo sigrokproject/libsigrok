@@ -68,13 +68,11 @@ struct agdmm_profile {
 	const struct agdmm_recv *recvs;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct agdmm_profile *profile;
 	struct sr_sw_limits limits;
 	int data_source;
 
-	/* Runtime. */
 	const struct agdmm_job *jobs;
 	int current_job;
 	gboolean job_running;

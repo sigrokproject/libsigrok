@@ -51,7 +51,6 @@ extern SR_PRIV const struct center_dev_info center_devs[];
 
 #define SERIAL_BUFSIZE 256
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits sw_limits;
 

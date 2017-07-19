@@ -20,6 +20,7 @@
 #include <config.h>
 #include <string.h>
 #include "protocol.h"
+
 extern const uint64_t kecheng_kc_330b_sample_intervals[][2];
 
 SR_PRIV int kecheng_kc_330b_handle_events(int fd, int revents, void *cb_data)

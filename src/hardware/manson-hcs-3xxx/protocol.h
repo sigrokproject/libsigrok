@@ -18,14 +18,6 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Manson HCS-3xxx Series</em> power supply driver
- *
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_MANSON_HCS_3XXX_PROTOCOL_H
 
@@ -66,7 +58,6 @@ struct hcs_model {
 	double current[3]; /**< Min, max, step */
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const struct hcs_model *model; /**< Model information. */
 

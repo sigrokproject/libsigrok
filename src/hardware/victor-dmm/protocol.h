@@ -28,7 +28,6 @@
 
 #define DMM_DATA_SIZE 14
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 };

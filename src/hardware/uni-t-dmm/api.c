@@ -137,7 +137,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	sr_session_source_add(sdi->session, -1, 0, 10 /* poll_timeout */,
+	sr_session_source_add(sdi->session, -1, 0, 10,
 			uni_t_dmm_receive_data, (void *)sdi);
 
 	return SR_OK;

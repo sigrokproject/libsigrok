@@ -17,11 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *  Norma DM9x0/Siemens B102x DMMs driver.
- *  @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -192,7 +187,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	/* Poll every 100ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			norma_dmm_receive_data, (void *)sdi);

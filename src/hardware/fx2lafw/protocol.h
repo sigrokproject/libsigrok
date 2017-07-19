@@ -98,16 +98,13 @@ struct dev_context {
 	 */
 	int64_t fw_updated;
 
-	/* Supported samplerates */
 	const uint64_t *samplerates;
 	int num_samplerates;
 
-	/* Device/capture settings */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 
-	/* Operational settings */
 	gboolean trigger_fired;
 	gboolean acq_aborted;
 	gboolean sample_wide;

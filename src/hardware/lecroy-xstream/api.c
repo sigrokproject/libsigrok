@@ -504,6 +504,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	scpi = sdi->conn;
+
 	/* Preset empty results. */
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;

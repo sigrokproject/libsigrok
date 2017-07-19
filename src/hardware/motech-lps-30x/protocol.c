@@ -18,14 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Motech LPS-30x series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include <errno.h>
 #include <string.h>

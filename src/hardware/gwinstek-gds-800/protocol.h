@@ -44,7 +44,6 @@ enum gds_state
 	WAIT_FOR_TRANSFER_OF_CHANNEL_DATA_COMPLETE,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	enum gds_state state;
 	uint64_t cur_acq_frame;

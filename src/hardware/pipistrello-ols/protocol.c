@@ -73,7 +73,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 
 	/* Note: Caller checks devc and devc->ftdic. */
 
-	/* Select interface B, otherwise communication will fail. */
 	ret = ftdi_set_interface(devc->ftdic, INTERFACE_B);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI interface B (%d): %s", ret,
@@ -81,7 +80,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		return SR_ERR;
 	}
 
-	/* Check for the device and temporarily open it. */
 	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
 				 USB_IPRODUCT, NULL);
 	if (ret < 0) {
@@ -92,14 +90,12 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		return SR_ERR;
 	}
 
-	/* Purge RX/TX buffers in the FTDI chip. */
 	if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0) {
 		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));
 		goto err_open_close_ftdic;
 	}
 
-	/* Reset the FTDI bitmode. */
 	ret = ftdi_set_bitmode(devc->ftdic, 0xff, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",
@@ -107,7 +103,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		goto err_open_close_ftdic;
 	}
 
-	/* Set the FTDI latency timer to 16. */
 	ret = ftdi_set_latency_timer(devc->ftdic, 16);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI latency timer (%d): %s.",
@@ -115,7 +110,6 @@ SR_PRIV int p_ols_open(struct dev_context *devc)
 		goto err_open_close_ftdic;
 	}
 
-	/* Set the FTDI read data chunk size to 64kB. */
 	ret = ftdi_read_data_set_chunksize(devc->ftdic, 64 * 1024);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI read data chunk size (%d): %s.",

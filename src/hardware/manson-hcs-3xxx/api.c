@@ -18,14 +18,6 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Manson HCS-3xxx series</em> power supply driver
- *
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -35,17 +27,13 @@ static const uint32_t scanopts[] = {
 };
 
 static const uint32_t drvopts[] = {
-	/* Device class */
 	SR_CONF_POWER_SUPPLY,
 };
 
 static const uint32_t devopts[] = {
-	/* Device class */
-	/* Acquisition modes. */
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
-	/* Device configuration */
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -137,7 +125,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	g_strfreev(tokens);
 
-	/* Init device instance, etc. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Manson");
@@ -337,7 +324,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->reply_pending = FALSE;
 	devc->req_sent_at = 0;
 
-	/* Poll every 10ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 10,
 			hcs_receive_data, (void *)sdi);

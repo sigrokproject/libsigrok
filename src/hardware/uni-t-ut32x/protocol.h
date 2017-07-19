@@ -48,18 +48,14 @@ enum {
 	CMD_GET_STORED = 7,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	uint64_t limit_samples;
 	gboolean data_source;
 
-	/* Operational state */
 	uint64_t num_samples;
 	unsigned char buf[8];
 	struct libusb_transfer *xfer;
 
-	/* Temporary state across callbacks */
 	unsigned char packet[32];
 	int packet_len;
 };

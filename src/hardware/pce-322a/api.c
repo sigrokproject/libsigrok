@@ -306,7 +306,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 150ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 150,
 			pce_322a_receive_data, (void *)sdi);

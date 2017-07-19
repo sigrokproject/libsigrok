@@ -33,7 +33,6 @@
 
 struct samplerate_info;
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct libusb_transfer *intr_xfer;
 	struct libusb_transfer *bulk_xfer;

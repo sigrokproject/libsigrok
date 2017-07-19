@@ -19,10 +19,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * ASIX SIGMA/SIGMA2 logic analyzer driver
- */
-
 #include <config.h>
 #include "protocol.h"
 
@@ -85,8 +81,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	ftdi_init(&devc->ftdic);
 
-	/* Look for SIGMAs. */
-
 	if ((ret = ftdi_usb_find_all(&devc->ftdic, &devlist,
 	    USB_VENDOR, USB_PRODUCT)) <= 0) {
 		if (ret < 0)
@@ -116,7 +110,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->capture_ratio = 50;
 	devc->use_triggers = 0;
 
-	/* Register SIGMA device. */
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
 	sdi->vendor = g_strdup(USB_VENDOR_NAME);
@@ -127,7 +120,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi->priv = devc;
 
-	/* We will open the device again when we need it. */
 	ftdi_list_free(&devlist);
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));

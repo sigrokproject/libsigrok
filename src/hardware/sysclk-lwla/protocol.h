@@ -46,46 +46,40 @@
 
 struct acquisition_state;
 
-/* USB vendor and product IDs.
- */
+/* USB vendor and product IDs. */
 enum {
 	USB_VID_SYSCLK   = 0x2961,
 	USB_PID_LWLA1016 = 0x6688,
 	USB_PID_LWLA1034 = 0x6689,
 };
 
-/* USB device characteristics.
- */
+/* USB device characteristics. */
 enum {
 	USB_CONFIG	= 1,
 	USB_INTERFACE	= 0,
 	USB_TIMEOUT_MS	= 1000,
 };
 
-/** USB device end points.
- */
+/** USB device end points. */
 enum usb_endpoint {
 	EP_COMMAND = 2,
 	EP_CONFIG  = 4,
 	EP_REPLY   = 6 | LIBUSB_ENDPOINT_IN
 };
 
-/** LWLA1034 clock sources.
- */
+/** LWLA1034 clock sources. */
 enum clock_source {
 	CLOCK_INTERNAL = 0,
 	CLOCK_EXT_CLK,
 };
 
-/** LWLA1034 trigger sources.
- */
+/** LWLA1034 trigger sources. */
 enum trigger_source {
 	TRIGGER_CHANNELS = 0,
 	TRIGGER_EXT_TRG,
 };
 
-/** Edge choices for the LWLA1034 external clock and trigger inputs.
- */
+/** Edge choices for the LWLA1034 external clock and trigger inputs. */
 enum signal_edge {
 	EDGE_POSITIVE = 0,
 	EDGE_NEGATIVE,
@@ -96,8 +90,7 @@ enum {
 	FPGA_NOCONF = -1,
 };
 
-/** Acquisition protocol states.
- */
+/** Acquisition protocol states. */
 enum protocol_state {
 	/* idle states */
 	STATE_IDLE = 0,
@@ -114,8 +107,6 @@ enum protocol_state {
 	STATE_READ_REQUEST,
 };
 
-/** Private, per-device-instance driver context.
- */
 struct dev_context {
 	uint64_t samplerate;	/* requested samplerate */
 	uint64_t limit_msec;	/* requested capture duration in ms */
@@ -142,8 +133,7 @@ struct dev_context {
 	enum signal_edge cfg_trigger_slope;	/* ext trigger slope setting */
 };
 
-/** LWLA model descriptor.
- */
+/** LWLA model descriptor. */
 struct model_info {
 	char name[12];
 	int num_channels;

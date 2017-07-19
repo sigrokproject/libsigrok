@@ -36,13 +36,10 @@ enum {
 	DATA_SOURCE_MEMORY,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Acquisition settings */
 	struct sr_sw_limits limits;
 	gboolean data_source; /**< Whether to read live samples or memory */
 
-	/* Temporary state across callbacks */
 	uint8_t buf[APPA_55II_BUF_SIZE];
 	unsigned int buf_len;
 	uint8_t log_buf[64];

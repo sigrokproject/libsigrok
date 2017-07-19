@@ -91,31 +91,24 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 
-	/* Allocate memory for our private device context. */
 	devc = g_malloc0(sizeof(struct dev_context));
 
-	/* Device-specific settings */
 	devc->max_samplebytes = devc->max_samplerate = devc->protocol_version = 0;
 
-	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
 	devc->channel_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
-	/* Allocate memory for the incoming ftdi data. */
 	devc->ftdi_buf = g_malloc0(FTDI_BUF_SIZE);
 
-	/* Allocate memory for the FTDI context (ftdic) and initialize it. */
 	if (!(devc->ftdic = ftdi_new())) {
 		sr_err("Failed to initialize libftdi.");
 		goto err_free_ftdi_buf;;
 	}
 
-	/* Try to open the FTDI device */
-	if (p_ols_open(devc) != SR_OK) {
+	if (p_ols_open(devc) != SR_OK)
 		goto err_free_ftdic;
-	}
 
 	/* The discovery procedure is like this: first send the Reset
 	 * command (0x00) 5 times, since the device could be anywhere
@@ -166,7 +159,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_close_ftdic;
 	}
 
-	/* Close device. We'll reopen it again when we need it. */
 	p_ols_close(devc);
 
 	/* Parse the metadata. */
@@ -184,7 +176,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 err_close_ftdic:
 	p_ols_close(devc);
 err_free_ftdic:
-	ftdi_free(devc->ftdic); /* NOT free() or g_free()! */
+	ftdi_free(devc->ftdic);
 err_free_ftdi_buf:
 	g_free(devc->ftdi_buf);
 	g_free(devc);

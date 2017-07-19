@@ -34,7 +34,6 @@
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE			4096
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
@@ -105,9 +104,6 @@ enum {
 
 /* Analog patterns we can generate. */
 enum {
-	/**
-	 * Square wave.
-	 */
 	PATTERN_SQUARE,
 	PATTERN_SINE,
 	PATTERN_TRIANGLE,

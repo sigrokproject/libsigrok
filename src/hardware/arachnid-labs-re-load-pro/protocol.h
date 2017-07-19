@@ -29,7 +29,6 @@
 
 #define RELOADPRO_BUFSIZE 100
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 	uint8_t buf[RELOADPRO_BUFSIZE];

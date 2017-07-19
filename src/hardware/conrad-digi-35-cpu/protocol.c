@@ -17,12 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- * <em>Conrad DIGI 35 CPU</em> power supply driver
- * @internal
- */
-
 #include <config.h>
 #include "protocol.h"
 

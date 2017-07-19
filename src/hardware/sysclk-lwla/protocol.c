@@ -22,8 +22,7 @@
 #include "protocol.h"
 #include "lwla.h"
 
-/* Submit an already filled-in USB transfer.
- */
+/* Submit an already filled-in USB transfer. */
 static int submit_transfer(struct dev_context *devc,
 			   struct libusb_transfer *xfer)
 {
@@ -40,8 +39,7 @@ static int submit_transfer(struct dev_context *devc,
 	return SR_OK;
 }
 
-/* Set up transfer for the next register in a write sequence.
- */
+/* Set up transfer for the next register in a write sequence. */
 static void next_reg_write(struct acquisition_state *acq)
 {
 	struct regval *regval;
@@ -56,8 +54,7 @@ static void next_reg_write(struct acquisition_state *acq)
 	acq->xfer_out->length = 4 * sizeof(acq->xfer_buf_out[0]);
 }
 
-/* Set up transfer for the next register in a read sequence.
- */
+/* Set up transfer for the next register in a read sequence. */
 static void next_reg_read(struct acquisition_state *acq)
 {
 	unsigned int addr;
@@ -70,8 +67,7 @@ static void next_reg_read(struct acquisition_state *acq)
 	acq->xfer_out->length = 2 * sizeof(acq->xfer_buf_out[0]);
 }
 
-/* Decode the response to a register read request.
- */
+/* Decode the response to a register read request. */
 static int read_reg_response(struct acquisition_state *acq)
 {
 	uint32_t value;
@@ -87,8 +83,7 @@ static int read_reg_response(struct acquisition_state *acq)
 	return SR_OK;
 }
 
-/* Enter a new state and submit the corresponding request to the device.
- */
+/* Enter a new state and submit the corresponding request to the device. */
 static int submit_request(const struct sr_dev_inst *sdi,
 			  enum protocol_state state)
 {
@@ -123,8 +118,7 @@ static int submit_request(const struct sr_dev_inst *sdi,
 	return submit_transfer(devc, acq->xfer_out);
 }
 
-/* Evaluate and act on the response to a capture status request.
- */
+/* Evaluate and act on the response to a capture status request. */
 static void handle_status_response(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -160,8 +154,7 @@ static void handle_status_response(const struct sr_dev_inst *sdi)
 	}
 }
 
-/* Evaluate and act on the response to a capture length request.
- */
+/* Evaluate and act on the response to a capture length request. */
 static void handle_length_response(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -191,8 +184,7 @@ static void handle_length_response(const struct sr_dev_inst *sdi)
 	submit_request(sdi, STATE_READ_PREPARE);
 }
 
-/* Evaluate and act on the response to a capture memory read request.
- */
+/* Evaluate and act on the response to a capture memory read request. */
 static void handle_read_response(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -250,8 +242,7 @@ static void handle_read_response(const struct sr_dev_inst *sdi)
 	submit_request(sdi, STATE_READ_FINISH);
 }
 
-/* Destroy and unset the acquisition state record.
- */
+/* Destroy and unset the acquisition state record. */
 static void clear_acquisition_state(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -269,8 +260,7 @@ static void clear_acquisition_state(const struct sr_dev_inst *sdi)
 	}
 }
 
-/* USB I/O source callback.
- */
+/* USB I/O source callback. */
 static int transfer_event(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
@@ -321,8 +311,7 @@ static int transfer_event(int fd, int revents, void *cb_data)
 	return G_SOURCE_REMOVE;
 }
 
-/* USB output transfer completion callback.
- */
+/* USB output transfer completion callback. */
 static void LIBUSB_CALL transfer_out_completed(struct libusb_transfer *transfer)
 {
 	const struct sr_dev_inst *sdi;
@@ -386,8 +375,7 @@ static void LIBUSB_CALL transfer_out_completed(struct libusb_transfer *transfer)
 	}
 }
 
-/* USB input transfer completion callback.
- */
+/* USB input transfer completion callback. */
 static void LIBUSB_CALL transfer_in_completed(struct libusb_transfer *transfer)
 {
 	const struct sr_dev_inst *sdi;
@@ -448,8 +436,7 @@ static void LIBUSB_CALL transfer_in_completed(struct libusb_transfer *transfer)
 	}
 }
 
-/* Set up the acquisition state record.
- */
+/* Set up the acquisition state record. */
 static int init_acquisition_state(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;

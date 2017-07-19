@@ -30,7 +30,6 @@
 
 #define LOG_PREFIX "zeroplus"
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t max_samplerate;

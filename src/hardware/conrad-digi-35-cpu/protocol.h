@@ -17,14 +17,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * @file
- *
- * <em>Conrad DIGI 35 CPU</em> power supply driver
- *
- * @internal
- */
-
 #ifndef LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_CONRAD_DIGI_35_CPU_PROTOCOL_H
 

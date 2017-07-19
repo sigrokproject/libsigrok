@@ -374,7 +374,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* This stops acquisition on ALL devices, ignoring dev_index. */
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	stop_acquisition(sdi);

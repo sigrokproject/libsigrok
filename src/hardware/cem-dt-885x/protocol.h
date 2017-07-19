@@ -87,23 +87,18 @@ enum {
 	DATA_SOURCE_MEMORY,
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Device state */
 	enum sr_mqflag cur_mqflags;
 	int recording;
 	int cur_meas_range;
 	int cur_data_source;
 
-	/* Acquisition settings */
 	uint64_t limit_samples;
 
-	/* Operational state */
 	int state;
 	uint64_t num_samples;
 	gboolean enable_data_source_memory;
 
-	/* Temporary state across callbacks */
 	unsigned char cmd;
 	unsigned char token;
 	int buf_len;

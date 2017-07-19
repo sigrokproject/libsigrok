@@ -25,6 +25,7 @@
 static int set_mq_volt(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 static int set_mq_amp(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
 static int set_mq_ohm(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags);
+
 /*
  * The source for the frequency measurement can be either AC voltage, AC+DC
  * voltage, AC current, or AC+DC current. Configuring this is not yet

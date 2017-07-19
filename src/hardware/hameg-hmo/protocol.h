@@ -92,7 +92,6 @@ struct scope_state {
 	uint64_t sample_rate;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const void *model_config;
 	void *model_state;

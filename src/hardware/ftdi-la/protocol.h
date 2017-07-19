@@ -36,7 +36,6 @@ struct ftdi_chip_desc {
 	char *channel_names[];
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct ftdi_context *ftdic;
 	const struct ftdi_chip_desc *desc;

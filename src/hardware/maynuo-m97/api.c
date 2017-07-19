@@ -365,7 +365,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	devc = (sdi) ? sdi->priv : NULL;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	} else {
 		switch (key) {

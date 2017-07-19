@@ -41,9 +41,7 @@ struct rs_device_model {
 	double power_min;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
-	/* Model-specific information */
 	const struct rs_device_model *model_config;
 };
 

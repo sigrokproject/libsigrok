@@ -21,24 +21,19 @@
 #include "lwla.h"
 #include "protocol.h"
 
-/* Number of logic channels.
- */
+/* Number of logic channels. */
 #define NUM_CHANNELS	34
 
-/* Bit mask covering all logic channels.
- */
+/* Bit mask covering all logic channels. */
 #define ALL_CHANNELS_MASK	((UINT64_C(1) << NUM_CHANNELS) - 1)
 
-/* Unit size for the sigrok logic datafeed.
- */
+/* Unit size for the sigrok logic datafeed. */
 #define UNIT_SIZE	((NUM_CHANNELS + 7) / 8)
 
-/* Size of the acquisition buffer in device memory units.
- */
+/* Size of the acquisition buffer in device memory units. */
 #define MEMORY_DEPTH	(256 * 1024)	/* 256k x 36 bit */
 
-/* Capture memory read start address.
- */
+/* Capture memory read start address. */
 #define READ_START_ADDR	4
 
 /* Number of device memory units (36 bit) to read at a time. Slices of 8
@@ -56,8 +51,7 @@
  */
 #define READ_CHUNK_LEN	(28 * 8)
 
-/* Bit mask for the RLE repeat-count-follows flag.
- */
+/* Bit mask for the RLE repeat-count-follows flag. */
 #define RLE_FLAG_LEN_FOLLOWS	(UINT64_C(1) << 35)
 
 /* Start index and count for bulk long register reads.
@@ -67,8 +61,7 @@
 #define READ_LREGS_START	LREG_MEM_FILL
 #define READ_LREGS_COUNT	(LREG_STATUS + 1 - READ_LREGS_START)
 
-/** LWLA1034 register addresses.
- */
+/** LWLA1034 register addresses. */
 enum reg_addr {
 	REG_MEM_CTRL	= 0x1074, /* capture buffer control */
 	REG_MEM_FILL	= 0x1078, /* capture buffer fill level */
@@ -82,15 +75,13 @@ enum reg_addr {
 	REG_LONG_HIGH	= 0x10BC, /* long register high word */
 };
 
-/** Flag bits for REG_MEM_CTRL.
- */
+/** Flag bits for REG_MEM_CTRL. */
 enum mem_ctrl_flag {
 	MEM_CTRL_WRITE   = 1 << 0, /* "wr1rd0" bit */
 	MEM_CTRL_CLR_IDX = 1 << 1, /* "clr_idx" bit */
 };
 
-/* LWLA1034 long register addresses.
- */
+/* LWLA1034 long register addresses. */
 enum long_reg_addr {
 	LREG_CHAN_MASK	= 0,	/* channel enable mask */
 	LREG_DIV_COUNT	= 1,	/* clock divider max count */
@@ -107,8 +98,7 @@ enum long_reg_addr {
 	LREG_TEST_ID	= 100,	/* constant test ID */
 };
 
-/** Flag bits for LREG_CAP_CTRL.
- */
+/** Flag bits for LREG_CAP_CTRL. */
 enum cap_ctrl_flag {
 	CAP_CTRL_TRG_EN       = 1 << 0, /* "trg_en" bit */
 	CAP_CTRL_CLR_TIMEBASE = 1 << 2, /* "do_clr_timebase" bit */
@@ -117,8 +107,7 @@ enum cap_ctrl_flag {
 	CAP_CTRL_CLR_COUNTER  = 1 << 6, /* "clr_cntr0" bit */
 };
 
-/* Available FPGA configurations.
- */
+/* Available FPGA configurations. */
 enum fpga_config {
 	FPGA_OFF = 0,	/* FPGA shutdown config */
 	FPGA_INT,	/* internal clock config */
@@ -126,8 +115,7 @@ enum fpga_config {
 	FPGA_EXTNEG,	/* external clock, falling edge config */
 };
 
-/* FPGA bitstream resource filenames.
- */
+/* FPGA bitstream resource filenames. */
 static const char bitstream_map[][32] = {
 	[FPGA_OFF]	= "sysclk-lwla1034-off.rbf",
 	[FPGA_INT]	= "sysclk-lwla1034-int.rbf",
@@ -135,8 +123,7 @@ static const char bitstream_map[][32] = {
 	[FPGA_EXTNEG]	= "sysclk-lwla1034-extneg.rbf",
 };
 
-/* Read 64-bit long register.
- */
+/* Read 64-bit long register. */
 static int read_long_reg(const struct sr_usb_dev_inst *usb,
 			 uint32_t addr, uint64_t *value)
 {
@@ -164,8 +151,7 @@ static int read_long_reg(const struct sr_usb_dev_inst *usb,
 	return SR_OK;
 }
 
-/* Queue access sequence for a long register write.
- */
+/* Queue access sequence for a long register write. */
 static void queue_long_regval(struct acquisition_state *acq,
 			      uint32_t addr, uint64_t value)
 {
@@ -175,8 +161,7 @@ static void queue_long_regval(struct acquisition_state *acq,
 	lwla_queue_regval(acq, REG_LONG_STROBE, 0);
 }
 
-/* Helper to fill in the long register bulk write command.
- */
+/* Helper to fill in the long register bulk write command. */
 static inline void bulk_long_set(struct acquisition_state *acq,
 				 unsigned int idx, uint64_t value)
 {
@@ -186,8 +171,7 @@ static inline void bulk_long_set(struct acquisition_state *acq,
 	acq->xfer_buf_out[4 * idx + 6] = LWLA_WORD_3(value);
 }
 
-/* Helper for dissecting the response to a long register bulk read.
- */
+/* Helper for dissecting the response to a long register bulk read. */
 static inline uint64_t bulk_long_get(const struct acquisition_state *acq,
 				     unsigned int idx)
 {
@@ -317,8 +301,7 @@ static int detect_short_transfer_quirk(const struct sr_dev_inst *sdi)
 	return SR_ERR;
 }
 
-/* Select and transfer FPGA bitstream for the current configuration.
- */
+/* Select and transfer FPGA bitstream for the current configuration. */
 static int apply_fpga_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -347,8 +330,7 @@ static int apply_fpga_config(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-/* Perform initialization self test.
- */
+/* Perform initialization self test. */
 static int device_init_check(const struct sr_dev_inst *sdi)
 {
 	uint64_t value;
@@ -369,8 +351,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 	return detect_short_transfer_quirk(sdi);
 }
 
-/* Set up the device in preparation for an acquisition session.
- */
+/* Set up the device in preparation for an acquisition session. */
 static int setup_acquisition(const struct sr_dev_inst *sdi)
 {
 	static const struct regval capture_init[] = {
@@ -565,8 +546,7 @@ static int handle_response(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/** Model descriptor for the LWLA1034.
- */
+/** Model descriptor for the LWLA1034. */
 SR_PRIV const struct model_info lwla1034_info = {
 	.name = "LWLA1034",
 	.num_channels = NUM_CHANNELS,

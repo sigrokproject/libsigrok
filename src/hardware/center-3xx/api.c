@@ -109,13 +109,10 @@ static GSList *scan(GSList *options, int idx)
 	if (!conn)
 		return NULL;
 
-	if (serialcomm) {
-		/* Use the provided comm specs. */
+	if (serialcomm)
 		devices = center_scan(conn, serialcomm, idx);
-	} else {
-		/* Try the default. */
+	else
 		devices = center_scan(conn, center_devs[idx].conn, idx);
-	}
 
 	return std_scan_complete(center_devs[idx].di, devices);
 }
@@ -149,7 +146,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi, int idx)
 
 	std_session_send_df_header(sdi);
 
-	/* Poll every 500ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 500,
 		      center_devs[idx].receive_data, (void *)sdi);

@@ -268,7 +268,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			}
 		}
 
-		/* Skip if the device was not found. */
 		if (!prof)
 			continue;
 

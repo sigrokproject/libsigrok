@@ -46,12 +46,10 @@ struct flukedmm_profile {
 	int timeout;
 };
 
-/* Private, per-device-instance driver context. */
 struct dev_context {
 	const struct flukedmm_profile *profile;
 	struct sr_sw_limits limits;
 
-	/* Runtime. */
 	char buf[FLUKEDMM_BUFSIZE];
 	int buflen;
 	int64_t cmd_sent_at;

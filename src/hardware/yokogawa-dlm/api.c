@@ -476,10 +476,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	devc = (sdi) ? sdi->priv : NULL;
 	model = (devc) ? devc->model_config : NULL;
 
-	/*
-	 * If cg is NULL, only the SR_CONF_DEVICE_OPTIONS that are not
-	 * specific to a channel group must be returned.
-	 */
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_SCAN_OPTIONS:
@@ -611,7 +607,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->current_channel = devc->enabled_channels;
 	dlm_channel_data_request(sdi);
 
-	/* Call our callback when data comes in or after 5ms. */
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
 			dlm_data_receive, (void *)sdi);
 

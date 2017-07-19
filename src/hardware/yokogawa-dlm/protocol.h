@@ -95,7 +95,6 @@ struct scope_state {
 	uint32_t samples_per_frame;
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	const void *model_config;
 	void *model_state;

@@ -110,13 +110,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!conn)
 		return NULL;
 
-	if (serialcomm) {
-		/* Use the provided comm specs. */
+	if (serialcomm)
 		devices = brymen_scan(di, conn, serialcomm);
-	} else {
-		/* But 9600/8n1 should work all of the time. */
+	else
 		devices = brymen_scan(di, conn, "9600/8n1/dtr=1/rts=1");
-	}
 
 	return devices;
 }
@@ -149,7 +146,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->sw_limits);
 	std_session_send_df_header(sdi);
 
-	/* Poll every 50ms, or whenever some data comes in. */
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			brymen_dmm_receive_data, (void *)sdi);

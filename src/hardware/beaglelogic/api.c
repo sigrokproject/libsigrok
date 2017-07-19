@@ -21,7 +21,6 @@
 #include "protocol.h"
 #include "beaglelogic.h"
 
-/* Scan options */
 static const uint32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS,
 };
@@ -30,7 +29,6 @@ static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
 
-/* Hardware capabilities */
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -40,7 +38,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
 };
 
-/* Trigger matching capabilities */
 static const int32_t soft_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
@@ -120,10 +117,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	beaglelogic_set_sampleunit(devc);
 	beaglelogic_close(devc);
 
-	/* Signal */
 	sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
 
-	/* Fill the channels */
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				channel_names[i]);

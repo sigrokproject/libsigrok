@@ -60,7 +60,6 @@ struct dmm_info {
 
 #define DMM_BUFSIZE 256
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	struct sr_sw_limits limits;
 

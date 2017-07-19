@@ -153,7 +153,6 @@ static int config_list(uint32_t key, GVariant **data,
 	GVariantBuilder gvb;
 
 	if (!cg) {
-		/* No channel group: global options. */
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	} else {
 		switch (key) {
@@ -288,7 +287,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* Poll every 100ms, or whenever some data comes in. */
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			  reloadpro_receive_data, (void *)sdi);
 

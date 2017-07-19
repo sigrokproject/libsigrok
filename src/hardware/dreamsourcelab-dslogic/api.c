@@ -67,7 +67,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-/* Names assigned to available edge slope choices. */
 static const char *const signal_edge_names[] = {
 	[DS_EDGE_RISING] = "rising",
 	[DS_EDGE_FALLING] = "falling",
@@ -223,7 +222,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			}
 		}
 
-		/* Skip if the device was not found. */
 		if (!prof)
 			continue;
 
