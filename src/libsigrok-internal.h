@@ -962,6 +962,7 @@ SR_PRIV GVariant *std_gvar_samplerates(const uint64_t samplerates[], unsigned in
 SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsigned int n);
 SR_PRIV GVariant *std_gvar_min_max_step(double min, double max, double step);
 SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3]);
+SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double dmin, const double dmax, const double dstep);
 
 
 /*--- resource.c ------------------------------------------------------------*/

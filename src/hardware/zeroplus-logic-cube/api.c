@@ -391,10 +391,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
-	double v;
-	GVariant *range[2];
+	GVariant *grange[2];
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -417,14 +414,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				sizeof(int32_t));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (v = -6.0; v <= 6.0; v += 0.1) {
-			range[0] = g_variant_new_double(v);
-			range[1] = g_variant_new_double(v);
-			gvar = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_min_max_step_thresholds(-6.0, 6.0, 0.1);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!sdi)

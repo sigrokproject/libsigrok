@@ -555,7 +555,6 @@ static int config_list(uint32_t key, GVariant **data,
 	GVariant *gvar, *range[2];
 	GVariantBuilder gvb;
 	unsigned int i;
-	double v;
 
 	devc = (sdi) ? sdi->priv : NULL;
 
@@ -564,23 +563,18 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		if (!strcmp(devc->profile->model, "DSLogic")) {
+			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++) {
 				range[0] = g_variant_new_double(voltage_thresholds[i].low);
 				range[1] = g_variant_new_double(voltage_thresholds[i].high);
 				gvar = g_variant_new_tuple(range, 2);
 				g_variant_builder_add_value(&gvb, gvar);
 			}
+			*data = g_variant_builder_end(&gvb);
 		} else {
-			for (v = 0.0; v <= 5.0; v += 0.1) {
-				range[0] = g_variant_new_double(v);
-				range[1] = g_variant_new_double(v);
-				gvar = g_variant_new_tuple(range, 2);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
+			*data = std_gvar_min_max_step_thresholds(0.0, 5.0, 0.1);
 		}
-		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);

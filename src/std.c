@@ -627,3 +627,22 @@ SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3])
 
 	return g_variant_builder_end(&gvb);
 }
+
+SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double min, const double max, const double step)
+{
+	double d;
+	GVariant *gvar, *range[2];
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	for (d = min; d <= max; d += step) {
+		range[0] = g_variant_new_double(d);
+		range[1] = g_variant_new_double(d);
+
+		gvar = g_variant_new_tuple(range, 2);
+		g_variant_builder_add_value(&gvb, gvar);
+	}
+
+	return g_variant_builder_end(&gvb);
+}
