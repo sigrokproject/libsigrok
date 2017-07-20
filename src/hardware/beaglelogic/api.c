@@ -83,47 +83,33 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
 		return NULL;
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->model = g_strdup("BeagleLogic");
-	sdi->version = g_strdup("1.0");
-
-	/* Unless explicitly specified, keep max channels to 8 only */
-	maxch = 8;
+	maxch = NUM_CHANNELS;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		if (src->key == SR_CONF_NUM_LOGIC_CHANNELS)
 			maxch = g_variant_get_int32(src->data);
 	}
 
-	/* We need to test for number of channels by opening the node */
-	devc = beaglelogic_devc_alloc();
-
-	if (beaglelogic_open_nonblock(devc) != SR_OK) {
-		g_free(devc);
-		sr_dev_inst_free(sdi);
-
-		return NULL;
-	}
-
-	if (maxch > 8) {
+	if (maxch > 8)
 		maxch = NUM_CHANNELS;
-		devc->sampleunit = BL_SAMPLEUNIT_16_BITS;
-	} else {
+	else
 		maxch = 8;
-		devc->sampleunit = BL_SAMPLEUNIT_8_BITS;
-	}
 
-	beaglelogic_set_sampleunit(devc);
-	beaglelogic_close(devc);
+	sdi = g_new0(struct sr_dev_inst, 1);
+	sdi->status = SR_ST_INACTIVE;
+	sdi->model = g_strdup("BeagleLogic");
+	sdi->version = g_strdup("1.0");
 
-	sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
+	devc = beaglelogic_devc_alloc();
 
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				channel_names[i]);
 
 	sdi->priv = devc;
+
+	/* Signal */
+	sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
