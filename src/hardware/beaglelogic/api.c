@@ -252,15 +252,22 @@ static int config_list(uint32_t key, GVariant **data,
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
+	GSList *l;
 	struct sr_trigger *trigger;
+	struct sr_channel *channel;
 
 	/* Clear capture state */
 	devc->bytes_read = 0;
 	devc->offset = 0;
 
 	/* Configure channels */
-	devc->sampleunit = g_slist_length(sdi->channels) > 8 ?
-			BL_SAMPLEUNIT_16_BITS : BL_SAMPLEUNIT_8_BITS;
+	devc->sampleunit = BL_SAMPLEUNIT_8_BITS;
+
+	for (l = sdi->channels; l; l = l->next) {
+		channel = l->data;
+		if (channel->index >= 8 && channel->enabled)
+			devc->sampleunit = BL_SAMPLEUNIT_16_BITS;
+	}
 	beaglelogic_set_sampleunit(devc);
 
 	/* Configure triggers & send header packet */
