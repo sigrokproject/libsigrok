@@ -130,9 +130,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 	/* Get the default attributes */
 	beaglelogic_get_samplerate(devc);
 	beaglelogic_get_sampleunit(devc);
-	beaglelogic_get_triggerflags(devc);
 	beaglelogic_get_buffersize(devc);
 	beaglelogic_get_bufunitsize(devc);
+
+	/* Set the triggerflags to default for continuous capture unless we
+	 * explicitly limit samples using SR_CONF_LIMIT_SAMPLES */
+	devc->triggerflags = BL_TRIGGERFLAGS_CONTINUOUS;
+	beaglelogic_set_triggerflags(devc);
 
 	/* Map the kernel capture FIFO for reads, saves 1 level of memcpy */
 	if (beaglelogic_mmap(devc) != SR_OK) {
