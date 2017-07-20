@@ -401,22 +401,15 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		if (devc->prof->max_sampling_freq == 100) {
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-					samplerates_100, ARRAY_SIZE(samplerates_100),
-					sizeof(uint64_t));
-		} else if (devc->prof->max_sampling_freq == 200) {
-			gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-					samplerates_200, ARRAY_SIZE(samplerates_200),
-					sizeof(uint64_t));
-		} else {
+		if (devc->prof->max_sampling_freq == 100)
+			*data = std_gvar_samplerates(samplerates_100, ARRAY_SIZE(samplerates_100));
+		else if (devc->prof->max_sampling_freq == 200)
+			*data = std_gvar_samplerates(samplerates_200, ARRAY_SIZE(samplerates_200));
+		else {
 			sr_err("Internal error: Unknown max. samplerate: %d.",
 			       devc->prof->max_sampling_freq);
 			return SR_ERR_ARG;
 		}
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

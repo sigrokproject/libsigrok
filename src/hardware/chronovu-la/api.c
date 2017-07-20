@@ -346,8 +346,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg)
 {
-	GVariant *gvar, *grange[2];
-	GVariantBuilder gvb;
+	GVariant *grange[2];
 	struct dev_context *devc;
 
 	devc = (sdi) ? sdi->priv : NULL;
@@ -358,13 +357,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		cv_fill_samplerates_if_needed(sdi);
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"),
-				devc->samplerates,
-				ARRAY_SIZE(devc->samplerates),
-				sizeof(uint64_t));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates(devc->samplerates, ARRAY_SIZE(devc->samplerates));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!devc->prof)

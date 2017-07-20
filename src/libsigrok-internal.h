@@ -958,6 +958,8 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 
 SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t (*a)[][2], unsigned int n);
 SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned int n);
+SR_PRIV GVariant *std_gvar_samplerates(const uint64_t samplerates[], unsigned int n);
+SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsigned int n);
 
 
 /*--- resource.c ------------------------------------------------------------*/

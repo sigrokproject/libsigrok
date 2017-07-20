@@ -600,8 +600,6 @@ static int config_list(uint32_t key, GVariant **data,
 		       const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar;
-	GVariantBuilder gvb;
 
 	devc = (sdi) ? sdi->priv : NULL;
 
@@ -620,12 +618,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_VARDICT);
-		gvar = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-			devc->model->samplerates, devc->model->num_samplerates,
-			sizeof(devc->model->samplerates[0]));
-		g_variant_builder_add(&gvb, "{sv}", "samplerates", gvar);
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_samplerates(devc->model->samplerates, devc->model->num_samplerates);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

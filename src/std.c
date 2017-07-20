@@ -578,3 +578,26 @@ SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned 
 
 	return g_variant_builder_end(&gvb);
 }
+
+static GVariant *samplerate_helper(const uint64_t samplerates[], unsigned int n, const char *str)
+{
+	GVariant *gvar;
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE("a{sv}"));
+	gvar = g_variant_new_fixed_array(G_VARIANT_TYPE("t"), samplerates,
+			n, sizeof(uint64_t));
+	g_variant_builder_add(&gvb, "{sv}", str, gvar);
+
+	return g_variant_builder_end(&gvb);
+}
+
+SR_PRIV GVariant *std_gvar_samplerates(const uint64_t samplerates[], unsigned int n)
+{
+	return samplerate_helper(samplerates, n, "samplerates");
+}
+
+SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsigned int n)
+{
+	return samplerate_helper(samplerates, n, "samplerate-steps");
+}
