@@ -332,9 +332,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	GVariant *gvar;
-	GVariantBuilder gvb;
-	int channel, i;
+	int channel;
 
 	devc = (sdi) ? sdi->priv : NULL;
 
@@ -366,22 +364,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(devc->model->channels[channel].voltage[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step_array(devc->model->channels[channel].voltage);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(devc->model->channels[channel].current[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step_array(devc->model->channels[channel].current);
 			break;
 		default:
 			return SR_ERR_NA;

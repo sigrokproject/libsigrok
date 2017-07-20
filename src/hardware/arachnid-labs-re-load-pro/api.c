@@ -150,8 +150,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariantBuilder gvb;
-
 	if (!cg) {
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	} else {
@@ -161,12 +159,7 @@ static int config_list(uint32_t key, GVariant **data,
 				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
 			break;
 		case SR_CONF_CURRENT_LIMIT:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.0));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(6.0));
-			g_variant_builder_add_value(&gvb, g_variant_new_double(0.001)); /* 1mA steps */
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step(0.0, 6.0, 0.001);
 			break;
 		default:
 			return SR_ERR_NA;

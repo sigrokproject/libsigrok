@@ -601,3 +601,29 @@ SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsig
 {
 	return samplerate_helper(samplerates, n, "samplerate-steps");
 }
+
+SR_PRIV GVariant *std_gvar_min_max_step(double min, double max, double step)
+{
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	g_variant_builder_add_value(&gvb, g_variant_new_double(min));
+	g_variant_builder_add_value(&gvb, g_variant_new_double(max));
+	g_variant_builder_add_value(&gvb, g_variant_new_double(step));
+
+	return g_variant_builder_end(&gvb);
+}
+
+SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3])
+{
+	unsigned int i;
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	for (i = 0; i < 3; i++)
+		g_variant_builder_add_value(&gvb, g_variant_new_double(a[i]));
+
+	return g_variant_builder_end(&gvb);
+}

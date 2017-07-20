@@ -960,6 +960,8 @@ SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t (*a)[][2], unsigned int n)
 SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned int n);
 SR_PRIV GVariant *std_gvar_samplerates(const uint64_t samplerates[], unsigned int n);
 SR_PRIV GVariant *std_gvar_samplerates_steps(const uint64_t samplerates[], unsigned int n);
+SR_PRIV GVariant *std_gvar_min_max_step(double min, double max, double step);
+SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3]);
 
 
 /*--- resource.c ------------------------------------------------------------*/

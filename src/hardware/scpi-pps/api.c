@@ -514,8 +514,6 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	const struct channel_spec *ch_spec;
-	GVariant *gvar;
-	GVariantBuilder gvb;
 	int i;
 	const char *s[16];
 
@@ -560,6 +558,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		 * specification for use in series or parallel mode.
 		 */
 		ch = cg->channels->data;
+		ch_spec = &(devc->device->channels[ch->index]);
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
@@ -568,34 +567,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 					sizeof(uint32_t));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
-			ch_spec = &(devc->device->channels[ch->index]);
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, write resolution. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(ch_spec->voltage[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step_array(ch_spec->voltage);
 			break;
 		case SR_CONF_OUTPUT_FREQUENCY_TARGET:
-			ch_spec = &(devc->device->channels[ch->index]);
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, write resolution. */
-			for (i = 0; i < 3; i++) {
-				gvar = g_variant_new_double(ch_spec->frequency[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step_array(ch_spec->frequency);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			/* Min, max, step. */
-			for (i = 0; i < 3; i++) {
-				ch_spec = &(devc->device->channels[ch->index]);
-				gvar = g_variant_new_double(ch_spec->current[i]);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
+			*data = std_gvar_min_max_step_array(ch_spec->current);
 			break;
 		default:
 			return SR_ERR_NA;
