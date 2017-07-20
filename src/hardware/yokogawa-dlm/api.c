@@ -488,16 +488,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (cg_type == CG_ANALOG) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog), sizeof(uint32_t));
-		} else if (cg_type == CG_DIGITAL) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg_digital, ARRAY_SIZE(devopts_cg_digital), sizeof(uint32_t));
-		} else {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				NULL, 0, sizeof(uint32_t));
-		}
+		if (cg_type == CG_ANALOG)
+			*data = std_gvar_array_u32(devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog));
+		else if (cg_type == CG_DIGITAL)
+			*data = std_gvar_array_u32(devopts_cg_digital, ARRAY_SIZE(devopts_cg_digital));
+		else
+			*data = std_gvar_array_u32(NULL, 0);
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE)

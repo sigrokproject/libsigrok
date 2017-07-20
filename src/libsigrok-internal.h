@@ -964,6 +964,9 @@ SR_PRIV GVariant *std_gvar_min_max_step(double min, double max, double step);
 SR_PRIV GVariant *std_gvar_min_max_step_array(const double a[3]);
 SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double dmin, const double dmax, const double dstep);
 
+SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u32(const uint32_t *a, unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n);
 
 /*--- resource.c ------------------------------------------------------------*/
 

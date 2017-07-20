@@ -381,9 +381,7 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog),
-			sizeof(uint32_t));
+		*data = std_gvar_array_u32(devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog));
 		break;
 	case SR_CONF_COUPLING:
 		*data = g_variant_new_strv(*model->coupling_options,

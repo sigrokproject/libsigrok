@@ -372,18 +372,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic),
-						sizeof(uint32_t));
+				*data = std_gvar_array_u32(devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic));
 			else if (ch->type == SR_CHANNEL_ANALOG) {
 				if (strcmp(cg->name, "Analog") == 0)
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							devopts_cg_analog_group, ARRAY_SIZE(devopts_cg_analog_group),
-							sizeof(uint32_t));
+					*data = std_gvar_array_u32(devopts_cg_analog_group, ARRAY_SIZE(devopts_cg_analog_group));
 				else
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-							devopts_cg_analog_channel, ARRAY_SIZE(devopts_cg_analog_channel),
-							sizeof(uint32_t));
+					*data = std_gvar_array_u32(devopts_cg_analog_channel, ARRAY_SIZE(devopts_cg_analog_channel));
 			}
 			else
 				return SR_ERR_BUG;

@@ -309,9 +309,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = std_gvar_samplerates(sl2_samplerates, ARRAY_SIZE(sl2_samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				trigger_matches, ARRAY_SIZE(trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		grange[0] = g_variant_new_uint64(0);

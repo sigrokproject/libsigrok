@@ -460,24 +460,18 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
+		*data = std_gvar_array_u32(scanopts, ARRAY_SIZE(scanopts));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
 			if (model)
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					model->devopts, model->num_devopts, sizeof(uint32_t));
+				*data = std_gvar_array_u32((const uint32_t *)model->devopts, model->num_devopts);
 			else
-				*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-					drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
+				*data = std_gvar_array_u32(drvopts, ARRAY_SIZE(drvopts));
 		} else if (cg_type == CG_ANALOG) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				model->devopts_cg_analog, model->num_devopts_cg_analog,
-				sizeof(uint32_t));
+			*data = std_gvar_array_u32((const uint32_t *)model->devopts_cg_analog, model->num_devopts_cg_analog);
 		} else {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				NULL, 0, sizeof(uint32_t));
+			*data = std_gvar_array_u32(NULL, 0);
 		}
 		break;
 	case SR_CONF_COUPLING:

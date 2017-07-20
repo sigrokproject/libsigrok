@@ -476,8 +476,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+			*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
 			break;
 		case SR_CONF_COUPLING:
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);

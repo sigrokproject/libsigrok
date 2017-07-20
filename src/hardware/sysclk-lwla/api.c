@@ -621,9 +621,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(devc->model->samplerates, devc->model->num_samplerates);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-			trigger_matches, ARRAY_SIZE(trigger_matches),
-			sizeof(trigger_matches[0]));
+		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_strv(trigger_source_names,

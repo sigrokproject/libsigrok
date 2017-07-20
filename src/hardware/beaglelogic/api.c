@@ -248,9 +248,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = std_gvar_samplerates_steps(samplerates, ARRAY_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-				soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches),
-				sizeof(int32_t));
+		*data = std_gvar_array_i32(soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches));
 		break;
 	default:
 		return SR_ERR_NA;

@@ -240,8 +240,7 @@ static int config_list(uint32_t key, GVariant **data,
 			if (bl_acme_probe_has_pws(cg))
 				devopts_cg[num_devopts_cg++] = HAS_POWER_OFF;
 
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, num_devopts_cg, sizeof(uint32_t));
+			*data = std_gvar_array_u32(devopts_cg, num_devopts_cg);
 			break;
 		default:
 			return SR_ERR_NA;

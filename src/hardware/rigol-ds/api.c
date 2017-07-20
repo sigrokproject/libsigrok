@@ -851,14 +851,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		if (cg == devc->digital_group) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				NULL, 0, sizeof(uint32_t));
+			*data = std_gvar_array_u32(NULL, 0);
 			return SR_OK;
 		} else {
 			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog), sizeof(uint32_t));
+					*data = std_gvar_array_u32(devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog));
 					return SR_OK;
 				}
 			}
@@ -873,8 +871,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
+		*data = std_gvar_array_u64(probe_factor, ARRAY_SIZE(probe_factor));
 		break;
 	case SR_CONF_VDIV:
 		if (!devc)

@@ -592,8 +592,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg, ARRAY_SIZE(devopts_cg), sizeof(uint32_t));
+		*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(samplerates, ARRAY_SIZE(samplerates));
@@ -605,8 +604,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_BUFFERSIZE:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-				buffersizes, ARRAY_SIZE(buffersizes), sizeof(uint64_t));
+		*data = std_gvar_array_u64(buffersizes, ARRAY_SIZE(buffersizes));
 		break;
 	case SR_CONF_VDIV:
 		*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));

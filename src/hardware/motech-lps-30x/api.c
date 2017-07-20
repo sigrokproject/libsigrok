@@ -682,11 +682,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if ((ch_idx == 0) || (ch_idx == 1)) /* CH1, CH2 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg_ch12, ARRAY_SIZE(devopts_cg_ch12), sizeof(uint32_t));
+			*data = std_gvar_array_u32(devopts_cg_ch12, ARRAY_SIZE(devopts_cg_ch12));
 		else /* Must be CH3 */
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts_cg_ch3, ARRAY_SIZE(devopts_cg_ch3), sizeof(uint32_t));
+			*data = std_gvar_array_u32(devopts_cg_ch3, ARRAY_SIZE(devopts_cg_ch3));
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		*data = std_gvar_min_max_step_array(devc->model->channels[ch_idx].voltage);
