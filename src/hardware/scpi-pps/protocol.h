@@ -101,10 +101,10 @@ struct scpi_pps {
 struct channel_spec {
 	const char *name;
 	/* Min, max, programming resolution, spec digits, encoding digits. */
-	float voltage[5];
-	float current[5];
-	float power[5];
-	float frequency[5];
+	double voltage[5];
+	double current[5];
+	double power[5];
+	double frequency[5];
 };
 
 struct channel_group_spec {

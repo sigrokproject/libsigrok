@@ -622,7 +622,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
-	float f;
+	double d;
 
 	scpi = sdi->conn;
 
@@ -631,7 +631,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	 * to avoid leaving the device in a state where it's not expecting
 	 * commands.
 	 */
-	sr_scpi_get_float(scpi, NULL, &f);
+	sr_scpi_get_double(scpi, NULL, &d);
 	sr_scpi_source_remove(sdi->session, scpi);
 
 	std_session_send_df_end(sdi);

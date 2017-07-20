@@ -67,7 +67,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_scpi_dev_inst *scpi;
 	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
-	float f;
+	double d;
 	int cmd;
 
 	(void)fd;
@@ -82,7 +82,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	scpi = sdi->conn;
 
 	/* Retrieve requested value for this state. */
-	if (sr_scpi_get_float(scpi, NULL, &f) == SR_OK) {
+	if (sr_scpi_get_double(scpi, NULL, &d) == SR_OK) {
 		pch = devc->cur_channel->priv;
 		ch_spec = &devc->device->channels[pch->hw_output_idx];
 		packet.type = SR_DF_ANALOG;
@@ -106,7 +106,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 			analog.spec->spec_digits = ch_spec->power[3];
 		}
 		analog.meaning->mqflags = SR_MQFLAG_DC;
-		analog.data = &f;
+		analog.data = &d;
 		sr_session_send(sdi, &packet);
 		g_slist_free(analog.meaning->channels);
 	}
