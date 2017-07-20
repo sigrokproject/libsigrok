@@ -209,7 +209,7 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_warn("Insufficient buffer space has been allocated.");
 			sr_warn("Please use \'echo <size in bytes> > "\
 				BEAGLELOGIC_SYSFS_ATTR(memalloc) \
-				"\' as root to increase the buffer size, this"\
+				"\' to increase the buffer size, this"\
 				" capture is now truncated to %d Msamples",
 				devc->buffersize /
 				(SAMPLEUNIT_TO_BYTES(devc->sampleunit) * 1000000));
