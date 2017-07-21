@@ -26,7 +26,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "ols"
+#define LOG_PREFIX "openbench-logic-sniffer"
 
 #define NUM_CHANNELS               32
 #define NUM_TRIGGER_STAGES         4

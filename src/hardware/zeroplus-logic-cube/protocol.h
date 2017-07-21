@@ -28,7 +28,7 @@
 #include "libsigrok-internal.h"
 #include "analyzer.h"
 
-#define LOG_PREFIX "zeroplus"
+#define LOG_PREFIX "zeroplus-logic-cube"
 
 struct dev_context {
 	uint64_t cur_samplerate;

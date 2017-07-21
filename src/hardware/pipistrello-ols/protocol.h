@@ -27,7 +27,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "p-ols"
+#define LOG_PREFIX "pipistrello-ols"
 
 #define USB_VENDOR_ID		0x0403
 #define USB_DEVICE_ID		0x6010

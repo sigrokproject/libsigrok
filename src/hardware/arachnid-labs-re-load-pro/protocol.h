@@ -25,7 +25,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "re-load-pro"
+#define LOG_PREFIX "arachnid-labs-re-load-pro"
 
 #define RELOADPRO_BUFSIZE 100
 

@@ -28,7 +28,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "la8/la16"
+#define LOG_PREFIX "chronovu-la"
 
 #define SDRAM_SIZE			(8 * 1024 * 1024)
 #define MAX_NUM_SAMPLES			SDRAM_SIZE

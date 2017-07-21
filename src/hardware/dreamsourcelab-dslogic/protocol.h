@@ -29,7 +29,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "dslogic"
+#define LOG_PREFIX "dreamsourcelab-dslogic"
 
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
