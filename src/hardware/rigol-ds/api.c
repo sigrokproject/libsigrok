@@ -126,9 +126,6 @@ static const uint64_t vdivs[][2] = {
 	{ 100, 1 },
 };
 
-#define NUM_TIMEBASE  ARRAY_SIZE(timebases)
-#define NUM_VDIV      ARRAY_SIZE(vdivs)
-
 static const char *trigger_sources[] = {
 	"CH1",
 	"CH2",
@@ -397,18 +394,18 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 				devc->digital_group);
 	}
 
-	for (i = 0; i < NUM_TIMEBASE; i++) {
+	for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 		if (!memcmp(&devc->model->min_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->timebases = &timebases[i];
 		if (!memcmp(&devc->model->series->max_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->num_timebases = &timebases[i] - devc->timebases + 1;
 	}
 
-	for (i = 0; i < NUM_VDIV; i++) {
+	for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 		if (!memcmp(&devc->model->series->min_vdiv,
 					&vdivs[i], sizeof(uint64_t[2]))) {
 			devc->vdivs = &vdivs[i];
-			devc->num_vdivs = NUM_VDIV - i;
+			devc->num_vdivs = ARRAY_SIZE(vdivs) - i;
 		}
 	}
 
