@@ -820,6 +820,10 @@ SR_API int sr_config_set(const struct sr_dev_inst *sdi,
 
 	g_variant_unref(data);
 
+	if (ret == SR_ERR_CHANNEL_GROUP)
+		sr_err("%s: No channel group specified.",
+			(sdi) ? sdi->driver->name : "unknown");
+
 	return ret;
 }
 

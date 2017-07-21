@@ -744,10 +744,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
@@ -767,10 +765,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		sr_dbg("Didn't set vdiv, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
@@ -789,10 +785,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		sr_dbg("Didn't set coupling, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		p = g_variant_get_uint64(data);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
