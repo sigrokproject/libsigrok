@@ -124,8 +124,8 @@ static GSList *scan(GSList *options, int idx)
 	return devices;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -136,8 +136,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg, int idx)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg, int idx)
 {
 	/*
 	 * We can't use the ternary operator here! The result would contain

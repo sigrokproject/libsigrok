@@ -243,8 +243,7 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret;
 	enum sr_mq mq;

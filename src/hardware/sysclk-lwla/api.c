@@ -323,8 +323,8 @@ static int has_devopt(const struct model_info *model, uint32_t key)
 	return FALSE;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	unsigned int idx;
@@ -403,8 +403,8 @@ static int lookup_index(GVariant *value, const char *const *table, int len)
 	return -1;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	uint64_t value;
 	struct dev_context *devc;
@@ -474,7 +474,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 }
 
 static int config_channel_set(const struct sr_dev_inst *sdi,
-			      struct sr_channel *ch, unsigned int changes)
+	struct sr_channel *ch, unsigned int changes)
 {
 	uint64_t channel_bit;
 	struct dev_context *devc;
@@ -593,8 +593,7 @@ static int config_commit(const struct sr_dev_inst *sdi)
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 

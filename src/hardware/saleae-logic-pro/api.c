@@ -300,7 +300,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct sr_usb_dev_inst *usb;
 	struct dev_context *devc;
@@ -328,7 +328,7 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -348,7 +348,7 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:

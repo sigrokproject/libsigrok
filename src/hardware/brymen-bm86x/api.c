@@ -145,8 +145,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return (ret == 0) ? SR_OK : SR_ERR;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 
@@ -155,8 +155,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return sr_sw_limits_config_get(&devc->sw_limits, key, data);
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -167,8 +167,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }

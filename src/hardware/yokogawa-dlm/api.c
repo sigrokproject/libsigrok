@@ -182,8 +182,8 @@ static int check_channel_group(struct dev_context *devc,
 	return CG_INVALID;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
 	unsigned int i;
@@ -282,8 +282,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return ret;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type;
 	unsigned int i, j;
@@ -437,7 +437,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 }
 
 static int config_channel_set(const struct sr_dev_inst *sdi,
-			struct sr_channel *ch, unsigned int changes)
+	struct sr_channel *ch, unsigned int changes)
 {
 	/* Currently we only handle SR_CHANNEL_SET_ENABLED. */
 	if (changes != SR_CHANNEL_SET_ENABLED)
@@ -446,8 +446,8 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 	return dlm_channel_state_set(sdi, ch->index, ch->enabled);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int cg_type = CG_NONE;
 	struct dev_context *devc;

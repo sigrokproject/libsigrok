@@ -327,8 +327,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return std_serial_dev_close(sdi);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -354,15 +354,15 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 }
 
 /** Implementation of config_list for Metrahit 1x/2x send mode */
-static int config_list_sm(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_channel_group *cg)
+static int config_list_sm(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_sm);
 }
 
 /** Implementation of config_list for Metrahit 2x bidirectional mode */
-static int config_list_bd(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-			  const struct sr_channel_group *cg)
+static int config_list_bd(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_bd);
 }

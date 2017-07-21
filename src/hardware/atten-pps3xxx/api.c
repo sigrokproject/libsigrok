@@ -182,8 +182,8 @@ static GSList *scan_3203(struct sr_dev_driver *di, GSList *options)
 	return scan(di, options, PPS_3203T_3S);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -249,8 +249,8 @@ static int find_str(const char *str, const char **strings, int array_size)
 	return idx;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
@@ -326,8 +326,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return ret;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;

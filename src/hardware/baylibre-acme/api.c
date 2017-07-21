@@ -132,8 +132,7 @@ err_out:
 }
 
 static int config_get(uint32_t key, GVariant **data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	int ret;
@@ -173,8 +172,7 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi,
-		      const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint64_t samplerate;
@@ -216,8 +214,7 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi,
-		       const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	uint32_t devopts_cg[MAX_DEVOPTS_CG];
 	int num_devopts_cg = 0;

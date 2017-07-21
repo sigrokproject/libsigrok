@@ -336,8 +336,8 @@ static int reverse_map(uint8_t u, const uint8_t *arr, int n)
 	return i;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	struct parport *port;
@@ -409,8 +409,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	int i, ch = -1;
@@ -505,8 +505,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 }
 
 static int config_channel_set(const struct sr_dev_inst *sdi,
-			      struct sr_channel *ch,
-			      unsigned int changes)
+	struct sr_channel *ch, unsigned int changes)
 {
 	struct dev_context *devc = sdi->priv;
 	uint8_t v;
@@ -553,8 +552,8 @@ static int config_commit(const struct sr_dev_inst *sdi)
 	return hung_chang_dso_2100_move_to(sdi, state);
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	GSList *l;
 

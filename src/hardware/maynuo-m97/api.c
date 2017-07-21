@@ -232,8 +232,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return sr_modbus_close(modbus);
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
@@ -316,8 +316,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return ret;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
@@ -356,8 +356,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return ret;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi,
-		const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
