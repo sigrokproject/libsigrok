@@ -26,10 +26,10 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "motech-lps-30x"
+
 SR_PRIV int lps_process_status(struct sr_dev_inst *sdi, int stat);
 SR_PRIV int lps_send_req(struct sr_serial_dev_inst *serial, const char *fmt, ...);
-
-#define LOG_PREFIX "motech-lps-30x"
 
 #define LINELEN_MAX 50	/**< Max. line length for requests */
 

@@ -20,13 +20,13 @@
 #ifndef LIBSIGROK_HARDWARE_SYSCLK_LWLA_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_SYSCLK_LWLA_PROTOCOL_H
 
-#define LOG_PREFIX "sysclk-lwla"
-
 #include <stdint.h>
 #include <libusb.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include <libsigrok-internal.h>
+
+#define LOG_PREFIX "sysclk-lwla"
 
 /* Maximum configurable sample count limit.
  * Due to compression, there is no meaningful hardware limit the driver

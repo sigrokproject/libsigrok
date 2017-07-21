@@ -26,6 +26,7 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "hung-chang-dso-2100"
+
 #define MAX_RETRIES 4
 #define NUM_CHANNELS 2
 

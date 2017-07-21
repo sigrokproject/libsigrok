@@ -31,6 +31,7 @@
 #include "protocol_wrappers.h"
 
 #define LOG_PREFIX "yokogawa-dlm"
+
 #define MAX_INSTRUMENT_VERSIONS 8
 
 #define RECEIVE_BUFFER_SIZE 4096
