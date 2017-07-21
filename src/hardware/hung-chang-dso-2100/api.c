@@ -358,8 +358,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		*data = g_variant_new_uint64(samplerates[devc->rate]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		i = reverse_map(devc->cctl[0] & 0xC0, trigger_sources_map,
-				ARRAY_SIZE(trigger_sources_map));
+		i = reverse_map(devc->cctl[0] & 0xC0, ARRAY_AND_SIZE(trigger_sources_map));
 		if (i == -1)
 			return SR_ERR;
 		else
@@ -378,8 +377,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (ch == -1) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
-			i = reverse_map(devc->cctl[ch] & 0x33, vdivs_map,
-					ARRAY_SIZE(vdivs_map));
+			i = reverse_map(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map));
 			if (i == -1)
 				return SR_ERR;
 			else
@@ -391,8 +389,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (ch == -1) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
-			i = reverse_map(devc->cctl[ch] & 0x0C, coupling_map,
-					ARRAY_SIZE(coupling_map));
+			i = reverse_map(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map));
 			if (i == -1)
 				return SR_ERR;
 			else
@@ -428,7 +425,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_SAMPLERATE:
 		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  samplerates, ARRAY_SIZE(samplerates));
+				  ARRAY_AND_SIZE(samplerates));
 		if (i == -1)
 			return SR_ERR_ARG;
 		else
@@ -436,7 +433,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  trigger_sources, ARRAY_SIZE(trigger_sources));
+				  ARRAY_AND_SIZE(trigger_sources));
 		if (i == -1)
 			return SR_ERR_ARG;
 		else
@@ -445,7 +442,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  trigger_slopes, ARRAY_SIZE(trigger_slopes));
+				  ARRAY_AND_SIZE(trigger_slopes));
 		if (i == -1)
 			return SR_ERR_ARG;
 		else
@@ -453,7 +450,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		break;
 	case SR_CONF_BUFFERSIZE:
 		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  buffersizes, ARRAY_SIZE(buffersizes));
+				  ARRAY_AND_SIZE(buffersizes));
 		if (i == -1)
 			return SR_ERR_ARG;
 		else
@@ -481,7 +478,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
 			i = find_in_array(data, G_VARIANT_TYPE_STRING,
-					  coupling, ARRAY_SIZE(coupling));
+					  ARRAY_AND_SIZE(coupling));
 			if (i == -1)
 				return SR_ERR_ARG;
 			else
@@ -592,25 +589,25 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
-		*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
+		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates(samplerates, ARRAY_SIZE(samplerates));
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = g_variant_new_strv(trigger_sources, ARRAY_SIZE(trigger_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_BUFFERSIZE:
-		*data = std_gvar_array_u64(buffersizes, ARRAY_SIZE(buffersizes));
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(buffersizes));
 		break;
 	case SR_CONF_VDIV:
 		*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
 		break;
 	case SR_CONF_COUPLING:
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	}
 

@@ -265,8 +265,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
 			sval = g_variant_get_string(data, NULL);
-			if ((ival = find_str(sval, channel_modes,
-							ARRAY_SIZE(channel_modes))) == -1) {
+			if ((ival = find_str(sval, ARRAY_AND_SIZE(channel_modes))) == -1) {
 				ret = SR_ERR_ARG;
 				break;
 			}
@@ -347,7 +346,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				*data = g_variant_new_strv(channel_modes, 1);
 			} else {
 				/* The other models support all modes. */
-				*data = g_variant_new_strv(channel_modes, ARRAY_SIZE(channel_modes));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_modes));
 			}
 			break;
 		default:
@@ -360,7 +359,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
 			*data = std_gvar_min_max_step_array(devc->model->channels[channel].voltage);

@@ -535,8 +535,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->continuous_mode = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		i = lookup_index(data, signal_edge_names,
-		 		   ARRAY_SIZE(signal_edge_names));
+		i = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
 		if (i < 0)
 			return SR_ERR_ARG;
 		devc->clock_edge = i;
@@ -580,8 +579,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		*data = g_variant_new_strv(signal_edge_names,
-			ARRAY_SIZE(signal_edge_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edge_names));
 		break;
 	default:
 		return SR_ERR_NA;

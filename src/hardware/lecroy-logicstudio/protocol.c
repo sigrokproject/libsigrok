@@ -310,7 +310,7 @@ static int fetch_samples_async(const struct sr_dev_inst *sdi)
 	prep_regw(&cmd[i++], REG_FETCH_SAMPLES, devc->magic_fetch_samples + 0x01);
 	prep_regw(&cmd[i++], REG_FETCH_SAMPLES, devc->magic_fetch_samples | 0x02);
 
-	return write_registers_async(sdi, 0x12, 5444, cmd, ARRAY_SIZE(cmd),
+	return write_registers_async(sdi, 0x12, 5444, ARRAY_AND_SIZE(cmd),
 			handle_fetch_samples_done);
 }
 
@@ -522,7 +522,7 @@ static int upload_trigger(const struct sr_dev_inst *sdi,
 			prep_regw(&regs[k++], REG_TRIGGER_CFG, value);
 		}
 
-		if (write_registers_sync(sdi, 0x12, 5444, regs, ARRAY_SIZE(regs))) {
+		if (write_registers_sync(sdi, 0x12, 5444, ARRAY_AND_SIZE(regs))) {
 			sr_err("Failed to upload trigger config.");
 			return SR_ERR;
 		}
@@ -1162,7 +1162,7 @@ SR_PRIV int lls_start_acquisition(const struct sr_dev_inst *sdi)
 	devc->magic_arm_trigger = 0x0c;
 	prep_regw(&cmd[i++], REG_ARM_TRIGGER, devc->magic_arm_trigger | 0x01);
 
-	return write_registers_sync(sdi, 0x12, 5444, cmd, ARRAY_SIZE(cmd));
+	return write_registers_sync(sdi, 0x12, 5444, ARRAY_AND_SIZE(cmd));
 }
 
 SR_PRIV int lls_stop_acquisition(const struct sr_dev_inst *sdi)
@@ -1182,5 +1182,5 @@ SR_PRIV int lls_stop_acquisition(const struct sr_dev_inst *sdi)
 
 	assert(i == ARRAY_SIZE(cmd));
 
-	return write_registers_sync(sdi, 0x12, 5444, cmd, ARRAY_SIZE(cmd));
+	return write_registers_sync(sdi, 0x12, 5444, ARRAY_AND_SIZE(cmd));
 }

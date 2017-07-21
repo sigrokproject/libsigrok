@@ -524,8 +524,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_SCAN_OPTIONS:
 		case SR_CONF_DEVICE_OPTIONS:
 			return std_opts_config_list(key, data, sdi, cg,
-				scanopts, ARRAY_SIZE(scanopts),
-				drvopts, ARRAY_SIZE(drvopts),
+				ARRAY_AND_SIZE(scanopts),
+				ARRAY_AND_SIZE(drvopts),
 				(devc) ? devc->device->devopts : NULL,
 				(devc) ? devc->device->num_devopts : 0);
 			break;

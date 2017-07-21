@@ -857,10 +857,10 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
-			frequencies, ARRAY_SIZE(frequencies), sizeof(double));
+			ARRAY_AND_SIZE(frequencies), sizeof(double));
 		break;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
-		*data = g_variant_new_strv(models, ARRAY_SIZE(models));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(models));
 		break;
 	default:
 		return SR_ERR_NA;

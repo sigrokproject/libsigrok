@@ -611,12 +611,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = std_gvar_tuple_array(&timebases, ARRAY_SIZE(timebases));
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
-			*data = g_variant_new_strv(trigger_sources,
-					ARRAY_SIZE(trigger_sources));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 			break;
 		case SR_CONF_TRIGGER_SLOPE:
-			*data = g_variant_new_strv(trigger_slopes,
-					ARRAY_SIZE(trigger_slopes));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -624,10 +622,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_COUPLING:
-			*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 			break;
 		case SR_CONF_VDIV:
 			*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));

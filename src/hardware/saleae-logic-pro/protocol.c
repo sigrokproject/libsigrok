@@ -217,7 +217,7 @@ static int write_adc(const struct sr_dev_inst *sdi,
 		{REG_ADC_VAL_MSB, value >> 8},
 	};
 
-	return write_regs(sdi, regs, G_N_ELEMENTS(regs));
+	return write_regs(sdi, ARRAY_AND_SIZE(regs));
 }
 
 static int read_eeprom(const struct sr_dev_inst *sdi,
@@ -564,7 +564,7 @@ static int set_led(const struct sr_dev_inst *sdi, uint8_t r, uint8_t g, uint8_t 
 
 	authenticate(sdi);
 
-	return write_regs(sdi, regs, G_N_ELEMENTS(regs));
+	return write_regs(sdi, ARRAY_AND_SIZE(regs));
 }
 #endif
 
@@ -788,8 +788,8 @@ SR_PRIV int saleae_logic_pro_prepare(const struct sr_dev_inst *sdi)
 	authenticate(sdi);
 
 	write_reg(sdi, 0x15, 0x03);
-	write_regs(sdi, regs_unknown, G_N_ELEMENTS(regs_unknown));
-	write_regs(sdi, regs_config, G_N_ELEMENTS(regs_config));
+	write_regs(sdi, ARRAY_AND_SIZE(regs_unknown));
+	write_regs(sdi, ARRAY_AND_SIZE(regs_config));
 
 	transact(sdi, start_req, sizeof(start_req), start_rsp, sizeof(start_rsp));
 

@@ -306,10 +306,10 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates(sl2_samplerates, ARRAY_SIZE(sl2_samplerates));
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(sl2_samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		grange[0] = g_variant_new_uint64(0);

@@ -462,7 +462,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(tmp_str, vdivs, ARRAY_SIZE(vdivs), &j) != SR_OK) {
+		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
@@ -627,7 +627,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			&tmp_str) != SR_OK)
 		return SR_ERR;
 
-	if (array_float_get(tmp_str, timebases, ARRAY_SIZE(timebases), &i) != SR_OK) {
+	if (array_float_get(tmp_str, ARRAY_AND_SIZE(timebases), &i) != SR_OK) {
 		g_free(tmp_str);
 		sr_err("Could not determine array index for time base.");
 		return SR_ERR;

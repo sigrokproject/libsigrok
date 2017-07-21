@@ -197,7 +197,7 @@ static int test_read_memory(const struct sr_dev_inst *sdi,
 	command[3] = LWLA_WORD_0(count);
 	command[4] = LWLA_WORD_1(count);
 
-	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
+	ret = lwla_send_command(usb, ARRAY_AND_SIZE(command));
 	if (ret != SR_OK)
 		return ret;
 
@@ -269,7 +269,7 @@ static int device_init_check(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	ret = lwla_write_regs(sdi->conn, mem_reset, ARRAY_SIZE(mem_reset));
+	ret = lwla_write_regs(sdi->conn, ARRAY_AND_SIZE(mem_reset));
 	if (ret != SR_OK)
 		return ret;
 
@@ -318,7 +318,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
+	ret = lwla_write_regs(usb, ARRAY_AND_SIZE(capture_init));
 	if (ret != SR_OK)
 		return ret;
 

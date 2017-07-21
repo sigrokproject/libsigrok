@@ -63,17 +63,17 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
 		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
 		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
-		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
 	{
 		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
 		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
-		acdc_coupling, ARRAY_SIZE(acdc_coupling), TRUE,
+		ARRAY_AND_SIZE(acdc_coupling), TRUE,
 	},
 	{
 		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
 		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
-		dc_coupling, ARRAY_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
 	ALL_ZERO
 };
@@ -468,7 +468,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_DEVICE_OPTIONS:
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
-			*data = std_gvar_samplerates(samplerates, ARRAY_SIZE(samplerates));
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -476,7 +476,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	} else {
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
-			*data = std_gvar_array_u32(devopts_cg, ARRAY_SIZE(devopts_cg));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_COUPLING:
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);

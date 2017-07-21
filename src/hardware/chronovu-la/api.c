@@ -357,7 +357,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		cv_fill_samplerates_if_needed(sdi);
-		*data = std_gvar_samplerates(devc->samplerates, ARRAY_SIZE(devc->samplerates));
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(devc->samplerates));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!devc->prof)

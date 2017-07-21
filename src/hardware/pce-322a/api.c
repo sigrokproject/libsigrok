@@ -244,16 +244,16 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_freq));
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
-		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_time));
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
 		*data = std_gvar_tuple_array(&meas_ranges, ARRAY_SIZE(meas_ranges));
 		break;
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;

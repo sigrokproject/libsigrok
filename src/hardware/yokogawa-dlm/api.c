@@ -489,9 +489,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_ANALOG)
-			*data = std_gvar_array_u32(devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
 		else if (cg_type == CG_DIGITAL)
-			*data = std_gvar_array_u32(devopts_cg_digital, ARRAY_SIZE(devopts_cg_digital));
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_digital));
 		else
 			*data = std_gvar_array_u32(NULL, 0);
 		break;

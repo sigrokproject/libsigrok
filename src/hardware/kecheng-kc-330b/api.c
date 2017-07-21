@@ -332,13 +332,13 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				ARRAY_SIZE(kecheng_kc_330b_sample_intervals));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		*data = g_variant_new_strv(weight_freq, ARRAY_SIZE(weight_freq));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_freq));
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
-		*data = g_variant_new_strv(weight_time, ARRAY_SIZE(weight_time));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_time));
 		break;
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;

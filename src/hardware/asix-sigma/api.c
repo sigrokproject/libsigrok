@@ -243,7 +243,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 #endif
 	default:

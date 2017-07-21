@@ -511,7 +511,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates(samplerates, ARRAY_SIZE(samplerates));
+		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
@@ -524,7 +524,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_builder_end(&gvb);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(soft_trigger_matches));
 		break;
 	default:
 		return SR_ERR_NA;

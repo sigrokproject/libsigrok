@@ -454,7 +454,7 @@ static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 		if (dlm_analog_chan_vdiv_get(scpi, i + 1, &response) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(response, dlm_vdivs, ARRAY_SIZE(dlm_vdivs),
+		if (array_float_get(response, ARRAY_AND_SIZE(dlm_vdivs),
 				&j) != SR_OK) {
 			g_free(response);
 			return SR_ERR;
@@ -692,8 +692,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 	if (dlm_timebase_get(sdi->conn, &response) != SR_OK)
 		return SR_ERR;
 
-	if (array_float_get(response, dlm_timebases,
-			ARRAY_SIZE(dlm_timebases), &i) != SR_OK) {
+	if (array_float_get(response, ARRAY_AND_SIZE(dlm_timebases), &i) != SR_OK) {
 		g_free(response);
 		return SR_ERR;
 	}

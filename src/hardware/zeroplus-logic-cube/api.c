@@ -399,9 +399,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
 		if (devc->prof->max_sampling_freq == 100)
-			*data = std_gvar_samplerates(samplerates_100, ARRAY_SIZE(samplerates_100));
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_100));
 		else if (devc->prof->max_sampling_freq == 200)
-			*data = std_gvar_samplerates(samplerates_200, ARRAY_SIZE(samplerates_200));
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_200));
 		else {
 			sr_err("Internal error: Unknown max. samplerate: %d.",
 			       devc->prof->max_sampling_freq);
@@ -409,7 +409,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		}
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_min_max_step_thresholds(-6.0, 6.0, 0.1);

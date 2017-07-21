@@ -362,7 +362,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_DEVICE_OPTIONS:
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
-			*data = std_gvar_samplerates_steps(samplerates, ARRAY_SIZE(samplerates));
+			*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -372,12 +372,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = std_gvar_array_u32(devopts_cg_logic, ARRAY_SIZE(devopts_cg_logic));
+				*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_logic));
 			else if (ch->type == SR_CHANNEL_ANALOG) {
 				if (strcmp(cg->name, "Analog") == 0)
-					*data = std_gvar_array_u32(devopts_cg_analog_group, ARRAY_SIZE(devopts_cg_analog_group));
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_group));
 				else
-					*data = std_gvar_array_u32(devopts_cg_analog_channel, ARRAY_SIZE(devopts_cg_analog_channel));
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_channel));
 			}
 			else
 				return SR_ERR_BUG;
@@ -388,11 +388,9 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				return SR_ERR_NA;
 
 			if (ch->type == SR_CHANNEL_LOGIC)
-				*data = g_variant_new_strv(logic_pattern_str,
-						ARRAY_SIZE(logic_pattern_str));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_pattern_str));
 			else if (ch->type == SR_CHANNEL_ANALOG)
-				*data = g_variant_new_strv(analog_pattern_str,
-						ARRAY_SIZE(analog_pattern_str));
+				*data = g_variant_new_strv(ARRAY_AND_SIZE(analog_pattern_str));
 			else
 				return SR_ERR_BUG;
 			break;

@@ -460,14 +460,14 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = std_gvar_array_u32(scanopts, ARRAY_SIZE(scanopts));
+		*data = std_gvar_array_u32(ARRAY_AND_SIZE(scanopts));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg_type == CG_NONE) {
 			if (model)
 				*data = std_gvar_array_u32((const uint32_t *)model->devopts, model->num_devopts);
 			else
-				*data = std_gvar_array_u32(drvopts, ARRAY_SIZE(drvopts));
+				*data = std_gvar_array_u32(ARRAY_AND_SIZE(drvopts));
 		} else if (cg_type == CG_ANALOG) {
 			*data = std_gvar_array_u32((const uint32_t *)model->devopts_cg_analog, model->num_devopts_cg_analog);
 		} else {

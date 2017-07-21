@@ -543,7 +543,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(soft_trigger_matches, ARRAY_SIZE(soft_trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(soft_trigger_matches));
 		break;
 	default:
 		return SR_ERR_NA;

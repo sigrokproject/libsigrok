@@ -171,7 +171,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 		break;
 	default:
 		return SR_ERR_NA;

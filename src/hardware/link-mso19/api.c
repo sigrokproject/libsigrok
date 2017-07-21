@@ -292,7 +292,7 @@ static int config_list(int key, GVariant **data, const struct sr_dev_inst *sdi,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(samplerates, ARRAY_SIZE(samplerates));
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_TYPE:
 		*data = g_variant_new_string(TRIGGER_TYPE);

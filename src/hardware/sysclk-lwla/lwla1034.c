@@ -274,7 +274,7 @@ static int detect_short_transfer_quirk(const struct sr_dev_inst *sdi)
 	command[1] = LWLA_WORD(0);
 	command[2] = LWLA_WORD(lreg_count);
 
-	ret = lwla_send_command(usb, command, ARRAY_SIZE(command));
+	ret = lwla_send_command(usb, ARRAY_AND_SIZE(command));
 	if (ret != SR_OK)
 		return ret;
 
@@ -373,7 +373,7 @@ static int setup_acquisition(const struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	acq = devc->acquisition;
 
-	ret = lwla_write_regs(usb, capture_init, ARRAY_SIZE(capture_init));
+	ret = lwla_write_regs(usb, ARRAY_AND_SIZE(capture_init));
 	if (ret != SR_OK)
 		return ret;
 

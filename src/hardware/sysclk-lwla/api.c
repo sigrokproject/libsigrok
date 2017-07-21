@@ -448,22 +448,19 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 			? CLOCK_EXT_CLK : CLOCK_INTERNAL;
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		idx = lookup_index(data, signal_edge_names,
-				   ARRAY_SIZE(signal_edge_names));
+		idx = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_clock_edge = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		idx = lookup_index(data, trigger_source_names,
-				   ARRAY_SIZE(trigger_source_names));
+		idx = lookup_index(data, ARRAY_AND_SIZE(trigger_source_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		idx = lookup_index(data, signal_edge_names,
-				   ARRAY_SIZE(signal_edge_names));
+		idx = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_slope = idx;
@@ -607,8 +604,7 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
 		return std_opts_config_list(key, data, sdi, cg,
-			scanopts, ARRAY_SIZE(scanopts),
-			drvopts, ARRAY_SIZE(drvopts),
+			ARRAY_AND_SIZE(scanopts), ARRAY_AND_SIZE(drvopts),
 			(devc) ? devc->model->devopts : NULL,
 			(devc) ? devc->model->num_devopts : 0);
 	}
@@ -621,16 +617,14 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(devc->model->samplerates, devc->model->num_samplerates);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(trigger_matches, ARRAY_SIZE(trigger_matches));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = g_variant_new_strv(trigger_source_names,
-			ARRAY_SIZE(trigger_source_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_source_names));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 	case SR_CONF_CLOCK_EDGE:
-		*data = g_variant_new_strv(signal_edge_names,
-			ARRAY_SIZE(signal_edge_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edge_names));
 		break;
 	default:
 		/* Must not happen for a key listed in devopts. */

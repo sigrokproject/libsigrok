@@ -856,7 +856,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		} else {
 			for (i = 0; i < devc->model->analog_channels; i++) {
 				if (cg == devc->analog_groups[i]) {
-					*data = std_gvar_array_u32(devopts_cg_analog, ARRAY_SIZE(devopts_cg_analog));
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
 					return SR_OK;
 				}
 			}
@@ -866,12 +866,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = std_gvar_array_u64(probe_factor, ARRAY_SIZE(probe_factor));
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(probe_factor));
 		break;
 	case SR_CONF_VDIV:
 		if (!devc)
@@ -897,7 +897,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 				devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 4);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (!devc)
@@ -911,7 +911,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		default:
-			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
 		break;
