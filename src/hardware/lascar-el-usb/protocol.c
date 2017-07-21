@@ -324,7 +324,7 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(LASCAR_VENDOR);
+		sdi->vendor = g_strdup("Lascar");
 		sdi->model = g_strdup(profile->modelname);
 		sdi->version = g_strdup(firmware);
 

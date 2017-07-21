@@ -26,7 +26,6 @@
 
 #define LOG_PREFIX "lascar-el-usb"
 
-#define LASCAR_VENDOR "Lascar"
 #define LASCAR_INTERFACE 0
 #define LASCAR_EP_IN 0x82
 #define LASCAR_EP_OUT 2

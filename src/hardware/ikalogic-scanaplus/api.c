@@ -22,8 +22,6 @@
 
 #define USB_VENDOR_ID			0x0403
 #define USB_DEVICE_ID			0x6014
-#define USB_VENDOR_NAME			"IKALOGIC"
-#define USB_MODEL_NAME			"ScanaPLUS"
 #define USB_IPRODUCT			"SCANAPLUS"
 
 #define SAMPLE_BUF_SIZE			(8 * 1024 * 1024)
@@ -97,8 +95,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(USB_VENDOR_NAME);
-	sdi->model = g_strdup(USB_MODEL_NAME);
+	sdi->vendor = g_strdup("IKALOGIC");
+	sdi->model = g_strdup("ScanaPLUS");
 	sdi->priv = devc;
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)

@@ -74,8 +74,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (l = usb_devices; l; l = l->next) {
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR);
-			sdi->model = g_strdup(MODEL);
+			sdi->vendor = g_strdup("UNI-T");
+			sdi->model = g_strdup("UT32x");
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
 			for (i = 0; i < ARRAY_SIZE(channel_names); i++)

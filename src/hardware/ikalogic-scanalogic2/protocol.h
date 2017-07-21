@@ -29,9 +29,6 @@
 
 #define LOG_PREFIX "ikalogic-scanalogic2"
 
-#define VENDOR_NAME			"IKALOGIC"
-#define MODEL_NAME			"Scanalogic-2"
-
 #define USB_VID_PID			"20a0.4123"
 #define USB_INTERFACE			0
 #define USB_TIMEOUT_MS			(5 * 1000)

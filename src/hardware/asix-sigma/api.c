@@ -112,8 +112,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INITIALIZING;
-	sdi->vendor = g_strdup(USB_VENDOR_NAME);
-	sdi->model = g_strdup(USB_MODEL_NAME);
+	sdi->vendor = g_strdup("ASIX");
+	sdi->model = g_strdup("SIGMA");
 
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);

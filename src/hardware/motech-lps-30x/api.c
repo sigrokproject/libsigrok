@@ -32,8 +32,6 @@ SR_PRIV int lps_query_status(struct sr_dev_inst *sdi);
 
 #define SERIALCOMM "2400/8n1/dtr=1/rts=1/flow=0"
 
-#define VENDOR_MOTECH "Motech"
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -423,7 +421,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(VENDOR_MOTECH);
+	sdi->vendor = g_strdup("Motech");
 	sdi->model = g_strdup(models[modelid].modelstr);
 	sdi->version = g_strdup(verstr);
 	sdi->inst_type = SR_INST_SERIAL;

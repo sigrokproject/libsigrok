@@ -67,7 +67,7 @@ static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(VENDOR_NAME);
+	sdi->vendor = g_strdup("SysClk");
 	sdi->model = g_strdup(model->name);
 	sdi->priv = devc;
 

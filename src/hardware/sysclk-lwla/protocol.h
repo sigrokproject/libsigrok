@@ -28,8 +28,6 @@
 #include <libsigrok/libsigrok.h>
 #include <libsigrok-internal.h>
 
-#define VENDOR_NAME	"SysClk"
-
 /* Maximum configurable sample count limit.
  * Due to compression, there is no meaningful hardware limit the driver
  * could report. So this value is less than 2^64-1 for no reason other

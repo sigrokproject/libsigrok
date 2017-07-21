@@ -104,8 +104,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_NAME);
-		sdi->model = g_strdup(MODEL_NAME);
+		sdi->vendor = g_strdup("IKALOGIC");
+		sdi->model = g_strdup("Scanalogic-2");
 		sdi->version = g_strdup_printf("%u.%u", dev_info.fw_ver_major, dev_info.fw_ver_minor);
 		sdi->serial_num = g_strdup_printf("%d", dev_info.serial);
 		sdi->priv = devc;

@@ -28,7 +28,6 @@
 
 #define VICTOR_VID 0x1244
 #define VICTOR_PID 0xd237
-#define VICTOR_VENDOR "Victor"
 #define VICTOR_INTERFACE 0
 #define VICTOR_ENDPOINT (LIBUSB_ENDPOINT_IN | 1)
 
@@ -74,7 +73,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VICTOR_VENDOR);
+		sdi->vendor = g_strdup("Victor");
 		sdi->connection_id = g_strdup(connection_id);
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);

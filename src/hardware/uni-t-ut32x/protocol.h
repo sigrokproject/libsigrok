@@ -29,8 +29,6 @@
 
 #define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
 #define USB_CONN "1a86.e008"
-#define VENDOR "UNI-T"
-#define MODEL "UT32x"
 #define USB_INTERFACE 0
 #define USB_CONFIGURATION 1
 

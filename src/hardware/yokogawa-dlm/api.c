@@ -26,7 +26,6 @@
 static struct sr_dev_driver yokogawa_dlm_driver_info;
 
 static const char *MANUFACTURER_ID = "YOKOGAWA";
-static const char *MANUFACTURER_NAME = "Yokogawa";
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -87,7 +86,7 @@ static struct sr_dev_inst *probe_usbtmc_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->vendor = g_strdup(MANUFACTURER_NAME);
+	sdi->vendor = g_strdup("Yokogawa");
 	sdi->model = g_strdup(model_name);
 	sdi->version = g_strdup(hw_info->firmware_version);
 

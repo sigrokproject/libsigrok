@@ -20,7 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define VENDOR_NAME			"ZEROPLUS"
 #define USB_INTERFACE			0
 #define USB_CONFIGURATION		1
 #define NUM_TRIGGER_STAGES		4
@@ -210,7 +209,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_NAME);
+		sdi->vendor = g_strdup("ZEROPLUS");
 		sdi->model = g_strdup(prof->model_name);
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);

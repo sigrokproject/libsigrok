@@ -25,7 +25,6 @@
 #define SERIALCOMM_1X_RS232 "8228/6n1/dtr=1/rts=1/flow=0" /* =8192, closer with divider */
 #define SERIALCOMM_2X_RS232 "9600/6n1/dtr=1/rts=1/flow=0"
 #define SERIALCOMM_2X "9600/8n1/dtr=1/rts=1/flow=0"
-#define VENDOR_GMC "Gossen Metrawatt"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -195,10 +194,10 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 	}
 
 	if (model != METRAHIT_NONE) {
-		sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(model));
+		sr_spew("%s detected!", gmc_model_str(model));
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(VENDOR_GMC);
+		sdi->vendor = g_strdup("Gossen Metrawatt");
 		sdi->model = g_strdup(gmc_model_str(model));
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
@@ -258,7 +257,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(VENDOR_GMC);
+	sdi->vendor = g_strdup("Gossen Metrawatt");
 	sdi->priv = devc;
 
 	/* Send message 03 "Query multimeter version and status" */
@@ -286,7 +285,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 		devc->buflen = 0;
 
 		if (devc->model != METRAHIT_NONE) {
-			sr_spew("%s %s detected!", VENDOR_GMC, gmc_model_str(devc->model));
+			sr_spew("%s detected!", gmc_model_str(devc->model));
 			sr_sw_limits_init(&devc->limits);
 			sdi->model = g_strdup(gmc_model_str(devc->model));
 			sdi->version = g_strdup_printf("Firmware %d.%d", devc->fw_ver_maj, devc->fw_ver_min);
@@ -297,7 +296,7 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR_GMC);
+			sdi->vendor = g_strdup("Gossen Metrawatt");
 		}
 	};
 

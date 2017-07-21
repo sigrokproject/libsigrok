@@ -22,7 +22,6 @@
 #include "protocol.h"
 
 #define USB_CONN "1041.8101"
-#define VENDOR "Kecheng"
 #define USB_INTERFACE 0
 
 static const uint32_t drvopts[] = {
@@ -122,7 +121,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 			sdi = g_malloc0(sizeof(struct sr_dev_inst));
 			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup(VENDOR);
+			sdi->vendor = g_strdup("Kecheng");
 			sdi->model = model; /* Already g_strndup()'d. */
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = l->data;
