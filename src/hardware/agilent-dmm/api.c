@@ -51,11 +51,7 @@ static const uint64_t samplerates[] = {
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Log-Hand",
-	"Log-Trig",
-	"Log-Auto",
-	"Log-Export",
+	"Live", "Log-Hand", "Log-Trig", "Log-Auto", "Log-Export",
 };
 
 extern const struct agdmm_job agdmm_jobs_live[];

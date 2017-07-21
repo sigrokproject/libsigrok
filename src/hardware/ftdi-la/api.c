@@ -50,14 +50,8 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 	.product = 0x6010,
 	.samplerate_div = 20,
 	.channel_names = {
-		"ADBUS0",
-		"ADBUS1",
-		"ADBUS2",
-		"ADBUS3",
-		"ADBUS4",
-		"ADBUS5",
-		"ADBUS6",
-		"ADBUS7",
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",
+		"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
 		/* TODO: BDBUS[0..7] channels. */
 		NULL
 	}
@@ -68,14 +62,7 @@ static const struct ftdi_chip_desc ft232r_desc = {
 	.product = 0x6001,
 	.samplerate_div = 30,
 	.channel_names = {
-		"TXD",
-		"RXD",
-		"RTS#",
-		"CTS#",
-		"DTR#",
-		"DSR#",
-		"DCD#",
-		"RI#",
+		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
 		NULL
 	}
 };

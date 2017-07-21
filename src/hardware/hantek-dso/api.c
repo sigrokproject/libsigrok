@@ -144,21 +144,16 @@ static const uint64_t vdivs[][2] = {
 };
 
 static const char *trigger_sources[] = {
-	"CH1",
-	"CH2",
-	"EXT",
+	"CH1", "CH2", "EXT",
 	/* TODO: forced */
 };
 
 static const char *trigger_slopes[] = {
-	"r",
-	"f",
+	"r", "f",
 };
 
 static const char *coupling[] = {
-	"AC",
-	"DC",
-	"GND",
+	"AC", "DC", "GND",
 };
 
 static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)

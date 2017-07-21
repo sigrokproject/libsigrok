@@ -23,44 +23,26 @@
 #include "protocol.h"
 
 static const char *coupling_options[] = {
-	"AC",
-	"DC",
-	"DC50",
-	"GND",
+	"AC", "DC", "DC50", "GND",
 	NULL,
 };
 
 static const char *trigger_sources_2ch[] = {
-	"1",
-	"2",
-	"LINE",
-	"EXT",
+	"1", "2", "LINE", "EXT",
 	NULL,
 };
 
 /* TODO: Is BITx handled correctly or is Dx required? */
 static const char *trigger_sources_4ch[] = {
-	"1",
-	"2",
-	"3",
-	"4",
-	"LINE",
-	"EXT",
-	"BIT1",
-	"BIT2",
-	"BIT3",
-	"BIT4",
-	"BIT5",
-	"BIT6",
-	"BIT7",
-	"BIT8",
+	"1", "2", "3", "4",
+	"LINE", "EXT", "BIT1",
+	"BIT2", "BIT3", "BIT4", "BIT5", "BIT6", "BIT7", "BIT8",
 	NULL,
 };
 
 /* Note: Values must correlate to the trigger_slopes values. */
 const char *dlm_trigger_slopes[3] = {
-	"r",
-	"f",
+	"r", "f",
 	NULL,
 };
 
@@ -130,56 +112,18 @@ const uint64_t dlm_vdivs[17][2] = {
 };
 
 static const char *scope_analog_channel_names[] = {
-	"1",
-	"2",
-	"3",
-	"4",
+	"1", "2", "3", "4",
 };
 
 static const char *scope_digital_channel_names_8[] = {
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
 static const char *scope_digital_channel_names_32[] = {
-	"A0",
-	"A1",
-	"A2",
-	"A3",
-	"A4",
-	"A5",
-	"A6",
-	"A7",
-	"B0",
-	"B1",
-	"B2",
-	"B3",
-	"B4",
-	"B5",
-	"B6",
-	"B7",
-	"C0",
-	"C1",
-	"C2",
-	"C3",
-	"C4",
-	"C5",
-	"C6",
-	"C7",
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
+	"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
+	"B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7",
+	"C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
 static const struct scope_config scope_models[] = {

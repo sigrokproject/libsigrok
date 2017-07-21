@@ -127,52 +127,22 @@ static const uint64_t vdivs[][2] = {
 };
 
 static const char *trigger_sources[] = {
-	"CH1",
-	"CH2",
-	"CH3",
-	"CH4",
-	"EXT",
-	"AC Line",
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
-	"D8",
-	"D9",
-	"D10",
-	"D11",
-	"D12",
-	"D13",
-	"D14",
-	"D15",
+	"CH1", "CH2", "CH3", "CH4",
+	"EXT", "AC Line",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
 static const char *trigger_slopes[] = {
-	"r",
-	"f",
+	"r", "f",
 };
 
 static const char *coupling[] = {
-	"AC",
-	"DC",
-	"GND",
+	"AC", "DC", "GND",
 };
 
 static const uint64_t probe_factor[] = {
-	1,
-	2,
-	5,
-	10,
-	20,
-	50,
-	100,
-	200,
-	500,
-	1000,
+	1, 2, 5, 10, 20, 50, 100, 200, 500, 1000,
 };
 
 /* Do not change the order of entries */

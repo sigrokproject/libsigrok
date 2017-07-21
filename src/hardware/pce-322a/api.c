@@ -43,13 +43,11 @@ static const uint32_t devopts[] = {
 };
 
 static const char *weight_freq[] = {
-	"A",
-	"C",
+	"A", "C",
 };
 
 static const char *weight_time[] = {
-	"F",
-	"S",
+	"F", "S",
 };
 
 static const uint64_t meas_ranges[][2] = {
@@ -60,8 +58,7 @@ static const uint64_t meas_ranges[][2] = {
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

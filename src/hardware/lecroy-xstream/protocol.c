@@ -84,19 +84,11 @@ static const char *coupling_options[] = {
 };
 
 static const char *scope_trigger_slopes[] = {
-	"POS",
-	"NEG",
-	NULL,
+	"POS", "NEG", NULL,
 };
 
 static const char *trigger_sources[] = {
-	"C1",
-	"C2",
-	"C3",
-	"C4",
-	"LINE",
-	"EXT",
-	NULL,
+	"C1", "C2", "C3", "C4", "LINE", "EXT", NULL,
 };
 
 static const struct sr_rational timebases[] = {
@@ -170,10 +162,7 @@ static const struct sr_rational vdivs[] = {
 };
 
 static const char *scope_analog_channel_names[] = {
-	"CH1",
-	"CH2",
-	"CH3",
-	"CH4",
+	"CH1", "CH2", "CH3", "CH4",
 };
 
 static const struct scope_config scope_models[] = {

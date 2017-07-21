@@ -40,8 +40,7 @@ static const char *channel_names[] = {
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

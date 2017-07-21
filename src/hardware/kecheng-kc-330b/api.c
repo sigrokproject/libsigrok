@@ -50,18 +50,15 @@ SR_PRIV const uint64_t kecheng_kc_330b_sample_intervals[][2] = {
 };
 
 static const char *weight_freq[] = {
-	"A",
-	"C",
+	"A", "C",
 };
 
 static const char *weight_time[] = {
-	"F",
-	"S",
+	"F", "S",
 };
 
 static const char *data_sources[] = {
-	"Live",
-	"Memory",
+	"Live", "Memory",
 };
 
 static int scan_kecheng(struct sr_dev_driver *di,

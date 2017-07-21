@@ -200,12 +200,7 @@ static const struct rate_map rate_map[] = {
 
 /* FIXME: Determine corresponding voltages */
 static const uint16_t la_threshold_map[] = {
-	0x8600,
-	0x8770,
-	0x88ff,
-	0x8c70,
-	0x8eff,
-	0x8fff,
+	0x8600, 0x8770, 0x88ff, 0x8c70, 0x8eff, 0x8fff,
 };
 
 #endif
