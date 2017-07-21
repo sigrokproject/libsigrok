@@ -331,7 +331,6 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *range[2];
 
 	(void)cg;
 
@@ -348,9 +347,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		range[0] = g_variant_new_double(devc->cur_threshold);
-		range[1] = g_variant_new_double(devc->cur_threshold);
-		*data = g_variant_new_tuple(range, 2);
+		*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		break;
 	default:
 		return SR_ERR_NA;

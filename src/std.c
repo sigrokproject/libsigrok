@@ -657,6 +657,16 @@ SR_PRIV GVariant *std_gvar_tuple_u64(uint64_t low, uint64_t high)
 	return g_variant_new_tuple(range, 2);
 }
 
+SR_PRIV GVariant *std_gvar_tuple_double(double low, double high)
+{
+	GVariant *range[2];
+
+	range[0] = g_variant_new_double(low);
+	range[1] = g_variant_new_double(high);
+
+	return g_variant_new_tuple(range, 2);
+}
+
 SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n)
 {
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

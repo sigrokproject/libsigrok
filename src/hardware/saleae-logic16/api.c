@@ -400,7 +400,6 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	GVariant *range[2];
 	char str[128];
 	int ret;
 	unsigned int i;
@@ -441,9 +440,7 @@ static int config_get(uint32_t key, GVariant **data,
 			if (devc->selected_voltage_range !=
 			    volt_thresholds[i].range)
 				continue;
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			*data = g_variant_new_tuple(range, 2);
+			*data = std_gvar_tuple_double(volt_thresholds[i].low, volt_thresholds[i].high);
 			ret = SR_OK;
 			break;
 		}
