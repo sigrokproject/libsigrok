@@ -840,7 +840,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_ARG;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = std_gvar_tuple_array((const uint64_t (*)[][2])devc->vdivs, devc->num_vdivs);
+		*data = std_gvar_tuple_array(devc->vdivs, devc->num_vdivs);
 		break;
 	case SR_CONF_TIMEBASE:
 		if (!devc)
@@ -848,7 +848,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			return SR_ERR_ARG;
 		if (devc->num_timebases <= 0)
 			return SR_ERR_NA;
-		*data = std_gvar_tuple_array((const uint64_t (*)[][2])devc->timebases, devc->num_timebases);
+		*data = std_gvar_tuple_array(devc->timebases, devc->num_timebases);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!devc)

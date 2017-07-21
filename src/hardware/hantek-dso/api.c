@@ -603,7 +603,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = std_gvar_array_u64(devc->profile->buffersizes, NUM_BUFFER_SIZES);
 			break;
 		case SR_CONF_TIMEBASE:
-			*data = std_gvar_tuple_array(&timebases, ARRAY_SIZE(timebases));
+			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(timebases));
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
@@ -623,7 +623,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 			break;
 		case SR_CONF_VDIV:
-			*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
+			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 			break;
 		default:
 			return SR_ERR_NA;

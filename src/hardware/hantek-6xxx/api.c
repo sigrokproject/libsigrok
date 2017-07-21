@@ -482,7 +482,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
-			*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
+			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 			break;
 		default:
 			return SR_ERR_NA;

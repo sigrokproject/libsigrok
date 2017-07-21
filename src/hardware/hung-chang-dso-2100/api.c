@@ -604,7 +604,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = std_gvar_array_u64(ARRAY_AND_SIZE(buffersizes));
 		break;
 	case SR_CONF_VDIV:
-		*data = std_gvar_tuple_array(&vdivs, ARRAY_SIZE(vdivs));
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 		break;
 	case SR_CONF_COUPLING:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));

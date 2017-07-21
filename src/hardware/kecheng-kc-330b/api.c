@@ -324,8 +324,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
-		*data = std_gvar_tuple_array(&kecheng_kc_330b_sample_intervals,
-				ARRAY_SIZE(kecheng_kc_330b_sample_intervals));
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_freq));

@@ -295,7 +295,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(weight_time));
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		*data = std_gvar_tuple_array(&meas_ranges, ARRAY_SIZE(meas_ranges));
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(meas_ranges));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));

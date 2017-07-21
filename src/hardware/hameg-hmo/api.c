@@ -495,12 +495,12 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_TIMEBASE:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = std_gvar_tuple_array(model->timebases, model->num_timebases);
+		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = std_gvar_tuple_array(model->vdivs, model->num_vdivs);
+		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
 		break;
 	default:
 		return SR_ERR_NA;

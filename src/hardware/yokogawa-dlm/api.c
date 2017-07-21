@@ -462,7 +462,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 		case SR_CONF_DEVICE_OPTIONS:
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_TIMEBASE:
-			*data = std_gvar_tuple_array(&dlm_timebases, ARRAY_SIZE(dlm_timebases));
+			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(dlm_timebases));
 			return SR_OK;
 		case SR_CONF_TRIGGER_SOURCE:
 			if (!model)
@@ -503,7 +503,7 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = std_gvar_tuple_array(&dlm_vdivs, ARRAY_SIZE(dlm_vdivs));
+		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(dlm_vdivs));
 		break;
 	default:
 		return SR_ERR_NA;
