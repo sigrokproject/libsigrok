@@ -203,8 +203,8 @@ static const struct rigol_ds_vendor supported_vendors[] = {
 };
 
 #define VENDOR(x) &supported_vendors[x]
-/* vendor, series, protocol, max timebase, min vdiv, number of horizontal divs,
- * live waveform samples, memory buffer samples */
+/* vendor, series/name, protocol, data format, max timebase, min vdiv,
+ * number of horizontal divs, live waveform samples, memory buffer samples */
 static const struct rigol_ds_series supported_series[] = {
 	[VS5000] = {VENDOR(RIGOL), "VS5000", PROTOCOL_V1, FORMAT_RAW,
 		{50, 1}, {2, 1000}, 14, 2048, 0},
