@@ -323,7 +323,6 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *grange[2];
 	int num_ols_changrp, i;
 
 	switch (key) {
@@ -358,12 +357,9 @@ static int config_list(uint32_t key, GVariant **data,
 			if (devc->channel_mask & (0xff << (i * 8)))
 				num_ols_changrp++;
 		}
-		grange[0] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		if (num_ols_changrp)
-			grange[1] = g_variant_new_uint64(devc->max_samples / num_ols_changrp);
-		else
-			grange[1] = g_variant_new_uint64(MIN_NUM_SAMPLES);
-		*data = g_variant_new_tuple(grange, 2);
+
+		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES,
+			(num_ols_changrp) ? devc->max_samples / num_ols_changrp : MIN_NUM_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;

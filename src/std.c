@@ -647,6 +647,16 @@ SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double min, const doubl
 	return g_variant_builder_end(&gvb);
 }
 
+SR_PRIV GVariant *std_gvar_tuple_u64(uint64_t low, uint64_t high)
+{
+	GVariant *range[2];
+
+	range[0] = g_variant_new_uint64(low);
+	range[1] = g_variant_new_uint64(high);
+
+	return g_variant_new_tuple(range, 2);
+}
+
 SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n)
 {
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,

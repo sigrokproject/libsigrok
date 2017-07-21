@@ -300,8 +300,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *grange[2];
-
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
@@ -312,9 +310,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		grange[0] = g_variant_new_uint64(0);
-		grange[1] = g_variant_new_uint64(MAX_SAMPLES);
-		*data = g_variant_new_tuple(grange, 2);
+		*data = std_gvar_tuple_u64(0, MAX_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;

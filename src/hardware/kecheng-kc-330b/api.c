@@ -201,7 +201,6 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *rational[2];
 	const uint64_t *si;
 
 	(void)cg;
@@ -213,9 +212,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
 		si = kecheng_kc_330b_sample_intervals[devc->sample_interval];
-		rational[0] = g_variant_new_uint64(si[0]);
-		rational[1] = g_variant_new_uint64(si[1]);
-		*data = g_variant_new_tuple(rational, 2);
+		*data = std_gvar_tuple_u64(si[0], si[1]);
 		break;
 	case SR_CONF_DATALOG:
 		/* There really isn't a way to be sure the device is logging. */
@@ -351,7 +348,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_datafeed_meta meta;
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
-	GVariant *gvar, *rational[2];
+	GVariant *gvar;
 	const uint64_t *si;
 	int req_len, buf_len, len, ret;
 	unsigned char buf[9];
@@ -393,9 +390,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->stored_samples = devc->limit_samples;
 
 		si = kecheng_kc_330b_sample_intervals[buf[1]];
-		rational[0] = g_variant_new_uint64(si[0]);
-		rational[1] = g_variant_new_uint64(si[1]);
-		gvar = g_variant_new_tuple(rational, 2);
+		gvar = std_gvar_tuple_u64(si[0], si[1]);
+
 		src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, gvar);
 		packet.type = SR_DF_META;
 		packet.payload = &meta;

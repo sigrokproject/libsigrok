@@ -390,7 +390,6 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *grange[2];
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -417,9 +416,7 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		grange[0] = g_variant_new_uint64(0);
-		grange[1] = g_variant_new_uint64(devc->max_sample_depth);
-		*data = g_variant_new_tuple(grange, 2);
+		*data = std_gvar_tuple_u64(0, devc->max_sample_depth);
 		break;
 	default:
 		return SR_ERR_NA;

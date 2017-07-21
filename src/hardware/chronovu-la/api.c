@@ -346,7 +346,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *grange[2];
 	struct dev_context *devc;
 
 	devc = (sdi) ? sdi->priv : NULL;
@@ -362,12 +361,7 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 		if (!devc->prof)
 			return SR_ERR_BUG;
-		grange[0] = g_variant_new_uint64(0);
-		if (devc->prof->model == CHRONOVU_LA8)
-			grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES);
-		else
-			grange[1] = g_variant_new_uint64(MAX_NUM_SAMPLES / 2);
-		*data = g_variant_new_tuple(grange, 2);
+		*data = std_gvar_tuple_u64(0, (devc->prof->model == CHRONOVU_LA8) ? MAX_NUM_SAMPLES : MAX_NUM_SAMPLES / 2);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		if (!devc->prof)

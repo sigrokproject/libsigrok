@@ -129,7 +129,6 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *range[2];
 	uint64_t low, high;
 	int tmp, ret;
 
@@ -175,11 +174,8 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(tmp == SR_MQFLAG_MIN);
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		if ((ret = cem_dt_885x_meas_range_get(sdi, &low, &high)) == SR_OK) {
-			range[0] = g_variant_new_uint64(low);
-			range[1] = g_variant_new_uint64(high);
-			*data = g_variant_new_tuple(range, 2);
-		}
+		if ((ret = cem_dt_885x_meas_range_get(sdi, &low, &high)) == SR_OK)
+			*data = std_gvar_tuple_u64(low, high);
 		break;
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
