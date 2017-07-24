@@ -229,7 +229,8 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/beaglelogic/beaglelogic.h \
 	src/hardware/beaglelogic/protocol.h \
 	src/hardware/beaglelogic/protocol.c \
-	src/hardware/beaglelogic/api.c
+	src/hardware/beaglelogic/api.c \
+	src/hardware/beaglelogic/beaglelogic_native.c
 endif
 if HW_BRYMEN_BM86X
 src_libdrivers_la_SOURCES += \
