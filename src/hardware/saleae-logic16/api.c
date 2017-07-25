@@ -72,11 +72,14 @@ static const char *channel_names[] = {
 
 static const struct {
 	enum voltage_range range;
-	gdouble low;
-	gdouble high;
-} volt_thresholds[] = {
-	{ VOLTAGE_RANGE_18_33_V, 0.7, 1.4 },
-	{ VOLTAGE_RANGE_5_V,     1.4, 3.6 },
+} volt_thresholds_ranges[] = {
+	{ VOLTAGE_RANGE_18_33_V, },
+	{ VOLTAGE_RANGE_5_V, },
+};
+
+static const struct voltage_threshold volt_thresholds[] = {
+	{ 0.7, 1.4 },
+	{ 1.4, 3.6 },
 };
 
 static const uint64_t samplerates[] = {
@@ -438,7 +441,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = SR_ERR;
 		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
 			if (devc->selected_voltage_range !=
-			    volt_thresholds[i].range)
+			    volt_thresholds_ranges[i].range)
 				continue;
 			*data = std_gvar_tuple_double(volt_thresholds[i].low, volt_thresholds[i].high);
 			ret = SR_OK;
@@ -483,7 +486,7 @@ static int config_set(uint32_t key, GVariant *data,
 			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
 			    fabs(volt_thresholds[i].high - high) < 0.1) {
 				devc->selected_voltage_range =
-					volt_thresholds[i].range;
+					volt_thresholds_ranges[i].range;
 				ret = SR_OK;
 				break;
 			}
@@ -499,10 +502,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *gvar, *range[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -511,14 +510,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			range[0] = g_variant_new_double(volt_thresholds[i].low);
-			range[1] = g_variant_new_double(volt_thresholds[i].high);
-			gvar = g_variant_new_tuple(range, 2);
-			g_variant_builder_add_value(&gvb, gvar);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_thresholds(ARRAY_AND_SIZE(volt_thresholds));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));

@@ -971,6 +971,13 @@ SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n);
 SR_PRIV GVariant *std_gvar_array_u32(const uint32_t *a, unsigned int n);
 SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n);
 
+struct voltage_threshold {
+        double low;
+        double high;
+};
+
+SR_PRIV GVariant *std_gvar_thresholds(const struct voltage_threshold a[], unsigned int n);
+
 /*--- resource.c ------------------------------------------------------------*/
 
 SR_PRIV int64_t sr_file_get_size(FILE *file);

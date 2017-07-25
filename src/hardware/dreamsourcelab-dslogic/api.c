@@ -72,10 +72,7 @@ static const char *const signal_edge_names[] = {
 	[DS_EDGE_FALLING] = "falling",
 };
 
-static const struct {
-	gdouble low;
-	gdouble high;
-} voltage_thresholds[] = {
+static const struct voltage_threshold voltage_thresholds[] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -545,9 +542,6 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	GVariant *gvar, *range[2];
-	GVariantBuilder gvb;
-	unsigned int i;
 
 	devc = (sdi) ? sdi->priv : NULL;
 
@@ -556,18 +550,10 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if (!strcmp(devc->profile->model, "DSLogic")) {
-			g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++) {
-				range[0] = g_variant_new_double(voltage_thresholds[i].low);
-				range[1] = g_variant_new_double(voltage_thresholds[i].high);
-				gvar = g_variant_new_tuple(range, 2);
-				g_variant_builder_add_value(&gvb, gvar);
-			}
-			*data = g_variant_builder_end(&gvb);
-		} else {
+		if (!strcmp(devc->profile->model, "DSLogic"))
+			*data = std_gvar_thresholds(ARRAY_AND_SIZE(voltage_thresholds));
+		else
 			*data = std_gvar_min_max_step_thresholds(0.0, 5.0, 0.1);
-		}
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);

@@ -684,3 +684,21 @@ SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n)
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 				a, n, sizeof(uint64_t));
 }
+
+SR_PRIV GVariant *std_gvar_thresholds(const struct voltage_threshold a[], unsigned int n)
+{
+	unsigned int i;
+	GVariant *gvar, *range[2];
+	GVariantBuilder gvb;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+
+	for (i = 0; i < n; i++) {
+		range[0] = g_variant_new_double(a[i].low);
+		range[1] = g_variant_new_double(a[i].high);
+		gvar = g_variant_new_tuple(range, 2);
+		g_variant_builder_add_value(&gvb, gvar);
+	}
+
+	return g_variant_builder_end(&gvb);
+}
