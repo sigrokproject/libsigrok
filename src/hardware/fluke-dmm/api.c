@@ -90,7 +90,7 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 
 		/* Response is first a CMD_ACK byte (ASCII '0' for OK,
 		 * or '1' to signify an error. */
-		len = 128;
+		len = sizeof(buf);
 		serial_readline(serial, &b, &len, 150);
 		if (len != 1)
 			continue;
@@ -98,7 +98,7 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 			continue;
 
 		/* If CMD_ACK was OK, ID string follows. */
-		len = 128;
+		len = sizeof(buf);
 		serial_readline(serial, &b, &len, 850);
 		if (len < 10)
 			continue;

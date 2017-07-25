@@ -291,13 +291,13 @@ static void create_channels(struct sr_input *in)
 			continue;
 
 		for (channel = 0; channel < 16; channel++) {
-			snprintf(name, 8, "%c%d", get_pod_name_from_id(pod), channel);
+			snprintf(name, sizeof(name), "%c%d", get_pod_name_from_id(pod), channel);
 			inc->channels[pod][channel] =
 				sr_channel_new(in->sdi, chan_id, SR_CHANNEL_LOGIC, TRUE, name);
 			chan_id++;
 		}
 
-		snprintf(name, 8, "CLK%c", get_pod_name_from_id(pod));
+		snprintf(name, sizeof(name), "CLK%c", get_pod_name_from_id(pod));
 		inc->channels[pod][16] =
 			sr_channel_new(in->sdi, chan_id, SR_CHANNEL_LOGIC, TRUE, name);
 		chan_id++;

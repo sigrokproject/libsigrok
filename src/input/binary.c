@@ -56,7 +56,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
 	for (i = 0; i < num_channels; i++) {
-		snprintf(name, 16, "%d", i);
+		snprintf(name, sizeof(name), "%d", i);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
 

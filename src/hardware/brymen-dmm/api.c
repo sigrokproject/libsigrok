@@ -61,7 +61,7 @@ static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
 		goto scan_cleanup;
 	}
 
-	len = 128;
+	len = sizeof(buf);
 	ret = brymen_stream_detect(serial, buf, &len, brymen_packet_length,
 			     brymen_packet_is_valid, 1000, 9600);
 	if (ret != SR_OK)

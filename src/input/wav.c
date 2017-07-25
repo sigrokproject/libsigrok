@@ -331,7 +331,7 @@ static int receive(struct sr_input *in, GString *buf)
 			return ret;
 
 		for (int i = 0; i < inc->num_channels; i++) {
-			snprintf(channelname, 8, "CH%d", i + 1);
+			snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
 			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
 		}
 

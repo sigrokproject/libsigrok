@@ -92,7 +92,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 				sr_dbg("Opened %s.", vdev->capturefile);
 			} else {
 				/* Try as first chunk filename. */
-				snprintf(capturefile, 15, "%s-1", vdev->capturefile);
+				snprintf(capturefile, sizeof(capturefile) - 1, "%s-1", vdev->capturefile);
 				if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
 					vdev->cur_chunk = 1;
 					if (!(vdev->capfile = zip_fopen(vdev->archive,
@@ -108,7 +108,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 		} else {
 			/* Capture data is chunked, advance to the next chunk. */
 			vdev->cur_chunk++;
-			snprintf(capturefile, 15, "%s-%d", vdev->capturefile,
+			snprintf(capturefile, sizeof(capturefile) - 1, "%s-%d", vdev->capturefile,
 					vdev->cur_chunk);
 			if (zip_stat(vdev->archive, capturefile, 0, &zs) != -1) {
 				if (!(vdev->capfile = zip_fopen(vdev->archive,
