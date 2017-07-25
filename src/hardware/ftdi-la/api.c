@@ -310,7 +310,6 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	char str[128];
 
 	(void)cg;
 
@@ -324,8 +323,7 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!sdi || !sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	default:
 		return SR_ERR_NA;

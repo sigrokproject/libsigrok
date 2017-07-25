@@ -381,7 +381,6 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	unsigned int i, voltage_range;
-	char str[128];
 
 	(void)cg;
 
@@ -399,8 +398,7 @@ static int config_get(uint32_t key, GVariant **data,
 			/* Device still needs to re-enumerate after firmware
 			 * upload, so we don't know its (future) address. */
 			return SR_ERR;
-		snprintf(str, 128, "%d.%d", usb->bus, usb->address);
-		*data = g_variant_new_string(str);
+		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
