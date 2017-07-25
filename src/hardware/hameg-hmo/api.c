@@ -195,7 +195,6 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_NUM_VDIV:
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; i++) {
@@ -212,7 +211,6 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; i++) {
@@ -243,7 +241,6 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			for (i = 0; i < model->analog_channels; i++) {
@@ -317,10 +314,8 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 
 		g_variant_get(data, "(tt)", &p, &q);
 
@@ -400,10 +395,8 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 
 		tmp = g_variant_get_string(data, NULL);
 

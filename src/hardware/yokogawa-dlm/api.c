@@ -215,7 +215,6 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_NUM_VDIV:
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 				*data = g_variant_new_int32(model->num_ydivs);
@@ -228,7 +227,6 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_VDIV:
 		ret = SR_ERR_NA;
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type != CG_ANALOG)
 			break;
@@ -258,7 +256,6 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_COUPLING:
 		ret = SR_ERR_NA;
 		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type != CG_ANALOG)
 			break;
@@ -325,10 +322,8 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 
 		g_variant_get(data, "(tt)", &p, &q);
 
@@ -397,10 +392,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = dlm_trigger_slope_set(sdi->conn, state->trigger_slope);
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE) {
-			sr_err("No channel group specified.");
+		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 
 		tmp = g_variant_get_string(data, NULL);
 
