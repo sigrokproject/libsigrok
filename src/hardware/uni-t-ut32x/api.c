@@ -178,7 +178,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	const char *tmp_str;
+	int idx;
 
 	(void)cg;
 
@@ -189,13 +189,9 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->data_source = idx;
 		break;
 	default:
 		return SR_ERR_NA;

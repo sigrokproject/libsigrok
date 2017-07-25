@@ -67,7 +67,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const char *const signal_edge_names[] = {
+static const char *signal_edge_names[] = {
 	[DS_EDGE_RISING] = "rising",
 	[DS_EDGE_FALLING] = "falling",
 };
@@ -380,7 +380,7 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	unsigned int i, voltage_range;
+	int idx;
 
 	(void)cg;
 
@@ -402,15 +402,11 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
-			voltage_range = 0;
-
-			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++)
-				if (voltage_thresholds[i][0] == devc->cur_threshold) {
-					voltage_range = i;
-					break;
-				}
-			*data = std_gvar_tuple_double(voltage_thresholds[voltage_range][0],
-					voltage_thresholds[voltage_range][1]);
+			if ((idx = std_double_tuple_idx_d0(devc->cur_threshold,
+					ARRAY_AND_SIZE(voltage_thresholds))) < 0)
+				return SR_ERR_BUG;
+			*data = std_gvar_tuple_double(voltage_thresholds[idx][0],
+					voltage_thresholds[idx][1]);
 		} else {
 			*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		}
@@ -431,8 +427,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(devc->continuous_mode);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		i = devc->clock_edge;
-		if (i >= ARRAY_SIZE(signal_edge_names))
+		idx = devc->clock_edge;
+		if (idx >= (int)ARRAY_SIZE(signal_edge_names))
 			return SR_ERR_BUG;
 		*data = g_variant_new_string(signal_edge_names[0]);
 		break;
@@ -443,34 +439,11 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-/*
- * Helper for mapping a string-typed configuration value to an index
- * within a table of possible values.
- */
-static int lookup_index(GVariant *value, const char *const *table, int len)
-{
-	const char *entry;
-	int i;
-
-	entry = g_variant_get_string(value, NULL);
-	if (!entry)
-		return -1;
-
-	/* Linear search is fine for very small tables. */
-	for (i = 0; i < len; i++) {
-		if (strcmp(entry, table[i]) == 0)
-			return i;
-	}
-
-	return -1;
-}
-
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t arg;
-	int i, ret;
+	int idx, ret;
 	gdouble low, high;
 
 	(void)cg;
@@ -484,15 +457,9 @@ static int config_set(uint32_t key, GVariant *data,
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		arg = g_variant_get_uint64(data);
-		for (i = 0; i < devc->num_samplerates; i++) {
-			if (devc->samplerates[i] == arg) {
-				devc->cur_samplerate = arg;
-				break;
-			}
-		}
-		if (i == devc->num_samplerates)
-			ret = SR_ERR_ARG;
+		if ((idx = std_u64_idx(data, devc->samplerates, devc->num_samplerates)) < 0)
+			return SR_ERR_ARG;
+		devc->cur_samplerate = devc->samplerates[idx];
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -502,18 +469,13 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_get(data, "(dd)", &low, &high);
 		if (!strcmp(devc->profile->model, "DSLogic")) {
-			for (i = 0; (unsigned int)i < ARRAY_SIZE(voltage_thresholds); i++) {
-				if (fabs(voltage_thresholds[i][0] - low) < 0.1 &&
-				    fabs(voltage_thresholds[i][1] - high) < 0.1) {
-					devc->cur_threshold =
-						voltage_thresholds[i][0];
-					break;
-				}
-			}
+			if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(voltage_thresholds))) < 0)
+				return SR_ERR_ARG;
+			devc->cur_threshold = voltage_thresholds[idx][0];
 			ret = dslogic_fpga_firmware_upload(sdi);
 		} else {
+			g_variant_get(data, "(dd)", &low, &high);
 			ret = dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
 		}
 		break;
@@ -524,10 +486,9 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->continuous_mode = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		i = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
-		if (i < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
 			return SR_ERR_ARG;
-		devc->clock_edge = i;
+		devc->clock_edge = idx;
 		break;
 	default:
 		ret = SR_ERR_NA;

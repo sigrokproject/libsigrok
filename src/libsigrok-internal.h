@@ -973,6 +973,17 @@ SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n);
 
 SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n);
 
+SR_PRIV int std_str_idx(GVariant *data, const char *a[], unsigned int n);
+SR_PRIV int std_u64_idx(GVariant *data, const uint64_t a[], unsigned int n);
+SR_PRIV int std_u8_idx(GVariant *data, const uint8_t a[], unsigned int n);
+
+SR_PRIV int std_str_idx_s(const char *s, const char *a[], unsigned int n);
+SR_PRIV int std_u8_idx_s(uint8_t b, const uint8_t a[], unsigned int n);
+
+SR_PRIV int std_u64_tuple_idx(GVariant *data, const uint64_t a[][2], unsigned int n);
+SR_PRIV int std_double_tuple_idx(GVariant *data, const double a[][2], unsigned int n);
+SR_PRIV int std_double_tuple_idx_d0(const double d, const double a[][2], unsigned int n);
+
 /*--- resource.c ------------------------------------------------------------*/
 
 SR_PRIV int64_t sr_file_get_size(FILE *file);

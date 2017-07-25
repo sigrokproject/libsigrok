@@ -390,10 +390,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
-	int tmp_int, ch_idx;
-	unsigned int i;
-	const char *tmp_str;
+	int ch_idx, idx;
 
 	devc = sdi->priv;
 	if (!cg) {
@@ -420,30 +417,16 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		switch (key) {
 		case SR_CONF_VDIV:
-			g_variant_get(data, "(tt)", &p, &q);
-			tmp_int = -1;
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				if (vdivs[i][0] == p && vdivs[i][1] == q) {
-					tmp_int = i;
-					break;
-				}
-			}
-			if (tmp_int >= 0) {
-				devc->voltage[ch_idx] = tmp_int;
-				hantek_6xxx_update_vdiv(sdi);
-			} else
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 				return SR_ERR_ARG;
+			devc->voltage[ch_idx] = idx;
+			hantek_6xxx_update_vdiv(sdi);
 			break;
 		case SR_CONF_COUPLING:
-			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; i < devc->coupling_tab_size; i++) {
-				if (!strcmp(tmp_str, devc->coupling_vals[i])) {
-					devc->coupling[ch_idx] = i;
-					break;
-				}
-			}
-			if (i == devc->coupling_tab_size)
+			if ((idx = std_str_idx(data, devc->coupling_vals,
+						devc->coupling_tab_size)) < 0)
 				return SR_ERR_ARG;
+			devc->coupling[ch_idx] = idx;
 			break;
 		default:
 			return SR_ERR_NA;

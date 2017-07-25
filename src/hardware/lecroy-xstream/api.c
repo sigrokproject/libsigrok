@@ -52,17 +52,6 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static int check_manufacturer(const char *manufacturer)
-{
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(manufacturers); i++)
-		if (!strcmp(manufacturer, manufacturers[i]))
-			return SR_OK;
-
-	return SR_ERR;
-}
-
 static struct sr_dev_inst *probe_serial_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
@@ -78,7 +67,7 @@ static struct sr_dev_inst *probe_serial_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 	}
 
-	if (check_manufacturer(hw_info->manufacturer) != SR_OK)
+	if (std_str_idx_s(hw_info->manufacturer, ARRAY_AND_SIZE(manufacturers)) < 0)
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));

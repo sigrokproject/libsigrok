@@ -247,10 +247,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
-	unsigned int i;
-	int tmp;
-	const char *tmp_str;
+	int idx;
 
 	(void)cg;
 
@@ -262,49 +259,29 @@ static int config_set(uint32_t key, GVariant *data,
 		       devc->limit_samples);
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < ARRAY_SIZE(kecheng_kc_330b_sample_intervals); i++) {
-			if (kecheng_kc_330b_sample_intervals[i][0] != p || kecheng_kc_330b_sample_intervals[i][1] != q)
-				continue;
-			devc->sample_interval = i;
-			devc->config_dirty = TRUE;
-			break;
-		}
-		if (i == ARRAY_SIZE(kecheng_kc_330b_sample_intervals))
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals))) < 0)
 			return SR_ERR_ARG;
+		devc->sample_interval = idx;
+		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "A"))
-			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_A;
-		else if (!strcmp(tmp_str, "C"))
-			tmp = SR_MQFLAG_SPL_FREQ_WEIGHT_C;
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_FREQ_WEIGHT_A | SR_MQFLAG_SPL_FREQ_WEIGHT_C);
-		devc->mqflags |= tmp;
+		devc->mqflags |= (weight_freq[idx][0] == 'A') ? SR_MQFLAG_SPL_FREQ_WEIGHT_A : SR_MQFLAG_SPL_FREQ_WEIGHT_C;
 		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "F"))
-			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_F;
-		else if (!strcmp(tmp_str, "S"))
-			tmp = SR_MQFLAG_SPL_TIME_WEIGHT_S;
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_time))) < 0)
 			return SR_ERR_ARG;
 		devc->mqflags &= ~(SR_MQFLAG_SPL_TIME_WEIGHT_F | SR_MQFLAG_SPL_TIME_WEIGHT_S);
-		devc->mqflags |= tmp;
+		devc->mqflags |= (weight_time[idx][0] == 'F') ? SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S;
 		devc->config_dirty = TRUE;
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->data_source = idx;
 		devc->config_dirty = TRUE;
 		break;
 	default:

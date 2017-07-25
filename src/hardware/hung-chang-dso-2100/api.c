@@ -283,65 +283,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int find_in_array(GVariant *data, const GVariantType *type,
-			 const void *arr, int n)
-{
-	const char * const *sarr;
-	const char *s;
-	const uint64_t *u64arr;
-	const uint8_t *u8arr;
-	uint64_t u64;
-	uint8_t u8;
-	int i;
-
-	if (!g_variant_is_of_type(data, type))
-		return -1;
-
-	switch (g_variant_classify(data)) {
-	case G_VARIANT_CLASS_STRING:
-		s = g_variant_get_string(data, NULL);
-		sarr = arr;
-
-		for (i = 0; i < n; i++)
-			if (!strcmp(s, sarr[i]))
-				return i;
-		break;
-	case G_VARIANT_CLASS_UINT64:
-		u64 = g_variant_get_uint64(data);
-		u64arr = arr;
-
-		for (i = 0; i < n; i++)
-			if (u64 == u64arr[i])
-				return i;
-		break;
-	case G_VARIANT_CLASS_BYTE:
-		u8 = g_variant_get_byte(data);
-		u8arr = arr;
-
-		for (i = 0; i < n; i++)
-			if (u8 == u8arr[i])
-				return i;
-	default:
-		break;
-	}
-
-	return -1;
-}
-
-static int reverse_map(uint8_t u, const uint8_t *arr, int n)
-{
-	GVariant *v = g_variant_new_byte(u);
-	int i = find_in_array(v, G_VARIANT_TYPE_BYTE, arr, n);
-	g_variant_unref(v);
-	return i;
-}
-
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
 	struct parport *port;
-	int i, ch = -1;
+	int idx, ch = -1;
 
 	if (cg) /* sr_config_get will validate cg using config_list */
 		ch = ((struct sr_channel *)cg->channels->data)->index;
@@ -358,11 +305,9 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(samplerates[devc->rate]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		i = reverse_map(devc->cctl[0] & 0xC0, ARRAY_AND_SIZE(trigger_sources_map));
-		if (i == -1)
-			return SR_ERR;
-		else
-			*data = g_variant_new_string(trigger_sources[i]);
+		if ((idx = std_u8_idx_s(devc->cctl[0] & 0xC0, ARRAY_AND_SIZE(trigger_sources_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(trigger_sources[idx]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if (devc->edge >= ARRAY_SIZE(trigger_slopes))
@@ -377,23 +322,18 @@ static int config_get(uint32_t key, GVariant **data,
 		if (ch == -1) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
-			i = reverse_map(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map));
-			if (i == -1)
-				return SR_ERR;
-			else
-				*data = g_variant_new("(tt)", vdivs[i][0],
-						      vdivs[i][1]);
+			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
+				return SR_ERR_BUG;
+			*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
 		}
 		break;
 	case SR_CONF_COUPLING:
 		if (ch == -1) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
-			i = reverse_map(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map));
-			if (i == -1)
-				return SR_ERR;
-			else
-				*data = g_variant_new_string(coupling[i]);
+			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map))) < 0)
+				return SR_ERR_BUG;
+			*data = g_variant_new_string(coupling[idx]);
 		}
 		break;
 	case SR_CONF_PROBE_FACTOR:
@@ -413,8 +353,8 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc = sdi->priv;
-	int i, ch = -1;
-	uint64_t u, v;
+	int idx, ch = -1;
+	uint64_t u;
 
 	if (cg) /* sr_config_set will validate cg using config_list */
 		ch = ((struct sr_channel *)cg->channels->data)->index;
@@ -424,37 +364,24 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->frame_limit = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SAMPLERATE:
-		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  ARRAY_AND_SIZE(samplerates));
-		if (i == -1)
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(samplerates))) < 0)
 			return SR_ERR_ARG;
-		else
-			devc->rate = i;
+		devc->rate = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  ARRAY_AND_SIZE(trigger_sources));
-		if (i == -1)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 			return SR_ERR_ARG;
-		else
-			devc->cctl[0] = (devc->cctl[0] & 0x3F)
-				      | trigger_sources_map[i];
+		devc->cctl[0] = (devc->cctl[0] & 0x3F) | trigger_sources_map[idx];
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		i = find_in_array(data, G_VARIANT_TYPE_STRING,
-				  ARRAY_AND_SIZE(trigger_slopes));
-		if (i == -1)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 			return SR_ERR_ARG;
-		else
-			devc->edge = i;
+		devc->edge = idx;
 		break;
 	case SR_CONF_BUFFERSIZE:
-		i = find_in_array(data, G_VARIANT_TYPE_UINT64,
-				  ARRAY_AND_SIZE(buffersizes));
-		if (i == -1)
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(buffersizes))) < 0)
 			return SR_ERR_ARG;
-		else
-			devc->last_step = i;
+		devc->last_step = idx;
 		break;
 	case SR_CONF_VDIV:
 		if (ch == -1) {
@@ -462,28 +389,18 @@ static int config_set(uint32_t key, GVariant *data,
 		} else if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)"))) {
 			return SR_ERR_ARG;
 		} else {
-			g_variant_get(data, "(tt)", &u, &v);
-			for (i = 0; i < (int)ARRAY_SIZE(vdivs); i++)
-				if (vdivs[i][0] == u && vdivs[i][1] == v)
-					break;
-			if (i == ARRAY_SIZE(vdivs))
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 				return SR_ERR_ARG;
-			else
-				devc->cctl[ch] = (devc->cctl[ch] & 0xCC)
-					       | vdivs_map[i];
+			devc->cctl[ch] = (devc->cctl[ch] & 0xCC) | vdivs_map[idx];
 		}
 		break;
 	case SR_CONF_COUPLING:
 		if (ch == -1) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
-			i = find_in_array(data, G_VARIANT_TYPE_STRING,
-					  ARRAY_AND_SIZE(coupling));
-			if (i == -1)
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
 				return SR_ERR_ARG;
-			else
-				devc->cctl[ch] = (devc->cctl[ch] & 0xF3)
-					       | coupling_map[i];
+			devc->cctl[ch] = (devc->cctl[ch] & 0xF3) | coupling_map[idx];
 		}
 		break;
 	case SR_CONF_PROBE_FACTOR:

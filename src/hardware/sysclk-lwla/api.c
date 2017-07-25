@@ -41,12 +41,12 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static const char *const trigger_source_names[] = {
+static const char *trigger_source_names[] = {
 	[TRIGGER_CHANNELS] = "CH",
 	[TRIGGER_EXT_TRG] = "TRG",
 };
 
-static const char *const signal_edge_names[] = {
+static const char *signal_edge_names[] = {
 	[EDGE_POSITIVE] = "r",
 	[EDGE_NEGATIVE] = "f",
 };
@@ -382,27 +382,6 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-/* Helper for mapping a string-typed configuration value to an index
- * within a table of possible values.
- */
-static int lookup_index(GVariant *value, const char *const *table, int len)
-{
-	const char *entry;
-	int i;
-
-	entry = g_variant_get_string(value, NULL);
-	if (!entry)
-		return -1;
-
-	/* Linear search is fine for very small tables. */
-	for (i = 0; i < len; i++) {
-		if (strcmp(entry, table[i]) == 0)
-			return i;
-	}
-
-	return -1;
-}
-
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -448,20 +427,17 @@ static int config_set(uint32_t key, GVariant *data,
 			? CLOCK_EXT_CLK : CLOCK_INTERNAL;
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		idx = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
-		if (idx < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_clock_edge = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		idx = lookup_index(data, ARRAY_AND_SIZE(trigger_source_names));
-		if (idx < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_source_names))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		idx = lookup_index(data, ARRAY_AND_SIZE(signal_edge_names));
-		if (idx < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_slope = idx;
 		break;

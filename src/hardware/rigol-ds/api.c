@@ -617,10 +617,10 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
+	uint64_t p;
 	double t_dbl;
-	unsigned int i, j;
-	int ret;
+	unsigned int i;
+	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
 
@@ -638,16 +638,10 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_str = g_variant_get_string(data, NULL);
-
-		if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r')) {
-			sr_err("Unknown trigger slope: '%s'.",
-			       (tmp_str) ? tmp_str : "NULL");
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 			return SR_ERR_ARG;
-		}
-
 		g_free(devc->trigger_slope);
-		devc->trigger_slope = g_strdup((tmp_str[0] == 'r') ? "POS" : "NEG");
+		devc->trigger_slope = g_strdup((trigger_slopes[idx][0] == 'r') ? "POS" : "NEG");
 		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
@@ -671,86 +665,60 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->trigger_level = t_dbl;
 		break;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < devc->num_timebases; i++) {
-			if (devc->timebases[i][0] == p && devc->timebases[i][1] == q) {
-				devc->timebase = (float)p / q;
-				g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
-				                devc->timebase);
-				ret = rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
-				break;
-			}
-		}
-		if (i == devc->num_timebases) {
-			sr_err("Invalid timebase index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
+		if ((idx = std_u64_tuple_idx(data, devc->timebases, devc->num_timebases)) < 0)
+			return SR_ERR_ARG;
+		devc->timebase = (float)devc->timebases[idx][0] / devc->timebases[idx][1];
+		g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
+		                devc->timebase);
+		ret = rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(trigger_sources); i++) {
-			if (!strcmp(trigger_sources[i], tmp_str)) {
-				g_free(devc->trigger_source);
-				devc->trigger_source = g_strdup(trigger_sources[i]);
-				if (!strcmp(devc->trigger_source, "AC Line"))
-					tmp_str = "ACL";
-				else if (!strcmp(devc->trigger_source, "CH1"))
-					tmp_str = "CHAN1";
-				else if (!strcmp(devc->trigger_source, "CH2"))
-					tmp_str = "CHAN2";
-				else if (!strcmp(devc->trigger_source, "CH3"))
-					tmp_str = "CHAN3";
-				else if (!strcmp(devc->trigger_source, "CH4"))
-					tmp_str = "CHAN4";
-				else
-					tmp_str = (char *)devc->trigger_source;
-				ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
-				break;
-			}
-		}
-		if (i == ARRAY_SIZE(trigger_sources)) {
-			sr_err("Invalid trigger source index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->trigger_source);
+		devc->trigger_source = g_strdup(trigger_sources[idx]);
+		if (!strcmp(devc->trigger_source, "AC Line"))
+			tmp_str = "ACL";
+		else if (!strcmp(devc->trigger_source, "CH1"))
+			tmp_str = "CHAN1";
+		else if (!strcmp(devc->trigger_source, "CH2"))
+			tmp_str = "CHAN2";
+		else if (!strcmp(devc->trigger_source, "CH3"))
+			tmp_str = "CHAN3";
+		else if (!strcmp(devc->trigger_source, "CH4"))
+			tmp_str = "CHAN4";
+		else
+			tmp_str = (char *)devc->trigger_source;
+		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
 		break;
 	case SR_CONF_VDIV:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
-					if (vdivs[j][0] != p || vdivs[j][1] != q)
-						continue;
-					devc->vdiv[i] = (float)p / q;
-					g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
-					                devc->vdiv[i]);
-					return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
-							buffer);
-				}
-				sr_err("Invalid vdiv index: %d.", j);
+			if (cg != devc->analog_groups[i])
+				continue;
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 				return SR_ERR_ARG;
-			}
+			devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
+			g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
+			                devc->vdiv[i]);
+			return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
+					buffer);
 		}
 		sr_dbg("Didn't set vdiv, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
-					if (!strcmp(tmp_str, coupling[j])) {
-						g_free(devc->coupling[i]);
-						devc->coupling[i] = g_strdup(coupling[j]);
-						return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1,
-								devc->coupling[i]);
-					}
-				}
-				sr_err("Invalid coupling index: %d.", j);
+			if (cg != devc->analog_groups[i])
+				continue;
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
 				return SR_ERR_ARG;
-			}
+			g_free(devc->coupling[i]);
+			devc->coupling[i] = g_strdup(coupling[idx]);
+			return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1,
+					devc->coupling[i]);
 		}
 		sr_dbg("Didn't set coupling, unknown channel(group).");
 		return SR_ERR_NA;
@@ -759,20 +727,16 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		p = g_variant_get_uint64(data);
 		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(probe_factor); j++) {
-					if (p == probe_factor[j]) {
-						devc->attenuation[i] = p;
-						ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64,
-						                          i + 1, p);
-						if (ret == SR_OK)
-							rigol_ds_get_dev_cfg_vertical(sdi);
-						return ret;
-					}
-				}
-				sr_err("Invalid probe factor: %"PRIu64".", p);
+			if (cg != devc->analog_groups[i])
+				continue;
+			if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
 				return SR_ERR_ARG;
-			}
+			devc->attenuation[i] = probe_factor[idx];
+			ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64,
+			                          i + 1, p);
+			if (ret == SR_OK)
+				rigol_ds_get_dev_cfg_vertical(sdi);
+			return ret;
 		}
 		sr_dbg("Didn't set probe factor, unknown channel(group).");
 		return SR_ERR_NA;

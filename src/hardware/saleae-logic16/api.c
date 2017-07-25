@@ -457,9 +457,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	gdouble low, high;
-	int ret;
-	unsigned int i;
+	int ret, idx;
 
 	(void)cg;
 
@@ -478,17 +476,9 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_get(data, "(dd)", &low, &high);
-		ret = SR_ERR_ARG;
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (fabs(volt_thresholds[i][0] - low) < 0.1 &&
-			    fabs(volt_thresholds[i][1] - high) < 0.1) {
-				devc->selected_voltage_range =
-					volt_thresholds_ranges[i].range;
-				ret = SR_OK;
-				break;
-			}
-		}
+		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(volt_thresholds))) < 0)
+			return SR_ERR_ARG;
+		devc->selected_voltage_range = volt_thresholds_ranges[idx].range;
 		break;
 	default:
 		ret = SR_ERR_NA;

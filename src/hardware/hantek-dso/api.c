@@ -475,10 +475,7 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	double tmp_double;
-	uint64_t tmp_u64, p, q;
-	int tmp_int, ch_idx;
-	unsigned int i;
-	const char *tmp_str;
+	int ch_idx, idx;
 
 	devc = sdi->priv;
 	if (!cg) {
@@ -487,10 +484,9 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->limit_frames = g_variant_get_uint64(data);
 			break;
 		case SR_CONF_TRIGGER_SLOPE:
-			tmp_str = g_variant_get_string(data, NULL);
-			if (!tmp_str || !(tmp_str[0] == 'f' || tmp_str[0] == 'r'))
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 				return SR_ERR_ARG;
-			devc->triggerslope = (tmp_str[0] == 'r')
+			devc->triggerslope = (trigger_slopes[idx][0] == 'r')
 				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
 			break;
 		case SR_CONF_HORIZ_TRIGGERPOS:
@@ -502,40 +498,19 @@ static int config_set(uint32_t key, GVariant *data,
 				devc->triggerposition = tmp_double;
 			break;
 		case SR_CONF_BUFFERSIZE:
-			tmp_u64 = g_variant_get_uint64(data);
-			for (i = 0; i < NUM_BUFFER_SIZES; i++) {
-				if (devc->profile->buffersizes[i] == tmp_u64) {
-					devc->framesize = tmp_u64;
-					break;
-				}
-			}
-			if (i == NUM_BUFFER_SIZES)
+			if ((idx = std_u64_idx(data, devc->profile->buffersizes, NUM_BUFFER_SIZES)) < 0)
 				return SR_ERR_ARG;
+			devc->framesize = devc->profile->buffersizes[idx];
 			break;
 		case SR_CONF_TIMEBASE:
-			g_variant_get(data, "(tt)", &p, &q);
-			tmp_int = -1;
-			for (i = 0; i < ARRAY_SIZE(timebases); i++) {
-				if (timebases[i][0] == p && timebases[i][1] == q) {
-					tmp_int = i;
-					break;
-				}
-			}
-			if (tmp_int >= 0)
-				devc->timebase = tmp_int;
-			else
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(timebases))) < 0)
 				return SR_ERR_ARG;
+			devc->timebase = idx;
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
-			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; trigger_sources[i]; i++) {
-				if (!strcmp(tmp_str, trigger_sources[i])) {
-					devc->triggersource = g_strdup(tmp_str);
-					break;
-				}
-			}
-			if (trigger_sources[i] == 0)
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 				return SR_ERR_ARG;
+			devc->triggersource = g_strdup(trigger_sources[idx]);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -552,29 +527,14 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->filter[ch_idx] = g_variant_get_boolean(data);
 			break;
 		case SR_CONF_VDIV:
-			g_variant_get(data, "(tt)", &p, &q);
-			tmp_int = -1;
-			for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-				if (vdivs[i][0] == p && vdivs[i][1] == q) {
-					tmp_int = i;
-					break;
-				}
-			}
-			if (tmp_int >= 0) {
-				devc->voltage[ch_idx] = tmp_int;
-			} else
+			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 				return SR_ERR_ARG;
+			devc->voltage[ch_idx] = idx;
 			break;
 		case SR_CONF_COUPLING:
-			tmp_str = g_variant_get_string(data, NULL);
-			for (i = 0; coupling[i]; i++) {
-				if (!strcmp(tmp_str, coupling[i])) {
-					devc->coupling[ch_idx] = i;
-					break;
-				}
-			}
-			if (coupling[i] == 0)
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
 				return SR_ERR_ARG;
+			devc->coupling[ch_idx] = idx;
 			break;
 		default:
 			return SR_ERR_NA;

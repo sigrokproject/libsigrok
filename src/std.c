@@ -26,6 +26,8 @@
  */
 
 #include <config.h>
+#include <string.h>
+#include <math.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -701,4 +703,128 @@ SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n)
 	}
 
 	return g_variant_builder_end(&gvb);
+}
+
+/* Return the index of 'data' in the array 'arr' (or -1). */
+static int find_in_array(GVariant *data, const GVariantType *type,
+			 const void *arr, unsigned int n)
+{
+	const char * const *sarr;
+	const char *s;
+	const uint64_t *u64arr;
+	const uint8_t *u8arr;
+	uint64_t u64;
+	uint8_t u8;
+	unsigned int i;
+
+	if (!g_variant_is_of_type(data, type))
+		return -1;
+
+	switch (g_variant_classify(data)) {
+	case G_VARIANT_CLASS_STRING:
+		s = g_variant_get_string(data, NULL);
+		sarr = arr;
+
+		for (i = 0; i < n; i++)
+			if (!strcmp(s, sarr[i]))
+				return i;
+		break;
+	case G_VARIANT_CLASS_UINT64:
+		u64 = g_variant_get_uint64(data);
+		u64arr = arr;
+
+		for (i = 0; i < n; i++)
+			if (u64 == u64arr[i])
+				return i;
+		break;
+	case G_VARIANT_CLASS_BYTE:
+		u8 = g_variant_get_byte(data);
+		u8arr = arr;
+
+		for (i = 0; i < n; i++)
+			if (u8 == u8arr[i])
+				return i;
+	default:
+		break;
+	}
+
+	return -1;
+}
+
+SR_PRIV int std_str_idx(GVariant *data, const char *a[], unsigned int n)
+{
+	return find_in_array(data, G_VARIANT_TYPE_STRING, a, n);
+}
+
+SR_PRIV int std_u64_idx(GVariant *data, const uint64_t a[], unsigned int n)
+{
+	return find_in_array(data, G_VARIANT_TYPE_UINT64, a, n);
+}
+
+SR_PRIV int std_u8_idx(GVariant *data, const uint8_t a[], unsigned int n)
+{
+	return find_in_array(data, G_VARIANT_TYPE_BYTE, a, n);
+}
+
+SR_PRIV int std_str_idx_s(const char *s, const char *a[], unsigned int n)
+{
+	int idx;
+	GVariant *data;
+
+	data = g_variant_new_string(s);
+	idx = find_in_array(data, G_VARIANT_TYPE_STRING, a, n);
+	g_variant_unref(data);
+
+	return idx;
+}
+
+SR_PRIV int std_u8_idx_s(uint8_t b, const uint8_t a[], unsigned int n)
+{
+	int idx;
+	GVariant *data;
+
+	data = g_variant_new_byte(b);
+	idx = find_in_array(data, G_VARIANT_TYPE_BYTE, a, n);
+	g_variant_unref(data);
+
+	return idx;
+}
+
+SR_PRIV int std_u64_tuple_idx(GVariant *data, const uint64_t a[][2], unsigned int n)
+{
+	unsigned int i;
+	uint64_t low, high;
+
+	g_variant_get(data, "(tt)", &low, &high);
+
+	for (i = 0; i < n; i++)
+		if (a[i][0] == low && a[i][1] == high)
+			return i;
+
+	return -1;
+}
+
+SR_PRIV int std_double_tuple_idx(GVariant *data, const double a[][2], unsigned int n)
+{
+	unsigned int i;
+	double low, high;
+
+	g_variant_get(data, "(dd)", &low, &high);
+
+	for (i = 0; i < n; i++)
+		if ((fabs(a[i][0] - low) < 0.1) && ((fabs(a[i][1] - high) < 0.1)))
+			return i;
+
+	return -1;
+}
+
+SR_PRIV int std_double_tuple_idx_d0(const double d, const double a[][2], unsigned int n)
+{
+	unsigned int i;
+
+	for (i = 0; i < n; i++)
+		if (d == a[i][0])
+			return i;
+
+	return -1;
 }

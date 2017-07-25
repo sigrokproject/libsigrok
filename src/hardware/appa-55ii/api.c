@@ -134,8 +134,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	const char *tmp_str;
-	unsigned int i;
+	int idx;
 
 	(void)cg;
 
@@ -145,17 +144,11 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
-	case SR_CONF_DATA_SOURCE: {
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(data_sources); i++)
-			if (!strcmp(tmp_str, data_sources[i])) {
-				devc->data_source = i;
-				break;
-			}
-		if (i == ARRAY_SIZE(data_sources))
-			return SR_ERR;
+	case SR_CONF_DATA_SOURCE:
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->data_source = idx;
 		break;
-	}
 	default:
 		return SR_ERR_NA;
 	}

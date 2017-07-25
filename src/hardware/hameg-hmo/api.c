@@ -47,17 +47,6 @@ enum {
 	CG_DIGITAL,
 };
 
-static int check_manufacturer(const char *manufacturer)
-{
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(manufacturers); i++)
-		if (!strcmp(manufacturer, manufacturers[i]))
-			return SR_OK;
-
-	return SR_ERR;
-}
-
 static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
@@ -73,7 +62,7 @@ static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi
 		goto fail;
 	}
 
-	if (check_manufacturer(hw_info->manufacturer) != SR_OK)
+	if (std_str_idx_s(hw_info->manufacturer, ARRAY_AND_SIZE(manufacturers)) < 0)
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
@@ -269,14 +258,13 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, cg_type;
+	int ret, cg_type, idx;
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE], float_str[30];
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
 	const char *tmp;
-	uint64_t p, q;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -316,50 +304,35 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-
-		g_variant_get(data, "(tt)", &p, &q);
-
-		for (i = 0; i < model->num_vdivs; i++) {
-			if (p != (*model->vdivs)[i][0] ||
-			    q != (*model->vdivs)[i][1])
+		if ((idx = std_u64_tuple_idx(data, *model->vdivs, model->num_vdivs)) < 0)
+			return SR_ERR_ARG;
+		for (j = 1; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j - 1])
 				continue;
-			for (j = 1; j <= model->analog_channels; j++) {
-				if (cg != devc->analog_groups[j - 1])
-					continue;
-				state->analog_channels[j - 1].vdiv = i;
-				g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
-					   j, float_str);
-
-				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-				    sr_scpi_get_opc(sdi->conn) != SR_OK)
-					return SR_ERR;
-
-				break;
-			}
-
-			ret = SR_OK;
+			state->analog_channels[j - 1].vdiv = idx;
+			g_ascii_formatd(float_str, sizeof(float_str), "%E",
+				(float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
+				   j, float_str);
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
 			break;
 		}
+		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-
-		for (i = 0; i < model->num_timebases; i++) {
-			if (p != (*model->timebases)[i][0] ||
-			    q != (*model->timebases)[i][1])
-				continue;
-			state->timebase = i;
-			g_ascii_formatd(float_str, sizeof(float_str), "%E", (float) p / q);
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
-				   float_str);
-
-			ret = sr_scpi_send(sdi->conn, command);
-			update_sample_rate = TRUE;
-			break;
-		}
+		if ((idx = std_u64_tuple_idx(data, *model->timebases, model->num_timebases)) < 0)
+			return SR_ERR_ARG;
+		state->timebase = idx;
+		g_ascii_formatd(float_str, sizeof(float_str), "%E",
+			(float) (*model->timebases)[idx][0] / (*model->timebases)[idx][1]);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
+			   float_str);
+		ret = sr_scpi_send(sdi->conn, command);
+		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);

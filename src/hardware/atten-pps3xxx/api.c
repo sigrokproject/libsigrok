@@ -234,21 +234,6 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int find_str(const char *str, const char **strings, int array_size)
-{
-	int idx, i;
-
-	idx = -1;
-	for (i = 0; i < array_size; i++) {
-		if (!strcmp(str, strings[i])) {
-			idx = i;
-			break;
-		}
-	}
-
-	return idx;
-}
-
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -256,7 +241,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct sr_channel *ch;
 	gdouble dval;
 	int channel, ret, ival;
-	const char *sval;
 	gboolean bval;
 
 	ret = SR_OK;
@@ -264,11 +248,8 @@ static int config_set(uint32_t key, GVariant *data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
-			sval = g_variant_get_string(data, NULL);
-			if ((ival = find_str(sval, ARRAY_AND_SIZE(channel_modes))) == -1) {
-				ret = SR_ERR_ARG;
-				break;
-			}
+			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
+				return SR_ERR_ARG;
 			if (devc->model->channel_modes && (1 << ival) == 0) {
 				/* Not supported on this model. */
 				ret = SR_ERR_ARG;

@@ -548,10 +548,8 @@ static int config_set(uint32_t key, GVariant *data,
 	struct sr_channel *ch;
 	gdouble dval;
 	int ch_idx;
-	const char *sval;
 	gboolean bval;
 	int idx;
-	gboolean found;
 
 	devc = sdi->priv;
 
@@ -566,22 +564,15 @@ static int config_set(uint32_t key, GVariant *data,
 		case SR_CONF_LIMIT_SAMPLES:
 			return sr_sw_limits_config_set(&devc->limits, key, data);
 		case SR_CONF_CHANNEL_CONFIG:
-			sval = g_variant_get_string(data, NULL);
-			found = FALSE;
-			for (idx = 0; idx < (int)ARRAY_SIZE(channel_modes); idx++) {
-				if (!strcmp(sval, channel_modes[idx])) {
-					found = TRUE;
-					if (devc->tracking_mode == idx)
-						break;	/* Nothing to do! */
-					devc->tracking_mode = idx;
-					if (devc->model->modelid >= LPS_304) /* No use to set anything in the smaller models. */
-						return lps_cmd_ok(sdi->conn, "TRACK%1d", devc->tracking_mode);
-				}
-				if (devc->model->modelid <= LPS_303) /* Only first setting possible for smaller models. */
-					break;
-			}
-			if (!found)
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
+			if (devc->model->modelid <= LPS_303 && idx != 0)
+				break; /* Only first setting possible for smaller models. */
+			if (devc->tracking_mode == idx)
+				break;	/* Nothing to do! */
+			devc->tracking_mode = idx;
+			if (devc->model->modelid >= LPS_304) /* No use to set anything in the smaller models. */
+				return lps_cmd_ok(sdi->conn, "TRACK%1d", devc->tracking_mode);
 			break;
 		default:
 			return SR_ERR_NA;

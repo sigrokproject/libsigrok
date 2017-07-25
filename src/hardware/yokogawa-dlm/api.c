@@ -282,14 +282,13 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, cg_type;
+	int ret, cg_type, idx;
 	unsigned int i, j;
 	char float_str[30];
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
 	const char *tmp;
-	uint64_t p, q;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -324,44 +323,29 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-
-		g_variant_get(data, "(tt)", &p, &q);
-
-		for (i = 0; i < ARRAY_SIZE(dlm_vdivs); i++) {
-			if (p != dlm_vdivs[i][0] ||
-					q != dlm_vdivs[i][1])
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(dlm_vdivs))) < 0)
+			return SR_ERR_ARG;
+		for (j = 1; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j - 1])
 				continue;
-			for (j = 1; j <= model->analog_channels; j++) {
-				if (cg != devc->analog_groups[j - 1])
-					continue;
-				state->analog_states[j - 1].vdiv = i;
-				g_ascii_formatd(float_str, sizeof(float_str),
-						"%E", (float) p / q);
-				if (dlm_analog_chan_vdiv_set(sdi->conn, j, float_str) != SR_OK ||
-						sr_scpi_get_opc(sdi->conn) != SR_OK)
-					return SR_ERR;
-
-				break;
-			}
-
-			ret = SR_OK;
+			state->analog_states[j - 1].vdiv = idx;
+			g_ascii_formatd(float_str, sizeof(float_str),
+					"%E", (float) dlm_vdivs[idx][0] / dlm_vdivs[idx][1]);
+			if (dlm_analog_chan_vdiv_set(sdi->conn, j, float_str) != SR_OK ||
+					sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
 			break;
 		}
+		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-
-		for (i = 0; i < ARRAY_SIZE(dlm_timebases); i++) {
-			if (p != dlm_timebases[i][0] ||
-					q != dlm_timebases[i][1])
-				continue;
-			state->timebase = i;
-			g_ascii_formatd(float_str, sizeof(float_str),
-					"%E", (float) p / q);
-			ret = dlm_timebase_set(sdi->conn, float_str);
-			update_sample_rate = TRUE;
-			break;
-		}
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(dlm_timebases))) < 0)
+			return SR_ERR_ARG;
+		state->timebase = idx;
+		g_ascii_formatd(float_str, sizeof(float_str),
+				"%E", (float) dlm_timebases[idx][0] / dlm_timebases[idx][1]);
+		ret = dlm_timebase_set(sdi->conn, float_str);
+		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);

@@ -197,10 +197,8 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64, low, high;
-	unsigned int i;
-	int tmp, ret;
-	const char *tmp_str;
+	uint64_t tmp_u64;
+	int tmp, ret, idx;
 
 	(void)cg;
 
@@ -217,27 +215,15 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = cem_dt_885x_recording_set(sdi, g_variant_get_boolean(data));
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "A"))
-			ret = cem_dt_885x_weight_freq_set(sdi,
-					SR_MQFLAG_SPL_FREQ_WEIGHT_A);
-		else if (!strcmp(tmp_str, "C"))
-			ret = cem_dt_885x_weight_freq_set(sdi,
-					SR_MQFLAG_SPL_FREQ_WEIGHT_C);
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
-		break;
+		return cem_dt_885x_weight_freq_set(sdi, (weight_freq[idx][0] == 'A') ?
+			SR_MQFLAG_SPL_FREQ_WEIGHT_A : SR_MQFLAG_SPL_FREQ_WEIGHT_C);
 	case SR_CONF_SPL_WEIGHT_TIME:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "F"))
-			ret = cem_dt_885x_weight_time_set(sdi,
-					SR_MQFLAG_SPL_TIME_WEIGHT_F);
-		else if (!strcmp(tmp_str, "S"))
-			ret = cem_dt_885x_weight_time_set(sdi,
-					SR_MQFLAG_SPL_TIME_WEIGHT_S);
-		else
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_time))) < 0)
 			return SR_ERR_ARG;
-		break;
+		return cem_dt_885x_weight_time_set(sdi, (weight_time[idx][0] == 'F') ?
+			SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S);
 	case SR_CONF_HOLD_MAX:
 		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MAX : 0;
 		ret = cem_dt_885x_holdmode_set(sdi, tmp);
@@ -247,28 +233,18 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = cem_dt_885x_holdmode_set(sdi, tmp);
 		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
-		g_variant_get(data, "(tt)", &low, &high);
-		ret = SR_ERR_ARG;
-		for (i = 0; i < ARRAY_SIZE(meas_ranges); i++) {
-			if (meas_ranges[i][0] == low && meas_ranges[i][1] == high) {
-				ret = cem_dt_885x_meas_range_set(sdi, low, high);
-				break;
-			}
-		}
-		break;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(meas_ranges))) < 0)
+			return SR_ERR_ARG;
+		return cem_dt_885x_meas_range_set(sdi, meas_ranges[idx][0], meas_ranges[idx][1]);
 	case SR_CONF_POWER_OFF:
 		if (g_variant_get_boolean(data))
 			ret = cem_dt_885x_power_off(sdi);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Live"))
-			devc->cur_data_source = DATA_SOURCE_LIVE;
-		else if (!strcmp(tmp_str, "Memory"))
-			devc->cur_data_source = DATA_SOURCE_MEMORY;
-		else
-			return SR_ERR;
-		devc->enable_data_source_memory = devc->cur_data_source == DATA_SOURCE_MEMORY;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->cur_data_source = idx;
+		devc->enable_data_source_memory = (idx == DATA_SOURCE_MEMORY);
 		break;
 	default:
 		ret = SR_ERR_NA;

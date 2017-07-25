@@ -265,8 +265,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct sr_channel *ch;
 	GSList *l;
 	int logic_pattern, analog_pattern;
-	unsigned int i;
-	const char *stropt;
 
 	devc = sdi->priv;
 
@@ -293,21 +291,9 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		stropt = g_variant_get_string(data, NULL);
-		logic_pattern = analog_pattern = -1;
-		for (i = 0; i < ARRAY_SIZE(logic_pattern_str); i++) {
-			if (!strcmp(stropt, logic_pattern_str[i])) {
-				logic_pattern = i;
-				break;
-			}
-		}
-		for (i = 0; i < ARRAY_SIZE(analog_pattern_str); i++) {
-			if (!strcmp(stropt, analog_pattern_str[i])) {
-				analog_pattern = i;
-				break;
-			}
-		}
-		if (logic_pattern == -1 && analog_pattern == -1)
+		logic_pattern = std_str_idx(data, ARRAY_AND_SIZE(logic_pattern_str));
+		analog_pattern = std_str_idx(data, ARRAY_AND_SIZE(analog_pattern_str));
+		if (logic_pattern < 0 && analog_pattern < 0)
 			return SR_ERR_ARG;
 		for (l = cg->channels; l; l = l->next) {
 			ch = l->data;
