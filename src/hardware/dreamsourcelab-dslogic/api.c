@@ -72,7 +72,7 @@ static const char *const signal_edge_names[] = {
 	[DS_EDGE_FALLING] = "falling",
 };
 
-static const struct voltage_threshold voltage_thresholds[] = {
+static const double voltage_thresholds[][2] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -405,12 +405,12 @@ static int config_get(uint32_t key, GVariant **data,
 			voltage_range = 0;
 
 			for (i = 0; i < ARRAY_SIZE(voltage_thresholds); i++)
-				if (voltage_thresholds[i].low == devc->cur_threshold) {
+				if (voltage_thresholds[i][0] == devc->cur_threshold) {
 					voltage_range = i;
 					break;
 				}
-			*data = std_gvar_tuple_double(voltage_thresholds[voltage_range].low,
-					voltage_thresholds[voltage_range].high);
+			*data = std_gvar_tuple_double(voltage_thresholds[voltage_range][0],
+					voltage_thresholds[voltage_range][1]);
 		} else {
 			*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		}
@@ -505,10 +505,10 @@ static int config_set(uint32_t key, GVariant *data,
 		g_variant_get(data, "(dd)", &low, &high);
 		if (!strcmp(devc->profile->model, "DSLogic")) {
 			for (i = 0; (unsigned int)i < ARRAY_SIZE(voltage_thresholds); i++) {
-				if (fabs(voltage_thresholds[i].low - low) < 0.1 &&
-				    fabs(voltage_thresholds[i].high - high) < 0.1) {
+				if (fabs(voltage_thresholds[i][0] - low) < 0.1 &&
+				    fabs(voltage_thresholds[i][1] - high) < 0.1) {
 					devc->cur_threshold =
-						voltage_thresholds[i].low;
+						voltage_thresholds[i][0];
 					break;
 				}
 			}

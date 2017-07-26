@@ -77,7 +77,7 @@ static const struct {
 	{ VOLTAGE_RANGE_5_V, },
 };
 
-static const struct voltage_threshold volt_thresholds[] = {
+static const double volt_thresholds[][2] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -441,7 +441,7 @@ static int config_get(uint32_t key, GVariant **data,
 			if (devc->selected_voltage_range !=
 			    volt_thresholds_ranges[i].range)
 				continue;
-			*data = std_gvar_tuple_double(volt_thresholds[i].low, volt_thresholds[i].high);
+			*data = std_gvar_tuple_double(volt_thresholds[i][0], volt_thresholds[i][1]);
 			ret = SR_OK;
 			break;
 		}
@@ -481,8 +481,8 @@ static int config_set(uint32_t key, GVariant *data,
 		g_variant_get(data, "(dd)", &low, &high);
 		ret = SR_ERR_ARG;
 		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (fabs(volt_thresholds[i].low - low) < 0.1 &&
-			    fabs(volt_thresholds[i].high - high) < 0.1) {
+			if (fabs(volt_thresholds[i][0] - low) < 0.1 &&
+			    fabs(volt_thresholds[i][1] - high) < 0.1) {
 				devc->selected_voltage_range =
 					volt_thresholds_ranges[i].range;
 				ret = SR_OK;
