@@ -187,21 +187,18 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_get(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
 		*data = g_variant_new_string(data_sources[devc->data_source]);
 		break;
@@ -209,7 +206,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
@@ -217,35 +214,32 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	uint64_t samplerate;
-	int ret, idx;
+	int idx;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
 		if (samplerate < samplerates[0] || samplerate > samplerates[1])
-			ret = SR_ERR_ARG;
-		else
-			devc->cur_samplerate = g_variant_get_uint64(data);
+			return SR_ERR_ARG;
+		devc->cur_samplerate = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
 			return SR_ERR_ARG;
 		devc->data_source = idx;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

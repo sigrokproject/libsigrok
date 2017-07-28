@@ -433,7 +433,6 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	double d;
-	int ret;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -446,66 +445,66 @@ static int config_set(uint32_t key, GVariant *data,
 	switch (key) {
 	case SR_CONF_ENABLED:
 		if (g_variant_get_boolean(data))
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OUTPUT_ENABLE);
 		else
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OUTPUT_DISABLE);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		d = g_variant_get_double(data);
-		ret = scpi_cmd(sdi, devc->device->commands,
+		return scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_VOLTAGE_TARGET, d);
 		break;
 	case SR_CONF_OUTPUT_FREQUENCY_TARGET:
 		d = g_variant_get_double(data);
-		ret = scpi_cmd(sdi, devc->device->commands,
+		return scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_FREQUENCY_TARGET, d);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		d = g_variant_get_double(data);
-		ret = scpi_cmd(sdi, devc->device->commands,
+		return scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_CURRENT_LIMIT, d);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE);
 		else
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		ret = scpi_cmd(sdi, devc->device->commands,
+		return scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE);
 		else
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		ret = scpi_cmd(sdi, devc->device->commands,
+		return scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if (g_variant_get_boolean(data))
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE);
 		else
-			ret = scpi_cmd(sdi, devc->device->commands,
+			return scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

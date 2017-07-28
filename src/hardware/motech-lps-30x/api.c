@@ -612,7 +612,6 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_NA;
 			devc->channel_status[ch_idx].output_current_max = dval;
 			return lps_cmd_ok(sdi->conn, "ISET%d %05.4f", ch_idx+1, dval);
-			break;
 		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->channel_status[ch_idx].output_enabled) /* Nothing to do. */

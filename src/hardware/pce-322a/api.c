@@ -114,7 +114,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -140,6 +140,8 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
 		if ((ret = pce_322a_meas_range_get(sdi, &low, &high)) == SR_OK)
 			*data = std_gvar_tuple_u64(low, high);
+		else
+			return ret;
 		break;
 	case SR_CONF_POWER_OFF:
 		*data = g_variant_new_boolean(FALSE);
@@ -154,20 +156,19 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret, idx;
+	int idx;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -175,23 +176,20 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
-		ret = pce_322a_weight_freq_set(sdi, (weight_freq[idx][0] == 'A') ?
+		return pce_322a_weight_freq_set(sdi, (weight_freq[idx][0] == 'A') ?
 			SR_MQFLAG_SPL_FREQ_WEIGHT_A : SR_MQFLAG_SPL_FREQ_WEIGHT_C);
-		break;
 	case SR_CONF_SPL_WEIGHT_TIME:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_time))) < 0)
 			return SR_ERR_ARG;
-		ret = pce_322a_weight_time_set(sdi, (weight_time[idx][0] == 'F') ?
+		return pce_322a_weight_time_set(sdi, (weight_time[idx][0] == 'F') ?
 			SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S);
-		break;
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(meas_ranges))) < 0)
 			return SR_ERR_ARG;
-		ret = pce_322a_meas_range_set(sdi, meas_ranges[idx][0], meas_ranges[idx][1]);
-		break;
+		return pce_322a_meas_range_set(sdi, meas_ranges[idx][0], meas_ranges[idx][1]);
 	case SR_CONF_POWER_OFF:
 		if (g_variant_get_boolean(data))
-			ret = pce_322a_power_off(sdi);
+			return pce_322a_power_off(sdi);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
@@ -199,10 +197,10 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 		devc->cur_data_source = idx;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

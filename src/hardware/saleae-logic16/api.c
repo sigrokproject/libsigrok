@@ -403,12 +403,10 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	int ret;
 	unsigned int i;
 
 	(void)cg;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
@@ -436,34 +434,31 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR;
 		devc = sdi->priv;
-		ret = SR_ERR;
 		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
 			if (devc->selected_voltage_range !=
 			    volt_thresholds_ranges[i].range)
 				continue;
 			*data = std_gvar_tuple_double(volt_thresholds[i][0], volt_thresholds[i][1]);
-			ret = SR_OK;
-			break;
+			return SR_OK;
 		}
-		break;
+		return SR_ERR;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret, idx;
+	int idx;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
@@ -473,18 +468,17 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
-		break;
+		return (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(volt_thresholds))) < 0)
 			return SR_ERR_ARG;
 		devc->selected_voltage_range = volt_thresholds_ranges[idx].range;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

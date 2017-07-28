@@ -142,11 +142,11 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_get(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->samplerate);
 		break;
@@ -176,22 +176,18 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	uint64_t samplerate;
-	int ret;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_SAMPLERATE:
 		samplerate = g_variant_get_uint64(data);
 		if (samplerate > MAX_SAMPLE_RATE) {
 			sr_err("Maximum sample rate is %d", MAX_SAMPLE_RATE);
-			ret = SR_ERR_SAMPLERATE;
-			break;
+			return SR_ERR_SAMPLERATE;
 		}
 		devc->samplerate = samplerate;
 		bl_acme_maybe_set_update_interval(sdi, samplerate);
@@ -199,18 +195,16 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		ret = bl_acme_set_shunt(cg, g_variant_get_uint64(data));
-		break;
+		return bl_acme_set_shunt(cg, g_variant_get_uint64(data));
 	case SR_CONF_POWER_OFF:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		ret = bl_acme_set_power_off(cg, g_variant_get_boolean(data));
-		break;
+		return bl_acme_set_power_off(cg, g_variant_get_boolean(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

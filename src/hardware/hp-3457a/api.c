@@ -245,7 +245,6 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	enum sr_mq mq;
 	enum sr_mqflag mq_flags;
 	struct dev_context *devc;
@@ -255,7 +254,6 @@ static int config_set(uint32_t key, GVariant *data,
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -265,17 +263,15 @@ static int config_set(uint32_t key, GVariant *data,
 		mq = g_variant_get_uint32(tuple_child);
 		tuple_child = g_variant_get_child_value(data, 1);
 		mq_flags = g_variant_get_uint64(tuple_child);
-		ret = hp_3457a_set_mq(sdi, mq, mq_flags);
 		g_variant_unref(tuple_child);
-		break;
+		return hp_3457a_set_mq(sdi, mq, mq_flags);
 	case SR_CONF_ADC_POWERLINE_CYCLES:
-		ret = hp_3457a_set_nplc(sdi, g_variant_get_double(data));
-		break;
+		return hp_3457a_set_nplc(sdi, g_variant_get_double(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

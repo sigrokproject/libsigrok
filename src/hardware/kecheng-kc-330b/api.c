@@ -217,7 +217,6 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_DATALOG:
 		/* There really isn't a way to be sure the device is logging. */
 		return SR_ERR_NA;
-		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if (devc->mqflags & SR_MQFLAG_SPL_FREQ_WEIGHT_A)
 			*data = g_variant_new_string("A");

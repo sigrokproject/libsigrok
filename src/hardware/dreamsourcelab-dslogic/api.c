@@ -443,7 +443,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int idx, ret;
+	int idx;
 	gdouble low, high;
 
 	(void)cg;
@@ -452,8 +452,6 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-
-	ret = SR_OK;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
@@ -466,17 +464,16 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
-		break;
+		return (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
 			if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(voltage_thresholds))) < 0)
 				return SR_ERR_ARG;
 			devc->cur_threshold = voltage_thresholds[idx][0];
-			ret = dslogic_fpga_firmware_upload(sdi);
+			return dslogic_fpga_firmware_upload(sdi);
 		} else {
 			g_variant_get(data, "(dd)", &low, &high);
-			ret = dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
+			return dslogic_set_voltage_threshold(sdi, (low + high) / 2.0);
 		}
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
@@ -491,10 +488,10 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->clock_edge = idx;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

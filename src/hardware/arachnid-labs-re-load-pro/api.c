@@ -237,29 +237,24 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int ret;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
-		ret = reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
-		break;
+		return reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
 	case SR_CONF_CURRENT_LIMIT:
-		ret = reloadpro_set_current_limit(sdi,
-			g_variant_get_double(data));
-		break;
+		return reloadpro_set_current_limit(sdi, g_variant_get_double(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

@@ -138,7 +138,9 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+
 	ret = SR_OK;
+
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
@@ -197,20 +199,18 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int tmp, ret, idx;
+	int tmp, idx;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_DATALOG:
-		ret = cem_dt_885x_recording_set(sdi, g_variant_get_boolean(data));
-		break;
+		return cem_dt_885x_recording_set(sdi, g_variant_get_boolean(data));
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)
 			return SR_ERR_ARG;
@@ -223,19 +223,17 @@ static int config_set(uint32_t key, GVariant *data,
 			SR_MQFLAG_SPL_TIME_WEIGHT_F : SR_MQFLAG_SPL_TIME_WEIGHT_S);
 	case SR_CONF_HOLD_MAX:
 		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MAX : 0;
-		ret = cem_dt_885x_holdmode_set(sdi, tmp);
-		break;
+		return cem_dt_885x_holdmode_set(sdi, tmp);
 	case SR_CONF_HOLD_MIN:
 		tmp = g_variant_get_boolean(data) ? SR_MQFLAG_MIN : 0;
-		ret = cem_dt_885x_holdmode_set(sdi, tmp);
-		break;
+		return cem_dt_885x_holdmode_set(sdi, tmp);
 	case SR_CONF_SPL_MEASUREMENT_RANGE:
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(meas_ranges))) < 0)
 			return SR_ERR_ARG;
 		return cem_dt_885x_meas_range_set(sdi, meas_ranges[idx][0], meas_ranges[idx][1]);
 	case SR_CONF_POWER_OFF:
 		if (g_variant_get_boolean(data))
-			ret = cem_dt_885x_power_off(sdi);
+			return cem_dt_885x_power_off(sdi);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
@@ -244,10 +242,10 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->enable_data_source_memory = (idx == DATA_SOURCE_MEMORY);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

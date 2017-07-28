@@ -228,7 +228,6 @@ static int config_get(int key, GVariant **data,
 static int config_set(int key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	struct dev_context *devc;
 	uint64_t num_samples;
 	const char *slope;
@@ -239,7 +238,6 @@ static int config_set(int key, GVariant *data,
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		// FIXME
@@ -248,9 +246,8 @@ static int config_set(int key, GVariant *data,
 		num_samples = g_variant_get_uint64(data);
 		if (num_samples != 1024) {
 			sr_err("Only 1024 samples are supported.");
-			ret = SR_ERR_ARG;
-			break;
-		};
+			return SR_ERR_ARG;
+		}
 		devc->limit_samples = num_samples;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
@@ -260,8 +257,7 @@ static int config_set(int key, GVariant *data,
 
 		if (!slope || !(slope[0] == 'f' || slope[0] == 'r'))
 			sr_err("Invalid trigger slope");
-			ret = SR_ERR_ARG;
-			break;
+			return SR_ERR_ARG;
 		}
 		devc->trigger_slope = (slope[0] == 'r')
 			? SLOPE_POSITIVE : SLOPE_NEGATIVE;
@@ -270,8 +266,7 @@ static int config_set(int key, GVariant *data,
 		pos = g_variant_get_double(data);
 		if (pos < 0 || pos > 255) {
 			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
-			ret = SR_ERR_ARG;
-			break;
+			return SR_ERR_ARG;
 		}
 		trigger_pos = (int)pos;
 		devc->trigger_holdoff[0] = trigger_pos & 0xff;
@@ -279,10 +274,10 @@ static int config_set(int key, GVariant *data,
 	case SR_CONF_RLE:
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(int key, GVariant **data,

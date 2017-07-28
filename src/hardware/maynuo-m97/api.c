@@ -321,39 +321,31 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
-	int ret;
 
 	(void)cg;
 
 	modbus = sdi->conn;
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
-		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
-		ret = maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
-		break;
+		return maynuo_m97_set_input(modbus, g_variant_get_boolean(data));
 	case SR_CONF_VOLTAGE_TARGET:
-		ret = maynuo_m97_set_float(modbus, UFIX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, UFIX, g_variant_get_double(data));
 	case SR_CONF_CURRENT_LIMIT:
-		ret = maynuo_m97_set_float(modbus, IFIX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, IFIX, g_variant_get_double(data));
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		ret = maynuo_m97_set_float(modbus, UMAX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, UMAX, g_variant_get_double(data));
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		ret = maynuo_m97_set_float(modbus, IMAX, g_variant_get_double(data));
-		break;
+		return maynuo_m97_set_float(modbus, IMAX, g_variant_get_double(data));
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

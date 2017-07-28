@@ -401,6 +401,7 @@ static int config_list(uint32_t key, GVariant **data,
 	default:
 		return SR_ERR_NA;
 	}
+
 	return SR_OK;
 }
 

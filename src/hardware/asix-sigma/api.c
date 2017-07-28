@@ -194,17 +194,14 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	uint64_t tmp;
-	int ret;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		ret = sigma_set_samplerate(sdi, g_variant_get_uint64(data));
-		break;
+		return sigma_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		break;
@@ -222,10 +219,10 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 #endif
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

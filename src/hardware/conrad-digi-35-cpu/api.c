@@ -93,7 +93,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
 	double dblval;
 
 	(void)cg;
@@ -105,27 +104,24 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_err("Voltage out of range (0 - 35.0)!");
 			return SR_ERR_ARG;
 		}
-		ret = send_msg1(sdi, 'V', (int) (dblval * 10 + 0.5));
-		break;
+		return send_msg1(sdi, 'V', (int) (dblval * 10 + 0.5));
 	case SR_CONF_CURRENT:
 		dblval = g_variant_get_double(data);
 		if ((dblval < 0.01) || (dblval > 2.55)) {
 			sr_err("Current out of range (0 - 2.55)!");
 			return SR_ERR_ARG;
 		}
-		ret = send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
-		break;
+		return send_msg1(sdi, 'C', (int) (dblval * 100 + 0.5));
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			ret = send_msg1(sdi, 'V', 900);
+			return send_msg1(sdi, 'V', 900);
 		else /* Constant current mode */
-			ret = send_msg1(sdi, 'V', 901);
-		break;
+			return send_msg1(sdi, 'V', 901);
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

@@ -488,7 +488,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int idx, ret;
+	int idx;
 
 	(void)cg;
 
@@ -496,8 +496,6 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-
-	ret = SR_OK;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
@@ -510,13 +508,12 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		ret = (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
-		break;
+		return (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

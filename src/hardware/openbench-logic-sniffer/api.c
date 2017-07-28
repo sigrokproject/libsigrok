@@ -198,6 +198,7 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
@@ -232,7 +233,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	uint16_t flag;
 	uint64_t tmp_u64;
-	int ret;
 	const char *stropt;
 
 	(void)cg;
@@ -244,21 +244,19 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
 			return SR_ERR_SAMPLERATE;
-		ret = ols_set_samplerate(sdi, g_variant_get_uint64(data));
-		break;
+		return ols_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
 		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-			ret = SR_ERR;
+			return SR_ERR;
 		else
-			ret = SR_OK;
+			return SR_OK;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {
@@ -268,23 +266,21 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_info("Disabled external clock.");
 			devc->flag_reg &= ~FLAG_CLOCK_EXTERNAL;
 		}
-		ret = SR_OK;
 		break;
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);
-		ret = SR_OK;
 		flag = 0xffff;
 		if (!strcmp(stropt, STR_PATTERN_NONE)) {
 			sr_info("Disabling test modes.");
 			flag = 0x0000;
-		}else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
+		} else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
 			sr_info("Enabling internal test mode.");
 			flag = FLAG_INTERNAL_TEST_MODE;
 		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
 			sr_info("Enabling external test mode.");
 			flag = FLAG_EXTERNAL_TEST_MODE;
 		} else {
-			ret = SR_ERR;
+			return SR_ERR;
 		}
 		if (flag != 0xffff) {
 			devc->flag_reg &= ~(FLAG_INTERNAL_TEST_MODE | FLAG_EXTERNAL_TEST_MODE);
@@ -299,9 +295,7 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_info("Disabling channel swapping.");
 			devc->flag_reg &= ~FLAG_SWAP_CHANNELS;
 		}
-		ret = SR_OK;
 		break;
-
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
@@ -310,13 +304,12 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_info("Disabling RLE.");
 			devc->flag_reg &= ~FLAG_RLE;
 		}
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

@@ -240,31 +240,27 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	gdouble dval;
-	int channel, ret, ival;
+	int channel, ival;
 	gboolean bval;
 
-	ret = SR_OK;
 	devc = sdi->priv;
+
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
 			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
-			if (devc->model->channel_modes && (1 << ival) == 0) {
-				/* Not supported on this model. */
-				ret = SR_ERR_ARG;
-			}
+			if (devc->model->channel_modes && (1 << ival) == 0)
+				return SR_ERR_ARG; /* Not supported on this model. */
 			if (ival == devc->channel_mode_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->channel_mode_set = ival;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->over_current_protection_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->over_current_protection_set = bval;
 			devc->config_dirty = TRUE;
 			break;
@@ -280,31 +276,30 @@ static int config_set(uint32_t key, GVariant *data,
 		case SR_CONF_VOLTAGE_TARGET:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[channel].voltage[1])
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			devc->config[channel].output_voltage_max = dval;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_CURRENT_LIMIT:
 			dval = g_variant_get_double(data);
 			if (dval < 0 || dval > devc->model->channels[channel].current[1])
-				ret = SR_ERR_ARG;
+				return SR_ERR_ARG;
 			devc->config[channel].output_current_max = dval;
 			devc->config_dirty = TRUE;
 			break;
 		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
 			if (bval == devc->config[channel].output_enabled_set)
-				/* Nothing to do. */
-				break;
+				break; /* Nothing to do. */
 			devc->config[channel].output_enabled_set = bval;
 			devc->config_dirty = TRUE;
 			break;
 		default:
-			ret = SR_ERR_NA;
+			return SR_ERR_NA;
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

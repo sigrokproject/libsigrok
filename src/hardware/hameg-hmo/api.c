@@ -154,7 +154,7 @@ static int check_channel_group(struct dev_context *devc,
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, cg_type;
+	int cg_type;
 	unsigned int i;
 	struct dev_context *devc;
 	const struct scope_config *model;
@@ -168,19 +168,16 @@ static int config_get(uint32_t key, GVariant **data,
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
-	ret = SR_ERR_NA;
 	model = devc->model_config;
 	state = devc->model_state;
 
 	switch (key) {
 	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(model->num_xdivs);
-		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)", (*model->timebases)[state->timebase][0],
 				      (*model->timebases)[state->timebase][1]);
-		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
 		if (cg_type == CG_NONE) {
@@ -190,12 +187,10 @@ static int config_get(uint32_t key, GVariant **data,
 				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_int32(model->num_ydivs);
-				ret = SR_OK;
 				break;
 			}
-
 		} else {
-			ret = SR_ERR_NA;
+			return SR_ERR_NA;
 		}
 		break;
 	case SR_CONF_VDIV:
@@ -208,25 +203,20 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new("(tt)",
 						      (*model->vdivs)[state->analog_channels[i].vdiv][0],
 						      (*model->vdivs)[state->analog_channels[i].vdiv][1]);
-				ret = SR_OK;
 				break;
 			}
-
 		} else {
-			ret = SR_ERR_NA;
+			return SR_ERR_NA;
 		}
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
-		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
-		ret = SR_OK;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(state->horiz_triggerpos);
-		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE) {
@@ -236,23 +226,20 @@ static int config_get(uint32_t key, GVariant **data,
 				if (cg != devc->analog_groups[i])
 					continue;
 				*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[i].coupling]);
-				ret = SR_OK;
 				break;
 			}
-
 		} else {
-			ret = SR_ERR_NA;
+			return SR_ERR_NA;
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
-		ret = SR_OK;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,

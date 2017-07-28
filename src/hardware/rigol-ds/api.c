@@ -632,7 +632,6 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR;
 	}
 
-	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->limit_frames = g_variant_get_uint64(data);
@@ -642,8 +641,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		g_free(devc->trigger_slope);
 		devc->trigger_slope = g_strdup((trigger_slopes[idx][0] == 'r') ? "POS" : "NEG");
-		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
-		break;
+		return rigol_ds_config_set(sdi, ":TRIG:EDGE:SLOP %s", devc->trigger_slope);
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
 		if (t_dbl < 0.0 || t_dbl > 1.0) {
@@ -655,23 +653,21 @@ static int config_set(uint32_t key, GVariant *data,
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
-		ret = rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
-		break;
+		return rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
 	case SR_CONF_TRIGGER_LEVEL:
 		t_dbl = g_variant_get_double(data);
 		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", t_dbl);
 		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:LEV %s", buffer);
 		if (ret == SR_OK)
 			devc->trigger_level = t_dbl;
-		break;
+		return ret;
 	case SR_CONF_TIMEBASE:
 		if ((idx = std_u64_tuple_idx(data, devc->timebases, devc->num_timebases)) < 0)
 			return SR_ERR_ARG;
 		devc->timebase = (float)devc->timebases[idx][0] / devc->timebases[idx][1];
 		g_ascii_formatd(buffer, sizeof(buffer), "%.9f",
 		                devc->timebase);
-		ret = rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
-		break;
+		return rigol_ds_config_set(sdi, ":TIM:SCAL %s", buffer);
 	case SR_CONF_TRIGGER_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 			return SR_ERR_ARG;
@@ -689,8 +685,7 @@ static int config_set(uint32_t key, GVariant *data,
 			tmp_str = "CHAN4";
 		else
 			tmp_str = (char *)devc->trigger_source;
-		ret = rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
-		break;
+		return rigol_ds_config_set(sdi, ":TRIG:EDGE:SOUR %s", tmp_str);
 	case SR_CONF_VDIV:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
@@ -759,7 +754,7 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
