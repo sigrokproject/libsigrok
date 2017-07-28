@@ -161,7 +161,6 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64;
 	int ret, idx;
 
 	(void)cg;
@@ -171,9 +170,7 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp_u64 = g_variant_get_uint64(data);
-		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
+		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SPL_WEIGHT_FREQ:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(weight_freq))) < 0)

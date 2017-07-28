@@ -348,8 +348,6 @@ static int config_set(uint32_t key, GVariant *data,
 		/* TODO: Implement. */
 		return SR_ERR_NA;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (g_variant_get_uint64(data) == 0)
-			return SR_ERR_ARG;
 		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_SAMPLERATE:

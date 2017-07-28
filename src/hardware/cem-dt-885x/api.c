@@ -197,7 +197,6 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp_u64;
 	int tmp, ret, idx;
 
 	(void)cg;
@@ -207,9 +206,7 @@ static int config_set(uint32_t key, GVariant *data,
 	ret = SR_OK;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp_u64 = g_variant_get_uint64(data);
-		devc->limit_samples = tmp_u64;
-		ret = SR_OK;
+		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_DATALOG:
 		ret = cem_dt_885x_recording_set(sdi, g_variant_get_boolean(data));

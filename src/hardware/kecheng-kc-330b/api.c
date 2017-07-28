@@ -255,8 +255,6 @@ static int config_set(uint32_t key, GVariant *data,
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("Setting sample limit to %" PRIu64 ".",
-		       devc->limit_samples);
 		break;
 	case SR_CONF_SAMPLE_INTERVAL:
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals))) < 0)

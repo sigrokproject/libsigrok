@@ -666,9 +666,9 @@ static int check_key(const struct sr_dev_driver *driver,
 	const char *opstr;
 
 	if (sdi && cg)
-		suffix = " for this device and channel group";
+		suffix = " for this device instance and channel group";
 	else if (sdi)
-		suffix = " for this device";
+		suffix = " for this device instance";
 	else
 		suffix = "";
 

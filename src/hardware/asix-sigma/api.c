@@ -206,11 +206,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = sigma_set_samplerate(sdi, g_variant_get_uint64(data));
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		tmp = g_variant_get_uint64(data);
-		if (tmp > 0)
-			devc->limit_msec = g_variant_get_uint64(data);
-		else
-			ret = SR_ERR;
+		devc->limit_msec = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp = g_variant_get_uint64(data);
