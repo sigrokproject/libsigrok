@@ -690,6 +690,15 @@ static int check_key(const struct sr_dev_driver *driver,
 			return SR_ERR_ARG;
 		}
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		/* Capture ratio must always be between 0 and 100. */
+		if (op != SR_CONF_SET || !data)
+			break;
+		if (g_variant_get_uint64(data) > 100) {
+			sr_err("Capture ratio must be 0..100.");
+			return SR_ERR_ARG;
+		}
+		break;
 	}
 
 	if (sr_config_list(driver, sdi, cg, SR_CONF_DEVICE_OPTIONS, &gvar_opts) != SR_OK) {

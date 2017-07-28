@@ -1127,7 +1127,7 @@ SR_PRIV int lls_start_acquisition(const struct sr_dev_inst *sdi)
 
 	total_samples = devc->num_thousand_samples * 1000;
 
-	pre_trigger_samples = total_samples * devc->capture_ratio / 100;
+	pre_trigger_samples = (total_samples * devc->capture_ratio) / 100;
 	post_trigger_samples = total_samples - pre_trigger_samples;
 
 	pre_trigger_tr = transform_sample_count(devc, pre_trigger_samples);

@@ -614,7 +614,7 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		int pre_trigger_samples = 0;
 		if (devc->limit_samples > 0)
-			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
 		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
 		if (!devc->stl)
 			return SR_ERR_MALLOC;

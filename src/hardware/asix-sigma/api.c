@@ -193,7 +193,6 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t tmp;
 
 	(void)cg;
 
@@ -206,16 +205,13 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limit_msec = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		tmp = g_variant_get_uint64(data);
-		devc->limit_samples = tmp;
-		devc->limit_msec = sigma_limit_samples_to_msec(devc, tmp);
+		devc->limit_samples = g_variant_get_uint64(data);
+		devc->limit_msec = sigma_limit_samples_to_msec(devc,
+						devc->limit_samples);
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
-		tmp = g_variant_get_uint64(data);
-		if (tmp > 100)
-			return SR_ERR;
-		devc->capture_ratio = tmp;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 #endif
 	default:

@@ -227,9 +227,7 @@ static int config_set(uint32_t key, GVariant *data,
 		return beaglelogic_set_triggerflags(devc);
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio > 100)
-			return SR_ERR;
-		return SR_OK;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -279,7 +277,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		int pre_trigger_samples = 0;
 		if (devc->limit_samples > 0)
-			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
 		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
 		if (!devc->stl)
 			return SR_ERR_MALLOC;

@@ -138,7 +138,7 @@ struct dev_context {
 	uint8_t trigger_channel;
 	uint8_t trigger_type;
 
-	unsigned int capture_ratio;
+	uint64_t capture_ratio;
 
 	/* Time that the trigger will be delayed in milliseconds. */
 	uint16_t after_trigger_delay;
@@ -218,8 +218,6 @@ SR_PRIV int sl2_set_samplerate(const struct sr_dev_inst *sdi,
 SR_PRIV int sl2_set_limit_samples(const struct sr_dev_inst *sdi,
 				  uint64_t limit_samples);
 SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi);
-SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
-				  uint64_t capture_ratio);
 SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
 					uint64_t after_trigger_delay);
 SR_PRIV void sl2_calculate_trigger_samples(const struct sr_dev_inst *sdi);

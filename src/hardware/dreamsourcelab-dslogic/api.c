@@ -464,7 +464,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		return (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
+		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
 			if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(voltage_thresholds))) < 0)

@@ -531,25 +531,6 @@ SR_PRIV int sl2_convert_trigger(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int sl2_set_capture_ratio(const struct sr_dev_inst *sdi,
-				  uint64_t capture_ratio)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (capture_ratio > 100) {
-		sr_err("Invalid capture ratio: %" PRIu64 " %%.", capture_ratio);
-		return SR_ERR_ARG;
-	}
-
-	sr_info("Capture ratio set to %" PRIu64 " %%.", capture_ratio);
-
-	devc->capture_ratio = capture_ratio;
-
-	return SR_OK;
-}
-
 SR_PRIV int sl2_set_after_trigger_delay(const struct sr_dev_inst *sdi,
 					uint64_t after_trigger_delay)
 {

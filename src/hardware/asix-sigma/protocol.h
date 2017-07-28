@@ -264,7 +264,7 @@ struct dev_context {
 	int num_channels;
 	int cur_channels;
 	int samples_per_event;
-	int capture_ratio;
+	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;

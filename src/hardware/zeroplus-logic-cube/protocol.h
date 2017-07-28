@@ -42,7 +42,7 @@ struct dev_context {
 	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
 	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
 	int trigger;
-	unsigned int capture_ratio;
+	uint64_t capture_ratio;
 	double cur_threshold;
 	const struct zp_model *prof;
 };
@@ -50,7 +50,6 @@ struct dev_context {
 SR_PRIV unsigned int get_memory_size(int type);
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples);
-SR_PRIV int set_capture_ratio(struct dev_context *devc, uint64_t ratio);
 SR_PRIV int set_voltage_threshold(struct dev_context *devc, double thresh);
 SR_PRIV void set_triggerbar(struct dev_context *devc);
 

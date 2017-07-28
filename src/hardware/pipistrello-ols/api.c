@@ -264,10 +264,6 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-			return SR_ERR;
-		else
-			return SR_OK;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {

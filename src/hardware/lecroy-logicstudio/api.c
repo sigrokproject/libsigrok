@@ -393,8 +393,6 @@ static int config_set(uint32_t key, GVariant *data,
 		return lls_set_samplerate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		if (devc->capture_ratio > 100)
-			return SR_ERR;
 		break;
 	default:
 		return SR_ERR_NA;

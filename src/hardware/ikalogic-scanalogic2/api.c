@@ -270,9 +270,12 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	uint64_t samplerate, limit_samples, capture_ratio;
+	struct dev_context *devc;
+	uint64_t samplerate, limit_samples;
 
 	(void)cg;
+
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -282,8 +285,8 @@ static int config_set(uint32_t key, GVariant *data,
 		samplerate = g_variant_get_uint64(data);
 		return sl2_set_samplerate(sdi, samplerate);
 	case SR_CONF_CAPTURE_RATIO:
-		capture_ratio = g_variant_get_uint64(data);
-		return sl2_set_capture_ratio(sdi, capture_ratio);
+		devc->capture_ratio = g_variant_get_uint64(data);
+		break;
 	default:
 		return SR_ERR_NA;
 	}

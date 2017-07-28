@@ -87,7 +87,7 @@ struct dev_context {
 	uint32_t cur_samplerate_divider;
 	uint32_t max_samples;
 	uint64_t limit_samples;
-	int capture_ratio;
+	uint64_t capture_ratio;
 	int trigger_at;
 	uint32_t channel_mask;
 	uint32_t trigger_mask[NUM_TRIGGER_STAGES];

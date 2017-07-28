@@ -468,7 +468,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		return (devc->capture_ratio > 100) ? SR_ERR : SR_OK;
+		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(volt_thresholds))) < 0)
 			return SR_ERR_ARG;
@@ -649,7 +649,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		int pre_trigger_samples = 0;
 		if (devc->limit_samples > 0)
-			pre_trigger_samples = devc->capture_ratio * devc->limit_samples/100;
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
 		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
 		if (!devc->stl)
 			return SR_ERR_MALLOC;

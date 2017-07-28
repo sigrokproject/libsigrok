@@ -372,7 +372,8 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_SAMPLES:
 		return set_limit_samples(devc, g_variant_get_uint64(data));
 	case SR_CONF_CAPTURE_RATIO:
-		return set_capture_ratio(devc, g_variant_get_uint64(data));
+		devc->capture_ratio = g_variant_get_uint64(data);
+		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		return set_voltage_threshold(devc, (low + high) / 2.0);
