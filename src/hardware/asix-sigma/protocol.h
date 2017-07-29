@@ -246,9 +246,9 @@ struct sigma_state {
 		SIGMA_UNINITIALIZED = 0,
 		SIGMA_IDLE,
 		SIGMA_CAPTURE,
+		SIGMA_STOPPING,
 		SIGMA_DOWNLOAD,
 	} state;
-
 	uint16_t lastts;
 	uint16_t lastsample;
 };

@@ -363,9 +363,20 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-	devc->state.state = SIGMA_IDLE;
 
-	sr_session_source_remove(sdi->session, -1);
+	/*
+	 * When acquisition is currently running, keep the receive
+	 * routine registered and have it stop the acquisition upon the
+	 * next invocation. Else unregister the receive routine here
+	 * already. The detour is required to have sample data retrieved
+	 * for forced acquisition stops.
+	 */
+	if (devc->state.state == SIGMA_CAPTURE) {
+		devc->state.state = SIGMA_STOPPING;
+	} else {
+		devc->state.state = SIGMA_IDLE;
+		sr_session_source_remove(sdi->session, -1);
+	}
 
 	return SR_OK;
 }
