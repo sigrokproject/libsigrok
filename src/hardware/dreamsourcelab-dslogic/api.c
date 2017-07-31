@@ -67,7 +67,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const char *signal_edge_names[] = {
+static const char *signal_edges[] = {
 	[DS_EDGE_RISING] = "rising",
 	[DS_EDGE_FALLING] = "falling",
 };
@@ -428,9 +428,9 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = devc->clock_edge;
-		if (idx >= (int)ARRAY_SIZE(signal_edge_names))
+		if (idx >= (int)ARRAY_SIZE(signal_edges))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(signal_edge_names[0]);
+		*data = g_variant_new_string(signal_edges[0]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -483,7 +483,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->continuous_mode = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)
 			return SR_ERR_ARG;
 		devc->clock_edge = idx;
 		break;
@@ -515,7 +515,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edge_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edges));
 		break;
 	default:
 		return SR_ERR_NA;

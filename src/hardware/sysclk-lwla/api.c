@@ -41,12 +41,12 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static const char *trigger_source_names[] = {
+static const char *trigger_sources[] = {
 	[TRIGGER_CHANNELS] = "CH",
 	[TRIGGER_EXT_TRG] = "TRG",
 };
 
-static const char *signal_edge_names[] = {
+static const char *signal_edges[] = {
 	[EDGE_POSITIVE] = "r",
 	[EDGE_NEGATIVE] = "f",
 };
@@ -358,21 +358,21 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = devc->cfg_clock_edge;
-		if (idx >= ARRAY_SIZE(signal_edge_names))
+		if (idx >= ARRAY_SIZE(signal_edges))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(signal_edge_names[idx]);
+		*data = g_variant_new_string(signal_edges[idx]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = devc->cfg_trigger_source;
-		if (idx >= ARRAY_SIZE(trigger_source_names))
+		if (idx >= ARRAY_SIZE(trigger_sources))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(trigger_source_names[idx]);
+		*data = g_variant_new_string(trigger_sources[idx]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		idx = devc->cfg_trigger_slope;
-		if (idx >= ARRAY_SIZE(signal_edge_names))
+		if (idx >= ARRAY_SIZE(signal_edges))
 			return SR_ERR_BUG;
-		*data = g_variant_new_string(signal_edge_names[idx]);
+		*data = g_variant_new_string(signal_edges[idx]);
 		break;
 	default:
 		/* Must not happen for a key listed in devopts. */
@@ -427,17 +427,17 @@ static int config_set(uint32_t key, GVariant *data,
 			? CLOCK_EXT_CLK : CLOCK_INTERNAL;
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_clock_edge = idx;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_source_names))) < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edge_names))) < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)
 			return SR_ERR_ARG;
 		devc->cfg_trigger_slope = idx;
 		break;
@@ -595,11 +595,11 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_source_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 	case SR_CONF_CLOCK_EDGE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edge_names));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edges));
 		break;
 	default:
 		/* Must not happen for a key listed in devopts. */
