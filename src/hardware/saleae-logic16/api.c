@@ -72,12 +72,12 @@ static const char *channel_names[] = {
 
 static const struct {
 	enum voltage_range range;
-} volt_thresholds_ranges[] = {
+} thresholds_ranges[] = {
 	{ VOLTAGE_RANGE_18_33_V, },
 	{ VOLTAGE_RANGE_5_V, },
 };
 
-static const double volt_thresholds[][2] = {
+static const double thresholds[][2] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -434,11 +434,10 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR;
 		devc = sdi->priv;
-		for (i = 0; i < ARRAY_SIZE(volt_thresholds); i++) {
-			if (devc->selected_voltage_range !=
-			    volt_thresholds_ranges[i].range)
+		for (i = 0; i < ARRAY_SIZE(thresholds); i++) {
+			if (devc->selected_voltage_range != thresholds_ranges[i].range)
 				continue;
-			*data = std_gvar_tuple_double(volt_thresholds[i][0], volt_thresholds[i][1]);
+			*data = std_gvar_tuple_double(thresholds[i][0], thresholds[i][1]);
 			return SR_OK;
 		}
 		return SR_ERR;
@@ -470,9 +469,9 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(volt_thresholds))) < 0)
+		if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(thresholds))) < 0)
 			return SR_ERR_ARG;
-		devc->selected_voltage_range = volt_thresholds_ranges[idx].range;
+		devc->selected_voltage_range = thresholds_ranges[idx].range;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -492,7 +491,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_thresholds(ARRAY_AND_SIZE(volt_thresholds));
+		*data = std_gvar_thresholds(ARRAY_AND_SIZE(thresholds));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));

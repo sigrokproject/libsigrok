@@ -72,7 +72,7 @@ static const char *signal_edges[] = {
 	[DS_EDGE_FALLING] = "falling",
 };
 
-static const double voltage_thresholds[][2] = {
+static const double thresholds[][2] = {
 	{ 0.7, 1.4 },
 	{ 1.4, 3.6 },
 };
@@ -403,10 +403,10 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
 			if ((idx = std_double_tuple_idx_d0(devc->cur_threshold,
-					ARRAY_AND_SIZE(voltage_thresholds))) < 0)
+					ARRAY_AND_SIZE(thresholds))) < 0)
 				return SR_ERR_BUG;
-			*data = std_gvar_tuple_double(voltage_thresholds[idx][0],
-					voltage_thresholds[idx][1]);
+			*data = std_gvar_tuple_double(thresholds[idx][0],
+					thresholds[idx][1]);
 		} else {
 			*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
 		}
@@ -467,9 +467,9 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic")) {
-			if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(voltage_thresholds))) < 0)
+			if ((idx = std_double_tuple_idx(data, ARRAY_AND_SIZE(thresholds))) < 0)
 				return SR_ERR_ARG;
-			devc->cur_threshold = voltage_thresholds[idx][0];
+			devc->cur_threshold = thresholds[idx][0];
 			return dslogic_fpga_firmware_upload(sdi);
 		} else {
 			g_variant_get(data, "(dd)", &low, &high);
@@ -507,7 +507,7 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!strcmp(devc->profile->model, "DSLogic"))
-			*data = std_gvar_thresholds(ARRAY_AND_SIZE(voltage_thresholds));
+			*data = std_gvar_thresholds(ARRAY_AND_SIZE(thresholds));
 		else
 			*data = std_gvar_min_max_step_thresholds(0.0, 5.0, 0.1);
 		break;
