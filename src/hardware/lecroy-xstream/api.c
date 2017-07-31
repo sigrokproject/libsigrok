@@ -52,7 +52,7 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static struct sr_dev_inst *probe_serial_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -101,7 +101,7 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	return sr_scpi_scan(di->context, options, probe_serial_device);
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static void clear_helper(struct dev_context *devc)

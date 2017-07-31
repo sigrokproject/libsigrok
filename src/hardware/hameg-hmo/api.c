@@ -47,7 +47,7 @@ enum {
 	CG_DIGITAL,
 };
 
-static struct sr_dev_inst *hmo_probe_serial_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -96,7 +96,7 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	return sr_scpi_scan(di->context, options, hmo_probe_serial_device);
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static void clear_helper(struct dev_context *devc)

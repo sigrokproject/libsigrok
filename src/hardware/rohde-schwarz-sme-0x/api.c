@@ -105,7 +105,7 @@ static int rs_init_device(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static struct sr_dev_inst *rs_probe_serial_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -152,7 +152,7 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	return sr_scpi_scan(di->context, options, rs_probe_serial_device);
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
