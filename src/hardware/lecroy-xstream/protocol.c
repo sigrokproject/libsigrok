@@ -80,15 +80,14 @@ static const char *coupling_options[] = {
 	"D1M", // DC with 1 MOhm termination
 	"GND",
 	"OVL",
-	NULL,
 };
 
 static const char *scope_trigger_slopes[] = {
-	"POS", "NEG", NULL,
+	"POS", "NEG",
 };
 
 static const char *trigger_sources[] = {
-	"C1", "C2", "C3", "C4", "LINE", "EXT", NULL,
+	"C1", "C2", "C3", "C4", "LINE", "EXT",
 };
 
 static const struct sr_rational timebases[] = {
@@ -173,8 +172,13 @@ static const struct scope_config scope_models[] = {
 		.analog_names = &scope_analog_channel_names,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources),
+
 		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
 		.timebases = timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -218,11 +222,11 @@ static void scope_state_dump(const struct scope_config *config,
 }
 
 static int scope_state_get_array_option(const char *resp,
-					const char *(*array)[], int *result)
+	const char *(*array)[], unsigned int n, int *result)
 {
 	unsigned int i;
 
-	for (i = 0; (*array)[i]; i++) {
+	for (i = 0; i < n; i++) {
 		if (!g_strcmp0(resp, (*array)[i])) {
 			*result = i;
 			return SR_OK;
@@ -302,6 +306,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 
 
 		if (scope_state_get_array_option(tmp_str, config->coupling_options,
+				 config->num_coupling_options,
 				 &state->analog_channels[i].coupling) != SR_OK)
 			return SR_ERR;
 
@@ -383,7 +388,7 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		i++;
 	}
 
-	if (!trig_source || scope_state_get_array_option(trig_source, config->trigger_sources, &state->trigger_source) != SR_OK)
+	if (!trig_source || scope_state_get_array_option(trig_source, config->trigger_sources, config->num_trigger_sources, &state->trigger_source) != SR_OK)
 		return SR_ERR;
 
 	g_snprintf(command, sizeof(command), "%s:TRIG_SLOPE?", trig_source);
@@ -391,7 +396,7 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	if (scope_state_get_array_option(tmp_str,
-		config->trigger_slopes, &state->trigger_slope) != SR_OK)
+		config->trigger_slopes, config->num_trigger_slopes, &state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn, "TRIG_DELAY?",	&state->horiz_triggerpos) != SR_OK)

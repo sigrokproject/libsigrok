@@ -80,28 +80,24 @@ static const char *coupling_options[] = {
 	"DC",  // DC with 50 Ohm termination
 	"DCL", // DC with 1 MOhm termination
 	"GND",
-	NULL,
 };
 
 static const char *scope_trigger_slopes[] = {
 	"POS",
 	"NEG",
 	"EITH",
-	NULL,
 };
 
 static const char *compact2_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
-	NULL,
 };
 
 static const char *compact4_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
-	NULL,
 };
 
 static const char *compact4_dig16_trigger_sources[] = {
@@ -109,7 +105,6 @@ static const char *compact4_dig16_trigger_sources[] = {
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
-	NULL,
 };
 
 static const uint64_t timebases[][2] = {
@@ -199,8 +194,13 @@ static const struct scope_config scope_models[] = {
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &compact2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(compact2_trigger_sources),
+
 		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -229,8 +229,13 @@ static const struct scope_config scope_models[] = {
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &compact4_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(compact4_trigger_sources),
+
 		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -259,8 +264,13 @@ static const struct scope_config scope_models[] = {
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &compact4_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(compact4_dig16_trigger_sources),
+
 		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -316,7 +326,7 @@ static void scope_state_dump(const struct scope_config *config,
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
-		const char *command, const char *(*array)[], int *result)
+		const char *command, const char *(*array)[], unsigned int n, int *result)
 {
 	char *tmp;
 	unsigned int i;
@@ -326,7 +336,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 		return SR_ERR;
 	}
 
-	for (i = 0; (*array)[i]; i++) {
+	for (i = 0; i < n; i++) {
 		if (!g_strcmp0(tmp, (*array)[i])) {
 			*result = i;
 			g_free(tmp);
@@ -420,6 +430,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 			   i + 1);
 
 		if (scope_state_get_array_option(scpi, command, config->coupling_options,
+					 config->num_coupling_options,
 					 &state->analog_channels[i].coupling) != SR_OK)
 			return SR_ERR;
 
@@ -584,12 +595,14 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 
 	if (scope_state_get_array_option(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
-			config->trigger_sources, &state->trigger_source) != SR_OK)
+			config->trigger_sources, config->num_trigger_sources,
+			&state->trigger_source) != SR_OK)
 		return SR_ERR;
 
 	if (scope_state_get_array_option(sdi->conn,
-		(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
-		config->trigger_slopes, &state->trigger_slope) != SR_OK)
+			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
+			config->trigger_slopes, config->num_trigger_slopes,
+			&state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
 	if (hmo_update_sample_rate(sdi) != SR_OK)

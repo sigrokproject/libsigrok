@@ -49,7 +49,7 @@ enum trigger_slopes {
 	SLOPE_NEGATIVE
 };
 
-extern const char *dlm_trigger_slopes[3];
+extern const char *dlm_trigger_slopes[2];
 extern const uint64_t dlm_timebases[36][2];
 extern const uint64_t dlm_vdivs[17][2];
 

@@ -24,12 +24,10 @@
 
 static const char *coupling_options[] = {
 	"AC", "DC", "DC50", "GND",
-	NULL,
 };
 
 static const char *trigger_sources_2ch[] = {
 	"1", "2", "LINE", "EXT",
-	NULL,
 };
 
 /* TODO: Is BITx handled correctly or is Dx required? */
@@ -37,13 +35,11 @@ static const char *trigger_sources_4ch[] = {
 	"1", "2", "3", "4",
 	"LINE", "EXT", "BIT1",
 	"BIT2", "BIT3", "BIT4", "BIT5", "BIT6", "BIT7", "BIT8",
-	NULL,
 };
 
 /* Note: Values must correlate to the trigger_slopes values. */
-const char *dlm_trigger_slopes[3] = {
+const char *dlm_trigger_slopes[2] = {
 	"r", "f",
-	NULL,
 };
 
 const uint64_t dlm_timebases[36][2] = {
@@ -138,7 +134,10 @@ static const struct scope_config scope_models[] = {
 		.digital_names = &scope_digital_channel_names_8,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources_2ch,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources_2ch),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -154,7 +153,10 @@ static const struct scope_config scope_models[] = {
 		.digital_names = &scope_digital_channel_names_8,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources_4ch,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources_4ch),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -172,7 +174,10 @@ static const struct scope_config scope_models[] = {
 		.digital_names = NULL,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources_4ch,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources_4ch),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -188,7 +193,10 @@ static const struct scope_config scope_models[] = {
 		.digital_names = &scope_digital_channel_names_32,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources_4ch,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources_4ch),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -204,7 +212,10 @@ static const struct scope_config scope_models[] = {
 		.digital_names = &scope_digital_channel_names_32,
 
 		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
 		.trigger_sources = &trigger_sources_4ch,
+		.num_trigger_sources = ARRAY_SIZE(trigger_sources_4ch),
 
 		.num_xdivs = 10,
 		.num_ydivs = 8,
@@ -271,13 +282,13 @@ static void scope_state_dump(const struct scope_config *config,
  * @return SR_ERR when value couldn't be found, SR_OK otherwise.
  */
 static int array_option_get(char *value, const char *(*array)[],
-		int *result)
+		unsigned int n, int *result)
 {
 	unsigned int i;
 
 	*result = -1;
 
-	for (i = 0; (*array)[i]; i++)
+	for (i = 0; i < n; i++)
 		if (!g_strcmp0(value, (*array)[i])) {
 			*result = i;
 			break;
@@ -425,6 +436,7 @@ static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 		}
 
 		if (array_option_get(response, config->coupling_options,
+				config->num_coupling_options,
 				&state->analog_states[i].coupling) != SR_OK) {
 			g_free(response);
 			return SR_ERR;
@@ -660,7 +672,7 @@ SR_PRIV int dlm_scope_state_query(struct sr_dev_inst *sdi)
 	}
 
 	if (array_option_get(response, config->trigger_sources,
-			&state->trigger_source) != SR_OK) {
+			config->num_trigger_sources, &state->trigger_source) != SR_OK) {
 		g_free(response);
 		return SR_ERR;
 	}

@@ -276,7 +276,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		tmp = g_variant_get_string(data, NULL);
-		for (i = 0; (*model->trigger_sources)[i]; i++) {
+		for (i = 0; i < model->num_trigger_sources; i++) {
 			if (g_strcmp0(tmp, (*model->trigger_sources)[i]) != 0)
 				continue;
 			state->trigger_source = i;
@@ -342,7 +342,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp = g_variant_get_string(data, NULL);
-		for (i = 0; (*model->trigger_slopes)[i]; i++) {
+		for (i = 0; i < model->num_trigger_slopes; i++) {
 			if (g_strcmp0(tmp, (*model->trigger_slopes)[i]) != 0)
 				continue;
 			state->trigger_slope = i;
@@ -360,7 +360,7 @@ static int config_set(uint32_t key, GVariant *data,
 
 		tmp = g_variant_get_string(data, NULL);
 
-		for (i = 0; (*model->coupling_options)[i]; i++) {
+		for (i = 0; i < model->num_coupling_options; i++) {
 			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
 				continue;
 			for (j = 1; j <= model->analog_channels; j++) {
@@ -430,20 +430,17 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = g_variant_new_strv(*model->coupling_options,
-			   g_strv_length((char **)*model->coupling_options));
+		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = g_variant_new_strv(*model->trigger_sources,
-			   g_strv_length((char **)*model->trigger_sources));
+		*data = g_variant_new_strv(*model->trigger_sources, model->num_trigger_sources);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = g_variant_new_strv(*model->trigger_slopes,
-			   g_strv_length((char **)*model->trigger_slopes));
+		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
 		break;
 	case SR_CONF_TIMEBASE:
 		if (!model)

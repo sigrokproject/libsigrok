@@ -56,6 +56,7 @@ struct scope_config {
 	const uint8_t num_trigger_sources;
 
 	const char *(*trigger_slopes)[];
+	const uint8_t num_trigger_slopes;
 
 	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
