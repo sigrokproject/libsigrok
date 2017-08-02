@@ -47,10 +47,10 @@ struct scope_config {
 	const char *(*trigger_slopes)[];
 	const uint8_t num_trigger_slopes;
 
-	const struct sr_rational *timebases;
+	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
 
-	const struct sr_rational *vdivs;
+	const uint64_t (*vdivs)[][2];
 	const uint8_t num_vdivs;
 
 	const uint8_t num_xdivs;

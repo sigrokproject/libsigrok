@@ -90,7 +90,7 @@ static const char *trigger_sources[] = {
 	"C1", "C2", "C3", "C4", "LINE", "EXT",
 };
 
-static const struct sr_rational timebases[] = {
+static const uint64_t timebases[][2] = {
 	/* picoseconds */
 	{ 20, 1000000000000 },
 	{ 50, 1000000000000 },
@@ -140,7 +140,7 @@ static const struct sr_rational timebases[] = {
 	{ 1000, 1 },
 };
 
-static const struct sr_rational vdivs[] = {
+static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 1, 1000 },
 	{ 2, 1000 },
@@ -180,10 +180,10 @@ static const struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
-		.timebases = timebases,
+		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = vdivs,
+		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
 		.num_xdivs = 10,
@@ -198,16 +198,16 @@ static void scope_state_dump(const struct scope_config *config,
 	char *tmp;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		tmp = sr_voltage_string(config->vdivs[state->analog_channels[i].vdiv].p,
-					config->vdivs[state->analog_channels[i].vdiv].q);
+		tmp = sr_voltage_string((*config->vdivs)[state->analog_channels[i].vdiv][0],
+					(*config->vdivs)[state->analog_channels[i].vdiv][1]);
 		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
 			i + 1, state->analog_channels[i].state ? "On" : "Off",
 			(*config->coupling_options)[state->analog_channels[i].coupling],
 			tmp, state->analog_channels[i].vertical_offset);
 	}
 
-	tmp = sr_period_string(config->timebases[state->timebase].p,
-				config->timebases[state->timebase].q);
+	tmp = sr_period_string((*config->timebases)[state->timebase][0],
+				(*config->timebases)[state->timebase][1]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
@@ -247,16 +247,18 @@ static int scope_state_get_array_option(const char *resp,
  *
  * @return SR_ERR on any parsing error, SR_OK otherwise.
  */
-static int array_float_get(gchar *value, const struct sr_rational *aval,
+static int array_float_get(gchar *value, const uint64_t array[][2],
 		int array_len, unsigned int *result)
 {
 	struct sr_rational rval;
+	struct sr_rational aval;
 
 	if (sr_parse_rational(value, &rval) != SR_OK)
 		return SR_ERR;
 
 	for (int i = 0; i < array_len; i++) {
-		if (sr_rational_eq(&rval, aval + i)) {
+		sr_rational_set(&aval, array[i][0], array[i][1]);
+		if (sr_rational_eq(&rval, &aval)) {
 			*result = i;
 			return SR_OK;
 		}

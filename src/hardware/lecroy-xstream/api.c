@@ -154,8 +154,8 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_TIMEBASE:
 		*data = g_variant_new("(tt)",
-				model->timebases[state->timebase].p,
-				model->timebases[state->timebase].q);
+				(*model->timebases)[state->timebase][0],
+				(*model->timebases)[state->timebase][1]);
 		break;
 	case SR_CONF_NUM_VDIV:
 		for (i = 0; i < model->analog_channels; i++) {
@@ -169,8 +169,8 @@ static int config_get(uint32_t key, GVariant **data,
 			if (cg != devc->analog_groups[i])
 				continue;
 			*data = g_variant_new("(tt)",
-				model->vdivs[state->analog_channels[i].vdiv].p,
-				model->vdivs[state->analog_channels[i].vdiv].q);
+				(*model->vdivs)[state->analog_channels[i].vdiv][0],
+				(*model->vdivs)[state->analog_channels[i].vdiv][1]);
 		}
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
@@ -212,8 +212,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct scope_config *model;
 	struct scope_state *state;
 	const char *tmp;
-	int64_t p;
-	uint64_t q;
+	uint64_t p, q;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -251,7 +250,7 @@ static int config_set(uint32_t key, GVariant *data,
 		g_variant_get(data, "(tt)", &p, &q);
 
 		for (i = 0; i < model->num_vdivs; i++) {
-			if (p != model->vdivs[i].p || q != model->vdivs[i].q)
+			if (p != (*model->vdivs)[i][0] || q != (*model->vdivs)[i][1])
 				continue;
 			for (j = 1; j <= model->analog_channels; j++) {
 				if (cg != devc->analog_groups[j - 1])
@@ -275,8 +274,8 @@ static int config_set(uint32_t key, GVariant *data,
 		g_variant_get(data, "(tt)", &p, &q);
 
 		for (i = 0; i < model->num_timebases; i++) {
-			if (p != model->timebases[i].p ||
-			    q != model->timebases[i].q)
+			if (p != (*model->timebases)[i][0] ||
+			    q != (*model->timebases)[i][1])
 				continue;
 			state->timebase = i;
 			g_snprintf(command, sizeof(command),
@@ -295,8 +294,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 		state->horiz_triggerpos = tmp_d;
 		tmp_d = -(tmp_d - 0.5) *
-			((double)model->timebases[state->timebase].p /
-			 model->timebases[state->timebase].q)
+			((double)(*model->timebases)[state->timebase][0] /
+			 (*model->timebases)[state->timebase][1])
 			 * model->num_xdivs;
 
 		g_snprintf(command, sizeof(command), "TRIG POS %e S", tmp_d);
@@ -388,12 +387,12 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_TIMEBASE:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = std_gvar_tuple_rational(model->timebases, model->num_timebases);
+		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
 		if (!model)
 			return SR_ERR_ARG;
-		*data = std_gvar_tuple_rational(model->vdivs, model->num_vdivs);
+		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
 		break;
 	default:
 		return SR_ERR_NA;
