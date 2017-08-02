@@ -283,12 +283,11 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx;
-	unsigned int i, j;
+	unsigned int j;
 	char float_str[30];
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
-	const char *tmp;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -310,15 +309,11 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		tmp = g_variant_get_string(data, NULL);
-		for (i = 0; i < model->num_trigger_sources; i++) {
-			if (g_strcmp0(tmp, (*model->trigger_sources)[i]) != 0)
-				continue;
-			state->trigger_source = i;
-			/* TODO: A and B trigger support possible? */
-			ret = dlm_trigger_source_set(sdi->conn, (*model->trigger_sources)[i]);
-			break;
-		}
+		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
+			return SR_ERR_ARG;
+		state->trigger_source = idx;
+		/* TODO: A and B trigger support possible? */
+		ret = dlm_trigger_source_set(sdi->conn, (*model->trigger_sources)[idx]);
 		break;
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
@@ -364,40 +359,27 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = dlm_horiz_trigger_pos_set(sdi->conn, float_str);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp = g_variant_get_string(data, NULL);
-
-		if (!tmp || !(tmp[0] == 'f' || tmp[0] == 'r'))
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(dlm_trigger_slopes))) < 0)
 			return SR_ERR_ARG;
-
 		/* Note: See dlm_trigger_slopes[] in protocol.c. */
-		state->trigger_slope = (tmp[0] == 'r') ?
-				SLOPE_POSITIVE : SLOPE_NEGATIVE;
-
+		state->trigger_slope = idx;
 		ret = dlm_trigger_slope_set(sdi->conn, state->trigger_slope);
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-
-		tmp = g_variant_get_string(data, NULL);
-
-		for (i = 0; i < model->num_coupling_options; i++) {
-			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
+		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
+			return SR_ERR_ARG;
+		for (j = 1; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j - 1])
 				continue;
-			for (j = 1; j <= model->analog_channels; j++) {
-				if (cg != devc->analog_groups[j - 1])
-					continue;
-				state->analog_states[j-1].coupling = i;
-
-				if (dlm_analog_chan_coupl_set(sdi->conn, j, tmp) != SR_OK ||
-						sr_scpi_get_opc(sdi->conn) != SR_OK)
-					return SR_ERR;
-				break;
-			}
-
-			ret = SR_OK;
+			state->analog_states[j - 1].coupling = idx;
+			if (dlm_analog_chan_coupl_set(sdi->conn, j, (*model->coupling_options)[idx]) != SR_OK ||
+					sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
 			break;
 		}
+		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;

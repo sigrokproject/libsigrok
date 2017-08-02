@@ -329,26 +329,21 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 		const char *command, const char *(*array)[], unsigned int n, int *result)
 {
 	char *tmp;
-	unsigned int i;
+	int idx;
 
 	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK) {
 		g_free(tmp);
 		return SR_ERR;
 	}
 
-	for (i = 0; i < n; i++) {
-		if (!g_strcmp0(tmp, (*array)[i])) {
-			*result = i;
-			g_free(tmp);
-			tmp = NULL;
-			break;
-		}
+	if ((idx = std_str_idx_s(tmp, *array, n)) < 0) {
+		g_free(tmp);
+		return SR_ERR_ARG;
 	}
 
-	if (tmp) {
-		g_free(tmp);
-		return SR_ERR;
-	}
+	*result = idx;
+
+	g_free(tmp);
 
 	return SR_OK;
 }

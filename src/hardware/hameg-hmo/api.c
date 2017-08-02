@@ -246,12 +246,11 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx;
-	unsigned int i, j;
+	unsigned int j;
 	char command[MAX_COMMAND_SIZE], float_str[30];
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
-	const char *tmp;
 	double tmp_d;
 	gboolean update_sample_rate;
 
@@ -275,18 +274,13 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		tmp = g_variant_get_string(data, NULL);
-		for (i = 0; i < model->num_trigger_sources; i++) {
-			if (g_strcmp0(tmp, (*model->trigger_sources)[i]) != 0)
-				continue;
-			state->trigger_source = i;
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
-				   (*model->trigger_sources)[i]);
-
-			ret = sr_scpi_send(sdi->conn, command);
-			break;
-		}
+		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
+			return SR_ERR_ARG;
+		state->trigger_source = idx;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
+			   (*model->trigger_sources)[idx]);
+		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_VDIV:
 		if (cg_type == CG_NONE)
@@ -323,64 +317,46 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
-
 		if (tmp_d < 0.0 || tmp_d > 1.0)
 			return SR_ERR;
-
 		state->horiz_triggerpos = tmp_d;
 		tmp_d = -(tmp_d - 0.5) *
 			((double) (*model->timebases)[state->timebase][0] /
 			(*model->timebases)[state->timebase][1])
 			 * model->num_xdivs;
-
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_HORIZ_TRIGGERPOS],
 			   float_str);
-
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp = g_variant_get_string(data, NULL);
-		for (i = 0; i < model->num_trigger_slopes; i++) {
-			if (g_strcmp0(tmp, (*model->trigger_slopes)[i]) != 0)
-				continue;
-			state->trigger_slope = i;
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
-				   (*model->trigger_slopes)[i]);
-
-			ret = sr_scpi_send(sdi->conn, command);
-			break;
-		}
+		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
+			return SR_ERR_ARG;
+		state->trigger_slope = idx;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
+			   (*model->trigger_slopes)[idx]);
+		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_COUPLING:
 		if (cg_type == CG_NONE)
 			return SR_ERR_CHANNEL_GROUP;
-
-		tmp = g_variant_get_string(data, NULL);
-
-		for (i = 0; i < model->num_coupling_options; i++) {
-			if (strcmp(tmp, (*model->coupling_options)[i]) != 0)
+		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
+			return SR_ERR_ARG;
+		for (j = 1; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j - 1])
 				continue;
-			for (j = 1; j <= model->analog_channels; j++) {
-				if (cg != devc->analog_groups[j - 1])
-					continue;
-				state->analog_channels[j-1].coupling = i;
-
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
-					   j, tmp);
-
-				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-				    sr_scpi_get_opc(sdi->conn) != SR_OK)
-					return SR_ERR;
-				break;
-			}
-
-			ret = SR_OK;
+			state->analog_channels[j - 1].coupling = idx;
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
+				   j, (*model->coupling_options)[idx]);
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
 			break;
 		}
+		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;
