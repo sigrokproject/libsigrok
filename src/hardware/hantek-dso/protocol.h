@@ -51,6 +51,8 @@
 /* All models have this for their "fast" mode. */
 #define FRAMESIZE_SMALL         (10 * 1024)
 
+#define NUM_CHANNELS		2
+
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,
 	CTRL_GETSPEED = 0xb2,

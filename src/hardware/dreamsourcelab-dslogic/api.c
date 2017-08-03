@@ -233,7 +233,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		/* Logic channels, all in one channel group. */
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		cg->name = g_strdup("Logic");
-		for (j = 0; j < 16; j++) {
+		for (j = 0; j < NUM_CHANNELS; j++) {
 			sprintf(channel_name, "%d", j);
 			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
 						TRUE, channel_name);

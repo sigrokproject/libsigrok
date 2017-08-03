@@ -613,7 +613,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	/* TODO: Check malloc return value. */
 	analog.data = g_try_malloc(num_samples * sizeof(float));
 
-	for (int ch = 0; ch < 2; ch++) {
+	for (int ch = 0; ch < NUM_CHANNELS; ch++) {
 		if (!devc->ch_enabled[ch])
 			continue;
 

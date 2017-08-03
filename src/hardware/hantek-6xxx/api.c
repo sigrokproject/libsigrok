@@ -530,7 +530,7 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 		return;
 	}
 
-	for (int ch = 0; ch < 2; ch++) {
+	for (int ch = 0; ch < NUM_CHANNELS; ch++) {
 		if (!devc->ch_enabled[ch])
 			continue;
 

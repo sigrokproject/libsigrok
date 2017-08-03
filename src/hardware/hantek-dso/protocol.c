@@ -27,8 +27,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define NUM_CHANNELS 2
-
 static int send_begin(const struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;

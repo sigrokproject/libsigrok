@@ -35,6 +35,8 @@
 #define UNKNOWN_ADDRESS 0xff
 #define MAX_RENUM_DELAY_MS 3000
 
+#define NUM_CHANNELS 16
+
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
@@ -89,7 +91,7 @@ static struct sr_dev_inst *create_device(struct sr_usb_dev_inst *usb,
 	sdi->inst_type = SR_INST_USB;
 	sdi->conn = usb;
 
-	for (i = 0; i < 16; i++) {
+	for (i = 0; i < NUM_CHANNELS; i++) {
 		snprintf(channel_name, sizeof(channel_name), "D%i", i);
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 	}
