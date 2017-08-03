@@ -619,8 +619,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	uint64_t p;
 	double t_dbl;
-	unsigned int i;
-	int ret, idx;
+	int ret, idx, i;
 	const char *tmp_str;
 	char buffer[16];
 
@@ -689,52 +688,36 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VDIV:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg != devc->analog_groups[i])
-				continue;
-			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
-				return SR_ERR_ARG;
-			devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
-			g_ascii_formatd(buffer, sizeof(buffer), "%.3f",
-			                devc->vdiv[i]);
-			return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1,
-					buffer);
-		}
-		sr_dbg("Didn't set vdiv, unknown channel(group).");
-		return SR_ERR_NA;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			return SR_ERR_ARG;
+		devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
+		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", devc->vdiv[i]);
+		return rigol_ds_config_set(sdi, ":CHAN%d:SCAL %s", i + 1, buffer);
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg != devc->analog_groups[i])
-				continue;
-			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
-				return SR_ERR_ARG;
-			g_free(devc->coupling[i]);
-			devc->coupling[i] = g_strdup(coupling[idx]);
-			return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1,
-					devc->coupling[i]);
-		}
-		sr_dbg("Didn't set coupling, unknown channel(group).");
-		return SR_ERR_NA;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->coupling[i]);
+		devc->coupling[i] = g_strdup(coupling[idx]);
+		return rigol_ds_config_set(sdi, ":CHAN%d:COUP %s", i + 1, devc->coupling[i]);
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
+			return SR_ERR_ARG;
 		p = g_variant_get_uint64(data);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg != devc->analog_groups[i])
-				continue;
-			if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
-				return SR_ERR_ARG;
-			devc->attenuation[i] = probe_factor[idx];
-			ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64,
-			                          i + 1, p);
-			if (ret == SR_OK)
-				rigol_ds_get_dev_cfg_vertical(sdi);
-			return ret;
-		}
-		sr_dbg("Didn't set probe factor, unknown channel(group).");
-		return SR_ERR_NA;
+		devc->attenuation[i] = probe_factor[idx];
+		ret = rigol_ds_config_set(sdi, ":CHAN%d:PROB %"PRIu64, i + 1, p);
+		if (ret == SR_OK)
+			rigol_ds_get_dev_cfg_vertical(sdi);
+		return ret;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
 		if (!strcmp(tmp_str, "Live"))
@@ -760,7 +743,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	unsigned int i;
 	struct dev_context *devc;
 
 	devc = (sdi) ? sdi->priv : NULL;
@@ -774,13 +756,10 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_array_u32(NULL, 0);
 			return SR_OK;
 		} else {
-			for (i = 0; i < devc->model->analog_channels; i++) {
-				if (cg == devc->analog_groups[i]) {
-					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
-					return SR_OK;
-				}
-			}
-			return SR_ERR_NA;
+			if (std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels) < 0)
+				return SR_ERR_ARG;
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
+			return SR_OK;
 		}
 		break;
 	case SR_CONF_COUPLING:

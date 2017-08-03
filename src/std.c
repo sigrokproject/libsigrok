@@ -828,3 +828,14 @@ SR_PRIV int std_double_tuple_idx_d0(const double d, const double a[][2], unsigne
 
 	return -1;
 }
+
+SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_group *a[], unsigned int n)
+{
+	unsigned int i;
+
+	for (i = 0; i < n; i++)
+		if (cg == a[i])
+			return i;
+
+	return -1;
+}
