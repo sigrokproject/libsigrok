@@ -320,13 +320,13 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(dlm_vdivs))) < 0)
 			return SR_ERR_ARG;
-		for (j = 1; j <= model->analog_channels; j++) {
-			if (cg != devc->analog_groups[j - 1])
+		for (j = 0; j < model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j])
 				continue;
-			state->analog_states[j - 1].vdiv = idx;
+			state->analog_states[j].vdiv = idx;
 			g_ascii_formatd(float_str, sizeof(float_str),
 					"%E", (float) dlm_vdivs[idx][0] / dlm_vdivs[idx][1]);
-			if (dlm_analog_chan_vdiv_set(sdi->conn, j, float_str) != SR_OK ||
+			if (dlm_analog_chan_vdiv_set(sdi->conn, j + 1, float_str) != SR_OK ||
 					sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
 			break;
@@ -370,11 +370,11 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
 			return SR_ERR_ARG;
-		for (j = 1; j <= model->analog_channels; j++) {
-			if (cg != devc->analog_groups[j - 1])
+		for (j = 0; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j])
 				continue;
-			state->analog_states[j - 1].coupling = idx;
-			if (dlm_analog_chan_coupl_set(sdi->conn, j, (*model->coupling_options)[idx]) != SR_OK ||
+			state->analog_states[j].coupling = idx;
+			if (dlm_analog_chan_coupl_set(sdi->conn, j + 1, (*model->coupling_options)[idx]) != SR_OK ||
 					sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
 			break;

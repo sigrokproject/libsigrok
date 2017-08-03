@@ -287,15 +287,15 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, *model->vdivs, model->num_vdivs)) < 0)
 			return SR_ERR_ARG;
-		for (j = 1; j <= model->analog_channels; j++) {
-			if (cg != devc->analog_groups[j - 1])
+		for (j = 0; j < model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j])
 				continue;
-			state->analog_channels[j - 1].vdiv = idx;
+			state->analog_channels[j].vdiv = idx;
 			g_ascii_formatd(float_str, sizeof(float_str), "%E",
 				(float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
-				   j, float_str);
+				   j + 1, float_str);
 			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
@@ -344,13 +344,13 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
 			return SR_ERR_ARG;
-		for (j = 1; j <= model->analog_channels; j++) {
-			if (cg != devc->analog_groups[j - 1])
+		for (j = 0; j <= model->analog_channels; j++) {
+			if (cg != devc->analog_groups[j])
 				continue;
-			state->analog_channels[j - 1].coupling = idx;
+			state->analog_channels[j].coupling = idx;
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
-				   j, (*model->coupling_options)[idx]);
+				   j + 1, (*model->coupling_options)[idx]);
 			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
@@ -582,15 +582,15 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	for (i = 1; i <= model->digital_pods; i++) {
-		if (state->digital_pods[i - 1] == pod_enabled[i - 1])
+	for (i = 0; i < model->digital_pods; i++) {
+		if (state->digital_pods[i] == pod_enabled[i])
 			continue;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
-			   i, pod_enabled[i - 1]);
+			   i + 1, pod_enabled[i]);
 		if (sr_scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
-		state->digital_pods[i - 1] = pod_enabled[i - 1];
+		state->digital_pods[i] = pod_enabled[i];
 		setup_changed = TRUE;
 	}
 
