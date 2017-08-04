@@ -319,7 +319,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(buffersizes[devc->last_step]);
 		break;
 	case SR_CONF_VDIV:
-		if (ch == -1) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
 			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
@@ -328,7 +328,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (ch == -1) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
 			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map))) < 0)
@@ -337,7 +337,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (ch == -1)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		else
 			*data = g_variant_new_uint64(devc->probe[ch]);
@@ -384,7 +384,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->last_step = idx;
 		break;
 	case SR_CONF_VDIV:
-		if (ch == -1) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)"))) {
 			return SR_ERR_ARG;
@@ -395,7 +395,7 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (ch == -1) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
@@ -404,7 +404,7 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (ch == -1) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else {
 			u = g_variant_get_uint64(data);

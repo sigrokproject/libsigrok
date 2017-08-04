@@ -211,7 +211,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 				*data = g_variant_new_int32(model->num_ydivs);
@@ -223,7 +223,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_VDIV:
 		ret = SR_ERR_NA;
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type != CG_ANALOG)
 			break;
@@ -248,7 +248,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_COUPLING:
 		ret = SR_ERR_NA;
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type != CG_ANALOG)
 			break;
@@ -304,7 +304,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = dlm_trigger_source_set(sdi->conn, (*model->trigger_sources)[idx]);
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(dlm_vdivs))) < 0)
 			return SR_ERR_ARG;
@@ -351,7 +351,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = dlm_trigger_slope_set(sdi->conn, state->trigger_slope);
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
 			return SR_ERR_ARG;
@@ -434,12 +434,12 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_array_u32(NULL, 0);
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(dlm_vdivs));
 		break;

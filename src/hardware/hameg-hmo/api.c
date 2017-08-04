@@ -176,7 +176,7 @@ static int config_get(uint32_t key, GVariant **data,
 				      (*model->timebases)[state->timebase][1]);
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			if (std_cg_idx(cg, devc->analog_groups, model->analog_channels) < 0)
@@ -187,7 +187,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
@@ -209,7 +209,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			return SR_ERR_CHANNEL_GROUP;
 		} else if (cg_type == CG_ANALOG) {
 			if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
@@ -269,7 +269,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, *model->vdivs, model->num_vdivs)) < 0)
 			return SR_ERR_ARG;
@@ -323,7 +323,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
 			return SR_ERR_ARG;
@@ -372,7 +372,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_u32(ARRAY_AND_SIZE(scanopts));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (cg_type == CG_NONE) {
+		if (!cg) {
 			if (model)
 				*data = std_gvar_array_u32((const uint32_t *)model->devopts, model->num_devopts);
 			else
@@ -384,7 +384,7 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
@@ -404,7 +404,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
 	case SR_CONF_VDIV:
-		if (cg_type == CG_NONE)
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
 		break;
