@@ -176,28 +176,24 @@ static int config_get(uint32_t key, GVariant **data,
 				      (*model->timebases)[state->timebase][1]);
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type == CG_ANALOG) {
-			if (std_cg_idx(cg, devc->analog_groups, model->analog_channels) < 0)
-				return SR_ERR_ARG;
-			*data = g_variant_new_int32(model->num_ydivs);
-		} else {
+		if (cg_type != CG_ANALOG)
 			return SR_ERR_NA;
-		}
+		if (std_cg_idx(cg, devc->analog_groups, model->analog_channels) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_int32(model->num_ydivs);
 		break;
 	case SR_CONF_VDIV:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type == CG_ANALOG) {
-			if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
-				return SR_ERR_ARG;
-			*data = g_variant_new("(tt)",
-					      (*model->vdivs)[state->analog_channels[idx].vdiv][0],
-					      (*model->vdivs)[state->analog_channels[idx].vdiv][1]);
-		} else {
+		if (cg_type != CG_ANALOG)
 			return SR_ERR_NA;
-		}
+		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new("(tt)",
+				      (*model->vdivs)[state->analog_channels[idx].vdiv][0],
+				      (*model->vdivs)[state->analog_channels[idx].vdiv][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
@@ -209,15 +205,13 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type == CG_ANALOG) {
-			if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
-				return SR_ERR_ARG;
-			*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[idx].coupling]);
-		} else {
+		if (cg_type != CG_ANALOG)
 			return SR_ERR_NA;
-		}
+		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[idx].coupling]);
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);

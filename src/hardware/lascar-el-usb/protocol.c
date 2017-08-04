@@ -298,50 +298,52 @@ static struct sr_dev_inst *lascar_identify(unsigned char *config)
 
 	modelid = config[0];
 	sdi = NULL;
-	if (modelid) {
-		profile = NULL;
-		for (i = 0; profiles[i].modelid; i++) {
-			if (profiles[i].modelid == modelid) {
-				profile = &profiles[i];
-				break;
-			}
+
+	if (!modelid)
+		return sdi;
+
+	profile = NULL;
+	for (i = 0; profiles[i].modelid; i++) {
+		if (profiles[i].modelid == modelid) {
+			profile = &profiles[i];
+			break;
 		}
-		if (!profile) {
-			sr_dbg("unknown EL-USB modelid %d", modelid);
-			return NULL;
-		}
-
-		i = config[52] | (config[53] << 8);
-		memcpy(firmware, config + 0x30, 4);
-		firmware[4] = '\0';
-		sr_dbg("found %s with firmware version %s serial %d",
-				profile->modelname, firmware, i);
-
-		if (profile->logformat == LOG_UNSUPPORTED) {
-			sr_dbg("unsupported EL-USB logformat for %s", profile->modelname);
-			return NULL;
-		}
-
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
-		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup("Lascar");
-		sdi->model = g_strdup(profile->modelname);
-		sdi->version = g_strdup(firmware);
-
-		if (profile->logformat == LOG_TEMP_RH) {
-			/* Model this as two channels: temperature and humidity. */
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temp");
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Hum");
-		} else if (profile->logformat == LOG_CO) {
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CO");
-		} else {
-			sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		}
-
-		devc = g_malloc0(sizeof(struct dev_context));
-		sdi->priv = devc;
-		devc->profile = profile;
 	}
+	if (!profile) {
+		sr_dbg("unknown EL-USB modelid %d", modelid);
+		return NULL;
+	}
+
+	i = config[52] | (config[53] << 8);
+	memcpy(firmware, config + 0x30, 4);
+	firmware[4] = '\0';
+	sr_dbg("found %s with firmware version %s serial %d",
+			profile->modelname, firmware, i);
+
+	if (profile->logformat == LOG_UNSUPPORTED) {
+		sr_dbg("unsupported EL-USB logformat for %s", profile->modelname);
+		return NULL;
+	}
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("Lascar");
+	sdi->model = g_strdup(profile->modelname);
+	sdi->version = g_strdup(firmware);
+
+	if (profile->logformat == LOG_TEMP_RH) {
+		/* Model this as two channels: temperature and humidity. */
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Temp");
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "Hum");
+	} else if (profile->logformat == LOG_CO) {
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CO");
+	} else {
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
+	}
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	sdi->priv = devc;
+	devc->profile = profile;
 
 	return sdi;
 }

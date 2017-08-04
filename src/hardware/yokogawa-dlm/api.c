@@ -211,22 +211,18 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_NUM_VDIV:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type == CG_ANALOG) {
-				*data = g_variant_new_int32(model->num_ydivs);
-				ret = SR_OK;
-				break;
-		} else {
-			ret = SR_ERR_NA;
-		}
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
+		*data = g_variant_new_int32(model->num_ydivs);
+		ret = SR_OK;
 		break;
 	case SR_CONF_VDIV:
-		ret = SR_ERR_NA;
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type != CG_ANALOG)
-			break;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
 		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new("(tt)",
@@ -247,11 +243,10 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
-		ret = SR_ERR_NA;
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (cg_type != CG_ANALOG)
-			break;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
 		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new_string((*model->coupling_options)[state->analog_states[idx].coupling]);

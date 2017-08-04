@@ -312,35 +312,29 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_SLOPE:
 		if (devc->edge >= ARRAY_SIZE(trigger_slopes))
 			return SR_ERR;
-		else
-			*data = g_variant_new_string(trigger_slopes[devc->edge]);
+		*data = g_variant_new_string(trigger_slopes[devc->edge]);
 		break;
 	case SR_CONF_BUFFERSIZE:
 		*data = g_variant_new_uint64(buffersizes[devc->last_step]);
 		break;
 	case SR_CONF_VDIV:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else {
-			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
-				return SR_ERR_BUG;
-			*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
-		}
+		if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new("(tt)", vdivs[idx][0], vdivs[idx][1]);
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else {
-			if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map))) < 0)
-				return SR_ERR_BUG;
-			*data = g_variant_new_string(coupling[idx]);
-		}
+		if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x0C, ARRAY_AND_SIZE(coupling_map))) < 0)
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(coupling[idx]);
 		break;
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		else
-			*data = g_variant_new_uint64(devc->probe[ch]);
+		*data = g_variant_new_uint64(devc->probe[ch]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -384,35 +378,28 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->last_step = idx;
 		break;
 	case SR_CONF_VDIV:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)"))) {
+		if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)")))
 			return SR_ERR_ARG;
-		} else {
-			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
-				return SR_ERR_ARG;
-			devc->cctl[ch] = (devc->cctl[ch] & 0xCC) | vdivs_map[idx];
-		}
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			return SR_ERR_ARG;
+		devc->cctl[ch] = (devc->cctl[ch] & 0xCC) | vdivs_map[idx];
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else {
-			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
-				return SR_ERR_ARG;
-			devc->cctl[ch] = (devc->cctl[ch] & 0xF3) | coupling_map[idx];
-		}
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
+			return SR_ERR_ARG;
+		devc->cctl[ch] = (devc->cctl[ch] & 0xF3) | coupling_map[idx];
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		} else {
-			u = g_variant_get_uint64(data);
-			if (!u)
-				return SR_ERR_ARG;
-			else
-				devc->probe[ch] = u;
-		}
+		u = g_variant_get_uint64(data);
+		if (!u)
+			return SR_ERR_ARG;
+		devc->probe[ch] = u;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -427,17 +414,19 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 	struct dev_context *devc = sdi->priv;
 	uint8_t v;
 
-	if (changes & SR_CHANNEL_SET_ENABLED) {
-		if (ch->enabled) {
-			v = devc->channel | (1 << ch->index);
-			if (v & (v - 1))
-				return SR_ERR;
-			devc->channel = v;
-			devc->enabled_channel->data = ch;
-		} else {
-			devc->channel &= ~(1 << ch->index);
-		}
+	if (!(changes & SR_CHANNEL_SET_ENABLED))
+		return SR_OK;
+
+	if (ch->enabled) {
+		v = devc->channel | (1 << ch->index);
+		if (v & (v - 1))
+			return SR_ERR;
+		devc->channel = v;
+		devc->enabled_channel->data = ch;
+	} else {
+		devc->channel &= ~(1 << ch->index);
 	}
+
 	return SR_OK;
 }
 

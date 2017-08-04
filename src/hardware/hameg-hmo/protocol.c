@@ -495,26 +495,26 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	channel_found = FALSE;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		if (state->analog_channels[i].state) {
-			g_snprintf(chan_name, sizeof(chan_name), "CHAN%d", i + 1);
+		if (!state->analog_channels[i].state)
+			continue;
+		g_snprintf(chan_name, sizeof(chan_name), "CHAN%d", i + 1);
+		g_snprintf(tmp_str, sizeof(tmp_str),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
+			   chan_name);
+		channel_found = TRUE;
+		break;
+	}
+
+	if (!channel_found) {
+		for (i = 0; i < config->digital_pods; i++) {
+			if (!state->digital_pods[i])
+				continue;
+			g_snprintf(chan_name, sizeof(chan_name), "POD%d", i);
 			g_snprintf(tmp_str, sizeof(tmp_str),
 				   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
 				   chan_name);
 			channel_found = TRUE;
 			break;
-		}
-	}
-
-	if (!channel_found) {
-		for (i = 0; i < config->digital_pods; i++) {
-			if (state->digital_pods[i]) {
-				g_snprintf(chan_name, sizeof(chan_name), "POD%d", i);
-				g_snprintf(tmp_str, sizeof(tmp_str),
-					   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
-					   chan_name);
-				channel_found = TRUE;
-				break;
-			}
 		}
 	}
 
