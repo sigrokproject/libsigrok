@@ -366,42 +366,31 @@ SR_API char *sr_samplerate_string(uint64_t samplerate)
 SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
 {
 	double freq, v;
-	char *o;
-	int prec, r;
+	int prec;
 
 	freq = 1 / ((double)v_p / v_q);
-
-	o = g_malloc0(30 + 1);
 
 	if (freq > SR_GHZ(1)) {
 		v = (double)v_p / v_q * 1000000000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ps", prec, v);
+		return g_strdup_printf("%.*f ps", prec, v);
 	} else if (freq > SR_MHZ(1)) {
 		v = (double)v_p / v_q * 1000000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ns", prec, v);
+		return g_strdup_printf("%.*f ns", prec, v);
 	} else if (freq > SR_KHZ(1)) {
 		v = (double)v_p / v_q * 1000000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f us", prec, v);
+		return g_strdup_printf("%.*f us", prec, v);
 	} else if (freq > 1) {
 		v = (double)v_p / v_q * 1000.0;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f ms", prec, v);
+		return g_strdup_printf("%.*f ms", prec, v);
 	} else {
 		v = (double)v_p / v_q;
 		prec = ((v - (uint64_t)v) < FLT_MIN) ? 0 : 3;
-		r = snprintf(o, 30, "%.*f s", prec, v);
+		return g_strdup_printf("%.*f s", prec, v);
 	}
-
-	if (r < 0) {
-		/* Something went wrong... */
-		g_free(o);
-		return NULL;
-	}
-
-	return o;
 }
 
 /**
@@ -422,25 +411,12 @@ SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
  */
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 {
-	int r;
-	char *o;
-
-	o = g_malloc0(30 + 1);
-
 	if (v_q == 1000)
-		r = snprintf(o, 30, "%" PRIu64 "mV", v_p);
+		return g_strdup_printf("%" PRIu64 "mV", v_p);
 	else if (v_q == 1)
-		r = snprintf(o, 30, "%" PRIu64 "V", v_p);
+		return g_strdup_printf("%" PRIu64 "V", v_p);
 	else
-		r = snprintf(o, 30, "%gV", (float)v_p / (float)v_q);
-
-	if (r < 0) {
-		/* Something went wrong... */
-		g_free(o);
-		return NULL;
-	}
-
-	return o;
+		return g_strdup_printf("%gV", (float)v_p / (float)v_q);
 }
 
 /**

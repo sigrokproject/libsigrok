@@ -481,7 +481,6 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
-
 	int tmp;
 	unsigned int i;
 	float tmp_float;
@@ -635,7 +634,6 @@ SR_PRIV void hmo_scope_state_free(struct scope_state *state)
 
 SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 {
-	char tmp[25];
 	int model_index;
 	unsigned int i, j, group;
 	struct sr_channel *ch;
@@ -684,11 +682,8 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 
 	/* Add digital channel groups. */
 	for (i = 0; i < scope_models[model_index].digital_pods; i++) {
-		g_snprintf(tmp, 25, "POD%d", i);
-
 		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
-
-		devc->digital_groups[i]->name = g_strdup(tmp);
+		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				   devc->digital_groups[i]);
 	}

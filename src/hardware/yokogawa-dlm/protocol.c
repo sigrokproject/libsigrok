@@ -769,7 +769,6 @@ SR_PRIV int dlm_model_get(char *model_id, char **model_name, int *model_index)
  */
 SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 {
-	char tmp[25];
 	int i;
 	struct sr_channel *ch;
 	struct dev_context *devc;
@@ -799,13 +798,10 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 
 	/* Add digital channel groups. */
 	for (i = 0; i < scope_models[model_index].pods; i++) {
-		g_snprintf(tmp, sizeof(tmp), "POD%d", i);
-
 		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
 		if (!devc->digital_groups[i])
 			return SR_ERR_MALLOC;
-
-		devc->digital_groups[i]->name = g_strdup(tmp);
+		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				devc->digital_groups[i]);
 	}
