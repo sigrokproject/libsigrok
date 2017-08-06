@@ -56,6 +56,17 @@ static void test_rational(const char *input, struct sr_rational expected)
 		    input, rational.p, rational.q);
 }
 
+static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
+{
+	char *s;
+
+	s = sr_voltage_string(v_p, v_q);
+	fail_unless(s != NULL);
+	fail_unless(!strcmp(s, expected),
+		    "Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
 /*
  * Check various inputs for sr_samplerate_string():
  *
@@ -214,6 +225,19 @@ START_TEST(test_ghz_period)
 }
 END_TEST
 
+START_TEST(test_volt)
+{
+	test_voltage(34, 1, "34V");
+	test_voltage(34, 2, "17V");
+	test_voltage(1, 1, "1V");
+	test_voltage(1, 5, "0.2V");
+	test_voltage(200, 1000, "200mV");
+	test_voltage(1, 72, "0.0138889V");
+	test_voltage(1, 388, "0.00257732V");
+	test_voltage(10, 1000, "10mV");
+}
+END_TEST
+
 START_TEST(test_integral)
 {
 	test_rational("1", (struct sr_rational){1, 1});
@@ -264,6 +288,7 @@ Suite *suite_strutil(void)
 	tcase_add_test(tc, test_ghz);
 	tcase_add_test(tc, test_hz_period);
 	tcase_add_test(tc, test_ghz_period);
+	tcase_add_test(tc, test_volt);
 	tcase_add_test(tc, test_integral);
 	tcase_add_test(tc, test_fractional);
 	tcase_add_test(tc, test_exponent);
