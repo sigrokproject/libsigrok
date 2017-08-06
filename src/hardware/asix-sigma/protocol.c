@@ -78,12 +78,11 @@ static int sigma_write(void *buf, size_t size, struct dev_context *devc)
 	int ret;
 
 	ret = ftdi_write_data(&devc->ftdic, (unsigned char *)buf, size);
-	if (ret < 0) {
+	if (ret < 0)
 		sr_err("ftdi_write_data failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
-	} else if ((size_t) ret != size) {
+	else if ((size_t) ret != size)
 		sr_err("ftdi_write_data did not complete write.");
-	}
 
 	return ret;
 }
@@ -646,16 +645,13 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				if (match->match == SR_TRIGGER_ONE) {
 					devc->trigger.simplevalue |= channelbit;
 					devc->trigger.simplemask |= channelbit;
-				}
-				else if (match->match == SR_TRIGGER_ZERO) {
+				} else if (match->match == SR_TRIGGER_ZERO) {
 					devc->trigger.simplevalue &= ~channelbit;
 					devc->trigger.simplemask |= channelbit;
-				}
-				else if (match->match == SR_TRIGGER_FALLING) {
+				} else if (match->match == SR_TRIGGER_FALLING) {
 					devc->trigger.fallingmask |= channelbit;
 					trigger_set++;
-				}
-				else if (match->match == SR_TRIGGER_RISING) {
+				} else if (match->match == SR_TRIGGER_RISING) {
 					devc->trigger.risingmask |= channelbit;
 					trigger_set++;
 				}

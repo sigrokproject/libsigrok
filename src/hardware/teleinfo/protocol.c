@@ -96,35 +96,34 @@ static void teleinfo_handle_measurement(struct sr_dev_inst *sdi,
 		return;
 	}
 
-	if (!strcmp(label, "ADCO")) {
+	if (!strcmp(label, "ADCO"))
 		sr_sw_limits_update_samples_read(&devc->sw_limits, 1);
-	} else if (!strcmp(label, "BASE")) {
+	else if (!strcmp(label, "BASE"))
 		teleinfo_send_value(sdi, "BASE", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "HCHP")) {
+	else if (!strcmp(label, "HCHP"))
 		teleinfo_send_value(sdi, "HP"  , v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "HCHC")) {
+	else if (!strcmp(label, "HCHC"))
 		teleinfo_send_value(sdi, "HC"  , v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "EJPHN")) {
+	else if (!strcmp(label, "EJPHN"))
 		teleinfo_send_value(sdi, "HN"  , v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "EJPHPM")) {
+	else if (!strcmp(label, "EJPHPM"))
 		teleinfo_send_value(sdi, "HPM" , v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHPJB")) {
+	else if (!strcmp(label, "BBRHPJB"))
 		teleinfo_send_value(sdi, "HPJB", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHPJW")) {
+	else if (!strcmp(label, "BBRHPJW"))
 		teleinfo_send_value(sdi, "HPJW", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHPJR")) {
+	else if (!strcmp(label, "BBRHPJR"))
 		teleinfo_send_value(sdi, "HPJR", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHCJB")) {
+	else if (!strcmp(label, "BBRHCJB"))
 		teleinfo_send_value(sdi, "HCJB", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHCJW")) {
+	else if (!strcmp(label, "BBRHCJW"))
 		teleinfo_send_value(sdi, "HCJW", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "BBRHCJR")) {
+	else if (!strcmp(label, "BBRHCJR"))
 		teleinfo_send_value(sdi, "HCJR", v, SR_MQ_POWER, SR_UNIT_WATT_HOUR);
-	} else if (!strcmp(label, "IINST")) {
+	else if (!strcmp(label, "IINST"))
 		teleinfo_send_value(sdi, "IINST", v, SR_MQ_CURRENT, SR_UNIT_AMPERE);
-	} else if (!strcmp(label, "PAPP")) {
+	else if (!strcmp(label, "PAPP"))
 		teleinfo_send_value(sdi, "PAPP", v, SR_MQ_POWER, SR_UNIT_VOLT_AMPERE);
-	}
 }
 
 static gboolean teleinfo_parse_group(struct sr_dev_inst *sdi,

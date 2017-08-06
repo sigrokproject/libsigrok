@@ -77,7 +77,7 @@ static const struct agdmm_job *job_next(struct dev_context *devc)
 		devc->current_job++;
 		if (!job_current(devc)->send)
 			devc->current_job = 0;
-	} while(job_in_interval(devc) && devc->current_job != current_job);
+	} while (job_in_interval(devc) && devc->current_job != current_job);
 	return job_current(devc);
 }
 
@@ -626,7 +626,7 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		} else if (!strcmp(mstr, "DC")) {
 			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
 		} else {
-		sr_dbg("Unknown first argument '%s'.", mstr);
+			sr_dbg("Unknown first argument '%s'.", mstr);
 		}
 		g_free(mstr);
 	} else

@@ -755,8 +755,7 @@ static void process_msg_inf_10(struct sr_dev_inst *sdi)
 		dgt = bc(devc->buf[5 + cnt]);
 		if (dgt == 11) { /* Empty digit */
 			dgt = 0;
-		}
-		else if (dgt >= 12) { /* Overload */
+		} else if (dgt >= 12) { /* Overload */
 			devc->value = NAN;
 			devc->scale = 0;
 			break;
@@ -953,8 +952,7 @@ static int chk_msg14(struct sr_dev_inst *sdi)
 			sr_err("Device: Unknown error code!");
 		}
 		retc = SR_ERR_ARG;
-	}
-	else if (!isreq && ((devc->buf[1] != 0x27) || (devc->buf[2] != 0x3f))) {
+	} else if (!isreq && ((devc->buf[1] != 0x27) || (devc->buf[2] != 0x3f))) {
 		sr_err("process_msg_14(): byte 1/2 unexpected!");
 		retc = SR_ERR_ARG;
 	}
@@ -1055,11 +1053,9 @@ SR_PRIV int process_msg14(struct sr_dev_inst *sdi)
 				devc->value = NAN;
 				devc->scale = 0;
 				break;
-			}
-			else if (dgt == 13) { /* FUSE */
+			} else if (dgt == 13) { /* FUSE */
 				sr_err("FUSE!");
-			}
-			else if (dgt == 14) { /* Function recognition mode, OPEN */
+			} else if (dgt == 14) { /* Function recognition mode, OPEN */
 				sr_info("Function recognition mode, OPEN!");
 				devc->value = NAN;
 				devc->scale = 0;
@@ -1135,8 +1131,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					process_msg_inf_10(sdi);
 					devc->buflen = 0;
 					continue;
-				}
-				else if ((devc->buflen >= 5) &&
+				} else if ((devc->buflen >= 5) &&
 					 (devc->buf[devc->buflen - 1] &
 					  MSGID_MASK) != MSGID_DATA) {
 					/*
@@ -1144,8 +1139,7 @@ SR_PRIV int gmc_mh_1x_2x_receive_data(int fd, int revents, void *cb_data)
 					 * of next message.
 					 */
 					process_msg_inf_5(sdi);
-					devc->buf[0] =
-							devc->buf[devc->buflen - 1];
+					devc->buf[0] = devc->buf[devc->buflen - 1];
 					devc->buflen = 1;
 					continue;
 				}
@@ -1223,8 +1217,7 @@ SR_PRIV int gmc_mh_2x_receive_data(int fd, int revents, void *cb_data)
 			if (devc->cmd_seq % 10 == 0) {
 				if (req_stat14(sdi, FALSE) != SR_OK)
 					return FALSE;
-			}
-			else if (req_meas14(sdi) != SR_OK)
+			} else if (req_meas14(sdi) != SR_OK)
 				return FALSE;
 		}
 	}

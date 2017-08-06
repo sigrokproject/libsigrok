@@ -310,11 +310,11 @@ static int read_probe_eeprom(unsigned int addr, struct probe_eeprom *eeprom)
 static int revB_addr_to_num(unsigned int addr)
 {
 	switch (addr) {
-	case 0x44:	return 5;
-	case 0x45:	return 6;
-	case 0x42:	return 3;
-	case 0x43:	return 4;
-	default:	return addr - 0x3f;
+	case 0x44: return 5;
+	case 0x45: return 6;
+	case 0x42: return 3;
+	case 0x43: return 4;
+	default:   return addr - 0x3f;
 	}
 }
 
