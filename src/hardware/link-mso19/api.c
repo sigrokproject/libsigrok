@@ -53,6 +53,10 @@ static const uint64_t samplerates[] = {
 	SR_HZ(100),
 };
 
+static const char *trigger_slopes[2] = {
+	"r", "f",
+};
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	int i;
@@ -253,14 +257,9 @@ static int config_set(int key, GVariant *data,
 	case SR_CONF_CAPTURE_RATIO:
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		slope = g_variant_get_string(data, NULL);
-
-		if (!slope || !(slope[0] == 'f' || slope[0] == 'r'))
-			sr_err("Invalid trigger slope");
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 			return SR_ERR_ARG;
-		}
-		devc->trigger_slope = (slope[0] == 'r')
-			? SLOPE_POSITIVE : SLOPE_NEGATIVE;
+		devc->trigger_slope = idx;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);

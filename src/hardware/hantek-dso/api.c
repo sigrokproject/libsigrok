@@ -486,8 +486,7 @@ static int config_set(uint32_t key, GVariant *data,
 		case SR_CONF_TRIGGER_SLOPE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
 				return SR_ERR_ARG;
-			devc->triggerslope = (trigger_slopes[idx][0] == 'r')
-				? SLOPE_POSITIVE : SLOPE_NEGATIVE;
+			devc->triggerslope = idx;
 			break;
 		case SR_CONF_HORIZ_TRIGGERPOS:
 			tmp_double = g_variant_get_double(data);
