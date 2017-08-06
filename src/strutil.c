@@ -412,11 +412,11 @@ SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 {
 	if (v_q == 1000)
-		return g_strdup_printf("%" PRIu64 "mV", v_p);
+		return g_strdup_printf("%" PRIu64 " mV", v_p);
 	else if (v_q == 1)
-		return g_strdup_printf("%" PRIu64 "V", v_p);
+		return g_strdup_printf("%" PRIu64 " V", v_p);
 	else
-		return g_strdup_printf("%gV", (float)v_p / (float)v_q);
+		return g_strdup_printf("%g V", (float)v_p / (float)v_q);
 }
 
 /**

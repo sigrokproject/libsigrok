@@ -227,14 +227,14 @@ END_TEST
 
 START_TEST(test_volt)
 {
-	test_voltage(34, 1, "34V");
-	test_voltage(34, 2, "17V");
-	test_voltage(1, 1, "1V");
-	test_voltage(1, 5, "0.2V");
-	test_voltage(200, 1000, "200mV");
-	test_voltage(1, 72, "0.0138889V");
-	test_voltage(1, 388, "0.00257732V");
-	test_voltage(10, 1000, "10mV");
+	test_voltage(34, 1, "34 V");
+	test_voltage(34, 2, "17 V");
+	test_voltage(1, 1, "1 V");
+	test_voltage(1, 5, "0.2 V");
+	test_voltage(200, 1000, "200 mV");
+	test_voltage(1, 72, "0.0138889 V");
+	test_voltage(1, 388, "0.00257732 V");
+	test_voltage(10, 1000, "10 mV");
 }
 END_TEST
 
