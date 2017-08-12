@@ -230,6 +230,82 @@ SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/**
+ * Standard API helper for sending an SR_DF_FRAME_BEGIN packet.
+ *
+ * This function can be used to simplify most drivers'
+ * frame handling.
+ *
+ * @param[in] sdi The device instance to use. Must not be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
+ */
+SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
+{
+	const char *prefix;
+	int ret;
+	struct sr_datafeed_packet packet;
+
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
+
+	sr_dbg("%s: Sending SR_DF_FRAME_BEGIN packet.", prefix);
+
+	packet.type = SR_DF_FRAME_BEGIN;
+	packet.payload = NULL;
+
+	if ((ret = sr_session_send(sdi, &packet)) < 0) {
+		sr_err("%s: Failed to send SR_DF_FRAME_BEGIN packet: %d.", prefix, ret);
+		return ret;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Standard API helper for sending an SR_DF_FRAME_END packet.
+ *
+ * This function can be used to simplify most drivers'
+ * frame handling.
+ *
+ * @param[in] sdi The device instance to use. Must not be NULL.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval other Other error.
+ */
+SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
+{
+	const char *prefix;
+	int ret;
+	struct sr_datafeed_packet packet;
+
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
+
+	sr_dbg("%s: Sending SR_DF_FRAME_END packet.", prefix);
+
+	packet.type = SR_DF_FRAME_END;
+	packet.payload = NULL;
+
+	if ((ret = sr_session_send(sdi, &packet)) < 0) {
+		sr_err("%s: Failed to send SR_DF_FRAME_END packet: %d.", prefix, ret);
+		return ret;
+	}
+
+	return SR_OK;
+}
+
 #ifdef HAVE_LIBSERIALPORT
 
 /**
