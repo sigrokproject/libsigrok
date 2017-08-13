@@ -213,6 +213,27 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
 
+
+#######################
+##  miniLZO related  ##
+#######################
+# These were taken from the README.LZO file in the miniLZO archive.
+
+AC_CHECK_TYPE(ptrdiff_t,long)
+AC_TYPE_SIZE_T
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(__int64)
+AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(size_t)
+AC_CHECK_SIZEOF(ptrdiff_t)
+
+AC_C_CONST
+
+AC_CHECK_FUNCS(memcmp memcpy memmove memset)
+
 ########################
 ##  Hardware drivers  ##
 ########################
