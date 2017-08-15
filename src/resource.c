@@ -102,9 +102,9 @@ static int resource_open_default(struct sr_resource *res,
 #ifdef FIRMWARE_DIR
 	const char *builtindir;
 #endif
-	const char *subdir;
+	const char *subdir, *env;
 	const char *const *datadirs;
-	FILE *file;
+	FILE *file = NULL;
 
 	(void)cb_data;
 
@@ -120,7 +120,15 @@ static int resource_open_default(struct sr_resource *res,
 		return SR_ERR_ARG;
 	}
 
-	file = try_open_file(g_get_user_data_dir(), subdir, name);
+	env = g_getenv("SIGROK_FIRMWARE_DIR");
+	if (!env)
+		sr_dbg("SIGROK_FIRMWARE_DIR environment variable not set, ignoring.");
+	else
+		file = try_open_file(env, "", name);
+
+	if (!file)
+		file = try_open_file(g_get_user_data_dir(), subdir, name);
+
 	/*
 	 * Scan the hard-coded directory before the system directories to
 	 * avoid picking up possibly outdated files from a system install.

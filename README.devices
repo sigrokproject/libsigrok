@@ -14,6 +14,7 @@ the device is connected to the PC (usually via USB), before it can be used.
 
 The default locations where libsigrok expects the firmware files are:
 
+  $SIGROK_FIRMWARE_DIR (environment variable)
   $HOME/.local/share/sigrok-firmware
   $prefix/share/sigrok-firmware
   /usr/local/share/sigrok-firmware
