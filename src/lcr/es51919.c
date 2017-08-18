@@ -593,6 +593,7 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	unsigned int val;
 	float floatval;
 	gboolean frame;
+	struct sr_channel *channel;
 
 	devc = sdi->priv;
 
@@ -620,10 +621,11 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	analog.num_samples = 1;
 	analog.data = &floatval;
 
-	analog.meaning->channels = g_slist_append(NULL, sdi->channels->data);
+	channel = sdi->channels->data;
+	analog.meaning->channels = g_slist_append(NULL, channel);
 
 	parse_measurement(pkt, &floatval, &analog, 0);
-	if (analog.meaning->mq != 0) {
+	if (analog.meaning->mq != 0 && channel->enabled) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
@@ -637,10 +639,12 @@ static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 	}
 
 	g_slist_free(analog.meaning->channels);
-	analog.meaning->channels = g_slist_append(NULL, sdi->channels->next->data);
+
+	channel = sdi->channels->next->data;
+	analog.meaning->channels = g_slist_append(NULL, channel);
 
 	parse_measurement(pkt, &floatval, &analog, 1);
-	if (analog.meaning->mq != 0) {
+	if (analog.meaning->mq != 0 && channel->enabled) {
 		if (!frame) {
 			packet.type = SR_DF_FRAME_BEGIN;
 			sr_session_send(sdi, &packet);
