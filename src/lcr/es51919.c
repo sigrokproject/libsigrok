@@ -726,7 +726,6 @@ SR_PRIV void es51919_serial_clean(void *priv)
 		return;
 
 	dev_buffer_destroy(devc->buf);
-	g_free(devc);
 }
 
 SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
