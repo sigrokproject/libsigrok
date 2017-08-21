@@ -42,6 +42,9 @@ ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="660", GROUP="plugdev", 
 # Braintechnology USB-LPS
 ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
+# Brymen BU-86X adapter (e.g. for Brymen BM867/BM869 and possibly others).
+ATTRS{idVendor}=="0820", ATTRS{idProduct}=="0001", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
 # CEM DT-8852
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
