@@ -30,9 +30,9 @@ static const uint32_t ipdbg_org_la_scanopts[] = {
 };
 
 static const uint32_t ipdbg_org_la_devopts[] = {
-    SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+    SR_CONF_TRIGGER_MATCH | SR_CONF_LIST| SR_CONF_SET,
     SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-    SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+    SR_CONF_LIMIT_SAMPLES | SR_CONF_GET
 };
 
 static const int32_t ipdbg_org_la_trigger_matches[] = {
@@ -123,7 +123,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
 
     sr_err("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
-    sr_err("limit samples = %d\n", devc->limit_samples);
+    sr_err("limit samples = %d\n", devc->limit_samples_max);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     for (int i = 0; i < devc->DATA_WIDTH; i++)
@@ -135,12 +135,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     sdi->inst_type = SR_INST_USER;
     sdi->conn = tcp;
 
-    drvc->instances = g_slist_append(drvc->instances, sdi);
-    devices = g_slist_append(devices, sdi);
-
     ipdbg_org_la_tcp_close(tcp);
 
-    return devices;
+    //drvc->instances = g_slist_append(drvc->instances, sdi);
+    devices = g_slist_append(devices, sdi);
+
+    return std_scan_complete(di, devices);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -180,10 +180,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
     if (!tcp)
     {
-        sr_err("Out of memory\n");
         return SR_ERR;
     }
-    sdi->conn = tcp;
 
     if(ipdbg_org_la_tcp_open(tcp) != SR_OK)
         return SR_ERR;
@@ -201,7 +199,8 @@ static int dev_close(struct sr_dev_inst *sdi)
     sr_err("dev_close\n");
     /// should be called before a new call to scan()
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
-    ipdbg_org_la_tcp_close(tcp);
+    if(tcp)
+        ipdbg_org_la_tcp_close(tcp);
 
     sdi->conn = NULL;
 
@@ -310,19 +309,9 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
     return std_init(di, sr_ctx);
 }
 
-static int cleanup(const struct sr_dev_driver *di)
-{
-    sr_err("cleanup\n");
-    dev_clear(di);
-
-    //return std_cleanup(di);
-    return SR_OK;
-}
-
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-    //return std_dev_list(di);
-    return ((struct drv_context *) (di->context))-> instances;
+    return ((struct drv_context *) (di->context))->instances;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -382,7 +371,7 @@ SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
     .longname = "ipdbg.org logic analyzer",
     .api_version = 1,
     .init = init,
-    .cleanup = cleanup,
+    .cleanup = std_cleanup,
     .scan = scan,
     .dev_list = dev_list,
     .dev_clear = dev_clear,
