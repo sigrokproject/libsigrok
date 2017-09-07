@@ -39,6 +39,7 @@ static const uint32_t devopts[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
@@ -83,8 +84,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("Conrad");
 	sdi->model = g_strdup("DIGI 35 CPU");
+	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
+	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	sdi->priv = NULL;
+	sdi->priv = devc;
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));

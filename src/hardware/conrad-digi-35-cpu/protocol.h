@@ -28,6 +28,10 @@
 
 #define LOG_PREFIX "conrad-digi-35-cpu"
 
+struct dev_context {
+	struct sr_sw_limits limits;
+};
+
 SR_PRIV int send_msg1(const struct sr_dev_inst *sdi, char cmd, int param);
 
 #endif
