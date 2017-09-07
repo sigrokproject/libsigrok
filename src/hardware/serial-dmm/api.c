@@ -438,6 +438,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
+		"metex-m3860m", metex14,
+		"Metex", "M-3860M", "9600/7n2/rts=0/dtr=1", 9600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
 		"metex-m4650cr", metex14,
 		"Metex", "M-4650CR", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
