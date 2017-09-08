@@ -194,7 +194,7 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
         devc->trigger_mask_last[i] = 0;
         devc->trigger_value_last[i] = 0;
     }
-    sr_err("\nDATA_WITH_BYTES:%i\n",devc->DATA_WIDTH_BYTES);
+    //sr_err("\nDATA_WITH_BYTES:%i\n",devc->DATA_WIDTH_BYTES);
 
 //    devc->trigger_value[0] = 0x00;
 //    devc->trigger_value_last[0] = 0xff;
@@ -336,7 +336,7 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
 
     if (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
     {
-        sr_err("1");
+        //sr_err("1");
         unsigned char byte;
 
 
@@ -350,9 +350,9 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
     }
     else
     {
-        sr_err("Received %d bytes", devc->num_transfers);
+        //sr_err("Received %d bytes", devc->num_transfers);
 
-        sr_dbg("Received %d bytes.", devc->num_transfers);
+        //sr_dbg("Received %d bytes.", devc->num_transfers);
 
         if (devc->delay_value > 0) {
             /* There are pre-trigger samples, send those first. */
@@ -561,7 +561,7 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     devc->ADDR_WIDTH_BYTES = (devc->ADDR_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
     devc->limit_samples_max = (0x01 << devc->ADDR_WIDTH);
 	devc->limit_samples = (0x01 << HOST_WORD_SIZE);
-    //sr_warn("DATA_WIDTH_BYTES: %d  ADDR_WIDTH_BYTES : %d", devc->DATA_WIDTH_BYTES, devc->ADDR_WIDTH_BYTES);
+    //sr_err("DATA_WIDTH_BYTES: %d  ADDR_WIDTH_BYTES : %d LIMIT_SAMPLES: %d", devc->DATA_WIDTH_BYTES, devc->ADDR_WIDTH_BYTES, devc->limit_samples );
 
 
 
