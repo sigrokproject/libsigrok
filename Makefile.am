@@ -291,6 +291,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/dreamsourcelab-dslogic/protocol.c \
 	src/hardware/dreamsourcelab-dslogic/api.c
 endif
+if HW_FLUKE_45
+src_libdrivers_la_SOURCES += \
+	src/hardware/fluke-45/protocol.h \
+	src/hardware/fluke-45/protocol.c \
+	src/hardware/fluke-45/api.c
+endif
 if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
