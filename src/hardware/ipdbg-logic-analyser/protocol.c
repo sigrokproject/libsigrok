@@ -560,7 +560,7 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     devc->DATA_WIDTH_BYTES = (devc->DATA_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
     devc->ADDR_WIDTH_BYTES = (devc->ADDR_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
     devc->limit_samples_max = (0x01 << devc->ADDR_WIDTH);
-	devc->limit_samples = (0x01 << HOST_WORD_SIZE);
+	devc->limit_samples = devc->limit_samples_max;// (0x01 << HOST_WORD_SIZE);
     //sr_err("DATA_WIDTH_BYTES: %d  ADDR_WIDTH_BYTES : %d LIMIT_SAMPLES: %d", devc->DATA_WIDTH_BYTES, devc->ADDR_WIDTH_BYTES, devc->limit_samples );
 
 
