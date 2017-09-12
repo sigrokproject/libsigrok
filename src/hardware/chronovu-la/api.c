@@ -196,14 +196,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_close(hdl);
 
-		if (!strcmp(product, "ChronoVu LA8")) {
+		if (!strcmp(product, "ChronoVu LA8"))
 			model = 0;
-		} else if (!strcmp(product, "ChronoVu LA16")) {
+		else if (!strcmp(product, "ChronoVu LA16"))
 			model = 1;
-		} else {
-			sr_spew("Unknown iProduct string '%s'.", product);
-			continue;
-		}
+		else
+			continue; /* Unknown iProduct string, ignore. */
 
 		sr_dbg("Found %s (%04x:%04x, %d.%d, %s).",
 		       product, des.idVendor, des.idProduct,
