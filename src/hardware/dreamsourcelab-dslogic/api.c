@@ -67,6 +67,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
+};
+
 static const char *signal_edges[] = {
 	[DS_EDGE_RISING] = "rising",
 	[DS_EDGE_FALLING] = "falling",
@@ -513,6 +521,9 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);
+		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edges));
