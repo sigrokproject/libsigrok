@@ -126,7 +126,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     sr_err("limit samples = %d\n", devc->limit_samples_max);
     /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    for (int i = 0; i < devc->DATA_WIDTH; i++)
+    for (unsigned int i = 0; i < devc->DATA_WIDTH; i++)
     {
         snprintf(buff, bufSize, "ch%d", i);
         sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buff);

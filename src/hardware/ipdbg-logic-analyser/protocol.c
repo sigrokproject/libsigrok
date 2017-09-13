@@ -39,21 +39,27 @@
 
 
 #define Start                      0xFE
-#define reset                      0xAB
+#define reset                      0xEE
 #define IPDBG_LA_ID                0xBB
 #define Escape                     0x55
 
 
 /* Command opcodes */
 #define set_trigger                0x00
+
 #define Trigger                    0xF0
 #define LA                         0x0F
+
 #define Masks                      0xF1
 #define Mask                       0xF3
+
 #define Value                      0xF7
+
 #define Last_Masks                 0xF9
 #define Mask_last                  0xFB
+
 #define Value_last                 0xFF
+
 #define delay                      0x1F
 #define K_Mauslesen                0xAA
 
@@ -75,62 +81,61 @@ SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_new_tcp(void)
 
 SR_PRIV int ipdbg_org_la_tcp_open(struct ipdbg_org_la_tcp *tcp)
 {
-	struct addrinfo hints;
-	struct addrinfo *results, *res;
-	int err;
+    struct addrinfo hints;
+    struct addrinfo *results, *res;
+    int err;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
 
-	err = getaddrinfo(tcp->address, tcp->port, &hints, &results);
+    err = getaddrinfo(tcp->address, tcp->port, &hints, &results);
 
-	if (err) {
-		sr_err("Address lookup failed: %s:%s: %s", tcp->address, tcp->port,
-			gai_strerror(err));
-		return SR_ERR;
-	}
+    if (err) {
+        sr_err("Address lookup failed: %s:%s: %s", tcp->address, tcp->port,
+            gai_strerror(err));
+        return SR_ERR;
+    }
 
-	for (res = results; res; res = res->ai_next) {
-		if ((tcp->socket = socket(res->ai_family, res->ai_socktype,
-						res->ai_protocol)) < 0)
-			continue;
-		if (connect(tcp->socket, res->ai_addr, res->ai_addrlen) != 0) {
-			close(tcp->socket);
-			tcp->socket = -1;
-			continue;
-		}
-		break;
-	}
+    for (res = results; res; res = res->ai_next) {
+        if ((tcp->socket = socket(res->ai_family, res->ai_socktype,
+                        res->ai_protocol)) < 0)
+            continue;
+        if (connect(tcp->socket, res->ai_addr, res->ai_addrlen) != 0) {
+            close(tcp->socket);
+            tcp->socket = -1;
+            continue;
+        }
+        break;
+    }
 
-	freeaddrinfo(results);
+    freeaddrinfo(results);
 
-	if (tcp->socket < 0) {
-		sr_err("Failed to connect to %s:%s: %s", tcp->address, tcp->port,
-				g_strerror(errno));
-		return SR_ERR;
-	}
+    if (tcp->socket < 0) {
+        sr_err("Failed to connect to %s:%s: %s", tcp->address, tcp->port,
+                g_strerror(errno));
+        return SR_ERR;
+    }
 
-	return SR_OK;
+    return SR_OK;
 }
 
 SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *buf, size_t len)
 {
-	int out;
+    int out;
+    out = send(tcp->socket, (char*)buf, len, 0);
 
-	out = send(tcp->socket, (char*)buf, len, 0);
+    if (out < 0) {
+        sr_err("Send error: %s", g_strerror(errno));
+        return SR_ERR;
+    }
 
-	if (out < 0) {
-		sr_err("Send error: %s", g_strerror(errno));
-		return SR_ERR;
-	}
+    if ((unsigned int)out < len) {
+        sr_dbg("Only sent %d/%d bytes of data.", out, (int)len);
+    }
 
-	if ((unsigned int)out < len) {
-		sr_dbg("Only sent %d/%d bytes of data.", out, (int)len);
-	}
-
-	return SR_OK;
+    return SR_OK;
 }
 
 SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize)
@@ -139,7 +144,6 @@ SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf,
 
     while(received < bufsize)
     {
-
         int len;
 
         len = recv(tcp->socket, (char*)(buf+received), bufsize-received, 0);
@@ -154,13 +158,13 @@ SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf,
         }
     }
 
-	return received;
+    return received;
 }
 
 SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp)
 {
     int ret = SR_ERR;
-	if (close(tcp->socket) >= 0)
+    if (close(tcp->socket) >= 0)
         ret = SR_OK;
 
     tcp->socket = -1;
@@ -170,8 +174,8 @@ SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp)
 
 SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp)
 {
-	g_free(tcp->address);
-	g_free(tcp->port);
+    g_free(tcp->address);
+    g_free(tcp->port);
 }
 
 SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
@@ -187,35 +191,17 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
     devc->num_stages = 0;
     devc->num_transfers = 0;
     devc->raw_sample_buf = NULL; /// name convert_trigger to init acquisition...
-    for (int i = 0; i < devc->DATA_WIDTH_BYTES; i++) // Hier werden die Trigger-Variabeln 0 gesetzt!
+    for (unsigned int i = 0; i < devc->DATA_WIDTH_BYTES; i++) // Hier werden die Trigger-Variabeln 0 gesetzt!
     {
         devc->trigger_mask[i] = 0;
         devc->trigger_value[i] = 0;
         devc->trigger_mask_last[i] = 0;
         devc->trigger_value_last[i] = 0;
     }
-    //sr_err("\nDATA_WITH_BYTES:%i\n",devc->DATA_WIDTH_BYTES);
-
-//    devc->trigger_value[0] = 0x00;
-//    devc->trigger_value_last[0] = 0xff;
-//    devc->trigger_mask[0] = 0xff;
-//    devc->trigger_mask_last[0] = 0xff;
-
 
     if (!(trigger = sr_session_trigger_get(sdi->session))) //
     {
         return SR_OK;
-    }
-
-
-    devc->num_stages = g_slist_length(trigger->stages);
-    if (devc->num_stages != devc->DATA_WIDTH_BYTES)
-    {
-
-        sr_err("\nThis device only supports %d trigger stages.",
-                devc->DATA_WIDTH_BYTES);
-
-        return SR_ERR;
     }
 
     for (l = trigger->stages; l; l = l->next)
@@ -271,11 +257,6 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
 
     }
 
-//            sr_err("\n VAL LAST:%x\n",devc->trigger_value_last[0]);
-//            sr_err("\n VAL:%x\n",devc->trigger_value[0]);
-//            sr_err("\n MASK:%x\n",devc->trigger_mask[0]);
-//            sr_err("\n MASK LAST:%x\n",devc->trigger_mask_last[0]);
-
     return SR_OK;
 }
 
@@ -290,7 +271,7 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
 
 
     (void)fd;
-	(void)revents;
+    (void)revents;
 
     sdi = (const struct sr_dev_inst *)cb_data;
     if (!sdi)
@@ -391,12 +372,10 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
 
 SR_PRIV int ipdbg_org_la_sendDelay(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp)
 {
-    //sr_warn("delay");
 
     int maxSample;
 
-    maxSample = //0x1 << (devc->ADDR_WIDTH);
-				devc->limit_samples;
+    maxSample = devc->limit_samples;
 
     devc->delay_value = (maxSample/100.0) * devc->capture_ratio;
     uint8_t Befehl[1];
@@ -413,9 +392,8 @@ SR_PRIV int ipdbg_org_la_sendDelay(struct ipdbg_org_la_dev_context *devc, struct
                    (devc->delay_value >> 16) & 0x000000ff,
                    (devc->delay_value >> 24) & 0x000000ff};
 
-    sendEscaping(tcp, buf, devc->ADDR_WIDTH_BYTES);
-
-    //sr_warn("send delay_value: 0x%.2x", devc->delay_value);
+    for(size_t i = 0 ; i < devc->ADDR_WIDTH_BYTES ; ++i)
+        sendEscaping(tcp, &(buf[devc->ADDR_WIDTH_BYTES-1-i]), 1);
 
     return SR_OK;
 }
@@ -431,9 +409,8 @@ SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, stru
     buf[0] = Mask;
     ipdbg_org_la_tcp_send(tcp, buf, 1);
 
-    sendEscaping(tcp, devc->trigger_mask, devc->DATA_WIDTH_BYTES);
-
-    //sr_warn("send trigger_mask: %x", devc->trigger_mask[0]);
+    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
+        sendEscaping(tcp, devc->trigger_mask + devc->DATA_WIDTH_BYTES -1-k, 1);
 
 
      /////////////////////////////////////////////Value////////////////////////////////////////////////////////////
@@ -445,10 +422,8 @@ SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, stru
     ipdbg_org_la_tcp_send(tcp, buf, 1);
 
 
-    sendEscaping(tcp, devc->trigger_value, devc->DATA_WIDTH_BYTES);
-
-    //sr_warn("send trigger_value: 0x%.2x", devc->trigger_value[0]);
-
+    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
+        sendEscaping(tcp, devc->trigger_value + devc->DATA_WIDTH_BYTES -1-k, 1);
 
     /////////////////////////////////////////////Mask_last////////////////////////////////////////////////////////////
     buf[0] = Trigger;
@@ -459,10 +434,8 @@ SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, stru
     ipdbg_org_la_tcp_send(tcp, buf, 1);
 
 
-    sendEscaping(tcp, devc->trigger_mask_last, devc->DATA_WIDTH_BYTES);
-
-
-    //sr_warn("send trigger_mask_last: 0x%.2x", devc->trigger_mask_last[0]);
+    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
+        sendEscaping(tcp, devc->trigger_mask_last + devc->DATA_WIDTH_BYTES -1-k, 1);
 
 
     /////////////////////////////////////////////Value_last////////////////////////////////////////////////////////////
@@ -474,17 +447,14 @@ SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, stru
     ipdbg_org_la_tcp_send(tcp, buf, 1);
 
 
-    sendEscaping(tcp, devc->trigger_value_last, devc->DATA_WIDTH_BYTES);
-
-
-    //sr_warn("send trigger_value_last: 0x%.2x", devc->trigger_value_last[0]);
+    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
+        sendEscaping(tcp, devc->trigger_value_last + devc->DATA_WIDTH_BYTES -1-k, 1);
 
     return SR_OK;
 }
 
 SR_PRIV int sendEscaping(struct ipdbg_org_la_tcp *tcp, char *dataToSend, int length)
 {
-
     while(length--)
     {
         uint8_t payload = *dataToSend++;
@@ -560,7 +530,7 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     devc->DATA_WIDTH_BYTES = (devc->DATA_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
     devc->ADDR_WIDTH_BYTES = (devc->ADDR_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
     devc->limit_samples_max = (0x01 << devc->ADDR_WIDTH);
-	devc->limit_samples = devc->limit_samples_max;// (0x01 << HOST_WORD_SIZE);
+    devc->limit_samples = devc->limit_samples_max;// (0x01 << HOST_WORD_SIZE);
     //sr_err("DATA_WIDTH_BYTES: %d  ADDR_WIDTH_BYTES : %d LIMIT_SAMPLES: %d", devc->DATA_WIDTH_BYTES, devc->ADDR_WIDTH_BYTES, devc->limit_samples );
 
 
@@ -623,7 +593,7 @@ SR_PRIV void ipdbg_org_la_abort_acquisition(const struct sr_dev_inst *sdi)
 
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
-	sr_session_source_remove(sdi->session, tcp->socket);
+    sr_session_source_remove(sdi->session, tcp->socket);
 
     /* Terminate session */
     packet.type = SR_DF_END;

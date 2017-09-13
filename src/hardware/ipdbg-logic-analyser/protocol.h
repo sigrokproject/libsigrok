@@ -29,25 +29,21 @@
 
 
 struct ipdbg_org_la_tcp {
-	char *address;
-	char *port;
-	int socket;
-	//char length_buf[BUFFER_SIZE];
-	//int length_bytes_read;
-	//int response_length;
-	//int response_bytes_read;
+    char *address;
+    char *port;
+    int socket;
 };
 
 /** Private, per-device-instance driver context. */
 struct ipdbg_org_la_dev_context
 {
-	int DATA_WIDTH;
-    int DATA_WIDTH_BYTES;
-    int ADDR_WIDTH;
-    int ADDR_WIDTH_BYTES ;
+    unsigned int DATA_WIDTH;
+    unsigned int DATA_WIDTH_BYTES;
+    unsigned int ADDR_WIDTH;
+    unsigned int ADDR_WIDTH_BYTES ;
 
     unsigned int limit_samples;
-	unsigned int limit_samples_max;
+    unsigned int limit_samples_max;
     char capture_ratio;
     char *trigger_mask;
     char *trigger_value;
