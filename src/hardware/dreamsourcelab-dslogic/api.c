@@ -360,7 +360,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	if (devc->cur_threshold == 0.0)
-		devc->cur_threshold = 1.5;
+		devc->cur_threshold = thresholds[1][0];
 
 	return SR_OK;
 }
