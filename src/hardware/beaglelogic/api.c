@@ -102,6 +102,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = beaglelogic_devc_alloc();
 
+	devc->beaglelogic = &beaglelogic_native_ops;
+
+	/* Fill the channels */
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				channel_names[i]);
@@ -119,7 +122,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Open BeagleLogic */
-	if (beaglelogic_open_nonblock(devc))
+	if (devc->beaglelogic->open(devc))
 		return SR_ERR;
 
 	/* Set fd and local attributes */
@@ -128,20 +131,20 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc->pollfd.revents = 0;
 
 	/* Get the default attributes */
-	beaglelogic_get_samplerate(devc);
-	beaglelogic_get_sampleunit(devc);
-	beaglelogic_get_buffersize(devc);
-	beaglelogic_get_bufunitsize(devc);
+	devc->beaglelogic->get_samplerate(devc);
+	devc->beaglelogic->get_sampleunit(devc);
+	devc->beaglelogic->get_buffersize(devc);
+	devc->beaglelogic->get_bufunitsize(devc);
 
 	/* Set the triggerflags to default for continuous capture unless we
 	 * explicitly limit samples using SR_CONF_LIMIT_SAMPLES */
 	devc->triggerflags = BL_TRIGGERFLAGS_CONTINUOUS;
-	beaglelogic_set_triggerflags(devc);
+	devc->beaglelogic->set_triggerflags(devc);
 
 	/* Map the kernel capture FIFO for reads, saves 1 level of memcpy */
-	if (beaglelogic_mmap(devc) != SR_OK) {
+	if (devc->beaglelogic->mmap(devc) != SR_OK) {
 		sr_err("Unable to map capture buffer");
-		beaglelogic_close(devc);
+		devc->beaglelogic->close(devc);
 		return SR_ERR;
 	}
 
@@ -153,8 +156,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Close the memory mapping and the file */
-	beaglelogic_munmap(devc);
-	beaglelogic_close(devc);
+	devc->beaglelogic->munmap(devc);
+	devc->beaglelogic->close(devc);
 
 	return SR_OK;
 }
@@ -197,7 +200,7 @@ static int config_set(uint32_t key, GVariant *data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->cur_samplerate = g_variant_get_uint64(data);
-		return beaglelogic_set_samplerate(devc);
+		return devc->beaglelogic->set_samplerate(devc);
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
 		devc->limit_samples = tmp_u64;
@@ -214,7 +217,7 @@ static int config_set(uint32_t key, GVariant *data,
 				devc->buffersize /
 				(SAMPLEUNIT_TO_BYTES(devc->sampleunit) * 1000000));
 		}
-		return beaglelogic_set_triggerflags(devc);
+		return devc->beaglelogic->set_triggerflags(devc);
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
@@ -268,7 +271,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (channel->index >= 8 && channel->enabled)
 			devc->sampleunit = BL_SAMPLEUNIT_16_BITS;
 	}
-	beaglelogic_set_sampleunit(devc);
+	devc->beaglelogic->set_sampleunit(devc);
 
 	/* Configure triggers & send header packet */
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
@@ -284,7 +287,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	/* Trigger and add poll on file */
-	beaglelogic_start(devc);
+	devc->beaglelogic->start(devc);
 	sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
 			BUFUNIT_TIMEOUT_MS(devc), beaglelogic_receive_data,
 			(void *)sdi);
@@ -297,7 +300,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Execute a stop on BeagleLogic */
-	beaglelogic_stop(devc);
+	devc->beaglelogic->stop(devc);
 
 	/* lseek to offset 0, flushes the cache */
 	lseek(devc->fd, 0, SEEK_SET);

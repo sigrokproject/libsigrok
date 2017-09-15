@@ -47,12 +47,14 @@
 #define IOCTL_BL_GET_TRIGGER_FLAGS  _IOR('k', 0x23, uint32_t)
 #define IOCTL_BL_SET_TRIGGER_FLAGS  _IOW('k', 0x23, uint32_t)
 
+#define IOCTL_BL_GET_CUR_INDEX      _IOR('k', 0x24, uint32_t)
 #define IOCTL_BL_CACHE_INVALIDATE    _IO('k', 0x25)
 
 #define IOCTL_BL_GET_BUFFER_SIZE    _IOR('k', 0x26, uint32_t)
 #define IOCTL_BL_SET_BUFFER_SIZE    _IOW('k', 0x26, uint32_t)
 
 #define IOCTL_BL_GET_BUFUNIT_SIZE   _IOR('k', 0x27, uint32_t)
+#define IOCTL_BL_SET_BUFUNIT_SIZE   _IOW('k', 0x27, uint32_t)
 
 #define IOCTL_BL_FILL_TEST_PATTERN   _IO('k', 0x28)
 
@@ -90,32 +92,37 @@ enum beaglelogic_sampleunit {
  * 	SR_OK or SR_ERR
  */
 
-SR_PRIV int beaglelogic_open_nonblock(struct dev_context *devc);
-SR_PRIV int beaglelogic_close(struct dev_context *devc);
+struct beaglelogic_ops {
+	int (*open)(struct dev_context *devc);
+	int (*close)(struct dev_context *devc);
 
-SR_PRIV int beaglelogic_get_buffersize(struct dev_context *devc);
-SR_PRIV int beaglelogic_set_buffersize(struct dev_context *devc);
+	int (*get_buffersize)(struct dev_context *devc);
+	int (*set_buffersize)(struct dev_context *devc);
 
-SR_PRIV int beaglelogic_get_samplerate(struct dev_context *devc);
-SR_PRIV int beaglelogic_set_samplerate(struct dev_context *devc);
+	int (*get_samplerate)(struct dev_context *devc);
+	int (*set_samplerate)(struct dev_context *devc);
 
-SR_PRIV int beaglelogic_get_sampleunit(struct dev_context *devc);
-SR_PRIV int beaglelogic_set_sampleunit(struct dev_context *devc);
+	int (*get_sampleunit)(struct dev_context *devc);
+	int (*set_sampleunit)(struct dev_context *devc);
 
-SR_PRIV int beaglelogic_get_triggerflags(struct dev_context *devc);
-SR_PRIV int beaglelogic_set_triggerflags(struct dev_context *devc);
+	int (*get_triggerflags)(struct dev_context *devc);
+	int (*set_triggerflags)(struct dev_context *devc);
 
-/* Start and stop the capture operation */
-SR_PRIV int beaglelogic_start(struct dev_context *devc);
-SR_PRIV int beaglelogic_stop(struct dev_context *devc);
+	/* Start and stop the capture operation */
+	int (*start)(struct dev_context *devc);
+	int (*stop)(struct dev_context *devc);
 
-/* Get the last error size */
-SR_PRIV int beaglelogic_getlasterror(struct dev_context *devc);
+	/* Get the last error size */
+	int (*get_lasterror)(struct dev_context *devc);
 
-/* Gets the unit size of the capture buffer (usually 4 or 8 MB) */
-SR_PRIV int beaglelogic_get_bufunitsize(struct dev_context *devc);
+	/* Gets the unit size of the capture buffer (usually 4 or 8 MB) */
+	int (*get_bufunitsize)(struct dev_context *devc);
+	int (*set_bufunitsize)(struct dev_context *devc);
 
-SR_PRIV int beaglelogic_mmap(struct dev_context *devc);
-SR_PRIV int beaglelogic_munmap(struct dev_context *devc);
+	int (*mmap)(struct dev_context *devc);
+	int (*munmap)(struct dev_context *devc);
+};
+
+SR_PRIV extern const struct beaglelogic_ops beaglelogic_native_ops;
 
 #endif

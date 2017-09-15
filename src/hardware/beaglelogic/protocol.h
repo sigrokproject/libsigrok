@@ -36,6 +36,10 @@ struct dev_context {
 	int max_channels;
 	uint32_t fw_ver;
 
+	/* Operations */
+	const struct beaglelogic_ops *beaglelogic;
+
+	/* Acquisition settings: see beaglelogic.h */
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint32_t sampleunit;
