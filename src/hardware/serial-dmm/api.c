@@ -473,6 +473,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
+		"peaktech-4390a", metex14,
+		"PeakTech", "4390A", "9600/7n2/rts=0/dtr=1", 9600,
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
 		"radioshack-22-168", metex14,
 		"RadioShack", "22-168", "1200/7n2/rts=0/dtr=1", 1200,
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
