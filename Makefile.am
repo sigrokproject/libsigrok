@@ -348,6 +348,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hp-3457a/protocol.c \
 	src/hardware/hp-3457a/api.c
 endif
+if HW_HP_3478A
+src_libdrivers_la_SOURCES += \
+	src/hardware/hp-3478a/protocol.h \
+	src/hardware/hp-3478a/protocol.c \
+	src/hardware/hp-3478a/api.c
+endif
 if HW_HUNG_CHANG_DSO_2100
 src_libdrivers_la_SOURCES += \
 	src/hardware/hung-chang-dso-2100/protocol.h \
