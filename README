@@ -41,7 +41,7 @@ Requirements for the C library:
  - libserialport >= 0.1.1 (optional, used by some drivers)
  - librevisa >= 0.0.20130412 (optional, used by some drivers)
  - libusb-1.0 >= 1.0.16 (optional, used by some drivers)
- - libftdi >= 0.16 or libftdi1 >= 1.0 (optional, used by some drivers)
+ - libftdi1 >= 1.0 (optional, used by some drivers)
  - libgpib (optional, used by some drivers)
  - libieee1284 (optional, used by some drivers)
  - check >= 0.9.4 (optional, only needed to run unit tests)
