@@ -354,8 +354,6 @@ static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 
 	cfg->ch_en = enabled_channel_mask(sdi);
 
-	cfg->trig_glb = num_enabled_channels << 4;
-
 	for (i = 0; i < NUM_TRIGGER_STAGES; i++) {
 		cfg->trig_mask0[i] = 0xffff;
 		cfg->trig_mask1[i] = 0xffff;
@@ -420,7 +418,7 @@ static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 		}
 	}
 
-	cfg->trig_glb |= num_trigger_stages;
+	cfg->trig_glb = (num_enabled_channels << 4) | (num_trigger_stages - 1);
 }
 
 static int fpga_configure(const struct sr_dev_inst *sdi)
