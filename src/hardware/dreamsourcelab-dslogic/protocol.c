@@ -20,6 +20,7 @@
 
 #include <config.h>
 #include <math.h>
+#include <stdbool.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include "protocol.h"
@@ -336,8 +337,9 @@ static uint16_t enabled_channel_mask(const struct sr_dev_inst *sdi)
 /*
  * Get the session trigger and configure the FPGA structure
  * accordingly.
+ * @return @c true if any triggers are enabled, @c false otherwise.
  */
-static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
+static bool set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 {
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
@@ -378,7 +380,7 @@ static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 
 	if (!(trigger = sr_session_trigger_get(sdi->session))) {
 		sr_dbg("No session trigger found");
-		return;
+		return false;
 	}
 
 	for (l = trigger->stages; l; l = l->next) {
@@ -419,6 +421,8 @@ static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 	}
 
 	cfg->trig_glb = (num_enabled_channels << 4) | (num_trigger_stages - 1);
+
+	return num_trigger_stages != 0;
 }
 
 static int fpga_configure(const struct sr_dev_inst *sdi)
@@ -458,12 +462,15 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	if (set_trigger(sdi, &cfg))
+		mode |= DS_MODE_TRIG_EN;
+
 	if (devc->mode == DS_OP_INTERNAL_TEST)
-		mode = DS_MODE_INT_TEST;
+		mode |= DS_MODE_INT_TEST;
 	else if (devc->mode == DS_OP_EXTERNAL_TEST)
-		mode = DS_MODE_EXT_TEST;
+		mode |= DS_MODE_EXT_TEST;
 	else if (devc->mode == DS_OP_LOOPBACK_TEST)
-		mode = DS_MODE_LPB_TEST;
+		mode |= DS_MODE_LPB_TEST;
 
 	if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 2)
 		mode |= DS_MODE_HALF_MODE;
@@ -492,8 +499,6 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 
 	/* Number of 16-sample units. */
 	WL32(&cfg.count, devc->limit_samples / 16);
-
-	set_trigger(sdi, &cfg);
 
 	len = sizeof(struct fpga_config);
 	ret = libusb_bulk_transfer(usb->devhdl, 2 | LIBUSB_ENDPOINT_OUT,
