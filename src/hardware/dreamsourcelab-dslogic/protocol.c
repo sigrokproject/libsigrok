@@ -423,8 +423,8 @@ static void set_trigger(const struct sr_dev_inst *sdi, struct fpga_config *cfg)
 
 static int fpga_configure(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
+	const struct dev_context *const devc = sdi->priv;
+	const struct sr_usb_dev_inst *const usb = sdi->conn;
 	uint8_t c[3];
 	struct fpga_config cfg;
 	uint16_t mode = 0;
@@ -432,9 +432,6 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	int transferred, len, ret;
 
 	sr_dbg("Configuring FPGA.");
-
-	usb = sdi->conn;
-	devc = sdi->priv;
 
 	WL32(&cfg.sync, DS_CFG_START);
 	WL16(&cfg.mode_header, DS_CFG_MODE);
