@@ -427,8 +427,8 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	struct sr_usb_dev_inst *usb;
 	uint8_t c[3];
 	struct fpga_config cfg;
-	uint16_t v16;
-	uint32_t v32;
+	uint16_t mode = 0;
+	uint32_t divider;
 	int transferred, len, ret;
 
 	sr_dbg("Configuring FPGA.");
@@ -461,26 +461,24 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	v16 = 0x0000;
-
 	if (devc->mode == DS_OP_INTERNAL_TEST)
-		v16 = DS_MODE_INT_TEST;
+		mode = DS_MODE_INT_TEST;
 	else if (devc->mode == DS_OP_EXTERNAL_TEST)
-		v16 = DS_MODE_EXT_TEST;
+		mode = DS_MODE_EXT_TEST;
 	else if (devc->mode == DS_OP_LOOPBACK_TEST)
-		v16 = DS_MODE_LPB_TEST;
+		mode = DS_MODE_LPB_TEST;
 
 	if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 2)
-		v16 |= DS_MODE_HALF_MODE;
+		mode |= DS_MODE_HALF_MODE;
 	else if (devc->cur_samplerate == DS_MAX_LOGIC_SAMPLERATE * 4)
-		v16 |= DS_MODE_QUAR_MODE;
+		mode |= DS_MODE_QUAR_MODE;
 
 	if (devc->continuous_mode)
-		v16 |= DS_MODE_STREAM_MODE;
+		mode |= DS_MODE_STREAM_MODE;
 	if (devc->external_clock) {
-		v16 |= DS_MODE_CLK_TYPE;
+		mode |= DS_MODE_CLK_TYPE;
 		if (devc->clock_edge == DS_EDGE_FALLING)
-			v16 |= DS_MODE_CLK_EDGE;
+			mode |= DS_MODE_CLK_EDGE;
 	}
 	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
 		ceil(devc->cur_samplerate * 1.0 / DS_MAX_LOGIC_SAMPLERATE)
@@ -488,12 +486,12 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 		/* Enable RLE for long captures.
 		 * Without this, captured data present errors.
 		 */
-		v16 |= DS_MODE_RLE_MODE;
+		mode |= DS_MODE_RLE_MODE;
 	}
 
-	WL16(&cfg.mode, v16);
-	v32 = ceil(DS_MAX_LOGIC_SAMPLERATE * 1.0 / devc->cur_samplerate);
-	WL32(&cfg.divider, v32);
+	WL16(&cfg.mode, mode);
+	divider = ceil(DS_MAX_LOGIC_SAMPLERATE * 1.0 / devc->cur_samplerate);
+	WL32(&cfg.divider, divider);
 
 	/* Number of 16-sample units. */
 	WL32(&cfg.count, devc->limit_samples / 16);
