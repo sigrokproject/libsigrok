@@ -22,6 +22,7 @@
 #include "beaglelogic.h"
 
 static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
 	SR_CONF_NUM_LOGIC_CHANNELS,
 };
 
@@ -67,6 +68,7 @@ static struct dev_context *beaglelogic_devc_alloc(void)
 	/* Default non-zero values (if any) */
 	devc->fd = -1;
 	devc->limit_samples = (uint64_t)-1;
+	devc->tcp_buffer = 0;
 
 	return devc;
 }
@@ -77,17 +79,35 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	const char *conn = NULL;
+	gchar **params;
 	int i, maxch;
-
-	/* Probe for /dev/beaglelogic */
-	if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
-		return NULL;
 
 	maxch = NUM_CHANNELS;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		if (src->key == SR_CONF_NUM_LOGIC_CHANNELS)
 			maxch = g_variant_get_int32(src->data);
+		if (src->key == SR_CONF_CONN)
+			conn = g_variant_get_string(src->data, NULL);
+	}
+
+	/* Probe for /dev/beaglelogic if not connecting via TCP */
+	if (conn == NULL) {
+		if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
+			return NULL;
+	} else {
+		params = g_strsplit(conn, "/", 0);
+		if (!params || !params[1] || !params[2]) {
+			sr_err("Invalid Parameters.");
+			g_strfreev(params);
+			return NULL;
+		}
+		if (g_ascii_strncasecmp(params[0], "tcp", 3)) {
+			sr_err("Only TCP (tcp-raw) protocol is currently supported.");
+			g_strfreev(params);
+			return NULL;
+		}
 	}
 
 	if (maxch > 8)
@@ -102,8 +122,23 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = beaglelogic_devc_alloc();
 
-	devc->beaglelogic = &beaglelogic_native_ops;
+	if (conn == NULL) {
+		devc->beaglelogic = &beaglelogic_native_ops;
+		sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
+	} else {
+		devc->read_timeout = 1000 * 1000;
+		devc->beaglelogic = &beaglelogic_tcp_ops;
+		devc->address = g_strdup(params[1]);
+		devc->port = g_strdup(params[2]);
+		g_strfreev(params);
 
+		if (devc->beaglelogic->open(devc) != SR_OK)
+			goto err_free;
+		if (beaglelogic_tcp_detect(devc) != SR_OK)
+			goto err_free;
+		sr_info("BeagleLogic device found at %s : %s",
+			devc->address, devc->port);
+	}
 	/* Fill the channels */
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
@@ -111,10 +146,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi->priv = devc;
 
-	/* Signal */
-	sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
-
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
+err_free:
+	g_free(sdi->model);
+	g_free(sdi->version);
+	g_free(devc);
+	g_free(sdi);
+
+	return NULL;
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -122,11 +161,15 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Open BeagleLogic */
-	if (devc->beaglelogic->open(devc))
-		return SR_ERR;
+	if (devc->beaglelogic == &beaglelogic_native_ops)
+		if (devc->beaglelogic->open(devc))
+			return SR_ERR;
 
 	/* Set fd and local attributes */
-	devc->pollfd.fd = devc->fd;
+	if (devc->beaglelogic == &beaglelogic_tcp_ops)
+		devc->pollfd.fd = devc->socket;
+	else
+		devc->pollfd.fd = devc->fd;
 	devc->pollfd.events = G_IO_IN;
 	devc->pollfd.revents = 0;
 
@@ -142,10 +185,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc->beaglelogic->set_triggerflags(devc);
 
 	/* Map the kernel capture FIFO for reads, saves 1 level of memcpy */
-	if (devc->beaglelogic->mmap(devc) != SR_OK) {
-		sr_err("Unable to map capture buffer");
-		devc->beaglelogic->close(devc);
-		return SR_ERR;
+	if (devc->beaglelogic == &beaglelogic_native_ops) {
+		if (devc->beaglelogic->mmap(devc) != SR_OK) {
+			sr_err("Unable to map capture buffer");
+			devc->beaglelogic->close(devc);
+			return SR_ERR;
+		}
+	} else {
+		devc->tcp_buffer = g_malloc(TCP_BUFFER_SIZE);
 	}
 
 	return SR_OK;
@@ -156,8 +203,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Close the memory mapping and the file */
-	devc->beaglelogic->munmap(devc);
+	if (devc->beaglelogic == &beaglelogic_native_ops)
+		devc->beaglelogic->munmap(devc);
 	devc->beaglelogic->close(devc);
+
+	if (devc->tcp_buffer)
+		g_free(devc->tcp_buffer);
 
 	return SR_OK;
 }
@@ -288,8 +339,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Trigger and add poll on file */
 	devc->beaglelogic->start(devc);
-	sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
-			BUFUNIT_TIMEOUT_MS(devc), beaglelogic_receive_data,
+	if (devc->beaglelogic == &beaglelogic_native_ops)
+		sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
+			BUFUNIT_TIMEOUT_MS(devc), beaglelogic_native_receive_data,
+			(void *)sdi);
+	else
+		sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
+			BUFUNIT_TIMEOUT_MS(devc), beaglelogic_tcp_receive_data,
 			(void *)sdi);
 
 	return SR_OK;
@@ -303,7 +359,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc->beaglelogic->stop(devc);
 
 	/* lseek to offset 0, flushes the cache */
-	lseek(devc->fd, 0, SEEK_SET);
+	if (devc->beaglelogic == &beaglelogic_native_ops)
+		lseek(devc->fd, 0, SEEK_SET);
 
 	/* Remove session source and send EOT packet */
 	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
