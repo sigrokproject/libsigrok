@@ -2,7 +2,8 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2017 Kumar Abhishek <abhishek@theembeddedkitchen.net>
- * Portions of the code are adopted from scpi_tcp.c and scpi.c
+ * Portions of the code are adapted from scpi_tcp.c and scpi.c, their
+ * copyright notices are listed below:
  *
  * Copyright (C) 2013 Martin Ling <martin-sigrok@earth.li>
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
