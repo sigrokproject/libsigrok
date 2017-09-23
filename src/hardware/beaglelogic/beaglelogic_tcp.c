@@ -242,9 +242,6 @@ static int beaglelogic_open(struct dev_context *devc) {
 }
 
 static int beaglelogic_close(struct dev_context *devc) {
-	g_free(devc->address);
-	g_free(devc->port);
-
 	if (close(devc->socket) < 0)
 		return SR_ERR;
 

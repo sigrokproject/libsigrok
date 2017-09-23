@@ -150,6 +150,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 err_free:
 	g_free(sdi->model);
 	g_free(sdi->version);
+	g_free(devc->address);
+	g_free(devc->port);
 	g_free(devc);
 	g_free(sdi);
 
@@ -207,10 +209,24 @@ static int dev_close(struct sr_dev_inst *sdi)
 		devc->beaglelogic->munmap(devc);
 	devc->beaglelogic->close(devc);
 
+	return SR_OK;
+}
+
+static void clear_helper(struct dev_context *devc)
+{
 	if (devc->tcp_buffer)
 		g_free(devc->tcp_buffer);
 
-	return SR_OK;
+	if (devc->address)
+		g_free(devc->address);
+
+	if (devc->port)
+		g_free(devc->port);
+}
+
+static int dev_clear(const struct sr_dev_driver *di)
+{
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -379,7 +395,7 @@ static struct sr_dev_driver beaglelogic_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
