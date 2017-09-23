@@ -132,6 +132,32 @@ static int beaglelogic_tcp_read_data(struct dev_context *devc, char *buf,
 	return len;
 }
 
+SR_PRIV int beaglelogic_tcp_drain(struct dev_context *devc) {
+	char *buf = g_malloc(1024);
+	fd_set rset;
+	int ret, len = 0;
+	struct timeval tv;
+
+	FD_ZERO(&rset);
+	FD_SET(devc->socket, &rset);
+
+	/* 25ms timeout */
+	tv.tv_sec = 0;
+	tv.tv_usec = 25 * 1000;
+
+	do {
+		ret = select(devc->socket + 1, &rset, NULL, NULL, &tv);
+		if (ret > 0) {
+			len += beaglelogic_tcp_read_data(devc, buf, 1024);
+		}
+	} while (ret > 0);
+
+	sr_spew("Drained %d bytes of data.", len);
+
+	g_free(buf);
+	return SR_OK;
+}
+
 static int beaglelogic_tcp_get_string(struct dev_context *devc, const char *cmd,
 		char **tcp_resp) {
 	GString *response = g_string_sized_new(1024);
@@ -314,6 +340,7 @@ static int beaglelogic_get_lasterror(struct dev_context *devc) {
 }
 
 static int beaglelogic_start(struct dev_context *devc) {
+	beaglelogic_tcp_drain(devc);
 	return beaglelogic_tcp_send_cmd(devc, "get");
 }
 

@@ -358,9 +358,11 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	/* Execute a stop on BeagleLogic */
 	devc->beaglelogic->stop(devc);
 
-	/* lseek to offset 0, flushes the cache */
+	/* Flush the cache */
 	if (devc->beaglelogic == &beaglelogic_native_ops)
 		lseek(devc->fd, 0, SEEK_SET);
+	else
+		beaglelogic_tcp_drain(devc);
 
 	/* Remove session source and send EOT packet */
 	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);

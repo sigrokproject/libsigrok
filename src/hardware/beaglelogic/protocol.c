@@ -194,6 +194,10 @@ SR_PRIV int beaglelogic_tcp_receive_data(int fd, int revents, void *cb_data)
 		/* Send EOA Packet, stop polling */
 		std_session_send_df_end(sdi);
 		devc->beaglelogic->stop(devc);
+
+		/* Drain the receive buffer */
+		beaglelogic_tcp_drain(devc);
+
 		sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
 	}
 

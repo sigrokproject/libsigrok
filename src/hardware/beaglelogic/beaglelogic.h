@@ -127,5 +127,6 @@ SR_PRIV extern const struct beaglelogic_ops beaglelogic_native_ops;
 SR_PRIV extern const struct beaglelogic_ops beaglelogic_tcp_ops;
 
 SR_PRIV int beaglelogic_tcp_detect(struct dev_context *devc);
+SR_PRIV int beaglelogic_tcp_drain(struct dev_context *devc);
 
 #endif
