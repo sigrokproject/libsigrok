@@ -136,6 +136,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			goto err_free;
 		if (beaglelogic_tcp_detect(devc) != SR_OK)
 			goto err_free;
+		if (devc->beaglelogic->close(devc) != SR_OK)
+			goto err_free;
 		sr_info("BeagleLogic device found at %s : %s",
 			devc->address, devc->port);
 	}
@@ -163,9 +165,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 
 	/* Open BeagleLogic */
-	if (devc->beaglelogic == &beaglelogic_native_ops)
-		if (devc->beaglelogic->open(devc))
-			return SR_ERR;
+	if (devc->beaglelogic->open(devc))
+		return SR_ERR;
 
 	/* Set fd and local attributes */
 	if (devc->beaglelogic == &beaglelogic_tcp_ops)
