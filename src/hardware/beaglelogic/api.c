@@ -33,7 +33,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
@@ -67,7 +67,7 @@ static struct dev_context *beaglelogic_devc_alloc(void)
 
 	/* Default non-zero values (if any) */
 	devc->fd = -1;
-	devc->limit_samples = (uint64_t)-1;
+	devc->limit_samples = (uint64_t)10000000;
 	devc->tcp_buffer = 0;
 
 	return devc;
