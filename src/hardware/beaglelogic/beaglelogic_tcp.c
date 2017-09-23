@@ -42,7 +42,8 @@
 #include "protocol.h"
 #include "beaglelogic.h"
 
-static int beaglelogic_tcp_open(struct dev_context *devc) {
+static int beaglelogic_tcp_open(struct dev_context *devc)
+{
 	struct addrinfo hints;
 	struct addrinfo *results, *res;
 	int err;
@@ -84,7 +85,8 @@ static int beaglelogic_tcp_open(struct dev_context *devc) {
 }
 
 static int beaglelogic_tcp_send_cmd(struct dev_context *devc,
-				    const char *format, ...) {
+				    const char *format, ...)
+{
 	int len, out;
 	va_list args, args_copy;
 	char *buf;
@@ -120,7 +122,8 @@ static int beaglelogic_tcp_send_cmd(struct dev_context *devc,
 }
 
 static int beaglelogic_tcp_read_data(struct dev_context *devc, char *buf,
-		int maxlen) {
+				     int maxlen)
+{
 	int len;
 
 	len = recv(devc->socket, buf, maxlen, 0);
@@ -133,7 +136,8 @@ static int beaglelogic_tcp_read_data(struct dev_context *devc, char *buf,
 	return len;
 }
 
-SR_PRIV int beaglelogic_tcp_drain(struct dev_context *devc) {
+SR_PRIV int beaglelogic_tcp_drain(struct dev_context *devc)
+{
 	char *buf = g_malloc(1024);
 	fd_set rset;
 	int ret, len = 0;
@@ -160,7 +164,8 @@ SR_PRIV int beaglelogic_tcp_drain(struct dev_context *devc) {
 }
 
 static int beaglelogic_tcp_get_string(struct dev_context *devc, const char *cmd,
-		char **tcp_resp) {
+				      char **tcp_resp)
+{
 	GString *response = g_string_sized_new(1024);
 	int len;
 	gint64 timeout;
@@ -206,7 +211,8 @@ static int beaglelogic_tcp_get_string(struct dev_context *devc, const char *cmd,
 }
 
 static int beaglelogic_tcp_get_int(struct dev_context *devc,
-				   const char *cmd, int *response) {
+				   const char *cmd, int *response)
+{
 	int ret;
 	char *resp = NULL;
 
@@ -224,7 +230,8 @@ static int beaglelogic_tcp_get_int(struct dev_context *devc,
 	return ret;
 }
 
-SR_PRIV int beaglelogic_tcp_detect(struct dev_context *devc) {
+SR_PRIV int beaglelogic_tcp_detect(struct dev_context *devc)
+{
 	char *resp = NULL;
 	int ret;
 
@@ -238,23 +245,27 @@ SR_PRIV int beaglelogic_tcp_detect(struct dev_context *devc) {
 	return ret;
 }
 
-static int beaglelogic_open(struct dev_context *devc) {
+static int beaglelogic_open(struct dev_context *devc)
+{
 	return beaglelogic_tcp_open(devc);
 }
 
-static int beaglelogic_close(struct dev_context *devc) {
+static int beaglelogic_close(struct dev_context *devc)
+{
 	if (close(devc->socket) < 0)
 		return SR_ERR;
 
 	return SR_OK;
 }
 
-static int beaglelogic_get_buffersize(struct dev_context *devc) {
+static int beaglelogic_get_buffersize(struct dev_context *devc)
+{
 	return beaglelogic_tcp_get_int(devc, "memalloc",
 		(int *)&devc->buffersize);
 }
 
-static int beaglelogic_set_buffersize(struct dev_context *devc) {
+static int beaglelogic_set_buffersize(struct dev_context *devc)
+{
 	int ret;
 	char *resp;
 
@@ -269,14 +280,16 @@ static int beaglelogic_set_buffersize(struct dev_context *devc) {
 	return ret;
 }
 
-static int beaglelogic_get_samplerate(struct dev_context *devc) {
+static int beaglelogic_get_samplerate(struct dev_context *devc)
+{
 	int arg, err;
 	err = beaglelogic_tcp_get_int(devc, "samplerate", &arg);
 	devc->cur_samplerate = arg;
 	return err;
 }
 
-static int beaglelogic_set_samplerate(struct dev_context *devc) {
+static int beaglelogic_set_samplerate(struct dev_context *devc)
+{
 	int ret;
 	char *resp;
 
@@ -292,12 +305,14 @@ static int beaglelogic_set_samplerate(struct dev_context *devc) {
 	return ret;
 }
 
-static int beaglelogic_get_sampleunit(struct dev_context *devc) {
+static int beaglelogic_get_sampleunit(struct dev_context *devc)
+{
 	return beaglelogic_tcp_get_int(devc, "sampleunit",
 		(int *)&devc->sampleunit);
 }
 
-static int beaglelogic_set_sampleunit(struct dev_context *devc) {
+static int beaglelogic_set_sampleunit(struct dev_context *devc)
+{
 	int ret;
 	char *resp;
 
@@ -312,12 +327,14 @@ static int beaglelogic_set_sampleunit(struct dev_context *devc) {
 	return ret;
 }
 
-static int beaglelogic_get_triggerflags(struct dev_context *devc) {
+static int beaglelogic_get_triggerflags(struct dev_context *devc)
+{
 	return beaglelogic_tcp_get_int(devc, "triggerflags",
 		(int *)&devc->triggerflags);
 }
 
-static int beaglelogic_set_triggerflags(struct dev_context *devc) {
+static int beaglelogic_set_triggerflags(struct dev_context *devc)
+{
 	int ret;
 	char *resp;
 
@@ -332,26 +349,31 @@ static int beaglelogic_set_triggerflags(struct dev_context *devc) {
 	return ret;
 }
 
-static int beaglelogic_get_lasterror(struct dev_context *devc) {
+static int beaglelogic_get_lasterror(struct dev_context *devc)
+{
 	devc->last_error = 0;
 	return SR_OK;
 }
 
-static int beaglelogic_start(struct dev_context *devc) {
+static int beaglelogic_start(struct dev_context *devc)
+{
 	beaglelogic_tcp_drain(devc);
 	return beaglelogic_tcp_send_cmd(devc, "get");
 }
 
-static int beaglelogic_stop(struct dev_context *devc) {
+static int beaglelogic_stop(struct dev_context *devc)
+{
 	return beaglelogic_tcp_send_cmd(devc, "close");
 }
 
-static int beaglelogic_get_bufunitsize(struct dev_context *devc) {
+static int beaglelogic_get_bufunitsize(struct dev_context *devc)
+{
 	return beaglelogic_tcp_get_int(devc, "bufunitsize",
 		(int *)&devc->bufunitsize);
 }
 
-static int beaglelogic_set_bufunitsize(struct dev_context *devc) {
+static int beaglelogic_set_bufunitsize(struct dev_context *devc)
+{
 	int ret;
 	char *resp;
 
@@ -366,7 +388,8 @@ static int beaglelogic_set_bufunitsize(struct dev_context *devc) {
 	return ret;
 }
 
-static int dummy(struct dev_context *devc) {
+static int dummy(struct dev_context *devc)
+{
 	(void)devc;
 	return SR_ERR_NA;
 }
