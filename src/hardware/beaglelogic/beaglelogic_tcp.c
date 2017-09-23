@@ -108,7 +108,7 @@ static int beaglelogic_tcp_send_cmd(struct dev_context *devc,
 	}
 
 	if (out < (int)strlen(buf)) {
-		sr_dbg("Only sent %d/%d bytes of command: '%s'.", out,
+		sr_dbg("Only sent %d/%lu bytes of command: '%s'.", out,
 		       strlen(buf), buf);
 	}
 
@@ -366,7 +366,7 @@ static int beaglelogic_set_bufunitsize(struct dev_context *devc) {
 }
 
 static int dummy(struct dev_context *devc) {
-	(devc);
+	(void)devc;
 	return SR_ERR_NA;
 }
 
