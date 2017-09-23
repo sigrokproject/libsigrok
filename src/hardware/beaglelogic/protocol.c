@@ -99,7 +99,7 @@ SR_PRIV int beaglelogic_native_receive_data(int fd, int revents, void *cb_data)
 		if ((devc->offset += packetsize) >= devc->buffersize) {
 			/* One shot capture, we abort and settle with less than
 			 * the required number of samples */
-			if (devc->triggerflags)
+			if (devc->triggerflags == BL_TRIGGERFLAGS_CONTINUOUS)
 				devc->offset = 0;
 			else
 				packetsize = 0;
@@ -181,7 +181,7 @@ SR_PRIV int beaglelogic_tcp_receive_data(int fd, int revents, void *cb_data)
 		if ((devc->offset += packetsize) >= devc->buffersize) {
 			/* One shot capture, we abort and settle with less than
 			 * the required number of samples */
-			if (devc->triggerflags)
+			if (devc->triggerflags == BL_TRIGGERFLAGS_CONTINUOUS)
 				devc->offset = 0;
 			else
 				packetsize = 0;

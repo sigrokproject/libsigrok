@@ -341,6 +341,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 	devc->beaglelogic->set_sampleunit(devc);
 
+	/* If continuous sampling, set the limit_samples to max possible value */
+	if (devc->triggerflags == BL_TRIGGERFLAGS_CONTINUOUS) {
+		devc->limit_samples = (uint64_t)-1;
+	}
+
 	/* Configure triggers & send header packet */
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
 		int pre_trigger_samples = 0;
