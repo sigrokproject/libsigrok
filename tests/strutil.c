@@ -255,6 +255,11 @@ START_TEST(test_fractional)
 	test_rational("12.34", (struct sr_rational){1234, 100});
 	test_rational("-12.34", (struct sr_rational){-1234, 100});
 	test_rational("10.00", (struct sr_rational){1000, 100});
+	test_rational(".1", (struct sr_rational){1, 10});
+	test_rational("+0.1", (struct sr_rational){1, 10});
+	test_rational("+.1", (struct sr_rational){1, 10});
+	test_rational("-0.1", (struct sr_rational){-1, 10});
+	test_rational("-.1", (struct sr_rational){-1, 10});
 }
 END_TEST
 
@@ -270,6 +275,11 @@ START_TEST(test_exponent)
 	test_rational("0.001e3", (struct sr_rational){1, 1});
 	test_rational("0.001e0", (struct sr_rational){1, 1000});
 	test_rational("0.001e-3", (struct sr_rational){1, 1000000});
+	test_rational("43.737E-3", (struct sr_rational){43737, 1000000});
+	test_rational("-0.1e-2", (struct sr_rational){-1, 1000});
+	test_rational("-.1e-2", (struct sr_rational){-1, 1000});
+	test_rational("-.0e-2", (struct sr_rational){0, 1000});
+	test_rational("+.0e-2", (struct sr_rational){0, 1000});
 }
 END_TEST
 

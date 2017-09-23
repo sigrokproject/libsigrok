@@ -233,12 +233,18 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	int64_t denominator = 1;
 	int32_t fractional_len = 0;
 	int32_t exponent = 0;
+	int is_negative = 0;
 
 	errno = 0;
 	integral = g_ascii_strtoll(str, &endptr, 10);
 
-	if (errno)
+	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.')
+		endptr += 1;
+	else if (errno)
 		return SR_ERR;
+
+	if (integral < 0 || str[0] == '-')
+		is_negative = 1;
 
 	if (*endptr == '.') {
 		const char* start = endptr + 1;
@@ -261,7 +267,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 		integral *= 10;
 	exponent -= fractional_len;
 
-	if (integral >= 0)
+	if (!is_negative)
 		integral += fractional;
 	else
 		integral -= fractional;
