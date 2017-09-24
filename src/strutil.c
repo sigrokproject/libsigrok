@@ -23,6 +23,7 @@
 #include <string.h>
 #include <strings.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -233,7 +234,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	int64_t denominator = 1;
 	int32_t fractional_len = 0;
 	int32_t exponent = 0;
-	int is_negative = 0;
+	bool is_negative = false;
 
 	errno = 0;
 	integral = g_ascii_strtoll(str, &endptr, 10);
@@ -244,7 +245,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 		return SR_ERR;
 
 	if (integral < 0 || str[0] == '-')
-		is_negative = 1;
+		is_negative = true;
 
 	if (*endptr == '.') {
 		const char* start = endptr + 1;
