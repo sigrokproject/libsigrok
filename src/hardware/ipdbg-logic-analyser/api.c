@@ -40,7 +40,7 @@ static const int32_t ipdbg_org_la_trigger_matches[] = {
     SR_TRIGGER_ONE,
     SR_TRIGGER_RISING,
     SR_TRIGGER_FALLING,
-    //SR_TRIGGER_EDGE,
+    SR_TRIGGER_EDGE,
 };
 
 SR_PRIV struct sr_dev_driver ipdbg_la_driver_info;

@@ -49,6 +49,7 @@ struct ipdbg_org_la_dev_context
     char *trigger_value;
     char *trigger_mask_last;
     char *trigger_value_last;
+    char *trigger_edge_mask;
     unsigned int delay_value;
     int num_stages; //always 0
     unsigned int num_transfers;

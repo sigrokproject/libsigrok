@@ -60,6 +60,9 @@
 
 #define Value_last                 0xFF
 
+#define Select_Edge_Mask           0xF5
+#define Set_Edge_Mask              0xF6
+
 #define delay                      0x1F
 #define K_Mauslesen                0xAA
 
@@ -197,6 +200,7 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
         devc->trigger_value[i] = 0;
         devc->trigger_mask_last[i] = 0;
         devc->trigger_value_last[i] = 0;
+        devc->trigger_edge_mask[i] = 0;
     }
 
     if (!(trigger = sr_session_trigger_get(sdi->session))) //
@@ -225,6 +229,7 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
                 devc->trigger_value[byteIndex] |= matchPattern;
                 devc->trigger_mask[byteIndex] |= matchPattern;
                 devc->trigger_mask_last[byteIndex] &= ~matchPattern;
+                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
                 //sr_err("\n========ONE MASK===========");
 
             }
@@ -233,6 +238,7 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
                 devc->trigger_value[byteIndex] &= ~matchPattern;
                 devc->trigger_mask[byteIndex] |= matchPattern;
                 devc->trigger_mask_last[byteIndex] &= ~matchPattern;
+                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
                 //sr_err("\n========ZERO MASK===========");
             }
             else if ( match->match == SR_TRIGGER_RISING)
@@ -241,6 +247,7 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
                 devc->trigger_value_last[byteIndex] &= ~matchPattern;
                 devc->trigger_mask[byteIndex] |= matchPattern;
                 devc->trigger_mask_last[byteIndex] |= matchPattern;
+                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
                 //sr_err("\n==========RISING===========");
 
             }
@@ -250,7 +257,14 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
                 devc->trigger_value_last[byteIndex] |= matchPattern;
                 devc->trigger_mask[byteIndex] |= matchPattern;
                 devc->trigger_mask_last[byteIndex] |= matchPattern;
+                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
                 //sr_err("\n========FALlING===========");
+            }
+            else if (match->match == SR_TRIGGER_EDGE)
+            {
+                devc->trigger_mask[byteIndex] &= ~matchPattern;
+                devc->trigger_mask_last[byteIndex] &= ~matchPattern;
+                devc->trigger_edge_mask[byteIndex] |= matchPattern;
             }
 
         }
@@ -450,6 +464,18 @@ SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, stru
     for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
         sendEscaping(tcp, devc->trigger_value_last + devc->DATA_WIDTH_BYTES -1-k, 1);
 
+    /////////////////////////////////////////////edge_mask////////////////////////////////////////////////////////////
+    buf[0] = Trigger;
+    ipdbg_org_la_tcp_send(tcp, buf, 1);
+    buf[0] = Select_Edge_Mask;
+    ipdbg_org_la_tcp_send(tcp, buf, 1);
+    buf[0] = Set_Edge_Mask;
+    ipdbg_org_la_tcp_send(tcp, buf, 1);
+
+    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
+        sendEscaping(tcp, devc->trigger_edge_mask + devc->DATA_WIDTH_BYTES -1-k, 1);
+
+
     return SR_OK;
 }
 
@@ -539,7 +565,9 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     devc->trigger_value      = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_mask_last  = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_value_last = g_malloc0(devc->DATA_WIDTH_BYTES);
+    devc->trigger_edge_mask  = g_malloc0(devc->DATA_WIDTH_BYTES);
 
+    // TODO add missing free for trigger_mask, trigger_value, trigger_mask_last, trigger_value_last and trigger_edge_mask
 
 }
 
