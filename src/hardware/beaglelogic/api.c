@@ -215,14 +215,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 static void clear_helper(struct dev_context *devc)
 {
-	if (devc->tcp_buffer)
-		g_free(devc->tcp_buffer);
-
-	if (devc->address)
-		g_free(devc->address);
-
-	if (devc->port)
-		g_free(devc->port);
+	g_free(devc->tcp_buffer);
+	g_free(devc->address);
+	g_free(devc->port);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
