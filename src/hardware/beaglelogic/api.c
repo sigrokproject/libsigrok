@@ -59,20 +59,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static struct dev_context *beaglelogic_devc_alloc(void)
-{
-	struct dev_context *devc;
-
-	devc = g_malloc0(sizeof(struct dev_context));
-
-	/* Default non-zero values (if any) */
-	devc->fd = -1;
-	devc->limit_samples = (uint64_t)10000000;
-	devc->tcp_buffer = 0;
-
-	return devc;
-}
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	GSList *l;
@@ -117,7 +103,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup("BeagleLogic");
 	sdi->version = g_strdup("1.0");
 
-	devc = beaglelogic_devc_alloc();
+	devc = g_malloc0(sizeof(struct dev_context));
+
+	/* Default non-zero values (if any) */
+	devc->fd = -1;
+	devc->limit_samples = (uint64_t)10000000;
+	devc->tcp_buffer = 0;
 
 	if (!conn) {
 		devc->beaglelogic = &beaglelogic_native_ops;
