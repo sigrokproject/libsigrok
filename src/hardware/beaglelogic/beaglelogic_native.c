@@ -23,7 +23,8 @@
 static int beaglelogic_open_nonblock(struct dev_context *devc)
 {
 	devc->fd = open(BEAGLELOGIC_DEV_NODE, O_RDONLY | O_NONBLOCK);
-	return (devc->fd == -1 ? SR_ERR : SR_OK);
+
+	return ((devc->fd == -1) ? SR_ERR : SR_OK);
 }
 
 static int beaglelogic_close(struct dev_context *devc)
@@ -45,8 +46,10 @@ static int beaglelogic_set_buffersize(struct dev_context *devc)
 static int beaglelogic_get_samplerate(struct dev_context *devc)
 {
 	uint32_t arg, err;
+
 	err = ioctl(devc->fd, IOCTL_BL_GET_SAMPLE_RATE, &arg);
 	devc->cur_samplerate = arg;
+
 	return err;
 }
 
@@ -120,7 +123,8 @@ static int beaglelogic_mmap(struct dev_context *devc)
 		beaglelogic_get_buffersize(devc);
 	devc->sample_buf = mmap(NULL, devc->buffersize,
 			PROT_READ, MAP_SHARED, devc->fd, 0);
-	return (devc->sample_buf == MAP_FAILED ? -1 : SR_OK);
+
+	return ((devc->sample_buf == MAP_FAILED) ? -1 : SR_OK);
 }
 
 static int beaglelogic_munmap(struct dev_context *devc)

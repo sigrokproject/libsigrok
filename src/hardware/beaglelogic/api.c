@@ -93,7 +93,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	/* Probe for /dev/beaglelogic if not connecting via TCP */
-	if (conn == NULL) {
+	if (!conn) {
 		if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
 			return NULL;
 	} else {
@@ -110,10 +110,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	if (maxch > 8)
-		maxch = NUM_CHANNELS;
-	else
-		maxch = 8;
+	maxch = (maxch > 8) ? NUM_CHANNELS : 8;
 
 	sdi = g_new0(struct sr_dev_inst, 1);
 	sdi->status = SR_ST_INACTIVE;
@@ -122,7 +119,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = beaglelogic_devc_alloc();
 
-	if (conn == NULL) {
+	if (!conn) {
 		devc->beaglelogic = &beaglelogic_native_ops;
 		sr_info("BeagleLogic device found at "BEAGLELOGIC_DEV_NODE);
 	} else {
@@ -141,6 +138,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_info("BeagleLogic device found at %s : %s",
 			devc->address, devc->port);
 	}
+
 	/* Fill the channels */
 	for (i = 0; i < maxch; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
@@ -149,6 +147,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
+
 err_free:
 	g_free(sdi->model);
 	g_free(sdi->version);
@@ -337,9 +336,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->beaglelogic->set_sampleunit(devc);
 
 	/* If continuous sampling, set the limit_samples to max possible value */
-	if (devc->triggerflags == BL_TRIGGERFLAGS_CONTINUOUS) {
+	if (devc->triggerflags == BL_TRIGGERFLAGS_CONTINUOUS)
 		devc->limit_samples = (uint64_t)-1;
-	}
 
 	/* Configure triggers & send header packet */
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
