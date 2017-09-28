@@ -59,7 +59,6 @@ static void ipdbg_org_la_split_addr_port(const char *conn, char **addr, char **p
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-    sr_err("scan\n");
     struct drv_context *drvc;
     GSList *devices;
 
@@ -96,8 +95,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     if(ipdbg_org_la_tcp_open(tcp) != SR_OK)
         return NULL;
 
-    sr_err("set Reset\n");
-//////////////////////////////////////////////////////////////////////////////////////////
     ipdbg_org_la_sendReset(tcp);
     ipdbg_org_la_sendReset(tcp);
 
@@ -124,7 +121,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
     sr_err("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
     sr_err("limit samples = %d\n", devc->limit_samples_max);
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     for (unsigned int i = 0; i < devc->DATA_WIDTH; i++)
     {
@@ -145,8 +141,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-    //sr_err("dev_clear\n");
-
     struct drv_context *drvc = di->context;
     struct sr_dev_inst *sdi;
     GSList *l;
@@ -170,10 +164,8 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-    //sr_err("dev_open\n");
     (void)sdi;
 
-    /* TODO: get handle from sdi->conn and open it. */
     sdi->status = SR_ST_INACTIVE;
 
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
@@ -195,9 +187,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 {
     (void)sdi;
 
-    /* TODO: get handle from sdi->conn and close it. */
-    //sr_err("dev_close\n");
-    /// should be called before a new call to scan()
+    // should be called before a new call to scan()
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
     if(tcp)
         ipdbg_org_la_tcp_close(tcp);
@@ -246,7 +236,6 @@ static int config_set(uint32_t key, GVariant *data,
     if (sdi->status != SR_ST_ACTIVE)
         return SR_ERR_DEV_CLOSED;
 
-    //sr_err("config_set\n");
     struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
     ret = SR_OK;
@@ -316,7 +305,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-
     if (sdi->status != SR_ST_ACTIVE)
         return SR_ERR_DEV_CLOSED;
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
@@ -324,44 +312,39 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
     struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
     ipdbg_org_la_convert_trigger(sdi);
-    //sr_err("dev_acquisition_start\n");
 
     /* Send Triggerkonviguration */
     ipdbg_org_la_sendTrigger(devc, tcp);
-    //sr_err("dev_acquisition_start1\n");
 
     /* Send Delay */
-    ipdbg_org_la_sendDelay(devc, tcp);
-    //sr_err("dev_acquisition_start2\n");
+    ipdbg_org_la_sendDelay(devc, tcp);;
 
-    //std_session_send_df_header(sdi, LOG_PREFIX);
-    std_session_send_df_header(sdi);
-    //sr_err("dev_acquisition_start3\n");
     /* If the device stops sending for longer than it takes to send a byte,
      * that means it's finished. But wait at least 100 ms to be safe.
      */
-    //sr_session_source_add(sdi->session, -1, G_IO_IN, 100, ipdbg_receive_data, (struct sr_dev_inst *)sdi);
-    //sr_session_source_add(sdi->session, -1, G_IO_IN, 100, ipdbg_org_la_receive_data, NULL);
     sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100, ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
-    //sr_err("dev_acquisition_start4\n");
 
     ipdbg_org_la_sendStart(tcp);
-    //sr_err("dev_acquisition_start5\n");
-    /* TODO: configure hardware, reset acquisition state, set up
-     * callbacks and send header packet. */
 
     return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
+    struct ipdbg_org_la_dev_context *devc = sdi->priv;
+    struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
-    sr_err("dev_acquisition_stop\n");
+    unsigned char byte;
+    while (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
+    {
+        ipdbg_org_la_tcp_receive(tcp, &byte, 1);
+        devc->num_transfers++;
+    }
 
-    if (sdi->status != SR_ST_ACTIVE)
-        return SR_ERR_DEV_CLOSED;
-
+    ipdbg_org_la_sendReset(tcp);
     ipdbg_org_la_abort_acquisition(sdi);
+
+
 
     return SR_OK;
 }
