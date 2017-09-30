@@ -50,6 +50,17 @@
  * @{
  */
 
+/* See if a (assumed opened) serial port is of any supported type. */
+static int dev_is_supported(struct sr_serial_dev_inst *serial)
+{
+	if (!serial)
+		return 0;
+	if (!serial->lib_funcs)
+		return 0;
+
+	return 1;
+}
+
 /**
  * Open the specified serial port.
  *
@@ -76,7 +87,18 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
-	ret = sr_ser_libsp_open(serial, flags);
+	/* Default to the libserialport transport layer. */
+	serial->lib_funcs = ser_lib_funcs_libsp;
+	if (!serial->lib_funcs)
+		return SR_ERR_NA;
+
+	/*
+	 * Run the transport's open routine. Setup the bitrate and the
+	 * UART frame format.
+	 */
+	if (!serial->lib_funcs->open)
+		return SR_ERR_NA;
+	ret = serial->lib_funcs->open(serial, flags);
 	if (ret != SR_OK)
 		return ret;
 
@@ -105,7 +127,10 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Closing serial port %s.", serial->port);
 
-	return sr_ser_libsp_close(serial);
+	if (!serial->lib_funcs || !serial->lib_funcs->close)
+		return SR_ERR_NA;
+
+	return serial->lib_funcs->close(serial);
 }
 
 /**
@@ -127,7 +152,10 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Flushing serial port %s.", serial->port);
 
-	return sr_ser_libsp_flush(serial);
+	if (!serial->lib_funcs || !serial->lib_funcs->flush)
+		return SR_ERR_NA;
+
+	return serial->lib_funcs->flush(serial);
 }
 
 /**
@@ -149,7 +177,10 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 
 	sr_spew("Draining serial port %s.", serial->port);
 
-	return sr_ser_libsp_drain(serial);
+	if (!serial->lib_funcs || !serial->lib_funcs->drain)
+		return SR_ERR_NA;
+
+	return serial->lib_funcs->drain(serial);
 }
 
 /**
@@ -164,7 +195,16 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
  */
 SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial)
 {
-	return sr_ser_libsp_get_rx_avail(serial);
+	size_t lib_count;
+
+	if (!serial)
+		return 0;
+
+	lib_count = 0;
+	if (serial->lib_funcs && serial->lib_funcs->get_rx_avail)
+		lib_count = serial->lib_funcs->get_rx_avail(serial);
+
+	return lib_count;
 }
 
 static int _serial_write(struct sr_serial_dev_inst *serial,
@@ -178,7 +218,10 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	ret = sr_ser_libsp_write(serial, buf, count, nonblocking, timeout_ms);
+	if (!serial->lib_funcs || !serial->lib_funcs->write)
+		return SR_ERR_NA;
+	ret = serial->lib_funcs->write(serial, buf, count,
+		nonblocking, timeout_ms);
 	sr_spew("Wrote %zd/%zu bytes.", ret, count);
 
 	return ret;
@@ -234,7 +277,10 @@ static int _serial_read(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	ret = sr_ser_libsp_read(serial, buf, count, nonblocking, timeout_ms);
+	if (!serial->lib_funcs || !serial->lib_funcs->read)
+		return SR_ERR_NA;
+	ret = serial->lib_funcs->read(serial, buf, count,
+		nonblocking, timeout_ms);
 	if (ret > 0)
 		sr_spew("Read %zd/%zu bytes.", ret, count);
 
@@ -313,8 +359,11 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial,
 
 	sr_spew("Setting serial parameters on port %s.", serial->port);
 
-	ret = sr_ser_libsp_set_params(serial,
-		baudrate, bits, parity, stopbits, flowcontrol, rts, dtr);
+	if (!serial->lib_funcs || !serial->lib_funcs->set_params)
+		return SR_ERR_NA;
+	ret = serial->lib_funcs->set_params(serial,
+		baudrate, bits, parity, stopbits,
+		flowcontrol, rts, dtr);
 	if (ret == SR_OK) {
 		serial->comm_params.bit_rate = baudrate;
 		serial->comm_params.data_bits = bits;
@@ -476,7 +525,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	if (!serial->sp_data) {
+	if (!dev_is_supported(serial)) {
 		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return -1;
 	}
@@ -659,12 +708,15 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 		return SR_ERR_ARG;
 	}
 
-	if (!serial->sp_data) {
+	if (!dev_is_supported(serial)) {
 		sr_err("Invalid serial port.");
 		return SR_ERR_ARG;
 	}
 
-	return sr_ser_libsp_source_add(session, serial,
+	if (!serial->lib_funcs || !serial->lib_funcs->setup_source_add)
+		return SR_ERR_NA;
+
+	return serial->lib_funcs->setup_source_add(session, serial,
 		events, timeout, cb, cb_data);
 }
 
@@ -672,12 +724,15 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 SR_PRIV int serial_source_remove(struct sr_session *session,
 	struct sr_serial_dev_inst *serial)
 {
-	if (!serial->sp_data) {
+	if (!dev_is_supported(serial)) {
 		sr_err("Invalid serial port.");
 		return SR_ERR_ARG;
 	}
 
-	return sr_ser_libsp_source_remove(session, serial);
+	if (!serial->lib_funcs || !serial->lib_funcs->setup_source_remove)
+		return SR_ERR_NA;
+
+	return serial->lib_funcs->setup_source_remove(session, serial);
 }
 
 /**
@@ -734,12 +789,16 @@ static GSList *append_port_list(GSList *devs, const char *name, const char *desc
 SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 {
 	GSList *tty_devs;
+	GSList *(*list_func)(GSList *list, sr_ser_list_append_t append);
 
 	/* Currently unused, but will be used by some drivers later on. */
 	(void)driver;
 
 	tty_devs = NULL;
-	tty_devs = sr_ser_libsp_list(tty_devs, append_port_list);
+	if (ser_lib_funcs_libsp && ser_lib_funcs_libsp->list) {
+		list_func = ser_lib_funcs_libsp->list;
+		tty_devs = list_func(tty_devs, append_port_list);
+	}
 
 	return tty_devs;
 }
@@ -767,10 +826,15 @@ static GSList *append_port_find(GSList *devs, const char *name)
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 {
 	GSList *tty_devs;
+	GSList *(*find_func)(GSList *list, sr_ser_find_append_t append,
+			uint16_t vid, uint16_t pid);
 
 	tty_devs = NULL;
-	tty_devs = sr_ser_libsp_find_usb(tty_devs, append_port_find,
-		vendor_id, product_id);
+	if (ser_lib_funcs_libsp && ser_lib_funcs_libsp->find_usb) {
+		find_func = ser_lib_funcs_libsp->find_usb;
+		tty_devs = find_func(tty_devs, append_port_find,
+			vendor_id, product_id);
+	}
 
 	return tty_devs;
 }
@@ -784,10 +848,11 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 
 	/* Get the bitrate and frame length. */
 	bits = baud = 0;
-	ret = sr_ser_libsp_get_frame_format(port, &baud, &bits);
-	if (ret != SR_OK)
-		bits = baud = 0;
-	if (!bits || !baud) {
+	if (port->lib_funcs && port->lib_funcs->get_frame_format) {
+		ret = port->lib_funcs->get_frame_format(port, &baud, &bits);
+		if (ret != SR_OK)
+			bits = baud = 0;
+	} else {
 		baud = port->comm_params.bit_rate;
 		bits = 1 + port->comm_params.data_bits +
 			port->comm_params.parity_bits +

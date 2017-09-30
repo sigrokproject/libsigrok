@@ -41,6 +41,8 @@
  * Serial port handling, wraps the external libserialport dependency.
  */
 
+#ifdef HAVE_LIBSERIALPORT
+
 /**
  * @defgroup grp_serial_libsp Serial port handling, libserialport group
  *
@@ -49,7 +51,7 @@
  * @{
  */
 
-SR_PRIV int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags)
+static int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags)
 {
 	int ret;
 	char *error;
@@ -80,7 +82,7 @@ SR_PRIV int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags)
 	return SR_OK;
 }
 
-SR_PRIV int sr_ser_libsp_close(struct sr_serial_dev_inst *serial)
+static int sr_ser_libsp_close(struct sr_serial_dev_inst *serial)
 {
 	int ret;
 	char *error;
@@ -110,7 +112,7 @@ SR_PRIV int sr_ser_libsp_close(struct sr_serial_dev_inst *serial)
 	return SR_OK;
 }
 
-SR_PRIV int sr_ser_libsp_flush(struct sr_serial_dev_inst *serial)
+static int sr_ser_libsp_flush(struct sr_serial_dev_inst *serial)
 {
 	int ret;
 	char *error;
@@ -137,7 +139,7 @@ SR_PRIV int sr_ser_libsp_flush(struct sr_serial_dev_inst *serial)
 	return SR_OK;
 }
 
-SR_PRIV int sr_ser_libsp_drain(struct sr_serial_dev_inst *serial)
+static int sr_ser_libsp_drain(struct sr_serial_dev_inst *serial)
 {
 	int ret;
 	char *error;
@@ -160,7 +162,7 @@ SR_PRIV int sr_ser_libsp_drain(struct sr_serial_dev_inst *serial)
 	return SR_OK;
 }
 
-SR_PRIV int sr_ser_libsp_write(struct sr_serial_dev_inst *serial,
+static int sr_ser_libsp_write(struct sr_serial_dev_inst *serial,
 	const void *buf, size_t count,
 	int nonblocking, unsigned int timeout_ms)
 {
@@ -191,7 +193,7 @@ SR_PRIV int sr_ser_libsp_write(struct sr_serial_dev_inst *serial,
 	return ret;
 }
 
-SR_PRIV int sr_ser_libsp_read(struct sr_serial_dev_inst *serial,
+static int sr_ser_libsp_read(struct sr_serial_dev_inst *serial,
 	void *buf, size_t count,
 	int nonblocking, unsigned int timeout_ms)
 {
@@ -222,7 +224,7 @@ SR_PRIV int sr_ser_libsp_read(struct sr_serial_dev_inst *serial,
 	return ret;
 }
 
-SR_PRIV int sr_ser_libsp_set_params(struct sr_serial_dev_inst *serial,
+static int sr_ser_libsp_set_params(struct sr_serial_dev_inst *serial,
 	int baudrate, int bits, int parity, int stopbits,
 	int flowcontrol, int rts, int dtr)
 {
@@ -354,7 +356,7 @@ static int sr_ser_libsp_source_add_int(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-SR_PRIV int sr_ser_libsp_source_add(struct sr_session *session,
+static int sr_ser_libsp_source_add(struct sr_session *session,
 	struct sr_serial_dev_inst *serial, int events, int timeout,
 	sr_receive_data_callback cb, void *cb_data)
 {
@@ -373,7 +375,7 @@ SR_PRIV int sr_ser_libsp_source_add(struct sr_session *session,
 		timeout, cb, cb_data);
 }
 
-SR_PRIV int sr_ser_libsp_source_remove(struct sr_session *session,
+static int sr_ser_libsp_source_remove(struct sr_session *session,
 	struct sr_serial_dev_inst *serial)
 {
 	void *key;
@@ -382,7 +384,7 @@ SR_PRIV int sr_ser_libsp_source_remove(struct sr_session *session,
 	return sr_session_source_remove_internal(session, key);
 }
 
-SR_PRIV GSList *sr_ser_libsp_list(GSList *list, sr_ser_list_append_t append)
+static GSList *sr_ser_libsp_list(GSList *list, sr_ser_list_append_t append)
 {
 	struct sp_port **ports;
 	size_t i;
@@ -403,7 +405,7 @@ SR_PRIV GSList *sr_ser_libsp_list(GSList *list, sr_ser_list_append_t append)
 	return list;
 }
 
-SR_PRIV GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
+static GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
 	uint16_t vendor_id, uint16_t product_id)
 {
 	struct sp_port **ports;
@@ -429,7 +431,7 @@ SR_PRIV GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
 	return list;
 }
 
-SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
+static int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
 	int *baud, int *bits)
 {
 	struct sp_port_config *config;
@@ -474,7 +476,7 @@ SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
 	return ret;
 }
 
-SR_PRIV size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial)
+static size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial)
 {
 	int rc;
 
@@ -487,3 +489,26 @@ SR_PRIV size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial)
 
 	return rc;
 }
+
+static struct ser_lib_functions serlib_sp = {
+	.open = sr_ser_libsp_open,
+	.close = sr_ser_libsp_close,
+	.flush = sr_ser_libsp_flush,
+	.drain = sr_ser_libsp_drain,
+	.write = sr_ser_libsp_write,
+	.read = sr_ser_libsp_read,
+	.set_params = sr_ser_libsp_set_params,
+	.setup_source_add = sr_ser_libsp_source_add,
+	.setup_source_remove = sr_ser_libsp_source_remove,
+	.list = sr_ser_libsp_list,
+	.find_usb = sr_ser_libsp_find_usb,
+	.get_frame_format = sr_ser_libsp_get_frame_format,
+	.get_rx_avail = sr_ser_libsp_get_rx_avail,
+};
+SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp = &serlib_sp;
+
+#else
+
+SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp = NULL;
+
+#endif

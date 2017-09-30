@@ -722,19 +722,23 @@ struct sr_usb_dev_inst {
 #endif
 
 #ifdef HAVE_LIBSERIALPORT
+struct ser_lib_functions;
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
 	/** Comm params for serial_set_paramstr(). */
 	char *serialcomm;
+	struct ser_lib_functions *lib_funcs;
 	struct {
 		int bit_rate;
 		int data_bits;
 		int parity_bits;
 		int stop_bits;
 	} comm_params;
+#ifdef HAVE_LIBSERIALPORT
 	/** libserialport port handle */
 	struct sp_port *sp_data;
+#endif
 };
 #endif
 
@@ -1109,31 +1113,34 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
 
-SR_PRIV int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags);
-SR_PRIV int sr_ser_libsp_close(struct sr_serial_dev_inst *serial);
-SR_PRIV int sr_ser_libsp_flush(struct sr_serial_dev_inst *serial);
-SR_PRIV int sr_ser_libsp_drain(struct sr_serial_dev_inst *serial);
-SR_PRIV int sr_ser_libsp_write(struct sr_serial_dev_inst *serial,
-		const void *buf, size_t count,
-		int nonblocking, unsigned int timeout_ms);
-SR_PRIV int sr_ser_libsp_read(struct sr_serial_dev_inst *serial,
-		void *buf, size_t count,
-		int nonblocking, unsigned int timeout_ms);
-SR_PRIV int sr_ser_libsp_set_params(struct sr_serial_dev_inst *serial,
-		int baudrate, int bits, int parity, int stopbits,
-		int flowcontrol, int rts, int dtr);
-SR_PRIV int sr_ser_libsp_source_add(struct sr_session *session,
-		struct sr_serial_dev_inst *serial,
-		int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
-SR_PRIV int sr_ser_libsp_source_remove(struct sr_session *session,
-		struct sr_serial_dev_inst *serial);
-SR_PRIV GSList *sr_ser_libsp_list(GSList *list, sr_ser_list_append_t append);
-SR_PRIV GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
-		uint16_t vendor_id, uint16_t product_id);
-SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
-		int *baud, int *bits);
-SR_PRIV size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial);
+struct ser_lib_functions {
+	int (*open)(struct sr_serial_dev_inst *serial, int flags);
+	int (*close)(struct sr_serial_dev_inst *serial);
+	int (*flush)(struct sr_serial_dev_inst *serial);
+	int (*drain)(struct sr_serial_dev_inst *serial);
+	int (*write)(struct sr_serial_dev_inst *serial,
+			const void *buf, size_t count,
+			int nonblocking, unsigned int timeout_ms);
+	int (*read)(struct sr_serial_dev_inst *serial,
+			void *buf, size_t count,
+			int nonblocking, unsigned int timeout_ms);
+	int (*set_params)(struct sr_serial_dev_inst *serial,
+			int baudrate, int bits, int parity, int stopbits,
+			int flowcontrol, int rts, int dtr);
+	int (*setup_source_add)(struct sr_session *session,
+			struct sr_serial_dev_inst *serial,
+			int events, int timeout,
+			sr_receive_data_callback cb, void *cb_data);
+	int (*setup_source_remove)(struct sr_session *session,
+			struct sr_serial_dev_inst *serial);
+	GSList *(*list)(GSList *list, sr_ser_list_append_t append);
+	GSList *(*find_usb)(GSList *list, sr_ser_find_append_t append,
+			uint16_t vendor_id, uint16_t product_id);
+	int (*get_frame_format)(struct sr_serial_dev_inst *serial,
+			int *baud, int *bits);
+	size_t (*get_rx_avail)(struct sr_serial_dev_inst *serial);
+};
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp;
 #endif
 
 /*--- ezusb.c ---------------------------------------------------------------*/
