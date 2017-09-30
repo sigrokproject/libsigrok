@@ -36,6 +36,7 @@
 #include <libusb.h>
 #endif
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -738,6 +739,7 @@ struct sr_serial_dev_inst {
 		int parity_bits;
 		int stop_bits;
 	} comm_params;
+	GString *rcv_buffer;
 #ifdef HAVE_LIBSERIALPORT
 	/** libserialport port handle */
 	struct sp_port *sp_data;
@@ -1139,6 +1141,13 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
+
+SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial);
+SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial);
+SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
+		const uint8_t *data, size_t len);
+SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
+		uint8_t *data, size_t len);
 
 struct ser_lib_functions {
 	int (*open)(struct sr_serial_dev_inst *serial, int flags);

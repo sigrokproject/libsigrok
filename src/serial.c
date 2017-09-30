@@ -97,6 +97,14 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 		return SR_ERR_NA;
 
 	/*
+	 * Note that use of the 'rcv_buffer' is optional, and the buffer's
+	 * size heavily depends on the specific transport. That's why the
+	 * buffer's content gets accessed and the buffer is released here in
+	 * common code, but the buffer gets allocated in libraries' open()
+	 * routines.
+	 */
+
+	/*
 	 * Run the transport's open routine. Setup the bitrate and the
 	 * UART frame format.
 	 */
@@ -124,6 +132,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
  */
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 {
+	int rc;
+
 	if (!serial) {
 		sr_dbg("Invalid serial port.");
 		return SR_ERR;
@@ -134,7 +144,13 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 	if (!serial->lib_funcs || !serial->lib_funcs->close)
 		return SR_ERR_NA;
 
-	return serial->lib_funcs->close(serial);
+	rc = serial->lib_funcs->close(serial);
+	if (rc == SR_OK && serial->rcv_buffer) {
+		g_string_free(serial->rcv_buffer, TRUE);
+		serial->rcv_buffer = NULL;
+	}
+
+	return rc;
 }
 
 /**
@@ -155,6 +171,8 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 	}
 
 	sr_spew("Flushing serial port %s.", serial->port);
+
+	sr_ser_discard_queued_data(serial);
 
 	if (!serial->lib_funcs || !serial->lib_funcs->flush)
 		return SR_ERR_NA;
@@ -187,6 +205,113 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 	return serial->lib_funcs->drain(serial);
 }
 
+/*
+ * Provide an internal RX data buffer for the serial port. This is not
+ * supposed to be used directly by applications. Instead optional and
+ * alternative transports for serial communication can use this buffer
+ * if their progress is driven from background activity, and is not
+ * (directly) driven by external API calls.
+ *
+ * BEWARE! This implementation assumes that data which gets communicated
+ * via UART can get stored in a GString (which is a char array). Since
+ * the API hides this detail, we can address this issue later when needed.
+ * Callers use the API which communicates bytes.
+ */
+
+/**
+ * Discard previously queued RX data. Internal to the serial subsystem,
+ * coordination between common and transport specific support code.
+ *
+ * @param[in] serial Previously opened serial port instance.
+ *
+ * @internal
+ */
+SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial)
+{
+	if (!serial)
+		return;
+	if (!serial->rcv_buffer)
+		return;
+
+	g_string_truncate(serial->rcv_buffer, 0);
+}
+
+/**
+ * Get amount of queued RX data. Internal to the serial subsystem,
+ * coordination between common and transport specific support code.
+ *
+ * @param[in] serial Previously opened serial port instance.
+ *
+ * @internal
+ */
+SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial)
+{
+	if (!serial)
+		return 0;
+	if (!serial->rcv_buffer)
+		return 0;
+
+	return serial->rcv_buffer->len;
+}
+
+/**
+ * Queue received data. Internal to the serial subsystem, coordination
+ * between common and transport specific support code.
+ *
+ * @param[in] serial Previously opened serial port instance.
+ * @param[in] data Pointer to data bytes to queue.
+ * @param[in] len Number of data bytes to queue.
+ *
+ * @internal
+ */
+SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
+	const uint8_t *data, size_t len)
+{
+	if (!serial)
+		return;
+	if (!data || !len)
+		return;
+
+	if (serial->rcv_buffer)
+		g_string_append_len(serial->rcv_buffer, (const gchar *)data, len);
+}
+
+/**
+ * Retrieve previously queued RX data. Internal to the serial subsystem,
+ * coordination between common and transport specific support code.
+ *
+ * @param[in] serial Previously opened serial port instance.
+ * @param[out] data Pointer to store retrieved data bytes into.
+ * @param[in] len Number of data bytes to retrieve.
+ *
+ * @internal
+ */
+SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
+	uint8_t *data, size_t len)
+{
+	size_t qlen;
+	GString *buf;
+
+	if (!serial)
+		return 0;
+	if (!data || !len)
+		return 0;
+
+	qlen = sr_ser_has_queued_data(serial);
+	if (!qlen)
+		return 0;
+
+	buf = serial->rcv_buffer;
+	if (len > buf->len)
+		len = buf->len;
+	if (len) {
+		memcpy(data, buf->str, len);
+		g_string_erase(buf, 0, len);
+	}
+
+	return len;
+}
+
 /**
  * Check for available receive data.
  *
@@ -199,7 +324,7 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
  */
 SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial)
 {
-	size_t lib_count;
+	size_t lib_count, buf_count;
 
 	if (!serial)
 		return 0;
@@ -208,7 +333,9 @@ SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial)
 	if (serial->lib_funcs && serial->lib_funcs->get_rx_avail)
 		lib_count = serial->lib_funcs->get_rx_avail(serial);
 
-	return lib_count;
+	buf_count = sr_ser_has_queued_data(serial);
+
+	return lib_count + buf_count;
 }
 
 static int _serial_write(struct sr_serial_dev_inst *serial,
