@@ -459,12 +459,17 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	/* How many samples are outstanding since the last round? */
 	samples_todo = (todo_us * devc->cur_samplerate + G_USEC_PER_SEC - 1)
 			/ G_USEC_PER_SEC;
+
+	if (SAMPLES_PER_FRAME > 0)
+		samples_todo = SAMPLES_PER_FRAME;
+
 	if (devc->limit_samples > 0) {
 		if (devc->limit_samples < devc->sent_samples)
 			samples_todo = 0;
 		else if (devc->limit_samples - devc->sent_samples < samples_todo)
 			samples_todo = devc->limit_samples - devc->sent_samples;
 	}
+
 	/* Calculate the actual time covered by this run back from the sample
 	 * count, rounded towards zero. This avoids getting stuck on a too-low
 	 * time delta with no samples being sent due to round-off.
@@ -534,6 +539,11 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 		}
 		sr_dbg("Requested number of samples reached.");
 		sr_dev_acquisition_stop(sdi);
+	} else {
+		if (SAMPLES_PER_FRAME > 0) {
+			std_session_send_frame_end(sdi);
+			std_session_send_frame_begin(sdi);
+		}
 	}
 
 	return G_SOURCE_CONTINUE;

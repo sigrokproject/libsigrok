@@ -33,6 +33,8 @@
 #define LOGIC_BUFSIZE			4096
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE			4096
+/* This is a development feature: it starts a new frame every n samples. */
+#define SAMPLES_PER_FRAME		0
 
 struct dev_context {
 	uint64_t cur_samplerate;
