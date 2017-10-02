@@ -459,6 +459,10 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 		return SR_ERR_NA;
 	}
 
+	/* Set the desired response and format modes. */
+	sr_scpi_send(sdi->conn, "COMM_HEADER OFF");
+	sr_scpi_send(sdi->conn, "COMM_FORMAT OFF,WORD,BIN");
+
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
 				scope_models[model_index].analog_channels);
 
@@ -489,9 +493,6 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
 		return SR_ERR_MALLOC;
-
-	/* Set the desired response mode. */
-	sr_scpi_send(sdi->conn, "COMM_HEADER OFF,WORD,BIN");
 
 	return SR_OK;
 }
