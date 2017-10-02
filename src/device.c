@@ -62,7 +62,7 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 {
 	struct sr_channel *ch;
 
-	ch = g_malloc0(sizeof(struct sr_channel));
+	ch = g_malloc0(sizeof(*ch));
 	ch->sdi = sdi;
 	ch->index = index;
 	ch->type = type;
@@ -405,7 +405,7 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi = g_malloc0(sizeof(*sdi));
 
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);
@@ -495,7 +495,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 {
 	struct sr_usb_dev_inst *udi;
 
-	udi = g_malloc0(sizeof(struct sr_usb_dev_inst));
+	udi = g_malloc0(sizeof(*udi));
 	udi->bus = bus;
 	udi->address = address;
 	udi->devhdl = hdl;
@@ -544,7 +544,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 {
 	struct sr_serial_dev_inst *serial;
 
-	serial = g_malloc0(sizeof(struct sr_serial_dev_inst));
+	serial = g_malloc0(sizeof(*serial));
 	serial->port = g_strdup(port);
 	if (serialcomm)
 		serial->serialcomm = g_strdup(serialcomm);
@@ -576,7 +576,7 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_usbtmc_dev_inst *usbtmc;
 
-	usbtmc = g_malloc0(sizeof(struct sr_usbtmc_dev_inst));
+	usbtmc = g_malloc0(sizeof(*usbtmc));
 	usbtmc->device = g_strdup(device);
 	usbtmc->fd = -1;
 

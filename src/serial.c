@@ -882,7 +882,7 @@ static struct sr_serial_port *sr_serial_new(const char *name,
 	if (!name)
 		return NULL;
 
-	serial = g_malloc(sizeof(struct sr_serial_port));
+	serial = g_malloc0(sizeof(*serial));
 	serial->name = g_strdup(name);
 	serial->description = g_strdup(description ? description : "");
 
