@@ -61,7 +61,7 @@ SR_PRIV int ipdbg_org_la_tcp_open(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *buf, size_t len);
-SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize);
+SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf);
 
 SR_PRIV struct ipdbg_org_la_dev_context *ipdbg_org_la_dev_new(void);
 SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *tcp, struct ipdbg_org_la_dev_context *devc);
@@ -73,5 +73,7 @@ SR_PRIV int ipdbg_org_la_sendDelay(struct ipdbg_org_la_dev_context *devc, struct
 SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV void ipdbg_org_la_abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize);
+int hasData(struct ipdbg_org_la_tcp *tcp);
 
 #endif

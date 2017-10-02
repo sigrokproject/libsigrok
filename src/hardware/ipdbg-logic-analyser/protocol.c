@@ -35,6 +35,8 @@
 #include <errno.h>
 #include "protocol.h"
 
+#include <sys/ioctl.h>
+
 #define BUFFER_SIZE 4
 
 
@@ -65,6 +67,36 @@
 
 #define delay                      0x1F
 #define K_Mauslesen                0xAA
+
+int hasData(struct ipdbg_org_la_tcp *tcp)
+{
+#ifdef __WIN32__
+    ioctlsocket(tcp->socket,FIONREAD,&bytes_available);
+#else
+    //ioctl(fd,FIONREAD,&bytes_available);
+    int status;
+
+    //fd = open("/dev/ttyS0", O_RDONLY);
+    if (ioctl(tcp->socket, FIONREAD, &status) < 0) //TIOCMGET
+    {
+           sr_err("FIONREAD failed: %s\n",
+             strerror(errno));
+            return 0;
+    }
+    else
+    {
+        if (status < 1)
+        {
+            return 0;
+        }
+        else
+        {
+            return 1;
+        }
+    }
+
+#endif // __WIN32__
+}
 
 
 SR_PRIV int sendEscaping(struct ipdbg_org_la_tcp *tcp, char *dataToSend, int length);
@@ -141,29 +173,49 @@ SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *b
     return SR_OK;
 }
 
-SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize)
+SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize)
+{
+    int received = 0;
+    while (received < bufsize)
+    {
+        int valid = ipdbg_org_la_tcp_receive(tcp, buf);
+        if(valid >0)
+        {
+            ++buf;
+            ++received;
+        }
+    }
+    return received;
+}
+SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf)
 {
     int received = 0;
 
-    while(received < bufsize)
+    if (hasData(tcp) == 1)
     {
-        int len;
-
-        len = recv(tcp->socket, (char*)(buf+received), bufsize-received, 0);
-
-        if (len < 0) {
-            sr_err("Receive error: %s", g_strerror(errno));
-            return SR_ERR;
-        }
-        else
+        while(received < 1)
         {
-            received += len;
+            int len = recv(tcp->socket, buf, 1, 0);
+
+            if (len < 0)
+            {
+                sr_err("Receive error: %s", g_strerror(errno));
+                return SR_ERR;
+            }
+            else
+            {
+                received += len;
+            }
         }
+        return received;
+
+    }
+    else
+    {
+        return -1;
     }
 
-    return received;
 }
-
 SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp)
 {
     int ret = SR_ERR;
@@ -315,7 +367,7 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
     {
         unsigned char byte;
 
-        if (ipdbg_org_la_tcp_receive(tcp, &byte, 1) == 1)
+        if (ipdbg_org_la_tcp_receive(tcp, &byte) == 1)
         {
             if(devc->num_transfers < devc->limit_samples*devc->DATA_WIDTH_BYTES)
                 devc->raw_sample_buf[devc->num_transfers] = byte;
@@ -503,10 +555,9 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     if(ipdbg_org_la_tcp_send(tcp, auslesen, 1) != SR_OK)
         sr_warn("Can't send K_Mauslesen");
 
-
-    /// delay
-    if(ipdbg_org_la_tcp_receive(tcp, buf, 8) != 8)
+    if (ipdbg_org_la_tcp_receive_blocking(tcp, buf,8)!=8)
         sr_warn("getAddrAndDataWidth failed");
+
 
     devc->DATA_WIDTH  =  buf[0]        & 0x000000FF;
     devc->DATA_WIDTH |= (buf[1] <<  8) & 0x0000FF00;
@@ -567,7 +618,7 @@ SR_PRIV int ipdbg_org_la_requestID(struct ipdbg_org_la_tcp *tcp)
         sr_warn("IDBG can't send");
 
     char ID[4];
-    if(ipdbg_org_la_tcp_receive(tcp, (uint8_t*)ID, 4) != 4)
+    if(ipdbg_org_la_tcp_receive_blocking(tcp, (uint8_t*)ID, 4) != 4)
     {
         sr_warn("IDBG can't read");
     }

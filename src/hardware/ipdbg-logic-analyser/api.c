@@ -335,10 +335,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
     unsigned char byte;
-    while (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
+
+    if(devc->num_transfers > 0)
     {
-        ipdbg_org_la_tcp_receive(tcp, &byte, 1);
+        while (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
+        {
+        ipdbg_org_la_tcp_receive(tcp, &byte);
         devc->num_transfers++;
+        }
     }
 
     ipdbg_org_la_sendReset(tcp);
