@@ -227,7 +227,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->trigger_source = idx;
 		g_snprintf(command, sizeof(command),
-				"SET TRIGGER SOURCE %s", (*model->trigger_sources)[idx]);
+				"TRIG_SELECT EDGE,SR,%s", (*model->trigger_sources)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_VDIV:
@@ -272,7 +272,8 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->trigger_slope = idx;
 		g_snprintf(command, sizeof(command),
-				"SET TRIGGER SLOPE %s", (*model->trigger_slopes)[idx]);
+				"%s:TRIG_SLOPE %s", (*model->trigger_sources)[state->trigger_source],
+				(*model->trigger_slopes)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_COUPLING:
