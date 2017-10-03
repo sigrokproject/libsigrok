@@ -75,9 +75,9 @@ struct lecroy_wavedesc {
 } __attribute__((packed));
 
 static const char *coupling_options[] = {
-	"A1M", // AC with 1 MOhm termination
-	"D50", // DC with 50 Ohm termination
-	"D1M", // DC with 1 MOhm termination
+	"A1M", ///< AC with 1 MOhm termination
+	"D50", ///< DC with 50 Ohm termination
+	"D1M", ///< DC with 1 MOhm termination
 	"GND",
 	"OVL",
 };
@@ -193,22 +193,22 @@ static const struct scope_config scope_models[] = {
 };
 
 static void scope_state_dump(const struct scope_config *config,
-			     struct scope_state *state)
+		struct scope_state *state)
 {
 	unsigned int i;
 	char *tmp;
 
 	for (i = 0; i < config->analog_channels; i++) {
 		tmp = sr_voltage_string((*config->vdivs)[state->analog_channels[i].vdiv][0],
-					(*config->vdivs)[state->analog_channels[i].vdiv][1]);
+				(*config->vdivs)[state->analog_channels[i].vdiv][1]);
 		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
-			i + 1, state->analog_channels[i].state ? "On" : "Off",
-			(*config->coupling_options)[state->analog_channels[i].coupling],
-			tmp, state->analog_channels[i].vertical_offset);
+				i + 1, state->analog_channels[i].state ? "On" : "Off",
+				(*config->coupling_options)[state->analog_channels[i].coupling],
+				tmp, state->analog_channels[i].vertical_offset);
 	}
 
 	tmp = sr_period_string((*config->timebases)[state->timebase][0],
-				(*config->timebases)[state->timebase][1]);
+			(*config->timebases)[state->timebase][1]);
 	sr_info("Current timebase: %s", tmp);
 	g_free(tmp);
 
@@ -217,13 +217,13 @@ static void scope_state_dump(const struct scope_config *config,
 	g_free(tmp);
 
 	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
-		(*config->trigger_sources)[state->trigger_source],
-		(*config->trigger_slopes)[state->trigger_slope],
-		state->horiz_triggerpos);
+			(*config->trigger_sources)[state->trigger_source],
+			(*config->trigger_slopes)[state->trigger_slope],
+			state->horiz_triggerpos);
 }
 
 static int scope_state_get_array_option(const char *resp,
-	const char *(*array)[], unsigned int n, int *result)
+		const char *(*array)[], unsigned int n, int *result)
 {
 	unsigned int i;
 
@@ -269,8 +269,7 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 }
 
 static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
-				    const struct scope_config *config,
-				    struct scope_state *state)
+		const struct scope_config *config, struct scope_state *state)
 {
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE];
@@ -288,7 +287,7 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-                if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
+		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
@@ -391,18 +390,20 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		i++;
 	}
 
-	if (!trig_source || scope_state_get_array_option(trig_source, config->trigger_sources, config->num_trigger_sources, &state->trigger_source) != SR_OK)
+	if (!trig_source || scope_state_get_array_option(trig_source,
+			config->trigger_sources, config->num_trigger_sources,
+			&state->trigger_source) != SR_OK)
 		return SR_ERR;
 
 	g_snprintf(command, sizeof(command), "%s:TRIG_SLOPE?", trig_source);
 	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
 		return SR_ERR;
 
-	if (scope_state_get_array_option(tmp_str,
-		config->trigger_slopes, config->num_trigger_slopes, &state->trigger_slope) != SR_OK)
+	if (scope_state_get_array_option(tmp_str, config->trigger_slopes,
+			config->num_trigger_slopes, &state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn, "TRIG_DELAY?",	&state->horiz_triggerpos) != SR_OK)
+	if (sr_scpi_get_float(sdi->conn, "TRIG_DELAY?", &state->horiz_triggerpos) != SR_OK)
 		return SR_ERR;
 
 	if (lecroy_xstream_update_sample_rate(sdi) != SR_OK)
@@ -464,7 +465,7 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 
 	/* Set the desired response and format modes. */
 	sr_scpi_send(sdi->conn, "COMM_HEADER OFF");
-	sr_scpi_send(sdi->conn, "COMM_FORMAT OFF,WORD,BIN");
+	sr_scpi_send(sdi->conn, "COMM_FORMAT DEF9,WORD,BIN");
 
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
 				scope_models[model_index].analog_channels);
@@ -479,7 +480,7 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 		g_snprintf(command, sizeof(command), "C%d:VDIV?", i + 1);
 
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, channel_enabled,
-			   (*scope_models[model_index].analog_names)[i]);
+			(*scope_models[model_index].analog_names)[i]);
 
 		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
 
@@ -488,21 +489,18 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
 
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-						   devc->analog_groups[i]);
+			devc->analog_groups[i]);
 	}
 
 	devc->model_config = &scope_models[model_index];
 	devc->frame_limit = 0;
-
-	if (!(devc->model_state = scope_state_new(devc->model_config)))
-		return SR_ERR_MALLOC;
+	devc->model_state = scope_state_new(devc->model_config);
 
 	return SR_OK;
 }
 
 static int lecroy_waveform_2_x_to_analog(GByteArray *data,
-					 struct lecroy_wavedesc *desc,
-					 struct sr_datafeed_analog *analog)
+		struct lecroy_wavedesc *desc, struct sr_datafeed_analog *analog)
 {
 	struct sr_analog_encoding *encoding = analog->encoding;
 	struct sr_analog_meaning *meaning = analog->meaning;
@@ -514,9 +512,9 @@ static int lecroy_waveform_2_x_to_analog(GByteArray *data,
 	data_float = g_malloc(desc->version_2_x.wave_array_count * sizeof(float));
 	num_samples = desc->version_2_x.wave_array_count;
 
-	waveform_data = (int16_t *)(data->data +
-				    + desc->version_2_x.wave_descriptor_length
-				    + desc->version_2_x.user_text_len);
+	waveform_data = (int16_t*)(data->data +
+		+ desc->version_2_x.wave_descriptor_length
+		+ desc->version_2_x.user_text_len);
 
 	for (i = 0; i < num_samples; i++)
 		data_float[i] = (float)waveform_data[i]
@@ -554,23 +552,21 @@ static int lecroy_waveform_2_x_to_analog(GByteArray *data,
 }
 
 static int lecroy_waveform_to_analog(GByteArray *data,
-				     struct sr_datafeed_analog *analog)
+		struct sr_datafeed_analog *analog)
 {
 	struct lecroy_wavedesc *desc;
 
 	if (data->len < sizeof(struct lecroy_wavedesc))
 		return SR_ERR;
 
-	desc = (struct lecroy_wavedesc *)data->data;
+	desc = (struct lecroy_wavedesc*)data->data;
 
 	if (!strncmp(desc->template_name, "LECROY_2_2", 16) ||
 	    !strncmp(desc->template_name, "LECROY_2_3", 16)) {
 		return lecroy_waveform_2_x_to_analog(data, desc, analog);
 	}
 
-	sr_err("Waveformat template '%.16s' not supported.",
-	       desc->template_name);
-
+	sr_err("Waveformat template '%.16s' not supported.", desc->template_name);
 	return SR_ERR;
 }
 

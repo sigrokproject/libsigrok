@@ -83,7 +83,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	hw_info = NULL;
 
 	devc = g_malloc0(sizeof(struct dev_context));
-
 	sdi->priv = devc;
 
 	if (lecroy_xstream_init_device(sdi) != SR_OK)
@@ -132,7 +131,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int idx;
 	struct dev_context *devc;
@@ -166,8 +165,8 @@ static int config_get(uint32_t key, GVariant **data,
 		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new("(tt)",
-			(*model->vdivs)[state->analog_channels[idx].vdiv][0],
-			(*model->vdivs)[state->analog_channels[idx].vdiv][1]);
+				(*model->vdivs)[state->analog_channels[idx].vdiv][0],
+				(*model->vdivs)[state->analog_channels[idx].vdiv][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
@@ -197,7 +196,7 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, idx, j;
 	char command[MAX_COMMAND_SIZE];
@@ -228,7 +227,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->trigger_source = idx;
 		g_snprintf(command, sizeof(command),
-			"SET TRIGGER SOURCE %s", (*model->trigger_sources)[idx]);
+				"SET TRIGGER SOURCE %s", (*model->trigger_sources)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_VDIV:
@@ -238,9 +237,8 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->analog_channels[j].vdiv = idx;
 		g_snprintf(command, sizeof(command),
-			"C%d:VDIV %E", j + 1, (float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				"C%d:VDIV %E", j + 1, (float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK || sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		ret = SR_OK;
 		break;
@@ -249,7 +247,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->timebase = idx;
 		g_snprintf(command, sizeof(command),
-			"TIME_DIV %E", (float) (*model->timebases)[idx][0] / (*model->timebases)[idx][1]);
+				"TIME_DIV %E", (float) (*model->timebases)[idx][0] / (*model->timebases)[idx][1]);
 		ret = sr_scpi_send(sdi->conn, command);
 		update_sample_rate = TRUE;
 		break;
@@ -261,9 +259,9 @@ static int config_set(uint32_t key, GVariant *data,
 
 		state->horiz_triggerpos = tmp_d;
 		tmp_d = -(tmp_d - 0.5) *
-			((double)(*model->timebases)[state->timebase][0] /
-			 (*model->timebases)[state->timebase][1])
-			 * model->num_xdivs;
+				((double)(*model->timebases)[state->timebase][0] /
+				(*model->timebases)[state->timebase][1])
+				* model->num_xdivs;
 
 		g_snprintf(command, sizeof(command), "TRIG POS %e S", tmp_d);
 
@@ -274,7 +272,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		state->trigger_slope = idx;
 		g_snprintf(command, sizeof(command),
-			"SET TRIGGER SLOPE %s", (*model->trigger_slopes)[idx]);
+				"SET TRIGGER SLOPE %s", (*model->trigger_slopes)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_COUPLING:
@@ -285,8 +283,7 @@ static int config_set(uint32_t key, GVariant *data,
 		state->analog_channels[j].coupling = idx;
 		g_snprintf(command, sizeof(command), "C%d:COUPLING %s",
 				j + 1, (*model->coupling_options)[idx]);
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+		if (sr_scpi_send(sdi->conn, command) != SR_OK || sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		ret = SR_OK;
 		break;
@@ -305,7 +302,7 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	const struct scope_config *model;
@@ -358,14 +355,12 @@ SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-
 	ch = devc->current_channel->data;
 
 	if (ch->type != SR_CHANNEL_ANALOG)
 		return SR_ERR;
 
-	g_snprintf(command, sizeof(command),
-		"COMM_FORMAT DEF9,WORD,BIN;C%d:WAVEFORM?", ch->index + 1);
+	g_snprintf(command, sizeof(command), "C%d:WAVEFORM?", ch->index + 1);
 	return sr_scpi_send(sdi->conn, command);
 }
 
@@ -391,10 +386,11 @@ static int setup_channels(const struct sr_dev_inst *sdi)
 			if (ch->enabled == state->analog_channels[ch->index].state)
 				break;
 			g_snprintf(command, sizeof(command), "C%d:TRACE %s",
-				   ch->index + 1, ch->enabled ? "ON" : "OFF");
+					ch->index + 1, ch->enabled ? "ON" : "OFF");
 
 			if (sr_scpi_send(scpi, command) != SR_OK)
 				return SR_ERR;
+
 			state->analog_channels[ch->index].state = ch->enabled;
 			setup_changed = TRUE;
 			break;
