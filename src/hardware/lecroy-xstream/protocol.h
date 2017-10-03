@@ -96,6 +96,8 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV void lecroy_xstream_state_free(struct scope_state *state);
 SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi);
+SR_PRIV int lecroy_xstream_channel_state_set(const struct sr_dev_inst *sdi,
+		const int ch_index, gboolean ch_state);
 SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi);
 
 #endif

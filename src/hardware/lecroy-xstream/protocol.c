@@ -318,6 +318,54 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	return SR_OK;
 }
 
+SR_PRIV int lecroy_xstream_channel_state_set(const struct sr_dev_inst *sdi,
+		const int ch_index, gboolean ch_state)
+{
+	GSList *l;
+	struct sr_channel *ch;
+	struct dev_context *devc = NULL;
+	struct scope_state *state;
+	char command[MAX_COMMAND_SIZE];
+	gboolean chan_found;
+	int result;
+
+	result = SR_OK;
+
+	devc = sdi->priv;
+	state = devc->model_state;
+	chan_found = FALSE;
+
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+
+		switch (ch->type) {
+		case SR_CHANNEL_ANALOG:
+			if (ch->index == ch_index) {
+				g_snprintf(command, sizeof(command), "C%d:TRACE %s", ch_index + 1,
+						(ch_state ? "ON" : "OFF"));
+				if ((sr_scpi_send(sdi->conn, command) != SR_OK ||
+						sr_scpi_get_opc(sdi->conn) != SR_OK)) {
+					result = SR_ERR;
+					break;
+				}
+
+				ch->enabled = ch_state;
+				state->analog_channels[ch->index].state = ch_state;
+				chan_found = TRUE;
+				break;
+			}
+			break;
+		default:
+			result = SR_ERR_NA;
+		}
+	}
+
+	if ((result == SR_OK) && !chan_found)
+		result = SR_ERR_BUG;
+
+	return result;
+}
+
 SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
