@@ -166,7 +166,8 @@ static const char *scope_analog_channel_names[] = {
 
 static const struct scope_config scope_models[] = {
 	{
-		.name = { "WP7000", "WP7100", "WP7200", "WP7300" },
+		 /* Default config */
+		.name = {NULL},
 
 		.analog_channels = 4,
 		.analog_names = &scope_analog_channel_names,
@@ -455,8 +456,10 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (model_index == -1) {
-		sr_dbg("Unsupported LeCroy device.");
-		return SR_ERR_NA;
+		sr_dbg("Unknown LeCroy device, using default config.");
+		for (i = 0; i < ARRAY_SIZE(scope_models); i++)
+			if (scope_models[i].name[0] == NULL)
+				model_index = i;
 	}
 
 	/* Set the desired response and format modes. */
