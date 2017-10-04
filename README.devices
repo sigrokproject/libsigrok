@@ -173,6 +173,8 @@ can auto-detect USB connected devices.
  - serial-lcr (including all subdrivers)
  - teleinfo
  - tondaj-sl-814
+ - uni-t-dmm (all -ser subdrivers)
+ - uni-t-ut32x
 
 The following drivers/devices do not require a serial port specification:
 
@@ -190,8 +192,7 @@ The following drivers/devices do not require a serial port specification:
  - rigol-ds (USBTMC or TCP)
  - saleae-logic16
  - sysclk-lwla
- - uni-t-dmm (including all subdrivers)
- - uni-t-ut32x
+ - uni-t-dmm (all non -ser subdrivers)
  - victor-dmm
  - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
