@@ -431,27 +431,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
 
-	/*
-	 * Contruct the list of enabled channels. Determine the highest
-	 * number of digital pods involved in the acquisition.
-	 */
-
+	/* Contruct the list of enabled channels. */
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (!ch->enabled)
 			continue;
-		/* Only add a single digital channel per group (pod). */
-		devc->enabled_channels = g_slist_append(
-			devc->enabled_channels, ch);
+
+		devc->enabled_channels = g_slist_append(devc->enabled_channels, ch);
 	}
 
 	if (!devc->enabled_channels)
 		return SR_ERR;
 
-	/*
-	 * Configure the analog channels and the
-	 * corresponding digital pods.
-	 */
+	/* Configure the analog channels. */
 	if (setup_channels(sdi) != SR_OK) {
 		sr_err("Failed to setup channel configuration!");
 		ret = SR_ERR;
