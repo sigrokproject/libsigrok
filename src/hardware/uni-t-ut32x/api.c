@@ -36,6 +36,15 @@ static const uint32_t devopts[] = {
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+/*
+ * BEWARE! "T1-T2" looks like a range, and is probably not a good
+ * channel name. Using it in sigrok-cli -C specs is troublesome. Use
+ * "delta" instead? -- But OTOH channels are not selected by the
+ * software. Instead received packets just reflect the one channel
+ * that manually was selected by the user via the device's buttons.
+ * So the name is not a blocker, and it matches the labels on the
+ * device and in the manual. So we can get away with it.
+ */
 static const char *channel_names[] = {
 	"T1", "T2", "T1-T2",
 };
