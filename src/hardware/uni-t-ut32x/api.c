@@ -32,6 +32,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -83,7 +84,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 						channel_names[i]);
 			devc = g_malloc0(sizeof(struct dev_context));
 			sdi->priv = devc;
-			devc->limit_samples = 0;
+			sr_sw_limits_init(&devc->limits);
 			devc->data_source = DEFAULT_DATA_SOURCE;
 			devices = g_slist_append(devices, sdi);
 		}
@@ -159,13 +160,10 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
-		if (devc->data_source == DATA_SOURCE_LIVE)
-			*data = g_variant_new_string("Live");
-		else
-			*data = g_variant_new_string("Memory");
+		*data = g_variant_new_string(data_sources[devc->data_source]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -186,8 +184,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
 			return SR_ERR_ARG;
@@ -230,7 +228,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	devc->num_samples = 0;
+	sr_sw_limits_acquisition_start(&devc->limits);
 	devc->packet_len = 0;
 
 	/* Configure serial port parameters on USB-UART interface

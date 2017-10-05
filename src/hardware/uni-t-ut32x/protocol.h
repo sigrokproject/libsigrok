@@ -35,22 +35,20 @@
 #define EP_IN (0x80 | 2)
 #define EP_OUT 2
 
-enum {
+enum ut32x_data_source {
 	DATA_SOURCE_LIVE,
 	DATA_SOURCE_MEMORY,
 };
 
-enum {
+enum ut32x_cmd_code {
 	CMD_GET_LIVE = 1,
 	CMD_STOP = 2,
 	CMD_GET_STORED = 7,
 };
 
 struct dev_context {
-	uint64_t limit_samples;
-	gboolean data_source;
-
-	uint64_t num_samples;
+	struct sr_sw_limits limits;
+	enum ut32x_data_source data_source;
 	unsigned char buf[8];
 	struct libusb_transfer *xfer;
 

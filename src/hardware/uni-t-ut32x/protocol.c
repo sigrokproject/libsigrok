@@ -136,11 +136,13 @@ static void process_packet(struct sr_dev_inst *sdi)
 		}
 	}
 
-	/* We count packets even if the temperature was invalid. This way
-	 * a sample limit on "Memory" data source still works: unused
-	 * memory slots come through as "----" measurements. */
-	devc->num_samples++;
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+	/*
+	 * We count packets even if the measurement was invalid. This way
+	 * a sample limit on "Memory" data source still works: Unused
+	 * memory slots come through as "----" measurements.
+	 */
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
+	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
 }
 
