@@ -156,6 +156,62 @@ static void process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len)
 		sr_dev_acquisition_stop(sdi);
 }
 
+static int process_buffer(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	uint8_t *pkt;
+	size_t remain, idx;
+
+	/*
+	 * Specifically do not insist on finding the packet boundary at
+	 * the end of the most recently received data chunk. Serial
+	 * ports might involve hardware buffers (FIFO). We want to sync
+	 * as fast as possible.
+	 *
+	 * Handle the synchronized situation first. Process complete
+	 * packets that reside at the start of the buffer. Then fallback
+	 * to incomplete or unaligned packets if the receive buffer
+	 * still contains data bytes. (Depending on the bitrate and the
+	 * poll interval, we may always end up in the manual search. But
+	 * considering the update rate - two or three packets per second
+	 * - this is not an issue.)
+	 */
+	devc = sdi->priv;
+	pkt = &devc->packet[0];
+	while (devc->packet_len >= PACKET_SIZE &&
+			pkt[PACKET_SIZE - 2] == SEP[0] &&
+			pkt[PACKET_SIZE - 1] == SEP[1]) {
+		process_packet(sdi, &pkt[0], PACKET_SIZE);
+		remain = devc->packet_len - PACKET_SIZE;
+		if (remain)
+			memmove(&pkt[0], &pkt[PACKET_SIZE], remain);
+		devc->packet_len -= PACKET_SIZE;
+	}
+
+	/*
+	 * The 'for' loop and the increment upon re-iteration after
+	 * setting the loop var to zero is not an issue. The marker has
+	 * two bytes, so effectively starting the search at offset 1 is
+	 * fine for the specific packet layout.
+	 */
+	for (idx = 0; idx < devc->packet_len; idx++) {
+		if (idx < 1)
+			continue;
+		if (pkt[idx - 1] != SEP[0] || pkt[idx] != SEP[1])
+			continue;
+		/* Found a packet that spans up to and including 'idx'. */
+		idx++;
+		process_packet(sdi, &pkt[0], idx);
+		remain = devc->packet_len - idx;
+		if (remain)
+			memmove(&pkt[0], &pkt[idx], remain);
+		devc->packet_len -= idx;
+		idx = 0;
+	}
+
+	return 0;
+}
+
 SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
 {
 	struct dev_context *devc;
@@ -171,19 +227,16 @@ SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *tr
 		memcpy(devc->packet + devc->packet_len, transfer->buffer + 1,
 				hid_payload_len);
 		devc->packet_len += hid_payload_len;
-		if (devc->packet_len >= 2
-				&& devc->packet[devc->packet_len - 2] == SEP[0]
-				&& devc->packet[devc->packet_len - 1] == SEP[1]) {
-			/* Got end of packet. */
-			process_packet(sdi, devc->packet, devc->packet_len);
-			devc->packet_len = 0;
-		} else if (devc->packet_len > PACKET_SIZE) {
-			/* Guard against garbage from the device overrunning
-			 * our packet buffer. */
-			sr_dbg("Buffer overrun!");
-			process_packet(sdi, devc->packet, devc->packet_len);
+		/*
+		 * Discard receive data when the buffer is exhausted. This shall
+		 * allow to (re-)synchronize to the data stream when we find it
+		 * in an arbitrary state. Check the receive buffer for packets.
+		 */
+		if (devc->packet_len == sizeof(devc->packet)) {
+			process_packet(sdi, &devc->packet[0], devc->packet_len);
 			devc->packet_len = 0;
 		}
+		process_buffer(sdi);
 	}
 
 	/* Get the next transfer (unless we're shutting down). */
