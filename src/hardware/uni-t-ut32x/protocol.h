@@ -55,7 +55,7 @@ struct dev_context {
 	struct libusb_transfer *xfer;
 
 	unsigned char packet[32];
-	int packet_len;
+	size_t packet_len;
 };
 
 SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data);

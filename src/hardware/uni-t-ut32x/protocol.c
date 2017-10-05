@@ -63,7 +63,7 @@ static float parse_temperature(unsigned char *buf)
 	return temp;
 }
 
-static void process_packet(struct sr_dev_inst *sdi)
+static void process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -73,34 +73,36 @@ static void process_packet(struct sr_dev_inst *sdi)
 	struct sr_analog_spec spec;
 	GString *spew;
 	float temp;
-	int i;
 	gboolean is_valid;
 
-	devc = sdi->priv;
-	sr_dbg("Received full 19-byte packet.");
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
-		spew = g_string_sized_new(60);
-		for (i = 0; i < devc->packet_len; i++)
-			g_string_append_printf(spew, "%.2x ", devc->packet[i]);
-		sr_spew("%s", spew->str);
-		g_string_free(spew, TRUE);
+		spew = sr_hexdump_new(pkt, len);
+		sr_spew("Got a packet, len %zu, bytes%s", len, spew->str);
+		sr_hexdump_free(spew);
 	}
+	if (len != PACKET_SIZE)
+		return;
+	if (pkt[17] != SEP[0] || pkt[18] != SEP[1])
+		return;
+	if (pkt[8] != '0' || pkt[16] != '1')
+		return;
+	sr_dbg("Processing 19-byte packet.");
 
 	is_valid = TRUE;
-	if (devc->packet[1] == NEG && devc->packet[2] == NEG
-			&& devc->packet[3] == NEG && devc->packet[4] == NEG)
+	if (pkt[1] == NEG && pkt[2] == NEG && pkt[3] == NEG && pkt[4] == NEG)
 		/* No measurement: missing channel, empty storage location, ... */
 		is_valid = FALSE;
 
-	temp = parse_temperature(devc->packet + 1);
+	temp = parse_temperature(&pkt[1]);
 	if (isnan(temp))
 		is_valid = FALSE;
 
 	if (is_valid) {
+		memset(&packet, 0, sizeof(packet));
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 		analog.meaning->mq = SR_MQ_TEMPERATURE;
 		analog.meaning->mqflags = 0;
-		switch (devc->packet[5] - '0') {
+		switch (pkt[5] - '0') {
 		case 1:
 			analog.meaning->unit = SR_UNIT_CELSIUS;
 			break;
@@ -112,9 +114,9 @@ static void process_packet(struct sr_dev_inst *sdi)
 			break;
 		default:
 			/* We can still pass on the measurement, whatever it is. */
-			sr_dbg("Unknown unit 0x%.2x.", devc->packet[5]);
+			sr_dbg("Unknown unit 0x%.2x.", pkt[5]);
 		}
-		switch (devc->packet[13] - '0') {
+		switch (pkt[13] - '0') {
 		case 0:
 			/* Channel T1. */
 			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
@@ -130,7 +132,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 			analog.meaning->mqflags |= SR_MQFLAG_RELATIVE;
 			break;
 		default:
-			sr_err("Unknown channel 0x%.2x.", devc->packet[13]);
+			sr_err("Unknown channel 0x%.2x.", pkt[13]);
 			is_valid = FALSE;
 		}
 		if (is_valid) {
@@ -148,6 +150,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 	 * a sample limit on "Memory" data source still works: Unused
 	 * memory slots come through as "----" measurements.
 	 */
+	devc = sdi->priv;
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
@@ -171,15 +174,14 @@ SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *tr
 		if (devc->packet_len >= 2
 				&& devc->packet[devc->packet_len - 2] == SEP[0]
 				&& devc->packet[devc->packet_len - 1] == SEP[1]) {
-			/* Got end of packet, but do we have a complete packet? */
-			if (devc->packet_len == PACKET_SIZE)
-				process_packet(sdi);
-			/* Either way, done with it. */
+			/* Got end of packet. */
+			process_packet(sdi, devc->packet, devc->packet_len);
 			devc->packet_len = 0;
 		} else if (devc->packet_len > PACKET_SIZE) {
 			/* Guard against garbage from the device overrunning
 			 * our packet buffer. */
 			sr_dbg("Buffer overrun!");
+			process_packet(sdi, devc->packet, devc->packet_len);
 			devc->packet_len = 0;
 		}
 	}
