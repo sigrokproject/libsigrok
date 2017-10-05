@@ -55,7 +55,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	drvc = di->context;
 
-	conn = NULL;
+	conn = "1a86.e008";
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
