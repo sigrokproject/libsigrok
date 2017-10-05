@@ -35,6 +35,8 @@
 #define EP_IN (0x80 | 2)
 #define EP_OUT 2
 
+#define PACKET_SIZE	19
+
 enum ut32x_data_source {
 	DATA_SOURCE_LIVE,
 	DATA_SOURCE_MEMORY,

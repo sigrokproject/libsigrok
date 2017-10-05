@@ -22,6 +22,14 @@
 #include <math.h>
 #include "protocol.h"
 
+#define SEP	"\r\n"
+#define BLANK	':'
+#define NEG	';'
+
+/*
+ * Get a temperature value from a four-character buffer. The value is
+ * encoded in ASCII and the unit is deci-degrees (tenths of degrees).
+ */
 static float parse_temperature(unsigned char *buf)
 {
 	float temp;
@@ -31,23 +39,22 @@ static float parse_temperature(unsigned char *buf)
 	negative = FALSE;
 	temp = 0.0;
 	for (i = 0; i < 4; i++) {
-		if (buf[i] == 0x3a)
+		if (buf[i] == BLANK)
 			continue;
-		if (buf[i] == 0x3b) {
+		if (buf[i] == NEG) {
 			if (negative) {
 				sr_dbg("Double negative sign!");
 				return NAN;
-			} else {
-				negative = TRUE;
-				continue;
 			}
+			negative = TRUE;
+			continue;
 		}
-		if (buf[i] < 0x30 || buf[i] > 0x39) {
+		if (buf[i] < '0' || buf[i] > '9') {
 			sr_dbg("Invalid digit '%.2x'!", buf[i]);
 			return NAN;
 		}
 		temp *= 10;
-		temp += (buf[i] - 0x30);
+		temp += buf[i] - '0';
 	}
 	temp /= 10;
 	if (negative)
@@ -80,8 +87,8 @@ static void process_packet(struct sr_dev_inst *sdi)
 	}
 
 	is_valid = TRUE;
-	if (devc->packet[1] == 0x3b && devc->packet[2] == 0x3b
-			&& devc->packet[3] == 0x3b && devc->packet[4] == 0x3b)
+	if (devc->packet[1] == NEG && devc->packet[2] == NEG
+			&& devc->packet[3] == NEG && devc->packet[4] == NEG)
 		/* No measurement: missing channel, empty storage location, ... */
 		is_valid = FALSE;
 
@@ -93,7 +100,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 		analog.meaning->mq = SR_MQ_TEMPERATURE;
 		analog.meaning->mqflags = 0;
-		switch (devc->packet[5] - 0x30) {
+		switch (devc->packet[5] - '0') {
 		case 1:
 			analog.meaning->unit = SR_UNIT_CELSIUS;
 			break;
@@ -107,7 +114,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 			/* We can still pass on the measurement, whatever it is. */
 			sr_dbg("Unknown unit 0x%.2x.", devc->packet[5]);
 		}
-		switch (devc->packet[13] - 0x30) {
+		switch (devc->packet[13] - '0') {
 		case 0:
 			/* Channel T1. */
 			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
@@ -162,14 +169,14 @@ SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *tr
 				hid_payload_len);
 		devc->packet_len += hid_payload_len;
 		if (devc->packet_len >= 2
-				&& devc->packet[devc->packet_len - 2] == 0x0d
-				&& devc->packet[devc->packet_len - 1] == 0x0a) {
+				&& devc->packet[devc->packet_len - 2] == SEP[0]
+				&& devc->packet[devc->packet_len - 1] == SEP[1]) {
 			/* Got end of packet, but do we have a complete packet? */
-			if (devc->packet_len == 19)
+			if (devc->packet_len == PACKET_SIZE)
 				process_packet(sdi);
 			/* Either way, done with it. */
 			devc->packet_len = 0;
-		} else if (devc->packet_len > 19) {
+		} else if (devc->packet_len > PACKET_SIZE) {
 			/* Guard against garbage from the device overrunning
 			 * our packet buffer. */
 			sr_dbg("Buffer overrun!");
