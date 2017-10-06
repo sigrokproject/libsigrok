@@ -23,6 +23,7 @@
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t drvopts[] = {
@@ -55,108 +56,61 @@ static const char *data_sources[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_dev_inst *sdi;
+	const char *conn, *serialcomm;
 	struct sr_config *src;
-	GSList *usb_devices, *devices, *l;
-	unsigned int i;
-	const char *conn;
+	GSList *l, *devices;
+	struct sr_serial_dev_inst *serial;
+	int rc;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	size_t i;
 
-	drvc = di->context;
-
-	conn = "1a86.e008";
+	conn = "hid/ch9325";
+	serialcomm = "2400/8n1";
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
 			break;
+		case SR_CONF_SERIALCOMM:
+			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
 		}
 	}
-	if (!conn)
-		return NULL;
 
 	devices = NULL;
-	if ((usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn))) {
-		/* We have a list of sr_usb_dev_inst matching the connection
-		 * string. Wrap them in sr_dev_inst and we're done. */
-		for (l = usb_devices; l; l = l->next) {
-			sdi = g_malloc0(sizeof(struct sr_dev_inst));
-			sdi->status = SR_ST_INACTIVE;
-			sdi->vendor = g_strdup("UNI-T");
-			sdi->model = g_strdup("UT32x");
-			sdi->inst_type = SR_INST_USB;
-			sdi->conn = l->data;
-			for (i = 0; i < ARRAY_SIZE(channel_names); i++)
-				sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
-						channel_names[i]);
-			devc = g_malloc0(sizeof(struct dev_context));
-			sdi->priv = devc;
-			sr_sw_limits_init(&devc->limits);
-			devc->data_source = DEFAULT_DATA_SOURCE;
-			devices = g_slist_append(devices, sdi);
-		}
-		g_slist_free(usb_devices);
-	} else
-		g_slist_free_full(usb_devices, g_free);
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
+	rc = serial_open(serial, SERIAL_RDWR);
+	serial_flush(serial);
+	/* Cannot query/identify the device. Successful open shall suffice. */
+	serial_close(serial);
+	if (rc != SR_OK) {
+		sr_serial_dev_inst_free(serial);
+		return devices;
+	}
+
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("UNI-T");
+	sdi->model = g_strdup("UT32x");
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
+	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
+	sr_sw_limits_init(&devc->limits);
+	devc->data_source = DEFAULT_DATA_SOURCE;
+	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
+		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
+				channel_names[i]);
+	}
+	devices = g_slist_append(devices, sdi);
+
+	serial_close(serial);
+	if (!devices)
+		sr_serial_dev_inst_free(serial);
 
 	return std_scan_complete(di, devices);
-}
-
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc = di->context;
-	struct sr_usb_dev_inst *usb;
-	int ret;
-
-	usb = sdi->conn;
-
-	if (sr_usb_open(drvc->sr_ctx->libusb_ctx, usb) != SR_OK)
-		return SR_ERR;
-
-/*
- * The libusb 1.0.9 Darwin backend is broken: it can report a kernel
- * driver being active, but detaching it always returns an error.
- */
-#if !defined(__APPLE__)
-	if (libusb_kernel_driver_active(usb->devhdl, USB_INTERFACE) == 1) {
-		if ((ret = libusb_detach_kernel_driver(usb->devhdl, USB_INTERFACE)) < 0) {
-			sr_err("failed to detach kernel driver: %s",
-					libusb_error_name(ret));
-			return SR_ERR;
-		}
-	}
-#endif
-
-	if ((ret = libusb_set_configuration(usb->devhdl, USB_CONFIGURATION))) {
-		sr_err("Failed to set configuration: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
-
-	if ((ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE))) {
-		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	struct sr_usb_dev_inst *usb;
-
-	usb = sdi->conn;
-
-	if (!usb->devhdl)
-		return SR_ERR_BUG;
-
-	libusb_release_interface(usb->devhdl, USB_INTERFACE);
-	libusb_close(usb->devhdl);
-	usb->devhdl = NULL;
-
-	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -226,66 +180,32 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_driver *di = sdi->driver;
-	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-	int len, ret;
-	unsigned char cmd[2];
+	struct sr_serial_dev_inst *serial;
+	uint8_t cmd;
 
-	drvc = di->context;
 	devc = sdi->priv;
-	usb = sdi->conn;
+	serial = sdi->conn;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 	devc->packet_len = 0;
-
-	/* Configure serial port parameters on USB-UART interface
-	 * chip inside the device (just baudrate 2400 actually). */
-	cmd[0] = 0x09;
-	cmd[1] = 0x60;
-	ret = libusb_control_transfer(usb->devhdl, 0x21, 0x09, 0x0300, 0x00,
-			cmd, 2, 5);
-	if (ret != 2) {
-		sr_dbg("Failed to configure CH9325: %s", libusb_error_name(ret));
-		return SR_ERR;
-	}
-
 	std_session_send_df_header(sdi);
 
-	if (!(devc->xfer = libusb_alloc_transfer(0)))
-		return SR_ERR;
-
-	/* Length of payload to follow. */
-	cmd[0] = 0x01;
 	if (devc->data_source == DATA_SOURCE_LIVE)
-		cmd[1] = CMD_GET_LIVE;
+		cmd = CMD_GET_LIVE;
 	else
-		cmd[1] = CMD_GET_STORED;
+		cmd = CMD_GET_STORED;
+	serial_write_blocking(serial, &cmd, sizeof(cmd), 0);
 
-	ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, cmd, 2, &len, 5);
-	if (ret != 0 || len != 2) {
-		sr_dbg("Failed to start acquisition: %s", libusb_error_name(ret));
-		libusb_free_transfer(devc->xfer);
-		return SR_ERR;
-	}
-
-	libusb_fill_bulk_transfer(devc->xfer, usb->devhdl, EP_IN, devc->buf,
-			8, uni_t_ut32x_receive_transfer, (void *)sdi, 15);
-	if (libusb_submit_transfer(devc->xfer) != 0) {
-		libusb_free_transfer(devc->xfer);
-		return SR_ERR;
-	}
-
-	usb_source_add(sdi->session, drvc->sr_ctx, 10,
-			uni_t_ut32x_handle_events, (void *)sdi);
+	serial_source_add(sdi->session, serial, G_IO_IN, 10,
+			ut32x_handle_events, (void *)sdi);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* Signal USB transfer handler to clean up and stop. */
+	/* Have the reception routine stop the acquisition. */
 	sdi->status = SR_ST_STOPPING;
 
 	return SR_OK;
@@ -303,8 +223,8 @@ static struct sr_dev_driver uni_t_ut32x_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,

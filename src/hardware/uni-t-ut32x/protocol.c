@@ -212,88 +212,65 @@ static int process_buffer(struct sr_dev_inst *sdi)
 	return 0;
 }
 
-SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
+/* Gets invoked when RX data is available. */
+static int ut32x_receive_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_dev_inst *sdi;
-	int hid_payload_len, ret;
+	struct sr_serial_dev_inst *serial;
+	size_t len;
 
-	sdi = transfer->user_data;
 	devc = sdi->priv;
-	if (transfer->actual_length == 8) {
-		/* CH9325 encodes length in low nibble of first byte, with
-		 * bytes 1-7 being the (padded) payload. */
-		hid_payload_len = transfer->buffer[0] & 0x0f;
-		memcpy(devc->packet + devc->packet_len, transfer->buffer + 1,
-				hid_payload_len);
-		devc->packet_len += hid_payload_len;
-		/*
-		 * Discard receive data when the buffer is exhausted. This shall
-		 * allow to (re-)synchronize to the data stream when we find it
-		 * in an arbitrary state. Check the receive buffer for packets.
-		 */
-		if (devc->packet_len == sizeof(devc->packet)) {
-			process_packet(sdi, &devc->packet[0], devc->packet_len);
-			devc->packet_len = 0;
-		}
-		process_buffer(sdi);
+	serial = sdi->conn;
+
+	/*
+	 * Discard receive data when the buffer is exhausted. This shall
+	 * allow to (re-)synchronize to the data stream when we find it
+	 * in an arbitrary state. Drain more data from the serial port,
+	 * and check the receive buffer for packets.
+	 */
+	if (devc->packet_len == sizeof(devc->packet)) {
+		process_packet(sdi, &devc->packet[0], devc->packet_len);
+		devc->packet_len = 0;
 	}
+	len = sizeof(devc->packet) - devc->packet_len;
+	len = serial_read_nonblocking(serial,
+			&devc->packet[devc->packet_len], len);
+	if (!len)
+		return 0;
 
-	/* Get the next transfer (unless we're shutting down). */
-	if (sdi->status != SR_ST_STOPPING) {
-		if ((ret = libusb_submit_transfer(devc->xfer)) != 0) {
-			sr_dbg("Failed to resubmit transfer: %s", libusb_error_name(ret));
-			sdi->status = SR_ST_STOPPING;
-			libusb_free_transfer(devc->xfer);
-		}
-	} else
-		libusb_free_transfer(devc->xfer);
+	devc->packet_len += len;
+	process_buffer(sdi);
 
+	return 0;
 }
 
-SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
+/* Gets periodically invoked by the glib main loop. */
+SR_PRIV int ut32x_handle_events(int fd, int revents, void *cb_data)
 {
-	struct drv_context *drvc;
-	struct dev_context *devc;
-	struct sr_dev_driver *di;
 	struct sr_dev_inst *sdi;
-	struct sr_usb_dev_inst *usb;
-	struct timeval tv;
-	int len, ret;
-	unsigned char cmd[2];
+	struct sr_serial_dev_inst *serial;
+	uint8_t cmd;
 
 	(void)fd;
-	(void)revents;
 
-	if (!(sdi = cb_data))
+	sdi = cb_data;
+	if (!sdi)
+		return TRUE;
+	serial = sdi->conn;
+	if (!serial)
 		return TRUE;
 
-	di = sdi->driver;
-	drvc = di->context;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	memset(&tv, 0, sizeof(struct timeval));
-	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,
-			NULL);
+	if (revents & G_IO_IN)
+		ut32x_receive_data(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
-		usb_source_remove(sdi->session, drvc->sr_ctx);
+		serial_source_remove(sdi->session, serial);
 		std_session_send_df_end(sdi);
-
-		/* Tell the device to stop sending USB packets. */
-		usb = sdi->conn;
-		cmd[0] = 0x01;
-		cmd[1] = CMD_STOP;
-		ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, cmd, 2, &len, 5);
-		if (ret != 0 || len != 2) {
-			/* Warning only, doesn't matter. */
-			sr_dbg("Failed to send stop command: %s", libusb_error_name(ret));
-		}
-
 		sdi->status = SR_ST_ACTIVE;
-		return TRUE;
+
+		/* Tell the device to stop sending data. */
+		cmd = CMD_STOP;
+		serial_write_blocking(serial, &cmd, sizeof(cmd), 0);
 	}
 
 	return TRUE;

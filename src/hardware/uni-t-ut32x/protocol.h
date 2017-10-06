@@ -28,12 +28,6 @@
 #define LOG_PREFIX "uni-t-ut32x"
 
 #define DEFAULT_DATA_SOURCE DATA_SOURCE_LIVE
-#define USB_CONN "1a86.e008"
-#define USB_INTERFACE 0
-#define USB_CONFIGURATION 1
-
-#define EP_IN (0x80 | 2)
-#define EP_OUT 2
 
 #define PACKET_SIZE	19
 
@@ -51,14 +45,10 @@ enum ut32x_cmd_code {
 struct dev_context {
 	struct sr_sw_limits limits;
 	enum ut32x_data_source data_source;
-	unsigned char buf[8];
-	struct libusb_transfer *xfer;
-
-	unsigned char packet[32];
+	uint8_t packet[PACKET_SIZE];
 	size_t packet_len;
 };
 
-SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data);
-SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV int ut32x_handle_events(int fd, int revents, void *cb_data);
 
 #endif
