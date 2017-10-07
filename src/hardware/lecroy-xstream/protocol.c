@@ -620,6 +620,7 @@ static int lecroy_waveform_to_analog(GByteArray *data,
 
 SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 {
+	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -644,21 +645,12 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 
 	ch = devc->current_channel->data;
 
-	/*
-	 * Send "frame begin" packet upon reception of data for the
-	 * first enabled channel.
-	 */
-	if (devc->current_channel == devc->enabled_channels) {
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
-	}
-
 	if (ch->type != SR_CHANNEL_ANALOG)
 		return SR_ERR;
 
 	/* Pass on the received data of the channel(s). */
 	if (sr_scpi_read_data(sdi->conn, buf, 4) != 4) {
-		sr_err("Reading header failed.");
+		sr_err("Reading header failed, scope probably didn't send any data.");
 		return TRUE;
 	}
 
@@ -674,6 +666,22 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 
 	if (lecroy_waveform_to_analog(data, &analog) != SR_OK)
 		return SR_ERR;
+
+	if (analog.num_samples == 0) {
+		/* No data available, we have to acquire data first. */
+		g_snprintf(command, sizeof(command), "ARM;WAIT;*OPC;C%d:WAVEFORM?", ch->index + 1);
+		sr_scpi_send(sdi->conn, command);
+		return TRUE;
+	}
+
+	/*
+	 * Send "frame begin" packet upon reception of data for the
+	 * first enabled channel.
+	 */
+	if (devc->current_channel == devc->enabled_channels) {
+		packet.type = SR_DF_FRAME_BEGIN;
+		sr_session_send(sdi, &packet);
+	}
 
 	meaning.channels = g_slist_append(NULL, ch);
 	packet.payload = &analog;
