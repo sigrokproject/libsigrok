@@ -366,24 +366,22 @@ SR_PRIV int lecroy_xstream_channel_state_set(const struct sr_dev_inst *sdi,
 	return result;
 }
 
-SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi)
+SR_PRIV int lecroy_xstream_update_sample_rate(const struct sr_dev_inst *sdi,
+		int num_of_samples)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
-	float memsize, timediv;
+	double time_div;
 
 	devc = sdi->priv;
-	state = devc->model_state;
 	config = devc->model_config;
+	state = devc->model_state;
 
-	if (sr_scpi_get_float(sdi->conn, "MEMORY_SIZE?", &memsize) != SR_OK)
+	if (sr_scpi_get_double(sdi->conn, "TIME_DIV?", &time_div) != SR_OK)
 		return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn, "TIME_DIV?", &timediv) != SR_OK)
-		return SR_ERR;
-
-	state->sample_rate = 1 / ((timediv * config->num_xdivs) / memsize);
+	state->sample_rate = num_of_samples / (time_div * config->num_xdivs);
 
 	return SR_OK;
 }
@@ -452,9 +450,6 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn, "TRIG_DELAY?", &state->horiz_triggerpos) != SR_OK)
-		return SR_ERR;
-
-	if (lecroy_xstream_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
 	sr_info("Fetching finished.");
@@ -624,6 +619,7 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct scope_state *state;
 	struct sr_datafeed_packet packet;
 	GByteArray *data;
 	struct sr_datafeed_analog analog;
@@ -644,6 +640,7 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	ch = devc->current_channel->data;
+	state = devc->model_state;
 
 	if (ch->type != SR_CHANNEL_ANALOG)
 		return SR_ERR;
@@ -671,7 +668,14 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 		/* No data available, we have to acquire data first. */
 		g_snprintf(command, sizeof(command), "ARM;WAIT;*OPC;C%d:WAVEFORM?", ch->index + 1);
 		sr_scpi_send(sdi->conn, command);
+
+		state->sample_rate = 0;
 		return TRUE;
+	} else {
+		/* Update sample rate if needed. */
+		if (state->sample_rate == 0)
+			if (lecroy_xstream_update_sample_rate(sdi, analog.num_samples) != SR_OK)
+				return SR_ERR;
 	}
 
 	/*

@@ -204,7 +204,6 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct scope_config *model;
 	struct scope_state *state;
 	double tmp_d;
-	gboolean update_sample_rate;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -213,7 +212,6 @@ static int config_set(uint32_t key, GVariant *data,
 
 	model = devc->model_config;
 	state = devc->model_state;
-	update_sample_rate = FALSE;
 
 	ret = SR_ERR_NA;
 
@@ -249,7 +247,6 @@ static int config_set(uint32_t key, GVariant *data,
 		g_snprintf(command, sizeof(command),
 				"TIME_DIV %E", (float) (*model->timebases)[idx][0] / (*model->timebases)[idx][1]);
 		ret = sr_scpi_send(sdi->conn, command);
-		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
@@ -295,9 +292,6 @@ static int config_set(uint32_t key, GVariant *data,
 
 	if (ret == SR_OK)
 		ret = sr_scpi_get_opc(sdi->conn);
-
-	if (ret == SR_OK && update_sample_rate)
-		ret = lecroy_xstream_update_sample_rate(sdi);
 
 	return ret;
 }
@@ -378,7 +372,6 @@ SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi)
 static int setup_channels(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
-	gboolean setup_changed;
 	char command[MAX_COMMAND_SIZE];
 	struct scope_state *state;
 	struct sr_channel *ch;
@@ -388,7 +381,6 @@ static int setup_channels(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	scpi = sdi->conn;
 	state = devc->model_state;
-	setup_changed = FALSE;
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -403,15 +395,11 @@ static int setup_channels(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 
 			state->analog_channels[ch->index].state = ch->enabled;
-			setup_changed = TRUE;
 			break;
 		default:
 			return SR_ERR;
 		}
 	}
-
-	if (setup_changed && lecroy_xstream_update_sample_rate(sdi) != SR_OK)
-		return SR_ERR;
 
 	return SR_OK;
 }
@@ -421,6 +409,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	GSList *l;
 	struct sr_channel *ch;
 	struct dev_context *devc;
+	struct scope_state *state;
 	int ret;
 	struct sr_scpi_dev_inst *scpi;
 
@@ -430,6 +419,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Preset empty results. */
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
+	state = devc->model_state;
+	state->sample_rate = 0;
 
 	/* Contruct the list of enabled channels. */
 	for (l = sdi->channels; l; l = l->next) {
