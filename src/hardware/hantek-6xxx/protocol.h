@@ -60,7 +60,11 @@
 #define FLUSH_PACKET_SIZE	1024
 
 #define MIN_PACKET_SIZE		512
+#ifdef _WIN32
+#define MAX_PACKET_SIZE		(2 * 1024 * 1024)
+#else
 #define MAX_PACKET_SIZE		(12 * 1024 * 1024)
+#endif
 
 #define HANTEK_EP_IN		0x86
 #define USB_INTERFACE		0
