@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright 2014 Google, Inc
+ * Copyright 2017 Google, Inc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,16 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+/* 'twinkie vbus' command output format */
+#define VBUS_FORMAT "VBUS = %d mV ; %d mA"
+
 SR_PRIV int twinkie_start_acquisition(const struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
+	struct timespec tsample;
+
+	clock_gettime(CLOCK_REALTIME, &tsample);
+	devc->vbus_t0 = tsample.tv_nsec + (uint64_t)tsample.tv_sec *1000000000ULL;
 
 	return SR_OK;
 }
@@ -245,4 +252,101 @@ SR_PRIV void twinkie_receive_transfer(struct libusb_transfer *transfer)
 resubmit:
 	if (libusb_submit_transfer(transfer) != LIBUSB_SUCCESS)
 		free_transfer(transfer);
+}
+
+static void export_vbus(const struct sr_dev_inst *sdi, int mv, int ma)
+{
+	static float tmp_data[VBUS_GRP_COUNT][32768];
+	struct dev_context *devc = sdi->priv;
+	struct sr_datafeed_packet packet[VBUS_GRP_COUNT];
+	uint64_t tlen = devc->vbus_delta * 24 / 10000;
+	uint64_t len = MIN(32768, tlen);
+	unsigned i, g;
+
+	for (g = 0; g < devc->vbus_channels; g++) {
+		float val = g == VBUS_V ? mv/1000.0 : ma/1000.0;
+		packet[g].type = SR_DF_ANALOG;
+		packet[g].payload = &devc->vbus_packet[g];
+		devc->vbus_packet[g].data = tmp_data[g];
+		for (i = 0; i < len; i++)
+			tmp_data[g][i] = val;
+	}
+
+	do {
+		for (g = 0; g < devc->vbus_channels; g++) {
+			devc->vbus_packet[g].num_samples = len;
+			sr_session_send(sdi, &packet[g]);
+		}
+		tlen -= len;
+		len = MIN(32768, tlen);
+	} while (tlen);
+}
+
+SR_PRIV void twinkie_vbus_sent(struct libusb_transfer *transfer)
+{
+	struct sr_dev_inst *sdi = transfer->user_data;
+	struct dev_context *devc = sdi->priv;
+	struct libusb_transfer *in_xfer = devc->transfers[11];
+	struct timespec tsample;
+	uint64_t now;
+
+	/* acquisition has already ended */
+	if (devc->sent_samples < 0 || transfer->status == LIBUSB_TRANSFER_NO_DEVICE)
+		goto abort_vbus;
+
+	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
+		goto abort_vbus;
+
+	clock_gettime(CLOCK_REALTIME, &tsample);
+	now = tsample.tv_nsec + (uint64_t)tsample.tv_sec *1000000000ULL;
+	devc->vbus_delta = now - devc->vbus_t0;
+	devc->vbus_t0 = now;
+	if (libusb_submit_transfer(in_xfer) != LIBUSB_SUCCESS)
+		goto abort_vbus;
+
+	return;
+abort_vbus:
+	libusb_free_transfer(transfer);
+	libusb_free_transfer(in_xfer);
+	devc->transfers[10] = NULL;
+	devc->transfers[11] = NULL;
+	devc->submitted_transfers--;
+	if (devc->submitted_transfers == 0)
+		finish_acquisition(sdi);
+}
+
+SR_PRIV void twinkie_vbus_recv(struct libusb_transfer *transfer)
+{
+	struct sr_dev_inst *sdi = transfer->user_data;
+	struct dev_context *devc = sdi->priv;
+	struct libusb_transfer *out_xfer = devc->transfers[10];
+
+	/* acquisition has already ended */
+	if (devc->sent_samples < 0 || transfer->status == LIBUSB_TRANSFER_NO_DEVICE)
+		goto abort_vbus;
+
+	if (transfer->status == LIBUSB_TRANSFER_COMPLETED &&
+		transfer->actual_length) {
+		int vbus_ma, vbus_mv;
+		int len = transfer->actual_length;
+		if (len > 63)
+			len = 63;
+		devc->vbus_data[len] = 0;
+		if (sscanf(devc->vbus_data, VBUS_FORMAT, &vbus_mv, &vbus_ma) == 2) {
+			export_vbus(sdi, vbus_mv, vbus_ma);
+		}
+	}
+
+	if (libusb_submit_transfer(out_xfer) != LIBUSB_SUCCESS)
+		goto abort_vbus;
+
+	return;
+abort_vbus:
+	libusb_free_transfer(transfer);
+	libusb_free_transfer(out_xfer);
+	devc->transfers[10] = NULL;
+	devc->transfers[11] = NULL;
+	devc->submitted_transfers--;
+	if (devc->submitted_transfers == 0)
+		finish_acquisition(sdi);
 }

@@ -35,6 +35,13 @@ struct cc_context {
 	uint8_t level;
 };
 
+enum vbus_group_index {
+	VBUS_V = 0,
+	VBUS_A = 1,
+
+	VBUS_GRP_COUNT = 2
+};
+
 /** Private, per-device-instance driver context. */
 struct dev_context {
 	/** Maximum number of samples to capture, if nonzero. */
@@ -50,10 +57,20 @@ struct dev_context {
 	struct sr_context *ctx;
 
 	struct cc_context cc[2];
+	int vbus_channels;
+	char vbus_data[64];
+	uint64_t vbus_t0;
+	uint64_t vbus_delta;
+        struct sr_datafeed_analog vbus_packet[VBUS_GRP_COUNT];
+        struct sr_analog_meaning vbus_meaning[VBUS_GRP_COUNT];
+        struct sr_analog_encoding vbus_encoding;
+        struct sr_analog_spec vbus_spec;
 };
 
 SR_PRIV int twinkie_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int twinkie_init_device(const struct sr_dev_inst *sdi);
 SR_PRIV void twinkie_receive_transfer(struct libusb_transfer *transfer);
+SR_PRIV void twinkie_vbus_sent(struct libusb_transfer *transfer);
+SR_PRIV void twinkie_vbus_recv(struct libusb_transfer *transfer);
 
 #endif
