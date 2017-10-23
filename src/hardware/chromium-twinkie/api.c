@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright 2014 Google, Inc
+ * Copyright 2017 Google, Inc
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,14 +31,21 @@
 
 #define USB_INTERFACE		1
 #define USB_CONFIGURATION	1
+#define USB_COMMANDS_IFACE	2
 
 #define MAX_RENUM_DELAY_MS	3000
 #define NUM_SIMUL_TRANSFERS	32
 
 #define SAMPLE_RATE		SR_KHZ(2400)
 
+static const char vbus_cmd[] = "tw vbus";
+
+/* CC1 & CC2 are always present */
+#define LOGIC_CHANNELS_COUNT    2
+
 static const int32_t hwopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_NUM_ANALOG_CHANNELS,
 };
 
 static const int32_t hwcaps[] = {
@@ -55,6 +62,8 @@ static const struct chan {
 } chan_defs[] = {
 	{"CC1", SR_CHANNEL_LOGIC},
 	{"CC2", SR_CHANNEL_LOGIC},
+	{"VBUS_V", SR_CHANNEL_ANALOG},
+	{"VBUS_A", SR_CHANNEL_ANALOG},
 
 	{NULL, 0}
 };
@@ -66,13 +75,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
 	struct sr_channel *ch;
+	struct sr_channel_group *cc_grp, *vbus_grp[VBUS_GRP_COUNT];
 	struct sr_config *src;
 	GSList *l, *devices, *conn_devices;
 	struct libusb_device_descriptor des;
+	struct libusb_config_descriptor *cfg;
 	libusb_device **devlist;
 	int ret, i, j;
 	const char *conn;
 	char connection_id[64];
+	/* By default, disable VBUS analog */
+	int vbus_channels = 0;
 
 	drvc = di->context;
 
@@ -82,6 +95,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_NUM_ANALOG_CHANNELS:
+			vbus_channels = MIN(2, g_variant_get_int32(src->data));
 			break;
 		}
 	}
@@ -117,6 +133,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (des.idVendor != TWINKIE_VID || des.idProduct != TWINKIE_PID)
 			continue;
 
+		if ((ret = libusb_get_active_config_descriptor(devlist[i], &cfg)) != 0) {
+			sr_warn("Failed to get device configuraton: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
 		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
@@ -126,14 +148,53 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->driver = di;
 		sdi->connection_id = g_strdup(connection_id);
 
-		for (j = 0; chan_defs[j].name; j++)
-			if (!(ch = sr_channel_new(sdi, j, chan_defs[j].type,
-						  TRUE, chan_defs[j].name)))
-				return NULL;
+		if (vbus_channels && cfg->bNumInterfaces < 3) {
+			sr_warn("VBUS channels not available in this firmware.");
+			vbus_channels = 0;
+		}
 
 		if (!(devc = g_try_malloc0(sizeof(struct dev_context))))
 			return NULL;
 		sdi->priv = devc;
+
+		cc_grp = g_malloc0(sizeof(struct sr_channel_group));
+		cc_grp->name = g_strdup("CCx");
+		for (j = 0; j < vbus_channels; j++) {
+			vbus_grp[j] = g_malloc0(sizeof(struct sr_channel_group));
+			vbus_grp[j]->name = g_strdup(j == VBUS_V ? "VBUS_V"
+								 : "VBUS_A");
+		}
+
+		for (j = 0; chan_defs[j].name; j++) {
+			struct sr_channel_group *grp = cc_grp;
+			if (j >= LOGIC_CHANNELS_COUNT) { /* Analog channels */
+				if (j - LOGIC_CHANNELS_COUNT >= vbus_channels)
+					break;
+				grp = vbus_grp[j - LOGIC_CHANNELS_COUNT];
+			}
+			ch = sr_channel_new(sdi, j, chan_defs[j].type, TRUE,
+					    chan_defs[j].name);
+			grp->channels = g_slist_append(grp->channels, ch);
+		}
+		sdi->channel_groups = g_slist_append(NULL, cc_grp);
+		for (j = 0; j < vbus_channels; j++) {
+			sdi->channel_groups = g_slist_append(sdi->channel_groups,
+							     vbus_grp[j]);
+			sr_analog_init(&devc->vbus_packet[j],
+				       &devc->vbus_encoding,
+				       &devc->vbus_meaning[j],
+				       &devc->vbus_spec, 3);
+			devc->vbus_meaning[j].channels = vbus_grp[j]->channels;
+		}
+		/* other encoding default settings in sr_analog_init are OK (eg float) */
+		devc->vbus_encoding.is_signed = TRUE;
+		devc->vbus_meaning[VBUS_V].mq = SR_MQ_VOLTAGE;
+		devc->vbus_meaning[VBUS_V].mqflags = SR_MQFLAG_DC;
+		devc->vbus_meaning[VBUS_V].unit = SR_UNIT_VOLT;
+		devc->vbus_meaning[VBUS_A].mq = SR_MQ_CURRENT;
+		devc->vbus_meaning[VBUS_A].unit = SR_UNIT_AMPERE;
+
+		devc->vbus_channels = vbus_channels;
 		drvc->instances = g_slist_append(drvc->instances, sdi);
 		devices = g_slist_append(devices, sdi);
 
@@ -150,17 +211,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return devices;
 }
 
-static int twinkie_dev_open(struct sr_dev_inst *sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
 	libusb_device **devlist;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
 	struct drv_context *drvc;
+	struct dev_context *devc;
 	int ret, i, device_count;
 	char connection_id[64];
 
 	di = sdi->driver;
+	devc = sdi->priv;
 	drvc = di->context;
 	usb = sdi->conn;
 
@@ -222,6 +285,13 @@ static int twinkie_dev_open(struct sr_dev_inst *sdi)
 			       libusb_error_name(ret));
 			break;
 		}
+		if (devc->vbus_channels &&
+		    (ret = libusb_claim_interface(usb->devhdl, USB_COMMANDS_IFACE))) {
+			sr_err("Unable to claim commands interface %d/%s.", ret,
+			       libusb_error_name(ret));
+			/* Cannot use the analog channels for VBUS. */
+			devc->vbus_channels = 0;
+		}
 
 		if ((ret = twinkie_init_device(sdi)) != SR_OK) {
 			sr_err("Failed to init device.");
@@ -248,40 +318,25 @@ static int twinkie_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	int ret;
-
-	ret = twinkie_dev_open(sdi);
-	if (ret != SR_OK) {
-		sr_err("Unable to open device.");
-		return SR_ERR;
-	}
-
-	return SR_OK;
-}
-
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct sr_usb_dev_inst *usb;
+	struct dev_context *devc;
 
 	usb = sdi->conn;
 	if (usb->devhdl == NULL)
 		return SR_ERR;
 
-	sr_info("Closing device %d.%d interface %d.",
-		usb->bus, usb->address, USB_INTERFACE);
+	sr_info("Closing device %d.%d.", usb->bus, usb->address);
+	devc = sdi->priv;
+	if (devc->vbus_channels)
+		libusb_release_interface(usb->devhdl, USB_COMMANDS_IFACE);
 	libusb_release_interface(usb->devhdl, USB_INTERFACE);
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
-}
-
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear(di, NULL);
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -414,7 +469,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_transfer *transfer;
-	unsigned int i, timeout, num_transfers;
+	unsigned int i, timeout, num_transfers, cc_transfers;
 	int ret;
 	unsigned char *buf;
 	size_t size, convsize;
@@ -431,10 +486,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	memset(devc->cc, 0, sizeof(devc->cc));
 
 	timeout = 1000;
-	num_transfers = 10;
+	cc_transfers = num_transfers = 10;
 	size = 10*1024;
 	convsize = size * 8 * 256 /* largest size : only rollbacks/no edges */;
 	devc->submitted_transfers = 0;
+	if (devc->vbus_channels)
+		num_transfers += 2;
 
 	devc->convbuffer_size = convsize;
 	if (!(devc->convbuffer = g_try_malloc(convsize))) {
@@ -451,7 +508,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	devc->num_transfers = num_transfers;
-	for (i = 0; i < num_transfers; i++) {
+	for (i = 0; i < cc_transfers; i++) {
 		if (!(buf = g_try_malloc(size))) {
 			sr_err("USB transfer buffer malloc failed.");
 			if (devc->submitted_transfers)
@@ -475,6 +532,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		devc->transfers[i] = transfer;
+		devc->submitted_transfers++;
+	}
+	if (devc->vbus_channels) {
+		struct libusb_transfer *out_xfer = libusb_alloc_transfer(0);
+		struct libusb_transfer *in_xfer = libusb_alloc_transfer(0);
+		libusb_fill_bulk_transfer(out_xfer, usb->devhdl,
+					  2 | LIBUSB_ENDPOINT_OUT, (uint8_t *)vbus_cmd,
+					  sizeof(vbus_cmd) - 1, twinkie_vbus_sent,
+					  (void *)sdi, timeout);
+		libusb_fill_bulk_transfer(in_xfer, usb->devhdl,
+					  2 | LIBUSB_ENDPOINT_IN, (uint8_t *)devc->vbus_data,
+					  sizeof(devc->vbus_data),
+					  twinkie_vbus_recv, (void *)sdi, timeout);
+		if ((ret = libusb_submit_transfer(out_xfer)) != 0) {
+			sr_err("Failed to submit VBUS transfer: %s.",
+			       libusb_error_name(ret));
+			libusb_free_transfer(out_xfer);
+			abort_acquisition(devc);
+			return SR_ERR;
+		}
+		devc->transfers[cc_transfers + 0] = out_xfer;
+		devc->transfers[cc_transfers + 1] = in_xfer;
 		devc->submitted_transfers++;
 	}
 
@@ -512,7 +591,7 @@ static struct sr_dev_driver chromium_twinkie_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = NULL,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
