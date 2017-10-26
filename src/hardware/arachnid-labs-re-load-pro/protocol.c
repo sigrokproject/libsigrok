@@ -143,6 +143,31 @@ SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static int send_config_update_key(const struct sr_dev_inst *sdi,
+		uint32_t key, GVariant *var)
+{
+	struct sr_config *cfg;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	int ret;
+
+	cfg = sr_config_new(key, var);
+	if (!cfg)
+		return SR_ERR;
+
+	memset(&meta, 0, sizeof(meta));
+
+	packet.type = SR_DF_META;
+	packet.payload = &meta;
+
+	meta.config = g_slist_append(meta.config, cfg);
+
+	ret = sr_session_send(sdi, &packet);
+	sr_config_free(cfg);
+
+	return ret;
+}
+
 static void handle_packet(const struct sr_dev_inst *sdi)
 {
 	float voltage, current;
@@ -160,12 +185,30 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	if (g_str_has_prefix((const char *)devc->buf, "overtemp")) {
 		sr_warn("Overtemperature condition!");
 		devc->otp_active = TRUE;
+		send_config_update_key(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(TRUE));
 		return;
 	}
 
 	if (g_str_has_prefix((const char *)devc->buf, "undervolt")) {
 		sr_warn("Undervoltage condition!");
 		devc->uvc_active = TRUE;
+		send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
+			g_variant_new_boolean(TRUE));
+		return;
+	}
+
+	if (g_str_has_prefix((const char *)devc->buf, "err ")) {
+		sr_err("Device replied with an error: '%s'.", devc->buf);
+		return;
+	}
+
+	if (g_str_has_prefix((const char *)devc->buf, "set ")) {
+		tokens = g_strsplit((const char *)devc->buf, " ", 2);
+		current = g_ascii_strtod(tokens[1], NULL) / 1000;
+		g_strfreev(tokens);
+		send_config_update_key(sdi, SR_CONF_CURRENT_LIMIT,
+			g_variant_new_double(current));
 		return;
 	}
 
