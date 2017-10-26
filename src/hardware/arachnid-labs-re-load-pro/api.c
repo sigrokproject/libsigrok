@@ -25,6 +25,7 @@
 
 #define CMD_VERSION "version\r\n"
 #define CMD_MONITOR "monitor 200\r\n"
+#define CMD_MONITOR_STOP "monitor 0\r\n"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -93,6 +94,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	serial_flush(serial);
+
+	/*
+	 * First stop potentially running monitoring and wait for 50ms before
+	 * next command can be sent.
+	 */
+	if (serial_write_blocking(serial, CMD_MONITOR_STOP,
+			strlen(CMD_MONITOR_STOP), serial_timeout(serial,
+			strlen(CMD_MONITOR_STOP))) < (int)strlen(CMD_MONITOR_STOP)) {
+		sr_dbg("Unable to write while probing for hardware.");
+		serial_close(serial);
+		return NULL;
+	}
+	g_usleep(50 * 1000);
 
 	if (serial_write_blocking(serial, CMD_VERSION,
 			strlen(CMD_VERSION), serial_timeout(serial,
@@ -257,6 +271,17 @@ static int config_set(uint32_t key, GVariant *data,
 	return SR_OK;
 }
 
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	if (serial_write_blocking(sdi->conn, CMD_MONITOR_STOP,
+			strlen(CMD_MONITOR_STOP), serial_timeout(sdi->conn,
+			strlen(CMD_MONITOR_STOP))) < (int)strlen(CMD_MONITOR_STOP)) {
+		sr_dbg("Unable to stop monitoring.");
+	}
+
+	return std_serial_dev_close(sdi);
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	int ret;
@@ -299,7 +324,7 @@ static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = std_serial_dev_close,
+	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
