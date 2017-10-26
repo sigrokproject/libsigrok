@@ -118,8 +118,9 @@ static int scpi_gpib_read_data(void *priv, char *buf, int maxlen)
 
 	if (ibsta & ERR)
 	{
-		sr_err("Error while reading SCPI response: iberr = %s.",
-		        gpib_error_string(iberr));
+		sr_err("Error while reading SCPI response: "
+			"iberr = %s, ibsta = %d.",
+			gpib_error_string(iberr), ibsta);
 		return SR_ERR;
 	}
 
