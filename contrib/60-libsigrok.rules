@@ -127,13 +127,11 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", MODE="660", GROUP="plugdev", 
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
-# Hantek 6022BE
+# Hantek 6022BE, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BE
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
-# Hantek 6022BL
+# Hantek 6022BL, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BL
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="602a", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # IKALOGIC Scanalogic-2
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="660", GROUP="plugdev", TAG+="uaccess"
@@ -186,9 +184,8 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", MODE="660", GROUP="plugdev", 
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", MODE="660", GROUP="plugdev", TAG+="uaccess"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
-# Sainsmart DDS120 / Rocktech BM102
+# Sainsmart DDS120 / Rocktech BM102, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Sainsmart DDS120
 ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # Saleae Logic
 # EE Electronics ESLA100 (clone of the Saleae Logic)
@@ -205,6 +202,9 @@ ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608c", MODE="660", GROUP="plugdev", 
 
 # sigrok FX2 LA (16ch)
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608d", MODE="660", GROUP="plugdev", TAG+="uaccess"
+
+# sigrok FX2 DSO (2ch)
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="660", GROUP="plugdev", TAG+="uaccess"
 
 # SysClk LWLA1016
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", MODE="660", GROUP="plugdev", TAG+="uaccess"
