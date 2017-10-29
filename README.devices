@@ -213,33 +213,39 @@ For USB-to-serial based devices, we recommended using our udev rules file
 (see below for details).
 
 
-Permissions for USB devices (udev rules file)
----------------------------------------------
+Permissions for USB devices (udev rules files)
+----------------------------------------------
 
 When using USB-based devices supported by libsigrok, the user running the
 libsigrok frontend (e.g. sigrok-cli) has to have (read/write) permissions
 for the respective USB device.
 
-On Linux, this is accomplished using either 'chmod' (not recommended) or
-using the udev rules file shipped with libsigrok (recommended).
+On Linux, this is accomplished using udev rules. libsigrok ships a rules
+file containing all supported devices which can be detected reliably
+(generic USB-to-serial converters are omitted, as these are used for a wide
+range of devices, e.g. GPS receivers, which are not handled by libsigrok).
 
-The file is available in contrib/z60_libsigrok.rules. It contains entries
-for all libsigrok-supported (USB-based) devices and changes their group
-to 'plugdev' and the permissions to '664'.
+The file is available in contrib/60-libsigrok.rules. This file just contains
+the list of devices and flags these devices with ID_SIGROK="1". Access is
+granted by the 61-libsigrok-plugdev.rules or 61-libsigrok-uaccess.rules files,
+allowing access to members of the plugdev group or to currently logged in
+users, respectively.
 
 When using a libsigrok package from your favorite Linux distribution, the
-packager will have already taken care of properly installing the udev file
-in the correct (distro-specific) place, and you don't have to do anything.
-The packager might also have adapted 'plugdev' and '664' as needed.
+files should already be installed in /usr/lib/udev/rules.d/, i.e.
+60-libsigrok.rules and one of the access granting rules files. Use of
+61-libsigrok-uaccess.rules is encouraged on systemd distributions.
+
+The access policy can be locally overridden by placing appropriate rules in
+/etc/udev/rules.d/, disabling or ammending the default policy. See the
+udev documentation, e.g. man 7 udev, for details.
 
 If you're building from source, you need to copy the file to the place
-where your distro expects such files. This is beyond the scope of this README,
-but generally the location could be e.g. /etc/udev/rules.d, or maybe
-/lib/udev/rules.d, or something else. Afterwards you might have to restart
-udev, e.g. via '/etc/init.d/udev restart' or similar, and you'll have to
-re-attach your device via USB.
+where udev will read these rules. Local rules should go to /etc/udev/rules.d.
+Keep the file naming, otherwise interaction between the libsigrok rules and
+rules shipped by the system will be broken.
 
-Please consult the udev docs of your distro for details.
+Please consult the udev docs for details.
 
 
 Cypress FX2 based devices
