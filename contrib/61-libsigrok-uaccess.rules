@@ -1,0 +1,32 @@
+##
+## This file is part of the libsigrok project.
+##
+## Copyright (C) 2017 Stefan Bruens <stefan.bruens@rwth-aachen.de>
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, see <http://www.gnu.org/licenses/>.
+##
+
+# Grant access permissions to users who are currently logged in locally.
+# This is the default policy for systems using systemd-logind (or a
+# compatible replacement).
+#
+# This file, when installed, must be installed with a name lexicographically
+# sorted later than the accompanied 60-libsigrok.rules, and earlier than
+# the systemd upstream 71-seat.rules.
+
+ACTION!="add|change", GOTO="libsigrok_rules_uaccess_end"
+
+ENV{ID_SIGROK}=="1", TAG+="uaccess"
+
+LABEL="libsigrok_rules_uaccess_end"

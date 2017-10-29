@@ -17,8 +17,10 @@
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ##
 
-# NOTE: On a systemd based system, using tag=uaccess, this file _must_ be
-# named/numbered to come before the seat rules are applied in 70-xxx.
+# These rules do not grant any permission by itself, but flag devices
+# supported by libsigrok.
+# The access policy is stored in the 61-libsigrok-plugdev.rules and
+# 61-libsigrok-uaccess.rules.
 
 ##
 ## Please keep this list sorted alphabetically by vendor/device name.
@@ -29,28 +31,28 @@ SUBSYSTEM!="usb|usbmisc|usb_device", GOTO="libsigrok_rules_end"
 
 # Agilent USBTMC-connected devices
 # 34405A
-ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0618", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0618", ENV{ID_SIGROK}="1"
 # 34410A
-ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0607", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0607", ENV{ID_SIGROK}="1"
 # DSO1000 series
-ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0588", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0588", ENV{ID_SIGROK}="1"
 
 # ASIX SIGMA
 # ASIX SIGMA2
-ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", ENV{ID_SIGROK}="1"
 
 # Braintechnology USB-LPS
-ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", ENV{ID_SIGROK}="1"
 
 # Brymen BU-86X adapter (e.g. for Brymen BM867/BM869 and possibly others).
-ATTRS{idVendor}=="0820", ATTRS{idProduct}=="0001", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0820", ATTRS{idProduct}=="0001", ENV{ID_SIGROK}="1"
 
 # CEM DT-8852
-ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ENV{ID_SIGROK}="1"
 
 # ChronoVu LA8 (new VID/PID)
 # ChronoVu LA16 (new VID/PID)
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", ENV{ID_SIGROK}="1"
 
 # CWAV USBee AX
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
@@ -58,175 +60,175 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", MODE="660", GROUP="plugdev", 
 # EE Electronics ESLA201A (clone of the CWAV USBee AX)
 # MCU123 USBee AX Pro clone (clone of the CWAV USBee AX)
 # XZL_Studio AX (clone of the CWAV USBee AX)
-ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", ENV{ID_SIGROK}="1"
 
 # CWAV USBee DX
 # XZL_Studio DX (clone of the CWAV USBee DX)
-ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", ENV{ID_SIGROK}="1"
 
 # CWAV USBee SX
-ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", ENV{ID_SIGROK}="1"
 
 # Cypress FX2 eval boards without EEPROM:
 # Lcsoft Mini Board
 # Braintechnology USB Interface V2.x
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", ENV{ID_SIGROK}="1"
 
 # Dangerous Prototypes Buspirate (v3)
 # ChronoVu LA8 (old VID/PID)
 # ChronoVu LA16 (old VID/PID)
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ENV{ID_SIGROK}="1"
 
 # Dangerous Prototypes Buspirate (v4)
-ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", ENV{ID_SIGROK}="1"
 
 # DreamSourceLab DSLogic
-ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Pro
-ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0003", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 # DreamSourceLab DScope
-ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0002", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Plus
-ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Basic
-ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", ENV{ID_SIGROK}="1"
 
 # HAMEG HO720
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", ENV{ID_SIGROK}="1"
 
 # HAMEG HO730
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed73", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed73", ENV{ID_SIGROK}="1"
 
 # Hantek DSO-2090
 # lsusb: "04b4:2090 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2090 ROHM LSI Systems USA, LLC"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2090", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2090", ENV{ID_SIGROK}="1"
 
 # Hantek DSO-2150
 # lsusb: "04b4:2150 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2150 ROHM LSI Systems USA, LLC"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2150", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2150", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2150", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2150", ENV{ID_SIGROK}="1"
 
 # Hantek DSO-2250
 # lsusb: "04b4:2250 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:2250 ROHM LSI Systems USA, LLC"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2250", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2250", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2250", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="2250", ENV{ID_SIGROK}="1"
 
 # Hantek DSO-5200
 # lsusb: "04b4:5200 Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:5200 ROHM LSI Systems USA, LLC"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="5200", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="5200", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="5200", ENV{ID_SIGROK}="1"
 
 # Hantek DSO-5200A
 # lsusb: "04b4:520a Cypress Semiconductor Corp."
 # lsusb after FW upload: "04b5:520a ROHM LSI Systems USA, LLC"
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="520a", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="520a", ENV{ID_SIGROK}="1"
 
 # Hantek 6022BE, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BE
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", ENV{ID_SIGROK}="1"
 
 # Hantek 6022BL, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BL
-ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="602a", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="602a", ENV{ID_SIGROK}="1"
 
 # IKALOGIC Scanalogic-2
-ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", ENV{ID_SIGROK}="1"
 
 # IKALOGIC ScanaPLUS
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", ENV{ID_SIGROK}="1"
 
 # Kecheng KC-330B
-ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", ENV{ID_SIGROK}="1"
 
 # Lascar Electronics EL-USB-2
 # Lascar Electronics EL-USB-CO
 # This is actually the generic SiLabs (Cygnal) F32x USBXpress VID:PID.
-ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 
 # LeCroy LogicStudio16
-ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a001", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a002", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a001", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a002", ENV{ID_SIGROK}="1"
 
 # Link Instruments MSO-19
-ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", ENV{ID_SIGROK}="1"
 
 # Logic Shrimp
-ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", ENV{ID_SIGROK}="1"
 
 # MiniLA Mockup
-ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ENV{ID_SIGROK}="1"
 
 # MIC 98581
 # MIC 98583
 # Tondaj SL-814
-ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", ENV{ID_SIGROK}="1"
 
 # Openbench Logic Sniffer
-ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", ENV{ID_SIGROK}="1"
 
 # Rigol DS1000 series
-ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0588", ENV{ID_SIGROK}="1"
 
 # Rigol 1000Z series
-ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04ce", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04ce", ENV{ID_SIGROK}="1"
 
 # Rigol DS2000 series
-ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04b0", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04b0", ENV{ID_SIGROK}="1"
 
 # Rigol DG4000 series
-ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", ENV{ID_SIGROK}="1"
 
 # Rohde&Schwarz HMO1002 Series VCP/USBTMC mode
-ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", ENV{ID_SIGROK}="1"
 
 # Sainsmart DDS120 / Rocktech BM102, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Sainsmart DDS120
-ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", ENV{ID_SIGROK}="1"
 
 # Saleae Logic
 # EE Electronics ESLA100 (clone of the Saleae Logic)
 # Robomotic MiniLogic (clone of the Saleae Logic)
 # Robomotic BugLogic 3 (clone of the Saleae Logic)
 # MCU123 Saleae Logic clone (clone of the Saleae Logic)
-ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", ENV{ID_SIGROK}="1"
 
 # Saleae Logic16
-ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", ENV{ID_SIGROK}="1"
 
 # sigrok FX2 LA (8ch)
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608c", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608c", ENV{ID_SIGROK}="1"
 
 # sigrok FX2 LA (16ch)
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608d", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608d", ENV{ID_SIGROK}="1"
 
 # sigrok FX2 DSO (2ch)
-ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", ENV{ID_SIGROK}="1"
 
 # SysClk LWLA1016
-ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", ENV{ID_SIGROK}="1"
 
 # SysClk LWLA1034
-ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6689", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6689", ENV{ID_SIGROK}="1"
 
 # Testo 435
-ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 
 # UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
 # http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 # UNI-T UT325
-ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", ENV{ID_SIGROK}="1"
 
 # V&A VA4000 multimeter cable (for various V&A DMMs)
 # http://sigrok.org/wiki/Device_cables#V.26A_VA4000
-ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 
 # Victor 70C
 # Victor 86C
-ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
 
 # ZEROPLUS Logic Cube LAP-C series
 # There are various devices in the ZEROPLUS Logic Cube series:
@@ -238,13 +240,13 @@ ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", MODE="660", GROUP="plugdev", 
 # 0c12:700d: LAP-C(322000)
 # 0c12:700e: LAP-C(16032)
 # 0c12:7016: LAP-C(162000)
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700b", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", MODE="660", GROUP="plugdev", TAG+="uaccess"
-ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", MODE="660", GROUP="plugdev", TAG+="uaccess"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700b", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", ENV{ID_SIGROK}="1"
 
 LABEL="libsigrok_rules_end"
