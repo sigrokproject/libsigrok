@@ -172,6 +172,38 @@ SR_PRIV int sr_atof(const char *str, float *ret)
 /**
  * @private
  *
+ * Convert a string representation of a numeric value to a double. The
+ * conversion is strict and will fail if the complete string does not represent
+ * a valid double. The function sets errno according to the details of the
+ * failure. This version ignores the locale.
+ *
+ * @param str The string representation to convert.
+ * @param ret Pointer to double where the result of the conversion will be stored.
+ *
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Failure.
+ */
+SR_PRIV int sr_atod_ascii(const char *str, double *ret)
+{
+	double tmp;
+	char *endptr = NULL;
+
+	errno = 0;
+	tmp = g_ascii_strtod(str, &endptr);
+
+	if (!endptr || *endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+
+	*ret = tmp;
+	return SR_OK;
+}
+
+/**
+ * @private
+ *
  * Convert a string representation of a numeric value to a float. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid float. The function sets errno according to the details of the

@@ -627,7 +627,7 @@ SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 	if (ret != SR_OK && !response)
 		return ret;
 
-	if (sr_atod(response, scpi_response) == SR_OK)
+	if (sr_atod_ascii(response, scpi_response) == SR_OK)
 		ret = SR_OK;
 	else
 		ret = SR_ERR_DATA;

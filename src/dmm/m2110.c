@@ -44,7 +44,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf)
 	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		return TRUE;
 
-	if (sscanf((const char *)buf, "%f", &val) == 1)
+	if (sr_atof_ascii((const char *)buf, &val) == SR_OK)
 		return TRUE;
 	else
 		return FALSE;
@@ -65,7 +65,7 @@ SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 
 	if (!strncmp((const char *)buf, "OVERRNG", 7))
 		*floatval = INFINITY;
-	else if (sscanf((const char *)buf, "%f", &val) == 1) {
+	else if (sr_atof_ascii((const char *)buf, &val) == SR_OK) {
 		*floatval = val;
 		dot_pos = strcspn((const char *)buf, ".");
 		if (dot_pos < 7)

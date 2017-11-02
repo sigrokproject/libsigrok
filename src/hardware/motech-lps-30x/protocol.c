@@ -87,7 +87,7 @@ static void process_line(struct sr_dev_inst *sdi)
 		case AQ_U2:
 		case AQ_I1:
 		case AQ_I2:
-			if (sr_atod(devc->buf, &dbl) != SR_OK) {
+			if (sr_atod_ascii(devc->buf, &dbl) != SR_OK) {
 				sr_err("Failed to convert '%s' to double, errno=%d %s",
 					devc->buf, errno, g_strerror(errno));
 				dbl = 0.0;

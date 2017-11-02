@@ -86,7 +86,7 @@ static int parse_value(const uint8_t *buf, struct metex14_info *info,
 		return SR_OK;
 
 	/* Bytes 2-8: Sign, value (up to 5 digits) and decimal point */
-	sscanf((const char *)&valstr, "%f", result);
+	sr_atof_ascii((const char *)&valstr, result);
 
 	dot_pos = strcspn(valstr, ".");
 	if (dot_pos < cnt)
