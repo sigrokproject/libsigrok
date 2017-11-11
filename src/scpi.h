@@ -99,6 +99,7 @@ struct sr_scpi_dev_inst {
 	void *priv;
 	/* Only used for quirk workarounds, notably the Rigol DS1000 series. */
 	uint64_t firmware_version;
+	GMutex scpi_mutex;
 };
 
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
@@ -148,10 +149,10 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor);
-SR_PRIV const char *scpi_cmd_get(const struct scpi_command *cmdtable, int command);
-SR_PRIV int scpi_cmd(const struct sr_dev_inst *sdi,
+SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable, int command);
+SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
 		const struct scpi_command *cmdtable, int command, ...);
-SR_PRIV int scpi_cmd_resp(const struct sr_dev_inst *sdi,
+SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 		const struct scpi_command *cmdtable,
 		GVariant **gvar, const GVariantType *gvtype, int command, ...);
 
