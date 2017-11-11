@@ -27,8 +27,6 @@
 #define CH_IDX(x) (1 << x)
 #define FREQ_DC_ONLY {0, 0, 0, 0, 0}
 
-static const uint32_t devopts_none[] = { };
-
 /* Agilent/Keysight N5700A series */
 static const uint32_t agilent_n5700a_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -308,6 +306,9 @@ static const struct scpi_command rigol_dp800_cmd[] = {
 /* HP 663xx series */
 static const uint32_t hp_6630a_devopts[] = {
 	SR_CONF_CONTINUOUS,
+};
+
+static const uint32_t hp_6630a_devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -319,6 +320,9 @@ static const uint32_t hp_6630a_devopts[] = {
 
 static const uint32_t hp_6632b_devopts[] = {
 	SR_CONF_CONTINUOUS,
+};
+
+static const uint32_t hp_6632b_devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -604,7 +608,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* HP 6633A */
 	{ "HP", "6633A", 0,
 		ARRAY_AND_SIZE(hp_6630a_devopts),
-		ARRAY_AND_SIZE(devopts_none),
+		ARRAY_AND_SIZE(hp_6630a_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633a_ch),
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630a_cmd,
@@ -614,7 +618,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* HP 6632B */
 	{ "HP", "6632B", 0,
 		ARRAY_AND_SIZE(hp_6632b_devopts),
-		ARRAY_AND_SIZE(devopts_none),
+		ARRAY_AND_SIZE(hp_6632b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6632b_cmd,
