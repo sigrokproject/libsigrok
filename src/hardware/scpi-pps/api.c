@@ -127,7 +127,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	for (ch_num = 0; ch_num < num_channels; ch_num++) {
 		/* Create one channel per measurable output unit. */
 		for (i = 0; i < ARRAY_SIZE(pci); i++) {
-			if (!scpi_cmd_get(devc->device->commands, pci[i].command))
+			if (!sr_scpi_cmd_get(devc->device->commands, pci[i].command))
 				continue;
 			g_snprintf(ch_name, 16, "%s%s", pci[i].prefix,
 					channels[ch_num].name);
@@ -164,7 +164,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
+	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
 
 	return sdi;
 }
@@ -256,13 +256,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	devc = sdi->priv;
-	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_REMOTE);
+	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_REMOTE);
 	devc->beeper_was_set = FALSE;
-	if (scpi_cmd_resp(sdi, devc->device->commands, &beeper,
+	if (sr_scpi_cmd_resp(sdi, devc->device->commands, &beeper,
 			G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
 		if (g_variant_get_boolean(beeper)) {
 			devc->beeper_was_set = TRUE;
-			scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_DISABLE);
+			sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_DISABLE);
 		}
 		g_variant_unref(beeper);
 	}
@@ -282,8 +282,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 
 	if (devc->beeper_was_set)
-		scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_ENABLE);
-	scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
+		sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_ENABLE);
+	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
 
 	return sr_scpi_close(scpi);
 }
@@ -401,7 +401,7 @@ static int config_get(uint32_t key, GVariant **data,
 
 	if (cg)
 		select_channel(sdi, cg->channels->data);
-	ret = scpi_cmd_resp(sdi, devc->device->commands, data, gvtype, cmd);
+	ret = sr_scpi_cmd_resp(sdi, devc->device->commands, data, gvtype, cmd);
 
 	if (cmd == SCPI_CMD_GET_OUTPUT_REGULATION) {
 		/*
@@ -445,59 +445,59 @@ static int config_set(uint32_t key, GVariant *data,
 	switch (key) {
 	case SR_CONF_ENABLED:
 		if (g_variant_get_boolean(data))
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OUTPUT_ENABLE);
 		else
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OUTPUT_DISABLE);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		d = g_variant_get_double(data);
-		return scpi_cmd(sdi, devc->device->commands,
+		return sr_scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_VOLTAGE_TARGET, d);
 		break;
 	case SR_CONF_OUTPUT_FREQUENCY_TARGET:
 		d = g_variant_get_double(data);
-		return scpi_cmd(sdi, devc->device->commands,
+		return sr_scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_FREQUENCY_TARGET, d);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		d = g_variant_get_double(data);
-		return scpi_cmd(sdi, devc->device->commands,
+		return sr_scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_CURRENT_LIMIT, d);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE);
 		else
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		return scpi_cmd(sdi, devc->device->commands,
+		return sr_scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE);
 		else
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		return scpi_cmd(sdi, devc->device->commands,
+		return sr_scpi_cmd(sdi, devc->device->commands,
 				SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if (g_variant_get_boolean(data))
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE);
 		else
-			return scpi_cmd(sdi, devc->device->commands,
+			return sr_scpi_cmd(sdi, devc->device->commands,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
 		break;
 	default:
@@ -590,7 +590,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_channel *ch;
 	struct pps_channel *pch;
-	int cmd, ret;
+	int ret;
 
 	devc = sdi->priv;
 	scpi = sdi->conn;
@@ -605,17 +605,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	pch = ch->priv;
 	if ((ret = select_channel(sdi, ch)) < 0)
 		return ret;
-	if (pch->mq == SR_MQ_VOLTAGE)
-		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
-	else if (pch->mq == SR_MQ_FREQUENCY)
-		cmd = SCPI_CMD_GET_MEAS_FREQUENCY;
-	else if (pch->mq == SR_MQ_CURRENT)
-		cmd = SCPI_CMD_GET_MEAS_CURRENT;
-	else if (pch->mq == SR_MQ_POWER)
-		cmd = SCPI_CMD_GET_MEAS_POWER;
-	else
-		return SR_ERR;
-	scpi_cmd(sdi, devc->device->commands, cmd, pch->hwname);
 
 	return SR_OK;
 }
@@ -631,6 +620,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	 * A requested value is certainly on the way. Retrieve it now,
 	 * to avoid leaving the device in a state where it's not expecting
 	 * commands.
+	 *
+	 * TODO: Doesn't work for (at least) the HP 66XXB models.
 	 */
 	sr_scpi_get_double(scpi, NULL, &d);
 	sr_scpi_source_remove(sdi->session, scpi);
