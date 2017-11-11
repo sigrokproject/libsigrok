@@ -28,8 +28,10 @@ static int send_cmd(const struct sr_dev_inst *sdi, const char *cmd,
 {
 	char *bufptr;
 	int len, ret;
+	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
+	devc = sdi->priv;
 	serial = sdi->conn;
 
 	/* Send the command (blocking, with timeout). */
@@ -40,21 +42,23 @@ static int send_cmd(const struct sr_dev_inst *sdi, const char *cmd,
 		return SR_ERR;
 	}
 
-	/* Read the reply (blocking, with timeout). */
-	memset(replybuf, 0, replybufsize);
-	bufptr = replybuf;
-	len = replybufsize;
-	ret = serial_readline(serial, &bufptr, &len, READ_TIMEOUT_MS);
-
-	/* If we got 0 characters (possibly one \r or \n), retry once. */
-	if (len == 0) {
+	if (!devc->acquisition_running) {
+		/* Read the reply (blocking, with timeout). */
+		memset(replybuf, 0, replybufsize);
+		bufptr = replybuf;
 		len = replybufsize;
 		ret = serial_readline(serial, &bufptr, &len, READ_TIMEOUT_MS);
-	}
 
-	if (g_str_has_prefix((const char *)&bufptr, "err ")) {
-		sr_err("Device replied with an error: '%s'.", bufptr);
-		return SR_ERR;
+		/* If we got 0 characters (possibly one \r or \n), retry once. */
+		if (len == 0) {
+			len = replybufsize;
+			ret = serial_readline(serial, &bufptr, &len, READ_TIMEOUT_MS);
+		}
+
+		if (g_str_has_prefix((const char *)&bufptr, "err ")) {
+			sr_err("Device replied with an error: '%s'.", bufptr);
+			return SR_ERR;
+		}
 	}
 
 	return ret;
@@ -108,14 +112,19 @@ SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 {
 	int ret;
 	char buf[100];
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if ((ret = send_cmd(sdi, "set\n", (char *)&buf, sizeof(buf))) < 0) {
 		sr_err("Error sending current limit query: %d.", ret);
 		return SR_ERR;
 	}
 
-	/* Hardware sends current in mA, integer (0..6000). */
-	*current = g_ascii_strtod(buf + 4, NULL) / 1000;
+	if (!devc->acquisition_running) {
+		/* Hardware sends current in mA, integer (0..6000). */
+		*current = g_ascii_strtod(buf + 4, NULL) / 1000;
+	}
 
 	return SR_OK;
 }
@@ -126,19 +135,24 @@ SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 	int ret;
 	char buf[100];
 	char **tokens;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	if ((ret = send_cmd(sdi, "read\n", (char *)&buf, sizeof(buf))) < 0) {
 		sr_err("Error sending voltage/current query: %d.", ret);
 		return SR_ERR;
 	}
 
-	/* Reply: "read <current> <voltage>". */
-	tokens = g_strsplit((const char *)&buf, " ", 3);
-	if (voltage)
-		*voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
-	if (current)
-		*current = g_ascii_strtod(tokens[1], NULL) / 1000;
-	g_strfreev(tokens);
+	if (!devc->acquisition_running) {
+		/* Reply: "read <current> <voltage>". */
+		tokens = g_strsplit((const char *)&buf, " ", 3);
+		if (voltage)
+			*voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
+		if (current)
+			*current = g_ascii_strtod(tokens[1], NULL) / 1000;
+		g_strfreev(tokens);
+	}
 
 	return SR_OK;
 }
@@ -268,13 +282,18 @@ static void handle_new_data(const struct sr_dev_inst *sdi)
 	int len;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	char *buf;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	/* Try to get as much data as the buffer can hold. */
 	len = RELOADPRO_BUFSIZE - devc->buflen;
-	len = serial_read_nonblocking(serial, devc->buf + devc->buflen, len);
+	buf = devc->buf;
+	if (serial_readline(serial, &buf, &len, 250) != SR_OK) {
+		sr_err("Err: ");
+		return;
+	}
+
 	if (len == 0)
 		return; /* No new bytes, nothing to do. */
 	if (len < 0) {
@@ -283,11 +302,9 @@ static void handle_new_data(const struct sr_dev_inst *sdi)
 	}
 	devc->buflen += len;
 
-	if (g_str_has_suffix((const char *)devc->buf, "\n")) {
-		handle_packet(sdi);
-		memset(devc->buf, 0, RELOADPRO_BUFSIZE);
-		devc->buflen = 0;
-	}
+	handle_packet(sdi);
+	memset(devc->buf, 0, RELOADPRO_BUFSIZE);
+	devc->buflen = 0;
 }
 
 SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data)

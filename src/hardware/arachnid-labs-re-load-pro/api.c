@@ -289,6 +289,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	devc = sdi->priv;
+	devc->acquisition_running = TRUE;
+
 	serial = sdi->conn;
 
 	/* Send the 'monitor <ms>' command (doesn't have a reply). */
@@ -311,6 +313,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+	devc->acquisition_running = FALSE;
+
+	return std_serial_dev_acquisition_stop(sdi);
+}
+
 static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {
 	.name = "arachnid-labs-re-load-pro",
 	.longname = "Arachnid Labs Re:load Pro",
@@ -326,7 +338,7 @@ static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {
 	.dev_open = std_serial_dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(arachnid_labs_re_load_pro_driver_info);

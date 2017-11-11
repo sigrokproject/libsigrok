@@ -30,8 +30,9 @@
 #define RELOADPRO_BUFSIZE 100
 
 struct dev_context {
+	gboolean acquisition_running;
 	struct sr_sw_limits limits;
-	uint8_t buf[RELOADPRO_BUFSIZE];
+	char buf[RELOADPRO_BUFSIZE];
 	int buflen;
 	gboolean otp_active;
 	gboolean uvc_active;
