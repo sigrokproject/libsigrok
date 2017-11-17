@@ -819,6 +819,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* No data yet. */
 		break;
 	case CAPTURE_READY_8BIT:
+	case CAPTURE_READY2250:
 		/* Remember where in the captured frame the trigger is. */
 		devc->trigger_offset = trigger_offset;
 

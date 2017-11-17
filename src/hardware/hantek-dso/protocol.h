@@ -62,17 +62,25 @@ enum control_requests {
 };
 
 enum dso_commands {
-	CMD_SET_FILTERS = 0,
-	CMD_SET_TRIGGER_SAMPLERATE,
-	CMD_FORCE_TRIGGER,
-	CMD_CAPTURE_START,
-	CMD_ENABLE_TRIGGER,
-	CMD_GET_CHANNELDATA,
-	CMD_GET_CAPTURESTATE,
-	CMD_SET_VOLTAGE,
+	CMD_SET_FILTERS                     = 0x0,
+	CMD_SET_TRIGGER_SAMPLERATE          = 0x1,
+	CMD_FORCE_TRIGGER                   = 0x2,
+	CMD_CAPTURE_START                   = 0x3,
+	CMD_ENABLE_TRIGGER                  = 0x4,
+	CMD_GET_CHANNELDATA                 = 0x5,
+	CMD_GET_CAPTURESTATE                = 0x6,
+	CMD_SET_VOLTAGE                     = 0x7,
 	/* unused */
-	CMD_SET_LOGICALDATA,
-	CMD_GET_LOGICALDATA,
+	CMD_SET_LOGICALDATA                 = 0x8,
+	CMD_GET_LOGICALDATA                 = 0x9,
+	CMD__UNUSED1                        = 0xa,
+	/* For the following and other specials please see
+	 * http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028 */
+	CMD_2250_SET_CHANNELS               = 0xb,
+	CMD_2250_SET_TRIGGERSOURCE          = 0xc,
+	CMD_2250_SET_RECORD_LENGTH          = 0xd,
+	CMD_2250_SET_SAMPLERATE             = 0xe,
+	CMD_2250_SET_TRIGGERPOS_AND_BUFFER  = 0xf,
 };
 
 /* Must match the coupling table. */
@@ -131,6 +139,7 @@ enum capturestates {
 	CAPTURE_FILLING = 1,
 	CAPTURE_READY_8BIT = 2,
 	CAPTURE_READY_9BIT = 7,
+	CAPTURE_READY2250 = 3,
 	CAPTURE_TIMEOUT = 127,
 	CAPTURE_UNKNOWN = 255,
 };
