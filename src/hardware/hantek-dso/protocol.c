@@ -303,41 +303,32 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_2250_SET_SAMPLERATE;
-	/* Timebase fast */
-	sr_dbg("Time base index: %d.", devc->timebase);
+	sr_dbg("Sample rate: %u", devc->samplerate);
 	base = 100e6;
-	if (devc->timebase < TIME_40us) {
-		if (devc->framesize != FRAMESIZE_SMALL) {
-			sr_err("Timebase < 40us only supported with 10K buffer.");
-			return SR_ERR_ARG;
-		}
-
-		/* Fast mode on */
-		base = 200e6;
-		cmdstring[2] |= 1;
+	if (devc->samplerate > base) {
+		/* Timebase fast */
+		sr_err("Sample rate > 100MHz not yet supported.");
+		return SR_ERR_ARG;
 	}
 
-	/* Downsampling on */
-	cmdstring[2] |= 2;
-	/* Downsampler = 1comp((Base / Samplerate) - 2)
-	 *  Base == 100Msa resp. 200MSa
-	 *
-	 * Example for 500kSa/s:
-	 *  100e6 / 500e3 => 200
-	 *  200 - 2 => 198
-	 *  1comp(198) => ff39 */
-
-	tmp = base * timebase_to_time(devc->timebase);
-	tmp = 200;
-	if (tmp < 0)
-		return SR_ERR_ARG;
-	tmp -= 2;
-	if (tmp < 0)
-		return SR_ERR_ARG;
-	tmp = ~tmp;
-	sr_dbg("sample rate value: 0x%x.", tmp & 0xffff);
-	cmdstring[4] = (tmp >> 0) & 0xff;
-	cmdstring[5] = (tmp >> 8) & 0xff;
+	tmp = base / devc->samplerate;
+	sr_dbg("sample rate value: %d.", devc->samplerate);
+	if (tmp) {
+		/* Downsampling on */
+		cmdstring[2] |= 2;
+		/* Downsampler = 1comp((Base / Samplerate) - 2)
+		 *  Base == 100Msa resp. 200MSa
+		 *
+		 * Example for 500kSa/s:
+		 *  100e6 / 500e3 => 200
+		 *  200 - 2 => 198
+		 *  1comp(198) => ff39 */
+		tmp -= 2;
+		tmp = ~tmp;
+		sr_dbg("down sampler value: 0x%x.", tmp & 0xffff);
+		cmdstring[4] = (tmp >> 0) & 0xff;
+		cmdstring[5] = (tmp >> 8) & 0xff;
+	}
 
 	if (send_begin(sdi) != SR_OK)
 		return SR_ERR;
@@ -375,7 +366,6 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[0] = CMD_2250_SET_TRIGGERPOS_AND_BUFFER;
 
 	/* TODO for big buffer */
-	/* TODO */
 	sr_dbg("Trigger position: %3.2f.", devc->triggerposition);
 //	tmp = 0x77fff + 0x8000 * devc->triggerposition;
 //	cmdstring[6] = tmp & 0xff;
@@ -404,7 +394,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
+int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
