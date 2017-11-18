@@ -130,6 +130,28 @@ static const uint64_t timebases[][2] = {
 	{ 400, 1000 },
 };
 
+static const uint64_t samplerates[] = {
+	SR_KHZ(20),
+	SR_KHZ(25),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(250),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(125),
+	/* fast mode not supported yet 
+	SR_MHZ(200),
+	SR_MHZ(250), */
+};
+
 static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 10, 1000 },
@@ -186,6 +208,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->timebase = DEFAULT_TIMEBASE;
+	devc->samplerate = DEFAULT_SAMPLERATE;
 	devc->ch_enabled[0] = TRUE;
 	devc->ch_enabled[1] = TRUE;
 	devc->voltage[0] = DEFAULT_VOLTAGE;
@@ -432,9 +455,7 @@ static int config_get(uint32_t key, GVariant **data,
 					timebases[devc->timebase][1]);
 			break;
 		case SR_CONF_SAMPLERATE:
-			*data = g_variant_new_uint64(
-					timebases[devc->timebase][1]/
-					timebases[devc->timebase][0]);
+			*data = g_variant_new_uint64(devc->samplerate);
 			break;
 		case SR_CONF_BUFFERSIZE:
 			*data = g_variant_new_uint64(devc->framesize);
@@ -512,6 +533,13 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			devc->timebase = idx;
 			break;
+		case SR_CONF_SAMPLERATE:
+			if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(samplerates))) < 0)
+				return SR_ERR_ARG;
+			devc->samplerate = samplerates[idx];
+			if (dso_set_trigger_samplerate(sdi) != SR_OK)
+				return SR_ERR;
+			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 				return SR_ERR_ARG;
@@ -564,6 +592,9 @@ static int config_list(uint32_t key, GVariant **data,
 				return SR_ERR_ARG;
 			devc = sdi->priv;
 			*data = std_gvar_array_u64(devc->profile->buffersizes, NUM_BUFFER_SIZES);
+			break;
+		case SR_CONF_SAMPLERATE:
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 			break;
 		case SR_CONF_TIMEBASE:
 			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(timebases));
