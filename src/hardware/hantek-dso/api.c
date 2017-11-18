@@ -62,6 +62,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 };
 
@@ -429,6 +430,11 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_TIMEBASE:
 			*data = g_variant_new("(tt)", timebases[devc->timebase][0],
 					timebases[devc->timebase][1]);
+			break;
+		case SR_CONF_SAMPLERATE:
+			*data = g_variant_new_uint64(
+					timebases[devc->timebase][1]/
+					timebases[devc->timebase][0]);
 			break;
 		case SR_CONF_BUFFERSIZE:
 			*data = g_variant_new_uint64(devc->framesize);
