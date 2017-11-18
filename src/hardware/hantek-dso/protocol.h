@@ -37,6 +37,7 @@
 #define DEFAULT_VOLTAGE         VDIV_500MV
 #define DEFAULT_FRAMESIZE       FRAMESIZE_SMALL
 #define DEFAULT_TIMEBASE        TIME_100us
+#define DEFAULT_SAMPLERATE      SR_KHZ(10)
 #define DEFAULT_TRIGGER_SOURCE  "CH1"
 #define DEFAULT_COUPLING        COUPLING_DC
 #define DEFAULT_HORIZ_TRIGGERPOS 0.5
@@ -187,6 +188,7 @@ struct dev_context {
 	int dev_state;
 
 	/* Oscilloscope settings. */
+	int samplerate;
 	int timebase;
 	gboolean ch_enabled[2];
 	int voltage[2];
@@ -220,5 +222,6 @@ SR_PRIV int dso_get_capturestate(const struct sr_dev_inst *sdi,
 SR_PRIV int dso_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int dso_get_channeldata(const struct sr_dev_inst *sdi,
 		libusb_transfer_cb_fn cb);
+SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi);
 
 #endif
