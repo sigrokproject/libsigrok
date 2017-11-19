@@ -40,7 +40,7 @@
 #define DEFAULT_SAMPLERATE      SR_KHZ(10)
 #define DEFAULT_TRIGGER_SOURCE  "CH1"
 #define DEFAULT_COUPLING        COUPLING_DC
-#define DEFAULT_HORIZ_TRIGGERPOS 0.5
+#define DEFAULT_CAPTURE_RATIO   100
 #define DEFAULT_VERT_OFFSET     0.5
 #define DEFAULT_VERT_TRIGGERPOS 0.5
 
@@ -202,7 +202,7 @@ struct dev_context {
 	gboolean filter[2];
 	int triggerslope;
 	char *triggersource;
-	float triggerposition;
+	int capture_ratio;
 	int triggermode;
 
 	/* Frame transfer */

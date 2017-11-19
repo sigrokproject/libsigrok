@@ -241,6 +241,25 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+
+static void dso2250_set_triggerpos(int value, int long_buffer, uint8_t dest[], int offset)
+{
+	uint32_t min, max;
+	uint32_t tmp, diff;
+
+	min = long_buffer ? 0 : 0x7d7ff;
+	max = 0x7ffff;
+
+	diff = max - min;
+	tmp = min + diff * value / 100;
+	sr_dbg("2250 trigger pos: %3d%% * [0x%x,0x%x] == 0x%x", value, min, max, tmp);
+
+	dest[offset + 0] = tmp & 0xff;
+	dest[offset + 1] = (tmp >> 8) & 0xff;
+	dest[offset + 2] = (tmp >> 16) & 0x7;
+}
+
+
 /* See http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028 */
 static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
@@ -249,6 +268,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	int ret, tmp;
 	int base;
 	uint8_t cmdstring[12];
+	int trig;
 
 
 	sr_dbg("Preparing CMD_2250_SET_TRIGGERSOURCE.");
@@ -379,20 +399,12 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[0] = CMD_2250_SET_TRIGGERPOS_AND_BUFFER;
 
 	/* Horizontal trigger position */
-	/* TODO for big buffer */
-	sr_dbg("Trigger position: %3.2f.", devc->triggerposition);
-//	tmp = 0x77fff + 0x8000 * devc->triggerposition;
-//	cmdstring[6] = tmp & 0xff;
-//	cmdstring[7] = (tmp >> 8) & 0xff;
-//	cmdstring[10] = (tmp >> 16) & 0xff;
-
-	cmdstring[2]=0xff;
-	cmdstring[3]=0xff;
-	cmdstring[4]=0x07;
-
-	cmdstring[6]=0xff;
-	cmdstring[7]=0xd7;
-	cmdstring[8]=0x07;
+	sr_dbg("Capture ratio: %d.", devc->capture_ratio);
+	trig = devc->capture_ratio;
+	dso2250_set_triggerpos(trig,
+			devc->framesize != FRAMESIZE_SMALL, cmdstring, 2);
+	dso2250_set_triggerpos(100 - trig,
+			devc->framesize != FRAMESIZE_SMALL, cmdstring, 6);
 
 	if (send_begin(sdi) != SR_OK)
 		return SR_ERR;
@@ -509,8 +521,8 @@ int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[5] = (tmp >> 8) & 0xff;
 
 	/* Horizontal trigger position */
-	sr_dbg("Trigger position: %3.2f.", devc->triggerposition);
-	tmp = 0x77fff + 0x8000 * devc->triggerposition;
+	sr_dbg("Capture ratio: %d.", devc->capture_ratio);
+	tmp = 0x77fff + 0x8000 * devc->capture_ratio / 100;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
 	cmdstring[10] = (tmp >> 16) & 0xff;

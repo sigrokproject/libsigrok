@@ -58,7 +58,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -221,7 +221,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->framesize = DEFAULT_FRAMESIZE;
 	devc->triggerslope = SLOPE_POSITIVE;
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
-	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
+	devc->capture_ratio = DEFAULT_CAPTURE_RATIO;
 	sdi->priv = devc;
 
 	return sdi;
@@ -467,8 +467,8 @@ static int config_get(uint32_t key, GVariant **data,
 			s = (devc->triggerslope == SLOPE_POSITIVE) ? "r" : "f";
 			*data = g_variant_new_string(s);
 			break;
-		case SR_CONF_HORIZ_TRIGGERPOS:
-			*data = g_variant_new_double(devc->triggerposition);
+		case SR_CONF_CAPTURE_RATIO:
+			*data = g_variant_new_uint64(devc->capture_ratio);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -501,7 +501,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	double tmp_double;
+	int rat;
 	int ch_idx, idx;
 
 	devc = sdi->priv;
@@ -515,13 +515,13 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			devc->triggerslope = idx;
 			break;
-		case SR_CONF_HORIZ_TRIGGERPOS:
-			tmp_double = g_variant_get_double(data);
-			if (tmp_double < 0.0 || tmp_double > 1.0) {
-				sr_err("Trigger position should be between 0.0 and 1.0.");
+		case SR_CONF_CAPTURE_RATIO:
+			rat = g_variant_get_uint64(data);
+			if (rat < 0 || rat > 100) {
+				sr_err("Capture ratio must be in [0,100].");
 				return SR_ERR_ARG;
 			} else
-				devc->triggerposition = tmp_double;
+				devc->capture_ratio = rat;
 			break;
 		case SR_CONF_BUFFERSIZE:
 			if ((idx = std_u64_idx(data, devc->profile->buffersizes, NUM_BUFFER_SIZES)) < 0)
@@ -539,6 +539,7 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->samplerate = samplerates[idx];
 			if (dso_set_trigger_samplerate(sdi) != SR_OK)
 				return SR_ERR;
+			sr_err("got new sample rate %d, idx %d", devc->samplerate, idx);
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
