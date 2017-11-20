@@ -983,6 +983,9 @@ enum sr_configkey {
 	/** Under-voltage condition active. */
 	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
 
+	/** Under-voltage condition threshold. */
+	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD,
+
 	/** Trigger level. */
 	SR_CONF_TRIGGER_LEVEL,
 

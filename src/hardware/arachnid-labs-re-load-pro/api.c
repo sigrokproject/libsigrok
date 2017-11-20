@@ -54,6 +54,7 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_UNDER_VOLTAGE_CONDITION | SR_CONF_GET,
 	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE | SR_CONF_GET,
+	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -174,6 +175,9 @@ static int config_list(uint32_t key, GVariant **data,
 		case SR_CONF_CURRENT_LIMIT:
 			*data = std_gvar_min_max_step(0.0, 6.0, 0.001);
 			break;
+		case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+			*data = std_gvar_min_max_step(0.0, 60.0, 0.001);
+			break;
 		default:
 			return SR_ERR_NA;
 		}
@@ -235,10 +239,19 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(devc->otp_active);
 		break;
 	case SR_CONF_UNDER_VOLTAGE_CONDITION:
-		*data = g_variant_new_boolean(TRUE); /* Always on. */
+		if (reloadpro_get_under_voltage_threshold(sdi, &fvalue) == SR_OK) {
+			if (fvalue == .0)
+				*data = g_variant_new_boolean(FALSE);
+			else
+				*data = g_variant_new_boolean(TRUE);
+		}
 		break;
 	case SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE:
 		*data = g_variant_new_boolean(devc->uvc_active);
+		break;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		if (reloadpro_get_under_voltage_threshold(sdi, &fvalue) == SR_OK)
+			*data = g_variant_new_double(fvalue);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -264,6 +277,9 @@ static int config_set(uint32_t key, GVariant *data,
 		return reloadpro_set_on_off(sdi, g_variant_get_boolean(data));
 	case SR_CONF_CURRENT_LIMIT:
 		return reloadpro_set_current_limit(sdi, g_variant_get_double(data));
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		return reloadpro_set_under_voltage_threshold(sdi,
+			g_variant_get_double(data));
 	default:
 		return SR_ERR_NA;
 	}

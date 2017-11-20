@@ -177,6 +177,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Under-voltage condition", NULL},
 	{SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE, SR_T_BOOL, "uvc_active",
 		"Under-voltage condition active", NULL},
+	{SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD, SR_T_FLOAT, "uvc_threshold",
+		"Under-voltage condition threshold", NULL},
 	{SR_CONF_TRIGGER_LEVEL, SR_T_FLOAT, "triggerlevel",
 		"Trigger level", NULL},
 

@@ -80,7 +80,7 @@ SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 	/* Hardware expects current in mA, integer (0..6000). */
 	ma = (int)round(current * 1000);
 
-	sr_err("Setting current limit to %f A (%d mA).", current, ma);
+	sr_spew("Setting current limit to %f A (%d mA).", current, ma);
 
 	cmd = g_strdup_printf("set %d\n", ma);
 	if ((ret = send_cmd(sdi, cmd, (char *)&buf, sizeof(buf))) < 0) {
@@ -108,6 +108,35 @@ SR_PRIV int reloadpro_set_on_off(const struct sr_dev_inst *sdi, gboolean on)
 	return SR_OK;
 }
 
+SR_PRIV int reloadpro_set_under_voltage_threshold(const struct sr_dev_inst *sdi,
+					float voltage)
+{
+	int ret, mv;
+	char buf[100];
+	char *cmd;
+
+	if (voltage < 0 || voltage > 60) {
+		sr_err("The under voltage threshold must be 0-60 V (was %f V).",
+			voltage);
+		return SR_ERR_ARG;
+	}
+
+	/* Hardware expects voltage in mV, integer (0..60000). */
+	mv = (int)round(voltage * 1000);
+
+	sr_spew("Setting under voltage threshold to %f V (%d mV).", voltage, mv);
+
+	cmd = g_strdup_printf("uvlo %d\n", mv);
+	if ((ret = send_cmd(sdi, cmd, (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending under voltage threshold command: %d.", ret);
+		g_free(cmd);
+		return SR_ERR;
+	}
+	g_free(cmd);
+
+	return SR_OK;
+}
+
 SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 					float *current)
 {
@@ -125,6 +154,28 @@ SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 	if (!devc->acquisition_running) {
 		/* Hardware sends current in mA, integer (0..6000). */
 		*current = g_ascii_strtod(buf + 4, NULL) / 1000;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int reloadpro_get_under_voltage_threshold(const struct sr_dev_inst *sdi,
+					float *voltage)
+{
+	int ret;
+	char buf[100];
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	if ((ret = send_cmd(sdi, "uvlo\n", (char *)&buf, sizeof(buf))) < 0) {
+		sr_err("Error sending under voltage threshold query: %d.", ret);
+		return SR_ERR;
+	}
+
+	if (!devc->acquisition_running) {
+		/* Hardware sends voltage in mV, integer (0..60000). */
+		*voltage = g_ascii_strtod(buf + 5, NULL) / 1000;
 	}
 
 	return SR_OK;
@@ -224,6 +275,23 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 		g_strfreev(tokens);
 		send_config_update_key(sdi, SR_CONF_CURRENT_LIMIT,
 			g_variant_new_double(current));
+		return;
+	}
+
+	if (g_str_has_prefix((const char *)devc->buf, "uvlo ")) {
+		tokens = g_strsplit((const char *)devc->buf, " ", 2);
+		voltage = g_ascii_strtod(tokens[1], NULL) / 1000;
+		g_strfreev(tokens);
+		if (voltage == .0) {
+			send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
+				g_variant_new_boolean(FALSE));
+		} else {
+			send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
+				g_variant_new_boolean(TRUE));
+			send_config_update_key(sdi,
+				SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD,
+				g_variant_new_double(voltage));
+		}
 		return;
 	}
 
