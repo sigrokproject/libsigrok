@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include <string.h>
 #include "protocol.h"
 
@@ -77,7 +78,7 @@ SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 	}
 
 	/* Hardware expects current in mA, integer (0..6000). */
-	ma = (int)(current * 1000);
+	ma = (int)round(current * 1000);
 
 	sr_err("Setting current limit to %f A (%d mA).", current, ma);
 
