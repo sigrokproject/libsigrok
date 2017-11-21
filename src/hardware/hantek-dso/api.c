@@ -237,6 +237,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
 	devc->ch_enabled[0] = devc->ch_enabled[1] = FALSE;
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
