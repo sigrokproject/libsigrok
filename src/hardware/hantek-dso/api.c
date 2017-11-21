@@ -768,6 +768,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
 			devc->samp_buffered);
 		send_chunk(sdi, devc->framebuf, devc->samp_buffered);
+		g_free(devc->framebuf);
+		devc->framebuf = NULL;
 
 		/* Mark the end of this frame. */
 		packet.type = SR_DF_FRAME_END;
