@@ -192,9 +192,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 		}
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-
 		libusb_close(hdl);
+
+		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
 
 		if (!strcmp(product, "ChronoVu LA8"))
 			model = 0;
