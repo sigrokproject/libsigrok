@@ -109,7 +109,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (strncmp(manufacturer, "testo", 5))
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		/* Hardcode the 435 for now. */
 		if (strcmp(product, "testo 435/635/735"))

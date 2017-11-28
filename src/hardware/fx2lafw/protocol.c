@@ -174,7 +174,9 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			/*
 			 * Check device by its physical USB bus/port address.
 			 */
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;

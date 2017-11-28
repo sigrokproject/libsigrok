@@ -180,7 +180,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		    des.idProduct != H4032L_USB_PRODUCT)
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->driver = &hantek_4032l_driver_info;

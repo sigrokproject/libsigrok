@@ -196,7 +196,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_close(hdl);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		prof = NULL;
 		for (j = 0; j < zeroplus_models[j].vid; j++) {

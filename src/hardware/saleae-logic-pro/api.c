@@ -240,7 +240,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (des.idVendor != 0x21a9 || des.idProduct != 0x1006)
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;

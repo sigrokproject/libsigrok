@@ -188,7 +188,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		if (des.idVendor != LOGIC16_VID || des.idProduct != LOGIC16_PID)
 			continue;
@@ -266,7 +267,9 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 			/*
 			 * Check device by its physical USB bus/port address.
 			 */
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			if (strcmp(sdi->connection_id, connection_id))
 				/* This is not the one. */
 				continue;
