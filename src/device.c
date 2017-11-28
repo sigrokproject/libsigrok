@@ -753,7 +753,9 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 			if (b != usb->bus || a != usb->address)
 				continue;
 
-			usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+				continue;
+
 			((struct sr_dev_inst *)sdi)->connection_id = g_strdup(connection_id);
 			break;
 		}
