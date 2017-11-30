@@ -58,10 +58,11 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 };
 
@@ -129,6 +130,28 @@ static const uint64_t timebases[][2] = {
 	{ 400, 1000 },
 };
 
+static const uint64_t samplerates[] = {
+	SR_KHZ(20),
+	SR_KHZ(25),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(250),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(25),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(125),
+	/* fast mode not supported yet 
+	SR_MHZ(200),
+	SR_MHZ(250), */
+};
+
 static const uint64_t vdivs[][2] = {
 	/* millivolts */
 	{ 10, 1000 },
@@ -185,6 +208,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->timebase = DEFAULT_TIMEBASE;
+	devc->samplerate = DEFAULT_SAMPLERATE;
 	devc->ch_enabled[0] = TRUE;
 	devc->ch_enabled[1] = TRUE;
 	devc->voltage[0] = DEFAULT_VOLTAGE;
@@ -197,7 +221,7 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	devc->framesize = DEFAULT_FRAMESIZE;
 	devc->triggerslope = SLOPE_POSITIVE;
 	devc->triggersource = g_strdup(DEFAULT_TRIGGER_SOURCE);
-	devc->triggerposition = DEFAULT_HORIZ_TRIGGERPOS;
+	devc->capture_ratio = DEFAULT_CAPTURE_RATIO;
 	sdi->priv = devc;
 
 	return sdi;
@@ -213,6 +237,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
 	devc->ch_enabled[0] = devc->ch_enabled[1] = FALSE;
 	for (l = sdi->channels, p = 0; l; l = l->next, p++) {
 		ch = l->data;
@@ -430,6 +455,9 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new("(tt)", timebases[devc->timebase][0],
 					timebases[devc->timebase][1]);
 			break;
+		case SR_CONF_SAMPLERATE:
+			*data = g_variant_new_uint64(devc->samplerate);
+			break;
 		case SR_CONF_BUFFERSIZE:
 			*data = g_variant_new_uint64(devc->framesize);
 			break;
@@ -440,8 +468,8 @@ static int config_get(uint32_t key, GVariant **data,
 			s = (devc->triggerslope == SLOPE_POSITIVE) ? "r" : "f";
 			*data = g_variant_new_string(s);
 			break;
-		case SR_CONF_HORIZ_TRIGGERPOS:
-			*data = g_variant_new_double(devc->triggerposition);
+		case SR_CONF_CAPTURE_RATIO:
+			*data = g_variant_new_uint64(devc->capture_ratio);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -474,7 +502,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	double tmp_double;
+	int rat;
 	int ch_idx, idx;
 
 	devc = sdi->priv;
@@ -488,13 +516,13 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			devc->triggerslope = idx;
 			break;
-		case SR_CONF_HORIZ_TRIGGERPOS:
-			tmp_double = g_variant_get_double(data);
-			if (tmp_double < 0.0 || tmp_double > 1.0) {
-				sr_err("Trigger position should be between 0.0 and 1.0.");
+		case SR_CONF_CAPTURE_RATIO:
+			rat = g_variant_get_uint64(data);
+			if (rat < 0 || rat > 100) {
+				sr_err("Capture ratio must be in [0,100].");
 				return SR_ERR_ARG;
 			} else
-				devc->triggerposition = tmp_double;
+				devc->capture_ratio = rat;
 			break;
 		case SR_CONF_BUFFERSIZE:
 			if ((idx = std_u64_idx(data, devc->profile->buffersizes, NUM_BUFFER_SIZES)) < 0)
@@ -505,6 +533,14 @@ static int config_set(uint32_t key, GVariant *data,
 			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(timebases))) < 0)
 				return SR_ERR_ARG;
 			devc->timebase = idx;
+			break;
+		case SR_CONF_SAMPLERATE:
+			if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(samplerates))) < 0)
+				return SR_ERR_ARG;
+			devc->samplerate = samplerates[idx];
+			if (dso_set_trigger_samplerate(sdi) != SR_OK)
+				return SR_ERR;
+			sr_err("got new sample rate %d, idx %d", devc->samplerate, idx);
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
@@ -558,6 +594,9 @@ static int config_list(uint32_t key, GVariant **data,
 				return SR_ERR_ARG;
 			devc = sdi->priv;
 			*data = std_gvar_array_u64(devc->profile->buffersizes, NUM_BUFFER_SIZES);
+			break;
+		case SR_CONF_SAMPLERATE:
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
 			break;
 		case SR_CONF_TIMEBASE:
 			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(timebases));
@@ -729,6 +768,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		sr_dbg("End of frame, sending %d pre-trigger buffered samples.",
 			devc->samp_buffered);
 		send_chunk(sdi, devc->framebuf, devc->samp_buffered);
+		g_free(devc->framebuf);
+		devc->framebuf = NULL;
 
 		/* Mark the end of this frame. */
 		packet.type = SR_DF_FRAME_END;
@@ -819,6 +860,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* No data yet. */
 		break;
 	case CAPTURE_READY_8BIT:
+	case CAPTURE_READY2250:
 		/* Remember where in the captured frame the trigger is. */
 		devc->trigger_offset = trigger_offset;
 
