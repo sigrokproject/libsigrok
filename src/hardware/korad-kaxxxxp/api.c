@@ -54,6 +54,9 @@ static const struct korad_kaxxxxp_model models[] = {
 	/* Sometimes the KA3005P has an extra 0x01 after the ID. */
 	{KORAD_KA3005P_0X01, "Korad", "KA3005P",
 		"KORADKA3005PV2.0\x01", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	/* KORAD_KD3005P */
+	{KORAD_KD3005P, "Korad", "KD3005P",
+		"KORAD KD3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	ALL_ZERO
 };
 
