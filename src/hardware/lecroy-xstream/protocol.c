@@ -717,7 +717,8 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	 * number of frames, or continue reception by starting over at
 	 * the first enabled channel.
 	 */
-	if (++devc->num_frames == devc->frame_limit) {
+	devc->num_frames++;
+	if (devc->frame_limit && (devc->num_frames == devc->frame_limit)) {
 		sr_dev_acquisition_stop(sdi);
 	} else {
 		devc->current_channel = devc->enabled_channels;
