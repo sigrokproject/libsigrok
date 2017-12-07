@@ -4,6 +4,7 @@
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2015 Google, Inc.
  * (Written by Alexandru Gagniuc <mrnuke@google.com> for Google, Inc.)
+ * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -394,6 +395,8 @@ static const uint32_t hp_6632b_devopts_cg[] = {
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const struct channel_spec hp_6633a_ch[] = {
@@ -422,6 +425,8 @@ static const struct scpi_command hp_6630a_cmd[] = {
 };
 
 static const struct scpi_command hp_6632b_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REM" },
+	{ SCPI_CMD_LOCAL, "SYST:LOC" },
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
 	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP:STAT ON" },
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP:STAT OFF" },
@@ -431,6 +436,11 @@ static const struct scpi_command hp_6632b_cmd[] = {
 	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
 	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
 	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED, ":CURR:PROT:STAT?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":CURR:PROT:STAT 1" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":CURR:PROT:STAT 0" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":VOLT:PROT %.6f" },
 	ALL_ZERO
 };
 
@@ -682,7 +692,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6632B */
-	{ "HP", "6632B", 0,
+	{ "HP", "6632B", PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6632b_devopts),
 		ARRAY_AND_SIZE(hp_6632b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
