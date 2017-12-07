@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -608,6 +609,12 @@ static int config_list(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_CURRENT_LIMIT:
 			*data = std_gvar_min_max_step_array(ch_spec->current);
+			break;
+		case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
+			*data = std_gvar_min_max_step_array(ch_spec->ovp);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
+			*data = std_gvar_min_max_step_array(ch_spec->ocp);
 			break;
 		default:
 			return SR_ERR_NA;

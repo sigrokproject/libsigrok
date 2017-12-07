@@ -27,6 +27,8 @@
 
 #define CH_IDX(x) (1 << x)
 #define FREQ_DC_ONLY {0, 0, 0, 0, 0}
+#define NO_OVP_LIMITS {0, 0, 0, 0, 0}
+#define NO_OCP_LIMITS {0, 0, 0, 0, 0}
 
 /* Agilent/Keysight N5700A series */
 static const uint32_t agilent_n5700a_devopts[] = {
@@ -48,11 +50,11 @@ static const struct channel_group_spec agilent_n5700a_cg[] = {
 };
 
 static const struct channel_spec agilent_n5767a_ch[] = {
-	{ "1", { 0, 60, 0.0072, 3, 4 }, { 0, 25, 0.003, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY },
+	{ "1", { 0, 60, 0.0072, 3, 4 }, { 0, 25, 0.003, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec agilent_n5763a_ch[] = {
-	{ "1", { 0, 12.5, 0.0015, 3, 4 }, { 0, 120, 0.0144, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY },
+	{ "1", { 0, 12.5, 0.0015, 3, 4 }, { 0, 120, 0.0144, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 /*
@@ -99,7 +101,7 @@ static const uint32_t chroma_61604_devopts_cg[] = {
 };
 
 static const struct channel_spec chroma_61604_ch[] = {
-	{ "1", { 0, 300, 0.1, 1, 1 }, { 0, 16, 0.1, 2, 2 }, { 0, 2000, 0, 1, 1 }, { 1.0, 1000.0, 0.01 } },
+	{ "1", { 0, 300, 0.1, 1, 1 }, { 0, 16, 0.1, 2, 2 }, { 0, 2000, 0, 1, 1 }, { 1.0, 1000.0, 0.01 }, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec chroma_61604_cg[] = {
@@ -307,20 +309,20 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 };
 
 static const struct channel_spec rigol_dp821a_ch[] = {
-	{ "1", { 0, 60, 0.001, 3, 3 }, { 0, 1, 0.0001, 4, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
-	{ "2", { 0,  8, 0.001, 3, 3 }, { 0, 10, 0.001, 3, 3 }, { 0, 80, 0, 3, 3 }, FREQ_DC_ONLY },
+	{ "1", { 0, 60, 0.001, 3, 3 }, { 0, 1, 0.0001, 4, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0,  8, 0.001, 3, 3 }, { 0, 10, 0.001, 3, 3 }, { 0, 80, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec rigol_dp831_ch[] = {
-	{ "1", { 0,   8, 0.001, 3, 4 }, { 0, 5, 0.0003, 3, 4 }, { 0, 40, 0, 3, 4 }, FREQ_DC_ONLY },
-	{ "2", { 0,  30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
-	{ "3", { 0, -30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "1", { 0,   8, 0.001, 3, 4 }, { 0, 5, 0.0003, 3, 4 }, { 0, 40, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0,  30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, -30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec rigol_dp832_ch[] = {
-	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
-	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
-	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY },
+	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec rigol_dp820_cg[] = {
@@ -381,7 +383,7 @@ static const uint32_t hp_6630a_devopts_cg[] = {
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
@@ -395,32 +397,32 @@ static const uint32_t hp_6630b_devopts_cg[] = {
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const struct channel_spec hp_6633a_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_6631b_ch[] = {
-	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 10.237, 0.00263, 4, 5 }, { 0, 83.84103 }, FREQ_DC_ONLY },
+	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 10.237, 0.00263, 4, 5 }, { 0, 83.84103 }, FREQ_DC_ONLY, { 0, 12, 0.06 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_6632b_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_66332a_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_6633b_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.000526, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.000526, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_6634b_ch[] = {
-	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY },
+	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec hp_663xx_cg[] = {
@@ -625,9 +627,9 @@ static const uint32_t rs_hmc8043_devopts_cg[] = {
 };
 
 static const struct channel_spec rs_hmc8043_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec rs_hmc8043_cg[] = {
