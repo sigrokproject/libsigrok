@@ -385,11 +385,11 @@ static const uint32_t hp_6630a_devopts_cg[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
-static const uint32_t hp_6632b_devopts[] = {
+static const uint32_t hp_6630b_devopts[] = {
 	SR_CONF_CONTINUOUS,
 };
 
-static const uint32_t hp_6632b_devopts_cg[] = {
+static const uint32_t hp_6630b_devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -403,8 +403,24 @@ static const struct channel_spec hp_6633a_ch[] = {
 	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
 };
 
+static const struct channel_spec hp_6631b_ch[] = {
+	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 10.237, 0.00263, 4, 5 }, { 0, 83.84103 }, FREQ_DC_ONLY },
+};
+
 static const struct channel_spec hp_6632b_ch[] = {
 	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_spec hp_66332a_ch[] = {
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_spec hp_6633b_ch[] = {
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.000526, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_spec hp_6634b_ch[] = {
+	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY },
 };
 
 static const struct channel_group_spec hp_663xx_cg[] = {
@@ -424,7 +440,7 @@ static const struct scpi_command hp_6630a_cmd[] = {
 	ALL_ZERO
 };
 
-static const struct scpi_command hp_6632b_cmd[] = {
+static const struct scpi_command hp_6630b_cmd[] = {
 	{ SCPI_CMD_REMOTE, "SYST:REM" },
 	{ SCPI_CMD_LOCAL, "SYST:LOC" },
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
@@ -691,13 +707,53 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.probe_channels = NULL,
 	},
 
+	/* HP 6631B */
+	{ "HP", "6631B", PPS_OVP | PPS_OCP | PPS_OTP,
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
+		ARRAY_AND_SIZE(hp_6631b_ch),
+		ARRAY_AND_SIZE(hp_663xx_cg),
+		hp_6630b_cmd,
+		.probe_channels = NULL,
+	},
+
 	/* HP 6632B */
 	{ "HP", "6632B", PPS_OVP | PPS_OCP | PPS_OTP,
-		ARRAY_AND_SIZE(hp_6632b_devopts),
-		ARRAY_AND_SIZE(hp_6632b_devopts_cg),
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
 		ARRAY_AND_SIZE(hp_663xx_cg),
-		hp_6632b_cmd,
+		hp_6630b_cmd,
+		.probe_channels = NULL,
+	},
+
+	/* HP 66332A */
+	{ "HP", "66332A", PPS_OVP | PPS_OCP | PPS_OTP,
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
+		ARRAY_AND_SIZE(hp_66332a_ch),
+		ARRAY_AND_SIZE(hp_663xx_cg),
+		hp_6630b_cmd,
+		.probe_channels = NULL,
+	},
+
+	/* HP 6633B */
+	{ "HP", "6633B", PPS_OVP | PPS_OCP | PPS_OTP,
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
+		ARRAY_AND_SIZE(hp_6633b_ch),
+		ARRAY_AND_SIZE(hp_663xx_cg),
+		hp_6630b_cmd,
+		.probe_channels = NULL,
+	},
+
+	/* HP 6634B */
+	{ "HP", "6634B", PPS_OVP | PPS_OCP | PPS_OTP,
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
+		ARRAY_AND_SIZE(hp_6634b_ch),
+		ARRAY_AND_SIZE(hp_663xx_cg),
+		hp_6630b_cmd,
 		.probe_channels = NULL,
 	},
 
