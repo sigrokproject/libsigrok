@@ -44,7 +44,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_SET,
-	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_REGULATION | SR_CONF_GET | SR_CONF_LIST,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -55,6 +55,11 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_UNDER_VOLTAGE_CONDITION | SR_CONF_GET,
 	SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE | SR_CONF_GET,
 	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const char *regulation[] = {
+	/* CC mode only. */
+	"CC",
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -171,6 +176,9 @@ static int config_list(uint32_t key, GVariant **data,
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
+			break;
+		case SR_CONF_REGULATION:
+			*data = std_gvar_array_str(ARRAY_AND_SIZE(regulation));
 			break;
 		case SR_CONF_CURRENT_LIMIT:
 			*data = std_gvar_min_max_step(0.0, 6.0, 0.001);

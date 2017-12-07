@@ -767,6 +767,23 @@ SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n)
 				a, n, sizeof(uint64_t));
 }
 
+SR_PRIV GVariant *std_gvar_array_str(const char *a[], unsigned int n)
+{
+	GVariant *gvar;
+	GVariantBuilder *builder;
+	unsigned int i;
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE ("as"));
+
+	for (i = 0; i < n; i++)
+		g_variant_builder_add(builder, "s", a[i]);
+
+	gvar = g_variant_new("as", builder);
+	g_variant_builder_unref(builder);
+
+	return gvar;
+}
+
 SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n)
 {
 	unsigned int i;
