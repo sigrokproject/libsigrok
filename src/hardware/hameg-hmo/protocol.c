@@ -379,13 +379,29 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 	return SR_ERR;
 }
 
-static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
+static struct sr_channel *get_channel_by_index_and_type(GSList *channel_lhead,
+							int index, int type)
+{
+	while (channel_lhead) {
+		struct sr_channel *ch = channel_lhead->data;
+		if (ch->index == index && ch->type == type)
+			return ch;
+
+		channel_lhead = channel_lhead->next;
+	}
+
+	return 0;
+}
+
+static int analog_channel_state_get(struct sr_dev_inst *sdi,
 				    const struct scope_config *config,
 				    struct scope_state *state)
 {
 	unsigned int i, j;
 	char command[MAX_COMMAND_SIZE];
 	char *tmp_str;
+	struct sr_channel *ch;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
 	for (i = 0; i < config->analog_channels; i++) {
 		g_snprintf(command, sizeof(command),
@@ -395,6 +411,10 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_bool(scpi, command,
 				     &state->analog_channels[i].state) != SR_OK)
 			return SR_ERR;
+
+		ch = get_channel_by_index_and_type(sdi->channels, i, SR_CHANNEL_ANALOG);
+		if (ch)
+			ch->enabled = state->analog_channels[i].state;
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
@@ -446,12 +466,14 @@ static int analog_channel_state_get(struct sr_scpi_dev_inst *scpi,
 	return SR_OK;
 }
 
-static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
+static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     const struct scope_config *config,
 				     struct scope_state *state)
 {
 	unsigned int i;
 	char command[MAX_COMMAND_SIZE];
+	struct sr_channel *ch;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
 
 	for (i = 0; i < config->digital_channels; i++) {
 		g_snprintf(command, sizeof(command),
@@ -461,6 +483,10 @@ static int digital_channel_state_get(struct sr_scpi_dev_inst *scpi,
 		if (sr_scpi_get_bool(scpi, command,
 				     &state->digital_channels[i]) != SR_OK)
 			return SR_ERR;
+
+		ch = get_channel_by_index_and_type(sdi->channels, i, SR_CHANNEL_LOGIC);
+		if (ch)
+			ch->enabled = state->digital_channels[i];
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
@@ -552,10 +578,10 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 
 	sr_info("Fetching scope state");
 
-	if (analog_channel_state_get(sdi->conn, config, state) != SR_OK)
+	if (analog_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
-	if (digital_channel_state_get(sdi->conn, config, state) != SR_OK)
+	if (digital_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn,
