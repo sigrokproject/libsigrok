@@ -164,7 +164,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
+	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sdi;
 }
@@ -256,13 +256,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	devc = sdi->priv;
-	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_REMOTE);
+	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
 	devc->beeper_was_set = FALSE;
-	if (sr_scpi_cmd_resp(sdi, devc->device->commands, &beeper,
-			G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
+	if (sr_scpi_cmd_resp(sdi, devc->device->commands, 0, NULL,
+			&beeper, G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
 		if (g_variant_get_boolean(beeper)) {
 			devc->beeper_was_set = TRUE;
-			sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_DISABLE);
+			sr_scpi_cmd(sdi, devc->device->commands,
+				0, NULL, SCPI_CMD_BEEPER_DISABLE);
 		}
 		g_variant_unref(beeper);
 	}
@@ -282,8 +283,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 		return SR_ERR_BUG;
 
 	if (devc->beeper_was_set)
-		sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_BEEPER_ENABLE);
-	sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_LOCAL);
+		sr_scpi_cmd(sdi, devc->device->commands,
+			0, NULL, SCPI_CMD_BEEPER_ENABLE);
+	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sr_scpi_close(scpi);
 }
@@ -305,6 +307,8 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	const GVariantType *gvtype;
 	unsigned int i;
+	int channel_group_cmd;
+	char *channel_group_name;
 	int cmd, ret;
 	const char *s;
 
@@ -399,9 +403,16 @@ static int config_get(uint32_t key, GVariant **data,
 	if (!gvtype)
 		return SR_ERR_NA;
 
-	if (cg)
-		select_channel(sdi, cg->channels->data);
-	ret = sr_scpi_cmd_resp(sdi, devc->device->commands, data, gvtype, cmd);
+	channel_group_cmd = 0;
+	channel_group_name = NULL;
+	if (cg) {
+		channel_group_cmd = SCPI_CMD_SELECT_CHANNEL;
+		channel_group_name = g_strdup(cg->name);
+	}
+
+	ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
+		channel_group_cmd, channel_group_name, data, gvtype, cmd);
+	g_free(channel_group_name);
 
 	if (cmd == SCPI_CMD_GET_OUTPUT_REGULATION) {
 		/*
@@ -433,78 +444,100 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	double d;
+	int channel_group_cmd;
+	char *channel_group_name;
+	int ret;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	if (cg)
-		select_channel(sdi, cg->channels->data);
+	channel_group_cmd = 0;
+	channel_group_name = NULL;
+	if (cg) {
+		channel_group_cmd = SCPI_CMD_SELECT_CHANNEL;
+		channel_group_name = g_strdup(cg->name);
+	}
 
 	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_ENABLED:
 		if (g_variant_get_boolean(data))
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OUTPUT_ENABLE);
 		else
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OUTPUT_DISABLE);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		d = g_variant_get_double(data);
-		return sr_scpi_cmd(sdi, devc->device->commands,
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_VOLTAGE_TARGET, d);
 		break;
 	case SR_CONF_OUTPUT_FREQUENCY_TARGET:
 		d = g_variant_get_double(data);
-		return sr_scpi_cmd(sdi, devc->device->commands,
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_FREQUENCY_TARGET, d);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		d = g_variant_get_double(data);
-		return sr_scpi_cmd(sdi, devc->device->commands,
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_CURRENT_LIMIT, d);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE);
 		else
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		return sr_scpi_cmd(sdi, devc->device->commands,
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		if (g_variant_get_boolean(data))
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE);
 		else
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		d = g_variant_get_double(data);
-		return sr_scpi_cmd(sdi, devc->device->commands,
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, d);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if (g_variant_get_boolean(data))
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE);
 		else
-			return sr_scpi_cmd(sdi, devc->device->commands,
+			ret = sr_scpi_cmd(sdi, devc->device->commands,
+					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
 		break;
 	default:
-		return SR_ERR_NA;
+		ret = SR_ERR_NA;
 	}
 
-	return SR_OK;
+	g_free(channel_group_name);
+
+	return ret;
 }
 
 static int config_list(uint32_t key, GVariant **data,
@@ -588,23 +621,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-	struct sr_channel *ch;
-	struct pps_channel *pch;
 	int ret;
 
 	devc = sdi->priv;
 	scpi = sdi->conn;
 
+	/* Prime the pipe with the first channel. */
+	devc->cur_acquisition_channel = sr_next_enabled_channel(sdi, NULL);
+
 	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)
 		return ret;
 	std_session_send_df_header(sdi);
-
-	/* Prime the pipe with the first channel's fetch. */
-	ch = sr_next_enabled_channel(sdi, NULL);
-	pch = ch->priv;
-	if ((ret = select_channel(sdi, ch)) < 0)
-		return ret;
 
 	return SR_OK;
 }

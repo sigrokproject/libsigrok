@@ -29,7 +29,7 @@
 #define LOG_PREFIX "scpi-pps"
 
 enum pps_scpi_cmds {
-	SCPI_CMD_REMOTE,
+	SCPI_CMD_REMOTE = 1,
 	SCPI_CMD_LOCAL,
 	SCPI_CMD_BEEPER,
 	SCPI_CMD_BEEPER_ENABLE,
@@ -143,7 +143,7 @@ struct dev_context {
 	struct channel_spec *channels;
 	struct channel_group_spec *channel_groups;
 
-	struct sr_channel *cur_channel;
+	struct sr_channel *cur_acquisition_channel;
 };
 
 SR_PRIV extern unsigned int num_pps_profiles;

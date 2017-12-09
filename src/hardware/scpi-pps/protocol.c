@@ -24,36 +24,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV int select_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch)
-{
-	struct dev_context *devc;
-	struct pps_channel *cur_pch, *new_pch;
-	int ret;
-
-	if (g_slist_length(sdi->channels) == 1)
-		return SR_OK;
-
-	devc = sdi->priv;
-	if (ch == devc->cur_channel)
-		return SR_OK;
-
-	new_pch = ch->priv;
-	if (devc->cur_channel) {
-		cur_pch = devc->cur_channel->priv;
-		if (cur_pch->hw_output_idx == new_pch->hw_output_idx) {
-			/* Same underlying output channel. */
-			devc->cur_channel = ch;
-			return SR_OK;
-		}
-	}
-
-	if ((ret = sr_scpi_cmd(sdi, devc->device->commands, SCPI_CMD_SELECT_CHANNEL,
-			new_pch->hwname)) >= 0)
-		devc->cur_channel = ch;
-
-	return ret;
-}
-
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
@@ -63,7 +33,8 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	const struct sr_dev_inst *sdi;
-	struct sr_channel *next_channel;
+	int channel_group_cmd;
+	char *channel_group_name;
 	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
 	int ret;
@@ -81,7 +52,14 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	pch = devc->cur_channel->priv;
+	channel_group_cmd = 0;
+	channel_group_name = NULL;
+	if (g_slist_length(sdi->channel_groups) > 1) {
+		channel_group_cmd = SCPI_CMD_SELECT_CHANNEL;
+		channel_group_name = g_strdup(devc->cur_acquisition_channel->name);
+	}
+
+	pch = devc->cur_acquisition_channel->priv;
 	if (pch->mq == SR_MQ_VOLTAGE) {
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
@@ -98,9 +76,10 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		return SR_ERR;
 	}
 
-	//sr_scpi_cmd(sdi, devc->device->commands, cmd, pch->hwname); <- api.c 1x called
-	//sr_scpi_cmd(sdi, devc->device->commands, cmd); <- protocol.c xx called
-	ret = sr_scpi_cmd_resp(sdi, devc->device->commands, &gvdata, gvtype, cmd);
+	ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
+		channel_group_cmd, channel_group_name, &gvdata, gvtype, cmd);
+	g_free(channel_group_name);
+
 	if (ret != SR_OK)
 		return ret;
 
@@ -109,7 +88,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	packet.payload = &analog;
 	/* Note: digits/spec_digits will be overridden later. */
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-	analog.meaning->channels = g_slist_append(NULL, devc->cur_channel);
+	analog.meaning->channels = g_slist_append(NULL, devc->cur_acquisition_channel);
 	analog.num_samples = 1;
 	analog.meaning->mq = pch->mq;
 	if (pch->mq == SR_MQ_VOLTAGE) {
@@ -131,12 +110,10 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	sr_session_send(sdi, &packet);
 	g_slist_free(analog.meaning->channels);
 
+	/* Next channel. */
 	if (g_slist_length(sdi->channels) > 1) {
-		next_channel = sr_next_enabled_channel(sdi, devc->cur_channel);
-		if (select_channel(sdi, next_channel) != SR_OK) {
-			sr_err("Failed to select channel %s", next_channel->name);
-			return FALSE;
-		}
+		devc->cur_acquisition_channel =
+			sr_next_enabled_channel(sdi, devc->cur_acquisition_channel);
 	}
 
 	return TRUE;

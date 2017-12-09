@@ -176,10 +176,16 @@ static int scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
-static int scpi_send(struct sr_scpi_dev_inst *scpi, const char *format,
-					va_list args)
+static int scpi_send(struct sr_scpi_dev_inst *scpi, const char *format, ...)
 {
-	return scpi_send_variadic(scpi, format, args);
+	va_list args;
+	int ret;
+
+	va_start(args, format);
+	ret = scpi_send_variadic(scpi, format, args);
+	va_end(args);
+
+	return ret;
 }
 
 /**
@@ -266,11 +272,10 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 	GString *response;
 	int space;
 	gint64 timeout;
-	va_list empty_va_list;
 
 	/* Optionally send caller provided command. */
 	if (command) {
-		if (scpi_send(scpi, command, empty_va_list) != SR_OK)
+		if (scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 	}
 
@@ -943,12 +948,11 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	long llen;
 	long datalen;
 	gint64 timeout;
-	va_list empty_va_list;
 
 	g_mutex_lock(&scpi->scpi_mutex);
 
 	if (command)
-		if (scpi_send(scpi, command, empty_va_list) != SR_OK) {
+		if (scpi_send(scpi, command) != SR_OK) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			return SR_ERR;
 		}
@@ -1146,7 +1150,8 @@ SR_PRIV const char *sr_vendor_alias(const char *raw_vendor)
 	return raw_vendor;
 }
 
-SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable, int command)
+SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable,
+		int command)
 {
 	unsigned int i;
 	const char *cmd;
@@ -1165,33 +1170,54 @@ SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable, int com
 	return cmd;
 }
 
-SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi, const struct scpi_command *cmdtable,
+SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
+		const struct scpi_command *cmdtable,
+		int channel_command, const char *channel_name,
 		int command, ...)
 {
 	struct sr_scpi_dev_inst *scpi;
 	va_list args;
 	int ret;
+	const char *channel_cmd;
 	const char *cmd;
+
+	scpi = sdi->conn;
 
 	if (!(cmd = sr_scpi_cmd_get(cmdtable, command))) {
 		/* Device does not implement this command, that's OK. */
 		return SR_OK;
 	}
 
-	scpi = sdi->conn;
+	g_mutex_lock(&scpi->scpi_mutex);
+
+	/* Select channel. */
+	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
+	if (channel_cmd && channel_name &&
+			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+		sr_spew("sr_scpi_cmd(): new channel = %s", channel_name);
+		scpi->actual_channel_name = channel_name;
+		ret = scpi_send(scpi, channel_cmd, channel_name);
+		if (ret != SR_OK)
+			return ret;
+	}
+
 	va_start(args, command);
-	ret = sr_scpi_send_variadic(scpi, cmd, args);
+	ret = scpi_send_variadic(scpi, cmd, args);
 	va_end(args);
+
+	g_mutex_unlock(&scpi->scpi_mutex);
 
 	return ret;
 }
 
 SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 		const struct scpi_command *cmdtable,
+		int channel_command, const char *channel_name,
 		GVariant **gvar, const GVariantType *gvtype, int command, ...)
 {
 	struct sr_scpi_dev_inst *scpi;
 	va_list args;
+	const char *channel_cmd;
 	const char *cmd;
 	GString *response;
 	char *s;
@@ -1207,6 +1233,17 @@ SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 	}
 
 	g_mutex_lock(&scpi->scpi_mutex);
+
+	/* Select channel. */
+	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
+	if (channel_cmd && channel_name &&
+			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+		sr_spew("sr_scpi_cmd_get(): new channel = %s", channel_name);
+		scpi->actual_channel_name = channel_name;
+		ret = scpi_send(scpi, channel_cmd, channel_name);
+		if (ret != SR_OK)
+			return ret;
+	}
 
 	va_start(args, command);
 	ret = scpi_send_variadic(scpi, cmd, args);

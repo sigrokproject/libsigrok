@@ -135,10 +135,18 @@ SR_API int sr_dev_channel_enable(struct sr_channel *channel, gboolean state)
 	return SR_OK;
 }
 
-/* Returns the next enabled channel, wrapping around if necessary. */
-/** @private */
+/**
+ * Returns the next enabled channel, wrapping around if necessary.
+ *
+ * @param[in] sdi The device instance the channel is connected to.
+ *                Must not be NULL.
+ * @param[in] cur_channel The current channel.
+ *
+ * @return A pointer to the next enabled channel of this device.
+ *
+ * @private
+ */
 SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
-
 		struct sr_channel *cur_channel)
 {
 	struct sr_channel *next_channel;
