@@ -221,7 +221,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 		return SR_OK;
 
 	if (ch->type == SR_CHANNEL_LOGIC) {
-		if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+		if (rigol_ds_config_set(sdi, ":WAV:SOUR LA") != SR_OK)
 			return SR_ERR;
 	} else {
 		if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
@@ -440,7 +440,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V3:
 		if (ch->type == SR_CHANNEL_LOGIC) {
-			if (rigol_ds_config_set(sdi->conn, ":WAV:SOUR LA") != SR_OK)
+			if (rigol_ds_config_set(sdi, ":WAV:SOUR LA") != SR_OK)
 				return SR_ERR;
 		} else {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
