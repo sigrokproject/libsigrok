@@ -30,23 +30,35 @@
 #define RELOADPRO_BUFSIZE 100
 
 struct dev_context {
-	gboolean acquisition_running;
 	struct sr_sw_limits limits;
+
 	char buf[RELOADPRO_BUFSIZE];
 	int buflen;
+
+	float current_limit;
+	float voltage;
+	float current;
 	gboolean otp_active;
 	gboolean uvc_active;
+	float uvc_threshold;
+
+	gboolean acquisition_running;
+	GMutex acquisition_mutex;
+
+	GCond current_limit_cond;
+	GCond voltage_cond;
+	GCond uvc_threshold_cond;
 };
 
 SR_PRIV int reloadpro_set_current_limit(const struct sr_dev_inst *sdi,
 		float current);
 SR_PRIV int reloadpro_set_on_off(const struct sr_dev_inst *sdi, gboolean on);
 SR_PRIV int reloadpro_set_under_voltage_threshold(const struct sr_dev_inst *sdi,
-		float voltage);
+		float uvc_threshold);
 SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
-		float *current);
+		float *current_limit);
 SR_PRIV int reloadpro_get_under_voltage_threshold(const struct sr_dev_inst *sdi,
-		float *voltage);
+		float *uvc_threshold);
 SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 		float *voltage, float *current);
 SR_PRIV int reloadpro_receive_data(int fd, int revents, void *cb_data);

@@ -325,14 +325,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-			  reloadpro_receive_data, (void *)sdi);
-
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
 	memset(devc->buf, 0, RELOADPRO_BUFSIZE);
 	devc->buflen = 0;
+
+	g_mutex_init(&devc->acquisition_mutex);
+
+	serial_source_add(sdi->session, serial, G_IO_IN, 100,
+			  reloadpro_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
@@ -340,11 +342,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int ret;
 
 	devc = sdi->priv;
 	devc->acquisition_running = FALSE;
 
-	return std_serial_dev_acquisition_stop(sdi);
+	ret = std_serial_dev_acquisition_stop(sdi);
+	g_mutex_clear(&devc->acquisition_mutex);
+
+	return ret;
+
 }
 
 static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {
