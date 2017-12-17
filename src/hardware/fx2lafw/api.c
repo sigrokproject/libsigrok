@@ -25,15 +25,22 @@
 static const struct fx2lafw_profile supported_fx2[] = {
 	/*
 	 * CWAV USBee AX
-	 * EE Electronics ESLA201A
-	 * ARMFLY AX-Pro
+	 * ARMFLY AX-Pro (clone of the CWAV USBee AX)
+	 * ARMFLY Mini-Logic (clone of the CWAV USBee AX)
+	 * EE Electronics ESLA201A (clone of the CWAV USBee AX)
+	 * HT USBee-AxPro (clone of the CWAV USBee AX)
+	 * MCU123 USBee AX Pro clone (clone of the CWAV USBee AX)
+	 * Noname LHT00SU1 (clone of the CWAV USBee AX)
+	 * XZL_Studio AX (clone of the CWAV USBee AX)
 	 */
 	{ 0x08a9, 0x0014, "CWAV", "USBee AX", NULL,
 		"fx2lafw-cwav-usbeeax.fw",
 		DEV_CAPS_AX_ANALOG, NULL, NULL},
+
 	/*
 	 * CWAV USBee DX
-	 * XZL-Studio DX
+	 * HT USBee-DxPro (clone of the CWAV USBee DX), not yet supported!
+	 * XZL-Studio DX (clone of the CWAV USBee DX)
 	 */
 	{ 0x08a9, 0x0015, "CWAV", "USBee DX", NULL,
 		"fx2lafw-cwav-usbeedx.fw",
@@ -55,9 +62,12 @@ static const struct fx2lafw_profile supported_fx2[] = {
 
 	/*
 	 * Saleae Logic
-	 * EE Electronics ESLA100
-	 * Robomotic MiniLogic
-	 * Robomotic BugLogic 3
+	 * EE Electronics ESLA100 (clone of the Saleae Logic)
+	 * Hantek 6022BL in LA mode (clone of the Saleae Logic)
+	 * Instrustar ISDS205X in LA mode (clone of the Saleae Logic)
+	 * Robomotic MiniLogic (clone of the Saleae Logic)
+	 * Robomotic BugLogic 3 (clone of the Saleae Logic)
+	 * MCU123 Saleae Logic clone (clone of the Saleae Logic)
 	 */
 	{ 0x0925, 0x3881, "Saleae", "Logic", NULL,
 		"fx2lafw-saleae-logic.fw",
@@ -67,6 +77,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 * Default Cypress FX2 without EEPROM, e.g.:
 	 * Lcsoft Mini Board
 	 * Braintechnology USB Interface V2.x
+	 * fx2grok-tiny
 	 */
 	{ 0x04B4, 0x8613, "Cypress", "FX2", NULL,
 		"fx2lafw-cypress-fx2.fw",
@@ -81,6 +92,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 
 	/*
 	 * sigrok FX2 based 8-channel logic analyzer
+	 * fx2grok-flat (before and after renumeration)
 	 */
 	{ 0x1d50, 0x608c, "sigrok", "FX2 LA (8ch)", NULL,
 		"fx2lafw-sigrok-fx2-8ch.fw",
