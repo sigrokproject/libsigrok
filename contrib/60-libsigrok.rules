@@ -17,14 +17,20 @@
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ##
 
+#
 # These rules do not grant any permission by itself, but flag devices
 # supported by libsigrok.
 # The access policy is stored in the 61-libsigrok-plugdev.rules and
 # 61-libsigrok-uaccess.rules.
+#
+# Note: Any syntax changes here will need to be tested against the
+# 'update-device-filter' Makefile target in the sigrok-androidutils
+# repo, since that parses this file.
+#
 
-##
-## Please keep this list sorted alphabetically by vendor/device name.
-##
+#
+# Please keep this list sorted alphabetically by vendor/device name.
+#
 
 ACTION!="add|change", GOTO="libsigrok_rules_end"
 SUBSYSTEM!="usb|usbmisc|usb_device", GOTO="libsigrok_rules_end"
