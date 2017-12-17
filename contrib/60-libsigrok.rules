@@ -58,25 +58,33 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8867", ENV{ID_SIGROK}="1"
 # ARMFLY AX-Pro (clone of the CWAV USBee AX)
 # ARMFLY Mini-Logic (clone of the CWAV USBee AX)
 # EE Electronics ESLA201A (clone of the CWAV USBee AX)
+# HT USBee-AxPro (clone of the CWAV USBee AX)
 # MCU123 USBee AX Pro clone (clone of the CWAV USBee AX)
+# Noname LHT00SU1 (clone of the CWAV USBee AX)
 # XZL_Studio AX (clone of the CWAV USBee AX)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0014", ENV{ID_SIGROK}="1"
 
 # CWAV USBee DX
+# HT USBee-DxPro (clone of the CWAV USBee DX), not yet supported!
 # XZL_Studio DX (clone of the CWAV USBee DX)
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0015", ENV{ID_SIGROK}="1"
 
 # CWAV USBee SX
 ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0009", ENV{ID_SIGROK}="1"
 
+# CWAV USBee ZX
+ATTRS{idVendor}=="08a9", ATTRS{idProduct}=="0005", ENV{ID_SIGROK}="1"
+
 # Cypress FX2 eval boards without EEPROM:
 # Lcsoft Mini Board
 # Braintechnology USB Interface V2.x
+# fx2grok-tiny
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", ENV{ID_SIGROK}="1"
 
 # Dangerous Prototypes Buspirate (v3)
 # ChronoVu LA8 (old VID/PID)
 # ChronoVu LA16 (old VID/PID)
+# ftdi-la
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ENV{ID_SIGROK}="1"
 
 # Dangerous Prototypes Buspirate (v4)
@@ -160,6 +168,7 @@ ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", ENV{ID_SIGROK}="1"
 
 # MiniLA Mockup
+# ftdi-la
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ENV{ID_SIGROK}="1"
 
 # MIC 98581
@@ -191,6 +200,8 @@ ATTRS{idVendor}=="8102", ATTRS{idProduct}=="8102", ENV{ID_SIGROK}="1"
 
 # Saleae Logic
 # EE Electronics ESLA100 (clone of the Saleae Logic)
+# Hantek 6022BL in LA mode (clone of the Saleae Logic)
+# Instrustar ISDS205X in LA mode (clone of the Saleae Logic)
 # Robomotic MiniLogic (clone of the Saleae Logic)
 # Robomotic BugLogic 3 (clone of the Saleae Logic)
 # MCU123 Saleae Logic clone (clone of the Saleae Logic)
@@ -199,7 +210,11 @@ ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", ENV{ID_SIGROK}="1"
 # Saleae Logic16
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", ENV{ID_SIGROK}="1"
 
+# Saleae Logic Pro 16
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
+
 # sigrok FX2 LA (8ch)
+# fx2grok-flat (before and after renumeration)
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608c", ENV{ID_SIGROK}="1"
 
 # sigrok FX2 LA (16ch)
@@ -240,6 +255,8 @@ ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
 # 0c12:700d: LAP-C(322000)
 # 0c12:700e: LAP-C(16032)
 # 0c12:7016: LAP-C(162000)
+# 0c12:7025: LAP-C(16128+)
+# 0c12:7100: AKIP-9101
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", ENV{ID_SIGROK}="1"
@@ -248,5 +265,7 @@ ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700c", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700d", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700e", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7016", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7025", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7100", ENV{ID_SIGROK}="1"
 
 LABEL="libsigrok_rules_end"
