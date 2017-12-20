@@ -792,7 +792,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 
-		if (devc->limit_frames && ++devc->num_frames == devc->limit_frames) {
+		if (devc->limit_frames && ++devc->num_frames >= devc->limit_frames) {
 			/* Terminate session */
 			devc->dev_state = STOPPING;
 		} else {
@@ -947,6 +947,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;
+	devc->num_frames = 0;
 
 	return SR_OK;
 }
