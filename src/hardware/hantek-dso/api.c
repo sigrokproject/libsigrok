@@ -64,6 +64,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_BUFFERSIZE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -441,6 +442,9 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_TRIGGER_LEVEL:
+			*data = g_variant_new_double(devc->voffset_trigger);
+			break;
 		case SR_CONF_CONN:
 			if (!sdi->conn)
 				return SR_ERR_ARG;
@@ -504,12 +508,25 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	int rat;
 	int ch_idx, idx;
+	float flt;
 
 	devc = sdi->priv;
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_LIMIT_FRAMES:
 			devc->limit_frames = g_variant_get_uint64(data);
+			break;
+		case SR_CONF_TRIGGER_LEVEL:
+			flt = g_variant_get_double(data);
+			if (flt < 0.0 || flt > 1.0) {
+				sr_err("Trigger level must be in [0.0,1.0].");
+				return SR_ERR_ARG;
+			}
+
+			devc->voffset_trigger = flt;
+			if (dso_set_voffsets(sdi) != SR_OK) {
+					return SR_ERR;
+			}
 			break;
 		case SR_CONF_TRIGGER_SLOPE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)

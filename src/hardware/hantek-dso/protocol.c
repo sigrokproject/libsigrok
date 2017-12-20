@@ -700,7 +700,7 @@ static int dso_set_relays(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int dso_set_voffsets(const struct sr_dev_inst *sdi)
+int dso_set_voffsets(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;

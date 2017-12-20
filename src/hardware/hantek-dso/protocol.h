@@ -223,5 +223,6 @@ SR_PRIV int dso_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int dso_get_channeldata(const struct sr_dev_inst *sdi,
 		libusb_transfer_cb_fn cb);
 SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi);
+SR_PRIV int dso_set_voffsets(const struct sr_dev_inst *sdi);
 
 #endif
