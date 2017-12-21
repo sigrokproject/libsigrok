@@ -623,7 +623,7 @@ static struct sr_option options[] = {
 	{"scale", "scale", "Scale gnuplot graphs", NULL, NULL},
 	{"value", "Value separator", "Character to print between values", NULL, NULL},
 	{"record", "Record separator", "String to print between records", NULL, NULL},
-	{"frame", "Frame seperator", "String to print between frames", NULL, NULL},
+	{"frame", "Frame separator", "String to print between frames", NULL, NULL},
 	{"comment", "Comment start string", "String used at start of comment lines", NULL, NULL},
 	{"header", "Output header", "Output header comment with capture metdata", NULL, NULL},
 	{"label", "Label values", "Type of column labels", NULL, NULL},
