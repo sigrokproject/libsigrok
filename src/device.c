@@ -610,8 +610,6 @@ SR_API int sr_dev_open(struct sr_dev_inst *sdi)
  */
 SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 {
-	int ret;
-
 	if (!sdi || !sdi->driver || !sdi->driver->dev_close)
 		return SR_ERR_ARG;
 
@@ -625,9 +623,7 @@ SR_API int sr_dev_close(struct sr_dev_inst *sdi)
 
 	sr_dbg("%s: Closing device instance.", sdi->driver->name);
 
-	ret = sdi->driver->dev_close(sdi);
-
-	return ret;
+	return sdi->driver->dev_close(sdi);
 }
 
 /**
