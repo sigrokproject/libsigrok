@@ -301,7 +301,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		sr_warn("Unable to shut down device.");
 
-	libusb_release_interface(usb->devhdl, USB_INTERFACE);
+	if (usb->devhdl)
+		libusb_release_interface(usb->devhdl, USB_INTERFACE);
 
 	sr_usb_close(usb);
 
