@@ -42,6 +42,7 @@ struct zp_model {
  */
 static const struct zp_model zeroplus_models[] = {
 	{0x0c12, 0x7002, "LAP-16128U",    16, 128,  200},
+	{0x0c12, 0x7007, "LAP-16032U",    16, 32,   200},
 	{0x0c12, 0x7009, "LAP-C(16064)",  16, 64,   100},
 	{0x0c12, 0x700a, "LAP-C(16128)",  16, 128,  200},
 	{0x0c12, 0x700b, "LAP-C(32128)",  32, 128,  200},

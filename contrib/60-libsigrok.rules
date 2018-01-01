@@ -264,6 +264,7 @@ ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
 # 0c12:7025: LAP-C(16128+)
 # 0c12:7100: AKIP-9101
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7002", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7007", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="7009", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700a", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0c12", ATTRS{idProduct}=="700b", ENV{ID_SIGROK}="1"
