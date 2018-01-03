@@ -360,6 +360,14 @@ SR_PRIV int lecroy_xstream_request_data(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
+
+	/*
+	 * We may be left with an invalid current_channel if acquisition was
+	 * already stopped but we are processing the last pending events.
+	 */
+	if (!devc->current_channel)
+		return SR_ERR_NA;
+
 	ch = devc->current_channel->data;
 
 	if (ch->type != SR_CHANNEL_ANALOG)
