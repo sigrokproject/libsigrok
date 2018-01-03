@@ -722,6 +722,11 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 		sr_dev_acquisition_stop(sdi);
 	} else {
 		devc->current_channel = devc->enabled_channels;
+
+		/* Wait for trigger, then begin fetching data. */
+		g_snprintf(command, sizeof(command), "ARM;WAIT;*OPC");
+		sr_scpi_send(sdi->conn, command);
+
 		lecroy_xstream_request_data(sdi);
 	}
 
