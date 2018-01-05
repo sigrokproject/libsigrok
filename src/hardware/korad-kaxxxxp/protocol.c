@@ -333,6 +333,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	uint64_t elapsed_us;
+	GSList *l;
 
 	(void)fd;
 
@@ -354,9 +355,11 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		/* Send the value forward. */
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
-		analog.meaning->channels = sdi->channels;
 		analog.num_samples = 1;
+		l = g_slist_copy(sdi->channels);
 		if (devc->target == KAXXXXP_CURRENT) {
+			l = g_slist_remove_link(l, g_slist_nth(l, 0));
+			analog.meaning->channels = l;
 			analog.meaning->mq = SR_MQ_CURRENT;
 			analog.meaning->unit = SR_UNIT_AMPERE;
 			analog.meaning->mqflags = 0;
@@ -365,7 +368,9 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			analog.data = &devc->current;
 			sr_session_send(sdi, &packet);
 		}
-		if (devc->target == KAXXXXP_VOLTAGE) {
+		else if (devc->target == KAXXXXP_VOLTAGE) {
+			l = g_slist_remove_link(l, g_slist_nth(l, 1));
+			analog.meaning->channels = l;
 			analog.meaning->mq = SR_MQ_VOLTAGE;
 			analog.meaning->unit = SR_UNIT_VOLT;
 			analog.meaning->mqflags = SR_MQFLAG_DC;

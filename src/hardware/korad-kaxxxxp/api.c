@@ -134,7 +134,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
-	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
+	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	sr_sw_limits_init(&devc->limits);
