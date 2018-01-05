@@ -149,6 +149,9 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="6022", ENV{ID_SIGROK}="1"
 # Hantek 6022BL, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BL
 ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="602a", ENV{ID_SIGROK}="1"
 
+# Hantek 4032L
+ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="4032", ENV{ID_SIGROK}="1"
+
 # IKALOGIC Scanalogic-2
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", ENV{ID_SIGROK}="1"
 
