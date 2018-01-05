@@ -155,7 +155,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	ch = sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
 	cg->channels = g_slist_append(cg->channels, ch);
 
-	ch = sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "I");
+	ch = sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
 	cg->channels = g_slist_append(cg->channels, ch);
 
 	devc = g_malloc0(sizeof(struct dev_context));
