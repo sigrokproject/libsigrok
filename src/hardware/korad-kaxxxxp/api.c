@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
+ * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -139,8 +140,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	sr_sw_limits_init(&devc->limits);
+	g_mutex_init(&devc->rw_mutex);
 	devc->model = &models[model_id];
-	devc->reply[5] = 0;
 	devc->req_sent_at = 0;
 	sdi->priv = devc;
 
@@ -177,28 +178,36 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_VOLTAGE:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE, devc);
 		*data = g_variant_new_double(devc->voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc);
 		*data = g_variant_new_double(devc->voltage_max);
 		break;
 	case SR_CONF_CURRENT:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT, devc);
 		*data = g_variant_new_double(devc->current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc);
 		*data = g_variant_new_double(devc->current_max);
 		break;
 	case SR_CONF_ENABLED:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OUTPUT, devc);
 		*data = g_variant_new_boolean(devc->output_enabled);
 		break;
 	case SR_CONF_REGULATION:
 		/* Dual channel not supported. */
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_STATUS, devc);
 		*data = g_variant_new_string((devc->cc_mode[0]) ? "CC" : "CV");
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OCP, devc);
 		*data = g_variant_new_boolean(devc->ocp_enabled);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OVP, devc);
 		*data = g_variant_new_boolean(devc->ovp_enabled);
 		break;
 	default:
@@ -228,8 +237,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
 			return SR_ERR_ARG;
 		devc->voltage_max = dval;
-		devc->target = KAXXXXP_VOLTAGE_MAX;
-		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_CURRENT_LIMIT:
@@ -237,30 +245,26 @@ static int config_set(uint32_t key, GVariant *data,
 		if (dval < devc->model->current[0] || dval > devc->model->current[1])
 			return SR_ERR_ARG;
 		devc->current_max = dval;
-		devc->target = KAXXXXP_CURRENT_MAX;
-		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
 		/* Set always so it is possible turn off with sigrok-cli. */
 		devc->output_enabled = bval;
-		devc->target = KAXXXXP_OUTPUT;
-		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OUTPUT, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->ocp_enabled = bval;
-		devc->target = KAXXXXP_OCP;
-		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OCP, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
 		devc->ovp_enabled = bval;
-		devc->target = KAXXXXP_OVP;
-		if (korad_kaxxxxp_set_value(sdi->conn, devc) < 0)
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OVP, devc) < 0)
 			return SR_ERR;
 		break;
 	default:
@@ -298,6 +302,17 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = (sdi) ? sdi->priv : NULL;
+	if (devc)
+		g_mutex_clear(&devc->rw_mutex);
+
+	return std_serial_dev_close(sdi);
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -308,7 +323,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	devc->reply_pending = FALSE;
 	devc->req_sent_at = 0;
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN,
@@ -331,7 +345,7 @@ static struct sr_dev_driver korad_kaxxxxp_driver_info = {
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = std_serial_dev_close,
+	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,

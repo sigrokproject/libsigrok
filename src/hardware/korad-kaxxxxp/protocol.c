@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
+ * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -78,21 +79,23 @@ static void give_device_time_to_process(struct dev_context *devc)
 }
 
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
-				struct dev_context *devc)
+				int target, struct dev_context *devc)
 {
 	char msg[21];
 	const char *cmd;
 	float value;
 	int ret;
 
+	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
 
 	msg[20] = 0;
-	switch (devc->target) {
+	switch (target) {
 	case KAXXXXP_CURRENT:
 	case KAXXXXP_VOLTAGE:
 	case KAXXXXP_STATUS:
-		sr_err("Can't set measurable parameter.");
+		sr_err("Can't set measurable parameter %d.", target);
+		g_mutex_unlock(&devc->rw_mutex);
 		return SR_ERR;
 	case KAXXXXP_CURRENT_MAX:
 		cmd = "ISET1:%05.3f";
@@ -123,6 +126,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		if (devc->program < 1 || devc->program > 5) {
 			sr_err("Only programs 1-5 supported and %d isn't "
 			       "between them.", devc->program);
+			g_mutex_unlock(&devc->rw_mutex);
 			return SR_ERR;
 		}
 		value = devc->program;
@@ -132,12 +136,14 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		if (devc->program < 1 || devc->program > 5) {
 			sr_err("Only programs 1-5 supported and %d isn't "
 			       "between them.", devc->program);
+			g_mutex_unlock(&devc->rw_mutex);
 			return SR_ERR;
 		}
 		value = devc->program;
 		break;
 	default:
-		sr_err("Don't know how to set %d.", devc->target);
+		sr_err("Don't know how to set %d.", target);
+		g_mutex_unlock(&devc->rw_mutex);
 		return SR_ERR;
 	}
 
@@ -146,116 +152,76 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 
 	ret = korad_kaxxxxp_send_cmd(serial, msg);
 	devc->req_sent_at = g_get_monotonic_time();
-	devc->reply_pending = FALSE;
+
+	g_mutex_unlock(&devc->rw_mutex);
 
 	return ret;
 }
 
-SR_PRIV int korad_kaxxxxp_query_value(struct sr_serial_dev_inst *serial,
-				struct dev_context *devc)
+SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
+				int target, struct dev_context *devc)
 {
-	int ret;
+	int ret, count;
+	char reply[6];
+	float *value;
+	char status_byte;
 
+	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
 
-	switch (devc->target) {
+	value = NULL;
+	count = 5;
+
+	switch (target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");
+		value = &(devc->current);
 		break;
 	case KAXXXXP_CURRENT_MAX:
 		/* Read set current from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?");
+		value = &(devc->current_max);
 		break;
 	case KAXXXXP_VOLTAGE:
 		/* Read voltage from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?");
+		value = &(devc->voltage);
 		break;
 	case KAXXXXP_VOLTAGE_MAX:
 		/* Read set voltage from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?");
+		value = &(devc->voltage_max);
 		break;
 	case KAXXXXP_STATUS:
 	case KAXXXXP_OUTPUT:
+	case KAXXXXP_OCP:
+	case KAXXXXP_OVP:
 		/* Read status from device. */
 		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?");
+		count = 1;
 		break;
 	default:
-		sr_err("Don't know how to query %d.", devc->target);
+		sr_err("Don't know how to query %d.", target);
+		g_mutex_unlock(&devc->rw_mutex);
 		return SR_ERR;
 	}
 
 	devc->req_sent_at = g_get_monotonic_time();
-	devc->reply_pending = TRUE;
 
-	return ret;
-}
-
-SR_PRIV int korad_kaxxxxp_get_all_values(struct sr_serial_dev_inst *serial,
-				struct dev_context *devc)
-{
-	int ret;
-
-	for (devc->target = KAXXXXP_CURRENT;
-			devc->target <= KAXXXXP_STATUS; devc->target++) {
-		if ((ret = korad_kaxxxxp_query_value(serial, devc)) < 0)
-			return ret;
-		if ((ret = korad_kaxxxxp_get_reply(serial, devc)) < 0)
-			return ret;
-	}
-
-	return ret;
-}
-
-SR_PRIV int korad_kaxxxxp_get_reply(struct sr_serial_dev_inst *serial,
-				struct dev_context *devc)
-{
-	double value;
-	int count, ret;
-	float *target;
-	char status_byte;
-
-	target = NULL;
-	count = 5;
-
-	switch (devc->target) {
-	case KAXXXXP_CURRENT:
-		/* Read current from device. */
-		target = &(devc->current);
-		break;
-	case KAXXXXP_CURRENT_MAX:
-		/* Read set current from device. */
-		target = &(devc->current_max);
-		break;
-	case KAXXXXP_VOLTAGE:
-		/* Read voltage from device. */
-		target = &(devc->voltage);
-		break;
-	case KAXXXXP_VOLTAGE_MAX:
-		/* Read set voltage from device. */
-		target = &(devc->voltage_max);
-		break;
-	case KAXXXXP_STATUS:
-	case KAXXXXP_OUTPUT:
-		/* Read status from device. */
-		count = 1;
-		break;
-	default:
-		sr_err("Don't know where to put repply %d.", devc->target);
-	}
-
-	if ((ret = korad_kaxxxxp_read_chars(serial, count, devc->reply)) < 0)
+	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply)) < 0) {
+		g_mutex_unlock(&devc->rw_mutex);
 		return ret;
+	}
 
-	devc->reply[count] = 0;
+	reply[count] = 0;
 
-	if (target) {
-		value = g_ascii_strtod(devc->reply, NULL);
-		*target = (float)value;
-		sr_dbg("value: %f",value);
+	if (value) {
+		sr_atof_ascii((const char *)&reply, value);
+		sr_dbg("value: %f", *value);
 	} else {
 		/* We have status reply. */
-		status_byte = devc->reply[0];
+		status_byte = reply[0];
 		/* Constant current */
 		devc->cc_mode[0] = !(status_byte & (1 << 0)); /* Channel one */
 		devc->cc_mode[1] = !(status_byte & (1 << 1)); /* Channel two */
@@ -284,41 +250,45 @@ SR_PRIV int korad_kaxxxxp_get_reply(struct sr_serial_dev_inst *serial,
 			(status_byte & (1 << 6)) ? "enabled" : "disabled",
 			(status_byte & (1 << 7)) ? "true" : "false");
 	}
+
 	/* Read the sixth byte from ISET? BUG workaround. */
-	if (devc->target == KAXXXXP_CURRENT_MAX)
+	if (target == KAXXXXP_CURRENT_MAX)
 		serial_read_blocking(serial, &status_byte, 1, 10);
-	devc->reply_pending = FALSE;
+
+	g_mutex_unlock(&devc->rw_mutex);
+
+	return ret;
+}
+
+SR_PRIV int korad_kaxxxxp_get_all_values(struct sr_serial_dev_inst *serial,
+				struct dev_context *devc)
+{
+	int ret, target;
+
+	for (target = KAXXXXP_CURRENT;
+			target <= KAXXXXP_STATUS; target++) {
+		if ((ret = korad_kaxxxxp_get_value(serial, target, devc)) < 0)
+			return ret;
+	}
 
 	return ret;
 }
 
 static void next_measurement(struct dev_context *devc)
 {
-	switch (devc->target) {
+	switch (devc->acquisition_target) {
 	case KAXXXXP_CURRENT:
-		devc->target = KAXXXXP_VOLTAGE;
-		break;
-	case KAXXXXP_CURRENT_MAX:
-		devc->target = KAXXXXP_CURRENT;
+		devc->acquisition_target = KAXXXXP_VOLTAGE;
 		break;
 	case KAXXXXP_VOLTAGE:
-		devc->target = KAXXXXP_STATUS;
-		break;
-	case KAXXXXP_VOLTAGE_MAX:
-		devc->target = KAXXXXP_CURRENT;
-		break;
-	/* Read back what was set. */
-	case KAXXXXP_BEEP:
-	case KAXXXXP_OCP:
-	case KAXXXXP_OVP:
-	case KAXXXXP_OUTPUT:
-		devc->target = KAXXXXP_STATUS;
+		devc->acquisition_target = KAXXXXP_STATUS;
 		break;
 	case KAXXXXP_STATUS:
-		devc->target = KAXXXXP_CURRENT;
+		devc->acquisition_target = KAXXXXP_CURRENT;
 		break;
 	default:
-		devc->target = KAXXXXP_CURRENT;
+		devc->acquisition_target = KAXXXXP_CURRENT;
+		sr_err("Invalid target for next acquisition.");
 	}
 }
 
@@ -332,7 +302,6 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	uint64_t elapsed_us;
 	GSList *l;
 
 	(void)fd;
@@ -347,7 +316,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 
 	if (revents == G_IO_IN) {
 		/* Get the value. */
-		korad_kaxxxxp_get_reply(serial, devc);
+		korad_kaxxxxp_get_value(serial, devc->acquisition_target, devc);
 
 		/* Note: digits/spec_digits will be overridden later. */
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
@@ -357,7 +326,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		packet.payload = &analog;
 		analog.num_samples = 1;
 		l = g_slist_copy(sdi->channels);
-		if (devc->target == KAXXXXP_CURRENT) {
+		if (devc->acquisition_target == KAXXXXP_CURRENT) {
 			l = g_slist_remove_link(l, g_slist_nth(l, 0));
 			analog.meaning->channels = l;
 			analog.meaning->mq = SR_MQ_CURRENT;
@@ -368,7 +337,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			analog.data = &devc->current;
 			sr_session_send(sdi, &packet);
 		}
-		else if (devc->target == KAXXXXP_VOLTAGE) {
+		else if (devc->acquisition_target == KAXXXXP_VOLTAGE) {
 			l = g_slist_remove_link(l, g_slist_nth(l, 1));
 			analog.meaning->channels = l;
 			analog.meaning->mq = SR_MQ_VOLTAGE;
@@ -381,31 +350,10 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 			sr_sw_limits_update_samples_read(&devc->limits, 1);
 		}
 		next_measurement(devc);
-	} else {
-		/* Time out */
-		if (!devc->reply_pending) {
-			if (korad_kaxxxxp_query_value(serial, devc) < 0)
-				return TRUE;
-			devc->req_sent_at = g_get_monotonic_time();
-			devc->reply_pending = TRUE;
-		}
 	}
 
-	if (sr_sw_limits_check(&devc->limits)) {
+	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
-		return TRUE;
-	}
-
-	/* Request next packet, if required. */
-	if (sdi->status == SR_ST_ACTIVE) {
-		if (devc->reply_pending) {
-			elapsed_us = g_get_monotonic_time() - devc->req_sent_at;
-			if (elapsed_us > (REQ_TIMEOUT_MS * 1000))
-				devc->reply_pending = FALSE;
-			return TRUE;
-		}
-
-	}
 
 	return TRUE;
 }
