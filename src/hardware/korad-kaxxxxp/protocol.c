@@ -81,7 +81,7 @@ static void give_device_time_to_process(struct dev_context *devc)
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 				int target, struct dev_context *devc)
 {
-	char msg[21];
+	char *msg;
 	const char *cmd;
 	float value;
 	int ret;
@@ -89,7 +89,6 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
 
-	msg[20] = 0;
 	switch (target) {
 	case KAXXXXP_CURRENT:
 	case KAXXXXP_VOLTAGE:
@@ -147,11 +146,13 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
+	msg = g_malloc0(20 + 1);
 	if (cmd)
-		snprintf(msg, 20, cmd, value);
+		sr_snprintf_ascii(msg, 20, cmd, value);
 
 	ret = korad_kaxxxxp_send_cmd(serial, msg);
 	devc->req_sent_at = g_get_monotonic_time();
+	g_free(msg);
 
 	g_mutex_unlock(&devc->rw_mutex);
 
