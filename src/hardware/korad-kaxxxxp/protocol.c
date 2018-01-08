@@ -306,6 +306,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 	GSList *l;
 
 	(void)fd;
+	(void)revents;
 
 	if (!(sdi = cb_data))
 		return TRUE;
@@ -315,43 +316,40 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 
 	serial = sdi->conn;
 
-	if (revents == G_IO_IN) {
-		/* Get the value. */
-		korad_kaxxxxp_get_value(serial, devc->acquisition_target, devc);
+	/* Get the value. */
+	korad_kaxxxxp_get_value(serial, devc->acquisition_target, devc);
 
-		/* Note: digits/spec_digits will be overridden later. */
-		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	/* Note: digits/spec_digits will be overridden later. */
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-		/* Send the value forward. */
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		analog.num_samples = 1;
-		l = g_slist_copy(sdi->channels);
-		if (devc->acquisition_target == KAXXXXP_CURRENT) {
-			l = g_slist_remove_link(l, g_slist_nth(l, 0));
-			analog.meaning->channels = l;
-			analog.meaning->mq = SR_MQ_CURRENT;
-			analog.meaning->unit = SR_UNIT_AMPERE;
-			analog.meaning->mqflags = 0;
-			analog.encoding->digits = 3;
-			analog.spec->spec_digits = 3;
-			analog.data = &devc->current;
-			sr_session_send(sdi, &packet);
-		}
-		else if (devc->acquisition_target == KAXXXXP_VOLTAGE) {
-			l = g_slist_remove_link(l, g_slist_nth(l, 1));
-			analog.meaning->channels = l;
-			analog.meaning->mq = SR_MQ_VOLTAGE;
-			analog.meaning->unit = SR_UNIT_VOLT;
-			analog.meaning->mqflags = SR_MQFLAG_DC;
-			analog.encoding->digits = 2;
-			analog.spec->spec_digits = 2;
-			analog.data = &devc->voltage;
-			sr_session_send(sdi, &packet);
-			sr_sw_limits_update_samples_read(&devc->limits, 1);
-		}
-		next_measurement(devc);
+	/* Send the value forward. */
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	analog.num_samples = 1;
+	l = g_slist_copy(sdi->channels);
+	if (devc->acquisition_target == KAXXXXP_CURRENT) {
+		l = g_slist_remove_link(l, g_slist_nth(l, 0));
+		analog.meaning->channels = l;
+		analog.meaning->mq = SR_MQ_CURRENT;
+		analog.meaning->unit = SR_UNIT_AMPERE;
+		analog.meaning->mqflags = 0;
+		analog.encoding->digits = 3;
+		analog.spec->spec_digits = 3;
+		analog.data = &devc->current;
+		sr_session_send(sdi, &packet);
+	} else if (devc->acquisition_target == KAXXXXP_VOLTAGE) {
+		l = g_slist_remove_link(l, g_slist_nth(l, 1));
+		analog.meaning->channels = l;
+		analog.meaning->mq = SR_MQ_VOLTAGE;
+		analog.meaning->unit = SR_UNIT_VOLT;
+		analog.meaning->mqflags = SR_MQFLAG_DC;
+		analog.encoding->digits = 2;
+		analog.spec->spec_digits = 2;
+		analog.data = &devc->voltage;
+		sr_session_send(sdi, &packet);
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
+	next_measurement(devc);
 
 	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
