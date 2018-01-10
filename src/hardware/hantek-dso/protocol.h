@@ -190,7 +190,7 @@ struct dev_context {
 	int dev_state;
 
 	/* Oscilloscope settings. */
-	int samplerate;
+	uint64_t samplerate;
 	int timebase;
 	gboolean ch_enabled[2];
 	int voltage[2];

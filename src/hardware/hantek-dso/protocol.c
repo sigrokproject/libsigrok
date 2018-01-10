@@ -263,7 +263,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	int ret, tmp;
-	int base;
+	uint64_t base;
 	uint8_t cmdstring[12];
 	int trig;
 
