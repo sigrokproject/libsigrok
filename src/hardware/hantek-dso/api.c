@@ -506,7 +506,6 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	int rat;
 	int ch_idx, idx;
 	float flt;
 
@@ -532,12 +531,7 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->triggerslope = idx;
 			break;
 		case SR_CONF_CAPTURE_RATIO:
-			rat = g_variant_get_uint64(data);
-			if (rat < 0 || rat > 100) {
-				sr_err("Capture ratio must be in [0,100].");
-				return SR_ERR_ARG;
-			} else
-				devc->capture_ratio = rat;
+			devc->capture_ratio = g_variant_get_uint64(data);
 			break;
 		case SR_CONF_BUFFERSIZE:
 			if ((idx = std_u64_idx(data, devc->profile->buffersizes, NUM_BUFFER_SIZES)) < 0)
