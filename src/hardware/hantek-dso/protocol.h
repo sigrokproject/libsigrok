@@ -52,7 +52,7 @@
 /* All models have this for their "fast" mode. */
 #define FRAMESIZE_SMALL         (10 * 1024)
 
-#define NUM_CHANNELS		2
+#define NUM_CHANNELS            2
 
 enum control_requests {
 	CTRL_READ_EEPROM = 0xa2,
@@ -75,8 +75,10 @@ enum dso_commands {
 	CMD_SET_LOGICALDATA                 = 0x8,
 	CMD_GET_LOGICALDATA                 = 0x9,
 	CMD__UNUSED1                        = 0xa,
-	/* For the following and other specials please see
-	 * http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028 */
+	/*
+	 * For the following and other specials please see
+	 * http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028
+	 */
 	CMD_2250_SET_CHANNELS               = 0xb,
 	CMD_2250_SET_TRIGGERSOURCE          = 0xc,
 	CMD_2250_SET_RECORD_LENGTH          = 0xd,
@@ -139,7 +141,7 @@ enum capturestates {
 	CAPTURE_EMPTY = 0,
 	CAPTURE_FILLING = 1,
 	CAPTURE_READY_8BIT = 2,
-	CAPTURE_READY2250 = 3,
+	CAPTURE_READY_2250 = 3,
 	CAPTURE_READY_9BIT = 7,
 	CAPTURE_TIMEOUT = 127,
 	CAPTURE_UNKNOWN = 255,

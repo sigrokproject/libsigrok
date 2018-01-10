@@ -148,7 +148,7 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(50),
 	SR_MHZ(100),
 	SR_MHZ(125),
-	/* fast mode not supported yet 
+	/* Fast mode not supported yet.
 	SR_MHZ(200),
 	SR_MHZ(250), */
 };
@@ -522,11 +522,9 @@ static int config_set(uint32_t key, GVariant *data,
 				sr_err("Trigger level must be in [0.0,1.0].");
 				return SR_ERR_ARG;
 			}
-
 			devc->voffset_trigger = flt;
-			if (dso_set_voffsets(sdi) != SR_OK) {
-					return SR_ERR;
-			}
+			if (dso_set_voffsets(sdi) != SR_OK)
+				return SR_ERR;
 			break;
 		case SR_CONF_TRIGGER_SLOPE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
@@ -557,7 +555,6 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->samplerate = samplerates[idx];
 			if (dso_set_trigger_samplerate(sdi) != SR_OK)
 				return SR_ERR;
-			sr_dbg("got new sample rate %d, idx %d", devc->samplerate, idx);
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
@@ -877,7 +874,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		/* No data yet. */
 		break;
 	case CAPTURE_READY_8BIT:
-	case CAPTURE_READY2250:
+	case CAPTURE_READY_2250:
 		/* Remember where in the captured frame the trigger is. */
 		devc->trigger_offset = trigger_offset;
 

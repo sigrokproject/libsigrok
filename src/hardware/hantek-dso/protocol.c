@@ -184,7 +184,6 @@ SR_PRIV void dso_close(struct sr_dev_inst *sdi)
 	libusb_close(usb->devhdl);
 	usb->devhdl = NULL;
 	sdi->status = SR_ST_INACTIVE;
-
 }
 
 static int get_channel_offsets(const struct sr_dev_inst *sdi)
@@ -241,7 +240,6 @@ static int get_channel_offsets(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 static void dso2250_set_triggerpos(int value, int long_buffer, uint8_t dest[], int offset)
 {
 	uint32_t min, max;
@@ -259,7 +257,6 @@ static void dso2250_set_triggerpos(int value, int long_buffer, uint8_t dest[], i
 	dest[offset + 2] = (tmp >> 16) & 0x7;
 }
 
-
 /* See http://openhantek.sourceforge.net/doc/namespaceHantek.html#ac1cd181814cf3da74771c29800b39028 */
 static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
@@ -269,7 +266,6 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	int base;
 	uint8_t cmdstring[12];
 	int trig;
-
 
 	devc = sdi->priv;
 	usb = sdi->conn;
@@ -290,7 +286,6 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	}
 	cmdstring[2] = tmp;
 
-
 	sr_dbg("Trigger slope: %d.", devc->triggerslope);
 	cmdstring[2] |= (devc->triggerslope == SLOPE_NEGATIVE ? 1 : 0) << 3;
 
@@ -304,11 +299,10 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-
 	/* Frame size */
 	sr_dbg("Frame size: %d.", devc->framesize);
 	cmdstring[0] = CMD_2250_SET_RECORD_LENGTH;
-	cmdstring[2] = devc->framesize == FRAMESIZE_SMALL ? 0x01 : 0x02;
+	cmdstring[2] = (devc->framesize == FRAMESIZE_SMALL) ? 0x01 : 0x02;
 
 	if (send_begin(sdi) != SR_OK)
 		return SR_ERR;
@@ -320,10 +314,8 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_2250_SET_SAMPLERATE;
-	sr_dbg("Sample rate: %u", devc->samplerate);
 	base = 100e6;
 	if (devc->samplerate > base) {
 		/* Timebase fast */
@@ -332,7 +324,6 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	}
 
 	tmp = base / devc->samplerate;
-	sr_dbg("sample rate value: %d.", devc->samplerate);
 	if (tmp) {
 		/* Downsampling on */
 		cmdstring[2] |= 2;
@@ -345,7 +336,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 		 *  1comp(198) => ff39 */
 		tmp -= 2;
 		tmp = ~tmp;
-		sr_dbg("down sampler value: 0x%x.", tmp & 0xffff);
+		sr_dbg("Down sampler value: 0x%x.", tmp & 0xffff);
 		cmdstring[4] = (tmp >> 0) & 0xff;
 		cmdstring[5] = (tmp >> 8) & 0xff;
 	}
@@ -361,11 +352,10 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	}
 	sr_dbg("Sent CMD_2250_SET_SAMPLERATE.");
 
-
-	/* Enabled channels: 00=CH1 01=CH2 10=both */
+	/* Enabled channels: 00=CH1, 01=CH2, 10=both. */
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_2250_SET_CHANNELS;
-	sr_dbg("Channels CH1=%d CH2=%d", devc->ch_enabled[0], devc->ch_enabled[1]);
+	sr_dbg("Channels: CH1=%d, CH2=%d.", devc->ch_enabled[0], devc->ch_enabled[1]);
 	cmdstring[2] = (devc->ch_enabled[0] ? 0 : 1) + (devc->ch_enabled[1] ? 2 : 0);
 
 	if (send_begin(sdi) != SR_OK)
@@ -379,9 +369,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	}
 	sr_dbg("Sent CMD_2250_SET_CHANNELS.");
 
-
-
-	/* Trigger slope: 0=positive 1=negative */
+	/* Trigger slope: 0=positive, 1=negative. */
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_2250_SET_TRIGGERPOS_AND_BUFFER;
 
@@ -526,7 +514,6 @@ int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-
 static int dso_set_filters(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -584,13 +571,14 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 	cmdstring[0] = CMD_SET_VOLTAGE;
 
 	if (devc->profile->fw_pid == 0x2250) {
+		cmdstring[1] = 0x00;
 		cmdstring[2] = 0x08;
 	} else {
 		cmdstring[1] = 0x0f;
 		cmdstring[2] = 0x30;
 	}
 
-	/* CH1 volts/div is encoded in bits 0-1 */
+	/* CH1 volts/div is encoded in bits 0-1. */
 	sr_dbg("CH1 vdiv index: %d.", devc->voltage[0]);
 	switch (devc->voltage[0]) {
 	case VDIV_1V:
@@ -610,7 +598,7 @@ static int dso_set_voltage(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	/* CH2 volts/div is encoded in bits 2-3 */
+	/* CH2 volts/div is encoded in bits 2-3. */
 	sr_dbg("CH2 vdiv index: %d.", devc->voltage[1]);
 	switch (devc->voltage[1]) {
 	case VDIV_1V:
@@ -802,7 +790,6 @@ SR_PRIV int dso_force_trigger(const struct sr_dev_inst *sdi)
 
 SR_PRIV int dso_init(const struct sr_dev_inst *sdi)
 {
-
 	sr_dbg("Initializing DSO.");
 
 	if (get_channel_offsets(sdi) != SR_OK)
