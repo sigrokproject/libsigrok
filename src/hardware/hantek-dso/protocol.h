@@ -204,7 +204,7 @@ struct dev_context {
 	gboolean filter[2];
 	int triggerslope;
 	char *triggersource;
-	int capture_ratio;
+	uint64_t capture_ratio;
 	int triggermode;
 
 	/* Frame transfer */

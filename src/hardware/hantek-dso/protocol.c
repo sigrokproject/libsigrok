@@ -373,7 +373,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	memset(cmdstring, 0, sizeof(cmdstring));
 	cmdstring[0] = CMD_2250_SET_TRIGGERPOS_AND_BUFFER;
 
-	sr_dbg("Capture ratio: %d.", devc->capture_ratio);
+	sr_dbg("Capture ratio: %" PRIu64 ".", devc->capture_ratio);
 	trig = devc->capture_ratio;
 	dso2250_set_triggerpos(trig,
 			devc->framesize != FRAMESIZE_SMALL, cmdstring, 2);
@@ -494,7 +494,7 @@ SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[5] = (tmp >> 8) & 0xff;
 
 	/* Horizontal trigger position */
-	sr_dbg("Capture ratio: %d.", devc->capture_ratio);
+	sr_dbg("Capture ratio: %" PRIu64 ".", devc->capture_ratio);
 	tmp = 0x77fff + 0x8000 * devc->capture_ratio / 100;
 	cmdstring[6] = tmp & 0xff;
 	cmdstring[7] = (tmp >> 8) & 0xff;
