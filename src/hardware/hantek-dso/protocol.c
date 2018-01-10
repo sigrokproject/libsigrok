@@ -394,7 +394,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
+SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -688,7 +688,7 @@ static int dso_set_relays(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-int dso_set_voffsets(const struct sr_dev_inst *sdi)
+SR_PRIV int dso_set_voffsets(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
