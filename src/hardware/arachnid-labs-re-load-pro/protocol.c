@@ -380,6 +380,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	meaning.mq = SR_MQ_VOLTAGE;
 	meaning.mqflags = SR_MQFLAG_DC;
 	meaning.unit = SR_UNIT_VOLT;
+	encoding.digits = 3;
 	analog.data = &devc->voltage;
 	sr_session_send(sdi, &packet);
 	g_slist_free(l);
@@ -391,6 +392,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	meaning.mq = SR_MQ_CURRENT;
 	meaning.mqflags = SR_MQFLAG_DC;
 	meaning.unit = SR_UNIT_AMPERE;
+	encoding.digits = 3;
 	analog.data = &devc->current;
 	sr_session_send(sdi, &packet);
 	g_slist_free(l);
