@@ -18,8 +18,9 @@
  */
 
 /* Needed for isascii(), as used in the GNU libstdc++ headers */
+/* Needed in strutil.c for POSIX.1-2008 locale functions */
 #ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 700
 #endif
 
 #include <config.h>

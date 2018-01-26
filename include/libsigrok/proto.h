@@ -245,6 +245,10 @@ SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
 SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q);
 SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q);
+SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,
+		const char *format, ...);
+SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
+		const char *format, va_list args);
 SR_API int sr_parse_rational(const char *str, struct sr_rational *ret);
 
 /*--- version.c -------------------------------------------------------------*/

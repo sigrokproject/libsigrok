@@ -17,8 +17,17 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+/* Needed for POSIX.1-2008 locale functions */
+#define _XOPEN_SOURCE 700
 #include <config.h>
 #include <ctype.h>
+#include <locale.h>
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#include <xlocale.h>
+#endif
+#if defined(__FreeBSD__)
+#include <sys/param.h>
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -248,6 +257,178 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 
 	*ret = (float) tmp;
 	return SR_OK;
+}
+
+/**
+ * Composes a string with a format string (like printf) in the buffer pointed
+ * by buf (taking buf_size as the maximum buffer capacity to fill).
+ * If the resulting string would be longer than n - 1 characters, the remaining
+ * characters are discarded and not stored, but counted for the value returned
+ * by the function.
+ * A terminating NUL character is automatically appended after the content
+ * written.
+ * After the format parameter, the function expects at least as many additional
+ * arguments as needed for format.
+ *
+ * This version ignores the actual locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param buf_size Maximum number of bytes to be used in the buffer. The
+ *        generated string has a length of at most buf_size - 1, leaving space
+ *        for the additional terminating NUL character.
+ * @param format C string that contains a format string (see printf).
+ * @param ... A sequence of additional arguments, each containing a value to be
+ *        used to replace a format specifier in the format string.
+ *
+ * @return On success, the number of characters that would have been written if
+ *         buf_size had been sufficiently large, not counting the terminating
+ *         NUL character. On failure, a negative number is returned.
+ *         Notice that only when this returned value is non-negative and less
+ *         than buf_size, the string has been completely written.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,
+	const char *format, ...)
+{
+	int ret;
+	va_list args;
+
+	va_start(args, format);
+	ret = sr_vsnprintf_ascii(buf, buf_size, format, args);
+	va_end(args);
+
+	return ret;
+}
+
+/**
+ * Composes a string with a format string (like printf) in the buffer pointed
+ * by buf (taking buf_size as the maximum buffer capacity to fill).
+ * If the resulting string would be longer than n - 1 characters, the remaining
+ * characters are discarded and not stored, but counted for the value returned
+ * by the function.
+ * A terminating NUL character is automatically appended after the content
+ * written.
+ * Internally, the function retrieves arguments from the list identified by
+ * args as if va_arg was used on it, and thus the state of args is likely to
+ * be altered by the call.
+ * In any case, arg should have been initialized by va_start at some point
+ * before the call, and it is expected to be released by va_end at some point
+ * after the call.
+ *
+ * This version ignores the actual locale and uses the locale "C" for Linux,
+ * FreeBSD, OSX and Android.
+ *
+ * @param buf Pointer to a buffer where the resulting C string is stored.
+ * @param buf_size Maximum number of bytes to be used in the buffer. The
+ *        generated string has a length of at most buf_size - 1, leaving space
+ *        for the additional terminating NUL character.
+ * @param format C string that contains a format string (see printf).
+ * @param args A value identifying a variable arguments list initialized with
+ *        va_start.
+ *
+ * @return On success, the number of characters that would have been written if
+ *         buf_size had been sufficiently large, not counting the terminating
+ *         NUL character. On failure, a negative number is returned.
+ *         Notice that only when this returned value is non-negative and less
+ *         than buf_size, the string has been completely written.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
+	const char *format, va_list args)
+{
+#if defined(_WIN32)
+	int ret;
+
+#if 0
+	/*
+	 * TODO: This part compiles with mingw-w64 but doesn't run with Win7.
+	 *       Doesn't start because of "Procedure entry point _create_locale
+	 *       not found in msvcrt.dll".
+	 *       mingw-w64 should link to msvcr100.dll not msvcrt.dll!.
+	 */
+	_locale_t locale;
+
+	locale = _create_locale(LC_NUMERIC, "C");
+	ret = _vsnprintf_l(buf, buf_size, format, locale, args);
+	_free_locale(locale);
+#endif
+
+	/* vsprintf uses the current locale, may cause issues for floats. */
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#elif defined(__APPLE__)
+	/*
+	 * See:
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/printf_l.3.html
+	 * https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/xlocale.3.html
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsnprintf_l(buf, buf_size, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__FreeBSD__) && __FreeBSD_version >= 901000
+	/*
+	 * See:
+	 * https://www.freebsd.org/cgi/man.cgi?query=printf_l&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 * https://www.freebsd.org/cgi/man.cgi?query=xlocale&apropos=0&sektion=3&manpath=FreeBSD+9.1-RELEASE
+	 */
+	int ret;
+	locale_t locale;
+
+	locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
+	ret = vsnprintf_l(buf, buf_size, locale, format, args);
+	freelocale(locale);
+
+	return ret;
+#elif defined(__ANDROID__)
+	/*
+	 * The Bionic libc only has two locales ("C" aka "POSIX" and "C.UTF-8"
+	 * aka "en_US.UTF-8"). The decimal point is hard coded as ".".
+	 * See: https://android.googlesource.com/platform/bionic/+/master/libc/bionic/locale.cpp
+	 */
+	int ret;
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#elif defined(__linux__)
+	int ret;
+	locale_t old_locale, temp_locale;
+
+	/* Switch to C locale for proper float/double conversion. */
+	temp_locale = newlocale(LC_NUMERIC, "C", NULL);
+	old_locale = uselocale(temp_locale);
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	/* Switch back to original locale. */
+	uselocale(old_locale);
+	freelocale(temp_locale);
+
+	return ret;
+#elif defined(__unix__) || defined(__unix)
+	/*
+	 * This is a fallback for all other BSDs, *nix and FreeBSD <= 9.0, by
+	 * using the current locale for snprintf(). This may not work correctly
+	 * for floats!
+	 */
+	int ret;
+
+	ret = vsnprintf(buf, buf_size, format, args);
+
+	return ret;
+#else
+	/* No implementation for unknown systems! */
+	return -1;
+#endif
 }
 
 /**
