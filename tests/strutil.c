@@ -19,8 +19,49 @@
 
 #include <config.h>
 #include <check.h>
+#include <locale.h>
 #include <libsigrok/libsigrok.h>
 #include "lib.h"
+
+#if 0
+static void test_vsnprintf(const char *expected, char *format, ...)
+{
+	va_list args;
+	char *s;
+	int len;
+
+	len = 16;
+	s = g_malloc0(len + 1);
+
+	va_start(args, format);
+	len = vsnprintf(s, len, format, args);
+	va_end(args);
+
+	fail_unless(s != NULL, "len = %i, s = s", len);
+	fail_unless(!strcmp(s, expected),
+		    "Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+#endif
+
+static void test_sr_vsnprintf_ascii(const char *expected, char *format, ...)
+{
+	va_list args;
+	char *s;
+	int len;
+
+	len = 16;
+	s = g_malloc0(len + 1);
+
+	va_start(args, format);
+	len = sr_vsnprintf_ascii(s, len, format, args);
+	va_end(args);
+
+	fail_unless(s != NULL, "len = %i, s = s", len);
+	fail_unless(!strcmp(s, expected),
+			"Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
 
 static void test_samplerate(uint64_t samplerate, const char *expected)
 {
@@ -66,6 +107,61 @@ static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
 		    "Invalid result for '%s': %s.", expected, s);
 	g_free(s);
 }
+
+START_TEST(test_locale)
+{
+	char *old_locale, *saved_locale;
+
+	/* Get the the current locale. */
+	old_locale = setlocale(LC_NUMERIC, NULL);
+	fprintf(stderr, "Old locale = %s\n", old_locale);
+	/* Copy the name so it won’t be clobbered by setlocale. */
+	saved_locale = g_strdup(old_locale);
+	ck_assert_msg(saved_locale != NULL);
+
+#ifdef _WIN32
+	/*
+	 * See: https://msdn.microsoft.com/en-us/library/cc233982.aspx
+	 * Doesn't work! Locale is not set!
+	 */
+	setlocale(LC_NUMERIC, "de-DE");
+#else
+	/*
+	 * For all *nix and OSX systems, change the locale for all threads to
+	 * one that is known for not working correctly with printf(), e.g.
+	 * "de_DE.UTF-8".
+	 *
+	 * Find all your available system locales with "locale -a".
+	 */
+	setlocale(LC_NUMERIC, "de_DE.UTF-8");
+#endif
+	fprintf(stderr, "New locale = %s\n", setlocale(LC_NUMERIC, NULL));
+
+	test_sr_vsnprintf_ascii("0.1", "%.1f", (double)0.1);
+	test_sr_vsnprintf_ascii("0.12", "%.2f", (double)0.12);
+	test_sr_vsnprintf_ascii("0.123", "%.3f", (double)0.123);
+	test_sr_vsnprintf_ascii("0.1234", "%.4f", (double)0.1234);
+	test_sr_vsnprintf_ascii("0.12345", "%.5f", (double)0.12345);
+	test_sr_vsnprintf_ascii("0.123456", "%.6f", (double)0.123456);
+
+#if 0
+	/*
+	 * These tests can be used to tell on which platforms the printf()
+	 * functions are locale-dependent (i.e. these tests will fail).
+	 */
+	test_vsnprintf("0.1", "%.1f", (double)0.1);
+	test_vsnprintf("0.12", "%.2f", (double)0.12);
+	test_vsnprintf("0.123", "%.3f", (double)0.123);
+	test_vsnprintf("0.1234", "%.4f", (double)0.1234);
+	test_vsnprintf("0.12345", "%.5f", (double)0.12345);
+	test_vsnprintf("0.123456", "%.6f", (double)0.123456);
+#endif
+
+	/* Restore the original locale. */
+	setlocale(LC_NUMERIC, saved_locale);
+	g_free(saved_locale);
+}
+END_TEST
 
 /*
  * Check various inputs for sr_samplerate_string():
@@ -292,6 +388,7 @@ Suite *suite_strutil(void)
 
 	tc = tcase_create("sr_samplerate_string");
 	tcase_add_checked_fixture(tc, srtest_setup, srtest_teardown);
+	tcase_add_test(tc, test_locale);
 	tcase_add_test(tc, test_hz);
 	tcase_add_test(tc, test_khz);
 	tcase_add_test(tc, test_mhz);
