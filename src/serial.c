@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#ifdef HAVE_LIBSERIALPORT
 #include <libserialport.h>
+#endif
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #ifdef _WIN32
@@ -49,6 +51,8 @@
  *
  * @{
  */
+
+#ifdef HAVE_SERIAL_COMM
 
 /* See if a (assumed opened) serial port is of any supported type. */
 static int dev_is_supported(struct sr_serial_dev_inst *serial)
@@ -869,5 +873,11 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 
 	return timeout_ms;
 }
+
+#else
+
+/* TODO Put fallback.c content here? */
+
+#endif
 
 /** @} */

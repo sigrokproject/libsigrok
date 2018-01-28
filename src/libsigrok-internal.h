@@ -723,6 +723,7 @@ struct sr_usb_dev_inst {
 };
 #endif
 
+struct sr_serial_dev_inst;
 #ifdef HAVE_SERIAL_COMM
 struct ser_lib_functions;
 struct sr_serial_dev_inst {
@@ -843,6 +844,30 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
 #ifdef HAVE_SERIAL_COMM
+#ifndef HAVE_LIBSERIALPORT
+/*
+ * Some identifiers which initially got provided by libserialport are
+ * used internally within the libsigrok serial layer's implementation,
+ * while libserialport no longer is the exclusive provider of serial
+ * communication support. Declare the identifiers here so they remain
+ * available across all build configurations.
+ */
+enum libsp_parity {
+	SP_PARITY_NONE = 0,
+	SP_PARITY_ODD = 1,
+	SP_PARITY_EVEN = 2,
+	SP_PARITY_MARK = 3,
+	SP_PARITY_SPACE = 4,
+};
+
+enum libsp_flowcontrol {
+	SP_FLOWCONTROL_NONE = 0,
+	SP_FLOWCONTROL_XONXOFF = 1,
+	SP_FLOWCONTROL_RTSCTS = 2,
+	SP_FLOWCONTROL_DTRDSR = 3,
+};
+#endif
+
 /* Serial-specific instances */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm);
