@@ -356,6 +356,9 @@ a short list for convenience:
       'SI232 online' (28-29S) or 'SI232 store' (22-26x). The interface must
       be configured to the same baud rate as the host (default 9600).
       Multimeter and interface must be configured to the same address.
+ - Metrix MX56C: Press the PRINT button to have the meter send acquisition
+   data via IR. Hold the PRINT button to adjust the meter's transmission
+   interval.
  - Norma DM950: If the interface doesn't work (e.g. USB-RS232 converter), power
    on the device with "FUNC" pressed (to power the interface from the DMM).
  - PCE PCE-DM32: Briefly press the "RS232" button.
