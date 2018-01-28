@@ -465,9 +465,6 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
-	if (!options[0].def)
-		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
-
 	return options;
 }
 
@@ -476,7 +473,6 @@ static int cleanup(struct sr_output *o)
 	struct out_context *outc;
 
 	outc = o->priv;
-	g_variant_unref(options[0].def);
 	g_free(outc->analog_index_map);
 	g_free(outc->filename);
 	g_free(outc);
