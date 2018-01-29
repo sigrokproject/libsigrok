@@ -204,6 +204,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	}
 
 	g_fprintf(stderr, "%s\n", output);
+	fflush(stderr);
 	g_free(raw_output);
 	g_free(output);
 
