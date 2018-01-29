@@ -384,8 +384,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "
 		       "%d.%d).", des.idVendor, des.idProduct, b, a);
 
-		usb = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
-				libusb_get_device_address(devlist[i]), NULL);
+		usb = sr_usb_dev_inst_new(b, a, NULL);
 		devices = g_slist_append(devices, usb);
 	}
 	libusb_free_device_list(devlist, 1);
