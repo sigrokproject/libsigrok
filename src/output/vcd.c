@@ -200,7 +200,16 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			timestamp_written = FALSE;
 
 			for (p = 0; p < ctx->num_enabled_channels; p++) {
-				index = ctx->channel_index[p];
+				/*
+				 * TODO Check whether the mapping from
+				 * data image positions to channel numbers
+				 * is required. Experiments suggest that
+				 * the data image "is dense", and packs
+				 * bits of enabled channels, and leaves no
+				 * room for positions of disabled channels.
+				 */
+				/* index = ctx->channel_index[p]; */
+				index = p;
 
 				curbit = ((unsigned)sample[index / 8]
 						>> (index % 8)) & 1;
