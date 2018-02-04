@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <ctype.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +67,9 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 
 	errno = 0;
 	tmp = strtol(str, &endptr, 10);
+
+	while (endptr && isspace(*endptr))
+		endptr++;
 
 	if (!endptr || *endptr || errno) {
 		if (!errno)
@@ -128,6 +132,9 @@ SR_PRIV int sr_atod(const char *str, double *ret)
 
 	errno = 0;
 	tmp = strtof(str, &endptr);
+
+	while (endptr && isspace(*endptr))
+		endptr++;
 
 	if (!endptr || *endptr || errno) {
 		if (!errno)
