@@ -136,7 +136,7 @@ static GString *gen_header(const struct sr_output *o)
 	g_string_append_printf(header, "$scope module %s $end\n", PACKAGE_NAME);
 
 	/* Wires / channels */
-	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+	for (i = 0, l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
@@ -144,6 +144,7 @@ static GString *gen_header(const struct sr_output *o)
 			continue;
 		g_string_append_printf(header, "$var wire 1 %c %s $end\n",
 				(char)('!' + i), ch->name);
+		i++;
 	}
 
 	g_string_append(header, "$upscope $end\n$enddefinitions $end\n");
