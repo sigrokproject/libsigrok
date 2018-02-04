@@ -290,7 +290,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_auto)
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 	if (info->is_diode)
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	if (info->is_hold)
 		analog->meaning->mqflags |= SR_MQFLAG_HOLD;
 	if (info->is_max)
@@ -385,6 +385,6 @@ SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info)
 	if (info_local->is_z1) {
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	}
 }

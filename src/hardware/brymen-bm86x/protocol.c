@@ -99,8 +99,10 @@ static void brymen_bm86x_parse(unsigned char *buf, float *floatval,
 		if (buf[8] & 0x01) {
 			analog[0].meaning->mq = SR_MQ_VOLTAGE;
 			analog[0].meaning->unit = SR_UNIT_VOLT;
-			if (!strcmp(str, "diod"))
+			if (!strcmp(str, "diod")) {
 				analog[0].meaning->mqflags |= SR_MQFLAG_DIODE;
+				analog[0].meaning->mqflags |= SR_MQFLAG_DC;
+			}
 		} else if (buf[14] & 0x80) {
 			analog[0].meaning->mq = SR_MQ_CURRENT;
 			analog[0].meaning->unit = SR_UNIT_AMPERE;

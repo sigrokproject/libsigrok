@@ -173,7 +173,7 @@ SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
 		if ((analog->meaning->mqflags & (SR_MQFLAG_DC | SR_MQFLAG_AC)) == 0)
-			analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+			analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 	}
 	if (buf[14] & 2) {
 		analog->meaning->mq = SR_MQ_CURRENT;

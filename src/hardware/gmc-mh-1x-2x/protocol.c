@@ -73,7 +73,7 @@ static void decode_ctmv_16(uint8_t ctmv, struct dev_context *devc)
 	case 0x08: /* 1000 Diode */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
-		devc->mqflags |= SR_MQFLAG_DIODE;
+		devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 0x09: /* 1001 Ohm, °C */
 	case 0x0a: /* 1010 kOhm */
@@ -197,7 +197,7 @@ static void decode_ctmv_18(uint8_t ctmv, struct dev_context *devc)
 	case 0x05: /* 0101 Diode/Diode with buzzer */
 		devc->mq = SR_MQ_VOLTAGE;
 		devc->unit = SR_UNIT_VOLT;
-		devc->mqflags |= SR_MQFLAG_DIODE;
+		devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 0x06: /* 0110 °C */
 		devc->mq = SR_MQ_TEMPERATURE;
@@ -410,7 +410,7 @@ static void decode_ctmv_2x(uint8_t ctmv, struct dev_context *devc)
 		devc->unit = SR_UNIT_VOLT;
 		if (ctmv == 0x0f) {
 			devc->mq = SR_MQ_VOLTAGE;
-			devc->mqflags |= SR_MQFLAG_DIODE;
+			devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		} else {
 			devc->mq = SR_MQ_CONTINUITY;
 			devc->scale += -5;

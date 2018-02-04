@@ -324,7 +324,7 @@ static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 		else if (meas_char == 3)
 			devc->mqflags |= SR_MQFLAG_DC | SR_MQFLAG_AC;
 		else if (meas_char == 15)
-			devc->mqflags |= SR_MQFLAG_DIODE;
+			devc->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		break;
 	case 2:
 		devc->mq = SR_MQ_CURRENT;

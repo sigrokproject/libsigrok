@@ -185,7 +185,7 @@ static void decode_buf(struct sr_dev_inst *sdi, unsigned char *data)
 		if (is_diode) {
 			meaning.mq = SR_MQ_VOLTAGE;
 			meaning.unit = SR_UNIT_VOLT;
-			meaning.mqflags |= SR_MQFLAG_DIODE;
+			meaning.mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 			if (ivalue < 0)
 				fvalue = NAN;
 		} else {
