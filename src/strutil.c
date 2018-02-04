@@ -477,7 +477,8 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
  */
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 {
-	int multiplier, done;
+	uint64_t multiplier;
+	int done;
 	double frac_part;
 	char *s;
 
@@ -504,6 +505,18 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 		case 'G':
 			multiplier = SR_GHZ(1);
 			break;
+		case 't':
+		case 'T':
+			multiplier = SR_GHZ(1000);
+			break;
+		case 'p':
+		case 'P':
+			multiplier = SR_GHZ(1000 * 1000);
+			break;
+		case 'e':
+		case 'E':
+			multiplier = SR_GHZ(1000 * 1000 * 1000);
+			break;
 		default:
 			done = TRUE;
 			s--;
@@ -513,8 +526,9 @@ SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size)
 	if (multiplier > 0) {
 		*size *= multiplier;
 		*size += frac_part * multiplier;
-	} else
+	} else {
 		*size += frac_part;
+	}
 
 	if (s && *s && g_ascii_strcasecmp(s, "Hz"))
 		return SR_ERR;
