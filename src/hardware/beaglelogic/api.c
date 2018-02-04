@@ -65,11 +65,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	const char *conn = NULL;
+	const char *conn;
 	gchar **params;
 	int i, maxch;
 
 	maxch = NUM_CHANNELS;
+	conn = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		if (src->key == SR_CONF_NUM_LOGIC_CHANNELS)
@@ -80,6 +81,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Probe for /dev/beaglelogic if not connecting via TCP */
 	if (!conn) {
+		params = NULL;
 		if (!g_file_test(BEAGLELOGIC_DEV_NODE, G_FILE_TEST_EXISTS))
 			return NULL;
 	} else {
