@@ -49,31 +49,42 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct dev_context *devc;
+	gboolean sent_sample;
+	size_t ch_idx;
 
 	dmm = (struct dmm_info *)sdi->driver;
 
 	log_dmm_packet(buf);
 	devc = sdi->priv;
 
-	/* Note: digits/spec_digits will be overridden by the DMM parsers. */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+	sent_sample = FALSE;
+	memset(info, 0, dmm->info_size);
+	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
+		/* Note: digits/spec_digits will be overridden by the DMM parsers. */
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-	analog.meaning->channels = sdi->channels;
-	analog.num_samples = 1;
-	analog.meaning->mq = 0;
+		analog.meaning->channels =
+			g_slist_append(NULL, g_slist_nth_data(sdi->channels, ch_idx));
+		analog.num_samples = 1;
+		analog.meaning->mq = 0;
 
-	dmm->packet_parse(buf, &floatval, &analog, info);
-	analog.data = &floatval;
+		dmm->packet_parse(buf, &floatval, &analog, info);
+		analog.data = &floatval;
 
-	/* If this DMM needs additional handling, call the resp. function. */
-	if (dmm->dmm_details)
-		dmm->dmm_details(&analog, info);
+		/* If this DMM needs additional handling, call the resp. function. */
+		if (dmm->dmm_details)
+			dmm->dmm_details(&analog, info);
 
-	if (analog.meaning->mq != 0) {
-		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		sr_session_send(sdi, &packet);
+		if (analog.meaning->mq != 0) {
+			/* Got a measurement. */
+			packet.type = SR_DF_ANALOG;
+			packet.payload = &analog;
+			sr_session_send(sdi, &packet);
+			sent_sample = TRUE;
+		}
+	}
+
+	if (sent_sample) {
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 }

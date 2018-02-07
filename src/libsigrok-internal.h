@@ -1273,6 +1273,7 @@ SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 #define METEX14_PACKET_SIZE 14
 
 struct metex14_info {
+	size_t ch_idx;
 	gboolean is_ac, is_dc, is_resistance, is_capacity, is_temperature;
 	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
 	gboolean is_hertz, is_ohm, is_celsius, is_pico, is_nano, is_micro;
@@ -1285,6 +1286,9 @@ SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf);
+SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
 /*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/

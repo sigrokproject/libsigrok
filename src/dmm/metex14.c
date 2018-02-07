@@ -313,6 +313,25 @@ SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf)
 	return TRUE;
 }
 
+SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf)
+{
+	struct metex14_info info;
+	size_t ch_idx;
+	const uint8_t *ch_buf;
+
+	ch_buf = buf;
+	for (ch_idx = 0; ch_idx < 4; ch_idx++) {
+		if (ch_buf[13] != '\r')
+			return FALSE;
+		memset(&info, 0x00, sizeof(info));
+		parse_flags((const char *)ch_buf, &info);
+		if (!flags_valid(&info))
+			return FALSE;
+		ch_buf += METEX14_PACKET_SIZE;
+	}
+	return TRUE;
+}
+
 /**
  * Parse a protocol packet.
  *
@@ -353,4 +372,35 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	analog->spec->spec_digits = -exponent;
 
 	return SR_OK;
+}
+
+/**
+ * Parse one out of four values of a four-display Metex14 variant.
+ *
+ * The caller's 'info' parameter can be used to track the channel index,
+ * as long as the information is kept across calls to the 14-byte packet
+ * parse routine (which clears the 'info' container).
+ *
+ * Since analog values have further details in the 'analog' parameter,
+ * passing multiple values per parse routine call is problematic. So we
+ * prefer the approach of passing one value per call, which is most
+ * reliable and shall fit every similar device with multiple displays.
+ *
+ * The meters which use this parse routine send one 14-byte packet per
+ * display. Each packet has the regular Metex14 layout.
+ */
+SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info)
+{
+	struct metex14_info *info_local;
+	size_t ch_idx;
+	const uint8_t *ch_buf;
+	int rc;
+
+	info_local = info;
+	ch_idx = info_local->ch_idx;
+	ch_buf = buf + ch_idx * METEX14_PACKET_SIZE;
+	rc = sr_metex14_parse(ch_buf, floatval, analog, info);
+	info_local->ch_idx = ch_idx + 1;
+	return rc;
 }

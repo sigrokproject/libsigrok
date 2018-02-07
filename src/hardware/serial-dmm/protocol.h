@@ -47,6 +47,8 @@ struct dmm_info {
 	int64_t req_delay_ms;
 	/** Packet request function. */
 	int (*packet_request)(struct sr_serial_dev_inst *);
+	/** Number of channels / displays. */
+	size_t channel_count;
 	/** Packet validation function. */
 	gboolean (*packet_valid)(const uint8_t *);
 	/** Packet parsing function. */
