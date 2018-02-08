@@ -514,12 +514,16 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_THRESHOLD:
+		if (!devc || !devc->profile)
+			return SR_ERR_ARG;
 		if (!strcmp(devc->profile->model, "DSLogic"))
 			*data = std_gvar_thresholds(ARRAY_AND_SIZE(thresholds));
 		else
 			*data = std_gvar_min_max_step_thresholds(0.0, 5.0, 0.1);
 		break;
 	case SR_CONF_SAMPLERATE:
+		if (!devc)
+			return SR_ERR_ARG;
 		*data = std_gvar_samplerates(devc->samplerates, devc->num_samplerates);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
