@@ -379,12 +379,13 @@ static int zip_append_analog(const struct sr_output *o,
 	analogsrc = zip_source_buffer(archive, chunkbuf, chunksize, FALSE);
 	chunkname = g_strdup_printf("%s-%u", basename, next_chunk_num);
 	i = zip_add(archive, chunkname, analogsrc);
-	g_free(chunkname);
 	if (i < 0) {
 		sr_err("Failed to add chunk '%s': %s", chunkname, zip_strerror(archive));
+		g_free(chunkname);
 		zip_source_free(analogsrc);
 		goto err_free_chunkbuf;
 	}
+	g_free(chunkname);
 	if (zip_close(archive) < 0) {
 		sr_err("Error saving session file: %s", zip_strerror(archive));
 		goto err_free_chunkbuf;
