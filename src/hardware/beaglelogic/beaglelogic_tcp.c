@@ -172,6 +172,7 @@ static int beaglelogic_tcp_get_string(struct dev_context *devc, const char *cmd,
 	int len;
 	gint64 timeout;
 
+	*tcp_resp = NULL;
 	if (cmd) {
 		if (beaglelogic_tcp_send_cmd(devc, cmd) != SR_OK)
 			return SR_ERR;
@@ -288,9 +289,11 @@ static int beaglelogic_get_samplerate(struct dev_context *devc)
 	int arg, err;
 
 	err = beaglelogic_tcp_get_int(devc, "samplerate", &arg);
-	devc->cur_samplerate = arg;
+	if (err)
+		return err;
 
-	return err;
+	devc->cur_samplerate = arg;
+	return SR_OK;
 }
 
 static int beaglelogic_set_samplerate(struct dev_context *devc)
