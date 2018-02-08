@@ -346,6 +346,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 		value = g_variant_get_uint64(data);
 		/* TODO: Implement. */
+		(void)value;
 		return SR_ERR_NA;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
