@@ -216,7 +216,7 @@ static GString *gen_header(const struct sr_output *o,
 	struct sr_channel *ch;
 	GVariant *gvar;
 	GString *header;
-	GSList *l;
+	GSList *channels, *l;
 	unsigned int num_channels, i;
 	uint64_t samplerate = 0, sr;
 	char *samplerate_s;
@@ -256,18 +256,20 @@ static GString *gen_header(const struct sr_output *o,
 			ctx->title, ctime(&hdr->starttime.tv_sec));
 
 		/* Columns / channels */
-		num_channels = g_slist_length(o->sdi->channels);
+		channels = o->sdi ? o->sdi->channels : NULL;
+		num_channels = g_slist_length(channels);
 		g_string_append_printf(header, "%s Channels (%d/%d):",
 			ctx->comment, ctx->num_analog_channels +
 			ctx->num_logic_channels, num_channels);
-		for (l = o->sdi->channels; l; l = l->next) {
+		for (l = channels; l; l = l->next) {
 			ch = l->data;
 			if (ch->enabled)
 				g_string_append_printf(header, " %s,", ch->name);
 		}
-		if (o->sdi->channels)
+		if (channels) {
 			/* Drop last separator. */
 			g_string_truncate(header, header->len - 1);
+		}
 		g_string_append_printf(header, "\n");
 		if (samplerate != 0) {
 			samplerate_s = sr_samplerate_string(samplerate);
