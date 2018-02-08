@@ -573,6 +573,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/zeroplus-logic-cube/protocol.c \
 	src/hardware/zeroplus-logic-cube/api.c
 endif
+if HW_ZKETECH_EBD_USB
+src_libdrivers_la_SOURCES += \
+	src/hardware/zketech-ebd-usb/protocol.h \
+	src/hardware/zketech-ebd-usb/protocol.c \
+	src/hardware/zketech-ebd-usb/api.c
+endif
 
 libsigrok_la_LIBADD = src/libdrivers.lo $(SR_EXTRA_LIBS) $(LIBSIGROK_LIBS)
 libsigrok_la_LDFLAGS = -version-info $(SR_LIB_VERSION) -no-undefined
