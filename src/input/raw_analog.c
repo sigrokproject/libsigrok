@@ -271,8 +271,8 @@ static int reset(struct sr_input *in)
 {
 	struct context *inc = in->priv;
 
-	cleanup(in);
 	inc->started = FALSE;
+	cleanup(in);
 	g_string_truncate(in->buf, 0);
 
 	return SR_OK;
