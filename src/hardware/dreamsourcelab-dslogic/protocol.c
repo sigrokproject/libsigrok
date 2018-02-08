@@ -914,6 +914,8 @@ static size_t get_buffer_size(const struct sr_dev_inst *sdi)
 	 */
 	const size_t block_size = enabled_channel_count(sdi) * 512;
 	const size_t s = 10 * to_bytes_per_ms(sdi);
+	if (!block_size)
+		return s;
 	return ((s + block_size - 1) / block_size) * block_size;
 }
 
