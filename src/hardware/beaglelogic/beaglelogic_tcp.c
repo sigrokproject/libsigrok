@@ -107,6 +107,7 @@ static int beaglelogic_tcp_send_cmd(struct dev_context *devc,
 
 	if (out < 0) {
 		sr_err("Send error: %s", g_strerror(errno));
+		g_free(buf);
 		return SR_ERR;
 	}
 
