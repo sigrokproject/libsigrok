@@ -651,6 +651,7 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 	gboolean opc;
 
 	for (i = 0; i < SCPI_READ_RETRIES; i++) {
+		opc = FALSE;
 		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
 		if (opc)
 			return SR_OK;
