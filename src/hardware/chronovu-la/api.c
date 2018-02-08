@@ -351,12 +351,12 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(devc->samplerates));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (!devc->prof)
+		if (!devc || !devc->prof)
 			return SR_ERR_BUG;
 		*data = std_gvar_tuple_u64(0, (devc->prof->model == CHRONOVU_LA8) ? MAX_NUM_SAMPLES : MAX_NUM_SAMPLES / 2);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		if (!devc->prof)
+		if (!devc || !devc->prof)
 			return SR_ERR_BUG;
 		*data = std_gvar_array_i32(trigger_matches, devc->prof->num_trigger_matches);
 		break;
