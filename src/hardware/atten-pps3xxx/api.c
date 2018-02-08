@@ -317,6 +317,8 @@ static int config_list(uint32_t key, GVariant **data,
 		case SR_CONF_DEVICE_OPTIONS:
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_CHANNEL_CONFIG:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			if (devc->model->channel_modes == CHANMODE_INDEPENDENT) {
 				/* The 1-channel models. */
 				*data = g_variant_new_strv(channel_modes, 1);
@@ -338,9 +340,13 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			*data = std_gvar_min_max_step_array(devc->model->channels[channel].voltage);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			*data = std_gvar_min_max_step_array(devc->model->channels[channel].current);
 			break;
 		default:
