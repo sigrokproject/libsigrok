@@ -150,8 +150,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 		ret = zip_fread(vdev->capfile, buf, CHUNKSIZE);
 
 	if (ret > 0) {
-		got_data = TRUE;
 		if (vdev->cur_analog_channel != 0) {
+			got_data = TRUE;
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
 			/* TODO: Use proper 'digits' value for this device (and its modes). */
@@ -164,7 +164,8 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 			analog.meaning->unit = SR_UNIT_VOLT;
 			analog.meaning->mqflags = SR_MQFLAG_DC;
 			analog.data = (float *) buf;
-		} else {
+		} else if (vdev->unitsize) {
+			got_data = TRUE;
 			if (ret % vdev->unitsize != 0)
 				sr_warn("Read size %d not a multiple of the"
 					" unit size %d.", ret, vdev->unitsize);
@@ -173,9 +174,17 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 			logic.length = ret;
 			logic.unitsize = vdev->unitsize;
 			logic.data = buf;
+		} else {
+			/*
+			 * Neither analog data, nor logic which has
+			 * unitsize, must be an unexpected API use.
+			 */
+			sr_warn("Neither analog nor logic data. Ignoring.");
 		}
-		vdev->bytes_read += ret;
-		sr_session_send(sdi, &packet);
+		if (got_data) {
+			vdev->bytes_read += ret;
+			sr_session_send(sdi, &packet);
+		}
 	} else {
 		/* done with this capture file */
 		zip_fclose(vdev->capfile);
