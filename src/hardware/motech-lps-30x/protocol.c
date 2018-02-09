@@ -76,6 +76,8 @@ static void process_line(struct sr_dev_inst *sdi)
 	int auxint;
 
 	devc = sdi->priv;
+	if (!devc)
+		return;
 
 	switch (devc->acq_req_pending) {
 	case 0: /* Should not happen... */
@@ -87,6 +89,7 @@ static void process_line(struct sr_dev_inst *sdi)
 		case AQ_U2:
 		case AQ_I1:
 		case AQ_I2:
+			dbl = 0.0;
 			if (sr_atod_ascii(devc->buf, &dbl) != SR_OK) {
 				sr_err("Failed to convert '%s' to double, errno=%d %s",
 					devc->buf, errno, g_strerror(errno));
@@ -94,6 +97,7 @@ static void process_line(struct sr_dev_inst *sdi)
 			}
 			break;
 		case AQ_STATUS:
+			auxint = 0;
 			if (sr_atoi(devc->buf, &auxint) != SR_OK) {
 				sr_err("Failed to convert '%s' to int, errno=%d %s",
 					devc->buf, errno, g_strerror(errno));
