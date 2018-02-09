@@ -359,8 +359,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 	}
 
-	devc->current_channel = devc->active_channels->data;
 	devc->num_active_channels = g_slist_length(devc->active_channels);
+	if (!devc->num_active_channels) {
+		sr_err("Need at least one active channel!");
+		g_slist_free(devc->active_channels);
+		return SR_ERR_ARG;
+	}
+	devc->current_channel = devc->active_channels->data;
 
 	hp_3457a_select_input(sdi, front_selected ? CONN_FRONT : CONN_REAR);
 
