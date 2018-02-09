@@ -525,10 +525,12 @@ static int config_list(uint32_t key, GVariant **data,
 			return std_opts_config_list(key, data, sdi, cg,
 				ARRAY_AND_SIZE(scanopts),
 				ARRAY_AND_SIZE(drvopts),
-				(devc) ? devc->device->devopts : NULL,
-				(devc) ? devc->device->num_devopts : 0);
+				(devc && devc->device) ? devc->device->devopts : NULL,
+				(devc && devc->device) ? devc->device->num_devopts : 0);
 			break;
 		case SR_CONF_CHANNEL_CONFIG:
+			if (!devc || !devc->device)
+				return SR_ERR_ARG;
 			/* Not used. */
 			i = 0;
 			if (devc->device->features & PPS_INDEPENDENT)
@@ -557,6 +559,8 @@ static int config_list(uint32_t key, GVariant **data,
 		 * specification for use in series or parallel mode.
 		 */
 		ch = cg->channels->data;
+		if (!devc || !devc->device)
+			return SR_ERR_ARG;
 		ch_spec = &(devc->device->channels[ch->index]);
 
 		switch (key) {
