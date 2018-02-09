@@ -300,11 +300,9 @@ static GSList *scan_2x_bd232(struct sr_dev_driver *di, GSList *options)
 		}
 	};
 
-	/* Free last alloc if no device found */
-	if (devc->model == METRAHIT_NONE) {
-		g_free(devc);
-		sr_dev_inst_free(sdi);
-	}
+	/* Free last alloc that was done in preparation. */
+	g_free(devc);
+	sr_dev_inst_free(sdi);
 
 	return std_scan_complete(di, devices);
 
