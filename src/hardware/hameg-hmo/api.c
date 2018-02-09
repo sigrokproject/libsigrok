@@ -246,8 +246,6 @@ static int config_set(uint32_t key, GVariant *data,
 	state = devc->model_state;
 	update_sample_rate = FALSE;
 
-	ret = SR_ERR_NA;
-
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
@@ -380,6 +378,8 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		if (!model)
+			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
@@ -400,6 +400,8 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_VDIV:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		if (!model)
+			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
 		break;
 	default:
@@ -552,6 +554,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 			setup_changed = TRUE;
 			break;
 		default:
+			g_free(pod_enabled);
 			return SR_ERR;
 		}
 	}
