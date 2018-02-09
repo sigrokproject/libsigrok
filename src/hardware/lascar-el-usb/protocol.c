@@ -412,10 +412,13 @@ static void lascar_el_usb_dispatch(struct sr_dev_inst *sdi, unsigned char *buf,
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		analog.meaning->mqflags = 0;
-		if (!(temp = g_try_malloc(sizeof(float) * samples)))
+		temp = g_try_malloc(sizeof(float) * samples);
+		rh = g_try_malloc(sizeof(float) * samples);
+		if (!temp || !rh) {
+			g_free(temp);
+			g_free(rh);
 			break;
-		if (!(rh = g_try_malloc(sizeof(float) * samples)))
-			break;
+		}
 		for (i = 0, j = 0; i < samples; i++) {
 			/* Both Celsius and Fahrenheit stored at base -40. */
 			if (devc->temp_unit == 0)
