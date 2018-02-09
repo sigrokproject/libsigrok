@@ -82,8 +82,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK) {
+		g_free(sdi);
 		return NULL;
+	}
 
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
