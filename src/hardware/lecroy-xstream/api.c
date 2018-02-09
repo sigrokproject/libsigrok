@@ -213,8 +213,6 @@ static int config_set(uint32_t key, GVariant *data,
 	model = devc->model_config;
 	state = devc->model_state;
 
-	ret = SR_ERR_NA;
-
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
@@ -324,6 +322,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
 		break;
 	case SR_CONF_COUPLING:
+		if (!model)
+			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:

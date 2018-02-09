@@ -665,6 +665,8 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 		return SR_ERR;
 
 	if (analog.num_samples == 0) {
+		g_free(analog.data);
+
 		/* No data available, we have to acquire data first. */
 		g_snprintf(command, sizeof(command), "ARM;WAIT;*OPC;C%d:WAVEFORM?", ch->index + 1);
 		sr_scpi_send(sdi->conn, command);
