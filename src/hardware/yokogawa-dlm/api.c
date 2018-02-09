@@ -164,6 +164,8 @@ static int check_channel_group(struct dev_context *devc,
 {
 	const struct scope_config *model;
 
+	if (!devc)
+		return CG_INVALID;
 	model = devc->model_config;
 
 	if (!cg)
@@ -283,8 +285,6 @@ static int config_set(uint32_t key, GVariant *data,
 	model = devc->model_config;
 	state = devc->model_state;
 	update_sample_rate = FALSE;
-
-	ret = SR_ERR_NA;
 
 	switch (key) {
 	case SR_CONF_LIMIT_FRAMES:
@@ -409,6 +409,8 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(dlm_trigger_slopes));
 			return SR_OK;
 		case SR_CONF_NUM_HDIV:
+			if (!model)
+				return SR_ERR_ARG;
 			*data = g_variant_new_uint32(model->num_xdivs);
 			return SR_OK;
 		default:
