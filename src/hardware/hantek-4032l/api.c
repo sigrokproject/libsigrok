@@ -349,8 +349,8 @@ static int config_set(uint32_t key, GVariant *data,
 			number_samples &= 0xfffffe00;
 			if (number_samples < 2048
 			    || number_samples > 64 * 1024 * 1024) {
-				sr_err("invalid sample range 2k...64M: %ld",
-				       number_samples);
+				sr_err("invalid sample range 2k...64M: %"
+				       PRIu64, number_samples);
 				return SR_ERR;
 			}
 			cmd_pkt->sample_size = number_samples;
