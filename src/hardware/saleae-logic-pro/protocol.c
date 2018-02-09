@@ -530,8 +530,6 @@ static int upload_bitstream(const struct sr_dev_inst *sdi,
 		bs_offset += bs_part_size;
 	}
 
-	ret = SR_OK;
-
 	sr_info("Bitstream upload done.");
 
 	/* Check a scratch register? */
