@@ -110,6 +110,7 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 		if (serial_write_blocking(serial, req, strlen(req),
 				serial_timeout(serial, strlen(req))) < 0) {
 			sr_err("Unable to send identification request.");
+			g_free(buf);
 			return NULL;
 		}
 		len = BUF_MAX;
