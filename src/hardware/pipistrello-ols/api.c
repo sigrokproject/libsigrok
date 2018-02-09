@@ -276,7 +276,6 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_PATTERN_MODE:
 		stropt = g_variant_get_string(data, NULL);
-		flag = 0xffff;
 		if (!strcmp(stropt, STR_PATTERN_NONE)) {
 			sr_info("Disabling test modes.");
 			flag = 0x0000;
@@ -289,10 +288,9 @@ static int config_set(uint32_t key, GVariant *data,
 		} else {
 			return SR_ERR;
 		}
-		if (flag != 0xffff) {
-			devc->flag_reg &= ~(FLAG_INTERNAL_TEST_MODE | FLAG_EXTERNAL_TEST_MODE);
-			devc->flag_reg |= flag;
-		}
+		devc->flag_reg &= ~FLAG_INTERNAL_TEST_MODE;
+		devc->flag_reg &= ~FLAG_EXTERNAL_TEST_MODE;
+		devc->flag_reg |= flag;
 		break;
 	case SR_CONF_SWAP:
 		if (g_variant_get_boolean(data)) {
