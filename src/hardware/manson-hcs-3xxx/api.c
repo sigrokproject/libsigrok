@@ -281,10 +281,14 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_TARGET:
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
 		a = devc->model->voltage;
 		*data = std_gvar_min_max_step(a[0], devc->voltage_max_device, a[2]);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
+		if (!devc || !devc->model)
+			return SR_ERR_ARG;
 		a = devc->model->current;
 		*data = std_gvar_min_max_step(a[0], devc->current_max_device, a[2]);
 		break;
