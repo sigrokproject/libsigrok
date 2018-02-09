@@ -588,6 +588,8 @@ static int config_list(uint32_t key, GVariant **data,
 			(devc) ? devc->model->num_devopts : 0);
 	}
 
+	if (!devc)
+		return SR_ERR_ARG;
 	if (!has_devopt(devc->model, key | SR_CONF_LIST))
 		return SR_ERR_NA;
 
