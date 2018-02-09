@@ -363,9 +363,13 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		case SR_CONF_VOLTAGE_TARGET:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			*data = std_gvar_min_max_step(0.0, devc->model->max_voltage, 0.001);
 			break;
 		case SR_CONF_CURRENT_LIMIT:
+			if (!devc || !devc->model)
+				return SR_ERR_ARG;
 			*data = std_gvar_min_max_step(0.0, devc->model->max_current, 0.0001);
 			break;
 		default:
