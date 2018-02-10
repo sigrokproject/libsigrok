@@ -1489,8 +1489,10 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		logic_copy->length = logic->length;
 		logic_copy->unitsize = logic->unitsize;
 		logic_copy->data = g_malloc(logic->length * logic->unitsize);
-		if (!logic_copy->data)
+		if (!logic_copy->data) {
+			g_free(logic_copy);
 			return SR_ERR;
+		}
 		memcpy(logic_copy->data, logic->data, logic->length * logic->unitsize);
 		(*copy)->payload = logic_copy;
 		break;
