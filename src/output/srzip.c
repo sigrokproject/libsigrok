@@ -150,6 +150,7 @@ static int zip_create(const struct sr_output *o)
 		if (!ch->enabled)
 			continue;
 
+		s = NULL;
 		switch (ch->type) {
 		case SR_CHANNEL_LOGIC:
 			s = g_strdup_printf("probe%d", ch->index + 1);
@@ -160,8 +161,10 @@ static int zip_create(const struct sr_output *o)
 			index++;
 			break;
 		}
-		g_key_file_set_string(meta, devgroup, s, ch->name);
-		g_free(s);
+		if (s) {
+			g_key_file_set_string(meta, devgroup, s, ch->name);
+			g_free(s);
+		}
 	}
 
 	metabuf = g_key_file_to_data(meta, &metalen, NULL);
