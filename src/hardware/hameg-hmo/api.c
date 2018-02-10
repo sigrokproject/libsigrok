@@ -509,6 +509,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	int ret;
 
 	devc = sdi->priv;
 	scpi = sdi->conn;
@@ -559,19 +560,23 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 		}
 	}
 
+	ret = SR_OK;
 	for (i = 0; i < model->digital_pods; i++) {
 		if (state->digital_pods[i] == pod_enabled[i])
 			continue;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
 			   i + 1, pod_enabled[i]);
-		if (sr_scpi_send(scpi, command) != SR_OK)
-			return SR_ERR;
+		if (sr_scpi_send(scpi, command) != SR_OK) {
+			ret = SR_ERR;
+			break;
+		}
 		state->digital_pods[i] = pod_enabled[i];
 		setup_changed = TRUE;
 	}
-
 	g_free(pod_enabled);
+	if (ret != SR_OK)
+		return ret;
 
 	if (setup_changed && hmo_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
