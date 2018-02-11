@@ -65,6 +65,30 @@ static void test_sr_vsnprintf_ascii(const char *expected, char *format, ...)
 	g_free(s);
 }
 
+static void test_sr_vsprintf_ascii(const char *expected, char *format, ...)
+{
+	va_list args, args_copy;
+	char *s;
+	int len;
+
+	/* Get length of buffer required. */
+	va_start(args, format);
+	va_copy(args_copy, args);
+	len = sr_vsnprintf_ascii(NULL, 0, format, args);
+	va_end(args);
+
+	/* Allocate buffer and write out command. */
+	s = g_malloc0(len + 1);
+	len = sr_vsprintf_ascii(s, format, args_copy);
+	va_end(args_copy);
+
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
+	fail_unless(!strcmp(s, expected),
+			"Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
 static void test_samplerate(uint64_t samplerate, const char *expected)
 {
 	char *s;
@@ -145,6 +169,13 @@ START_TEST(test_locale)
 	test_sr_vsnprintf_ascii("0.1234", "%.4f", (double)0.1234);
 	test_sr_vsnprintf_ascii("0.12345", "%.5f", (double)0.12345);
 	test_sr_vsnprintf_ascii("0.123456", "%.6f", (double)0.123456);
+
+	test_sr_vsprintf_ascii("0.1", "%.1f", (double)0.1);
+	test_sr_vsprintf_ascii("0.12", "%.2f", (double)0.12);
+	test_sr_vsprintf_ascii("0.123", "%.3f", (double)0.123);
+	test_sr_vsprintf_ascii("0.1234", "%.4f", (double)0.1234);
+	test_sr_vsprintf_ascii("0.12345", "%.5f", (double)0.12345);
+	test_sr_vsprintf_ascii("0.123456", "%.6f", (double)0.123456);
 
 #if 0
 	/*
