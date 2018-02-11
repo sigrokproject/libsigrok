@@ -150,12 +150,12 @@ static int scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
 
 	/* Get length of buffer required. */
 	va_copy(args_copy, args);
-	len = vsnprintf(NULL, 0, format, args_copy);
+	len = sr_vsnprintf_ascii(NULL, 0, format, args_copy);
 	va_end(args_copy);
 
 	/* Allocate buffer and write out command. */
 	buf = g_malloc0(len + 2);
-	vsprintf(buf, format, args);
+	sr_vsprintf_ascii(buf, format, args);
 	if (buf[len - 1] != '\n')
 		buf[len] = '\n';
 
