@@ -111,6 +111,12 @@ static struct usbtmc_blacklist blacklist_remote[] = {
 	ALL_ZERO
 };
 
+/* Devices that shall get reset during open(). */
+static struct usbtmc_blacklist whitelist_usb_reset[] = {
+	{ 0xf4ec, 0xffff }, /* All Siglent SDS devices */
+	ALL_ZERO
+};
+
 static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 {
 	struct libusb_device **devlist;
@@ -291,6 +297,7 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	int confidx, intfidx, epidx, config = 0, current_config;
 	uint8_t capabilities[24];
 	int ret, found = 0;
+	int do_reset;
 
 	if (usb->devhdl)
 		return SR_OK;
@@ -371,7 +378,11 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		return SR_ERR;
 	}
 
-	libusb_reset_device(usb->devhdl);
+	/* Optionally reset the USB device. */
+	do_reset = check_usbtmc_blacklist(whitelist_usb_reset,
+		des.idVendor, des.idProduct);
+	if (do_reset)
+		libusb_reset_device(usb->devhdl);
 
 	/* Get capabilities. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
