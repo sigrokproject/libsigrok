@@ -491,6 +491,12 @@ if HW_SERIAL_LCR
 src_libdrivers_la_SOURCES += \
 	src/hardware/serial-lcr/api.c
 endif
+if HW_SIGLENT_SDS
+src_libdrivers_la_SOURCES += \
+	src/hardware/siglent-sds/protocol.h \
+	src/hardware/siglent-sds/protocol.c \
+	src/hardware/siglent-sds/api.c
+endif
 if HW_SYSCLK_LWLA
 src_libdrivers_la_SOURCES += \
 	src/hardware/sysclk-lwla/lwla.h \
