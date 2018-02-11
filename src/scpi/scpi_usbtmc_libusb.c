@@ -107,6 +107,7 @@ static struct usbtmc_blacklist blacklist_remote[] = {
 	{ 0x1ab1, 0x04b0 }, /* Rigol DS2000 series */
 	{ 0x0957, 0x0588 }, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
 	{ 0x0b21, 0xffff }, /* All Yokogawa devices */
+	{ 0xf4ec, 0xffff }, /* All Siglent SDS devices */
 	ALL_ZERO
 };
 
@@ -369,6 +370,8 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		       libusb_error_name(ret));
 		return SR_ERR;
 	}
+
+	libusb_reset_device(usb->devhdl);
 
 	/* Get capabilities. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_ENDPOINT_IN |
