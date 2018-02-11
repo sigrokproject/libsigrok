@@ -115,6 +115,7 @@ The following drivers/devices do not need any firmware upload:
  - scpi-pps
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
+ - siglent-sds
  - teleinfo
  - testo
  - tondaj-sl-814
@@ -197,6 +198,7 @@ The following drivers/devices accept network communication parameters:
 
  - hameg-hmo
  - rigol-ds
+ - siglent-sds
  - yokogawa-dlm
 
 
