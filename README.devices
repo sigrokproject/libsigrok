@@ -139,7 +139,8 @@ Example:
 
  $ sigrok-cli --driver <somedriver>:conn=/dev/ttyUSB0 ...
 
-The following drivers/devices require a serial port specification:
+The following drivers/devices require a serial port specification. Some of
+the drivers implement a default for the connection.
 
  - agilent-dmm
  - appa-55ii
@@ -183,6 +184,20 @@ The following drivers/devices do not require a serial port specification:
  - victor-dmm
  - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
+
+Beyond strict serial communication over COM ports (e.g. /dev/ttyUSB0), the
+conn= property can also address specific USB devices, as well as specify TCP
+or VXI communication parameters. See these examples:
+
+ $ sigrok-cli --driver <somedriver>:conn=<vid>.<pid> ...
+ $ sigrok-cli --driver <somedriver>:conn=tcp-raw/<ipaddr>/<port> ...
+ $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
+
+The following drivers/devices accept network communication parameters:
+
+ - hameg-hmo
+ - rigol-ds
+ - yokogawa-dlm
 
 
 Specifying serial port parameters
