@@ -25,9 +25,13 @@
  * @internal
  */
 
+/* Needed for gettimeofday(), at least on FreeBSD. */
+#define _XOPEN_SOURCE 700
+
 #include <config.h>
 #include <string.h>
 #include <math.h>
+#include <sys/time.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
