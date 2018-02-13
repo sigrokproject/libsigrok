@@ -684,10 +684,10 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	g_free(cmd);
 	if (res != SR_OK)
 		return SR_ERR;
-	if (strcasestr(samplePointsString, "Mpts") != NULL) {
+	if (g_strstr_len(samplePointsString, -1, "Mpts") != NULL) {
 		samplePointsString[strlen(samplePointsString) - 4] = '\0';
 
-		if (strcasestr(samplePointsString, ".") != NULL) {
+		if (g_strstr_len(samplePointsString, -1, ".") != NULL) {
 			first = strtok(samplePointsString, ".");
 			concat = strcat(first, strtok(NULL, "."));
 			if (sr_atof_ascii(concat, &fvalue) != SR_OK || fvalue == 0.0) {
