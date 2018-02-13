@@ -22,7 +22,6 @@
 #include <fcntl.h>
 #include <glib.h>
 #include <math.h>
-#include <rpc/rpc.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
