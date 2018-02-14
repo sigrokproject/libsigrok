@@ -389,7 +389,7 @@ SR_PRIV int sr_metex14_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct metex14_info *info_local;
 
-	info_local = (struct metex14_info *)info;
+	info_local = info;
 
 	/* Don't print byte 13. That one contains the carriage return. */
 	sr_dbg("DMM packet: \"%.13s\"", buf);

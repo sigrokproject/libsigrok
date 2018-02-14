@@ -336,7 +336,7 @@ SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct ut71x_info *info_local;
 
-	info_local = (struct ut71x_info *)info;
+	info_local = info;
 	memset(info_local, 0, sizeof(struct ut71x_info));
 
 	if (!sr_ut71x_packet_valid(buf))

@@ -519,7 +519,7 @@ SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent;
 	struct asycii_info *info_local;
 
-	info_local = (struct asycii_info *)info;
+	info_local = info;
 
 	/* Don't print byte 15. That one contains the carriage return. */
 	sr_dbg("DMM packet: \"%.15s\"", buf);

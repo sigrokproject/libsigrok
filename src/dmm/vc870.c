@@ -410,7 +410,7 @@ SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct vc870_info *info_local;
 
-	info_local = (struct vc870_info *)info;
+	info_local = info;
 	memset(info_local, 0, sizeof(struct vc870_info));
 
 	if (!sr_vc870_packet_valid(buf))

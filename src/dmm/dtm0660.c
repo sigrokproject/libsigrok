@@ -373,7 +373,7 @@ SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 	int ret, exponent = 0;
 	struct dtm0660_info *info_local;
 
-	info_local = (struct dtm0660_info *)info;
+	info_local = info;
 
 	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
 		sr_dbg("Error parsing value: %d.", ret);
