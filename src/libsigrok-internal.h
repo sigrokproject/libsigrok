@@ -1276,9 +1276,10 @@ struct metex14_info {
 	size_t ch_idx;
 	gboolean is_ac, is_dc, is_resistance, is_capacity, is_temperature;
 	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
-	gboolean is_hertz, is_ohm, is_celsius, is_pico, is_nano, is_micro;
-	gboolean is_milli, is_kilo, is_mega, is_gain, is_decibel, is_hfe;
-	gboolean is_unitless, is_logic;
+	gboolean is_hertz, is_ohm, is_celsius, is_fahrenheit, is_watt;
+	gboolean is_pico, is_nano, is_micro, is_milli, is_kilo, is_mega;
+	gboolean is_gain, is_decibel, is_power, is_decibel_mw;
+	gboolean is_hfe, is_unitless, is_logic, is_min, is_max, is_avg;
 };
 
 #ifdef HAVE_LIBSERIALPORT

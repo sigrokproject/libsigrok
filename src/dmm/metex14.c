@@ -146,8 +146,14 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		info->is_kilo = info->is_hertz = TRUE;
 	else if (!g_ascii_strcasecmp(u, "C"))
 		info->is_celsius = TRUE;
+	else if (!g_ascii_strcasecmp(u, "F"))
+		info->is_fahrenheit = TRUE;
 	else if (!g_ascii_strcasecmp(u, "DB"))
 		info->is_decibel = TRUE;
+	else if (!g_ascii_strcasecmp(u, "dBm"))
+		info->is_decibel_mw = TRUE;
+	else if (!g_ascii_strcasecmp(u, "W"))
+		info->is_watt = TRUE;
 	else if (!g_ascii_strcasecmp(u, ""))
 		info->is_unitless = TRUE;
 
@@ -156,15 +162,22 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		(!strncmp(buf, "  ", 2) && info->is_ohm);
 	info->is_capacity = !strncmp(buf, "CA", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_farad);
-	info->is_temperature = !strncmp(buf, "TE", 2);
+	info->is_temperature = !strncmp(buf, "TE", 2) ||
+		info->is_celsius || info->is_fahrenheit;
 	info->is_diode = !strncmp(buf, "DI", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_volt && info->is_milli);
 	info->is_frequency = !strncmp(buf, "FR", 2) ||
 		(!strncmp(buf, "  ", 2) && info->is_hertz);
-	info->is_gain = !strncmp(buf, "DB", 2);
+	info->is_gain = !strncmp(buf, "DB", 2) && info->is_decibel;
+	info->is_power = (!strncmp(buf, "dB", 2) && info->is_decibel_mw) ||
+		((!strncmp(buf, "WT", 2) && info->is_watt));
 	info->is_hfe = !strncmp(buf, "HF", 2) ||
 		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
 		 !info->is_logic && !info->is_farad && !info->is_hertz);
+	info->is_min = !strncmp(buf, "MN", 2);
+	info->is_max = !strncmp(buf, "MX", 2);
+	info->is_avg = !strncmp(buf, "AG", 2);
+
 	/*
 	 * Note:
 	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
@@ -178,8 +191,12 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 int *exponent, const struct metex14_info *info)
 {
-	int factor = 0;
+	int factor;
+
+	(void)exponent;
+
 	/* Factors */
+	factor = 0;
 	if (info->is_pico)
 		factor -= 12;
 	if (info->is_nano)
@@ -193,7 +210,6 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 	if (info->is_mega)
 		factor += 6;
 	*floatval *= powf(10, factor);
-	*exponent += factor;
 
 	/* Measurement modes */
 	if (info->is_volt) {
@@ -216,13 +232,27 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->meaning->mq = SR_MQ_CAPACITANCE;
 		analog->meaning->unit = SR_UNIT_FARAD;
 	}
-	if (info->is_celsius) {
+	if (info->is_temperature) {
 		analog->meaning->mq = SR_MQ_TEMPERATURE;
-		analog->meaning->unit = SR_UNIT_CELSIUS;
+		if (info->is_celsius)
+			analog->meaning->unit = SR_UNIT_CELSIUS;
+		else if (info->is_fahrenheit)
+			analog->meaning->unit = SR_UNIT_FAHRENHEIT;
+		else
+			analog->meaning->unit = SR_UNIT_UNITLESS;
 	}
 	if (info->is_diode) {
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
+	}
+	if (info->is_power) {
+		analog->meaning->mq = SR_MQ_POWER;
+		if (info->is_decibel_mw)
+			analog->meaning->unit = SR_UNIT_DECIBEL_MW;
+		else if (info->is_watt)
+			analog->meaning->unit = SR_UNIT_WATT;
+		else
+			analog->meaning->unit = SR_UNIT_UNITLESS;
 	}
 	if (info->is_gain) {
 		analog->meaning->mq = SR_MQ_GAIN;
@@ -244,6 +274,12 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_DC;
 	if (info->is_diode)
 		analog->meaning->mqflags |= SR_MQFLAG_DIODE | SR_MQFLAG_DC;
+	if (info->is_min)
+		analog->meaning->mqflags |= SR_MQFLAG_MIN;
+	if (info->is_max)
+		analog->meaning->mqflags |= SR_MQFLAG_MAX;
+	if (info->is_avg)
+		analog->meaning->mqflags |= SR_MQFLAG_AVG;
 }
 
 static gboolean flags_valid(const struct metex14_info *info)
