@@ -167,7 +167,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 				h4032l_usb_callback,
 				(void *)sdi, H4032L_USB_TIMEOUT);
 		}
-		/* Send prepared usb packet. */
+		/* Send prepared USB packet. */
 		if ((ret = libusb_submit_transfer(transfer)) != 0) {
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));

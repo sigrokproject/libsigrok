@@ -333,7 +333,7 @@ static int config_set(uint32_t key, GVariant *data,
 				i++;
 
 			if (i == ARRAY_SIZE(samplerates_hw) || sample_rate == 0) {
-				sr_err("invalid sample rate");
+				sr_err("Invalid sample rate.");
 				return SR_ERR_SAMPLERATE;
 			}
 			cmd_pkt->sample_rate = i;
@@ -349,8 +349,8 @@ static int config_set(uint32_t key, GVariant *data,
 			number_samples &= 0xfffffe00;
 			if (number_samples < 2048
 			    || number_samples > 64 * 1024 * 1024) {
-				sr_err("invalid sample range 2k...64M: %"
-				       PRIu64, number_samples);
+				sr_err("Invalid sample range 2k...64M: %"
+				       PRIu64 ".", number_samples);
 				return SR_ERR;
 			}
 			cmd_pkt->sample_size = number_samples;
@@ -410,7 +410,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		GSList *stages = trigger->stages;
 		struct sr_trigger_stage *stage1 = stages->data;
 		if (stages->next) {
-			sr_err("only one trigger stage supported for now");
+			sr_err("Only one trigger stage supported for now.");
 			return SR_ERR;
 		}
 		cmd_pkt->trig_flags.enable_trigger1 = 1;
@@ -440,7 +440,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_RISING:
 				if (cmd_pkt->trigger[0].flags.edge_type != H4032L_TRIGGER_EDGE_TYPE_DISABLED) {
-					sr_err("only one trigger signal with fall/rising/edge allowed");
+					sr_err("Only one trigger signal with fall/rising/edge allowed.");
 					return SR_ERR;
 				}
 				cmd_pkt->trigger[0].flags.edge_type = H4032L_TRIGGER_EDGE_TYPE_RISE;
@@ -448,7 +448,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_FALLING:
 				if (cmd_pkt->trigger[0].flags.edge_type != H4032L_TRIGGER_EDGE_TYPE_DISABLED) {
-					sr_err("only one trigger signal with fall/rising/edge allowed");
+					sr_err("Only one trigger signal with fall/rising/edge allowed.");
 					return SR_ERR;
 				}
 				cmd_pkt->trigger[0].flags.edge_type = H4032L_TRIGGER_EDGE_TYPE_FALL;
@@ -456,14 +456,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_EDGE:
 				if (cmd_pkt->trigger[0].flags.edge_type != H4032L_TRIGGER_EDGE_TYPE_DISABLED) {
-					sr_err("only one trigger signal with fall/rising/edge allowed");
+					sr_err("Only one trigger signal with fall/rising/edge allowed.");
 					return SR_ERR;
 				}
 				cmd_pkt->trigger[0].flags.edge_type = H4032L_TRIGGER_EDGE_TYPE_TOGGLE;
 				cmd_pkt->trigger[0].flags.edge_signal = match->channel->index;
 				break;
 			default:
-				sr_err("unknown trigger value");
+				sr_err("Unknown trigger value.");
 				return SR_ERR;
 			}
 
