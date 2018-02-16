@@ -134,7 +134,7 @@ static const char *trigger_sources[] = {
 };
 
 static const char *trigger_slopes[] = {
-	"Rising", "Falling",
+	"r", "f",
 };
 
 static const char *coupling[] = {
@@ -534,7 +534,7 @@ static int config_set(uint32_t key, GVariant *data,
 	uint64_t p, q;
 	double t_dbl;
 	unsigned int i, j;
-	int ret;
+	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
 
@@ -555,8 +555,10 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		tmp_str = g_variant_get_string(data, NULL);
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
+			return SR_ERR_ARG;
 		g_free(devc->trigger_slope);
+		devc->trigger_slope = g_strdup((trigger_slopes[idx][0] == 'r') ? "POS" : "NEG");
 		ret = siglent_sds_config_set(sdi, "%s:TRSL %s",
 			devc->trigger_source, devc->trigger_slope);
 		break;
