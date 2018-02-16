@@ -18,7 +18,6 @@
  */
 
 #include <config.h>
-
 #include <fcntl.h>
 #include <glib.h>
 #include <math.h>
@@ -26,7 +25,6 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
@@ -34,7 +32,7 @@
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
-	SR_CONF_SERIALCOMM
+	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t devopts[] = {
@@ -129,32 +127,13 @@ static const uint64_t vdivs[][2] = {
 #define NUM_VDIV	ARRAY_SIZE(vdivs)
 
 static const char *trigger_sources[] = {
-	"CH1",
-	"CH2",
-	"Ext",
-	"Ext /5",
-	"AC Line",
-	"D0",
-	"D1",
-	"D2",
-	"D3",
-	"D4",
-	"D5",
-	"D6",
-	"D7",
-	"D8",
-	"D9",
-	"D10",
-	"D11",
-	"D12",
-	"D13",
-	"D14",
-	"D15",
+	"CH1", "CH2", "Ext", "Ext /5", "AC Line",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
 static const char *trigger_slopes[] = {
-	"Rising",
-	"Falling",
+	"Rising", "Falling",
 };
 
 static const char *coupling[] = {
@@ -166,22 +145,10 @@ static const char *coupling[] = {
 };
 
 static const uint64_t probe_factor[] = {
-	1,
-	2,
-	5,
-	10,
-	20,
-	50,
-	100,
-	200,
-	500,
-	1000,
-	2000,
-	5000,
-	10000,
+	1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
 };
 
-/* Do not change the order of entries */
+/* Do not change the order of entries. */
 static const char *data_sources[] = {
 	"Display",
 	"History",
@@ -201,7 +168,7 @@ enum series {
 	SDS2000X,
 };
 
-/* short name, full name, USB Name */
+/* short name, full name, USB name */
 static const struct siglent_sds_vendor supported_vendors[] = {
 	[SIGLENT] = {
 		"Siglent", "Siglent Technologies", "Siglent Technologies Co,. Ltd.",
@@ -212,96 +179,50 @@ static const struct siglent_sds_vendor supported_vendors[] = {
 /* vendor, series, protocol, max timebase, min vdiv, number of horizontal divs,
  * number of vertical divs, live waveform samples, memory buffer samples */
 static const struct siglent_sds_series supported_series[] = {
-	[SDS1000CML] = {
-		VENDOR(SIGLENT), "SDS1000CML", NON_SPO_MODEL,
-		{ 50, 1 },
-		{ 2, 1000 }, 18, 8, 1400363,
-	},
-	[SDS1000CNL] = {
-		VENDOR(SIGLENT), "SDS1000CNL", NON_SPO_MODEL,
-		{ 50, 1 },
-		{ 2, 1000 }, 18, 8, 1400363,
-	},
-	[SDS1000DL] = {
-		VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
-		{ 50, 1 },
-		{ 2, 1000 }, 18, 8, 1400363,
-	},
-	[SDS1000X] = {
-		VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
-		{ 50, 1 },
-		{ 500, 100000 }, 14, 8, 14000363,
-	},
-	[SDS1000XP] = {
-		VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
-		{ 50, 1 },
-		{ 500, 100000 }, 14, 8, 14000363,
-	},
-	[SDS1000XE] = {
-		VENDOR(SIGLENT), "SDS1000XE", SPO_MODEL,
-		{ 50, 1 },
-		{ 500, 100000 }, 14, 8, 14000363,
-	},
-	[SDS2000X] = {
-		VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
-		{ 50, 1 },
-		{ 500, 100000 }, 14, 8, 14000363,
-	},
+	[SDS1000CML] = {VENDOR(SIGLENT), "SDS1000CML", NON_SPO_MODEL,
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+	[SDS1000CNL] = {VENDOR(SIGLENT), "SDS1000CNL", NON_SPO_MODEL,
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+	[SDS1000DL] = {VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+	[SDS1000X] = {VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 };
 
 #define SERIES(x) &supported_series[x]
 /* series, model, min timebase, analog channels, digital */
 static const struct siglent_sds_model supported_models[] = {
-	{ SERIES(SDS1000CML), "SDS1152CML",
-		{ 20, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000CML), "SDS1102CML",
-		{ 10, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000CML), "SDS1072CML",
-		{ 5, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000CNL), "SDS1202CNL",
-		{ 20, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000CNL), "SDS1102CNL",
-		{ 10, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000CNL), "SDS1072CNL",
-		{ 5, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000DL), "SDS1202DL",
-		{ 20, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000DL), "SDS1102DL",
-		{ 10, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000DL), "SDS1022DL",
-		{ 5, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000DL), "SDS1052DL",
-		{ 5, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000X), "SDS1102X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000XP), "SDS1102X+",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000X), "SDS1202X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000XP), "SDS1202X+",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000XE), "SDS1202X-E",
-		{ 1, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS1000XE), "SDS1104X-E",
-		{ 1, 1000000000 }, 4, true, 16 },
-	{ SERIES(SDS1000XE), "SDS1204X-E",
-		{ 1, 1000000000 }, 4, true, 16 },
-	{ SERIES(SDS2000X), "SDS2072X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS2000X), "SDS2074X",
-		{ 2, 1000000000 }, 4, false, 0 },
-	{ SERIES(SDS2000X), "SDS2102X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS2000X), "SDS2104X",
-		{ 2, 1000000000 }, 4, false, 0 },
-	{ SERIES(SDS2000X), "SDS2202X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS2000X), "SDS2204X",
-		{ 2, 1000000000 }, 4, false, 0 },
-	{ SERIES(SDS2000X), "SDS2302X",
-		{ 2, 1000000000 }, 2, false, 0 },
-	{ SERIES(SDS2000X), "SDS2304X",
-		{ 2, 1000000000 }, 4, false, 0 },
+	{ SERIES(SDS1000CML), "SDS1152CML", { 20, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000CML), "SDS1102CML", { 10, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000CML), "SDS1072CML", { 5, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000CNL), "SDS1202CNL", { 20, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000CNL), "SDS1102CNL", { 10, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000CNL), "SDS1072CNL", { 5, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000DL), "SDS1202DL", { 20, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000DL), "SDS1102DL", { 10, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000DL), "SDS1022DL", { 5, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000DL), "SDS1052DL", { 5, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000X), "SDS1102X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000XP), "SDS1102X+", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000X), "SDS1202X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000XP), "SDS1202X+", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000XE), "SDS1202X-E", { 1, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000XE), "SDS1104X-E", { 1, 1000000000 }, 4, true, 16 },
+	{ SERIES(SDS1000XE), "SDS1204X-E", { 1, 1000000000 }, 4, true, 16 },
+	{ SERIES(SDS2000X), "SDS2072X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS2000X), "SDS2074X", { 2, 1000000000 }, 4, false, 0 },
+	{ SERIES(SDS2000X), "SDS2102X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS2000X), "SDS2104X", { 2, 1000000000 }, 4, false, 0 },
+	{ SERIES(SDS2000X), "SDS2202X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, false, 0 },
+	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, false, 0 },
 };
 
 SR_PRIV struct sr_dev_driver siglent_sds_driver_info;
@@ -319,7 +240,6 @@ static void clear_helper(void *priv)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-
 	return std_dev_clear_with_callback(di, clear_helper);
 }
 
@@ -333,10 +253,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	const struct siglent_sds_model *model;
 	gchar *channel_name;
 
-	sr_info("Device probing decode...");
-
-	/* Setting communication Header Format to OFF*/
-	sr_dbg("Setting Communication Headers to off");
+	sr_dbg("Setting Communication Headers to off.");
 	if (sr_scpi_send(scpi, "CHDR OFF") != SR_OK)
 		return NULL;
 
@@ -358,30 +275,22 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		}
 	}
 
-	sr_info("Decoded Manufacturer: %s", hw_info->manufacturer);
-	sr_info("Decoded Model: %s", hw_info->model);
-
 	if (!model) {
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sr_dbg("Setting Device Instance Vendor: %s", model->series->vendor->name);
 	sdi->vendor = g_strdup(model->series->vendor->name);
-	sr_dbg("Setting Device Instance model: %s", model->name);
 	sdi->model = g_strdup(model->name);
-	sr_dbg("Setting Device Instance version: %s", hw_info->firmware_version);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->conn = scpi;
 	sdi->driver = &siglent_sds_driver_info;
-	sr_dbg("Setting Device Instance inst_type: SCPI");
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->limit_frames = 1;
 	devc->model = model;
-	sr_dbg("Setting device Context model: %s", devc->model->name);
 
 	sr_scpi_hw_info_free(hw_info);
 
@@ -434,7 +343,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	devc->buffer = g_malloc(devc->model->series->buffer_samples);
-	sr_dbg("Setting device Context buffer Size: %i", devc->model->series->buffer_samples);
+	sr_dbg("Setting device context buffer size: %i.", devc->model->series->buffer_samples);
 	devc->data = g_malloc(devc->model->series->buffer_samples * sizeof(float));
 
 	devc->data_source = DATA_SOURCE_SCREEN;
@@ -446,8 +355,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-
-	// TODO implement RPC call for LXI device discovery.
+	/* TODO: Implement RPC call for LXI device discovery. */
 	return sr_scpi_scan(di->context, options, probe_device);
 }
 
@@ -473,10 +381,8 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-
 	return sr_scpi_close(sdi->conn);
 }
-
 
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
@@ -530,7 +436,6 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		siglent_sds_get_dev_cfg_horizontal(sdi);
 		*data = g_variant_new_uint64(devc->sampleRate);
-		sr_dbg("Sample rate set to %f", devc->sampleRate);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!strcmp(devc->trigger_source, "ACL"))
@@ -650,7 +555,8 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_TRIGGER_SLOPE:
 		tmp_str = g_variant_get_string(data, NULL);
 		g_free(devc->trigger_slope);
-		ret = siglent_sds_config_set(sdi, "%s:TRSL %s", devc->trigger_source, devc->trigger_slope);
+		ret = siglent_sds_config_set(sdi, "%s:TRSL %s",
+			devc->trigger_source, devc->trigger_slope);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
@@ -694,7 +600,7 @@ static int config_set(uint32_t key, GVariant *data,
 					cmd = g_strdup_printf("%luNS", p);
 					break;
 				}
-				sr_dbg("Setting device Timebase: TDIV %s", cmd);
+				sr_dbg("Setting device timebase: TDIV %s.", cmd);
 				ret = siglent_sds_config_set(sdi, "TDIV %s", cmd);
 				break;
 			}
@@ -736,10 +642,8 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_VDIV:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			char *cmd;
@@ -759,8 +663,7 @@ static int config_set(uint32_t key, GVariant *data,
 						cmd = g_strdup_printf("%luUV", p);
 						break;
 					}
-					return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1,
-						cmd);
+					return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
 				}
 				sr_err("Invalid vdiv index: %d.", j);
 				return SR_ERR_ARG;
@@ -769,10 +672,8 @@ static int config_set(uint32_t key, GVariant *data,
 		sr_dbg("Didn't set vdiv, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		tmp_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			char cmd[4];
@@ -783,8 +684,7 @@ static int config_set(uint32_t key, GVariant *data,
 						devc->coupling[i] = g_strdup(coupling[j]);
 						strncpy(cmd, devc->coupling[i], 3);
 						cmd[3] = 0;
-						return siglent_sds_config_set(sdi, "C%d:CPL %s", i + 1,
-							cmd);
+						return siglent_sds_config_set(sdi, "C%d:CPL %s", i + 1, cmd);
 					}
 				}
 				sr_err("Invalid coupling index: %d.", j);
@@ -794,18 +694,15 @@ static int config_set(uint32_t key, GVariant *data,
 		sr_dbg("Didn't set coupling, unknown channel(group).");
 		return SR_ERR_NA;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		p = g_variant_get_uint64(data);
 		for (i = 0; i < devc->model->analog_channels; i++) {
 			if (cg == devc->analog_groups[i]) {
 				for (j = 0; j < ARRAY_SIZE(probe_factor); j++) {
 					if (p == probe_factor[j]) {
 						devc->attenuation[i] = p;
-						ret = siglent_sds_config_set(sdi, "C%d:ATTN %"PRIu64,
-							i + 1, p);
+						ret = siglent_sds_config_set(sdi, "C%d:ATTN %" PRIu64, i + 1, p);
 						if (ret == SR_OK)
 							siglent_sds_get_dev_cfg_vertical(sdi);
 						return ret;
@@ -871,10 +768,8 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		if (cg == devc->digital_group) {
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				NULL, 0, sizeof(uint32_t));
@@ -891,17 +786,13 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
 		break;
@@ -909,10 +800,8 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
-		if (!cg) {
-			sr_err("No channel group specified.");
+		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		}
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < devc->num_vdivs; i++) {
 			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
@@ -952,7 +841,7 @@ static int config_list(uint32_t key, GVariant **data,
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
 		switch (devc->model->series->protocol) {
-		// TODO check what must be done here for the data source buffer sizes
+		/* TODO: Check what must be done here for the data source buffer sizes. */
 		case NON_SPO_MODEL:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
@@ -965,7 +854,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_int32(devc->model->series->num_horizontal_divs);
 		break;
 	case SR_CONF_AVERAGING:
-		//TODO implement averaging.
+		/* TODO: Implement averaging. */
 		break;
 	default:
 		return SR_ERR_NA;
@@ -993,18 +882,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->num_frames = 0;
 	some_digital = FALSE;
 
-	/* Check if there are any logic channels enabled, if so then enable de MSO, otherwise skip the digital channel setup */
-	/* enable and disable channels on the device is very slow and it is faster when checked in a small loop without the actual actions */
+	/*
+	 * Check if there are any logic channels enabled, if so then enable
+	 * the MSO, otherwise skip the digital channel setup. Enable and
+	 * disable channels on the device is very slow and it is faster when
+	 * checked in a small loop without the actual actions.
+	 */
 	for (d = sdi->channels; d; d = d->next) {
 		ch = d->data;
-		if (ch->type == SR_CHANNEL_LOGIC && ch->enabled) {
+		if (ch->type == SR_CHANNEL_LOGIC && ch->enabled)
 			some_digital = TRUE;
-		}
 	}
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		sr_dbg("handling channel %s", ch->name);
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (ch->enabled)
 				devc->enabled_channels = g_slist_append(
@@ -1032,7 +923,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			if (siglent_sds_config_set(sdi, "D%d:DGCH %s", ch->index,
 				ch->enabled ? "ON" : "OFF") != SR_OK)
 				return SR_ERR;
-			/* Slowing the command sequence down to let the device handle it */
+			/* Slowing the command sequence down to let the device handle it. */
 			g_usleep(630000);
 			devc->digital_channels[ch->index] = ch->enabled;
 		}
@@ -1058,7 +949,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		break;
 	case NON_SPO_MODEL:
-		//TODO implement CML/CNL/DL models
+		/* TODO: Implement CML/CNL/DL models. */
 		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
 			return SR_ERR;
 		if (siglent_sds_config_set(sdi, "ACQW SAMPLING") != SR_OK)
@@ -1109,7 +1000,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 SR_PRIV struct sr_dev_driver siglent_sds_driver_info = {
 	.name = "siglent-sds",
-	.longname = "Siglent SDS1000/SDS2000 Series",
+	.longname = "Siglent SDS1000/SDS2000",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,

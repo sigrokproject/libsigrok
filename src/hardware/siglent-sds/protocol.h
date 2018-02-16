@@ -47,10 +47,6 @@ enum protocol_version {
 	NON_SPO_MODEL,
 };
 
-enum data_format {
-	FORMAT_IEEE488_2,
-};
-
 enum data_source {
 	DATA_SOURCE_SCREEN,
 	DATA_SOURCE_HISTORY,
@@ -89,7 +85,6 @@ enum wait_events {
 	WAIT_STOP,	/* Wait for scope stopping (only single shots) */
 };
 
-/** Private, per-device-instance driver context. */
 struct dev_context {
 	/* Device model */
 	const struct siglent_sds_model *model;
@@ -137,17 +132,17 @@ struct dev_context {
 	GSList *channel_entry;
 	/* Number of bytes received for current channel. */
 	uint64_t num_channel_bytes;
-	/* Number of bytes of block header read */
+	/* Number of bytes of block header read. */
 	uint64_t num_header_bytes;
-	/* Number of bytes in current data block, if 0 block header expected */
+	/* Number of bytes in current data block, if 0 block header expected. */
 	uint64_t num_block_bytes;
-	/* Number of data block bytes already read */
+	/* Number of data block bytes already read. */
 	uint64_t num_block_read;
-	/* What to wait for in *_receive */
+	/* What to wait for in *_receive. */
 	enum wait_events wait_event;
-	/* Trigger/block copying/stop waiting status */
+	/* Trigger/block copying/stop waiting status. */
 	int wait_status;
-	/* Acq buffers used for reading from the scope and sending data to app */
+	/* Acq buffers used for reading from the scope and sending data to app. */
 	unsigned char *buffer;
 	float *data;
 };
