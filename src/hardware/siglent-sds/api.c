@@ -208,6 +208,7 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS1000DL), "SDS1102DL", { 10, 1000000000 }, 2, false, 0 },
 	{ SERIES(SDS1000DL), "SDS1022DL", { 5, 1000000000 }, 2, false, 0 },
 	{ SERIES(SDS1000DL), "SDS1052DL", { 5, 1000000000 }, 2, false, 0 },
+	{ SERIES(SDS1000DL), "SDS1052DL+", { 5, 1000000000 }, 2, false, 0 },
 	{ SERIES(SDS1000X), "SDS1102X", { 2, 1000000000 }, 2, false, 0 },
 	{ SERIES(SDS1000XP), "SDS1102X+", { 2, 1000000000 }, 2, false, 0 },
 	{ SERIES(SDS1000X), "SDS1202X", { 2, 1000000000 }, 2, false, 0 },
