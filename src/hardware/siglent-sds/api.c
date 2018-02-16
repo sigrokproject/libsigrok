@@ -98,6 +98,7 @@ static const uint64_t timebases[][2] = {
 	{ 10, 1 },
 	{ 20, 1 },
 	{ 50, 1 },
+	{ 100, 1 },
 };
 
 static const uint64_t vdivs[][2] = {
