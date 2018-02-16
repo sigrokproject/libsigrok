@@ -126,7 +126,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		devc->status = H4032L_STATUS_TRANSFER;
 		max_samples--;
 		buffer++;
-		break;
+		/* Fallthrough. */
 	case H4032L_STATUS_TRANSFER:
 		number_samples = (devc->remaining_samples < max_samples) ? devc->remaining_samples : max_samples;
 		devc->remaining_samples -= number_samples;
