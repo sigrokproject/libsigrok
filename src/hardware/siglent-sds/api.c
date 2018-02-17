@@ -35,9 +35,12 @@ static const uint32_t scanopts[] = {
 	SR_CONF_SERIALCOMM,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -51,7 +54,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t analog_devopts[] = {
+static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -484,10 +487,8 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		}
 		for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
-			float vdiv, diff;
-
-			vdiv = (float)vdivs[i][0] / vdivs[i][1];
-			diff = fabsf(devc->vdiv[analog_channel] - vdiv);
+			float vdiv = (float)vdivs[i][0] / vdivs[i][1];
+			float diff = fabsf(devc->vdiv[analog_channel] - vdiv);
 			if (diff < smallest_diff) {
 				smallest_diff = diff;
 				idx = i;
@@ -526,10 +527,12 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	uint64_t p, q;
 	double t_dbl;
-	unsigned int i, j;
+	unsigned int i;
 	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
+	char *cmd;
+	char cmd4[4];
 
 	devc = sdi->priv;
 
@@ -549,9 +552,8 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		g_free(devc->trigger_slope);
 		devc->trigger_slope = g_strdup((trigger_slopes[idx][0] == 'r') ? "POS" : "NEG");
-		ret = siglent_sds_config_set(sdi, "%s:TRSL %s",
+		return siglent_sds_config_set(sdi, "%s:TRSL %s",
 			devc->trigger_source, devc->trigger_slope);
-		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		t_dbl = g_variant_get_double(data);
 		if (t_dbl < 0.0 || t_dbl > 1.0) {
@@ -563,8 +565,7 @@ static int config_set(uint32_t key, GVariant *data,
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
-		ret = siglent_sds_config_set(sdi, ":TIM:OFFS %s", buffer);
-		break;
+		return siglent_sds_config_set(sdi, ":TIM:OFFS %s", buffer);
 	case SR_CONF_TRIGGER_LEVEL:
 		t_dbl = g_variant_get_double(data);
 		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", t_dbl);
@@ -573,140 +574,94 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->trigger_level = t_dbl;
 		break;
 	case SR_CONF_TIMEBASE:
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < devc->num_timebases; i++) {
-			char *cmd;
-			if (devc->timebases[i][0] == p && devc->timebases[i][1] == q) {
-				cmd = "";
-				devc->timebase = (float) p / q;
-				switch (q) {
-				case 1:
-					cmd = g_strdup_printf("%" PRIu64 "S", p);
-					break;
-				case 1000:
-					cmd = g_strdup_printf("%" PRIu64 "MS", p);
-					break;
-				case 1000000:
-					cmd = g_strdup_printf("%" PRIu64 "US", p);
-					break;
-				case 100000000:
-					cmd = g_strdup_printf("%" PRIu64 "NS", p);
-					break;
-				}
-				sr_dbg("Setting device timebase: TDIV %s.", cmd);
-				ret = siglent_sds_config_set(sdi, "TDIV %s", cmd);
-				break;
-			}
+		if ((idx = std_u64_tuple_idx(data, devc->timebases, devc->num_timebases)) < 0)
+			return SR_ERR_ARG;
+		devc->timebase = (float)devc->timebases[idx][0] / devc->timebases[idx][1];
+		p = devc->timebases[idx][0];
+		switch (devc->timebases[idx][1]) {
+		case 1:
+			cmd = g_strdup_printf("%" PRIu64 "S", p);
+			break;
+		case 1000:
+			cmd = g_strdup_printf("%" PRIu64 "MS", p);
+			break;
+		case 1000000:
+			cmd = g_strdup_printf("%" PRIu64 "US", p);
+			break;
+		case 100000000:
+			cmd = g_strdup_printf("%" PRIu64 "NS", p);
+			break;
 		}
-		if (i == devc->num_timebases) {
-			sr_err("Invalid timebase index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
-		break;
+		sr_dbg("Setting device timebase: TDIV %s.", cmd);
+		return siglent_sds_config_set(sdi, "TDIV %s", cmd);
 	case SR_CONF_TRIGGER_SOURCE:
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(trigger_sources); i++) {
-			if (!strcmp(trigger_sources[i], tmp_str)) {
-				g_free(devc->trigger_source);
-				devc->trigger_source = g_strdup(trigger_sources[i]);
-				if (!strcmp(devc->trigger_source, "AC Line"))
-					tmp_str = "LINE";
-				else if (!strcmp(devc->trigger_source, "CH1"))
-					tmp_str = "C1";
-				else if (!strcmp(devc->trigger_source, "CH2"))
-					tmp_str = "C2";
-				else if (!strcmp(devc->trigger_source, "CH3"))
-					tmp_str = "C3";
-				else if (!strcmp(devc->trigger_source, "CH4"))
-					tmp_str = "C4";
-				else if (!strcmp(devc->trigger_source, "Ext"))
-					tmp_str = "EX";
-				else if (!strcmp(devc->trigger_source, "Ext /5"))
-					tmp_str = "EX5";
-				else
-					tmp_str = (char *) devc->trigger_source;
-				ret = siglent_sds_config_set(sdi, "TRSE EDGE,SR,%s,OFF", tmp_str);
-				break;
-			}
-		}
-		if (i == ARRAY_SIZE(trigger_sources)) {
-			sr_err("Invalid trigger source index: %d.", i);
-			ret = SR_ERR_ARG;
-		}
-		break;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->trigger_source);
+		devc->trigger_source = g_strdup(trigger_sources[idx]);
+		if (!strcmp(devc->trigger_source, "AC Line"))
+			tmp_str = "LINE";
+		else if (!strcmp(devc->trigger_source, "CH1"))
+			tmp_str = "C1";
+		else if (!strcmp(devc->trigger_source, "CH2"))
+			tmp_str = "C2";
+		else if (!strcmp(devc->trigger_source, "CH3"))
+			tmp_str = "C3";
+		else if (!strcmp(devc->trigger_source, "CH4"))
+			tmp_str = "C4";
+		else if (!strcmp(devc->trigger_source, "Ext"))
+			tmp_str = "EX";
+		else if (!strcmp(devc->trigger_source, "Ext /5"))
+			tmp_str = "EX5";
+		else
+			tmp_str = (char *)devc->trigger_source;
+		return siglent_sds_config_set(sdi, "TRSE EDGE,SR,%s,OFF", tmp_str);
 	case SR_CONF_VDIV:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		g_variant_get(data, "(tt)", &p, &q);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			char *cmd;
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(vdivs); j++) {
-					if (vdivs[j][0] != p || vdivs[j][1] != q)
-						continue;
-					cmd = "";
-					switch (q) {
-					case 1:
-						cmd = g_strdup_printf("%" PRIu64 "V", p);
-						break;
-					case 1000:
-						cmd = g_strdup_printf("%" PRIu64 "MV", p);
-						break;
-					case 100000:
-						cmd = g_strdup_printf("%" PRIu64 "UV", p);
-						break;
-					}
-					return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
-				}
-				sr_err("Invalid vdiv index: %d.", j);
-				return SR_ERR_ARG;
-			}
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			return SR_ERR_ARG;
+		devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
+		p = vdivs[idx][0];
+		switch (vdivs[idx][1]) {
+		case 1:
+			cmd = g_strdup_printf("%" PRIu64 "V", p);
+			break;
+		case 1000:
+			cmd = g_strdup_printf("%" PRIu64 "MV", p);
+			break;
+		case 100000:
+			cmd = g_strdup_printf("%" PRIu64 "UV", p);
+			break;
 		}
-		sr_dbg("Didn't set vdiv, unknown channel(group).");
-		return SR_ERR_NA;
+		return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		tmp_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			char cmd[4];
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(coupling); j++) {
-					if (!strcmp(tmp_str, coupling[j])) {
-						g_free(devc->coupling[i]);
-						devc->coupling[i] = g_strdup(coupling[j]);
-						strncpy(cmd, devc->coupling[i], 3);
-						cmd[3] = 0;
-						return siglent_sds_config_set(sdi, "C%d:CPL %s", i + 1, cmd);
-					}
-				}
-				sr_err("Invalid coupling index: %d.", j);
-				return SR_ERR_ARG;
-			}
-		}
-		sr_dbg("Didn't set coupling, unknown channel(group).");
-		return SR_ERR_NA;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(coupling))) < 0)
+			return SR_ERR_ARG;
+		g_free(devc->coupling[i]);
+		devc->coupling[i] = g_strdup(coupling[idx]);
+		strncpy(cmd4, devc->coupling[i], 3);
+		cmd4[3] = 0;
+		return siglent_sds_config_set(sdi, "C%d:CPL %s", i + 1, cmd4);
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
+		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		if ((idx = std_u64_idx(data, ARRAY_AND_SIZE(probe_factor))) < 0)
+			return SR_ERR_ARG;
 		p = g_variant_get_uint64(data);
-		for (i = 0; i < devc->model->analog_channels; i++) {
-			if (cg == devc->analog_groups[i]) {
-				for (j = 0; j < ARRAY_SIZE(probe_factor); j++) {
-					if (p == probe_factor[j]) {
-						devc->attenuation[i] = p;
-						ret = siglent_sds_config_set(sdi, "C%d:ATTN %" PRIu64, i + 1, p);
-						if (ret == SR_OK)
-							siglent_sds_get_dev_cfg_vertical(sdi);
-						return ret;
-					}
-				}
-				sr_err("Invalid probe factor: %" PRIu64 ".", p);
-				return SR_ERR_ARG;
-			}
-		}
-		sr_dbg("Didn't set probe factor, unknown channel(group).");
-		return SR_ERR_NA;
+		devc->attenuation[i] = probe_factor[idx];
+		ret = siglent_sds_config_set(sdi, "C%d:ATTN %" PRIu64, i + 1, p);
+		if (ret == SR_OK)
+			siglent_sds_get_dev_cfg_vertical(sdi);
+		return ret;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
 		if (!strcmp(tmp_str, "Display"))
@@ -733,61 +688,36 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	GVariant *tuple, *rational[2];
-	GVariantBuilder gvb;
-	unsigned int i;
-	struct dev_context *devc = NULL;
+	struct dev_context *devc;
 
-	if (key == SR_CONF_SCAN_OPTIONS) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		return SR_OK;
-	} else if (key == SR_CONF_DEVICE_OPTIONS && !cg) {
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		return SR_OK;
-	}
-
-	/* Every other option requires a valid device instance. */
-	if (!sdi)
-		return SR_ERR_ARG;
-	devc = sdi->priv;
-
-	/* If a channel group is specified, it must be a valid one. */
-	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
-		sr_err("Invalid channel group specified.");
-		return SR_ERR;
-	}
+	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
-			return SR_ERR_CHANNEL_GROUP;
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		if (!devc)
+			return SR_ERR_ARG;
 		if (cg == devc->digital_group) {
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				NULL, 0, sizeof(uint32_t));
+			*data = std_gvar_array_u32(NULL, 0);
 			return SR_OK;
 		} else {
-			for (i = 0; i < devc->model->analog_channels; i++) {
-				if (cg == devc->analog_groups[i]) {
-					*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-						analog_devopts, ARRAY_SIZE(analog_devopts), sizeof(uint32_t));
-					return SR_OK;
-				}
-			}
-			return SR_ERR_NA;
+			if (std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels) < 0)
+				return SR_ERR_ARG;
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
+			return SR_OK;
 		}
 		break;
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = g_variant_new_strv(coupling, ARRAY_SIZE(coupling));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	case SR_CONF_PROBE_FACTOR:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
-			probe_factor, ARRAY_SIZE(probe_factor), sizeof(uint64_t));
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(probe_factor));
 		break;
 	case SR_CONF_VDIV:
 		if (!devc)
@@ -795,14 +725,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->num_vdivs; i++) {
-			rational[0] = g_variant_new_uint64(devc->vdivs[i][0]);
-			rational[1] = g_variant_new_uint64(devc->vdivs[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(devc->vdivs, devc->num_vdivs);
 		break;
 	case SR_CONF_TIMEBASE:
 		if (!devc)
@@ -810,14 +733,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		if (devc->num_timebases <= 0)
 			return SR_ERR_NA;
-		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->num_timebases; i++) {
-			rational[0] = g_variant_new_uint64(devc->timebases[i][0]);
-			rational[1] = g_variant_new_uint64(devc->timebases[i][1]);
-			tuple = g_variant_new_tuple(rational, 2);
-			g_variant_builder_add_value(&gvb, tuple);
-		}
-		*data = g_variant_builder_end(&gvb);
+		*data = std_gvar_tuple_array(devc->timebases, devc->num_timebases);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!devc)
@@ -827,7 +743,7 @@ static int config_list(uint32_t key, GVariant **data,
 			devc->model->has_digital ? ARRAY_SIZE(trigger_sources) : 5);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		*data = g_variant_new_strv(trigger_slopes, ARRAY_SIZE(trigger_slopes));
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (!devc)
@@ -839,7 +755,7 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		case SPO_MODEL:
-			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources));
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
 		break;
