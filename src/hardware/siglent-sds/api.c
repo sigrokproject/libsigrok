@@ -592,16 +592,16 @@ static int config_set(uint32_t key, GVariant *data,
 				devc->timebase = (float) p / q;
 				switch (q) {
 				case 1:
-					cmd = g_strdup_printf("%luS", p);
+					cmd = g_strdup_printf("%" PRIu64 "S", p);
 					break;
 				case 1000:
-					cmd = g_strdup_printf("%luMS", p);
+					cmd = g_strdup_printf("%" PRIu64 "MS", p);
 					break;
 				case 1000000:
-					cmd = g_strdup_printf("%luUS", p);
+					cmd = g_strdup_printf("%" PRIu64 "US", p);
 					break;
 				case 100000000:
-					cmd = g_strdup_printf("%luNS", p);
+					cmd = g_strdup_printf("%" PRIu64 "NS", p);
 					break;
 				}
 				sr_dbg("Setting device timebase: TDIV %s.", cmd);
@@ -658,13 +658,13 @@ static int config_set(uint32_t key, GVariant *data,
 					cmd = "";
 					switch (q) {
 					case 1:
-						cmd = g_strdup_printf("%luV", p);
+						cmd = g_strdup_printf("%" PRIu64 "V", p);
 						break;
 					case 1000:
-						cmd = g_strdup_printf("%luMV", p);
+						cmd = g_strdup_printf("%" PRIu64 "MV", p);
 						break;
 					case 100000:
-						cmd = g_strdup_printf("%luUV", p);
+						cmd = g_strdup_printf("%" PRIu64 "UV", p);
 						break;
 					}
 					return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
@@ -712,7 +712,7 @@ static int config_set(uint32_t key, GVariant *data,
 						return ret;
 					}
 				}
-				sr_err("Invalid probe factor: %"PRIu64".", p);
+				sr_err("Invalid probe factor: %" PRIu64 ".", p);
 				return SR_ERR_ARG;
 			}
 		}
