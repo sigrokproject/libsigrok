@@ -124,9 +124,6 @@ static const uint64_t vdivs[][2] = {
 	{ 100, 1 },
 };
 
-#define NUM_TIMEBASE	ARRAY_SIZE(timebases)
-#define NUM_VDIV	ARRAY_SIZE(vdivs)
-
 static const char *trigger_sources[] = {
 	"CH1", "CH2", "Ext", "Ext /5", "AC Line",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
@@ -169,11 +166,9 @@ enum series {
 	SDS2000X,
 };
 
-/* short name, full name, USB name */
+/* short name, full name */
 static const struct siglent_sds_vendor supported_vendors[] = {
-	[SIGLENT] = {
-		"Siglent", "Siglent Technologies", "Siglent Technologies Co,. Ltd.",
-	},
+	[SIGLENT] = {"Siglent", "Siglent Technologies"},
 };
 
 #define VENDOR(x) &supported_vendors[x]
@@ -326,7 +321,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			devc->digital_group);
 	}
 
-	for (i = 0; i < NUM_TIMEBASE; i++) {
+	for (i = 0; i < ARRAY_SIZE(timebases); i++) {
 		if (!memcmp(&devc->model->min_timebase, &timebases[i], sizeof(uint64_t[2])))
 			devc->timebases = &timebases[i];
 
@@ -334,12 +329,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			devc->num_timebases = &timebases[i] - devc->timebases + 1;
 	}
 
-	for (i = 0; i < NUM_VDIV; i++) {
+	for (i = 0; i < ARRAY_SIZE(vdivs); i++) {
 		devc->vdivs = &vdivs[i];
 		if (!memcmp(&devc->model->series->min_vdiv,
 			&vdivs[i], sizeof(uint64_t[2]))) {
 			devc->vdivs = &vdivs[i];
-			devc->num_vdivs = NUM_VDIV - i;
+			devc->num_vdivs = ARRAY_SIZE(vdivs) - i;
 			break;
 		}
 	}
@@ -437,7 +432,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		siglent_sds_get_dev_cfg_horizontal(sdi);
-		*data = g_variant_new_uint64(devc->sampleRate);
+		*data = g_variant_new_uint64(devc->samplerate);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!strcmp(devc->trigger_source, "ACL"))
@@ -583,7 +578,6 @@ static int config_set(uint32_t key, GVariant *data,
 			devc->trigger_level = t_dbl;
 		break;
 	case SR_CONF_TIMEBASE:
-		sr_dbg("Setting device Timebase");
 		g_variant_get(data, "(tt)", &p, &q);
 		for (i = 0; i < devc->num_timebases; i++) {
 			char *cmd;
@@ -732,7 +726,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		siglent_sds_get_dev_cfg_horizontal(sdi);
-		data = g_variant_new_uint64(devc->sampleRate);
+		data = g_variant_new_uint64(devc->samplerate);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -874,8 +868,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct sr_datafeed_packet packet;
 	gboolean some_digital;
-	GSList *l;
-	GSList *d;
+	GSList *l, *d;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;

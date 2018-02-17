@@ -193,7 +193,7 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 			}
 			memcpy(&framecount, buf + 40, 4);
 			if (devc->limit_frames > framecount)
-				sr_err("Frame limit higher that frames in buffer of device!");
+				sr_err("Frame limit higher than frames in buffer of device!");
 			else if (devc->limit_frames == 0)
 				devc->limit_frames = framecount;
 			sr_dbg("Starting data capture for history frameset %" PRIu64 " of %" PRIu64,
@@ -257,9 +257,8 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi, int channelIndex)
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 	char *buf = (char *)devc->buffer;
-	int ret;
-	int descLength;
-	int blockOffset = 15; /* Offset for descriptor block. */
+	int ret, desc_length;
+	int block_offset = 15; /* Offset for descriptor block. */
 	long dataLength = 0;
 
 	/* Read header from device. */
@@ -271,18 +270,18 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi, int channelIndex)
 	}
 	sr_dbg("Device returned %i bytes.", ret);
 	devc->num_header_bytes += ret;
-	buf += blockOffset; /* Skip to start descriptor block. */
+	buf += block_offset; /* Skip to start descriptor block. */
 
 	/* Parse WaveDescriptor header. */
-	memcpy(&descLength, buf + 36, 4); /* Descriptor block length */
+	memcpy(&desc_length, buf + 36, 4); /* Descriptor block length */
 	memcpy(&dataLength, buf + 60, 4); /* Data block length */
 
 	devc->vdiv[channelIndex] = 2;
 	devc->vert_offset[channelIndex] = 0;
-	devc->blockHeaderSize = descLength + 15;
+	devc->block_header_size = desc_length + 15;
 	ret = dataLength;
 
-	sr_dbg("Received data block header: '%s' -> block length %d", buf, ret);
+	sr_dbg("Received data block header: '%s' -> block length %d.", buf, ret);
 
 	return ret;
 }
@@ -381,7 +380,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 		len = ACQ_BUFFER_SIZE;
 
 	/* Offset the data block buffer past the IEEE header and description header. */
-	devc->buffer += devc->blockHeaderSize;
+	devc->buffer += devc->block_header_size;
 
 	if (len == -1) {
 		sr_err("Read error, aborting capture.");
@@ -400,8 +399,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 		float offset = devc->vert_offset[ch->index];
 		GArray *float_data;
 		static GArray *data;
-		float voltage;
-		float vdivlog;
+		float voltage, vdivlog;
 		int digits;
 
 		data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
@@ -489,12 +487,10 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	char *cmd;
+	char *cmd, *response;
 	unsigned int i;
-	int res;
-	char *response;
+	int res, num_tokens;
 	gchar **tokens;
-	int num_tokens;
 
 	devc = sdi->priv;
 
@@ -661,47 +657,46 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	char *cmd;
 	int res;
-	char *samplePointsString;
-	float samplerateScope;
-	float fvalue;
+	char *sample_points_string;
+	float samplerate_scope, fvalue;
 	char *first, *concat;
 
 	devc = sdi->priv;
 	cmd = g_strdup_printf("SANU? C1");
-	res = sr_scpi_get_string(sdi->conn, cmd, &samplePointsString);
+	res = sr_scpi_get_string(sdi->conn, cmd, &sample_points_string);
 	g_free(cmd);
 	if (res != SR_OK)
 		return SR_ERR;
-	if (g_strstr_len(samplePointsString, -1, "Mpts") != NULL) {
-		samplePointsString[strlen(samplePointsString) - 4] = '\0';
+	if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
+		sample_points_string[strlen(sample_points_string) - 4] = '\0';
 
-		if (g_strstr_len(samplePointsString, -1, ".") != NULL) {
-			first = strtok(samplePointsString, ".");
+		if (g_strstr_len(sample_points_string, -1, ".") != NULL) {
+			first = strtok(sample_points_string, ".");
 			concat = strcat(first, strtok(NULL, "."));
 			if (sr_atof_ascii(concat, &fvalue) != SR_OK || fvalue == 0.0) {
 				sr_dbg("Invalid float converted from scope response.");
 				return SR_ERR;
 			}
 		} else {
-			if (sr_atof_ascii(samplePointsString, &fvalue) != SR_OK || fvalue == 0.0) {
+			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK || fvalue == 0.0) {
 				sr_dbg("Invalid float converted from scope response.");
 				return SR_ERR;
 			}
 		}
-		samplerateScope = fvalue * 100000;
+		samplerate_scope = fvalue * 100000;
 	} else {
-		samplePointsString[strlen(samplePointsString) - 4] = '\0';
-		if (sr_atof_ascii(samplePointsString, &fvalue) != SR_OK || fvalue == 0.0) {
+		sample_points_string[strlen(sample_points_string) - 4] = '\0';
+		if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK || fvalue == 0.0) {
 			sr_dbg("Invalid float converted from scope response.");
 			return SR_ERR;
 		}
-		samplerateScope = fvalue * 1000;
+		samplerate_scope = fvalue * 1000;
 	}
 	/* Get the timebase. */
 	if (sr_scpi_get_float(sdi->conn, ":TDIV?", &devc->timebase) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current timebase: %g.", devc->timebase);
-	devc->sampleRate = samplerateScope / (devc->timebase * devc->model->series->num_horizontal_divs);
+	devc->samplerate = samplerate_scope / (devc->timebase * devc->model->series->num_horizontal_divs);
 
 	return SR_OK;
 }

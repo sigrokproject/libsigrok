@@ -55,7 +55,6 @@ enum data_source {
 struct siglent_sds_vendor {
 	const char *name;
 	const char *full_name;
-	const char *usb_name;
 };
 
 struct siglent_sds_series {
@@ -106,8 +105,8 @@ struct dev_context {
 	uint64_t analog_frame_size;
 	uint64_t digital_frame_size;
 	uint64_t num_samples;
-	long blockHeaderSize;
-	float sampleRate;
+	long block_header_size;
+	float samplerate;
 
 	/* Device settings */
 	gboolean analog_channels[MAX_ANALOG_CHANNELS];
