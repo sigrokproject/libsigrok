@@ -371,8 +371,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
@@ -534,9 +532,6 @@ static int config_set(uint32_t key, GVariant *data,
 	char buffer[16];
 
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	/* If a channel group is specified, it must be a valid one. */
 	if (cg && !g_slist_find(sdi->channel_groups, cg)) {
@@ -870,9 +865,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gboolean some_digital;
 	GSList *l, *d;
 
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
@@ -979,11 +971,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 
 	devc = sdi->priv;
-
-	if (sdi->status != SR_ST_ACTIVE) {
-		sr_err("Device inactive, can't stop acquisition.");
-		return SR_ERR;
-	}
 
 	std_session_send_df_end(sdi);
 
