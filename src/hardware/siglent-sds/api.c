@@ -525,7 +525,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t p, q;
+	uint64_t p;
 	double t_dbl;
 	unsigned int i;
 	int ret, idx;
