@@ -593,7 +593,9 @@ static int config_set(uint32_t key, GVariant *data,
 			break;
 		}
 		sr_dbg("Setting device timebase: TDIV %s.", cmd);
-		return siglent_sds_config_set(sdi, "TDIV %s", cmd);
+		ret = siglent_sds_config_set(sdi, "TDIV %s", cmd);
+		g_free(cmd);
+		return ret;
 	case SR_CONF_TRIGGER_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 			return SR_ERR_ARG;
@@ -636,7 +638,9 @@ static int config_set(uint32_t key, GVariant *data,
 			cmd = g_strdup_printf("%" PRIu64 "UV", p);
 			break;
 		}
-		return siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
+		ret = siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
+		g_free(cmd);
+		return ret;
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
