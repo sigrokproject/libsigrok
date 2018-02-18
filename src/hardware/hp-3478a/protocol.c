@@ -38,46 +38,27 @@ static const struct {
 
 static int set_mq_volt(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
 {
-	const char *cmd;
-
 	if ((flags & SR_MQFLAG_AC) != SR_MQFLAG_AC &&
 		(flags & SR_MQFLAG_DC) != SR_MQFLAG_DC)
 		return SR_ERR_NA;
 
-	if ((flags & SR_MQFLAG_AC) == SR_MQFLAG_AC)
-		cmd = "F2";
-	else
-		cmd = "F1";
-
-	return sr_scpi_send(scpi, "%s", cmd);
+	return sr_scpi_send(scpi, "%s",
+		((flags & SR_MQFLAG_AC) == SR_MQFLAG_AC) ? "F2" : "F1");
 }
 
 static int set_mq_amp(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
 {
-	const char *cmd;
-
 	if ((flags & SR_MQFLAG_AC) != SR_MQFLAG_AC &&
 		(flags & SR_MQFLAG_DC) != SR_MQFLAG_DC)
 		return SR_ERR_NA;
 
-	if (flags & SR_MQFLAG_AC)
-		cmd = "F6";
-	else
-		cmd = "F5";
-
-	return sr_scpi_send(scpi, "%s", cmd);
+	return sr_scpi_send(scpi, "%s", (flags & SR_MQFLAG_AC) ? "F6" : "F5");
 }
 
 static int set_mq_ohm(struct sr_scpi_dev_inst *scpi, enum sr_mqflag flags)
 {
-	const char *cmd;
-
-	if (flags & SR_MQFLAG_FOUR_WIRE)
-		cmd = "F4";
-	else
-		cmd = "F3";
-
-	return sr_scpi_send(scpi, "%s", cmd);
+	return sr_scpi_send(scpi, "%s",
+		(flags & SR_MQFLAG_FOUR_WIRE) ? "F4" : "F3");
 }
 
 SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,

@@ -104,25 +104,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_scpi_dev_inst *scpi;
-
-	scpi = sdi->conn;
-
-	if (sr_scpi_open(scpi) != SR_OK)
-		return SR_ERR;
-
-	return SR_OK;
+	return sr_scpi_open(sdi->conn);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_scpi_dev_inst *scpi;
-
-	scpi = sdi->conn;
-
-	sr_scpi_close(scpi);
-
-	return SR_OK;
+	return sr_scpi_close(sdi->conn);
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -241,12 +228,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Get device status. */
 	hp_3478a_get_status_bytes(sdi);
 
-	ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100,
+	return sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100,
 			hp_3478a_receive_data, (void *)sdi);
-	if (ret != SR_OK)
-		return ret;
-
-	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
