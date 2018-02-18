@@ -527,11 +527,11 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	uint64_t p;
 	double t_dbl;
-	unsigned int i;
+	int i;
 	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
-	char *cmd;
+	char *cmd = "";
 	char cmd4[4];
 
 	devc = sdi->priv;
