@@ -286,29 +286,27 @@ static int parse_srq_byte(uint8_t sqr_byte)
 
 	/* PON SRQ */
 	if ((sqr_byte & SRQ_POWER_ON) == SRQ_POWER_ON)
-		sr_spew("hp_3478a_get_status_bytes: Power On SRQ or clear "
-				"msg received");
+		sr_spew("Power On SRQ or clear msg received");
 
 	/* Cal failed SRQ */
 	if ((sqr_byte & SRQ_CAL_FAILED) == SRQ_CAL_FAILED)
-		sr_spew("hp_3478a_get_status_bytes: CAL failed SRQ");
+		sr_spew("CAL failed SRQ");
 
 	/* Keyboard SRQ */
 	if ((sqr_byte & SRQ_KEYBORD) == SRQ_KEYBORD)
-		sr_spew("hp_3478a_get_status_bytes: Keyboard SRQ");
+		sr_spew("Keyboard SRQ");
 
 	/* Hardware error SRQ */
 	if ((sqr_byte & SRQ_HARDWARE_ERR) == SRQ_HARDWARE_ERR)
-		sr_spew("hp_3478a_get_status_bytes: Hardware error SRQ");
+		sr_spew("Hardware error SRQ");
 
 	/* Syntax error SRQ */
 	if ((sqr_byte & SRQ_SYNTAX_ERR) == SRQ_SYNTAX_ERR)
-		sr_spew("hp_3478a_get_status_bytes: Syntax error SRQ");
+		sr_spew("Syntax error SRQ");
 
 	/* Every reading is available to the bus SRQ */
 	if ((sqr_byte & SRQ_BUS_AVAIL) == SRQ_BUS_AVAIL)
-		sr_spew("hp_3478a_get_status_bytes: Every reading is available to "
-				"the bus SRQ");
+		sr_spew("Every reading is available to the bus SRQ");
 #endif
 
 	return SR_OK;
@@ -322,38 +320,38 @@ static int parse_error_byte(uint8_t error_byte)
 
 	/* A/D link */
 	if ((error_byte & ERROR_AD_LINK) == ERROR_AD_LINK) {
-		sr_err("hp_3478a: Failure in the A/D link");
+		sr_err("Failure in the A/D link");
 		ret = SR_ERR;
 	}
 
 	/* A/D Self Test */
 	if ((error_byte & ERROR_AD_SELF_TEST) == ERROR_AD_SELF_TEST) {
-		sr_err("hp_3478a: A/D has failed its internal Self Test");
+		sr_err("A/D has failed its internal Self Test");
 		ret = SR_ERR;
 	}
 
 	/* A/D slope error */
 	if ((error_byte & ERROR_AD_SLOPE) == ERROR_AD_SLOPE) {
-		sr_err("hp_3478a: There has been an A/D slope error");
+		sr_err("There has been an A/D slope error");
 		ret = SR_ERR;
 	}
 
 	/* ROM Selt Test */
 	if ((error_byte & ERROR_ROM_SELF_TEST) == ERROR_ROM_SELF_TEST) {
-		sr_err("hp_3478a: The ROM Self Test has failed");
+		sr_err("The ROM Self Test has failed");
 		ret = SR_ERR;
 	}
 
 	/* RAM Selt Test */
 	if ((error_byte & ERROR_RAM_SELF_TEST) == ERROR_RAM_SELF_TEST) {
-		sr_err("hp_3478a: The RAM Self Test has failed");
+		sr_err("The RAM Self Test has failed");
 		ret = SR_ERR;
 	}
 
 	/* Selt Test */
 	if ((error_byte & ERROR_SELF_TEST) == ERROR_SELF_TEST) {
-		sr_err("hp_3478a: Self Test: Any of the CAL RAM locations have bad "
-				"checksums, or a range with a bad checksum is selected");
+		sr_err("Self Test: Any of the CAL RAM locations have bad "
+		       "checksums, or a range with a bad checksum is selected");
 		ret = SR_ERR;
 	}
 
