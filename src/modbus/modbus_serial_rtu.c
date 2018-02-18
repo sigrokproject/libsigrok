@@ -133,7 +133,7 @@ static int modbus_serial_rtu_read_begin(void *priv, uint8_t *function_code)
 	uint8_t slave_addr;
 	int ret;
 
-	ret = serial_read_blocking(modbus->serial, &slave_addr, 1, 100);
+	ret = serial_read_blocking(modbus->serial, &slave_addr, 1, 500);
 	if (ret != 1 || slave_addr != modbus->slave_addr)
 		return ret;
 
