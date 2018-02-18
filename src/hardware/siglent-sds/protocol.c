@@ -25,8 +25,6 @@
 #include <config.h>
 #include <errno.h>
 #include <glib.h>
-#include <glib-2.0/glib/gmacros.h>
-#include <glib-2.0/glib/gmain.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdarg.h>
