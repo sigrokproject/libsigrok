@@ -53,8 +53,8 @@
  *          this is forced to be off.
  */
 
-#include <math.h>
 #include <config.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
