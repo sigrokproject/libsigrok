@@ -134,7 +134,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (des.idVendor != LOGICSTUDIO16_VID)
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		usb = NULL;
 
@@ -210,7 +211,8 @@ static int open_device(struct sr_dev_inst *sdi)
 			des.idProduct != LOGICSTUDIO16_PID_HAVE_FIRMWARE)
 			continue;
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		/*
 		 * Check if this device is the same one that we associated

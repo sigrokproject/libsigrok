@@ -214,9 +214,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 		}
 
-		usb_get_port_path(devlist[i], connection_id, sizeof(connection_id));
-
 		libusb_close(hdl);
+
+		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			continue;
 
 		prof = NULL;
 		for (j = 0; supported_device[j].vid; j++) {
