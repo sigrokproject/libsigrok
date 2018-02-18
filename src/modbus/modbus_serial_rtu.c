@@ -111,18 +111,18 @@ static int modbus_serial_rtu_send(void *priv,
 
 	result = serial_write_blocking(serial, &slave_addr, sizeof(slave_addr), 0);
 	if (result < 0)
-		return result;
+		return SR_ERR;
 
 	result = serial_write_blocking(serial, buffer, buffer_size, 0);
 	if (result < 0)
-		return result;
+		return SR_ERR;
 
 	crc = modbus_serial_rtu_crc(0xFFFF, &slave_addr, sizeof(slave_addr));
 	crc = modbus_serial_rtu_crc(crc, buffer, buffer_size);
 
 	result = serial_write_blocking(serial, &crc, sizeof(crc), 0);
 	if (result < 0)
-		return result;
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -135,11 +135,11 @@ static int modbus_serial_rtu_read_begin(void *priv, uint8_t *function_code)
 
 	ret = serial_read_blocking(modbus->serial, &slave_addr, 1, 500);
 	if (ret != 1 || slave_addr != modbus->slave_addr)
-		return ret;
+		return SR_ERR;
 
 	ret = serial_read_blocking(modbus->serial, function_code, 1, 100);
 	if (ret != 1)
-		return ret;
+		return SR_ERR;
 
 	modbus->crc = modbus_serial_rtu_crc(0xFFFF, &slave_addr, sizeof(slave_addr));
 	modbus->crc = modbus_serial_rtu_crc(modbus->crc, function_code, 1);
@@ -167,7 +167,7 @@ static int modbus_serial_rtu_read_end(void *priv)
 
 	ret = serial_read_blocking(modbus->serial, &crc, sizeof(crc), 100);
 	if (ret != 2)
-		return ret;
+		return SR_ERR;
 
 	if (crc != modbus->crc) {
 		sr_err("CRC error (0x%04X vs 0x%04X).", crc, modbus->crc);
