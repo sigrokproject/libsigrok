@@ -37,9 +37,10 @@ static void test_vsnprintf(const char *expected, char *format, ...)
 	len = vsnprintf(s, len, format, args);
 	va_end(args);
 
-	fail_unless(s != NULL, "len = %i, s = s", len);
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
 	fail_unless(!strcmp(s, expected),
-		    "Invalid result for '%s': %s.", expected, s);
+			"Invalid result for '%s': %s.", expected, s);
 	g_free(s);
 }
 #endif
@@ -57,7 +58,8 @@ static void test_sr_vsnprintf_ascii(const char *expected, char *format, ...)
 	len = sr_vsnprintf_ascii(s, len, format, args);
 	va_end(args);
 
-	fail_unless(s != NULL, "len = %i, s = s", len);
+	fail_unless(s != NULL,
+			"Invalid result for '%s': len = %i.", expected, len);
 	fail_unless(!strcmp(s, expected),
 			"Invalid result for '%s': %s.", expected, s);
 	g_free(s);
