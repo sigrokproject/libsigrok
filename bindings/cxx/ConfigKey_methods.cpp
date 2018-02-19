@@ -1,3 +1,5 @@
+#include <config.h>
+
 const DataType *ConfigKey::data_type() const
 {
 	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, id());
@@ -29,8 +31,6 @@ const ConfigKey *ConfigKey::get_by_identifier(string identifier)
 		throw Error(SR_ERR_ARG);
 	return get(info->key);
 }
-
-#include <config.h>
 
 #ifndef HAVE_STOI_STOD
 
