@@ -109,7 +109,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Default non-zero values (if any) */
 	devc->fd = -1;
-	devc->limit_samples = (uint64_t)10000000;
+	devc->limit_samples = 10000000;
 	devc->tcp_buffer = 0;
 
 	if (!conn) {
