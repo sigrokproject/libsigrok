@@ -738,7 +738,7 @@ static void deinterleave_buffer(const uint8_t *src, size_t length,
 				const uint16_t m = channel_mask >> channel;
 				if (!m)
 					break;
-				if ((m & 1) && ((*word_ptr++ >> bit) & 1ULL))
+				if ((m & 1) && ((*word_ptr++ >> bit) & UINT64_C(1)))
 					sample |= 1 << channel;
 			}
 			*dst_ptr++ = sample;

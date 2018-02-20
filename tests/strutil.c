@@ -251,19 +251,17 @@ END_TEST
 
 START_TEST(test_ghz)
 {
-	/* Note: Numbers > 2^32 need a ULL suffix. */
-
-	test_samplerate(1000000000, "1 GHz");
-	test_samplerate(5000000000ULL, "5 GHz");
-	test_samplerate(72000000000ULL, "72 GHz");
-	test_samplerate(388000000000ULL, "388 GHz");
-	test_samplerate(4417594444ULL, "4.417594444 GHz");
-	test_samplerate(44175944444ULL, "44.175944444 GHz");
-	test_samplerate(441759444441ULL, "441.759444441 GHz");
-	test_samplerate(441759000001ULL, "441.759000001 GHz");
-	test_samplerate(441050000000ULL, "441.05 GHz");
-	test_samplerate(441000000005ULL, "441.000000005 GHz");
-	test_samplerate(441500000000ULL, "441.5 GHz");
+	test_samplerate(UINT64_C(1000000000), "1 GHz");
+	test_samplerate(UINT64_C(5000000000), "5 GHz");
+	test_samplerate(UINT64_C(72000000000), "72 GHz");
+	test_samplerate(UINT64_C(388000000000), "388 GHz");
+	test_samplerate(UINT64_C(4417594444), "4.417594444 GHz");
+	test_samplerate(UINT64_C(44175944444), "44.175944444 GHz");
+	test_samplerate(UINT64_C(441759444441), "441.759444441 GHz");
+	test_samplerate(UINT64_C(441759000001), "441.759000001 GHz");
+	test_samplerate(UINT64_C(441050000000), "441.05 GHz");
+	test_samplerate(UINT64_C(441000000005), "441.000000005 GHz");
+	test_samplerate(UINT64_C(441500000000), "441.5 GHz");
 
 	/* Again, but now using SR_GHZ(). */
 	test_samplerate(SR_GHZ(1), "1 GHz");
@@ -279,8 +277,8 @@ START_TEST(test_ghz)
 	test_samplerate(SR_GHZ(441.500000000), "441.5 GHz");
 
 	/* Now check the biggest-possible samplerate (2^64 Hz). */
-	// test_samplerate(18446744073709551615ULL, "18446744073.709551615 GHz");
-	// test_samplerate(SR_GHZ(18446744073ULL), "18446744073 GHz");
+	// test_samplerate(UINT64_C(18446744073709551615), "18446744073.709551615 GHz");
+	// test_samplerate(SR_GHZ(UINT64_C(18446744073)), "18446744073 GHz");
 }
 END_TEST
 
@@ -303,13 +301,12 @@ END_TEST
 
 START_TEST(test_ghz_period)
 {
-	/* Note: Numbers > 2^32 need a ULL suffix. */
-	test_period(1, 1000000000, "1 ns");
-	test_period(1, 5000000000ULL, "200 ps");
-	test_period(1, 72000000000ULL, "13.889 ps");
-	test_period(1, 388000000000ULL, "2.577 ps");
-	test_period(10, 1000000000000, "10 ps");
-	test_period(200, 1000000000000ULL, "200 ps");
+	test_period(1, UINT64_C(1000000000), "1 ns");
+	test_period(1, UINT64_C(5000000000), "200 ps");
+	test_period(1, UINT64_C(72000000000), "13.889 ps");
+	test_period(1, UINT64_C(388000000000), "2.577 ps");
+	test_period(10, UINT64_C(1000000000000), "10 ps");
+	test_period(200, UINT64_C(1000000000000), "200 ps");
 
 	/* Again, but now using SR_GHZ(). */
 	test_period(1, SR_GHZ(1), "1 ns");

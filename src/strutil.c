@@ -803,11 +803,11 @@ SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q)
 		while (*s == ' ')
 			s++;
 		if (!strcmp(s, "fs"))
-			*q = 1000000000000000ULL;
+			*q = UINT64_C(1000000000000000);
 		else if (!strcmp(s, "ps"))
-			*q = 1000000000000ULL;
+			*q = UINT64_C(1000000000000);
 		else if (!strcmp(s, "ns"))
-			*q = 1000000000ULL;
+			*q = UINT64_C(1000000000);
 		else if (!strcmp(s, "us"))
 			*q = 1000000;
 		else if (!strcmp(s, "ms"))

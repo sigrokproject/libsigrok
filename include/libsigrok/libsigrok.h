@@ -84,11 +84,11 @@ enum sr_error_code {
 
 /* Handy little macros */
 #define SR_HZ(n)  (n)
-#define SR_KHZ(n) ((n) * (uint64_t)(1000ULL))
-#define SR_MHZ(n) ((n) * (uint64_t)(1000000ULL))
-#define SR_GHZ(n) ((n) * (uint64_t)(1000000000ULL))
+#define SR_KHZ(n) ((n) * UINT64_C(1000))
+#define SR_MHZ(n) ((n) * UINT64_C(1000000))
+#define SR_GHZ(n) ((n) * UINT64_C(1000000000))
 
-#define SR_HZ_TO_NS(n) ((uint64_t)(1000000000ULL) / (n))
+#define SR_HZ_TO_NS(n) (UINT64_C(1000000000) / (n))
 
 /** libsigrok loglevels. */
 enum sr_loglevel {
