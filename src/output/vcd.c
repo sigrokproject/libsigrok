@@ -96,7 +96,7 @@ static GString *gen_header(const struct sr_output *o)
 	/* timestamp */
 	t = time(NULL);
 	timestamp = g_strdup(ctime(&t));
-	timestamp[strlen(timestamp)-1] = 0;
+	timestamp[strlen(timestamp) - 1] = 0;
 	g_string_printf(header, "$date %s $end\n", timestamp);
 	g_free(timestamp);
 

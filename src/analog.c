@@ -308,7 +308,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 SR_API const char *sr_analog_si_prefix(float *value, int *digits)
 {
 /** @cond PRIVATE */
-#define NEG_PREFIX_COUNT 5  /* number of prefixes below unity */
+#define NEG_PREFIX_COUNT 5 /* number of prefixes below unity */
 #define POS_PREFIX_COUNT (int)(ARRAY_SIZE(prefixes) - NEG_PREFIX_COUNT - 1)
 /** @endcond */
 	static const char *prefixes[] = { "f", "p", "n", "µ", "m", "", "k", "M", "G", "T" };
@@ -555,8 +555,8 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
 		return SR_ERR_ARG;
 	}
 
-	res->p = (int64_t)(p);
-	res->q = (uint64_t)(q);
+	res->p = (int64_t)p;
+	res->q = (uint64_t)q;
 
 	return SR_OK;
 
