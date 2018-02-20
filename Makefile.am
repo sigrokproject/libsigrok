@@ -456,6 +456,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/pipistrello-ols/protocol.c \
 	src/hardware/pipistrello-ols/api.c
 endif
+if HW_RDTECH_DPS
+src_libdrivers_la_SOURCES += \
+	src/hardware/rdtech-dps/protocol.h \
+	src/hardware/rdtech-dps/protocol.c \
+	src/hardware/rdtech-dps/api.c
+endif
 if HW_RIGOL_DS
 src_libdrivers_la_SOURCES += \
 	src/hardware/rigol-ds/protocol.h \
