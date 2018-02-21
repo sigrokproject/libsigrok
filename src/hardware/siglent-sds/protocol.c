@@ -225,15 +225,10 @@ SR_PRIV int siglent_sds_channel_start(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Starting reading data from channel %d.", ch->index + 1);
 
-	switch (devc->model->series->protocol) {
-	case NON_SPO_MODEL:
-	case SPO_MODEL:
-		s = (ch->type == SR_CHANNEL_LOGIC) ? "D%d:WF?" : "C%d:WF? ALL";
-		if (sr_scpi_send(sdi->conn, s, ch->index + 1) != SR_OK)
-			return SR_ERR;
-		siglent_sds_set_wait_event(devc, WAIT_NONE);
-		break;
-	}
+	s = (ch->type == SR_CHANNEL_LOGIC) ? "D%d:WF?" : "C%d:WF? ALL";
+	if (sr_scpi_send(sdi->conn, s, ch->index + 1) != SR_OK)
+		return SR_ERR;
+	siglent_sds_set_wait_event(devc, WAIT_NONE);
 
 	siglent_sds_set_wait_event(devc, WAIT_BLOCK);
 
