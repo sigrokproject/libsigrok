@@ -186,7 +186,6 @@ static int read_regs(const struct sr_dev_inst *sdi,
 		     uint8_t cnt)
 {
 	uint8_t req[33];
-	int i;
 
 	if (cnt < 1 || cnt > 30)
 		return SR_ERR_ARG;
@@ -194,10 +193,8 @@ static int read_regs(const struct sr_dev_inst *sdi,
 	req[0] = 0x00;
 	req[1] = COMMAND_READ_REG;
 	req[2] = cnt;
-
-	for (i = 0; i < cnt; i++) {
-		req[3 + i] = regs[i];
-	}
+	if (cnt)
+		memcpy(&req[3], regs, cnt);
 
 	return transact(sdi, req, 3 + cnt, values, cnt);
 }
