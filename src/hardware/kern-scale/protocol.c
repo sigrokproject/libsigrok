@@ -65,7 +65,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 {
 	struct scale_info *scale;
 	struct dev_context *devc;
-	int len, i, offset = 0;
+	int len, offset;
 	struct sr_serial_dev_inst *serial;
 
 	scale = (struct scale_info *)sdi->driver;
@@ -85,6 +85,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
+	offset = 0;
 	while ((devc->buflen - offset) >= scale->packet_size) {
 		if (scale->packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, info);
@@ -95,8 +96,8 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 	}
 
 	/* If we have any data left, move it to the beginning of our buffer. */
-	for (i = 0; i < devc->buflen - offset; i++)
-		devc->buf[i] = devc->buf[offset + i];
+	if (offset < devc->buflen)
+		memmove(devc->buf, devc->buf + offset, devc->buflen - offset);
 	devc->buflen -= offset;
 }
 
