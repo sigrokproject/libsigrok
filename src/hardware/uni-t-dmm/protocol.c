@@ -258,8 +258,8 @@ static int get_and_handle_data(struct sr_dev_inst *sdi)
 	}
 
 	/* Move remaining bytes to beginning of buffer. */
-	for (i = 0; i < devc->buflen - devc->bufoffset; i++)
-		pbuf[i] = pbuf[devc->bufoffset + i];
+	if (devc->bufoffset < devc->buflen)
+		memmove(pbuf, pbuf + devc->bufoffset, devc->buflen - devc->bufoffset);
 	devc->buflen -= devc->bufoffset;
 
 	return SR_OK;
