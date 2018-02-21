@@ -150,7 +150,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, int idx)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int len, i, offset = 0;
+	int len, offset;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -166,6 +166,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, int idx)
 	devc->buflen += len;
 
 	/* Now look for packets in that data. */
+	offset = 0;
 	while ((devc->buflen - offset) >= mic_devs[idx].packet_size) {
 		if (mic_devs[idx].packet_valid(devc->buf + offset)) {
 			handle_packet(devc->buf + offset, sdi, idx);
@@ -176,8 +177,8 @@ static void handle_new_data(struct sr_dev_inst *sdi, int idx)
 	}
 
 	/* If we have any data left, move it to the beginning of our buffer. */
-	for (i = 0; i < devc->buflen - offset; i++)
-		devc->buf[i] = devc->buf[offset + i];
+	if (offset < devc->buflen)
+		memmove(devc->buf, devc->buf + offset, devc->buflen - offset);
 	devc->buflen -= offset;
 }
 
