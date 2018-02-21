@@ -48,8 +48,8 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	p += sizeof(mso_head);
 
 	for (i = 0; i < n; i++) {
-		*(uint16_t *) p = g_htons(payload[i]);
-		p += 2;
+		WB16(p, payload[i]);
+		p += sizeof(uint16_t);
 	}
 	memcpy(p, mso_foot, sizeof(mso_foot));
 
