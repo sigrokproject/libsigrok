@@ -210,7 +210,7 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 	uint8_t key, type, token;
 	GString *tmp_str, *devname, *version;
 	guchar tmp_c;
-	int index, i;
+	int index;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -264,10 +264,8 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 			break;
 		case 1:
 			/* 32-bit unsigned integer */
-			tmp_int = 0;
-			for (i = 0; i < 4; i++) {
-				tmp_int = (tmp_int << 8) | buf[index++];
-			}
+			tmp_int = RB32(&buf[index]);
+			index += sizeof(uint32_t);
 			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
 			       key, tmp_int);
 			switch (token) {
