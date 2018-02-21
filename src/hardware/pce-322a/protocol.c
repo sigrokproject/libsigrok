@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <string.h>
 #include "protocol.h"
 
 static int send_command(const struct sr_dev_inst *sdi, uint16_t command)
@@ -134,15 +135,13 @@ static void process_memory_measurement(const struct sr_dev_inst *sdi)
 static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 {
 	struct dev_context *devc;
-	unsigned int i;
 
 	devc = sdi->priv;
 
 	if (devc->buffer_len < BUFFER_SIZE) {
 		devc->buffer[devc->buffer_len++] = c;
 	} else {
-		for (i = 1; i < BUFFER_SIZE; i++)
-			devc->buffer[i - 1] = devc->buffer[i];
+		memmove(devc->buffer, devc->buffer + 1, BUFFER_SIZE - 1);
 		devc->buffer[BUFFER_SIZE - 1] = c;
 	}
 
@@ -156,15 +155,13 @@ static void process_byte(const struct sr_dev_inst *sdi, const unsigned char c)
 static void process_usage_byte(const struct sr_dev_inst *sdi, uint8_t c)
 {
 	struct dev_context *devc;
-	unsigned int i;
 
 	devc = sdi->priv;
 
 	if (devc->buffer_len < MEM_USAGE_BUFFER_SIZE) {
 		devc->buffer[devc->buffer_len++] = c;
 	} else {
-		for (i = 1; i < MEM_USAGE_BUFFER_SIZE; i++)
-			devc->buffer[i - 1] = devc->buffer[i];
+		memmove(devc->buffer, devc->buffer + 1, MEM_USAGE_BUFFER_SIZE - 1);
 		devc->buffer[MEM_USAGE_BUFFER_SIZE - 1] = c;
 	}
 
@@ -187,15 +184,13 @@ static void process_usage_byte(const struct sr_dev_inst *sdi, uint8_t c)
 static void process_memory_byte(const struct sr_dev_inst *sdi, uint8_t c)
 {
 	struct dev_context *devc;
-	unsigned int i;
 
 	devc = sdi->priv;
 
 	if (devc->buffer_len < MEM_DATA_BUFFER_SIZE) {
 		devc->buffer[devc->buffer_len++] = c;
 	} else {
-		for (i = 1; i < MEM_DATA_BUFFER_SIZE; i++)
-			devc->buffer[i - 1] = devc->buffer[i];
+		memmove(devc->buffer, devc->buffer + 1, MEM_DATA_BUFFER_SIZE - 1);
 		devc->buffer[MEM_DATA_BUFFER_SIZE - 1] = c;
 	}
 
