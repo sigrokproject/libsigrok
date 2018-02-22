@@ -171,6 +171,7 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 	info->is_gain = !strncmp(buf, "DB", 2) && info->is_decibel;
 	info->is_power = (!strncmp(buf, "dB", 2) && info->is_decibel_mw) ||
 		((!strncmp(buf, "WT", 2) && info->is_watt));
+	info->is_power_factor = !strncmp(buf, "CO", 2) && info->is_unitless;
 	info->is_hfe = !strncmp(buf, "HF", 2) ||
 		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
 		 !info->is_logic && !info->is_farad && !info->is_hertz);
@@ -253,6 +254,10 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			analog->meaning->unit = SR_UNIT_WATT;
 		else
 			analog->meaning->unit = SR_UNIT_UNITLESS;
+	}
+	if (info->is_power_factor) {
+		analog->meaning->mq = SR_MQ_POWER_FACTOR;
+		analog->meaning->unit = SR_UNIT_UNITLESS;
 	}
 	if (info->is_gain) {
 		analog->meaning->mq = SR_MQ_GAIN;

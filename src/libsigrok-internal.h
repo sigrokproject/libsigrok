@@ -1279,7 +1279,7 @@ struct metex14_info {
 	gboolean is_diode, is_frequency, is_ampere, is_volt, is_farad;
 	gboolean is_hertz, is_ohm, is_celsius, is_fahrenheit, is_watt;
 	gboolean is_pico, is_nano, is_micro, is_milli, is_kilo, is_mega;
-	gboolean is_gain, is_decibel, is_power, is_decibel_mw;
+	gboolean is_gain, is_decibel, is_power, is_decibel_mw, is_power_factor;
 	gboolean is_hfe, is_unitless, is_logic, is_min, is_max, is_avg;
 };
 
