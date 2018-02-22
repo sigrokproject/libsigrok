@@ -173,8 +173,10 @@ static void parse_flags(const char *buf, struct metex14_info *info)
 		((!strncmp(buf, "WT", 2) && info->is_watt));
 	info->is_power_factor = !strncmp(buf, "CO", 2) && info->is_unitless;
 	info->is_hfe = !strncmp(buf, "HF", 2) ||
-		(!strncmp(buf, "  ", 2) && !info->is_volt && !info->is_ohm &&
-		 !info->is_logic && !info->is_farad && !info->is_hertz);
+		(!strncmp(buf, "  ", 2) && !info->is_ampere &&!info->is_volt &&
+		!info->is_resistance && !info->is_capacity && !info->is_frequency &&
+		!info->is_temperature && !info->is_power && !info->is_power_factor &&
+		!info->is_gain && !info->is_logic && !info->is_diode);
 	info->is_min = !strncmp(buf, "MN", 2);
 	info->is_max = !strncmp(buf, "MX", 2);
 	info->is_avg = !strncmp(buf, "AG", 2);
