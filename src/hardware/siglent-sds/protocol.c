@@ -487,6 +487,8 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	unsigned int i;
 	int res, num_tokens;
 	gchar **tokens;
+        int len;
+        float trigger_pos;
 
 	devc = sdi->priv;
 
@@ -590,9 +592,27 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	sr_dbg("Current trigger source: %s.", devc->trigger_source);
 
 	/* TODO: Horizontal trigger position. */
+	response = "";
+	trigger_pos = 0;
+	if (sr_scpi_get_string(sdi->conn, g_strdup_printf("%s:TRDL?", devc->trigger_source), &response) != SR_OK)
+		return SR_ERR;
+	len = strlen(response);
+	if (!g_ascii_strcasecmp(response + (len - 2), "us")) {
+		trigger_pos = atof(response) / SR_GHZ(1);
+		sr_dbg("Current trigger position us %s.", response);
+	} else if (!g_ascii_strcasecmp(response + (len - 2), "ns")) {
+		trigger_pos = atof(response) / SR_MHZ(1);
+		sr_dbg("Current trigger position ms %s.", response);
+	} else if (!g_ascii_strcasecmp(response + (len - 2), "ms")) {
+		trigger_pos = atof(response) / SR_KHZ(1);
+		sr_dbg("Current trigger position ns %s.", response);
+	} else if (!g_ascii_strcasecmp(response + (len - 2), "s")) {
+		trigger_pos = atof(response);
+		sr_dbg("Current trigger position s %s.", response);
+	};
+	devc->horiz_triggerpos = trigger_pos;
 
-	devc->horiz_triggerpos = 0;
-	sr_dbg("Current horizontal trigger position: %g.", devc->horiz_triggerpos);
+	sr_dbg("Current horizontal trigger position %.10f", devc->horiz_triggerpos);
 
 	/* Trigger slope. */
 	cmd = g_strdup_printf("%s:TRSL?", devc->trigger_source);
