@@ -274,8 +274,6 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 	memcpy(&desc_length, buf + 36, 4); /* Descriptor block length */
 	memcpy(&dataLength, buf + 60, 4); /* Data block length */
 
-	devc->vdiv[channelIndex] = 2;
-	devc->vert_offset[channelIndex] = 0;
 	devc->block_header_size = desc_length + 15;
 	ret = dataLength;
 
