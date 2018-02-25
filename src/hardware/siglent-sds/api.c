@@ -682,6 +682,14 @@ static int config_set(uint32_t key, GVariant *data,
 		siglent_sds_get_dev_cfg_horizontal(sdi);
 		data = g_variant_new_uint64(devc->samplerate);
 		break;
+	case SR_CONF_AVERAGING:
+		devc->average_enabled = g_variant_get_boolean(data);
+		sr_dbg("%s averaging", devc->average_enabled ? "Enabling" : "Disabling");
+		break;
+	case SR_CONF_AVG_SAMPLES:
+		devc->average_samples = g_variant_get_uint64(data);
+		sr_dbg("Setting averaging rate to %" PRIu64, devc->average_samples);
+		break;	
 	default:
 		return SR_ERR_NA;
 	}
@@ -767,7 +775,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_int32(devc->model->series->num_horizontal_divs);
 		break;
 	case SR_CONF_AVERAGING:
-		/* TODO: Implement averaging. */
+		*data = g_variant_new_boolean(devc->average_enabled);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -854,8 +862,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	case SPO_MODEL:
 		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
 			return SR_ERR;
-		if (siglent_sds_config_set(sdi, "ACQW SAMPLING") != SR_OK)
-			return SR_ERR;
+		if (devc->average_enabled) {
+			if (siglent_sds_config_set(sdi, "ACQW AVERAGE,%i", devc->average_samples) != SR_OK)
+				return SR_ERR;
+		} else {
+			if (siglent_sds_config_set(sdi, "ACQW SAMPLING") != SR_OK)
+				return SR_ERR;
+		}
 		break;
 	case NON_SPO_MODEL:
 		/* TODO: Implement CML/CNL/DL models. */
