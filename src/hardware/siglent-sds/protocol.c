@@ -250,7 +250,7 @@ SR_PRIV int siglent_sds_channel_start(const struct sr_dev_inst *sdi)
 }
 
 /* Read the header of a data block. */
-static int siglent_sds_read_header(struct sr_dev_inst *sdi, int channelIndex)
+static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
@@ -350,7 +350,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 			g_usleep(4900000); /* Sleep for large memory set. */
 		}
 		sr_dbg("New block header expected.");
-		len = siglent_sds_read_header(sdi, ch->index);
+		len = siglent_sds_read_header(sdi);
 		expected_data_bytes = len;
 		if (len == 0)
 			/* Still reading the header. */
