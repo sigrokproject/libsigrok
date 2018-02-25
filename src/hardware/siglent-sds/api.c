@@ -588,7 +588,7 @@ static int config_set(uint32_t key, GVariant *data,
 		case 1000000:
 			cmd = g_strdup_printf("%" PRIu64 "US", p);
 			break;
-		case 100000000:
+		case 1000000000:
 			cmd = g_strdup_printf("%" PRIu64 "NS", p);
 			break;
 		}
