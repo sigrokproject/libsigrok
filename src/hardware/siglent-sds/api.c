@@ -592,7 +592,6 @@ static int config_set(uint32_t key, GVariant *data,
 			cmd = g_strdup_printf("%" PRIu64 "NS", p);
 			break;
 		}
-		sr_dbg("Setting device timebase: TDIV %s.", cmd);
 		ret = siglent_sds_config_set(sdi, "TDIV %s", cmd);
 		g_free(cmd);
 		return ret;
