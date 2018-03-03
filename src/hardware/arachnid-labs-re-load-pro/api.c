@@ -247,12 +247,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(devc->otp_active);
 		break;
 	case SR_CONF_UNDER_VOLTAGE_CONDITION:
-		if (reloadpro_get_under_voltage_threshold(sdi, &fvalue) == SR_OK) {
-			if (fvalue == .0)
-				*data = g_variant_new_boolean(FALSE);
-			else
-				*data = g_variant_new_boolean(TRUE);
-		}
+		if (reloadpro_get_under_voltage_threshold(sdi, &fvalue) == SR_OK)
+			*data = g_variant_new_boolean(fvalue != 0.0);
 		break;
 	case SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE:
 		*data = g_variant_new_boolean(devc->uvc_active);
