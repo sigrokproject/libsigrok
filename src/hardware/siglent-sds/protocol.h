@@ -32,6 +32,8 @@
 //#define ACQ_BUFFER_SIZE (6000000)
 #define ACQ_BUFFER_SIZE (18000000)
 
+#define SIGLENT_HEADER_SIZE 351
+
 /* Maximum number of samples to retrieve at once. */
 #define ACQ_BLOCK_SIZE (30 * 1000)
 
@@ -135,10 +137,10 @@ struct dev_context {
 	uint64_t num_channel_bytes;
 	/* Number of bytes of block header read. */
 	uint64_t num_header_bytes;
-	/* Number of bytes in current data block, if 0 block header expected. */
+	/* Number of data blocks bytes already read. */
 	uint64_t num_block_bytes;
-	/* Number of data block bytes already read. */
-	uint64_t num_block_read;
+	/* Number of data blocks read. */
+	int num_block_read;
 	/* What to wait for in *_receive. */
 	enum wait_events wait_event;
 	/* Trigger/block copying/stop waiting status. */

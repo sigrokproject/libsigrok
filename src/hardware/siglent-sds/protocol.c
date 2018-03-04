@@ -257,12 +257,11 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 	char *buf = (char *)devc->buffer;
 	int ret, desc_length;
 	int block_offset = 15; /* Offset for descriptor block. */
-	long dataLength = 0;
+	long data_length = 0;
 
 	/* Read header from device. */
-	ret = sr_scpi_read_data(scpi, buf + devc->num_header_bytes,
-		devc->model->series->buffer_samples);
-	if (ret < 346) {
+	ret = sr_scpi_read_data(scpi, buf, SIGLENT_HEADER_SIZE);
+	if (ret < SIGLENT_HEADER_SIZE) {
 		sr_err("Read error while reading data header.");
 		return SR_ERR;
 	}
@@ -272,10 +271,10 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 
 	/* Parse WaveDescriptor header. */
 	memcpy(&desc_length, buf + 36, 4); /* Descriptor block length */
-	memcpy(&dataLength, buf + 60, 4); /* Data block length */
+	memcpy(&data_length, buf + 60, 4); /* Data block length */
 
 	devc->block_header_size = desc_length + 15;
-	ret = dataLength;
+	devc->num_samples = data_length;
 
 	sr_dbg("Received data block header: '%s' -> block length %d.", buf, ret);
 
@@ -295,8 +294,6 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	int len, i;
 	struct sr_channel *ch;
-	gsize expected_data_bytes = 0;
-	char *memsize;
 
 	(void)fd;
 
@@ -310,10 +307,6 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 
 	if (!(revents == G_IO_IN || revents == 0))
 		return TRUE;
-
-	memsize = NULL;
-	if (sr_scpi_get_string(sdi->conn, "MSIZ?", &memsize) != SR_OK)
-		return SR_ERR;
 
 	switch (devc->wait_event) {
 	case WAIT_NONE:
@@ -338,18 +331,19 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 		sr_err("BUG: Unknown event target encountered.");
 		break;
 	}
-
 	ch = devc->channel_entry->data;
+	len = 0;
 
 	if (devc->num_block_bytes == 0) {
 
-		if (g_ascii_strcasecmp(memsize, "14M") == 0) {
+		if (devc->samplerate >= 14000000) {
 			sr_err("Device memory depth is set to 14Mpts, so please be patient.");
 			g_usleep(4900000); /* Sleep for large memory set. */
 		}
+		if (sr_scpi_read_begin(scpi) != SR_OK)
+			return TRUE;
 		sr_dbg("New block header expected.");
 		len = siglent_sds_read_header(sdi);
-		expected_data_bytes = len;
 		if (len == 0)
 			/* Still reading the header. */
 			return TRUE;
@@ -360,23 +354,9 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
-
-		if (devc->data_source == DATA_SOURCE_SCREEN
-			&& (unsigned)len < expected_data_bytes) {
-			sr_dbg("Discarding short data block.");
-			sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
-			return TRUE;
-		}
-		devc->num_block_bytes = len;
+		devc->num_block_bytes = 0;
 		devc->num_block_read = 0;
 	}
-
-	len = devc->num_block_bytes - devc->num_block_read;
-	if (len > ACQ_BUFFER_SIZE)
-		len = ACQ_BUFFER_SIZE;
-
-	/* Offset the data block buffer past the IEEE header and description header. */
-	devc->buffer += devc->block_header_size;
 
 	if (len == -1) {
 		sr_err("Read error, aborting capture.");
@@ -386,73 +366,80 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	sr_dbg("Received %d bytes.", len);
-
-	devc->num_block_read += len;
-
-	if (ch->type == SR_CHANNEL_ANALOG) {
-		float vdiv = devc->vdiv[ch->index];
-		float offset = devc->vert_offset[ch->index];
-		GArray *float_data;
-		static GArray *data;
-		float voltage, vdivlog;
-		int digits;
-
-		data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
-		g_array_append_vals(data, devc->buffer, len);
-		float_data = g_array_new(FALSE, FALSE, sizeof(float));
-		for (i = 0; i < len; i++) {
-			voltage = (float)g_array_index(data, int8_t, i) / 25;
-			voltage = ((vdiv * voltage) - offset);
-			g_array_append_val(float_data, voltage);
-		}
-		vdivlog = log10f(vdiv);
-		digits = -(int) vdivlog + (vdivlog < 0.0);
-		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
-		analog.meaning->channels = g_slist_append(NULL, ch);
-		analog.num_samples = float_data->len;
-		analog.data = (float *)float_data->data;
-		analog.meaning->mq = SR_MQ_VOLTAGE;
-		analog.meaning->unit = SR_UNIT_VOLT;
-		analog.meaning->mqflags = 0;
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		sr_session_send(sdi, &packet);
-		g_slist_free(analog.meaning->channels);
-		g_array_free(data, TRUE);
-	} else {
-		logic.length = len;
-		logic.unitsize = 1;
-		logic.data = devc->buffer;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		sr_session_send(sdi, &packet);
-	}
-
-	if (devc->num_block_read == devc->num_block_bytes) {
-		sr_dbg("Block has been completed.");
-		sr_dbg("Preparing for possible next block.");
-		devc->num_header_bytes = 0;
-		devc->num_block_bytes = 0;
-		if (devc->data_source != DATA_SOURCE_SCREEN)
-			siglent_sds_set_wait_event(devc, WAIT_BLOCK);
-		if (!sr_scpi_read_complete(scpi)) {
-			sr_err("Read should have been completed.");
+	while (devc->num_block_bytes < devc->num_samples) {
+		len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples);
+		if (len == -1) {
+			sr_err("Read error, aborting capture.");
 			packet.type = SR_DF_FRAME_END;
 			sr_session_send(sdi, &packet);
 			sdi->driver->dev_acquisition_stop(sdi);
 			return TRUE;
 		}
-		devc->num_block_read = 0;
-	} else {
-		sr_dbg("%" PRIu64 " of %" PRIu64 " block bytes read.",
-			devc->num_block_read, devc->num_block_bytes);
+		devc->num_block_read += 1;
+		devc->num_block_bytes += len;
+		if (devc->num_block_bytes >= devc->num_samples ) {
+			/* Offset the data block buffer past the IEEE header and description header. */
+			devc->buffer += devc->block_header_size;
+			len = devc->num_samples;
+		}
+		sr_dbg("Received block: %i, %d bytes.", devc->num_block_read, len);
+		if (ch->type == SR_CHANNEL_ANALOG) {
+			float vdiv = devc->vdiv[ch->index];
+			float offset = devc->vert_offset[ch->index];
+			GArray *float_data;
+			static GArray *data;
+			float voltage, vdivlog;
+			int digits;
+
+			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
+			g_array_append_vals(data, devc->buffer, len);
+			float_data = g_array_new(FALSE, FALSE, sizeof(float));
+			for (i = 0; i < len; i++) {
+				voltage = (float)g_array_index(data, int8_t, i) / 25;
+				voltage = ((vdiv * voltage) - offset);
+				g_array_append_val(float_data, voltage);
+			}
+			vdivlog = log10f(vdiv);
+			digits = -(int) vdivlog + (vdivlog < 0.0);
+			sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+			analog.meaning->channels = g_slist_append(NULL, ch);
+			analog.num_samples = float_data->len;
+			analog.data = (float *)float_data->data;
+			analog.meaning->mq = SR_MQ_VOLTAGE;
+			analog.meaning->unit = SR_UNIT_VOLT;
+			analog.meaning->mqflags = 0;
+			packet.type = SR_DF_ANALOG;
+			packet.payload = &analog;
+			sr_session_send(sdi, &packet);
+			g_slist_free(analog.meaning->channels);
+			g_array_free(data, TRUE);
+		} else {
+			logic.length = len;
+			logic.unitsize = 1;
+			logic.data = devc->buffer;
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			sr_session_send(sdi, &packet);
+		}
+
+		if (devc->num_samples == devc->num_block_bytes) {
+			sr_dbg("Transfer has been completed.");
+			devc->num_header_bytes = 0;
+			devc->num_block_bytes = 0;
+			if (!sr_scpi_read_complete(scpi)) {
+				sr_err("Read should have been completed.");
+				packet.type = SR_DF_FRAME_END;
+				sr_session_send(sdi, &packet);
+				sdi->driver->dev_acquisition_stop(sdi);
+				return TRUE;
+			}
+			devc->num_block_read = 0;
+		} else {
+			sr_dbg("%" PRIu64 " of %" PRIu64 " block bytes read.",
+				devc->num_block_bytes, devc->num_samples);
+		}
 	}
-	devc->num_channel_bytes += len;
-	if (devc->num_channel_bytes < expected_data_bytes) {
-		/* Don't have the full data for this channel yet, re-run. */
-		return TRUE;
-	}
+
 	if (devc->channel_entry->next) {
 		/* We got the frame for this channel, now get the next channel. */
 		devc->channel_entry = devc->channel_entry->next;

@@ -857,6 +857,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	// devc->analog_frame_size = devc->model->series->buffer_samples;
 	// devc->digital_frame_size = devc->model->series->buffer_samples;
 
+	siglent_sds_get_dev_cfg_horizontal(sdi);
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
 		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
