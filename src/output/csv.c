@@ -312,6 +312,7 @@ static void process_analog(struct context *ctx,
 	int ret;
 	size_t num_rcvd_ch, num_have_ch;
 	size_t idx_have, idx_smpl, idx_rcvd;
+	size_t idx_send;
 	struct sr_analog_meaning *meaning;
 	GSList *l;
 	float *fdata = NULL;
@@ -336,6 +337,7 @@ static void process_analog(struct context *ctx,
 		sr_warn("Problems converting data to floating point values.");
 
 	num_have_ch = ctx->num_analog_channels + ctx->num_logic_channels;
+	idx_send = 0;
 	for (idx_have = 0; idx_have < num_have_ch; idx_have++) {
 		if (ctx->channels[idx_have].ch->type != SR_CHANNEL_ANALOG)
 			continue;
@@ -351,9 +353,10 @@ static void process_analog(struct context *ctx,
 					&ctx->channels[idx_have].label);
 			}
 			for (idx_smpl = 0; idx_smpl < analog->num_samples; idx_smpl++)
-				ctx->analog_samples[idx_smpl * ctx->num_analog_channels + idx_have] = fdata[idx_smpl * num_rcvd_ch + idx_rcvd];
+				ctx->analog_samples[idx_smpl * ctx->num_analog_channels + idx_send] = fdata[idx_smpl * num_rcvd_ch + idx_rcvd];
 			break;
 		}
+		idx_send++;
 	}
 	g_free(fdata);
 }
