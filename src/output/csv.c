@@ -310,7 +310,8 @@ static void process_analog(struct context *ctx,
 			   const struct sr_datafeed_analog *analog)
 {
 	int ret;
-	unsigned int i, j, c, num_channels;
+	size_t num_rcvd_ch, num_have_ch;
+	size_t idx_have, idx_smpl, idx_rcvd;
 	struct sr_analog_meaning *meaning;
 	GSList *l;
 	float *fdata = NULL;
@@ -327,29 +328,30 @@ static void process_analog(struct context *ctx,
 			ctx->num_samples, analog->num_samples);
 
 	meaning = analog->meaning;
-	num_channels = g_slist_length(meaning->channels);
-	ctx->channels_seen += num_channels;
-	sr_dbg("Processing packet of %u analog channels", num_channels);
-	fdata = g_malloc(analog->num_samples * num_channels * sizeof(float));
+	num_rcvd_ch = g_slist_length(meaning->channels);
+	ctx->channels_seen += num_rcvd_ch;
+	sr_dbg("Processing packet of %zu analog channels", num_rcvd_ch);
+	fdata = g_malloc(analog->num_samples * num_rcvd_ch * sizeof(float));
 	if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 		sr_warn("Problems converting data to floating point values.");
 
-	for (i = 0; i < ctx->num_analog_channels + ctx->num_logic_channels; i++) {
-		if (ctx->channels[i].ch->type != SR_CHANNEL_ANALOG)
+	num_have_ch = ctx->num_analog_channels + ctx->num_logic_channels;
+	for (idx_have = 0; idx_have < num_have_ch; idx_have++) {
+		if (ctx->channels[idx_have].ch->type != SR_CHANNEL_ANALOG)
 			continue;
 		sr_dbg("Looking for channel %s",
-		       ctx->channels[i].ch->name);
-		for (l = meaning->channels, c = 0; l; l = l->next, c++) {
+		       ctx->channels[idx_have].ch->name);
+		for (l = meaning->channels, idx_rcvd = 0; l; l = l->next, idx_rcvd++) {
 			ch = l->data;
 			sr_dbg("Checking %s", ch->name);
-			if (ctx->channels[i].ch != l->data)
+			if (ctx->channels[idx_have].ch != ch)
 				continue;
 			if (ctx->label_do && !ctx->label_names) {
 				sr_analog_unit_to_string(analog,
-					&ctx->channels[i].label);
+					&ctx->channels[idx_have].label);
 			}
-			for (j = 0; j < analog->num_samples; j++)
-				ctx->analog_samples[j * ctx->num_analog_channels + i] = fdata[j * num_channels + c];
+			for (idx_smpl = 0; idx_smpl < analog->num_samples; idx_smpl++)
+				ctx->analog_samples[idx_smpl * ctx->num_analog_channels + idx_have] = fdata[idx_smpl * num_rcvd_ch + idx_rcvd];
 			break;
 		}
 	}
