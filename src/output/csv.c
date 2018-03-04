@@ -314,6 +314,7 @@ static void process_analog(struct context *ctx,
 	struct sr_analog_meaning *meaning;
 	GSList *l;
 	float *fdata = NULL;
+	struct sr_channel *ch;
 
 	if (!ctx->analog_samples) {
 		ctx->analog_samples = g_malloc(analog->num_samples
@@ -334,22 +335,22 @@ static void process_analog(struct context *ctx,
 		sr_warn("Problems converting data to floating point values.");
 
 	for (i = 0; i < ctx->num_analog_channels + ctx->num_logic_channels; i++) {
-		if (ctx->channels[i].ch->type == SR_CHANNEL_ANALOG) {
-			sr_dbg("Looking for channel %s",
-			       ctx->channels[i].ch->name);
-			for (l = meaning->channels, c = 0; l; l = l->next, c++) {
-				struct sr_channel *ch = l->data;
-				sr_dbg("Checking %s", ch->name);
-				if (ctx->channels[i].ch == l->data) {
-					if (ctx->label_do && !ctx->label_names) {
-						sr_analog_unit_to_string(analog,
-							&ctx->channels[i].label);
-					}
-					for (j = 0; j < analog->num_samples; j++)
-						ctx->analog_samples[j * ctx->num_analog_channels + i] = fdata[j * num_channels + c];
-					break;
-				}
+		if (ctx->channels[i].ch->type != SR_CHANNEL_ANALOG)
+			continue;
+		sr_dbg("Looking for channel %s",
+		       ctx->channels[i].ch->name);
+		for (l = meaning->channels, c = 0; l; l = l->next, c++) {
+			ch = l->data;
+			sr_dbg("Checking %s", ch->name);
+			if (ctx->channels[i].ch != l->data)
+				continue;
+			if (ctx->label_do && !ctx->label_names) {
+				sr_analog_unit_to_string(analog,
+					&ctx->channels[i].label);
 			}
+			for (j = 0; j < analog->num_samples; j++)
+				ctx->analog_samples[j * ctx->num_analog_channels + i] = fdata[j * num_channels + c];
+			break;
 		}
 	}
 	g_free(fdata);
