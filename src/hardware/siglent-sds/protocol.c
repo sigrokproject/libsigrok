@@ -335,8 +335,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 	len = 0;
 
 	if (devc->num_block_bytes == 0) {
-
-		if (devc->samplerate >= 14000000) {
+		if (devc->memory_depth >= 14000000) {
 			sr_err("Device memory depth is set to 14Mpts, so please be patient.");
 			g_usleep(4900000); /* Sleep for large memory set. */
 		}
@@ -662,44 +661,39 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	int res;
 	char *sample_points_string;
 	float samplerate_scope, fvalue;
-	char *first, *concat;
 
 	devc = sdi->priv;
 	cmd = g_strdup_printf("SANU? C1");
 	res = sr_scpi_get_string(sdi->conn, cmd, &sample_points_string);
 	g_free(cmd);
+	samplerate_scope = 0;
+	fvalue = 0;
 	if (res != SR_OK)
 		return SR_ERR;
-	if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
-		sample_points_string[strlen(sample_points_string) - 4] = '\0';
 
-		if (g_strstr_len(sample_points_string, -1, ".") != NULL) {
-			first = strtok(sample_points_string, ".");
-			concat = strcat(first, strtok(NULL, "."));
-			if (sr_atof_ascii(concat, &fvalue) != SR_OK || fvalue == 0.0) {
-				sr_dbg("Invalid float converted from scope response.");
-				return SR_ERR;
-			}
-		} else {
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK || fvalue == 0.0) {
-				sr_dbg("Invalid float converted from scope response.");
-				return SR_ERR;
-			}
-		}
-		samplerate_scope = fvalue * 100000;
-	} else {
-		sample_points_string[strlen(sample_points_string) - 4] = '\0';
-		if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK || fvalue == 0.0) {
+	if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
+		sample_points_string[strlen(sample_points_string) -4] = '\0';
+		if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
 			sr_dbg("Invalid float converted from scope response.");
 			return SR_ERR;
 		}
-		samplerate_scope = fvalue * 1000;
+		samplerate_scope = fvalue * 1000000;
+	} else if (g_strstr_len(sample_points_string, -1, "Kpts") != NULL){
+		sample_points_string[strlen(sample_points_string) -4] = '\0';
+		if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
+			sr_dbg("Invalid float converted from scope response.");
+			return SR_ERR;
+		}
+		samplerate_scope = fvalue * 10000;
+	} else {
+		samplerate_scope = fvalue;
 	}
+	g_free(sample_points_string);
 	/* Get the timebase. */
 	if (sr_scpi_get_float(sdi->conn, ":TDIV?", &devc->timebase) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current timebase: %g.", devc->timebase);
 	devc->samplerate = samplerate_scope / (devc->timebase * devc->model->series->num_horizontal_divs);
-
+	devc->memory_depth = samplerate_scope;
 	return SR_OK;
 }

@@ -109,6 +109,7 @@ struct dev_context {
 	uint64_t analog_frame_size;
 	uint64_t digital_frame_size;
 	uint64_t num_samples;
+	uint64_t memory_depth;
 	long block_header_size;
 	float samplerate;
 
