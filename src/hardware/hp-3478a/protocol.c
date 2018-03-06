@@ -165,11 +165,11 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 {
 	/* Digits / Resolution (spec_digits must be set before range parsing) */
 	if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_5_5) {
-		devc->spec_digits = 5;
+		devc->spec_digits = 6;
 	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_4_5) {
-		devc->spec_digits = 4;
+		devc->spec_digits = 5;
 	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_3_5) {
-		devc->spec_digits = 3;
+		devc->spec_digits = 4;
 	}
 
 	/* Function + Range */
