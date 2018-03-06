@@ -91,72 +91,68 @@ SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 
 static int parse_range_vdc(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30MV) {
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30MV)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300MV) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300MV)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_3V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_3V)
 		devc->enc_digits = devc->spec_digits - 1;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30V)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300V)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else {
+	else
 		return SR_ERR_DATA;
-	}
 
 	return SR_OK;
 }
 
 static int parse_range_vac(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300MV) {
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300MV)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_3V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_3V)
 		devc->enc_digits = devc->spec_digits - 1;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_30V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_30V)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300V) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300V)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else {
+	else
 		return SR_ERR_DATA;
-	}
 
 	return SR_OK;
 }
 
 static int parse_range_a(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_300MA) {
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_300MA)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_3A) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_3A)
 		devc->enc_digits = devc->spec_digits - 1;
-	} else {
+	else
 		return SR_ERR_DATA;
-	}
 
 	return SR_OK;
 }
 
 static int parse_range_ohm(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30R) {
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30R)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300R) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300R)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3KR) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3KR)
 		devc->enc_digits = devc->spec_digits - 1;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30KR) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30KR)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300KR) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300KR)
 		devc->enc_digits = devc->spec_digits - 3;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3MR) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3MR)
 		devc->enc_digits = devc->spec_digits - 1;
-	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30MR) {
+	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30MR)
 		devc->enc_digits = devc->spec_digits - 2;
-	} else {
+	else
 		return SR_ERR_DATA;
-	}
 
 	return SR_OK;
 }
@@ -164,13 +160,14 @@ static int parse_range_ohm(struct dev_context *devc, uint8_t range_byte)
 static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 {
 	/* Digits / Resolution (spec_digits must be set before range parsing) */
-	if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_5_5) {
+	if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_5_5)
 		devc->spec_digits = 6;
-	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_4_5) {
+	else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_4_5)
 		devc->spec_digits = 5;
-	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_3_5) {
+	else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_3_5)
 		devc->spec_digits = 4;
-	}
+	else
+		return SR_ERR_DATA;
 
 	/* Function + Range */
 	devc->measurement_mq_flags = 0;
