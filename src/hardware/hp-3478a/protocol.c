@@ -163,9 +163,17 @@ static int parse_range_ohm(struct dev_context *devc, uint8_t range_byte)
 
 static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 {
-	devc->measurement_mq_flags = 0;
+	/* Digits / Resolution (spec_digits must be set before range parsing) */
+	if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_5_5) {
+		devc->spec_digits = 5;
+	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_4_5) {
+		devc->spec_digits = 4;
+	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_3_5) {
+		devc->spec_digits = 3;
+	}
 
 	/* Function + Range */
+	devc->measurement_mq_flags = 0;
 	if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_VDC) {
 		devc->measurement_mq = SR_MQ_VOLTAGE;
 		devc->measurement_mq_flags |= SR_MQFLAG_DC;
@@ -199,15 +207,6 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 		devc->measurement_mq = SR_MQ_RESISTANCE;
 		devc->measurement_unit = SR_UNIT_OHM;
 		parse_range_ohm(devc, function_byte);
-	}
-
-	/* Digits / Resolution */
-	if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_5_5) {
-		devc->spec_digits = 5;
-	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_4_5) {
-		devc->spec_digits = 4;
-	} else if ((function_byte & SB1_DIGITS_BLOCK) == DIGITS_3_5) {
-		devc->spec_digits = 3;
 	}
 
 	return SR_OK;
