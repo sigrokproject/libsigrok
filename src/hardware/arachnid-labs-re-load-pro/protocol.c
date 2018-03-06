@@ -171,7 +171,7 @@ SR_PRIV int reloadpro_get_current_limit(const struct sr_dev_inst *sdi,
 		end_time = g_get_monotonic_time () + 5 * G_TIME_SPAN_SECOND;
 		if (!g_cond_wait_until(&devc->current_limit_cond,
 				&devc->acquisition_mutex, end_time)) {
-			// timeout has passed.
+			/* Timeout has passed. */
 			g_mutex_unlock(&devc->acquisition_mutex);
 			return SR_ERR;
 		}
@@ -207,7 +207,7 @@ SR_PRIV int reloadpro_get_under_voltage_threshold(const struct sr_dev_inst *sdi,
 		end_time = g_get_monotonic_time () + 5 * G_TIME_SPAN_SECOND;
 		if (!g_cond_wait_until(&devc->uvc_threshold_cond,
 				&devc->acquisition_mutex, end_time)) {
-			// timeout has passed.
+			/* Timeout has passed. */
 			g_mutex_unlock(&devc->acquisition_mutex);
 			return SR_ERR;
 		}
@@ -244,7 +244,7 @@ SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 		end_time = g_get_monotonic_time () + 5 * G_TIME_SPAN_SECOND;
 		if (!g_cond_wait_until(&devc->voltage_cond,
 				&devc->acquisition_mutex, end_time)) {
-			// timeout has passed.
+			/* Timeout has passed. */
 			g_mutex_unlock(&devc->acquisition_mutex);
 			return SR_ERR;
 		}
