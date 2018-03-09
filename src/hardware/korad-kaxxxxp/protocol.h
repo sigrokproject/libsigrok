@@ -37,6 +37,7 @@ enum {
 	KORAD_KA3005P,
 	KORAD_KA3005P_0X01,
 	KORAD_KD3005P,
+	RND_320K30PV,
 	/* Support for future devices with this protocol. */
 };
 
