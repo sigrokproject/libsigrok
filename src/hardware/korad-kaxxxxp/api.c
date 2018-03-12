@@ -57,6 +57,8 @@ static const struct korad_kaxxxxp_model models[] = {
 		"KORADKA3005PV2.0\x01", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KD3005P, "Korad", "KD3005P",
 		"KORAD KD3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{RND_320K30PV, "RND", "KA3005P",
+		"RND 320-KA3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	ALL_ZERO
 };
 
