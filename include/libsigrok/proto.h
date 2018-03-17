@@ -229,6 +229,8 @@ typedef int (*sr_resource_close_callback)(struct sr_resource *res,
 typedef gssize (*sr_resource_read_callback)(const struct sr_resource *res,
 		void *buf, size_t count, void *cb_data);
 
+SR_API GSList *sr_resourcepaths_get(int res_type);
+
 SR_API int sr_resource_set_hooks(struct sr_context *ctx,
 		sr_resource_open_callback open_cb,
 		sr_resource_close_callback close_cb,

@@ -35,7 +35,53 @@
  * Access to resource files.
  */
 
-/** Retrieve the size of the open stream @a file.
+/**
+ * Get a list of paths where we look for resource (e.g. firmware) files.
+ *
+ * @param res_type The type of resource to get the search paths for.
+ *
+ * @return List of strings that must be freed after use, including the strings.
+ *
+ * @since 0.6.0
+ */
+SR_API GSList *sr_resourcepaths_get(int res_type)
+{
+	const char *subdir = NULL;
+	GSList *l = NULL;
+	const char *env;
+	const char *const *datadirs;
+
+	if (res_type == SR_RESOURCE_FIRMWARE) {
+		subdir = "sigrok-firmware";
+
+		env = g_getenv("SIGROK_FIRMWARE_DIR");
+		if (!env)
+			sr_dbg("SIGROK_FIRMWARE_DIR environment variable not set, ignoring.");
+		else
+			l = g_slist_append(l, g_strdup(env));
+	}
+
+	l = g_slist_append(l, g_build_filename(g_get_user_data_dir(), subdir, NULL));
+
+#ifdef FIRMWARE_DIR
+	if (res_type == SR_RESOURCE_FIRMWARE) {
+		/*
+		 * Scan the hard-coded directory before the system directories to
+		 * avoid picking up possibly outdated files from a system install.
+		 */
+		l = g_slist_append(l, g_strdup(FIRMWARE_DIR));
+	}
+#endif
+
+	datadirs = g_get_system_data_dirs();
+	while (*datadirs)
+		l = g_slist_append(l, g_build_filename(*datadirs++, subdir, NULL));
+
+	return l;
+}
+
+/**
+ * Retrieve the size of the open stream @a file.
  *
  * This function only works on seekable streams. However, the set of seekable
  * streams is generally congruent with the set of streams that have a size.
@@ -98,50 +144,27 @@ static FILE *try_open_file(const char *datadir, const char *subdir,
 static int resource_open_default(struct sr_resource *res,
 		const char *name, void *cb_data)
 {
+	GSList *paths, *p = NULL;
 	int64_t filesize;
-#ifdef FIRMWARE_DIR
-	const char *builtindir;
-#endif
-	const char *subdir, *env;
-	const char *const *datadirs;
 	FILE *file = NULL;
 
 	(void)cb_data;
 
-	switch (res->type) {
-	case SR_RESOURCE_FIRMWARE:
-#ifdef FIRMWARE_DIR
-		builtindir = FIRMWARE_DIR;
-#endif
-		subdir = "sigrok-firmware";
-		break;
-	default:
+	paths = sr_resourcepaths_get(res->type);
+
+	/* Currently, the enum only defines SR_RESOURCE_FIRMWARE. */
+	if (res->type != SR_RESOURCE_FIRMWARE) {
 		sr_err("%s: unknown type %d.", __func__, res->type);
 		return SR_ERR_ARG;
 	}
 
-	env = g_getenv("SIGROK_FIRMWARE_DIR");
-	if (!env)
-		sr_dbg("SIGROK_FIRMWARE_DIR environment variable not set, ignoring.");
-	else
-		file = try_open_file(env, "", name);
-
-	if (!file)
-		file = try_open_file(g_get_user_data_dir(), subdir, name);
-
-	/*
-	 * Scan the hard-coded directory before the system directories to
-	 * avoid picking up possibly outdated files from a system install.
-	 */
-#ifdef FIRMWARE_DIR
-	if (!file)
-		file = try_open_file(builtindir, "", name);
-#endif
-	if (!file) {
-		datadirs = g_get_system_data_dirs();
-		while (*datadirs && !file)
-			file = try_open_file(*datadirs++, subdir, name);
+	p = paths;
+	while (p && !file) {
+		file = try_open_file((const char *)(p->data), NULL, name);
+		p = p->next;
 	}
+	g_slist_free_full(paths, g_free);
+
 	if (!file) {
 		sr_dbg("Failed to locate '%s'.", name);
 		return SR_ERR;
