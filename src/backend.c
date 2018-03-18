@@ -255,6 +255,17 @@ static void print_versions(void)
 	g_free(str);
 }
 
+static void print_resourcepaths(void)
+{
+	GSList *l, *l_orig;
+
+	sr_dbg("Firmware search paths:");
+	l_orig = sr_resourcepaths_get(SR_RESOURCE_FIRMWARE);
+	for (l = l_orig; l; l = l->next)
+		sr_dbg(" - %s", (const char *)l->data);
+	g_slist_free_full(l_orig, g_free);
+}
+
 /**
  * Sanity-check all libsigrok drivers.
  *
@@ -528,6 +539,8 @@ SR_API int sr_init(struct sr_context **ctx)
 #endif
 
 	print_versions();
+
+	print_resourcepaths();
 
 	if (!ctx) {
 		sr_err("%s(): libsigrok context was NULL.", __func__);
