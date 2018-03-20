@@ -128,7 +128,11 @@ static FILE *try_open_file(const char *datadir, const char *subdir,
 	char *filename;
 	FILE *file;
 
-	filename = g_build_filename(datadir, subdir, name, NULL);
+	if (subdir)
+		filename = g_build_filename(datadir, subdir, name, NULL);
+	else
+		filename = g_build_filename(datadir, name, NULL);
+
 	file = g_fopen(filename, "rb");
 
 	if (file)
