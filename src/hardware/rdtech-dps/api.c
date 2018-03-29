@@ -197,10 +197,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_REGULATION:
 		if ((ret = rdtech_dps_get_reg(modbus, REG_CV_CC, &ivalue)) != SR_OK)
 			break;
-		if (ivalue == MODE_CC)
-			*data = g_variant_new_string("CC");
-		else
-			*data = g_variant_new_string("CV");
+		*data = g_variant_new_string((ivalue == MODE_CC) ? "CC" : "CV");
 		break;
 	case SR_CONF_VOLTAGE:
 		if ((ret = rdtech_dps_get_reg(modbus, REG_UOUT, &ivalue)) == SR_OK)
