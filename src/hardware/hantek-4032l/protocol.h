@@ -77,7 +77,8 @@ enum h4032l_status {
 	H4032L_STATUS_TRANSFER,
 };
 
-struct __attribute__((__packed__)) h4032l_trigger {
+#pragma pack(push,2)
+struct h4032l_trigger {
 	struct {
 		uint32_t edge_signal:5;
 		uint32_t edge_type:2;
@@ -99,7 +100,7 @@ struct __attribute__((__packed__)) h4032l_trigger {
 	uint32_t combine_data;
 };
 
-struct __attribute__((__packed__)) h4032l_cmd_pkt {
+struct h4032l_cmd_pkt {
 	uint16_t magic; /* 0x017f */
 	uint8_t sample_rate;
 	struct {
@@ -115,6 +116,7 @@ struct __attribute__((__packed__)) h4032l_cmd_pkt {
 	struct h4032l_trigger trigger[2];
 	uint16_t cmd;
 };
+#pragma pack(pop)
 
 struct dev_context {
 	enum h4032l_status status;

@@ -30,7 +30,7 @@ enum h4032l_cmd {
 	CMD_GET = 0x6b5a
 };
 
-struct __attribute__((__packed__)) h4032l_status_packet {
+struct h4032l_status_packet {
 	uint32_t magic;
 	uint32_t values;
 	uint32_t status;
