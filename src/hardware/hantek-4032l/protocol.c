@@ -25,7 +25,8 @@
 #define H4032L_USB_TIMEOUT 500
 
 enum h4032l_cmd {
-	CMD_CONFIGURE = 0x2b1a, /* Also arms the logic analyzer. */
+	CMD_RESET = 0x00b3, /* Also arms the logic analyzer. */
+	CMD_CONFIGURE = 0x2b1a,
 	CMD_STATUS = 0x4b3a,
 	CMD_GET = 0x6b5a
 };
@@ -67,10 +68,8 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	uint32_t number_samples;
 	int ret;
 
-	if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-		sr_err("%s error: %d.", __func__, transfer->status);
-		return;
-	}
+	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
+		sr_dbg("%s error: %d.", __func__, transfer->status);
 
 	buffer = (uint32_t *)transfer->buffer;
 
@@ -95,9 +94,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		 */
 		status = (struct h4032l_status_packet *)transfer->buffer;
 		if (status->magic != H4032L_STATUS_PACKET_MAGIC) {
-			devc->status = H4032L_STATUS_CMD_STATUS;
-			devc->cmd_pkt.cmd = CMD_STATUS;
-			cmd = TRUE;
+			devc->status = H4032L_STATUS_RESPONSE_STATUS;
 		} else if (status->status == 2) {
 			devc->status = H4032L_STATUS_RESPONSE_STATUS_CONTINUE;
 		} else {
@@ -118,9 +115,9 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		devc->status = H4032L_STATUS_FIRST_TRANSFER;
 		break;
 	case H4032L_STATUS_FIRST_TRANSFER:
+		/* Drop packets until H4032L_START_PACKET_MAGIC. */
 		if (buffer[0] != H4032L_START_PACKET_MAGIC) {
-			sr_err("Mismatch magic number of start poll.");
-			devc->status = H4032L_STATUS_IDLE;
+			sr_dbg("Mismatch magic number of start poll.");
 			break;
 		}
 		devc->status = H4032L_STATUS_TRANSFER;
@@ -209,9 +206,21 @@ SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	struct libusb_transfer *transfer;
+	unsigned char buffer[] = {0x0f, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	int ret;
 
-	/* Send configure command to arm the logic analyzer. */
+	/* Send reset command to arm the logic analyzer. */
+	if ((ret = libusb_control_transfer(usb->devhdl,
+		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, CMD_RESET,
+		0x00, 0x00, buffer, ARRAY_SIZE(buffer), H4032L_USB_TIMEOUT)) < 0) {
+		sr_err("Failed to send vendor request %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	/* Wait for reset vendor request. */
+	g_usleep(20 * 1000);
+
+	/* Send configure command. */
 	devc->cmd_pkt.cmd = CMD_CONFIGURE;
 	devc->status = H4032L_STATUS_CMD_CONFIGURE;
 	devc->remaining_samples = devc->cmd_pkt.sample_size;
