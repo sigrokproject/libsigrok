@@ -43,21 +43,18 @@ struct dev_context {
 };
 
 /* Communication via serial. */
-SR_PRIV int zketech_ebd_usb_read_chars(struct sr_serial_dev_inst *serial,
-		int count, uint8_t *buf);
+SR_PRIV int ebd_read_chars(struct sr_serial_dev_inst *serial, int count, uint8_t *buf);
 
 /* Commands. */
-SR_PRIV int zketech_ebd_usb_init(struct sr_serial_dev_inst *serial, struct dev_context *devc);
-SR_PRIV int zketech_ebd_usb_loadstart(struct sr_serial_dev_inst *serial, struct dev_context *devc);
-SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int zketech_ebd_usb_stop(struct sr_serial_dev_inst *serial, struct dev_context *devc);
-SR_PRIV int zketech_ebd_usb_loadstop(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int ebd_init(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int ebd_stop(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int ebd_loadstop(struct sr_serial_dev_inst *serial, struct dev_context *devc);
 
 /* Configuration. */
-SR_PRIV int zketech_ebd_usb_get_current_limit(const struct sr_dev_inst *sdi,
-		float *current);
-SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
-		float current);
-SR_PRIV gboolean zketech_ebd_usb_current_is0(struct dev_context *devc);
+SR_PRIV int ebd_get_current_limit(const struct sr_dev_inst *sdi, float *current);
+SR_PRIV int ebd_set_current_limit(const struct sr_dev_inst *sdi, float current);
+SR_PRIV gboolean ebd_current_is0(struct dev_context *devc);
 
 #endif

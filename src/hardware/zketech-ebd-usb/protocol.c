@@ -80,8 +80,7 @@ static int send_cfg(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 }
 
 /* Send the init/connect sequence; drive starts sending voltage and current. */
-SR_PRIV int zketech_ebd_usb_init(struct sr_serial_dev_inst *serial,
-		struct dev_context *devc)
+SR_PRIV int ebd_init(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
 	uint8_t init[] = { 0xfa, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xf8 };
 
@@ -95,15 +94,14 @@ SR_PRIV int zketech_ebd_usb_init(struct sr_serial_dev_inst *serial,
 }
 
 /* Start the load functionality. */
-SR_PRIV int zketech_ebd_usb_loadstart(struct sr_serial_dev_inst *serial,
-		struct dev_context *devc)
+SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
 	uint8_t start[] = { 0xfa, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf8 };
 	int ret;
 
 	ret = send_cmd(serial, start, 10);
 	sr_dbg("Current limit: %f.", devc->current_limit);
-	if (zketech_ebd_usb_current_is0(devc))
+	if (ebd_current_is0(devc))
 		return SR_OK;
 
 	ret = send_cfg(serial, devc);
@@ -116,8 +114,7 @@ SR_PRIV int zketech_ebd_usb_loadstart(struct sr_serial_dev_inst *serial,
 }
 
 /* Stop the load functionality. */
-SR_PRIV int zketech_ebd_usb_loadstop(struct sr_serial_dev_inst *serial,
-		struct dev_context *devc)
+SR_PRIV int ebd_loadstop(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
 	int ret;
 	uint8_t stop[] = { 0xfa, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xF8 };
@@ -130,8 +127,7 @@ SR_PRIV int zketech_ebd_usb_loadstop(struct sr_serial_dev_inst *serial,
 }
 
 /* Stop the drive. */
-SR_PRIV int zketech_ebd_usb_stop(struct sr_serial_dev_inst *serial,
-		struct dev_context *devc)
+SR_PRIV int ebd_stop(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
 	uint8_t stop[] = { 0xfa, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xF8 };
 	int ret;
@@ -148,8 +144,7 @@ SR_PRIV int zketech_ebd_usb_stop(struct sr_serial_dev_inst *serial,
 }
 
 /** Read count bytes from the serial connection. */
-SR_PRIV int zketech_ebd_usb_read_chars(struct sr_serial_dev_inst *serial,
-		int count, uint8_t *buf)
+SR_PRIV int ebd_read_chars(struct sr_serial_dev_inst *serial, int count, uint8_t *buf)
 {
 	int ret, received, turns;
 
@@ -172,7 +167,7 @@ SR_PRIV int zketech_ebd_usb_read_chars(struct sr_serial_dev_inst *serial,
 	return received;
 }
 
-SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -197,7 +192,7 @@ SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 
 	uint8_t reply[MSG_LEN];
-	int ret = zketech_ebd_usb_read_chars(serial, MSG_LEN, reply);
+	int ret = ebd_read_chars(serial, MSG_LEN, reply);
 
 	/* Tests for correct message. */
 	if (ret != MSG_LEN) {
@@ -274,8 +269,7 @@ SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int zketech_ebd_usb_get_current_limit(const struct sr_dev_inst *sdi,
-		float *current)
+SR_PRIV int ebd_get_current_limit(const struct sr_dev_inst *sdi, float *current)
 {
 	struct dev_context *devc;
 
@@ -289,8 +283,7 @@ SR_PRIV int zketech_ebd_usb_get_current_limit(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
-		float current)
+SR_PRIV int ebd_set_current_limit(const struct sr_dev_inst *sdi, float current)
 {
 	struct dev_context *devc;
 	int ret;
@@ -310,20 +303,20 @@ SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
 	sr_dbg("Setting current limit to %fV.", current);
 
 	if (devc->load_activated) {
-		if (zketech_ebd_usb_current_is0(devc)) {
+		if (ebd_current_is0(devc)) {
 			/* Stop load. */
-			ret = zketech_ebd_usb_loadstop(sdi->conn, devc);
+			ret = ebd_loadstop(sdi->conn, devc);
 		} else {
 			/* Send new current. */
 			ret = send_cfg(sdi->conn, devc);
 		}
 	} else {
-		if (zketech_ebd_usb_current_is0(devc)) {
+		if (ebd_current_is0(devc)) {
 			/* Nothing to do. */
 			ret = SR_OK;
 		} else {
 			/* Start load. */
-			ret = zketech_ebd_usb_loadstart(sdi->conn, devc);
+			ret = ebd_loadstart(sdi->conn, devc);
 		}
 	}
 
@@ -332,7 +325,7 @@ SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
 	return ret;
 }
 
-SR_PRIV gboolean zketech_ebd_usb_current_is0(struct dev_context *devc)
+SR_PRIV gboolean ebd_current_is0(struct dev_context *devc)
 {
 	return devc->current_limit < 0.001;
 }

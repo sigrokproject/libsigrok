@@ -88,14 +88,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 
 	/* Starting device. */
-	zketech_ebd_usb_init(serial, devc);
-	int ret = zketech_ebd_usb_read_chars(serial, MSG_LEN, reply);
+	ebd_init(serial, devc);
+	int ret = ebd_read_chars(serial, MSG_LEN, reply);
 	if (ret != MSG_LEN || reply[MSG_FRAME_BEGIN_POS] != MSG_FRAME_BEGIN \
 			|| reply[MSG_FRAME_END_POS] != MSG_FRAME_END) {
 		sr_warn("Invalid message received!");
 		ret = SR_ERR;
 	}
-	zketech_ebd_usb_stop(serial, devc);
+	ebd_stop(serial, devc);
 
 	serial_close(serial);
 
@@ -135,7 +135,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_CURRENT_LIMIT:
-		ret = zketech_ebd_usb_get_current_limit(sdi, &fvalue);
+		ret = ebd_get_current_limit(sdi, &fvalue);
 		if (ret == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		return ret;
@@ -163,7 +163,7 @@ static int config_set(uint32_t key, GVariant *data,
 		value = g_variant_get_double(data);
 		if (value < 0.0 || value > 4.0)
 			return SR_ERR_ARG;
-		return zketech_ebd_usb_set_current_limit(sdi, value);
+		return ebd_set_current_limit(sdi, value);
 	default:
 		return SR_ERR_NA;
 	}
@@ -197,19 +197,19 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	zketech_ebd_usb_init(serial, devc);
-	if (!zketech_ebd_usb_current_is0(devc))
-		zketech_ebd_usb_loadstart(serial, devc);
+	ebd_init(serial, devc);
+	if (!ebd_current_is0(devc))
+		ebd_loadstart(serial, devc);
 
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-		zketech_ebd_usb_receive_data, (void *)sdi);
+		ebd_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	zketech_ebd_usb_loadstop(sdi->conn, sdi->priv);
+	ebd_loadstop(sdi->conn, sdi->priv);
 
 	return std_serial_dev_acquisition_stop(sdi);
 }
