@@ -20,13 +20,25 @@
 #include <config.h>
 #include "protocol.h"
 
+/* Log a byte-array as hex values. */
+static void log_buf(const char *message, uint8_t buf[], size_t count)
+{
+	char buffer[count * 2 + 1];
+
+	for (size_t j = 0; j < count; j++)
+		sprintf(&buffer[2 * j], "%02X", buf[j]);
+
+	buffer[count * 2] = 0;
+
+	sr_dbg("%s: %s [%lu bytes]", message, buffer, count);
+}
+
 /* Send a command to the device. */
-SR_PRIV int zketech_ebd_usb_send(struct sr_serial_dev_inst *serial,
-		uint8_t buf[], size_t count)
+static int send_cmd(struct sr_serial_dev_inst *serial, uint8_t buf[], size_t count)
 {
 	int ret;
 
-	zketech_ebd_usb_buffer_debug("Sending", buf, count);
+	log_buf("Sending", buf, count);
 	ret = serial_write_blocking(serial, buf, count, 0);
 	if (ret < 0) {
 		sr_err("Error sending command: %d.", ret);
@@ -37,6 +49,36 @@ SR_PRIV int zketech_ebd_usb_send(struct sr_serial_dev_inst *serial,
 	return (ret == (int)count) ? SR_OK : SR_ERR;
 }
 
+/* Decode high byte and low byte into a float. */
+static float decode_value(uint8_t hi, uint8_t lo, float divisor)
+{
+	return ((float)hi * 240.0 + (float)lo) / divisor;
+}
+
+/* Encode a float into high byte and low byte. */
+static void encode_value(float current, uint8_t *hi, uint8_t *lo, float divisor)
+{
+	int value;
+
+	value = (int)(current * divisor);
+	sr_dbg("Value %d %d %d", value, value / 240, value % 240);
+	*hi = value / 240;
+	*lo = value % 240;
+}
+
+/* Send updated configuration values to the load. */
+static int send_cfg(struct sr_serial_dev_inst *serial, struct dev_context *devc)
+{
+	uint8_t send[] = { 0xfa, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8 };
+
+	encode_value(devc->current_limit, &send[2], &send[3], 1000.0);
+
+	send[8] = send[1] ^ send[2] ^ send[3] ^ send[4] ^ send[5] ^ \
+			send[6] ^ send[7];
+
+	return send_cmd(serial, send, 10);
+}
+
 /* Send the init/connect sequence; drive starts sending voltage and current. */
 SR_PRIV int zketech_ebd_usb_init(struct sr_serial_dev_inst *serial,
 		struct dev_context *devc)
@@ -45,7 +87,7 @@ SR_PRIV int zketech_ebd_usb_init(struct sr_serial_dev_inst *serial,
 
 	(void)devc;
 
-	int ret = zketech_ebd_usb_send(serial, init, 10);
+	int ret = send_cmd(serial, init, 10);
 	if (ret == SR_OK)
 		devc->running = TRUE;
 
@@ -59,12 +101,12 @@ SR_PRIV int zketech_ebd_usb_loadstart(struct sr_serial_dev_inst *serial,
 	uint8_t start[] = { 0xfa, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf8 };
 	int ret;
 
-	ret = zketech_ebd_usb_send(serial, start, 10);
+	ret = send_cmd(serial, start, 10);
 	sr_dbg("Current limit: %f.", devc->current_limit);
 	if (zketech_ebd_usb_current_is0(devc))
 		return SR_OK;
 
-	ret = zketech_ebd_usb_sendcfg(serial, devc);
+	ret = send_cfg(serial, devc);
 	if (ret == SR_OK) {
 		sr_dbg("Load activated.");
 		devc->load_activated = TRUE;
@@ -80,7 +122,7 @@ SR_PRIV int zketech_ebd_usb_loadstop(struct sr_serial_dev_inst *serial,
 	int ret;
 	uint8_t stop[] = { 0xfa, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xF8 };
 
-	ret = zketech_ebd_usb_send(serial, stop, 10);
+	ret = send_cmd(serial, stop, 10);
 	if (ret == SR_OK)
 		devc->load_activated = FALSE;
 
@@ -96,28 +138,13 @@ SR_PRIV int zketech_ebd_usb_stop(struct sr_serial_dev_inst *serial,
 
 	(void) devc;
 
-	ret = zketech_ebd_usb_send(serial, stop, 10);
+	ret = send_cmd(serial, stop, 10);
 	if (ret == SR_OK) {
 		devc->load_activated = FALSE;
 		devc->running= FALSE;
 	}
 
 	return ret;
-}
-
-/* Send updated configuration values to the load. */
-SR_PRIV int zketech_ebd_usb_sendcfg(struct sr_serial_dev_inst *serial,
-		struct dev_context *devc)
-{
-	uint8_t send[] = { 0xfa, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8 };
-
-	zketech_ebd_usb_value_encode(devc->current_limit, &send[2],
-			&send[3], 1000.0);
-
-	send[8] = send[1] ^ send[2] ^ send[3] ^ send[4] ^ send[5] ^ \
-			send[6] ^ send[7];
-
-	return zketech_ebd_usb_send(serial, send, 10);
 }
 
 /** Read count bytes from the serial connection. */
@@ -140,27 +167,9 @@ SR_PRIV int zketech_ebd_usb_read_chars(struct sr_serial_dev_inst *serial,
 		turns++;
 	} while ((received < count) && (turns < 100));
 
-	zketech_ebd_usb_buffer_debug("Received", buf, received);
+	log_buf("Received", buf, received);
 
 	return received;
-}
-
-/* Decode high byte and low byte into a float. */
-SR_PRIV float zketech_ebd_usb_value_decode(uint8_t hi, uint8_t lo, float divisor)
-{
-	return ((float)hi * 240.0 + (float)lo) / divisor;
-}
-
-/* Encode a float into high byte and low byte. */
-SR_PRIV void zketech_ebd_usb_value_encode(float current, uint8_t *hi,
-		uint8_t *lo, float divisor)
-{
-	int value;
-
-	value = (int)(current * divisor);
-	sr_dbg("Value %d %d %d", value, value / 240, value % 240);
-	*hi = value / 240;
-	*lo = value % 240;
 }
 
 SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
@@ -212,9 +221,9 @@ SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
 	sr_dbg("V: %02X %02X A: %02X %02X -- Limit %02X %02X", reply[4],
 		reply[5], reply[2], reply[3], reply[10], reply[11]);
 
-	voltage = zketech_ebd_usb_value_decode(reply[4], reply[5], 1000.0);
-	current = zketech_ebd_usb_value_decode(reply[2], reply[3], 10000.0);
-	current_limit = zketech_ebd_usb_value_decode(reply[10], reply[11], 1000.0);
+	voltage = decode_value(reply[4], reply[5], 1000.0);
+	current = decode_value(reply[2], reply[3], 10000.0);
+	current_limit = decode_value(reply[10], reply[11], 1000.0);
 
 	sr_dbg("Voltage %f", voltage);
 	sr_dbg("Current %f", current);
@@ -306,7 +315,7 @@ SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
 			ret = zketech_ebd_usb_loadstop(sdi->conn, devc);
 		} else {
 			/* Send new current. */
-			ret = zketech_ebd_usb_sendcfg(sdi->conn, devc);
+			ret = send_cfg(sdi->conn, devc);
 		}
 	} else {
 		if (zketech_ebd_usb_current_is0(devc)) {
@@ -326,18 +335,4 @@ SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
 SR_PRIV gboolean zketech_ebd_usb_current_is0(struct dev_context *devc)
 {
 	return devc->current_limit < 0.001;
-}
-
-/* Log a byte-array as hex values. */
-SR_PRIV void zketech_ebd_usb_buffer_debug(const char *message, uint8_t buf[],
-		size_t count)
-{
-	char buffer[count * 2 + 1];
-
-	for (size_t j = 0; j < count; j++)
-		sprintf(&buffer[2 * j], "%02X", buf[j]);
-
-	buffer[count * 2] = 0;
-
-	sr_dbg("%s: %s [%lu bytes]", message, buffer, count);
 }

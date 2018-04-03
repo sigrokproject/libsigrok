@@ -42,12 +42,7 @@ struct dev_context {
 	gboolean load_activated;
 };
 
-SR_PRIV float zketech_ebd_usb_value_decode(uint8_t b1, uint8_t b2, float divisor);
-SR_PRIV void zketech_ebd_usb_value_encode(float voltage, uint8_t *b1, uint8_t *b2, float divisor);
-
 /* Communication via serial. */
-SR_PRIV int zketech_ebd_usb_send(struct sr_serial_dev_inst *serial, uint8_t buf[], size_t count);
-SR_PRIV int zketech_ebd_usb_sendcfg(struct sr_serial_dev_inst *serial, struct dev_context *devc);
 SR_PRIV int zketech_ebd_usb_read_chars(struct sr_serial_dev_inst *serial,
 		int count, uint8_t *buf);
 
@@ -64,7 +59,5 @@ SR_PRIV int zketech_ebd_usb_get_current_limit(const struct sr_dev_inst *sdi,
 SR_PRIV int zketech_ebd_usb_set_current_limit(const struct sr_dev_inst *sdi,
 		float current);
 SR_PRIV gboolean zketech_ebd_usb_current_is0(struct dev_context *devc);
-
-SR_PRIV void zketech_ebd_usb_buffer_debug(const char *message, uint8_t buf[], size_t count);
 
 #endif
