@@ -187,11 +187,11 @@ SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
 
 	serial = sdi->conn;
 
-	uint8_t reply[MSGLEN];
-	int ret = zketech_ebd_usb_read_chars(serial, MSGLEN, reply);
+	uint8_t reply[MSG_LEN];
+	int ret = zketech_ebd_usb_read_chars(serial, MSG_LEN, reply);
 
 	/* Tests for correct message. */
-	if (ret != MSGLEN) {
+	if (ret != MSG_LEN) {
 		sr_err("Message invalid [Len].");
 		return (ret < 0) ? ret : SR_ERR;
 	}
@@ -201,9 +201,9 @@ SR_PRIV int zketech_ebd_usb_receive_data(int fd, int revents, void *cb_data)
 		      reply[9] ^ reply[10] ^ reply[11] ^ reply[12] ^ \
 		      reply[13] ^ reply[14] ^ reply[15] ^ reply[16];
 
-	if (reply[MSGFRAMEBEGINPOS] != MSGFRAMEBEGIN || \
-			reply[MSGFRAMEENDPOS] != MSGFRAMEEND || \
-			xor != reply[MSGCHECKSUMPOS]) {
+	if (reply[MSG_FRAME_BEGIN_POS] != MSG_FRAME_BEGIN || \
+			reply[MSG_FRAME_END_POS] != MSG_FRAME_END || \
+			xor != reply[MSG_CHECKSUM_POS]) {
 		sr_err("Message invalid [XOR, BEGIN/END].");
 		return SR_ERR;
 	}

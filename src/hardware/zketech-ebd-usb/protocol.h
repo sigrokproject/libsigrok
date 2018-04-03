@@ -27,12 +27,12 @@
 
 #define LOG_PREFIX "zketech-ebd-usb"
 
-#define MSGLEN 19
-#define MSGCHECKSUMPOS 17
-#define MSGFRAMEBEGIN 0xfa
-#define MSGFRAMEBEGINPOS 0
-#define MSGFRAMEEND 0xf8
-#define MSGFRAMEENDPOS 18
+#define MSG_LEN 19
+#define MSG_CHECKSUM_POS 17
+#define MSG_FRAME_BEGIN 0xfa
+#define MSG_FRAME_BEGIN_POS 0
+#define MSG_FRAME_END 0xf8
+#define MSG_FRAME_END_POS 18
 
 struct dev_context {
 	struct sr_sw_limits limits;

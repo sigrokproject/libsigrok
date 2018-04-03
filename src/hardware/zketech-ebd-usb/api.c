@@ -43,7 +43,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
-	uint8_t reply[MSGLEN];
+	uint8_t reply[MSG_LEN];
 
 	conn = NULL;
 	serialcomm = NULL;
@@ -89,9 +89,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Starting device. */
 	zketech_ebd_usb_init(serial, devc);
-	int ret = zketech_ebd_usb_read_chars(serial, MSGLEN, reply);
-	if (ret != MSGLEN || reply[MSGFRAMEBEGINPOS] != MSGFRAMEBEGIN \
-			|| reply[MSGFRAMEENDPOS] != MSGFRAMEEND) {
+	int ret = zketech_ebd_usb_read_chars(serial, MSG_LEN, reply);
+	if (ret != MSG_LEN || reply[MSG_FRAME_BEGIN_POS] != MSG_FRAME_BEGIN \
+			|| reply[MSG_FRAME_END_POS] != MSG_FRAME_END) {
 		sr_warn("Invalid message received!");
 		ret = SR_ERR;
 	}
