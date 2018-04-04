@@ -121,6 +121,7 @@ struct h4032l_cmd_pkt {
 struct dev_context {
 	enum h4032l_status status;
 	uint32_t remaining_samples;
+	gboolean acq_aborted;
 	struct h4032l_cmd_pkt cmd_pkt;
 	struct libusb_transfer *usb_transfer;
 	uint8_t buffer[512];

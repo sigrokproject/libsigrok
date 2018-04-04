@@ -400,6 +400,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_trigger *trigger = sr_session_trigger_get(sdi->session);
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
 
+	devc->acq_aborted = FALSE;
+
 	/* Calculate packet ratio. */
 	cmd_pkt->pre_trigger_size = (cmd_pkt->sample_size * devc->capture_ratio) / 100;
 
@@ -501,9 +503,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
 
-	/* TODO: stop acquisition. */
+	devc->acq_aborted = TRUE;
+	if (devc->usb_transfer)
+		libusb_cancel_transfer(devc->usb_transfer);
+
+	devc->status = H4032L_STATUS_IDLE;
 
 	return SR_OK;
 }

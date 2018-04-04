@@ -37,6 +37,26 @@ struct h4032l_status_packet {
 	uint32_t status;
 };
 
+static void finish_acquisition(struct sr_dev_inst *sdi)
+{
+	struct drv_context *drvc = sdi->driver->context;
+
+	std_session_send_df_end(sdi);
+	usb_source_remove(sdi->session, drvc->sr_ctx);
+}
+
+static void free_transfer(struct libusb_transfer *transfer)
+{
+	struct sr_dev_inst *sdi = transfer->user_data;
+	struct dev_context *devc = sdi->priv;
+
+	transfer->buffer = NULL;
+	libusb_free_transfer(transfer);
+	devc->usb_transfer = NULL;
+
+	finish_acquisition(sdi);
+}
+
 SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
@@ -67,6 +87,15 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	struct sr_datafeed_logic logic;
 	uint32_t number_samples;
 	int ret;
+
+	/*
+	 * If acquisition has already ended, just free any queued up
+	 * transfers that come in.
+	 */
+	if (devc->acq_aborted) {
+		free_transfer(transfer);
+		return;
+	}
 
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
 		sr_dbg("%s error: %d.", __func__, transfer->status);
@@ -175,7 +204,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	}
 
 	if (devc->status == H4032L_STATUS_IDLE)
-		libusb_free_transfer(transfer);
+		free_transfer(transfer);
 }
 
 uint16_t h4032l_voltage2pwm(double voltage)
