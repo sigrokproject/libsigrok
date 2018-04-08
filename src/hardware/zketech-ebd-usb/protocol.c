@@ -44,7 +44,6 @@ static int send_cmd(struct sr_serial_dev_inst *serial, uint8_t buf[], size_t cou
 		sr_err("Error sending command: %d.", ret);
 		return ret;
 	}
-	sr_dbg("Sent %d bytes.", ret);
 
 	return (ret == (int)count) ? SR_OK : SR_ERR;
 }
