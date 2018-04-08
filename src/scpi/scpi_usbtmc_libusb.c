@@ -138,8 +138,9 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 
 		for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 			if ((ret = libusb_get_config_descriptor(devlist[i], confidx, &confdes)) < 0) {
-				sr_dbg("Failed to get configuration descriptor: %s, "
-				       "ignoring device.", libusb_error_name(ret));
+				if (ret != LIBUSB_ERROR_NOT_FOUND)
+					sr_dbg("Failed to get configuration descriptor: %s, "
+					       "ignoring device.", libusb_error_name(ret));
 				break;
 			}
 			for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
@@ -310,8 +311,9 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 
 	for (confidx = 0; confidx < des.bNumConfigurations; confidx++) {
 		if ((ret = libusb_get_config_descriptor(dev, confidx, &confdes)) < 0) {
-			sr_dbg("Failed to get configuration descriptor: %s, "
-			       "ignoring device.", libusb_error_name(ret));
+			if (ret != LIBUSB_ERROR_NOT_FOUND)
+				sr_dbg("Failed to get configuration descriptor: %s, "
+				       "ignoring device.", libusb_error_name(ret));
 			continue;
 		}
 		for (intfidx = 0; intfidx < confdes->bNumInterfaces; intfidx++) {
