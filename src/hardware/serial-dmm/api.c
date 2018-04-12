@@ -430,6 +430,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
+	/* ms8250d based meters {{{ */
+	DMM(
+		"mastech-ms8250d", ms8250d,
+		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
+		2400, MS8250D_PACKET_SIZE, 0, 0, NULL,
+		sr_ms8250d_packet_valid, sr_ms8250d_parse,
+		NULL
+	),
+	/* }}} */
 	/* metex14 based meters {{{ */
 	DMM(
 		"mastech-mas345", metex14,

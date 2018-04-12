@@ -1242,6 +1242,21 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/ms8250d.c ------------------------------------------------*/
+
+#define MS8250D_PACKET_SIZE 18
+
+struct ms8250d_info {
+	gboolean is_ac, is_dc, is_auto, is_rs232, is_micro, is_nano, is_kilo;
+	gboolean is_diode, is_milli, is_percent, is_mega, is_beep, is_farad;
+	gboolean is_ohm, is_rel, is_hold, is_ampere, is_volt, is_hz, is_bat;
+	gboolean is_ncv, is_min, is_max, is_sign, is_autotimer;
+};
+
+SR_PRIV gboolean sr_ms8250d_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ms8250d_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
 
 #define DTM0660_PACKET_SIZE 15
