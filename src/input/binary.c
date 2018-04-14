@@ -29,7 +29,7 @@
 
 #define LOG_PREFIX "input/binary"
 
-#define MAX_CHUNK_SIZE       4096
+#define MAX_CHUNK_SIZE       (4 * 1024 * 1024)
 #define DEFAULT_NUM_CHANNELS 8
 #define DEFAULT_SAMPLERATE   0
 
