@@ -36,6 +36,7 @@
 struct context {
 	gboolean started;
 	uint64_t samplerate;
+	uint16_t unitsize;
 };
 
 static int init(struct sr_input *in, GHashTable *options)
@@ -59,6 +60,8 @@ static int init(struct sr_input *in, GHashTable *options)
 		snprintf(name, sizeof(name), "%d", i);
 		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
 	}
+
+	inc->unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
 
 	return SR_OK;
 }
@@ -92,7 +95,7 @@ static int process_buffer(struct sr_input *in)
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
+	logic.unitsize = inc->unitsize;
 
 	/* Cut off at multiple of unitsize. */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
