@@ -164,8 +164,8 @@ static int reset(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels in the data", NULL, NULL },
+	{ "samplerate", "Sample rate (Hz)", "The sample rate of the (logic) data in Hz", NULL, NULL },
 	ALL_ZERO
 };
 

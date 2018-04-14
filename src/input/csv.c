@@ -911,15 +911,15 @@ static int reset(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "single-column", "Single column", "Enable/specify single column", NULL, NULL },
-	{ "numchannels", "Max channels", "Number of channels", NULL, NULL },
-	{ "delimiter", "Delimiter", "Column delimiter", NULL, NULL },
-	{ "format", "Format", "Numeric format", NULL, NULL },
-	{ "comment", "Comment", "Comment prefix character", NULL, NULL },
-	{ "samplerate", "Samplerate", "Samplerate used during capture", NULL, NULL },
-	{ "first-channel", "First channel", "Column number of first channel", NULL, NULL },
-	{ "header", "Header", "Treat first line as header with channel names", NULL, NULL },
-	{ "startline", "Start line", "Line number at which to start processing samples", NULL, NULL },
+	{ "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
+	{ "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
+	{ "format", "Data format (single-col. mode)", "The numeric format of the data (single-col. mode): bin, hex, oct", NULL, NULL },
+	{ "comment", "Comment character(s)", "The comment prefix character(s)", NULL, NULL },
+	{ "samplerate", "Samplerate (Hz)", "The sample rate (used during capture) in Hz", NULL, NULL },
+	{ "first-channel", "First channel", "The column number of the first channel (multi-col. mode); bit position for the first channel (single-col. mode)", NULL, NULL },
+	{ "header", "Interpret first line as header (multi-col. mode)", "Treat the first line as header with channel names (multi-col. mode)", NULL, NULL },
+	{ "startline", "Start line", "The line number at which to start processing samples (>= 1)", NULL, NULL },
 	ALL_ZERO
 };
 

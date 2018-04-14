@@ -787,7 +787,7 @@ static struct sr_option options[] = {
 	{ "podN", "Import pod N", "Create channels and data for pod N", NULL, NULL },
 	{ "podO", "Import pod O", "Create channels and data for pod O", NULL, NULL },
 
-	{ "samplerate", "Reduced sample rate in MHz", "Reduced sample rate in MHz", NULL, NULL },
+	{ "samplerate", "Reduced sample rate (MHz)", "Reduce the original sample rate of 12.8 GHz to the specified sample rate in MHz", NULL, NULL },
 
 	ALL_ZERO
 };

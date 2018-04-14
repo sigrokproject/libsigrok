@@ -233,9 +233,9 @@ static int end(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "samplerate", "Sample rate", "Sample rate", NULL, NULL },
-	{ "format", "Format", "Numeric format", NULL, NULL },
+	{ "numchannels", "Number of analog channels", "The number of (analog) channels in the data", NULL, NULL },
+	{ "samplerate", "Sample rate (Hz)", "The sample rate of the (analog) data in Hz", NULL, NULL },
+	{ "format", "Data format", "The format of the data (data type, signedness, endianness)", NULL, NULL },
 	ALL_ZERO
 };
 
@@ -281,7 +281,7 @@ static int reset(struct sr_input *in)
 SR_PRIV struct sr_input_module input_raw_analog = {
 	.id = "raw_analog",
 	.name = "RAW analog",
-	.desc = "analog signals without header",
+	.desc = "Raw analog signals without header",
 	.exts = (const char*[]){"raw", "bin", NULL},
 	.options = get_options,
 	.init = init,

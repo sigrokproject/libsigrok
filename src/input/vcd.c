@@ -625,10 +625,11 @@ static int reset(struct sr_input *in)
 }
 
 static struct sr_option options[] = {
-	{ "numchannels", "Number of channels", "Number of channels", NULL, NULL },
-	{ "skip", "Skip", "Skip until timestamp", NULL, NULL },
-	{ "downsample", "Downsample", "Divide samplerate by factor", NULL, NULL },
-	{ "compress", "Compress", "Compress idle periods longer than this value", NULL, NULL },
+	{ "numchannels", "Number of logic channels", "The number of (logic) channels in the data", NULL, NULL },
+	{ "skip", "Skip samples until timestamp", "Skip samples until the specified timestamp; "
+		"< 0: Skip until first timestamp listed; 0: Don't skip", NULL, NULL },
+	{ "downsample", "Downsampling factor", "Downsample, i.e. divide the samplerate by the specified factor", NULL, NULL },
+	{ "compress", "Compress idle periods", "Compress idle periods longer than the specified value", NULL, NULL },
 	ALL_ZERO
 };
 
