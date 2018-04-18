@@ -45,7 +45,6 @@
 
 #define LOG_PREFIX "input/trace32_ad"
 
-#define MAX_CHUNK_SIZE    4096
 #define OUTBUF_FLUSH_SIZE 10240
 #define MAX_POD_COUNT     12
 #define HEADER_SIZE       80
