@@ -29,7 +29,7 @@
 
 #define DEFAULT_NUM_CHANNELS    8
 #define DEFAULT_SAMPLERATE      SR_MHZ(100)
-#define CHUNK_SIZE              (4 * 1024)
+#define CHUNK_SIZE              (4 * 1024 * 1024)
 #define CHRONOVU_LA8_FILESIZE   ((8 * 1024 * 1024) + 5)
 
 struct context {

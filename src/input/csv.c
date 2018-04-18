@@ -26,7 +26,7 @@
 
 #define LOG_PREFIX "input/csv"
 
-#define CHUNK_SIZE	(128 * 1024)
+#define CHUNK_SIZE	(4 * 1024 * 1024)
 
 /*
  * The CSV input module has the following options:

@@ -67,7 +67,7 @@
 
 #define LOG_PREFIX "input/vcd"
 
-#define CHUNK_SIZE (1024 * 1024)
+#define CHUNK_SIZE (4 * 1024 * 1024)
 
 struct context {
 	gboolean started;
