@@ -189,15 +189,15 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct context *inc;
-	float fdata[CHUNK_SIZE];
+	float *fdata;
 	int total_samples, samplenum;
 	char *s, *d;
 
 	inc = in->priv;
 
 	s = in->buf->str + offset;
+	fdata = g_malloc0(CHUNK_SIZE * sizeof(float));
 	d = (char *)fdata;
-	memset(fdata, 0, CHUNK_SIZE * sizeof(float));
 	total_samples = num_samples * inc->num_channels;
 	for (samplenum = 0; samplenum < total_samples; samplenum++) {
 		if (inc->fmt_code == WAVE_FORMAT_PCM_) {
@@ -238,6 +238,7 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 	analog.meaning->mqflags = 0;
 	analog.meaning->unit = 0;
 	sr_session_send(in->sdi, &packet);
+	g_free(fdata);
 }
 
 static int process_buffer(struct sr_input *in)
