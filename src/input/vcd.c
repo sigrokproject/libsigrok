@@ -67,7 +67,7 @@
 
 #define LOG_PREFIX "input/vcd"
 
-#define CHUNKSIZE (1024 * 1024)
+#define CHUNK_SIZE (1024 * 1024)
 
 struct context {
 	gboolean started;
@@ -319,7 +319,7 @@ static void add_samples(const struct sr_input *in, size_t count)
 	uint8_t *p;
 
 	inc = in->priv;
-	samples_per_chunk = CHUNKSIZE / inc->bytes_per_sample;
+	samples_per_chunk = CHUNK_SIZE / inc->bytes_per_sample;
 
 	while (count) {
 		space_left = samples_per_chunk - inc->samples_in_buffer;
@@ -498,7 +498,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = inc;
 
-	inc->buffer = g_malloc(CHUNKSIZE);
+	inc->buffer = g_malloc(CHUNK_SIZE);
 
 	return SR_OK;
 }

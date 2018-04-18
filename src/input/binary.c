@@ -29,7 +29,7 @@
 
 #define LOG_PREFIX "input/binary"
 
-#define MAX_CHUNK_SIZE       (4 * 1024 * 1024)
+#define CHUNK_SIZE           (4 * 1024 * 1024)
 #define DEFAULT_NUM_CHANNELS 8
 #define DEFAULT_SAMPLERATE   0
 
@@ -102,7 +102,7 @@ static int process_buffer(struct sr_input *in)
 
 	for (i = 0; i < chunk_size; i += chunk) {
 		logic.data = in->buf->str + i;
-		chunk = MIN(MAX_CHUNK_SIZE, chunk_size - i);
+		chunk = MIN(CHUNK_SIZE, chunk_size - i);
 		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}

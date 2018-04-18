@@ -45,7 +45,7 @@
 
 #define LOG_PREFIX "input/trace32_ad"
 
-#define OUTBUF_FLUSH_SIZE 10240
+#define CHUNK_SIZE        10240
 #define MAX_POD_COUNT     12
 #define HEADER_SIZE       80
 
@@ -151,7 +151,7 @@ static int init(struct sr_input *in, GHashTable *options)
 		return SR_ERR;
 	}
 
-	inc->out_buf = g_string_sized_new(OUTBUF_FLUSH_SIZE);
+	inc->out_buf = g_string_sized_new(CHUNK_SIZE);
 
 	return SR_OK;
 }
@@ -501,7 +501,7 @@ static void process_record_pi(struct sr_input *in, gsize start)
 			g_string_append_len(inc->out_buf, single_payload, payload_len);
 	}
 
-	if (inc->out_buf->len >= OUTBUF_FLUSH_SIZE)
+	if (inc->out_buf->len >= CHUNK_SIZE)
 		flush_output_buffer(in);
 }
 
@@ -554,7 +554,7 @@ static void process_record_iprobe(struct sr_input *in, gsize start)
 			g_string_append_len(inc->out_buf, single_payload, payload_len);
 	}
 
-	if (inc->out_buf->len >= OUTBUF_FLUSH_SIZE)
+	if (inc->out_buf->len >= CHUNK_SIZE)
 		flush_output_buffer(in);
 }
 

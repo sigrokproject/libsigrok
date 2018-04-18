@@ -26,7 +26,7 @@
 
 #define LOG_PREFIX "input/csv"
 
-#define DATAFEED_MAX_SAMPLES	(128 * 1024)
+#define CHUNK_SIZE	(128 * 1024)
 
 /*
  * The CSV input module has the following options:
@@ -624,7 +624,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * to a location within that large buffer.
 	 */
 	inc->sample_unit_size = (inc->num_channels + 7) / 8;
-	inc->datafeed_buf_size = DATAFEED_MAX_SAMPLES;
+	inc->datafeed_buf_size = CHUNK_SIZE;
 	inc->datafeed_buf_size *= inc->sample_unit_size;
 	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
 	inc->datafeed_buf_fill = 0;
