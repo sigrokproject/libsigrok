@@ -281,7 +281,7 @@ static int reset(struct sr_input *in)
 SR_PRIV struct sr_input_module input_raw_analog = {
 	.id = "raw_analog",
 	.name = "RAW analog",
-	.desc = "Raw analog signals without header",
+	.desc = "Raw analog data without header",
 	.exts = (const char*[]){"raw", "bin", NULL},
 	.options = get_options,
 	.init = init,

@@ -270,7 +270,7 @@ static int cleanup(struct sr_output *o)
 struct sr_output_module output_vcd = {
 	.id = "vcd",
 	.name = "VCD",
-	.desc = "Value Change Dump",
+	.desc = "Value Change Dump data",
 	.exts = (const char*[]){"vcd", NULL},
 	.flags = 0,
 	.options = NULL,

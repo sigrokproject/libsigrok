@@ -45,7 +45,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 SR_PRIV struct sr_output_module output_binary = {
 	.id = "binary",
 	.name = "Binary",
-	.desc = "Raw binary",
+	.desc = "Raw binary logic data",
 	.exts = NULL,
 	.flags = 0,
 	.options = NULL,

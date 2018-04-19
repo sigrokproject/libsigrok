@@ -487,7 +487,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_srzip = {
 	.id = "srzip",
 	.name = "srzip",
-	.desc = "srzip session file",
+	.desc = "srzip session file format data",
 	.exts = (const char*[]){"sr", NULL},
 	.flags = SR_OUTPUT_INTERNAL_IO_HANDLING,
 	.options = get_options,

@@ -205,7 +205,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_analog = {
 	.id = "analog",
 	.name = "Analog",
-	.desc = "Analog data and types",
+	.desc = "ASCII analog data values and units",
 	.exts = NULL,
 	.flags = 0,
 	.options = get_options,

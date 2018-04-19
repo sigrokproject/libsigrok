@@ -238,7 +238,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_output_module output_bits = {
 	.id = "bits",
 	.name = "Bits",
-	.desc = "0/1 digits",
+	.desc = "0/1 digits logic data",
 	.exts = (const char*[]){"txt", NULL},
 	.flags = 0,
 	.options = get_options,

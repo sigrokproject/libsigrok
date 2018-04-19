@@ -648,7 +648,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_input_module input_vcd = {
 	.id = "vcd",
 	.name = "VCD",
-	.desc = "Value Change Dump",
+	.desc = "Value Change Dump data",
 	.exts = (const char*[]){"vcd", NULL},
 	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.options = get_options,

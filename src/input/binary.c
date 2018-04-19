@@ -174,7 +174,7 @@ static const struct sr_option *get_options(void)
 SR_PRIV struct sr_input_module input_binary = {
 	.id = "binary",
 	.name = "Binary",
-	.desc = "Raw binary",
+	.desc = "Raw binary logic data",
 	.exts = NULL,
 	.options = get_options,
 	.init = init,

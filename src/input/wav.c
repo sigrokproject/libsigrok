@@ -376,7 +376,7 @@ static int reset(struct sr_input *in)
 SR_PRIV struct sr_input_module input_wav = {
 	.id = "wav",
 	.name = "WAV",
-	.desc = "WAV file",
+	.desc = "Microsoft WAV file format data",
 	.exts = (const char*[]){"wav", NULL},
 	.metadata = { SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.format_match = format_match,

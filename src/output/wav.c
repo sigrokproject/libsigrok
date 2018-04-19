@@ -367,7 +367,7 @@ static int cleanup(struct sr_output *o)
 SR_PRIV struct sr_output_module output_wav = {
 	.id = "wav",
 	.name = "WAV",
-	.desc = "Microsoft WAV file format",
+	.desc = "Microsoft WAV file format data",
 	.exts = (const char*[]){"wav", NULL},
 	.flags = 0,
 	.options = get_options,
