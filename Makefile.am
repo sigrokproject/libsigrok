@@ -92,7 +92,8 @@ libsigrok_la_SOURCES += \
 	src/output/hex.c \
 	src/output/ols.c \
 	src/output/srzip.c \
-	src/output/vcd.c
+	src/output/vcd.c \
+	src/output/null.c
 
 # Transform modules
 libsigrok_la_SOURCES += \
