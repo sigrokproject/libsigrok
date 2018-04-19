@@ -72,7 +72,7 @@ static gboolean stream_session_data(struct sr_dev_inst *sdi)
 	struct sr_analog_spec spec;
 	struct zip_stat zs;
 	int ret, got_data;
-	char capturefile[16];
+	char capturefile[128];
 	void *buf;
 
 	got_data = FALSE;
