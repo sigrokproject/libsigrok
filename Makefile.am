@@ -77,7 +77,8 @@ libsigrok_la_SOURCES += \
 	src/input/raw_analog.c \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
-	src/input/wav.c
+	src/input/wav.c \
+	src/input/null.c
 
 # Output modules
 libsigrok_la_SOURCES += \
