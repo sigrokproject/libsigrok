@@ -170,9 +170,7 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
 
-	/* Only output messages of at least the selected loglevel(s). */
-	if (loglevel > cur_loglevel)
-		return SR_OK;
+	(void)loglevel;
 
 	if (cur_loglevel >= LOGLEVEL_TIMESTAMP) {
 		elapsed_us = g_get_monotonic_time() - sr_log_start_time;
@@ -216,6 +214,10 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 {
 	int ret;
 	va_list args;
+
+	/* Only output messages of at least the selected loglevel(s). */
+	if (loglevel > cur_loglevel)
+		return SR_OK;
 
 	va_start(args, format);
 	ret = sr_log_cb(sr_log_cb_data, loglevel, format, args);
