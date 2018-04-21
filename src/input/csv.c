@@ -925,11 +925,18 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
+	GSList *l;
+
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[1].def = g_variant_ref_sink(g_variant_new_int32(0));
 		options[2].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[3].def = g_variant_ref_sink(g_variant_new_string("bin"));
+		l = NULL;
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("bin")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("hex")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
+		options[3].values = l;
 		options[4].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[5].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[6].def = g_variant_ref_sink(g_variant_new_int32(0));
