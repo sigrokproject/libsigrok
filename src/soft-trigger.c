@@ -38,7 +38,11 @@ SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 	stl->unitsize = (g_slist_length(sdi->channels) + 7) / 8;
 	stl->prev_sample = g_malloc0(stl->unitsize);
 	stl->pre_trigger_size = stl->unitsize * pre_trigger_samples;
-	stl->pre_trigger_buffer = g_malloc(stl->pre_trigger_size);
+	stl->pre_trigger_buffer = g_try_malloc(stl->pre_trigger_size);
+	if (!stl->pre_trigger_buffer) {
+		soft_trigger_logic_free(stl);
+		return NULL;
+	}
 	stl->pre_trigger_head = stl->pre_trigger_buffer;
 
 	if (stl->pre_trigger_size > 0 && !stl->pre_trigger_buffer) {
