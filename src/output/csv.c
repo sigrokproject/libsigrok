@@ -643,6 +643,8 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
+	GSList *l = NULL;
+
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
 		options[1].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
@@ -652,6 +654,10 @@ static const struct sr_option *get_options(void)
 		options[5].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[6].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[7].def = g_variant_ref_sink(g_variant_new_string("units"));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("units")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("channel")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("off")));
+		options[7].values = l;
 		options[8].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[10].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
