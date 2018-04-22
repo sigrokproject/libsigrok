@@ -723,7 +723,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 		}
-		if (!sr_scpi_read_complete(scpi)) {
+		/* End acquisition when data for all channels is acquired. */
+		if (!sr_scpi_read_complete(scpi) && !devc->channel_entry->next) {
 			sr_err("Read should have been completed");
 			packet.type = SR_DF_FRAME_END;
 			sr_session_send(sdi, &packet);
