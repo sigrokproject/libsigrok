@@ -631,7 +631,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				/* Still reading the header. */
 				return TRUE;
 			if (len == -1) {
-				sr_err("Read error, aborting capture.");
+				sr_err("Error while reading block header, aborting capture.");
 				packet.type = SR_DF_FRAME_END;
 				sr_session_send(sdi, &packet);
 				sr_dev_acquisition_stop(sdi);
@@ -664,7 +664,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
 	if (len == -1) {
-		sr_err("Read error, aborting capture.");
+		sr_err("Error while reading block data, aborting capture.");
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
 		sr_dev_acquisition_stop(sdi);
