@@ -35,6 +35,8 @@ struct h4032l_status_packet {
 	uint32_t magic;
 	uint32_t values;
 	uint32_t status;
+	uint32_t usbxi_data;
+	uint32_t fpga_version;
 };
 
 static void finish_acquisition(struct sr_dev_inst *sdi)
@@ -122,6 +124,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		 * First Transfer as next.
 		 */
 		status = (struct h4032l_status_packet *)transfer->buffer;
+		sr_dbg("FPGA version: 0x%x.", status->fpga_version);
 		if (status->magic != H4032L_STATUS_PACKET_MAGIC) {
 			devc->status = H4032L_STATUS_RESPONSE_STATUS;
 		} else if (status->status == 2) {
