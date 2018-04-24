@@ -39,7 +39,12 @@ SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 	stl->prev_sample = g_malloc0(stl->unitsize);
 	stl->pre_trigger_size = stl->unitsize * pre_trigger_samples;
 	stl->pre_trigger_buffer = g_try_malloc(stl->pre_trigger_size);
-	if (!stl->pre_trigger_buffer) {
+	if (pre_trigger_samples > 0 && !stl->pre_trigger_buffer) {
+		/*
+		 * Error out if g_try_malloc() failed (or was invoked as
+		 * g_try_malloc(0)) *and* more than 0 pretrigger samples
+		 * were requested.
+		 */
 		soft_trigger_logic_free(stl);
 		return NULL;
 	}
