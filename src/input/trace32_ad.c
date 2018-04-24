@@ -213,12 +213,18 @@ static int process_header(GString *buf, struct context *inc)
 			inc->format = AD_FORMAT_TXTHDR;
 		g_free(format_name_sig);
 		g_free(format_name);
-		sr_err("This format isn't implemented yet, aborting.");
+		if (inc)
+			sr_err("This format isn't implemented yet, aborting.");
+		else
+			sr_dbg("Not a supported trace32 input file.");
 		return SR_ERR;
 	} else {
 		g_free(format_name_sig);
 		g_free(format_name);
-		sr_err("Don't know this file format, aborting.");
+		if (inc)
+			sr_err("Don't know this file format, aborting.");
+		else
+			sr_dbg("Not a trace32 input file.");
 		return SR_ERR;
 	}
 
