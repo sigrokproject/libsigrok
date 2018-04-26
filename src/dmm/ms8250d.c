@@ -71,7 +71,7 @@ static int parse_digit(uint16_t b)
 	case 0x713:
 		return 9;
 	default:
-		sr_dbg("Invalid digit byte: 0x%02x.", b);
+		sr_dbg("Invalid digit word: 0x%04x.", b);
 		return -1;
 	}
 }
@@ -103,7 +103,7 @@ static int parse_digit2(uint16_t b)
 	case 0x3F:
 		return 9;
 	default:
-		sr_dbg("Invalid second display digit byte: 0x%02x.", b);
+		sr_dbg("Invalid second display digit word: 0x%04x.", b);
 		return -1;
 	}
 }
