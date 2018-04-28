@@ -360,8 +360,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 		devc->cur_samplerate = devc->samplerates[0];
 	}
 
-	if (devc->cur_threshold == 0.0)
+	if (devc->cur_threshold == 0.0) {
 		devc->cur_threshold = thresholds[1][0];
+		return dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
+	}
 
 	return SR_OK;
 }
