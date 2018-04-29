@@ -2040,9 +2040,9 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc);
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
 SR_PRIV int ezusb_install_firmware(struct sr_context *ctx, libusb_device_handle *hdl,
-				   const char *name);
+				   const char *name, gboolean fx3);
 SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
-				  int configuration, const char *name);
+				  int configuration, const char *name, gboolean fx3);
 #endif
 
 /*--- usb.c -----------------------------------------------------------------*/

@@ -54,7 +54,7 @@ SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 
 SR_PRIV int ezusb_install_firmware(struct sr_context *ctx,
 				   libusb_device_handle *hdl,
-				   const char *name)
+				   const char *name, gboolean fx3)
 {
 	unsigned char *firmware;
 	size_t length, offset, chunksize;
@@ -64,7 +64,7 @@ SR_PRIV int ezusb_install_firmware(struct sr_context *ctx,
 	 * which holds the firmware offset, is only 16 bit wide.
 	 */
 	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
-			name, &length, 1 << 16);
+			name, &length, (fx3? 536 << 10 : 1 << 16));
 	if (!firmware)
 		return SR_ERR;
 
@@ -72,23 +72,66 @@ SR_PRIV int ezusb_install_firmware(struct sr_context *ctx,
 
 	result = SR_OK;
 	offset = 0;
-	while (offset < length) {
-		chunksize = MIN(length - offset, FW_CHUNKSIZE);
-
-		ret = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR |
-					      LIBUSB_ENDPOINT_OUT, 0xa0, offset,
-					      0x0000, firmware + offset,
-					      chunksize, 100);
-		if (ret < 0) {
-			sr_err("Unable to send firmware to device: %s.",
-					libusb_error_name(ret));
+	if (fx3) {
+		if (length < 4 ||
+		    firmware[0] != 'C' || firmware[1] != 'Y' ||
+		    firmware[3] != 0xb0) {
+			sr_err("Invalid signature on firmware");
 			g_free(firmware);
 			return SR_ERR;
 		}
-		sr_info("Uploaded %zu bytes.", chunksize);
-		offset += chunksize;
+		offset = 4;
+	}
+	while (offset < length) {
+		size_t addr, sublength, suboffset;
+
+		if (fx3) {
+			if (offset + 4 == length) {
+				/* Skip checksum */
+				offset += 4;
+				break;
+			}
+			if (length < offset + 8) {
+				break;
+			}
+			sublength = RL32(firmware + offset) << 2;
+			offset += 4;
+			addr = RL32(firmware + offset);
+			offset += 4;
+			if (sublength > length - offset) {
+				break;
+			}
+		} else {
+			sublength = length - offset;
+			addr = 0;
+		}
+		suboffset = 0;
+
+		do {
+			chunksize = MIN(sublength - suboffset, FW_CHUNKSIZE);
+
+			ret = libusb_control_transfer(hdl, LIBUSB_REQUEST_TYPE_VENDOR |
+						      LIBUSB_ENDPOINT_OUT, 0xa0, (addr + suboffset) & 0xffff,
+						      (addr + suboffset) >> 16, firmware + offset + suboffset,
+						      chunksize, 100);
+			if (ret < 0) {
+				sr_err("Unable to send firmware to device: %s.",
+				       libusb_error_name(ret));
+				g_free(firmware);
+				return SR_ERR;
+			}
+			sr_info("Uploaded %zu bytes.", chunksize);
+			suboffset += chunksize;
+		} while (suboffset < sublength);
+
+		offset += sublength;
 	}
 	g_free(firmware);
+
+	if (offset < length) {
+		sr_err("Firmware file is truncated.");
+		return SR_ERR;
+	}
 
 	sr_info("Firmware upload done.");
 
@@ -96,7 +139,7 @@ SR_PRIV int ezusb_install_firmware(struct sr_context *ctx,
 }
 
 SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
-				  int configuration, const char *name)
+				  int configuration, const char *name, gboolean fx3)
 {
 	struct libusb_device_handle *hdl;
 	int ret;
@@ -129,13 +172,13 @@ SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
 		return SR_ERR;
 	}
 
-	if ((ezusb_reset(hdl, 1)) < 0)
+	if (!fx3 && (ezusb_reset(hdl, 1)) < 0)
 		return SR_ERR;
 
-	if (ezusb_install_firmware(ctx, hdl, name) < 0)
+	if (ezusb_install_firmware(ctx, hdl, name, fx3) < 0)
 		return SR_ERR;
 
-	if ((ezusb_reset(hdl, 0)) < 0)
+	if (!fx3 && (ezusb_reset(hdl, 0)) < 0)
 		return SR_ERR;
 
 	libusb_close(hdl);

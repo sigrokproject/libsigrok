@@ -148,7 +148,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case LOGICSTUDIO16_PID_LACK_FIRMWARE:
 			r = ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-				USB_CONFIGURATION, FX2_FIRMWARE);
+				USB_CONFIGURATION, FX2_FIRMWARE, FALSE);
 			if (r != SR_OK) {
 				/*
 				 * An error message has already been logged by

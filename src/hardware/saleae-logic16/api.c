@@ -219,7 +219,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK) {
+					USB_CONFIGURATION, FX2_FIRMWARE, FALSE) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
 			} else {
