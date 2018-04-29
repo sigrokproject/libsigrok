@@ -117,7 +117,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 	 */
 	{ 0x04b4, 0x00f3, "Cypress", "SuperSpeed Explorer Kit", NULL,
 		"fx3lafw-cypress-fx3.fw",
-		DEV_CAPS_FX3 | DEV_CAPS_16BIT, NULL, NULL },
+		DEV_CAPS_FX3 | DEV_CAPS_32BIT, NULL, NULL },
 
 	ALL_ZERO
 };
@@ -309,7 +309,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->connection_id = g_strdup(connection_id);
 
 		/* Fill in channellist according to this device's profile. */
-		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		num_logic_channels =
+			prof->dev_caps & DEV_CAPS_32BIT ? 32 :
+			(prof->dev_caps & DEV_CAPS_24BIT ? 24 :
+			 (prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8));
 		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
 
 		/* Logic channels, all in one channel group. */

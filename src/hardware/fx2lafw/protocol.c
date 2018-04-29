@@ -90,7 +90,7 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 
 	/* Compute the sample rate. */
 	if (!(devc->profile->dev_caps & DEV_CAPS_FX3) &&
-	    devc->sample_wide && samplerate > MAX_16BIT_SAMPLE_RATE) {
+	    devc->unitsize > 1 && samplerate > MAX_16BIT_SAMPLE_RATE) {
 		sr_err("Unable to sample at %" PRIu64 "Hz "
 		       "when collecting 16-bit samples.", samplerate);
 		return SR_ERR;
@@ -131,8 +131,10 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	cmd.sample_delay_l = delay & 0xff;
 
 	/* Select the sampling width. */
-	cmd.flags |= devc->sample_wide ? CMD_START_FLAGS_SAMPLE_16BIT :
-		CMD_START_FLAGS_SAMPLE_8BIT;
+	cmd.flags |= devc->unitsize == 4 ? CMD_START_FLAGS_SAMPLE_32BIT :
+		(devc->unitsize == 3 ? CMD_START_FLAGS_SAMPLE_24BIT :
+		 (devc->unitsize == 2 ? CMD_START_FLAGS_SAMPLE_16BIT :
+		  CMD_START_FLAGS_SAMPLE_8BIT));
 	/* Enable CTL2 clock. */
 	cmd.flags |= (g_slist_length(devc->enabled_analog_channels) > 0) ? CMD_START_FLAGS_CLK_CTL2 : 0;
 
@@ -270,7 +272,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->limit_frames = 1;
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
-	devc->sample_wide = FALSE;
+	devc->unitsize = 1;
 	devc->num_frames = 0;
 	devc->stl = NULL;
 
@@ -445,7 +447,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		libusb_error_name(transfer->status), transfer->actual_length);
 
 	/* Save incoming transfer before reusing the transfer struct. */
-	unitsize = devc->sample_wide ? 2 : 1;
+	unitsize = devc->unitsize;
 	cur_sample_count = transfer->actual_length / unitsize;
 	processed_samples = 0;
 
@@ -486,6 +488,8 @@ check_trigger:
 			num_samples = cur_sample_count - processed_samples;
 			if (devc->limit_samples && devc->sent_samples + num_samples > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
+			else
+				num_samples = cur_sample_count;
 
 			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer + processed_samples * unitsize,
 				num_samples * unitsize, unitsize);
@@ -574,7 +578,9 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 	 * Use wide sampling if either any of the LA channels 8..15 is enabled,
 	 * and/or at least one analog channel is enabled.
 	 */
-	devc->sample_wide = channel_mask > 0xff || num_analog > 0;
+	devc->unitsize = channel_mask > 0xffffff? 4 :
+			 (channel_mask > 0xffff? 3 :
+			  (channel_mask > 0xff || num_analog > 0? 2 : 1));
 
 	return SR_OK;
 }
@@ -593,6 +599,12 @@ static size_t get_buffer_size(struct dev_context *devc)
 	 * a multiple of 1024.
 	 */
 	s = 10 * to_bytes_per_ms(devc->cur_samplerate);
+	if (devc->unitsize == 3) {
+	  /* Make it a multiple of 3K, to make sure we have an
+	     integral number of samples */
+	  s += 3*1024;
+	  s -= s % (3*1024);
+	}
 	return (s + 1023) & ~1023;
 }
 
