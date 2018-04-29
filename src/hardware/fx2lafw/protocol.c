@@ -98,7 +98,16 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 
 	delay = 0;
 	cmd.flags = cmd.sample_delay_h = cmd.sample_delay_l = 0;
-	if ((SR_MHZ(48) % samplerate) == 0) {
+
+	if ((devc->profile->dev_caps & DEV_CAPS_FX3) &&
+	    (SR_MHZ(192) % samplerate) == 0) {
+		cmd.flags = CMD_START_FLAGS_CLK_192MHZ;
+		delay = SR_MHZ(192) / samplerate - 1;
+		if (delay > 0xffff)
+			delay = 0;
+	}
+
+	if (delay == 0 && (SR_MHZ(48) % samplerate) == 0) {
 		cmd.flags = CMD_START_FLAGS_CLK_48MHZ;
 		delay = SR_MHZ(48) / samplerate - 1;
 		if (delay > MAX_SAMPLE_DELAY)
