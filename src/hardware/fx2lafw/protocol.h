@@ -51,9 +51,11 @@
 
 #define DEV_CAPS_16BIT_POS	0
 #define DEV_CAPS_AX_ANALOG_POS	1
+#define DEV_CAPS_FX3_POS	2
 
 #define DEV_CAPS_16BIT		(1 << DEV_CAPS_16BIT_POS)
 #define DEV_CAPS_AX_ANALOG	(1 << DEV_CAPS_AX_ANALOG_POS)
+#define DEV_CAPS_FX3		(1 << DEV_CAPS_FX3_POS)
 
 /* Protocol commands */
 #define CMD_GET_FW_VERSION		0xb0

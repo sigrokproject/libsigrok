@@ -89,7 +89,8 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	samplerate = devc->cur_samplerate;
 
 	/* Compute the sample rate. */
-	if (devc->sample_wide && samplerate > MAX_16BIT_SAMPLE_RATE) {
+	if (!(devc->profile->dev_caps & DEV_CAPS_FX3) &&
+	    devc->sample_wide && samplerate > MAX_16BIT_SAMPLE_RATE) {
 		sr_err("Unable to sample at %" PRIu64 "Hz "
 		       "when collecting 16-bit samples.", samplerate);
 		return SR_ERR;

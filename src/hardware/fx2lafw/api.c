@@ -112,6 +112,13 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-usb-c-grok.fw",
 		0, NULL, NULL},
 
+	/*
+	 * Cypress SuperSpeed Explorer Kit (CYUSB3KIT-003)
+	 */
+	{ 0x04b4, 0x00f3, "Cypress", "SuperSpeed Explorer Kit", NULL,
+		"fx3lafw-cypress-fx3.fw",
+		DEV_CAPS_FX3 | DEV_CAPS_16BIT, NULL, NULL },
+
 	ALL_ZERO
 };
 
