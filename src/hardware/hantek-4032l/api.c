@@ -164,8 +164,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			struct sr_usb_dev_inst *usb = NULL;
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
-				if (usb->bus == libusb_get_bus_number(devlist[i])
-					&& usb->address == libusb_get_device_address(devlist[i]))
+				if (usb->bus == libusb_get_bus_number(devlist[i]) &&
+				    usb->address == libusb_get_device_address(devlist[i]))
 					break;
 			}
 			if (!l)
@@ -338,35 +338,36 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_SAMPLERATE;
 			}
 			cmd_pkt->sample_rate = i;
-
-			return SR_OK;
+			break;
 		}
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
-		return SR_OK;
+		break;
 	case SR_CONF_LIMIT_SAMPLES: {
 			uint64_t number_samples = g_variant_get_uint64(data);
 			number_samples += 511;
 			number_samples &= 0xfffffe00;
-			if (number_samples < 2048
-			    || number_samples > 64 * 1024 * 1024) {
+			if (number_samples < 2048 ||
+			    number_samples > 64 * 1024 * 1024) {
 				sr_err("Invalid sample range 2k...64M: %"
 				       PRIu64 ".", number_samples);
 				return SR_ERR;
 			}
 			cmd_pkt->sample_size = number_samples;
-			return SR_OK;
+			break;
 		}
 	case SR_CONF_VOLTAGE_THRESHOLD: {
 			double d1, d2;
 			g_variant_get(data, "(dd)", &d1, &d2);
 			devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(d1);
 			devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(d2);
-			return SR_OK;
+			break;
 		}
+	default:
+		return SR_ERR_NA;
 	}
 
-	return SR_ERR_NA;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
@@ -400,6 +401,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_trigger *trigger = sr_session_trigger_get(sdi->session);
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
 
+	/* Initialize variables. */
 	devc->acq_aborted = FALSE;
 
 	/* Calculate packet ratio. */
