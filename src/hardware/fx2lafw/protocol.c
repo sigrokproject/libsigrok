@@ -580,10 +580,10 @@ static size_t get_buffer_size(struct dev_context *devc)
 
 	/*
 	 * The buffer should be large enough to hold 10ms of data and
-	 * a multiple of 512.
+	 * a multiple of 1024.
 	 */
 	s = 10 * to_bytes_per_ms(devc->cur_samplerate);
-	return (s + 511) & ~511;
+	return (s + 1023) & ~1023;
 }
 
 static unsigned int get_number_of_transfers(struct dev_context *devc)
