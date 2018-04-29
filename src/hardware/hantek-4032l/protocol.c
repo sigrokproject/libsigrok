@@ -124,7 +124,6 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		 * First Transfer as next.
 		 */
 		status = (struct h4032l_status_packet *)transfer->buffer;
-		sr_dbg("FPGA version: 0x%x.", status->fpga_version);
 		if (status->magic != H4032L_STATUS_PACKET_MAGIC)
 			devc->status = H4032L_STATUS_RESPONSE_STATUS;
 		else if (status->status == 2)
@@ -332,4 +331,47 @@ SR_PRIV int h4032l_dev_open(struct sr_dev_inst *sdi)
 
 	libusb_free_device_list(devlist, 1);
 	return ret;
+}
+
+SR_PRIV int h4032l_get_fpga_version(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	struct h4032l_status_packet *status;
+	int transferred;
+	int i, ret;
+
+	/* Set command to status. */
+	devc->cmd_pkt.magic = H4032L_CMD_PKT_MAGIC;
+	devc->cmd_pkt.cmd = CMD_STATUS;
+
+	/* Send status request. */
+	if ((ret = libusb_bulk_transfer(usb->devhdl,
+		2 | LIBUSB_ENDPOINT_OUT, (unsigned char *)&devc->cmd_pkt,
+		sizeof(struct h4032l_cmd_pkt), &transferred, H4032L_USB_TIMEOUT)) < 0) {
+		sr_err("Unable to send FPGA version request: %s.",
+		       libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	/* Attempt to get FGPA version. */
+	for (i = 0; i < 10; i++) {
+		if ((ret = libusb_bulk_transfer(usb->devhdl,
+			6 | LIBUSB_ENDPOINT_IN, devc->buffer,
+			ARRAY_SIZE(devc->buffer), &transferred, H4032L_USB_TIMEOUT)) < 0) {
+			sr_err("Unable to receive FPGA version: %s.",
+			       libusb_error_name(ret));
+			return SR_ERR;
+		}
+		status = (struct h4032l_status_packet *)devc->buffer;
+		if (status->magic == H4032L_STATUS_PACKET_MAGIC) {
+			sr_dbg("FPGA version: 0x%x.", status->fpga_version);
+			devc->fpga_version = status->fpga_version;
+			return SR_OK;
+		}
+	}
+
+	sr_err("Unable to get FPGA version.");
+
+	return SR_ERR;
 }

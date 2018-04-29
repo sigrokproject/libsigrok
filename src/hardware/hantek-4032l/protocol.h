@@ -126,6 +126,7 @@ struct dev_context {
 	struct libusb_transfer *usb_transfer;
 	uint8_t buffer[512];
 	uint64_t capture_ratio;
+	uint32_t fpga_version;
 };
 
 SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data);
@@ -133,5 +134,6 @@ SR_PRIV uint16_t h4032l_voltage2pwm(double voltage);
 SR_PRIV void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer);
 SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_dev_open(struct sr_dev_inst *sdi);
+SR_PRIV int h4032l_get_fpga_version(const struct sr_dev_inst *sdi);
 
 #endif

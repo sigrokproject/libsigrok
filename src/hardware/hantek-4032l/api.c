@@ -267,6 +267,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+	/* Get FPGA version. */
+	if ((ret = h4032l_get_fpga_version(sdi)) != SR_OK)
+		return ret;
+
 	return SR_OK;
 }
 
