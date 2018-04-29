@@ -33,6 +33,9 @@
 #define H4032L_USB_VENDOR 0x04b5
 #define H4032L_USB_PRODUCT 0x4032
 
+#define H4032L_DATA_BUFFER_SIZE (2 * 1024)
+#define H4032L_DATA_TRANSFER_MAX_NUM 32
+
 #define H4032L_CMD_PKT_MAGIC 0x017f
 #define H4032L_STATUS_PACKET_MAGIC 0x2B1A037F
 #define H4032L_START_PACKET_MAGIC 0x2B1A027F
@@ -120,10 +123,12 @@ struct h4032l_cmd_pkt {
 
 struct dev_context {
 	enum h4032l_status status;
+	int submitted_transfers;
 	uint32_t remaining_samples;
 	gboolean acq_aborted;
 	struct h4032l_cmd_pkt cmd_pkt;
-	struct libusb_transfer *usb_transfer;
+	unsigned int num_transfers;
+	struct libusb_transfer **transfers;
 	uint8_t buffer[512];
 	uint64_t capture_ratio;
 	uint32_t fpga_version;
@@ -135,6 +140,7 @@ SR_PRIV void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer);
 SR_PRIV void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer);
 SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi);
+SR_PRIV int h4032l_stop(struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_get_fpga_version(const struct sr_dev_inst *sdi);
 

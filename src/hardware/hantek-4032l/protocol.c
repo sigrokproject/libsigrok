@@ -39,24 +39,55 @@ struct h4032l_status_packet {
 	uint32_t fpga_version;
 };
 
+static void abort_acquisition(struct dev_context *devc)
+{
+	int i;
+
+	devc->acq_aborted = TRUE;
+
+	for (i = devc->num_transfers - 1; i >= 0; i--) {
+		if (devc->transfers[i])
+			libusb_cancel_transfer(devc->transfers[i]);
+	}
+
+	devc->status = H4032L_STATUS_IDLE;
+}
+
 static void finish_acquisition(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc = sdi->priv;
 	struct drv_context *drvc = sdi->driver->context;
 
 	std_session_send_df_end(sdi);
 	usb_source_remove(sdi->session, drvc->sr_ctx);
+
+	devc->num_transfers = 0;
+	g_free(devc->transfers);
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi = transfer->user_data;
 	struct dev_context *devc = sdi->priv;
+	unsigned int i;
+
+	if ((transfer->buffer != (unsigned char *)&devc->cmd_pkt) &&
+	    (transfer->buffer != devc->buffer)) {
+		g_free(transfer->buffer);
+	}
 
 	transfer->buffer = NULL;
 	libusb_free_transfer(transfer);
-	devc->usb_transfer = NULL;
 
-	finish_acquisition(sdi);
+	for (i = 0; i < devc->num_transfers; i++) {
+		if (devc->transfers[i] == transfer) {
+			devc->transfers[i] = NULL;
+			break;
+		}
+	}
+
+	if (--devc->submitted_transfers == 0)
+		finish_acquisition(sdi);
 }
 
 static void resubmit_transfer(struct libusb_transfer *transfer)
@@ -90,7 +121,6 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 {
 	const struct sr_dev_inst *sdi = transfer->user_data;
 	struct dev_context *devc = sdi->priv;
-	struct drv_context *drvc = sdi->driver->context;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -131,13 +161,17 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 
 	/* Close data receiving. */
 	if (devc->remaining_samples == 0) {
-		std_session_send_df_end(sdi);
-		usb_source_remove(sdi->session, drvc->sr_ctx);
-		devc->status = H4032L_STATUS_IDLE;
 		if (buffer[number_samples] != H4032L_END_PACKET_MAGIC)
 			sr_err("Mismatch magic number of end poll.");
+
+		abort_acquisition(devc);
+		free_transfer(transfer);
 	} else {
-		resubmit_transfer(transfer);
+		if (((devc->submitted_transfers - 1) * H4032L_DATA_BUFFER_SIZE) <
+		    (int32_t)(devc->remaining_samples * sizeof(uint32_t)))
+			resubmit_transfer(transfer);
+		else
+			free_transfer(transfer);
 	}
 }
 
@@ -303,27 +337,57 @@ SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	struct libusb_transfer *transfer;
+	uint8_t *buffer;
+	unsigned int num_transfers;
+	unsigned int i;
 	int ret;
 
-	transfer = libusb_alloc_transfer(0);
+	devc->submitted_transfers = 0;
 
-	libusb_fill_bulk_transfer(transfer, usb->devhdl,
-		6 | LIBUSB_ENDPOINT_IN,
-		devc->buffer, ARRAY_SIZE(devc->buffer),
-		h4032l_data_transfer_callback,
-		(void *)sdi, H4032L_USB_TIMEOUT);
+	/*
+	 * Set number of data transfers regarding to size of buffer.
+	 * FPGA version 0 can't transfer multiple transfers at once.
+	 */
+	if ((num_transfers = MIN(devc->remaining_samples * sizeof(uint32_t) /
+	    H4032L_DATA_BUFFER_SIZE, devc->fpga_version ?
+	    H4032L_DATA_TRANSFER_MAX_NUM : 1)) == 0)
+		num_transfers = 1;
 
-	/* Send prepared usb packet. */
-	if ((ret = libusb_submit_transfer(transfer)) != 0) {
-		sr_err("Failed to submit transfer: %s.",
-		       libusb_error_name(ret));
-		devc->status = H4032L_STATUS_IDLE;
+	g_free(devc->transfers);
+	devc->transfers = g_try_malloc(sizeof(*devc->transfers) * num_transfers);
+	if (!devc->transfers) {
+		sr_err("USB transfers malloc failed.");
+		return SR_ERR_MALLOC;
 	}
 
-	if (devc->status == H4032L_STATUS_IDLE)
-		free_transfer(transfer);
+	devc->num_transfers = num_transfers;
+	for (i = 0; i < num_transfers; i++) {
+		if (!(buffer = g_malloc(H4032L_DATA_BUFFER_SIZE))) {
+			sr_err("USB transfer buffer malloc failed.");
+			return SR_ERR_MALLOC;
+		}
+		transfer = libusb_alloc_transfer(0);
 
-	return (ret ? SR_ERR : SR_OK);
+		libusb_fill_bulk_transfer(transfer, usb->devhdl,
+			6 | LIBUSB_ENDPOINT_IN,
+			buffer, H4032L_DATA_BUFFER_SIZE,
+			h4032l_data_transfer_callback,
+			(void *)sdi, H4032L_USB_TIMEOUT);
+
+		/* Send prepared usb packet. */
+		if ((ret = libusb_submit_transfer(transfer)) != 0) {
+			sr_err("Failed to submit transfer: %s.",
+			       libusb_error_name(ret));
+			libusb_free_transfer(transfer);
+			g_free(buffer);
+			abort_acquisition(devc);
+			return SR_ERR;
+		}
+		devc->transfers[i] = transfer;
+		devc->submitted_transfers++;
+	}
+
+	return SR_OK;
 }
 
 SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi)
@@ -364,6 +428,23 @@ SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi)
 		libusb_free_transfer(transfer);
 		return SR_ERR;
 	}
+
+	devc->transfers = g_malloc0(sizeof(*devc->transfers));
+	if (!devc->transfers) {
+		sr_err("USB start transfer malloc failed.");
+		return SR_ERR_MALLOC;
+	}
+
+	devc->submitted_transfers++;
+	devc->num_transfers = 1;
+	devc->transfers[0] = transfer;
+
+	return SR_OK;
+}
+
+SR_PRIV int h4032l_stop(struct sr_dev_inst *sdi)
+{
+	abort_acquisition(sdi->priv);
 
 	return SR_OK;
 }

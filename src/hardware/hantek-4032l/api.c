@@ -219,8 +219,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc->capture_ratio = 5;
 
-		devc->usb_transfer = libusb_alloc_transfer(0);
-
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
 
@@ -407,6 +405,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Initialize variables. */
 	devc->acq_aborted = FALSE;
+	devc->submitted_transfers = 0;
 
 	/* Calculate packet ratio. */
 	cmd_pkt->pre_trigger_size = (cmd_pkt->sample_size * devc->capture_ratio) / 100;
@@ -509,15 +508,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-
-	devc->acq_aborted = TRUE;
-	if (devc->usb_transfer)
-		libusb_cancel_transfer(devc->usb_transfer);
-
-	devc->status = H4032L_STATUS_IDLE;
-
-	return SR_OK;
+	/* Stop capturing. */
+	return h4032l_stop(sdi);
 }
 
 SR_PRIV struct sr_dev_driver hantek_4032l_driver_info = {
