@@ -36,7 +36,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
@@ -349,8 +349,8 @@ static int config_set(uint32_t key, GVariant *data,
 			uint64_t number_samples = g_variant_get_uint64(data);
 			number_samples += 511;
 			number_samples &= 0xfffffe00;
-			if (number_samples < 2048 ||
-			    number_samples > 64 * 1024 * 1024) {
+			if (number_samples < H4043L_NUM_SAMPLES_MIN ||
+			    number_samples > H4032L_NUM_SAMPLES_MAX) {
 				sr_err("Invalid sample range 2k...64M: %"
 				       PRIu64 ".", number_samples);
 				return SR_ERR;
@@ -387,6 +387,9 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_tuple_double(2.5, 2.5);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = std_gvar_tuple_u64(H4043L_NUM_SAMPLES_MIN, H4032L_NUM_SAMPLES_MAX);
 		break;
 	default:
 		return SR_ERR_NA;
