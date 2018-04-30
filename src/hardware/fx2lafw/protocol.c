@@ -617,6 +617,11 @@ static unsigned int get_number_of_transfers(struct dev_context *devc)
 	n = (500 * to_bytes_per_ms(devc->cur_samplerate, devc->unitsize) /
 		get_buffer_size(devc));
 
+	/* But no larger than 16M */
+	unsigned int nmax = MAX_BULK_REQUEST_SIZE / get_buffer_size(devc);
+	if (n > nmax)
+		n = nmax;
+
 	if (n > NUM_SIMUL_TRANSFERS)
 		return NUM_SIMUL_TRANSFERS;
 
