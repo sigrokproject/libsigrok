@@ -126,6 +126,7 @@ struct h4032l_cmd_pkt {
 
 struct dev_context {
 	enum h4032l_status status;
+	unsigned int sent_samples;
 	int submitted_transfers;
 	uint32_t remaining_samples;
 	gboolean acq_aborted;
@@ -134,6 +135,7 @@ struct dev_context {
 	struct libusb_transfer **transfers;
 	uint8_t buffer[512];
 	uint64_t capture_ratio;
+	uint32_t trigger_pos;
 	uint32_t fpga_version;
 };
 

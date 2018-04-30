@@ -35,7 +35,7 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
@@ -213,7 +213,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(2.5);
 		devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(2.5);
 		devc->cmd_pkt.sample_size = 16384;
-		devc->cmd_pkt.pre_trigger_size = 1024;
 
 		devc->status = H4032L_STATUS_IDLE;
 
@@ -342,9 +341,15 @@ static int config_set(uint32_t key, GVariant *data,
 			cmd_pkt->sample_rate = i;
 			break;
 		}
-	case SR_CONF_CAPTURE_RATIO:
-		devc->capture_ratio = g_variant_get_uint64(data);
-		break;
+	case SR_CONF_CAPTURE_RATIO: {
+			uint64_t capture_ratio = g_variant_get_uint64(data);
+			if (capture_ratio > 99) {
+				sr_err("Invalid capture ratio.");
+				return SR_ERR;
+			}
+			devc->capture_ratio = capture_ratio;
+			break;
+		}
 	case SR_CONF_LIMIT_SAMPLES: {
 			uint64_t number_samples = g_variant_get_uint64(data);
 			number_samples += 511;
@@ -409,9 +414,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Initialize variables. */
 	devc->acq_aborted = FALSE;
 	devc->submitted_transfers = 0;
+	devc->sent_samples = 0;
 
 	/* Calculate packet ratio. */
 	cmd_pkt->pre_trigger_size = (cmd_pkt->sample_size * devc->capture_ratio) / 100;
+	devc->trigger_pos = cmd_pkt->pre_trigger_size;
 
 	cmd_pkt->trig_flags.enable_trigger1 = 0;
 	cmd_pkt->trig_flags.enable_trigger2 = 0;

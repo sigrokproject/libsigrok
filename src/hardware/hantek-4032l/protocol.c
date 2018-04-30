@@ -101,6 +101,48 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 	free_transfer(transfer);
 }
 
+static void send_data(struct sr_dev_inst *sdi,
+	uint32_t *data, size_t sample_count)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_datafeed_logic logic = {
+		.length = sample_count * sizeof(uint32_t),
+		.unitsize = sizeof(uint32_t),
+		.data = data
+	};
+	const struct sr_datafeed_packet packet = {
+		.type = SR_DF_LOGIC,
+		.payload = &logic
+	};
+	const struct sr_datafeed_packet trig = {
+		.type = SR_DF_TRIGGER,
+		.payload = NULL
+	};
+	size_t trigger_offset;
+
+	if (devc->trigger_pos >= devc->sent_samples &&
+		devc->trigger_pos < (devc->sent_samples + sample_count)) {
+		/* Get trigger position. */
+		trigger_offset = devc->trigger_pos - devc->sent_samples;
+		logic.length = trigger_offset * sizeof(uint32_t);
+		if (logic.length)
+			sr_session_send(sdi, &packet);
+
+		/* Send trigger position. */
+		sr_session_send(sdi, &trig);
+
+		/* Send rest of data. */
+		logic.length = (sample_count-trigger_offset) * sizeof(uint32_t);
+		logic.data = data + trigger_offset;
+		if (logic.length)
+			sr_session_send(sdi, &packet);
+	} else {
+		sr_session_send(sdi, &packet);
+	}
+
+	devc->sent_samples += sample_count;
+}
+
 SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data)
 {
 	struct timeval tv;
@@ -119,11 +161,9 @@ SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data)
 
 void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 {
-	const struct sr_dev_inst *sdi = transfer->user_data;
-	struct dev_context *devc = sdi->priv;
+	struct sr_dev_inst *const sdi = transfer->user_data;
+	struct dev_context *const devc = sdi->priv;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
 	uint32_t *buffer;
 	uint32_t number_samples;
 
@@ -150,12 +190,7 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 	number_samples = (devc->remaining_samples < max_samples) ?
 			  devc->remaining_samples : max_samples;
 	devc->remaining_samples -= number_samples;
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.length = number_samples * sizeof(uint32_t);
-	logic.unitsize = sizeof(uint32_t);
-	logic.data = buffer;
-	sr_session_send(sdi, &packet);
+	send_data(sdi, buffer, number_samples);
 	sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
 		buffer[0], buffer[1]);
 
@@ -177,15 +212,13 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 
 void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 {
-	const struct sr_dev_inst *sdi = transfer->user_data;
-	struct dev_context *devc = sdi->priv;
+	struct sr_dev_inst *const sdi = transfer->user_data;
+	struct dev_context *const devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	gboolean cmd = FALSE;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
 	uint32_t *buffer;
 	struct h4032l_status_packet *status;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
 	uint32_t number_samples;
 	int ret;
 
@@ -259,12 +292,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		number_samples = (devc->remaining_samples < max_samples) ?
 				  devc->remaining_samples : max_samples;
 		devc->remaining_samples -= number_samples;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length = number_samples * sizeof(uint32_t);
-		logic.unitsize = sizeof(uint32_t);
-		logic.data = buffer;
-		sr_session_send(sdi, &packet);
+		send_data(sdi, buffer, number_samples);
 		sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
 		       buffer[0], buffer[1]);
 		break;
