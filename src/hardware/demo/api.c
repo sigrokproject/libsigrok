@@ -50,6 +50,7 @@ static const char *logic_pattern_str[] = {
 static const uint32_t scanopts[] = {
 	SR_CONF_NUM_LOGIC_CHANNELS,
 	SR_CONF_NUM_ANALOG_CHANNELS,
+	SR_CONF_LIMIT_FRAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -97,10 +98,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct analog_gen *ag;
 	GSList *l;
 	int num_logic_channels, num_analog_channels, pattern, i;
+	uint64_t limit_frames;
 	char channel_name[16];
 
 	num_logic_channels = DEFAULT_NUM_LOGIC_CHANNELS;
 	num_analog_channels = DEFAULT_NUM_ANALOG_CHANNELS;
+	limit_frames = DEFAULT_LIMIT_FRAMES;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -109,6 +112,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case SR_CONF_NUM_ANALOG_CHANNELS:
 			num_analog_channels = g_variant_get_int32(src->data);
+			break;
+		case SR_CONF_LIMIT_FRAMES:
+			limit_frames = g_variant_get_uint64(src->data);
 			break;
 		}
 	}
@@ -126,6 +132,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->all_logic_channels_mask--;
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
+	devc->limit_frames = limit_frames;
 
 	if (num_logic_channels > 0) {
 		/* Logic channels, all in one channel group. */

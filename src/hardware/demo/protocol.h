@@ -35,6 +35,7 @@
 #define ANALOG_BUFSIZE			4096
 /* This is a development feature: it starts a new frame every n samples. */
 #define SAMPLES_PER_FRAME		1000UL
+#define DEFAULT_LIMIT_FRAMES		0
 
 /* Logic patterns we can generate. */
 enum logic_pattern_type {
