@@ -62,6 +62,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -223,6 +224,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_MSEC:
 		*data = g_variant_new_uint64(devc->limit_msec);
 		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limit_frames);
+		break;
 	case SR_CONF_AVERAGING:
 		*data = g_variant_new_boolean(devc->avg);
 		break;
@@ -283,6 +287,9 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 		devc->limit_msec = g_variant_get_uint64(data);
 		devc->limit_samples = 0;
+		break;
+	case SR_CONF_LIMIT_FRAMES:
+		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_AVERAGING:
 		devc->avg = g_variant_get_boolean(data);
@@ -458,7 +465,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	std_session_send_df_header(sdi);
 
-	if (SAMPLES_PER_FRAME > 0)
+	if (devc->limit_frames > 0)
 		std_session_send_frame_begin(sdi);
 
 	/* We use this timestamp to decide how many more samples to send. */
@@ -471,9 +478,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
+
 	sr_session_source_remove(sdi->session, -1);
 
-	if (SAMPLES_PER_FRAME > 0)
+	devc = sdi->priv;
+	if (devc->limit_frames > 0)
 		std_session_send_frame_end(sdi);
 
 	std_session_send_df_end(sdi);

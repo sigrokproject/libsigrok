@@ -493,12 +493,13 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	if (samples_todo == 0)
 		return G_SOURCE_CONTINUE;
 
-#if (SAMPLES_PER_FRAME > 0) /* Avoid "comparison < 0 always false" warning. */
-	/* Never send more samples than a frame can fit... */
-	samples_todo = MIN(samples_todo, SAMPLES_PER_FRAME);
-	/* ...or than we need to finish the current frame. */
-	samples_todo = MIN(samples_todo, SAMPLES_PER_FRAME - devc->sent_frame_samples);
-#endif
+	if (devc->limit_frames) {
+		/* Never send more samples than a frame can fit... */
+		samples_todo = MIN(samples_todo, SAMPLES_PER_FRAME);
+		/* ...or than we need to finish the current frame. */
+		samples_todo = MIN(samples_todo,
+			SAMPLES_PER_FRAME - devc->sent_frame_samples);
+	}
 
 	/* Calculate the actual time covered by this run back from the sample
 	 * count, rounded towards zero. This avoids getting stuck on a too-low
@@ -553,12 +554,15 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	devc->sent_frame_samples += samples_todo;
 	devc->spent_us += todo_us;
 
-#if (SAMPLES_PER_FRAME > 0) /* Avoid "comparison >= 0 always true" warning. */
-	if (devc->sent_frame_samples >= SAMPLES_PER_FRAME) {
+	if (devc->limit_frames && devc->sent_frame_samples >= SAMPLES_PER_FRAME) {
 		std_session_send_frame_end(sdi);
 		devc->sent_frame_samples = 0;
+		devc->limit_frames--;
+		if (!devc->limit_frames) {
+			sr_dbg("Requested number of frames reached.");
+			sr_dev_acquisition_stop(sdi);
+		}
 	}
-#endif
 
 	if ((devc->limit_samples > 0 && devc->sent_samples >= devc->limit_samples)
 			|| (limit_us > 0 && devc->spent_us >= limit_us)) {
@@ -577,11 +581,9 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 		}
 		sr_dbg("Requested number of samples reached.");
 		sr_dev_acquisition_stop(sdi);
-	} else {
-#if (SAMPLES_PER_FRAME > 0)
+	} else if (devc->limit_frames) {
 		if (devc->sent_frame_samples == 0)
 			std_session_send_frame_begin(sdi);
-#endif
 	}
 
 	return G_SOURCE_CONTINUE;

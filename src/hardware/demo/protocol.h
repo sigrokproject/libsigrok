@@ -34,7 +34,7 @@
 /* Size of the analog pattern space per channel. */
 #define ANALOG_BUFSIZE			4096
 /* This is a development feature: it starts a new frame every n samples. */
-#define SAMPLES_PER_FRAME		0
+#define SAMPLES_PER_FRAME		1000UL
 
 /* Logic patterns we can generate. */
 enum logic_pattern_type {
@@ -94,6 +94,7 @@ struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t limit_msec;
+	uint64_t limit_frames;
 	uint64_t sent_samples;
 	uint64_t sent_frame_samples; /* Number of samples that were sent for current frame. */
 	int64_t start_us;
