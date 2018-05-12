@@ -124,7 +124,7 @@ static int parse_wav_header(GString *buf, struct context *inc)
 	return SR_OK;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf;
 	int ret;
@@ -142,6 +142,8 @@ static int format_match(GHashTable *metadata)
 	 */
 	if ((ret = parse_wav_header(buf, NULL)) != SR_OK)
 		return ret;
+
+	*confidence = 1;
 
 	return SR_OK;
 }

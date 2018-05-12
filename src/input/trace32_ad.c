@@ -156,13 +156,19 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf;
+	int rc;
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
+	rc = process_header(buf, NULL);
 
-	return process_header(buf, NULL);
+	if (rc != SR_OK)
+		return rc;
+	*confidence = 10;
+
+	return SR_OK;
 }
 
 static int process_header(GString *buf, struct context *inc)

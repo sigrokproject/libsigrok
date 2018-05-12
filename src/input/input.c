@@ -342,7 +342,9 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * 128 bytes is normally enough.
  *
  * If an input module is found, an instance is created into *in.
- * Otherwise, *in contains NULL.
+ * Otherwise, *in contains NULL. When multiple input moduless claim
+ * support for the format, the one with highest confidence takes
+ * precedence. Applications will see at most one input module spec.
  *
  * If an instance is created, it has the given buffer used for scanning
  * already submitted to it, to be processed before more data is sent.
@@ -353,9 +355,10 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  */
 SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 {
-	const struct sr_input_module *imod;
+	const struct sr_input_module *imod, *best_imod;
 	GHashTable *meta;
 	unsigned int m, i;
+	unsigned int conf, best_conf;
 	int ret;
 	uint8_t mitem, avail_metadata[8];
 
@@ -364,7 +367,8 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 	avail_metadata[1] = 0;
 
 	*in = NULL;
-	ret = SR_ERR;
+	best_imod = NULL;
+	best_conf = ~0;
 	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
@@ -388,45 +392,55 @@ SR_API int sr_input_scan_buffer(GString *buf, const struct sr_input **in)
 			continue;
 		}
 		sr_spew("Trying module %s.", imod->id);
-		ret = imod->format_match(meta);
+		ret = imod->format_match(meta, &conf);
 		g_hash_table_destroy(meta);
 		if (ret == SR_ERR_DATA) {
 			/* Module recognized this buffer, but cannot handle it. */
-			break;
+			continue;
 		} else if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
 			/* Can be SR_ERR_NA. */
-			return ret;
+			continue;
 		}
 
 		/* Found a matching module. */
-		sr_spew("Module %s matched.", imod->id);
-		*in = sr_input_new(imod, NULL);
-		g_string_insert_len((*in)->buf, 0, buf->str, buf->len);
-		break;
+		sr_spew("Module %s matched, confidence %u.", imod->id, conf);
+		if (conf >= best_conf)
+			continue;
+		best_imod = imod;
+		best_conf = conf;
 	}
 
-	return ret;
+	if (best_imod) {
+		*in = sr_input_new(best_imod, NULL);
+		g_string_insert_len((*in)->buf, 0, buf->str, buf->len);
+		return SR_OK;
+	}
+
+	return SR_ERR;
 }
 
 /**
  * Try to find an input module that can parse the given file.
  *
  * If an input module is found, an instance is created into *in.
- * Otherwise, *in contains NULL.
+ * Otherwise, *in contains NULL. When multiple input moduless claim
+ * support for the format, the one with highest confidence takes
+ * precedence. Applications will see at most one input module spec.
  *
  */
 SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 {
 	int64_t filesize;
 	FILE *stream;
-	const struct sr_input_module *imod;
+	const struct sr_input_module *imod, *best_imod;
 	GHashTable *meta;
 	GString *header;
 	size_t count;
 	unsigned int midx, i;
+	unsigned int conf, best_conf;
 	int ret;
 	uint8_t avail_metadata[8];
 
@@ -475,8 +489,8 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 	avail_metadata[midx] = 0;
 	/* TODO: MIME type */
 
-	ret = SR_ERR;
-
+	best_imod = NULL;
+	best_conf = ~0;
 	for (i = 0; input_module_list[i]; i++) {
 		imod = input_module_list[i];
 		if (!imod->metadata[0]) {
@@ -490,24 +504,30 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 
 		sr_dbg("Trying module %s.", imod->id);
 
-		ret = imod->format_match(meta);
+		ret = imod->format_match(meta, &conf);
 		if (ret == SR_ERR) {
 			/* Module didn't recognize this buffer. */
 			continue;
 		} else if (ret != SR_OK) {
 			/* Module recognized this buffer, but cannot handle it. */
-			break;
+			continue;
 		}
 		/* Found a matching module. */
-		sr_dbg("Module %s matched.", imod->id);
-
-		*in = sr_input_new(imod, NULL);
-		break;
+		sr_dbg("Module %s matched, confidence %u.", imod->id, conf);
+		if (conf >= best_conf)
+			continue;
+		best_imod = imod;
+		best_conf = conf;
 	}
 	g_hash_table_destroy(meta);
 	g_string_free(header, TRUE);
 
-	return ret;
+	if (best_imod) {
+		*in = sr_input_new(best_imod, NULL);
+		return SR_OK;
+	}
+
+	return SR_ERR;
 }
 
 /**

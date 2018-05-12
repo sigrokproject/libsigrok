@@ -426,6 +426,8 @@ struct sr_input_module {
 	 * Check if this input module can load and parse the specified stream.
 	 *
 	 * @param[in] metadata Metadata the module can use to identify the stream.
+	 * @param[out] confidence "Strength" of the detection.
+	 *   Specialized handlers can take precedence over generic/basic support.
 	 *
 	 * @retval SR_OK This module knows the format.
 	 * @retval SR_ERR_NA There wasn't enough data for this module to
@@ -434,8 +436,15 @@ struct sr_input_module {
 	 *   it. This means the stream is either corrupt, or indicates a
 	 *   feature that the module does not support.
 	 * @retval SR_ERR This module does not know the format.
+	 *
+	 * Lower numeric values of 'confidence' mean that the input module
+	 * stronger believes in its capability to handle this specific format.
+	 * This way, multiple input modules can claim support for a format,
+	 * and the application can pick the best match, or try fallbacks
+	 * in case of errors. This approach also copes with formats that
+	 * are unreliable to detect in the absence of magic signatures.
 	 */
-	int (*format_match) (GHashTable *metadata);
+	int (*format_match) (GHashTable *metadata, unsigned int *confidence);
 
 	/**
 	 * Initialize the input module.

@@ -265,7 +265,7 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 	return status;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf, *tmpbuf;
 	gboolean status;
@@ -283,7 +283,11 @@ static int format_match(GHashTable *metadata)
 	g_free(name);
 	g_free(contents);
 
-	return status ? SR_OK : SR_ERR;
+	if (!status)
+		return SR_ERR;
+	*confidence = 1;
+
+	return SR_OK;
 }
 
 /* Send all accumulated bytes from inc->buffer. */

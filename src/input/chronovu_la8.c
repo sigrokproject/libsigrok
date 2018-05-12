@@ -37,16 +37,23 @@ struct context {
 	uint64_t samplerate;
 };
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	int size;
 
+	/*
+	 * In the absence of a reliable condition like magic strings,
+	 * we can only guess based on the file size. Since this is
+	 * rather weak a condition, signal "little confidence" and
+	 * optionally give precedence to better matches.
+	 */
 	size = GPOINTER_TO_INT(g_hash_table_lookup(metadata,
 			GINT_TO_POINTER(SR_INPUT_META_FILESIZE)));
-	if (size == CHRONOVU_LA8_FILESIZE)
-		return SR_OK;
+	if (size != CHRONOVU_LA8_FILESIZE)
+		return SR_ERR;
+	*confidence = 100;
 
-	return SR_ERR;
+	return SR_OK;
 }
 
 static int init(struct sr_input *in, GHashTable *options)
