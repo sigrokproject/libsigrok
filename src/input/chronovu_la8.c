@@ -39,7 +39,7 @@ struct context {
 
 static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
-	int size;
+	uint64_t size;
 
 	/*
 	 * In the absence of a reliable condition like magic strings,
@@ -47,7 +47,7 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 	 * rather weak a condition, signal "little confidence" and
 	 * optionally give precedence to better matches.
 	 */
-	size = GPOINTER_TO_INT(g_hash_table_lookup(metadata,
+	size = GPOINTER_TO_SIZE(g_hash_table_lookup(metadata,
 			GINT_TO_POINTER(SR_INPUT_META_FILESIZE)));
 	if (size != CHRONOVU_LA8_FILESIZE)
 		return SR_ERR;
