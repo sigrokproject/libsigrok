@@ -29,6 +29,8 @@
 #define LOG_PREFIX "input"
 /** @endcond */
 
+#define CHUNK_SIZE	(4 * 1024 * 1024)
+
 /**
  * @file
  *
@@ -338,8 +340,10 @@ static gboolean check_required_metadata(const uint8_t *metadata, uint8_t *avail)
  * Try to find an input module that can parse the given buffer.
  *
  * The buffer must contain enough of the beginning of the file for
- * the input modules to find a match. This is format-dependent, but
- * 128 bytes is normally enough.
+ * the input modules to find a match. This is format-dependent. When
+ * magic strings get checked, 128 bytes normally could be enough. Note
+ * that some formats try to parse larger header sections, and benefit
+ * from seeing a larger scope.
  *
  * If an input module is found, an instance is created into *in.
  * Otherwise, *in contains NULL. When multiple input moduless claim
@@ -462,11 +466,9 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 		fclose(stream);
 		return SR_ERR;
 	}
-	/* This actually allocates 256 bytes to allow for NUL termination. */
-	header = g_string_sized_new(255);
+	header = g_string_sized_new(CHUNK_SIZE);
 	count = fread(header->str, 1, header->allocated_len - 1, stream);
-
-	if (count != header->allocated_len - 1 && ferror(stream)) {
+	if (count < 1 || ferror(stream)) {
 		sr_err("Failed to read %s: %s", filename, g_strerror(errno));
 		fclose(stream);
 		g_string_free(header, TRUE);
