@@ -62,12 +62,13 @@
  */
 #define DEFAULT_SAMPLERATE 200
 
-enum {
-	AD_FORMAT_BINHDR = 1, /* Binary header, binary data, textual setup info */
-	AD_FORMAT_TXTHDR      /* Textual header, binary data */
+enum ad_format {
+	AD_FORMAT_UNKNOWN,
+	AD_FORMAT_BINHDR,	/* Binary header, binary data, textual setup info */
+	AD_FORMAT_TXTHDR,	/* Textual header, binary data */
 };
 
-enum {
+enum ad_device {
 	AD_DEVICE_PI = 1, /* Data recorded by LA-7940 PowerIntegrator or */
                           /* LA-394x PowerIntegrator II. */
 	AD_DEVICE_IPROBE  /* Data recorded by LA-769x PowerTrace II IProbe. */
@@ -75,12 +76,12 @@ enum {
 	/* Missing file format info for LA-4530 uTrace analog probe */
 };
 
-enum {
+enum ad_mode {
 	AD_MODE_250MHZ = 0,
 	AD_MODE_500MHZ = 1
 };
 
-enum {
+enum ad_compr {
 	AD_COMPR_NONE  = 0, /* File created with /NOCOMPRESS */
 	AD_COMPR_QCOMP = 6, /* File created with /COMPRESS or /QUICKCOMPRESS */
 };
@@ -88,7 +89,10 @@ enum {
 struct context {
 	gboolean meta_sent;
 	gboolean header_read, records_read, trigger_sent;
-	char format, device, record_mode, compression;
+	enum ad_format format;
+	enum ad_device device;
+	enum ad_mode record_mode;
+	enum ad_compr compression;
 	char pod_status[MAX_POD_COUNT];
 	struct sr_channel *channels[MAX_POD_COUNT][17]; /* 16 + CLK */
 	uint64_t trigger_timestamp;
@@ -203,7 +207,9 @@ static int process_header(GString *buf, struct context *inc)
 	char *format_name, *format_name_sig;
 	char *p;
 	int has_trace32;
-	int record_size, device_id;
+	size_t record_size;
+	enum ad_device device_id;
+	enum ad_format format;
 
 	/*
 	 * 00-31 (0x00-1F) file format name
@@ -251,14 +257,13 @@ static int process_header(GString *buf, struct context *inc)
 	has_trace32 = g_strcmp0(format_name_sig, TRACE32) == 0;
 	g_free(format_name_sig);
 
+	format = AD_FORMAT_UNKNOWN;
 	if (has_trace32) {
 		/* Literal "trace32" leader, binary header follows. */
-		if (inc)
-			inc->format = AD_FORMAT_BINHDR;
+		format = AD_FORMAT_BINHDR;
 	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == SPACE)) {
 		/* Digit and SPACE leader, currently unsupported text header. */
-		if (inc)
-			inc->format = AD_FORMAT_TXTHDR;
+		format = AD_FORMAT_TXTHDR;
 		g_free(format_name);
 		if (inc)
 			sr_err("This format isn't implemented yet, aborting.");
@@ -270,9 +275,12 @@ static int process_header(GString *buf, struct context *inc)
 			sr_err("Don't know this file format, aborting.");
 		return SR_ERR;
 	}
+	if (!format)
+		return SR_ERR;
 
 	p = printable_name(format_name);
-	sr_dbg("File says it's \"%s\"", p);
+	if (inc)
+		sr_dbg("File says it's \"%s\" -> format type %u.", p, format);
 	g_free(p);
 
 	record_size = R8(buf->str + 56);
@@ -288,8 +296,9 @@ static int process_header(GString *buf, struct context *inc)
 
 	if (!device_id) {
 		g_free(format_name);
-		sr_err("Don't know how to handle this file with record size %d.",
-			record_size);
+		if (inc)
+			sr_err("Cannot handle file with record size %zu.",
+				record_size);
 		return SR_ERR;
 	}
 
@@ -299,6 +308,7 @@ static int process_header(GString *buf, struct context *inc)
 	if (!inc)
 		return SR_OK;
 
+	inc->format       = format;
 	inc->device       = device_id;
 	inc->trigger_timestamp = RL64(buf->str + 32);
 	inc->compression  = R8(buf->str + 48); /* Maps to the enum. */
@@ -314,7 +324,7 @@ static int process_header(GString *buf, struct context *inc)
 		inc->last_record);
 
 	/* Check if we can work with this compression. */
-	if (inc->compression != AD_COMPR_NONE) {
+	if (inc->compression) {
 		sr_err("File uses unsupported compression (0x%02X), can't continue.",
 			inc->compression);
 		return SR_ERR;
