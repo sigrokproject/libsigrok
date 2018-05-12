@@ -49,6 +49,10 @@
 #define MAX_POD_COUNT     12
 #define HEADER_SIZE       80
 
+#define SPACE             ' '
+#define CTRLZ             '\x1a'
+#define TRACE32           "trace32"
+
 #define TIMESTAMP_RESOLUTION ((double)0.000000000078125) /* 0.078125 ns */
 
 /*
@@ -198,7 +202,8 @@ static int process_header(GString *buf, struct context *inc)
 {
 	char *format_name, *format_name_sig;
 	char *p;
-	int i, record_size, device_id;
+	int has_trace32;
+	int record_size, device_id;
 
 	/*
 	 * 00-31 (0x00-1F) file format name
@@ -227,33 +232,39 @@ static int process_header(GString *buf, struct context *inc)
 	 * deal with unexpected or incorrect input data.
 	 */
 
+	/*
+	 * Get up to the first 32 bytes of the file content. File format
+	 * names end on SPACE or CTRL-Z (or NUL). Trim trailing SPACE
+	 * before further processing.
+	 */
 	format_name = g_strndup(buf->str, 32);
+	p = strchr(format_name, CTRLZ);
+	if (p)
+		*p = '\0';
+	g_strchomp(format_name);
 
-	/* File format name ends on 0x20/0x1A, let's remove both. */
-	for (i = 1; i < 31; i++) {
-		if (format_name[i] == 0x1A) {
-			format_name[i - 1] = 0;
-			format_name[i] = 0;
-		}
-	}
-	g_strchomp(format_name); /* This is for additional padding spaces. */
+	/*
+	 * File format names either start with the "trace32" literal,
+	 * or with a digit and SPACE.
+	 */
+	format_name_sig = g_strndup(format_name, strlen(TRACE32));
+	has_trace32 = g_strcmp0(format_name_sig, TRACE32) == 0;
+	g_free(format_name_sig);
 
-	format_name_sig = g_strndup(format_name, 5);
-
-	/* Desired file formats either start with digit+space or "trace32". */
-	if (g_strcmp0(format_name_sig, "trace32")) {
+	if (has_trace32) {
+		/* Literal "trace32" leader, binary header follows. */
 		if (inc)
 			inc->format = AD_FORMAT_BINHDR;
-	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == 0x20)) {
+	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == SPACE)) {
+		/* Digit and SPACE leader, currently unsupported text header. */
 		if (inc)
 			inc->format = AD_FORMAT_TXTHDR;
-		g_free(format_name_sig);
 		g_free(format_name);
 		if (inc)
 			sr_err("This format isn't implemented yet, aborting.");
 		return SR_ERR;
 	} else {
-		g_free(format_name_sig);
+		/* Unknown kind of format name. Unsupported. */
 		g_free(format_name);
 		if (inc)
 			sr_err("Don't know this file format, aborting.");
@@ -276,14 +287,12 @@ static int process_header(GString *buf, struct context *inc)
 	}
 
 	if (!device_id) {
-		g_free(format_name_sig);
 		g_free(format_name);
 		sr_err("Don't know how to handle this file with record size %d.",
 			record_size);
 		return SR_ERR;
 	}
 
-	g_free(format_name_sig);
 	g_free(format_name);
 
 	/* Stop processing the header if we just want to identify the file. */
