@@ -98,6 +98,29 @@ struct context {
 static int process_header(GString *buf, struct context *inc);
 static void create_channels(struct sr_input *in);
 
+/* Transform non-printable chars to '\xNN' presentation. */
+static char *printable_name(const char *name)
+{
+	size_t l, i;
+	char *s, *p;
+
+	if (!name)
+		return NULL;
+	l = strlen(name);
+	s = g_malloc0(l * strlen("\\x00") + 1);
+	for (p = s, i = 0; i < l; i++) {
+		if (g_ascii_isprint(name[i])) {
+			*p++ = name[i];
+		} else {
+			snprintf(p, 5, "\\x%05x", name[i]);
+			p += strlen("\\x00");
+		}
+	}
+	*p = '\0';
+
+	return s;
+}
+
 static char get_pod_name_from_id(int id)
 {
 	switch (id) {
@@ -174,6 +197,7 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 static int process_header(GString *buf, struct context *inc)
 {
 	char *format_name, *format_name_sig;
+	char *p;
 	int i, record_size, device_id;
 
 	/*
@@ -195,7 +219,13 @@ static int process_header(GString *buf, struct context *inc)
 	 * 78-79 (0x4E-4F) ??
 	 */
 
-	/* Note: inc is off-limits until we check whether it's a valid pointer. */
+	/*
+	 * Note: The routine is called from different contexts. Either
+	 * to auto-detect the file format (format_match(), 'inc' is NULL),
+	 * or to process the data during acquisition (receive(), 'inc'
+	 * is a valid pointer). This header parse routine shall gracefully
+	 * deal with unexpected or incorrect input data.
+	 */
 
 	format_name = g_strndup(buf->str, 32);
 
@@ -221,20 +251,18 @@ static int process_header(GString *buf, struct context *inc)
 		g_free(format_name);
 		if (inc)
 			sr_err("This format isn't implemented yet, aborting.");
-		else
-			sr_dbg("Not a supported trace32 input file.");
 		return SR_ERR;
 	} else {
 		g_free(format_name_sig);
 		g_free(format_name);
 		if (inc)
 			sr_err("Don't know this file format, aborting.");
-		else
-			sr_dbg("Not a trace32 input file.");
 		return SR_ERR;
 	}
 
-	sr_dbg("File says it's \"%s\"", format_name);
+	p = printable_name(format_name);
+	sr_dbg("File says it's \"%s\"", p);
+	g_free(p);
 
 	record_size = R8(buf->str + 56);
 	device_id = 0;
