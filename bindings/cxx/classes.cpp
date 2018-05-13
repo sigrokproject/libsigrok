@@ -177,6 +177,32 @@ map<string, shared_ptr<InputFormat>> Context::input_formats()
 	return result;
 }
 
+shared_ptr<InputFormat> Context::input_format_match(string filename)
+{
+	const struct sr_input *input;
+	const struct sr_input_module *imod;
+	int rc;
+
+	/*
+	 * Have the input module looked up for the specified file.
+	 * Failed lookup (or "successful lookup" with an empty result)
+	 * are non-fatal. Free the sr_input that was created by the
+	 * lookup routine, but grab the input module kind and return an
+	 * InputFormat instance to the application. This works because
+	 * the application passes a filename, no input data got buffered
+	 * in the sr_input that we release.
+	 */
+	input = NULL;
+	rc = sr_input_scan_file(filename.c_str(), &input);
+	if (rc != SR_OK)
+		return nullptr;
+	if (!input)
+		return nullptr;
+	imod = sr_input_module_get(input);
+	sr_input_free(input);
+	return shared_ptr<InputFormat>{new InputFormat{imod}, default_delete<InputFormat>{}};
+}
+
 map<string, shared_ptr<OutputFormat>> Context::output_formats()
 {
 	map<string, shared_ptr<OutputFormat>> result;

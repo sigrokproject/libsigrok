@@ -252,6 +252,8 @@ public:
 	map<string, shared_ptr<Driver> > drivers();
 	/** Available input formats, indexed by name. */
 	map<string, shared_ptr<InputFormat> > input_formats();
+	/** Lookup the responsible input module for an input file. */
+	shared_ptr<InputFormat> input_format_match(string filename);
 	/** Available output formats, indexed by name. */
 	map<string, shared_ptr<OutputFormat> > output_formats();
 	/** Current log level. */
