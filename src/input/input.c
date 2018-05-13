@@ -533,6 +533,22 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
 }
 
 /**
+ * Return the input instance's module "class". This can be used to find out
+ * which input module handles a specific input file. This is especially
+ * useful when an application did not create the input stream by specifying
+ * an input module, but instead some shortcut or convenience wrapper did.
+ *
+ * @since 0.6.0
+ */
+SR_API const struct sr_input_module *sr_input_module_get(const struct sr_input *in)
+{
+	if (!in)
+		return NULL;
+
+	return in->module;
+}
+
+/**
  * Return the input instance's (virtual) device instance. This can be
  * used to find out the number of channels and other information.
  *
