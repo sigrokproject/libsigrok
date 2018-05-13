@@ -119,6 +119,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->cur_samplerate = SR_KHZ(200);
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
+	devc->all_logic_channels_mask = 1UL << 0;
+	devc->all_logic_channels_mask <<= devc->num_logic_channels;
+	devc->all_logic_channels_mask--;
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
 
