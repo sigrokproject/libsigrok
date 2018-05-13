@@ -36,34 +36,8 @@
 /* This is a development feature: it starts a new frame every n samples. */
 #define SAMPLES_PER_FRAME		0
 
-struct dev_context {
-	uint64_t cur_samplerate;
-	uint64_t limit_samples;
-	uint64_t limit_msec;
-	uint64_t sent_samples;
-	uint64_t sent_frame_samples; /* Number of samples that were sent for current frame. */
-	int64_t start_us;
-	int64_t spent_us;
-	uint64_t step;
-	/* Logic */
-	int32_t num_logic_channels;
-	unsigned int logic_unitsize;
-	/* There is only ever one logic channel group, so its pattern goes here. */
-	uint8_t logic_pattern;
-	unsigned char logic_data[LOGIC_BUFSIZE];
-	/* Analog */
-	int32_t num_analog_channels;
-	GHashTable *ch_ag;
-	gboolean avg; /* True if averaging is enabled */
-	uint64_t avg_samples;
-	size_t enabled_logic_channels;
-	size_t enabled_analog_channels;
-	size_t first_partial_logic_index;
-	uint8_t first_partial_logic_mask;
-};
-
 /* Logic patterns we can generate. */
-enum {
+enum logic_pattern_type {
 	/**
 	 * Spells "sigrok" across 8 channels using '0's (with '1's as
 	 * "background") when displayed using the 'bits' output format.
@@ -106,11 +80,37 @@ enum {
 };
 
 /* Analog patterns we can generate. */
-enum {
+enum analog_pattern_type {
 	PATTERN_SQUARE,
 	PATTERN_SINE,
 	PATTERN_TRIANGLE,
 	PATTERN_SAWTOOTH,
+};
+
+struct dev_context {
+	uint64_t cur_samplerate;
+	uint64_t limit_samples;
+	uint64_t limit_msec;
+	uint64_t sent_samples;
+	uint64_t sent_frame_samples; /* Number of samples that were sent for current frame. */
+	int64_t start_us;
+	int64_t spent_us;
+	uint64_t step;
+	/* Logic */
+	int32_t num_logic_channels;
+	size_t logic_unitsize;
+	/* There is only ever one logic channel group, so its pattern goes here. */
+	enum logic_pattern_type logic_pattern;
+	uint8_t logic_data[LOGIC_BUFSIZE];
+	/* Analog */
+	int32_t num_analog_channels;
+	GHashTable *ch_ag;
+	gboolean avg; /* True if averaging is enabled */
+	uint64_t avg_samples;
+	size_t enabled_logic_channels;
+	size_t enabled_analog_channels;
+	size_t first_partial_logic_index;
+	uint8_t first_partial_logic_mask;
 };
 
 static const char *analog_pattern_str[] = {
@@ -122,7 +122,7 @@ static const char *analog_pattern_str[] = {
 
 struct analog_gen {
 	struct sr_channel *ch;
-	int pattern;
+	enum analog_pattern_type pattern;
 	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];
 	unsigned int num_samples;
@@ -131,7 +131,7 @@ struct analog_gen {
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	float avg_val; /* Average value */
-	unsigned num_avgs; /* Number of samples averaged */
+	unsigned int num_avgs; /* Number of samples averaged */
 };
 
 SR_PRIV void demo_generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate);
