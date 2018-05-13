@@ -44,6 +44,7 @@ static const char *logic_pattern_str[] = {
 	"all-low",
 	"all-high",
 	"squid",
+	"graycode",
 };
 
 static const uint32_t scanopts[] = {

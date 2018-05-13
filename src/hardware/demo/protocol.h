@@ -77,6 +77,9 @@ enum logic_pattern_type {
 	 * something that can get recognized.
 	 */
 	PATTERN_SQUID,
+
+	/** Gray encoded data, like rotary encoder signals. */
+	PATTERN_GRAYCODE,
 };
 
 /* Analog patterns we can generate. */

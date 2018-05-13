@@ -245,6 +245,19 @@ SR_PRIV void demo_generate_analog_pattern(struct analog_gen *ag, uint64_t sample
 	}
 }
 
+static uint64_t encode_number_to_gray(uint64_t nr)
+{
+	return nr ^ (nr >> 1);
+}
+
+static void set_logic_data(uint64_t bits, uint8_t *data, size_t len)
+{
+	while (len--) {
+		*data++ = bits & 0xff;
+		bits >>= 8;
+	}
+}
+
 static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 {
 	struct dev_context *devc;
@@ -253,6 +266,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	uint8_t *sample;
 	const uint8_t *image_col;
 	size_t col_count, col_height;
+	uint64_t gray;
 
 	devc = sdi->priv;
 
@@ -324,6 +338,15 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 			}
 			devc->step++;
 			devc->step %= col_count;
+		}
+		break;
+	case PATTERN_GRAYCODE:
+		for (i = 0; i < size; i += devc->logic_unitsize) {
+			devc->step++;
+			devc->step &= devc->all_logic_channels_mask;
+			gray = encode_number_to_gray(devc->step);
+			gray &= devc->all_logic_channels_mask;
+			set_logic_data(gray, &devc->logic_data[i], devc->logic_unitsize);
 		}
 		break;
 	default:
