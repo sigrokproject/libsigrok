@@ -30,11 +30,27 @@
 #define DEFAULT_NUM_CHANNELS    8
 #define DEFAULT_SAMPLERATE      SR_MHZ(100)
 #define CHUNK_SIZE              (4 * 1024 * 1024)
-#define CHRONOVU_LA8_FILESIZE   ((8 * 1024 * 1024) + 5)
+
+/*
+ * File layout:
+ * - Fixed size 8MiB data part at offset 0.
+ *   - Either one byte per sample for LA8.
+ *   - Or two bytes per sample for LA16, in little endian format.
+ * - Five byte "header" at offset 8MiB.
+ *   - One "clock divider" byte. The byte value is the divider factor
+ *     minus 1. Value 0xff is invalid. Base clock is 100MHz for LA8, or
+ *     200MHz for LA16.
+ *   - Four bytes for the trigger position. This 32bit value is the
+ *     sample number in little endian format, or 0 when unused.
+ */
+#define CHRONOVU_LA8_DATASIZE   (8 * 1024 * 1024)
+#define CHRONOVU_LA8_HDRSIZE    (sizeof(uint8_t) + sizeof(uint32_t))
+#define CHRONOVU_LA8_FILESIZE   (CHRONOVU_LA8_DATASIZE + CHRONOVU_LA8_HDRSIZE)
 
 struct context {
 	gboolean started;
 	uint64_t samplerate;
+	uint64_t samples_remain;
 };
 
 static int format_match(GHashTable *metadata, unsigned int *confidence)
@@ -89,9 +105,12 @@ static int process_buffer(struct sr_input *in)
 	struct sr_config *src;
 	struct context *inc;
 	gsize chunk_size, i;
-	int chunk;
+	gsize chunk;
+	uint16_t unitsize;
 
 	inc = in->priv;
+	unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
+
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi);
 
@@ -105,21 +124,28 @@ static int process_buffer(struct sr_input *in)
 			sr_config_free(src);
 		}
 
+		inc->samples_remain = CHRONOVU_LA8_DATASIZE;
+		inc->samples_remain /= unitsize;
+
 		inc->started = TRUE;
 	}
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = (g_slist_length(in->sdi->channels) + 7) / 8;
+	logic.unitsize = unitsize;
 
-	/* Cut off at multiple of unitsize. */
+	/* Cut off at multiple of unitsize. Avoid sending the "header". */
 	chunk_size = in->buf->len / logic.unitsize * logic.unitsize;
+	chunk_size = MIN(chunk_size, inc->samples_remain * unitsize);
 
 	for (i = 0; i < chunk_size; i += chunk) {
 		logic.data = in->buf->str + i;
 		chunk = MIN(CHUNK_SIZE, chunk_size - i);
-		logic.length = chunk;
-		sr_session_send(in->sdi, &packet);
+		if (chunk) {
+			logic.length = chunk;
+			sr_session_send(in->sdi, &packet);
+			inc->samples_remain -= chunk / unitsize;
+		}
 	}
 	g_string_erase(in->buf, 0, chunk_size);
 
