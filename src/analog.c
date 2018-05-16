@@ -174,7 +174,6 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
-	float offset;
 	unsigned int b, i, count;
 	gboolean bigendian;
 
@@ -287,7 +286,7 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 			if (analog->encoding->scale.p != 1
 					|| analog->encoding->scale.q != 1)
 				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
-			offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
+			float offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
 			outbuf[i] += offset;
 		}
 	}
