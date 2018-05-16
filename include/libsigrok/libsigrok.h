@@ -650,11 +650,11 @@ struct sr_key_info {
 /** Configuration capabilities. */
 enum sr_configcap {
 	/** Value can be read. */
-	SR_CONF_GET = (1 << 31),
+	SR_CONF_GET = (1UL << 31),
 	/** Value can be written. */
-	SR_CONF_SET = (1 << 30),
+	SR_CONF_SET = (1UL << 30),
 	/** Possible values can be enumerated. */
-	SR_CONF_LIST = (1 << 29),
+	SR_CONF_LIST = (1UL << 29),
 };
 
 /** Configuration keys */
