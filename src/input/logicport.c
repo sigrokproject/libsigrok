@@ -141,15 +141,8 @@ static struct signal_group_desc *alloc_signal_group(const char *name)
 	struct signal_group_desc *desc;
 
 	desc = g_malloc0(sizeof(*desc));
-	if (!desc)
-		return NULL;
-	if (name) {
+	if (name)
 		desc->name = g_strdup(name);
-		if (!desc->name) {
-			g_free(desc);
-			return NULL;
-		}
-	}
 
 	return desc;
 }
@@ -167,15 +160,8 @@ struct sr_channel_group *sr_channel_group_new(const char *name, void *priv)
 	struct sr_channel_group *cg;
 
 	cg = g_malloc0(sizeof(*cg));
-	if (!cg)
-		return NULL;
-	if (name && *name) {
+	if (name && *name)
 		cg->name = g_strdup(name);
-		if (!cg->name) {
-			g_free(cg);
-			return NULL;
-		}
-	}
 	cg->priv = priv;
 
 	return cg;
@@ -1068,10 +1054,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	(void)options;
 
 	in->sdi = g_malloc0(sizeof(*in->sdi));
-
 	inc = g_malloc0(sizeof(*inc));
-	if (!inc)
-		return SR_ERR_MALLOC;
 	in->priv = inc;
 
 	return SR_OK;
