@@ -1022,7 +1022,7 @@ static int prepare_session_feed(struct sr_input *in)
 	return SR_OK;
 }
 
-static int format_match(GHashTable *metadata)
+static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	GString *buf, *tmpbuf;
 	int rc;
@@ -1041,6 +1041,7 @@ static int format_match(GHashTable *metadata)
 	if (rc == SR_OK && version && build) {
 		sr_dbg("Looks like a LogicProbe project, version %s, build %s.",
 			version, build);
+		*confidence = 1;
 	}
 	g_string_free(tmpbuf, TRUE);
 
