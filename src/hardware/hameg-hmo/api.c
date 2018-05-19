@@ -529,8 +529,10 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 				   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_CHAN_STATE],
 				   ch->index + 1, ch->enabled);
 
-			if (sr_scpi_send(scpi, command) != SR_OK)
+			if (sr_scpi_send(scpi, command) != SR_OK) {
+				g_free(pod_enabled);
 				return SR_ERR;
+			}
 			state->analog_channels[ch->index].state = ch->enabled;
 			setup_changed = TRUE;
 			break;
@@ -548,8 +550,10 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
 				   ch->index, ch->enabled);
 
-			if (sr_scpi_send(scpi, command) != SR_OK)
+			if (sr_scpi_send(scpi, command) != SR_OK) {
+				g_free(pod_enabled);
 				return SR_ERR;
+			}
 
 			state->digital_channels[ch->index] = ch->enabled;
 			setup_changed = TRUE;
