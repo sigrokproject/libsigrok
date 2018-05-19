@@ -676,8 +676,10 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	} else {
 		/* Update sample rate if needed. */
 		if (state->sample_rate == 0)
-			if (lecroy_xstream_update_sample_rate(sdi, analog.num_samples) != SR_OK)
+			if (lecroy_xstream_update_sample_rate(sdi, analog.num_samples) != SR_OK) {
+				g_free(analog.data);
 				return SR_ERR;
+			}
 	}
 
 	/*
