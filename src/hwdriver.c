@@ -635,7 +635,8 @@ SR_PRIV int sr_dev_acquisition_stop(struct sr_dev_inst *sdi)
 }
 
 static void log_key(const struct sr_dev_inst *sdi,
-	const struct sr_channel_group *cg, uint32_t key, int op, GVariant *data)
+	const struct sr_channel_group *cg, uint32_t key, unsigned int op,
+	GVariant *data)
 {
 	const char *opstr;
 	const struct sr_key_info *srci;
@@ -657,7 +658,7 @@ static void log_key(const struct sr_dev_inst *sdi,
 
 static int check_key(const struct sr_dev_driver *driver,
 		const struct sr_dev_inst *sdi, const struct sr_channel_group *cg,
-		uint32_t key, int op, GVariant *data)
+		uint32_t key, unsigned int op, GVariant *data)
 {
 	const struct sr_key_info *srci;
 	gsize num_opts, i;
