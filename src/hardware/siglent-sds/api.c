@@ -531,7 +531,7 @@ static int config_set(uint32_t key, GVariant *data,
 	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
-	char *cmd = "";
+	char *cmd = NULL;
 	char cmd4[4];
 
 	devc = sdi->priv;
