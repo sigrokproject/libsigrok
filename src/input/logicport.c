@@ -282,7 +282,7 @@ static int process_signal_group(struct context *inc, char **args)
 {
 	char *name, *wires;
 	struct signal_group_desc *desc;
-	uint64_t bit_tmpl, bit_mask;
+	uint64_t bit_mask;
 	char *p, *endp;
 	size_t idx;
 
@@ -328,16 +328,7 @@ static int process_signal_group(struct context *inc, char **args)
 		return SR_ERR_MALLOC;
 	inc->signal_groups = g_slist_append(inc->signal_groups, desc);
 
-	/*
-	 * Determine the bit mask of the group's signals' indices.
-	 *
-	 * Implementation note: Use a "template" for a single bit, to
-	 * avoid portability issues with upper bits. Without this 64bit
-	 * intermediate variable, I would not know how to phrase e.g.
-	 * (1ULL << 33) in portable, robust, and easy to maintain ways
-	 * on all platforms that are supported by sigrok.
-	 */
-	bit_tmpl = 1UL << 0;
+	/* Determine the bit mask of the group's signals' indices. */
 	bit_mask = 0;
 	p = wires;
 	while (p && *p) {
@@ -352,7 +343,7 @@ static int process_signal_group(struct context *inc, char **args)
 			p++;
 		if (idx >= MAX_CHANNELS)
 			return SR_ERR_DATA;
-		bit_mask = bit_tmpl << idx;
+		bit_mask = UINT64_C(1) << idx;
 		if (inc->wires_grouped & bit_mask) {
 			sr_warn("Not adding signal at index %zu to group %s (multiple assignments)",
 				idx, name);
@@ -415,7 +406,7 @@ static int process_enabled_channels(struct context *inc, char **flags)
 	if (count != inc->channel_count)
 		return SR_ERR_DATA;
 	bits = 0;
-	mask = 1UL << 0;
+	mask = UINT64_C(1);
 	for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 		if (strcmp(flags[idx], "True") == 0)
 			bits |= mask;
@@ -438,7 +429,7 @@ static int process_inverted_channels(struct context *inc, char **flags)
 	if (count != inc->channel_count)
 		return SR_ERR_DATA;
 	bits = 0;
-	mask = 1UL << 0;
+	mask = UINT64_C(1);
 	for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 		if (strcmp(flags[idx], "True") == 0)
 			bits |= mask;
@@ -466,7 +457,7 @@ static int process_sample_line(struct context *inc, char **values)
 		return SR_ERR_DATA;
 	entry = &inc->sample_data_queue[inc->sample_lines_read];
 	entry->bits = 0;
-	mask = 1UL << 0;
+	mask = UINT64_C(1);
 	for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 		if (strcmp(values[idx], "1") == 0)
 			entry->bits |= mask;
@@ -792,7 +783,7 @@ static int create_channels_groups_buffer(struct sr_input *in)
 
 	inc = in->priv;
 
-	mask = 1UL << 0;
+	mask = UINT64_C(1);
 	for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 		name = inc->signal_names[idx];
 		if (!name || !*name)
@@ -812,7 +803,7 @@ static int create_channels_groups_buffer(struct sr_input *in)
 		if (!cg)
 			return SR_ERR_MALLOC;
 		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
-		mask = 1UL << 0;
+		mask = UINT64_C(1);
 		for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 			if (!(desc->mask & mask))
 				continue;
@@ -987,7 +978,7 @@ static int prepare_session_feed(struct sr_input *in)
 	 * - If there are any signal groups, put all signals into
 	 *   an anonymous group that are not part of another group.
 	 */
-	inc->wires_all_mask = 1UL << 0;
+	inc->wires_all_mask = UINT64_C(1);
 	inc->wires_all_mask <<= inc->channel_count;
 	inc->wires_all_mask--;
 	sr_dbg("all wires mask: 0x%" PRIx64 ".", inc->wires_all_mask);
