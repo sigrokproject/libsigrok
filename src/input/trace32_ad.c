@@ -120,7 +120,7 @@ static char *printable_name(const char *name)
 		if (g_ascii_isprint(name[i])) {
 			*p++ = name[i];
 		} else {
-			snprintf(p, 5, "\\x%05x", name[i]);
+			snprintf(p, 5, "\\x%02x", name[i]);
 			p += strlen("\\x00");
 		}
 	}
