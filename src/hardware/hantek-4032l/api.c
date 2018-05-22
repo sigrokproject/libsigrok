@@ -39,7 +39,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
-	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const int32_t trigger_matches[] = {
@@ -210,13 +210,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* Initialize command packet. */
 		devc->cmd_pkt.magic = H4032L_CMD_PKT_MAGIC;
-		devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(2.5);
-		devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(2.5);
 		devc->cmd_pkt.sample_size = 16384;
 
 		devc->status = H4032L_STATUS_IDLE;
 
 		devc->capture_ratio = 5;
+		devc->cur_threshold = 2.5;
 
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
@@ -298,6 +297,9 @@ static int config_get(uint32_t key, GVariant **data,
 	(void)cg;
 
 	switch (key) {
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(samplerates_hw[devc->cmd_pkt.sample_rate]);
 		break;
@@ -364,10 +366,9 @@ static int config_set(uint32_t key, GVariant *data,
 			break;
 		}
 	case SR_CONF_VOLTAGE_THRESHOLD: {
-			double d1, d2;
-			g_variant_get(data, "(dd)", &d1, &d2);
-			devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(d1);
-			devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(d2);
+			double low, high;
+			g_variant_get(data, "(dd)", &low, &high);
+			devc->cur_threshold = (low+high)/2.0;
 			break;
 		}
 	default:
@@ -391,7 +392,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_tuple_double(2.5, 2.5);
+		*data = std_gvar_min_max_step_thresholds(-6.0, 6.0, 0.1);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(H4043L_NUM_SAMPLES_MIN, H4032L_NUM_SAMPLES_MAX);
@@ -419,6 +420,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Calculate packet ratio. */
 	cmd_pkt->pre_trigger_size = (cmd_pkt->sample_size * devc->capture_ratio) / 100;
 	devc->trigger_pos = cmd_pkt->pre_trigger_size;
+
+	/* Set pwm channel values. */
+	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold);
+	devc->cmd_pkt.pwm_b = devc->cmd_pkt.pwm_a;
 
 	cmd_pkt->trig_flags.enable_trigger1 = 0;
 	cmd_pkt->trig_flags.enable_trigger2 = 0;
