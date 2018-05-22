@@ -39,6 +39,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
+};
+
+static const uint32_t devopts_cg[] = {
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -215,7 +218,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->status = H4032L_STATUS_IDLE;
 
 		devc->capture_ratio = 5;
-		devc->cur_threshold = 2.5;
+		devc->cur_threshold[0] = 2.5;
+		devc->cur_threshold[1] = 2.5;
 
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
@@ -294,11 +298,18 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
 
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_tuple_double(devc->cur_threshold, devc->cur_threshold);
+		if (cg) {
+			if (!strcmp(cg->name, "A"))
+				*data = std_gvar_tuple_double(
+					devc->cur_threshold[0], devc->cur_threshold[0]);
+			else if (!strcmp(cg->name, "B"))
+				*data = std_gvar_tuple_double(
+					devc->cur_threshold[1], devc->cur_threshold[1]);
+			else
+				return SR_ERR_CHANNEL_GROUP;
+		}
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(samplerates_hw[devc->cmd_pkt.sample_rate]);
@@ -326,8 +337,6 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
-
-	(void)cg;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE: {
@@ -368,7 +377,15 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_THRESHOLD: {
 			double low, high;
 			g_variant_get(data, "(dd)", &low, &high);
-			devc->cur_threshold = (low+high)/2.0;
+			double threshold = (low + high) / 2.0;
+			if (cg) {
+				if (!strcmp(cg->name, "A"))
+					devc->cur_threshold[0] = threshold;
+				else if (!strcmp(cg->name, "B"))
+					devc->cur_threshold[1] = threshold;
+				else
+					return SR_ERR_CHANNEL_GROUP;
+			}
 			break;
 		}
 	default:
@@ -384,6 +401,10 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
+		if (cg) {
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
+			break;
+		}
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
@@ -422,8 +443,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->trigger_pos = cmd_pkt->pre_trigger_size;
 
 	/* Set pwm channel values. */
-	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold);
-	devc->cmd_pkt.pwm_b = devc->cmd_pkt.pwm_a;
+	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold[0]);
+	devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(devc->cur_threshold[1]);
 
 	cmd_pkt->trig_flags.enable_trigger1 = 0;
 	cmd_pkt->trig_flags.enable_trigger2 = 0;

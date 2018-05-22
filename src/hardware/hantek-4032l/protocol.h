@@ -136,7 +136,7 @@ struct dev_context {
 	uint8_t buffer[512];
 	uint64_t capture_ratio;
 	uint32_t trigger_pos;
-	double cur_threshold;
+	double cur_threshold[2];
 	uint32_t fpga_version;
 };
 
