@@ -171,6 +171,7 @@ enum series {
 	DS2000A,
 	DSO1000,
 	DS1000Z,
+	DS4000,
 };
 
 /* short name, full name */
@@ -195,6 +196,8 @@ static const struct rigol_ds_series supported_series[] = {
 		{50, 1}, {2, 1000}, 12, 600, 20480},
 	[DS1000Z] = {VENDOR(RIGOL), "DS1000Z", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {1, 1000}, 12, 1200, 12000000},
+	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V4, FORMAT_IEEE488_2,
+		{1000, 1}, {1, 1000}, 14, 1400, 14000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -252,6 +255,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true)},
 	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true)},
 	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true)},
+	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false)},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;

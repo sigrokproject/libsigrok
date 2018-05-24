@@ -474,10 +474,19 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	if (devc->model->series->protocol >= PROTOCOL_V3 &&
 			ch->type == SR_CHANNEL_ANALOG) {
+		/* Vertical increment. */
+		if (sr_scpi_get_float(sdi->conn, ":WAV:YINC?",
+				&devc->vert_inc[ch->index]) != SR_OK)
+			/* Vertical origin. */
+			if (sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
+				&devc->vert_origin[ch->index]) != SR_OK)
+				return SR_ERR;
 		/* Vertical reference. */
 		if (sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
 				&devc->vert_reference[ch->index]) != SR_OK)
 			return SR_ERR;
+	} else if (ch->type == SR_CHANNEL_ANALOG) {
+		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25.6;
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_BLOCK);
@@ -557,7 +566,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
-	double vdiv, offset;
+	double vdiv, offset, origin;
 	int len, i, vref;
 	struct sr_channel *ch;
 	gsize expected_data_bytes;
@@ -677,11 +686,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	if (ch->type == SR_CHANNEL_ANALOG) {
 		vref = devc->vert_reference[ch->index];
-		vdiv = devc->vdiv[ch->index] / 25.6;
+		vdiv = devc->vert_inc[ch->index];
+		origin = devc->vert_origin[ch->index];
 		offset = devc->vert_offset[ch->index];
 		if (devc->model->series->protocol >= PROTOCOL_V3)
 			for (i = 0; i < len; i++)
-				devc->data[i] = ((int)devc->buffer[i] - vref) * vdiv - offset;
+				devc->data[i] = ((int)devc->buffer[i] - vref - origin) * vdiv;
 		else
 			for (i = 0; i < len; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;

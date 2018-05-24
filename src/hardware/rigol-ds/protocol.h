@@ -120,7 +120,9 @@ struct dev_context {
 	float attenuation[MAX_ANALOG_CHANNELS];
 	float vdiv[MAX_ANALOG_CHANNELS];
 	int vert_reference[MAX_ANALOG_CHANNELS];
+	float vert_origin[MAX_ANALOG_CHANNELS];
 	float vert_offset[MAX_ANALOG_CHANNELS];
+	float vert_inc[MAX_ANALOG_CHANNELS];
 	char *trigger_source;
 	float horiz_triggerpos;
 	char *trigger_slope;
