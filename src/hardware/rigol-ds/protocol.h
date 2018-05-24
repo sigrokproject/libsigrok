@@ -80,6 +80,8 @@ struct rigol_ds_model {
 	uint64_t min_timebase[2];
 	unsigned int analog_channels;
 	bool has_digital;
+	const char **trigger_sources;
+	unsigned int num_trigger_sources;
 };
 
 enum wait_events {
