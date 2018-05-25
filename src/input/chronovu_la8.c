@@ -47,6 +47,36 @@
 #define CHRONOVU_LA8_HDRSIZE    (sizeof(uint8_t) + sizeof(uint32_t))
 #define CHRONOVU_LA8_FILESIZE   (CHRONOVU_LA8_DATASIZE + CHRONOVU_LA8_HDRSIZE)
 
+/*
+ * Implementation note:
+ *
+ * The .format_match() routine only checks the file size, but none of
+ * the header fields. Only little would be gained (only clock divider
+ * 0xff could get tested), but complexity would increase dramatically.
+ * Also the .format_match() routine is unlikely to receive large enough
+ * a buffer to include the header. Neither is the filename available to
+ * the .format_match() routine.
+ *
+ * There is no way to programmatically tell whether the file was created
+ * by LA8 or LA16 software, i.e. with 8 or 16 logic channels. If the
+ * filename was available, one might guess based on the file extension,
+ * but still would require user specs if neither of the known extensions
+ * were used or the input is fed from a pipe.
+ *
+ * The current input module implementation assumes that users specify
+ * the (channel count and) sample rate. Input data gets processed and
+ * passed along to the session bus, before the file "header" is seen.
+ * A future implementation could move channel creation from init() to
+ * receive() or end() (actually: a common routine called from those two
+ * routines), and could defer sample processing and feeding the session
+ * until the header was seen, including deferred samplerate calculation
+ * after having seen the header. But again this improvement depends on
+ * the availability of either the filename or the device type. Also note
+ * that applications then had to keep sending data to the input module's
+ * receive() routine until sufficient amounts of input data were seen
+ * including the header (see bug #1017).
+ */
+
 struct context {
 	gboolean started;
 	uint64_t samplerate;
@@ -214,9 +244,9 @@ static const struct sr_option *get_options(void)
 
 SR_PRIV struct sr_input_module input_chronovu_la8 = {
 	.id = "chronovu-la8",
-	.name = "ChronoVu LA8",
-	.desc = "ChronoVu LA8 native file format data",
-	.exts = (const char*[]){"kdt", NULL},
+	.name = "ChronoVu LA8/LA16",
+	.desc = "ChronoVu LA8/LA16 native file format data",
+	.exts = (const char*[]){"kdt", "kd1", NULL},
 	.metadata = { SR_INPUT_META_FILESIZE | SR_INPUT_META_REQUIRED },
 	.options = get_options,
 	.format_match = format_match,
