@@ -978,9 +978,9 @@ SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double dmin, const doub
 SR_PRIV GVariant *std_gvar_tuple_u64(uint64_t low, uint64_t high);
 SR_PRIV GVariant *std_gvar_tuple_double(double low, double high);
 
-SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n);
-SR_PRIV GVariant *std_gvar_array_u32(const uint32_t *a, unsigned int n);
-SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n);
+SR_PRIV GVariant *std_gvar_array_i32(const int32_t a[], unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u32(const uint32_t a[], unsigned int n);
+SR_PRIV GVariant *std_gvar_array_u64(const uint64_t a[], unsigned int n);
 SR_PRIV GVariant *std_gvar_array_str(const char *a[], unsigned int n);
 
 SR_PRIV GVariant *std_gvar_thresholds(const double a[][2], unsigned int n);

@@ -749,19 +749,19 @@ SR_PRIV GVariant *std_gvar_tuple_double(double low, double high)
 	return g_variant_new_tuple(range, 2);
 }
 
-SR_PRIV GVariant *std_gvar_array_i32(const int32_t *a, unsigned int n)
+SR_PRIV GVariant *std_gvar_array_i32(const int32_t a[], unsigned int n)
 {
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
 				a, n, sizeof(int32_t));
 }
 
-SR_PRIV GVariant *std_gvar_array_u32(const uint32_t *a, unsigned int n)
+SR_PRIV GVariant *std_gvar_array_u32(const uint32_t a[], unsigned int n)
 {
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				a, n, sizeof(uint32_t));
 }
 
-SR_PRIV GVariant *std_gvar_array_u64(const uint64_t *a, unsigned int n)
+SR_PRIV GVariant *std_gvar_array_u64(const uint64_t a[], unsigned int n)
 {
 	return g_variant_new_fixed_array(G_VARIANT_TYPE_UINT64,
 				a, n, sizeof(uint64_t));
