@@ -509,7 +509,7 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 }
 
 /**
- * Check the USB configuration to determine if this device has a given 
+ * Check the USB configuration to determine if this device has a given
  * manufacturer and product string.
  *
  * @return TRUE if the device's configuration profile strings

@@ -441,7 +441,7 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		devc->channel_status[cnt].info = g_slist_append(NULL, ch);
 
 		cg = g_malloc(sizeof(struct sr_channel_group));
-		snprintf(channel, sizeof(channel), "CG%d", cnt+1);
+		snprintf(channel, sizeof(channel), "CG%d", cnt + 1);
 		cg->name = g_strdup(channel);
 		cg->priv = NULL;
 		cg->channels = g_slist_append(NULL, ch);

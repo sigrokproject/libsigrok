@@ -347,7 +347,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	g_mutex_clear(&devc->acquisition_mutex);
 
 	return ret;
-
 }
 
 static struct sr_dev_driver arachnid_labs_re_load_pro_driver_info = {

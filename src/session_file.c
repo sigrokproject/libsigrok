@@ -167,7 +167,7 @@ SR_PRIV int sr_sessionfile_check(const char *filename)
 
 	return SR_OK;
 }
- 
+
 /** @private */
 SR_PRIV struct sr_dev_inst *sr_session_prepare_sdi(const char *filename, struct sr_session **session)
 {
