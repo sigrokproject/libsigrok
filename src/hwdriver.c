@@ -181,6 +181,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Under-voltage condition threshold", NULL},
 	{SR_CONF_TRIGGER_LEVEL, SR_T_FLOAT, "triggerlevel",
 		"Trigger level", NULL},
+	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
+		"External clock source", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",

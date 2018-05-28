@@ -989,6 +989,12 @@ enum sr_configkey {
 	/** Under-voltage condition threshold. */
 	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD,
 
+	/**
+	 * Which external clock source to use if the device supports
+	 * multiple external clock channels.
+	 */
+	SR_CONF_EXTERNAL_CLOCK_SOURCE,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
