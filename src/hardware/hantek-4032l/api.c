@@ -39,10 +39,45 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_EXTERNAL_CLOCK_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_fpga_zero[] = {
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CONN | SR_CONF_GET,
 };
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const char *signal_edges[] = {
+	[H4032L_CLOCK_EDGE_TYPE_RISE] = "rising",
+	[H4032L_CLOCK_EDGE_TYPE_FALL] = "falling",
+	[H4032L_CLOCK_EDGE_TYPE_BOTH] = "both",
+};
+
+static const char *ext_clock_sources[] = {
+	[H4032L_EXT_CLOCK_SOURCE_CHANNEL_A] = "ACLK",
+	[H4032L_EXT_CLOCK_SOURCE_CHANNEL_B] = "BCLK"
+};
+
+static const uint8_t ext_clock_edges[2][3] = {
+	{
+		H4032L_CLOCK_EDGE_TYPE_RISE_A,
+		H4032L_CLOCK_EDGE_TYPE_FALL_A,
+		H4032L_CLOCK_EDGE_TYPE_BOTH_A
+	},
+	{
+		H4032L_CLOCK_EDGE_TYPE_RISE_B,
+		H4032L_CLOCK_EDGE_TYPE_FALL_B,
+		H4032L_CLOCK_EDGE_TYPE_BOTH_B
+	}
 };
 
 static const int32_t trigger_matches[] = {
@@ -214,10 +249,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		/* Initialize command packet. */
 		devc->cmd_pkt.magic = H4032L_CMD_PKT_MAGIC;
 		devc->cmd_pkt.sample_size = 16384;
+		devc->sample_rate = 0;
 
 		devc->status = H4032L_STATUS_IDLE;
 
 		devc->capture_ratio = 5;
+		devc->external_clock = FALSE;
+		devc->clock_edge = H4032L_CLOCK_EDGE_TYPE_RISE;
+
 		devc->cur_threshold[0] = 2.5;
 		devc->cur_threshold[1] = 2.5;
 
@@ -297,6 +336,7 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
+	unsigned int idx;
 
 	switch (key) {
 	case SR_CONF_VOLTAGE_THRESHOLD:
@@ -312,7 +352,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(samplerates_hw[devc->cmd_pkt.sample_rate]);
+		*data = g_variant_new_uint64(samplerates_hw[devc->sample_rate]);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
@@ -320,10 +360,25 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->cmd_pkt.sample_size);
 		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		*data = g_variant_new_boolean(devc->external_clock);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		idx = devc->external_clock_source;
+		if (idx >= ARRAY_SIZE(ext_clock_sources))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(ext_clock_sources[idx]);
+		break;
 	case SR_CONF_CONN:
 		if (!sdi || !(usb = sdi->conn))
 			return SR_ERR_ARG;
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		idx = devc->clock_edge;
+		if (idx >= ARRAY_SIZE(signal_edges))
+			return SR_ERR_BUG;
+		*data = g_variant_new_string(signal_edges[idx]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -337,6 +392,7 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
+	int idx;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE: {
@@ -349,7 +405,7 @@ static int config_set(uint32_t key, GVariant *data,
 				sr_err("Invalid sample rate.");
 				return SR_ERR_SAMPLERATE;
 			}
-			cmd_pkt->sample_rate = i;
+			devc->sample_rate = i;
 			break;
 		}
 	case SR_CONF_CAPTURE_RATIO: {
@@ -388,6 +444,19 @@ static int config_set(uint32_t key, GVariant *data,
 			}
 			break;
 		}
+	case SR_CONF_EXTERNAL_CLOCK:
+		devc->external_clock = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(ext_clock_sources))) < 0)
+			return SR_ERR_ARG;
+		devc->external_clock_source = idx;
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)
+			return SR_ERR_ARG;
+		devc->clock_edge = idx;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -398,6 +467,9 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+
+	struct dev_context *devc = (sdi) ? sdi->priv : NULL;
+
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -405,6 +477,9 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			break;
 		}
+		/* Disable external clock and edges for FPGA version 0. */
+		if (devc && (!devc->fpga_version))
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts_fpga_zero);
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
@@ -417,6 +492,12 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(H4043L_NUM_SAMPLES_MIN, H4032L_NUM_SAMPLES_MAX);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(signal_edges));
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_sources));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -441,6 +522,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Calculate packet ratio. */
 	cmd_pkt->pre_trigger_size = (cmd_pkt->sample_size * devc->capture_ratio) / 100;
 	devc->trigger_pos = cmd_pkt->pre_trigger_size;
+
+	/* Set clock edge, when external clock is enabled. */
+	if (devc->external_clock)
+		cmd_pkt->sample_rate = ext_clock_edges[devc->external_clock_source][devc->clock_edge];
+	else
+		cmd_pkt->sample_rate = devc->sample_rate;
 
 	/* Set pwm channel values. */
 	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold[0]);

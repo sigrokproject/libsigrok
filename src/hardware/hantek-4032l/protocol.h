@@ -44,6 +44,26 @@
 #define H4032L_START_PACKET_MAGIC 0x2B1A027F
 #define H4032L_END_PACKET_MAGIC 0x4D3C037F
 
+enum h4032l_clock_edge_type {
+	H4032L_CLOCK_EDGE_TYPE_RISE,
+	H4032L_CLOCK_EDGE_TYPE_FALL,
+	H4032L_CLOCK_EDGE_TYPE_BOTH
+};
+
+enum h4032l_ext_clock_source {
+	H4032L_EXT_CLOCK_SOURCE_CHANNEL_A,
+	H4032L_EXT_CLOCK_SOURCE_CHANNEL_B
+};
+
+enum h4032l_clock_edge_type_channel {
+	H4032L_CLOCK_EDGE_TYPE_RISE_A = 0x24,
+	H4032L_CLOCK_EDGE_TYPE_RISE_B,
+	H4032L_CLOCK_EDGE_TYPE_BOTH_A,
+	H4032L_CLOCK_EDGE_TYPE_BOTH_B,
+	H4032L_CLOCK_EDGE_TYPE_FALL_A,
+	H4032L_CLOCK_EDGE_TYPE_FALL_B
+};
+
 enum h4032l_trigger_edge_type {
 	H4032L_TRIGGER_EDGE_TYPE_RISE,
 	H4032L_TRIGGER_EDGE_TYPE_FALL,
@@ -126,6 +146,7 @@ struct h4032l_cmd_pkt {
 
 struct dev_context {
 	enum h4032l_status status;
+	uint64_t sample_rate;
 	unsigned int sent_samples;
 	int submitted_transfers;
 	uint32_t remaining_samples;
@@ -136,6 +157,9 @@ struct dev_context {
 	uint8_t buffer[512];
 	uint64_t capture_ratio;
 	uint32_t trigger_pos;
+	gboolean external_clock;
+	enum h4032l_ext_clock_source external_clock_source;
+	enum h4032l_clock_edge_type clock_edge;
 	double cur_threshold[2];
 	uint32_t fpga_version;
 };
