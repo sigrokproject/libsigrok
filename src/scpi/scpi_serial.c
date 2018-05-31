@@ -152,8 +152,6 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 		return ret;
 
 	if (ret > 0) {
-		sr_spew("Read %d bytes into buffer.", ret);
-
 		if (buf[ret - 1] == '\n') {
 			sscpi->got_newline = TRUE;
 			sr_spew("Received terminator");
