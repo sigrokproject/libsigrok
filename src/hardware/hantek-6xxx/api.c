@@ -566,27 +566,6 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
 	g_free(analog.data);
 }
 
-static void send_data(struct sr_dev_inst *sdi, struct libusb_transfer *buf[], uint64_t samples)
-{
-	int i = 0;
-	uint64_t send = 0;
-	uint32_t chunk;
-
-	while (send < samples) {
-		chunk = MIN(samples - send, (uint64_t)(buf[i]->actual_length / NUM_CHANNELS));
-		send += chunk;
-		send_chunk(sdi, buf[i]->buffer, chunk);
-
-		/*
-		 * Everything in this transfer was either copied to the buffer
-		 * or sent to the session bus.
-		 */
-		g_free(buf[i]->buffer);
-		libusb_free_transfer(buf[i]);
-		i++;
-	}
-}
-
 /*
  * Called by libusb (as triggered by handle_event()) when a transfer comes in.
  * Only channel data comes in asynchronously, and all transfers for this are
@@ -613,26 +592,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	if (devc->dev_state != CAPTURE)
 		return;
 
-	if (!devc->sample_buf) {
-		devc->sample_buf_size = 10;
-		devc->sample_buf = g_try_malloc(devc->sample_buf_size * sizeof(transfer));
-		devc->sample_buf_write = 0;
-	}
-
-	if (devc->sample_buf_write >= devc->sample_buf_size) {
-		devc->sample_buf_size += 10;
-		devc->sample_buf = g_try_realloc(devc->sample_buf,
-				devc->sample_buf_size * sizeof(transfer));
-		if (!devc->sample_buf) {
-			sr_err("Sample buffer malloc failed.");
-			devc->dev_state = STOPPING;
-			return;
-		}
-	}
-
-	devc->sample_buf[devc->sample_buf_write++] = transfer;
-	devc->samp_received += transfer->actual_length / NUM_CHANNELS;
-
 	sr_spew("receive_transfer(): calculated samplerate == %" PRIu64 "ks/s",
 		(uint64_t)(transfer->actual_length * 1000 /
 		(g_get_monotonic_time() - devc->read_start_ts + 1) /
@@ -645,20 +604,23 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		/* Nothing to send to the bus. */
 		return;
 
+	unsigned samples_received = transfer->actual_length / NUM_CHANNELS;
+	send_chunk(sdi, transfer->buffer, samples_received);
+	devc->samp_received += samples_received;
+
+	g_free(transfer->buffer);
+	libusb_free_transfer(transfer);
+
 	if (devc->limit_samples && devc->samp_received >= devc->limit_samples) {
 		sr_info("Requested number of samples reached, stopping. %"
 			PRIu64 " <= %" PRIu64, devc->limit_samples,
 			devc->samp_received);
-		send_data(sdi, devc->sample_buf, devc->limit_samples);
 		sr_dev_acquisition_stop(sdi);
 	} else if (devc->limit_msec && (g_get_monotonic_time() -
 			devc->aq_started) / 1000 >= devc->limit_msec) {
 		sr_info("Requested time limit reached, stopping. %d <= %d",
 			(uint32_t)devc->limit_msec,
 			(uint32_t)(g_get_monotonic_time() - devc->aq_started) / 1000);
-		send_data(sdi, devc->sample_buf, devc->samp_received);
-		g_free(devc->sample_buf);
-		devc->sample_buf = NULL;
 		sr_dev_acquisition_stop(sdi);
 	} else {
 		read_channel(sdi, data_amount(sdi));
