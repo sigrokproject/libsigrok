@@ -337,8 +337,12 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	sr_dbg("Starting data capture for frameset %" PRIu64 " of %" PRIu64,
-	       devc->num_frames + 1, devc->limit_frames);
+	if (devc->limit_frames == 0)
+		sr_dbg("Starting data capture for frameset %" PRIu64,
+		       devc->num_frames + 1);
+	else
+		sr_dbg("Starting data capture for frameset %" PRIu64 " of %"
+		       PRIu64, devc->num_frames + 1, devc->limit_frames);
 
 	switch (devc->model->series->protocol) {
 	case PROTOCOL_V1:
