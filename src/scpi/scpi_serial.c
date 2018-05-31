@@ -123,7 +123,8 @@ static int scpi_serial_send(void *priv, const char *command)
 
 	result = serial_write_blocking(serial, command, strlen(command), 0);
 	if (result < 0) {
-		sr_err("Error while sending SCPI command: '%s'.", command);
+		sr_err("Error while sending SCPI command '%s': %d.",
+			command, result);
 		return SR_ERR;
 	}
 
