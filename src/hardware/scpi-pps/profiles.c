@@ -218,6 +218,72 @@ static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/* Rigol DP700 series */
+static const uint32_t rigol_dp700_devopts[] = {
+	SR_CONF_CONTINUOUS,
+};
+
+static const uint32_t rigol_dp700_devopts_cg[] = {
+	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec rigol_dp711_ch[] = {
+	{ "1", { 0, 30, 0.01, 3, 3 }, { 0, 5, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_spec rigol_dp712_ch[] = {
+	{ "1", { 0, 50, 0.01, 3, 3 }, { 0, 3, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY },
+};
+
+static const struct channel_group_spec rigol_dp700_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+};
+
+/* Same as the DP800 series, except for the missing :SYST:OTP* commands. */
+static const struct scpi_command rigol_dp700_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
+	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
+	{ SCPI_CMD_BEEPER, "SYST:BEEP:STAT?" },
+	{ SCPI_CMD_BEEPER_ENABLE, "SYST:BEEP:STAT ON" },
+	{ SCPI_CMD_BEEPER_DISABLE, "SYST:BEEP:STAT OFF" },
+	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, ":MEAS:POWE?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP OFF" },
+	{ SCPI_CMD_GET_OUTPUT_REGULATION, ":OUTP:MODE?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED, ":OUTP:OVP?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE, ":OUTP:OVP ON" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE, ":OUTP:OVP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE, ":OUTP:OVP:QUES?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":OUTP:OVP:VAL?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":OUTP:OVP:VAL %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED, ":OUTP:OCP?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, ":OUTP:OCP:STAT ON" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, ":OUTP:OCP:STAT OFF" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE, ":OUTP:OCP:QUES?" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, ":OUTP:OCP:VAL %.6f" },
+	ALL_ZERO
+};
+
 /* Rigol DP800 series */
 static const uint32_t rigol_dp800_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -622,6 +688,24 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6632b_ch),
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6632b_cmd,
+		.probe_channels = NULL,
+	},
+
+	/* Rigol DP700 series */
+	{ "Rigol", "^DP711$", 0,
+		ARRAY_AND_SIZE(rigol_dp700_devopts),
+		ARRAY_AND_SIZE(rigol_dp700_devopts_cg),
+		ARRAY_AND_SIZE(rigol_dp711_ch),
+		ARRAY_AND_SIZE(rigol_dp700_cg),
+		rigol_dp700_cmd,
+		.probe_channels = NULL,
+	},
+	{ "Rigol", "^DP712$", 0,
+		ARRAY_AND_SIZE(rigol_dp700_devopts),
+		ARRAY_AND_SIZE(rigol_dp700_devopts_cg),
+		ARRAY_AND_SIZE(rigol_dp712_ch),
+		ARRAY_AND_SIZE(rigol_dp700_cg),
+		rigol_dp700_cmd,
 		.probe_channels = NULL,
 	},
 
