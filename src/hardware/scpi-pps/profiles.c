@@ -230,10 +230,10 @@ static const uint32_t rigol_dp700_devopts_cg[] = {
 	SR_CONF_REGULATION | SR_CONF_GET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
-	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -242,11 +242,11 @@ static const uint32_t rigol_dp700_devopts_cg[] = {
 };
 
 static const struct channel_spec rigol_dp711_ch[] = {
-	{ "1", { 0, 30, 0.01, 3, 3 }, { 0, 5, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY },
+	{ "1", { 0, 30, 0.01, 3, 3 }, { 0, 5, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 33, 0.01}, { 0.01, 5.5, 0.01 } },
 };
 
 static const struct channel_spec rigol_dp712_ch[] = {
-	{ "1", { 0, 50, 0.01, 3, 3 }, { 0, 3, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY },
+	{ "1", { 0, 50, 0.01, 3, 3 }, { 0, 3, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 55, 0.01}, { 0.01, 3.3, 0.01 } },
 };
 
 static const struct channel_group_spec rigol_dp700_cg[] = {
