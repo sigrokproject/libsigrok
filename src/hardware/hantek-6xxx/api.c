@@ -120,10 +120,6 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	devc->coupling_tab_size = prof->coupling_tab_size;
 	devc->has_coupling = prof->has_coupling;
 
-	devc->sample_buf = NULL;
-	devc->sample_buf_write = 0;
-	devc->sample_buf_size = 0;
-
 	devc->profile = prof;
 	devc->dev_state = IDLE;
 	devc->samplerate = DEFAULT_SAMPLERATE;
@@ -637,7 +633,6 @@ static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount)
 	amount = MIN(amount, MAX_PACKET_SIZE);
 	ret = hantek_6xxx_get_channeldata(sdi, receive_transfer, amount);
 	devc->read_start_ts = g_get_monotonic_time();
-	devc->read_data_amount = amount;
 
 	return ret;
 }
@@ -720,9 +715,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	devc->dev_state = STOPPING;
-
-	g_free(devc->sample_buf);
-	devc->sample_buf = NULL;
 
 	return SR_OK;
 }

@@ -122,11 +122,6 @@ struct dev_context {
 	uint64_t aq_started;
 
 	uint64_t read_start_ts;
-	uint32_t read_data_amount;
-
-	struct libusb_transfer **sample_buf;
-	uint32_t sample_buf_write;
-	uint32_t sample_buf_size;
 
 	gboolean ch_enabled[NUM_CHANNELS];
 	int voltage[NUM_CHANNELS];
