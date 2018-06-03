@@ -1133,7 +1133,8 @@ static void cleanup(struct sr_input *in)
 	 * and scalars, so that re-runs start out fresh again.
 	 */
 	g_free(inc->sw_version);
-	g_string_free(inc->cont_buff, TRUE);
+	if (inc->cont_buff)
+		g_string_free(inc->cont_buff, TRUE);
 	g_free(inc->sample_data_queue);
 	for (idx = 0; idx < inc->channel_count; idx++)
 		g_free(inc->wire_names[idx]);
@@ -1154,7 +1155,8 @@ static int reset(struct sr_input *in)
 	inc->ch_feed_prep = FALSE;
 	inc->header_sent = FALSE;
 	inc->rate_sent = FALSE;
-	g_string_truncate(in->buf, 0);
+	if (in->buf)
+		g_string_truncate(in->buf, 0);
 
 	return SR_OK;
 }
