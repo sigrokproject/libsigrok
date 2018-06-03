@@ -1180,11 +1180,6 @@ static int reset(struct sr_input *in)
 	inc->channels = NULL;
 	cleanup(in);
 	inc->channels = channels;
-	inc->ch_feed_prep = FALSE;
-	inc->header_sent = FALSE;
-	inc->rate_sent = FALSE;
-	if (in->buf)
-		g_string_truncate(in->buf, 0);
 
 	return SR_OK;
 }
