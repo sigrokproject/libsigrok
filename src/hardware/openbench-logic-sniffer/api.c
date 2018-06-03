@@ -135,7 +135,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	g_usleep(RESPONSE_DELAY_US);
 
-	if (sp_input_waiting(serial->data) == 0) {
+	if (sp_input_waiting(serial->sp_data) == 0) {
 		sr_dbg("Didn't get any reply.");
 		return NULL;
 	}
@@ -159,7 +159,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	g_usleep(RESPONSE_DELAY_US);
 
-	if (sp_input_waiting(serial->data) != 0) {
+	if (sp_input_waiting(serial->sp_data) != 0) {
 		/* Got metadata. */
 		sdi = get_metadata(serial);
 	} else {

@@ -78,14 +78,14 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 
 	sr_spew("Opening serial port '%s' (flags %d).", serial->port, flags);
 
-	sp_get_port_by_name(serial->port, &serial->data);
+	sp_get_port_by_name(serial->port, &serial->sp_data);
 
 	if (flags & SERIAL_RDWR)
 		sp_flags = (SP_MODE_READ | SP_MODE_WRITE);
 	else if (flags & SERIAL_RDONLY)
 		sp_flags = SP_MODE_READ;
 
-	ret = sp_open(serial->data, sp_flags);
+	ret = sp_open(serial->sp_data, sp_flags);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -125,14 +125,14 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot close unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	sr_spew("Closing serial port %s.", serial->port);
 
-	ret = sp_close(serial->data);
+	ret = sp_close(serial->sp_data);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -146,8 +146,8 @@ SR_PRIV int serial_close(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	sp_free_port(serial->data);
-	serial->data = NULL;
+	sp_free_port(serial->sp_data);
+	serial->sp_data = NULL;
 
 	return SR_OK;
 }
@@ -172,14 +172,14 @@ SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot flush unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	sr_spew("Flushing serial port %s.", serial->port);
 
-	ret = sp_flush(serial->data, SP_BUF_BOTH);
+	ret = sp_flush(serial->sp_data, SP_BUF_BOTH);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -216,14 +216,14 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot drain unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	sr_spew("Draining serial port %s.", serial->port);
 
-	ret = sp_drain(serial->data);
+	ret = sp_drain(serial->sp_data);
 
 	if (ret == SP_ERR_FAIL) {
 		error = sp_last_error_message();
@@ -247,15 +247,15 @@ static int _serial_write(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	if (nonblocking)
-		ret = sp_nonblocking_write(serial->data, buf, count);
+		ret = sp_nonblocking_write(serial->sp_data, buf, count);
 	else
-		ret = sp_blocking_write(serial->data, buf, count, timeout_ms);
+		ret = sp_blocking_write(serial->sp_data, buf, count, timeout_ms);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -324,15 +324,15 @@ static int _serial_read(struct sr_serial_dev_inst *serial, void *buf,
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
 
 	if (nonblocking)
-		ret = sp_nonblocking_read(serial->data, buf, count);
+		ret = sp_nonblocking_read(serial->sp_data, buf, count);
 	else
-		ret = sp_blocking_read(serial->data, buf, count, timeout_ms);
+		ret = sp_blocking_read(serial->sp_data, buf, count, timeout_ms);
 
 	switch (ret) {
 	case SP_ERR_ARG:
@@ -423,7 +423,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot configure unopened serial port %s.", serial->port);
 		return SR_ERR;
 	}
@@ -453,7 +453,7 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 	sp_set_config_dsr(config, SP_DSR_IGNORE);
 	sp_set_config_xon_xoff(config, flowcontrol == 2 ? SP_XONXOFF_INOUT : SP_XONXOFF_DISABLED);
 
-	ret = sp_set_config(serial->data, config);
+	ret = sp_set_config(serial->sp_data, config);
 	sp_free_config(config);
 
 	switch (ret) {
@@ -618,7 +618,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		return SR_ERR;
 	}
 
-	if (!serial->data) {
+	if (!serial->sp_data) {
 		sr_dbg("Cannot use unopened serial port %s.", serial->port);
 		return -1;
 	}
@@ -632,7 +632,7 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		len = maxlen - *buflen - 1;
 		if (len < 1)
 			break;
-		len = sp_blocking_read(serial->data, *buf + *buflen, 1, remaining);
+		len = sp_blocking_read(serial->sp_data, *buf + *buflen, 1, remaining);
 		if (len > 0) {
 			*buflen += len;
 			*(*buf + *buflen) = '\0';
@@ -824,7 +824,7 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 	if (events & G_IO_ERR)
 		mask |= SP_EVENT_ERROR;
 
-	if (sp_add_port_events(event_set, serial->data, mask) != SP_OK) {
+	if (sp_add_port_events(event_set, serial->sp_data, mask) != SP_OK) {
 		sp_free_event_set(event_set);
 		return SR_ERR;
 	}
@@ -848,12 +848,12 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 	if (mask & SP_EVENT_ERROR)
 		poll_events |= G_IO_ERR;
 	/*
-	 * Using serial->data as the key for the event source is not quite
+	 * Using serial->sp_data as the key for the event source is not quite
 	 * proper, as it makes it impossible to create another event source
 	 * for the same serial port. However, these fixed keys will soon be
 	 * removed from the API anyway, so this is OK for now.
 	 */
-	return sr_session_fd_source_add(session, serial->data,
+	return sr_session_fd_source_add(session, serial->sp_data,
 			poll_fd, poll_events, timeout, cb, cb_data);
 }
 
@@ -861,7 +861,7 @@ SR_PRIV int serial_source_add(struct sr_session *session,
 SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial)
 {
-	return sr_session_source_remove_internal(session, serial->data);
+	return sr_session_source_remove_internal(session, serial->sp_data);
 }
 
 /**
@@ -982,7 +982,7 @@ SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 
 	bits = baud = 0;
 	do {
-		if (sp_get_config(port->data, config) < 0)
+		if (sp_get_config(port->sp_data, config) < 0)
 			break;
 
 		/* Start bit. */

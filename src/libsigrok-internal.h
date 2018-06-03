@@ -727,7 +727,7 @@ struct sr_serial_dev_inst {
 	/** Comm params for serial_set_paramstr(). */
 	char *serialcomm;
 	/** libserialport port handle */
-	struct sp_port *data;
+	struct sp_port *sp_data;
 };
 #endif
 
