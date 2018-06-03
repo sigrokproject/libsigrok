@@ -26,6 +26,8 @@
 #ifndef LIBSIGROK_LIBSIGROK_INTERNAL_H
 #define LIBSIGROK_LIBSIGROK_INTERNAL_H
 
+#include "config.h"
+
 #include <glib.h>
 #ifdef HAVE_LIBSERIALPORT
 #include <libserialport.h>
@@ -721,7 +723,7 @@ struct sr_usb_dev_inst {
 };
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 struct ser_lib_functions;
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
@@ -840,7 +842,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 /* Serial-specific instances */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm);
@@ -957,7 +959,7 @@ SR_PRIV int std_dummy_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_close(struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_acquisition_stop(struct sr_dev_inst *sdi);
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi);
 #endif
@@ -1067,7 +1069,7 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf
 
 /*--- serial.c --------------------------------------------------------------*/
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 enum {
 	SERIAL_RDWR = 1,
 	SERIAL_RDONLY = 2,
@@ -1385,7 +1387,7 @@ struct metex14_info {
 	gboolean is_hfe, is_unitless, is_logic, is_min, is_max, is_avg;
 };
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
@@ -1516,7 +1518,7 @@ struct asycii_info {
 	gboolean is_invalid;
 };
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int sr_asycii_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);

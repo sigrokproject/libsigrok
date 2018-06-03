@@ -96,7 +96,7 @@ SR_PKGLIBS_RUBY=
 SR_EXTRA_LIBS=
 SR_EXTRA_CXX_LIBS=
 
-SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], [NEED_SERIAL],
+SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 	[libserialport >= 0.1.1])
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
@@ -129,6 +129,14 @@ SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
 ])
 AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
+
+AS_IF([test "x$sr_have_libserialport" = xyes],
+	sr_have_serial_comm=yes, sr_have_serial_comm=no)
+AS_IF([test "x$sr_have_serial_comm" = xyes],
+	[AC_DEFINE([HAVE_SERIAL_COMM], [1], [Specifies whether serial communication is supported.])])
+AS_IF([test "x$sr_have_serial_comm" = xyes],
+	[SR_APPEND([sr_deps_avail], [serial_comm])])
+AM_CONDITIONAL([NEED_SERIAL], [test "x$sr_have_serial_comm" = xyes])
 
 ######################
 ##  Feature checks  ##
@@ -217,6 +225,11 @@ m4_define([_SR_DRIVER], [
 ## SR_DRIVER(Device name, driver-name, [dependencies...])
 m4_define([SR_DRIVER],
 	[_SR_DRIVER([$1], [$2], m4_expand([AS_TR_CPP([HW_$2])]), [$3])])
+
+# TODO
+# Make device drivers depend on the more generic HAVE_SERIAL_COMM
+# feature flag instead of the specific libserialport, which no longer
+# is the exclusive provider of serial communication support.
 
 SR_DRIVER([Agilent DMM], [agilent-dmm], [libserialport])
 SR_DRIVER([Appa 55II], [appa-55ii], [libserialport])
@@ -601,10 +614,14 @@ Detected libraries (optional):
 $sr_pkglibs_summary
 Enabled hardware drivers:
 $sr_driver_summary
+Enabled serial communication transports:
+  - serial comm ................... $sr_have_serial_comm
+  - libserialport ................. $sr_have_libserialport
+
 Enabled SCPI backends:
  - TCP............................. yes
  - RPC............................. $sr_cv_have_rpc
- - serial.......................... $sr_have_libserialport
+ - serial.......................... $sr_have_serial_comm
  - VISA............................ $sr_have_librevisa
  - GPIB............................ $sr_have_libgpib
  - USBTMC.......................... $sr_have_libusb

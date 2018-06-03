@@ -100,7 +100,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 #ifdef HAVE_LIBGPIB
 	&scpi_libgpib_dev,
 #endif
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 	&scpi_serial_dev, /* Must be last as it matches any resource. */
 #endif
 };

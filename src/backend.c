@@ -205,7 +205,7 @@ SR_API char *sr_buildinfo_scpi_backends_get(void)
 #if HAVE_RPC
 	g_string_append_printf(s, "RPC, ");
 #endif
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 	g_string_append_printf(s, "serial, ");
 #endif
 #ifdef HAVE_LIBREVISA

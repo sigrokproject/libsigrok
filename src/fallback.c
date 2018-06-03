@@ -20,8 +20,9 @@
 #include <config.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include "libsigrok-internal.h"
 
-#ifndef HAVE_LIBSERIALPORT
+#ifndef HAVE_SERIAL_COMM
 
 SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 {

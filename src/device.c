@@ -518,7 +518,7 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 
 /**
  * Allocate and init a struct for a serial device instance.
@@ -814,7 +814,7 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 	struct libusb_device **devlist;
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 	struct sr_serial_dev_inst *serial;
 #endif
 
@@ -824,7 +824,7 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 	if (!sdi)
 		return NULL;
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_SERIAL)) {
 		/* connection_id isn't populated, let's do that for serial devices. */
 

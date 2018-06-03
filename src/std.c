@@ -305,7 +305,7 @@ SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 
 /**
  * Standard serial driver dev_open() callback API helper.
@@ -454,7 +454,7 @@ SR_PRIV int std_dev_clear_with_callback(const struct sr_dev_driver *driver,
 			driver->dev_close(sdi);
 
 		if (sdi->conn) {
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 			if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
 #endif

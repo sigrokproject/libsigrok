@@ -446,7 +446,7 @@ static gboolean flags_valid(const struct asycii_info *info)
 	return TRUE;
 }
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 /**
  * Arrange for the reception of another measurement from the DMM.
  *
