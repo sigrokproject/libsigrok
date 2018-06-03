@@ -47,13 +47,11 @@ static const uint32_t devopts_cg[] = {
 
 static const char *channel_modes[] = {
 	"Independent",
-	"Series",
-	"Parallel",
 };
 
 static const struct gpd_model models[] = {
 	{ GPD_2303S, "GPD-2303S",
-		CHANMODE_INDEPENDENT | CHANMODE_SERIES | CHANMODE_PARALLEL,
+		CHANMODE_INDEPENDENT,
 		2,
 		{
 			/* Channel 1 */
@@ -122,8 +120,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	serial_flush(serial);
 	
-  // GW INSTEK,GPD-2303S,SN:ER915277,V2.10
-	//TODO store serial number and firmware version in config
+  // returned identification string is for example "GW INSTEK,GPD-2303S,SN:ER915277,V2.10"
 	regex = g_regex_new ("GW INSTEK,(.+),SN:(.+),(V.+)", 0, 0, NULL);
 	if(!g_regex_match(regex, reply, 0, &match_info))
 	{
@@ -153,7 +150,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	for (i = 0; i < model->num_channels; i++) {
-		snprintf(channel, 10, "CH%d", i + 1);
+		snprintf(channel, sizeof(channel), "CH%d", i + 1);
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel);
 		cg = g_malloc(sizeof(struct sr_channel_group));
 		cg->name = g_strdup(channel);
@@ -178,9 +175,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sr_err("invalid reply to STATUS: '%s'", reply);
 			goto error;
 		}
-		
 	}
-	
 	
 	for(i = 0; i < model->num_channels; ++i)
 	{
@@ -217,7 +212,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	
 	serial_close(serial);
 	
-	
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 	
 	error:
@@ -251,19 +245,18 @@ static int config_get(uint32_t key, GVariant **data,
 	
 	if (!cg) {
 		switch (key) {
-				case SR_CONF_CHANNEL_CONFIG:
-					*data = g_variant_new_string(channel_modes[devc->channel_mode]);
-					break;
-				case SR_CONF_ENABLED:
-					*data = g_variant_new_boolean(devc->output_enabled);
-					break;
-				default:
-					return SR_ERR_NA;				
+			case SR_CONF_CHANNEL_CONFIG:
+				*data = g_variant_new_string(channel_modes[devc->channel_mode]);
+				break;
+			case SR_CONF_ENABLED:
+				*data = g_variant_new_boolean(devc->output_enabled);
+				break;
+			default:
+				return SR_ERR_NA;				
 		}		
 	}
 	else
 	{	
-		/* We only ever have one channel per channel group in this driver. */
 		ch = cg->channels->data;
 		channel = ch->index;
 		sr_info("config_get(%d, %s, %d)", key, ki != NULL ? ki->name : NULL, channel);
@@ -405,7 +398,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->req_sent_at = 0;
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN,
-			100, // TODO interval ms
+			100,
 			gwinstek_gpd_2303s_receive_data, (void *)sdi);
 
 	return SR_OK;
