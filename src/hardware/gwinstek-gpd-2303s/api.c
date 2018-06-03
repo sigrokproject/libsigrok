@@ -77,8 +77,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	unsigned int i;
 	struct dev_context *devc;
 	char channel[10];
-  GRegex *regex;
-  GMatchInfo *match_info;
+	GRegex *regex;
+	GMatchInfo *match_info;
 	
 	
 	serial = NULL;

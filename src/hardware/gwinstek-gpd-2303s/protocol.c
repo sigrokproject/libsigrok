@@ -133,71 +133,63 @@ SR_PRIV int gwinstek_gpd_2303s_receive_data(int fd, int revents, void *cb_data)
 			reply_esc = g_strescape(reply, NULL);
 			sr_err("unexpected data '%s'", reply_esc);
 			g_free(reply_esc);
-			
-			
-			//serial_flush(serial);
 		}
 		else {
-				
-				
-				for (i = 0; i < 2; i++) {
-					reply[0] = '\0';
-					gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
-					if (sscanf(reply, "%f", &devc->config[i].output_current_max) != 1)
-					{
-						sr_err("invalid reply to IOUTn?: '%s'", reply);
-						return TRUE;
-					}
 
-					//if(i == 0)
-					{
-						/* Note: digits/spec_digits will be overridden later. */
-						sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-
-						/* Send the value forward. */
-						packet.type = SR_DF_ANALOG;
-						packet.payload = &analog;
-
-						analog.num_samples = 1;
-						ch = g_slist_nth_data(sdi->channels, i);
-						analog.meaning->channels = g_slist_append(NULL, ch);
-						analog.meaning->mq = SR_MQ_CURRENT;
-						analog.meaning->unit = SR_UNIT_AMPERE;
-						analog.meaning->mqflags = 0;
-						analog.encoding->digits = 3;
-						analog.spec->spec_digits = 3;
-						analog.data = &devc->config[i].output_current_max;
-						sr_session_send(sdi, &packet);					
-					}
-					reply[0] = '\0';
-					gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
-					if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1)
-					{
-						sr_err("invalid reply to VOUT1?: '%s'", reply);
-						return TRUE;
-					}
-					
-					//if(i == 0)
-					{
-						/* Note: digits/spec_digits will be overridden later. */
-						sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-
-						/* Send the value forward. */
-						packet.type = SR_DF_ANALOG;
-						packet.payload = &analog;
-
-						analog.num_samples = 1;
-						ch = g_slist_nth_data(sdi->channels, i);
-						analog.meaning->channels = g_slist_append(NULL, ch);
-						analog.meaning->mq = SR_MQ_VOLTAGE;
-						analog.meaning->unit = SR_UNIT_VOLT;
-						analog.meaning->mqflags = SR_MQFLAG_DC;
-						analog.encoding->digits = 3;
-						analog.spec->spec_digits = 3;
-						analog.data = &devc->config[i].output_voltage_max;
-						sr_session_send(sdi, &packet);
-					}						
+			for (i = 0; i < devc->model->num_channels; i++) {
+				reply[0] = '\0';
+				gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+				if (sscanf(reply, "%f", &devc->config[i].output_current_max) != 1)
+				{
+					sr_err("invalid reply to IOUTn?: '%s'", reply);
+					return TRUE;
 				}
+
+				{
+					sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+
+					/* Send the value forward. */
+					packet.type = SR_DF_ANALOG;
+					packet.payload = &analog;
+
+					analog.num_samples = 1;
+					ch = g_slist_nth_data(sdi->channels, i);
+					analog.meaning->channels = g_slist_append(NULL, ch);
+					analog.meaning->mq = SR_MQ_CURRENT;
+					analog.meaning->unit = SR_UNIT_AMPERE;
+					analog.meaning->mqflags = 0;
+					analog.encoding->digits = 3;
+					analog.spec->spec_digits = 3;
+					analog.data = &devc->config[i].output_current_max;
+					sr_session_send(sdi, &packet);					
+				}
+				reply[0] = '\0';
+				gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+				if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1)
+				{
+					sr_err("invalid reply to VOUT1?: '%s'", reply);
+					return TRUE;
+				}
+				
+				{
+					sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
+
+					/* Send the value forward. */
+					packet.type = SR_DF_ANALOG;
+					packet.payload = &analog;
+
+					analog.num_samples = 1;
+					ch = g_slist_nth_data(sdi->channels, i);
+					analog.meaning->channels = g_slist_append(NULL, ch);
+					analog.meaning->mq = SR_MQ_VOLTAGE;
+					analog.meaning->unit = SR_UNIT_VOLT;
+					analog.meaning->mqflags = SR_MQFLAG_DC;
+					analog.encoding->digits = 3;
+					analog.spec->spec_digits = 3;
+					analog.data = &devc->config[i].output_voltage_max;
+					sr_session_send(sdi, &packet);
+				}						
+			}
 				
 
 			devc->reply_pending = FALSE;
@@ -207,7 +199,10 @@ SR_PRIV int gwinstek_gpd_2303s_receive_data(int fd, int revents, void *cb_data)
 	{
 		sr_dbg("gwinstek_gpd_2303s_receive_data(TIMEOUT)");
 		if (!devc->reply_pending) {
-			gwinstek_gpd_2303s_send_cmd(serial, "IOUT%d?\nVOUT%d?\nIOUT%d?\nVOUT%d?\n", 1, 1, 2, 2);
+			for (i = 0; i < devc->model->num_channels; i++) {
+				gwinstek_gpd_2303s_send_cmd(serial, "IOUT%d?\nVOUT%d?\n", i+1, i+1);
+			}
+			
 			devc->req_sent_at = g_get_monotonic_time();
 			devc->reply_pending = TRUE;
 		}		
