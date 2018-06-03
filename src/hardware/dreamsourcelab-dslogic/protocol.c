@@ -1020,8 +1020,8 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos,
-			tpos->ram_saddr, tpos->remain_cnt);
+		sr_info("tpos real_pos %d ram_saddr %d cnt_h %d cnt_l %d", tpos->real_pos,
+			tpos->ram_saddr, tpos->remain_cnt_h, tpos->remain_cnt_l);
 		devc->trigger_pos = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);
