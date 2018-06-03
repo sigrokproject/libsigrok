@@ -256,15 +256,13 @@ static const struct sr_option *get_options(void)
 
 static void cleanup(struct sr_input *in)
 {
-	struct context *inc;
+	g_free(in->priv);
+	in->priv = NULL;
 
-	inc = in->priv;
 	g_variant_unref(options[0].def);
 	g_variant_unref(options[1].def);
 	g_variant_unref(options[2].def);
 	g_slist_free_full(options[2].values, (GDestroyNotify)g_variant_unref);
-	g_free(inc);
-	in->priv = NULL;
 }
 
 static int reset(struct sr_input *in)
@@ -272,7 +270,7 @@ static int reset(struct sr_input *in)
 	struct context *inc = in->priv;
 
 	inc->started = FALSE;
-	cleanup(in);
+
 	g_string_truncate(in->buf, 0);
 
 	return SR_OK;
