@@ -610,16 +610,49 @@ SR_API int sr_input_end(const struct sr_input *in)
  *
  * @since 0.5.0
  */
-SR_API int sr_input_reset(const struct sr_input *in)
+SR_API int sr_input_reset(const struct sr_input *in_ro)
 {
-	if (!in->module->reset) {
+	struct sr_input *in;
+	int rc;
+
+	in = (struct sr_input *)in_ro;	/* "un-const" */
+	if (!in || !in->module)
+		return SR_ERR_ARG;
+
+	/*
+	 * Run the optional input module's .reset() method. This shall
+	 * take care of the context (kept in the 'inc' variable).
+	 */
+	if (in->module->reset) {
+		sr_spew("Resetting %s module.", in->module->id);
+		rc = in->module->reset(in);
+	} else {
 		sr_spew("Tried to reset %s module but no reset handler found.",
 			in->module->id);
-		return SR_OK;
+		rc = SR_OK;
 	}
 
-	sr_spew("Resetting %s module.", in->module->id);
-	return in->module->reset((struct sr_input *)in);
+	/*
+	 * Handle input module status (kept in the 'in' variable) here
+	 * in common logic. This agrees with how input module's receive()
+	 * and end() routines "amend but never seed" the 'in' information.
+	 *
+	 * Void potentially accumulated receive() buffer content, and
+	 * clear the sdi_ready flag. This makes sure that subsequent
+	 * processing will scan the header again before sample data gets
+	 * interpreted, and stale content from previous calls won't affect
+	 * the result.
+	 *
+	 * This common logic does not harm when the input module implements
+	 * .reset() and contains identical assignments. In the absence of
+	 * an individual .reset() method, simple input modules can completely
+	 * rely on common code and keep working across resets.
+	 */
+	if (in->buf)
+		g_string_truncate(in->buf, 0);
+	in->sdi_ready = FALSE;
+
+	return rc;
 }
 
 /**
@@ -632,8 +665,19 @@ SR_API void sr_input_free(const struct sr_input *in)
 	if (!in)
 		return;
 
+	/*
+	 * Run the input module's optional .cleanup() routine. This
+	 * takes care of the context (kept in the 'inc' variable).
+	 */
 	if (in->module->cleanup)
 		in->module->cleanup((struct sr_input *)in);
+
+	/*
+	 * Common code releases the input module's state (kept in the
+	 * 'in' variable). Release the device instance, the receive()
+	 * buffer, the shallow 'in->priv' block which is 'inc' (after
+	 * .cleanup() released potentially nested resources under 'inc').
+	 */
 	sr_dev_inst_free(in->sdi);
 	if (in->buf->len > 64) {
 		/* That seems more than just some sub-unitsize leftover... */
