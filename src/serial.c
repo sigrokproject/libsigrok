@@ -152,6 +152,21 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
 	return sr_ser_libsp_drain(serial);
 }
 
+/**
+ * Check for available receive data.
+ *
+ * @param[in] serial Previously opened serial port instance.
+ *
+ * @returns The number of (known) available RX data bytes.
+ *
+ * Returns 0 if no receive data is available, or if the amount of
+ * available receive data cannot get determined.
+ */
+SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial)
+{
+	return sr_ser_libsp_get_rx_avail(serial);
+}
+
 static int _serial_write(struct sr_serial_dev_inst *serial,
 	const void *buf, size_t count,
 	int nonblocking, unsigned int timeout_ms)

@@ -1079,6 +1079,7 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial);
+SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count, unsigned int timeout_ms);
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
@@ -1132,6 +1133,7 @@ SR_PRIV GSList *sr_ser_libsp_find_usb(GSList *list, sr_ser_find_append_t append,
 		uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
 		int *baud, int *bits);
+SR_PRIV size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial);
 #endif
 
 /*--- ezusb.c ---------------------------------------------------------------*/

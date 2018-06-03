@@ -473,3 +473,17 @@ SR_PRIV int sr_ser_libsp_get_frame_format(struct sr_serial_dev_inst *serial,
 
 	return ret;
 }
+
+SR_PRIV size_t sr_ser_libsp_get_rx_avail(struct sr_serial_dev_inst *serial)
+{
+	int rc;
+
+	if (!serial)
+		return 0;
+
+	rc = sp_input_waiting(serial->sp_data);
+	if (rc < 0)
+		return 0;
+
+	return rc;
+}
