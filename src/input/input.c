@@ -582,8 +582,10 @@ SR_API struct sr_dev_inst *sr_input_dev_inst_get(const struct sr_input *in)
  */
 SR_API int sr_input_send(const struct sr_input *in, GString *buf)
 {
-	sr_spew("Sending %" G_GSIZE_FORMAT " bytes to %s module.",
-		buf->len, in->module->id);
+	size_t len;
+
+	len = buf ? buf->len : 0;
+	sr_spew("Sending %zu bytes to %s module.", len, in->module->id);
 	return in->module->receive((struct sr_input *)in, buf);
 }
 
