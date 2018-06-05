@@ -382,18 +382,11 @@ SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi)
 		num_transfers = 1;
 
 	g_free(devc->transfers);
-	devc->transfers = g_try_malloc(sizeof(*devc->transfers) * num_transfers);
-	if (!devc->transfers) {
-		sr_err("USB transfers malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
+	devc->transfers = g_malloc(sizeof(*devc->transfers) * num_transfers);
 	devc->num_transfers = num_transfers;
+
 	for (i = 0; i < num_transfers; i++) {
-		if (!(buffer = g_malloc(H4032L_DATA_BUFFER_SIZE))) {
-			sr_err("USB transfer buffer malloc failed.");
-			return SR_ERR_MALLOC;
-		}
+		buffer = g_malloc(H4032L_DATA_BUFFER_SIZE);
 		transfer = libusb_alloc_transfer(0);
 
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
@@ -458,11 +451,6 @@ SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi)
 	}
 
 	devc->transfers = g_malloc0(sizeof(*devc->transfers));
-	if (!devc->transfers) {
-		sr_err("USB start transfer malloc failed.");
-		return SR_ERR_MALLOC;
-	}
-
 	devc->submitted_transfers++;
 	devc->num_transfers = 1;
 	devc->transfers[0] = transfer;
