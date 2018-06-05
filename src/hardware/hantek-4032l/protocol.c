@@ -72,7 +72,7 @@ static void free_transfer(struct libusb_transfer *transfer)
 	unsigned int i;
 
 	if ((transfer->buffer != (unsigned char *)&devc->cmd_pkt) &&
-	    (transfer->buffer != devc->buffer)) {
+	    (transfer->buffer != devc->buf)) {
 		g_free(transfer->buffer);
 	}
 
@@ -164,7 +164,7 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 	struct sr_dev_inst *const sdi = transfer->user_data;
 	struct dev_context *const devc = sdi->priv;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
-	uint32_t *buffer;
+	uint32_t *buf;
 	uint32_t num_samples;
 
 	/*
@@ -185,17 +185,17 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 		return;
 	}
 
-	buffer = (uint32_t *)transfer->buffer;
+	buf = (uint32_t *)transfer->buffer;
 
 	num_samples = MIN(devc->remaining_samples, max_samples);
 	devc->remaining_samples -= num_samples;
-	send_data(sdi, buffer, num_samples);
+	send_data(sdi, buf, num_samples);
 	sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
-		buffer[0], buffer[1]);
+		buf[0], buf[1]);
 
 	/* Close data receiving. */
 	if (devc->remaining_samples == 0) {
-		if (buffer[num_samples] != H4032L_END_PACKET_MAGIC)
+		if (buf[num_samples] != H4032L_END_PACKET_MAGIC)
 			sr_err("Mismatch magic number of end poll.");
 
 		abort_acquisition(devc);
@@ -216,7 +216,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	gboolean cmd = FALSE;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
-	uint32_t *buffer;
+	uint32_t *buf;
 	struct h4032l_status_packet *status;
 	uint32_t num_samples;
 	int ret;
@@ -233,7 +233,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	if (transfer->status != LIBUSB_TRANSFER_COMPLETED)
 		sr_dbg("%s error: %d.", __func__, transfer->status);
 
-	buffer = (uint32_t *)transfer->buffer;
+	buf = (uint32_t *)transfer->buffer;
 
 	switch (devc->status) {
 	case H4032L_STATUS_IDLE:
@@ -279,20 +279,20 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		break;
 	case H4032L_STATUS_FIRST_TRANSFER:
 		/* Drop packets until H4032L_START_PACKET_MAGIC. */
-		if (buffer[0] != H4032L_START_PACKET_MAGIC) {
+		if (buf[0] != H4032L_START_PACKET_MAGIC) {
 			sr_dbg("Mismatch magic number of start poll.");
 			break;
 		}
 		devc->status = H4032L_STATUS_TRANSFER;
 		max_samples--;
-		buffer++;
+		buf++;
 		/* Fallthrough. */
 	case H4032L_STATUS_TRANSFER:
 		num_samples = MIN(devc->remaining_samples, max_samples);
 		devc->remaining_samples -= num_samples;
-		send_data(sdi, buffer, num_samples);
+		send_data(sdi, buf, num_samples);
 		sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
-		       buffer[0], buffer[1]);
+		       buf[0], buf[1]);
 		break;
 	}
 
@@ -317,7 +317,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 			sr_dbg("Poll: %d.", devc->status);
 			libusb_fill_bulk_transfer(transfer, usb->devhdl,
 				6 | LIBUSB_ENDPOINT_IN,
-				devc->buffer, ARRAY_SIZE(devc->buffer),
+				devc->buf, ARRAY_SIZE(devc->buf),
 				h4032l_usb_callback,
 				(void *)sdi, H4032L_USB_TIMEOUT);
 		}
@@ -363,7 +363,7 @@ SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	struct libusb_transfer *transfer;
-	uint8_t *buffer;
+	uint8_t *buf;
 	unsigned int num_transfers;
 	unsigned int i;
 	int ret;
@@ -384,12 +384,12 @@ SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi)
 	devc->num_transfers = num_transfers;
 
 	for (i = 0; i < num_transfers; i++) {
-		buffer = g_malloc(H4032L_DATA_BUFFER_SIZE);
+		buf = g_malloc(H4032L_DATA_BUFFER_SIZE);
 		transfer = libusb_alloc_transfer(0);
 
 		libusb_fill_bulk_transfer(transfer, usb->devhdl,
 			6 | LIBUSB_ENDPOINT_IN,
-			buffer, H4032L_DATA_BUFFER_SIZE,
+			buf, H4032L_DATA_BUFFER_SIZE,
 			h4032l_data_transfer_callback,
 			(void *)sdi, H4032L_USB_TIMEOUT);
 
@@ -398,7 +398,7 @@ SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi)
 			sr_err("Failed to submit transfer: %s.",
 			       libusb_error_name(ret));
 			libusb_free_transfer(transfer);
-			g_free(buffer);
+			g_free(buf);
 			abort_acquisition(devc);
 			return SR_ERR;
 		}
@@ -414,13 +414,13 @@ SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 	struct libusb_transfer *transfer;
-	unsigned char buffer[] = {0x0f, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	unsigned char buf[] = {0x0f, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	int ret;
 
 	/* Send reset command to arm the logic analyzer. */
 	if ((ret = libusb_control_transfer(usb->devhdl,
 		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT, CMD_RESET,
-		0x00, 0x00, buffer, ARRAY_SIZE(buffer), H4032L_USB_TIMEOUT)) < 0) {
+		0x00, 0x00, buf, ARRAY_SIZE(buf), H4032L_USB_TIMEOUT)) < 0) {
 		sr_err("Failed to send vendor request %s.",
 		       libusb_error_name(ret));
 		return SR_ERR;
@@ -544,13 +544,13 @@ SR_PRIV int h4032l_get_fpga_version(const struct sr_dev_inst *sdi)
 	/* Attempt to get FGPA version. */
 	for (i = 0; i < 10; i++) {
 		if ((ret = libusb_bulk_transfer(usb->devhdl,
-			6 | LIBUSB_ENDPOINT_IN, devc->buffer,
-			ARRAY_SIZE(devc->buffer), &transferred, H4032L_USB_TIMEOUT)) < 0) {
+			6 | LIBUSB_ENDPOINT_IN, devc->buf,
+			ARRAY_SIZE(devc->buf), &transferred, H4032L_USB_TIMEOUT)) < 0) {
 			sr_err("Unable to receive FPGA version: %s.",
 			       libusb_error_name(ret));
 			return SR_ERR;
 		}
-		status = (struct h4032l_status_packet *)devc->buffer;
+		status = (struct h4032l_status_packet *)devc->buf;
 		if (status->magic == H4032L_STATUS_PACKET_MAGIC) {
 			sr_dbg("FPGA version: 0x%x.", status->fpga_version);
 			devc->fpga_version = status->fpga_version;

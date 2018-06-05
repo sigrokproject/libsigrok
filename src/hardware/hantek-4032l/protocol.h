@@ -154,7 +154,7 @@ struct dev_context {
 	struct h4032l_cmd_pkt cmd_pkt;
 	unsigned int num_transfers;
 	struct libusb_transfer **transfers;
-	uint8_t buffer[512];
+	uint8_t buf[512];
 	uint64_t capture_ratio;
 	uint32_t trigger_pos;
 	gboolean external_clock;
