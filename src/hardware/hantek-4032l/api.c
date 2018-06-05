@@ -56,6 +56,10 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const char *cg_names[] = {
+	"A", "B",
+};
+
 static const char *signal_edges[] = {
 	[H4032L_CLOCK_EDGE_TYPE_RISE] = "rising",
 	[H4032L_CLOCK_EDGE_TYPE_FALL] = "falling",
@@ -336,20 +340,16 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb;
-	unsigned int idx;
+	int idx;
 
 	switch (key) {
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		if (!strcmp(cg->name, "A"))
-			*data = std_gvar_tuple_double(
-				devc->cur_threshold[0], devc->cur_threshold[0]);
-		else if (!strcmp(cg->name, "B"))
-			*data = std_gvar_tuple_double(
-				devc->cur_threshold[1], devc->cur_threshold[1]);
-		else
+		if ((idx = std_str_idx_s(cg->name, ARRAY_AND_SIZE(cg_names))) < 0)
 			return SR_ERR_CHANNEL_GROUP;
+		*data = std_gvar_tuple_double(
+			devc->cur_threshold[idx], devc->cur_threshold[idx]);
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(samplerates_hw[devc->sample_rate]);
@@ -364,10 +364,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(devc->external_clock);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
-		idx = devc->external_clock_source;
-		if (idx >= ARRAY_SIZE(ext_clock_sources))
-			return SR_ERR_BUG;
-		*data = g_variant_new_string(ext_clock_sources[idx]);
+		*data = g_variant_new_string(ext_clock_sources[devc->external_clock_source]);
 		break;
 	case SR_CONF_CONN:
 		if (!sdi || !(usb = sdi->conn))
@@ -375,10 +372,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_CLOCK_EDGE:
-		idx = devc->clock_edge;
-		if (idx >= ARRAY_SIZE(signal_edges))
-			return SR_ERR_BUG;
-		*data = g_variant_new_string(signal_edges[idx]);
+		*data = g_variant_new_string(signal_edges[devc->clock_edge]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -394,13 +388,13 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
 	uint64_t sample_rate, number_samples;
-	double low, high, threshold;
+	double low, high;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		idx = 0;
 		sample_rate = g_variant_get_uint64(data);
-		while (idx < ARRAY_SIZE(samplerates_hw) && samplerates_hw[idx] != sample_rate)
+		while (idx < (int)ARRAY_SIZE(samplerates_hw) && samplerates_hw[idx] != sample_rate)
 			idx++;
 		if (idx == ARRAY_SIZE(samplerates_hw) || sample_rate == 0) {
 			sr_err("Invalid sample rate.");
@@ -426,14 +420,10 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		g_variant_get(data, "(dd)", &low, &high);
-		threshold = (low + high) / 2.0;
-		if (!strcmp(cg->name, "A"))
-			devc->cur_threshold[0] = threshold;
-		else if (!strcmp(cg->name, "B"))
-			devc->cur_threshold[1] = threshold;
-		else
+		if ((idx = std_str_idx_s(cg->name, ARRAY_AND_SIZE(cg_names))) < 0)
 			return SR_ERR_CHANNEL_GROUP;
+		g_variant_get(data, "(dd)", &low, &high);
+		devc->cur_threshold[idx] = (low + high) / 2.0;
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);
