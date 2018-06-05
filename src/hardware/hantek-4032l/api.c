@@ -393,7 +393,7 @@ static int config_set(uint32_t key, GVariant *data,
 	int idx;
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
-	uint64_t sample_rate, capture_ratio, number_samples;
+	uint64_t sample_rate, number_samples;
 	double low, high, threshold;
 
 	switch (key) {
@@ -409,12 +409,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->sample_rate = idx;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		capture_ratio = g_variant_get_uint64(data);
-		if (capture_ratio > 99) {
-			sr_err("Invalid capture ratio.");
-			return SR_ERR;
-		}
-		devc->capture_ratio = capture_ratio;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		number_samples = g_variant_get_uint64(data);
