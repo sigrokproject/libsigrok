@@ -340,16 +340,16 @@ static int config_get(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		if (cg) {
-			if (!strcmp(cg->name, "A"))
-				*data = std_gvar_tuple_double(
-					devc->cur_threshold[0], devc->cur_threshold[0]);
-			else if (!strcmp(cg->name, "B"))
-				*data = std_gvar_tuple_double(
-					devc->cur_threshold[1], devc->cur_threshold[1]);
-			else
-				return SR_ERR_CHANNEL_GROUP;
-		}
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (!strcmp(cg->name, "A"))
+			*data = std_gvar_tuple_double(
+				devc->cur_threshold[0], devc->cur_threshold[0]);
+		else if (!strcmp(cg->name, "B"))
+			*data = std_gvar_tuple_double(
+				devc->cur_threshold[1], devc->cur_threshold[1]);
+		else
+			return SR_ERR_CHANNEL_GROUP;
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(samplerates_hw[devc->sample_rate]);
@@ -390,60 +390,56 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	int idx;
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
-	int idx;
+	uint64_t sample_rate, capture_ratio, number_samples;
+	double low, high, threshold;
 
 	switch (key) {
-	case SR_CONF_SAMPLERATE: {
-			uint64_t sample_rate = g_variant_get_uint64(data);
-			uint8_t i = 0;
-			while (i < ARRAY_SIZE(samplerates_hw) && samplerates_hw[i] != sample_rate)
-				i++;
-
-			if (i == ARRAY_SIZE(samplerates_hw) || sample_rate == 0) {
-				sr_err("Invalid sample rate.");
-				return SR_ERR_SAMPLERATE;
-			}
-			devc->sample_rate = i;
-			break;
+	case SR_CONF_SAMPLERATE:
+		idx = 0;
+		sample_rate = g_variant_get_uint64(data);
+		while (idx < ARRAY_SIZE(samplerates_hw) && samplerates_hw[idx] != sample_rate)
+			idx++;
+		if (idx == ARRAY_SIZE(samplerates_hw) || sample_rate == 0) {
+			sr_err("Invalid sample rate.");
+			return SR_ERR_SAMPLERATE;
 		}
-	case SR_CONF_CAPTURE_RATIO: {
-			uint64_t capture_ratio = g_variant_get_uint64(data);
-			if (capture_ratio > 99) {
-				sr_err("Invalid capture ratio.");
-				return SR_ERR;
-			}
-			devc->capture_ratio = capture_ratio;
-			break;
+		devc->sample_rate = idx;
+		break;
+	case SR_CONF_CAPTURE_RATIO:
+		capture_ratio = g_variant_get_uint64(data);
+		if (capture_ratio > 99) {
+			sr_err("Invalid capture ratio.");
+			return SR_ERR;
 		}
-	case SR_CONF_LIMIT_SAMPLES: {
-			uint64_t number_samples = g_variant_get_uint64(data);
-			number_samples += 511;
-			number_samples &= 0xfffffe00;
-			if (number_samples < H4043L_NUM_SAMPLES_MIN ||
-			    number_samples > H4032L_NUM_SAMPLES_MAX) {
-				sr_err("Invalid sample range 2k...64M: %"
-				       PRIu64 ".", number_samples);
-				return SR_ERR;
-			}
-			cmd_pkt->sample_size = number_samples;
-			break;
+		devc->capture_ratio = capture_ratio;
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		number_samples = g_variant_get_uint64(data);
+		number_samples += 511;
+		number_samples &= 0xfffffe00;
+		if (number_samples < H4043L_NUM_SAMPLES_MIN ||
+		    number_samples > H4032L_NUM_SAMPLES_MAX) {
+			sr_err("Invalid sample range 2k...64M: %"
+			       PRIu64 ".", number_samples);
+			return SR_ERR;
 		}
-	case SR_CONF_VOLTAGE_THRESHOLD: {
-			double low, high;
-			g_variant_get(data, "(dd)", &low, &high);
-			double threshold = (low + high) / 2.0;
-			if (cg) {
-				if (!strcmp(cg->name, "A"))
-					devc->cur_threshold[0] = threshold;
-				else if (!strcmp(cg->name, "B"))
-					devc->cur_threshold[1] = threshold;
-				else
-					return SR_ERR_CHANNEL_GROUP;
-			}
-			break;
-		}
+		cmd_pkt->sample_size = number_samples;
+		break;
+	case SR_CONF_VOLTAGE_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		g_variant_get(data, "(dd)", &low, &high);
+		threshold = (low + high) / 2.0;
+		if (!strcmp(cg->name, "A"))
+			devc->cur_threshold[0] = threshold;
+		else if (!strcmp(cg->name, "B"))
+			devc->cur_threshold[1] = threshold;
+		else
+			return SR_ERR_CHANNEL_GROUP;
+		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);
 		break;
@@ -467,7 +463,6 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-
 	struct dev_context *devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
