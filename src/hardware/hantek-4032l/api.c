@@ -252,7 +252,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* Initialize command packet. */
 		devc->cmd_pkt.magic = H4032L_CMD_PKT_MAGIC;
-		devc->cmd_pkt.sample_size = 16384;
+		devc->cmd_pkt.sample_size = 16 * 1024;
 		devc->sample_rate = 0;
 
 		devc->status = H4032L_STATUS_IDLE;
