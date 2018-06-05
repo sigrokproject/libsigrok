@@ -30,7 +30,7 @@ static void log_buf(const char *message, uint8_t buf[], size_t count)
 
 	buffer[count * 2] = 0;
 
-	sr_dbg("%s: %s [%lu bytes]", message, buffer, count);
+	sr_dbg("%s: %s [%zu bytes]", message, buffer, count);
 }
 
 /* Send a command to the device. */
