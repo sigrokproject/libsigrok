@@ -165,7 +165,7 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 	struct dev_context *const devc = sdi->priv;
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
 	uint32_t *buffer;
-	uint32_t number_samples;
+	uint32_t num_samples;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -187,15 +187,15 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 
 	buffer = (uint32_t *)transfer->buffer;
 
-	number_samples = MIN(devc->remaining_samples, max_samples);
-	devc->remaining_samples -= number_samples;
-	send_data(sdi, buffer, number_samples);
+	num_samples = MIN(devc->remaining_samples, max_samples);
+	devc->remaining_samples -= num_samples;
+	send_data(sdi, buffer, num_samples);
 	sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
 		buffer[0], buffer[1]);
 
 	/* Close data receiving. */
 	if (devc->remaining_samples == 0) {
-		if (buffer[number_samples] != H4032L_END_PACKET_MAGIC)
+		if (buffer[num_samples] != H4032L_END_PACKET_MAGIC)
 			sr_err("Mismatch magic number of end poll.");
 
 		abort_acquisition(devc);
@@ -218,7 +218,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 	uint32_t max_samples = transfer->actual_length / sizeof(uint32_t);
 	uint32_t *buffer;
 	struct h4032l_status_packet *status;
-	uint32_t number_samples;
+	uint32_t num_samples;
 	int ret;
 
 	/*
@@ -288,9 +288,9 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		buffer++;
 		/* Fallthrough. */
 	case H4032L_STATUS_TRANSFER:
-		number_samples = MIN(devc->remaining_samples, max_samples);
-		devc->remaining_samples -= number_samples;
-		send_data(sdi, buffer, number_samples);
+		num_samples = MIN(devc->remaining_samples, max_samples);
+		devc->remaining_samples -= num_samples;
+		send_data(sdi, buffer, num_samples);
 		sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
 		       buffer[0], buffer[1]);
 		break;

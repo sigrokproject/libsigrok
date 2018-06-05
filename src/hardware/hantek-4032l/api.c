@@ -387,7 +387,7 @@ static int config_set(uint32_t key, GVariant *data,
 	int idx;
 	struct dev_context *devc = sdi->priv;
 	struct h4032l_cmd_pkt *cmd_pkt = &devc->cmd_pkt;
-	uint64_t sample_rate, number_samples;
+	uint64_t sample_rate, num_samples;
 	double low, high;
 
 	switch (key) {
@@ -406,16 +406,16 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		number_samples = g_variant_get_uint64(data);
-		number_samples += 511;
-		number_samples &= 0xfffffe00;
-		if (number_samples < H4043L_NUM_SAMPLES_MIN ||
-		    number_samples > H4032L_NUM_SAMPLES_MAX) {
+		num_samples = g_variant_get_uint64(data);
+		num_samples += 511;
+		num_samples &= 0xfffffe00;
+		if (num_samples < H4043L_NUM_SAMPLES_MIN ||
+		    num_samples > H4032L_NUM_SAMPLES_MAX) {
 			sr_err("Invalid sample range 2k...64M: %"
-			       PRIu64 ".", number_samples);
+			       PRIu64 ".", num_samples);
 			return SR_ERR;
 		}
-		cmd_pkt->sample_size = number_samples;
+		cmd_pkt->sample_size = num_samples;
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		if (!cg)
