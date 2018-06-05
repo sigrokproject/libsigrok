@@ -187,8 +187,7 @@ void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 
 	buffer = (uint32_t *)transfer->buffer;
 
-	number_samples = (devc->remaining_samples < max_samples) ?
-			  devc->remaining_samples : max_samples;
+	number_samples = MIN(devc->remaining_samples, max_samples);
 	devc->remaining_samples -= number_samples;
 	send_data(sdi, buffer, number_samples);
 	sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
@@ -289,8 +288,7 @@ void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer)
 		buffer++;
 		/* Fallthrough. */
 	case H4032L_STATUS_TRANSFER:
-		number_samples = (devc->remaining_samples < max_samples) ?
-				  devc->remaining_samples : max_samples;
+		number_samples = MIN(devc->remaining_samples, max_samples);
 		devc->remaining_samples -= number_samples;
 		send_data(sdi, buffer, number_samples);
 		sr_dbg("Remaining: %d %08X %08X.", devc->remaining_samples,
