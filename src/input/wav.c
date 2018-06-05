@@ -203,10 +203,11 @@ static void send_chunk(const struct sr_input *in, int offset, int num_samples)
 
 	inc = in->priv;
 
-	s = in->buf->str + offset;
-	fdata = g_malloc0(CHUNK_SIZE * sizeof(float));
-	d = (char *)fdata;
 	total_samples = num_samples * inc->num_channels;
+	fdata = g_malloc0(total_samples * sizeof(float));
+	s = in->buf->str + offset;
+	d = (char *)fdata;
+
 	for (samplenum = 0; samplenum < total_samples; samplenum++) {
 		if (inc->fmt_code == WAVE_FORMAT_PCM_) {
 			switch (inc->unitsize) {
