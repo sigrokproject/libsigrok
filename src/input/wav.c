@@ -51,6 +51,7 @@ struct context {
 	int num_channels;
 	int unitsize;
 	gboolean found_data;
+	gboolean create_channels;
 };
 
 static int parse_wav_header(GString *buf, struct context *inc)
@@ -150,10 +151,15 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 static int init(struct sr_input *in, GHashTable *options)
 {
+	struct context *inc;
+
 	(void)options;
 
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = g_malloc0(sizeof(struct context));
+	inc = in->priv;
+
+	inc->create_channels = TRUE;
 
 	return SR_OK;
 }
@@ -333,10 +339,14 @@ static int receive(struct sr_input *in, GString *buf)
 		else if (ret != SR_OK)
 			return ret;
 
-		for (int i = 0; i < inc->num_channels; i++) {
-			snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
-			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
+		if (inc->create_channels) {
+			for (int i = 0; i < inc->num_channels; i++) {
+				snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
+				sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
+			}
 		}
+
+		inc->create_channels = FALSE;
 
 		/* sdi is ready, notify frontend. */
 		in->sdi_ready = TRUE;
@@ -367,9 +377,13 @@ static int end(struct sr_input *in)
 
 static int reset(struct sr_input *in)
 {
-	struct context *inc = in->priv;
+	memset(in->priv, 0, sizeof(struct context));
 
-	inc->started = FALSE;
+	/*
+	 * We only want to create the sigrok channels once, so
+	 * inc->create_channels won't be set to TRUE this time around.
+	 */
+
 	g_string_truncate(in->buf, 0);
 
 	return SR_OK;

@@ -767,8 +767,8 @@ static int parse_header(struct sr_input *in)
 	return SR_OK;
 }
 
-/* Create sigrok channels and groups. Allocate the session feed buffer. */
-static int create_channels_groups_buffer(struct sr_input *in)
+/* Create sigrok channels and groups. */
+static int create_channels_groups(struct sr_input *in)
 {
 	struct context *inc;
 	uint64_t mask;
@@ -782,6 +782,9 @@ static int create_channels_groups_buffer(struct sr_input *in)
 	struct sr_channel_group *cg;
 
 	inc = in->priv;
+
+	if (inc->channels)
+		return SR_OK;
 
 	mask = UINT64_C(1);
 	for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
@@ -813,6 +816,16 @@ static int create_channels_groups_buffer(struct sr_input *in)
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
 	}
+
+	return SR_OK;
+}
+
+/* Allocate the session feed buffer. */
+static int create_feed_buffer(struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
 
 	inc->unitsize = (inc->channel_count + 7) / 8;
 	inc->samples_per_chunk = CHUNK_SIZE / inc->unitsize;
@@ -1004,7 +1017,10 @@ static int prepare_session_feed(struct sr_input *in)
 	 * header to the session. Optionally send the sample
 	 * rate before sample data will be sent.
 	 */
-	rc = create_channels_groups_buffer(in);
+	rc = create_channels_groups(in);
+	if (rc)
+		return rc;
+	rc = create_feed_buffer(in);
 	if (rc)
 		return rc;
 
@@ -1133,7 +1149,8 @@ static void cleanup(struct sr_input *in)
 	 * and scalars, so that re-runs start out fresh again.
 	 */
 	g_free(inc->sw_version);
-	g_string_free(inc->cont_buff, TRUE);
+	if (inc->cont_buff)
+		g_string_free(inc->cont_buff, TRUE);
 	g_free(inc->sample_data_queue);
 	for (idx = 0; idx < inc->channel_count; idx++)
 		g_free(inc->wire_names[idx]);
@@ -1148,13 +1165,21 @@ static void cleanup(struct sr_input *in)
 static int reset(struct sr_input *in)
 {
 	struct context *inc;
+	GSList *channels;
 
 	inc = in->priv;
+
+	/*
+	 * The input module's .reset() routine clears the 'inc' context,
+	 * but 'in' is kept which contains channel groups which reference
+	 * channels. Since we cannot re-create the channels (applications
+	 * don't expect us to, see bug #1215), make sure to keep the
+	 * channels across the reset operation.
+	 */
+	channels = inc->channels;
+	inc->channels = NULL;
 	cleanup(in);
-	inc->ch_feed_prep = FALSE;
-	inc->header_sent = FALSE;
-	inc->rate_sent = FALSE;
-	g_string_truncate(in->buf, 0);
+	inc->channels = channels;
 
 	return SR_OK;
 }

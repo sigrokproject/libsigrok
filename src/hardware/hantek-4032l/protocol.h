@@ -33,34 +33,60 @@
 #define H4032L_USB_VENDOR 0x04b5
 #define H4032L_USB_PRODUCT 0x4032
 
+#define H4032L_DATA_BUFFER_SIZE (2 * 1024)
+#define H4032L_DATA_TRANSFER_MAX_NUM 32
+
+#define H4043L_NUM_SAMPLES_MIN (2 * 1024)
+#define H4032L_NUM_SAMPLES_MAX (64 * 1024 * 1024)
+
 #define H4032L_CMD_PKT_MAGIC 0x017f
 #define H4032L_STATUS_PACKET_MAGIC 0x2B1A037F
 #define H4032L_START_PACKET_MAGIC 0x2B1A027F
 #define H4032L_END_PACKET_MAGIC 0x4D3C037F
 
+enum h4032l_clock_edge_type {
+	H4032L_CLOCK_EDGE_TYPE_RISE,
+	H4032L_CLOCK_EDGE_TYPE_FALL,
+	H4032L_CLOCK_EDGE_TYPE_BOTH
+};
+
+enum h4032l_ext_clock_source {
+	H4032L_EXT_CLOCK_SOURCE_CHANNEL_A,
+	H4032L_EXT_CLOCK_SOURCE_CHANNEL_B
+};
+
+enum h4032l_clock_edge_type_channel {
+	H4032L_CLOCK_EDGE_TYPE_RISE_A = 0x24,
+	H4032L_CLOCK_EDGE_TYPE_RISE_B,
+	H4032L_CLOCK_EDGE_TYPE_BOTH_A,
+	H4032L_CLOCK_EDGE_TYPE_BOTH_B,
+	H4032L_CLOCK_EDGE_TYPE_FALL_A,
+	H4032L_CLOCK_EDGE_TYPE_FALL_B
+};
+
 enum h4032l_trigger_edge_type {
-	H4032L_TRIGGER_EDGE_TYPE_RISE = 0,
+	H4032L_TRIGGER_EDGE_TYPE_RISE,
 	H4032L_TRIGGER_EDGE_TYPE_FALL,
 	H4032L_TRIGGER_EDGE_TYPE_TOGGLE,
 	H4032L_TRIGGER_EDGE_TYPE_DISABLED
 };
 
 enum h4032l_trigger_data_range_type {
-	H4032L_TRIGGER_DATA_RANGE_TYPE_MAX = 0,
+	H4032L_TRIGGER_DATA_RANGE_TYPE_MAX,
 	H4032L_TRIGGER_DATA_RANGE_TYPE_MIN_OR_MAX,
 	H4032L_TRIGGER_DATA_RANGE_TYPE_OUT_OF_RANGE,
 	H4032L_TRIGGER_DATA_RANGE_TYPE_WITHIN_RANGE
 };
 
 enum h4032l_trigger_time_range_type {
-	H4032L_TRIGGER_TIME_RANGE_TYPE_MAX = 0,
+	H4032L_TRIGGER_TIME_RANGE_TYPE_MAX,
 	H4032L_TRIGGER_TIME_RANGE_TYPE_MIN_OR_MAX,
 	H4032L_TRIGGER_TIME_RANGE_TYPE_OUT_OF_RANGE,
 	H4032L_TRIGGER_TIME_RANGE_TYPE_WITHIN_RANGE
 };
 
 enum h4032l_trigger_data_selection {
-	H4032L_TRIGGER_DATA_SELECTION_NEXT = 0,
+	H4032L_TRIGGER_DATA_SELECTION_NEXT,
 	H4032L_TRIGGER_DATA_SELECTION_CURRENT,
 	H4032L_TRIGGER_DATA_SELECTION_PREV
 };
@@ -74,7 +100,7 @@ enum h4032l_status {
 	H4032L_STATUS_RESPONSE_STATUS_CONTINUE,
 	H4032L_STATUS_CMD_GET,
 	H4032L_STATUS_FIRST_TRANSFER,
-	H4032L_STATUS_TRANSFER,
+	H4032L_STATUS_TRANSFER
 };
 
 #pragma pack(push,2)
@@ -120,18 +146,32 @@ struct h4032l_cmd_pkt {
 
 struct dev_context {
 	enum h4032l_status status;
+	uint64_t sample_rate;
+	unsigned int sent_samples;
+	int submitted_transfers;
 	uint32_t remaining_samples;
 	gboolean acq_aborted;
 	struct h4032l_cmd_pkt cmd_pkt;
-	struct libusb_transfer *usb_transfer;
-	uint8_t buffer[512];
+	unsigned int num_transfers;
+	struct libusb_transfer **transfers;
+	uint8_t buf[512];
 	uint64_t capture_ratio;
+	uint32_t trigger_pos;
+	gboolean external_clock;
+	enum h4032l_ext_clock_source external_clock_source;
+	enum h4032l_clock_edge_type clock_edge;
+	double cur_threshold[2];
+	uint32_t fpga_version;
 };
 
 SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV uint16_t h4032l_voltage2pwm(double voltage);
 SR_PRIV void LIBUSB_CALL h4032l_usb_callback(struct libusb_transfer *transfer);
+SR_PRIV void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer);
+SR_PRIV int h4032l_start_data_transfers(const struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_start(const struct sr_dev_inst *sdi);
+SR_PRIV int h4032l_stop(struct sr_dev_inst *sdi);
 SR_PRIV int h4032l_dev_open(struct sr_dev_inst *sdi);
+SR_PRIV int h4032l_get_fpga_version(const struct sr_dev_inst *sdi);
 
 #endif
