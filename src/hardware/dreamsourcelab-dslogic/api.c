@@ -116,6 +116,8 @@ static const uint64_t samplerates[] = {
 };
 
 #ifdef INIFILE
+static const double volt_thresholds[] = { 0.7, 1.4, 1.6 };
+
 struct ini_element {
 	int samplerate;
 	int volt_threshold;
@@ -330,12 +332,10 @@ static struct ini_element read_ini()
   	snprintf(conf_file, PATH_MAX, "%s/%s", homedir, filename);
 	if (getcwd(cwd, sizeof(cwd)) != NULL)
 		sr_info("Current working dir: %s", cwd);
-	ie.samplerate = -1;
-	ie.volt_threshold = -1;
-	ie.captureratio = -1;
+	ie.samplerate = ie.volt_threshold = ie.captureratio = -1;
 	config_init(&cfg);
 	  /* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, conf_file)) {
+	if (! config_read_file(&cfg, conf_file)) {
 		sr_err("stderr %s:%d - %s", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
@@ -343,24 +343,25 @@ static struct ini_element read_ini()
 	}
 	/* Output a list of all elements dreamsourcelab-dslogic-device */
 	setting = config_lookup(&cfg, "Devices.dreamsourcelabdslogic");
-	if(setting != NULL) {
+	if (setting != NULL) {
 		count = config_setting_length(setting);
-		for(i = 0; i < count; ++i) {
+		for (i = 0; i < count; ++i) {
 			config_setting_t *dreamsourcelabdslogic = config_setting_get_elem(setting, i);
 			/* Only output the record if all of the expected fields are present. */
-			if(!(config_setting_lookup_string(dreamsourcelabdslogic, "workdir", &ie_dir)
+			if (!(config_setting_lookup_string(dreamsourcelabdslogic, "workdir", &ie_dir)
 					&& config_setting_lookup_int(dreamsourcelabdslogic, "samplerate", &samplerate)
 					&& config_setting_lookup_int(dreamsourcelabdslogic, "captureratio", &captureratio)
 					&& config_setting_lookup_int(dreamsourcelabdslogic, "volt_threshold", &volt_threshold)))
 				continue;
 			/* found current workingdir in ini-file */
-			if(strcmp(cwd, ie_dir) == 0) {
+			if (strcmp(cwd, ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
 				ie.volt_threshold = volt_threshold;
 				return ie;
 			}
-			if(strcmp("default", ie_dir) == 0) {
+
+			if (strcmp("default", ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
 				ie.volt_threshold = volt_threshold;
@@ -384,7 +385,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 #ifdef INIFILE	
 	struct ini_element dev_ie;
-	int ini_samplerate_idx, ini_samplerate_idx_ok, ini_captureratio, ini_captureratio_ok;
+	int ini_samplerate_idx, ini_captureratio, ini_volt_thresholds_idx;
 #endif
 
 	/*
@@ -444,41 +445,40 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return ret;
 
 #ifdef INIFILE
-	ini_samplerate_idx_ok = 0;
-	ini_captureratio_ok = 0;
-  
 	dev_ie = read_ini();
 
 	ini_samplerate_idx = dev_ie.samplerate;
 	ini_captureratio = dev_ie.captureratio;
-
-	sr_info("ini- samplerate: %d, captureratio: %d", ini_samplerate_idx, ini_captureratio);
-	if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates))) 
-		ini_samplerate_idx_ok = 1;
+	ini_volt_thresholds_idx = dev_ie.volt_threshold;
+	sr_info("ini- samplerate: %d, captureratio: %d, volt_threshold: %d", ini_samplerate_idx, ini_captureratio, ini_volt_thresholds_idx);
 #endif
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		devc->cur_samplerate = devc->samplerates[0];
 #ifdef INIFILE
-		if (ini_samplerate_idx_ok == 1)
+		if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates)))
 			devc->cur_samplerate = devc->samplerates[ini_samplerate_idx];
 #endif
 	}
-#ifdef INIFILE
-	if ((ini_captureratio > -1) && (ini_captureratio < 101))
-		ini_captureratio_ok = 1;
-#endif
+
 	if (devc->capture_ratio == 0) {
 		/* 0% capture ratio */ 
 		devc->capture_ratio = 0;
 #ifdef INIFILE
-		if (ini_captureratio_ok == 1)
+		if ((ini_captureratio > -1) && (ini_captureratio < 101))
 			devc->capture_ratio = ini_captureratio;
 #endif
 	}
 
 	if (devc->cur_threshold == 0.0) {
 		devc->cur_threshold = thresholds[1][0];
+#ifdef INIFILE
+		sr_info("threshold_def: %f", devc->cur_threshold);	
+		if (!(ini_volt_thresholds_idx == -1) && (ini_volt_thresholds_idx < (int)ARRAY_SIZE(volt_thresholds))) {
+			devc->cur_threshold = volt_thresholds[ini_volt_thresholds_idx];
+			sr_info("threshold_ini: %f", devc->cur_threshold);	
+		}
+#endif
 		return dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
 	}
 

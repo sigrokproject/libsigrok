@@ -408,11 +408,10 @@ static struct ini_element read_ini()
   	snprintf(conf_file, PATH_MAX, "%s/%s", homedir, filename);
 	if (getcwd(cwd, sizeof(cwd)) != NULL)
 		sr_info("Current working dir: %s", cwd);
-	ie.samplerate = -1;
-	ie.captureratio = -1;
+	ie.samplerate = ie.captureratio = -1;
 	config_init(&cfg);
 	  /* Read the file. If there is an error, report it and exit. */
-	if(! config_read_file(&cfg, conf_file)) {
+	if (! config_read_file(&cfg, conf_file)) {
 		sr_err("stderr %s:%d - %s", config_error_file(&cfg),
 			config_error_line(&cfg), config_error_text(&cfg));
 		config_destroy(&cfg);
@@ -420,23 +419,23 @@ static struct ini_element read_ini()
 	}
 	/* Output a list of all elements dreamsourcelab-dslogic-device */
 	setting = config_lookup(&cfg, "Devices.fx2lafw");
-	if(setting != NULL) {
+	if (setting != NULL) {
 		count = config_setting_length(setting);
-		for(i = 0; i < count; ++i) {
+		for (i = 0; i < count; ++i) {
 			config_setting_t *fx2lafw = config_setting_get_elem(setting, i);
 			/* Only output the record if all of the expected fields are present. */
-			if(!(config_setting_lookup_string(fx2lafw, "workdir", &ie_dir)
+			if (!(config_setting_lookup_string(fx2lafw, "workdir", &ie_dir)
 					&& config_setting_lookup_int(fx2lafw, "samplerate", &samplerate)
 					&& config_setting_lookup_int(fx2lafw, "captureratio", &captureratio)))
 				continue;
 			/* found current workingdir in ini-file */
-			if(strcmp(cwd, ie_dir) == 0) {
+			if (strcmp(cwd, ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
-
 				return ie;
 			}
-			if(strcmp("default", ie_dir) == 0) {
+
+			if (strcmp("default", ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
 			}
@@ -459,7 +458,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 #ifdef INIFILE	
 	struct ini_element dev_ie;
-	int ini_samplerate_idx, ini_samplerate_idx_ok, ini_captureratio, ini_captureratio_ok;
+	int ini_samplerate_idx,  ini_captureratio;
 #endif
 
 	/*
@@ -516,35 +515,26 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 #ifdef INIFILE
-	ini_samplerate_idx_ok = 0;
-	ini_captureratio_ok = 0;
- 
 	dev_ie = read_ini();
 
 	ini_samplerate_idx = dev_ie.samplerate;
 	ini_captureratio = dev_ie.captureratio;
-
 	sr_info("ini- samplerate: %d, captureratio: %d", ini_samplerate_idx, ini_captureratio);
-	if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates))) 
-		ini_samplerate_idx_ok = 1;
 #endif
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		devc->cur_samplerate = devc->samplerates[0];
 #ifdef INIFILE
-		if (ini_samplerate_idx_ok == 1)
+		if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates))) 
 			devc->cur_samplerate = devc->samplerates[ini_samplerate_idx];
 #endif
 	}
-#ifdef INIFILE
-	if ((ini_captureratio > -1) && (ini_captureratio < 101))
-		ini_captureratio_ok = 1;
-#endif
+
 	if (devc->capture_ratio == 0) {
 		/* 0% capture ratio */ 
 		devc->capture_ratio = 0;
 #ifdef INIFILE
-		if (ini_captureratio_ok == 1)
+		if ((ini_captureratio > -1) && (ini_captureratio < 101))
 			devc->capture_ratio = ini_captureratio;
 #endif
 	}

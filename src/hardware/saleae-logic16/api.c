@@ -374,8 +374,7 @@ static struct ini_element read_ini()
   	snprintf(conf_file, PATH_MAX, "%s/%s", homedir, filename);
 	if (getcwd(cwd, sizeof(cwd)) != NULL)
 		sr_info("Current working dir: %s", cwd);
-	ie.samplerate = -1;
-	ie.captureratio = -1;
+	ie.samplerate = ie.captureratio = -1;
 	config_init(&cfg);
 	  /* Read the file. If there is an error, report it and exit. */
 	if(! config_read_file(&cfg, conf_file)) {
@@ -399,9 +398,9 @@ static struct ini_element read_ini()
 			if(strcmp(cwd, ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
-
 				return ie;
 			}
+
 			if(strcmp("default", ie_dir) == 0) {
 				ie.samplerate = samplerate;
 				ie.captureratio = captureratio;
@@ -423,7 +422,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 #ifdef INIFILE	
 	struct ini_element dev_ie;
-	int ini_samplerate_idx, ini_samplerate_idx_ok, ini_captureratio, ini_captureratio_ok;
+	int ini_samplerate_idx, ini_captureratio;
 #endif
 
 	/*
@@ -461,35 +460,26 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 #ifdef INIFILE
-	ini_samplerate_idx_ok = 0;
-	ini_captureratio_ok = 0;
- 
 	dev_ie = read_ini();
 
 	ini_samplerate_idx = dev_ie.samplerate;
 	ini_captureratio = dev_ie.captureratio;
-
 	sr_info("ini- samplerate: %d, captureratio: %d", ini_samplerate_idx, ini_captureratio);
-	if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates))) 
-		ini_samplerate_idx_ok = 1;
 #endif
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		devc->cur_samplerate = samplerates[0];
 #ifdef INIFILE
-		if (ini_samplerate_idx_ok == 1)
+		if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates)))
 			devc->cur_samplerate = samplerates[ini_samplerate_idx];  
 #endif
 	}
-#ifdef INIFILE
-	if ((ini_captureratio > -1) && (ini_captureratio < 101))
-		ini_captureratio_ok = 1;
-#endif
+
 	if (devc->capture_ratio == 0) {
 		/* 0% capture ratio */ 
 		devc->capture_ratio = 0;
 #ifdef INIFILE
-		if (ini_captureratio_ok == 1)
+		if ((ini_captureratio > -1) && (ini_captureratio < 101))
 			devc->capture_ratio = ini_captureratio;
 #endif
 	}
