@@ -1375,6 +1375,21 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- hardware/dmm/vc96.c ---------------------------------------------------*/
+
+#define VC96_PACKET_SIZE 13
+
+struct vc96_info {
+	size_t ch_idx;
+	gboolean is_ac, is_dc, is_resistance, is_diode, is_ampere, is_volt;
+	gboolean is_ohm, is_micro, is_milli, is_kilo, is_mega, is_hfe;
+	gboolean is_unitless;
+};
+
+SR_PRIV gboolean sr_vc96_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/lcr/es51919.c ------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);
