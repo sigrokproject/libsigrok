@@ -849,6 +849,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		/* Send the incoming transfer to the session bus. */
 		if (devc->trigger_pos > devc->sent_samples
 			&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+			printf("Triggertime: %li \n", g_get_monotonic_time());
 			/* DSLogic trigger in this block. Send trigger position. */
 			trigger_offset = devc->trigger_pos - devc->sent_samples;
 			/* Pre-trigger samples. */
