@@ -21,8 +21,8 @@
 #include <string.h>
 #include "protocol.h"
 
-SR_PRIV int gpd_send_cmd(struct sr_serial_dev_inst *serial,
-					const char *cmd, ...)
+SR_PRIV int gpd_send_cmd(struct sr_serial_dev_inst *serial, 
+				const char *cmd, ...)
 {
 	int ret;
 	char cmdbuf[50];
@@ -48,8 +48,8 @@ SR_PRIV int gpd_send_cmd(struct sr_serial_dev_inst *serial,
 }
 
 
-SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial,
-					     char *buf, int buflen)
+SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial, char *buf,
+				int buflen)
 {
 	int l_recv = 0;
 	int bufpos = 0;
@@ -133,8 +133,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("%s(G_IO_IN)", __func__);
 		if (!devc->reply_pending) {
 			sr_err("no reply pending");
-			gpd_receive_reply(serial, reply,
-							 sizeof(reply));
+			gpd_receive_reply(serial, reply, sizeof(reply));
 
 			reply_esc = g_strescape(reply, NULL);
 			sr_err("unexpected data '%s'", reply_esc);
@@ -142,8 +141,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 		} else {
 			for (i = 0; i < devc->model->num_channels; i++) {
 				reply[0] = '\0';
-				gpd_receive_reply(serial, reply,
-					sizeof(reply));
+				gpd_receive_reply(serial, reply, sizeof(reply));
 				if (sscanf(reply, "%f",
 					&devc->config[i].output_voltage_max)
 						!= 1) {
@@ -173,8 +171,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 				sr_session_send(sdi, &packet);
 
 				reply[0] = '\0';
-				gpd_receive_reply(serial, reply,
-					sizeof(reply));
+				gpd_receive_reply(serial, reply, sizeof(reply));
 				if (sscanf(reply, "%f",
 					&devc->config[i].output_voltage_max)
 						!= 1) {
@@ -211,8 +208,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("%s(TIMEOUT)", __func__);
 		if (!devc->reply_pending) {
 			for (i = 0; i < devc->model->num_channels; i++)
-				gpd_send_cmd(serial,
-					"IOUT%d?\nVOUT%d?\n",
+				gpd_send_cmd(serial, "IOUT%d?\nVOUT%d?\n",
 					i + 1, i + 1);
 
 			devc->req_sent_at = g_get_monotonic_time();
