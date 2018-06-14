@@ -126,6 +126,9 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 			g_free(reply_esc);
 		} else {
 			for (i = 0; i < devc->model->num_channels; i++) {
+				packet.type = SR_DF_ANALOG;
+				packet.payload = &analog;
+
 				reply[0] = '\0';
 				gpd_receive_reply(serial, reply, sizeof(reply));
 				if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1) {
@@ -134,12 +137,8 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 					return TRUE;
 				}
 
-				sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-
 				/* Send the value forward. */
-				packet.type = SR_DF_ANALOG;
-				packet.payload = &analog;
-
+				sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 				analog.num_samples = 1;
 				ch = g_slist_nth_data(sdi->channels, i);
 				analog.meaning->channels =
@@ -160,12 +159,8 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 					return TRUE;
 				}
 
-				sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-
 				/* Send the value forward. */
-				packet.type = SR_DF_ANALOG;
-				packet.payload = &analog;
-
+				sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 				analog.num_samples = 1;
 				ch = g_slist_nth_data(sdi->channels, i);
 				analog.meaning->channels =
