@@ -317,8 +317,7 @@ static int config_set(uint32_t key, GVariant *data,
 
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
-		gpd_send_cmd(sdi->conn, "OUT%c\n",
-					    bval ? '1' : '0');
+		gpd_send_cmd(sdi->conn, "OUT%c\n", bval ? '1' : '0');
 		devc->output_enabled = bval;
 		break;
 
@@ -345,8 +344,7 @@ static int config_set(uint32_t key, GVariant *data,
 		    || dval > devc->model->channels[channel].current[1])
 			return SR_ERR_ARG;
 
-		gpd_send_cmd(sdi->conn, "ISET%d:%05.3lf\n",
-					    channel + 1, dval);
+		gpd_send_cmd(sdi->conn, "ISET%d:%05.3lf\n", channel + 1, dval);
 		devc->config[channel].output_current_max = dval;
 		break;
 
