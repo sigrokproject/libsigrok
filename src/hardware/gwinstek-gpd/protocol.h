@@ -17,15 +17,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_GWINSTEK_GPD_2303S_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_GWINSTEK_GPD_2303S_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_GWINSTEK_GPD_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_GWINSTEK_GPD_PROTOCOL_H
 
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "gwinstek-gpd-2303s"
+#define LOG_PREFIX "gwinstek-gpd"
 
 enum {
 	GPD_2303S,
@@ -74,7 +74,6 @@ struct dev_context {
 };
 
 
-
 SR_PRIV int gpd_send_cmd(struct sr_serial_dev_inst *serial,
 		const char *cmd, ...);
 
@@ -83,6 +82,5 @@ SR_PRIV int gpd_receive_data(int fd, int revents,
 
 SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial,
 		char *buf, int buflen);
-
 
 #endif
