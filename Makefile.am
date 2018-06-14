@@ -321,11 +321,11 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/gwinstek-gds-800/protocol.c \
 	src/hardware/gwinstek-gds-800/api.c
 endif
-if HW_GWINSTEK_GPD_2303S
+if HW_GWINSTEK_GPD
 src_libdrivers_la_SOURCES += \
-	src/hardware/gwinstek-gpd-2303s/protocol.h \
-	src/hardware/gwinstek-gpd-2303s/protocol.c \
-	src/hardware/gwinstek-gpd-2303s/api.c
+	src/hardware/gwinstek-gpd/protocol.h \
+	src/hardware/gwinstek-gpd/protocol.c \
+	src/hardware/gwinstek-gpd/api.c
 endif
 if HW_HAMEG_HMO
 src_libdrivers_la_SOURCES += \
