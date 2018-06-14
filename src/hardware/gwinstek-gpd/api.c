@@ -114,8 +114,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	serial_flush(serial);
-	gwinstek_gpd_2303s_send_cmd(serial, "*IDN?\n");
-	if (gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply))
+	gpd_send_cmd(serial, "*IDN?\n");
+	if (gpd_receive_reply(serial, reply, sizeof(reply))
 	    != SR_OK) {
 		sr_err("device did not reply");
 		goto error;
@@ -171,8 +171,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 
 	serial_flush(serial);
-	gwinstek_gpd_2303s_send_cmd(serial, "STATUS?\n");
-	gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+	gpd_send_cmd(serial, "STATUS?\n");
+	gpd_receive_reply(serial, reply, sizeof(reply));
 	{
 		unsigned int cc_cv_ch1, cc_cv_ch2, track1, track2, beep, baud1,
 			     baud2;
@@ -185,30 +185,30 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	for (i = 0; i < model->num_channels; ++i) {
-		gwinstek_gpd_2303s_send_cmd(serial, "ISET%d?\n", i + 1);
-		gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+		gpd_send_cmd(serial, "ISET%d?\n", i + 1);
+		gpd_receive_reply(serial, reply, sizeof(reply));
 		if (sscanf(reply, "%f", &devc->config[i].output_current_max)
 		    != 1) {
 			sr_err("invalid reply to ISETn?: '%s'", reply);
 			goto error;
 		}
 
-		gwinstek_gpd_2303s_send_cmd(serial, "VSET%d?\n", i + 1);
-		gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+		gpd_send_cmd(serial, "VSET%d?\n", i + 1);
+		gpd_receive_reply(serial, reply, sizeof(reply));
 		if (sscanf(reply, "%f", &devc->config[i].output_voltage_max)
 		    != 1) {
 			sr_err("invalid reply to VSETn?: '%s'", reply);
 			goto error;
 		}
-		gwinstek_gpd_2303s_send_cmd(serial, "IOUT%d?\n", i + 1);
-		gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+		gpd_send_cmd(serial, "IOUT%d?\n", i + 1);
+		gpd_receive_reply(serial, reply, sizeof(reply));
 		if (sscanf(reply, "%f", &devc->config[i].output_current_last)
 		    != 1) {
 			sr_err("invalid reply to IOUTn?: '%s'", reply);
 			goto error;
 		}
-		gwinstek_gpd_2303s_send_cmd(serial, "VOUT%d?\n", i + 1);
-		gwinstek_gpd_2303s_receive_reply(serial, reply, sizeof(reply));
+		gpd_send_cmd(serial, "VOUT%d?\n", i + 1);
+		gpd_receive_reply(serial, reply, sizeof(reply));
 		if (sscanf(reply, "%f", &devc->config[i].output_voltage_last)
 		    != 1) {
 			sr_err("invalid reply to VOUTn?: '%s'", reply);
@@ -317,7 +317,7 @@ static int config_set(uint32_t key, GVariant *data,
 
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
-		gwinstek_gpd_2303s_send_cmd(sdi->conn, "OUT%c\n",
+		gpd_send_cmd(sdi->conn, "OUT%c\n",
 					    bval ? '1' : '0');
 		devc->output_enabled = bval;
 		break;
@@ -331,7 +331,7 @@ static int config_set(uint32_t key, GVariant *data,
 		    || dval > devc->model->channels[channel].voltage[1])
 			return SR_ERR_ARG;
 
-		gwinstek_gpd_2303s_send_cmd(sdi->conn, "VSET%d:%05.3lf\n",
+		gpd_send_cmd(sdi->conn, "VSET%d:%05.3lf\n",
 					    channel + 1, dval);
 		devc->config[channel].output_voltage_max = dval;
 		break;
@@ -345,7 +345,7 @@ static int config_set(uint32_t key, GVariant *data,
 		    || dval > devc->model->channels[channel].current[1])
 			return SR_ERR_ARG;
 
-		gwinstek_gpd_2303s_send_cmd(sdi->conn, "ISET%d:%05.3lf\n",
+		gpd_send_cmd(sdi->conn, "ISET%d:%05.3lf\n",
 					    channel + 1, dval);
 		devc->config[channel].output_current_max = dval;
 		break;
@@ -420,12 +420,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->req_sent_at = 0;
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-			  gwinstek_gpd_2303s_receive_data, (void *)sdi);
+			  gpd_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
 
-SR_PRIV const struct sr_dev_driver gwinstek_gpd_2303s_driver_info = {
+SR_PRIV const struct sr_dev_driver gpd_driver_info = {
 	.name			= "gwinstek-gpd",
 	.longname		= "GW Instek GPD",
 	.api_version		= 1,
@@ -444,4 +444,4 @@ SR_PRIV const struct sr_dev_driver gwinstek_gpd_2303s_driver_info = {
 	.context		= NULL,
 };
 
-SR_REGISTER_DEV_DRIVER(gwinstek_gpd_2303s_driver_info);
+SR_REGISTER_DEV_DRIVER(gpd_driver_info);
