@@ -34,9 +34,9 @@ enum {
 /* Maximum number of output channels handled by this driver. */
 #define MAX_CHANNELS 2
 
-#define CHANMODE_INDEPENDENT 1 << 0
-#define CHANMODE_SERIES      1 << 1
-#define CHANMODE_PARALLEL    1 << 2
+#define CHANMODE_INDEPENDENT (1 << 0)
+#define CHANMODE_SERIES      (1 << 1)
+#define CHANMODE_PARALLEL    (1 << 2)
 
 struct channel_spec {
 	/* Min, max, step. */
@@ -45,43 +45,44 @@ struct channel_spec {
 };
 
 struct gpd_model {
-	int modelid;
-	const char *name;
-	int channel_modes;
-	unsigned int num_channels;
-	struct channel_spec channels[MAX_CHANNELS];
+	int			modelid;
+	const char		*name;
+	int			channel_modes;
+	unsigned int		num_channels;
+	struct channel_spec	channels[MAX_CHANNELS];
 };
 
 struct per_channel_config {
 	/* Received from device. */
-	gfloat output_voltage_last;
-	gfloat output_current_last;
+	gfloat	output_voltage_last;
+	gfloat	output_current_last;
 	/* Set by frontend. */
-	gfloat output_voltage_max;
-	gfloat output_current_max;
+	gfloat	output_voltage_max;
+	gfloat	output_current_max;
 };
 
 struct dev_context {
 	/* Received from device. */
-	gboolean output_enabled;
-	int64_t req_sent_at;
-	gboolean reply_pending;
-	
-	struct sr_sw_limits limits;
-	int channel_mode;	
-	struct per_channel_config *config;
-	const struct gpd_model *model;
+	gboolean			output_enabled;
+	int64_t				req_sent_at;
+	gboolean			reply_pending;
+
+	struct sr_sw_limits		limits;
+	int				channel_mode;
+	struct per_channel_config	*config;
+	const struct gpd_model		*model;
 };
 
 
 
 SR_PRIV int gwinstek_gpd_2303s_send_cmd(struct sr_serial_dev_inst *serial,
-					const char *cmd, ...);
+		const char *cmd, ...);
 
-SR_PRIV int gwinstek_gpd_2303s_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int gwinstek_gpd_2303s_receive_data(int fd, int revents,
+		void *cb_data);
 
-
-SR_PRIV int gwinstek_gpd_2303s_receive_reply(struct sr_serial_dev_inst *serial, char *buf, int buflen);
+SR_PRIV int gwinstek_gpd_2303s_receive_reply(struct sr_serial_dev_inst *serial,
+		char *buf, int buflen);
 
 
 #endif
