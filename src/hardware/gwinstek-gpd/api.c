@@ -426,8 +426,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 }
 
 SR_PRIV const struct sr_dev_driver gwinstek_gpd_2303s_driver_info = {
-	.name			= "gwinstek-gpd-2303s",
-	.longname		= "GWInstek GPD-2303S",
+	.name			= "gwinstek-gpd",
+	.longname		= "GW Instek GPD",
 	.api_version		= 1,
 	.init			= std_init,
 	.cleanup		= std_cleanup,
