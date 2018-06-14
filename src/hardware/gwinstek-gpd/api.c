@@ -223,11 +223,6 @@ static int config_get(uint32_t key, GVariant **data,
 	int ret, channel;
 	const struct dev_context *devc;
 	const struct sr_channel *ch;
-	const struct sr_key_info *ki;
-
-	ki = sr_key_info_get(SR_KEY_CONFIG, key);
-
-	sr_info("%s(%d, %s)", __func__, key, (ki != NULL) ? ki->name : NULL);
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -249,8 +244,6 @@ static int config_get(uint32_t key, GVariant **data,
 	} else {
 		ch = cg->channels->data;
 		channel = ch->index;
-		sr_info("%s(%d, %s, %d)", __func__, key,
-			(ki != NULL) ? ki->name : NULL, channel);
 		ret = SR_OK;
 		switch (key) {
 		case SR_CONF_VOLTAGE:
@@ -287,7 +280,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-	sr_info("%s(%d)", __func__, key);
 
 	ret = SR_OK;
 
@@ -378,7 +370,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	sr_info("%s()", __func__);
 	devc = sdi->priv;
 
 	sr_sw_limits_acquisition_start(&devc->limits);

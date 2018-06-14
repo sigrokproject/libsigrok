@@ -118,7 +118,6 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 
 	if (revents == G_IO_IN) {
-		sr_dbg("%s(G_IO_IN)", __func__);
 		if (!devc->reply_pending) {
 			sr_err("No reply pending.");
 			gpd_receive_reply(serial, reply, sizeof(reply));
@@ -183,7 +182,6 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 			devc->reply_pending = FALSE;
 		}
 	} else {
-		sr_dbg("%s(TIMEOUT)", __func__);
 		if (!devc->reply_pending) {
 			for (i = 0; i < devc->model->num_channels; i++)
 				gpd_send_cmd(serial, "IOUT%d?\nVOUT%d?\n",
