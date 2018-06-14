@@ -77,10 +77,9 @@ struct dev_context {
 SR_PRIV int gpd_send_cmd(struct sr_serial_dev_inst *serial,
 		const char *cmd, ...);
 
-SR_PRIV int gpd_receive_data(int fd, int revents,
-		void *cb_data);
+SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial,
-		char *buf, int buflen);
+SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial, char *buf,
+		int buflen);
 
 #endif
