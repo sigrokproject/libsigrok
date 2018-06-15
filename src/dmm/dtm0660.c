@@ -254,6 +254,8 @@ static void parse_flags(const uint8_t *buf, struct dtm0660_info *info)
 static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 			 int *exponent, const struct dtm0660_info *info)
 {
+	int initial_exponent = *exponent;
+
 	/* Factors */
 	if (info->is_nano)
 		*exponent -= 9;
@@ -265,7 +267,7 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 		*exponent += 3;
 	if (info->is_mega)
 		*exponent += 6;
-	*floatval *= powf(10, *exponent);
+	*floatval *= powf(10, (*exponent - initial_exponent));
 
 	/* Measurement modes */
 	if (info->is_volt) {
