@@ -28,6 +28,9 @@
 
 #define DEFAULT_SAMPLES_PER_LINE 192
 
+#define margin_chan "%8s:"
+#define margin_trig "%9s"
+
 struct context {
 	unsigned int num_enabled_channels;
 	int spl;
@@ -82,7 +85,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		ctx->channel_names[j] = ch->name;
 		ctx->lines[j] = g_string_sized_new(80);
 		ctx->sample_buf[j] = 0;
-		g_string_printf(ctx->lines[j], "%s:", ch->name);
+		g_string_printf(ctx->lines[j], margin_chan, ch->name);
 		j++;
 	}
 
@@ -181,11 +184,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
 					if (j == ctx->num_enabled_channels - 1 && ctx->trigger > -1) {
-						offset = ctx->trigger + ctx->trigger / 8;
-						g_string_append_printf(*out, "T:%*s^ %d\n", offset, "", ctx->trigger);
+						offset = ctx->trigger / 4 + ctx->trigger / 8;
+						g_string_append_printf(*out, margin_trig, "T:");
+						g_string_append_printf(*out, " %*s^ %d\n", offset - 1, "", ctx->trigger + 1);
 						ctx->trigger = -1;
 					}
-					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]);
+					g_string_printf(ctx->lines[j], margin_chan, ctx->channel_names[j]);
 				}
 			}
 			if (ctx->spl_cnt == ctx->spl)

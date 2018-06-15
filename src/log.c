@@ -62,6 +62,8 @@ static void *sr_log_cb_data = NULL;
 #define LOGLEVEL_TIMESTAMP SR_LOG_DBG
 /** @endcond */
 static int64_t sr_log_start_time = 0;
+static int64_t session_start_time = 0;
+static int64_t session_start_epoch = 0;
 
 /**
  * Set the libsigrok loglevel.
@@ -82,13 +84,31 @@ static int64_t sr_log_start_time = 0;
  */
 SR_API int sr_log_loglevel_set(int loglevel)
 {
+	GDateTime *dt = NULL;
+	char *str = NULL;
+
 	if (loglevel < SR_LOG_NONE || loglevel > SR_LOG_SPEW) {
 		sr_err("Invalid loglevel %d.", loglevel);
 		return SR_ERR_ARG;
 	}
 	/* Output time stamps relative to time at startup */
-	if (loglevel >= LOGLEVEL_TIMESTAMP && sr_log_start_time == 0)
+	if (loglevel >= LOGLEVEL_TIMESTAMP && sr_log_start_time == 0) {
 		sr_log_start_time = g_get_monotonic_time();
+		session_start_epoch = g_get_real_time();
+		dt = g_date_time_new_now_local();
+		session_start_time = sr_log_start_time;
+	} else if ( session_start_time == 0 ) {
+		session_start_time = g_get_monotonic_time();
+		session_start_epoch = g_get_real_time();
+		dt = g_date_time_new_now_local();
+	}
+	str = g_date_time_format(dt, "%F %X %z");
+	printf("Session Start-Time: %s    Epoch-Timestamp: %li  Log-Timestamp: %li\n", str, session_start_epoch, session_start_time);
+	g_date_time_unref(dt);
+	g_free(str); 
+
+
+
 
 	cur_loglevel = loglevel;
 

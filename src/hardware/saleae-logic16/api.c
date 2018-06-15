@@ -29,6 +29,17 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+#ifndef INIFILE
+//#define INIFILE
+#endif
+
+#ifdef INIFILE
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <libconfig.h>
+#endif
+
 #define LOGIC16_VID		0x21a9
 #define LOGIC16_PID		0x1001
 
@@ -100,6 +111,13 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(80),
 	SR_MHZ(100),
 };
+
+#ifdef INIFILE
+struct ini_element {
+	int samplerate;
+	int captureratio;
+};
+#endif
 
 static gboolean check_conf_profile(libusb_device *dev)
 {
@@ -333,6 +351,67 @@ static int logic16_dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+#ifdef INIFILE
+static struct ini_element read_ini()
+{
+	struct ini_element ie;
+
+	const char *homedir;
+	char conf_file[PATH_MAX];
+	char *filename = ".config/sigrok/libsigrok.conf";
+	char cwd[PATH_MAX];
+	
+	config_t cfg;
+	config_setting_t *setting;
+	int count, i;
+
+	const char *ie_dir;
+	int samplerate;
+	int captureratio;		
+		
+	if ((homedir = getenv("HOME")) == NULL) 
+    		homedir = getpwuid(getuid())->pw_dir;
+  	snprintf(conf_file, PATH_MAX, "%s/%s", homedir, filename);
+	if (getcwd(cwd, sizeof(cwd)) != NULL)
+		sr_info("Current working dir: %s", cwd);
+	ie.samplerate = ie.captureratio = -1;
+	config_init(&cfg);
+	  /* Read the file. If there is an error, report it and exit. */
+	if(! config_read_file(&cfg, conf_file)) {
+		sr_err("stderr %s:%d - %s", config_error_file(&cfg),
+			config_error_line(&cfg), config_error_text(&cfg));
+		config_destroy(&cfg);
+		return ie;
+	}
+	/* Output a list of all elements dreamsourcelab-dslogic-device */
+	setting = config_lookup(&cfg, "Devices.saleaelogic16");
+	if(setting != NULL) {
+		count = config_setting_length(setting);
+		for(i = 0; i < count; ++i) {
+			config_setting_t *fx2lafw = config_setting_get_elem(setting, i);
+			/* Only output the record if all of the expected fields are present. */
+			if(!(config_setting_lookup_string(fx2lafw, "workdir", &ie_dir)
+					&& config_setting_lookup_int(fx2lafw, "samplerate", &samplerate)
+					&& config_setting_lookup_int(fx2lafw, "captureratio", &captureratio)))
+				continue;
+			/* found current workingdir in ini-file */
+			if(strcmp(cwd, ie_dir) == 0) {
+				ie.samplerate = samplerate;
+				ie.captureratio = captureratio;
+				return ie;
+			}
+
+			if(strcmp("default", ie_dir) == 0) {
+				ie.samplerate = samplerate;
+				ie.captureratio = captureratio;
+			}
+			
+		}
+	}
+	return ie;
+}
+#endif
+
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -340,6 +419,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 	int64_t timediff_us, timediff_ms;
 
 	devc = sdi->priv;
+
+#ifdef INIFILE	
+	struct ini_element dev_ie;
+	int ini_samplerate_idx, ini_captureratio;
+#endif
 
 	/*
 	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
@@ -375,9 +459,29 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
+#ifdef INIFILE
+	dev_ie = read_ini();
+
+	ini_samplerate_idx = dev_ie.samplerate;
+	ini_captureratio = dev_ie.captureratio;
+	sr_info("ini- samplerate: %d, captureratio: %d", ini_samplerate_idx, ini_captureratio);
+#endif
 	if (devc->cur_samplerate == 0) {
 		/* Samplerate hasn't been set; default to the slowest one. */
 		devc->cur_samplerate = samplerates[0];
+#ifdef INIFILE
+		if (!(ini_samplerate_idx == -1) && (ini_samplerate_idx < (int)ARRAY_SIZE(samplerates)))
+			devc->cur_samplerate = samplerates[ini_samplerate_idx];  
+#endif
+	}
+
+	if (devc->capture_ratio == 0) {
+		/* 0% capture ratio */ 
+		devc->capture_ratio = 0;
+#ifdef INIFILE
+		if ((ini_captureratio > -1) && (ini_captureratio < 101))
+			devc->capture_ratio = ini_captureratio;
+#endif
 	}
 
 	return SR_OK;
