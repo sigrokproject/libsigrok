@@ -849,6 +849,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		/* Send the incoming transfer to the session bus. */
 		if (devc->trigger_pos > devc->sent_samples
 			&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+			printf("Triggertime: %li \n", g_get_monotonic_time());
 			/* DSLogic trigger in this block. Send trigger position. */
 			trigger_offset = devc->trigger_pos - devc->sent_samples;
 			/* Pre-trigger samples. */
@@ -1020,8 +1021,8 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 	} else if (transfer->status == LIBUSB_TRANSFER_COMPLETED
 			&& transfer->actual_length == sizeof(struct dslogic_trigger_pos)) {
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
-		sr_info("tpos real_pos %d ram_saddr %d cnt %d", tpos->real_pos,
-			tpos->ram_saddr, tpos->remain_cnt);
+		sr_info("tpos real_pos %d ram_saddr %d cnt_h %d cnt_l %d", tpos->real_pos,
+			tpos->ram_saddr, tpos->remain_cnt_h, tpos->remain_cnt_l);
 		devc->trigger_pos = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);

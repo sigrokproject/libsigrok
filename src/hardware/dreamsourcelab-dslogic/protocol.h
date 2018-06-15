@@ -77,10 +77,13 @@ struct dslogic_mode {
 };
 
 struct dslogic_trigger_pos {
+	uint32_t check_id;
 	uint32_t real_pos;
 	uint32_t ram_saddr;
-	uint32_t remain_cnt;
-	uint8_t first_block[500];
+	uint32_t remain_cnt_l;
+	uint32_t remain_cnt_h;
+	uint32_t status;
+	uint8_t first_block[488];
 };
 
 struct dslogic_profile {
