@@ -580,13 +580,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"voltcraft-vc96", vc96,
-		"Voltcraft", "VC96", "1200/8n2", 1200,
-		VC96_PACKET_SIZE, 0, 0, NULL,
-		sr_vc96_packet_valid, sr_vc96_parse,
-		NULL
-	),
-	DMM(
 		"uni-t-ut71c-ser", ut71x,
 		"UNI-T", "UT71C (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		2400, UT71X_PACKET_SIZE, 0, 0, NULL,
@@ -629,6 +622,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "VC-870 (UT-D02 cable)", "9600/8n1/rts=0/dtr=1",
 		9600, VC870_PACKET_SIZE, 0, 0, NULL,
 		sr_vc870_packet_valid, sr_vc870_parse, NULL
+	),
+	/* }}} */
+	/* vc96 based meters {{{ */
+	DMM(
+		"voltcraft-vc96", vc96,
+		"Voltcraft", "VC-96", "1200/8n2", 1200,
+		VC96_PACKET_SIZE, 0, 0, NULL,
+		sr_vc96_packet_valid, sr_vc96_parse,
+		NULL
 	),
 	/* }}} */
 	/*
