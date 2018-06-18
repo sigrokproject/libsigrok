@@ -110,21 +110,21 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
 	if (!g_ascii_strcasecmp(u, "A"))
-		{info->is_ampere = TRUE; sr_spew("is ampere");}
+		info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "mA"))
-		{info->is_milli = info->is_ampere = TRUE; sr_spew("is milli ampere");}
+		info->is_milli = info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "uA"))
-		{info->is_micro = info->is_ampere = TRUE; sr_spew("is micro ampere");}
+		info->is_micro = info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "V"))
-		{info->is_volt = TRUE; sr_spew("is volt");}
+		info->is_volt = TRUE;
 	else if (!g_ascii_strcasecmp(u, "mV"))
-		{info->is_milli = info->is_volt = TRUE; sr_spew("is milli volt");}
+		info->is_milli = info->is_volt = TRUE;
 	else if (!g_ascii_strcasecmp(u, "K"))
-		{info->is_kilo = TRUE; sr_spew("is kilo");}
+		info->is_kilo = TRUE;
 	else if (!g_ascii_strcasecmp(u, "M"))
-		{info->is_mega = TRUE; sr_spew("is mega");}
+		info->is_mega = TRUE;
 	else if (!g_ascii_strcasecmp(u, ""))
-		{info->is_unitless = TRUE; sr_spew("is unitless");}
+		info->is_unitless = TRUE;
 
 	/* Bytes 0-2: Measurement mode, except AC/DC */
 	info->is_resistance = !strncmp(buf, "OHM", 3) ||
@@ -236,15 +236,11 @@ SR_PRIV gboolean sr_vc96_packet_valid(const uint8_t *buf)
 	memset(&info, 0x00, sizeof(struct vc96_info));
 	parse_flags((const char *)buf, &info);
 
-	if (!flags_valid(&info)) {
-		sr_dbg("flags_valid = 0.");
+	if (!flags_valid(&info))
 		return FALSE;
-	};
 
-	if ((buf[11] != '\r') || (buf[12] != '\n')) {
-		sr_dbg("CR LF not correct detected.");
+	if ((buf[11] != '\r') || (buf[12] != '\n'))
 		return FALSE;
-	};
 
 	return TRUE;
 }
@@ -287,8 +283,6 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 
 	analog->encoding->digits = -exponent;
 	analog->spec->spec_digits = -exponent;
-
-	sr_dbg("Returns SR_OK - parsing value: %d.", ret);
 
 	return SR_OK;
 }
