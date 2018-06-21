@@ -197,6 +197,9 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04ce", ENV{ID_SIGROK}="1"
 # Rigol DS2000 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04b0", ENV{ID_SIGROK}="1"
 
+# Rigol DS4000 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04b1", ENV{ID_SIGROK}="1"
+
 # Rigol DG4000 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", ENV{ID_SIGROK}="1"
 
