@@ -159,6 +159,16 @@ static const char *data_sources[] = {
 	"Segmented",
 };
 
+static const struct rigol_ds_command std_cmd[] = {
+	{ CMD_GET_HORIZ_TRIGGERPOS, ":TIM:OFFS?" },
+	{ CMD_SET_HORIZ_TRIGGERPOS, ":TIM:OFFS %s" },
+};
+
+static const struct rigol_ds_command mso7000a_cmd[] = {
+	{ CMD_GET_HORIZ_TRIGGERPOS, ":TIM:POS?" },
+	{ CMD_SET_HORIZ_TRIGGERPOS, ":TIM:POS %s" },
+};
+
 enum vendor {
 	RIGOL,
 	AGILENT,
@@ -172,6 +182,7 @@ enum series {
 	DSO1000,
 	DS1000Z,
 	DS4000,
+	MSO7000A,
 };
 
 /* short name, full name */
@@ -198,6 +209,8 @@ static const struct rigol_ds_series supported_series[] = {
 		{50, 1}, {1, 1000}, 12, 1200, 12000000},
 	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{1000, 1}, {1, 1000}, 14, 1400, 14000},
+	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
+		{50, 1}, {2, 1000}, 10, 1000, 8000000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -210,52 +223,54 @@ static const struct rigol_ds_series supported_series[] = {
 	digital ? ARRAY_SIZE(trigger_sources_##num##_chans) : (num + 2)
 /* series, model, min timebase, analog channels, digital */
 static const struct rigol_ds_model supported_models[] = {
-	{SERIES(VS5000), "VS5022", {20, 1000000000}, CH_INFO(2, false)},
-	{SERIES(VS5000), "VS5042", {10, 1000000000}, CH_INFO(2, false)},
-	{SERIES(VS5000), "VS5062", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(VS5000), "VS5102", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(VS5000), "VS5202", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(VS5000), "VS5022D", {20, 1000000000}, CH_INFO(2, true)},
-	{SERIES(VS5000), "VS5042D", {10, 1000000000}, CH_INFO(2, true)},
-	{SERIES(VS5000), "VS5062D", {5, 1000000000}, CH_INFO(2, true)},
-	{SERIES(VS5000), "VS5102D", {2, 1000000000}, CH_INFO(2, true)},
-	{SERIES(VS5000), "VS5202D", {2, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS1000), "DS1052E", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS1000), "DS1102E", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS1000), "DS1152E", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS1000), "DS1052D", {5, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS1000), "DS1102D", {2, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS1000), "DS1152D", {2, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS2000), "DS2072", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000), "DS2102", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000), "DS2202", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000), "DS2302", {1, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000A), "DS2072A", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000A), "DS2102A", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000A), "DS2202A", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000A), "DS2302A", {1, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DS2000A), "MSO2072A", {5, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS2000A), "MSO2102A", {5, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS2000A), "MSO2202A", {2, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DS2000A), "MSO2302A", {1, 1000000000}, CH_INFO(2, true)},
-	{SERIES(DSO1000), "DSO1002A", {5, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DSO1000), "DSO1004A", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DSO1000), "DSO1012A", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DSO1000), "DSO1014A", {2, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DSO1000), "DSO1022A", {2, 1000000000}, CH_INFO(2, false)},
-	{SERIES(DSO1000), "DSO1024A", {2, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1054Z", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1074Z", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1104Z", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1074Z-S", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1074Z Plus", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "DS1104Z Plus", {5, 1000000000}, CH_INFO(4, false)},
-	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, CH_INFO(4, true)},
-	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true)},
-	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true)},
-	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true)},
-	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false)},
+	{SERIES(VS5000), "VS5022", {20, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5042", {10, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5062", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5102", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(VS5000), "VS5022D", {20, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5042D", {10, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5062D", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5102D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(VS5000), "VS5202D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1052E", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1102E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1152E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1052D", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1102D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS1000), "DS1152D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000), "DS2072", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2102", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000), "DS2302", {1, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2072A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2102A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2202A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "DS2302A", {1, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS2000A), "MSO2072A", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2102A", {5, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2202A", {2, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DS2000A), "MSO2302A", {1, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(DSO1000), "DSO1002A", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1004A", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DSO1000), "DSO1012A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1014A", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DSO1000), "DSO1022A", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DSO1000), "DSO1024A", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1054Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z-S", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1074Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1104Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false), std_cmd},
+	/* TODO: Digital channels are not yet supported on MSO7000A. */
+	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
@@ -670,7 +685,8 @@ static int config_set(uint32_t key, GVariant *data,
 		 * need to express this in seconds. */
 		t_dbl = -(devc->horiz_triggerpos - 0.5) * devc->timebase * devc->num_timebases;
 		g_ascii_formatd(buffer, sizeof(buffer), "%.6f", t_dbl);
-		return rigol_ds_config_set(sdi, ":TIM:OFFS %s", buffer);
+		return rigol_ds_config_set(sdi,
+			devc->model->cmds[CMD_SET_HORIZ_TRIGGERPOS].str, buffer);
 	case SR_CONF_TRIGGER_LEVEL:
 		t_dbl = g_variant_get_double(data);
 		g_ascii_formatd(buffer, sizeof(buffer), "%.3f", t_dbl);

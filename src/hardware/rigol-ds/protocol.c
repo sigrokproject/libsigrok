@@ -883,7 +883,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	sr_dbg("Current trigger source %s", devc->trigger_source);
 
 	/* Horizontal trigger position. */
-	if (sr_scpi_get_float(sdi->conn, ":TIM:OFFS?", &devc->horiz_triggerpos) != SR_OK)
+	if (sr_scpi_get_float(sdi->conn, devc->model->cmds[CMD_GET_HORIZ_TRIGGERPOS].str,
+			&devc->horiz_triggerpos) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current horizontal trigger position %g", devc->horiz_triggerpos);
 

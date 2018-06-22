@@ -74,6 +74,16 @@ struct rigol_ds_series {
 	int buffer_samples;
 };
 
+enum cmds {
+	CMD_GET_HORIZ_TRIGGERPOS,
+	CMD_SET_HORIZ_TRIGGERPOS,
+};
+
+struct rigol_ds_command {
+	int cmd;
+	const char *str;
+};
+
 struct rigol_ds_model {
 	const struct rigol_ds_series *series;
 	const char *name;
@@ -82,6 +92,7 @@ struct rigol_ds_model {
 	bool has_digital;
 	const char **trigger_sources;
 	unsigned int num_trigger_sources;
+	const struct rigol_ds_command *cmds;
 };
 
 enum wait_events {

@@ -42,6 +42,8 @@ ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0618", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0607", ENV{ID_SIGROK}="1"
 # DSO1000 series
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0588", ENV{ID_SIGROK}="1"
+# MSO7000A series
+ATTRS{idVendor}=="0957", ATTRS{idProduct}=="1735", ENV{ID_SIGROK}="1"
 
 # ASIX SIGMA
 # ASIX SIGMA2
