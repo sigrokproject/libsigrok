@@ -477,10 +477,11 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		/* Vertical increment. */
 		if (sr_scpi_get_float(sdi->conn, ":WAV:YINC?",
 				&devc->vert_inc[ch->index]) != SR_OK)
-			/* Vertical origin. */
-			if (sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
-				&devc->vert_origin[ch->index]) != SR_OK)
-				return SR_ERR;
+			return SR_ERR;
+		/* Vertical origin. */
+		if (sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
+			&devc->vert_origin[ch->index]) != SR_OK)
+			return SR_ERR;
 		/* Vertical reference. */
 		if (sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
 				&devc->vert_reference[ch->index]) != SR_OK)
