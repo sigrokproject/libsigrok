@@ -108,6 +108,8 @@ ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Basic
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", ENV{ID_SIGROK}="1"
+# DreamSourceLab DScope
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0022", ENV{ID_SIGROK}="1"
 
 # HAMEG HO720
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="ed72", ENV{ID_SIGROK}="1"
