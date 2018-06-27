@@ -199,7 +199,13 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
 					if (j == ctx->num_enabled_channels - 1 && ctx->trigger > -1) {
-						offset = ctx->trigger + ctx->trigger / 8;
+						/*
+						 * Each group of 8 bits occupies 8 bit positions
+						 * and no separator. With this dense presentation
+						 * the "calculation" of the trigger position is
+						 * rather straight forward.
+						 */
+						offset = ctx->trigger;
 						g_string_append_printf(*out, "T:%*s^ %d\n", offset, "", ctx->trigger);
 						ctx->trigger = -1;
 					}
