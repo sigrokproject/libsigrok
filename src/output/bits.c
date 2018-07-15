@@ -169,13 +169,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					g_string_append_c(*out, '\n');
 					if (j == ctx->num_enabled_channels - 1 && ctx->trigger > -1) {
 						/*
-						 * Each group of 8 bits occupies 8 bit positions
-						 * plus 1 separator. Calculate the position of the
-						 * byte which contains the trigger, then adjust for
-						 * the trigger's bit position within that byte.
+						 * Sample data lines have one character per bit,
+						 * plus one separator per byte. Align trigger marker
+						 * to this layout.
 						 */
-						offset = ctx->trigger / 8 * (8 + 1);
-						offset += ctx->trigger % 8;
+						offset = ctx->trigger + ctx->trigger / 8;
 						g_string_append_printf(*out, "T:%*s^ %d\n", offset, "", ctx->trigger);
 						ctx->trigger = -1;
 					}
