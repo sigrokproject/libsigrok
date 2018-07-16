@@ -388,6 +388,13 @@ START_TEST(test_fractional)
 	test_rational("+.1", (struct sr_rational){1, 10});
 	test_rational("-0.1", (struct sr_rational){-1, 10});
 	test_rational("-.1", (struct sr_rational){-1, 10});
+	test_rational(".1", (struct sr_rational){1, 10});
+	test_rational(".123", (struct sr_rational){123, 1000});
+	test_rational("1.", (struct sr_rational){1, 1});
+	test_rational("123.", (struct sr_rational){123, 1});
+	test_rational("-.1", (struct sr_rational){-1, 10});
+	test_rational(" .1", (struct sr_rational){1, 10});
+	test_rational("+.1", (struct sr_rational){1, 10});
 }
 END_TEST
 
