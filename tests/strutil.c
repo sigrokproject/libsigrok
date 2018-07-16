@@ -19,6 +19,7 @@
 
 #include <config.h>
 #include <check.h>
+#include <errno.h>
 #include <locale.h>
 #include <libsigrok/libsigrok.h>
 #include "lib.h"
@@ -117,7 +118,8 @@ static void test_rational(const char *input, struct sr_rational expected)
 	struct sr_rational rational;
 
 	ret = sr_parse_rational(input, &rational);
-	fail_unless(ret == SR_OK);
+	fail_unless(ret == SR_OK, "Unexpected rc for '%s': %d, errno %d.",
+		input, ret, errno);
 	fail_unless((expected.p == rational.p) && (expected.q == rational.q),
 		    "Invalid result for '%s': %ld/%ld'.",
 		    input, rational.p, rational.q);
