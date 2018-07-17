@@ -612,3 +612,24 @@ Enabled language bindings:
  - Java............................ $BINDINGS_JAVA$sr_report_java
 
 _EOF
+
+# Emit a warning if the C++ bindings are not being built.
+AM_COND_IF([BINDINGS_CXX], [], [
+cat >&AS_MESSAGE_FD <<_EOF
+===============================================================================
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+===============================================================================
+===                                                                         ===
+===         The libsigrok C++ bindings are not being built since you        ===
+===             are missing one or more dependencies (see above)!           ===
+===                                                                         ===
+===      This means you won't be able to compile frontends that require     ===
+===  the C++ bindings (such as PulseView)! You also won't be able to build  ===
+===     other bindings and frontends using those (such as sigrok-meter)!    ===
+===                                                                         ===
+===============================================================================
+WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+===============================================================================
+
+_EOF
+])
