@@ -616,6 +616,9 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	int32_t exponent = 0;
 	bool is_negative = false;
 
+	while (isspace(*str))
+		str++;
+
 	errno = 0;
 	integral = g_ascii_strtoll(str, &endptr, 10);
 
