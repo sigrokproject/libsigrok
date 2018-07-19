@@ -125,6 +125,15 @@ static void test_rational(const char *input, struct sr_rational expected)
 		    input, rational.p, rational.q);
 }
 
+static void test_rational_fail(const char *input)
+{
+	int ret;
+	struct sr_rational rational;
+
+	ret = sr_parse_rational(input, &rational);
+	fail_unless(ret != SR_OK, "Unexpected success for '%s'.", input);
+}
+
 static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
 {
 	char *s;
@@ -395,6 +404,9 @@ START_TEST(test_fractional)
 	test_rational("-.1", (struct sr_rational){-1, 10});
 	test_rational(" .1", (struct sr_rational){1, 10});
 	test_rational("+.1", (struct sr_rational){1, 10});
+	test_rational_fail(".");
+	test_rational_fail(".e");
+	test_rational_fail(".e1");
 }
 END_TEST
 
