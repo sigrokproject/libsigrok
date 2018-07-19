@@ -615,6 +615,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	int32_t fractional_len = 0;
 	int32_t exponent = 0;
 	bool is_negative = false;
+	bool no_integer, no_fractional;
 
 	while (isspace(*str))
 		str++;
@@ -622,12 +623,16 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 	errno = 0;
 	integral = g_ascii_strtoll(str, &endptr, 10);
 
-	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.')
+	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.') {
 		endptr += 1;
-	else if (str == endptr && str[0] == '.')
-		/* EMPTY */;
-	else if (errno)
+		no_integer = true;
+	} else if (str == endptr && str[0] == '.') {
+		no_integer = true;
+	} else if (errno) {
 		return SR_ERR;
+	} else {
+		no_integer = false;
+	}
 
 	if (integral < 0 || str[0] == '-')
 		is_negative = true;
@@ -644,6 +649,9 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 			errno = 0;
 		}
 		if (errno)
+			return SR_ERR;
+		no_fractional = endptr == start;
+		if (no_integer && no_fractional)
 			return SR_ERR;
 		fractional_len = endptr - start;
 	}
