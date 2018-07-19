@@ -828,78 +828,149 @@ SR_PRIV void sr_hexdump_free(GString *s)
  */
 SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 {
-	char *endptr = NULL;
+	const char *readptr;
+	char *endptr;
+	gboolean is_negative, empty_integral, empty_fractional, exp_negative;
 	int64_t integral;
-	int64_t fractional = 0;
-	int64_t denominator = 1;
-	int32_t fractional_len = 0;
-	int32_t exponent = 0;
-	gboolean is_negative = FALSE;
-	gboolean no_integer, no_fractional;
+	int64_t fractional;
+	int64_t denominator;
+	uint32_t fractional_len;
+	int32_t exponent;
 
-	while (isspace(*str))
-		str++;
+	/*
+	 * Implementor's note: This routine tries hard to avoid calling
+	 * glib's or the platform's conversion routines with input that
+	 * cannot get converted *at all* (see bug #1093). It also takes
+	 * care to return with non-zero errno values for any failed
+	 * conversion attempt. It's assumed that correctness and robustness
+	 * are more important than performance, which is why code paths
+	 * are not optimized at all. Maintainability took priority.
+	 */
 
-	errno = 0;
-	integral = g_ascii_strtoll(str, &endptr, 10);
+	readptr = str;
 
-	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.') {
-		endptr += 1;
-		no_integer = TRUE;
-	} else if (str == endptr && str[0] == '.') {
-		no_integer = TRUE;
-	} else if (errno) {
-		return SR_ERR;
-	} else {
-		no_integer = FALSE;
-	}
+	/* Skip leading whitespace. */
+	while (isspace(*readptr))
+		readptr++;
 
-	if (integral < 0 || str[0] == '-')
+	/* Determine the sign, default to non-negative. */
+	is_negative = FALSE;
+	if (*readptr == '-') {
 		is_negative = TRUE;
+		readptr++;
+	} else if (*readptr == '+') {
+		is_negative = FALSE;
+		readptr++;
+	}
 
+	/* Get the (optional) integral part. */
+	empty_integral = TRUE;
+	integral = 0;
+	endptr = (char *)readptr;
 	errno = 0;
-	if (*endptr == '.') {
-		gboolean is_exp, is_eos;
-		const char *start = endptr + 1;
-		fractional = g_ascii_strtoll(start, &endptr, 10);
-		is_exp = *endptr == 'E' || *endptr == 'e';
-		is_eos = *endptr == '\0';
-		if (endptr == start && (is_exp || is_eos)) {
-			fractional = 0;
-			errno = 0;
+	if (isdigit(*readptr)) {
+		empty_integral = FALSE;
+		integral = g_ascii_strtoll(readptr, &endptr, 10);
+		if (errno)
+			return SR_ERR;
+		if (endptr == str) {
+			errno = -EINVAL;
+			return SR_ERR;
 		}
-		if (errno)
-			return SR_ERR;
-		no_fractional = endptr == start;
-		if (no_integer && no_fractional)
-			return SR_ERR;
-		fractional_len = endptr - start;
+		readptr = endptr;
 	}
 
-	errno = 0;
-	if ((*endptr == 'E') || (*endptr == 'e')) {
-		exponent = g_ascii_strtoll(endptr + 1, &endptr, 10);
-		if (errno)
-			return SR_ERR;
+	/* Get the optional fractional part. */
+	empty_fractional = TRUE;
+	fractional = 0;
+	fractional_len = 0;
+	if (*readptr == '.') {
+		readptr++;
+		endptr++;
+		errno = 0;
+		if (isdigit(*readptr)) {
+			empty_fractional = FALSE;
+			fractional = g_ascii_strtoll(readptr, &endptr, 10);
+			if (errno)
+				return SR_ERR;
+			if (endptr == readptr) {
+				errno = -EINVAL;
+				return SR_ERR;
+			}
+			fractional_len = endptr - readptr;
+			readptr = endptr;
+		}
 	}
 
-	if (*endptr != '\0')
+	/* At least one of integral or fractional is required. */
+	if (empty_integral && empty_fractional) {
+		errno = -EINVAL;
 		return SR_ERR;
+	}
 
-	for (int i = 0; i < fractional_len; i++)
+	/* Get the (optional) exponent. */
+	exponent = 0;
+	if ((*readptr == 'E') || (*readptr == 'e')) {
+		readptr++;
+		endptr++;
+		exp_negative = FALSE;
+		if (*readptr == '+') {
+			exp_negative = FALSE;
+			readptr++;
+			endptr++;
+		} else if (*readptr == '-') {
+			exp_negative = TRUE;
+			readptr++;
+			endptr++;
+		}
+		if (!isdigit(*readptr)) {
+			errno = -EINVAL;
+			return SR_ERR;
+		}
+		errno = 0;
+		exponent = g_ascii_strtoll(readptr, &endptr, 10);
+		if (errno)
+			return SR_ERR;
+		if (endptr == readptr) {
+			errno = -EINVAL;
+			return SR_ERR;
+		}
+		readptr = endptr;
+		if (exp_negative)
+			exponent = -exponent;
+	}
+
+	/* Input must be exhausted. Unconverted remaining input is fatal. */
+	if (*endptr != '\0') {
+		errno = -EINVAL;
+		return SR_ERR;
+	}
+
+	/*
+	 * Apply the sign to the integral (and fractional) part(s).
+	 * Adjust exponent (decimal position) such that the above integral
+	 * and fractional parts both fit into the (new) integral part.
+	 */
+	if (is_negative)
+		integral = -integral;
+	while (fractional_len-- > 0) {
 		integral *= 10;
-	exponent -= fractional_len;
-
+		exponent--;
+	}
 	if (!is_negative)
 		integral += fractional;
 	else
 		integral -= fractional;
-
 	while (exponent > 0) {
 		integral *= 10;
 		exponent--;
 	}
 
+	/*
+	 * When significant digits remain after the decimal, scale up the
+	 * denominator such that we end up with two integer p/q numbers.
+	 */
+	denominator = 1;
 	while (exponent < 0) {
 		denominator *= 10;
 		exponent++;
