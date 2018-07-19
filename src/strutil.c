@@ -621,8 +621,8 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 
 	if (str == endptr && (str[0] == '-' || str[0] == '+') && str[1] == '.')
 		endptr += 1;
-	else if ((str == endptr && str[0] == '.' ))
-		;
+	else if (str == endptr && str[0] == '.')
+		/* EMPTY */;
 	else if (errno)
 		return SR_ERR;
 
@@ -631,7 +631,7 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 
 	errno = 0;
 	if (*endptr == '.') {
-		const char* start = endptr + 1;
+		const char *start = endptr + 1;
 		fractional = g_ascii_strtoll(start, &endptr, 10);
 		if (errno)
 			return SR_ERR;
