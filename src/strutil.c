@@ -631,8 +631,15 @@ SR_API int sr_parse_rational(const char *str, struct sr_rational *ret)
 
 	errno = 0;
 	if (*endptr == '.') {
+		bool is_exp, is_eos;
 		const char *start = endptr + 1;
 		fractional = g_ascii_strtoll(start, &endptr, 10);
+		is_exp = *endptr == 'E' || *endptr == 'e';
+		is_eos = *endptr == '\0';
+		if (endptr == start && (is_exp || is_eos)) {
+			fractional = 0;
+			errno = 0;
+		}
 		if (errno)
 			return SR_ERR;
 		fractional_len = endptr - start;
