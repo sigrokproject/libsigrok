@@ -408,6 +408,10 @@ static void parse_contents(const struct sr_input *in, char *data)
 				inc->prev_timestamp = inc->skip;
 			} else if (timestamp == inc->prev_timestamp) {
 				/* Ignore repeated timestamps (e.g. sigrok outputs these) */
+			} else if (timestamp < inc->prev_timestamp) {
+				sr_err("Invalid timestamp: %" PRIu64 " (smaller than previous timestamp).", timestamp);
+				inc->skip_until_end = TRUE;
+				break;
 			} else {
 				if (inc->compress != 0 && timestamp - inc->prev_timestamp > inc->compress) {
 					/* Compress long idle periods */
