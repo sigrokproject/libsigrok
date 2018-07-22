@@ -239,7 +239,7 @@ static int call_log_callback(void *cb_data, int loglevel,
 
 	try {
 		(*callback)(LogLevel::get(loglevel), message.get());
-	} catch (Error e) {
+	} catch (Error &e) {
 		return e.result;
 	}
 

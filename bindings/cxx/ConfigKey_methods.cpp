@@ -90,7 +90,7 @@ Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
 		case SR_T_FLOAT:
 			try {
 				variant = g_variant_new_double(stod(value));
-			} catch (invalid_argument) {
+			} catch (invalid_argument&) {
 				throw Error(SR_ERR_ARG);
 			}
 			break;
@@ -105,7 +105,7 @@ Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
 		case SR_T_INT32:
 			try {
 				variant = g_variant_new_int32(stoi(value));
-			} catch (invalid_argument) {
+			} catch (invalid_argument&) {
 				throw Error(SR_ERR_ARG);
 			}
 			break;
