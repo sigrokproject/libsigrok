@@ -155,7 +155,12 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 	lv = libusb_get_version();
 	m = g_slist_append(m, g_strdup_printf("%d.%d.%d.%d%s API 0x%08x",
 		lv->major, lv->minor, lv->micro, lv->nano, lv->rc,
-		LIBUSB_API_VERSION));
+#if defined(LIBUSB_API_VERSION)
+		LIBUSB_API_VERSION
+#elif defined(LIBUSBX_API_VERSION)
+		LIBUSBX_API_VERSION
+#endif
+		));
 #endif
 	l = g_slist_append(l, m);
 #endif
