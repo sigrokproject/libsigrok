@@ -320,7 +320,7 @@ static int receive(struct sr_input *in, GString *buf)
 {
 	struct context *inc;
 	int ret;
-	char channelname[8];
+	char channelname[16];
 
 	g_string_append_len(in->buf, buf->str, buf->len);
 
