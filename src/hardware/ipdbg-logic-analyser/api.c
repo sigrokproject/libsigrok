@@ -62,8 +62,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     struct drv_context *drvc;
     GSList *devices;
 
-    (void)options;
-
     devices = NULL;
     drvc = di->context;
     drvc->instances = NULL;
@@ -110,20 +108,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     sdi->model = g_strdup("Logic Analyzer");
     sdi->version = g_strdup("v1.0");
     sdi->driver = di;
-    const size_t bufSize = 16;
-    char buff[bufSize];
-
 
     struct ipdbg_org_la_dev_context *devc = ipdbg_org_la_dev_new();
     sdi->priv = devc;
 
     ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
 
-    sr_err("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
-    sr_err("limit samples = %d\n", devc->limit_samples_max);
+    sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
+    sr_dbg("limit samples = %d\n", devc->limit_samples_max);
 
     for (unsigned int i = 0; i < devc->DATA_WIDTH; i++)
     {
+        const size_t bufSize = 16;
+        char buff[bufSize];
         snprintf(buff, bufSize, "ch%d", i);
         sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buff);
     }
@@ -164,18 +161,14 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-    (void)sdi;
-
     sdi->status = SR_ST_INACTIVE;
 
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
     if (!tcp)
-    {
         return SR_ERR;
-    }
 
-    if(ipdbg_org_la_tcp_open(tcp) != SR_OK)
+    if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
         return SR_ERR;
 
     sdi->status = SR_ST_ACTIVE;
@@ -185,15 +178,13 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-    (void)sdi;
-
-    // should be called before a new call to scan()
+    // Should be called before a new call to scan()
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
-    if(tcp)
+
+    if (tcp)
         ipdbg_org_la_tcp_close(tcp);
 
     sdi->conn = NULL;
-
     sdi->status = SR_ST_INACTIVE;
 
     return SR_OK;
@@ -202,15 +193,12 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
     const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-    int ret;
+    int ret = SR_OK;
 
-    (void)sdi;
-    (void)data;
     (void)cg;
 
     struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    ret = SR_OK;
     switch (key) {
     case SR_CONF_CAPTURE_RATIO:
         *data = g_variant_new_uint64(devc->capture_ratio);
@@ -219,7 +207,7 @@ static int config_get(uint32_t key, GVariant **data,
         *data = g_variant_new_uint64(devc->limit_samples);
         break;
     default:
-        return SR_ERR_NA;
+        ret = SR_ERR_NA;
     }
 
     return ret;
@@ -228,9 +216,9 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
     const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-    int ret;
+    int ret = SR_OK;
+    uint64_t value;
 
-    (void)data;
     (void)cg;
 
     if (sdi->status != SR_ST_ACTIVE)
@@ -238,27 +226,20 @@ static int config_set(uint32_t key, GVariant *data,
 
     struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    ret = SR_OK;
     switch (key) {
     case SR_CONF_CAPTURE_RATIO:
-        devc->capture_ratio = g_variant_get_uint64(data);
-        if (devc->capture_ratio < 0 || devc->capture_ratio > 100)
-        {
-            devc->capture_ratio = 50;
-            ret = SR_ERR;
-        }
+    	value = g_variant_get_uint64(data);
+        if (value <= 100)
+            devc->capture_ratio = value;
         else
-            ret = SR_OK;
+        	ret = SR_ERR;
         break;
     case SR_CONF_LIMIT_SAMPLES:
-        devc->limit_samples = g_variant_get_uint64(data);
-        if(devc->limit_samples > devc->limit_samples_max)
-        {
-            devc->limit_samples = devc->limit_samples_max;
-            ret = SR_ERR;
-        }
+    	value = g_variant_get_uint64(data);
+        if (value <= devc->limit_samples_max)
+        	devc->limit_samples = value;
         else
-            ret = SR_OK;
+            ret = SR_ERR;
         break;
     default:
         ret = SR_ERR_NA;
@@ -274,16 +255,20 @@ static int config_list(uint32_t key, GVariant **data,
 
     switch (key) {
     case SR_CONF_SCAN_OPTIONS:
-        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, ipdbg_org_la_scanopts, ARRAY_SIZE(ipdbg_org_la_scanopts), sizeof(uint32_t));
+        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+        	ipdbg_org_la_scanopts, ARRAY_SIZE(ipdbg_org_la_scanopts), sizeof(uint32_t));
         break;
     case SR_CONF_DEVICE_OPTIONS:
         if (!sdi)
-            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, ipdbg_org_la_drvopts, ARRAY_SIZE(ipdbg_org_la_drvopts), sizeof(uint32_t));
+            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+            	ipdbg_org_la_drvopts, ARRAY_SIZE(ipdbg_org_la_drvopts), sizeof(uint32_t));
         else
-            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32, ipdbg_org_la_devopts, ARRAY_SIZE(ipdbg_org_la_devopts), sizeof(uint32_t));
+            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+            	ipdbg_org_la_devopts, ARRAY_SIZE(ipdbg_org_la_devopts), sizeof(uint32_t));
         break;
     case SR_CONF_TRIGGER_MATCH:
-        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32, ipdbg_org_la_trigger_matches, ARRAY_SIZE(ipdbg_org_la_trigger_matches), sizeof(int32_t));
+        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+        	ipdbg_org_la_trigger_matches, ARRAY_SIZE(ipdbg_org_la_trigger_matches), sizeof(int32_t));
         break;
     default:
         return SR_ERR_NA;
@@ -292,7 +277,6 @@ static int config_list(uint32_t key, GVariant **data,
     return SR_OK;
 }
 
-
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
     return std_init(di, sr_ctx);
@@ -300,7 +284,7 @@ static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-    return ((struct drv_context *) (di->context))->instances;
+    return ((struct drv_context*)(di->context))->instances;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

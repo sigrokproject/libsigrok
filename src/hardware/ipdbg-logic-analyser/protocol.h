@@ -42,7 +42,7 @@ struct ipdbg_org_la_dev_context
     unsigned int ADDR_WIDTH;
     unsigned int ADDR_WIDTH_BYTES ;
 
-    unsigned int limit_samples;
+    uint64_t limit_samples;
     unsigned int limit_samples_max;
     char capture_ratio;
     char *trigger_mask;
