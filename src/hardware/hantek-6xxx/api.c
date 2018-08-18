@@ -228,11 +228,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				devices = g_slist_append(devices, sdi);
 				devc = sdi->priv;
 				if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-						USB_CONFIGURATION, prof->firmware) == SR_OK)
+						USB_CONFIGURATION, prof->firmware) == SR_OK) {
 					/* Remember when the firmware on this device was updated. */
 					devc->fw_updated = g_get_monotonic_time();
-				else
-					sr_err("Firmware upload failed.");
+				} else {
+					sr_err("Firmware upload failed, name %s.", prof->firmware);
+				}
 				/* Dummy USB address of 0xff will get overwritten later. */
 				sdi->conn = sr_usb_dev_inst_new(
 						libusb_get_bus_number(devlist[i]), 0xff, NULL);

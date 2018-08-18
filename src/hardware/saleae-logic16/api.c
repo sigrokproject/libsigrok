@@ -219,11 +219,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK)
+					USB_CONFIGURATION, FX2_FIRMWARE) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
-			else
-				sr_err("Firmware upload failed.");
+			} else {
+				sr_err("Firmware upload failed, name %s.", FX2_FIRMWARE);
+			}
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = sr_usb_dev_inst_new(
 				libusb_get_bus_number(devlist[i]), 0xff, NULL);

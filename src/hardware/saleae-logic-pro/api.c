@@ -200,10 +200,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 
 		if (!scan_firmware(devlist[i])) {
+			const char *fwname;
 			sr_info("Found a Logic Pro 16 device (no firmware loaded).");
+			fwname = "saleae-logicpro16-fx3.fw";
 			if (upload_firmware(drvc->sr_ctx, devlist[i],
-					    "saleae-logicpro16-fx3.fw") != SR_OK) {
-				sr_err("Firmware upload failed.");
+					    fwname) != SR_OK) {
+				sr_err("Firmware upload failed, name %s.", fwname);
 				continue;
 			};
 			fw_loaded = TRUE;

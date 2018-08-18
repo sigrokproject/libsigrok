@@ -268,14 +268,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-					USB_CONFIGURATION, prof->firmware) == SR_OK)
+					USB_CONFIGURATION, prof->firmware) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
-			else
+			} else {
 				sr_err("Firmware upload failed for "
-				       "device %d.%d (logical).",
+				       "device %d.%d (logical), name %s.",
 				       libusb_get_bus_number(devlist[i]),
-				       libusb_get_device_address(devlist[i]));
+				       libusb_get_device_address(devlist[i]),
+				       prof->firmware);
+			}
 			sdi->inst_type = SR_INST_USB;
 			sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(devlist[i]),
 					0xff, NULL);
