@@ -21,329 +21,341 @@
 #include "protocol.h"
 
 static const uint32_t ipdbg_org_la_drvopts[] = {
-    SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 static const uint32_t ipdbg_org_la_scanopts[] = {
-    SR_CONF_CONN,
-    SR_CONF_SERIALCOMM,
+	SR_CONF_CONN,
+	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t ipdbg_org_la_devopts[] = {
-    SR_CONF_TRIGGER_MATCH | SR_CONF_LIST| SR_CONF_SET,
-    SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-    SR_CONF_LIMIT_SAMPLES | SR_CONF_GET
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST | SR_CONF_SET,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET
 };
 
 static const int32_t ipdbg_org_la_trigger_matches[] = {
-    SR_TRIGGER_ZERO,
-    SR_TRIGGER_ONE,
-    SR_TRIGGER_RISING,
-    SR_TRIGGER_FALLING,
-    SR_TRIGGER_EDGE,
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 SR_PRIV struct sr_dev_driver ipdbg_la_driver_info;
 
-
-
-static void ipdbg_org_la_split_addr_port(const char *conn, char **addr, char **port)
+static void ipdbg_org_la_split_addr_port(const char *conn, char **addr,
+	char **port)
 {
-    char **strs = g_strsplit(conn, "/", 3);
+	char **strs = g_strsplit(conn, "/", 3);
 
-    *addr = g_strdup(strs[1]);
-    *port = g_strdup(strs[2]);
+	*addr = g_strdup(strs[1]);
+	*port = g_strdup(strs[2]);
 
-    g_strfreev(strs);
+	g_strfreev(strs);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-    struct drv_context *drvc;
-    GSList *devices;
+	struct drv_context *drvc;
+	GSList *devices;
 
-    devices = NULL;
-    drvc = di->context;
-    drvc->instances = NULL;
-    const char *conn;
-    struct sr_config *src;
-    GSList *l;
+	devices = NULL;
+	drvc = di->context;
+	drvc->instances = NULL;
+	const char *conn;
+	struct sr_config *src;
+	GSList *l;
 
-    conn = NULL;
-    for (l = options; l; l = l->next) {
-        src = l->data;
-        switch (src->key) {
-        case SR_CONF_CONN:
-            conn = g_variant_get_string(src->data, NULL);
-            break;
-        }
-    }
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
 
-    if (!conn)
-        return NULL;
+	if (!conn)
+		return NULL;
 
-    struct ipdbg_org_la_tcp *tcp = ipdbg_org_la_tcp_new();
+	struct ipdbg_org_la_tcp *tcp = ipdbg_org_la_tcp_new();
 
-    ipdbg_org_la_split_addr_port(conn, &tcp->address, &tcp->port);
+	ipdbg_org_la_split_addr_port(conn, &tcp->address, &tcp->port);
 
-    if (!tcp->address)
-        return NULL;
+	if (!tcp->address)
+		return NULL;
 
+	if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
+		return NULL;
 
-    if(ipdbg_org_la_tcp_open(tcp) != SR_OK)
-        return NULL;
+	ipdbg_org_la_send_reset(tcp);
+	ipdbg_org_la_send_reset(tcp);
+	ipdbg_org_la_request_id(tcp);
 
-    ipdbg_org_la_send_reset(tcp);
-    ipdbg_org_la_send_reset(tcp);
-    ipdbg_org_la_request_id(tcp);
+	struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	if (!sdi) {
+		sr_err("no possible to allocate sr_dev_inst");
+		return NULL;
+	}
 
-    struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
-    if (!sdi){
-        sr_err("no possible to allocate sr_dev_inst");
-        return NULL;
-    }
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("ipdbg.org");
+	sdi->model = g_strdup("Logic Analyzer");
+	sdi->version = g_strdup("v1.0");
+	sdi->driver = di;
 
-    sdi->status = SR_ST_INACTIVE;
-    sdi->vendor = g_strdup("ipdbg.org");
-    sdi->model = g_strdup("Logic Analyzer");
-    sdi->version = g_strdup("v1.0");
-    sdi->driver = di;
+	struct ipdbg_org_la_dev_context *devc = ipdbg_org_la_dev_new();
+	sdi->priv = devc;
 
-    struct ipdbg_org_la_dev_context *devc = ipdbg_org_la_dev_new();
-    sdi->priv = devc;
+	ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
 
-    ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
+	sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH,
+		devc->DATA_WIDTH);
+	sr_dbg("limit samples = %" PRIu64 "\n", devc->limit_samples_max);
 
-    sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
-    sr_dbg("limit samples = %" PRIu64 "\n", devc->limit_samples_max);
+	for (uint32_t i = 0; i < devc->DATA_WIDTH; i++) {
+		const uint8_t buf_size = 16;
+		char buf[buf_size];
+		snprintf(buf, buf_size, "ch%d", i);
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buf);
+	}
 
-    for (uint32_t i = 0; i < devc->DATA_WIDTH; i++) {
-        const uint8_t buf_size = 16;
-        char buf[buf_size];
-        snprintf(buf, buf_size, "ch%d", i);
-        sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buf);
-    }
+	sdi->inst_type = SR_INST_USER;
+	sdi->conn = tcp;
 
-    sdi->inst_type = SR_INST_USER;
-    sdi->conn = tcp;
+	ipdbg_org_la_tcp_close(tcp);
 
-    ipdbg_org_la_tcp_close(tcp);
+	devices = g_slist_append(devices, sdi);
 
-    devices = g_slist_append(devices, sdi);
-
-    return std_scan_complete(di, devices);
+	return std_scan_complete(di, devices);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-    struct drv_context *drvc = di->context;
-    struct sr_dev_inst *sdi;
-    GSList *l;
+	struct drv_context *drvc = di->context;
+	struct sr_dev_inst *sdi;
+	GSList *l;
 
-    if (drvc) {
-        for (l = drvc->instances; l; l = l->next) {
-            sdi = l->data;
-            struct ipdbg_org_la_tcp *tcp = sdi->conn;
-            if (tcp) {
-                ipdbg_org_la_tcp_close(tcp);
-                ipdbg_org_la_tcp_free(tcp);
-                g_free(tcp);
-            }
-            sdi->conn = NULL;
-        }
-    }
+	if (drvc) {
+		for (l = drvc->instances; l; l = l->next) {
+			sdi = l->data;
+			struct ipdbg_org_la_tcp *tcp = sdi->conn;
+			if (tcp) {
+				ipdbg_org_la_tcp_close(tcp);
+				ipdbg_org_la_tcp_free(tcp);
+				g_free(tcp);
+			}
+			sdi->conn = NULL;
+		}
+	}
 
-    return std_dev_clear(di);
+	return std_dev_clear(di);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-    sdi->status = SR_ST_INACTIVE;
+	sdi->status = SR_ST_INACTIVE;
 
-    struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
-    if (!tcp)
-        return SR_ERR;
+	if (!tcp)
+		return SR_ERR;
 
-    if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
-        return SR_ERR;
+	if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
+		return SR_ERR;
 
-    sdi->status = SR_ST_ACTIVE;
+	sdi->status = SR_ST_ACTIVE;
 
-    return SR_OK;
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-    // Should be called before a new call to scan()
-    struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	// Should be called before a new call to scan()
+	struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
-    if (tcp)
-        ipdbg_org_la_tcp_close(tcp);
+	if (tcp)
+		ipdbg_org_la_tcp_close(tcp);
 
-    sdi->conn = NULL;
-    sdi->status = SR_ST_INACTIVE;
+	sdi->conn = NULL;
+	sdi->status = SR_ST_INACTIVE;
 
-    return SR_OK;
+	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
-    const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-    int ret = SR_OK;
+	int ret = SR_OK;
 
-    (void)cg;
+	(void)cg;
 
-    struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    switch (key) {
-    case SR_CONF_CAPTURE_RATIO:
-        *data = g_variant_new_uint64(devc->capture_ratio);
-        break;
-    case SR_CONF_LIMIT_SAMPLES:
-        *data = g_variant_new_uint64(devc->limit_samples);
-        break;
-    default:
-        ret = SR_ERR_NA;
-    }
+	switch (key) {
+	case SR_CONF_CAPTURE_RATIO:
+		*data = g_variant_new_uint64(devc->capture_ratio);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	default:
+		ret = SR_ERR_NA;
+	}
 
-    return ret;
+	return ret;
 }
 
 static int config_set(uint32_t key, GVariant *data,
-    const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-    int ret = SR_OK;
-    uint64_t value;
+	int ret = SR_OK;
+	uint64_t value;
 
-    (void)cg;
+	(void)cg;
 
-    if (sdi->status != SR_ST_ACTIVE)
-        return SR_ERR_DEV_CLOSED;
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
-    struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    switch (key) {
-    case SR_CONF_CAPTURE_RATIO:
-    	value = g_variant_get_uint64(data);
-        if (value <= 100)
-            devc->capture_ratio = value;
-        else
-        	ret = SR_ERR;
-        break;
-    case SR_CONF_LIMIT_SAMPLES:
-    	value = g_variant_get_uint64(data);
-        if (value <= devc->limit_samples_max)
-        	devc->limit_samples = value;
-        else
-            ret = SR_ERR;
-        break;
-    default:
-        ret = SR_ERR_NA;
-    }
+	switch (key) {
+	case SR_CONF_CAPTURE_RATIO:
+		value = g_variant_get_uint64(data);
+		if (value <= 100)
+			devc->capture_ratio = value;
+		else
+			ret = SR_ERR;
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		value = g_variant_get_uint64(data);
+		if (value <= devc->limit_samples_max)
+			devc->limit_samples = value;
+		else
+			ret = SR_ERR;
+		break;
+	default:
+		ret = SR_ERR_NA;
+	}
 
-    return ret;
+	return ret;
 }
 
 static int config_list(uint32_t key, GVariant **data,
-    const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-    (void)cg;
+	(void)cg;
 
-    switch (key) {
-    case SR_CONF_SCAN_OPTIONS:
-        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-        	ipdbg_org_la_scanopts, ARRAY_SIZE(ipdbg_org_la_scanopts), sizeof(uint32_t));
-        break;
-    case SR_CONF_DEVICE_OPTIONS:
-        if (!sdi)
-            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-            	ipdbg_org_la_drvopts, ARRAY_SIZE(ipdbg_org_la_drvopts), sizeof(uint32_t));
-        else
-            *data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-            	ipdbg_org_la_devopts, ARRAY_SIZE(ipdbg_org_la_devopts), sizeof(uint32_t));
-        break;
-    case SR_CONF_TRIGGER_MATCH:
-        *data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-        	ipdbg_org_la_trigger_matches, ARRAY_SIZE(ipdbg_org_la_trigger_matches), sizeof(int32_t));
-        break;
-    default:
-        return SR_ERR_NA;
-    }
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+			ipdbg_org_la_scanopts,
+			ARRAY_SIZE
+			(ipdbg_org_la_scanopts),
+			sizeof(uint32_t));
+		break;
+	case SR_CONF_DEVICE_OPTIONS:
+		if (!sdi)
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				ipdbg_org_la_drvopts,
+				ARRAY_SIZE
+				(ipdbg_org_la_drvopts),
+				sizeof(uint32_t));
+		else
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				ipdbg_org_la_devopts,
+				ARRAY_SIZE
+				(ipdbg_org_la_devopts),
+				sizeof(uint32_t));
+		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
+			ipdbg_org_la_trigger_matches,
+			ARRAY_SIZE
+			(ipdbg_org_la_trigger_matches),
+			sizeof(int32_t));
+		break;
+	default:
+		return SR_ERR_NA;
+	}
 
-    return SR_OK;
+	return SR_OK;
 }
 
 static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 {
-    return std_init(di, sr_ctx);
+	return std_init(di, sr_ctx);
 }
 
 static GSList *dev_list(const struct sr_dev_driver *di)
 {
-    return ((struct drv_context*)(di->context))->instances;
+	return ((struct drv_context *)(di->context))->instances;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-    if (sdi->status != SR_ST_ACTIVE)
-        return SR_ERR_DEV_CLOSED;
+	if (sdi->status != SR_ST_ACTIVE)
+		return SR_ERR_DEV_CLOSED;
 
-    struct ipdbg_org_la_tcp *tcp = sdi->conn;
-    struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    ipdbg_org_la_convert_trigger(sdi);
-    ipdbg_org_la_send_trigger(devc, tcp);
-    ipdbg_org_la_send_delay(devc, tcp);;
+	ipdbg_org_la_convert_trigger(sdi);
+	ipdbg_org_la_send_trigger(devc, tcp);
+	ipdbg_org_la_send_delay(devc, tcp);
 
-    /* If the device stops sending for longer than it takes to send a byte,
-     * that means it's finished. But wait at least 100 ms to be safe.
-     */
-    sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100,
-    	ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
+	/* If the device stops sending for longer than it takes to send a byte,
+	 * that means it's finished. But wait at least 100 ms to be safe.
+	 */
+	sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100,
+		ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
 
-    ipdbg_org_la_send_start(tcp);
+	ipdbg_org_la_send_start(tcp);
 
-    return SR_OK;
+	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-    struct ipdbg_org_la_tcp *tcp = sdi->conn;
-    struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    uint8_t byte;
+	uint8_t byte;
 
-    if (devc->num_transfers > 0) {
-        while (devc->num_transfers < (devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
-            ipdbg_org_la_tcp_receive(tcp, &byte);
-            devc->num_transfers++;
-        }
-    }
+	if (devc->num_transfers > 0) {
+		while (devc->num_transfers <
+			(devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
+			ipdbg_org_la_tcp_receive(tcp, &byte);
+			devc->num_transfers++;
+		}
+	}
 
-    ipdbg_org_la_send_reset(tcp);
-    ipdbg_org_la_abort_acquisition(sdi);
+	ipdbg_org_la_send_reset(tcp);
+	ipdbg_org_la_abort_acquisition(sdi);
 
-    return SR_OK;
+	return SR_OK;
 }
 
 SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
-    .name = "ipdbg-org-la",
-    .longname = "ipdbg.org logic analyzer",
-    .api_version = 1,
-    .init = init,
-    .cleanup = std_cleanup,
-    .scan = scan,
-    .dev_list = dev_list,
-    .dev_clear = dev_clear,
-    .config_get = config_get,
-    .config_set = config_set,
-    .config_list = config_list,
-    .dev_open = dev_open,
-    .dev_close = dev_close,
-    .dev_acquisition_start = dev_acquisition_start,
-    .dev_acquisition_stop = dev_acquisition_stop,
-    .context = NULL,
+	.name = "ipdbg-org-la",
+	.longname = "ipdbg.org logic analyzer",
+	.api_version = 1,
+	.init = init,
+	.cleanup = std_cleanup,
+	.scan = scan,
+	.dev_list = dev_list,
+	.dev_clear = dev_clear,
+	.config_get = config_get,
+	.config_set = config_set,
+	.config_list = config_list,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.context = NULL,
 };
 
 SR_REGISTER_DEV_DRIVER(ipdbg_la_driver_info);
