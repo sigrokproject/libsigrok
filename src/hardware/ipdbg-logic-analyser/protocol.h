@@ -37,43 +37,47 @@ struct ipdbg_org_la_tcp {
 /** Private, per-device-instance driver context. */
 struct ipdbg_org_la_dev_context
 {
-    unsigned int DATA_WIDTH;
-    unsigned int DATA_WIDTH_BYTES;
-    unsigned int ADDR_WIDTH;
-    unsigned int ADDR_WIDTH_BYTES ;
+    uint32_t DATA_WIDTH;
+    uint32_t DATA_WIDTH_BYTES;
+    uint32_t ADDR_WIDTH;
+    uint32_t ADDR_WIDTH_BYTES;
 
     uint64_t limit_samples;
-    unsigned int limit_samples_max;
-    char capture_ratio;
-    char *trigger_mask;
-    char *trigger_value;
-    char *trigger_mask_last;
-    char *trigger_value_last;
-    char *trigger_edge_mask;
-    unsigned int delay_value;
+    uint64_t limit_samples_max;
+    uint8_t capture_ratio;
+    uint8_t *trigger_mask;
+    uint8_t *trigger_value;
+    uint8_t *trigger_mask_last;
+    uint8_t *trigger_value_last;
+    uint8_t *trigger_edge_mask;
+    uint64_t delay_value;
     int num_stages;
-    unsigned int num_transfers;
-    unsigned char *raw_sample_buf;
+    uint64_t num_transfers;
+    uint8_t *raw_sample_buf;
 };
 
-SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_new_tcp(void);
+int data_available(struct ipdbg_org_la_tcp *tcp);
+
+SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_tcp_new(void);
+SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_tcp_open(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp);
-SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *buf, size_t len);
+SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize);
 SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf);
+
+SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi);
 
 SR_PRIV struct ipdbg_org_la_dev_context *ipdbg_org_la_dev_new(void);
 SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *tcp, struct ipdbg_org_la_dev_context *devc);
-SR_PRIV int ipdbg_org_la_sendReset(struct ipdbg_org_la_tcp *tcp);
-SR_PRIV int ipdbg_org_la_requestID(struct ipdbg_org_la_tcp *tcp);
-SR_PRIV int ipdbg_org_la_sendStart(struct ipdbg_org_la_tcp *tcp);
-SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp);
-SR_PRIV int ipdbg_org_la_sendDelay(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp);
-SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV int send_escaping(struct ipdbg_org_la_tcp *tcp, uint8_t *dataToSend, uint32_t length);
+SR_PRIV int ipdbg_org_la_send_reset(struct ipdbg_org_la_tcp *tcp);
+SR_PRIV int ipdbg_org_la_request_id(struct ipdbg_org_la_tcp *tcp);
+SR_PRIV int ipdbg_org_la_send_start(struct ipdbg_org_la_tcp *tcp);
+SR_PRIV int ipdbg_org_la_send_trigger(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp);
+SR_PRIV int ipdbg_org_la_send_delay(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp);
 SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV void ipdbg_org_la_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize);
-int hasData(struct ipdbg_org_la_tcp *tcp);
 
 #endif

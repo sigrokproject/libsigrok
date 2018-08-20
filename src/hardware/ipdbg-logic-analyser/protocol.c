@@ -18,90 +18,75 @@
  */
 
 #include <config.h>
+
 #ifdef _WIN32
 #define _WIN32_WINNT 0x0501
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
-//#include <glib.h>
+
 #include <string.h>
 #include <unistd.h>
+
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #endif
+
 #include <errno.h>
 #include "protocol.h"
 
 #include <sys/ioctl.h>
 
+
 #define BUFFER_SIZE 4
 
+/* Top-level command opcodes */
+#define CMD_SET_TRIGGER            0x00
+#define CMD_CFG_TRIGGER            0xF0
+#define CMD_CFG_LA                 0x0F
+#define CMD_START                  0xFE
+#define CMD_RESET                  0xEE
 
-#define Start                      0xFE
-#define reset                      0xEE
-#define IPDBG_LA_ID                0xBB
-#define Escape                     0x55
+#define CMD_GET_BUS_WIDTHS         0xAA
+#define CMD_GET_LA_ID              0xBB
+#define CMD_ESCAPE                 0x55
+
+/* Trigger subfunction command opcodes */
+#define CMD_TRIG_MASKS             0xF1
+#define CMD_TRIG_MASK              0xF3
+#define CMD_TRIG_VALUE             0xF7
+
+#define CMD_TRIG_MASKS_LAST        0xF9
+#define CMD_TRIG_MASK_LAST         0xFB
+#define CMD_TRIG_VALUE_LAST        0xFF
+
+#define CMD_TRIG_SELECT_EDGE_MASK  0xF5
+#define CMD_TRIG_SET_EDGE_MASK     0xF6
+
+/* LA subfunction command opcodes */
+#define CMD_LA_DELAY               0x1F
 
 
-/* Command opcodes */
-#define set_trigger                0x00
-
-#define Trigger                    0xF0
-#define LA                         0x0F
-
-#define Masks                      0xF1
-#define Mask                       0xF3
-
-#define Value                      0xF7
-
-#define Last_Masks                 0xF9
-#define Mask_last                  0xFB
-
-#define Value_last                 0xFF
-
-#define Select_Edge_Mask           0xF5
-#define Set_Edge_Mask              0xF6
-
-#define delay                      0x1F
-#define K_Mauslesen                0xAA
-
-int hasData(struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int data_available(struct ipdbg_org_la_tcp *tcp)
 {
 #ifdef __WIN32__
-    ioctlsocket(tcp->socket,FIONREAD,&bytes_available);
+    ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
 #else
-    //ioctl(fd,FIONREAD,&bytes_available);
     int status;
 
-    //fd = open("/dev/ttyS0", O_RDONLY);
-    if (ioctl(tcp->socket, FIONREAD, &status) < 0) //TIOCMGET
-    {
-           sr_err("FIONREAD failed: %s\n",
-             strerror(errno));
+    if (ioctl(tcp->socket, FIONREAD, &status) < 0) {  // TIOCMGET
+           sr_err("FIONREAD failed: %s\n", strerror(errno));
             return 0;
-    }
-    else
-    {
-        if (status < 1)
-        {
-            return 0;
-        }
-        else
-        {
-            return 1;
-        }
     }
 
-#endif // __WIN32__
+    return (status < 1) ? 0 : 1;
+#endif  // __WIN32__
 }
 
-
-SR_PRIV int sendEscaping(struct ipdbg_org_la_tcp *tcp, char *dataToSend, int length);
-
-SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_new_tcp(void)
+SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_tcp_new(void)
 {
     struct ipdbg_org_la_tcp *tcp;
 
@@ -113,6 +98,13 @@ SR_PRIV struct ipdbg_org_la_tcp *ipdbg_org_la_new_tcp(void)
 
     return tcp;
 }
+
+SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp)
+{
+    g_free(tcp->address);
+    g_free(tcp->port);
+}
+
 
 SR_PRIV int ipdbg_org_la_tcp_open(struct ipdbg_org_la_tcp *tcp)
 {
@@ -156,7 +148,20 @@ SR_PRIV int ipdbg_org_la_tcp_open(struct ipdbg_org_la_tcp *tcp)
     return SR_OK;
 }
 
-SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *buf, size_t len)
+SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp)
+{
+    int ret = SR_OK;
+
+    if (close(tcp->socket) < 0)
+        ret = SR_ERR;
+
+    tcp->socket = -1;
+
+    return ret;
+}
+
+SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp,
+	const uint8_t *buf, size_t len)
 {
     int out;
     out = send(tcp->socket, (char*)buf, len, 0);
@@ -166,71 +171,46 @@ SR_PRIV int ipdbg_org_la_tcp_send(struct ipdbg_org_la_tcp *tcp, const uint8_t *b
         return SR_ERR;
     }
 
-    if ((unsigned int)out < len) {
+    if (out < (int)len)
         sr_dbg("Only sent %d/%d bytes of data.", out, (int)len);
-    }
 
     return SR_OK;
 }
 
-SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp, uint8_t *buf, int bufsize)
+SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp,
+	uint8_t *buf, int bufsize)
 {
     int received = 0;
-    while (received < bufsize)
-    {
-        int valid = ipdbg_org_la_tcp_receive(tcp, buf);
-        if(valid >0)
-        {
-            ++buf;
-            ++received;
+
+    while (received < bufsize) {
+        if (ipdbg_org_la_tcp_receive(tcp, buf) > 0) {
+            buf++;
+            received++;
         }
     }
+
     return received;
 }
+
 SR_PRIV int ipdbg_org_la_tcp_receive(struct ipdbg_org_la_tcp *tcp, uint8_t *buf)
 {
     int received = 0;
 
-    if (hasData(tcp) == 1)
-    {
-        while(received < 1)
-        {
+    if (data_available(tcp)) {
+        while (received < 1) {
             int len = recv(tcp->socket, buf, 1, 0);
 
-            if (len < 0)
-            {
+            if (len < 0) {
                 sr_err("Receive error: %s", g_strerror(errno));
                 return SR_ERR;
-            }
-            else
-            {
-                received += len;
-            }
+            } else
+            	received += len;
         }
-        return received;
 
+        return received;
     }
     else
-    {
         return -1;
-    }
-
-}
-SR_PRIV int ipdbg_org_la_tcp_close(struct ipdbg_org_la_tcp *tcp)
-{
-    int ret = SR_ERR;
-    if (close(tcp->socket) >= 0)
-        ret = SR_OK;
-
-    tcp->socket = -1;
-
-    return ret;
-}
-
-SR_PRIV void ipdbg_org_la_tcp_free(struct ipdbg_org_la_tcp *tcp)
-{
-    g_free(tcp->address);
-    g_free(tcp->port);
 }
 
 SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
@@ -245,9 +225,9 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
 
     devc->num_stages = 0;
     devc->num_transfers = 0;
-    devc->raw_sample_buf = NULL; /// name convert_trigger to init acquisition...
-    for (unsigned int i = 0; i < devc->DATA_WIDTH_BYTES; i++)
-    {
+    devc->raw_sample_buf = NULL;
+
+    for (uint64_t i = 0; i < devc->DATA_WIDTH_BYTES; i++) {
         devc->trigger_mask[i] = 0;
         devc->trigger_value[i] = 0;
         devc->trigger_mask_last[i] = 0;
@@ -256,67 +236,47 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
     }
 
     if (!(trigger = sr_session_trigger_get(sdi->session)))
-    {
         return SR_OK;
-    }
 
-    for (l = trigger->stages; l; l = l->next)
-    {
-            stage = l->data;
-        for (m = stage->matches; m; m = m->next)
-        {
+    for (l = trigger->stages; l; l = l->next) {
+        stage = l->data;
+        for (m = stage->matches; m; m = m->next) {
             match = m->data;
-            unsigned int byteIndex = (match->channel->index) /8;
-            unsigned char matchPattern = 1 << (match->channel->index - 8* byteIndex);
+            int byte_idx = match->channel->index / 8;
+            uint8_t match_bit = 1 << (match->channel->index % 8);
 
             if (!match->channel->enabled)
                 /* Ignore disabled channels with a trigger. */
                 continue;
-            if (match->match == SR_TRIGGER_ONE )
-            {
-                devc->trigger_value[byteIndex] |= matchPattern;
-                devc->trigger_mask[byteIndex] |= matchPattern;
-                devc->trigger_mask_last[byteIndex] &= ~matchPattern;
-                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
-                //sr_err("\n========ONE MASK===========");
 
+            if (match->match == SR_TRIGGER_ONE) {
+                devc->trigger_value[byte_idx] |= match_bit;
+                devc->trigger_mask[byte_idx] |= match_bit;
+                devc->trigger_mask_last[byte_idx] &= ~match_bit;
+                devc->trigger_edge_mask[byte_idx] &= ~match_bit;
+            } else if (match->match == SR_TRIGGER_ZERO) {
+                devc->trigger_value[byte_idx] &= ~match_bit;
+                devc->trigger_mask[byte_idx] |= match_bit;
+                devc->trigger_mask_last[byte_idx] &= ~match_bit;
+                devc->trigger_edge_mask[byte_idx] &= ~match_bit;
+            } else if ( match->match == SR_TRIGGER_RISING) {
+                devc->trigger_value[byte_idx] |= match_bit;
+                devc->trigger_value_last[byte_idx] &= ~match_bit;
+                devc->trigger_mask[byte_idx] |= match_bit;
+                devc->trigger_mask_last[byte_idx] |= match_bit;
+                devc->trigger_edge_mask[byte_idx] &= ~match_bit;
+            } else if (match->match == SR_TRIGGER_FALLING) {
+                devc->trigger_value[byte_idx] &= ~match_bit;
+                devc->trigger_value_last[byte_idx] |= match_bit;
+                devc->trigger_mask[byte_idx] |= match_bit;
+                devc->trigger_mask_last[byte_idx] |= match_bit;
+                devc->trigger_edge_mask[byte_idx] &= ~match_bit;
+            } else if (match->match == SR_TRIGGER_EDGE) {
+                devc->trigger_mask[byte_idx] &= ~match_bit;
+                devc->trigger_mask_last[byte_idx] &= ~match_bit;
+                devc->trigger_edge_mask[byte_idx] |= match_bit;
             }
-            else if (match->match == SR_TRIGGER_ZERO)
-            {
-                devc->trigger_value[byteIndex] &= ~matchPattern;
-                devc->trigger_mask[byteIndex] |= matchPattern;
-                devc->trigger_mask_last[byteIndex] &= ~matchPattern;
-                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
-                //sr_err("\n========ZERO MASK===========");
-            }
-            else if ( match->match == SR_TRIGGER_RISING)
-            {
-                devc->trigger_value[byteIndex] |= matchPattern;
-                devc->trigger_value_last[byteIndex] &= ~matchPattern;
-                devc->trigger_mask[byteIndex] |= matchPattern;
-                devc->trigger_mask_last[byteIndex] |= matchPattern;
-                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
-                //sr_err("\n==========RISING===========");
-
-            }
-            else if (match->match == SR_TRIGGER_FALLING )
-            {
-                devc->trigger_value[byteIndex] &= ~matchPattern;
-                devc->trigger_value_last[byteIndex] |= matchPattern;
-                devc->trigger_mask[byteIndex] |= matchPattern;
-                devc->trigger_mask_last[byteIndex] |= matchPattern;
-                devc->trigger_edge_mask[byteIndex] &= ~matchPattern;
-                //sr_err("\n========FALlING===========");
-            }
-            else if (match->match == SR_TRIGGER_EDGE)
-            {
-                devc->trigger_mask[byteIndex] &= ~matchPattern;
-                devc->trigger_mask_last[byteIndex] &= ~matchPattern;
-                devc->trigger_edge_mask[byteIndex] |= matchPattern;
-            }
-
         }
-
     }
 
     return SR_OK;
@@ -324,67 +284,47 @@ SR_PRIV int ipdbg_org_la_convert_trigger(const struct sr_dev_inst *sdi)
 
 SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
 {
-
-
     const struct sr_dev_inst *sdi;
     struct ipdbg_org_la_dev_context *devc;
-
-
 
     (void)fd;
     (void)revents;
 
-    sdi = (const struct sr_dev_inst *)cb_data;
+    sdi = (const struct sr_dev_inst*)cb_data;
     if (!sdi)
-    {
         return FALSE;
-    }
 
     if (!(devc = sdi->priv))
-    {
         return FALSE;
-
-    }
-
 
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
     struct sr_datafeed_packet packet;
     struct sr_datafeed_logic logic;
 
-
-    if (!devc->raw_sample_buf)
-    {
-        devc->raw_sample_buf = g_try_malloc(devc->limit_samples*devc->DATA_WIDTH_BYTES);
+    if (!devc->raw_sample_buf) {
+        devc->raw_sample_buf =
+        	g_try_malloc(devc->limit_samples * devc->DATA_WIDTH_BYTES);
         if (!devc->raw_sample_buf) {
             sr_warn("Sample buffer malloc failed.");
             return FALSE;
         }
-
     }
 
+    if (devc->num_transfers < (devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
+        uint8_t byte;
 
-    if (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
-    {
-        unsigned char byte;
-
-        if (ipdbg_org_la_tcp_receive(tcp, &byte) == 1)
-        {
-            if(devc->num_transfers < devc->limit_samples*devc->DATA_WIDTH_BYTES)
+        if (ipdbg_org_la_tcp_receive(tcp, &byte) == 1) {
+            if (devc->num_transfers < (devc->limit_samples * devc->DATA_WIDTH_BYTES))
                 devc->raw_sample_buf[devc->num_transfers] = byte;
 
             devc->num_transfers++;
         }
-
-    }
-    else
-    {
-
+    } else {
         if (devc->delay_value > 0) {
             /* There are pre-trigger samples, send those first. */
             packet.type = SR_DF_LOGIC;
             packet.payload = &logic;
-            //logic.length = devc->delay_value-1;
-            logic.length = devc->delay_value*devc->DATA_WIDTH_BYTES;
+            logic.length = devc->delay_value * devc->DATA_WIDTH_BYTES;
             logic.unitsize = devc->DATA_WIDTH_BYTES;
             logic.data = devc->raw_sample_buf;
             sr_session_send(cb_data, &packet);
@@ -397,167 +337,138 @@ SR_PRIV int ipdbg_org_la_receive_data(int fd, int revents, void *cb_data)
         /* Send post-trigger samples. */
         packet.type = SR_DF_LOGIC;
         packet.payload = &logic;
-        //logic.length = devc->limit_samples - devc->delay_value+1;
-        logic.length = (devc->limit_samples - devc->delay_value)*devc->DATA_WIDTH_BYTES;
+        logic.length = (devc->limit_samples - devc->delay_value) * devc->DATA_WIDTH_BYTES;
         logic.unitsize = devc->DATA_WIDTH_BYTES;
-        logic.data = devc->raw_sample_buf + devc->delay_value*devc->DATA_WIDTH_BYTES;
-        //logic.data = devc->raw_sample_buf + devc->delay_value-1;
+        logic.data = devc->raw_sample_buf + (devc->delay_value * devc->DATA_WIDTH_BYTES);
         sr_session_send(cb_data, &packet);
 
         g_free(devc->raw_sample_buf);
         devc->raw_sample_buf = NULL;
 
-        //serial_flush(serial);
         ipdbg_org_la_abort_acquisition(sdi);
     }
 
     return TRUE;
 }
 
-SR_PRIV int ipdbg_org_la_sendDelay(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int ipdbg_org_la_send_delay(struct ipdbg_org_la_dev_context *devc,
+	struct ipdbg_org_la_tcp *tcp)
 {
+    devc->delay_value = (devc->limit_samples / 100.0) * devc->capture_ratio;
 
-    int maxSample;
+    uint8_t buf;
+    buf = CMD_CFG_LA;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_LA_DELAY;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
-    maxSample = devc->limit_samples;
+    uint8_t delay_buf[4] = { devc->delay_value        & 0x000000ff,
+                            (devc->delay_value >>  8) & 0x000000ff,
+                            (devc->delay_value >> 16) & 0x000000ff,
+                            (devc->delay_value >> 24) & 0x000000ff};
 
-    devc->delay_value = (maxSample/100.0) * devc->capture_ratio;
-    uint8_t Befehl[1];
-    Befehl[0] = LA;
-    ipdbg_org_la_tcp_send(tcp, Befehl, 1);
-    Befehl[0] = delay;
-    ipdbg_org_la_tcp_send(tcp, Befehl, 1);
-
-    //sr_warn("delay 2");
-
-
-    char buf[4] = { devc->delay_value        & 0x000000ff,
-                   (devc->delay_value >>  8) & 0x000000ff,
-                   (devc->delay_value >> 16) & 0x000000ff,
-                   (devc->delay_value >> 24) & 0x000000ff};
-
-    for(size_t i = 0 ; i < devc->ADDR_WIDTH_BYTES ; ++i)
-        sendEscaping(tcp, &(buf[devc->ADDR_WIDTH_BYTES-1-i]), 1);
+    for (uint64_t i = 0; i < devc->ADDR_WIDTH_BYTES; i++)
+        send_escaping(tcp, &(delay_buf[devc->ADDR_WIDTH_BYTES-1-i]), 1);
 
     return SR_OK;
 }
 
-SR_PRIV int ipdbg_org_la_sendTrigger(struct ipdbg_org_la_dev_context *devc, struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int ipdbg_org_la_send_trigger(struct ipdbg_org_la_dev_context *devc,
+	struct ipdbg_org_la_tcp *tcp)
 {
-    /////////////////////////////////////////////Mask////////////////////////////////////////////////////////////
-    uint8_t buf[1];
-    buf[0] = Trigger;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Masks;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Mask;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
+    uint8_t buf;
 
-    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
-        sendEscaping(tcp, devc->trigger_mask + devc->DATA_WIDTH_BYTES -1-k, 1);
+    /* Mask */
+    buf = CMD_CFG_TRIGGER;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASKS;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASK;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
+    for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+        send_escaping(tcp, devc->trigger_mask + devc->DATA_WIDTH_BYTES - 1 - i, 1);
 
-     /////////////////////////////////////////////Value////////////////////////////////////////////////////////////
-    buf[0]= Trigger;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Masks;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Value;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
+    /* Value */
+    buf = CMD_CFG_TRIGGER;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASKS;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_VALUE;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
+    for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+        send_escaping(tcp, devc->trigger_value + devc->DATA_WIDTH_BYTES - 1 - i, 1);
 
-    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
-        sendEscaping(tcp, devc->trigger_value + devc->DATA_WIDTH_BYTES -1-k, 1);
+    /* Mask_last */
+    buf = CMD_CFG_TRIGGER;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASKS_LAST;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASK_LAST;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
+    for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+        send_escaping(tcp, devc->trigger_mask_last + devc->DATA_WIDTH_BYTES - 1 - i, 1);
 
-    /////////////////////////////////////////////Mask_last////////////////////////////////////////////////////////////
-    buf[0] = Trigger;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Last_Masks;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Mask_last;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
+    /* Value_last */
+    buf = CMD_CFG_TRIGGER;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_MASKS_LAST;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_VALUE_LAST;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
+    for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+        send_escaping(tcp, devc->trigger_value_last + devc->DATA_WIDTH_BYTES - 1 - i, 1);
 
-    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
-        sendEscaping(tcp, devc->trigger_mask_last + devc->DATA_WIDTH_BYTES -1-k, 1);
+    /* Edge_mask */
+    buf = CMD_CFG_TRIGGER;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_SELECT_EDGE_MASK;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
+    buf = CMD_TRIG_SET_EDGE_MASK;
+    ipdbg_org_la_tcp_send(tcp, &buf, 1);
 
-
-    /////////////////////////////////////////////Value_last////////////////////////////////////////////////////////////
-    buf[0] = Trigger;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0]= Last_Masks;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0]= Value_last;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-
-
-    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
-        sendEscaping(tcp, devc->trigger_value_last + devc->DATA_WIDTH_BYTES -1-k, 1);
-
-    /////////////////////////////////////////////edge_mask////////////////////////////////////////////////////////////
-    buf[0] = Trigger;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Select_Edge_Mask;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-    buf[0] = Set_Edge_Mask;
-    ipdbg_org_la_tcp_send(tcp, buf, 1);
-
-    for(size_t k = 0 ; k < devc->DATA_WIDTH_BYTES ; ++k)
-        sendEscaping(tcp, devc->trigger_edge_mask + devc->DATA_WIDTH_BYTES -1-k, 1);
-
-
+    for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+        send_escaping(tcp, devc->trigger_edge_mask + devc->DATA_WIDTH_BYTES - 1 - i, 1);
 
     return SR_OK;
 }
 
-SR_PRIV int sendEscaping(struct ipdbg_org_la_tcp *tcp, char *dataToSend, int length)
+SR_PRIV int send_escaping(struct ipdbg_org_la_tcp *tcp, uint8_t *dataToSend, uint32_t length)
 {
-    while(length--)
-    {
+    uint8_t escape = CMD_ESCAPE;
+
+    while (length--) {
         uint8_t payload = *dataToSend++;
 
-        if ( payload == (uint8_t)reset )
-        {
-            uint8_t escapeSymbol = Escape;
-            sr_warn("Escape");
+        if (payload == (uint8_t)CMD_RESET)
+            if (ipdbg_org_la_tcp_send(tcp, &escape, 1) != SR_OK)
+                sr_warn("Couldn't send escape");
 
-            if(ipdbg_org_la_tcp_send(tcp, &escapeSymbol, 1) != SR_OK)
-                sr_warn("can't send escape");
-
-
-        }
-
-        if ( payload == (char)Escape )
-        {
-            uint8_t escapeSymbol = Escape;
-            sr_warn("Escape");
-
-            if(ipdbg_org_la_tcp_send(tcp, &escapeSymbol, 1) != SR_OK)
-                sr_warn("can't send escape");
-        }
+        if (payload == (uint8_t)CMD_ESCAPE)
+            if (ipdbg_org_la_tcp_send(tcp, &escape, 1) != SR_OK)
+                sr_warn("Couldn't send escape");
 
         if (ipdbg_org_la_tcp_send(tcp, &payload, 1) != SR_OK)
-        {
-            sr_warn("Can't send data");
-        }
-
+            sr_warn("Couldn't send data");
     }
+
     return SR_OK;
 }
 
-SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *tcp, struct ipdbg_org_la_dev_context *devc)
+SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *tcp,
+	struct ipdbg_org_la_dev_context *devc)
 {
     uint8_t buf[8];
-    uint8_t auslesen[1];
-    auslesen[0]= K_Mauslesen;
+    uint8_t read_cmd = CMD_GET_BUS_WIDTHS;
 
-    if(ipdbg_org_la_tcp_send(tcp, auslesen, 1) != SR_OK)
-        sr_warn("Can't send K_Mauslesen");
+    if (ipdbg_org_la_tcp_send(tcp, &read_cmd, 1) != SR_OK)
+        sr_warn("Can't send read command");
 
-    if (ipdbg_org_la_tcp_receive_blocking(tcp, buf,8)!=8)
-        sr_warn("getAddrAndDataWidth failed");
-
+    if (ipdbg_org_la_tcp_receive_blocking(tcp, buf, 8) != 8)
+        sr_warn("Can't get address and data width from device");
 
     devc->DATA_WIDTH  =  buf[0]        & 0x000000FF;
     devc->DATA_WIDTH |= (buf[1] <<  8) & 0x0000FF00;
@@ -569,23 +480,18 @@ SR_PRIV void ipdbg_org_la_get_addrwidth_and_datawidth(struct ipdbg_org_la_tcp *t
     devc->ADDR_WIDTH |= (buf[6] << 16) & 0x00FF0000;
     devc->ADDR_WIDTH |= (buf[7] << 24) & 0xFF000000;
 
+    uint8_t HOST_WORD_SIZE = 8;
 
-    int HOST_WORD_SIZE = 8; // bits/ word
-
-    devc->DATA_WIDTH_BYTES = (devc->DATA_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
-    devc->ADDR_WIDTH_BYTES = (devc->ADDR_WIDTH+HOST_WORD_SIZE -1)/HOST_WORD_SIZE;
+    devc->DATA_WIDTH_BYTES = (devc->DATA_WIDTH + HOST_WORD_SIZE - 1) / HOST_WORD_SIZE;
+    devc->ADDR_WIDTH_BYTES = (devc->ADDR_WIDTH + HOST_WORD_SIZE - 1) / HOST_WORD_SIZE;
     devc->limit_samples_max = (0x01 << devc->ADDR_WIDTH);
     devc->limit_samples = devc->limit_samples_max;
-
-
 
     devc->trigger_mask       = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_value      = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_mask_last  = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_value_last = g_malloc0(devc->DATA_WIDTH_BYTES);
     devc->trigger_edge_mask  = g_malloc0(devc->DATA_WIDTH_BYTES);
-
-
 }
 
 SR_PRIV struct ipdbg_org_la_dev_context *ipdbg_org_la_dev_new(void)
@@ -593,39 +499,33 @@ SR_PRIV struct ipdbg_org_la_dev_context *ipdbg_org_la_dev_new(void)
     struct ipdbg_org_la_dev_context *devc;
 
     devc = g_malloc0(sizeof(struct ipdbg_org_la_dev_context));
-
-
     devc->capture_ratio = 50;
-    ///devc->num_bytes = 0;
 
     return devc;
 }
 
-SR_PRIV int ipdbg_org_la_sendReset(struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int ipdbg_org_la_send_reset(struct ipdbg_org_la_tcp *tcp)
 {
-    uint8_t buf[1];
-    buf[0]= reset;
-    if(ipdbg_org_la_tcp_send(tcp, buf, 1) != SR_OK)
-        sr_warn("Reset can't send");
+    uint8_t buf = CMD_RESET;
+    if (ipdbg_org_la_tcp_send(tcp, &buf, 1) != SR_OK)
+        sr_warn("Couldn't send reset");
+
     return SR_OK;
 }
 
-SR_PRIV int ipdbg_org_la_requestID(struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int ipdbg_org_la_request_id(struct ipdbg_org_la_tcp *tcp)
 {
-    uint8_t buf[1];
-    buf[0]= IPDBG_LA_ID;
-    if(ipdbg_org_la_tcp_send(tcp, buf, 1) != SR_OK)
-        sr_warn("IDBG can't send");
+    uint8_t buf = CMD_GET_LA_ID;
+    if (ipdbg_org_la_tcp_send(tcp, &buf, 1) != SR_OK)
+        sr_warn("Couldn't send ID request");
 
-    char ID[4];
-    if(ipdbg_org_la_tcp_receive_blocking(tcp, (uint8_t*)ID, 4) != 4)
-    {
-        sr_warn("IDBG can't read");
-    }
+    char id[4];
+    if (ipdbg_org_la_tcp_receive_blocking(tcp, (uint8_t*)id, 4) != 4)
+        sr_warn("Couldn't read device ID");
 
-
-    if (strncmp(ID, "IDBG", 4)) {
-        sr_err("Invalid reply (expected 'IDBG' '%c%c%c%c').", ID[0], ID[1], ID[2], ID[3]);
+    if (strncmp(id, "IDBG", 4)) {
+        sr_err("Invalid device ID: expected 'IDBG', got '%c%c%c%c'.",
+        	id[0], id[1], id[2], id[3]);
         return SR_ERR;
     }
 
@@ -634,7 +534,6 @@ SR_PRIV int ipdbg_org_la_requestID(struct ipdbg_org_la_tcp *tcp)
 
 SR_PRIV void ipdbg_org_la_abort_acquisition(const struct sr_dev_inst *sdi)
 {
-
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
     sr_session_source_remove(sdi->session, tcp->socket);
@@ -642,13 +541,13 @@ SR_PRIV void ipdbg_org_la_abort_acquisition(const struct sr_dev_inst *sdi)
     std_session_send_df_end(sdi);
 }
 
-SR_PRIV int ipdbg_org_la_sendStart(struct ipdbg_org_la_tcp *tcp)
+SR_PRIV int ipdbg_org_la_send_start(struct ipdbg_org_la_tcp *tcp)
 {
-    uint8_t buf[1];
-    buf[0] = Start;
+    uint8_t buf = CMD_START;
 
-   if(ipdbg_org_la_tcp_send(tcp, buf, 1) != SR_OK)
-        sr_warn("Reset can't send");
-    return SR_OK;
+   if (ipdbg_org_la_tcp_send(tcp, &buf, 1) != SR_OK)
+        sr_warn("Couldn't send start");
+
+   return SR_OK;
 }
 

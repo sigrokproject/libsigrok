@@ -82,7 +82,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     if (!conn)
         return NULL;
 
-    struct ipdbg_org_la_tcp *tcp = ipdbg_org_la_new_tcp();
+    struct ipdbg_org_la_tcp *tcp = ipdbg_org_la_tcp_new();
 
     ipdbg_org_la_split_addr_port(conn, &tcp->address, &tcp->port);
 
@@ -93,16 +93,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     if(ipdbg_org_la_tcp_open(tcp) != SR_OK)
         return NULL;
 
-    ipdbg_org_la_sendReset(tcp);
-    ipdbg_org_la_sendReset(tcp);
-
-    ipdbg_org_la_requestID(tcp);
+    ipdbg_org_la_send_reset(tcp);
+    ipdbg_org_la_send_reset(tcp);
+    ipdbg_org_la_request_id(tcp);
 
     struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
-    if(!sdi){
+    if (!sdi){
         sr_err("no possible to allocate sr_dev_inst");
         return NULL;
     }
+
     sdi->status = SR_ST_INACTIVE;
     sdi->vendor = g_strdup("ipdbg.org");
     sdi->model = g_strdup("Logic Analyzer");
@@ -115,14 +115,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
     ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
 
     sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH, devc->DATA_WIDTH);
-    sr_dbg("limit samples = %d\n", devc->limit_samples_max);
+    sr_dbg("limit samples = %" PRIu64 "\n", devc->limit_samples_max);
 
-    for (unsigned int i = 0; i < devc->DATA_WIDTH; i++)
-    {
-        const size_t bufSize = 16;
-        char buff[bufSize];
-        snprintf(buff, bufSize, "ch%d", i);
-        sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buff);
+    for (uint32_t i = 0; i < devc->DATA_WIDTH; i++) {
+        const uint8_t buf_size = 16;
+        char buf[buf_size];
+        snprintf(buf, buf_size, "ch%d", i);
+        sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buf);
     }
 
     sdi->inst_type = SR_INST_USER;
@@ -130,7 +129,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
     ipdbg_org_la_tcp_close(tcp);
 
-    //drvc->instances = g_slist_append(drvc->instances, sdi);
     devices = g_slist_append(devices, sdi);
 
     return std_scan_complete(di, devices);
@@ -146,8 +144,7 @@ static int dev_clear(const struct sr_dev_driver *di)
         for (l = drvc->instances; l; l = l->next) {
             sdi = l->data;
             struct ipdbg_org_la_tcp *tcp = sdi->conn;
-            if(tcp)
-            {
+            if (tcp) {
                 ipdbg_org_la_tcp_close(tcp);
                 ipdbg_org_la_tcp_free(tcp);
                 g_free(tcp);
@@ -291,48 +288,41 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
     if (sdi->status != SR_ST_ACTIVE)
         return SR_ERR_DEV_CLOSED;
-    struct ipdbg_org_la_tcp *tcp = sdi->conn;
 
+    struct ipdbg_org_la_tcp *tcp = sdi->conn;
     struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
     ipdbg_org_la_convert_trigger(sdi);
-
-    /* Send Triggerkonviguration */
-    ipdbg_org_la_sendTrigger(devc, tcp);
-
-    /* Send Delay */
-    ipdbg_org_la_sendDelay(devc, tcp);;
+    ipdbg_org_la_send_trigger(devc, tcp);
+    ipdbg_org_la_send_delay(devc, tcp);;
 
     /* If the device stops sending for longer than it takes to send a byte,
      * that means it's finished. But wait at least 100 ms to be safe.
      */
-    sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100, ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
+    sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100,
+    	ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
 
-    ipdbg_org_la_sendStart(tcp);
+    ipdbg_org_la_send_start(tcp);
 
     return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-    struct ipdbg_org_la_dev_context *devc = sdi->priv;
     struct ipdbg_org_la_tcp *tcp = sdi->conn;
+    struct ipdbg_org_la_dev_context *devc = sdi->priv;
 
-    unsigned char byte;
+    uint8_t byte;
 
-    if(devc->num_transfers > 0)
-    {
-        while (devc->num_transfers < devc->limit_samples_max*devc->DATA_WIDTH_BYTES)
-        {
-        ipdbg_org_la_tcp_receive(tcp, &byte);
-        devc->num_transfers++;
+    if (devc->num_transfers > 0) {
+        while (devc->num_transfers < (devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
+            ipdbg_org_la_tcp_receive(tcp, &byte);
+            devc->num_transfers++;
         }
     }
 
-    ipdbg_org_la_sendReset(tcp);
+    ipdbg_org_la_send_reset(tcp);
     ipdbg_org_la_abort_acquisition(sdi);
-
-
 
     return SR_OK;
 }
