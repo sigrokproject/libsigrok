@@ -26,13 +26,12 @@ static const uint32_t ipdbg_org_la_drvopts[] = {
 
 static const uint32_t ipdbg_org_la_scanopts[] = {
 	SR_CONF_CONN,
-	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t ipdbg_org_la_devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET,
 };
 
 static const int32_t ipdbg_org_la_trigger_matches[] = {
