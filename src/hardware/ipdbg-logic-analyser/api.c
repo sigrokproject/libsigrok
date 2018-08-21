@@ -92,7 +92,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	ipdbg_org_la_send_reset(tcp);
 	ipdbg_org_la_send_reset(tcp);
-	ipdbg_org_la_request_id(tcp);
+
+	if (ipdbg_org_la_request_id(tcp) != SR_OK)
+		return NULL;
 
 	struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	if (!sdi) {

@@ -178,11 +178,16 @@ SR_PRIV int ipdbg_org_la_tcp_receive_blocking(struct ipdbg_org_la_tcp *tcp,
 	uint8_t *buf, int bufsize)
 {
 	int received = 0;
+	int error_count = 0;
 
-	while (received < bufsize) {
+	/* Timeout after 500ms of not receiving data */
+	while ((received < bufsize) && (error_count < 500)) {
 		if (ipdbg_org_la_tcp_receive(tcp, buf) > 0) {
 			buf++;
 			received++;
+		} else {
+			error_count++;
+			g_usleep(1000);  /* Sleep for 1ms */
 		}
 	}
 
@@ -532,8 +537,10 @@ SR_PRIV int ipdbg_org_la_request_id(struct ipdbg_org_la_tcp *tcp)
 		sr_warn("Couldn't send ID request");
 
 	char id[4];
-	if (ipdbg_org_la_tcp_receive_blocking(tcp, (uint8_t *) id, 4) != 4)
-		sr_warn("Couldn't read device ID");
+	if (ipdbg_org_la_tcp_receive_blocking(tcp, (uint8_t*)id, 4) != 4) {
+		sr_err("Couldn't read device ID");
+		return SR_ERR;
+	}
 
 	if (strncmp(id, "IDBG", 4)) {
 		sr_err("Invalid device ID: expected 'IDBG', got '%c%c%c%c'.",
