@@ -39,6 +39,15 @@
 #define H4043L_NUM_SAMPLES_MIN (2 * 1024)
 #define H4032L_NUM_SAMPLES_MAX (64 * 1024 * 1024)
 
+#define H4032L_THR_VOLTAGE_MIN -6.0
+#define H4032L_THR_VOLTAGE_MAX 6.0
+#define H4032L_THR_VOLTAGE_STEP 0.1
+/*
+ * Array index of the default voltage threshold value (2.5V):
+ * (|min| / step) + (default / step) = (|-6.0| / 0.1) + (2.5 / 0.1) = 85
+ */
+#define H4032L_THR_VOLTAGE_DEFAULT 85
+
 #define H4032L_CMD_PKT_MAGIC 0x017f
 #define H4032L_STATUS_PACKET_MAGIC 0x2B1A037F
 #define H4032L_START_PACKET_MAGIC 0x2B1A027F

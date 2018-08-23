@@ -261,8 +261,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->external_clock = FALSE;
 		devc->clock_edge = H4032L_CLOCK_EDGE_TYPE_RISE;
 
-		devc->cur_threshold[0] = 2.5;
-		devc->cur_threshold[1] = 2.5;
+		/* Create array of thresholds from min to max. */
+		GVariant *thresholds = std_gvar_min_max_step_thresholds(
+			H4032L_THR_VOLTAGE_MIN, H4032L_THR_VOLTAGE_MAX,
+			H4032L_THR_VOLTAGE_STEP);
+		/* Take default threshold value from array (FP workaround). */
+		g_variant_get_child(thresholds, H4032L_THR_VOLTAGE_DEFAULT,
+			"(dd)", &devc->cur_threshold[0], &devc->cur_threshold[1]);
 
 		sdi->priv = devc;
 		devices = g_slist_append(devices, sdi);
@@ -468,7 +473,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_min_max_step_thresholds(-6.0, 6.0, 0.1);
+		*data = std_gvar_min_max_step_thresholds(H4032L_THR_VOLTAGE_MIN,
+			H4032L_THR_VOLTAGE_MAX, H4032L_THR_VOLTAGE_STEP);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(H4043L_NUM_SAMPLES_MIN, H4032L_NUM_SAMPLES_MAX);
