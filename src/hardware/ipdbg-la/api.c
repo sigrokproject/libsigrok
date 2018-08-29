@@ -97,11 +97,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 
 	struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	if (!sdi) {
-		sr_err("no possible to allocate sr_dev_inst");
-		return NULL;
-	}
-
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("ipdbg.org");
 	sdi->model = g_strdup("IPDBG LA");

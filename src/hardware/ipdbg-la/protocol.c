@@ -89,7 +89,6 @@ SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void)
 	struct ipdbg_la_tcp *tcp;
 
 	tcp = g_malloc0(sizeof(struct ipdbg_la_tcp));
-
 	tcp->address = NULL;
 	tcp->port = NULL;
 	tcp->socket = -1;
@@ -308,7 +307,7 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 		devc->raw_sample_buf =
 			g_try_malloc(devc->limit_samples * devc->DATA_WIDTH_BYTES);
 		if (!devc->raw_sample_buf) {
-			sr_warn("Sample buffer malloc failed.");
+			sr_err("Sample buffer malloc failed.");
 			return FALSE;
 		}
 	}
