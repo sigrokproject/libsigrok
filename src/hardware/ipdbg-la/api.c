@@ -158,8 +158,6 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	sdi->status = SR_ST_INACTIVE;
-
 	struct ipdbg_la_tcp *tcp = sdi->conn;
 
 	if (!tcp)
@@ -168,21 +166,18 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (ipdbg_la_tcp_open(tcp) != SR_OK)
 		return SR_ERR;
 
-	sdi->status = SR_ST_ACTIVE;
-
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	// Should be called before a new call to scan()
+	/* Should be called before a new call to scan(). */
 	struct ipdbg_la_tcp *tcp = sdi->conn;
 
 	if (tcp)
 		ipdbg_la_tcp_close(tcp);
 
 	sdi->conn = NULL;
-	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }
@@ -214,9 +209,6 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc = sdi->priv;
 
 	(void)cg;
-
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -261,9 +253,6 @@ static GSList *dev_list(const struct sr_dev_driver *di)
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_ERR_DEV_CLOSED;
-
 	struct ipdbg_la_tcp *tcp = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 
