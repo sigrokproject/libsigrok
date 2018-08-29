@@ -190,11 +190,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret = SR_OK;
+	struct dev_context *devc = sdi->priv;
 
 	(void)cg;
-
-	struct dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -204,68 +202,45 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret = SR_OK;
-	uint64_t value;
+	struct dev_context *devc = sdi->priv;
 
 	(void)cg;
 
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	struct dev_context *devc = sdi->priv;
-
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
-		value = g_variant_get_uint64(data);
-		if (value <= 100)
-			devc->capture_ratio = value;
-		else
-			ret = SR_ERR;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		value = g_variant_get_uint64(data);
-		if (value <= devc->limit_samples_max)
-			devc->limit_samples = value;
-		else
-			ret = SR_ERR;
+		devc->limit_samples = g_variant_get_uint64(data);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	(void)cg;
-
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
-		break;
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!sdi)
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
-		else
-			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
-		break;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_TRIGGER_MATCH:
-		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-			trigger_matches, ARRAY_SIZE(trigger_matches), sizeof(int32_t));
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	default:
 		return SR_ERR_NA;
