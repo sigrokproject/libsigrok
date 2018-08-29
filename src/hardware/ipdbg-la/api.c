@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2016 danselmi <da@da>
+ * Copyright (C) 2016 Eva Kissling <eva.kissling@bluewin.ch>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
