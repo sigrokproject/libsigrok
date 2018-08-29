@@ -68,7 +68,7 @@
 /* LA subfunction command opcodes */
 #define CMD_LA_DELAY               0x1F
 
-SR_PRIV gboolean data_available(struct ipdbg_la_tcp *tcp)
+static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef __WIN32__
 	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
@@ -156,8 +156,7 @@ SR_PRIV int ipdbg_la_tcp_close(struct ipdbg_la_tcp *tcp)
 	return ret;
 }
 
-SR_PRIV int ipdbg_la_tcp_send(struct ipdbg_la_tcp *tcp,
-	const uint8_t *buf, size_t len)
+static int tcp_send(struct ipdbg_la_tcp *tcp, const uint8_t *buf, size_t len)
 {
 	int out;
 	out = send(tcp->socket, buf, len, 0);
@@ -173,7 +172,7 @@ SR_PRIV int ipdbg_la_tcp_send(struct ipdbg_la_tcp *tcp,
 	return SR_OK;
 }
 
-SR_PRIV int ipdbg_la_tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
+static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 	uint8_t *buf, int bufsize)
 {
 	int received = 0;
@@ -357,6 +356,29 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
+static int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *data_to_send,
+	uint32_t length)
+{
+	uint8_t escape = CMD_ESCAPE;
+
+	while (length--) {
+		uint8_t payload = *data_to_send++;
+
+		if (payload == CMD_RESET)
+			if (tcp_send(tcp, &escape, 1) != SR_OK)
+				sr_warn("Couldn't send escape");
+
+		if (payload == CMD_ESCAPE)
+			if (tcp_send(tcp, &escape, 1) != SR_OK)
+				sr_warn("Couldn't send escape");
+
+		if (tcp_send(tcp, &payload, 1) != SR_OK)
+			sr_warn("Couldn't send data");
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 	struct ipdbg_la_tcp *tcp)
 {
@@ -364,9 +386,9 @@ SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 
 	uint8_t buf;
 	buf = CMD_CFG_LA;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_LA_DELAY;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	uint8_t delay_buf[4] = { devc->delay_value & 0x000000ff,
 		(devc->delay_value >> 8) & 0x000000ff,
@@ -387,11 +409,11 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 
 	/* Mask */
 	buf = CMD_CFG_TRIGGER;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASKS;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASK;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
@@ -399,11 +421,11 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 
 	/* Value */
 	buf = CMD_CFG_TRIGGER;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASKS;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_VALUE;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
@@ -411,11 +433,11 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 
 	/* Mask_last */
 	buf = CMD_CFG_TRIGGER;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASKS_LAST;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASK_LAST;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
@@ -423,11 +445,11 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 
 	/* Value_last */
 	buf = CMD_CFG_TRIGGER;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_MASKS_LAST;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_VALUE_LAST;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
@@ -435,38 +457,15 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 
 	/* Edge_mask */
 	buf = CMD_CFG_TRIGGER;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_SELECT_EDGE_MASK;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 	buf = CMD_TRIG_SET_EDGE_MASK;
-	ipdbg_la_tcp_send(tcp, &buf, 1);
+	tcp_send(tcp, &buf, 1);
 
 	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
 			devc->trigger_edge_mask + devc->data_width_bytes - 1 - i, 1);
-
-	return SR_OK;
-}
-
-SR_PRIV int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *data_to_send,
-	uint32_t length)
-{
-	uint8_t escape = CMD_ESCAPE;
-
-	while (length--) {
-		uint8_t payload = *data_to_send++;
-
-		if (payload == CMD_RESET)
-			if (ipdbg_la_tcp_send(tcp, &escape, 1) != SR_OK)
-				sr_warn("Couldn't send escape");
-
-		if (payload == CMD_ESCAPE)
-			if (ipdbg_la_tcp_send(tcp, &escape, 1) != SR_OK)
-				sr_warn("Couldn't send escape");
-
-		if (ipdbg_la_tcp_send(tcp, &payload, 1) != SR_OK)
-			sr_warn("Couldn't send data");
-	}
 
 	return SR_OK;
 }
@@ -477,10 +476,10 @@ SR_PRIV void ipdbg_la_get_addrwidth_and_datawidth(
 	uint8_t buf[8];
 	uint8_t read_cmd = CMD_GET_BUS_WIDTHS;
 
-	if (ipdbg_la_tcp_send(tcp, &read_cmd, 1) != SR_OK)
+	if (tcp_send(tcp, &read_cmd, 1) != SR_OK)
 		sr_warn("Can't send read command");
 
-	if (ipdbg_la_tcp_receive_blocking(tcp, buf, 8) != 8)
+	if (tcp_receive_blocking(tcp, buf, 8) != 8)
 		sr_warn("Can't get address and data width from device");
 
 	devc->data_width = buf[0] & 0x000000FF;
@@ -523,7 +522,7 @@ SR_PRIV struct dev_context *ipdbg_la_dev_new(void)
 SR_PRIV int ipdbg_la_send_reset(struct ipdbg_la_tcp *tcp)
 {
 	uint8_t buf = CMD_RESET;
-	if (ipdbg_la_tcp_send(tcp, &buf, 1) != SR_OK)
+	if (tcp_send(tcp, &buf, 1) != SR_OK)
 		sr_warn("Couldn't send reset");
 
 	return SR_OK;
@@ -532,11 +531,11 @@ SR_PRIV int ipdbg_la_send_reset(struct ipdbg_la_tcp *tcp)
 SR_PRIV int ipdbg_la_request_id(struct ipdbg_la_tcp *tcp)
 {
 	uint8_t buf = CMD_GET_LA_ID;
-	if (ipdbg_la_tcp_send(tcp, &buf, 1) != SR_OK)
+	if (tcp_send(tcp, &buf, 1) != SR_OK)
 		sr_warn("Couldn't send ID request");
 
 	char id[4];
-	if (ipdbg_la_tcp_receive_blocking(tcp, (uint8_t*)id, 4) != 4) {
+	if (tcp_receive_blocking(tcp, (uint8_t *)id, 4) != 4) {
 		sr_err("Couldn't read device ID");
 		return SR_ERR;
 	}
@@ -563,7 +562,7 @@ SR_PRIV int ipdbg_la_send_start(struct ipdbg_la_tcp *tcp)
 {
 	uint8_t buf = CMD_START;
 
-	if (ipdbg_la_tcp_send(tcp, &buf, 1) != SR_OK)
+	if (tcp_send(tcp, &buf, 1) != SR_OK)
 		sr_warn("Couldn't send start");
 
 	return SR_OK;
