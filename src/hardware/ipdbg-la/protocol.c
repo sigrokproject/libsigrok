@@ -217,7 +217,7 @@ SR_PRIV int ipdbg_la_tcp_receive(struct ipdbg_la_tcp *tcp,
 
 SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi)
 {
-	struct ipdbg_la_dev_context *devc;
+	struct dev_context *devc;
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
@@ -288,7 +288,7 @@ SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi)
 SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
-	struct ipdbg_la_dev_context *devc;
+	struct dev_context *devc;
 
 	(void)fd;
 	(void)revents;
@@ -358,7 +358,7 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int ipdbg_la_send_delay(struct ipdbg_la_dev_context *devc,
+SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 	struct ipdbg_la_tcp *tcp)
 {
 	devc->delay_value = (devc->limit_samples / 100.0) * devc->capture_ratio;
@@ -381,7 +381,7 @@ SR_PRIV int ipdbg_la_send_delay(struct ipdbg_la_dev_context *devc,
 	return SR_OK;
 }
 
-SR_PRIV int ipdbg_la_send_trigger(struct ipdbg_la_dev_context *devc,
+SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	struct ipdbg_la_tcp *tcp)
 {
 	uint8_t buf;
@@ -473,7 +473,7 @@ SR_PRIV int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *dataToSend,
 }
 
 SR_PRIV void ipdbg_la_get_addrwidth_and_datawidth(
-	struct ipdbg_la_tcp *tcp, struct ipdbg_la_dev_context *devc)
+	struct ipdbg_la_tcp *tcp, struct dev_context *devc)
 {
 	uint8_t buf[8];
 	uint8_t read_cmd = CMD_GET_BUS_WIDTHS;
@@ -511,11 +511,11 @@ SR_PRIV void ipdbg_la_get_addrwidth_and_datawidth(
 	devc->trigger_edge_mask = g_malloc0(devc->DATA_WIDTH_BYTES);
 }
 
-SR_PRIV struct ipdbg_la_dev_context *ipdbg_la_dev_new(void)
+SR_PRIV struct dev_context *ipdbg_la_dev_new(void)
 {
-	struct ipdbg_la_dev_context *devc;
+	struct dev_context *devc;
 
-	devc = g_malloc0(sizeof(struct ipdbg_la_dev_context));
+	devc = g_malloc0(sizeof(struct dev_context));
 	devc->capture_ratio = 50;
 
 	return devc;

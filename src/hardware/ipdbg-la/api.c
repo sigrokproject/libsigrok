@@ -20,21 +20,21 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t ipdbg_la_drvopts[] = {
+static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
 
-static const uint32_t ipdbg_la_scanopts[] = {
+static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t ipdbg_la_devopts[] = {
+static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET,
 };
 
-static const int32_t ipdbg_la_trigger_matches[] = {
+static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
@@ -108,7 +108,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->version = g_strdup("v1.0");
 	sdi->driver = di;
 
-	struct ipdbg_la_dev_context *devc = ipdbg_la_dev_new();
+	struct dev_context *devc = ipdbg_la_dev_new();
 	sdi->priv = devc;
 
 	ipdbg_la_get_addrwidth_and_datawidth(tcp, devc);
@@ -194,7 +194,7 @@ static int config_get(uint32_t key, GVariant **data,
 
 	(void)cg;
 
-	struct ipdbg_la_dev_context *devc = sdi->priv;
+	struct dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -221,7 +221,7 @@ static int config_set(uint32_t key, GVariant *data,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	struct ipdbg_la_dev_context *devc = sdi->priv;
+	struct dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -253,31 +253,19 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			ipdbg_la_scanopts,
-			ARRAY_SIZE
-			(ipdbg_la_scanopts),
-			sizeof(uint32_t));
+			scanopts, ARRAY_SIZE(scanopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi)
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				ipdbg_la_drvopts,
-				ARRAY_SIZE
-				(ipdbg_la_drvopts),
-				sizeof(uint32_t));
+				drvopts, ARRAY_SIZE(drvopts), sizeof(uint32_t));
 		else
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				ipdbg_la_devopts,
-				ARRAY_SIZE
-				(ipdbg_la_devopts),
-				sizeof(uint32_t));
+				devopts, ARRAY_SIZE(devopts), sizeof(uint32_t));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-			ipdbg_la_trigger_matches,
-			ARRAY_SIZE
-			(ipdbg_la_trigger_matches),
-			sizeof(int32_t));
+			trigger_matches, ARRAY_SIZE(trigger_matches), sizeof(int32_t));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -302,7 +290,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR_DEV_CLOSED;
 
 	struct ipdbg_la_tcp *tcp = sdi->conn;
-	struct ipdbg_la_dev_context *devc = sdi->priv;
+	struct dev_context *devc = sdi->priv;
 
 	ipdbg_la_convert_trigger(sdi);
 	ipdbg_la_send_trigger(devc, tcp);
@@ -322,7 +310,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct ipdbg_la_tcp *tcp = sdi->conn;
-	struct ipdbg_la_dev_context *devc = sdi->priv;
+	struct dev_context *devc = sdi->priv;
 
 	uint8_t byte;
 
