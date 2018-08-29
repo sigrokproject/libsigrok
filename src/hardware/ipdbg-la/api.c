@@ -236,16 +236,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-{
-	return std_init(di, sr_ctx);
-}
-
-static GSList *dev_list(const struct sr_dev_driver *di)
-{
-	return ((struct drv_context *)(di->context))->instances;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct ipdbg_la_tcp *tcp = sdi->conn;
@@ -291,10 +281,10 @@ SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
 	.name = "ipdbg-la",
 	.longname = "IPDBG LA",
 	.api_version = 1,
-	.init = init,
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
-	.dev_list = dev_list,
+	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
