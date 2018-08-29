@@ -228,7 +228,7 @@ SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi)
 	devc->num_transfers = 0;
 	devc->raw_sample_buf = NULL;
 
-	for (uint64_t i = 0; i < devc->DATA_WIDTH_BYTES; i++) {
+	for (uint64_t i = 0; i < devc->data_width_bytes; i++) {
 		devc->trigger_mask[i] = 0;
 		devc->trigger_value[i] = 0;
 		devc->trigger_mask_last[i] = 0;
@@ -305,7 +305,7 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 
 	if (!devc->raw_sample_buf) {
 		devc->raw_sample_buf =
-			g_try_malloc(devc->limit_samples * devc->DATA_WIDTH_BYTES);
+			g_try_malloc(devc->limit_samples * devc->data_width_bytes);
 		if (!devc->raw_sample_buf) {
 			sr_err("Sample buffer malloc failed.");
 			return FALSE;
@@ -313,12 +313,12 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	if (devc->num_transfers <
-		(devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
+		(devc->limit_samples_max * devc->data_width_bytes)) {
 		uint8_t byte;
 
 		if (ipdbg_la_tcp_receive(tcp, &byte) == 1) {
 			if (devc->num_transfers <
-				(devc->limit_samples * devc->DATA_WIDTH_BYTES))
+				(devc->limit_samples * devc->data_width_bytes))
 				devc->raw_sample_buf[devc->num_transfers] = byte;
 
 			devc->num_transfers++;
@@ -328,8 +328,8 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 			/* There are pre-trigger samples, send those first. */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			logic.length = devc->delay_value * devc->DATA_WIDTH_BYTES;
-			logic.unitsize = devc->DATA_WIDTH_BYTES;
+			logic.length = devc->delay_value * devc->data_width_bytes;
+			logic.unitsize = devc->data_width_bytes;
 			logic.data = devc->raw_sample_buf;
 			sr_session_send(cb_data, &packet);
 		}
@@ -342,10 +342,10 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
 		logic.length = (devc->limit_samples - devc->delay_value) *
-			devc->DATA_WIDTH_BYTES;
-		logic.unitsize = devc->DATA_WIDTH_BYTES;
+			devc->data_width_bytes;
+		logic.unitsize = devc->data_width_bytes;
 		logic.data = devc->raw_sample_buf +
-			(devc->delay_value * devc->DATA_WIDTH_BYTES);
+			(devc->delay_value * devc->data_width_bytes);
 		sr_session_send(cb_data, &packet);
 
 		g_free(devc->raw_sample_buf);
@@ -374,8 +374,8 @@ SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 		(devc->delay_value >> 24) & 0x000000ff
 	};
 
-	for (uint64_t i = 0; i < devc->ADDR_WIDTH_BYTES; i++)
-		send_escaping(tcp, &(delay_buf[devc->ADDR_WIDTH_BYTES - 1 - i]), 1);
+	for (uint64_t i = 0; i < devc->addr_width_bytes; i++)
+		send_escaping(tcp, &(delay_buf[devc->addr_width_bytes - 1 - i]), 1);
 
 	return SR_OK;
 }
@@ -393,9 +393,9 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	buf = CMD_TRIG_MASK;
 	ipdbg_la_tcp_send(tcp, &buf, 1);
 
-	for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
-			devc->trigger_mask + devc->DATA_WIDTH_BYTES - 1 - i, 1);
+			devc->trigger_mask + devc->data_width_bytes - 1 - i, 1);
 
 	/* Value */
 	buf = CMD_CFG_TRIGGER;
@@ -405,9 +405,9 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	buf = CMD_TRIG_VALUE;
 	ipdbg_la_tcp_send(tcp, &buf, 1);
 
-	for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
-			devc->trigger_value + devc->DATA_WIDTH_BYTES - 1 - i, 1);
+			devc->trigger_value + devc->data_width_bytes - 1 - i, 1);
 
 	/* Mask_last */
 	buf = CMD_CFG_TRIGGER;
@@ -417,9 +417,9 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	buf = CMD_TRIG_MASK_LAST;
 	ipdbg_la_tcp_send(tcp, &buf, 1);
 
-	for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
-			devc->trigger_mask_last + devc->DATA_WIDTH_BYTES - 1 - i, 1);
+			devc->trigger_mask_last + devc->data_width_bytes - 1 - i, 1);
 
 	/* Value_last */
 	buf = CMD_CFG_TRIGGER;
@@ -429,9 +429,9 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	buf = CMD_TRIG_VALUE_LAST;
 	ipdbg_la_tcp_send(tcp, &buf, 1);
 
-	for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
-			devc->trigger_value_last + devc->DATA_WIDTH_BYTES - 1 - i, 1);
+			devc->trigger_value_last + devc->data_width_bytes - 1 - i, 1);
 
 	/* Edge_mask */
 	buf = CMD_CFG_TRIGGER;
@@ -441,20 +441,20 @@ SR_PRIV int ipdbg_la_send_trigger(struct dev_context *devc,
 	buf = CMD_TRIG_SET_EDGE_MASK;
 	ipdbg_la_tcp_send(tcp, &buf, 1);
 
-	for (size_t i = 0; i < devc->DATA_WIDTH_BYTES; i++)
+	for (size_t i = 0; i < devc->data_width_bytes; i++)
 		send_escaping(tcp,
-			devc->trigger_edge_mask + devc->DATA_WIDTH_BYTES - 1 - i, 1);
+			devc->trigger_edge_mask + devc->data_width_bytes - 1 - i, 1);
 
 	return SR_OK;
 }
 
-SR_PRIV int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *dataToSend,
+SR_PRIV int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *data_to_send,
 	uint32_t length)
 {
 	uint8_t escape = CMD_ESCAPE;
 
 	while (length--) {
-		uint8_t payload = *dataToSend++;
+		uint8_t payload = *data_to_send++;
 
 		if (payload == CMD_RESET)
 			if (ipdbg_la_tcp_send(tcp, &escape, 1) != SR_OK)
@@ -483,31 +483,31 @@ SR_PRIV void ipdbg_la_get_addrwidth_and_datawidth(
 	if (ipdbg_la_tcp_receive_blocking(tcp, buf, 8) != 8)
 		sr_warn("Can't get address and data width from device");
 
-	devc->DATA_WIDTH = buf[0] & 0x000000FF;
-	devc->DATA_WIDTH |= (buf[1] << 8) & 0x0000FF00;
-	devc->DATA_WIDTH |= (buf[2] << 16) & 0x00FF0000;
-	devc->DATA_WIDTH |= (buf[3] << 24) & 0xFF000000;
+	devc->data_width = buf[0] & 0x000000FF;
+	devc->data_width |= (buf[1] << 8) & 0x0000FF00;
+	devc->data_width |= (buf[2] << 16) & 0x00FF0000;
+	devc->data_width |= (buf[3] << 24) & 0xFF000000;
 
-	devc->ADDR_WIDTH = buf[4] & 0x000000FF;
-	devc->ADDR_WIDTH |= (buf[5] << 8) & 0x0000FF00;
-	devc->ADDR_WIDTH |= (buf[6] << 16) & 0x00FF0000;
-	devc->ADDR_WIDTH |= (buf[7] << 24) & 0xFF000000;
+	devc->addr_width = buf[4] & 0x000000FF;
+	devc->addr_width |= (buf[5] << 8) & 0x0000FF00;
+	devc->addr_width |= (buf[6] << 16) & 0x00FF0000;
+	devc->addr_width |= (buf[7] << 24) & 0xFF000000;
 
-	uint8_t HOST_WORD_SIZE = 8;
+	const uint8_t host_word_size = 8;
 
-	devc->DATA_WIDTH_BYTES =
-		(devc->DATA_WIDTH + HOST_WORD_SIZE - 1) / HOST_WORD_SIZE;
-	devc->ADDR_WIDTH_BYTES =
-		(devc->ADDR_WIDTH + HOST_WORD_SIZE - 1) / HOST_WORD_SIZE;
+	devc->data_width_bytes =
+		(devc->data_width + host_word_size - 1) / host_word_size;
+	devc->addr_width_bytes =
+		(devc->addr_width + host_word_size - 1) / host_word_size;
 
-	devc->limit_samples_max = (0x01 << devc->ADDR_WIDTH);
+	devc->limit_samples_max = (0x01 << devc->addr_width);
 	devc->limit_samples = devc->limit_samples_max;
 
-	devc->trigger_mask = g_malloc0(devc->DATA_WIDTH_BYTES);
-	devc->trigger_value = g_malloc0(devc->DATA_WIDTH_BYTES);
-	devc->trigger_mask_last = g_malloc0(devc->DATA_WIDTH_BYTES);
-	devc->trigger_value_last = g_malloc0(devc->DATA_WIDTH_BYTES);
-	devc->trigger_edge_mask = g_malloc0(devc->DATA_WIDTH_BYTES);
+	devc->trigger_mask = g_malloc0(devc->data_width_bytes);
+	devc->trigger_value = g_malloc0(devc->data_width_bytes);
+	devc->trigger_mask_last = g_malloc0(devc->data_width_bytes);
+	devc->trigger_value_last = g_malloc0(devc->data_width_bytes);
+	devc->trigger_edge_mask = g_malloc0(devc->data_width_bytes);
 }
 
 SR_PRIV struct dev_context *ipdbg_la_dev_new(void)

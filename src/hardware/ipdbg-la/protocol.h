@@ -35,10 +35,10 @@ struct ipdbg_la_tcp {
 
 /** Private, per-device-instance driver context. */
 struct dev_context {
-	uint32_t DATA_WIDTH;
-	uint32_t DATA_WIDTH_BYTES;
-	uint32_t ADDR_WIDTH;
-	uint32_t ADDR_WIDTH_BYTES;
+	uint32_t data_width;
+	uint32_t data_width_bytes;
+	uint32_t addr_width;
+	uint32_t addr_width_bytes;
 
 	uint64_t limit_samples;
 	uint64_t limit_samples_max;

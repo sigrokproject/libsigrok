@@ -108,11 +108,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	ipdbg_la_get_addrwidth_and_datawidth(tcp, devc);
 
-	sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH,
-		devc->DATA_WIDTH);
+	sr_dbg("addr_width = %d, data_width = %d\n", devc->addr_width,
+		devc->data_width);
 	sr_dbg("limit samples = %" PRIu64 "\n", devc->limit_samples_max);
 
-	for (uint32_t i = 0; i < devc->DATA_WIDTH; i++) {
+	for (uint32_t i = 0; i < devc->data_width; i++) {
 		const uint8_t buf_size = 16;
 		char buf[buf_size];
 		snprintf(buf, buf_size, "ch%d", i);
@@ -265,7 +265,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	if (devc->num_transfers > 0) {
 		while (devc->num_transfers <
-			(devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
+			(devc->limit_samples_max * devc->data_width_bytes)) {
 			ipdbg_la_tcp_receive(tcp, &byte);
 			devc->num_transfers++;
 		}
