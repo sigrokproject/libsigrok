@@ -76,7 +76,7 @@ SR_PRIV int data_available(struct ipdbg_la_tcp *tcp)
 	int status;
 
 	if (ioctl(tcp->socket, FIONREAD, &status) < 0) {	// TIOCMGET
-		sr_err("FIONREAD failed: %s\n", strerror(errno));
+		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
 		return 0;
 	}
 
