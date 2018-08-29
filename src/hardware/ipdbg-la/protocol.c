@@ -160,7 +160,7 @@ SR_PRIV int ipdbg_la_tcp_send(struct ipdbg_la_tcp *tcp,
 	const uint8_t *buf, size_t len)
 {
 	int out;
-	out = send(tcp->socket, (char*)buf, len, 0);
+	out = send(tcp->socket, buf, len, 0);
 
 	if (out < 0) {
 		sr_err("Send error: %s", g_strerror(errno));
@@ -292,7 +292,7 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	sdi = (const struct sr_dev_inst *)cb_data;
+	sdi = cb_data;
 	if (!sdi)
 		return FALSE;
 
@@ -456,11 +456,11 @@ SR_PRIV int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *dataToSend,
 	while (length--) {
 		uint8_t payload = *dataToSend++;
 
-		if (payload == (uint8_t) CMD_RESET)
+		if (payload == CMD_RESET)
 			if (ipdbg_la_tcp_send(tcp, &escape, 1) != SR_OK)
 				sr_warn("Couldn't send escape");
 
-		if (payload == (uint8_t) CMD_ESCAPE)
+		if (payload == CMD_ESCAPE)
 			if (ipdbg_la_tcp_send(tcp, &escape, 1) != SR_OK)
 				sr_warn("Couldn't send escape");
 
