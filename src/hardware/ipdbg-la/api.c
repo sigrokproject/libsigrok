@@ -20,21 +20,21 @@
 #include <config.h>
 #include "protocol.h"
 
-static const uint32_t ipdbg_org_la_drvopts[] = {
+static const uint32_t ipdbg_la_drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
 
-static const uint32_t ipdbg_org_la_scanopts[] = {
+static const uint32_t ipdbg_la_scanopts[] = {
 	SR_CONF_CONN,
 };
 
-static const uint32_t ipdbg_org_la_devopts[] = {
+static const uint32_t ipdbg_la_devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET,
 };
 
-static const int32_t ipdbg_org_la_trigger_matches[] = {
+static const int32_t ipdbg_la_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
@@ -44,7 +44,7 @@ static const int32_t ipdbg_org_la_trigger_matches[] = {
 
 SR_PRIV struct sr_dev_driver ipdbg_la_driver_info;
 
-static void ipdbg_org_la_split_addr_port(const char *conn, char **addr,
+static void ipdbg_la_split_addr_port(const char *conn, char **addr,
 	char **port)
 {
 	char **strs = g_strsplit(conn, "/", 3);
@@ -80,20 +80,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!conn)
 		return NULL;
 
-	struct ipdbg_org_la_tcp *tcp = ipdbg_org_la_tcp_new();
+	struct ipdbg_la_tcp *tcp = ipdbg_la_tcp_new();
 
-	ipdbg_org_la_split_addr_port(conn, &tcp->address, &tcp->port);
+	ipdbg_la_split_addr_port(conn, &tcp->address, &tcp->port);
 
 	if (!tcp->address)
 		return NULL;
 
-	if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
+	if (ipdbg_la_tcp_open(tcp) != SR_OK)
 		return NULL;
 
-	ipdbg_org_la_send_reset(tcp);
-	ipdbg_org_la_send_reset(tcp);
+	ipdbg_la_send_reset(tcp);
+	ipdbg_la_send_reset(tcp);
 
-	if (ipdbg_org_la_request_id(tcp) != SR_OK)
+	if (ipdbg_la_request_id(tcp) != SR_OK)
 		return NULL;
 
 	struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
@@ -104,14 +104,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("ipdbg.org");
-	sdi->model = g_strdup("Logic Analyzer");
+	sdi->model = g_strdup("IPDBG LA");
 	sdi->version = g_strdup("v1.0");
 	sdi->driver = di;
 
-	struct ipdbg_org_la_dev_context *devc = ipdbg_org_la_dev_new();
+	struct ipdbg_la_dev_context *devc = ipdbg_la_dev_new();
 	sdi->priv = devc;
 
-	ipdbg_org_la_get_addrwidth_and_datawidth(tcp, devc);
+	ipdbg_la_get_addrwidth_and_datawidth(tcp, devc);
 
 	sr_dbg("addr_width = %d, data_width = %d\n", devc->ADDR_WIDTH,
 		devc->DATA_WIDTH);
@@ -127,7 +127,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_USER;
 	sdi->conn = tcp;
 
-	ipdbg_org_la_tcp_close(tcp);
+	ipdbg_la_tcp_close(tcp);
 
 	devices = g_slist_append(devices, sdi);
 
@@ -143,10 +143,10 @@ static int dev_clear(const struct sr_dev_driver *di)
 	if (drvc) {
 		for (l = drvc->instances; l; l = l->next) {
 			sdi = l->data;
-			struct ipdbg_org_la_tcp *tcp = sdi->conn;
+			struct ipdbg_la_tcp *tcp = sdi->conn;
 			if (tcp) {
-				ipdbg_org_la_tcp_close(tcp);
-				ipdbg_org_la_tcp_free(tcp);
+				ipdbg_la_tcp_close(tcp);
+				ipdbg_la_tcp_free(tcp);
 				g_free(tcp);
 			}
 			sdi->conn = NULL;
@@ -160,12 +160,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 {
 	sdi->status = SR_ST_INACTIVE;
 
-	struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	struct ipdbg_la_tcp *tcp = sdi->conn;
 
 	if (!tcp)
 		return SR_ERR;
 
-	if (ipdbg_org_la_tcp_open(tcp) != SR_OK)
+	if (ipdbg_la_tcp_open(tcp) != SR_OK)
 		return SR_ERR;
 
 	sdi->status = SR_ST_ACTIVE;
@@ -176,10 +176,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	// Should be called before a new call to scan()
-	struct ipdbg_org_la_tcp *tcp = sdi->conn;
+	struct ipdbg_la_tcp *tcp = sdi->conn;
 
 	if (tcp)
-		ipdbg_org_la_tcp_close(tcp);
+		ipdbg_la_tcp_close(tcp);
 
 	sdi->conn = NULL;
 	sdi->status = SR_ST_INACTIVE;
@@ -194,7 +194,7 @@ static int config_get(uint32_t key, GVariant **data,
 
 	(void)cg;
 
-	struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_la_dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -221,7 +221,7 @@ static int config_set(uint32_t key, GVariant *data,
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_la_dev_context *devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_CAPTURE_RATIO:
@@ -253,30 +253,30 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-			ipdbg_org_la_scanopts,
+			ipdbg_la_scanopts,
 			ARRAY_SIZE
-			(ipdbg_org_la_scanopts),
+			(ipdbg_la_scanopts),
 			sizeof(uint32_t));
 		break;
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi)
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				ipdbg_org_la_drvopts,
+				ipdbg_la_drvopts,
 				ARRAY_SIZE
-				(ipdbg_org_la_drvopts),
+				(ipdbg_la_drvopts),
 				sizeof(uint32_t));
 		else
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
-				ipdbg_org_la_devopts,
+				ipdbg_la_devopts,
 				ARRAY_SIZE
-				(ipdbg_org_la_devopts),
+				(ipdbg_la_devopts),
 				sizeof(uint32_t));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_INT32,
-			ipdbg_org_la_trigger_matches,
+			ipdbg_la_trigger_matches,
 			ARRAY_SIZE
-			(ipdbg_org_la_trigger_matches),
+			(ipdbg_la_trigger_matches),
 			sizeof(int32_t));
 		break;
 	default:
@@ -301,48 +301,48 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (sdi->status != SR_ST_ACTIVE)
 		return SR_ERR_DEV_CLOSED;
 
-	struct ipdbg_org_la_tcp *tcp = sdi->conn;
-	struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_la_tcp *tcp = sdi->conn;
+	struct ipdbg_la_dev_context *devc = sdi->priv;
 
-	ipdbg_org_la_convert_trigger(sdi);
-	ipdbg_org_la_send_trigger(devc, tcp);
-	ipdbg_org_la_send_delay(devc, tcp);
+	ipdbg_la_convert_trigger(sdi);
+	ipdbg_la_send_trigger(devc, tcp);
+	ipdbg_la_send_delay(devc, tcp);
 
 	/* If the device stops sending for longer than it takes to send a byte,
 	 * that means it's finished. But wait at least 100 ms to be safe.
 	 */
 	sr_session_source_add(sdi->session, tcp->socket, G_IO_IN, 100,
-		ipdbg_org_la_receive_data, (struct sr_dev_inst *)sdi);
+		ipdbg_la_receive_data, (struct sr_dev_inst *)sdi);
 
-	ipdbg_org_la_send_start(tcp);
+	ipdbg_la_send_start(tcp);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	struct ipdbg_org_la_tcp *tcp = sdi->conn;
-	struct ipdbg_org_la_dev_context *devc = sdi->priv;
+	struct ipdbg_la_tcp *tcp = sdi->conn;
+	struct ipdbg_la_dev_context *devc = sdi->priv;
 
 	uint8_t byte;
 
 	if (devc->num_transfers > 0) {
 		while (devc->num_transfers <
 			(devc->limit_samples_max * devc->DATA_WIDTH_BYTES)) {
-			ipdbg_org_la_tcp_receive(tcp, &byte);
+			ipdbg_la_tcp_receive(tcp, &byte);
 			devc->num_transfers++;
 		}
 	}
 
-	ipdbg_org_la_send_reset(tcp);
-	ipdbg_org_la_abort_acquisition(sdi);
+	ipdbg_la_send_reset(tcp);
+	ipdbg_la_abort_acquisition(sdi);
 
 	return SR_OK;
 }
 
 SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
-	.name = "ipdbg-org-la",
-	.longname = "ipdbg.org logic analyzer",
+	.name = "ipdbg-la",
+	.longname = "IPDBG LA",
 	.api_version = 1,
 	.init = init,
 	.cleanup = std_cleanup,
