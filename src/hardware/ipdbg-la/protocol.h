@@ -54,7 +54,7 @@ struct dev_context {
 	uint8_t *raw_sample_buf;
 };
 
-int data_available(struct ipdbg_la_tcp *tcp);
+SR_PRIV gboolean data_available(struct ipdbg_la_tcp *tcp);
 
 SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void);
 SR_PRIV void ipdbg_la_tcp_free(struct ipdbg_la_tcp *tcp);

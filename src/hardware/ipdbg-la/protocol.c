@@ -68,7 +68,7 @@
 /* LA subfunction command opcodes */
 #define CMD_LA_DELAY               0x1F
 
-SR_PRIV int data_available(struct ipdbg_la_tcp *tcp)
+SR_PRIV gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef __WIN32__
 	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
@@ -77,10 +77,10 @@ SR_PRIV int data_available(struct ipdbg_la_tcp *tcp)
 
 	if (ioctl(tcp->socket, FIONREAD, &status) < 0) {	// TIOCMGET
 		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
-		return 0;
+		return FALSE;
 	}
 
-	return (status < 1) ? 0 : 1;
+	return (status < 1) ? FALSE : TRUE;
 #endif  // __WIN32__
 }
 
