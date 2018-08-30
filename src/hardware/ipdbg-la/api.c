@@ -113,10 +113,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_dbg("limit samples = %" PRIu64 "\n", devc->limit_samples_max);
 
 	for (uint32_t i = 0; i < devc->data_width; i++) {
-		const uint8_t buf_size = 16;
-		char buf[buf_size];
-		snprintf(buf, buf_size, "ch%d", i);
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, buf);
+		char *name = g_strdup_printf("CH%d", i);
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, name);
+		g_free(name);
 	}
 
 	sdi->inst_type = SR_INST_USER;
