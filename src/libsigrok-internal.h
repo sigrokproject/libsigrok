@@ -745,7 +745,7 @@ struct drv_context {
 
 /*--- log.c -----------------------------------------------------------------*/
 
-#if defined(G_OS_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+#if defined(_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
 /*
  * On MinGW, we need to specify the gnu_printf format flavor or GCC
  * will assume non-standard Microsoft printf syntax.

@@ -1294,7 +1294,7 @@ SR_PRIV int sr_session_source_add_channel(struct sr_session *session,
 	/* We should be using g_io_create_watch(), but can't without
 	 * changing the driver API, as the callback signature is different.
 	 */
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 	g_io_channel_win32_make_pollfd(channel, events, &pollfd);
 #else
 	pollfd.fd = g_io_channel_unix_get_fd(channel);

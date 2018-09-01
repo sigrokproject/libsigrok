@@ -23,19 +23,15 @@
 #define _WIN32_WINNT 0x0501
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#endif
-
-#include <string.h>
-#include <unistd.h>
-
-#ifndef _WIN32
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/ioctl.h>
 #endif
-
+#include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include "protocol.h"
 
@@ -69,7 +65,7 @@
 
 static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
-#ifdef __WIN32__
+#ifdef _WIN32
 	u_long bytes_available;
 	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
 	return (bytes_available > 0);

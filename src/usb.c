@@ -184,7 +184,7 @@ static LIBUSB_CALL void usb_pollfd_added(libusb_os_handle fd,
 		return;
 
 	pollfd = g_slice_new(GPollFD);
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 	events = G_IO_IN;
 #endif
 	pollfd->fd = (gintptr)fd;

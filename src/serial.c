@@ -28,7 +28,7 @@
 #include <libserialport.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 #include <windows.h> /* for HANDLE */
 #endif
 
@@ -788,7 +788,7 @@ SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_devic
 }
 
 /** @cond PRIVATE */
-#ifdef G_OS_WIN32
+#ifdef _WIN32
 typedef HANDLE event_handle;
 #else
 typedef int event_handle;
