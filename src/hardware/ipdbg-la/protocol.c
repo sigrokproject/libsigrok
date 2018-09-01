@@ -33,12 +33,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/ioctl.h>
 #endif
 
 #include <errno.h>
 #include "protocol.h"
-
-#include <sys/ioctl.h>
 
 #define BUFFER_SIZE 4
 
