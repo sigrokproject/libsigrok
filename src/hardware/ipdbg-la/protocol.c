@@ -70,7 +70,9 @@
 static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef __WIN32__
+	u_long bytes_available;
 	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
+	return (bytes_available > 0);
 #else
 	int status;
 
@@ -80,7 +82,7 @@ static gboolean data_available(struct ipdbg_la_tcp *tcp)
 	}
 
 	return (status < 1) ? FALSE : TRUE;
-#endif  // __WIN32__
+#endif
 }
 
 SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void)
