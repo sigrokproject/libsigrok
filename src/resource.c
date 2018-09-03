@@ -55,9 +55,7 @@ SR_API GSList *sr_resourcepaths_get(int res_type)
 		subdir = "sigrok-firmware";
 
 		env = g_getenv("SIGROK_FIRMWARE_DIR");
-		if (!env)
-			sr_dbg("SIGROK_FIRMWARE_DIR environment variable not set, ignoring.");
-		else
+		if (env)
 			l = g_slist_append(l, g_strdup(env));
 	}
 
