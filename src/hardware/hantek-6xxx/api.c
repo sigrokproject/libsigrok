@@ -61,7 +61,14 @@ static const char *acdc_coupling[] = {
 
 static const struct hantek_6xxx_profile dev_profiles[] = {
 	{
+		/* Windows: "Hantek6022BE DRIVER 1": 04b4:6022 */
 		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
+		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+	},
+	{
+		/* Windows: "Hantek6022BE DRIVER 2": 04b5:6022 */
+		0x04b5, 0x6022, 0x1d50, 0x608e, 0x0001,
 		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
 		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
