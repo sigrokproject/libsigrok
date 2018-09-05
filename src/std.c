@@ -182,7 +182,6 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 
 	/* Send header packet to the session bus. */
-	sr_dbg("%s: Sending SR_DF_HEADER packet.", prefix);
 	packet.type = SR_DF_HEADER;
 	packet.payload = (uint8_t *)&header;
 	header.feed_version = 1;
@@ -221,8 +220,6 @@ SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 
 	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 
-	sr_dbg("%s: Sending SR_DF_END packet.", prefix);
-
 	packet.type = SR_DF_END;
 	packet.payload = NULL;
 
@@ -259,8 +256,6 @@ SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
 
 	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
 
-	sr_dbg("%s: Sending SR_DF_FRAME_BEGIN packet.", prefix);
-
 	packet.type = SR_DF_FRAME_BEGIN;
 	packet.payload = NULL;
 
@@ -296,8 +291,6 @@ SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
 	}
 
 	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
-
-	sr_dbg("%s: Sending SR_DF_FRAME_END packet.", prefix);
 
 	packet.type = SR_DF_FRAME_END;
 	packet.payload = NULL;
