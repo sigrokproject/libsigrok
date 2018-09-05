@@ -49,7 +49,7 @@
  * trigger: Whether or not to add a "trigger" column as the last column.
  *          Defaults to FALSE.
  *
- * dedup:   Don't output duplicate rows. Defaults to TRUE. If time is off, then
+ * dedup:   Don't output duplicate rows. Defaults to FALSE. If time is off, then
  *          this is forced to be off.
  */
 
@@ -660,7 +660,7 @@ static const struct sr_option *get_options(void)
 		options[7].values = l;
 		options[8].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
-		options[10].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
+		options[10].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 	}
 
 	return options;
