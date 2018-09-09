@@ -32,7 +32,8 @@
 //#define ACQ_BUFFER_SIZE (6000000)
 #define ACQ_BUFFER_SIZE (18000000)
 
-#define SIGLENT_HEADER_SIZE 351
+#define SIGLENT_HEADER_SIZE 363
+#define SIGLENT_DIG_HEADER_SIZE 346
 
 /* Maximum number of samples to retrieve at once. */
 #define ACQ_BLOCK_SIZE (30 * 1000)
@@ -40,13 +41,15 @@
 #define MAX_ANALOG_CHANNELS 4
 #define MAX_DIGITAL_CHANNELS 16
 
-#define DEVICE_STATE_STOPPED  0     /* Scope is in stopped state */
-#define DEVICE_STATE_DATA_ACQ 1     /* A new signal has been acquired */
-#define DEVICE_STATE_TRIG_RDY 8192  /* Trigger is ready */
+#define DEVICE_STATE_STOPPED 0		/* Scope is in stopped state bit */
+#define DEVICE_STATE_DATA_ACQ 1		/* A new signal has been acquired bit */
+#define DEVICE_STATE_TRIG_RDY 8192	/* Trigger is ready bit */
+#define DEVICE_STATE_DATA_TRIG_RDY 8193	/* Trigger is ready bit */
 
 enum protocol_version {
 	SPO_MODEL,
 	NON_SPO_MODEL,
+	ESERIES,
 };
 
 enum data_source {
@@ -109,7 +112,8 @@ struct dev_context {
 	uint64_t analog_frame_size;
 	uint64_t digital_frame_size;
 	uint64_t num_samples;
-	uint64_t memory_depth;
+	uint64_t memory_depth_analog;
+	uint64_t memory_depth_digital;
 	long block_header_size;
 	float samplerate;
 
@@ -149,6 +153,7 @@ struct dev_context {
 	/* Acq buffers used for reading from the scope and sending data to app. */
 	unsigned char *buffer;
 	float *data;
+	GArray *dig_buffer;
 };
 
 SR_PRIV int siglent_sds_config_set(const struct sr_dev_inst *sdi,

@@ -188,7 +188,7 @@ static const struct siglent_sds_series supported_series[] = {
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
-	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", SPO_MODEL,
+	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
@@ -531,7 +531,7 @@ static int config_set(uint32_t key, GVariant *data,
 	int ret, idx;
 	const char *tmp_str;
 	char buffer[16];
-	char *cmd = NULL;
+	char *cmd = "";
 	char cmd4[4];
 
 	devc = sdi->priv;
@@ -766,6 +766,7 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		case SPO_MODEL:
+		case ESERIES:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
@@ -827,20 +828,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			if (ch->enabled) {
 				/* Turn on LA module if currently off and digital channels are enabled. */
 				if (!devc->la_enabled) {
-					if (siglent_sds_config_set(sdi, "DGST ON") != SR_OK)
+					if (siglent_sds_config_set(sdi, "DI:SW?") != SR_OK)
 						return SR_ERR;
-					g_usleep(630000);
 					devc->la_enabled = TRUE;
 				}
 				devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
 			}
 			/* Enabled channel is currently disabled, or vice versa. */
-			if (siglent_sds_config_set(sdi, "D%d:DGCH %s", ch->index,
+			if (siglent_sds_config_set(sdi, "D%d:TRA %s", ch->index,
 				ch->enabled ? "ON" : "OFF") != SR_OK)
 				return SR_ERR;
-			/* Slowing the command sequence down to let the device handle it. */
-			g_usleep(630000);
 			devc->digital_channels[ch->index] = ch->enabled;
 		}
 	}
@@ -881,7 +879,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
 		siglent_sds_receive, (void *) sdi);
 
 	std_session_send_df_header(sdi);
