@@ -647,18 +647,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
-	double d;
 
 	scpi = sdi->conn;
 
-	/*
-	 * A requested value is certainly on the way. Retrieve it now,
-	 * to avoid leaving the device in a state where it's not expecting
-	 * commands.
-	 *
-	 * TODO: Doesn't work for (at least) the HP 66XXB models.
-	 */
-	sr_scpi_get_double(scpi, NULL, &d);
 	sr_scpi_source_remove(sdi->session, scpi);
 
 	std_session_send_df_end(sdi);
