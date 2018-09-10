@@ -205,6 +205,9 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="04b1", ENV{ID_SIGROK}="1"
 # Rigol DG4000 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", ENV{ID_SIGROK}="1"
 
+# Rigol DP800 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0e11", ENV{ID_SIGROK}="1"
+
 # Rohde&Schwarz HMO1002 Series VCP/USBTMC mode
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", ENV{ID_SIGROK}="1"
