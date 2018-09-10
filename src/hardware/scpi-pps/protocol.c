@@ -32,7 +32,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	const struct sr_dev_inst *sdi;
+	struct sr_dev_inst *sdi;
 	int channel_group_cmd;
 	char *channel_group_name;
 	struct pps_channel *pch;
@@ -115,6 +115,14 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		devc->cur_acquisition_channel =
 			sr_next_enabled_channel(sdi, devc->cur_acquisition_channel);
 	}
+
+	if (devc->cur_acquisition_channel == sr_next_enabled_channel(sdi, NULL))
+		/* First enabled channel, so each channel has been sampled */
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
+
+	/* Stop if limits have been hit. */
+	if (sr_sw_limits_check(&devc->limits))
+		sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
 }

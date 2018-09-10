@@ -147,6 +147,7 @@ struct dev_context {
 	struct channel_group_spec *channel_groups;
 
 	struct sr_channel *cur_acquisition_channel;
+	struct sr_sw_limits limits;
 };
 
 SR_PRIV extern unsigned int num_pps_profiles;

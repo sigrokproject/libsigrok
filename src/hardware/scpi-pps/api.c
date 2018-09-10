@@ -100,6 +100,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->device = device;
+	sr_sw_limits_init(&devc->limits);
 	sdi->priv = devc;
 
 	if (device->num_channels) {
@@ -400,6 +401,8 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_REGULATION:
 		gvtype = G_VARIANT_TYPE_STRING;
 		cmd = SCPI_CMD_GET_OUTPUT_REGULATION;
+	default:
+		return sr_sw_limits_config_get(&devc->limits, key, data);
 	}
 	if (!gvtype)
 		return SR_ERR_NA;
@@ -533,7 +536,7 @@ static int config_set(uint32_t key, GVariant *data,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
 		break;
 	default:
-		ret = SR_ERR_NA;
+		ret = sr_sw_limits_config_set(&devc->limits, key, data);
 	}
 
 	g_free(channel_group_name);
@@ -640,6 +643,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)
 		return ret;
 	std_session_send_df_header(sdi);
+	sr_sw_limits_acquisition_start(&devc->limits);
 
 	return SR_OK;
 }
