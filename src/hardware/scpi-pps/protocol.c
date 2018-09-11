@@ -34,7 +34,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_spec spec;
 	struct sr_dev_inst *sdi;
 	int channel_group_cmd;
-	char *channel_group_name;
+	const char *channel_group_name;
 	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
 	int ret;
@@ -52,14 +52,15 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	pch = devc->cur_acquisition_channel->priv;
+
 	channel_group_cmd = 0;
 	channel_group_name = NULL;
 	if (g_slist_length(sdi->channel_groups) > 1) {
 		channel_group_cmd = SCPI_CMD_SELECT_CHANNEL;
-		channel_group_name = g_strdup(devc->cur_acquisition_channel->name);
+		channel_group_name = pch->hwname;
 	}
 
-	pch = devc->cur_acquisition_channel->priv;
 	if (pch->mq == SR_MQ_VOLTAGE) {
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_MEAS_VOLTAGE;
@@ -78,7 +79,6 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 
 	ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
 		channel_group_cmd, channel_group_name, &gvdata, gvtype, cmd);
-	g_free(channel_group_name);
 
 	if (ret != SR_OK)
 		return ret;
@@ -106,6 +106,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	}
 	analog.meaning->mqflags = SR_MQFLAG_DC;
 	f = (float)g_variant_get_double(gvdata);
+	g_variant_unref(gvdata);
 	analog.data = &f;
 	sr_session_send(sdi, &packet);
 	g_slist_free(analog.meaning->channels);
