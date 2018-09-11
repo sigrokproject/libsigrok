@@ -105,6 +105,13 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-sigrok-fx2-16ch.fw",
 		DEV_CAPS_16BIT, NULL, NULL },
 
+	/*
+	 * usb-c-grok
+	 */
+	{ 0x1d50, 0x608f, "sigrok", "usb-c-grok", NULL,
+		"fx2lafw-usb-c-grok.fw",
+		0, NULL, NULL},
+
 	ALL_ZERO
 };
 

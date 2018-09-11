@@ -246,6 +246,9 @@ ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608d", ENV{ID_SIGROK}="1"
 # sigrok FX2 DSO (2ch)
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", ENV{ID_SIGROK}="1"
 
+# sigrok usb-c-grok
+ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608f", ENV{ID_SIGROK}="1"
+
 # SysClk LWLA1016
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", ENV{ID_SIGROK}="1"
 
