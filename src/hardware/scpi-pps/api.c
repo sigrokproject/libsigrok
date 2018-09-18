@@ -401,6 +401,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_REGULATION:
 		gvtype = G_VARIANT_TYPE_STRING;
 		cmd = SCPI_CMD_GET_OUTPUT_REGULATION;
+		break;
 	default:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
 	}
