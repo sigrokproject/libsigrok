@@ -1450,8 +1450,7 @@ static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)
 	                                   g_memdup(src, sizeof(struct sr_config)));
 }
 
-/** @private */
-SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
+SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		struct sr_datafeed_packet **copy)
 {
 	const struct sr_datafeed_meta *meta;
@@ -1522,7 +1521,7 @@ SR_PRIV int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	return SR_OK;
 }
 
-void sr_packet_free(struct sr_datafeed_packet *packet)
+SR_API void sr_packet_free(struct sr_datafeed_packet *packet)
 {
 	const struct sr_datafeed_meta *meta;
 	const struct sr_datafeed_logic *logic;
@@ -1567,7 +1566,6 @@ void sr_packet_free(struct sr_datafeed_packet *packet)
 		sr_err("Unknown packet type %d", packet->type);
 	}
 	g_free(packet);
-
 }
 
 /** @} */

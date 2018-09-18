@@ -154,6 +154,10 @@ SR_API int sr_session_is_running(struct sr_session *session);
 SR_API int sr_session_stopped_callback_set(struct sr_session *session,
 		sr_session_stopped_callback cb, void *cb_data);
 
+SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
+		struct sr_datafeed_packet **copy);
+SR_API void sr_packet_free(struct sr_datafeed_packet *packet);
+
 /*--- input/input.c ---------------------------------------------------------*/
 
 SR_API const struct sr_input_module **sr_input_list(void);
