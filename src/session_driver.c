@@ -328,7 +328,7 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, NULL, NULL, devopts);
+	return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, NO_OPTS, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

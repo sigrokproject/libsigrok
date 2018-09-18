@@ -395,7 +395,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		devc = sdi->priv;
 		if (devc->prof->max_sampling_freq == 100)

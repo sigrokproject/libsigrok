@@ -299,7 +299,7 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(ARRAY_AND_SIZE(sl2_samplerates));
 		break;

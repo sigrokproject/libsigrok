@@ -293,7 +293,7 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLE_INTERVAL:
 		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(kecheng_kc_330b_sample_intervals));
 		break;

@@ -960,6 +960,8 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 	const uint32_t scanopts[], size_t scansize, const uint32_t drvopts[],
 	size_t drvsize, const uint32_t devopts[], size_t devsize);
 
+extern SR_PRIV const uint32_t NO_OPTS[1];
+
 #define STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts) \
 	std_opts_config_list(key, data, sdi, cg, ARRAY_AND_SIZE(scanopts), \
 		ARRAY_AND_SIZE(drvopts), ARRAY_AND_SIZE(devopts))

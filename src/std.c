@@ -39,6 +39,8 @@
 
 #define LOG_PREFIX "std"
 
+SR_PRIV const uint32_t NO_OPTS[1] = {};
+
 /**
  * Standard driver init() callback API helper.
  *
@@ -581,7 +583,7 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 		/* Always return scanopts, regardless of sdi or cg. */
-		if (!scanopts)
+		if (!scanopts || scanopts == NO_OPTS)
 			return SR_ERR_ARG;
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 			scanopts, scansize, sizeof(uint32_t));
@@ -589,13 +591,13 @@ SR_PRIV int std_opts_config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!sdi) {
 			/* sdi == NULL: return drvopts. */
-			if (!drvopts)
+			if (!drvopts || drvopts == NO_OPTS)
 				return SR_ERR_ARG;
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				drvopts, drvsize, sizeof(uint32_t));
 		} else if (sdi && !cg) {
 			/* sdi != NULL, cg == NULL: return devopts. */
-			if (!devopts)
+			if (!devopts || devopts == NO_OPTS)
 				return SR_ERR_ARG;
 			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
 				devopts, devsize, sizeof(uint32_t));

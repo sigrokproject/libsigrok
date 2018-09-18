@@ -315,10 +315,10 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NULL, NULL);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NO_OPTS, NO_OPTS);
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
-			return STD_CONFIG_LIST(key, data, sdi, cg, NULL, drvopts, devopts);
+			return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
 		break;
 	case SR_CONF_COUPLING:
