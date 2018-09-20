@@ -365,12 +365,9 @@ SR_API gboolean sr_analog_si_prefix_friendly(enum sr_unit unit)
 
 	for (i = 0; i < ARRAY_SIZE(prefix_friendly_units); i++)
 		if (unit == prefix_friendly_units[i])
-			break;
+			return TRUE;
 
-	if (unit != prefix_friendly_units[i])
-		return FALSE;
-
-	return TRUE;
+	return FALSE;
 }
 
 /**
