@@ -102,7 +102,7 @@ static GString *gen_header(const struct sr_output *o)
 
 	/* generator */
 	g_string_append_printf(header, "$version %s %s $end\n",
-			PACKAGE_NAME, SR_PACKAGE_VERSION_STRING);
+			PACKAGE_NAME, sr_package_version_string_get());
 	g_string_append_printf(header, "$comment\n  Acquisition with "
 			"%d/%d channels", ctx->num_enabled_channels, num_channels);
 

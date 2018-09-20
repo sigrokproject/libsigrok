@@ -124,7 +124,7 @@ static GString *gen_header(const struct sr_output *o)
 	}
 
 	header = g_string_sized_new(512);
-	g_string_printf(header, "%s %s\n", PACKAGE_NAME, SR_PACKAGE_VERSION_STRING);
+	g_string_printf(header, "%s %s\n", PACKAGE_NAME, sr_package_version_string_get());
 	num_channels = g_slist_length(o->sdi->channels);
 	g_string_append_printf(header, "Acquisition with %d/%d channels",
 			ctx->num_enabled_channels, num_channels);
