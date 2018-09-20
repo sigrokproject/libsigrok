@@ -27,6 +27,8 @@
 
 #define LOG_PREFIX "output/analog"
 
+#define BIN_TO_DEC_DIGITS (log(2) / log(10))
+
 struct context {
 	int num_enabled_channels;
 	GPtrArray *channellist;
@@ -130,15 +132,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if ((ret = sr_analog_to_float(analog, fdata)) != SR_OK)
 			return ret;
 		*out = g_string_sized_new(512);
-		if (analog->encoding->is_digits_decimal) {
-			if (ctx->digits == DIGITS_ALL)
-				digits = analog->encoding->digits;
-			else
-				digits = analog->spec->spec_digits;
-		} else {
-			/* TODO we don't know how to print by number of bits yet. */
-			digits = 6;
-		}
+		if (ctx->digits == DIGITS_ALL)
+			digits = analog->encoding->digits;
+		else
+			digits = analog->spec->spec_digits;
+		if (!analog->encoding->is_digits_decimal)
+			digits = copysign(ceil(abs(digits) * BIN_TO_DEC_DIGITS), digits);
 		gboolean si_friendly = sr_analog_si_prefix_friendly(analog->meaning->unit);
 		sr_analog_unit_to_string(analog, &suffix);
 		for (i = 0; i < analog->num_samples; i++) {
