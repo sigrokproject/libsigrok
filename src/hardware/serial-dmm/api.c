@@ -136,6 +136,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	dmm->channel_count = 1;
 	if (dmm->packet_parse == sr_metex14_4packets_parse)
 		dmm->channel_count = 4;
+	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
+		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
+		dmm->channel_formats = eev121gw_channel_formats;
+	}
 	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
 		size_t ch_num;
 		const char *fmt;
@@ -255,6 +259,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Velleman", "DVM4100", "2400/8n1/rts=0/dtr=1",
 		2400, DTM0660_PACKET_SIZE, 0, 0, NULL,
 		sr_dtm0660_packet_valid, sr_dtm0660_parse, NULL
+	),
+	/* }}} */
+	/* eev121gw based meters {{{ */
+	DMM(
+		"eevblog-121gw", eev121gw, "EEVblog", "121GW",
+		"115200/8n1", 115200, EEV121GW_PACKET_SIZE, 0, 0, NULL,
+		sr_eev121gw_packet_valid, sr_eev121gw_3displays_parse, NULL
 	),
 	/* }}} */
 	/* es519xx based meters {{{ */

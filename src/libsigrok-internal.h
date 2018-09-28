@@ -1487,6 +1487,7 @@ struct eev121gw_info {
 	gboolean is_auto_poweroff, is_low_batt;
 };
 
+extern SR_PRIV const char *eev121gw_channel_formats[];
 SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
