@@ -1451,6 +1451,48 @@ SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
+/*--- src/dmm/eev121gw.c ----------------------------------------------------*/
+
+#define EEV121GW_PACKET_SIZE 19
+
+enum eev121gw_display {
+	EEV121GW_DISPLAY_MAIN,
+	EEV121GW_DISPLAY_SUB,
+	EEV121GW_DISPLAY_BAR,
+	EEV121GW_DISPLAY_COUNT,
+};
+
+struct eev121gw_info {
+	/* Selected channel. */
+	size_t ch_idx;
+	/*
+	 * Measured value, number and sign/overflow flags, scale factor
+	 * and significant digits.
+	 */
+	uint32_t uint_value;
+	gboolean is_ofl, is_neg;
+	int factor, digits;
+	/* Currently active mode (meter's function). */
+	gboolean is_ac, is_dc, is_voltage, is_current, is_power, is_gain;
+	gboolean is_resistance, is_capacitance, is_diode, is_temperature;
+	gboolean is_continuity, is_frequency, is_period, is_duty_cycle;
+	/* Quantities associated with mode/function. */
+	gboolean is_ampere, is_volt, is_volt_ampere, is_dbm;
+	gboolean is_ohm, is_farad, is_celsius, is_fahrenheit;
+	gboolean is_hertz, is_seconds, is_percent, is_loop_current;
+	gboolean is_unitless, is_logic;
+	/* Other indicators. */
+	gboolean is_min, is_max, is_avg, is_1ms_peak, is_rel, is_hold;
+	gboolean is_low_pass, is_mem, is_bt, is_auto_range, is_test;
+	gboolean is_auto_poweroff, is_low_batt;
+};
+
+SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
+
 /*--- hardware/scale/kern.c -------------------------------------------------*/
 
 struct kern_info {

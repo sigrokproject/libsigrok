@@ -149,6 +149,7 @@ libsigrok_la_SOURCES += \
 	src/dmm/asycii.c \
 	src/dmm/bm25x.c \
 	src/dmm/dtm0660.c \
+	src/dmm/eev121gw.c \
 	src/dmm/es519xx.c \
 	src/dmm/fs9721.c \
 	src/dmm/fs9922.c \
