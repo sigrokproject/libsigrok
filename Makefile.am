@@ -146,19 +146,19 @@ endif
 
 # Hardware (DMM chip parsers)
 libsigrok_la_SOURCES += \
+	src/dmm/asycii.c \
+	src/dmm/bm25x.c \
+	src/dmm/dtm0660.c \
 	src/dmm/es519xx.c \
 	src/dmm/fs9721.c \
 	src/dmm/fs9922.c \
 	src/dmm/m2110.c \
 	src/dmm/metex14.c \
-	src/dmm/asycii.c \
-	src/dmm/rs9lcd.c \
-	src/dmm/bm25x.c \
-	src/dmm/ut71x.c \
-	src/dmm/ut372.c \
-	src/dmm/vc870.c \
-	src/dmm/dtm0660.c \
 	src/dmm/ms8250d.c \
+	src/dmm/rs9lcd.c \
+	src/dmm/ut372.c \
+	src/dmm/ut71x.c \
+	src/dmm/vc870.c \
 	src/dmm/vc96.c
 
 # Hardware (LCR chip parsers)
