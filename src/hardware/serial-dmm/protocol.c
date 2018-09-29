@@ -27,15 +27,13 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static void log_dmm_packet(const uint8_t *buf)
+static void log_dmm_packet(const uint8_t *buf, size_t len)
 {
-	sr_dbg("DMM packet: %02x %02x %02x %02x %02x %02x %02x "
-	       "%02x %02x %02x %02x %02x %02x %02x %02x %02x "
-	       "%02x %02x %02x %02x %02x %02x %02x",
-	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13],
-	       buf[14], buf[15], buf[16], buf[17], buf[18], buf[19], buf[20],
-	       buf[21], buf[22]);
+	GString *text;
+
+	text = sr_hexdump_new(buf, len);
+	sr_dbg("DMM packet: %s", text->str);
+	sr_hexdump_free(text);
 }
 
 static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
@@ -55,7 +53,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 
 	dmm = (struct dmm_info *)sdi->driver;
 
-	log_dmm_packet(buf);
+	log_dmm_packet(buf, dmm->packet_size);
 	devc = sdi->priv;
 
 	sent_sample = FALSE;
