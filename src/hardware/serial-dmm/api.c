@@ -137,7 +137,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (dmm->packet_parse == sr_metex14_4packets_parse)
 		dmm->channel_count = 4;
 	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
-		snprintf(ch_name, sizeof(ch_name), "P%zu", ch_idx);
+		size_t ch_num;
+		ch_num = ch_idx + 1;
+		snprintf(ch_name, sizeof(ch_name), "P%zu", ch_num);
 		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, ch_name);
 	}
 	devices = g_slist_append(devices, sdi);
