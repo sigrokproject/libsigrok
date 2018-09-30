@@ -138,8 +138,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		dmm->channel_count = 4;
 	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
 		size_t ch_num;
+		const char *fmt;
+		fmt = "P%zu";
+		if (dmm->channel_formats && dmm->channel_formats[ch_idx])
+			fmt = dmm->channel_formats[ch_idx];
 		ch_num = ch_idx + 1;
-		snprintf(ch_name, sizeof(ch_name), "P%zu", ch_num);
+		snprintf(ch_name, sizeof(ch_name), fmt, ch_num);
 		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, ch_name);
 	}
 	devices = g_slist_append(devices, sdi);
@@ -207,7 +211,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.context = NULL, \
 		}, \
 		VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, TIMEOUT, DELAY, \
-		REQUEST, 1, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
+		REQUEST, 1, NULL, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
 	}).di
 
 SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
