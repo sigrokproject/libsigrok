@@ -50,6 +50,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 	struct sr_analog_spec spec;
 	struct dev_context *devc;
 	gboolean sent_sample;
+	struct sr_channel *channel;
 	size_t ch_idx;
 
 	dmm = (struct dmm_info *)sdi->driver;
@@ -63,8 +64,8 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 		/* Note: digits/spec_digits will be overridden by the DMM parsers. */
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
 
-		analog.meaning->channels =
-			g_slist_append(NULL, g_slist_nth_data(sdi->channels, ch_idx));
+		channel = g_slist_nth_data(sdi->channels, ch_idx);
+		analog.meaning->channels = g_slist_append(NULL, channel);
 		analog.num_samples = 1;
 		analog.meaning->mq = 0;
 
@@ -75,7 +76,7 @@ static void handle_packet(const uint8_t *buf, struct sr_dev_inst *sdi,
 		if (dmm->dmm_details)
 			dmm->dmm_details(&analog, info);
 
-		if (analog.meaning->mq != 0) {
+		if (analog.meaning->mq != 0 && channel->enabled) {
 			/* Got a measurement. */
 			packet.type = SR_DF_ANALOG;
 			packet.payload = &analog;
