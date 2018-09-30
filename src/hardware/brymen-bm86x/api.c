@@ -129,6 +129,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	devc = sdi->priv;
 
+	if (!usb->devhdl)
+		return SR_OK;
+
 	if ((ret = libusb_release_interface(usb->devhdl, 0)))
 		sr_err("Failed to release interface 0: %s.\n", libusb_error_name(ret));
 
