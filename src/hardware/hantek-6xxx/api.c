@@ -78,7 +78,14 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 		ARRAY_AND_SIZE(acdc_coupling), TRUE,
 	},
 	{
+		/* Windows: "Hantek6022BL DRIVER 1": 04b4:602a */
 		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
+		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+	},
+	{
+		/* Windows: "Hantek6022BL DRIVER 2": 04b5:602a */
+		0x04b5, 0x602a, 0x1d50, 0x608e, 0x0003,
 		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
 		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
