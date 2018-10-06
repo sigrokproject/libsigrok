@@ -591,6 +591,42 @@ SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
 }
 
 /**
+ * Convert a sequence of bytes to its textual representation ("hex dump").
+ *
+ * Callers should free the allocated GString. See @ref sr_hexdump_free().
+ *
+ * @param[in] data Pointer to the byte sequence to print.
+ * @param[in] len Number of bytes to print.
+ *
+ * @return #NULL upon error, newly allocated GString pointer otherwise.
+ */
+SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len)
+{
+	GString *s;
+	size_t i;
+
+	s = g_string_sized_new(3 * len);
+	for (i = 0; i < len; i++) {
+		if (i)
+			g_string_append_c(s, ' ');
+		g_string_append_printf(s, "%02x", data[i]);
+	}
+
+	return s;
+}
+
+/**
+ * Free a hex dump text that was created by @ref sr_hexdump_new().
+ *
+ * @param[in] s Pointer to the GString to release.
+ */
+SR_PRIV void sr_hexdump_free(GString *s)
+{
+	if (s)
+		g_string_free(s, TRUE);
+}
+
+/**
  * Convert a string representation of a numeric value to a sr_rational.
  *
  * The conversion is strict and will fail if the complete string does not

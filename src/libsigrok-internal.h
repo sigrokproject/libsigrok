@@ -1026,6 +1026,9 @@ SR_PRIV int sr_atof(const char *str, float *ret);
 SR_PRIV int sr_atod_ascii(const char *str, double *ret);
 SR_PRIV int sr_atof_ascii(const char *str, float *ret);
 
+SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len);
+SR_PRIV void sr_hexdump_free(GString *s);
+
 /*--- soft-trigger.c --------------------------------------------------------*/
 
 struct soft_trigger_logic {
