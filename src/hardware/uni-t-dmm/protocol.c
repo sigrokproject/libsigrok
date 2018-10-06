@@ -164,10 +164,11 @@ static void log_8byte_chunk(const uint8_t *buf)
 
 static void log_dmm_packet(const uint8_t *buf)
 {
-	sr_dbg("DMM packet:   %02x %02x %02x %02x %02x %02x %02x"
-	       " %02x %02x %02x %02x %02x %02x %02x",
-	       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6],
-	       buf[7], buf[8], buf[9], buf[10], buf[11], buf[12], buf[13]);
+	GString *text;
+
+	text = sr_hexdump_new(buf, 14);
+	sr_dbg("DMM packet:   %s", text->str);
+	sr_hexdump_free(text);
 }
 
 static int get_and_handle_data(struct sr_dev_inst *sdi)
