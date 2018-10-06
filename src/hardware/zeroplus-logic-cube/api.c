@@ -547,8 +547,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		unsigned int buf_offset;
 
 		res = analyzer_read_data(usb->devhdl, buf, PACKET_SIZE);
-		sr_info("Tried to read %d bytes, actually read %d bytes.",
-			PACKET_SIZE, res);
+		if (res != PACKET_SIZE)
+			sr_warn("Tried to read %d bytes, actually read %d.",
+				PACKET_SIZE, res);
 
 		if (discard >= PACKET_SIZE / 4) {
 			discard -= PACKET_SIZE / 4;
