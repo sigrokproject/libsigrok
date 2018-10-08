@@ -715,7 +715,11 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		time /= 1000;
 
 		if ((ibuf - i) >= packet_size) {
+			GString *text;
 			/* We have at least a packet's worth of data. */
+			text = sr_hexdump_new(&buf[i], packet_size);
+			sr_spew("Trying DMM packet: %s", text->str);
+			sr_hexdump_free(text);
 			if (is_valid(&buf[i])) {
 				sr_spew("Found valid %zu-byte packet after "
 					"%" PRIu64 "ms.", (ibuf - i), time);
