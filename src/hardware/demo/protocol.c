@@ -456,6 +456,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	void *value;
 	uint64_t samples_todo, logic_done, analog_done, analog_sent, sending_now;
 	int64_t elapsed_us, limit_us, todo_us;
+	int trigger_offset, pre_trigger_samples;
 
 	(void)fd;
 	(void)revents;
@@ -515,19 +516,44 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 		analog_done = samples_todo;
 
 	while (logic_done < samples_todo || analog_done < samples_todo) {
-		/* Logic */
-		if (logic_done < samples_todo) {
-			sending_now = MIN(samples_todo - logic_done,
-					LOGIC_BUFSIZE / devc->logic_unitsize);
-			logic_generator(sdi, sending_now * devc->logic_unitsize);
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = sending_now * devc->logic_unitsize;
-			logic.unitsize = devc->logic_unitsize;
-			logic.data = devc->logic_data;
-			logic_fixup_feed(devc, &logic);
-			sr_session_send(sdi, &packet);
-			logic_done += sending_now;
+		if (devc->trigger_fired) {
+			/* Logic */
+			if (logic_done < samples_todo) {
+				sending_now = MIN(samples_todo - logic_done,
+						LOGIC_BUFSIZE / devc->logic_unitsize);
+				logic_generator(sdi, sending_now * devc->logic_unitsize);
+				packet.type = SR_DF_LOGIC;
+				packet.payload = &logic;
+				logic.length = sending_now * devc->logic_unitsize;
+				logic.unitsize = devc->logic_unitsize;
+				logic.data = devc->logic_data;
+				logic_fixup_feed(devc, &logic);
+				sr_session_send(sdi, &packet);
+				logic_done += sending_now;
+			}
+		} else {
+			if (logic_done < samples_todo) {
+				sending_now = MIN(samples_todo - logic_done,
+						LOGIC_BUFSIZE / devc->logic_unitsize);
+				logic_generator(sdi, sending_now * devc->logic_unitsize);
+				trigger_offset = soft_trigger_logic_check(devc->stl,
+					devc->logic_data, sending_now * devc->logic_unitsize, &pre_trigger_samples);
+				
+				if (trigger_offset > -1) {
+					devc->trigger_fired = TRUE;
+				}
+
+				if (trigger_offset < sending_now - 1) {
+					packet.type = SR_DF_LOGIC;
+					packet.payload = &logic;
+					logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
+					logic.unitsize = devc->logic_unitsize;
+					logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
+					sr_session_send(sdi, &packet);
+				}
+
+				logic_done += sending_now;
+			}
 		}
 
 		/* Analog, one channel at a time */
@@ -543,6 +569,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			analog_done += analog_sent;
 		}
 	}
+
 	/* At this point, both logic_done and analog_done should be
 	 * exactly equal to samples_todo, or else.
 	 */

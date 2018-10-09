@@ -29,7 +29,7 @@
 #include "protocol.h"
 
 #define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
+#define DEFAULT_LOGIC_PATTERN		PATTERN_INC // Defalut is SIGROK pattern
 
 #define DEFAULT_NUM_ANALOG_CHANNELS	4
 #define DEFAULT_ANALOG_AMPLITUDE	10
@@ -134,7 +134,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup("Demo device");
 
 	devc = g_malloc0(sizeof(struct dev_context));
-	devc->cur_samplerate = SR_KHZ(200);
+	devc->cur_samplerate = SR_MHZ(1); // TODO: Return to default SR_KHZ(200)
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->all_logic_channels_mask = 1UL << 0;
@@ -143,6 +143,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
 	devc->limit_frames = limit_frames;
+	devc->limit_samples = 200; // Default value not defined in this device
+	devc->capture_ratio = 0;
+	devc->stl = NULL;
 
 	if (num_logic_channels > 0) {
 		/* Logic channels, all in one channel group. */
@@ -434,6 +437,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t mask;
 	GHashTableIter iter;
 	void *value;
+	struct sr_trigger *trigger;
 
 	devc = sdi->priv;
 	devc->sent_samples = 0;
@@ -499,6 +503,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->spent_us = 0;
 	devc->step = 0;
 
+	/* Store Triggers to stl and preset trigger_fired */
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
+		int pre_trigger_samples = 0;
+		if (devc->limit_samples > 0)
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
+		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
+		if (!devc->stl)
+			return SR_ERR_MALLOC;
+		devc->trigger_fired = FALSE;
+	} else
+		devc->trigger_fired = TRUE;
+
 	return SR_OK;
 }
 
@@ -513,6 +529,11 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		std_session_send_frame_end(sdi);
 
 	std_session_send_df_end(sdi);
+
+	if (devc->stl) {
+		soft_trigger_logic_free(devc->stl);
+		devc->stl = NULL;
+	}
 
 	return SR_OK;
 }
