@@ -151,7 +151,11 @@ static gboolean parse_section(GString *buf, gchar **name, gchar **contents)
 
 static void free_channel(void *data)
 {
-	struct vcd_channel *vcd_ch = data;
+	struct vcd_channel *vcd_ch;
+
+	vcd_ch = data;
+	if (!vcd_ch)
+		return;
 	g_free(vcd_ch->name);
 	g_free(vcd_ch->identifier);
 	g_free(vcd_ch);
@@ -615,6 +619,7 @@ static void cleanup(struct sr_input *in)
 
 	inc = in->priv;
 	g_slist_free_full(inc->channels, free_channel);
+	inc->channels = NULL;
 	g_free(inc->buffer);
 	inc->buffer = NULL;
 	g_free(inc->current_levels);
@@ -626,8 +631,15 @@ static int reset(struct sr_input *in)
 	struct context *inc = in->priv;
 
 	cleanup(in);
-	inc->started = FALSE;
 	g_string_truncate(in->buf, 0);
+
+	inc->started = FALSE;
+	inc->got_header = FALSE;
+	inc->prev_timestamp = 0;
+	inc->skip_until_end = FALSE;
+	inc->channelcount = 0;
+	/* The inc->channels list was released in cleanup() above. */
+	inc->buffer = g_malloc(CHUNK_SIZE);
 
 	return SR_OK;
 }
