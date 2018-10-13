@@ -39,6 +39,8 @@ enum {
 	KORAD_KD3005P,
 	KORAD_KD3005P_V20_NOSP,
 	RND_320K30PV,
+	TENMA_72_2540_V20,
+	TENMA_72_2540_V21,
 	/* Support for future devices with this protocol. */
 };
 
