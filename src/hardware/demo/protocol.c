@@ -456,7 +456,8 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	void *value;
 	uint64_t samples_todo, logic_done, analog_done, analog_sent, sending_now;
 	int64_t elapsed_us, limit_us, todo_us;
-	int trigger_offset, pre_trigger_samples;
+	int64_t trigger_offset;
+	int pre_trigger_samples;
 
 	(void)fd;
 	(void)revents;
@@ -514,50 +515,39 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	analog_done = devc->num_analog_channels > 0 ? 0 : samples_todo;
 	if (!devc->enabled_analog_channels)
 		analog_done = samples_todo;
-
+	
 	while (logic_done < samples_todo || analog_done < samples_todo) {
-		if (devc->trigger_fired) {
-			/* Logic */
-			if (logic_done < samples_todo) {
-				sending_now = MIN(samples_todo - logic_done,
-						LOGIC_BUFSIZE / devc->logic_unitsize);
-				logic_generator(sdi, sending_now * devc->logic_unitsize);
+		/* Logic */
+		if (logic_done < samples_todo) {
+			sending_now = MIN(samples_todo - logic_done,
+					LOGIC_BUFSIZE / devc->logic_unitsize);
+			logic_generator(sdi, sending_now * devc->logic_unitsize);
+			/* Trigger */
+			if (!devc->trigger_fired) {
+				trigger_offset = soft_trigger_logic_check(devc->stl,
+						devc->logic_data, sending_now * devc->logic_unitsize, 
+						&pre_trigger_samples);
+				if (trigger_offset > -1)
+					devc->trigger_fired = TRUE;
+					logic_done = pre_trigger_samples;
+			} else
+				trigger_offset = 0;
+
+			/* Remaining data */
+			if (devc->trigger_fired && trigger_offset < (unsigned int)sending_now) {
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
-				logic.length = sending_now * devc->logic_unitsize;
+				logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
 				logic.unitsize = devc->logic_unitsize;
-				logic.data = devc->logic_data;
+				logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
 				logic_fixup_feed(devc, &logic);
 				sr_session_send(sdi, &packet);
-				logic_done += sending_now;
-			}
-		} else {
-			if (logic_done < samples_todo) {
-				sending_now = MIN(samples_todo - logic_done,
-						LOGIC_BUFSIZE / devc->logic_unitsize);
-				logic_generator(sdi, sending_now * devc->logic_unitsize);
-				trigger_offset = soft_trigger_logic_check(devc->stl,
-					devc->logic_data, sending_now * devc->logic_unitsize, &pre_trigger_samples);
-				
-				if (trigger_offset > -1) {
-					devc->trigger_fired = TRUE;
-				}
-
-				if (trigger_offset < sending_now - 1) {
-					packet.type = SR_DF_LOGIC;
-					packet.payload = &logic;
-					logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
-					logic.unitsize = devc->logic_unitsize;
-					logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
-					sr_session_send(sdi, &packet);
-				}
-
-				logic_done += sending_now;
+				logic_done += sending_now - trigger_offset;
 			}
 		}
 
 		/* Analog, one channel at a time */
-		if (analog_done < samples_todo) {
+		if (devc->trigger_fired && analog_done < samples_todo) {
 			analog_sent = 0;
 
 			g_hash_table_iter_init(&iter, devc->ch_ag);
@@ -568,17 +558,17 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			}
 			analog_done += analog_sent;
 		}
+
+		/* If trigger didn't happen continue to next iteration
+		 * Allow the client to stop this process
+		 */
+		if (!devc->trigger_fired)
+			break;
 	}
 
-	/* At this point, both logic_done and analog_done should be
-	 * exactly equal to samples_todo, or else.
-	 */
-	if (logic_done != samples_todo || analog_done != samples_todo) {
-		sr_err("BUG: Sample count mismatch.");
-		return G_SOURCE_REMOVE;
-	}
-	devc->sent_samples += samples_todo;
-	devc->sent_frame_samples += samples_todo;
+	uint64_t min = MIN(logic_done, analog_done);
+	devc->sent_samples += min;
+	devc->sent_frame_samples += min;
 	devc->spent_us += todo_us;
 
 	if (devc->limit_frames && devc->sent_frame_samples >= SAMPLES_PER_FRAME) {

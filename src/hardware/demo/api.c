@@ -29,7 +29,7 @@
 #include "protocol.h"
 
 #define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_LOGIC_PATTERN		PATTERN_INC // Defalut is SIGROK pattern
+#define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
 
 #define DEFAULT_NUM_ANALOG_CHANNELS	4
 #define DEFAULT_ANALOG_AMPLITUDE	10
@@ -134,7 +134,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup("Demo device");
 
 	devc = g_malloc0(sizeof(struct dev_context));
-	devc->cur_samplerate = SR_MHZ(1); // TODO: Return to default SR_KHZ(200)
+	devc->cur_samplerate = SR_KHZ(200);
 	devc->num_logic_channels = num_logic_channels;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 	devc->all_logic_channels_mask = 1UL << 0;
@@ -143,8 +143,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
 	devc->limit_frames = limit_frames;
-	devc->limit_samples = 200; // Default value not defined in this device
-	devc->capture_ratio = 0;
+	devc->capture_ratio = 20;
 	devc->stl = NULL;
 
 	if (num_logic_channels > 0) {

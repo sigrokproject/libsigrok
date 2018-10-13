@@ -26,13 +26,13 @@
 #define LOG_PREFIX "soft-trigger"
 /* @endcond */
 
-static size_t logic_channel_unitsize(GSList *l)
+static size_t logic_channel_unitsize(GSList *channels)
 {
 	size_t number = 0;
 	struct sr_channel *channel;
+	GSList *l;
 
-	for (channel = l->data; l; l = l->next)
-	{
+	for (l = channels; l; l = l->next) {
 		channel = l->data;
 		if (channel->type == SR_CHANNEL_LOGIC)
 			number += 1;
