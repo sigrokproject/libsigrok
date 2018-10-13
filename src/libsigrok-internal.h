@@ -786,6 +786,8 @@ SR_PRIV void sr_channel_free(struct sr_channel *ch);
 SR_PRIV void sr_channel_free_cb(void *p);
 SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi,
 		struct sr_channel *cur_channel);
+SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2);
+SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2);
 
 /** Device instance data */
 struct sr_dev_inst {

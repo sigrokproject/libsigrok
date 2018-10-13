@@ -18,8 +18,9 @@
  */
 
 #include <config.h>
-#include <stdio.h>
 #include <glib.h>
+#include <stdio.h>
+#include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -186,6 +187,69 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
 	} while (!next_channel->enabled);
 
 	return next_channel;
+}
+
+/**
+ * Compare two channels, return whether they differ.
+ *
+ * The channels' names and types are checked. The enabled state is not
+ * considered a condition for difference. The test is motivated by the
+ * desire to detect changes in the configuration of acquisition setups
+ * between re-reads of an input file.
+ *
+ * @param[in] ch1 First channel.
+ * @param[in] ch2 Second channel.
+ *
+ * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ *
+ * @internal
+ */
+SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2)
+{
+	if (!ch1 || !ch2)
+		return TRUE;
+
+	if (ch1->type != ch2->type)
+		return TRUE;
+	if (strcmp(ch1->name, ch2->name))
+		return TRUE;
+
+	return FALSE;
+}
+
+/**
+ * Compare two channel lists, return whether they differ.
+ *
+ * Listing the same set of channels but in a different order is considered
+ * a difference in the lists.
+ *
+ * @param[in] l1 First channel list.
+ * @param[in] l2 Second channel list.
+ *
+ * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ *
+ * @internal
+ */
+SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2)
+{
+	struct sr_channel *ch1, *ch2;
+
+	while (l1 && l2) {
+		ch1 = l1->data;
+		ch2 = l2->data;
+		l1 = l1->next;
+		l2 = l2->next;
+		if (!ch1 || !ch2)
+			return TRUE;
+		if (sr_channels_differ(ch1, ch2))
+			return TRUE;
+		if (ch1->index != ch2->index)
+			return TRUE;
+	}
+	if (l1 || l2)
+		return TRUE;
+
+	return FALSE;
 }
 
 /**
