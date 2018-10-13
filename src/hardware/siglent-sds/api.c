@@ -50,7 +50,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -147,6 +147,10 @@ static const char *coupling[] = {
 
 static const uint64_t probe_factor[] = {
 	1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000,
+};
+
+static const uint64_t averages[] = {
+	4, 16, 32, 64, 128, 256, 512, 1024,
 };
 
 /* Do not change the order of entries. */
@@ -514,6 +518,12 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_new_uint64(devc->attenuation[analog_channel]);
 		break;
+	case SR_CONF_AVERAGING:
+		*data = g_variant_new_boolean(devc->average_enabled);
+		break;
+	case SR_CONF_AVG_SAMPLES:
+		*data = g_variant_new_uint64(devc->average_samples);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -774,8 +784,8 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_NUM_HDIV:
 		*data = g_variant_new_int32(devc->model->series->num_horizontal_divs);
 		break;
-	case SR_CONF_AVERAGING:
-		*data = g_variant_new_boolean(devc->average_enabled);
+	case SR_CONF_AVG_SAMPLES:
+		*data = std_gvar_array_u64(ARRAY_AND_SIZE(averages));
 		break;
 	default:
 		return SR_ERR_NA;
