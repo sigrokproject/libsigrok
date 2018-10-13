@@ -74,6 +74,30 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 }
 
 /**
+ * Release a previously allocated struct sr_channel.
+ *
+ * @param[in] ch Pointer to struct sr_channel.
+ *
+ * @private
+ */
+SR_PRIV void sr_channel_free(struct sr_channel *ch)
+{
+	if (!ch)
+		return;
+	g_free(ch->name);
+	g_free(ch->priv);
+	g_free(ch);
+}
+
+/**
+ * Wrapper around @ref sr_channel_free(), suitable for glib iterators.
+ */
+SR_PRIV void sr_channel_free_cb(void *p)
+{
+	sr_channel_free(p);
+}
+
+/**
  * Set the name of the specified channel.
  *
  * If the channel already has a different name assigned to it, it will be
@@ -364,9 +388,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
-		g_free(ch->name);
-		g_free(ch->priv);
-		g_free(ch);
+		sr_channel_free(ch);
 	}
 	g_slist_free(sdi->channels);
 
