@@ -392,11 +392,6 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	if ((ret = sr_dev_close(sdi)) < 0) {
-		sr_err("%s: Failed to close device: %d.", prefix, ret);
-		return ret;
-	}
-
 	return std_session_send_df_end(sdi);
 }
 
