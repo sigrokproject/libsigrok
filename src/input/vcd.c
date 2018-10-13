@@ -85,6 +85,7 @@ struct context {
 	size_t samples_in_buffer;
 	uint8_t *buffer;
 	uint8_t *current_levels;
+	GSList *prev_sr_channels;
 };
 
 struct vcd_channel {
@@ -173,6 +174,56 @@ static void remove_empty_parts(gchar **parts)
 	}
 
 	*dest = NULL;
+}
+
+/*
+ * Keep track of a previously created channel list, in preparation of
+ * re-reading the input file. Gets called from reset()/cleanup() paths.
+ */
+static void keep_header_for_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
+	g_slist_free_full(inc->prev_sr_channels, sr_channel_free_cb);
+	inc->prev_sr_channels = in->sdi->channels;
+	in->sdi->channels = NULL;
+}
+
+/*
+ * Check whether the input file is being re-read, and refuse operation
+ * when essential parameters of the acquisition have changed in ways
+ * that are unexpected to calling applications. Gets called after the
+ * file header got parsed (again).
+ *
+ * Changing the channel list across re-imports of the same file is not
+ * supported, by design and for valid reasons, see bug #1215 for details.
+ * Users are expected to start new sessions when they change these
+ * essential parameters in the acquisition's setup. When we accept the
+ * re-read file, then make sure to keep using the previous channel list,
+ * applications may still reference them.
+ */
+static int check_header_in_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	if (!in)
+		return FALSE;
+	inc = in->priv;
+	if (!inc)
+		return FALSE;
+	if (!inc->prev_sr_channels)
+		return TRUE;
+
+	if (sr_channel_lists_differ(inc->prev_sr_channels, in->sdi->channels)) {
+		sr_err("Channel list change not supported for file re-read.");
+		return FALSE;
+	}
+	g_slist_free_full(in->sdi->channels, sr_channel_free_cb);
+	in->sdi->channels = inc->prev_sr_channels;
+	inc->prev_sr_channels = NULL;
+
+	return TRUE;
 }
 
 /*
@@ -265,6 +316,8 @@ static gboolean parse_header(const struct sr_input *in, GString *buf)
 	inc->current_levels = g_malloc0(inc->bytes_per_sample);
 
 	inc->got_header = status;
+	if (status)
+		status = check_header_in_reread(in);
 
 	return status;
 }
@@ -618,8 +671,10 @@ static void cleanup(struct sr_input *in)
 	struct context *inc;
 
 	inc = in->priv;
+	keep_header_for_reread(in);
 	g_slist_free_full(inc->channels, free_channel);
 	inc->channels = NULL;
+
 	g_free(inc->buffer);
 	inc->buffer = NULL;
 	g_free(inc->current_levels);
