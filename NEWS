@@ -1,3 +1,271 @@
+0.5.1 (2018-10-14)
+------------------
+
+Note: This release does NOT change the libsigrok public C API in incompatible
+      ways. While new config keys have been added (additional enum
+      entries / numbers), no existing interfaces were changed or removed.
+      Frontends should continue to work fine without recompiling or relinking.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - DreamSourceLab DSLogic Basic
+     - DreamSourceLab DSLogic Plus
+     - Hantek 4032L
+     - IPDBG (ipdbg.org FPGA IP debugger)
+     - Meilhaus Logian-16L
+     - Saleae Logic Pro 16 (experimental)
+     - ZEROPLUS Logic Cube LAP-16032U
+     - ZEROPLUS Logic Cube LAP-C (16128+) (bug #1045)
+   - Oscilloscopes:
+     - Agilent MSO7034A (experimental, digital channels not yet supported)
+     - Hantek DSO-2250 (experimental)
+     - Rigol DS4000 series (bug #1208)
+     - Siglent SDS1000 series
+     - Siglent SDS2000 series
+   - Multimeters:
+     - EEVblog 121GW (supports serial connection, requires BLE-serial bridge)
+     - Fluke 45
+     - HP 3478A
+     - MASTECH MS8250D
+     - Metex M-3860M
+     - PeakTech 4390A
+     - SparkFun 70C
+     - Victor DMMs with Mini-USB connector
+     - Voltcraft VC-96
+   - Power supplies:
+     - GW Instek GPD series
+     - HP 6631B
+     - HP 66332A
+     - HP 6633B
+     - HP 6634B
+     - Korad KD3005P
+     - RDTech DPS/DPH series
+     - Rigol DP711
+     - Rigol DP712
+     - RND KA3005P
+     - Tenma 72-2540
+   - Electronic loads:
+     - ZKETECH EBD-USB
+ * New config keys:
+   - SR_CONF_POWERMETER
+   - SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD
+   - SR_CONF_EXTERNAL_CLOCK_SOURCE
+ * Build dependencies:
+   - Drop libftdi 0.x support, require libftdi 1.x (bug #959).
+ * dreamsourcelab-dslogic:
+   - Split DSLogic devices into this new driver (were in fx2lafw previously).
+   - Handle SR_CONF_TRIGGER_MATCH in config_list() (bug #1032).
+   - Fix incorrect default/initial threshold setting.
+   - Fix deinterleaving when non-contiguous set of channels is enabled.
+   - Fix a triggering issue (bug #1188).
+ * demo:
+   - Unbreak execution with all analog channels disabled (bug #625).
+   - Only send average result data when averaging is active (bug #930).
+   - Don't generate analog output data for disabled channels (bug #923).
+   - Skip generating data when all channels in a group are disabled (bug #923).
+   - Mask out logic data for disabled channels in datafeed packets.
+   - Add multi-frame and frame-count (development) feature.
+   - Properly handle low samplerates.
+   - Add graycode generator mode.
+   - Add triggering support.
+ * conrad-digi-35-cpu:
+   - Add SR_CONF_LIST for voltage_target and current_limit.
+ * arachnid-labs-re-load-pro:
+   - Stop monitoring when open/close device.
+   - Add SR_DF_META packets for changed values/states.
+   - Change serial read in acquisition mode to prevent data loss.
+   - Fix a rounding issue when setting a current limit.
+   - Add SR_CONF_UNDER_VOLTAGE_THRESHOLD support.
+   - Make SR_CONF_REGULATION listable.
+   - Get a response when in acquision mode.
+   - Set an encoding "digits" value for analog packets.
+ * asix-sigma:
+   - Propagate errors from firmware upload (bug #471).
+   - Only change number of channels after successful firmware upload (bug #471).
+   - Only open the USB device once; fails with newer libftdi (bug #471).
+   - Download sample data upon user initiated stop, too.
+ * serial-lcr:
+   - Fix a double-free error (tested with PeakTech 2170).
+   - Support channel selection (enable/disable P1/P2).
+ * brymen-bm86x:
+   - Support channel selection (enable/disable channels).
+   - Fix a crash upon device closing.
+ * manson-hcs-3xxx:
+   - Add new name for the HCS-3304 (adjustment for new Manson firmware).
+ * chronovu-la:
+   - Silence overly verbose and confusing log messages.
+ * beaglelogic:
+   - Update scan() to return all 14 channels by default.
+   - Enable seamless continuous capturing.
+   - Use a flexible sampleunit depending on enabled channels.
+   - Add TCP protocol support.
+   - Fix a crash on device connection closing.
+   - Correctly advertise samplerates via SR_CONF_SAMPLERATE/SR_CONF_LIST.
+   - Fix a compiler warning (bug #1094).
+ * lecroy-xstream:
+   - Fix COMM_HEADER and COMM_FORMAT.
+   - Use best-effort strategy for models unknown to the driver.
+   - Fix trigger source/slope handling.
+   - Implement config_channel_set API callback.
+   - Fix sample rate handling.
+   - Keep acquiring infinitely if no frame limit is set.
+   - Properly handle a stopping acquisition.
+   - Wait for trigger before acquiring additional frames.
+ * hantek-6xxx:
+   - Use lower MAX_PACKET_SIZE on Windows (bug #1048).
+   - Use FIFO-based sampling, don't buffer all samples before send (bug #1214).
+   - Hantek 6022BE: Add VID/PID 04b5:6022 support (bug #918).
+   - Hantek 6022BL: Add VID/PID 04b5:602a support (bug #1295).
+ * scpi-pps:
+   - Add channel group device options for HP 663xx.
+   - Use thread safe SCPI functions, return float not double (bug #779).
+   - Improve switching of channel groups (PSU channels).
+   - Add missing functionality for the HP 6632B power supply.
+   - Add listable OVP/OCP threshold for HP 66xxx and prepared all others.
+   - Don't block waiting for a value on capture stop.
+   - Use software sample and time limits.
+   - Fix broken channel selection code (bug #1279).
+ * hameg-hmo:
+   - Forward internal channel state to sigrok channel state (bug #883).
+ * sysclk-lwla:
+   - Fix a segfault in dev_close().
+   - Fix a regression with (at least) the LWLA1034.
+ * rigol-ds:
+   - Fix crash when fetching logic channels (bug #1073).
+   - Fix a memory leak.
+   - Fix an issue causing only one channel to be acquired (bug #1018).
+   - Store trigger sources and their number for each model (bug #299).
+ * hantek-dso:
+   - Fix segfault when accessing already free()d memory (bug #458).
+ * korad-kaxxxxp:
+   - Add two channels "V" and "I", remove channel "CH1".
+   - Synchronize read and write operations.
+ * serial-dmm:
+   - Add support for multiple channels per DMM.
+   - Count analog DMM channels starting at 1.
+   - Print data bytes according to specific meter's packet length.
+ * siglent-sds:
+   - Fixed timebase problem where "ns" could not be selected (bug #1120).
+   - Add an averaging function.
+   - Partial fix for a USB connection problem (bug #1130).
+   - Fix samplerate and memory depth calculation.
+   - Better support for *-E series devices (more work might be needed).
+   - Fix SR_CONF_AVERAGING/SR_CONF_AVG_SAMPLES handling.
+ * hantek-4032l:
+   - Various data acquisition fixes (bug #1190).
+   - Add support for cleanly aborting an acquisition.
+ * fx2lafw:
+   - Silence message in query for channel group's device options (bug #1267).
+   - Add usb-c-grok IDs for upcoming device support.
+ * input/wav:
+   - Fix incorrect memset() call.
+   - Fix module reset issue (bug #1167).
+   - Don't assume CHUNK_SIZE >= total_samples.
+ * input/raw_analog:
+   - Fix module reset issue (bug #1167).
+   - Set appropriate precision digits for sample format (bug #950).
+ * input/vcd:
+   - Fixup VCD timestamp to sigrok samplenum mapping (bug #1075).
+   - Abort VCD import when timestamp counts backwards (bug #1250).
+   - Expand the reset() logic (bug #1306).
+   - Add channel list checks for file re-read (bug #1306).
+ * input/csv:
+   - Make the data format option a list.
+ * input/logicport:
+   - Add input module for LogicPort File (*.lpf) files.
+ * input/chronovu_la8:
+   - Only send data to the session, don't send the header.
+   - Also claim responsibility for ChronoVu LA16 files (.kdt/.kd1).
+ * input/null:
+   - Add this new input module (used for testing and benchmarking purposes).
+ * Input modules:
+   - Improve option names and descriptions.
+   - Increase chunk sizes to 4MB in most cases for improved performance.
+   - Add confidence (detection strength) to format_match() (bug #1200).
+ * output/null:
+   - Add this new output module (used for testing and benchmarking purposes).
+ * output/analog:
+   - Display SR_DF_META packets.
+   - Convert binary to digital digits of precision (bug #950).
+ * output/vcd:
+   - Assign adjacent names to enabled channels (bug #519).
+   - Assume packed input data image, unbreak 2nd+ channel (bug #519).
+ * output/wav:
+   - Change default for scale factor from 0.0 to 1.0.
+ * output/csv:
+   - Fix out-of-bounds array access in process_analog() (bug #1124).
+   - Make the label values option a list.
+   - Disable the dedup option by default.
+ * Output modules:
+   - Fixup trigger marker position in ascii/bits/hex output modules.
+ * Fix various compiler warnings, scan-build issues, and memory leaks.
+ * soft-trigger:
+   - Fix a memory allocation issue (bug #1000).
+   - Fix an issue causing triggers to not work.
+ * session_driver: Fix an issue causing incorrect analog data reads.
+ * Logging:
+   - Flush log lines to cope with non-terminal output (pipes).
+   - Move log level check so that it affects all handlers (bug #698).
+ * SCPI:
+   - Fix an issue caused by trailing whitespace handling (bug #788).
+   - Synchronize read, write and write+read operations.
+ * Various DMMs: Set DC flag for diode mode (bug #144).
+ * All drivers:
+   - Use serial_write_blocking() everywhere (bug #962).
+   - Fix locale dependent string to float conversion (bug #1064).
+   - Show firmware name when loading fails (bug #1262).
+ * FreeBSD:
+   - Ensure device is closed before usb_get_port_path() (bug #1109).
+ * Metex DMMs:
+   - Add missing modes and set correct digits values.
+   - Add power factor measurement mode.
+   - Fix incorrect measurement modes.
+ * DTM0660 DMMs:
+   - Do not apply the exponent twice on the value (bug #1236).
+ * libsigrok API:
+   - Add sr_a2l_threshold().
+   - Add sr_a2l_schmitt_trigger().
+   - Add sr_sprintf_ascii().
+   - Add sr_snprintf_ascii().
+   - Add sr_vsprintf_ascii().
+   - Add sr_vsnprintf_ascii().
+   - Add sr_resourcepaths_get() (bug #1128).
+   - Add sr_input_module_get().
+   - Add sr_log_callback_get().
+   - Add sr_packet_copy().
+   - Add sr_packet_free().
+   - sr_parse_boolstring(): Assume bool is true when no value is specified.
+   - sr_voltage_string(): Add a space before the unit.
+   - sr_parse_rational():
+     - Bugfix for integral parts between -0 and -1.
+     - Bugfix in an error path (bug #1093).
+     - Various parsing robustness improvements/fixes.
+     - Accept leading whitespace.
+     - Insist on some mantissa.
+   - sr_analog_si_prefix_friendly(): Fix read past end of array (bug #950).
+   - sr_parse_sizestring(): Support tera/peta/exa suffixes (bug #763).
+ * libsigrokcxx API:
+   - Add Analog::get_logic_via_threshold().
+   - Add Analog::get_logic_via_schmitt_trigger().
+   - Add Context::input_format_match().
+   - Add Option::parse_string().
+   - Add ConfigKey::parse_string().
+ * backend: Emit firmware search paths in a log message.
+ * Fix a driver-independent firmware loading issue (bug #1140).
+ * modbus: Improve error handling.
+ * Multiple internal refactorings to massively reduce per-driver boilerplate.
+ * Also check $SIGROK_FIRMWARE_DIR for firmware files.
+ * udev rules file:
+   - Add Brymen BU-86X adapter IDs.
+   - Add Rigol DP800 series IDs.
+   - Add usb-c-grok IDs.
+   - Rename file for correct rule ordering on systemd systems (bug #1059).
+   - Split device access policy from the device database. New files:
+     60-libsigrok.rules, 61-libsigrok-{plugdev,uaccess}.rules.
+ * Build system:
+   - Emit a warning if the C++ bindings are not being built.
+   - Install MIME info file in $(datadir)/mime/packages (bug #983).
+
 0.5.0 (2017-06-12)
 ------------------
 
