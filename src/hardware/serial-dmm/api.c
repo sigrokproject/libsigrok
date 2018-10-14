@@ -415,6 +415,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
 	),
 	DMM(
+		"victor-dmm-ser", fs9922,
+		"Victor", "Victor DMMs (Mini-USB cable)", "2400/8n1",
+		2400, FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
 		/*
 		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
 		 * the FS9922 protocol. Instead, it only sets the user-defined
