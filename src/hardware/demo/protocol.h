@@ -117,6 +117,10 @@ struct dev_context {
 	size_t enabled_analog_channels;
 	size_t first_partial_logic_index;
 	uint8_t first_partial_logic_mask;
+	/* Triggers */
+	uint64_t capture_ratio;
+	gboolean trigger_fired;
+	struct soft_trigger_logic *stl;
 };
 
 static const char *analog_pattern_str[] = {

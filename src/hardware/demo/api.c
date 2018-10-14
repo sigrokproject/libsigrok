@@ -67,6 +67,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_logic[] = {
@@ -80,6 +82,14 @@ static const uint32_t devopts_cg_analog_group[] = {
 static const uint32_t devopts_cg_analog_channel[] = {
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const uint64_t samplerates[] = {
@@ -133,6 +143,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->logic_pattern = DEFAULT_LOGIC_PATTERN;
 	devc->num_analog_channels = num_analog_channels;
 	devc->limit_frames = limit_frames;
+	devc->capture_ratio = 20;
+	devc->stl = NULL;
 
 	if (num_logic_channels > 0) {
 		/* Logic channels, all in one channel group. */
@@ -265,6 +277,9 @@ static int config_get(uint32_t key, GVariant **data,
 		ag = g_hash_table_lookup(devc->ch_ag, ch);
 		*data = g_variant_new_double(ag->amplitude);
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		*data = g_variant_new_uint64(devc->capture_ratio);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -348,6 +363,9 @@ static int config_set(uint32_t key, GVariant *data,
 			ag->amplitude = g_variant_get_double(data);
 		}
 		break;
+	case SR_CONF_CAPTURE_RATIO:
+		devc->capture_ratio = g_variant_get_uint64(data);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -367,6 +385,9 @@ static int config_list(uint32_t key, GVariant **data,
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 		case SR_CONF_SAMPLERATE:
 			*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+			break;
+		case SR_CONF_TRIGGER_MATCH:
+			*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 			break;
 		default:
 			return SR_ERR_NA;
@@ -415,6 +436,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t mask;
 	GHashTableIter iter;
 	void *value;
+	struct sr_trigger *trigger;
 
 	devc = sdi->priv;
 	devc->sent_samples = 0;
@@ -480,6 +502,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->spent_us = 0;
 	devc->step = 0;
 
+	/* Store Triggers to stl and preset trigger_fired */
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
+		int pre_trigger_samples = 0;
+		if (devc->limit_samples > 0)
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
+		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
+		if (!devc->stl)
+			return SR_ERR_MALLOC;
+		devc->trigger_fired = FALSE;
+	} else
+		devc->trigger_fired = TRUE;
+
 	return SR_OK;
 }
 
@@ -494,6 +528,11 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		std_session_send_frame_end(sdi);
 
 	std_session_send_df_end(sdi);
+
+	if (devc->stl) {
+		soft_trigger_logic_free(devc->stl);
+		devc->stl = NULL;
+	}
 
 	return SR_OK;
 }

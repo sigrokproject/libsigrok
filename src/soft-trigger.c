@@ -26,6 +26,22 @@
 #define LOG_PREFIX "soft-trigger"
 /* @endcond */
 
+static size_t logic_channel_unitsize(GSList *channels)
+{
+	size_t number = 0;
+	struct sr_channel *channel;
+	GSList *l;
+
+	for (l = channels; l; l = l->next) {
+		channel = l->data;
+		if (channel->type == SR_CHANNEL_LOGIC)
+			number += 1;
+	}
+	sr_dbg("number of logic channels: %d", (int) number);
+	return (number + 7) / 8;
+} 
+
+
 SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 		const struct sr_dev_inst *sdi, struct sr_trigger *trigger,
 		int pre_trigger_samples)
@@ -35,7 +51,8 @@ SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 	stl = g_malloc0(sizeof(struct soft_trigger_logic));
 	stl->sdi = sdi;
 	stl->trigger = trigger;
-	stl->unitsize = (g_slist_length(sdi->channels) + 7) / 8;
+	/* Retreive number of logic channels, unitsize */
+	stl->unitsize = logic_channel_unitsize(sdi->channels);
 	stl->prev_sample = g_malloc0(stl->unitsize);
 	stl->pre_trigger_size = stl->unitsize * pre_trigger_samples;
 	stl->pre_trigger_buffer = g_try_malloc(stl->pre_trigger_size);
