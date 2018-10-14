@@ -936,6 +936,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 		_owned_devices.emplace(sdi, move(device));
 	}
 	_context->_session = this;
+	g_slist_free(dev_list);
 }
 
 Session::~Session()
@@ -970,6 +971,7 @@ vector<shared_ptr<Device>> Session::devices()
 		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		result.push_back(get_device(sdi));
 	}
+	g_slist_free(dev_list);
 	return result;
 }
 
