@@ -170,7 +170,7 @@ SR_API int sr_log_callback_set_default(void)
  *
  * @return SR_OK upon success.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API int sr_log_callback_get(sr_log_callback *cb, void **cb_data)
 {

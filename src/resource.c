@@ -42,7 +42,7 @@
  *
  * @return List of strings that must be freed after use, including the strings.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API GSList *sr_resourcepaths_get(int res_type)
 {

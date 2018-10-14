@@ -538,7 +538,7 @@ SR_API int sr_input_scan_file(const char *filename, const struct sr_input **in)
  * useful when an application did not create the input stream by specifying
  * an input module, but instead some shortcut or convenience wrapper did.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API const struct sr_input_module *sr_input_module_get(const struct sr_input *in)
 {

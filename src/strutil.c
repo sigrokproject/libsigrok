@@ -281,7 +281,7 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
  * @return On success, the number of characters that would have been written,
  *         not counting the terminating NUL character.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API int sr_sprintf_ascii(char *buf, const char *format, ...)
 {
@@ -320,7 +320,7 @@ SR_API int sr_sprintf_ascii(char *buf, const char *format, ...)
  * @return On success, the number of characters that would have been written,
  *         not counting the terminating NUL character.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args)
 {
@@ -445,7 +445,7 @@ SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args)
  *         Notice that only when this returned value is non-negative and less
  *         than buf_size, the string has been completely written.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,
 	const char *format, ...)
@@ -492,7 +492,7 @@ SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,
  *         Notice that only when this returned value is non-negative and less
  *         than buf_size, the string has been completely written.
  *
- * @since 0.6.0
+ * @since 0.5.1
  */
 SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
 	const char *format, va_list args)
