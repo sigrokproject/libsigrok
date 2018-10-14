@@ -285,7 +285,7 @@ public:
 	/** Create an analog packet. */
 	shared_ptr<Packet> create_analog_packet(
 		vector<shared_ptr<Channel> > channels,
-		const float *data_pointer, unsigned int num_samples, const Quantity *mq,
+		float *data_pointer, unsigned int num_samples, const Quantity *mq,
 		const Unit *unit, vector<const QuantityFlag *> mqflags);
 	/** Load a saved session.
 	 * @param filename File name string. */
