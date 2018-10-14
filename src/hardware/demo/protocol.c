@@ -294,7 +294,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 		break;
 	case PATTERN_WALKING_ONE:
 		/* j contains the value of the highest bit */
-	        j = 1 << (devc->num_logic_channels - 1);
+		j = 1 << (devc->num_logic_channels - 1);
 		for (i = 0; i < size; i++) {
 			devc->logic_data[i] = devc->step;
 			if (devc->step == 0)
@@ -309,7 +309,7 @@ static void logic_generator(struct sr_dev_inst *sdi, uint64_t size)
 	case PATTERN_WALKING_ZERO:
 		/* Same as walking one, only with inverted output */
 		/* j contains the value of the highest bit */
-	        j = 1 << (devc->num_logic_channels - 1);
+		j = 1 << (devc->num_logic_channels - 1);
 		for (i = 0; i < size; i++) {
 			devc->logic_data[i] = ~devc->step;
 			if (devc->step == 0)
@@ -419,8 +419,7 @@ static void send_analog_packet(struct analog_gen *ag,
 					  ag_pattern_pos + i)) / 2;
 			ag->num_avgs++;
 			/* Time to send averaged data? */
-			if (devc->avg_samples > 0 &&
-			    ag->num_avgs >= devc->avg_samples)
+			if ((devc->avg_samples > 0) && (ag->num_avgs >= devc->avg_samples))
 				goto do_send;
 		}
 
@@ -512,42 +511,62 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	logic_done = devc->num_logic_channels > 0 ? 0 : samples_todo;
 	if (!devc->enabled_logic_channels)
 		logic_done = samples_todo;
+
 	analog_done = devc->num_analog_channels > 0 ? 0 : samples_todo;
 	if (!devc->enabled_analog_channels)
 		analog_done = samples_todo;
-	
+
 	while (logic_done < samples_todo || analog_done < samples_todo) {
 		/* Logic */
 		if (logic_done < samples_todo) {
 			sending_now = MIN(samples_todo - logic_done,
 					LOGIC_BUFSIZE / devc->logic_unitsize);
 			logic_generator(sdi, sending_now * devc->logic_unitsize);
-			/* Trigger */
-			if (!devc->trigger_fired) {
+			/* Check for trigger and send pre-trigger data if needed */
+			if (devc->stl && (!devc->trigger_fired)) {
 				trigger_offset = soft_trigger_logic_check(devc->stl,
-						devc->logic_data, sending_now * devc->logic_unitsize, 
+						devc->logic_data, sending_now * devc->logic_unitsize,
 						&pre_trigger_samples);
-				if (trigger_offset > -1)
+				if (trigger_offset > -1) {
 					devc->trigger_fired = TRUE;
 					logic_done = pre_trigger_samples;
+				}
 			} else
 				trigger_offset = 0;
 
-			/* Remaining data */
-			if (devc->trigger_fired && trigger_offset < (unsigned int)sending_now) {
-				packet.type = SR_DF_LOGIC;
-				packet.payload = &logic;
-				logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
-				logic.unitsize = devc->logic_unitsize;
-				logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
+			/* Send logic samples if needed */
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.unitsize = devc->logic_unitsize;
+
+			if (devc->stl) {
+				if (devc->trigger_fired && (trigger_offset < (int)sending_now)) {
+					/* Send after-trigger data */
+					logic.length = (sending_now - trigger_offset) * devc->logic_unitsize;
+					logic.data = devc->logic_data + trigger_offset * devc->logic_unitsize;
+					logic_fixup_feed(devc, &logic);
+					sr_session_send(sdi, &packet);
+					logic_done += sending_now - trigger_offset;
+					/* End acquisition */
+					sr_dbg("Triggered, stopping acquisition.");
+					sr_dev_acquisition_stop(sdi);
+					break;
+				} else {
+					/* Send nothing */
+					logic_done += sending_now;
+				}
+			} else if (!devc->stl) {
+				/* No trigger defined, send logic samples */
+				logic.length = sending_now * devc->logic_unitsize;
+				logic.data = devc->logic_data;
 				logic_fixup_feed(devc, &logic);
 				sr_session_send(sdi, &packet);
-				logic_done += sending_now - trigger_offset;
+				logic_done += sending_now;
 			}
 		}
 
 		/* Analog, one channel at a time */
-		if (devc->trigger_fired && analog_done < samples_todo) {
+		if (analog_done < samples_todo) {
 			analog_sent = 0;
 
 			g_hash_table_iter_init(&iter, devc->ch_ag);
@@ -558,12 +577,6 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 			}
 			analog_done += analog_sent;
 		}
-
-		/* If trigger didn't happen continue to next iteration
-		 * Allow the client to stop this process
-		 */
-		if (!devc->trigger_fired)
-			break;
 	}
 
 	uint64_t min = MIN(logic_done, analog_done);

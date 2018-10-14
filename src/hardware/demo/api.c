@@ -442,6 +442,27 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 	devc->sent_frame_samples = 0;
 
+	/* Setup triggers */
+	if ((trigger = sr_session_trigger_get(sdi->session))) {
+		int pre_trigger_samples = 0;
+		if (devc->limit_samples > 0)
+			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
+		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
+		if (!devc->stl)
+			return SR_ERR_MALLOC;
+
+		/* Disable all analog channels since using them when there are logic
+		 * triggers set up would require having pre-trigger sample buffers
+		 * for analog sample data.
+		 */
+		for (l = sdi->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type == SR_CHANNEL_ANALOG)
+				ch->enabled = FALSE;
+		}
+	}
+	devc->trigger_fired = FALSE;
+
 	/*
 	 * Determine the numbers of logic and analog channels that are
 	 * involved in the acquisition. Determine an offset and a mask to
@@ -501,18 +522,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->start_us = g_get_monotonic_time();
 	devc->spent_us = 0;
 	devc->step = 0;
-
-	/* Store Triggers to stl and preset trigger_fired */
-	if ((trigger = sr_session_trigger_get(sdi->session))) {
-		int pre_trigger_samples = 0;
-		if (devc->limit_samples > 0)
-			pre_trigger_samples = (devc->capture_ratio * devc->limit_samples) / 100;
-		devc->stl = soft_trigger_logic_new(sdi, trigger, pre_trigger_samples);
-		if (!devc->stl)
-			return SR_ERR_MALLOC;
-		devc->trigger_fired = FALSE;
-	} else
-		devc->trigger_fired = TRUE;
 
 	return SR_OK;
 }

@@ -1044,6 +1044,7 @@ struct soft_trigger_logic {
 	int pre_trigger_fill;
 };
 
+SR_PRIV int logic_channel_unitsize(GSList *channels);
 SR_PRIV struct soft_trigger_logic *soft_trigger_logic_new(
 		const struct sr_dev_inst *sdi, struct sr_trigger *trigger,
 		int pre_trigger_samples);
