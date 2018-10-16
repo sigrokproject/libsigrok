@@ -559,19 +559,27 @@ static const struct mode_range_items mode_ranges_diode_sub = {
 	},
 };
 
-/* TODO: Complete the list of ranges. Only tested with low voltages so far. */
 static const struct mode_range_items mode_ranges_volts_sub = {
 	.range_count = 5,
 	.ranges = {
+		[3] = { .desc = "50.000V", .digits = 3, .factor = 3, },
 		[4] = { .desc = "5.0000V", .digits = 4, .factor = 4, },
 	},
 };
 
-/* TODO: Complete the list of ranges. Only tested with low voltages so far. */
 static const struct mode_range_items mode_ranges_mamps_sub = {
-	.range_count = 3,
+	.range_count = 5,
 	.ranges = {
 		[2] = { .desc = "500.00mA", .digits = 5, .factor = 5, },
+		[3] = { .desc = "50.000mA", .digits = 6, .factor = 6, },
+		[4] = { .desc = "5.0000mA", .digits = 7, .factor = 7, },
+	},
+};
+
+static const struct mode_range_items mode_ranges_uamps_sub = {
+	.range_count = 5,
+	.ranges = {
+		[4] = { .desc = "5.0000mA", .digits = 7, .factor = 7, },
 	},
 };
 
@@ -580,6 +588,10 @@ static const struct mode_range_items *mode_ranges_sub[] = {
 	[MODE_AC_V] = &mode_ranges_volts_sub,
 	[MODE_DC_A] = &mode_ranges_mamps_sub,
 	[MODE_AC_A] = &mode_ranges_mamps_sub,
+	[MODE_DC_MA] = &mode_ranges_mamps_sub,
+	[MODE_AC_MA] = &mode_ranges_mamps_sub,
+	[MODE_DC_UA] = &mode_ranges_uamps_sub,
+	[MODE_AC_UA] = &mode_ranges_uamps_sub,
 	[MODE_FREQ] = &mode_ranges_freq_sub,
 	[MODE_DIODE] = &mode_ranges_diode_sub,
 	[MODE_SUB_TEMPC] = &mode_ranges_temp_sub,
