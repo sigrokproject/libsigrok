@@ -523,39 +523,39 @@ static const struct mode_range_items *mode_ranges_main[] = {
 static const struct mode_range_items mode_ranges_temp_sub = {
 	.range_count = 2,
 	.ranges = {
-		[1] = { .desc = "sub 100.0C", .digits = 1, .factor = 1, },
+		[1] = { .desc =  "100.0C", .digits = 1, .factor = 1, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_freq_sub = {
 	.range_count = 4,
 	.ranges = {
-		[1] = { .desc = "999.9Hz", .digits = 1, .factor = 1, },
-		[2] = { .desc = "99.99Hz", .digits = 2, .factor = 2, },
-		[3] = { .desc = "9.999kHz", .digits = 3, .factor = 3, },
+		[1] = { .desc =  "999.9Hz", .digits = 1, .factor = 1, },
+		[2] = { .desc =  "99.99Hz", .digits = 2, .factor = 2, },
+		[3] = { .desc =  "9.999kHz", .digits = 3, .factor = 3, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_batt_sub = {
 	.range_count = 2,
 	.ranges = {
-		[1] = { .desc = "sub 10.0V", .digits = 1, .factor = 1, },
+		[1] = { .desc =   "10.0V", .digits = 1, .factor = 1, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_gain_sub = {
 	.range_count = 4,
 	.ranges = {
-		[1] = { .desc = "dbm 5000.0dBm", .digits = 1, .factor = 1, },
-		[2] = { .desc = "dbm 500.00dBm", .digits = 2, .factor = 2, },
-		[3] = { .desc = "dbm 50.000dBm", .digits = 3, .factor = 3, },
+		[1] = { .desc = "5000.0dBm", .digits = 1, .factor = 1, },
+		[2] = { .desc = "500.00dBm", .digits = 2, .factor = 2, },
+		[3] = { .desc = "50.000dBm", .digits = 3, .factor = 3, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_diode_sub = {
 	.range_count = 1,
 	.ranges = {
-		[0] = { .desc = "diode 15.0V", .digits = 0, .factor = 0, },
+		[0] = { .desc =   "15.0V", .digits = 0, .factor = 0, },
 	},
 };
 
