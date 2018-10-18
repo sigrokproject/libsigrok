@@ -1069,36 +1069,6 @@ SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 		}
 		is_k = FIELD_NB(raw_sub_range, SUB_RANGE_K);
 
-		/*
-		 * TODO: Re-check the power mode display as more data becomes
-		 * available.
-		 *
-		 * The interpretation of the secondary display in power (VA)
-		 * modes is uncertain. The mode suggests A or uA units but the
-		 * value is supposed to be mA without a reliable condition
-		 * for us to check...
-		 *
-		 * f2  17 84 21 21  18 02 00 00  01 04 00 0b  00 00  0a 40 00  3f
-		 * f2  17 84 21 21  18 02 00 00  15 03 00 00  00 00  0a 40 00  27
-		 *                  DC VA        DC V / DC A
-		 *                  25.000VA     dot 4 / dot 3
-		 *
-		 * f2  17 84 21 21  18 00 00 26  01 04 4c 57  00 00  0e 40 00  0f
-		 * f2  17 84 21 21  18 00 00 26  15 02 00 c7  00 00  0e 40 00  c1
-		 *                  3.8mVA DC    1.9543V
-		 *                                 1.98mA (!) DC A + dot 2 -> milli(!) amps?
-		 *
-		 * f2  17 84 21 21  17 00 07 85  01 04 4c 5a  00 00  0e 40 00  a9
-		 * f2  17 84 21 21  17 00 07 85  13 04 26 7b  00 00  0e 40 00  f0
-		 *                  1.925mVA DC  1.9546V
-		 *                               0.9852mA
-		 *
-		 * f2  17 84 21 21  16 02 11 e0  01 04 26 39  00 02  0e 40 00  d2
-		 * f2  17 84 21 21  16 02 11 e0  11 04 12 44  00 02  0e 40 00  8b
-		 *                  457.6uVA DC  0.9785V
-		 *                               0.4676mA (!) DC uA + dot 4 -> milli(!) amps?
-		 */
-
 		switch (sub_mode) {
 		case MODE_DC_V:
 			info_local->is_voltage = TRUE;
