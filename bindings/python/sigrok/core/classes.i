@@ -390,6 +390,7 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 
 /* Ignore these methods, we will override them below. */
 %ignore sigrok::Analog::data;
+%ignore sigrok::Logic::data;
 %ignore sigrok::Driver::scan;
 %ignore sigrok::InputFormat::create_input;
 %ignore sigrok::OutputFormat::create_output;
@@ -547,5 +548,25 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
     data = property(_data)
 }
 }
+
+/* Return NumPy array from Logic::data(). */
+%extend sigrok::Logic
+{
+    PyObject * _data()
+    {
+        npy_intp dims[2];
+        dims[0] = $self->data_length() / $self->unit_size();
+        dims[1] = $self->unit_size();
+        int typenum = NPY_UINT8;
+        void *data = $self->data_pointer();
+        return PyArray_SimpleNewFromData(2, dims, typenum, data);
+    }
+
+%pythoncode
+{
+    data = property(_data)
+}
+}
+
 
 %include "doc_end.i"
