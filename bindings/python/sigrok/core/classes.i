@@ -548,4 +548,23 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 }
 }
 
+/* Return NumPy array from Analog::data(). */
+%extend sigrok::Logic
+{
+    PyObject * _data()
+    {
+        npy_intp dims[1];
+        dims[0] = $self->data_length();
+        int typenum = NPY_UINT8;
+        void *data = $self->data_pointer();
+        return PyArray_SimpleNewFromData(1, dims, typenum, data);
+    }
+
+%pythoncode
+{
+    data = property(_data)
+}
+}
+
+
 %include "doc_end.i"
