@@ -31,7 +31,7 @@ struct context {
 	int num_enabled_channels;
 	uint8_t *prevsample;
 	gboolean header_done;
-	int period;
+	uint64_t period;
 	int *channel_index;
 	uint64_t samplerate;
 	uint64_t samplecount;
