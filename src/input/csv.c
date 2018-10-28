@@ -889,14 +889,10 @@ static void cleanup(struct sr_input *in)
 
 	inc = in->priv;
 
-	if (inc->delimiter)
-		g_string_free(inc->delimiter, TRUE);
-
-	if (inc->comment)
-		g_string_free(inc->comment, TRUE);
-
 	g_free(inc->termination);
+	inc->termination = NULL;
 	g_free(inc->datafeed_buffer);
+	inc->datafeed_buffer = NULL;
 }
 
 static int reset(struct sr_input *in)
