@@ -51,7 +51,6 @@ struct context {
 	int num_channels;
 	int unitsize;
 	gboolean found_data;
-	gboolean create_channels;
 	GSList *prev_sr_channels;
 };
 
@@ -152,15 +151,10 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 static int init(struct sr_input *in, GHashTable *options)
 {
-	struct context *inc;
-
 	(void)options;
 
 	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	in->priv = g_malloc0(sizeof(struct context));
-	inc = in->priv;
-
-	inc->create_channels = TRUE;
 
 	return SR_OK;
 }
@@ -369,15 +363,12 @@ static int receive(struct sr_input *in, GString *buf)
 		else if (ret != SR_OK)
 			return ret;
 
-		if (inc->create_channels) {
-			for (int i = 0; i < inc->num_channels; i++) {
-				snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
-				sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
-			}
-			if (!check_header_in_reread(in))
-				return SR_ERR_DATA;
+		for (int i = 0; i < inc->num_channels; i++) {
+			snprintf(channelname, sizeof(channelname), "CH%d", i + 1);
+			sr_channel_new(in->sdi, i, SR_CHANNEL_ANALOG, TRUE, channelname);
 		}
-		inc->create_channels = FALSE;
+		if (!check_header_in_reread(in))
+			return SR_ERR_DATA;
 
 		/* sdi is ready, notify frontend. */
 		in->sdi_ready = TRUE;
@@ -420,7 +411,6 @@ static int reset(struct sr_input *in)
 	 * properties should change.
 	 */
 	keep_header_for_reread(in);
-	inc->create_channels = TRUE;
 
 	g_string_truncate(in->buf, 0);
 
