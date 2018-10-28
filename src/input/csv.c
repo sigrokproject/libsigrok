@@ -167,6 +167,9 @@ struct context {
 
 	/* Current line number. */
 	size_t line_number;
+
+	/* List of previously created sigrok channels. */
+	GSList *prev_sr_channels;
 };
 
 static void strip_comment(char *buf, const GString *prefix)
@@ -504,6 +507,44 @@ static int init(struct sr_input *in, GHashTable *options)
 	return SR_OK;
 }
 
+/*
+ * Check the channel list for consistency across file re-import. See
+ * the VCD input module for more details and motivation.
+ */
+
+static void keep_header_for_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	inc = in->priv;
+	g_slist_free_full(inc->prev_sr_channels, sr_channel_free_cb);
+	inc->prev_sr_channels = in->sdi->channels;
+	in->sdi->channels = NULL;
+}
+
+static int check_header_in_reread(const struct sr_input *in)
+{
+	struct context *inc;
+
+	if (!in)
+		return FALSE;
+	inc = in->priv;
+	if (!inc)
+		return FALSE;
+	if (!inc->prev_sr_channels)
+		return TRUE;
+
+	if (sr_channel_lists_differ(inc->prev_sr_channels, in->sdi->channels)) {
+		sr_err("Channel list change not supported for file re-read.");
+		return FALSE;
+	}
+	g_slist_free_full(in->sdi->channels, sr_channel_free_cb);
+	in->sdi->channels = inc->prev_sr_channels;
+	inc->prev_sr_channels = NULL;
+
+	return TRUE;
+}
+
 static const char *delim_set = "\r\n";
 
 static const char *get_line_termination(GString *buf)
@@ -615,6 +656,10 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		sr_channel_new(in->sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name->str);
 	}
 	g_string_free(channel_name, TRUE);
+	if (!check_header_in_reread(in)) {
+		ret = SR_ERR_DATA;
+		goto out;
+	}
 
 	/*
 	 * Calculate the minimum buffer size to store the set of samples
@@ -886,6 +931,8 @@ static int end(struct sr_input *in)
 static void cleanup(struct sr_input *in)
 {
 	struct context *inc;
+
+	keep_header_for_reread(in);
 
 	inc = in->priv;
 
