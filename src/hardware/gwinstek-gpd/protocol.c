@@ -53,7 +53,7 @@ SR_PRIV int gpd_receive_reply(struct sr_serial_dev_inst *serial, char *buf,
 	gint64 start, remaining;
 	const int timeout_ms = 100;
 
-	if (!serial || (lines <= 0) || !buf || (buflen <= 0))
+	if (!serial || !buf || (buflen <= 0))
 		return SR_ERR_ARG;
 
 	start = g_get_monotonic_time();
