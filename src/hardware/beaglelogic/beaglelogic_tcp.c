@@ -272,7 +272,7 @@ static int beaglelogic_set_buffersize(struct dev_context *devc)
 	int ret;
 	char *resp;
 
-	beaglelogic_tcp_send_cmd(devc, "memalloc %lu", devc->buffersize);
+	beaglelogic_tcp_send_cmd(devc, "memalloc %u", devc->buffersize);
 	ret = beaglelogic_tcp_get_string(devc, NULL, &resp);
 	if (ret == SR_OK && !g_ascii_strncasecmp(resp, "ok", 2))
 		ret = SR_OK;
@@ -301,7 +301,7 @@ static int beaglelogic_set_samplerate(struct dev_context *devc)
 	int ret;
 	char *resp;
 
-	beaglelogic_tcp_send_cmd(devc, "samplerate %lu",
+	beaglelogic_tcp_send_cmd(devc, "samplerate %u",
 		(uint32_t)devc->cur_samplerate);
 	ret = beaglelogic_tcp_get_string(devc, NULL, &resp);
 	if (ret == SR_OK && !g_ascii_strncasecmp(resp, "ok", 2))
@@ -325,7 +325,7 @@ static int beaglelogic_set_sampleunit(struct dev_context *devc)
 	int ret;
 	char *resp;
 
-	beaglelogic_tcp_send_cmd(devc, "sampleunit %lu", devc->sampleunit);
+	beaglelogic_tcp_send_cmd(devc, "sampleunit %u", devc->sampleunit);
 	ret = beaglelogic_tcp_get_string(devc, NULL, &resp);
 	if (ret == SR_OK && !g_ascii_strncasecmp(resp, "ok", 2))
 		ret = SR_OK;
@@ -348,7 +348,7 @@ static int beaglelogic_set_triggerflags(struct dev_context *devc)
 	int ret;
 	char *resp;
 
-	beaglelogic_tcp_send_cmd(devc, "triggerflags %lu", devc->triggerflags);
+	beaglelogic_tcp_send_cmd(devc, "triggerflags %u", devc->triggerflags);
 	ret = beaglelogic_tcp_get_string(devc, NULL, &resp);
 	if (ret == SR_OK && !g_ascii_strncasecmp(resp, "ok", 2))
 		ret = SR_OK;
@@ -390,7 +390,7 @@ static int beaglelogic_set_bufunitsize(struct dev_context *devc)
 	int ret;
 	char *resp;
 
-	beaglelogic_tcp_send_cmd(devc, "bufunitsize %ld", devc->bufunitsize);
+	beaglelogic_tcp_send_cmd(devc, "bufunitsize %u", devc->bufunitsize);
 	ret = beaglelogic_tcp_get_string(devc, NULL, &resp);
 	if (ret == SR_OK && !g_ascii_strncasecmp(resp, "ok", 2))
 		ret = SR_OK;
