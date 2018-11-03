@@ -68,8 +68,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->conn = scpi;
 
 	/* Test for serial port ECHO enabled. */
+	response = NULL;
 	sr_scpi_get_string(scpi, "ECHO-TEST", &response);
-	if (strcmp(response, "ECHO-TEST") == 0) {
+	if (response && strcmp(response, "ECHO-TEST") == 0) {
 		sr_err("Serial port ECHO is ON. Please turn it OFF!");
 		return NULL;
 	}
