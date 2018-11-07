@@ -1091,9 +1091,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	 * model, serial number of the instrument and the firmware version.
 	 */
 	tokens = g_strsplit(response, ",", 0);
-
-	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
-
+	num_tokens = g_strv_length(tokens);
 	if (num_tokens < 4) {
 		sr_dbg("IDN response not according to spec: %80.s.", response);
 		g_strfreev(tokens);
