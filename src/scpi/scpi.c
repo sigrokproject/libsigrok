@@ -1139,6 +1139,48 @@ SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info)
 	g_free(hw_info);
 }
 
+/**
+ * Remove potentially enclosing pairs of quotes, un-escape content.
+ * This implementation modifies the caller's buffer when quotes are found
+ * and doubled quote characters need to get removed from the content.
+ *
+ * @param[in, out] s	The SCPI string to check and un-quote.
+ *
+ * @return The start of the un-quoted string.
+ */
+SR_PRIV const char *sr_scpi_unquote_string(char *s)
+{
+	size_t s_len;
+	char quotes[3];
+	char *rdptr;
+
+	/* Immediately bail out on invalid or short input. */
+	if (!s || !*s)
+		return s;
+	s_len = strlen(s);
+	if (s_len < 2)
+		return s;
+
+	/* Check for matching quote characters front and back. */
+	if (s[0] != '\'' && s[0] != '"')
+		return s;
+	if (s[0] != s[s_len - 1])
+		return s;
+
+	/* Need to strip quotes, and un-double quote chars inside. */
+	quotes[0] = quotes[1] = *s;
+	quotes[2] = '\0';
+	s[s_len - 1] = '\0';
+	s++;
+	rdptr = s;
+	while ((rdptr = strstr(rdptr, quotes)) != NULL) {
+		memmove(rdptr, rdptr + 1, strlen(rdptr));
+		rdptr++;
+	}
+
+	return s;
+}
+
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor)
 {
 	unsigned int i;

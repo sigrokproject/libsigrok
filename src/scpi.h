@@ -149,6 +149,8 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
+SR_PRIV const char *sr_scpi_unquote_string(char *s);
+
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor);
 SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable,
 		int command);
