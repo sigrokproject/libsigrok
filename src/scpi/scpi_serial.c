@@ -33,6 +33,7 @@ struct scpi_serial {
 	gboolean got_newline;
 };
 
+/* Default serial port options for some known USB devices */
 static const struct {
 	uint16_t vendor_id;
 	uint16_t product_id;
@@ -40,7 +41,9 @@ static const struct {
 } scpi_serial_usb_ids[] = {
 	{ 0x0403, 0xed72, "115200/8n1/flow=1" }, /* Hameg HO720 */
 	{ 0x0403, 0xed73, "115200/8n1/flow=1" }, /* Hameg HO730 */
-	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO1002 */
+	{ 0x0aad, 0x0117, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x0aad, 0x0119, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 };
 
 static GSList *scpi_serial_scan(struct drv_context *drvc)

@@ -22,8 +22,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-#define SERIALCOMM "115200/8n1/flow=1"
-
 static struct sr_dev_driver hameg_hmo_driver_info;
 
 static const char *manufacturers[] = {
