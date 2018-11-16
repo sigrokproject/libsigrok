@@ -83,6 +83,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Run length encoding", NULL},
 	{SR_CONF_TRIGGER_SLOPE, SR_T_STRING, "triggerslope",
 		"Trigger slope", NULL},
+	{SR_CONF_TRIGGER_PATTERN, SR_T_STRING, "triggerpattern",
+		"Trigger pattern", NULL},
 	{SR_CONF_AVERAGING, SR_T_BOOL, "averaging",
 		"Averaging", NULL},
 	{SR_CONF_AVG_SAMPLES, SR_T_UINT64, "avg_samples",

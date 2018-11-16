@@ -46,6 +46,12 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":POD%d:STAT %d",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
+					        ":TRIG:A:PATT:FUNC AND;" \
+					        ":TRIG:A:PATT:COND TRUE;" \
+					        ":TRIG:A:PATT:MODE OFF;" \
+					        ":TRIG:A:PATT:SOUR \"%s\"",
 	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
 	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
@@ -72,6 +78,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
@@ -415,10 +422,15 @@ static void scope_state_dump(const struct scope_config *config,
 	sr_info("Current samplerate: %s", tmp);
 	g_free(tmp);
 
-	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
-		(*config->trigger_sources)[state->trigger_source],
-		(*config->trigger_slopes)[state->trigger_slope],
-		state->horiz_triggerpos);
+	if (!strcmp("PATT", (*config->trigger_sources)[state->trigger_source]))
+		sr_info("Current trigger: %s (pattern), %.2f (offset)",
+			state->trigger_pattern,
+			state->horiz_triggerpos);
+	else // Edge (slope) trigger
+		sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
+			(*config->trigger_sources)[state->trigger_source],
+			(*config->trigger_slopes)[state->trigger_slope],
+			state->horiz_triggerpos);
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
@@ -771,6 +783,11 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
 			config->trigger_slopes, config->num_trigger_slopes,
 			&state->trigger_slope) != SR_OK)
+		return SR_ERR;
+
+	if (sr_scpi_get_string(sdi->conn,
+			       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
+			       &state->trigger_pattern) != SR_OK)
 		return SR_ERR;
 
 	if (hmo_update_sample_rate(sdi) != SR_OK)
