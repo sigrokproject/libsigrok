@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,31 +31,35 @@ SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
 SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc);
 
 static const char *hameg_scpi_dialect[] = {
-	[SCPI_CMD_GET_DIG_DATA]		    = ":FORM UINT,8;:POD%d:DATA?",
-	[SCPI_CMD_GET_TIMEBASE]		    = ":TIM:SCAL?",
-	[SCPI_CMD_SET_TIMEBASE]		    = ":TIM:SCAL %s",
-	[SCPI_CMD_GET_COUPLING]		    = ":CHAN%d:COUP?",
-	[SCPI_CMD_SET_COUPLING]		    = ":CHAN%d:COUP %s",
-	[SCPI_CMD_GET_SAMPLE_RATE]	    = ":ACQ:SRAT?",
-	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	    = ":%s:DATA:POINTS?",
-	[SCPI_CMD_GET_ANALOG_DATA]	    = ":FORM:BORD %s;" \
-					      ":FORM REAL,32;:CHAN%d:DATA?",
-	[SCPI_CMD_GET_VERTICAL_DIV]	    = ":CHAN%d:SCAL?",
-	[SCPI_CMD_SET_VERTICAL_DIV]	    = ":CHAN%d:SCAL %s",
-	[SCPI_CMD_GET_DIG_POD_STATE]	    = ":POD%d:STAT?",
-	[SCPI_CMD_SET_DIG_POD_STATE]	    = ":POD%d:STAT %d",
-	[SCPI_CMD_GET_TRIGGER_SLOPE]	    = ":TRIG:A:EDGE:SLOP?",
-	[SCPI_CMD_SET_TRIGGER_SLOPE]	    = ":TRIG:A:EDGE:SLOP %s",
-	[SCPI_CMD_GET_TRIGGER_SOURCE]	    = ":TRIG:A:SOUR?",
-	[SCPI_CMD_SET_TRIGGER_SOURCE]	    = ":TRIG:A:SOUR %s",
-	[SCPI_CMD_GET_DIG_CHAN_STATE]	    = ":LOG%d:STAT?",
-	[SCPI_CMD_SET_DIG_CHAN_STATE]	    = ":LOG%d:STAT %d",
-	[SCPI_CMD_GET_VERTICAL_OFFSET]	    = ":CHAN%d:POS?",
-	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	    = ":TIM:POS?",
-	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	    = ":TIM:POS %s",
-	[SCPI_CMD_GET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT?",
-	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
-	[SCPI_CMD_GET_PROBE_UNIT]	    = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	      = ":%s:DATA:POINTS?",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_DIV]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_DIV]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":POD%d:STAT?",
+	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":POD%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":POD%d:THR?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":POD%d:THR %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d %s",
 };
 
 static const uint32_t devopts[] = {
@@ -75,6 +80,11 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint32_t devopts_cg_digital[] = {
+	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
+};
+
 static const char *coupling_options[] = {
 	"AC",  // AC with 50 Ohm termination (152x, 202x, 30xx, 1202)
 	"ACL", // AC with 1 MOhm termination
@@ -87,6 +97,15 @@ static const char *scope_trigger_slopes[] = {
 	"POS",
 	"NEG",
 	"EITH",
+};
+
+/* Predefined logic thresholds. */
+static const char *logic_threshold[] = {
+	"TTL",
+	"ECL",
+	"CMOS",
+	"USER1",
+	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
 };
 
 /* HMO compact2 */
@@ -204,8 +223,14 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
 
 		.trigger_sources = &an2_dig8_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
@@ -240,8 +265,14 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
 
 		.trigger_sources = &an2_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
@@ -275,8 +306,14 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
 
 		.trigger_sources = &an4_dig8_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources),
@@ -310,8 +347,14 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
 
 		.trigger_sources = &an4_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
@@ -353,8 +396,14 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
-		sr_info("State of digital POD %d -> %s", i,
-			state->digital_pods[i] ? "On" : "Off");
+		if (strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4))
+			sr_info("State of digital POD %d -> %s : %s (threshold)", i,
+				state->digital_pods[i].state ? "On" : "Off",
+				(*config->logic_threshold)[state->digital_pods[i].threshold]);
+		else // user-defined or custom logic threshold
+			sr_info("State of digital POD %d -> %s : %E (threshold)", i,
+				state->digital_pods[i].state ? "On" : "Off",
+				state->digital_pods[i].user_threshold);
 	}
 
 	tmp = sr_period_string((*config->timebases)[state->timebase][0],
@@ -518,6 +567,8 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     struct scope_state *state)
 {
 	unsigned int i;
+	int result = SR_ERR;
+	static char *logic_threshold_short[] = {};
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
@@ -536,17 +587,67 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 			ch->enabled = state->digital_channels[i];
 	}
 
+	/* According to the SCPI standard, the response to the command
+	 * SCPI_CMD_GET_DIG_POD_THRESHOLD might return "USER" instead of
+	 * "USER1".
+	 *
+	 * This makes more difficult to validate the response when the logic
+	 * threshold is set to "USER1" and therefore we need to prevent device
+	 * opening failures in such configuration case...
+	 */
+	for (i = 0; i < config->num_logic_threshold; i++) {
+		logic_threshold_short[i] = g_strdup((*config->logic_threshold)[i]);
+		if (!strcmp("USER1", (*config->logic_threshold)[i]))
+			g_strlcpy(logic_threshold_short[i],
+				  (*config->logic_threshold)[i], strlen((*config->logic_threshold)[i]));
+	}
+
 	for (i = 0; i < config->digital_pods; i++) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
 			   i + 1);
 
 		if (sr_scpi_get_bool(scpi, command,
-				     &state->digital_pods[i]) != SR_OK)
-			return SR_ERR;
+				     &state->digital_pods[i].state) != SR_OK)
+			goto exit;
+
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
+			   i + 1);
+
+		/* Check for both standard and shortened responses. */
+		if (scope_state_get_array_option(scpi, command, config->logic_threshold,
+						 config->num_logic_threshold,
+						 &state->digital_pods[i].threshold) != SR_OK)
+			if (scope_state_get_array_option(scpi, command, (const char * (*)[]) &logic_threshold_short,
+							 config->num_logic_threshold,
+							 &state->digital_pods[i].threshold) != SR_OK)
+				goto exit;
+
+		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   i + 1, 1); // USER1 logic threshold setting
+
+		if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   i + 1, 2); // USER2 for custom logic_threshold setting
+
+		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			if (sr_scpi_get_float(scpi, command,
+			    &state->digital_pods[i].user_threshold) != SR_OK)
+				goto exit;
 	}
 
-	return SR_OK;
+	result = SR_OK;
+
+exit:
+	for (i = 0; i < config->num_logic_threshold; i++)
+		g_free(logic_threshold_short[i]);
+
+	return result;
 }
 
 SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
@@ -579,7 +680,7 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 
 	if (!channel_found) {
 		for (i = 0; i < config->digital_pods; i++) {
-			if (!state->digital_pods[i])
+			if (!state->digital_pods[i].state)
 				continue;
 			g_snprintf(chan_name, sizeof(chan_name), "POD%d", i);
 			g_snprintf(tmp_str, sizeof(tmp_str),
@@ -692,7 +793,7 @@ static struct scope_state *scope_state_new(const struct scope_config *config)
 	state->digital_channels = g_malloc0_n(
 			config->digital_channels, sizeof(gboolean));
 	state->digital_pods = g_malloc0_n(config->digital_pods,
-			sizeof(gboolean));
+			sizeof(struct digital_pod_state));
 
 	return state;
 }
