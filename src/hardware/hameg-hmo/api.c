@@ -247,6 +247,10 @@ static int config_set(uint32_t key, GVariant *data,
 	update_sample_rate = FALSE;
 
 	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->samples_limit = g_variant_get_uint64(data);
+		ret = SR_OK;
+		break;
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
 		ret = SR_OK;
@@ -601,6 +605,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	devc->num_samples = 0;
+	devc->num_frames = 0;
+
 	/* Preset empty results. */
 	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
 		digital_added[group] = FALSE;
@@ -681,6 +688,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	devc->num_samples = 0;
 	devc->num_frames = 0;
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;

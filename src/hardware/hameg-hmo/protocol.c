@@ -59,6 +59,7 @@ static const char *hameg_scpi_dialect[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -783,6 +784,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	}
 
 	devc->model_config = &scope_models[model_index];
+	devc->samples_limit = 0;
 	devc->frame_limit = 0;
 
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
@@ -821,8 +823,6 @@ SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
 	} else {
 		store = devc->logic_data;
 		size = store->len / devc->pod_count;
-		if (size != pod_data->len)
-			return;
 		if (group >= devc->pod_count)
 			return;
 	}
@@ -838,6 +838,10 @@ SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
 		*logic_data = pod_data->data[idx];
 		logic_data += logic_step;
 	}
+
+	/* Truncate acquisition if a smaller number of samples has been requested. */
+	if (devc->samples_limit > 0 && devc->logic_data->len > devc->samples_limit * devc->pod_count)
+		devc->logic_data->len = devc->samples_limit * devc->pod_count;
 }
 
 /* Submit data for all channels, after the individual groups got collected. */
@@ -934,6 +938,9 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 		analog.data = data->data;
 		analog.num_samples = data->len / sizeof(float);
+		/* Truncate acquisition if a smaller number of samples has been requested. */
+		if (devc->samples_limit > 0 && analog.num_samples > devc->samples_limit)
+			analog.num_samples = devc->samples_limit;
 		analog.encoding = &encoding;
 		analog.meaning = &meaning;
 		analog.spec = &spec;
@@ -966,6 +973,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		spec.spec_digits = 2;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
+		devc->num_samples = data->len / sizeof(float);
 		g_slist_free(meaning.channels);
 		g_byte_array_free(data, TRUE);
 		data = NULL;
@@ -994,6 +1002,9 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_LOGIC;
 			logic.data = data->data;
 			logic.length = data->len;
+			/* Truncate acquisition if a smaller number of samples has been requested. */
+			if (devc->samples_limit > 0 && logic.length > devc->samples_limit)
+				logic.length = devc->samples_limit;
 			logic.unitsize = 1;
 			packet.payload = &logic;
 			sr_session_send(sdi, &packet);
@@ -1002,6 +1013,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			hmo_queue_logic_data(devc, group, data);
 		}
 
+		devc->num_samples = data->len / devc->pod_count;
 		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
@@ -1035,10 +1047,10 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 	/*
 	 * End of frame was reached. Stop acquisition after the specified
-	 * number of frames, or continue reception by starting over at
-	 * the first enabled channel.
+	 * number of frames or after the specified number of samples, or
+	 * continue reception by starting over at the first enabled channel.
 	 */
-	if (++devc->num_frames == devc->frame_limit) {
+	if (++devc->num_frames >= devc->frame_limit || devc->num_samples >= devc->samples_limit) {
 		sr_dev_acquisition_stop(sdi);
 		hmo_cleanup_logic_data(devc);
 	} else {
