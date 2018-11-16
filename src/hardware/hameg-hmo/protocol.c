@@ -439,10 +439,8 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 	char *tmp;
 	int idx;
 
-	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK) {
-		g_free(tmp);
+	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK)
 		return SR_ERR;
-	}
 
 	if ((idx = std_str_idx_s(tmp, *array, n)) < 0) {
 		g_free(tmp);
