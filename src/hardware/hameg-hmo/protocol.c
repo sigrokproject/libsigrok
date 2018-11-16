@@ -108,7 +108,7 @@ static const char *logic_threshold[] = {
 	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
 };
 
-/* HMO compact2 */
+/* RTC1002 and HMO compact2 */
 static const char *an2_dig8_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
@@ -208,8 +208,8 @@ static const char *scope_digital_channel_names[] = {
 
 static const struct scope_config scope_models[] = {
 	{
-		/* HMO722/1002/1022/1522/2022 support only 8 digital channels. */
-		.name = {"HMO722", "HMO1002", "HMO1022", "HMO1522", "HMO2022", NULL},
+		/* RTC1002 and HMO722/1002/1022/1522/2022 support only 8 digital channels. */
+		.name = {"RTC1002", "HMO722", "HMO1002", "HMO1022", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 		.digital_pods = 1,
@@ -830,7 +830,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (model_index == -1) {
-		sr_dbg("Unsupported HMO device.");
+		sr_dbg("Unsupported device.");
 		return SR_ERR_NA;
 	}
 
