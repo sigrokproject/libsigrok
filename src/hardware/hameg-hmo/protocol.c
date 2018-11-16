@@ -404,11 +404,11 @@ static void scope_state_dump(const struct scope_config *config,
 
 	for (i = 0; i < config->digital_pods; i++) {
 		if (strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4))
-			sr_info("State of digital POD %d -> %s : %s (threshold)", i,
+			sr_info("State of digital POD %d -> %s : %s (threshold)", i + 1,
 				state->digital_pods[i].state ? "On" : "Off",
 				(*config->logic_threshold)[state->digital_pods[i].threshold]);
 		else // user-defined or custom logic threshold
-			sr_info("State of digital POD %d -> %s : %E (threshold)", i,
+			sr_info("State of digital POD %d -> %s : %E (threshold)", i + 1,
 				state->digital_pods[i].state ? "On" : "Off",
 				state->digital_pods[i].user_threshold);
 	}
@@ -882,7 +882,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			ret = SR_ERR_MALLOC;
 			break;
 		}
-		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i);
+		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i + 1);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				   devc->digital_groups[i]);
 	}
