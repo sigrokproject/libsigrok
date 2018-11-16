@@ -102,8 +102,10 @@ struct dev_context {
 
 	GSList *enabled_channels;
 	GSList *current_channel;
+	uint64_t num_samples;
 	uint64_t num_frames;
 
+	uint64_t samples_limit;
 	uint64_t frame_limit;
 
 	size_t pod_count;
