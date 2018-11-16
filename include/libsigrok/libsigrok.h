@@ -830,6 +830,12 @@ enum sr_configkey {
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
 
+	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
+	SR_CONF_LOGIC_THRESHOLD,
+
+	/** Logic threshold: custom numerical value. */
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
+
 	/** The device supports using an external clock. */
 	SR_CONF_EXTERNAL_CLOCK,
 

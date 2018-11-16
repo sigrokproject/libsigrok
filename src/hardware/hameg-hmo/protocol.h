@@ -49,8 +49,14 @@ struct scope_config {
 	const uint32_t (*devopts_cg_analog)[];
 	const uint8_t num_devopts_cg_analog;
 
+	const uint32_t (*devopts_cg_digital)[];
+	const uint8_t num_devopts_cg_digital;
+
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
+
+	const char *(*logic_threshold)[];
+	const uint8_t num_logic_threshold;
 
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;
@@ -80,10 +86,17 @@ struct analog_channel_state {
 	char probe_unit;
 };
 
+struct digital_pod_state {
+	gboolean state;
+
+	int threshold;
+	float user_threshold;
+};
+
 struct scope_state {
 	struct analog_channel_state *analog_channels;
 	gboolean *digital_channels;
-	gboolean *digital_pods;
+	struct digital_pod_state *digital_pods;
 
 	int timebase;
 	float horiz_triggerpos;
