@@ -770,6 +770,9 @@ enum sr_configkey {
 	/** The device supports setting trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
 
+	/** The device supports setting a pattern for the logic trigger. */
+	SR_CONF_TRIGGER_PATTERN,
+
 	/** The device supports averaging. */
 	SR_CONF_AVERAGING,
 

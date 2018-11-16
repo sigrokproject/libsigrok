@@ -200,6 +200,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_SLOPE:
 		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
 		break;
+	case SR_CONF_TRIGGER_PATTERN:
+		*data = g_variant_new_string(state->trigger_pattern);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
@@ -250,7 +253,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx, j;
-	char command[MAX_COMMAND_SIZE], float_str[30];
+	char command[MAX_COMMAND_SIZE], float_str[30], *tmp_str;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -340,6 +343,21 @@ static int config_set(uint32_t key, GVariant *data,
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
 			   (*model->trigger_slopes)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
+		break;
+	case SR_CONF_TRIGGER_PATTERN:
+		tmp_str = (char *)g_variant_get_string(data, 0);
+		idx = strlen(tmp_str);
+		if (idx == 0 || idx > model->analog_channels + model->digital_channels)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_PATTERN],
+			   tmp_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		g_free(state->trigger_pattern);
+		state->trigger_pattern = g_strdup(tmp_str);
+		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
 		if (!cg)
