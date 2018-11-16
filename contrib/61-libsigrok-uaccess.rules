@@ -27,6 +27,6 @@
 
 ACTION!="add|change", GOTO="libsigrok_rules_uaccess_end"
 
-ENV{ID_SIGROK}=="1", TAG+="uaccess"
+ENV{ID_SIGROK}=="1", MODE="0666"
 
 LABEL="libsigrok_rules_uaccess_end"
