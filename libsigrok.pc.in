@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: libsigrok
-Description: Backend library of the sigrok logic analyzer software
+Description: Backend library for the sigrok signal analysis software suite
 URL: http://www.sigrok.org
 Requires: glib-2.0
 Requires.private: @SR_PKGLIBS@
