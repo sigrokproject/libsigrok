@@ -108,14 +108,14 @@ static const char *logic_threshold[] = {
 	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
 };
 
-/* RTC1002 and HMO compact2 */
+/* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
 static const char *an2_dig8_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-/* HMO xxx2 */
+/* HMO3xx2 */
 static const char *an2_dig16_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
@@ -123,14 +123,14 @@ static const char *an2_dig16_trigger_sources[] = {
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
-/* HMO compact4 */
+/* HMO Compact4 */
 static const char *an4_dig8_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-/* HMO xxx4 */
+/* HMO3xx4 and HMO2524 */
 static const char *an4_dig16_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
@@ -208,8 +208,8 @@ static const char *scope_digital_channel_names[] = {
 
 static const struct scope_config scope_models[] = {
 	{
-		/* RTC1002 and HMO722/1002/1022/1522/2022 support only 8 digital channels. */
-		.name = {"RTC1002", "HMO722", "HMO1002", "HMO1022", "HMO1522", "HMO2022", NULL},
+		/* RTC1002 and HMO722/1002/1022/1202/1522/2022 support only 8 digital channels. */
+		.name = {"RTC1002", "HMO722", "HMO1002", "HMO1022", "HMO1202", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 		.digital_pods = 1,
