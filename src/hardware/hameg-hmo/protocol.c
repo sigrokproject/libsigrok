@@ -88,19 +88,30 @@ static const char *scope_trigger_slopes[] = {
 	"EITH",
 };
 
-static const char *compact2_trigger_sources[] = {
+/* HMO compact2 */
+static const char *an2_dig8_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-static const char *compact4_trigger_sources[] = {
+/* HMO xxx2 */
+static const char *an2_dig16_trigger_sources[] = {
+	"CH1", "CH2",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+/* HMO compact4 */
+static const char *an4_dig8_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-static const char *compact4_dig16_trigger_sources[] = {
+/* HMO xxx4 */
+static const char *an4_dig16_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
@@ -177,9 +188,8 @@ static const char *scope_digital_channel_names[] = {
 
 static const struct scope_config scope_models[] = {
 	{
-		/* HMO3032/3042/3052/3522 support 16 digital channels but they're not supported yet. */
-		.name = {"HMO1002", "HMO722", "HMO1022", "HMO1522", "HMO2022", "HMO3032",
-				"HMO3042", "HMO3052", "HMO3522", NULL},
+		/* HMO722/1002/1022/1522/2022 support only 8 digital channels. */
+		.name = {"HMO722", "HMO1002", "HMO1022", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 		.digital_pods = 1,
@@ -196,8 +206,44 @@ static const struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact2_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact2_trigger_sources),
+		.trigger_sources = &an2_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		/* HMO3032/3042/3052/3522 support 16 digital channels. */
+		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.trigger_sources = &an2_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -231,8 +277,8 @@ static const struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact4_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact4_trigger_sources),
+		.trigger_sources = &an4_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -266,8 +312,8 @@ static const struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact4_dig16_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact4_dig16_trigger_sources),
+		.trigger_sources = &an4_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
