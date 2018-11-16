@@ -961,6 +961,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString* response;
+	gsize oldlen;
 	char buf[10];
 	long llen;
 	long datalen;
@@ -990,14 +991,14 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	*scpi_response = NULL;
 
 	/* Get (the first chunk of) the response. */
-	while (response->len < 2) {
+	do {
 		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
-	}
+	} while (response->len < 2);
 
 	/*
 	 * SCPI protocol data blocks are preceeded with a length spec.
@@ -1044,25 +1045,33 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	g_string_erase(response, 0, 2 + llen);
 
 	/*
-	 * If the initially assumed length does not cover the data block
-	 * length, then re-allocate the buffer size to the now known
-	 * length, and keep reading more chunks of response data.
+	 * Re-allocate the buffer size to the now known length
+	 * and keep reading more chunks of response data.
 	 */
-	if (response->len < (unsigned long)(datalen)) {
-		int oldlen = response->len;
-		g_string_set_size(response, datalen);
-		g_string_set_size(response, oldlen);
-	}
+	oldlen = response->len;
+	g_string_set_size(response, datalen);
+	g_string_set_size(response, oldlen);
 
-	while (response->len < (unsigned long)(datalen)) {
-		ret = scpi_read_response(scpi, response, timeout);
-		if (ret < 0) {
-			g_mutex_unlock(&scpi->scpi_mutex);
-			g_string_free(response, TRUE);
-			return ret;
-		}
-		if (ret > 0)
-			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	if (oldlen < (unsigned long)(datalen)) {
+		do {
+			oldlen = response->len;
+			ret = scpi_read_response(scpi, response, timeout);
+
+			/* On timeout truncate the buffer and send the partial response
+			 * instead of getting stuck on timeouts...
+			 */
+			if (ret == SR_ERR_TIMEOUT) {
+				datalen = oldlen;
+				break;
+			}
+			if (ret < 0) {
+				g_mutex_unlock(&scpi->scpi_mutex);
+				g_string_free(response, TRUE);
+				return ret;
+			}
+			if (ret > 0)
+				timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		} while (response->len < (unsigned long)(datalen));
 	}
 
 	g_mutex_unlock(&scpi->scpi_mutex);
