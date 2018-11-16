@@ -881,7 +881,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
 				g_byte_array_free(data, TRUE);
-
 			return TRUE;
 		}
 
@@ -927,7 +926,8 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		break;
 	case SR_CHANNEL_LOGIC:
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
-			g_free(data);
+			if (data)
+				g_byte_array_free(data, TRUE);
 			return TRUE;
 		}
 
