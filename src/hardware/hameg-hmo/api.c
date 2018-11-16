@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -214,6 +215,30 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_string((*model->logic_threshold)[state->digital_pods[idx].threshold]);
+		break;
+	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		if (strcmp("USER2", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+			return SR_ERR_NA;
+		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -332,6 +357,54 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR;
 		ret = SR_OK;
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_str_idx(data, *model->logic_threshold, model->num_logic_threshold)) < 0)
+			return SR_ERR_ARG;
+		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+			   j + 1, (*model->logic_threshold)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->digital_pods[j].threshold = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		tmp_d = g_variant_get_double(data);
+		if (tmp_d < -2.0 || tmp_d > 8.0)
+			return SR_ERR;
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+			   j + 1, 2, float_str); // USER2 for custom logic_threshold setting
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+			   j + 1, "USER2");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->digital_pods[j].user_threshold = tmp_d;
+		ret = SR_OK;
+		break;
 	default:
 		ret = SR_ERR_NA;
 		break;
@@ -373,6 +446,8 @@ static int config_list(uint32_t key, GVariant **data,
 				*data = std_gvar_array_u32(ARRAY_AND_SIZE(drvopts));
 		} else if (cg_type == CG_ANALOG) {
 			*data = std_gvar_array_u32(*model->devopts_cg_analog, model->num_devopts_cg_analog);
+		} else if (cg_type == CG_DIGITAL) {
+			*data = std_gvar_array_u32(*model->devopts_cg_digital, model->num_devopts_cg_digital);
 		} else {
 			*data = std_gvar_array_u32(NULL, 0);
 		}
@@ -405,6 +480,13 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model)
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
+		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (!model)
+			return SR_ERR_ARG;
+		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -568,7 +650,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 
 	ret = SR_OK;
 	for (i = 0; i < model->digital_pods; i++) {
-		if (state->digital_pods[i] == pod_enabled[i])
+		if (state->digital_pods[i].state == pod_enabled[i])
 			continue;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
@@ -577,7 +659,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 			break;
 		}
-		state->digital_pods[i] = pod_enabled[i];
+		state->digital_pods[i].state = pod_enabled[i];
 		setup_changed = TRUE;
 	}
 	g_free(pod_enabled);
