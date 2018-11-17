@@ -90,7 +90,8 @@ SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_number(
 SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_text(
 	const struct sr_dev_inst *sdi, const char *text);
 SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
-	enum sr_mq *mq, enum sr_mqflag *flag, char **rsp);
+	enum sr_mq *mq, enum sr_mqflag *flag, char **rsp,
+	const struct mqopt_item **mqitem);
 SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 	enum sr_mq mq, enum sr_mqflag flag);
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch);

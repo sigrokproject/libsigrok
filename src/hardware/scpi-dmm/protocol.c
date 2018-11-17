@@ -70,7 +70,8 @@ SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_text(
 }
 
 SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
-	enum sr_mq *mq, enum sr_mqflag *flag, char **rsp)
+	enum sr_mq *mq, enum sr_mqflag *flag, char **rsp,
+	const struct mqopt_item **mqitem)
 {
 	struct dev_context *devc;
 	const char *command;
@@ -86,6 +87,8 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 		*flag = 0;
 	if (rsp)
 		*rsp = NULL;
+	if (mqitem)
+		*mqitem = NULL;
 
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_FUNC);
 	if (!command || !*command)
@@ -108,6 +111,8 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 			*mq = item->mq;
 		if (flag)
 			*flag = item->mqflag;
+		if (mqitem)
+			*mqitem = item;
 		ret = SR_OK;
 	}
 
@@ -173,7 +178,7 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	 * Get the meter's current mode, keep the response around.
 	 * Skip the measurement if the mode is uncertain.
 	 */
-	ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, &mode_response);
+	ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, &mode_response, &item);
 	if (ret != SR_OK) {
 		g_free(mode_response);
 		return ret;
@@ -200,17 +205,14 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 		snprintf(prec_text, sizeof(prec_text),
 			"%s", fields[count - 1]);
 		p = prec_text;
+	} else if (!item) {
+		p = NULL;
+	} else if (item->default_precision == NO_DFLT_PREC) {
+		p = NULL;
 	} else {
-		item = scpi_dmm_lookup_mq_number(sdi, mq, mqflag);
-		if (!item) {
-			p = NULL;
-		} else if (item->default_precision == NO_DFLT_PREC) {
-			p = NULL;
-		} else {
-			snprintf(prec_text, sizeof(prec_text),
-				"1e%d", item->default_precision);
-			p = prec_text;
-		}
+		snprintf(prec_text, sizeof(prec_text),
+			"1e%d", item->default_precision);
+		p = prec_text;
 	}
 	g_strfreev(fields);
 

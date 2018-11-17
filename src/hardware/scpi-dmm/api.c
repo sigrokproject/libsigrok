@@ -191,7 +191,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
 	case SR_CONF_MEASURED_QUANTITY:
-		ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, NULL);
+		ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, NULL, NULL);
 		if (ret != SR_OK)
 			return ret;
 		arr[0] = g_variant_new_uint32(mq);
@@ -276,13 +276,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	int ret;
+	const struct mqopt_item *item;
 	const char *command;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
 	ret = scpi_dmm_get_mq(sdi, &devc->start_acq_mq.curr_mq,
-		&devc->start_acq_mq.curr_mqflag, NULL);
+		&devc->start_acq_mq.curr_mqflag, NULL, &item);
 	if (ret != SR_OK)
 		return ret;
 
