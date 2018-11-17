@@ -49,13 +49,12 @@ static const struct scpi_command cmdset_agilent[] = {
 	ALL_ZERO,
 };
 
-static const struct mqopt_item mqopts_agilent_5digit[] = {
+static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, },
 	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR ", NO_DFLT_PREC, },
 	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR:AC ", NO_DFLT_PREC, },
 	{ SR_MQ_RESISTANCE, 0, "RES", "RES ", NO_DFLT_PREC, },
-	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES ", NO_DFLT_PREC, },
 	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, },
 	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, },
@@ -66,7 +65,7 @@ static const struct mqopt_item mqopts_agilent_5digit[] = {
 SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
-		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_5digit),
+		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 	},
