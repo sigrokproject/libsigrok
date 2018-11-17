@@ -101,8 +101,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	size_t i;
 	gchar *channel_name;
 
-	ret = sr_scpi_get_hw_id(scpi, &hw_info);
 	scpi_dmm_cmd_delay(scpi);
+	ret = sr_scpi_get_hw_id(scpi, &hw_info);
 	if (ret != SR_OK) {
 		sr_info("Could not get IDN response.");
 		return NULL;
@@ -289,8 +289,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_START_ACQ);
 	if (command && *command) {
-		ret = sr_scpi_send(scpi, command);
 		scpi_dmm_cmd_delay(scpi);
+		ret = sr_scpi_send(scpi, command);
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -319,8 +319,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_STOP_ACQ);
 	if (command && *command) {
-		(void)sr_scpi_send(scpi, command);
 		scpi_dmm_cmd_delay(scpi);
+		(void)sr_scpi_send(scpi, command);
 	}
 	sr_scpi_source_remove(sdi->session, scpi);
 

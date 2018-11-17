@@ -90,12 +90,12 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 	if (mqitem)
 		*mqitem = NULL;
 
+	scpi_dmm_cmd_delay(sdi->conn);
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_FUNC);
 	if (!command || !*command)
 		return SR_ERR_NA;
 	response = NULL;
 	ret = sr_scpi_get_string(sdi->conn, command, &response);
-	scpi_dmm_cmd_delay(sdi->conn);
 	if (ret != SR_OK)
 		return ret;
 	if (!response || !*response)
@@ -140,10 +140,12 @@ SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 
 	mode = item->scpi_func_setup;
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_SETUP_FUNC);
-	ret = sr_scpi_send(sdi->conn, command, mode);
 	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_send(sdi->conn, command, mode);
+	if (ret != SR_OK)
+		return ret;
 
-	return ret;
+	return SR_OK;
 }
 
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
@@ -267,8 +269,8 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_VALUE);
 	if (!command || !*command)
 		return SR_ERR_NA;
-	ret = sr_scpi_get_string(scpi, command, &response);
 	scpi_dmm_cmd_delay(scpi);
+	ret = sr_scpi_get_string(scpi, command, &response);
 	if (ret != SR_OK)
 		return ret;
 	g_strstrip(response);
