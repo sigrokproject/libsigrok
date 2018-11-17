@@ -20,6 +20,8 @@
 #include <string.h>
 #include "protocol.h"
 
+static struct sr_dev_driver scpi_dmm_driver_info;
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -320,7 +322,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver scpi_dmm_driver_info = {
+static struct sr_dev_driver scpi_dmm_driver_info = {
 	.name = "scpi-dmm",
 	.longname = "SCPI DMM",
 	.api_version = 1,

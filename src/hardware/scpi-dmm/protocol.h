@@ -94,6 +94,4 @@ SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch);
 SR_PRIV int scpi_dmm_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV struct sr_dev_driver scpi_dmm_driver_info;
-
 #endif
