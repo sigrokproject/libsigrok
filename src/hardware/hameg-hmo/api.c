@@ -288,7 +288,10 @@ static int config_set(uint32_t key, GVariant *data,
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
 			   (*model->trigger_sources)[idx]);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = SR_OK;
 		break;
 	case SR_CONF_VDIV:
 		if (!cg)
@@ -317,7 +320,10 @@ static int config_set(uint32_t key, GVariant *data,
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
 			   float_str);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = SR_OK;
 		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
@@ -333,7 +339,10 @@ static int config_set(uint32_t key, GVariant *data,
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_HORIZ_TRIGGERPOS],
 			   float_str);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
@@ -342,7 +351,10 @@ static int config_set(uint32_t key, GVariant *data,
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
 			   (*model->trigger_slopes)[idx]);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_PATTERN:
 		tmp_str = (char *)g_variant_get_string(data, 0);
@@ -427,9 +439,6 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_ERR_NA;
 		break;
 	}
-
-	if (ret == SR_OK)
-		ret = sr_scpi_get_opc(sdi->conn);
 
 	if (ret == SR_OK && update_sample_rate)
 		ret = hmo_update_sample_rate(sdi);
