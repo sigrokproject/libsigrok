@@ -31,13 +31,13 @@
 #define SCPI_READ_RETRY_TIMEOUT_US (10 * 1000)
 
 static const char *scpi_vendors[][2] = {
-	{ "HEWLETT-PACKARD", "HP" },
 	{ "Agilent Technologies", "Agilent" },
-	{ "Keysight Technologies", "Keysight" },
-	{ "RIGOL TECHNOLOGIES", "Rigol" },
-	{ "PHILIPS", "Philips" },
 	{ "CHROMA", "Chroma" },
 	{ "Chroma ATE", "Chroma" },
+	{ "HEWLETT-PACKARD", "HP" },
+	{ "Keysight Technologies", "Keysight" },
+	{ "PHILIPS", "Philips" },
+	{ "RIGOL TECHNOLOGIES", "Rigol" },
 };
 
 /**
