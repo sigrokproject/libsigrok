@@ -33,6 +33,7 @@
 static const char *scpi_vendors[][2] = {
 	{ "HEWLETT-PACKARD", "HP" },
 	{ "Agilent Technologies", "Agilent" },
+	{ "Keysight Technologies", "Keysight" },
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
 	{ "PHILIPS", "Philips" },
 	{ "CHROMA", "Chroma" },
