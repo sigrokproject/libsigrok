@@ -60,6 +60,8 @@ struct scpi_dmm_model {
 	const struct mqopt_item *mqopts;
 	size_t mqopt_size;
 	int (*get_measurement)(const struct sr_dev_inst *sdi, size_t ch);
+	const uint32_t *devopts;
+	size_t devopts_size;
 };
 
 struct dev_context {

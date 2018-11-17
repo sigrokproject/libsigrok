@@ -31,7 +31,7 @@ static const uint32_t drvopts[] = {
 	SR_CONF_MULTIMETER,
 };
 
-static const uint32_t devopts[] = {
+static const uint32_t devopts_generic[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -68,6 +68,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		"Agilent", "34405A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_5digit),
 		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
 	},
 };
 
@@ -246,7 +247,12 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		if (!devc)
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+				scanopts, drvopts, devopts_generic);
+		return std_opts_config_list(key, data, sdi, cg,
+			ARRAY_AND_SIZE(scanopts), ARRAY_AND_SIZE(drvopts),
+			devc->model->devopts, devc->model->devopts_size);
 	case SR_CONF_MEASURED_QUANTITY:
 		/* TODO Use std_gvar_measured_quantities() when available. */
 		if (!devc)
