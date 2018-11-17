@@ -1,7 +1,7 @@
 ##
 ## This file is part of the libsigrok project.
 ##
-## Copyright (C) 2017 Stefan Bruens <stefan.bruens@rwth-aachen.de>
+## Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -17,16 +17,13 @@
 ## along with this program; if not, see <http://www.gnu.org/licenses/>.
 ##
 
-# Grant access permissions to users who are currently logged in locally.
-# This is the default policy for systems using systemd-logind (or a
-# compatible replacement).
+# Grant access permissions to all users.
 #
 # This file, when installed, must be installed with a name lexicographically
-# sorted later than the accompanied 60-libsigrok.rules, and earlier than
-# the systemd upstream 71-seat.rules.
+# sorted later than the accompanied 60-libsigrok.rules.
 
-ACTION!="add|change", GOTO="libsigrok_rules_uaccess_end"
+ACTION!="add|change", GOTO="libsigrok_rules_end"
 
 ENV{ID_SIGROK}=="1", MODE="0666"
 
-LABEL="libsigrok_rules_uaccess_end"
+LABEL="libsigrok_rules_end"
