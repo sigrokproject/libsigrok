@@ -662,7 +662,7 @@ EXTRA_DIST = \
 	contrib/vnd.sigrok.session.xml \
 	contrib/60-libsigrok.rules \
 	contrib/61-libsigrok-plugdev.rules \
-	contrib/61-libsigrok-uaccess.rules
+	contrib/61-libsigrok.rules
 
 if HAVE_CHECK
 TESTS = tests/main
