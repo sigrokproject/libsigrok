@@ -624,7 +624,7 @@ SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t a[][2], unsigned int n)
 	GVariant *rational[2];
 	GVariantBuilder gvb;
 
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_TUPLE);
 
 	for (i = 0; i < n; i++) {
 		rational[0] = g_variant_new_uint64(a[i][0]);
@@ -643,7 +643,7 @@ SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned 
 	GVariant *rational[2];
 	GVariantBuilder gvb;
 
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_TUPLE);
 
 	for (i = 0; i < n; i++) {
 		rational[0] = g_variant_new_uint64(r[i].p);
