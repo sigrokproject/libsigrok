@@ -335,11 +335,11 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/gwinstek-gpd/protocol.c \
 	src/hardware/gwinstek-gpd/api.c
 endif
-if HW_HAMEG_HMO
+if HW_ROHDE_SCHWARZ_HAMEG
 src_libdrivers_la_SOURCES += \
-	src/hardware/hameg-hmo/protocol.h \
-	src/hardware/hameg-hmo/protocol.c \
-	src/hardware/hameg-hmo/api.c
+	src/hardware/rohde-schwarz-hameg/protocol.h \
+	src/hardware/rohde-schwarz-hameg/protocol.c \
+	src/hardware/rohde-schwarz-hameg/api.c
 endif
 if HW_HANTEK_4032L
 src_libdrivers_la_SOURCES += \

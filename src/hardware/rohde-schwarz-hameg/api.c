@@ -23,11 +23,11 @@
 #include "scpi.h"
 #include "protocol.h"
 
-static struct sr_dev_driver hameg_hmo_driver_info;
+static struct sr_dev_driver rohde_schwarz_driver_info;
 
 static const char *manufacturers[] = {
-	"HAMEG",
 	"Rohde&Schwarz",
+	"HAMEG",
 };
 
 static const uint32_t scanopts[] = {
@@ -69,7 +69,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->serial_num = g_strdup(hw_info->serial_number);
-	sdi->driver = &hameg_hmo_driver_info;
+	sdi->driver = &rohde_schwarz_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->conn = scpi;
 
@@ -80,7 +80,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	sdi->priv = devc;
 
-	if (hmo_init_device(sdi) != SR_OK)
+	if (rs_init_device(sdi) != SR_OK)
 		goto fail;
 
 	return sdi;
@@ -100,7 +100,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static void clear_helper(struct dev_context *devc)
 {
-	hmo_scope_state_free(devc->model_state);
+	rs_scope_state_free(devc->model_state);
 	g_free(devc->analog_groups);
 	g_free(devc->digital_groups);
 }
@@ -115,7 +115,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_scpi_open(sdi->conn) != SR_OK)
 		return SR_ERR;
 
-	if (hmo_scope_state_get(sdi) != SR_OK)
+	if (rs_scope_state_get(sdi) != SR_OK)
 		return SR_ERR;
 
 	return SR_OK;
@@ -441,7 +441,7 @@ static int config_set(uint32_t key, GVariant *data,
 	}
 
 	if (ret == SR_OK && update_sample_rate)
-		ret = hmo_update_sample_rate(sdi);
+		ret = rs_update_sample_rate(sdi);
 
 	return ret;
 }
@@ -522,7 +522,7 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
+SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 {
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
@@ -558,7 +558,7 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 	return sr_scpi_send(sdi->conn, command);
 }
 
-static int hmo_check_channels(GSList *channels)
+static int rs_check_channels(GSList *channels)
 {
 	GSList *l;
 	struct sr_channel *ch;
@@ -609,7 +609,7 @@ static int hmo_check_channels(GSList *channels)
 	return SR_OK;
 }
 
-static int hmo_setup_channels(const struct sr_dev_inst *sdi)
+static int rs_setup_channels(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
 	unsigned int i;
@@ -693,7 +693,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	if (setup_changed && hmo_update_sample_rate(sdi) != SR_OK)
+	if (setup_changed && rs_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
 	return SR_OK;
@@ -751,7 +751,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Check constraints. Some channels can be either analog or
 	 * digital, but not both at the same time.
 	 */
-	if (hmo_check_channels(devc->enabled_channels) != SR_OK) {
+	if (rs_check_channels(devc->enabled_channels) != SR_OK) {
 		sr_err("Invalid channel configuration specified!");
 		ret = SR_ERR_NA;
 		goto free_enabled;
@@ -761,7 +761,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Configure the analog and digital channels and the
 	 * corresponding digital pods.
 	 */
-	if (hmo_setup_channels(sdi) != SR_OK) {
+	if (rs_setup_channels(sdi) != SR_OK) {
 		sr_err("Failed to setup channel configuration!");
 		ret = SR_ERR;
 		goto free_enabled;
@@ -772,13 +772,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * receive routine will continue driving the acquisition.
 	 */
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
-			hmo_receive_data, (void *)sdi);
+			rs_receive_data, (void *)sdi);
 
 	std_session_send_df_header(sdi);
 
 	devc->current_channel = devc->enabled_channels;
 
-	return hmo_request_data(sdi);
+	return rs_request_data(sdi);
 
 free_enabled:
 	g_slist_free(devc->enabled_channels);
@@ -805,9 +805,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static struct sr_dev_driver hameg_hmo_driver_info = {
-	.name = "hameg-hmo",
-	.longname = "Hameg HMO",
+static struct sr_dev_driver rohde_schwarz_driver_info = {
+	.name = "rohde-schwarz-hameg",
+	.longname = "Rohde&Schwarz / Hameg oscilloscope",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
@@ -823,4 +823,4 @@ static struct sr_dev_driver hameg_hmo_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-SR_REGISTER_DEV_DRIVER(hameg_hmo_driver_info);
+SR_REGISTER_DEV_DRIVER(rohde_schwarz_driver_info);
