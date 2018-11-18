@@ -24,13 +24,13 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
+SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 				  size_t group, GByteArray *pod_data);
-SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
+SR_PRIV void rs_send_logic_packet(struct sr_dev_inst *sdi,
 				   struct dev_context *devc);
-SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc);
+SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
 
-static const char *hameg_scpi_dialect[] = {
+static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
@@ -253,7 +253,7 @@ static const struct scope_config scope_models[] = {
 		.num_xdivs = 12,
 		.num_ydivs = 8,
 
-		.scpi_dialect = &hameg_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
 		/* HMO3032/3042/3052/3522 support 16 digital channels. */
@@ -295,7 +295,7 @@ static const struct scope_config scope_models[] = {
 		.num_xdivs = 12,
 		.num_ydivs = 8,
 
-		.scpi_dialect = &hameg_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
 		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
@@ -336,7 +336,7 @@ static const struct scope_config scope_models[] = {
 		.num_xdivs = 12,
 		.num_ydivs = 8,
 
-		.scpi_dialect = &hameg_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
 		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
@@ -377,7 +377,7 @@ static const struct scope_config scope_models[] = {
 		.num_xdivs = 12,
 		.num_ydivs = 8,
 
-		.scpi_dialect = &hameg_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 };
 
@@ -659,7 +659,7 @@ exit:
 	return result;
 }
 
-SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
+SR_PRIV int rs_update_sample_rate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
@@ -680,7 +680,7 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
+SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct scope_state *state;
@@ -747,7 +747,7 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			       &state->trigger_pattern) != SR_OK)
 		return SR_ERR;
 
-	if (hmo_update_sample_rate(sdi) != SR_OK)
+	if (rs_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
 	sr_info("Fetching finished.");
@@ -772,7 +772,7 @@ static struct scope_state *scope_state_new(const struct scope_config *config)
 	return state;
 }
 
-SR_PRIV void hmo_scope_state_free(struct scope_state *state)
+SR_PRIV void rs_scope_state_free(struct scope_state *state)
 {
 	g_free(state->analog_channels);
 	g_free(state->digital_channels);
@@ -780,7 +780,7 @@ SR_PRIV void hmo_scope_state_free(struct scope_state *state)
 	g_free(state);
 }
 
-SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
+SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 {
 	int model_index;
 	unsigned int i, j, group;
@@ -869,7 +869,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 }
 
 /* Queue data of one channel group, for later submission. */
-SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
+SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 				  size_t group, GByteArray *pod_data)
 {
 	size_t size;
@@ -922,7 +922,7 @@ SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
 }
 
 /* Submit data for all channels, after the individual groups got collected. */
-SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
+SR_PRIV void rs_send_logic_packet(struct sr_dev_inst *sdi,
 				   struct dev_context *devc)
 {
 	struct sr_datafeed_packet packet;
@@ -942,7 +942,7 @@ SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
 }
 
 /* Undo previous resource allocation. */
-SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc)
+SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc)
 {
 
 	if (devc->logic_data) {
@@ -955,7 +955,7 @@ SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc)
 	 */
 }
 
-SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
@@ -1087,7 +1087,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			sr_session_send(sdi, &packet);
 		} else {
 			group = ch->index / 8;
-			hmo_queue_logic_data(devc, group, data);
+			rs_queue_logic_data(devc, group, data);
 		}
 
 		devc->num_samples = data->len / devc->pod_count;
@@ -1106,10 +1106,10 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 */
 	if (devc->current_channel->next) {
 		devc->current_channel = devc->current_channel->next;
-		hmo_request_data(sdi);
+		rs_request_data(sdi);
 		return TRUE;
 	}
-	hmo_send_logic_packet(sdi, devc);
+	rs_send_logic_packet(sdi, devc);
 
 	/*
 	 * Release the logic data storage after each frame. This copes
@@ -1117,7 +1117,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 * this a real constraint when acquiring multiple frames with
 	 * identical device settings?
 	 */
-	hmo_cleanup_logic_data(devc);
+	rs_cleanup_logic_data(devc);
 
 	packet.type = SR_DF_FRAME_END;
 	sr_session_send(sdi, &packet);
@@ -1129,10 +1129,10 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 */
 	if (++devc->num_frames >= devc->frame_limit || devc->num_samples >= devc->samples_limit) {
 		sr_dev_acquisition_stop(sdi);
-		hmo_cleanup_logic_data(devc);
+		rs_cleanup_logic_data(devc);
 	} else {
 		devc->current_channel = devc->enabled_channels;
-		hmo_request_data(sdi);
+		rs_request_data(sdi);
 	}
 
 	return TRUE;
