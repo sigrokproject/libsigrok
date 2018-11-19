@@ -150,7 +150,7 @@ static int check_channel_group(struct dev_context *devc,
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int cg_type, idx;
+	int cg_type, idx, i;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -238,8 +238,18 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
-		if (strcmp("USER2", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
-			return SR_ERR_NA;
+		/* Check if the oscilloscope is currently in custom threshold mode. */
+		for (i = 0; i < model->num_logic_threshold; i++) {
+			if (!strcmp("USER2", (*model->logic_threshold)[i]))
+				if (strcmp("USER2", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+			if (!strcmp("USER", (*model->logic_threshold)[i]))
+				if (strcmp("USER", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+			if (!strcmp("MAN", (*model->logic_threshold)[i]))
+				if (strcmp("MAN", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+		}
 		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
 		break;
 	default:
@@ -252,8 +262,9 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, cg_type, idx, j;
-	char command[MAX_COMMAND_SIZE], float_str[30], *tmp_str;
+	int ret, cg_type, idx, i, j;
+	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
+	char float_str[30], *tmp_str;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -398,9 +409,14 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
+                /* Check if the threshold command is based on the POD or digital channel index. */
+		if (model->logic_threshold_for_pod)
+			i = j + 1;
+		else
+			i = j * 8;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
-			   j + 1, (*model->logic_threshold)[idx]);
+			   i, (*model->logic_threshold)[idx]);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
@@ -420,16 +436,45 @@ static int config_set(uint32_t key, GVariant *data,
 		if (tmp_d < -2.0 || tmp_d > 8.0)
 			return SR_ERR;
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
-			   j + 1, 2, float_str); // USER2 for custom logic_threshold setting
+		/* Check if the threshold command is based on the POD or digital channel index. */
+		if (model->logic_threshold_for_pod)
+			idx = j + 1;
+		else
+			idx = j * 8;
+		/* Try to support different dialects exhaustively. */
+		for (i = 0; i < model->num_logic_threshold; i++) {
+			if (!strcmp("USER2", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, 2, float_str); /* USER2 */
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "USER2");
+				break;
+			}
+			if (!strcmp("USER", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, float_str);
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "USER");
+				break;
+			}
+			if (!strcmp("MAN", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, float_str);
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "MAN");
+				break;
+			}
+		}
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
-			   j + 1, "USER2");
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		if (sr_scpi_send(sdi->conn, command2) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		state->digital_pods[j].user_threshold = tmp_d;
