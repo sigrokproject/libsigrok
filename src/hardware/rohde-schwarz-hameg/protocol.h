@@ -57,6 +57,7 @@ struct scope_config {
 
 	const char *(*logic_threshold)[];
 	const uint8_t num_logic_threshold;
+	const gboolean logic_threshold_for_pod;
 
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;
