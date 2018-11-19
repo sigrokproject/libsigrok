@@ -257,7 +257,7 @@ static const struct scope_config scope_models[] = {
 	},
 	{
 		/* HMO3032/3042/3052/3522 support 16 digital channels. */
-		.name = {"HMO3032", "HMO3042", "HMO3052", "3522", NULL},
+		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
 		.digital_pods = 2,
