@@ -67,6 +67,43 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d %s",
 };
 
+static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_DIV]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_DIV]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
+					        ":TRIG:A:PATT:FUNC AND;" \
+					        ":TRIG:A:PATT:COND TRUE;" \
+					        ":TRIG:A:PATT:MODE OFF;" \
+					        ":TRIG:A:PATT:SOUR \"%s\"",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",	/* Might not be supported on RTB200x... */
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR %s",
+};
+
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
@@ -99,6 +136,19 @@ static const char *coupling_options[] = {
 	"GND",
 };
 
+static const char *coupling_options_rtb200x[] = {
+	"ACL", // AC with 1 MOhm termination
+	"DCL", // DC with 1 MOhm termination
+	"GND",
+};
+
+static const char *coupling_options_rtm300x[] = {
+	"ACL", // AC with 1 MOhm termination
+	"DC",  // DC with 50 Ohm termination
+	"DCL", // DC with 1 MOhm termination
+	"GND",
+};
+
 static const char *scope_trigger_slopes[] = {
 	"POS",
 	"NEG",
@@ -112,6 +162,13 @@ static const char *logic_threshold[] = {
 	"CMOS",
 	"USER1",
 	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
+};
+
+static const char *logic_threshold_rtb200x_rtm300x[] = {
+	"TTL",
+	"ECL",
+	"CMOS",
+	"MAN", // overwritten by logic_threshold_custom
 };
 
 /* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
@@ -129,6 +186,14 @@ static const char *an2_dig16_trigger_sources[] = {
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
+/* RTB2002 and RTM3002 */
+static const char *an2_dig16_sbus_trigger_sources[] = {
+	"CH1", "CH2",
+	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
 /* HMO Compact4 */
 static const char *an4_dig8_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
@@ -140,6 +205,14 @@ static const char *an4_dig8_trigger_sources[] = {
 static const char *an4_dig16_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+/* RTB2004 and RTM3004 */
+static const char *an4_dig16_sbus_trigger_sources[] = {
+	"CH1", "CH2", "CH3", "CH4",
+	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
@@ -235,6 +308,7 @@ static const struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
@@ -277,6 +351,7 @@ static const struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
@@ -318,6 +393,7 @@ static const struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an4_dig8_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources),
@@ -359,6 +435,7 @@ static const struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an4_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
@@ -376,6 +453,174 @@ static const struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		.name = {"RTB2002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtb200x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an2_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTB2004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtb200x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTM3002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an2_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTM3004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
 	},
 };
 
@@ -400,14 +645,15 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
-		if (strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4))
-			sr_info("State of digital POD %d -> %s : %s (threshold)", i + 1,
-				state->digital_pods[i].state ? "On" : "Off",
-				(*config->logic_threshold)[state->digital_pods[i].threshold]);
-		else // user-defined or custom logic threshold
+		if (!strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4) ||
+		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
 			sr_info("State of digital POD %d -> %s : %E (threshold)", i + 1,
 				state->digital_pods[i].state ? "On" : "Off",
 				state->digital_pods[i].user_threshold);
+		else
+			sr_info("State of digital POD %d -> %s : %s (threshold)", i + 1,
+				state->digital_pods[i].state ? "On" : "Off",
+				(*config->logic_threshold)[state->digital_pods[i].threshold]);
 	}
 
 	tmp = sr_period_string((*config->timebases)[state->timebase][0],
@@ -573,7 +819,7 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     const struct scope_config *config,
 				     struct scope_state *state)
 {
-	unsigned int i;
+	unsigned int i, idx;
 	int result = SR_ERR;
 	static char *logic_threshold_short[] = {};
 	char command[MAX_COMMAND_SIZE];
@@ -594,7 +840,8 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 			ch->enabled = state->digital_channels[i];
 	}
 
-	/* According to the SCPI standard, the response to the command
+	/* According to the SCPI standard, on models that support multiple
+	 * user-defined logic threshold settings the response to the command
 	 * SCPI_CMD_GET_DIG_POD_THRESHOLD might return "USER" instead of
 	 * "USER1".
 	 *
@@ -618,9 +865,15 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     &state->digital_pods[i].state) != SR_OK)
 			goto exit;
 
+		/* Check if the threshold command is based on the POD or digital channel index. */
+		if (config->logic_threshold_for_pod)
+			idx = i + 1;
+		else
+			idx = i * 8;
+
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
-			   i + 1);
+			   idx);
 
 		/* Check for both standard and shortened responses. */
 		if (scope_state_get_array_option(scpi, command, config->logic_threshold,
@@ -631,18 +884,24 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 							 &state->digital_pods[i].threshold) != SR_OK)
 				goto exit;
 
+		/* If used-defined or custom threshold is active, get the level. */
 		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
 			g_snprintf(command, sizeof(command),
 				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-				   i + 1, 1); // USER1 logic threshold setting
-
-		if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+				   idx, 1); /* USER1 logic threshold setting. */
+		else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
 			g_snprintf(command, sizeof(command),
 				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-				   i + 1, 2); // USER2 for custom logic_threshold setting
-
+				   idx, 2); /* USER2 for custom logic_threshold setting. */
+		else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   idx); /* USER or MAN for custom logic_threshold setting. */
 		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-		    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+		    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
 			if (sr_scpi_get_float(scpi, command,
 			    &state->digital_pods[i].user_threshold) != SR_OK)
 				goto exit;
