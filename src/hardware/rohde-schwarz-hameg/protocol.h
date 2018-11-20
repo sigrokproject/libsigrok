@@ -28,17 +28,19 @@
 
 #define LOG_PREFIX "rohde-schwarz-hameg"
 
-#define MAX_INSTRUMENT_VERSIONS 10
-#define MAX_COMMAND_SIZE 128
-#define MAX_ANALOG_CHANNEL_COUNT 4
-#define MAX_DIGITAL_CHANNEL_COUNT 16
-#define MAX_DIGITAL_GROUP_COUNT	2
+#define DIGITAL_CHANNELS_PER_POD	8
+
+#define MAX_INSTRUMENT_VERSIONS		10
+#define MAX_COMMAND_SIZE		128
+#define MAX_ANALOG_CHANNEL_COUNT	4
+#define MAX_DIGITAL_CHANNEL_COUNT	16
+#define MAX_DIGITAL_GROUP_COUNT		2
 
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	const uint8_t analog_channels;
 	const uint8_t digital_channels;
-	const uint8_t digital_pods;
+	uint8_t digital_pods;
 
 	const char *(*analog_names)[];
 	const char *(*digital_names)[];

@@ -413,7 +413,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (model->logic_threshold_for_pod)
 			i = j + 1;
 		else
-			i = j * 8;
+			i = j * DIGITAL_CHANNELS_PER_POD;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
 			   i, (*model->logic_threshold)[idx]);
@@ -440,7 +440,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (model->logic_threshold_for_pod)
 			idx = j + 1;
 		else
-			idx = j * 8;
+			idx = j * DIGITAL_CHANNELS_PER_POD;
 		/* Try to support different dialects exhaustively. */
 		for (i = 0; i < model->num_logic_threshold; i++) {
 			if (!strcmp("USER2", (*model->logic_threshold)[i])) {
@@ -593,7 +593,7 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 	case SR_CHANNEL_LOGIC:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
-			   ch->index < 8 ? 1 : 2);
+			   ch->index / DIGITAL_CHANNELS_PER_POD + 1);
 		break;
 	default:
 		sr_err("Invalid channel type.");
@@ -630,7 +630,7 @@ static int rs_check_channels(GSList *channels)
 				enabled_chan[idx] = TRUE;
 			break;
 		case SR_CHANNEL_LOGIC:
-			idx = ch->index / 8;
+			idx = ch->index / DIGITAL_CHANNELS_PER_POD;
 			if (idx < ARRAY_SIZE(enabled_pod))
 				enabled_pod[idx] = TRUE;
 			break;
@@ -695,10 +695,10 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 		case SR_CHANNEL_LOGIC:
 			/*
 			 * A digital POD needs to be enabled for every group of
-			 * 8 channels.
+			 * DIGITAL_CHANNELS_PER_POD channels.
 			 */
 			if (ch->enabled)
-				pod_enabled[ch->index < 8 ? 0 : 1] = TRUE;
+				pod_enabled[ch->index / DIGITAL_CHANNELS_PER_POD] = TRUE;
 
 			if (ch->enabled == state->digital_channels[ch->index])
 				break;
@@ -776,7 +776,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (!ch->enabled)
 			continue;
 		/* Only add a single digital channel per group (pod). */
-		group = ch->index / 8;
+		group = ch->index / DIGITAL_CHANNELS_PER_POD;
 		if (ch->type != SR_CHANNEL_LOGIC || !digital_added[group]) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);

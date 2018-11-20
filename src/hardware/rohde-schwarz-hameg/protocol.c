@@ -285,13 +285,12 @@ static const char *scope_digital_channel_names[] = {
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
-static const struct scope_config scope_models[] = {
+static struct scope_config scope_models[] = {
 	{
 		/* RTC1002 and HMO722/1002/1022/1202/1522/2022 support only 8 digital channels. */
 		.name = {"RTC1002", "HMO722", "HMO1002", "HMO1022", "HMO1202", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
-		.digital_pods = 1,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -334,7 +333,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -376,7 +374,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
 		.analog_channels = 4,
 		.digital_channels = 8,
-		.digital_pods = 1,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -418,7 +415,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -460,7 +456,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"RTB2002", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -502,7 +497,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"RTB2004", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -544,7 +538,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"RTM3002", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -586,7 +579,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"RTM3004", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -628,7 +620,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"RTA4004", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -913,7 +904,7 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 		if (config->logic_threshold_for_pod)
 			idx = i + 1;
 		else
-			idx = i * 8;
+			idx = i * DIGITAL_CHANNELS_PER_POD;
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
@@ -1108,6 +1099,8 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		sr_dbg("Unsupported device.");
 		return SR_ERR_NA;
 	}
+	/* Configure the number of PODs given the number of digital channels. */
+	scope_models[model_index].digital_pods = scope_models[model_index].digital_channels / DIGITAL_CHANNELS_PER_POD;
 
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
 					scope_models[model_index].analog_channels);
@@ -1154,7 +1147,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i]);
 
-		group = i / 8;
+		group = i / DIGITAL_CHANNELS_PER_POD;
 		devc->digital_groups[group]->channels = g_slist_append(
 			devc->digital_groups[group]->channels, ch);
 	}
@@ -1387,7 +1380,7 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 			packet.payload = &logic;
 			sr_session_send(sdi, &packet);
 		} else {
-			group = ch->index / 8;
+			group = ch->index / DIGITAL_CHANNELS_PER_POD;
 			rs_queue_logic_data(devc, group, data);
 		}
 
