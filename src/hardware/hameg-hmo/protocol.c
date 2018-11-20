@@ -39,8 +39,8 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
-	[SCPI_CMD_GET_VERTICAL_DIV]	      = ":CHAN%d:SCAL?",
-	[SCPI_CMD_SET_VERTICAL_DIV]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":POD%d:STAT?",
 	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":POD%d:STAT %d",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
@@ -76,8 +76,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
-	[SCPI_CMD_GET_VERTICAL_DIV]	      = ":CHAN%d:SCAL?",
-	[SCPI_CMD_SET_VERTICAL_DIV]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":LOG%d:STAT?",
 	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":LOG%d:STAT %d",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
@@ -894,7 +894,7 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 			ch->enabled = state->analog_channels[i].state;
 
 		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
+			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_SCALE],
 			   i + 1);
 
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
