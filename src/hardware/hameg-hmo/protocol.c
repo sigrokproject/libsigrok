@@ -209,7 +209,7 @@ static const char *an4_dig16_trigger_sources[] = {
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
-/* RTB2004 and RTM3004 */
+/* RTB2004, RTM3004 and RTA4004 */
 static const char *an4_dig16_sbus_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
@@ -582,6 +582,48 @@ static const struct scope_config scope_models[] = {
 	},
 	{
 		.name = {"RTM3004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+		.digital_pods = 2,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTA4004", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
 		.digital_pods = 2,
