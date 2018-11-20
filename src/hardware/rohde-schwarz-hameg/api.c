@@ -314,7 +314,7 @@ static int config_set(uint32_t key, GVariant *data,
 		g_ascii_formatd(float_str, sizeof(float_str), "%E",
 			(float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
 		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
+			   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_SCALE],
 			   j + 1, float_str);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
