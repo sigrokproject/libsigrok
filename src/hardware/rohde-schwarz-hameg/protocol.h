@@ -73,7 +73,7 @@ struct scope_config {
 	const uint64_t (*vdivs)[][2];
 	const uint8_t num_vdivs;
 
-	const uint8_t num_xdivs;
+	uint8_t num_xdivs;
 	const uint8_t num_ydivs;
 
 	const char *(*scpi_dialect)[];
