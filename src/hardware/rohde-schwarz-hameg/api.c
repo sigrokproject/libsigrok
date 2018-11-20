@@ -378,8 +378,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		g_free(state->trigger_pattern);
-		state->trigger_pattern = g_strdup(tmp_str);
+		strncpy(state->trigger_pattern,
+			tmp_str,
+			MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:

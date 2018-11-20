@@ -1122,8 +1122,12 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 
 	if (sr_scpi_get_string(sdi->conn,
 			       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
-			       &state->trigger_pattern) != SR_OK)
+			       &tmp_str) != SR_OK)
 		return SR_ERR;
+	strncpy(state->trigger_pattern,
+		sr_scpi_unquote_string(tmp_str),
+		MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+	g_free(tmp_str);
 
 	if (rs_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
