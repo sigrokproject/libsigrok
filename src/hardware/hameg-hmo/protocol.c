@@ -1086,11 +1086,6 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	if (digital_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn,
-			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
-			&tmp_float) != SR_OK)
-		return SR_ERR;
-
 	if (sr_scpi_get_string(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
 			&tmp_str) != SR_OK)
