@@ -104,7 +104,7 @@ struct scope_state {
 
 	int trigger_source;
 	int trigger_slope;
-	char *trigger_pattern;
+	char trigger_pattern[MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT];
 
 	uint64_t sample_rate;
 };
