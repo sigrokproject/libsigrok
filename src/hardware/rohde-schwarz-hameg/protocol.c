@@ -219,6 +219,49 @@ static const char *an4_dig16_sbus_trigger_sources[] = {
 
 static const uint64_t timebases[][2] = {
 	/* nanoseconds */
+	{ 1, 1000000000 },
+	{ 2, 1000000000 },
+	{ 5, 1000000000 },
+	{ 10, 1000000000 },
+	{ 20, 1000000000 },
+	{ 50, 1000000000 },
+	{ 100, 1000000000 },
+	{ 200, 1000000000 },
+	{ 500, 1000000000 },
+	/* microseconds */
+	{ 1, 1000000 },
+	{ 2, 1000000 },
+	{ 5, 1000000 },
+	{ 10, 1000000 },
+	{ 20, 1000000 },
+	{ 50, 1000000 },
+	{ 100, 1000000 },
+	{ 200, 1000000 },
+	{ 500, 1000000 },
+	/* milliseconds */
+	{ 1, 1000 },
+	{ 2, 1000 },
+	{ 5, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* seconds */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+};
+
+/* HMO Compact series (HMO722/724/1022/1024/1522/1524/2022/2024) do
+ * not support 1 ns timebase setting.
+ */
+static const uint64_t timebases_hmo_compact[][2] = {
+	/* nanoseconds */
 	{ 2, 1000000000 },
 	{ 5, 1000000000 },
 	{ 10, 1000000000 },
@@ -287,8 +330,50 @@ static const char *scope_digital_channel_names[] = {
 
 static struct scope_config scope_models[] = {
 	{
-		/* RTC1002 and HMO722/1002/1022/1202/1522/2022 support only 8 digital channels. */
-		.name = {"RTC1002", "HMO722", "HMO1002", "HMO1022", "HMO1202", "HMO1522", "HMO2022", NULL},
+		/* HMO Compact2: HMO722/1022/1522/2022 support only 8 digital channels. */
+		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", NULL},
+		.analog_channels = 2,
+		.digital_channels = 8,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an2_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases_hmo_compact,
+		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
+	},
+	{
+		/* RTC1002 and HMO1002/HMO1202 support only 8 digital channels. */
+		.name = {"RTC1002", "HMO1002", "HMO1202", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 
@@ -371,6 +456,7 @@ static struct scope_config scope_models[] = {
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
+		/* HMO Compact4: HMO724/1024/1524/2024 support only 8 digital channels. */
 		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
 		.analog_channels = 4,
 		.digital_channels = 8,
@@ -400,8 +486,8 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
-		.timebases = &timebases,
-		.num_timebases = ARRAY_SIZE(timebases),
+		.timebases = &timebases_hmo_compact,
+		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
