@@ -34,6 +34,7 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
 	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
@@ -71,6 +72,7 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
 	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
@@ -366,7 +368,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
@@ -408,7 +409,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
@@ -450,7 +450,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
@@ -492,7 +491,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
@@ -533,7 +531,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
@@ -574,7 +571,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
@@ -615,7 +611,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
@@ -656,7 +651,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
@@ -697,7 +691,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
@@ -738,7 +731,6 @@ static struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
@@ -1098,6 +1090,12 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 
 	state->timebase = i;
 
+	/* Determine the number of horizontal (x) divisions. */
+	if (sr_scpi_get_int(sdi->conn,
+	    (*config->scpi_dialect)[SCPI_CMD_GET_HORIZONTAL_DIV],
+	    (int *)&config->num_xdivs) != SR_OK)
+		return SR_ERR;
+
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
 			&tmp_float) != SR_OK)
@@ -1189,6 +1187,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		sr_dbg("Unsupported device.");
 		return SR_ERR_NA;
 	}
+
 	/* Configure the number of PODs given the number of digital channels. */
 	scope_models[model_index].digital_pods = scope_models[model_index].digital_channels / DIGITAL_CHANNELS_PER_POD;
 
