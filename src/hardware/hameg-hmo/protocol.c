@@ -44,6 +44,8 @@ static const char *hameg_scpi_dialect[] = {
 	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":POD%d:STAT?",
 	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":POD%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
@@ -52,8 +54,10 @@ static const char *hameg_scpi_dialect[] = {
 					        ":TRIG:A:PATT:COND \"TRUE\";" \
 					        ":TRIG:A:PATT:MODE OFF;" \
 					        ":TRIG:A:PATT:SOUR \"%s\"",
-	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
-	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
+	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
+	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
+	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
 	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
 	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
 	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",
@@ -82,6 +86,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
 	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":LOG%d:STAT?",
 	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
@@ -90,8 +96,10 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 					        ":TRIG:A:PATT:COND \"TRUE\";" \
 					        ":TRIG:A:PATT:MODE OFF;" \
 					        ":TRIG:A:PATT:SOUR \"%s\"",
-	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
-	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
+	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
+	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
+	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
 	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
 	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
 	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",	/* Might not be supported on RTB200x... */
@@ -117,6 +125,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PEAK_DETECTION | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
@@ -1118,6 +1128,26 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	strncpy(state->trigger_pattern,
 		sr_scpi_unquote_string(tmp_str),
 		MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+	g_free(tmp_str);
+
+	if (sr_scpi_get_string(sdi->conn,
+			     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
+			     &tmp_str) != SR_OK)
+		return SR_ERR;
+	if (!strcmp("OFF", tmp_str))
+		state->high_resolution = FALSE;
+	else
+		state->high_resolution = TRUE;
+	g_free(tmp_str);
+
+	if (sr_scpi_get_string(sdi->conn,
+			     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
+			     &tmp_str) != SR_OK)
+		return SR_ERR;
+	if (!strcmp("OFF", tmp_str))
+		state->peak_detection = FALSE;
+	else
+		state->peak_detection = TRUE;
 	g_free(tmp_str);
 
 	if (hmo_update_sample_rate(sdi) != SR_OK)

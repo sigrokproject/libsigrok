@@ -204,6 +204,12 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_PATTERN:
 		*data = g_variant_new_string(state->trigger_pattern);
 		break;
+	case SR_CONF_HIGH_RESOLUTION:
+		*data = g_variant_new_boolean(state->high_resolution);
+		break;
+	case SR_CONF_PEAK_DETECTION:
+		*data = g_variant_new_boolean(state->peak_detection);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
@@ -270,7 +276,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct scope_config *model;
 	struct scope_state *state;
 	double tmp_d, tmp_d2;
-	gboolean update_sample_rate;
+	gboolean update_sample_rate, tmp_bool;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -291,18 +297,6 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
-		ret = SR_OK;
-		break;
-	case SR_CONF_TRIGGER_SOURCE:
-		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
-			return SR_ERR_ARG;
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
-			   (*model->trigger_sources)[idx]);
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
-			return SR_ERR;
-		state->trigger_source = idx;
 		ret = SR_OK;
 		break;
 	case SR_CONF_VDIV:
@@ -356,6 +350,18 @@ static int config_set(uint32_t key, GVariant *data,
 		state->horiz_triggerpos = tmp_d;
 		ret = SR_OK;
 		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
+			   (*model->trigger_sources)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->trigger_source = idx;
+		ret = SR_OK;
+		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
 			return SR_ERR_ARG;
@@ -382,6 +388,48 @@ static int config_set(uint32_t key, GVariant *data,
 		strncpy(state->trigger_pattern,
 			tmp_str,
 			MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+		ret = SR_OK;
+		break;
+	case SR_CONF_HIGH_RESOLUTION:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
+			   tmp_bool ? "AUTO" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		/* High Resolution mode automatically switches off Peak Detection. */
+		if (tmp_bool) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
+				   "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					 sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			state->peak_detection = FALSE;
+		}
+		state->high_resolution = tmp_bool;
+		ret = SR_OK;
+		break;
+	case SR_CONF_PEAK_DETECTION:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
+			   tmp_bool ? "AUTO" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		/* Peak Detection automatically switches off High Resolution mode. */
+		if (tmp_bool) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
+				   "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					 sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			state->high_resolution = FALSE;
+		}
+		state->peak_detection = tmp_bool;
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
