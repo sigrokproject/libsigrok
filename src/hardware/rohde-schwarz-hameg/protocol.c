@@ -850,7 +850,7 @@ static void scope_state_dump(const struct scope_config *config,
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
-		const char *command, const char *(*array)[], unsigned int n, int *result)
+		const char *command, const char *(*array)[], unsigned int n, unsigned int *result)
 {
 	char *tmp;
 	int idx;
