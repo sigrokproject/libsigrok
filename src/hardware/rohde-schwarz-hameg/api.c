@@ -224,6 +224,12 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
 		break;
+        case SR_CONF_WAVEFORM_SAMPLE_RATE:
+		/* Make sure it is supported by the specific model. */
+		if (!model->num_waveform_sample_rate)
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->waveform_sample_rate)[state->waveform_sample_rate]);
+		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
@@ -330,6 +336,21 @@ static int config_set(uint32_t key, GVariant *data,
 		state->timebase = idx;
 		ret = SR_OK;
 		update_sample_rate = TRUE;
+		break;
+        case SR_CONF_WAVEFORM_SAMPLE_RATE:
+		/* Make sure it is supported by the specific model. */
+		if (!model->num_waveform_sample_rate)
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->waveform_sample_rate, model->num_waveform_sample_rate)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
+			   (*model->waveform_sample_rate)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->waveform_sample_rate = idx;
+		ret = SR_OK;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
@@ -594,6 +615,14 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model)
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
+		break;
+        case SR_CONF_WAVEFORM_SAMPLE_RATE:
+		if (!model)
+			return SR_ERR_ARG;
+		/* Make sure it is supported by the specific model. */
+		if (!model->num_waveform_sample_rate)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
 		break;
 	case SR_CONF_VSCALE:
 		if (!cg)

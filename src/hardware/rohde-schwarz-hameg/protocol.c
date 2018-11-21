@@ -38,6 +38,8 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
+	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
@@ -80,6 +82,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
+	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
@@ -119,6 +123,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
@@ -138,6 +143,23 @@ static const uint32_t devopts_cg_analog[] = {
 static const uint32_t devopts_cg_digital[] = {
 	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
+};
+
+/* Segmented memory option available (manual setting). */
+static const char *waveform_sample_rate[] = {
+	"AUTO",
+	"MWAV",
+	"MSAM",
+	"MAN",
+};
+
+/* RTC1000, HMO1002/1202 and HMO Compact series have no
+ * segmented memory option available (no manual setting).
+ */
+static const char *waveform_sample_rate_nosegmem[] = {
+	"AUTO",
+	"MWAV",
+	"MSAM",
 };
 
 static const char *coupling_options[] = {
@@ -357,6 +379,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -397,6 +422,9 @@ static struct scope_config scope_models[] = {
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
 
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
@@ -439,6 +467,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -480,6 +511,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -519,6 +553,9 @@ static struct scope_config scope_models[] = {
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
 
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
@@ -560,6 +597,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
+
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
@@ -599,6 +639,9 @@ static struct scope_config scope_models[] = {
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
 
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
@@ -640,6 +683,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
+
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
@@ -680,6 +726,9 @@ static struct scope_config scope_models[] = {
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
 
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
+
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
@@ -719,6 +768,9 @@ static struct scope_config scope_models[] = {
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
 
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
@@ -1098,6 +1150,17 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 	    (*config->scpi_dialect)[SCPI_CMD_GET_HORIZONTAL_DIV],
 	    (int *)&config->num_xdivs) != SR_OK)
 		return SR_ERR;
+
+	/* Not all models allow setting the mode for waveform acquisition
+	 * rate and sample rate configuration.
+	 */
+	if (config->num_waveform_sample_rate) {
+		if (scope_state_get_array_option(sdi->conn,
+						 (*config->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE],
+						 config->waveform_sample_rate, config->num_waveform_sample_rate,
+						 &state->waveform_sample_rate) != SR_OK)
+			return SR_ERR;
+	}
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],

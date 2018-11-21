@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +55,9 @@ struct scope_config {
 	const uint32_t (*devopts_cg_digital)[];
 	const uint8_t num_devopts_cg_digital;
 
+	const char *(*waveform_sample_rate)[];
+	const uint8_t num_waveform_sample_rate;
+
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
 
@@ -102,6 +106,10 @@ struct scope_state {
 	struct digital_pod_state *digital_pods;
 
 	int timebase;
+
+	uint64_t sample_rate;
+	int waveform_sample_rate;
+
 	float horiz_triggerpos;
 
 	int trigger_source;
@@ -110,8 +118,6 @@ struct scope_state {
 
 	gboolean high_resolution;
 	gboolean peak_detection;
-
-	uint64_t sample_rate;
 };
 
 struct dev_context {
