@@ -48,7 +48,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -220,7 +220,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_int32(model->num_ydivs);
 		ret = SR_OK;
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_ANALOG)
@@ -298,7 +298,7 @@ static int config_set(uint32_t key, GVariant *data,
 		/* TODO: A and B trigger support possible? */
 		ret = dlm_trigger_source_set(sdi->conn, (*model->trigger_sources)[idx]);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(dlm_vdivs))) < 0)
@@ -435,7 +435,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(dlm_vdivs));

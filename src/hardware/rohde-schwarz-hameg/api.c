@@ -183,7 +183,7 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = g_variant_new_int32(model->num_ydivs);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_ANALOG)
@@ -191,8 +191,8 @@ static int config_get(uint32_t key, GVariant **data,
 		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new("(tt)",
-				      (*model->vdivs)[state->analog_channels[idx].vdiv][0],
-				      (*model->vdivs)[state->analog_channels[idx].vdiv][1]);
+				      (*model->vscale)[state->analog_channels[idx].vscale][0],
+				      (*model->vscale)[state->analog_channels[idx].vscale][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
@@ -298,22 +298,22 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->frame_limit = g_variant_get_uint64(data);
 		ret = SR_OK;
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		if ((idx = std_u64_tuple_idx(data, *model->vdivs, model->num_vdivs)) < 0)
+		if ((idx = std_u64_tuple_idx(data, *model->vscale, model->num_vscale)) < 0)
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		g_ascii_formatd(float_str, sizeof(float_str), "%E",
-			(float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
+			(float) (*model->vscale)[idx][0] / (*model->vscale)[idx][1]);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_SCALE],
 			   j + 1, float_str);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->analog_channels[j].vdiv = idx;
+		state->analog_channels[j].vscale = idx;
 		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
@@ -595,12 +595,12 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (!model)
 			return SR_ERR_ARG;
-		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
+		*data = std_gvar_tuple_array(*model->vscale, model->num_vscale);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!cg)

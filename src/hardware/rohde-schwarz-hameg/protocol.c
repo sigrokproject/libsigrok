@@ -131,7 +131,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -311,8 +311,8 @@ static const uint64_t timebases_hmo_compact[][2] = {
 	{ 50, 1 },
 };
 
-static const uint64_t vdivs[][2] = {
-	/* millivolts */
+static const uint64_t vscale[][2] = {
+	/* millivolts / div */
 	{ 1, 1000 },
 	{ 2, 1000 },
 	{ 5, 1000 },
@@ -322,7 +322,7 @@ static const uint64_t vdivs[][2] = {
 	{ 100, 1000 },
 	{ 200, 1000 },
 	{ 500, 1000 },
-	/* volts */
+	/* volts / div */
 	{ 1, 1 },
 	{ 2, 1 },
 	{ 5, 1 },
@@ -373,8 +373,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases_hmo_compact,
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -414,8 +414,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -455,8 +455,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -496,8 +496,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases_hmo_compact,
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -536,8 +536,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -576,8 +576,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -616,8 +616,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -656,8 +656,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -696,8 +696,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -736,8 +736,8 @@ static struct scope_config scope_models[] = {
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
-		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
 
@@ -752,9 +752,9 @@ static void scope_state_dump(const struct scope_config *config,
 	char *tmp;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		tmp = sr_voltage_string((*config->vdivs)[state->analog_channels[i].vdiv][0],
-					     (*config->vdivs)[state->analog_channels[i].vdiv][1]);
-		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
+		tmp = sr_voltage_per_div_string((*config->vscale)[state->analog_channels[i].vscale][0],
+					     (*config->vscale)[state->analog_channels[i].vscale][1]);
+		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vscale) %2.2e (offset)",
 			i + 1, state->analog_channels[i].state ? "On" : "Off",
 			(*config->coupling_options)[state->analog_channels[i].coupling],
 			tmp, state->analog_channels[i].vertical_offset);
@@ -893,14 +893,14 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
+		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vscale), &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
 		}
 
 		g_free(tmp_str);
-		state->analog_channels[i].vdiv = j;
+		state->analog_channels[i].vscale = j;
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_OFFSET],

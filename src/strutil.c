@@ -845,7 +845,7 @@ SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q)
  * E.g. a value of 300000 would be converted to "300mV", 2 to "2V".
  *
  * @param v_p The voltage numerator.
- * @param v_q The voltage denominator.
+ * @param v_q The denominator.
  *
  * @return A newly allocated string representation of the voltage value,
  *         or NULL upon errors. The caller is responsible to g_free() the
@@ -861,6 +861,33 @@ SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q)
 		return g_strdup_printf("%" PRIu64 " V", v_p);
 	else
 		return g_strdup_printf("%g V", (float)v_p / (float)v_q);
+}
+
+/**
+ * Convert a numeric voltage per division value to the "natural" string
+ * representation of its voltage per division value. The voltage per
+ * division is specified as a rational number's numerator and denominator.
+ *
+ * E.g. a value of 300000 would be converted to "300mV/div", 2 to
+ * "2V/div".
+ *
+ * @param v_p The voltage per division numerator.
+ * @param v_q The denominator.
+ *
+ * @return A newly allocated string representation of the voltage per
+ *         division value, or NULL upon errors. The caller is responsible
+ *         to g_free() the memory.
+ *
+ * @since 0.6.0
+ */
+SR_API char *sr_voltage_per_div_string(uint64_t v_p, uint64_t v_q)
+{
+	if (v_q == 1000)
+		return g_strdup_printf("%" PRIu64 " mV/div", v_p);
+	else if (v_q == 1)
+		return g_strdup_printf("%" PRIu64 " V/div", v_p);
+	else
+		return g_strdup_printf("%g V/div", (float)v_p / (float)v_q);
 }
 
 /**
@@ -1055,6 +1082,31 @@ SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q)
 		if (!g_ascii_strcasecmp(s, "mv"))
 			*q = 1000L;
 		else if (!g_ascii_strcasecmp(s, "v"))
+			*q = 1;
+		else
+			/* Must have a base suffix. */
+			return SR_ERR_ARG;
+	}
+
+	return SR_OK;
+}
+
+/** @since 0.6.0 */
+SR_API int sr_parse_voltage_per_div(const char *voltperdivstr, uint64_t *p, uint64_t *q)
+{
+	char *s;
+
+	*p = strtoull(voltperdivstr, &s, 10);
+	if (*p == 0 && s == voltperdivstr)
+		/* No digits found. */
+		return SR_ERR_ARG;
+
+	if (s && *s) {
+		while (*s == ' ')
+			s++;
+		if (!g_ascii_strcasecmp(s, "mv/div"))
+			*q = 1000L;
+		else if (!g_ascii_strcasecmp(s, "v/div"))
 			*q = 1;
 		else
 			/* Must have a base suffix. */

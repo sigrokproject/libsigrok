@@ -103,8 +103,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Time base", NULL},
 	{SR_CONF_FILTER, SR_T_BOOL, "filter",
 		"Filter", NULL},
-	{SR_CONF_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
-		"Volts/div", NULL},
+	{SR_CONF_VSCALE, SR_T_RATIONAL_VOLT_PER_DIV, "vscale",
+		"Vertical scale", NULL},
 	{SR_CONF_COUPLING, SR_T_STRING, "coupling",
 		"Coupling", NULL},
 	{SR_CONF_TRIGGER_MATCH, SR_T_INT32, "triggermatch",
@@ -318,6 +318,7 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 		return G_VARIANT_TYPE_DOUBLE;
 	case SR_T_RATIONAL_PERIOD:
 	case SR_T_RATIONAL_VOLT:
+	case SR_T_RATIONAL_VOLT_PER_DIV:
 	case SR_T_UINT64_RANGE:
 	case SR_T_DOUBLE_RANGE:
 		return G_VARIANT_TYPE_TUPLE;

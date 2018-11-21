@@ -145,6 +145,17 @@ static void test_voltage(uint64_t v_p, uint64_t v_q, const char *expected)
 	g_free(s);
 }
 
+static void test_voltage_per_div(uint64_t v_p, uint64_t v_q, const char *expected)
+{
+	char *s;
+
+	s = sr_voltage_per_div_string(v_p, v_q);
+	fail_unless(s != NULL);
+	fail_unless(!strcmp(s, expected),
+		    "Invalid result for '%s': %s.", expected, s);
+	g_free(s);
+}
+
 START_TEST(test_locale)
 {
 	char *old_locale, *saved_locale;
@@ -375,6 +386,19 @@ START_TEST(test_volt)
 }
 END_TEST
 
+START_TEST(test_volt_per_div)
+{
+	test_voltage_per_div(34, 1, "34 V/div");
+	test_voltage_per_div(34, 2, "17 V/div");
+	test_voltage_per_div(1, 1, "1 V/div");
+	test_voltage_per_div(1, 5, "0.2 V/div");
+	test_voltage_per_div(200, 1000, "200 mV/div");
+	test_voltage_per_div(1, 72, "0.0138889 V/div");
+	test_voltage_per_div(1, 388, "0.00257732 V/div");
+	test_voltage_per_div(10, 1000, "10 mV/div");
+}
+END_TEST
+
 START_TEST(test_integral)
 {
 	test_rational("1", (struct sr_rational){1, 1});
@@ -447,6 +471,7 @@ Suite *suite_strutil(void)
 	tcase_add_test(tc, test_hz_period);
 	tcase_add_test(tc, test_ghz_period);
 	tcase_add_test(tc, test_volt);
+	tcase_add_test(tc, test_volt_per_div);
 	tcase_add_test(tc, test_integral);
 	tcase_add_test(tc, test_fractional);
 	tcase_add_test(tc, test_exponent);

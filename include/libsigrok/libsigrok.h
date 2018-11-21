@@ -141,6 +141,7 @@ enum sr_datatype {
 	SR_T_FLOAT,
 	SR_T_RATIONAL_PERIOD,
 	SR_T_RATIONAL_VOLT,
+	SR_T_RATIONAL_VOLT_PER_DIV,
 	SR_T_KEYVALUE,
 	SR_T_UINT64_RANGE,
 	SR_T_DOUBLE_RANGE,
@@ -803,8 +804,8 @@ enum sr_configkey {
 	/** Filter. */
 	SR_CONF_FILTER,
 
-	/** Volts/div. */
-	SR_CONF_VDIV,
+	/** Vertical scale, in Volts/div. */
+	SR_CONF_VSCALE,
 
 	/** Coupling. */
 	SR_CONF_COUPLING,
@@ -818,7 +819,7 @@ enum sr_configkey {
 	/** Number of horizontal divisions, as related to SR_CONF_TIMEBASE. */
 	SR_CONF_NUM_HDIV,
 
-	/** Number of vertical divisions, as related to SR_CONF_VDIV. */
+	/** Number of vertical divisions, as related to SR_CONF_VSCALE. */
 	SR_CONF_NUM_VDIV,
 
 	/** Sound pressure level frequency weighting. */

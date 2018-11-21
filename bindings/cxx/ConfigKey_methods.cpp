@@ -102,6 +102,10 @@ Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
 			check(sr_parse_voltage(value.c_str(), &p, &q));
 			variant = g_variant_new("(tt)", p, q);
 			break;
+		case SR_T_RATIONAL_VOLT_PER_DIV:
+			check(sr_parse_voltage_per_div(value.c_str(), &p, &q));
+			variant = g_variant_new("(tt)", p, q);
+			break;
 		case SR_T_INT32:
 			try {
 				variant = g_variant_new_int32(stoi(value));

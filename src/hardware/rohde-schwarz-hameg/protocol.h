@@ -70,8 +70,8 @@ struct scope_config {
 	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
 
-	const uint64_t (*vdivs)[][2];
-	const uint8_t num_vdivs;
+	const uint64_t (*vscale)[][2];
+	const uint8_t num_vscale;
 
 	uint8_t num_xdivs;
 	const uint8_t num_ydivs;
@@ -82,7 +82,7 @@ struct scope_config {
 struct analog_channel_state {
 	int coupling;
 
-	int vdiv;
+	int vscale;
 	float vertical_offset;
 
 	gboolean state;
