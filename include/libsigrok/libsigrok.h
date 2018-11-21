@@ -759,6 +759,9 @@ enum sr_configkey {
 	/** The device supports setting its samplerate, in Hz. */
 	SR_CONF_SAMPLERATE = 30000,
 
+	/** Mode for setting the waveform acquisition rate and sample rate. */
+	SR_CONF_WAVEFORM_SAMPLE_RATE,
+
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_CONF_CAPTURE_RATIO,
 
