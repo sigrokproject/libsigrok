@@ -767,11 +767,20 @@ enum sr_configkey {
 	/** The device supports run-length encoding (RLE). */
 	SR_CONF_RLE,
 
+	/** Trigger source. */
+	SR_CONF_TRIGGER_SOURCE,
+
 	/** The device supports setting trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
 
 	/** The device supports setting a pattern for the logic trigger. */
 	SR_CONF_TRIGGER_PATTERN,
+
+	/** High resolution mode. */
+	SR_CONF_HIGH_RESOLUTION,
+
+	/** Peak detection. */
+	SR_CONF_PEAK_DETECTION,
 
 	/** The device supports averaging. */
 	SR_CONF_AVERAGING,
@@ -781,9 +790,6 @@ enum sr_configkey {
 	 * averaged over.
 	 */
 	SR_CONF_AVG_SAMPLES,
-
-	/** Trigger source. */
-	SR_CONF_TRIGGER_SOURCE,
 
 	/** Horizontal trigger position. */
 	SR_CONF_HORIZ_TRIGGERPOS,
