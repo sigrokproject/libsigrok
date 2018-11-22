@@ -159,11 +159,16 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
 
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR_ARG;
+
 	state = devc->model_state;
 
 	switch (key) {
@@ -238,8 +243,6 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
 			return SR_ERR_NA;
-		if (!model)
-			return SR_ERR_ARG;
 		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new_string((*model->logic_threshold)[state->digital_pods[idx].threshold]);
@@ -249,8 +252,6 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
 			return SR_ERR_NA;
-		if (!model)
-			return SR_ERR_ARG;
 		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
 		/* Check if the oscilloscope is currently in custom threshold mode. */
@@ -290,11 +291,16 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
 
 	if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 		return SR_ERR;
 
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR_ARG;
+
 	state = devc->model_state;
 	update_sample_rate = FALSE;
 
@@ -488,8 +494,6 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
 			return SR_ERR_NA;
-		if (!model)
-			return SR_ERR_ARG;
 		if ((idx = std_str_idx(data, *model->logic_threshold, model->num_logic_threshold)) < 0)
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
@@ -513,8 +517,6 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
 			return SR_ERR_NA;
-		if (!model)
-			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
 		tmp_d = g_variant_get_double(data);
@@ -585,10 +587,15 @@ static int config_list(uint32_t key, GVariant **data,
 
 	if (sdi) {
 		devc = sdi->priv;
+		if (!devc)
+			return SR_ERR_ARG;
+
 		if ((cg_type = check_channel_group(devc, cg)) == CG_INVALID)
 			return SR_ERR;
 
 		model = devc->model_config;
+		if (!model)
+			return SR_ERR_ARG;
 	}
 
 	switch (key) {
@@ -612,50 +619,34 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_COUPLING:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		if (!model)
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
-		if (!model)
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->trigger_sources, model->num_trigger_sources);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (!model)
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
 		break;
 	case SR_CONF_TIMEBASE:
-		if (!model)
-			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
-		if (!model)
-			return SR_ERR_ARG;
 		/* Make sure it is supported by the specific model. */
 		if (!model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
-		if (!model)
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->interpolation_mode, model->num_interpolation_mode);
 		break;
 	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		if (!model)
-			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->vscale, model->num_vscale);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
-		if (!model)
-			return SR_ERR_ARG;
 		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 		break;
 	default:
