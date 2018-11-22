@@ -1007,10 +1007,11 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 			   (*config->scpi_dialect)[SCPI_CMD_GET_COUPLING],
 			   i + 1);
 
-		if (scope_state_get_array_option(scpi, command, config->coupling_options,
-					 config->num_coupling_options,
-					 &state->analog_channels[i].coupling) != SR_OK)
-			return SR_ERR;
+		if (config->coupling_options && config->num_coupling_options)
+			if (scope_state_get_array_option(scpi, command, config->coupling_options,
+						 config->num_coupling_options,
+						 &state->analog_channels[i].coupling) != SR_OK)
+				return SR_ERR;
 
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_PROBE_UNIT],
@@ -1079,46 +1080,48 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     &state->digital_pods[i].state) != SR_OK)
 			goto exit;
 
-		/* Check if the threshold command is based on the POD or digital channel index. */
-		if (config->logic_threshold_for_pod)
-			idx = i + 1;
-		else
-			idx = i * DIGITAL_CHANNELS_PER_POD;
+		if (config->logic_threshold && config->num_logic_threshold) {
+			/* Check if the threshold command is based on the POD or digital channel index. */
+			if (config->logic_threshold_for_pod)
+				idx = i + 1;
+			else
+				idx = i * DIGITAL_CHANNELS_PER_POD;
 
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
-			   idx);
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
+				   idx);
 
-		/* Check for both standard and shortened responses. */
-		if (scope_state_get_array_option(scpi, command, config->logic_threshold,
-						 config->num_logic_threshold,
-						 &state->digital_pods[i].threshold) != SR_OK)
-			if (scope_state_get_array_option(scpi, command, (const char * (*)[]) &logic_threshold_short,
+			/* Check for both standard and shortened responses. */
+			if (scope_state_get_array_option(scpi, command, config->logic_threshold,
 							 config->num_logic_threshold,
 							 &state->digital_pods[i].threshold) != SR_OK)
-				goto exit;
+				if (scope_state_get_array_option(scpi, command, (const char * (*)[]) &logic_threshold_short,
+								 config->num_logic_threshold,
+								 &state->digital_pods[i].threshold) != SR_OK)
+					goto exit;
 
-		/* If used-defined or custom threshold is active, get the level. */
-		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
-			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-				   idx, 1); /* USER1 logic threshold setting. */
-		else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
-			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-				   idx, 2); /* USER2 for custom logic_threshold setting. */
-		else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-			 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
-			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-				   idx); /* USER or MAN for custom logic_threshold setting. */
-		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-		    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-		    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
-			if (sr_scpi_get_float(scpi, command,
-			    &state->digital_pods[i].user_threshold) != SR_OK)
-				goto exit;
+			/* If used-defined or custom threshold is active, get the level. */
+			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+				g_snprintf(command, sizeof(command),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+					   idx, 1); /* USER1 logic threshold setting. */
+			else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+				g_snprintf(command, sizeof(command),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+					   idx, 2); /* USER2 for custom logic_threshold setting. */
+			else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+				 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+				g_snprintf(command, sizeof(command),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+					   idx); /* USER or MAN for custom logic_threshold setting. */
+			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+				if (sr_scpi_get_float(scpi, command,
+				    &state->digital_pods[i].user_threshold) != SR_OK)
+					goto exit;
+		}
 	}
 
 	result = SR_OK;
@@ -1195,7 +1198,7 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 	/* Not all models allow setting the mode for waveform acquisition
 	 * rate and sample rate configuration.
 	 */
-	if (config->num_waveform_sample_rate) {
+	if (config->waveform_sample_rate && config->num_waveform_sample_rate) {
 		if (scope_state_get_array_option(sdi->conn,
 						 (*config->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE],
 						 config->waveform_sample_rate, config->num_waveform_sample_rate,
@@ -1203,33 +1206,38 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 			return SR_ERR;
 	}
 
-	if (scope_state_get_array_option(sdi->conn,
-					 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
-					 config->interpolation_mode, config->num_interpolation_mode,
-					 &state->interpolation_mode) != SR_OK)
-		return SR_ERR;
+	if (config->interpolation_mode && config->num_interpolation_mode)
+		if (scope_state_get_array_option(sdi->conn,
+						 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
+						 config->interpolation_mode, config->num_interpolation_mode,
+						 &state->interpolation_mode) != SR_OK)
+			return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn,
-			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
-			&tmp_float) != SR_OK)
-		return SR_ERR;
-	state->horiz_triggerpos = tmp_float /
-		(((double) (*config->timebases)[state->timebase][0] /
-		  (*config->timebases)[state->timebase][1]) * config->num_xdivs);
-	state->horiz_triggerpos -= 0.5;
-	state->horiz_triggerpos *= -1;
+	if (config->timebases && config->num_timebases) {
+		if (sr_scpi_get_float(sdi->conn,
+				(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
+				&tmp_float) != SR_OK)
+			return SR_ERR;
+		state->horiz_triggerpos = tmp_float /
+			(((double) (*config->timebases)[state->timebase][0] /
+			  (*config->timebases)[state->timebase][1]) * config->num_xdivs);
+		state->horiz_triggerpos -= 0.5;
+		state->horiz_triggerpos *= -1;
+	}
 
-	if (scope_state_get_array_option(sdi->conn,
-			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
-			config->trigger_sources, config->num_trigger_sources,
-			&state->trigger_source) != SR_OK)
-		return SR_ERR;
+	if (config->trigger_sources && config->num_trigger_sources)
+		if (scope_state_get_array_option(sdi->conn,
+				(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
+				config->trigger_sources, config->num_trigger_sources,
+				&state->trigger_source) != SR_OK)
+			return SR_ERR;
 
-	if (scope_state_get_array_option(sdi->conn,
-			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
-			config->trigger_slopes, config->num_trigger_slopes,
-			&state->trigger_slope) != SR_OK)
-		return SR_ERR;
+	if (config->trigger_slopes && config->num_trigger_slopes)
+		if (scope_state_get_array_option(sdi->conn,
+				(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
+				config->trigger_slopes, config->num_trigger_slopes,
+				&state->trigger_slope) != SR_OK)
+			return SR_ERR;
 
 	if (sr_scpi_get_string(sdi->conn,
 			       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],

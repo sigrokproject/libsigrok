@@ -176,6 +176,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_int32(model->num_xdivs);
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!model->timebases || !model->num_timebases)
+			return SR_ERR_NA;
 		*data = g_variant_new("(tt)", (*model->timebases)[state->timebase][0],
 				      (*model->timebases)[state->timebase][1]);
 		break;
@@ -189,6 +191,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_int32(model->num_ydivs);
 		break;
 	case SR_CONF_VSCALE:
+		if (!model->vscale || !model->num_vscale)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_ANALOG)
@@ -200,9 +204,13 @@ static int config_get(uint32_t key, GVariant **data,
 				      (*model->vscale)[state->analog_channels[idx].vscale][1]);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!model->trigger_sources || !model->num_trigger_sources)
+			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
+		if (!model->trigger_slopes || !model->num_trigger_slopes)
+			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
 		break;
 	case SR_CONF_TRIGGER_PATTERN:
@@ -218,6 +226,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
 	case SR_CONF_COUPLING:
+		if (!model->coupling_options || !model->num_coupling_options)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_ANALOG)
@@ -231,14 +241,18 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		/* Make sure it is supported by the specific model. */
-		if (!model->num_waveform_sample_rate)
+		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->waveform_sample_rate)[state->waveform_sample_rate]);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
+		if (!model->interpolation_mode || !model->num_interpolation_mode)
+			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->interpolation_mode)[state->interpolation_mode]);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
+		if (!model->logic_threshold || !model->num_logic_threshold)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
@@ -248,6 +262,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string((*model->logic_threshold)[state->digital_pods[idx].threshold]);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!model->logic_threshold || !model->num_logic_threshold)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
@@ -314,6 +330,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_VSCALE:
+		if (!model->vscale || !model->num_vscale)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u64_tuple_idx(data, *model->vscale, model->num_vscale)) < 0)
@@ -332,6 +350,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!model->timebases || !model->num_timebases)
+			return SR_ERR_NA;
 		if ((idx = std_u64_tuple_idx(data, *model->timebases, model->num_timebases)) < 0)
 			return SR_ERR_ARG;
 		g_ascii_formatd(float_str, sizeof(float_str), "%E",
@@ -348,7 +368,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		/* Make sure it is supported by the specific model. */
-		if (!model->num_waveform_sample_rate)
+		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->waveform_sample_rate, model->num_waveform_sample_rate)) < 0)
 			return SR_ERR_ARG;
@@ -362,6 +382,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
+		if (!model->interpolation_mode || !model->num_interpolation_mode)
+			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->interpolation_mode, model->num_interpolation_mode)) < 0)
 			return SR_ERR_ARG;
 		g_snprintf(command, sizeof(command),
@@ -377,6 +399,8 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_d = g_variant_get_double(data);
 		if (tmp_d < 0.0 || tmp_d > 1.0)
 			return SR_ERR;
+		if (!model->timebases || !model->num_timebases)
+			return SR_ERR_NA;
 		tmp_d2 = -(tmp_d - 0.5) *
 			((double) (*model->timebases)[state->timebase][0] /
 			(*model->timebases)[state->timebase][1])
@@ -392,6 +416,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!model->trigger_sources || !model->num_trigger_sources)
+			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
 			return SR_ERR_ARG;
 		g_snprintf(command, sizeof(command),
@@ -404,6 +430,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
+		if (!model->trigger_slopes || !model->num_trigger_slopes)
+			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
 			return SR_ERR_ARG;
 		g_snprintf(command, sizeof(command),
@@ -474,6 +502,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
+		if (!model->coupling_options || !model->num_coupling_options)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_str_idx(data, *model->coupling_options, model->num_coupling_options)) < 0)
@@ -490,6 +520,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
+		if (!model->logic_threshold || !model->num_logic_threshold)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
@@ -513,6 +545,8 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!model->logic_threshold || !model->num_logic_threshold)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (cg_type != CG_DIGITAL)
@@ -617,34 +651,48 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_COUPLING:
+		if (!model->coupling_options || !model->num_coupling_options)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!model->trigger_sources || !model->num_trigger_sources)
+			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->trigger_sources, model->num_trigger_sources);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
+		if (!model->trigger_slopes || !model->num_trigger_slopes)
+			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!model->timebases || !model->num_timebases)
+			return SR_ERR_NA;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		/* Make sure it is supported by the specific model. */
-		if (!model->num_waveform_sample_rate)
+		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
+		if (!model->interpolation_mode || !model->num_interpolation_mode)
+			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->interpolation_mode, model->num_interpolation_mode);
 		break;
 	case SR_CONF_VSCALE:
+		if (!model->vscale || !model->num_vscale)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = std_gvar_tuple_array(*model->vscale, model->num_vscale);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
+		if (!model->logic_threshold || !model->num_logic_threshold)
+			return SR_ERR_NA;
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
