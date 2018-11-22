@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,6 +65,8 @@ enum {
 	SCPI_CMD_GET_SAMPLE_RATE,
 	SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE,
 	SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE,
+	SCPI_CMD_GET_INTERPOLATION_MODE,
+	SCPI_CMD_SET_INTERPOLATION_MODE,
 	SCPI_CMD_GET_PROBE_UNIT,
 	SCPI_CMD_GET_DIG_POD_THRESHOLD,
 	SCPI_CMD_SET_DIG_POD_THRESHOLD,

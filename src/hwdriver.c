@@ -77,6 +77,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Sample rate", NULL},
 	{SR_CONF_WAVEFORM_SAMPLE_RATE, SR_T_STRING, "waveform_sample_rate",
 		"Mode for waveform and sample rate", NULL},
+	{SR_CONF_INTERPOLATION_MODE, SR_T_STRING, "interpolation",
+		"Interpolation mode", NULL},
 	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
 		"Pre-trigger capture ratio", NULL},
 	{SR_CONF_PATTERN_MODE, SR_T_STRING, "pattern",

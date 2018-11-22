@@ -762,6 +762,9 @@ enum sr_configkey {
 	/** Mode for setting the waveform acquisition rate and sample rate. */
 	SR_CONF_WAVEFORM_SAMPLE_RATE,
 
+	/** Interpolation mode. */
+	SR_CONF_INTERPOLATION_MODE,
+
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_CONF_CAPTURE_RATIO,
 
