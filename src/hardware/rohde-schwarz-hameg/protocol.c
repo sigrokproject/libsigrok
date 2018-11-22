@@ -40,6 +40,8 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
 	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
+	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
+	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
@@ -84,6 +86,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
 	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
+	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
+	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CHAN%d:DATA?",
 	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
@@ -124,6 +128,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
@@ -160,6 +165,12 @@ static const char *waveform_sample_rate_nosegmem[] = {
 	"AUTO",
 	"MWAV",
 	"MSAM",
+};
+
+static const char *interpolation_mode[] = {
+	"LIN",
+	"SINX",
+	"SMHD",
 };
 
 static const char *coupling_options[] = {
@@ -382,6 +393,9 @@ static struct scope_config scope_models[] = {
 		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
 		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -425,6 +439,9 @@ static struct scope_config scope_models[] = {
 
 		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
 		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
@@ -470,6 +487,9 @@ static struct scope_config scope_models[] = {
 		.waveform_sample_rate = &waveform_sample_rate,
 		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -514,6 +534,9 @@ static struct scope_config scope_models[] = {
 		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
 		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
@@ -556,6 +579,9 @@ static struct scope_config scope_models[] = {
 
 		.waveform_sample_rate = &waveform_sample_rate,
 		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
@@ -600,6 +626,9 @@ static struct scope_config scope_models[] = {
 		/* Waveform acquisition rate / sample rate setting not available. */
 		.num_waveform_sample_rate = 0,
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
@@ -642,6 +671,9 @@ static struct scope_config scope_models[] = {
 
 		/* Waveform acquisition rate / sample rate setting not available. */
 		.num_waveform_sample_rate = 0,
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
@@ -686,6 +718,9 @@ static struct scope_config scope_models[] = {
 		/* Waveform acquisition rate / sample rate setting not available. */
 		.num_waveform_sample_rate = 0,
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
@@ -729,6 +764,9 @@ static struct scope_config scope_models[] = {
 		/* Waveform acquisition rate / sample rate setting not available. */
 		.num_waveform_sample_rate = 0,
 
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
@@ -771,6 +809,9 @@ static struct scope_config scope_models[] = {
 
 		/* Waveform acquisition rate / sample rate setting not available. */
 		.num_waveform_sample_rate = 0,
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
@@ -1161,6 +1202,12 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 						 &state->waveform_sample_rate) != SR_OK)
 			return SR_ERR;
 	}
+
+	if (scope_state_get_array_option(sdi->conn,
+					 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
+					 config->interpolation_mode, config->num_interpolation_mode,
+					 &state->interpolation_mode) != SR_OK)
+		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],

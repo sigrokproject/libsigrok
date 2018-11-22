@@ -230,6 +230,9 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->waveform_sample_rate)[state->waveform_sample_rate]);
 		break;
+	case SR_CONF_INTERPOLATION_MODE:
+		*data = g_variant_new_string((*model->interpolation_mode)[state->interpolation_mode]);
+		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
@@ -350,6 +353,18 @@ static int config_set(uint32_t key, GVariant *data,
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		state->waveform_sample_rate = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_INTERPOLATION_MODE:
+		if ((idx = std_str_idx(data, *model->interpolation_mode, model->num_interpolation_mode)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_INTERPOLATION_MODE],
+			   (*model->interpolation_mode)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->interpolation_mode = idx;
 		ret = SR_OK;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
@@ -623,6 +638,11 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
+		break;
+	case SR_CONF_INTERPOLATION_MODE:
+		if (!model)
+			return SR_ERR_ARG;
+		*data = g_variant_new_strv(*model->interpolation_mode, model->num_interpolation_mode);
 		break;
 	case SR_CONF_VSCALE:
 		if (!cg)

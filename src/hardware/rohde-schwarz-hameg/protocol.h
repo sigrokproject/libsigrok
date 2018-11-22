@@ -58,6 +58,9 @@ struct scope_config {
 	const char *(*waveform_sample_rate)[];
 	const uint8_t num_waveform_sample_rate;
 
+	const char *(*interpolation_mode)[];
+	const uint8_t num_interpolation_mode;
+
 	const char *(*coupling_options)[];
 	const uint8_t num_coupling_options;
 
@@ -109,6 +112,8 @@ struct scope_state {
 
 	uint64_t sample_rate;
 	unsigned int waveform_sample_rate;
+
+	unsigned int interpolation_mode;
 
 	float horiz_triggerpos;
 
