@@ -142,7 +142,7 @@ struct scope_config {
 struct analog_channel_state {
 	unsigned int coupling;
 
-	int vscale;
+	unsigned int vscale;
 	float vertical_offset;
 
 	gboolean state;
