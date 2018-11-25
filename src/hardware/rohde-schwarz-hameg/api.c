@@ -65,6 +65,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		goto fail;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	if (!sdi)
+		goto fail;
+
 	sdi->vendor = g_strdup(hw_info->manufacturer);
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -77,6 +80,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	hw_info = NULL;
 
 	devc = g_malloc0(sizeof(struct dev_context));
+	if (!devc)
+		goto fail;
 
 	sdi->priv = devc;
 
@@ -112,6 +117,9 @@ static int dev_clear(const struct sr_dev_driver *di)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	if (!sdi)
+		return SR_ERR;
+
 	if (sr_scpi_open(sdi->conn) != SR_OK)
 		return SR_ERR;
 
@@ -123,6 +131,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	if (!sdi)
+		return SR_ERR;
+
 	return sr_scpi_close(sdi->conn);
 }
 
@@ -130,6 +141,9 @@ static int check_channel_group(const struct dev_context *devc,
 			     const struct sr_channel_group *cg)
 {
 	const struct scope_config *model;
+
+	if (!devc)
+		return CG_INVALID;
 
 	model = devc->model_config;
 
@@ -766,14 +780,20 @@ static int config_list(uint32_t key, GVariant **data,
 			else
 				*data = std_gvar_array_u32(ARRAY_AND_SIZE(drvopts));
 		} else if (cg_type == CG_ANALOG) {
+			if (!model)
+				return SR_ERR_ARG;
 			*data = std_gvar_array_u32(*model->devopts_cg_analog, model->num_devopts_cg_analog);
 		} else if (cg_type == CG_DIGITAL) {
+			if (!model)
+				return SR_ERR_ARG;
 			*data = std_gvar_array_u32(*model->devopts_cg_digital, model->num_devopts_cg_digital);
 		} else {
 			*data = std_gvar_array_u32(NULL, 0);
 		}
 		break;
 	case SR_CONF_COUPLING:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->coupling_options || !model->num_coupling_options)
 			return SR_ERR_NA;
 		if (!cg)
@@ -781,32 +801,44 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(*model->coupling_options, model->num_coupling_options);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->trigger_sources || !model->num_trigger_sources)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->trigger_sources, model->num_trigger_sources);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->trigger_slopes || !model->num_trigger_slopes)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
 		break;
 	case SR_CONF_TIMEBASE:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->timebases || !model->num_timebases)
 			return SR_ERR_NA;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
+		if (!model)
+			return SR_ERR_ARG;
 		/* Make sure it is supported by the specific model. */
 		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->interpolation_mode, model->num_interpolation_mode);
 		break;
 	case SR_CONF_VSCALE:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->vscale || !model->num_vscale)
 			return SR_ERR_NA;
 		if (!cg)
@@ -814,6 +846,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_array(*model->vscale, model->num_vscale);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->logic_threshold || !model->num_logic_threshold)
 			return SR_ERR_NA;
 		if (!cg)
@@ -821,6 +855,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 		break;
 	case SR_CONF_FFT_WINDOW:
+		if (!model)
+			return SR_ERR_ARG;
 		if (!model->fft_window_types || !model->num_fft_window_types)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->fft_window_types, model->num_fft_window_types);
@@ -840,8 +876,16 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 	const struct dev_context *devc;
 	const struct scope_config *model;
 
+	if (!sdi)
+		return SR_ERR;
+
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR;
+
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR;
 
 	ch = devc->current_channel->data;
 
@@ -957,13 +1001,28 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
 
+	if (!sdi)
+		return SR_ERR;
+
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR;
+
 	scpi = sdi->conn;
+
 	state = devc->model_state;
+	if (!state)
+		return SR_ERR;
+
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR;
+
 	setup_changed = FALSE;
 
 	pod_enabled = g_try_malloc0(sizeof(gboolean) * model->digital_pods);
+	if (!pod_enabled)
+		return SR_ERR_MALLOC;
 
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
@@ -1052,11 +1111,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	char command[MAX_COMMAND_SIZE];
 	char tmp_str[MAX_COMMAND_SIZE];
 
+	if (!sdi)
+		return SR_ERR;
+
 	scpi = sdi->conn;
+
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR;
 
 	state = devc->model_state;
+	if (!state)
+		return SR_ERR;
+
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR;
 
 	devc->num_samples = 0;
 	devc->num_frames = 0;
@@ -1211,11 +1281,23 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	gboolean fft_enabled = FALSE;
 	char command[MAX_COMMAND_SIZE];
 
+	if (!sdi)
+		return SR_ERR;
+
 	std_session_send_df_end(sdi);
 
 	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR;
+
 	model = devc->model_config;
+	if (!model)
+		return SR_ERR;
+
 	state = devc->model_state;
+	if (!state)
+		return SR_ERR;
+
 	scpi = sdi->conn;
 
 	devc->num_samples = 0;
