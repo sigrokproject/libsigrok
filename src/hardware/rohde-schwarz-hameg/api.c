@@ -935,7 +935,7 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 	return sr_scpi_send(sdi->conn, command);
 }
 
-static int rs_check_channels(GSList *channels)
+static int rs_check_channels(const char *model, GSList *channels)
 {
 	GSList *l;
 	struct sr_channel *ch;
@@ -974,17 +974,21 @@ static int rs_check_channels(GSList *channels)
 	}
 
 	/*
-	 * Check for resource conflicts. Some channels can be either
-	 * analog or digital, but never both at the same time.
+	 * Check for resource conflicts. For example, on the HMO series
+	 * with 4 analog channels, POD1 cannot be used together with
+	 * the third analog channel and POD2 cannot be used together with
+	 * the fourth analog channel.
 	 *
-	 * Note that the constraints might depend on the specific model.
-	 * These tests might need some adjustment when support for more
-	 * models gets added to the driver.
+	 * Apparently the above limitation has been removed from the newer
+	 * RT series.
 	 */
-	if (enabled_pod[0] && enabled_chan[2])
-		return SR_ERR;
-	if (enabled_pod[1] && enabled_chan[3])
-		return SR_ERR;
+	if (!strncmp("HMO", model, 3)) {
+		if (enabled_pod[0] && enabled_chan[2])
+			return SR_ERR;
+		if (enabled_pod[1] && enabled_chan[3])
+			return SR_ERR;
+	}
+
 	return SR_OK;
 }
 
@@ -1174,7 +1178,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Check constraints. Some channels can be either analog or
 	 * digital, but not both at the same time.
 	 */
-	if (rs_check_channels(devc->enabled_channels) != SR_OK) {
+	if (rs_check_channels(sdi->model, devc->enabled_channels) != SR_OK) {
 		sr_err("Invalid channel configuration specified!");
 		ret = SR_ERR_NA;
 		goto free_enabled;
