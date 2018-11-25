@@ -25,9 +25,9 @@
 #include "protocol.h"
 
 SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
-				  size_t group, GByteArray *pod_data);
-SR_PRIV void rs_send_logic_packet(struct sr_dev_inst *sdi,
-				   struct dev_context *devc);
+				  const size_t group, const GByteArray *pod_data);
+SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
+				   const struct dev_context *devc);
 SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
 
 static const char *rohde_schwarz_scpi_dialect[] = {
@@ -1007,7 +1007,7 @@ static struct scope_config scope_models[] = {
 };
 
 static void scope_state_dump(const struct scope_config *config,
-			     struct scope_state *state)
+			     const struct scope_state *state)
 {
 	unsigned int i;
 	char *tmp;
@@ -1059,7 +1059,7 @@ static void scope_state_dump(const struct scope_config *config,
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
-		const char *command, const char *(*array)[], unsigned int n, unsigned int *result)
+		const char *command, const char *(*array)[], const unsigned int n, unsigned int *result)
 {
 	char *tmp;
 	int idx;
@@ -1091,7 +1091,7 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
  * @return SR_ERR on any parsing error, SR_OK otherwise.
  */
 static int array_float_get(gchar *value, const uint64_t array[][2],
-		int array_len, unsigned int *result)
+		const int array_len, unsigned int *result)
 {
 	struct sr_rational rval;
 	struct sr_rational aval;
@@ -1111,7 +1111,7 @@ static int array_float_get(gchar *value, const uint64_t array[][2],
 }
 
 static struct sr_channel *get_channel_by_index_and_type(GSList *channel_lhead,
-							int index, int type)
+							const int index, const int type)
 {
 	while (channel_lhead) {
 		struct sr_channel *ch = channel_lhead->data;
@@ -1124,7 +1124,7 @@ static struct sr_channel *get_channel_by_index_and_type(GSList *channel_lhead,
 	return 0;
 }
 
-static int analog_channel_state_get(struct sr_dev_inst *sdi,
+static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 				    const struct scope_config *config,
 				    struct scope_state *state)
 {
@@ -1198,7 +1198,7 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int digital_channel_state_get(struct sr_dev_inst *sdi,
+static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 				     const struct scope_config *config,
 				     struct scope_state *state)
 {
@@ -1303,7 +1303,7 @@ exit:
 
 SR_PRIV int rs_update_sample_rate(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	const struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
 	float tmp_float;
@@ -1322,9 +1322,9 @@ SR_PRIV int rs_update_sample_rate(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
+SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	const struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
 	float tmp_float;
@@ -1661,7 +1661,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 
 /* Queue data of one channel group, for later submission. */
 SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
-				  size_t group, GByteArray *pod_data)
+				  const size_t group, const GByteArray *pod_data)
 {
 	size_t size;
 	GByteArray *store;
@@ -1713,8 +1713,8 @@ SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 }
 
 /* Submit data for all channels, after the individual groups got collected. */
-SR_PRIV void rs_send_logic_packet(struct sr_dev_inst *sdi,
-				   struct dev_context *devc)
+SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
+				   const struct dev_context *devc)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
@@ -1751,7 +1751,7 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct scope_state *state;
+	const struct scope_state *state;
 	struct sr_datafeed_packet packet;
 	GByteArray *data;
 	struct sr_datafeed_analog analog;
