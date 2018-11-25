@@ -871,9 +871,10 @@ static int config_list(uint32_t key, GVariant **data,
 SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 {
 	char command[MAX_COMMAND_SIZE];
-	char fftexpr[MAX_COMMAND_SIZE];
+	char tmp_str[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	const struct dev_context *devc;
+	const struct scope_state *state;
 	const struct scope_config *model;
 
 	if (!sdi)
@@ -881,6 +882,10 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	if (!devc)
+		return SR_ERR;
+
+	state = devc->model_state;
+	if (!state)
 		return SR_ERR;
 
 	model = devc->model_config;
@@ -907,14 +912,26 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 		break;
 	case SR_CHANNEL_FFT:
 		/* Math Expression is restored on dev_acquisition_stop(). */
-		g_snprintf(fftexpr, sizeof(fftexpr),
+		g_snprintf(tmp_str, sizeof(tmp_str),
 			   "%s(%s)", FFT_MATH_EXPRESSION, (*model->analog_names)[ch->index]);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
-			   MATH_WAVEFORM_INDEX, fftexpr);
+			   MATH_WAVEFORM_INDEX, tmp_str);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+		    sr_scpi_get_opc(sdi->conn) != SR_OK) {
+			sr_err("Failed to enable the FFT mode!");
 			return SR_ERR;
+		}
+		/* Set the FFT sample rate. */
+		g_ascii_formatd(tmp_str, sizeof(tmp_str), "%E", state->fft_sample_rate);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE],
+			   MATH_WAVEFORM_INDEX, tmp_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK) {
+			sr_err("Failed to set the FFT sample rate!");
+			return SR_ERR;
+		}
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_FFT_DATA],
 			   MATH_WAVEFORM_INDEX,
@@ -1111,9 +1128,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
 	gboolean fft_enabled = FALSE;
-	float fft_sample_rate, fft_minimum_sample_rate;
+	float fft_minimum_sample_rate;
 	char command[MAX_COMMAND_SIZE];
-	char tmp_str[MAX_COMMAND_SIZE];
 
 	if (!sdi)
 		return SR_ERR;
@@ -1219,40 +1235,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 		}
 
-		/* Enable the FFT mode (source channel does not matter here). */
-		g_snprintf(tmp_str, sizeof(tmp_str),
-			   "%s(%s)", FFT_MATH_EXPRESSION, (*model->analog_names)[0]);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
-			   MATH_WAVEFORM_INDEX, tmp_str);
-		if (sr_scpi_send(scpi, command) != SR_OK ||
-		    sr_scpi_get_opc(scpi) != SR_OK) {
-			sr_err("Failed to enable the FFT mode!");
-			ret = SR_ERR;
-			goto free_enabled;
-		}
-
 		/*
 		 * Set the FFT sample rate equal to either the maximum oscilloscope
 		 * sample rate or the minimum value required by the selected FFT
 		 * frequency span.
 		 */
 #ifdef FFT_SET_MAX_SAMPLING_RATE
-		fft_sample_rate = state->sample_rate < fft_minimum_sample_rate ?
+		state->fft_sample_rate = state->sample_rate < fft_minimum_sample_rate ?
 					fft_minimum_sample_rate : state->sample_rate;
 #else
-		fft_sample_rate = fft_minimum_sample_rate;
+		state->fft_sample_rate = fft_minimum_sample_rate;
 #endif
-		g_ascii_formatd(tmp_str, sizeof(tmp_str), "%E", fft_sample_rate);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE],
-			   MATH_WAVEFORM_INDEX, tmp_str);
-		if (sr_scpi_send(scpi, command) != SR_OK ||
-		    sr_scpi_get_opc(scpi) != SR_OK) {
-			sr_err("Failed to set the FFT sample rate!");
-			ret = SR_ERR;
-			goto free_enabled;
-		}
 	}
 
 	/*
