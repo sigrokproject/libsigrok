@@ -177,6 +177,7 @@ struct scope_state {
 	gboolean high_resolution;
 	gboolean peak_detection;
 
+	float fft_sample_rate;
 	unsigned int fft_window_type;
 	float fft_freq_start;
 	float fft_freq_stop;
