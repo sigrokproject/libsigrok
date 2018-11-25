@@ -591,6 +591,8 @@ enum sr_channeltype {
 	SR_CHANNEL_LOGIC = 10000,
 	/** Channel type is analog channel. */
 	SR_CHANNEL_ANALOG,
+	/** Special channel type for Fast Fourier Transform (FFT). */
+	SR_CHANNEL_FFT,
 };
 
 /** Information on single channel. */
@@ -1018,6 +1020,32 @@ enum sr_configkey {
 	SR_CONF_EXTERNAL_CLOCK_SOURCE,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Fast Fourier Transform (FFT) ----------------------------------*/
+
+	/** FFT window type. */
+	SR_CONF_FFT_WINDOW,
+
+	/** FFT start frequency. */
+	SR_CONF_FFT_FREQUENCY_START,
+
+	/** FFT stop frequency. */
+	SR_CONF_FFT_FREQUENCY_STOP,
+
+	/** FFT frequency span. */
+	SR_CONF_FFT_FREQUENCY_SPAN,
+
+	/** FFT center frequency. */
+	SR_CONF_FFT_FREQUENCY_CENTER,
+
+	/** FFT Resolution Bandwidth. */
+	SR_CONF_FFT_RESOLUTION_BW,
+
+	/** FFT Span / Resolution Bandwidth coupling. */
+	SR_CONF_FFT_SPAN_RBW_COUPLING,
+
+	/** FFT Span / Resolution Bandwidth ratio. */
+	SR_CONF_FFT_SPAN_RBW_RATIO,
 
 	/*--- Special stuff -------------------------------------------------*/
 
