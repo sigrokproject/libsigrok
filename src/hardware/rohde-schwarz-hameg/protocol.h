@@ -37,6 +37,56 @@
 #define MAX_DIGITAL_CHANNEL_COUNT	16
 #define MAX_DIGITAL_GROUP_COUNT		2
 
+/*
+ * Set the FFT sample rate at its maximum value when
+ * performing the Fast Fourier Transform (FFT).
+ *
+ * When this feature is disabled, the FFT sample rate is
+ * set adaptively according to the selected FFT frequency
+ * span.
+ *
+ * Comment out the #define statement to disable this feature.
+ */
+#define FFT_SET_MAX_SAMPLING_RATE
+
+/*
+ * Digital Down Converter (DDC) low-pass filter factor.
+ * This is used for minimum FFT sample rate calculation.
+ *
+ * Official value is not known. At the moment the
+ * recommended empirical value is 1.5.
+ */
+#define FFT_DDC_LP_FILTER_FACTOR	1.5
+
+/*
+ * The Math Expression used to calculate the Fast Fourier
+ * Transform (FFT).
+ *
+ * On most oscilloscope models this is "FFTMAG".
+ */
+#define FFT_MATH_EXPRESSION		"FFTMAG"
+
+/*
+ * The Math Waveform to use for Fast Fourier Transform (FFT).
+ *
+ * Most oscilloscope models support five (5) Math Waveforms,
+ * therefore using an index greater than five (5) here might
+ * break the support for most models !
+ *
+ * An index greater than one (1) is normally used by default
+ * to avoid overwriting user-defined Math Expressions.
+ */
+#define MATH_WAVEFORM_INDEX		5
+
+/*
+ * Maximum Sample Rate option array index (for all models).
+ *
+ * IMPORTANT: Always place the Maximum Sample Rate option
+ *            (usually named "MSAM") at the following array
+ *            index (see protocol.c) !
+ */
+#define MAXIMUM_SAMPLE_RATE_INDEX	2
+
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	const uint8_t analog_channels;
@@ -73,6 +123,9 @@ struct scope_config {
 
 	const char *(*trigger_slopes)[];
 	const uint8_t num_trigger_slopes;
+
+	const char *(*fft_window_types)[];
+	const uint8_t num_fft_window_types;
 
 	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
@@ -123,6 +176,17 @@ struct scope_state {
 
 	gboolean high_resolution;
 	gboolean peak_detection;
+
+	unsigned int fft_window_type;
+	float fft_freq_start;
+	float fft_freq_stop;
+	float fft_freq_span;
+	float fft_freq_center;
+	float fft_rbw;
+	gboolean fft_span_rbw_coupling;
+	unsigned int fft_span_rbw_ratio;
+	char restore_math_expr[MAX_COMMAND_SIZE];
+	unsigned int restore_waveform_sample_rate;
 };
 
 struct dev_context {

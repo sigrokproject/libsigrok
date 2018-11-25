@@ -284,6 +284,32 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
 		break;
+	case SR_CONF_FFT_WINDOW:
+		if (!model->fft_window_types || !model->num_fft_window_types)
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->fft_window_types)[state->fft_window_type]);
+		break;
+	case SR_CONF_FFT_FREQUENCY_START:
+		*data = g_variant_new_double(state->fft_freq_start);
+		break;
+	case SR_CONF_FFT_FREQUENCY_STOP:
+		*data = g_variant_new_double(state->fft_freq_stop);
+		break;
+	case SR_CONF_FFT_FREQUENCY_SPAN:
+		*data = g_variant_new_double(state->fft_freq_span);
+		break;
+	case SR_CONF_FFT_FREQUENCY_CENTER:
+		*data = g_variant_new_double(state->fft_freq_center);
+		break;
+	case SR_CONF_FFT_RESOLUTION_BW:
+		*data = g_variant_new_double(state->fft_rbw);
+		break;
+	case SR_CONF_FFT_SPAN_RBW_COUPLING:
+		*data = g_variant_new_boolean(state->fft_span_rbw_coupling);
+		break;
+	case SR_CONF_FFT_SPAN_RBW_RATIO:
+		*data = g_variant_new_uint64(state->fft_span_rbw_ratio);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -295,6 +321,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx, i, j;
+	unsigned int tmp_uint;
 	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
 	char float_str[30], *tmp_str;
 	struct dev_context *devc;
@@ -601,6 +628,102 @@ static int config_set(uint32_t key, GVariant *data,
 		state->digital_pods[j].user_threshold = tmp_d;
 		ret = SR_OK;
 		break;
+	case SR_CONF_FFT_WINDOW:
+		if (!model->fft_window_types || !model->num_fft_window_types)
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->fft_window_types, model->num_fft_window_types)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_WINDOW_TYPE],
+			   MATH_WAVEFORM_INDEX, (*model->fft_window_types)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_window_type = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_FREQUENCY_START:
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_FREQUENCY_START],
+			   MATH_WAVEFORM_INDEX, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_freq_start = tmp_d;
+		ret = SR_OK;
+		break;  
+	case SR_CONF_FFT_FREQUENCY_STOP:
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_FREQUENCY_STOP],
+			   MATH_WAVEFORM_INDEX, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_freq_stop = tmp_d;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_FREQUENCY_SPAN:
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_FREQUENCY_SPAN],
+			   MATH_WAVEFORM_INDEX, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_freq_span = tmp_d;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_FREQUENCY_CENTER:
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_FREQUENCY_CENTER],
+			   MATH_WAVEFORM_INDEX, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_freq_center = tmp_d;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_RESOLUTION_BW:
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_RESOLUTION_BW],
+			   MATH_WAVEFORM_INDEX, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_rbw = tmp_d;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_SPAN_RBW_COUPLING:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING],
+			   MATH_WAVEFORM_INDEX, tmp_bool ? "ON" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_span_rbw_coupling = tmp_bool;
+		ret = SR_OK;
+		break;
+	case SR_CONF_FFT_SPAN_RBW_RATIO:
+		tmp_uint = g_variant_get_uint64(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO],
+			   MATH_WAVEFORM_INDEX, tmp_uint);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->fft_span_rbw_ratio = tmp_uint;
+		ret = SR_OK;
+		break;
 	default:
 		ret = SR_ERR_NA;
 		break;
@@ -697,6 +820,11 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 		break;
+	case SR_CONF_FFT_WINDOW:
+		if (!model->fft_window_types || !model->num_fft_window_types)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->fft_window_types, model->num_fft_window_types);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -707,6 +835,7 @@ static int config_list(uint32_t key, GVariant **data,
 SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 {
 	char command[MAX_COMMAND_SIZE];
+	char fftexpr[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	const struct scope_config *model;
@@ -731,6 +860,28 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
 			   ch->index / DIGITAL_CHANNELS_PER_POD + 1);
+		break;
+	case SR_CHANNEL_FFT:
+		/* Math Expression is restored on dev_acquisition_stop(). */
+		g_snprintf(fftexpr, sizeof(fftexpr),
+			   "%s(%s)", FFT_MATH_EXPRESSION, (*model->analog_names)[ch->index]);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
+			   MATH_WAVEFORM_INDEX, fftexpr);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_FFT_DATA],
+			   MATH_WAVEFORM_INDEX,
+			   MATH_WAVEFORM_INDEX,
+			   MATH_WAVEFORM_INDEX,
+#ifdef WORDS_BIGENDIAN
+			   "MSBF",
+#else
+			   "LSBF",
+#endif
+			   MATH_WAVEFORM_INDEX);
 		break;
 	default:
 		sr_err("Invalid channel type.");
@@ -770,6 +921,8 @@ static int rs_check_channels(GSList *channels)
 			idx = ch->index / DIGITAL_CHANNELS_PER_POD;
 			if (idx < ARRAY_SIZE(enabled_pod))
 				enabled_pod[idx] = TRUE;
+			break;
+		case SR_CHANNEL_FFT:
 			break;
 		default:
 			return SR_ERR;
@@ -851,6 +1004,8 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 			state->digital_channels[ch->index] = ch->enabled;
 			setup_changed = TRUE;
 			break;
+		case SR_CHANNEL_FFT:
+			break;
 		default:
 			g_free(pod_enabled);
 			return SR_ERR;
@@ -888,14 +1043,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	size_t group, pod_count;
 	struct sr_channel *ch;
 	struct dev_context *devc;
+	struct scope_state *state;
+	const struct scope_config *model;
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
+	gboolean fft_enabled = FALSE;
+	float fft_sample_rate, fft_minimum_sample_rate;
+	char command[MAX_COMMAND_SIZE];
+	char tmp_str[MAX_COMMAND_SIZE];
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	state = devc->model_state;
+	model = devc->model_config;
+
 	devc->num_samples = 0;
 	devc->num_frames = 0;
+
+	/* Save the current waveform acquisition / sample rate setting. */
+	state->restore_waveform_sample_rate = state->waveform_sample_rate;
 
 	/* Preset empty results. */
 	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
@@ -923,6 +1090,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 					pod_count = group + 1;
 			}
 		}
+		/* Check if the FFT has been requested. */
+		if (ch->type == SR_CHANNEL_FFT) {
+			fft_enabled = TRUE;
+		}
 	}
 	if (!devc->enabled_channels)
 		return SR_ERR;
@@ -949,6 +1120,67 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		goto free_enabled;
 	}
 
+	/* If the FFT has been requested, properly configure the oscilloscope
+	 * and FFT sample rate. */
+	if (fft_enabled) {
+		fft_minimum_sample_rate = FFT_DDC_LP_FILTER_FACTOR * state->fft_freq_span;
+		/* Set the maximum analog channel sample rate. */
+		if (model->waveform_sample_rate && model->num_waveform_sample_rate) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
+				   (*model->waveform_sample_rate)[MAXIMUM_SAMPLE_RATE_INDEX]);
+			if (sr_scpi_send(scpi, command) != SR_OK ||
+			    sr_scpi_get_opc(scpi) != SR_OK) {
+				sr_err("Failed to set the Maximum Sample Rate!");
+				if (state->sample_rate < fft_minimum_sample_rate) {
+					sr_warn("The sample rate might be too small for the selected FFT frequency span!");
+					sr_warn("Try manually setting the Maximum Sample Rate for reliable results...");
+				}
+			} else {
+				if (rs_update_sample_rate(sdi) != SR_OK) {
+					sr_err("Failed to get the sample rate!");
+					ret = SR_ERR;
+					goto free_enabled;
+				}
+			}
+		}
+
+		/* Enable the FFT mode (source channel does not matter here). */
+		g_snprintf(tmp_str, sizeof(tmp_str),
+			   "%s(%s)", FFT_MATH_EXPRESSION, (*model->analog_names)[0]);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
+			   MATH_WAVEFORM_INDEX, tmp_str);
+		if (sr_scpi_send(scpi, command) != SR_OK ||
+		    sr_scpi_get_opc(scpi) != SR_OK) {
+			sr_err("Failed to enable the FFT mode!");
+			ret = SR_ERR;
+			goto free_enabled;
+		}
+
+		/*
+		 * Set the FFT sample rate equal to either the maximum oscilloscope
+		 * sample rate or the minimum value required by the selected FFT
+		 * frequency span.
+		 */
+#ifdef FFT_SET_MAX_SAMPLING_RATE
+		fft_sample_rate = state->sample_rate < fft_minimum_sample_rate ?
+					fft_minimum_sample_rate : state->sample_rate;
+#else
+		fft_sample_rate = fft_minimum_sample_rate;
+#endif
+		g_ascii_formatd(tmp_str, sizeof(tmp_str), "%E", fft_sample_rate);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE],
+			   MATH_WAVEFORM_INDEX, tmp_str);
+		if (sr_scpi_send(scpi, command) != SR_OK ||
+		    sr_scpi_get_opc(scpi) != SR_OK) {
+			sr_err("Failed to set the FFT sample rate!");
+			ret = SR_ERR;
+			goto free_enabled;
+		}
+	}
+
 	/*
 	 * Start acquisition on the first enabled channel. The
 	 * receive routine will continue driving the acquisition.
@@ -971,17 +1203,49 @@ free_enabled:
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	const struct scope_config *model;
+	const struct scope_state *state;
 	struct sr_scpi_dev_inst *scpi;
+	GSList *l;
+	struct sr_channel *ch;
+	gboolean fft_enabled = FALSE;
+	char command[MAX_COMMAND_SIZE];
 
 	std_session_send_df_end(sdi);
 
 	devc = sdi->priv;
+	model = devc->model_config;
+	state = devc->model_state;
+	scpi = sdi->conn;
 
 	devc->num_samples = 0;
 	devc->num_frames = 0;
+
+	for (l = devc->enabled_channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_FFT) {
+			fft_enabled = TRUE;
+			break;
+		}
+	}
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
-	scpi = sdi->conn;
+
+	/*
+	 * Restore waveform acquisition rate / sample rate setting and
+	 * Math Expression after performing the FFT.
+	 */
+	if (fft_enabled) {
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
+			   MATH_WAVEFORM_INDEX, state->restore_math_expr);
+		sr_scpi_send(scpi, command);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
+			   (*model->waveform_sample_rate)[state->restore_waveform_sample_rate]);
+		sr_scpi_send(scpi, command);
+	}
+
 	sr_scpi_source_remove(sdi->session, scpi);
 
 	return SR_OK;

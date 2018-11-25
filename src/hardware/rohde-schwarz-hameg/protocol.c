@@ -74,6 +74,31 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":POD%d:THR %s",
 	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d?",
 	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d %s",
+	[SCPI_CMD_GET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR?",
+	[SCPI_CMD_SET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR:DEF \"%s\"",
+	[SCPI_CMD_GET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT?",
+	[SCPI_CMD_SET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT %s",
+	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE?",
+	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR %s",
+	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
+	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
+	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
+					        ":CALC:MATH%d:FFT:MAGN:SCAL DBM;" \
+					        ":CALC:MATH%d:SCAL 20;" \
+					        ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
 static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
@@ -120,6 +145,31 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH %s",
 	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR?",
 	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR %s",
+	[SCPI_CMD_GET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR?",
+	[SCPI_CMD_SET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR:DEF \"%s\"",
+	[SCPI_CMD_GET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT?",
+	[SCPI_CMD_SET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT %s",
+	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE?",
+	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR %s",
+	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
+	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
+	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
+					        ":CALC:MATH%d:FFT:MAGN:SCAL DBM;" \
+					        ":CALC:MATH%d:SCAL 20;" \
+					        ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
 static const uint32_t devopts[] = {
@@ -137,6 +187,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PEAK_DETECTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_WINDOW | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_FFT_FREQUENCY_START | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_STOP | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_SPAN | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_CENTER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_RESOLUTION_BW | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_SPAN_RBW_COUPLING | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_SPAN_RBW_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
@@ -149,6 +207,15 @@ static const uint32_t devopts_cg_digital[] = {
 	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
 };
+
+/*
+ * Waveform acquisition rate / sample rate option arrays for
+ * different oscilloscope models.
+ *
+ * IMPORTANT: Always place the Maximum Sample Rate option
+ *            (usually named "MSAM") at index position
+ *            MAXIMUM_SAMPLE_RATE_INDEX (see protocol.h) !
+ */
 
 /* Segmented memory option available (manual setting). */
 static const char *waveform_sample_rate[] = {
@@ -214,6 +281,23 @@ static const char *logic_threshold_rtb200x_rtm300x[] = {
 	"ECL",
 	"CMOS",
 	"MAN", // overwritten by logic_threshold_custom
+};
+
+/* FFT window types available on the HMO series */
+static const char *fft_window_types_hmo[] = {
+	"RECT",
+	"HAMM",
+	"HANN",
+	"BLAC",
+};
+
+/* FFT window types available on the RT series */
+static const char *fft_window_types_rt[] = {
+	"RECT",
+	"HAMM",
+	"HANN",
+	"BLAC",
+	"FLAT",
 };
 
 /* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
@@ -409,6 +493,9 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		.fft_window_types = &fft_window_types_hmo,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
+
 		.timebases = &timebases_hmo_compact,
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
@@ -420,8 +507,8 @@ static struct scope_config scope_models[] = {
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
-		/* RTC1002 and HMO1002/HMO1202 support only 8 digital channels. */
-		.name = {"RTC1002", "HMO1002", "HMO1202", NULL},
+		/* HMO1002/HMO1202 support only 8 digital channels. */
+		.name = {"HMO1002", "HMO1202", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
 
@@ -455,6 +542,59 @@ static struct scope_config scope_models[] = {
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.fft_window_types = &fft_window_types_hmo,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
+	},
+	{
+		/* RTC1002 supports only 8 digital channels. */
+		.name = {"RTC1002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 8,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate_nosegmem,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate_nosegmem),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an2_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -503,6 +643,10 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		/* FlatTop window available, but not listed in User Manual version 04. */
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
@@ -550,6 +694,9 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		.fft_window_types = &fft_window_types_hmo,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
+
 		.timebases = &timebases_hmo_compact,
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
@@ -595,6 +742,9 @@ static struct scope_config scope_models[] = {
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.fft_window_types = &fft_window_types_hmo,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -642,6 +792,10 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		/* FFT support status unclear as of User Manual version 06. */
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
@@ -687,6 +841,10 @@ static struct scope_config scope_models[] = {
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		/* FFT support status unclear as of User Manual version 06. */
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -734,6 +892,9 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
@@ -780,6 +941,9 @@ static struct scope_config scope_models[] = {
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
 
@@ -825,6 +989,10 @@ static struct scope_config scope_models[] = {
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		/* FFT support status unclear as of User Manual version 03. */
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
 		.timebases = &timebases,
 		.num_timebases = ARRAY_SIZE(timebases),
@@ -1162,6 +1330,7 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 	float tmp_float;
 	unsigned int i;
 	char *tmp_str;
+	char command[MAX_COMMAND_SIZE];
 
 	devc = sdi->priv;
 	config = devc->model_config;
@@ -1268,6 +1437,96 @@ SR_PRIV int rs_scope_state_get(struct sr_dev_inst *sdi)
 		state->peak_detection = TRUE;
 	g_free(tmp_str);
 
+	/* Save existing Math Expression. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
+		return SR_ERR;
+
+	strncpy(state->restore_math_expr,
+		sr_scpi_unquote_string(tmp_str),
+		MAX_COMMAND_SIZE);
+	g_free(tmp_str);
+
+	/* Determine the FFT window type. */
+	if (config->fft_window_types && config->num_fft_window_types) {
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_WINDOW_TYPE],
+			   MATH_WAVEFORM_INDEX);
+
+		if (scope_state_get_array_option(sdi->conn, command,
+						 config->fft_window_types, config->num_fft_window_types,
+						 &state->fft_window_type) != SR_OK)
+			return SR_ERR;
+	}
+
+	/* Determine the FFT start frequency. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_FREQUENCY_START],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &state->fft_freq_start) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT stop frequency. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_FREQUENCY_STOP],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &state->fft_freq_stop) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT frequency span. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_FREQUENCY_SPAN],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &state->fft_freq_span) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT center frequency. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_FREQUENCY_CENTER],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &state->fft_freq_center) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT Resolution Bandwidth. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_RESOLUTION_BW],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &state->fft_rbw) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT Resolution Bandwidth / Span coupling. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_bool(sdi->conn, command,
+			     &state->fft_span_rbw_coupling) != SR_OK)
+		return SR_ERR;
+
+	/* Determine the FFT Resolution Bandwidth / Span ratio. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_float(sdi->conn, command,
+			      &tmp_float) != SR_OK)
+		return SR_ERR;
+
+	state->fft_span_rbw_ratio = tmp_float;
+
 	if (rs_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
@@ -1307,6 +1566,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	unsigned int i, j, group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
+	char *tmp_str;
 	int ret;
 
 	devc = sdi->priv;
@@ -1380,6 +1640,13 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		group = i / DIGITAL_CHANNELS_PER_POD;
 		devc->digital_groups[group]->channels = g_slist_append(
 			devc->digital_groups[group]->channels, ch);
+	}
+
+	/* Add special channels for the Fast Fourier Transform (FFT). */
+	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
+		tmp_str = g_strdup_printf("FFT_CH%d", i + 1);
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_FFT, TRUE, tmp_str);
+		g_free(tmp_str);
 	}
 
 	devc->model_config = &scope_models[model_index];
@@ -1529,6 +1796,7 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 	 */
 	switch (ch->type) {
 	case SR_CHANNEL_ANALOG:
+	case SR_CHANNEL_FFT:
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
 				g_byte_array_free(data, TRUE);
@@ -1561,12 +1829,17 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 		encoding.scale.q = 1;
 		encoding.offset.p = 0;
 		encoding.offset.q = 1;
-		if (state->analog_channels[ch->index].probe_unit == 'V') {
-			meaning.mq = SR_MQ_VOLTAGE;
-			meaning.unit = SR_UNIT_VOLT;
-		} else {
-			meaning.mq = SR_MQ_CURRENT;
-			meaning.unit = SR_UNIT_AMPERE;
+		if (ch->type == SR_CHANNEL_ANALOG) {
+			if (state->analog_channels[ch->index].probe_unit == 'V') {
+				meaning.mq = SR_MQ_VOLTAGE;
+				meaning.unit = SR_UNIT_VOLT;
+			} else {
+				meaning.mq = SR_MQ_CURRENT;
+				meaning.unit = SR_UNIT_AMPERE;
+			}
+		} else if (ch->type == SR_CHANNEL_FFT) {
+			meaning.mq = SR_MQ_POWER;
+			meaning.unit = SR_UNIT_DECIBEL_MW;
 		}
 		meaning.mqflags = 0;
 		meaning.channels = g_slist_append(NULL, ch);

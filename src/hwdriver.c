@@ -198,6 +198,24 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
 		"External clock source", NULL},
 
+	/* Fast Fourier Transform (FFT) options */
+	{SR_CONF_FFT_WINDOW, SR_T_STRING, "fft_window",
+		"Fast Fourier Transform window type", NULL},
+	{SR_CONF_FFT_FREQUENCY_START, SR_T_FLOAT, "fft_frequency_start",
+		"Fast Fourier Transform start frequency", NULL},
+	{SR_CONF_FFT_FREQUENCY_STOP, SR_T_FLOAT, "fft_frequency_stop",
+		"Fast Fourier Transform stop frequency", NULL},
+	{SR_CONF_FFT_FREQUENCY_SPAN, SR_T_FLOAT, "fft_frequency_span",
+		"Fast Fourier Transform frequency span", NULL},
+	{SR_CONF_FFT_FREQUENCY_CENTER, SR_T_FLOAT, "fft_frequency_center",
+		"Fast Fourier Transform center frequency", NULL},
+	{SR_CONF_FFT_RESOLUTION_BW, SR_T_FLOAT, "fft_resolution_bw",
+		"Fast Fourier Transform Resolution Bandwidth", NULL},
+	{SR_CONF_FFT_SPAN_RBW_COUPLING, SR_T_BOOL, "fft_span_rbw_coupling",
+		"Fast Fourier Transform Span / Resolution Bandwidth coupling", NULL},
+	{SR_CONF_FFT_SPAN_RBW_RATIO, SR_T_UINT64, "fft_span_rbw_ratio",
+		"Fast Fourier Transform Span / Resolution Bandwidth ratio", NULL},
+
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
 		"Session file", NULL},
