@@ -32,14 +32,19 @@
 #define DIGITAL_CHANNELS_PER_POD	8
 
 #define MAX_INSTRUMENT_VERSIONS		10
-#define MAX_COMMAND_SIZE		128
+#define MAX_COMMAND_SIZE		256
 #define MAX_ANALOG_CHANNEL_COUNT	4
 #define MAX_DIGITAL_CHANNEL_COUNT	16
 #define MAX_DIGITAL_GROUP_COUNT		2
+#define MAX_TRIGGER_PATTERN_LENGTH	(MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT)
 
 /*
  * Set the FFT sample rate at its maximum value when
  * performing the Fast Fourier Transform (FFT).
+ *
+ * Only available on models that support a dedicated
+ * option for setting the maximum sample rate (i.e.
+ * not available on the RT series, except the RTO1000).
  *
  * When this feature is disabled, the FFT sample rate is
  * set adaptively according to the selected FFT frequency
@@ -89,7 +94,7 @@
 
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
-	const uint8_t analog_channels;
+	uint8_t analog_channels;
 	const uint8_t digital_channels;
 	uint8_t digital_pods;
 
@@ -172,7 +177,7 @@ struct scope_state {
 
 	unsigned int trigger_source;
 	unsigned int trigger_slope;
-	char trigger_pattern[MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT];
+	char trigger_pattern[MAX_TRIGGER_PATTERN_LENGTH];
 
 	gboolean high_resolution;
 	gboolean peak_detection;

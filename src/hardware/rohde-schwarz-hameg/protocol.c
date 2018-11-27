@@ -172,11 +172,76 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
+static const char *rohde_schwarz_rto200x_scpi_dialect[] = {
+	[SCPI_CMD_GET_DIG_DATA]		      = ":LOG%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_SET_SAMPLE_RATE]	      = ":ACQ:SRAT %s",
+	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
+	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":BUS%d:PAR:STAT?",
+	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":BUS%d:PAR:BIT%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG1:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG1:SOUR %s",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG1:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG1:TYPE EDGE;:TRIG1:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG1:PAR:PATT:BIT%d?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG1:PAR:TYPE PATT;" \
+					        ":TRIG1:PAR:PATT:MODE OFF;" \
+					        ":TRIG1:PAR:PATT:BIT%d %s",
+/* TODO: High Resolution and Peak Detection modes are based on channel and waveform number. */
+	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":BUS%d:PAR:BIT%d:STAT?",
+	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":BUS%d:PAR:BIT%d:STAT %d",
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:HOR:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:HOR:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":BUS%d:PAR:TECH?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":BUS%d:PAR:TECH %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":BUS%d:PAR:THR%d?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":BUS%d:PAR:THR%d %s",
+	[SCPI_CMD_GET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR?",
+	[SCPI_CMD_SET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR:DEF \"%s\"",
+/*	[SCPI_CMD_GET_FFT_SAMPLE_RATE] missing, as of User Manual version 12 ! */
+/*	[SCPI_CMD_SET_FFT_SAMPLE_RATE] missing, as of User Manual version 12 ! */
+	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE?",
+	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR %s",
+	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
+	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
+	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
+					        ":CALC:MATH%d:FFT:MAGN:SCAL DBM;" \
+					        ":CALC:MATH%d:VERT:SCAL 20;" \
+					        ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
+};
+
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
-	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -261,6 +326,13 @@ static const char *coupling_options_rtm300x[] = {
 	"GND",
 };
 
+static const char *coupling_options_rto200x[] = {
+	"AC",  // AC with 1 MOhm termination
+	"DC",  // DC with 50 Ohm termination
+	"DCL", // DC with 1 MOhm termination
+	"GND", // Mentioned in datasheet version 03.00, but not in User Manual version 12 !
+};
+
 static const char *scope_trigger_slopes[] = {
 	"POS",
 	"NEG",
@@ -283,6 +355,19 @@ static const char *logic_threshold_rtb200x_rtm300x[] = {
 	"MAN", // overwritten by logic_threshold_custom
 };
 
+static const char *logic_threshold_rto200x[] = {
+	"V15",  // TTL
+	"V25",  // CMOS 5V
+	"V165", // CMOS 3.3V
+	"V125", // CMOS 2.5V
+	"V09",  // CMOS 1.85V
+	"VM13", // ECL -1.3V
+	"V38",  // PECL
+	"V20",  // LVPECL
+	"V0",   // Ground
+	"MAN",  // overwritten by logic_threshold_custom
+};
+
 /* FFT window types available on the HMO series */
 static const char *fft_window_types_hmo[] = {
 	"RECT",
@@ -291,13 +376,24 @@ static const char *fft_window_types_hmo[] = {
 	"BLAC",
 };
 
-/* FFT window types available on the RT series */
+/* FFT window types available on the RT series, except RTO200x */
 static const char *fft_window_types_rt[] = {
 	"RECT",
 	"HAMM",
 	"HANN",
 	"BLAC",
 	"FLAT",
+};
+
+/* FFT window types available on the RTO200x */
+static const char *fft_window_types_rto200x[] = {
+	"RECT",
+	"HAMM",
+	"HANN",
+	"BLAC",
+	"GAUS",
+	"FLAT",
+	"KAIS",
 };
 
 /* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
@@ -342,6 +438,15 @@ static const char *an4_dig16_trigger_sources[] = {
 static const char *an4_dig16_sbus_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+/* RTO200x */
+static const char *rto200x_trigger_sources[] = {
+	"CHAN1", "CHAN2", "CHAN3", "CHAN4",
+	"MSOB1", "MSOB2", "MSOB3", "MSOB4",
+	"EXT", "LOGI", "SBUS",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
@@ -426,6 +531,60 @@ static const uint64_t timebases_hmo_compact[][2] = {
 	{ 10, 1 },
 	{ 20, 1 },
 	{ 50, 1 },
+};
+
+/* RTO200x: from 25E-12 to 10000 s/div with 1E-12 increments */
+static const uint64_t timebases_rto200x[][2] = {
+	/* picoseconds */
+	{ 25, 1000000000000 },
+	{ 50, 1000000000000 },
+	{ 100, 1000000000000 },
+	{ 200, 1000000000000 },
+	{ 500, 1000000000000 },
+	/* nanoseconds */
+	{ 1, 1000000000 },
+	{ 2, 1000000000 },
+	{ 5, 1000000000 },
+	{ 10, 1000000000 },
+	{ 20, 1000000000 },
+	{ 50, 1000000000 },
+	{ 100, 1000000000 },
+	{ 200, 1000000000 },
+	{ 500, 1000000000 },
+	/* microseconds */
+	{ 1, 1000000 },
+	{ 2, 1000000 },
+	{ 5, 1000000 },
+	{ 10, 1000000 },
+	{ 20, 1000000 },
+	{ 50, 1000000 },
+	{ 100, 1000000 },
+	{ 200, 1000000 },
+	{ 500, 1000000 },
+	/* milliseconds */
+	{ 1, 1000 },
+	{ 2, 1000 },
+	{ 5, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* seconds */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+	{ 100, 1 },
+	{ 200, 1 },
+	{ 500, 1 },
+	{ 1000, 1 },
+	{ 2000, 1 },
+	{ 5000, 1 },
+	{ 10000, 1 },
 };
 
 static const uint64_t vscale[][2] = {
@@ -1004,6 +1163,56 @@ static struct scope_config scope_models[] = {
 
 		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
 	},
+	{
+		/* For RTO200x, number of analog channels is specified in the serial number, not in the name. */
+		.name = {"RTO", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		/* Waveform acquisition rate / sample rate setting not available. */
+		.num_waveform_sample_rate = 0,
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options_rto200x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rto200x),
+
+		.logic_threshold = &logic_threshold_rto200x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rto200x),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &rto200x_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(rto200x_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.fft_window_types = &fft_window_types_rto200x,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rto200x),
+
+		.timebases = &timebases_rto200x,
+		.num_timebases = ARRAY_SIZE(timebases_rto200x),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 10,
+
+		.scpi_dialect = &rohde_schwarz_rto200x_scpi_dialect,
+	},
 };
 
 static void scope_state_dump(const struct scope_config *config,
@@ -1208,11 +1417,17 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	float tmp_float;
 
 	for (i = 0; i < config->digital_channels; i++) {
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
-			   i);
+		if (strncmp("RTO", sdi->model, 3))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
+				   i);
+		else
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
+				   (i / DIGITAL_CHANNELS_PER_POD) + 1, i);
 
 		if (sr_scpi_get_bool(scpi, command,
 				     &state->digital_channels[i]) != SR_OK)
@@ -1269,19 +1484,32 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 					goto exit;
 
 			/* If used-defined or custom threshold is active, get the level. */
-			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				g_snprintf(command, sizeof(command),
 					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 					   idx, 1); /* USER1 logic threshold setting. */
-			else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			} else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				g_snprintf(command, sizeof(command),
 					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 					   idx, 2); /* USER2 for custom logic_threshold setting. */
-			else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-				 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
-				g_snprintf(command, sizeof(command),
-					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
-					   idx); /* USER or MAN for custom logic_threshold setting. */
+			} else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+				 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+				if (strncmp("RTO", sdi->model, 3)) {
+					g_snprintf(command, sizeof(command),
+						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+						   idx); /* USER or MAN for custom logic_threshold setting. */
+				} else { /* The RTO200x divides each POD in two channel groups. */
+					g_snprintf(command, sizeof(command),
+						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+						   idx, idx * 2); /* MAN setting on the second channel group. */
+					if (sr_scpi_get_float(scpi, command,
+					    &tmp_float) != SR_OK)
+						goto exit;
+					g_snprintf(command, sizeof(command),
+						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+						   idx, idx * 2 - 1); /* MAN setting on the first channel group. */
+				}
+			}
 			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
 			    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
 			    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
@@ -1289,6 +1517,18 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 				if (sr_scpi_get_float(scpi, command,
 				    &state->digital_pods[i].user_threshold) != SR_OK)
 					goto exit;
+
+			/* On the RTO200x set the same custom threshold on both channel groups of each POD. */
+			if (!strncmp("RTO", sdi->model, 3)) {
+				if (state->digital_pods[i].user_threshold != tmp_float) {
+					g_snprintf(command, sizeof(command),
+						   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+						   idx, idx * 2, state->digital_pods[i].user_threshold);
+					if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					    sr_scpi_get_opc(sdi->conn) != SR_OK)
+						goto exit;
+				}
+			}
 		}
 	}
 
@@ -1329,7 +1569,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	const struct scope_config *config;
 	float tmp_float;
 	unsigned int i;
-	char *tmp_str;
+	char *tmp_str, *tmp_str2;
 	char command[MAX_COMMAND_SIZE];
 
 	devc = sdi->priv;
@@ -1408,34 +1648,60 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 				&state->trigger_slope) != SR_OK)
 			return SR_ERR;
 
-	if (sr_scpi_get_string(sdi->conn,
-			       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
-			       &tmp_str) != SR_OK)
-		return SR_ERR;
+	if (strncmp("RTO", sdi->model, 3)) {
+		if (sr_scpi_get_string(sdi->conn,
+				       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
+				       &tmp_str) != SR_OK)
+			return SR_ERR;
+	} else { /* RTO200x: A separate command needs to be issued for each bit in the pattern. */
+		tmp_str = g_malloc0_n(MAX_TRIGGER_PATTERN_LENGTH, sizeof(char));
+		if (!tmp_str)
+			return SR_ERR_MALLOC;
+		for (i = 0; i < DIGITAL_CHANNELS_PER_POD * config->digital_pods &&
+		     i < MAX_TRIGGER_PATTERN_LENGTH; i++) {
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
+				   i);
+			if (sr_scpi_get_string(sdi->conn, command, &tmp_str2))
+				return SR_ERR;
+			if (!strcmp("LOW", tmp_str2)) {
+				tmp_str[i] = '0';
+			} else if (!strcmp("HIGH", tmp_str2)) {
+				tmp_str[i] = '1';
+			} else {
+				tmp_str[i] = 'X';
+			}
+			g_free(tmp_str2);
+		}
+	}
 	strncpy(state->trigger_pattern,
 		sr_scpi_unquote_string(tmp_str),
-		MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+		MAX_TRIGGER_PATTERN_LENGTH);
 	g_free(tmp_str);
 
-	if (sr_scpi_get_string(sdi->conn,
-			     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
-			     &tmp_str) != SR_OK)
-		return SR_ERR;
-	if (!strcmp("OFF", tmp_str))
-		state->high_resolution = FALSE;
-	else
-		state->high_resolution = TRUE;
-	g_free(tmp_str);
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION]) {
+		if (sr_scpi_get_string(sdi->conn,
+				     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
+				     &tmp_str) != SR_OK)
+			return SR_ERR;
+		if (!strcmp("OFF", tmp_str))
+			state->high_resolution = FALSE;
+		else
+			state->high_resolution = TRUE;
+		g_free(tmp_str);
+	}
 
-	if (sr_scpi_get_string(sdi->conn,
-			     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
-			     &tmp_str) != SR_OK)
-		return SR_ERR;
-	if (!strcmp("OFF", tmp_str))
-		state->peak_detection = FALSE;
-	else
-		state->peak_detection = TRUE;
-	g_free(tmp_str);
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION]) {
+		if (sr_scpi_get_string(sdi->conn,
+				     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
+				     &tmp_str) != SR_OK)
+			return SR_ERR;
+		if (!strcmp("OFF", tmp_str))
+			state->peak_detection = FALSE;
+		else
+			state->peak_detection = TRUE;
+		g_free(tmp_str);
+	}
 
 	/* Save existing Math Expression. */
 	g_snprintf(command, sizeof(command),
@@ -1604,6 +1870,18 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	if (model_index == -1) {
 		sr_dbg("Unsupported device.");
 		return SR_ERR_NA;
+	}
+
+	/*
+	 * Configure the number of analog channels (2 or 4) from the last
+	 * digit of the serial number on the RTO200x (1329.7002k[0-4][24]).
+	 */
+	if (!strncmp("RTO", sdi->model, 3)) {
+		i = strlen(sdi->serial_num);
+		scope_models[model_index].analog_channels = 2;
+		if (i >= 12)
+			if (sdi->serial_num[11] == '4')
+				scope_models[model_index].analog_channels = 4;
 	}
 
 	/* Configure the number of PODs given the number of digital channels. */
