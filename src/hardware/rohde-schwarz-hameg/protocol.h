@@ -72,6 +72,14 @@
 #define FFT_MATH_EXPRESSION		"FFTMAG"
 
 /*
+ * The Math Expression used to exit from the Fast Fourier
+ * Transform (FFT) mode.
+ *
+ * On most oscilloscope models the safest choice is "INV(CH1)".
+ */
+#define FFT_EXIT_MATH_EXPRESSION	"INV(CH1)"
+
+/*
  * The Math Waveform to use for Fast Fourier Transform (FFT).
  *
  * Most oscilloscope models support five (5) Math Waveforms,
