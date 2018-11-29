@@ -36,6 +36,9 @@ SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
  *
  * It doesn't support directly setting the sample rate, although
  * it supports setting the maximum sample rate.
+ *
+ * It supports setting a logic threshold for Logic (Pattern)
+ * Trigger on digitized analog channels (custom level).
  */
 static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
@@ -77,6 +80,8 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
 	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR?",
+	[SCPI_CMD_SET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR %s",
 	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":POD%d:THR?",
 	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":POD%d:THR %s",
 	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d?",
@@ -115,6 +120,9 @@ static const char *rohde_schwarz_scpi_dialect[] = {
  * It doesn't support directly setting the sample rate, although
  * it supports setting the maximum sample rate (through the
  * Automatic Record Length functionality).
+ *
+ * It supports setting a logic threshold for Logic (Pattern)
+ * Trigger on digitized analog channels (custom level).
  */
 static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
@@ -156,6 +164,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
 	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
 	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR?",
+	[SCPI_CMD_SET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR %s",
 	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH?",
 	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH %s",
 	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR?",
@@ -190,11 +200,15 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 /*
  * This dialect is used by the Rohde&Schwarz RTO2000 series.
  *
- * It support directly setting the sample rate to any desired
+ * It supports setting the sample rate directly to any desired
  * value up to the maximum allowed.
  *
  * It doesn't provide a separate setting for the FFT sample rate
  * as in the HMO, RTC1000, RTB2000, RTM3000 and RTA4000 series.
+ *
+ * The Logic (Pattern) Trigger doesn't use the analog channels
+ * as possible sources, therefore the threshold can be set only
+ * for digital channels (bus).
  *
  * At the moment the High Resolution and Peak Detection modes
  * are not implemented.
@@ -342,6 +356,13 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ANALOG_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg_analog_rto200x[] = {
+	SR_CONF_NUM_VDIV | SR_CONF_GET,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const uint32_t devopts_cg_digital[] = {
@@ -415,8 +436,11 @@ static const char *scope_trigger_slopes[] = {
 	"EITH",
 };
 
-/* Predefined logic thresholds. */
-static const char *logic_threshold[] = {
+/*
+ * Predefined logic thresholds for the HMO and RTC100x
+ * series.
+ */
+static const char *logic_threshold_hmo_rtc100x[] = {
 	"TTL",
 	"ECL",
 	"CMOS",
@@ -424,13 +448,20 @@ static const char *logic_threshold[] = {
 	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
 };
 
-static const char *logic_threshold_rtb200x_rtm300x[] = {
+/*
+ * Predefined logic thresholds for the RTB200x, RTM300x
+ * and RTA400x series.
+ */
+static const char *logic_threshold_rtb200x_rtm300x_rta400x[] = {
 	"TTL",
 	"ECL",
 	"CMOS",
 	"MAN", // overwritten by logic_threshold_custom
 };
 
+/*
+ * Predefined logic thresholds for the RTO200x series.
+ */
 static const char *logic_threshold_rto200x[] = {
 	"V15",  // TTL
 	"V25",  // CMOS 5V
@@ -718,8 +749,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources,
@@ -768,8 +799,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources,
@@ -818,8 +849,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources,
@@ -868,8 +899,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an2_dig16_trigger_sources,
@@ -919,8 +950,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an4_dig8_trigger_sources,
@@ -968,8 +999,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.logic_threshold = &logic_threshold,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
 		.trigger_sources = &an4_dig16_trigger_sources,
@@ -1017,8 +1048,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
 		.logic_threshold_for_pod = FALSE,
 
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
@@ -1067,8 +1098,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
 		.logic_threshold_for_pod = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
@@ -1117,8 +1148,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
 		.logic_threshold_for_pod = FALSE,
 
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
@@ -1166,8 +1197,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
 		.logic_threshold_for_pod = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
@@ -1215,8 +1246,8 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
 		.logic_threshold_for_pod = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
@@ -1251,8 +1282,8 @@ static struct scope_config scope_models[] = {
 		.devopts = &devopts_rto200x,
 		.num_devopts = ARRAY_SIZE(devopts_rto200x),
 
-		.devopts_cg_analog = &devopts_cg_analog,
-		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+		.devopts_cg_analog = &devopts_cg_analog_rto200x,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog_rto200x),
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
@@ -1478,6 +1509,17 @@ static int analog_channel_state_get(const struct sr_dev_inst *sdi,
 		else
 			state->analog_channels[i].probe_unit = 'V';
 		g_free(tmp_str);
+
+		/* The logic threshold for analog channels is not supported on all models. */
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_ANALOG_THRESHOLD]) {
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_ANALOG_THRESHOLD],
+				   i + 1);
+
+			if (sr_scpi_get_float(scpi, command,
+					      &state->analog_channels[i].user_threshold) != SR_OK)
+				return SR_ERR;
+		}
 	}
 
 	return SR_OK;
