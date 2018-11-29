@@ -232,11 +232,13 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(state->trigger_pattern);
 		break;
 	case SR_CONF_HIGH_RESOLUTION:
+		/* Not currently implemented on RTO200x. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION])
 			return SR_ERR_NA;
 		*data = g_variant_new_boolean(state->high_resolution);
 		break;
 	case SR_CONF_PEAK_DETECTION:
+		/* Not currently implemented on RTO200x. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION])
 			return SR_ERR_NA;
 		*data = g_variant_new_boolean(state->peak_detection);
@@ -261,6 +263,8 @@ static int config_get(uint32_t key, GVariant **data,
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		/* Make sure it is supported by the specific model. */
 		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE])
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->waveform_sample_rate)[state->waveform_sample_rate]);
 		break;
@@ -414,7 +418,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		/* Only configurable on the RTO200x. */
-		if (strncmp("RTO", sdi->model, 3))
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_SAMPLE_RATE])
 			return SR_ERR_NA;
 		tmp_d = g_variant_get_double(data);
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
@@ -428,8 +432,10 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
-		/* Make sure it is supported by the specific model. */
+		/* Not supported on all models. */
 		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE])
 			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->waveform_sample_rate, model->num_waveform_sample_rate)) < 0)
 			return SR_ERR_ARG;
@@ -542,6 +548,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_HIGH_RESOLUTION:
+		/* Not currently implemented on RTO200x. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION] ||
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION])
 			return SR_ERR_NA;
@@ -566,6 +573,7 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_PEAK_DETECTION:
+		/* Not currently implemented on RTO200x. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION] ||
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION])
 			return SR_ERR_NA;
@@ -708,8 +716,6 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = SR_OK;
 		break;
 	case SR_CONF_FFT_WINDOW:
-		if (!model->fft_window_types || !model->num_fft_window_types)
-			return SR_ERR_NA;
 		if ((idx = std_str_idx(data, *model->fft_window_types, model->num_fft_window_types)) < 0)
 			return SR_ERR_ARG;
 		g_snprintf(command, sizeof(command),
@@ -1309,8 +1315,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * and FFT sample rate. */
 	if (fft_enabled) {
 		fft_minimum_sample_rate = FFT_DDC_LP_FILTER_FACTOR * state->fft_freq_span;
-		/* Set the maximum analog channel sample rate. */
-		if (model->waveform_sample_rate && model->num_waveform_sample_rate) {
+		/* Set the maximum analog channel sample rate. Not supported on all models. */
+		if (model->waveform_sample_rate && model->num_waveform_sample_rate &&
+		    (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]) {
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
 				   (*model->waveform_sample_rate)[MAXIMUM_SAMPLE_RATE_INDEX]);
@@ -1414,10 +1421,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			   (*model->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
 			   MATH_WAVEFORM_INDEX, state->restore_math_expr);
 		sr_scpi_send(scpi, command);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
-			   (*model->waveform_sample_rate)[state->restore_waveform_sample_rate]);
-		sr_scpi_send(scpi, command);
+		/* Restore the waveform acquisition rate / sample rate. Not supported on all models. */
+		if (model->waveform_sample_rate && model->num_waveform_sample_rate &&
+		    (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
+				   (*model->waveform_sample_rate)[state->restore_waveform_sample_rate]);
+			sr_scpi_send(scpi, command);
+		}
 	}
 
 	sr_scpi_source_remove(sdi->session, scpi);
