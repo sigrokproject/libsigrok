@@ -268,6 +268,12 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->waveform_sample_rate)[state->waveform_sample_rate]);
 		break;
+	case SR_CONF_AUTO_RECORD_LENGTH:
+		/* Only supported on the RTB2000, RTM3000 and RTA4000. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_AUTO_RECORD_LENGTH])
+			return SR_ERR_NA;
+		*data = g_variant_new_boolean(state->auto_record_length);
+		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
 			return SR_ERR_NA;
@@ -446,6 +452,20 @@ static int config_set(uint32_t key, GVariant *data,
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		state->waveform_sample_rate = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_AUTO_RECORD_LENGTH:
+		/* Only supported on the RTB2000, RTM3000 and RTA4000. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH])
+			return SR_ERR_NA;
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
+			   tmp_bool ? "ON" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->auto_record_length = tmp_bool;
 		ret = SR_OK;
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
@@ -892,7 +912,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
-        case SR_CONF_WAVEFORM_SAMPLE_RATE:
+	case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		if (!model)
 			return SR_ERR_ARG;
 		/* Make sure it is supported by the specific model. */
@@ -1229,6 +1249,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
 	gboolean fft_enabled = FALSE;
+	gboolean update_sample_rate = TRUE;
 	float fft_minimum_sample_rate;
 	char command[MAX_COMMAND_SIZE];
 
@@ -1254,6 +1275,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Save the current waveform acquisition / sample rate setting. */
 	state->restore_waveform_sample_rate = state->waveform_sample_rate;
+
+	/* Save the current Automatic Record Length setting. */
+	state->restore_auto_record_length = state->auto_record_length;
 
 	/* Preset empty results. */
 	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
@@ -1312,7 +1336,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* If the FFT has been requested, properly configure the oscilloscope
-	 * and FFT sample rate. */
+	 * and FFT sample rates. */
 	if (fft_enabled) {
 		fft_minimum_sample_rate = FFT_DDC_LP_FILTER_FACTOR * state->fft_freq_span;
 		/* Set the maximum analog channel sample rate. Not supported on all models. */
@@ -1323,17 +1347,35 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				   (*model->waveform_sample_rate)[MAXIMUM_SAMPLE_RATE_INDEX]);
 			if (sr_scpi_send(scpi, command) != SR_OK ||
 			    sr_scpi_get_opc(scpi) != SR_OK) {
+				update_sample_rate = FALSE;
 				sr_err("Failed to set the Maximum Sample Rate!");
 				if (state->sample_rate < fft_minimum_sample_rate) {
 					sr_warn("The sample rate might be too small for the selected FFT frequency span!");
 					sr_warn("Try manually setting the Maximum Sample Rate for reliable results...");
 				}
-			} else {
-				if (rs_update_sample_rate(sdi) != SR_OK) {
-					sr_err("Failed to get the sample rate!");
-					ret = SR_ERR;
-					goto free_enabled;
+			}
+		}
+		/* Set the Automatic Record Length (implies maximum sample rate). Not supported on all models. */
+		if ((*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH]) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
+				   "ON");
+			if (sr_scpi_send(scpi, command) != SR_OK ||
+			    sr_scpi_get_opc(scpi) != SR_OK) {
+				update_sample_rate = FALSE;
+				sr_err("Failed to set the Automatic Record Length!");
+				if (state->sample_rate < fft_minimum_sample_rate) {
+					sr_warn("The sample rate might be too small for the selected FFT frequency span!");
+					sr_warn("Try manually setting the Record Length to Automatic for reliable results...");
 				}
+			}
+		}
+		/* If the sample rate has been set to the maximum, read its new value. */
+		if (update_sample_rate) {
+			if (rs_update_sample_rate(sdi) != SR_OK) {
+				sr_err("Failed to get the sample rate!");
+				ret = SR_ERR;
+				goto free_enabled;
 			}
 		}
 
@@ -1428,6 +1470,15 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 				   (*model->scpi_dialect)[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE],
 				   (*model->waveform_sample_rate)[state->restore_waveform_sample_rate]);
 			sr_scpi_send(scpi, command);
+		}
+		/* Restore the Automatic Record Length mode. Not supported on all models. */
+		if ((*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH]) {
+			if (!state->restore_auto_record_length) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
+					   "OFF");
+				sr_scpi_send(scpi, command);
+			}
 		}
 	}
 

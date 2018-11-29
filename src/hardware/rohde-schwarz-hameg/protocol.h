@@ -178,6 +178,7 @@ struct scope_state {
 
 	uint64_t sample_rate;
 	unsigned int waveform_sample_rate;
+	gboolean auto_record_length;
 
 	unsigned int interpolation_mode;
 
@@ -201,6 +202,7 @@ struct scope_state {
 	unsigned int fft_span_rbw_ratio;
 	char restore_math_expr[MAX_COMMAND_SIZE];
 	unsigned int restore_waveform_sample_rate;
+	gboolean restore_auto_record_length;
 };
 
 struct dev_context {
