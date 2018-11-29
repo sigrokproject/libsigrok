@@ -30,6 +30,13 @@ SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
 				   const struct dev_context *devc);
 SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
 
+/*
+ * This is the basic dialect supported on the Hameg HMO series
+ * and on the Rohde&Schwarz HMO and RTC1000 series.
+ *
+ * It doesn't support directly setting the sample rate, although
+ * it supports setting the maximum sample rate.
+ */
 static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
@@ -101,6 +108,12 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
+/*
+ * This dialect is used by the Rohde&Schwarz RTB2000, RTM3000 and
+ * RTA4000 series.
+ *
+ * It doesn't support setting the sample rate.
+ */
 static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
@@ -172,6 +185,18 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
+/*
+ * This dialect is used by the Rohde&Schwarz RTO2000 series.
+ *
+ * It support directly setting the sample rate to any desired
+ * value up to the maximum allowed.
+ *
+ * It doesn't provide a separate setting for the FFT sample rate
+ * as in the HMO, RTC1000, RTB2000, RTM3000 and RTA4000 series.
+ *
+ * At the moment the High Resolution and Peak Detection modes
+ * are not implemented.
+ */
 static const char *rohde_schwarz_rto200x_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":LOG%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
@@ -1579,31 +1604,27 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	sr_info("Fetching scope state");
 
 	/* Save existing Math Expression. */
-	if ((*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION]) {
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION],
+		   MATH_WAVEFORM_INDEX);
+
+	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
+		return SR_ERR;
+
+	strncpy(state->restore_math_expr,
+		sr_scpi_unquote_string(tmp_str),
+		MAX_COMMAND_SIZE);
+	g_free(tmp_str);
+
+	/* If the oscilloscope is currently in FFT mode, switch to normal mode. */
+	if (!strncmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
 		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION],
-			   MATH_WAVEFORM_INDEX);
-
-		if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
-			return SR_ERR;
-
-		strncpy(state->restore_math_expr,
-			sr_scpi_unquote_string(tmp_str),
-			MAX_COMMAND_SIZE);
-		g_free(tmp_str);
-
-		/* If the oscilloscope is currently in FFT mode, switch to normal mode. */
-		if (!strncmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
-			if ((*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION]) {
-				g_snprintf(command, sizeof(command),
-					   (*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
-					   MATH_WAVEFORM_INDEX, FFT_EXIT_MATH_EXPRESSION);
-				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-				    sr_scpi_get_opc(sdi->conn) != SR_OK) {
-					sr_err("Failed to disable the FFT mode!");
-						return SR_ERR;
-				}
-			}
+			   (*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
+			   MATH_WAVEFORM_INDEX, FFT_EXIT_MATH_EXPRESSION);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK) {
+			sr_err("Failed to disable the FFT mode!");
+				return SR_ERR;
 		}
 	}
 
@@ -1636,7 +1657,8 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	/* Not all models allow setting the mode for waveform acquisition
 	 * rate and sample rate configuration.
 	 */
-	if (config->waveform_sample_rate && config->num_waveform_sample_rate) {
+	if (config->waveform_sample_rate && config->num_waveform_sample_rate &&
+	    (*config->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]) {
 		if (scope_state_get_array_option(sdi->conn,
 						 (*config->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE],
 						 config->waveform_sample_rate, config->num_waveform_sample_rate,
@@ -1644,38 +1666,33 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 	}
 
-	if (config->interpolation_mode && config->num_interpolation_mode)
-		if (scope_state_get_array_option(sdi->conn,
-						 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
-						 config->interpolation_mode, config->num_interpolation_mode,
-						 &state->interpolation_mode) != SR_OK)
-			return SR_ERR;
+	if (scope_state_get_array_option(sdi->conn,
+					 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
+					 config->interpolation_mode, config->num_interpolation_mode,
+					 &state->interpolation_mode) != SR_OK)
+		return SR_ERR;
 
-	if (config->timebases && config->num_timebases) {
-		if (sr_scpi_get_float(sdi->conn,
-				(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
-				&tmp_float) != SR_OK)
-			return SR_ERR;
-		state->horiz_triggerpos = tmp_float /
-			(((double) (*config->timebases)[state->timebase][0] /
-			  (*config->timebases)[state->timebase][1]) * config->num_xdivs);
-		state->horiz_triggerpos -= 0.5;
-		state->horiz_triggerpos *= -1;
-	}
+	if (sr_scpi_get_float(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
+			&tmp_float) != SR_OK)
+		return SR_ERR;
+	state->horiz_triggerpos = tmp_float /
+		(((double) (*config->timebases)[state->timebase][0] /
+		  (*config->timebases)[state->timebase][1]) * config->num_xdivs);
+	state->horiz_triggerpos -= 0.5;
+	state->horiz_triggerpos *= -1;
 
-	if (config->trigger_sources && config->num_trigger_sources)
-		if (scope_state_get_array_option(sdi->conn,
-				(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
-				config->trigger_sources, config->num_trigger_sources,
-				&state->trigger_source) != SR_OK)
-			return SR_ERR;
+	if (scope_state_get_array_option(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SOURCE],
+			config->trigger_sources, config->num_trigger_sources,
+			&state->trigger_source) != SR_OK)
+		return SR_ERR;
 
-	if (config->trigger_slopes && config->num_trigger_slopes)
-		if (scope_state_get_array_option(sdi->conn,
-				(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
-				config->trigger_slopes, config->num_trigger_slopes,
-				&state->trigger_slope) != SR_OK)
-			return SR_ERR;
+	if (scope_state_get_array_option(sdi->conn,
+			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
+			config->trigger_slopes, config->num_trigger_slopes,
+			&state->trigger_slope) != SR_OK)
+		return SR_ERR;
 
 	if (strncmp("RTO", sdi->model, 3)) {
 		if (sr_scpi_get_string(sdi->conn,
@@ -1708,6 +1725,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		MAX_TRIGGER_PATTERN_LENGTH);
 	g_free(tmp_str);
 
+	/* Not currently implemented on RTO200x. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION]) {
 		if (sr_scpi_get_string(sdi->conn,
 				     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
@@ -1720,6 +1738,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		g_free(tmp_str);
 	}
 
+	/* Not currently implemented on RTO200x. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION]) {
 		if (sr_scpi_get_string(sdi->conn,
 				     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
@@ -1733,16 +1752,14 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	}
 
 	/* Determine the FFT window type. */
-	if (config->fft_window_types && config->num_fft_window_types) {
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_WINDOW_TYPE],
-			   MATH_WAVEFORM_INDEX);
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_FFT_WINDOW_TYPE],
+		   MATH_WAVEFORM_INDEX);
 
-		if (scope_state_get_array_option(sdi->conn, command,
-						 config->fft_window_types, config->num_fft_window_types,
-						 &state->fft_window_type) != SR_OK)
-			return SR_ERR;
-	}
+	if (scope_state_get_array_option(sdi->conn, command,
+					 config->fft_window_types, config->num_fft_window_types,
+					 &state->fft_window_type) != SR_OK)
+		return SR_ERR;
 
 	/* Determine the FFT start frequency. */
 	g_snprintf(command, sizeof(command),
