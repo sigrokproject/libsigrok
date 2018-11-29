@@ -133,6 +133,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Hold min", NULL},
 	{SR_CONF_VOLTAGE_THRESHOLD, SR_T_DOUBLE_RANGE, "voltage_threshold",
 		"Voltage threshold", NULL },
+	{SR_CONF_ANALOG_THRESHOLD_CUSTOM, SR_T_FLOAT, "analog_threshold_custom",
+		"Logic threshold for analog channels (custom)", NULL},
 	{SR_CONF_LOGIC_THRESHOLD, SR_T_STRING, "logic_threshold",
 		"Logic threshold (predefined)", NULL},
 	{SR_CONF_LOGIC_THRESHOLD_CUSTOM, SR_T_FLOAT, "logic_threshold_custom",

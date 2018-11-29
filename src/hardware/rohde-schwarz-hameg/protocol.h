@@ -153,13 +153,16 @@ struct scope_config {
 };
 
 struct analog_channel_state {
+	gboolean state;
+
 	unsigned int coupling;
 
 	unsigned int vscale;
 	float vertical_offset;
 
-	gboolean state;
 	char probe_unit;
+
+	float user_threshold;
 };
 
 struct digital_pod_state {

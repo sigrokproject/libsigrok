@@ -279,6 +279,18 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->interpolation_mode)[state->interpolation_mode]);
 		break;
+	case SR_CONF_ANALOG_THRESHOLD_CUSTOM:
+		/* Not available on all models. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_ANALOG_THRESHOLD])
+			return SR_ERR_NA;
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
+		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_double(state->analog_channels[idx].user_threshold);
+		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!model->logic_threshold || !model->num_logic_threshold)
 			return SR_ERR_NA;
@@ -633,6 +645,27 @@ static int config_set(uint32_t key, GVariant *data,
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		state->analog_channels[j].coupling = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_ANALOG_THRESHOLD_CUSTOM:
+		/* Not available on all models. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_THRESHOLD])
+			return SR_ERR_NA;
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
+		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		tmp_d = g_variant_get_double(data);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_ANALOG_THRESHOLD],
+			   j + 1, float_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->analog_channels[j].user_threshold = tmp_d;
 		ret = SR_OK;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:

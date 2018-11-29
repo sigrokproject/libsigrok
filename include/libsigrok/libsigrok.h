@@ -851,6 +851,9 @@ enum sr_configkey {
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
 
+	/** Logic threshold for analog channels: custom numerical value. */
+	SR_CONF_ANALOG_THRESHOLD_CUSTOM,
+
 	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
 	SR_CONF_LOGIC_THRESHOLD,
 
