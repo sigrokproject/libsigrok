@@ -764,6 +764,9 @@ enum sr_configkey {
 	/** Mode for setting the waveform acquisition rate and sample rate. */
 	SR_CONF_WAVEFORM_SAMPLE_RATE,
 
+	/** Automatic Record Length (implies maximum sample rate). */
+	SR_CONF_AUTO_RECORD_LENGTH,
+
 	/** Interpolation mode. */
 	SR_CONF_INTERPOLATION_MODE,
 

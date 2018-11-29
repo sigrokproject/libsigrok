@@ -112,7 +112,9 @@ static const char *rohde_schwarz_scpi_dialect[] = {
  * This dialect is used by the Rohde&Schwarz RTB2000, RTM3000 and
  * RTA4000 series.
  *
- * It doesn't support setting the sample rate.
+ * It doesn't support directly setting the sample rate, although
+ * it supports setting the maximum sample rate (through the
+ * Automatic Record Length functionality).
  */
 static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
@@ -122,8 +124,8 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
-	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
-	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
+	[SCPI_CMD_GET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT?",
+	[SCPI_CMD_SET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT %s",
 	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
 	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
@@ -268,6 +270,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AUTO_RECORD_LENGTH | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
@@ -1663,6 +1666,13 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 						 (*config->scpi_dialect)[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE],
 						 config->waveform_sample_rate, config->num_waveform_sample_rate,
 						 &state->waveform_sample_rate) != SR_OK)
+			return SR_ERR;
+	}
+
+	/* Not all models support the Automatic Record Length functionality. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_AUTO_RECORD_LENGTH]) {
+		if (sr_scpi_get_bool(sdi->conn, (*config->scpi_dialect)[SCPI_CMD_GET_AUTO_RECORD_LENGTH],
+		    &state->auto_record_length) != SR_OK)
 			return SR_ERR;
 	}
 
