@@ -325,6 +325,17 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
 		break;
+	case SR_CONF_BANDWIDTH_LIMIT:
+		if (!model->bandwidth_limit || !model->num_bandwidth_limit)
+			return SR_ERR_NA;
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
+		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_string((*model->bandwidth_limit)[state->analog_channels[idx].bandwidth_limit]);
+		break;
 	case SR_CONF_FFT_WINDOW:
 		if (!model->fft_window_types || !model->num_fft_window_types)
 			return SR_ERR_NA;
@@ -810,6 +821,26 @@ static int config_set(uint32_t key, GVariant *data,
 			ret = SR_OK;
 		}
 		break;
+	case SR_CONF_BANDWIDTH_LIMIT:
+		if (!model->bandwidth_limit || !model->num_bandwidth_limit)
+			return SR_ERR_NA;
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_ANALOG)
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->bandwidth_limit, model->num_bandwidth_limit)) < 0)
+			return SR_ERR_ARG;
+		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_BANDWIDTH_LIMIT],
+			   j + 1, (*model->bandwidth_limit)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->analog_channels[j].bandwidth_limit = idx;
+		ret = SR_OK;
+		break;
 	case SR_CONF_FFT_WINDOW:
 		if ((idx = std_str_idx(data, *model->fft_window_types, model->num_fft_window_types)) < 0)
 			return SR_ERR_ARG;
@@ -1019,6 +1050,13 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
+		break;
+	case SR_CONF_BANDWIDTH_LIMIT:
+		if (!model)
+			return SR_ERR_ARG;
+		if (!model->bandwidth_limit || !model->num_bandwidth_limit)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->bandwidth_limit, model->num_bandwidth_limit);
 		break;
 	case SR_CONF_FFT_WINDOW:
 		if (!model)
