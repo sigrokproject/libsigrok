@@ -767,6 +767,12 @@ enum sr_configkey {
 	/** Automatic Record Length (implies maximum sample rate). */
 	SR_CONF_AUTO_RECORD_LENGTH,
 
+	/** Random sampling. */
+	SR_CONF_RANDOM_SAMPLING,
+
+	/** Acquisition mode. */
+	SR_CONF_ACQUISITION_MODE,
+
 	/** Interpolation mode. */
 	SR_CONF_INTERPOLATION_MODE,
 
