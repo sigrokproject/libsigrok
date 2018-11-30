@@ -30,6 +30,7 @@
 #define LOG_PREFIX "rohde-schwarz-hameg"
 
 #define DIGITAL_CHANNELS_PER_POD	8
+#define DIGITAL_CHANNELS_PER_NIBBLE	4
 
 #define MAX_INSTRUMENT_VERSIONS		10
 #define MAX_COMMAND_SIZE		256
@@ -129,7 +130,7 @@ struct scope_config {
 
 	const char *(*logic_threshold)[];
 	const uint8_t num_logic_threshold;
-	const gboolean logic_threshold_for_pod;
+	const gboolean logic_threshold_for_pod; /* Index based on POD instead of nibble channel */
 
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;
