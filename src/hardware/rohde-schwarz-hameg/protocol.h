@@ -122,6 +122,12 @@ struct scope_config {
 	const char *(*waveform_sample_rate)[];
 	const uint8_t num_waveform_sample_rate;
 
+	const char *(*random_sampling)[];
+	const uint8_t num_random_sampling;
+
+	const char *(*acquisition_mode)[];
+	const uint8_t num_acquisition_mode;
+
 	const char *(*interpolation_mode)[];
 	const uint8_t num_interpolation_mode;
 
@@ -188,6 +194,10 @@ struct scope_state {
 	uint64_t sample_rate;
 	unsigned int waveform_sample_rate;
 	gboolean auto_record_length;
+
+	unsigned int random_sampling;
+
+	unsigned int acquisition_mode;
 
 	unsigned int interpolation_mode;
 

@@ -274,6 +274,22 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_boolean(state->auto_record_length);
 		break;
+	case SR_CONF_RANDOM_SAMPLING:
+		/* Only supported on the HMO2524 and HMO3000 series. */
+		if (!model->random_sampling || !model->num_random_sampling)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_RANDOM_SAMPLING])
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->random_sampling)[state->random_sampling]);
+		break;
+        case SR_CONF_ACQUISITION_MODE:
+		/* Only supported on the HMO and RTC100x series. */
+		if (!model->acquisition_mode || !model->num_acquisition_mode)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_ACQUISITION_MODE])
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->acquisition_mode)[state->acquisition_mode]);
+		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
 			return SR_ERR_NA;
@@ -491,6 +507,40 @@ static int config_set(uint32_t key, GVariant *data,
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		state->auto_record_length = tmp_bool;
+		ret = SR_OK;
+		break;
+	case SR_CONF_RANDOM_SAMPLING:
+		/* Only supported on the HMO2524 and HMO3000 series. */
+		if (!model->random_sampling || !model->num_random_sampling)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_RANDOM_SAMPLING])
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->random_sampling, model->num_random_sampling)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_RANDOM_SAMPLING],
+			   (*model->random_sampling)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->random_sampling = idx;
+		ret = SR_OK;
+		break;
+        case SR_CONF_ACQUISITION_MODE:
+		/* Only supported on the HMO and RTC100x series. */
+		if (!model->acquisition_mode || !model->num_acquisition_mode)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_ACQUISITION_MODE])
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->acquisition_mode, model->num_acquisition_mode)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_ACQUISITION_MODE],
+			   (*model->acquisition_mode)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->acquisition_mode = idx;
 		ret = SR_OK;
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
@@ -1025,6 +1075,22 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model->waveform_sample_rate || !model->num_waveform_sample_rate)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->waveform_sample_rate, model->num_waveform_sample_rate);
+		break;
+	case SR_CONF_RANDOM_SAMPLING:
+		if (!model)
+			return SR_ERR_ARG;
+		/* Make sure it is supported by the specific model. */
+		if (!model->random_sampling || !model->num_random_sampling)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->random_sampling, model->num_random_sampling);
+		break;
+	case SR_CONF_ACQUISITION_MODE:
+		if (!model)
+			return SR_ERR_ARG;
+		/* Make sure it is supported by the specific model. */
+		if (!model->acquisition_mode || !model->num_acquisition_mode)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->acquisition_mode, model->num_acquisition_mode);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model)
