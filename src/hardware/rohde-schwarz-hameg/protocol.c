@@ -525,59 +525,73 @@ static const char *bandwidth_limit_rto200x[] = {
 	"B800", // available only for 50 Ohm coupling when bandwidth >= 1GHz
 };
 
-/* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
-static const char *an2_dig8_trigger_sources[] = {
+/* HMO1002/HMO1202 */
+static const char *an2_dig8_trigger_sources_hmo1x02[] = {
 	"CH1", "CH2",
-	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"LINE", "EXT", "PATT", "NONE",
+};
+
+/* HMO Compact2 */
+static const char *an2_dig8_trigger_sources_hmo_compact2[] = {
+	"CH1", "CH2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2", "NONE",
+};
+
+/* RTC1002 */
+static const char *an2_dig8_trigger_sources_rtc100x[] = {
+	"CH1", "CH2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"LINE", "EXT", "PATT", "NONE",
 };
 
 /* HMO3xx2 */
 static const char *an2_dig16_trigger_sources[] = {
 	"CH1", "CH2",
-	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2", "NONE",
 };
 
 /* RTB2002 and RTM3002 */
 static const char *an2_dig16_sbus_trigger_sources[] = {
 	"CH1", "CH2",
-	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "SBUS1", "SBUS2",
 };
 
 /* HMO Compact4 */
-static const char *an4_dig8_trigger_sources[] = {
+static const char *an4_dig8_trigger_sources_hmo_compact4[] = {
 	"CH1", "CH2", "CH3", "CH4",
-	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2", "NONE",
 };
 
 /* HMO3xx4 and HMO2524 */
 static const char *an4_dig16_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
-	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2", "NONE",
 };
 
 /* RTB2004, RTM3004 and RTA4004 */
 static const char *an4_dig16_sbus_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
-	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "SBUS1", "SBUS2",
 };
 
 /* RTO200x */
 static const char *rto200x_trigger_sources[] = {
 	"CHAN1", "CHAN2", "CHAN3", "CHAN4",
-	"MSOB1", "MSOB2", "MSOB3", "MSOB4",
-	"EXT", "LOGI", "SBUS",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"MSOB1", "MSOB2", "MSOB3", "MSOB4",
+	"EXT", "LOGIC", "SBUS",
 };
 
 static const uint64_t timebases[][2] = {
@@ -775,8 +789,8 @@ static struct scope_config scope_models[] = {
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
-		.trigger_sources = &an2_dig8_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+		.trigger_sources = &an2_dig8_trigger_sources_hmo_compact2,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo_compact2),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -828,8 +842,8 @@ static struct scope_config scope_models[] = {
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
-		.trigger_sources = &an2_dig8_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+		.trigger_sources = &an2_dig8_trigger_sources_hmo1x02,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo1x02),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -881,8 +895,8 @@ static struct scope_config scope_models[] = {
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
-		.trigger_sources = &an2_dig8_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
+		.trigger_sources = &an2_dig8_trigger_sources_rtc100x,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_rtc100x),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -988,8 +1002,8 @@ static struct scope_config scope_models[] = {
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
 		.logic_threshold_for_pod = TRUE,
 
-		.trigger_sources = &an4_dig8_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources),
+		.trigger_sources = &an4_dig8_trigger_sources_hmo_compact4,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources_hmo_compact4),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
