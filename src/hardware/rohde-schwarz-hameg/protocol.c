@@ -1529,7 +1529,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 				     const struct scope_config *config,
 				     struct scope_state *state)
 {
-	unsigned int i, idx;
+	unsigned int i, idx, nibble1ch2, nibble2ch2, tmp_uint;
 	int result = SR_ERR;
 	static char *logic_threshold_short[] = {};
 	char command[MAX_COMMAND_SIZE];
@@ -1582,12 +1582,14 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 			goto exit;
 
 		if (config->logic_threshold && config->num_logic_threshold) {
-			/* Check if the threshold command is based on the POD or digital channel index. */
-			if (config->logic_threshold_for_pod)
+			/* Check if the threshold command is based on the POD or nibble channel index. */
+			if (config->logic_threshold_for_pod) {
 				idx = i + 1;
-			else
-				idx = i * DIGITAL_CHANNELS_PER_POD;
-
+			} else {
+				nibble1ch2 = i * DIGITAL_CHANNELS_PER_POD + 1;
+				nibble2ch2 = (i + 1) * DIGITAL_CHANNELS_PER_POD - DIGITAL_CHANNELS_PER_NIBBLE + 1;
+				idx = nibble1ch2;
+			}
 			g_snprintf(command, sizeof(command),
 				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
 				   idx);
@@ -1601,6 +1603,28 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 								 &state->digital_pods[i].threshold) != SR_OK)
 					goto exit;
 
+			/* Same as above, but for the second nibble (second channel), if needed. */
+			if (!config->logic_threshold_for_pod) {
+				if (scope_state_get_array_option(scpi, command, config->logic_threshold,
+								 config->num_logic_threshold,
+								 &tmp_uint) != SR_OK)
+					if (scope_state_get_array_option(scpi, command, (const char * (*)[]) &logic_threshold_short,
+									 config->num_logic_threshold,
+									 &tmp_uint) != SR_OK)
+						goto exit;
+
+				/* If the two nibbles don't match, use the first one. */
+				if (state->digital_pods[i].threshold != tmp_uint) {
+					g_snprintf(command, sizeof(command),
+						   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+						   nibble2ch2,
+						   (*config->logic_threshold)[state->digital_pods[i].threshold]);
+					if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					    sr_scpi_get_opc(sdi->conn) != SR_OK)
+						goto exit;
+				}
+			}
+
 			/* If used-defined or custom threshold is active, get the level. */
 			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				g_snprintf(command, sizeof(command),
@@ -1611,7 +1635,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 					   idx, 2); /* USER2 for custom logic_threshold setting. */
 			} else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-				 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+				   !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				if (strncmp("RTO", sdi->model, 3)) {
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
@@ -1631,20 +1655,32 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
 			    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
 			    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-			    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				if (sr_scpi_get_float(scpi, command,
 				    &state->digital_pods[i].user_threshold) != SR_OK)
 					goto exit;
 
-			/* On the RTO200x set the same custom threshold on both channel groups of each POD. */
-			if (!strncmp("RTO", sdi->model, 3)) {
-				if (state->digital_pods[i].user_threshold != tmp_float) {
+				/* Set the same custom threshold on the second nibble, if needed. */
+				if (!config->logic_threshold_for_pod) {
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
-						   idx, idx * 2, state->digital_pods[i].user_threshold);
+						   nibble2ch2,
+						   (*config->logic_threshold)[state->digital_pods[i].threshold]);
 					if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 					    sr_scpi_get_opc(sdi->conn) != SR_OK)
 						goto exit;
+				}
+
+				/* On the RTO200x set the same custom threshold on both channel groups of each POD. */
+				if (!strncmp("RTO", sdi->model, 3)) {
+					if (state->digital_pods[i].user_threshold != tmp_float) {
+						g_snprintf(command, sizeof(command),
+							   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+							   idx, idx * 2, state->digital_pods[i].user_threshold);
+						if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+						    sr_scpi_get_opc(sdi->conn) != SR_OK)
+							goto exit;
+					}
 				}
 			}
 		}
