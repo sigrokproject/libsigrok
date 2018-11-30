@@ -201,6 +201,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Trigger level", NULL},
 	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
 		"External clock source", NULL},
+	{SR_CONF_BANDWIDTH_LIMIT, SR_T_STRING, "bandwidth_limit",
+		"Bandwidth limit", NULL},
 
 	/* Fast Fourier Transform (FFT) options */
 	{SR_CONF_FFT_WINDOW, SR_T_STRING, "fft_window",

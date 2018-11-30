@@ -141,6 +141,9 @@ struct scope_config {
 	const char *(*fft_window_types)[];
 	const uint8_t num_fft_window_types;
 
+	const char *(*bandwidth_limit)[];
+	const uint8_t num_bandwidth_limit;
+
 	const uint64_t (*timebases)[][2];
 	const uint8_t num_timebases;
 
@@ -164,6 +167,8 @@ struct analog_channel_state {
 	char probe_unit;
 
 	float user_threshold;
+
+	unsigned int bandwidth_limit;
 };
 
 struct digital_pod_state {

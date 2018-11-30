@@ -1025,6 +1025,9 @@ enum sr_configkey {
 	 */
 	SR_CONF_EXTERNAL_CLOCK_SOURCE,
 
+	/** Bandwidth limit. */
+	SR_CONF_BANDWIDTH_LIMIT,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Fast Fourier Transform (FFT) ----------------------------------*/
