@@ -389,8 +389,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx, i, j;
-	unsigned int custom_threshold_idx;
-	unsigned int tmp_uint;
+	unsigned int custom_threshold_idx, tmp_uint;
 	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
 	char command3[MAX_COMMAND_SIZE], command4[MAX_COMMAND_SIZE];
 	char float_str[30], *tmp_str;
@@ -443,8 +442,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->analog_channels[j].vscale = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->analog_channels[j].vscale = idx;
 		break;
 	case SR_CONF_TIMEBASE:
 		if (!model->timebases || !model->num_timebases)
@@ -459,8 +459,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->timebase = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->timebase = idx;
 		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -475,8 +476,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->sample_rate = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->sample_rate = tmp_d;
 		break;
         case SR_CONF_WAVEFORM_SAMPLE_RATE:
 		/* Not supported on all models. */
@@ -492,8 +494,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->waveform_sample_rate = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->waveform_sample_rate = idx;
 		break;
 	case SR_CONF_AUTO_RECORD_LENGTH:
 		/* Only supported on the RTB2000, RTM3000 and RTA4000. */
@@ -506,8 +509,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->auto_record_length = tmp_bool;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->auto_record_length = tmp_bool;
 		break;
 	case SR_CONF_RANDOM_SAMPLING:
 		/* Only supported on the HMO2524 and HMO3000 series. */
@@ -523,8 +527,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->random_sampling = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->random_sampling = idx;
 		break;
         case SR_CONF_ACQUISITION_MODE:
 		/* Only supported on the HMO and RTC100x series. */
@@ -540,8 +545,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->acquisition_mode = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->acquisition_mode = idx;
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
@@ -554,8 +560,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->interpolation_mode = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->interpolation_mode = idx;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
@@ -574,8 +581,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->horiz_triggerpos = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->horiz_triggerpos = tmp_d;
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!model->trigger_sources || !model->num_trigger_sources)
@@ -588,8 +596,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->trigger_source = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if (!model->trigger_slopes || !model->num_trigger_slopes)
@@ -602,8 +611,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->trigger_slope = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->trigger_slope = idx;
 		break;
 	case SR_CONF_TRIGGER_PATTERN:
 		tmp_str = (char *)g_variant_get_string(data, (gsize *)&idx);
@@ -616,6 +626,7 @@ static int config_set(uint32_t key, GVariant *data,
 			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
+			ret = rs_check_esr(sdi);
 		} else {
 			/* RTO200x: Only available on digital channels. */
 			if (idx > DIGITAL_CHANNELS_PER_POD * model->digital_pods)
@@ -637,10 +648,13 @@ static int config_set(uint32_t key, GVariant *data,
 				if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 				    sr_scpi_get_opc(sdi->conn) != SR_OK)
 					return SR_ERR;
+				ret = rs_check_esr(sdi);
+				if (ret != SR_OK)
+					return ret;
 			}
 		}
-		strncpy(state->trigger_pattern, tmp_str, idx);
-		ret = SR_OK;
+		if (ret == SR_OK)
+			strncpy(state->trigger_pattern, tmp_str, idx);
 		break;
 	case SR_CONF_HIGH_RESOLUTION:
 		/* Not currently implemented on RTO200x. */
@@ -654,6 +668,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret != SR_OK)
+			return ret;
 		/* High Resolution mode automatically switches off Peak Detection. */
 		if (tmp_bool) {
 			g_snprintf(command, sizeof(command),
@@ -664,8 +681,9 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR;
 			state->peak_detection = FALSE;
 		}
-		state->high_resolution = tmp_bool;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->high_resolution = tmp_bool;
 		break;
 	case SR_CONF_PEAK_DETECTION:
 		/* Not currently implemented on RTO200x. */
@@ -679,6 +697,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret != SR_OK)
+			return ret;
 		/* Peak Detection automatically switches off High Resolution mode. */
 		if (tmp_bool) {
 			g_snprintf(command, sizeof(command),
@@ -689,8 +710,9 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR;
 			state->high_resolution = FALSE;
 		}
-		state->peak_detection = tmp_bool;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->peak_detection = tmp_bool;
 		break;
 	case SR_CONF_COUPLING:
 		if (!model->coupling_options || !model->num_coupling_options)
@@ -707,8 +729,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->analog_channels[j].coupling = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->analog_channels[j].coupling = idx;
 		break;
 	case SR_CONF_ANALOG_THRESHOLD_CUSTOM:
 		/* Not available on all models. */
@@ -728,8 +751,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->analog_channels[j].user_threshold = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->analog_channels[j].user_threshold = tmp_d;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!model->logic_threshold || !model->num_logic_threshold)
@@ -753,6 +777,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret != SR_OK)
+			return ret;
 		/* Same as above, but for the second nibble (second channel), if needed. */
 		if (!model->logic_threshold_for_pod) {
 			g_snprintf(command, sizeof(command),
@@ -762,9 +789,10 @@ static int config_set(uint32_t key, GVariant *data,
 			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
+			ret = rs_check_esr(sdi);
 		}
-		state->digital_pods[j].threshold = idx;
-		ret = SR_OK;
+		if (ret == SR_OK)
+			state->digital_pods[j].threshold = idx;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
 		if (!model->logic_threshold || !model->num_logic_threshold)
@@ -821,6 +849,9 @@ static int config_set(uint32_t key, GVariant *data,
 					if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 					    sr_scpi_get_opc(sdi->conn) != SR_OK)
 						return SR_ERR;
+					ret = rs_check_esr(sdi);
+					if (ret != SR_OK)
+						return ret;
 					g_snprintf(command, sizeof(command),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
 						   idx, idx * 2, float_str);
@@ -830,6 +861,9 @@ static int config_set(uint32_t key, GVariant *data,
 			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
+			ret = rs_check_esr(sdi);
+			if (ret != SR_OK)
+				return ret;
 
 			g_snprintf(command2, sizeof(command2),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
@@ -838,6 +872,9 @@ static int config_set(uint32_t key, GVariant *data,
 			if (sr_scpi_send(sdi->conn, command2) != SR_OK ||
 			    sr_scpi_get_opc(sdi->conn) != SR_OK)
 				return SR_ERR;
+			ret = rs_check_esr(sdi);
+			if (ret != SR_OK)
+				return ret;
 
 			/* Set the same custom threshold on the second nibble, if needed. */
 			if (!model->logic_threshold_for_pod) {
@@ -856,6 +893,9 @@ static int config_set(uint32_t key, GVariant *data,
 				if (sr_scpi_send(sdi->conn, command3) != SR_OK ||
 				    sr_scpi_get_opc(sdi->conn) != SR_OK)
 					return SR_ERR;
+				ret = rs_check_esr(sdi);
+				if (ret != SR_OK)
+					return ret;
 
 				g_snprintf(command4, sizeof(command4),
 					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
@@ -865,10 +905,13 @@ static int config_set(uint32_t key, GVariant *data,
 				if (sr_scpi_send(sdi->conn, command4) != SR_OK ||
 				    sr_scpi_get_opc(sdi->conn) != SR_OK)
 					return SR_ERR;
+				ret = rs_check_esr(sdi);
+				if (ret != SR_OK)
+					return ret;
 			}
 
-			state->digital_pods[j].user_threshold = tmp_d;
-			ret = SR_OK;
+			if (ret == SR_OK)
+				state->digital_pods[j].user_threshold = tmp_d;
 		}
 		break;
 	case SR_CONF_BANDWIDTH_LIMIT:
@@ -888,8 +931,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->analog_channels[j].bandwidth_limit = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->analog_channels[j].bandwidth_limit = idx;
 		break;
 	case SR_CONF_FFT_WINDOW:
 		if ((idx = std_str_idx(data, *model->fft_window_types, model->num_fft_window_types)) < 0)
@@ -900,8 +944,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_window_type = idx;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_window_type = idx;
 		break;
 	case SR_CONF_FFT_FREQUENCY_START:
 		tmp_d = g_variant_get_double(data);
@@ -912,8 +957,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_freq_start = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_freq_start = tmp_d;
 		break;  
 	case SR_CONF_FFT_FREQUENCY_STOP:
 		tmp_d = g_variant_get_double(data);
@@ -924,8 +970,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_freq_stop = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_freq_stop = tmp_d;
 		break;
 	case SR_CONF_FFT_FREQUENCY_SPAN:
 		tmp_d = g_variant_get_double(data);
@@ -936,8 +983,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_freq_span = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_freq_span = tmp_d;
 		break;
 	case SR_CONF_FFT_FREQUENCY_CENTER:
 		tmp_d = g_variant_get_double(data);
@@ -948,8 +996,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_freq_center = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_freq_center = tmp_d;
 		break;
 	case SR_CONF_FFT_RESOLUTION_BW:
 		tmp_d = g_variant_get_double(data);
@@ -960,8 +1009,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_rbw = tmp_d;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_rbw = tmp_d;
 		break;
 	case SR_CONF_FFT_SPAN_RBW_COUPLING:
 		tmp_bool = g_variant_get_boolean(data);
@@ -971,8 +1021,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_span_rbw_coupling = tmp_bool;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_span_rbw_coupling = tmp_bool;
 		break;
 	case SR_CONF_FFT_SPAN_RBW_RATIO:
 		tmp_uint = g_variant_get_uint64(data);
@@ -982,8 +1033,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
-		state->fft_span_rbw_ratio = tmp_uint;
-		ret = SR_OK;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->fft_span_rbw_ratio = tmp_uint;
 		break;
 	default:
 		ret = SR_ERR_NA;
@@ -1136,6 +1188,44 @@ static int config_list(uint32_t key, GVariant **data,
 	}
 
 	return SR_OK;
+}
+
+/*
+ * Check the Event Status Register (ESR), report any SCPI
+ * error that might have occurred and return the corresponding
+ * error code or SR_OK if no SCPI error occurred.
+ */
+SR_PRIV int rs_check_esr(const struct sr_dev_inst *sdi)
+{
+	int esr, ret;
+
+	if (!sdi)
+		return SR_ERR;
+
+	if (!sdi->conn)
+		return SR_ERR;
+
+	if (sr_scpi_get_esr(sdi->conn, &esr) != SR_OK) {
+		sr_err("Failed to read the Event Status Register!");
+		return SR_ERR;
+	}
+
+	ret = SR_OK;
+
+	/* Scan the ESR for SCPI error conditions. */
+	if (esr & query_error)
+		ret = SR_ERR_SCPI_QUERY;
+
+	if (esr & device_dependent_error)
+		ret = SR_ERR_SCPI_DEVICE;
+
+	if (esr & execution_error)
+		ret = SR_ERR_SCPI_EXEC;
+
+	if (esr & command_error)
+		ret = SR_ERR_SCPI_CMD;
+
+	return ret;
 }
 
 SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
