@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
  * Copyright (C) 2015 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -808,6 +809,32 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
 		if (opc)
 			return SR_OK;
+		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
+	}
+
+	return SR_ERR;
+}
+
+/**
+ * Send a SCPI *ESR? command, read the reply and store the result
+ * in scpi_response.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK on success, SR_ERR* on failure.
+ */
+SR_PRIV int sr_scpi_get_esr(struct sr_scpi_dev_inst *scpi, int *scpi_response)
+{
+	unsigned int i;
+	int ret, esr;
+
+	for (i = 0; i < SCPI_READ_RETRIES; i++) {
+		ret = sr_scpi_get_int(scpi, SCPI_CMD_ESR, &esr);
+		if (ret == SR_OK && esr >= 0) {
+			*scpi_response = esr;
+			return ret;
+		}
 		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
 	}
 

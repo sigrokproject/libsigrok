@@ -32,6 +32,7 @@
 
 #define SCPI_CMD_IDN "*IDN?"
 #define SCPI_CMD_OPC "*OPC?"
+#define SCPI_CMD_ESR "*ESR?"
 
 enum {
 	SCPI_CMD_GET_TIMEBASE = 1,
@@ -106,6 +107,23 @@ enum {
 	SCPI_CMD_GET_FFT_DATA,
 };
 
+/*
+ * Meaning of the 8 bits that are used by the
+ * Event Status Register (ESR). Some of them
+ * correspond to the different possible SCPI
+ * errors (Bit 2-5).
+ */
+enum scpi_esr {
+	operation_complete	= (1u << 0), /* Bit 0 */
+	not_used		= (1u << 1), /* Bit 1 */
+	query_error		= (1u << 2), /* Bit 2, SCPI err: -400 to -499 */
+	device_dependent_error	= (1u << 3), /* Bit 3, SCPI err: -300 to -399 */
+	execution_error		= (1u << 4), /* Bit 4, SCPI err: -200 to -299 */
+	command_error		= (1u << 5), /* Bit 5, SCPI err: -100 to -199 */
+	user_request		= (1u << 6), /* Bit 6 */
+	power_on		= (1u << 7), /* Bit 7 */
+};
+
 struct scpi_command {
 	int command;
 	const char *string;
@@ -178,6 +196,7 @@ SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
 SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
 			const char *command, double *scpi_response);
 SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_get_esr(struct sr_scpi_dev_inst *scpi, int *scpi_response);
 SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 			const char *command, GArray **scpi_response);
 SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
