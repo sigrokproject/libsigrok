@@ -82,6 +82,14 @@ SR_API const char *sr_strerror(int error_code)
 		return "data is invalid";
 	case SR_ERR_IO:
 		return "input/output error";
+	case SR_ERR_SCPI_CMD:
+		return "SCPI command error";
+	case SR_ERR_SCPI_EXEC:
+		return "SCPI execution error";
+	case SR_ERR_SCPI_DEVICE:
+		return "SCPI device-dependent error";
+	case SR_ERR_SCPI_QUERY:
+		return "SCPI query error";
 	default:
 		return "unknown error";
 	}
@@ -137,6 +145,14 @@ SR_API const char *sr_strerror_name(int error_code)
 		return "SR_ERR_DATA";
 	case SR_ERR_IO:
 		return "SR_ERR_IO";
+	case SR_ERR_SCPI_CMD:      
+		return "SR_ERR_SCPI_CMD";
+	case SR_ERR_SCPI_EXEC:     
+		return "SR_ERR_SCPI_EXEC";
+	case SR_ERR_SCPI_DEVICE:   
+		return "SR_ERR_SCPI_DEVICE";
+	case SR_ERR_SCPI_QUERY:    
+		return "SR_ERR_SCPI_QUERY";
 	default:
 		return "unknown error code";
 	}

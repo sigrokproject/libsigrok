@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +77,11 @@ enum sr_error_code {
 	SR_ERR_CHANNEL_GROUP = -9, /**< A channel group must be specified. */
 	SR_ERR_DATA          =-10, /**< Data is invalid.  */
 	SR_ERR_IO            =-11, /**< Input/output error. */
+	/* SCPI errors. */
+	SR_ERR_SCPI_CMD      =-101, /**< Command error (e.g. SCPI -100 to -199). */
+	SR_ERR_SCPI_EXEC     =-102, /**< Execution error (e.g. SCPI -200 to -299). */
+	SR_ERR_SCPI_DEVICE   =-103, /**< Device-dependent error (e.g. SCPI -300 to -399). */
+	SR_ERR_SCPI_QUERY    =-104, /**< Query error (e.g. SCPI -400 to -499). */
 
 	/* Update sr_strerror()/sr_strerror_name() (error.c) upon changes! */
 };
