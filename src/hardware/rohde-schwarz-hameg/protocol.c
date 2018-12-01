@@ -74,7 +74,7 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
 					        ":TRIG:A:PATT:FUNC AND;" \
-					        ":TRIG:A:PATT:COND TRUE;" \
+					        ":TRIG:A:PATT:COND \"TRUE\";" \
 					        ":TRIG:A:PATT:MODE OFF;" \
 					        ":TRIG:A:PATT:SOUR \"%s\"",
 	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
@@ -160,7 +160,7 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
 					        ":TRIG:A:PATT:FUNC AND;" \
-					        ":TRIG:A:PATT:COND TRUE;" \
+					        ":TRIG:A:PATT:COND \"TRUE\";" \
 					        ":TRIG:A:PATT:MODE OFF;" \
 					        ":TRIG:A:PATT:SOUR \"%s\"",
 	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
