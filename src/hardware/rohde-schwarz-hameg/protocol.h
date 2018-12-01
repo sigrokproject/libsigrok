@@ -244,6 +244,7 @@ struct dev_context {
 };
 
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi);
+SR_PRIV int rs_check_esr(const struct sr_dev_inst *sdi);
 SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data);
 
