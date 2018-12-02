@@ -272,6 +272,9 @@ ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 # Victor 86C
 ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
 
+# YiXingDianZi MDSO
+ATTRS{idVendor}=="d4a2", ATTRS{idProduct}=="5660", ENV{ID_SIGROK}="1"
+
 # ZEROPLUS Logic Cube LAP-C series
 # There are various devices in the ZEROPLUS Logic Cube series:
 # 0c12:7002: LAP-16128U

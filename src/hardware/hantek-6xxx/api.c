@@ -89,6 +89,11 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
 		ARRAY_AND_SIZE(dc_coupling), FALSE,
 	},
+	{
+		0xd4a2, 0x5660, 0x1d50, 0x608e, 0x0004,
+		"YiXingDianZi", "MDSO", "fx2lafw-yixingdianzi-mdso.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+	},
 	ALL_ZERO
 };
 
