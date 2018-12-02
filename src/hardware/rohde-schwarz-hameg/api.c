@@ -378,6 +378,12 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_FFT_SPAN_RBW_RATIO:
 		*data = g_variant_new_uint64(state->fft_span_rbw_ratio);
 		break;
+	case SR_CONF_BEEP_ON_TRIGGER:
+		*data = g_variant_new_boolean(state->beep_on_trigger);
+		break;
+	case SR_CONF_BEEP_ON_ERROR:
+		*data = g_variant_new_boolean(state->beep_on_error);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -505,7 +511,7 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_bool = g_variant_get_boolean(data);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
-			   tmp_bool ? "ON" : "OFF");
+			   tmp_bool);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
@@ -1007,7 +1013,7 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_bool = g_variant_get_boolean(data);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING],
-			   MATH_WAVEFORM_INDEX, tmp_bool ? "ON" : "OFF");
+			   MATH_WAVEFORM_INDEX, tmp_bool);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
@@ -1026,6 +1032,30 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = rs_check_esr(sdi);
 		if (ret == SR_OK)
 			state->fft_span_rbw_ratio = tmp_uint;
+		break;
+	case SR_CONF_BEEP_ON_TRIGGER:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_SYS_BEEP_ON_TRIGGER],
+			   tmp_bool);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->beep_on_trigger = tmp_bool;
+		break;
+	case SR_CONF_BEEP_ON_ERROR:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_SYS_BEEP_ON_ERROR],
+			   tmp_bool);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->beep_on_error = tmp_bool;
 		break;
 	default:
 		ret = SR_ERR_NA;
@@ -1623,8 +1653,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		/* Set the Automatic Record Length (implies maximum sample rate). Not supported on all models. */
 		if ((*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH]) {
 			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
-				   "ON");
+				   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH], 1);
 			if (sr_scpi_send(scpi, command) != SR_OK ||
 			    sr_scpi_get_opc(scpi) != SR_OK) {
 				update_sample_rate = FALSE;
@@ -1740,8 +1769,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		if ((*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH]) {
 			if (!state->restore_auto_record_length) {
 				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH],
-					   "OFF");
+					   (*model->scpi_dialect)[SCPI_CMD_SET_AUTO_RECORD_LENGTH], 0);
 				sr_scpi_send(scpi, command);
 			}
 		}

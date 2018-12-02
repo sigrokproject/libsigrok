@@ -33,6 +33,9 @@
  * rate) and the Acquisition Mode settings. Note that the Random
  * Sampling feature might only be available on HMO2524 and HMO3000,
  * according to the latest available User Manual version.
+ *
+ * The system beep functionality is misteriously missing from HMO
+ * Compact and HMO2524 User Manuals...
  */
 static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
@@ -103,7 +106,7 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
 	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
-	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %d",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
 	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
 	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
@@ -111,6 +114,10 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 					        ":CALC:MATH%d:SCAL 20;" \
 					        ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
+	[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT %d",
+	[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT %d",
 };
 
 /*
@@ -133,7 +140,7 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT?",
-	[SCPI_CMD_SET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT %s",
+	[SCPI_CMD_SET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT %d",
 	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
 	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
@@ -189,7 +196,7 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
 	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
-	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %d",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
 	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
 	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
@@ -197,6 +204,10 @@ static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
 					        ":CALC:MATH%d:SCAL 20;" \
 					        ":FORM:BORD %s;" \
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
+	[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT %d",
+	[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT %d",
 };
 
 /*
@@ -272,7 +283,7 @@ static const char *rohde_schwarz_rto200x_scpi_dialect[] = {
 	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
 	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
-	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %s",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %d",
 	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
 	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
 	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
@@ -282,6 +293,7 @@ static const char *rohde_schwarz_rto200x_scpi_dialect[] = {
 					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
 };
 
+/* Options currently supported on the HMO2524 and HMO3000 series. */
 static const uint32_t devopts_hmo300x[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
@@ -307,8 +319,11 @@ static const uint32_t devopts_hmo300x[] = {
 	SR_CONF_FFT_RESOLUTION_BW | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_COUPLING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_TRIGGER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
+/* Options currently supported on the HMO Compact, HMO1x02 and RTC1000 series. */
 static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
@@ -333,8 +348,11 @@ static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_FFT_RESOLUTION_BW | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_COUPLING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_TRIGGER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
+/* Options currently supported on the RTB200x, RTM300x and RTA400x series. */
 static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
@@ -358,8 +376,11 @@ static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_FFT_RESOLUTION_BW | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_COUPLING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FFT_SPAN_RBW_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_TRIGGER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
+/* Options currently supported on the RTO200x series. */
 static const uint32_t devopts_rto200x[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,

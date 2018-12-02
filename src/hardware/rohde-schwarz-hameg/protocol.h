@@ -222,6 +222,9 @@ struct scope_state {
 	char restore_math_expr[MAX_COMMAND_SIZE];
 	unsigned int restore_waveform_sample_rate;
 	gboolean restore_auto_record_length;
+
+	gboolean beep_on_trigger;
+	gboolean beep_on_error;
 };
 
 struct dev_context {

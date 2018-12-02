@@ -207,6 +207,10 @@ static struct sr_key_info sr_key_info_config[] = {
 		"External clock source", NULL},
 	{SR_CONF_BANDWIDTH_LIMIT, SR_T_STRING, "bandwidth_limit",
 		"Bandwidth limit", NULL},
+	{SR_CONF_BEEP_ON_TRIGGER, SR_T_BOOL, "beep_on_trigger",
+		"Beep on trigger", NULL},
+	{SR_CONF_BEEP_ON_ERROR, SR_T_BOOL, "beep_on_error",
+		"Beep on error", NULL},
 
 	/* Fast Fourier Transform (FFT) options */
 	{SR_CONF_FFT_WINDOW, SR_T_STRING, "fft_window",
