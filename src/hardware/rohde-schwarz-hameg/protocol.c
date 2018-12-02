@@ -541,6 +541,16 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 	}
 
+	/* Acquisition Type setting is supported only on the HMO, RTC100x and RTB200x series. */
+	if (config->acquisition_type && config->num_acquisition_type &&
+	    (*config->scpi_dialect)[SCPI_CMD_GET_ACQUISITION_TYPE]) {
+		if (scope_state_get_array_option(sdi->conn,
+						 (*config->scpi_dialect)[SCPI_CMD_GET_ACQUISITION_TYPE],
+						 config->acquisition_type, config->num_acquisition_type,
+						 &state->acquisition_type) != SR_OK)
+			return SR_ERR;
+	}
+
 	if (scope_state_get_array_option(sdi->conn,
 					 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
 					 config->interpolation_mode, config->num_interpolation_mode,

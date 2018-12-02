@@ -290,6 +290,14 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string((*model->acquisition_mode)[state->acquisition_mode]);
 		break;
+        case SR_CONF_ACQUISITION_TYPE:
+		/* Only supported on the HMO, RTC100x and RTB200x series. */
+		if (!model->acquisition_type || !model->num_acquisition_type)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_ACQUISITION_TYPE])
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->acquisition_type)[state->acquisition_type]);
+		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
 			return SR_ERR_NA;
@@ -554,6 +562,24 @@ static int config_set(uint32_t key, GVariant *data,
 		ret = rs_check_esr(sdi);
 		if (ret == SR_OK)
 			state->acquisition_mode = idx;
+		break;
+        case SR_CONF_ACQUISITION_TYPE:
+		/* Only supported on the HMO, RTC100x and RTB200x series. */
+		if (!model->acquisition_type || !model->num_acquisition_type)
+			return SR_ERR_NA;
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_ACQUISITION_TYPE])
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->acquisition_type, model->num_acquisition_type)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_ACQUISITION_TYPE],
+			   (*model->acquisition_type)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->acquisition_type = idx;
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model->interpolation_mode || !model->num_interpolation_mode)
@@ -1163,6 +1189,14 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model->acquisition_mode || !model->num_acquisition_mode)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->acquisition_mode, model->num_acquisition_mode);
+		break;
+	case SR_CONF_ACQUISITION_TYPE:
+		if (!model)
+			return SR_ERR_ARG;
+		/* Make sure it is supported by the specific model. */
+		if (!model->acquisition_type || !model->num_acquisition_type)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->acquisition_type, model->num_acquisition_type);
 		break;
 	case SR_CONF_INTERPOLATION_MODE:
 		if (!model)
