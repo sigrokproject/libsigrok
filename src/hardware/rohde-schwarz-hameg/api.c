@@ -566,8 +566,6 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
-		if (tmp_d < 0.0 || tmp_d > 1.0)
-			return SR_ERR;
 		if (!model->timebases || !model->num_timebases)
 			return SR_ERR_NA;
 		tmp_d2 = -(tmp_d - 0.5) *
@@ -804,14 +802,6 @@ static int config_set(uint32_t key, GVariant *data,
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
 		tmp_d = g_variant_get_double(data);
-		/* The RTO200x has an extended range of allowed values. */
-		if (strncmp("RTO", sdi->model, 3)) {
-			if (tmp_d < -2.0 || tmp_d > 8.0)
-				return SR_ERR;
-		} else {
-			if (tmp_d < -8.0 || tmp_d > 8.0)
-				return SR_ERR;
-		}
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
 		/* Check if the threshold command is based on the POD or nibble channel index. */
 		if (model->logic_threshold_for_pod)
@@ -1194,6 +1184,9 @@ static int config_list(uint32_t key, GVariant **data,
  * Check the Event Status Register (ESR), report any SCPI
  * error that might have occurred and return the corresponding
  * error code or SR_OK if no SCPI error occurred.
+ *
+ * Refresh the model state on SCPI errors to avoid an inconsistent
+ * state.
  */
 SR_PRIV int rs_check_esr(const struct sr_dev_inst *sdi)
 {
@@ -1224,6 +1217,9 @@ SR_PRIV int rs_check_esr(const struct sr_dev_inst *sdi)
 
 	if (esr & command_error)
 		ret = SR_ERR_SCPI_CMD;
+
+	if (ret != SR_OK)
+		rs_scope_state_get(sdi);
 
 	return ret;
 }
