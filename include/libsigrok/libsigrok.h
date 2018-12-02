@@ -779,6 +779,9 @@ enum sr_configkey {
 	/** Acquisition mode. */
 	SR_CONF_ACQUISITION_MODE,
 
+	/** Acquisition type. */
+	SR_CONF_ACQUISITION_TYPE,
+
 	/** Interpolation mode. */
 	SR_CONF_INTERPOLATION_MODE,
 
