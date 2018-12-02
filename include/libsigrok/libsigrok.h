@@ -1040,6 +1040,12 @@ enum sr_configkey {
 	/** Bandwidth limit. */
 	SR_CONF_BANDWIDTH_LIMIT,
 
+	/** Beep on trigger. */
+	SR_CONF_BEEP_ON_TRIGGER,
+
+	/** Beep on error. */
+	SR_CONF_BEEP_ON_ERROR,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Fast Fourier Transform (FFT) ----------------------------------*/
