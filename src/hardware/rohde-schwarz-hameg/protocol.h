@@ -159,8 +159,8 @@ struct scope_config {
 	const uint64_t (*vscale)[][2];
 	const uint8_t num_vscale;
 
-	uint8_t num_xdivs;
-	const uint8_t num_ydivs;
+	unsigned int num_xdivs;
+	const unsigned int num_ydivs;
 
 	const char *(*scpi_dialect)[];
 };
