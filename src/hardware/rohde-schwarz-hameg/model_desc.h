@@ -51,8 +51,6 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_SET_RANDOM_SAMPLING]	      = ":ACQ:REAL %s",	/* HMO2524 and HMO3000 series only ! */
 	[SCPI_CMD_GET_ACQUISITION_MODE]	      = ":ACQ:MODE?",
 	[SCPI_CMD_SET_ACQUISITION_MODE]	      = ":ACQ:MODE %s",
-	[SCPI_CMD_GET_ACQUISITION_TYPE]	      = ":ACQ:TYPE?",
-	[SCPI_CMD_SET_ACQUISITION_TYPE]	      = ":ACQ:TYPE %s",
 	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
 	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
@@ -132,9 +130,6 @@ static const char *rohde_schwarz_scpi_dialect[] = {
  *
  * It supports setting a logic threshold for Logic (Pattern)
  * Trigger on digitized analog channels (custom level).
- *
- * The Acquisition Type setting is only be available on the RTB200x
- * series.
  */
 static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
@@ -146,8 +141,6 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
 	[SCPI_CMD_GET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT?",
 	[SCPI_CMD_SET_AUTO_RECORD_LENGTH]     = ":ACQ:POIN:AUT %d",
-	[SCPI_CMD_GET_ACQUISITION_TYPE]	      = ":ACQ:TYPE?",
-	[SCPI_CMD_SET_ACQUISITION_TYPE]	      = ":ACQ:TYPE %s",
 	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
 	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
 	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
@@ -309,7 +302,6 @@ static const uint32_t devopts_hmo300x[] = {
 	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_RANDOM_SAMPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ACQUISITION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_ACQUISITION_TYPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
@@ -339,7 +331,6 @@ static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ACQUISITION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_ACQUISITION_TYPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
@@ -368,7 +359,6 @@ static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_AUTO_RECORD_LENGTH | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_ACQUISITION_TYPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST, /* RTB200x only. */
 	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
@@ -471,31 +461,6 @@ static const char *random_sampling[] = {
 static const char *acquisition_mode[] = {
 	"RTIM",
 	"ETIM",
-};
-
-/* HMO series. */
-static const char *acquisition_type_hmo[] = {
-	"REFR",
-	"ROLL",
-	"AVER",
-	"ENV",
-	"FILT",
-};
-
-/* RTC100x series. */
-static const char *acquisition_type_rtc100x[] = {
-	"REFR",
-	"SMO",
-	"AVER",
-	"ENV",
-	"FILT",
-};
-
-/* RTB200x series. */
-static const char *acquisition_type_rtb200x[] = {
-	"REFR",
-	"AVER",
-	"ENV",
 };
 
 static const char *interpolation_mode[] = {
@@ -879,9 +844,6 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.acquisition_type = &acquisition_type_hmo,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_hmo),
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -940,9 +902,6 @@ static struct scope_config scope_models[] = {
 
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
-
-		.acquisition_type = &acquisition_type_hmo,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_hmo),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1003,9 +962,6 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.acquisition_type = &acquisition_type_rtc100x,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_rtc100x),
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1064,9 +1020,6 @@ static struct scope_config scope_models[] = {
 
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
-
-		.acquisition_type = &acquisition_type_hmo,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_hmo),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1128,9 +1081,6 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.acquisition_type = &acquisition_type_hmo,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_hmo),
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1189,9 +1139,6 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.acquisition_type = &acquisition_type_hmo,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_hmo),
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1249,9 +1196,6 @@ static struct scope_config scope_models[] = {
 
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
-
-		.acquisition_type = &acquisition_type_rtb200x,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_rtb200x),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1312,9 +1256,6 @@ static struct scope_config scope_models[] = {
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
 
-		.acquisition_type = &acquisition_type_rtb200x,
-		.num_acquisition_type = ARRAY_SIZE(acquisition_type_rtb200x),
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1374,9 +1315,6 @@ static struct scope_config scope_models[] = {
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
 
-		/* Acquisition type not available. */
-		.num_acquisition_type = 0,
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1435,9 +1373,6 @@ static struct scope_config scope_models[] = {
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
 
-		/* Acquisition type not available. */
-		.num_acquisition_type = 0,
-
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
@@ -1495,9 +1430,6 @@ static struct scope_config scope_models[] = {
 
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
-
-		/* Acquisition type not available. */
-		.num_acquisition_type = 0,
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1558,9 +1490,6 @@ static struct scope_config scope_models[] = {
 
 		/* Acquisition mode not available. */
 		.num_acquisition_mode = 0,
-
-		/* Acquisition type not available. */
-		.num_acquisition_type = 0,
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
