@@ -136,7 +136,7 @@ static const char *rohde_schwarz_scpi_dialect[] = {
  * The Acquisition Type setting is only be available on the RTB200x
  * series.
  */
-static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
+static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
@@ -1284,7 +1284,7 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
-		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
 		.name = {"RTB2004", NULL},
@@ -1346,7 +1346,7 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
-		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
 		.name = {"RTM3002", NULL},
@@ -1407,7 +1407,7 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
-		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
 		.name = {"RTM3004", NULL},
@@ -1468,7 +1468,7 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
-		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
 		.name = {"RTA4004", NULL},
@@ -1530,7 +1530,7 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
-		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
 		/* For RTO200x, number of analog channels is specified in the serial number, not in the name. */
