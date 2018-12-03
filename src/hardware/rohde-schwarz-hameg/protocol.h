@@ -128,6 +128,9 @@ struct scope_config {
 	const char *(*acquisition_mode)[];
 	const uint8_t num_acquisition_mode;
 
+	const char *(*arithmetics_type)[];
+	const uint8_t num_arithmetics_type;
+
 	const char *(*interpolation_mode)[];
 	const uint8_t num_interpolation_mode;
 
@@ -198,6 +201,7 @@ struct scope_state {
 	unsigned int random_sampling;
 
 	unsigned int acquisition_mode;
+	unsigned int arithmetics_type;
 
 	unsigned int interpolation_mode;
 

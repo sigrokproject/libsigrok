@@ -541,6 +541,15 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 	}
 
+	/* Not all series support the Arithmetics Type setting. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_ARITHMETICS_TYPE]) {
+		if (scope_state_get_array_option(sdi->conn,
+						 (*config->scpi_dialect)[SCPI_CMD_GET_ARITHMETICS_TYPE],
+						 config->arithmetics_type, config->num_arithmetics_type,
+						 &state->arithmetics_type) != SR_OK)
+			return SR_ERR;
+	}
+
 	if (scope_state_get_array_option(sdi->conn,
 					 (*config->scpi_dialect)[SCPI_CMD_GET_INTERPOLATION_MODE],
 					 config->interpolation_mode, config->num_interpolation_mode,
