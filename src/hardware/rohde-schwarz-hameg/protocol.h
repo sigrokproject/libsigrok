@@ -232,7 +232,7 @@ struct scope_state {
 };
 
 struct dev_context {
-	const void *model_config;
+	void *model_config;
 	void *model_state;
 
 	struct sr_channel_group **analog_groups;
