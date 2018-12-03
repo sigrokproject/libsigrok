@@ -439,7 +439,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 {
 	const struct dev_context *devc;
 	struct scope_state *state;
-	const struct scope_config *config;
+	struct scope_config *config;
 	float tmp_float;
 	unsigned int i;
 	char *tmp_str, *tmp_str2;
