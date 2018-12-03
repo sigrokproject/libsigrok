@@ -83,6 +83,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Random sampling", NULL},
 	{SR_CONF_ACQUISITION_MODE, SR_T_STRING, "acquisition_mode",
 		"Acquisition mode", NULL},
+	{SR_CONF_ARITHMETICS_TYPE, SR_T_STRING, "arithmetics_type",
+		"Arithmetics type", NULL},
 	{SR_CONF_INTERPOLATION_MODE, SR_T_STRING, "interpolation",
 		"Interpolation mode", NULL},
 	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
