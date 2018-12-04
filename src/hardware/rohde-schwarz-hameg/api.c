@@ -662,11 +662,11 @@ static int config_set(uint32_t key, GVariant *data,
 			if (idx > DIGITAL_CHANNELS_PER_POD * model->digital_pods)
 				return SR_ERR_ARG;
 			for (i = 0; i < idx; i++) {
-				if (!strncmp("0", &tmp_str[i], 1)) {
+				if (tmp_str[i] == LOGIC_TRIGGER_ZERO) {
 					g_snprintf(command, sizeof(command),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_PATTERN],
 						   i, "LOW");
-				} else if (!strncmp("1", &tmp_str[i], 1)) {
+				} else if (tmp_str[i] == LOGIC_TRIGGER_ONE) {
 					g_snprintf(command, sizeof(command),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_PATTERN],
 						   i, "HIGH");
@@ -1159,6 +1159,9 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
 		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		break;
 	case SR_CONF_TIMEBASE:
 		if (!model)
 			return SR_ERR_ARG;
@@ -1566,6 +1569,179 @@ exit:
 	return SR_OK;
 }
 
+static int rs_configure_trigger(const struct sr_dev_inst *sdi)
+{
+	int ret;
+	struct dev_context *devc;
+	const struct scope_config *model;
+	struct scope_state *state;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	unsigned int num_stages, logic_ch_idx, edge_ch_idx, i;
+	GSList *l, *ll;
+	gboolean logic_trigger = FALSE;
+	gboolean edge_trigger = FALSE, multiple_edge = FALSE;
+	char trigger_pattern[MAX_TRIGGER_PATTERN_LENGTH];
+	char *an_ch_prefix, *dig_ch_prefix, *edge_ch_prefix;
+	char *edge_slope = NULL, *edge_source = NULL;
+
+	if (!sdi)
+		return SR_ERR;
+
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR;
+
+	model = devc->model_config;
+	if (!model)
+		return SR_ERR;
+
+	state = devc->model_state;
+	if (!state)
+		return SR_ERR;
+
+	trigger = sr_session_trigger_get(sdi->session);
+	if (!trigger)
+		return SR_OK;
+
+	ret = SR_OK;
+
+	/* Determine the analog channel name prefix. */
+	i = strlen((*model->analog_names)[0]) - 1;
+	an_ch_prefix = g_malloc0_n(i, sizeof(char));
+	if (!an_ch_prefix)
+		return SR_ERR_MALLOC;
+	strncpy(an_ch_prefix, (*model->analog_names)[0], i);
+
+	/* Determine the digital channel name prefix. */
+	i = strlen((*model->digital_names)[0]) - 1;
+	dig_ch_prefix = g_malloc0_n(i, sizeof(char));
+	if (!dig_ch_prefix)
+		return SR_ERR_MALLOC;
+	strncpy(dig_ch_prefix, (*model->digital_names)[0], i);
+
+	/* Reset the trigger pattern to "X: don't care". */
+	for (i = 0; i < MAX_TRIGGER_PATTERN_LENGTH; i++)
+		trigger_pattern[i] = LOGIC_TRIGGER_DONTCARE;
+
+	for (l = trigger->stages, num_stages = 1; l; l = l->next, num_stages++) {
+		stage = l->data;
+
+		if (num_stages > 1) {
+			sr_warn("This device only supports 1 trigger stage. Subsequent stages will be ignored...");
+			break;
+		}
+
+		/* Check if this stage has any interesting matches. */
+		for (ll = stage->matches; ll; ll = ll->next) {
+			match = ll->data;
+
+			if (!match)
+				continue;
+
+			/* Ignore triggers on disabled channels. */
+			if (!match->channel || !match->channel->enabled)
+				continue;
+
+			/* Determine channel index and channel name prefix. */
+			if (match->channel->type == SR_CHANNEL_LOGIC) {
+				logic_ch_idx = match->channel->index + model->analog_channels;
+				edge_ch_idx = match->channel->index;
+				edge_ch_prefix = dig_ch_prefix;
+			} else if (match->channel->type == SR_CHANNEL_ANALOG) {
+				logic_ch_idx = match->channel->index;
+				edge_ch_idx = match->channel->index + 1;
+				edge_ch_prefix = an_ch_prefix;
+			} else {
+				sr_err("Unexpected trigger match: unsupported channel type!");
+				ret = SR_ERR;
+				goto exit;
+			}
+
+			/*
+			 * Build the Logic (Pattern) Trigger source string or set the
+			 * Edge type: the former takes precedence.
+			 *
+			 * The first characters in the logic pattern are reserved to
+			 * the digitized analog channels: skip them, as the native
+			 * sigrok trigger configuration does not support logic trigger
+			 * on the analog channels.
+			 */
+			switch (match->match) {
+			case SR_TRIGGER_ZERO:
+				logic_trigger = TRUE;
+				trigger_pattern[logic_ch_idx] = LOGIC_TRIGGER_ZERO;
+				break;
+			case SR_TRIGGER_ONE:
+				logic_trigger = TRUE;
+				trigger_pattern[logic_ch_idx] = LOGIC_TRIGGER_ONE;
+				break;
+			case SR_TRIGGER_RISING:
+				if (!edge_trigger) {
+					edge_trigger = TRUE;
+					edge_slope = g_strdup((*model->trigger_slopes)[0]);
+					edge_source = g_strdup_printf("%s%d",
+								      edge_ch_prefix,
+								      edge_ch_idx);
+				} else {
+					multiple_edge = TRUE;
+				}
+				break;
+			case SR_TRIGGER_FALLING:
+				if (!edge_trigger) {
+					edge_trigger = TRUE;
+					edge_slope = g_strdup((*model->trigger_slopes)[1]);
+					edge_source = g_strdup_printf("%s%d",
+								      edge_ch_prefix,
+								      edge_ch_idx);
+				} else {
+					multiple_edge = TRUE;
+				}
+				break;
+			case SR_TRIGGER_EDGE:
+				if (!edge_trigger) {
+					edge_trigger = TRUE;
+					edge_slope = g_strdup((*model->trigger_slopes)[2]);
+					edge_source = g_strdup_printf("%s%d",
+								      edge_ch_prefix,
+								      edge_ch_idx);
+				} else {
+					multiple_edge = TRUE;
+				}
+				break;
+			default:
+				sr_err("Unexpected trigger match!");
+				ret = SR_ERR;
+				goto exit;
+			}
+		}
+	}
+
+	/* Force internal trigger re-configuration. */
+	if (logic_trigger) {
+		config_set(SR_CONF_TRIGGER_PATTERN, g_variant_new_string(trigger_pattern), sdi, NULL);
+		if (edge_trigger)
+			sr_warn("Edge trigger will be ignored because logic trigger takes precedence!");
+	} else if (edge_trigger) {
+		config_set(SR_CONF_TRIGGER_SLOPE, g_variant_new_string(edge_slope), sdi, NULL);
+		config_set(SR_CONF_TRIGGER_SOURCE, g_variant_new_string(edge_source), sdi, NULL);
+		if (multiple_edge)
+			sr_warn("This device supports only 1 edge trigger. Subsequent ones will be ignored...");
+	}
+
+exit:
+	if (edge_trigger) {
+		g_free(edge_slope);
+		g_free(edge_source);
+	}
+
+	g_free(an_ch_prefix);
+	g_free(dig_ch_prefix);
+
+	return ret;
+}
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	GSList *l;
@@ -1718,6 +1894,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 #else
 		state->fft_sample_rate = fft_minimum_sample_rate;
 #endif
+	}
+
+	/* Native sigrok trigger configuration. */
+	if (!fft_enabled) {
+		if (rs_configure_trigger(sdi) != SR_OK) {
+			sr_err("Trigger configuration failed!");
+			return SR_ERR;
+		}
 	}
 
 	/*
