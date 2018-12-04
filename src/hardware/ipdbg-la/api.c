@@ -209,7 +209,11 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
+		{
+			uint64_t limit_samples = g_variant_get_uint64(data);
+			if (limit_samples <= devc->limit_samples_max )
+				devc->limit_samples = limit_samples;
+		}
 		break;
 	default:
 		return SR_ERR_NA;
