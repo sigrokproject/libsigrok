@@ -101,6 +101,13 @@
  */
 #define MAXIMUM_SAMPLE_RATE_INDEX	2
 
+/*
+ * Logic (Pattern) Trigger match encodings.
+ */
+#define LOGIC_TRIGGER_ZERO		'0'
+#define LOGIC_TRIGGER_ONE		'1'
+#define LOGIC_TRIGGER_DONTCARE		'X'
+
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	uint8_t analog_channels;
@@ -248,6 +255,15 @@ struct dev_context {
 
 	size_t pod_count;
 	GByteArray *logic_data;
+};
+
+/* Supported trigger states (sigrok native trigger definition format). */
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi);
