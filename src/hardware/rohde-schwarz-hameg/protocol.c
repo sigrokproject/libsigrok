@@ -250,7 +250,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 {
 	unsigned int i, idx, nibble1ch2, nibble2ch2, tmp_uint;
 	int result = SR_ERR;
-	static char *logic_threshold_short[] = {};
+	char *logic_threshold_short[config->num_logic_threshold];
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
@@ -461,7 +461,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 
 	strncpy(state->restore_math_expr,
 		sr_scpi_unquote_string(tmp_str),
-		MAX_COMMAND_SIZE);
+		MAX_COMMAND_SIZE - 1);
 	g_free(tmp_str);
 
 	/* If the oscilloscope is currently in FFT mode, switch to normal mode. */
@@ -606,7 +606,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	}
 	strncpy(state->trigger_pattern,
 		sr_scpi_unquote_string(tmp_str),
-		MAX_TRIGGER_PATTERN_LENGTH);
+		MAX_TRIGGER_PATTERN_LENGTH - 1);
 	g_free(tmp_str);
 
 	/* Not currently implemented on RTO200x. */
