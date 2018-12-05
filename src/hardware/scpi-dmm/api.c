@@ -69,6 +69,12 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 	},
+	{
+		"Keysight", "34465A",
+		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+	},
 };
 
 static const struct scpi_dmm_model *is_compatible(const char *vendor, const char *model)
