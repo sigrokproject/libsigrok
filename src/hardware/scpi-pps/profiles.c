@@ -86,6 +86,53 @@ static const struct scpi_command agilent_n5700a_cmd[] = {
 	ALL_ZERO
 };
 
+/* BK Precision 9130 series */
+static const uint32_t bk_9130_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t bk_9130_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec bk_9130_ch[] = {
+	{ "1", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0,  5, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 15, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_group_spec bk_9130_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP },
+	{ "2", CH_IDX(1), PPS_OVP },
+	{ "3", CH_IDX(2), PPS_OVP },
+};
+
+static const struct scpi_command bk_9130_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
+	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
+	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, ":MEAS:POWER?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":OUTP 1" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP 0" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT %.6f" },
+	ALL_ZERO
+};
+
 /* Chroma 61600 series AC source */
 static const uint32_t chroma_61604_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -694,6 +741,16 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5767a_ch),
 		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
+		.probe_channels = NULL,
+	},
+
+	/* BK Precision 9310 */
+	{ "BK", "^9130$", 0,
+		ARRAY_AND_SIZE(bk_9130_devopts),
+		ARRAY_AND_SIZE(bk_9130_devopts_cg),
+		ARRAY_AND_SIZE(bk_9130_ch),
+		ARRAY_AND_SIZE(bk_9130_cg),
+		bk_9130_cmd,
 		.probe_channels = NULL,
 	},
 
