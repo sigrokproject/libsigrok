@@ -474,11 +474,20 @@ static const char *acquisition_mode[] = {
 	"ETIM",
 };
 
-/* HMO and RTC100x series. */
+/* HMO Compact series. */
+static const char *arithmetics_type_hmo_compact[] = {
+	"OFF",
+	"ENV",
+	"AVER",
+	"FILT",
+};
+
+/* HMO1002/1202, HMO2524, HMO3000 and RTC100x series. */
 static const char *arithmetics_type_hmo_rtc100x[] = {
 	"OFF",
 	"ENV",
 	"AVER",
+	"SMO",
 	"FILT",
 };
 
@@ -875,8 +884,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_compact,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_compact),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1124,8 +1133,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_compact,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_compact),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
