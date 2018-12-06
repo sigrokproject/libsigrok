@@ -1719,14 +1719,15 @@ static int rs_configure_trigger(const struct sr_dev_inst *sdi)
 	}
 
 	/* Force internal trigger re-configuration. */
-	if (logic_trigger) {
-		config_set(SR_CONF_TRIGGER_PATTERN, g_variant_new_string(trigger_pattern), sdi, NULL);
-		if (edge_trigger)
+	if (logic_trigger && ret == SR_OK) {
+		ret = config_set(SR_CONF_TRIGGER_PATTERN, g_variant_new_string(trigger_pattern), sdi, NULL);
+		if (edge_trigger && ret == SR_OK) /* TODO: Use B-trigger for extra edge. */
 			sr_warn("Edge trigger will be ignored because logic trigger takes precedence!");
-	} else if (edge_trigger) {
-		config_set(SR_CONF_TRIGGER_SLOPE, g_variant_new_string(edge_slope), sdi, NULL);
-		config_set(SR_CONF_TRIGGER_SOURCE, g_variant_new_string(edge_source), sdi, NULL);
-		if (multiple_edge)
+	} else if (edge_trigger && ret == SR_OK) { /* TODO: Use B-trigger for extra edge. */
+		ret = config_set(SR_CONF_TRIGGER_SLOPE, g_variant_new_string(edge_slope), sdi, NULL);
+		if (ret == SR_OK)
+			ret = config_set(SR_CONF_TRIGGER_SOURCE, g_variant_new_string(edge_source), sdi, NULL);
+		if (multiple_edge && ret == SR_OK) /* TODO: Use B-trigger for extra edge. */
 			sr_warn("This device supports only 1 edge trigger. Subsequent ones will be ignored...");
 	}
 
