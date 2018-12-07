@@ -43,6 +43,9 @@ struct context {
 	GString **lines;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
@@ -85,6 +88,8 @@ static int init(struct sr_output *o, GHashTable *options)
 		g_string_printf(ctx->lines[j], "%s:", ch->name);
 		j++;
 	}
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -216,6 +221,11 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	return SR_OK;
 }
 
+static struct sr_option options[] = {
+	{ "width", "Width", "Number of samples per line", NULL, NULL },
+	ALL_ZERO
+};
+
 static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
@@ -227,6 +237,17 @@ static int cleanup(struct sr_output *o)
 	if (!(ctx = o->priv))
 		return SR_OK;
 
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
+	for (i = 0; i < ARRAY_SIZE(options); i++) {
+		if (options[i].def)
+			g_variant_unref(options[i].def);
+		if (options[i].values)
+			g_slist_free_full(options[i].values, (GDestroyNotify)g_variant_unref);
+	}
+
 	g_free(ctx->channel_index);
 	g_free(ctx->sample_buf);
 	g_free(ctx->channel_names);
@@ -236,13 +257,10 @@ static int cleanup(struct sr_output *o)
 	g_free(ctx);
 	o->priv = NULL;
 
+	cleaned = TRUE;
+
 	return SR_OK;
 }
-
-static struct sr_option options[] = {
-	{ "width", "Width", "Number of samples per line", NULL, NULL },
-	ALL_ZERO
-};
 
 static const struct sr_option *get_options(void)
 {

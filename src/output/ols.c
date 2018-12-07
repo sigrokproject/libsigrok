@@ -38,6 +38,9 @@ struct context {
 	uint64_t num_samples;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
@@ -48,6 +51,8 @@ static int init(struct sr_output *o, GHashTable *options)
 	o->priv = ctx;
 	ctx->samplerate = 0;
 	ctx->num_samples = 0;
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -139,9 +144,15 @@ static int cleanup(struct sr_output *o)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
 	ctx = o->priv;
 	g_free(ctx);
 	o->priv = NULL;
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }
