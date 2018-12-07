@@ -37,6 +37,9 @@ struct out_context {
 	gint *analog_index_map;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct out_context *outc;
@@ -51,6 +54,8 @@ static int init(struct sr_output *o, GHashTable *options)
 	outc = g_malloc0(sizeof(struct out_context));
 	outc->filename = g_strdup(o->filename);
 	o->priv = outc;
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -474,12 +479,26 @@ static const struct sr_option *get_options(void)
 static int cleanup(struct sr_output *o)
 {
 	struct out_context *outc;
+	unsigned int i;
+
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
+	for (i = 0; i < ARRAY_SIZE(options); i++) {
+		if (options[i].def)
+			g_variant_unref(options[i].def);
+		if (options[i].values)
+			g_slist_free_full(options[i].values, (GDestroyNotify)g_variant_unref);
+	}
 
 	outc = o->priv;
 	g_free(outc->analog_index_map);
 	g_free(outc->filename);
 	g_free(outc);
 	o->priv = NULL;
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }

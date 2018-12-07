@@ -36,6 +36,9 @@ struct context {
 	GString *pretrig_buf;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 /**
  * Check if the given samplerate is supported by the LA8 hardware.
  *
@@ -100,6 +103,8 @@ static int init(struct sr_output *o, GHashTable *options)
 	}
 	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
 	ctx->pretrig_buf = g_string_sized_new(1024);
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -173,6 +178,10 @@ static int cleanup(struct sr_output *o)
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
 	if (o->priv) {
 		ctx = o->priv;
 		g_string_free(ctx->pretrig_buf, TRUE);
@@ -180,6 +189,8 @@ static int cleanup(struct sr_output *o)
 		g_free(o->priv);
 		o->priv = NULL;
 	}
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }
