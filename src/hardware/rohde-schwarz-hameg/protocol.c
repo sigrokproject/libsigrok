@@ -926,8 +926,6 @@ SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 	} else {
 		store = devc->logic_data;
 		size = store->len / devc->pod_count;
-		if (size != pod_data->len)
-			return;
 		if (group >= devc->pod_count)
 			return;
 	}
