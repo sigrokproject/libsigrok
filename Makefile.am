@@ -443,6 +443,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/maynuo-m97/protocol.c \
 	src/hardware/maynuo-m97/api.c
 endif
+if HW_MICROCHIP_PICKIT2
+src_libdrivers_la_SOURCES += \
+	src/hardware/microchip-pickit2/protocol.h \
+	src/hardware/microchip-pickit2/protocol.c \
+	src/hardware/microchip-pickit2/api.c
+endif
 if HW_MIC_985XX
 src_libdrivers_la_SOURCES += \
 	src/hardware/mic-985xx/protocol.h \
