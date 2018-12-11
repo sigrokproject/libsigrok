@@ -59,10 +59,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	devices = NULL;
-	if (!(usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn))) {
-		g_slist_free_full(usb_devices, g_free);
+	if (!(usb_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn)))
 		return NULL;
-	}
 
 	for (l = usb_devices; l; l = l->next) {
 		usb = l->data;
@@ -74,7 +72,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P2");
+		sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "P2");
 
 		sdi->inst_type = SR_INST_USB;
 		sdi->conn = usb;
