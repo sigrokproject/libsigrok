@@ -52,8 +52,8 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
-		if (!strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4) ||
-		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+		if (!g_ascii_strncasecmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4) ||
+		    !g_ascii_strcasecmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
 			sr_info("State of digital POD %d -> %s : %E (threshold)", i + 1,
 				state->digital_pods[i].state ? "On" : "Off",
 				state->digital_pods[i].user_threshold);
@@ -72,7 +72,7 @@ static void scope_state_dump(const struct scope_config *config,
 	sr_info("Current samplerate: %s", tmp);
 	g_free(tmp);
 
-	if (!strcmp("PATT", (*config->trigger_sources)[state->trigger_source]))
+	if (!g_ascii_strcasecmp("PATT", (*config->trigger_sources)[state->trigger_source]))
 		sr_info("Current trigger: %s (pattern), %.2f (offset)",
 			state->trigger_pattern,
 			state->horiz_triggerpos);
@@ -257,7 +257,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	float tmp_float;
 
 	for (i = 0; i < config->digital_channels; i++) {
-		if (strncmp("RTO", sdi->model, 3))
+		if (g_ascii_strncasecmp("RTO", sdi->model, 3))
 			g_snprintf(command, sizeof(command),
 				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
 				   i);
@@ -286,7 +286,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	 */
 	for (i = 0; i < config->num_logic_threshold; i++) {
 		logic_threshold_short[i] = g_strdup((*config->logic_threshold)[i]);
-		if (!strcmp("USER1", (*config->logic_threshold)[i]))
+		if (!g_ascii_strcasecmp("USER1", (*config->logic_threshold)[i]))
 			g_strlcpy(logic_threshold_short[i],
 				  (*config->logic_threshold)[i], strlen((*config->logic_threshold)[i]));
 	}
@@ -345,17 +345,17 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 			}
 
 			/* If used-defined or custom threshold is active, get the level. */
-			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+			if (!g_ascii_strcasecmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				g_snprintf(command, sizeof(command),
 					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 					   idx, 1); /* USER1 logic threshold setting. */
-			} else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+			} else if (!g_ascii_strcasecmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				g_snprintf(command, sizeof(command),
 					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 					   idx, 2); /* USER2 for custom logic_threshold setting. */
-			} else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-				   !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
-				if (strncmp("RTO", sdi->model, 3)) {
+			} else if (!g_ascii_strcasecmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+				   !g_ascii_strcasecmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+				if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 						   idx); /* USER or MAN for custom logic_threshold setting. */
@@ -371,10 +371,10 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 						   idx, idx * 2 - 1); /* MAN setting on the first channel group. */
 				}
 			}
-			if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-			    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-			    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
-			    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
+			if (!g_ascii_strcasecmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !g_ascii_strcasecmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !g_ascii_strcasecmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			    !g_ascii_strcasecmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold])) {
 				if (sr_scpi_get_float(scpi, command,
 				    &state->digital_pods[i].user_threshold) != SR_OK)
 					goto exit;
@@ -391,7 +391,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 				}
 
 				/* On the RTO series set the same custom threshold on both channel groups of each POD. */
-				if (!strncmp("RTO", sdi->model, 3)) {
+				if (!g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 					if (state->digital_pods[i].user_threshold != tmp_float) {
 						g_snprintf(command, sizeof(command),
 							   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
@@ -465,7 +465,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	g_free(tmp_str);
 
 	/* If the oscilloscope is currently in FFT mode, switch to normal mode. */
-	if (!strncmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
+	if (!g_ascii_strncasecmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
 			   MATH_WAVEFORM_INDEX, FFT_EXIT_MATH_EXPRESSION);
@@ -578,7 +578,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 			&state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
-	if (strncmp("RTO", sdi->model, 3)) {
+	if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 		if (sr_scpi_get_string(sdi->conn,
 				       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
 				       &tmp_str) != SR_OK)
@@ -594,9 +594,9 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 				   i);
 			if (sr_scpi_get_string(sdi->conn, command, &tmp_str2))
 				return SR_ERR;
-			if (!strcmp("LOW", tmp_str2)) {
+			if (!g_ascii_strcasecmp("LOW", tmp_str2)) {
 				tmp_str[i] = LOGIC_TRIGGER_ZERO;
-			} else if (!strcmp("HIGH", tmp_str2)) {
+			} else if (!g_ascii_strcasecmp("HIGH", tmp_str2)) {
 				tmp_str[i] = LOGIC_TRIGGER_ONE;
 			} else {
 				tmp_str[i] = LOGIC_TRIGGER_DONTCARE;
@@ -615,7 +615,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 				     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
 				     &tmp_str) != SR_OK)
 			return SR_ERR;
-		if (!strcmp("OFF", tmp_str))
+		if (!g_ascii_strcasecmp("OFF", tmp_str))
 			state->high_resolution = FALSE;
 		else
 			state->high_resolution = TRUE;
@@ -628,7 +628,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 				     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
 				     &tmp_str) != SR_OK)
 			return SR_ERR;
-		if (!strcmp("OFF", tmp_str))
+		if (!g_ascii_strcasecmp("OFF", tmp_str))
 			state->peak_detection = FALSE;
 		else
 			state->peak_detection = TRUE;
@@ -797,7 +797,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	/* Find the exact model. */
 	for (i = 0; i < ARRAY_SIZE(scope_models); i++) {
 		for (j = 0; scope_models[i].name[j]; j++) {
-			if (!strcmp(sdi->model, scope_models[i].name[j])) {
+			if (!g_ascii_strcasecmp(sdi->model, scope_models[i].name[j])) {
 				model_index = i;
 				break;
 			}
@@ -816,7 +816,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	 * digit of the serial number on the RTO series (1316.1000k[0-4][24]
 	 * for the RTO100x or 1329.7002k[0-4][24] for the RTO200x).
 	 */
-	if (!strncmp("RTO", sdi->model, 3)) {
+	if (!g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 		i = strlen(sdi->serial_num);
 		scope_models[model_index].analog_channels = 2;
 		if (i >= 12)
