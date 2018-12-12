@@ -26,7 +26,7 @@
 #include "model_desc.h"
 
 SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
-				  const size_t group, const GByteArray *pod_data);
+				  const GByteArray *pod_data);
 SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
 				   const struct dev_context *devc);
 SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
@@ -302,7 +302,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 
 		if (config->logic_threshold && config->num_logic_threshold) {
 			/* Check if the threshold command is based on the POD or nibble channel index. */
-			if (config->logic_threshold_for_pod) {
+			if (config->logic_threshold_pod_index) {
 				idx = i + 1;
 			} else {
 				nibble1ch2 = i * DIGITAL_CHANNELS_PER_POD + 1;
@@ -323,7 +323,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 					goto exit;
 
 			/* Same as above, but for the second nibble (second channel), if needed. */
-			if (!config->logic_threshold_for_pod) {
+			if (!config->logic_threshold_pod_index) {
 				if (scope_state_get_array_option(scpi, command, config->logic_threshold,
 								 config->num_logic_threshold,
 								 &tmp_uint) != SR_OK)
@@ -359,7 +359,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 						   idx); /* USER or MAN for custom logic_threshold setting. */
-				} else { /* The RTO200x divides each POD in two channel groups. */
+				} else { /* The RTO series divides each POD in two channel groups. */
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
 						   idx, idx * 2); /* MAN setting on the second channel group. */
@@ -380,7 +380,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 					goto exit;
 
 				/* Set the same custom threshold on the second nibble, if needed. */
-				if (!config->logic_threshold_for_pod) {
+				if (!config->logic_threshold_pod_index) {
 					g_snprintf(command, sizeof(command),
 						   (*config->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
 						   nibble2ch2,
@@ -390,7 +390,7 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 						goto exit;
 				}
 
-				/* On the RTO200x set the same custom threshold on both channel groups of each POD. */
+				/* On the RTO series set the same custom threshold on both channel groups of each POD. */
 				if (!strncmp("RTO", sdi->model, 3)) {
 					if (state->digital_pods[i].user_threshold != tmp_float) {
 						g_snprintf(command, sizeof(command),
@@ -583,7 +583,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 				       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
 				       &tmp_str) != SR_OK)
 			return SR_ERR;
-	} else { /* RTO200x: A separate command needs to be issued for each bit in the pattern. */
+	} else { /* RTO series: A separate command needs to be issued for each bit in the pattern. */
 		tmp_str = g_malloc0_n(MAX_TRIGGER_PATTERN_LENGTH, sizeof(char));
 		if (!tmp_str)
 			return SR_ERR_MALLOC;
@@ -595,11 +595,11 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, command, &tmp_str2))
 				return SR_ERR;
 			if (!strcmp("LOW", tmp_str2)) {
-				tmp_str[i] = '0';
+				tmp_str[i] = LOGIC_TRIGGER_ZERO;
 			} else if (!strcmp("HIGH", tmp_str2)) {
-				tmp_str[i] = '1';
+				tmp_str[i] = LOGIC_TRIGGER_ONE;
 			} else {
-				tmp_str[i] = 'X';
+				tmp_str[i] = LOGIC_TRIGGER_DONTCARE;
 			}
 			g_free(tmp_str2);
 		}
@@ -609,7 +609,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		MAX_TRIGGER_PATTERN_LENGTH - 1);
 	g_free(tmp_str);
 
-	/* Not currently implemented on RTO200x. */
+	/* Not currently implemented on the RTO series. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION]) {
 		if (sr_scpi_get_string(sdi->conn,
 				     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
@@ -622,7 +622,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		g_free(tmp_str);
 	}
 
-	/* Not currently implemented on RTO200x. */
+	/* Not currently implemented on the RTO series. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION]) {
 		if (sr_scpi_get_string(sdi->conn,
 				     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
@@ -779,11 +779,11 @@ SR_PRIV void rs_scope_state_free(struct scope_state *state)
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 {
 	int model_index;
-	unsigned int i, j, group;
+	unsigned int i, j, k, l, group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	char *tmp_str;
-	int ret;
+	int ret, len;
 
 	if (!sdi)
 		return SR_ERR;
@@ -813,7 +813,8 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 
 	/*
 	 * Configure the number of analog channels (2 or 4) from the last
-	 * digit of the serial number on the RTO200x (1329.7002k[0-4][24]).
+	 * digit of the serial number on the RTO series (1316.1000k[0-4][24]
+	 * for the RTO100x or 1329.7002k[0-4][24] for the RTO200x).
 	 */
 	if (!strncmp("RTO", sdi->model, 3)) {
 		i = strlen(sdi->serial_num);
@@ -876,6 +877,59 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 			devc->digital_groups[group]->channels, ch);
 	}
 
+	/*
+	 * Determine the digital data format for the dialect being used.
+	 *
+	 * The command specified in the dialect is assumed to be correct
+	 * and must not fail when sent to the oscilloscope !
+	 */
+	scope_models[model_index].digital_data_byte_len = 1;
+	if ((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]) {
+		j = strlen((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]);
+		tmp_str = g_strdup((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]);
+		/* Try to determine the digital data byte length from the SCPI command. */
+		k = strlen(SCPI_CMD_FORM_UINT);
+		for (i = 0; i < j - k; i++) {
+			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_UINT, &tmp_str[i], k)) {
+				for (l = 1; l <= 2; l++)
+					if (tmp_str[i + k + l] == ';') {
+						tmp_str[i + k + l] = '\0';
+						sr_atoi(&tmp_str[i + k], &len);
+						scope_models[model_index].digital_data_byte_len = len / 8;
+						break;
+					}
+			}
+		}
+
+		k = strlen(SCPI_CMD_FORM_INT);
+		for (i = 0; i < j - k; i++) {
+			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_INT, &tmp_str[i], k)) {
+				for (l = 1; l <= 2; l++)
+					if (tmp_str[i + k + l] == ';') {
+						tmp_str[i + k + l] = '\0';
+						sr_atoi(&tmp_str[i + k], &len);
+						scope_models[model_index].digital_data_byte_len = len / 8;
+						break;
+					}
+			}
+		}
+
+		k = strlen(SCPI_CMD_FORM_REAL);
+		for (i = 0; i < j - k; i++) {
+			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_REAL, &tmp_str[i], k)) {
+				for (l = 1; l <= 2; l++)
+					if (tmp_str[i + k + l] == ';') {
+						tmp_str[i + k + l] = '\0';
+						sr_atoi(&tmp_str[i + k], &len);
+						scope_models[model_index].digital_data_byte_len = len / 8;
+						break;
+					}
+			}
+		}
+
+		g_free(tmp_str);
+	}
+
 	/* Add special channels for the Fast Fourier Transform (FFT). */
 	for (i = 0; i < scope_models[model_index].analog_channels; i++) {
 		tmp_str = g_strdup_printf("FFT_CH%d", i + 1);
@@ -893,17 +947,42 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* Queue data of one channel group, for later submission. */
+/*
+ * Queue logic data for later submission.
+ *
+ * When the logic data retrieval command is based on the
+ * group (POD), data for the whole channel group (POD) is
+ * queued on each function call.
+ *
+ * When the logic data retrieval command is based on the
+ * individual digital channel, then data for such channel
+ * only is queued each time this function is called.
+ */
 SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
-				  const size_t group, const GByteArray *pod_data)
+				  const GByteArray *pod_data)
 {
-	size_t size;
+	const struct scope_config *model;
+	struct sr_channel *ch;
+	size_t group, size;
 	GByteArray *store;
-	uint8_t *logic_data;
-	size_t idx, logic_step;
+	uint8_t *logic_data, *logic_data_next;
+	size_t idx, logic_step, byte_num;
 
 	if (!devc || !pod_data)
 		return;
+
+	model = devc->model_config;
+	if (!model)
+		return;
+
+	/* Make sure the number of digital channels per POD fits the data structure. */
+	if (model->digital_data_byte_len < BYTES_PER_POD) {
+		sr_err("The number of digital channels per POD is larger than the data structure size!");
+		return;
+	}
+
+	ch = devc->current_channel->data;
+	group = ch->index / DIGITAL_CHANNELS_PER_POD;
 
 	/*
 	 * Upon first invocation, allocate the array which can hold the
@@ -918,14 +997,13 @@ SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 	 * identical size. We haven't yet seen any "odd" configuration.
 	 */
 	if (!devc->logic_data) {
-		size = pod_data->len * devc->pod_count;
+		size = pod_data->len * devc->pod_count * BYTES_PER_POD / model->digital_data_byte_len;
 		store = g_byte_array_sized_new(size);
 		memset(store->data, 0, size);
 		store = g_byte_array_set_size(store, size);
 		devc->logic_data = store;
 	} else {
 		store = devc->logic_data;
-		size = store->len / devc->pod_count;
 		if (group >= devc->pod_count)
 			return;
 	}
@@ -935,16 +1013,27 @@ SR_PRIV void rs_queue_logic_data(struct dev_context *devc,
 	 * the storage, where data resides for all channels combined.
 	 */
 	logic_data = store->data;
-	logic_data += group;
-	logic_step = devc->pod_count;
-	for (idx = 0; idx < pod_data->len; idx++) {
-		*logic_data = pod_data->data[idx];
-		logic_data += logic_step;
+	logic_data += group * BYTES_PER_POD;
+	logic_step = devc->pod_count * BYTES_PER_POD;
+	idx = 0;
+	while (idx < pod_data->len) {
+		logic_data_next = logic_data + logic_step;
+		if (model->digital_data_pod_index) { /* Data for a whole POD */
+			*logic_data = pod_data->data[idx];
+			for (byte_num = 1; byte_num < BYTES_PER_POD; byte_num++)
+				*(++logic_data) = pod_data->data[idx + byte_num];
+		} else { /* Add data for an individual channel */
+			logic_data += ch->index / 8;
+			*logic_data += pod_data->data[idx + ch->index / 8]&(1<<(ch->index%8));
+		}
+		logic_data = logic_data_next;
+		idx += model->digital_data_byte_len;
 	}
 
 	/* Truncate acquisition if a smaller number of samples has been requested. */
-	if (devc->samples_limit > 0 && devc->logic_data->len > devc->samples_limit * devc->pod_count)
-		devc->logic_data->len = devc->samples_limit * devc->pod_count;
+	if (devc->samples_limit > 0 &&
+	    devc->logic_data->len > devc->samples_limit * devc->pod_count * BYTES_PER_POD)
+		devc->logic_data->len = devc->samples_limit * devc->pod_count * BYTES_PER_POD;
 }
 
 /* Submit data for all channels, after the individual groups got collected. */
@@ -962,7 +1051,7 @@ SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
 
 	logic.data = devc->logic_data->data;
 	logic.length = devc->logic_data->len;
-	logic.unitsize = devc->pod_count;
+	logic.unitsize = devc->pod_count * BYTES_PER_POD;
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
@@ -1000,7 +1089,6 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
-	size_t group;
 
 	(void)fd;
 	(void)revents;
@@ -1120,17 +1208,16 @@ SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data)
 			logic.data = data->data;
 			logic.length = data->len;
 			/* Truncate acquisition if a smaller number of samples has been requested. */
-			if (devc->samples_limit > 0 && logic.length > devc->samples_limit)
-				logic.length = devc->samples_limit;
-			logic.unitsize = 1;
+			if (devc->samples_limit > 0 && logic.length > devc->samples_limit * BYTES_PER_POD)
+				logic.length = devc->samples_limit * BYTES_PER_POD;
+			logic.unitsize = BYTES_PER_POD;
 			packet.payload = &logic;
 			sr_session_send(sdi, &packet);
 		} else {
-			group = ch->index / DIGITAL_CHANNELS_PER_POD;
-			rs_queue_logic_data(devc, group, data);
+			rs_queue_logic_data(devc, data);
 		}
 
-		devc->num_samples = data->len / devc->pod_count;
+		devc->num_samples = data->len / (devc->pod_count * BYTES_PER_POD);
 		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;

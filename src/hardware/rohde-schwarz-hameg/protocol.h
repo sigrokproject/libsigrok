@@ -39,6 +39,9 @@
 #define MAX_DIGITAL_GROUP_COUNT		2
 #define MAX_TRIGGER_PATTERN_LENGTH	(MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT)
 
+/* Unequivocally a byte is 8 bits. */
+#define BYTES_PER_POD			DIGITAL_CHANNELS_PER_POD / 8
+
 /*
  * Set the FFT sample rate at its maximum value when
  * performing the Fast Fourier Transform (FFT).
@@ -108,11 +111,29 @@
 #define LOGIC_TRIGGER_ONE		'1'
 #define LOGIC_TRIGGER_DONTCARE		'X'
 
+/*
+ * The SCPI command string prefix used to set the data
+ * length used in the data format.
+ *
+ * These are used to detect how many bytes are used by
+ * a given dialect for digital data.
+ * See, for example, SCPI_CMD_GET_DIG_DATA for the RTO
+ * series.
+ *
+ * At the moment, this is the same for all dialects.
+ */
+#define SCPI_CMD_FORM_REAL		"FORM REAL,"
+#define SCPI_CMD_FORM_INT		"FORM INT,"
+#define SCPI_CMD_FORM_UINT		"FORM UINT,"
+
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	uint8_t analog_channels;
 	const uint8_t digital_channels;
 	uint8_t digital_pods;
+
+	const gboolean digital_data_pod_index; /* Index based on POD instead of digital channel */
+	uint8_t digital_data_byte_len; /* The length of digital data in bytes (UINT,8 = 1; REAL,32 = 4) */
 
 	const char *(*analog_names)[];
 	const char *(*digital_names)[];
@@ -146,7 +167,7 @@ struct scope_config {
 
 	const char *(*logic_threshold)[];
 	const uint8_t num_logic_threshold;
-	const gboolean logic_threshold_for_pod; /* Index based on POD instead of nibble channel */
+	const gboolean logic_threshold_pod_index; /* Index based on POD instead of nibble channel */
 
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;

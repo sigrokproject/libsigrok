@@ -215,7 +215,7 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 };
 
 /*
- * This dialect is used by the Rohde&Schwarz RTO2000 series.
+ * This dialect is used by the Rohde&Schwarz RTO series.
  *
  * It supports setting the sample rate directly to any desired
  * value up to the maximum allowed.
@@ -230,8 +230,9 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
  * At the moment the High Resolution and Peak Detection modes
  * are not implemented.
  */
-static const char *rohde_schwarz_rto200x_scpi_dialect[] = {
-	[SCPI_CMD_GET_DIG_DATA]		      = ":LOG%d:DATA?",
+static const char *rohde_schwarz_rto_scpi_dialect[] = {
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM:BORD LSBF;" \
+					        ":FORM REAL,32;:DIG%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
 	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
 	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
@@ -390,8 +391,8 @@ static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
-/* Options currently supported on the RTO200x series. */
-static const uint32_t devopts_rto200x[] = {
+/* Options currently supported on the RTO series. */
+static const uint32_t devopts_rto[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
@@ -424,7 +425,7 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_BANDWIDTH_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-static const uint32_t devopts_cg_analog_rto200x[] = {
+static const uint32_t devopts_cg_analog_rto[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -525,7 +526,7 @@ static const char *coupling_options_rtm300x[] = {
 	"GND",
 };
 
-static const char *coupling_options_rto200x[] = {
+static const char *coupling_options_rto[] = {
 	"AC",  // AC with 1 MOhm termination
 	"DC",  // DC with 50 Ohm termination
 	"DCL", // DC with 1 MOhm termination
@@ -567,9 +568,9 @@ static const char *logic_threshold_rtb200x_rtm300x_rta400x[] = {
 };
 
 /*
- * Predefined logic thresholds for the RTO200x series.
+ * Predefined logic thresholds for the RTO series.
  */
-static const char *logic_threshold_rto200x[] = {
+static const char *logic_threshold_rto[] = {
 	"V15",  // TTL
 	"V25",  // CMOS 5V
 	"V165", // CMOS 3.3V
@@ -590,7 +591,7 @@ static const char *fft_window_types_hmo[] = {
 	"BLAC",
 };
 
-/* FFT window types available on the RT series, except RTO200x */
+/* FFT window types available on the RT series, except the RTO series. */
 static const char *fft_window_types_rt[] = {
 	"RECT",
 	"HAMM",
@@ -599,8 +600,8 @@ static const char *fft_window_types_rt[] = {
 	"FLAT",
 };
 
-/* FFT window types available on the RTO200x */
-static const char *fft_window_types_rto200x[] = {
+/* FFT window types available on the RTO series. */
+static const char *fft_window_types_rto[] = {
 	"RECT",
 	"HAMM",
 	"HANN",
@@ -610,14 +611,14 @@ static const char *fft_window_types_rto200x[] = {
 	"KAIS",
 };
 
-/* Bandwidth limits for all series except the RTO200x */
+/* Bandwidth limits for all series, except the RTO series. */
 static const char *bandwidth_limit[] = {
 	"FULL",
 	"B20",
 };
 
-/* Bandwidth limits for the RTO200x */
-static const char *bandwidth_limit_rto200x[] = {
+/* Bandwidth limits for the RTO series */
+static const char *bandwidth_limit_rto[] = {
 	"FULL",
 	"B20",
 	"B200",
@@ -684,8 +685,8 @@ static const char *an4_dig16_sbus_trigger_sources[] = {
 	"LINE", "EXT", "SBUS1", "SBUS2",
 };
 
-/* RTO200x */
-static const char *rto200x_trigger_sources[] = {
+/* RTO series */
+static const char *rto_trigger_sources[] = {
 	"CHAN1", "CHAN2", "CHAN3", "CHAN4",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
@@ -775,8 +776,8 @@ static const uint64_t timebases_hmo_compact[][2] = {
 	{ 50, 1 },
 };
 
-/* RTO200x: from 25E-12 to 10000 s/div with 1E-12 increments */
-static const uint64_t timebases_rto200x[][2] = {
+/* RTO series: from 25E-12 to 10000 s/div with 1E-12 increments */
+static const uint64_t timebases_rto[][2] = {
 	/* picoseconds */
 	{ 25, 1000000000000 },
 	{ 50, 1000000000000 },
@@ -863,6 +864,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 2,
 		.digital_channels = 8,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -895,7 +898,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources_hmo_compact2,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo_compact2),
@@ -925,6 +928,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 2,
 		.digital_channels = 8,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -957,7 +962,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources_hmo1x02,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo1x02),
@@ -987,6 +992,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 2,
 		.digital_channels = 8,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1019,7 +1026,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an2_dig8_trigger_sources_rtc100x,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_rtc100x),
@@ -1048,6 +1055,8 @@ static struct scope_config scope_models[] = {
 		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
+
+		.digital_data_pod_index = TRUE,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -1081,7 +1090,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an2_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
@@ -1112,6 +1121,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 4,
 		.digital_channels = 8,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1144,7 +1155,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an4_dig8_trigger_sources_hmo_compact4,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources_hmo_compact4),
@@ -1172,6 +1183,8 @@ static struct scope_config scope_models[] = {
 		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
+
+		.digital_data_pod_index = TRUE,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -1205,7 +1218,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_hmo_rtc100x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold_pod_index = TRUE,
 
 		.trigger_sources = &an4_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
@@ -1233,6 +1246,8 @@ static struct scope_config scope_models[] = {
 		.name = {"RTB2002", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
+
+		.digital_data_pod_index = TRUE,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -1266,7 +1281,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
-		.logic_threshold_for_pod = FALSE,
+		.logic_threshold_pod_index = FALSE,
 
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
@@ -1296,6 +1311,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 4,
 		.digital_channels = 16,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1328,7 +1345,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
-		.logic_threshold_for_pod = FALSE,
+		.logic_threshold_pod_index = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
@@ -1358,6 +1375,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 2,
 		.digital_channels = 16,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1390,7 +1409,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
-		.logic_threshold_for_pod = FALSE,
+		.logic_threshold_pod_index = FALSE,
 
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
@@ -1419,6 +1438,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 4,
 		.digital_channels = 16,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1451,7 +1472,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
-		.logic_threshold_for_pod = FALSE,
+		.logic_threshold_pod_index = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
@@ -1480,6 +1501,8 @@ static struct scope_config scope_models[] = {
 		.analog_channels = 4,
 		.digital_channels = 16,
 
+		.digital_data_pod_index = TRUE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
@@ -1512,7 +1535,7 @@ static struct scope_config scope_models[] = {
 
 		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
 		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
-		.logic_threshold_for_pod = FALSE,
+		.logic_threshold_pod_index = FALSE,
 
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
@@ -1538,19 +1561,21 @@ static struct scope_config scope_models[] = {
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
-		/* For RTO200x, number of analog channels is specified in the serial number, not in the name. */
+		/* RTO series: number of analog channels is specified in the serial number, not in the name. */
 		.name = {"RTO", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
 
+		.digital_data_pod_index = FALSE,
+
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
 
-		.devopts = &devopts_rto200x,
-		.num_devopts = ARRAY_SIZE(devopts_rto200x),
+		.devopts = &devopts_rto,
+		.num_devopts = ARRAY_SIZE(devopts_rto),
 
-		.devopts_cg_analog = &devopts_cg_analog_rto200x,
-		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog_rto200x),
+		.devopts_cg_analog = &devopts_cg_analog_rto,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog_rto),
 
 		.devopts_cg_digital = &devopts_cg_digital,
 		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
@@ -1570,34 +1595,34 @@ static struct scope_config scope_models[] = {
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
 
-		.coupling_options = &coupling_options_rto200x,
-		.num_coupling_options = ARRAY_SIZE(coupling_options_rto200x),
+		.coupling_options = &coupling_options_rto,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rto),
 
-		.logic_threshold = &logic_threshold_rto200x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rto200x),
-		.logic_threshold_for_pod = TRUE,
+		.logic_threshold = &logic_threshold_rto,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rto),
+		.logic_threshold_pod_index = TRUE,
 
-		.trigger_sources = &rto200x_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(rto200x_trigger_sources),
+		.trigger_sources = &rto_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(rto_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
-		.fft_window_types = &fft_window_types_rto200x,
-		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rto200x),
+		.fft_window_types = &fft_window_types_rto,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rto),
 
-		.bandwidth_limit = &bandwidth_limit_rto200x,
-		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit_rto200x),
+		.bandwidth_limit = &bandwidth_limit_rto,
+		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit_rto),
 
-		.timebases = &timebases_rto200x,
-		.num_timebases = ARRAY_SIZE(timebases_rto200x),
+		.timebases = &timebases_rto,
+		.num_timebases = ARRAY_SIZE(timebases_rto),
 
 		.vscale = &vscale,
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 10,
 
-		.scpi_dialect = &rohde_schwarz_rto200x_scpi_dialect,
+		.scpi_dialect = &rohde_schwarz_rto_scpi_dialect,
 	},
 };
 
