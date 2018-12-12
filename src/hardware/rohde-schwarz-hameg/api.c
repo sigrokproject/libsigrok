@@ -232,13 +232,13 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(state->trigger_pattern);
 		break;
 	case SR_CONF_HIGH_RESOLUTION:
-		/* Not currently implemented on RTO200x. */
+		/* Not currently implemented on the RTO series. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION])
 			return SR_ERR_NA;
 		*data = g_variant_new_boolean(state->high_resolution);
 		break;
 	case SR_CONF_PEAK_DETECTION:
-		/* Not currently implemented on RTO200x. */
+		/* Not currently implemented on the RTO series. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION])
 			return SR_ERR_NA;
 		*data = g_variant_new_boolean(state->peak_detection);
@@ -479,7 +479,7 @@ static int config_set(uint32_t key, GVariant *data,
 		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_SAMPLERATE:
-		/* Only configurable on the RTO200x. */
+		/* Only configurable on the RTO series. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_SET_SAMPLE_RATE])
 			return SR_ERR_NA;
 		tmp_d = g_variant_get_double(data);
@@ -658,7 +658,7 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR;
 			ret = rs_check_esr(sdi);
 		} else {
-			/* RTO200x: Only available on digital channels. */
+			/* RTO series: Only available on digital channels. */
 			if (idx > DIGITAL_CHANNELS_PER_POD * model->digital_pods)
 				return SR_ERR_ARG;
 			for (i = 0; i < idx; i++) {
@@ -687,7 +687,7 @@ static int config_set(uint32_t key, GVariant *data,
 			strncpy(state->trigger_pattern, tmp_str, idx);
 		break;
 	case SR_CONF_HIGH_RESOLUTION:
-		/* Not currently implemented on RTO200x. */
+		/* Not currently implemented on the RTO series. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION] ||
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION])
 			return SR_ERR_NA;
@@ -716,7 +716,7 @@ static int config_set(uint32_t key, GVariant *data,
 			state->high_resolution = tmp_bool;
 		break;
 	case SR_CONF_PEAK_DETECTION:
-		/* Not currently implemented on RTO200x. */
+		/* Not currently implemented on the RTO series. */
 		if (!(*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION] ||
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION])
 			return SR_ERR_NA;
@@ -797,7 +797,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
                 /* Check if the threshold command is based on the POD or nibble channel index. */
-		if (model->logic_threshold_for_pod)
+		if (model->logic_threshold_pod_index)
 			i = j + 1;
 		else
 			i = j * DIGITAL_CHANNELS_PER_POD + 1;
@@ -811,7 +811,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (ret != SR_OK)
 			return ret;
 		/* Same as above, but for the second nibble (second channel), if needed. */
-		if (!model->logic_threshold_for_pod) {
+		if (!model->logic_threshold_pod_index) {
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
 				   (j + 1) * DIGITAL_CHANNELS_PER_POD - DIGITAL_CHANNELS_PER_NIBBLE + 1,
@@ -836,7 +836,7 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_d = g_variant_get_double(data);
 		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
 		/* Check if the threshold command is based on the POD or nibble channel index. */
-		if (model->logic_threshold_for_pod)
+		if (model->logic_threshold_pod_index)
 			idx = j + 1;
 		else
 			idx = j * DIGITAL_CHANNELS_PER_POD + 1;
@@ -864,7 +864,7 @@ static int config_set(uint32_t key, GVariant *data,
 					g_snprintf(command, sizeof(command),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
 						   idx, float_str);
-				} else { /* The RTO200x divides each POD in two channel groups. */
+				} else { /* The RTO series divides each POD in two channel groups. */
 					g_snprintf(command, sizeof(command),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
 						   idx, idx * 2 - 1, float_str);
@@ -899,7 +899,7 @@ static int config_set(uint32_t key, GVariant *data,
 				return ret;
 
 			/* Set the same custom threshold on the second nibble, if needed. */
-			if (!model->logic_threshold_for_pod) {
+			if (!model->logic_threshold_pod_index) {
 				if (need_user_index) {
 					g_snprintf(command3, sizeof(command3),
 						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
@@ -1299,6 +1299,7 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 	const struct dev_context *devc;
 	const struct scope_state *state;
 	const struct scope_config *model;
+	unsigned int index;
 
 	if (!sdi)
 		return SR_ERR;
@@ -1329,9 +1330,13 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 			   ch->index + 1);
 		break;
 	case SR_CHANNEL_LOGIC:
+		if (model->digital_data_pod_index)
+			index = ch->index / DIGITAL_CHANNELS_PER_POD + 1;
+		else
+			index = ch->index;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
-			   ch->index / DIGITAL_CHANNELS_PER_POD + 1);
+			   index);
 		break;
 	case SR_CHANNEL_FFT:
 		/* Math Expression is restored on dev_acquisition_stop(). */
@@ -1345,23 +1350,31 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi)
 			sr_err("Failed to enable the FFT mode!");
 			return SR_ERR;
 		}
-		/* Set the FFT sample rate. */
+		/*
+		 * Set the FFT sample rate or, if the model doesn't support an FFT-specific
+		 * sample rate but supports setting the standard sample rate (e.g. RTO series),
+		 * then set that the standard sample rate instead. */
 		g_ascii_formatd(tmp_str, sizeof(tmp_str), "%E", state->fft_sample_rate);
-		if (strncmp("RTO", sdi->model, 3))
+		if ((*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE])
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE],
 				   MATH_WAVEFORM_INDEX, tmp_str);
-		else
+		else if ((*model->scpi_dialect)[SCPI_CMD_SET_SAMPLE_RATE])
 			g_snprintf(command, sizeof(command),
 				   (*model->scpi_dialect)[SCPI_CMD_SET_SAMPLE_RATE],
 				   tmp_str);
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK) {
-			if (strncmp("RTO", sdi->model, 3))
+		if ((*model->scpi_dialect)[SCPI_CMD_SET_FFT_SAMPLE_RATE]) {
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK) {
 				sr_err("Failed to set the FFT sample rate!");
-			else
+				return SR_ERR;
+			}
+		} else if ((*model->scpi_dialect)[SCPI_CMD_SET_SAMPLE_RATE]) {
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK) {
 				sr_err("Failed to set the sample rate!");
-			return SR_ERR;
+				return SR_ERR;
+			}
 		}
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_FFT_DATA],
@@ -1542,7 +1555,7 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 				ret = SR_ERR;
 				break;
 			}
-		} else { /* On the RTO200x all bits in the POD need to be enabled individually. */
+		} else { /* On the RTO series all bits in the POD need to be enabled individually. */
 			for (j = 0; j < DIGITAL_CHANNELS_PER_POD; j++) {
 				/* To disable a POD (bus), assign the channels to an unused bus (i.e. 3 or 4). */
 				g_snprintf(command, sizeof(command),
@@ -1800,13 +1813,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		ch = l->data;
 		if (!ch->enabled)
 			continue;
-		/* Only add a single digital channel per group (pod). */
+		/*
+		 * If the index for the digital data retrieval SCPI command
+		 * is based on the POD instead of the digital channel, only
+		 * add a single digital channel per group (POD).
+		 */
 		group = ch->index / DIGITAL_CHANNELS_PER_POD;
 		if (ch->type != SR_CHANNEL_LOGIC || !digital_added[group]) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
 			if (ch->type == SR_CHANNEL_LOGIC) {
-				digital_added[group] = TRUE;
+				if (model->digital_data_pod_index)
+					digital_added[group] = TRUE;
 				if (pod_count < group + 1)
 					pod_count = group + 1;
 			}
