@@ -764,26 +764,19 @@ static int config_set(uint32_t key, GVariant *data,
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION])
 			return SR_ERR_NA;
 		tmp_bool = g_variant_get_boolean(data);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
-			   tmp_bool ? "AUTO" : "OFF");
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
-			return SR_ERR;
-		ret = rs_check_esr(sdi);
-		if (ret != SR_OK)
-			return ret;
 		/* High Resolution mode automatically switches off Peak Detection. */
 		if (tmp_bool) {
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
-				   "OFF");
-			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-					 sr_scpi_get_opc(sdi->conn) != SR_OK)
-				return SR_ERR;
-			state->peak_detection = FALSE;
+			ret = config_set(SR_CONF_PEAK_DETECTION, g_variant_new_boolean(FALSE), sdi, NULL);
 		}
-		ret = rs_check_esr(sdi);
+		if (!tmp_bool || ret == SR_OK) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
+				   tmp_bool ? "AUTO" : "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			ret = rs_check_esr(sdi);
+		}
 		if (ret == SR_OK)
 			state->high_resolution = tmp_bool;
 		break;
@@ -793,26 +786,19 @@ static int config_set(uint32_t key, GVariant *data,
 		    !(*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION])
 			return SR_ERR_NA;
 		tmp_bool = g_variant_get_boolean(data);
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
-			   tmp_bool ? "AUTO" : "OFF");
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
-			return SR_ERR;
-		ret = rs_check_esr(sdi);
-		if (ret != SR_OK)
-			return ret;
 		/* Peak Detection automatically switches off High Resolution mode. */
 		if (tmp_bool) {
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
-				   "OFF");
-			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-					 sr_scpi_get_opc(sdi->conn) != SR_OK)
-				return SR_ERR;
-			state->high_resolution = FALSE;
+			ret = config_set(SR_CONF_HIGH_RESOLUTION, g_variant_new_boolean(FALSE), sdi, NULL);
 		}
-		ret = rs_check_esr(sdi);
+		if (!tmp_bool || ret == SR_OK) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
+				   tmp_bool ? "AUTO" : "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			ret = rs_check_esr(sdi);
+		}
 		if (ret == SR_OK)
 			state->peak_detection = tmp_bool;
 		break;
