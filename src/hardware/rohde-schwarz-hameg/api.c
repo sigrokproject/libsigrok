@@ -224,9 +224,29 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string((*model->trigger_sources)[state->trigger_source]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (!model->trigger_slopes || !model->num_trigger_slopes)
+		if (!model->edge_trigger_slopes || !model->num_edge_trigger_slopes)
 			return SR_ERR_NA;
-		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
+		*data = g_variant_new_string((*model->edge_trigger_slopes)[state->edge_trigger_slope]);
+		break;
+	case SR_CONF_TRIGGER_COUPLING:
+		/* Not available on the RTO series. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_TRIGGER_COUPLING])
+			return SR_ERR_NA;
+		if (!model->edge_trigger_coupling || !model->num_edge_trigger_coupling)
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->edge_trigger_coupling)[state->edge_trigger_coupling]);
+		break;
+	case SR_CONF_TRIGGER_LOWPASS:
+		/* Not available on the RTO series. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS])
+			return SR_ERR_NA;
+		*data = g_variant_new_boolean(state->edge_trigger_lowpass);
+		break;
+	case SR_CONF_TRIGGER_NOISE_REJ:
+		/* Not available on the RTO series. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ])
+			return SR_ERR_NA;
+		*data = g_variant_new_boolean(state->edge_trigger_noise_rej);
 		break;
 	case SR_CONF_TRIGGER_PATTERN:
 		*data = g_variant_new_string(state->trigger_pattern);
@@ -631,19 +651,71 @@ static int config_set(uint32_t key, GVariant *data,
 			state->trigger_source = idx;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (!model->trigger_slopes || !model->num_trigger_slopes)
+		if (!model->edge_trigger_slopes || !model->num_edge_trigger_slopes)
 			return SR_ERR_NA;
-		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
+		if ((idx = std_str_idx(data, *model->edge_trigger_slopes, model->num_edge_trigger_slopes)) < 0)
 			return SR_ERR_ARG;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
-			   (*model->trigger_slopes)[idx]);
+			   (*model->edge_trigger_slopes)[idx]);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
 		ret = rs_check_esr(sdi);
 		if (ret == SR_OK)
-			state->trigger_slope = idx;
+			state->edge_trigger_slope = idx;
+		break;
+	case SR_CONF_TRIGGER_COUPLING:
+		/* Not available on the RTO series. */
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_COUPLING])
+			return SR_ERR_NA;
+		if (!model->edge_trigger_coupling || !model->num_edge_trigger_coupling)
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, *model->edge_trigger_coupling, model->num_edge_trigger_coupling)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_COUPLING],
+			   (*model->edge_trigger_coupling)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->edge_trigger_coupling = idx;
+		break;
+	case SR_CONF_TRIGGER_LOWPASS:
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_LOWPASS])
+			return SR_ERR_NA;
+		tmp_bool = g_variant_get_boolean(data);
+		/* The Edge Trigger Low-Pass filter requires to manually disable the Noise Reject filter. */
+		if (tmp_bool)
+			ret = config_set(SR_CONF_TRIGGER_NOISE_REJ, g_variant_new_boolean(FALSE), sdi, NULL);
+		if (!tmp_bool || ret == SR_OK) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_LOWPASS],
+				   tmp_bool);
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			ret = rs_check_esr(sdi);
+			if (ret == SR_OK)
+				state->edge_trigger_lowpass = tmp_bool;
+		}
+		break;
+	case SR_CONF_TRIGGER_NOISE_REJ:
+		if (!(*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_NOISE_REJ])
+			return SR_ERR_NA;
+		/* Automatically disables the Edge Trigger Low-Pass filter. */
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_NOISE_REJ],
+			   tmp_bool);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK)
+			state->edge_trigger_noise_rej = tmp_bool;
 		break;
 	case SR_CONF_TRIGGER_PATTERN:
 		tmp_str = (char *)g_variant_get_string(data, (gsize *)&idx);
@@ -1155,9 +1227,16 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_SLOPE:
 		if (!model)
 			return SR_ERR_ARG;
-		if (!model->trigger_slopes || !model->num_trigger_slopes)
+		if (!model->edge_trigger_slopes || !model->num_edge_trigger_slopes)
 			return SR_ERR_NA;
-		*data = g_variant_new_strv(*model->trigger_slopes, model->num_trigger_slopes);
+		*data = g_variant_new_strv(*model->edge_trigger_slopes, model->num_edge_trigger_slopes);
+		break;
+	case SR_CONF_TRIGGER_COUPLING:
+		if (!model)
+			return SR_ERR_ARG;
+		if (!model->edge_trigger_coupling || !model->num_edge_trigger_coupling)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(*model->edge_trigger_coupling, model->num_edge_trigger_coupling);
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
@@ -1693,7 +1772,7 @@ static int rs_configure_trigger(const struct sr_dev_inst *sdi)
 			case SR_TRIGGER_RISING:
 				if (!edge_trigger) {
 					edge_trigger = TRUE;
-					edge_slope = g_strdup((*model->trigger_slopes)[0]);
+					edge_slope = g_strdup((*model->edge_trigger_slopes)[0]);
 					edge_source = g_strdup_printf("%s%d",
 								      edge_ch_prefix,
 								      edge_ch_idx);
@@ -1704,7 +1783,7 @@ static int rs_configure_trigger(const struct sr_dev_inst *sdi)
 			case SR_TRIGGER_FALLING:
 				if (!edge_trigger) {
 					edge_trigger = TRUE;
-					edge_slope = g_strdup((*model->trigger_slopes)[1]);
+					edge_slope = g_strdup((*model->edge_trigger_slopes)[1]);
 					edge_source = g_strdup_printf("%s%d",
 								      edge_ch_prefix,
 								      edge_ch_idx);
@@ -1715,7 +1794,7 @@ static int rs_configure_trigger(const struct sr_dev_inst *sdi)
 			case SR_TRIGGER_EDGE:
 				if (!edge_trigger) {
 					edge_trigger = TRUE;
-					edge_slope = g_strdup((*model->trigger_slopes)[2]);
+					edge_slope = g_strdup((*model->edge_trigger_slopes)[2]);
 					edge_source = g_strdup_printf("%s%d",
 								      edge_ch_prefix,
 								      edge_ch_idx);

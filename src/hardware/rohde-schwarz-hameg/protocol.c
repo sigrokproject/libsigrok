@@ -35,15 +35,15 @@ static void scope_state_dump(const struct scope_config *config,
 			     const struct scope_state *state)
 {
 	unsigned int i;
-	char *tmp;
+	char *tmp1, *tmp2, *tmp3;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		tmp = sr_voltage_per_div_string((*config->vscale)[state->analog_channels[i].vscale][0],
+		tmp1 = sr_voltage_per_div_string((*config->vscale)[state->analog_channels[i].vscale][0],
 					     (*config->vscale)[state->analog_channels[i].vscale][1]);
 		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vscale) %2.2e (offset)",
 			i + 1, state->analog_channels[i].state ? "On" : "Off",
 			(*config->coupling_options)[state->analog_channels[i].coupling],
-			tmp, state->analog_channels[i].vertical_offset);
+			tmp1, state->analog_channels[i].vertical_offset);
 	}
 
 	for (i = 0; i < config->digital_channels; i++) {
@@ -63,24 +63,45 @@ static void scope_state_dump(const struct scope_config *config,
 				(*config->logic_threshold)[state->digital_pods[i].threshold]);
 	}
 
-	tmp = sr_period_string((*config->timebases)[state->timebase][0],
+	tmp1 = sr_period_string((*config->timebases)[state->timebase][0],
 			       (*config->timebases)[state->timebase][1]);
-	sr_info("Current timebase: %s", tmp);
-	g_free(tmp);
+	sr_info("Current timebase: %s", tmp1);
+	g_free(tmp1);
 
-	tmp = sr_samplerate_string(state->sample_rate);
-	sr_info("Current samplerate: %s", tmp);
-	g_free(tmp);
+	tmp1 = sr_samplerate_string(state->sample_rate);
+	sr_info("Current samplerate: %s", tmp1);
+	g_free(tmp1);
 
-	if (!g_ascii_strcasecmp("PATT", (*config->trigger_sources)[state->trigger_source]))
+	if (!g_ascii_strcasecmp("PATT", (*config->trigger_sources)[state->trigger_source])) {
 		sr_info("Current trigger: %s (pattern), %.2f (offset)",
 			state->trigger_pattern,
 			state->horiz_triggerpos);
-	else // Edge (slope) trigger
-		sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
+	} else { /* Edge Trigger: slope and, when available, coupling and filters. */
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_COUPLING] &&
+		    config->edge_trigger_coupling && config->num_edge_trigger_coupling)
+			tmp1 = g_strdup_printf(", %s (coupling)",
+					       (*config->edge_trigger_coupling)[state->edge_trigger_coupling]);
+		else
+			tmp1 = g_strdup("");
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS])
+			tmp2 = g_strdup_printf(", low-pass filter: %s",
+					       state->edge_trigger_lowpass ? "On" : "Off");
+		else
+			tmp2 = g_strdup("");
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ])
+			tmp3 = g_strdup_printf(", noise reject filter: %s",
+					       state->edge_trigger_noise_rej ? "On" : "Off");
+		else
+			tmp3 = g_strdup("");
+		sr_info("Current trigger: %s (source), %s (slope), %.2f (offset)%s%s%s",
 			(*config->trigger_sources)[state->trigger_source],
-			(*config->trigger_slopes)[state->trigger_slope],
-			state->horiz_triggerpos);
+			(*config->edge_trigger_slopes)[state->edge_trigger_slope],
+			state->horiz_triggerpos,
+			tmp1, tmp2, tmp3);
+		g_free(tmp1);
+		g_free(tmp2);
+		g_free(tmp3);
+	}
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
@@ -574,9 +595,39 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 
 	if (scope_state_get_array_option(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_SLOPE],
-			config->trigger_slopes, config->num_trigger_slopes,
-			&state->trigger_slope) != SR_OK)
+			config->edge_trigger_slopes, config->num_edge_trigger_slopes,
+			&state->edge_trigger_slope) != SR_OK)
 		return SR_ERR;
+
+	/* Not all series support the Edge Trigger Coupling setting. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_COUPLING] &&
+	    config->edge_trigger_coupling && config->num_edge_trigger_coupling) {
+		if (scope_state_get_array_option(sdi->conn,
+				(*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_COUPLING],
+				config->edge_trigger_coupling, config->num_edge_trigger_coupling,
+				&state->edge_trigger_coupling) != SR_OK)
+			return SR_ERR;
+	}
+
+	/* Not all series support the Edge Trigger Low-Pass filter. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS]) {
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS]);
+
+		if (sr_scpi_get_bool(sdi->conn, command,
+				     &state->edge_trigger_lowpass) != SR_OK)
+			return SR_ERR;
+	}
+
+	/* Not all series support the Edge Trigger Noise Reject filter. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ]) {
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ]);
+
+		if (sr_scpi_get_bool(sdi->conn, command,
+				     &state->edge_trigger_noise_rej) != SR_OK)
+			return SR_ERR;
+	}
 
 	if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 		if (sr_scpi_get_string(sdi->conn,

@@ -797,8 +797,17 @@ enum sr_configkey {
 	/** Trigger source. */
 	SR_CONF_TRIGGER_SOURCE,
 
-	/** The device supports setting trigger slope. */
+	/** The device supports setting the edge trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
+
+	/** The device supports setting the edge trigger coupling. */
+	SR_CONF_TRIGGER_COUPLING,
+
+	/** The device supports enabling the edge trigger low-pass filter. */
+	SR_CONF_TRIGGER_LOWPASS,
+
+	/** The device supports enabling the edge trigger noise reject filter. */
+	SR_CONF_TRIGGER_NOISE_REJ,
 
 	/** The device supports setting a pattern for the logic trigger. */
 	SR_CONF_TRIGGER_PATTERN,

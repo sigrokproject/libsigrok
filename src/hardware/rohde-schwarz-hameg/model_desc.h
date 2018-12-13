@@ -65,6 +65,12 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_COUPLING]	      = ":TRIG:A:EDGE:COUP?",
+	[SCPI_CMD_SET_TRIGGER_COUPLING]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:COUP %s",
+	[SCPI_CMD_GET_TRIGGER_LOWPASS]	      = ":TRIG:A:EDGE:FILT:LPAS?",
+	[SCPI_CMD_SET_TRIGGER_LOWPASS]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:LPAS %d",
+	[SCPI_CMD_GET_TRIGGER_NOISE_REJ]      = ":TRIG:A:EDGE:FILT:NREJ?",
+	[SCPI_CMD_SET_TRIGGER_NOISE_REJ]      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:NREJ %d",
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
 					        ":TRIG:A:PATT:FUNC AND;" \
@@ -157,6 +163,12 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_COUPLING]	      = ":TRIG:A:EDGE:COUP?",
+	[SCPI_CMD_SET_TRIGGER_COUPLING]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:COUP %s",
+	[SCPI_CMD_GET_TRIGGER_LOWPASS]	      = ":TRIG:A:EDGE:FILT:HFR?",
+	[SCPI_CMD_SET_TRIGGER_LOWPASS]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:HFR %d",
+	[SCPI_CMD_GET_TRIGGER_NOISE_REJ]      = ":TRIG:A:EDGE:FILT:NREJ?",
+	[SCPI_CMD_SET_TRIGGER_NOISE_REJ]      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:NREJ %d",
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
 					        ":TRIG:A:PATT:FUNC AND;" \
@@ -252,6 +264,9 @@ static const char *rohde_schwarz_rto_scpi_dialect[] = {
 	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG1:SOUR %s",
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG1:EDGE:SLOP?",
 	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG1:TYPE EDGE;:TRIG1:EDGE:SLOP %s",
+/* Edge Trigger Coupling setting is only available for the external trigger signal. */
+/* Edge Trigger Low-Pass filter is only available for the external trigger signal. */
+/* Edge Trigger Noise Reject filter is only available for the external trigger signal. */
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG1:PAR:PATT:BIT%d?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG1:PAR:TYPE PATT;" \
 					        ":TRIG1:PAR:PATT:MODE OFF;" \
@@ -314,6 +329,9 @@ static const uint32_t devopts_hmo300x[] = {
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LOWPASS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_NOISE_REJ | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
@@ -345,6 +363,9 @@ static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LOWPASS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_NOISE_REJ | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
@@ -375,6 +396,9 @@ static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LOWPASS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_NOISE_REJ | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
@@ -534,14 +558,36 @@ static const char *coupling_options_rto[] = {
 };
 
 /*
- * The trigger slope option keywords MUST be placed in
- * the following order: Rising (first entry), Falling
- * and finally Either (last entry).
+ * The edge trigger slope option keywords MUST be placed in
+ * the following order: Rising or Positive (first entry),
+ * Falling or Negative (second entry) and finally Either
+ * (last entry).
  */
-static const char *scope_trigger_slopes[] = {
+static const char *edge_trigger_slopes[] = {
 	"POS",
 	"NEG",
 	"EITH",
+};
+
+/*
+ * The edge trigger coupling options for the HMO and
+ * RTC100x series.
+ */
+static const char *edge_trigger_coupling_hmo_rtc100x[] = {
+	"DC",
+	"AC",
+	"HF",
+	"ALEV",
+};
+
+/*
+ * The edge trigger coupling options for the RTB200x,
+ * RTM300x and RTA400x series.
+ */
+static const char *edge_trigger_coupling_rtb200x_rtm300x_rta400x[] = {
+	"DC",
+	"AC",
+	"LFR",
 };
 
 /*
@@ -903,8 +949,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig8_trigger_sources_hmo_compact2,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo_compact2),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
@@ -967,8 +1016,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig8_trigger_sources_hmo1x02,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_hmo1x02),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
@@ -1031,8 +1083,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig8_trigger_sources_rtc100x,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources_rtc100x),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
@@ -1095,8 +1150,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		/* FlatTop window available, but not listed in User Manual version 04. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1160,8 +1218,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an4_dig8_trigger_sources_hmo_compact4,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources_hmo_compact4),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
@@ -1223,8 +1284,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an4_dig16_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
@@ -1286,8 +1350,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
 		/* FFT support status unclear as of User Manual version 06. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1350,8 +1417,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
 		/* FFT support status unclear as of User Manual version 06. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1414,8 +1484,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an2_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
@@ -1477,8 +1550,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
@@ -1540,8 +1616,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &an4_dig16_sbus_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
 		/* FFT support status unclear as of User Manual version 03. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1605,8 +1684,11 @@ static struct scope_config scope_models[] = {
 		.trigger_sources = &rto_trigger_sources,
 		.num_trigger_sources = ARRAY_SIZE(rto_trigger_sources),
 
-		.trigger_slopes = &scope_trigger_slopes,
-		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		/* Edge Trigger Coupling not available. */
+		.num_edge_trigger_coupling = 0,
 
 		.fft_window_types = &fft_window_types_rto,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rto),
@@ -1625,4 +1707,3 @@ static struct scope_config scope_models[] = {
 		.scpi_dialect = &rohde_schwarz_rto_scpi_dialect,
 	},
 };
-
