@@ -172,8 +172,11 @@ struct scope_config {
 	const char *(*trigger_sources)[];
 	const uint8_t num_trigger_sources;
 
-	const char *(*trigger_slopes)[];
-	const uint8_t num_trigger_slopes;
+	const char *(*edge_trigger_slopes)[];
+	const uint8_t num_edge_trigger_slopes;
+
+	const char *(*edge_trigger_coupling)[];
+	const uint8_t num_edge_trigger_coupling;
 
 	const char *(*fft_window_types)[];
 	const uint8_t num_fft_window_types;
@@ -236,7 +239,10 @@ struct scope_state {
 	float horiz_triggerpos;
 
 	unsigned int trigger_source;
-	unsigned int trigger_slope;
+	unsigned int edge_trigger_slope;
+	unsigned int edge_trigger_coupling;
+	gboolean edge_trigger_lowpass;
+	gboolean edge_trigger_noise_rej;
 	char trigger_pattern[MAX_TRIGGER_PATTERN_LENGTH];
 
 	gboolean high_resolution;
