@@ -100,7 +100,7 @@
  *
  * IMPORTANT: Always place the Maximum Sample Rate option
  *            (usually named "MSAM") at the following array
- *            index (see protocol.c) !
+ *            index (see model_desc.h) !
  */
 #define MAXIMUM_SAMPLE_RATE_INDEX	2
 
