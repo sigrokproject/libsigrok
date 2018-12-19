@@ -67,9 +67,20 @@ static const struct ftdi_chip_desc ft232r_desc = {
 	}
 };
 
+static const struct ftdi_chip_desc ft232h_desc = {
+	.vendor = 0x0403,
+	.product = 0x6014,
+	.samplerate_div = 30,
+	.channel_names = {
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
+		NULL
+	}
+};
+
 static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
 	&ft232r_desc,
+	&ft232h_desc
 };
 
 static void scan_device(struct ftdi_context *ftdic,
