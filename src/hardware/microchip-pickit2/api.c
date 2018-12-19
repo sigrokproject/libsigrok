@@ -232,6 +232,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	usb = sdi->conn;
 	devc = sdi->priv;
 
+	if (!usb)
+		return SR_OK;
 	if (!usb->devhdl)
 		return SR_OK;
 
