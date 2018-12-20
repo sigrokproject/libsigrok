@@ -1027,7 +1027,7 @@ SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 		/*
 		 * Get those fields which correspond to the secondary
 		 * display. The value's mantissa has 16 bits. The sign
-		 * is separate is only applies to some of the modes.
+		 * is separate and only applies to some of the modes.
 		 * Scaling and precision also depend on the mode. The
 		 * interpretation of the secondary display is different
 		 * from the main display: The 'range' is not an index
