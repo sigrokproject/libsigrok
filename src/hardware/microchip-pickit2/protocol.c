@@ -42,7 +42,6 @@ struct pickit2_cmd {
 
 static void pickit2_cmd_clear(struct pickit2_cmd *cmd)
 {
-
 	if (!cmd)
 		return;
 	memset(&cmd->raw[0], PICKIT2_CMD_PADCHAR, PICKIT2_PACKET_LENGTH);
@@ -51,7 +50,6 @@ static void pickit2_cmd_clear(struct pickit2_cmd *cmd)
 
 static void pickit2_cmd_append(struct pickit2_cmd *cmd, uint8_t b)
 {
-
 	if (!cmd)
 		return;
 	if (cmd->length == PICKIT2_PACKET_LENGTH)
@@ -72,7 +70,7 @@ static int pickit2_usb_send(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 		return SR_ERR_ARG;
 
 	text = sr_hexdump_new(&cmd->raw[0], cmd->length);
-	sr_dbg("usb sent: %s", text->str);
+	sr_dbg("USB sent: %s", text->str);
 	sr_hexdump_free(text);
 
 	ret = libusb_interrupt_transfer(usb->devhdl,
@@ -117,7 +115,7 @@ static int pickit2_usb_recv(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 	}
 
 	text = sr_hexdump_new(&cmd->raw[0], rcvd);
-	sr_dbg("usb recv: %s", text->str);
+	sr_dbg("USB recv: %s", text->str);
 	sr_hexdump_free(text);
 
 	cmd->length = rcvd;

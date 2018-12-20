@@ -42,7 +42,7 @@
  * - The current implementation silently accepts sample count limits beyond
  *   1024, just won't provide more than 1024 samples to the session. A
  *   future implementation could cap the settings upon reception. Apps
- *   like Pulseview may not be able to specify 1024, and pass 1000 or
+ *   like PulseView may not be able to specify 1024, and pass 1000 or
  *   2000 instead (the latter results in 1024 getting used).
  * - The manual suggests that users can assign names to devices. The
  *   current implementation supports conn= specs with USB VID:PID pairs
@@ -264,9 +264,9 @@ static int config_get(uint32_t key, GVariant **data,
 	struct sr_usb_dev_inst *usb;
 	uint64_t rate, ratio;
 
-	devc = sdi ? sdi->priv : NULL;
-	(void)devc;
 	(void)cg;
+
+	devc = sdi ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_CONN:
@@ -296,9 +296,9 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	int idx;
 
-	devc = sdi ? sdi->priv : NULL;
-
 	(void)cg;
+
+	devc = sdi ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
@@ -454,5 +454,4 @@ static struct sr_dev_driver microchip_pickit2_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-
 SR_REGISTER_DEV_DRIVER(microchip_pickit2_driver_info);

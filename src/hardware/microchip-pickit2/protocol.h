@@ -49,7 +49,7 @@ struct dev_context {
 	size_t curr_captureratio_idx;
 	struct sr_sw_limits sw_limits;
 	gboolean detached_kernel_driver;
-	int32_t triggers[PICKIT2_CHANNEL_COUNT];	/**!< see \ref SR_TRIGGER_ZERO et al */
+	int32_t triggers[PICKIT2_CHANNEL_COUNT];	/**@< see @ref SR_TRIGGER_ZERO et al */
 	size_t trigpos;
 	uint8_t samples_raw[PICKIT2_SAMPLE_RAWLEN];
 	uint8_t samples_conv[PICKIT2_SAMPLE_COUNT];
