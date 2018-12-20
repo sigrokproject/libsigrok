@@ -167,7 +167,7 @@ static const uint64_t samplerates_hw[] = {
 	SR_MHZ(320),
 };
 
-SR_PRIV struct sr_dev_driver hantek_4032l_driver_info;
+static struct sr_dev_driver hantek_4032l_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -621,7 +621,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return h4032l_stop(sdi);
 }
 
-SR_PRIV struct sr_dev_driver hantek_4032l_driver_info = {
+static struct sr_dev_driver hantek_4032l_driver_info = {
 	.name = "hantek-4032l",
 	.longname = "Hantek 4032L",
 	.api_version = 1,

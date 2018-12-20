@@ -229,7 +229,7 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
 };
 
-SR_PRIV struct sr_dev_driver siglent_sds_driver_info;
+static struct sr_dev_driver siglent_sds_driver_info;
 
 static void clear_helper(void *priv)
 {
@@ -923,7 +923,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver siglent_sds_driver_info = {
+static struct sr_dev_driver siglent_sds_driver_info = {
 	.name = "siglent-sds",
 	.longname = "Siglent SDS1000/SDS2000",
 	.api_version = 1,
@@ -941,5 +941,4 @@ SR_PRIV struct sr_dev_driver siglent_sds_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-
 SR_REGISTER_DEV_DRIVER(siglent_sds_driver_info);

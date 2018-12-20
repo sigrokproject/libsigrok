@@ -24,7 +24,7 @@
 
 #include "protocol.h"
 
-SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info;
+static struct sr_dev_driver rohde_schwarz_sme_0x_driver_info;
 
 static const char *manufacturer = "Rohde&Schwarz";
 
@@ -220,7 +220,7 @@ static int config_list(uint32_t key, GVariant **data,
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
-SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
+static struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
 	.name = "rohde-schwarz-sme-0x",
 	.longname = "Rohde&Schwarz SME-0x",
 	.api_version = 1,
@@ -238,5 +238,4 @@ SR_PRIV struct sr_dev_driver rohde_schwarz_sme_0x_driver_info = {
 	.dev_acquisition_stop = std_serial_dev_acquisition_stop,
 	.context = NULL,
 };
-
 SR_REGISTER_DEV_DRIVER(rohde_schwarz_sme_0x_driver_info);

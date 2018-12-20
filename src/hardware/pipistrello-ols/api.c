@@ -636,7 +636,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver p_ols_driver_info = {
+static struct sr_dev_driver p_ols_driver_info = {
 	.name = "p-ols",
 	.longname = "Pipistrello OLS",
 	.api_version = 1,
