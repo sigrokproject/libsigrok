@@ -66,7 +66,7 @@
 
 static struct sr_dev_driver microchip_pickit2_driver_info;
 
-static const char *pickit2_channel_names[] = {
+static const char *channel_names[] = {
 	"pin4", "pin5", "pin6",
 };
 
@@ -162,10 +162,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		cg = g_malloc0(sizeof(*cg));
 		sdi->channel_groups = g_slist_append(NULL, cg);
 		cg->name = g_strdup("Logic");
-		ch_count = ARRAY_SIZE(pickit2_channel_names);
+		ch_count = ARRAY_SIZE(channel_names);
 		for (ch_idx = 0; ch_idx < ch_count; ch_idx++) {
 			ch = sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
-				TRUE, pickit2_channel_names[ch_idx]);
+				TRUE, channel_names[ch_idx]);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
 
