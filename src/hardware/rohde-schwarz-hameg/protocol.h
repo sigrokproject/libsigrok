@@ -133,21 +133,6 @@
 #define LOGIC_TRIGGER_ONE		'1'
 #define LOGIC_TRIGGER_DONTCARE		'X'
 
-/*
- * The SCPI command string prefix used to set the data
- * length used in the data format.
- *
- * These are used to detect how many bytes are used by
- * a given dialect for digital data.
- * See, for example, SCPI_CMD_GET_DIG_DATA for the RTO
- * series.
- *
- * At the moment, this is the same for all dialects.
- */
-#define SCPI_CMD_FORM_REAL		"FORM REAL,"
-#define SCPI_CMD_FORM_INT		"FORM INT,"
-#define SCPI_CMD_FORM_UINT		"FORM UINT,"
-
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	uint8_t analog_channels;
