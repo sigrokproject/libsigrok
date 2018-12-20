@@ -660,11 +660,16 @@ struct sr_key_info {
 enum sr_configcap {
 	/** Value can be read. */
 	SR_CONF_GET = (1UL << 31),
+	/** Value can be read, but should not be listed as a supported option. */
+	SR_CONF_GET_NO_SHOW = (1UL << 30),
 	/** Value can be written. */
-	SR_CONF_SET = (1UL << 30),
+	SR_CONF_SET = (1UL << 29),
 	/** Possible values can be enumerated. */
-	SR_CONF_LIST = (1UL << 29),
+	SR_CONF_LIST = (1UL << 28),
 };
+
+/** Mask for grouping all the get capabilities. */
+#define SR_CONF_GET_MASK	(SR_CONF_GET | SR_CONF_GET_NO_SHOW)
 
 /** Configuration keys */
 enum sr_configkey {
@@ -1085,6 +1090,105 @@ enum sr_configkey {
 
 	/** FFT Span / Resolution Bandwidth ratio. */
 	SR_CONF_FFT_SPAN_RBW_RATIO,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Automatic Measurements ----------------------------------------*/
+
+	/* Automatic Measurements: source. */
+	SR_CONF_MEAS_SOURCE,
+
+	/* Automatic Measurements: reference. */
+	SR_CONF_MEAS_REFERENCE,
+
+	/* Automatic Measurements: get frequency. */
+	SR_CONF_MEAS_FREQ,
+
+	/* Automatic Measurements: get period. */
+	SR_CONF_MEAS_PERIOD,
+
+	/* Automatic Measurements: get peak-to-peak value. */
+	SR_CONF_MEAS_PEAK,
+
+	/* Automatic Measurements: get maximum value. */
+	SR_CONF_MEAS_UPPER_PEAK,
+
+	/* Automatic Measurements: get minimum value. */
+	SR_CONF_MEAS_LOWER_PEAK,
+
+	/* Automatic Measurements: count positive pulses. */
+	SR_CONF_MEAS_POS_PULSE_COUNT,
+
+	/* Automatic Measurements: count negative pulses. */
+	SR_CONF_MEAS_NEG_PULSE_COUNT,
+
+	/* Automatic Measurements: count rising edges. */
+	SR_CONF_MEAS_POS_EDGE_COUNT,
+
+	/* Automatic Measurements: count falling edges. */
+	SR_CONF_MEAS_NEG_EDGE_COUNT,
+
+	/* Automatic Measurements: get mean value of high level. */
+	SR_CONF_MEAS_MEAN_HIGH_LEVEL,
+
+	/* Automatic Measurements: get mean value of low level. */
+	SR_CONF_MEAS_MEAN_LOW_LEVEL,
+
+	/* Automatic Measurements: get amplitude. */
+	SR_CONF_MEAS_AMPLITUDE,
+
+	/* Automatic Measurements: get mean value. */
+	SR_CONF_MEAS_MEAN_VALUE,
+
+	/* Automatic Measurements: get RMS (Root Mean Square) value. */
+	SR_CONF_MEAS_RMS_VALUE,
+
+	/* Automatic Measurements: get positive duty cycle. */
+	SR_CONF_MEAS_POS_DUTY_CYCLE,
+
+	/* Automatic Measurements: get negative duty cycle. */
+	SR_CONF_MEAS_NEG_DUTY_CYCLE,
+
+	/* Automatic Measurements: get the width of positive pulses. */
+	SR_CONF_MEAS_POS_PULSE_WIDTH,
+
+	/* Automatic Measurements: get the width of negative pulses. */
+	SR_CONF_MEAS_NEG_PULSE_WIDTH,
+
+	/*
+	 * Automatic Measurements: get the mean value of the left-most
+	 * signal period.
+	 */
+	SR_CONF_MEAS_CYC_MEAN_VALUE,
+
+	/*
+	 * Automatic Measurements: get the RMS (Root Mean Square) value
+	 * of the voltage of the left-most signal period.
+	 */
+	SR_CONF_MEAS_CYC_RMS_VALUE,
+
+	/* Automatic Measurements: get the standard deviation. */
+	SR_CONF_MEAS_STD_DEVIATION,
+
+	/* Automatic Measurements: get the frequency of the trigger signal. */
+	SR_CONF_MEAS_TRIGGER_FREQUENCY,
+
+	/* Automatic Measurements: get the period of the trigger signal. */
+	SR_CONF_MEAS_TRIGGER_PERIOD,
+
+	/* Automatic Measurements: get the positive overshoot. */
+	SR_CONF_MEAS_POS_OVERSHOOT,
+
+	/* Automatic Measurements: get the negative overshoot. */
+	SR_CONF_MEAS_NEG_OVERSHOOT,
+
+	/* Automatic Measurements: get the phase (relative to reference). */
+	SR_CONF_MEAS_PHASE,
+
+	/* Automatic Measurements: get the duration of one burst. */
+	SR_CONF_MEAS_BURST_WIDTH,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
 

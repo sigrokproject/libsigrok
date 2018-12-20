@@ -1,8 +1,8 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
  * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
+ * Inspired by the Hameg HMO driver by poljar (Damir Jelić) <poljarinho@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,14 +29,19 @@
 
 #define LOG_PREFIX "rohde-schwarz-hameg"
 
-#define DIGITAL_CHANNELS_PER_POD	8
-#define DIGITAL_CHANNELS_PER_NIBBLE	4
-
 #define MAX_INSTRUMENT_VERSIONS		10
+
 #define MAX_COMMAND_SIZE		256
+
 #define MAX_ANALOG_CHANNEL_COUNT	4
 #define MAX_DIGITAL_CHANNEL_COUNT	16
+
+#define MAX_WAVEFORMS_PER_CHANNEL	3
+
+#define DIGITAL_CHANNELS_PER_POD	8
+#define DIGITAL_CHANNELS_PER_NIBBLE	4
 #define MAX_DIGITAL_GROUP_COUNT		2
+
 #define MAX_TRIGGER_PATTERN_LENGTH	(MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT)
 
 /* Unequivocally a byte is 8 bits. */
@@ -103,6 +108,23 @@
  *            index (see model_desc.h) !
  */
 #define MAXIMUM_SAMPLE_RATE_INDEX	2
+
+/*
+ * The Automatic Measurement facility to use.
+ *
+ * Different oscilloscope series support a different number
+ * of simultaneous automatic measurements.
+ *
+ * All series supported up to now offer at least four (4)
+ * simultaneous automatic measurements, therefore using an
+ * index greater than four (4) here might break the support
+ * for some models !
+ *
+ * An index greater than one (1) is normally used by default
+ * to avoid overwriting settings for automatic measurements
+ * used manually or in conjunction with other applications.
+ */
+#define AUTO_MEASUREMENT_INDEX		4
 
 /*
  * Logic (Pattern) Trigger match encodings.
@@ -180,6 +202,9 @@ struct scope_config {
 
 	const char *(*fft_window_types)[];
 	const uint8_t num_fft_window_types;
+
+	char *(*meas_sources)[];
+	uint8_t num_meas_sources;
 
 	const char *(*bandwidth_limit)[];
 	const uint8_t num_bandwidth_limit;
@@ -261,6 +286,9 @@ struct scope_state {
 	unsigned int restore_waveform_sample_rate;
 	gboolean restore_auto_record_length;
 
+	unsigned int meas_source;
+	unsigned int meas_reference;
+
 	gboolean beep_on_trigger;
 	gboolean beep_on_error;
 };
@@ -299,6 +327,7 @@ SR_PRIV int rs_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int rs_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV struct scope_state *rs_scope_state_new(struct scope_config *config);
+SR_PRIV void rs_scope_config_free(struct scope_config *config);
 SR_PRIV void rs_scope_state_free(struct scope_state *state);
 SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi);
 SR_PRIV int rs_update_sample_rate(const struct sr_dev_inst *sdi);
