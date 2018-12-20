@@ -31,6 +31,25 @@ SR_PRIV void rs_send_logic_packet(const struct sr_dev_inst *sdi,
 				   const struct dev_context *devc);
 SR_PRIV void rs_cleanup_logic_data(struct dev_context *devc);
 
+/*
+ * List of all the possible SCPI command string prefixes
+ * that can be used to set the data length for the chosen
+ * data format.
+ *
+ * These are needed to detect how many bytes are used by
+ * a given dialect for digital data: see, for example,
+ * SCPI_CMD_GET_DIG_DATA for the RTO series.
+ *
+ * At the moment, the prefixes are the same for all the
+ * supported dialects.
+ */
+
+static const char *format_length_scpi_cmd_prefix[] = {
+	"FORM REAL,",
+	"FORM INT,",
+	"FORM UINT,",
+};
+
 static void scope_state_dump(const struct scope_config *config,
 			     const struct scope_state *state)
 {
@@ -888,13 +907,12 @@ static char **rs_build_multi_waveform_sources(const unsigned int channels,
 
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 {
-	int model_index;
-	unsigned int i, j, k, l, group;
+	int ret, model_index, len;
+	unsigned int i, j, k, group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
-	char *tmp_str;
+	char *tmp_str, *tmp_str2, *tmp_str3;
 	char **multi_waveform_sources;
-	int ret, len;
 
 	if (!sdi)
 		return SR_ERR;
@@ -996,48 +1014,18 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	 */
 	scope_models[model_index].digital_data_byte_len = 1;
 	if ((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]) {
-		j = strlen((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]);
 		tmp_str = g_strdup((*scope_models[model_index].scpi_dialect)[SCPI_CMD_GET_DIG_DATA]);
 		/* Try to determine the digital data byte length from the SCPI command. */
-		k = strlen(SCPI_CMD_FORM_UINT);
-		for (i = 0; i < j - k; i++) {
-			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_UINT, &tmp_str[i], k)) {
-				for (l = 1; l <= 2; l++)
-					if (tmp_str[i + k + l] == ';') {
-						tmp_str[i + k + l] = '\0';
-						sr_atoi(&tmp_str[i + k], &len);
-						scope_models[model_index].digital_data_byte_len = len / 8;
-						break;
-					}
+		for (j = 0; j < ARRAY_SIZE(format_length_scpi_cmd_prefix); j++) {
+			tmp_str2 = strstr(tmp_str, format_length_scpi_cmd_prefix[j]);
+			if (tmp_str2) {
+				tmp_str3 = strchr(tmp_str2, ';');
+				tmp_str3[0] = '\0';
+				sr_atoi(&tmp_str2[strlen(format_length_scpi_cmd_prefix[j])], &len);
+				scope_models[model_index].digital_data_byte_len = len / 8;
+				break;
 			}
 		}
-
-		k = strlen(SCPI_CMD_FORM_INT);
-		for (i = 0; i < j - k; i++) {
-			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_INT, &tmp_str[i], k)) {
-				for (l = 1; l <= 2; l++)
-					if (tmp_str[i + k + l] == ';') {
-						tmp_str[i + k + l] = '\0';
-						sr_atoi(&tmp_str[i + k], &len);
-						scope_models[model_index].digital_data_byte_len = len / 8;
-						break;
-					}
-			}
-		}
-
-		k = strlen(SCPI_CMD_FORM_REAL);
-		for (i = 0; i < j - k; i++) {
-			if (!g_ascii_strncasecmp(SCPI_CMD_FORM_REAL, &tmp_str[i], k)) {
-				for (l = 1; l <= 2; l++)
-					if (tmp_str[i + k + l] == ';') {
-						tmp_str[i + k + l] = '\0';
-						sr_atoi(&tmp_str[i + k], &len);
-						scope_models[model_index].digital_data_byte_len = len / 8;
-						break;
-					}
-			}
-		}
-
 		g_free(tmp_str);
 	}
 
