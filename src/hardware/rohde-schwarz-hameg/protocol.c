@@ -1,8 +1,8 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
  * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
+ * Inspired by the Hameg HMO driver by poljar (Damir Jelić) <poljarinho@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -463,6 +463,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	struct scope_config *config;
 	float tmp_float;
 	unsigned int i;
+	int idx;
 	char *tmp_str, *tmp_str2;
 	char command[MAX_COMMAND_SIZE];
 
@@ -761,6 +762,33 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 
 	state->fft_span_rbw_ratio = tmp_float;
 
+	/* Get the Automatic Measurement source and reference. */
+	g_snprintf(command, sizeof(command),
+		   (*config->scpi_dialect)[SCPI_CMD_GET_MEAS_SOURCE_REFERENCE],
+		   AUTO_MEASUREMENT_INDEX, AUTO_MEASUREMENT_INDEX);
+	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
+		return SR_ERR;
+	tmp_str2 = strchr(tmp_str, ',');
+	if (tmp_str2) {
+		if ((idx = std_str_idx_s(++tmp_str2, (const char **) *config->meas_sources,
+					 config->num_meas_sources)) < 0) {
+			g_free(tmp_str);
+			return SR_ERR_ARG;
+		}
+		state->meas_reference = idx;
+		(--tmp_str2)[0] = '\0';
+		if ((idx = std_str_idx_s(tmp_str, (const char **) *config->meas_sources,
+					 config->num_meas_sources)) < 0) {
+			g_free(tmp_str);
+			return SR_ERR_ARG;
+		}
+		state->meas_source = idx;
+		g_free(tmp_str);
+	} else {
+		g_free(tmp_str);
+		return SR_ERR_ARG;
+	}
+
 	/* Not available on all series. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]) {
 		/* Check if the Beep On Trigger functionality is enabled or not. */
@@ -816,6 +844,18 @@ static struct scope_state *scope_state_new(const struct scope_config *config)
 	return state;
 }
 
+SR_PRIV void rs_scope_config_free(struct scope_config *config)
+{
+	unsigned int i;
+
+	if (!config)
+		return;
+
+	for (i = 0; i < config->num_meas_sources; i++)
+		g_free((*config->meas_sources)[i]);
+	g_free(config->meas_sources);
+}
+
 SR_PRIV void rs_scope_state_free(struct scope_state *state)
 {
 	if (!state)
@@ -827,6 +867,25 @@ SR_PRIV void rs_scope_state_free(struct scope_state *state)
 	g_free(state);
 }
 
+/*
+ * Build an array with all possible sources for all analog channels and
+ * all different waveforms supported for each channel.
+ */
+static char **rs_build_multi_waveform_sources(const unsigned int channels,
+					      const unsigned int waveforms)
+{
+	unsigned int i, j;
+	char **sources;
+
+	sources = g_malloc0(sizeof(char *) * channels * waveforms);
+	if (sources)
+		for (i = 1; i <= channels; i++)
+			for (j = 1; j <= waveforms; j++)
+				sources[(i - 1) * waveforms + (j - 1)] = g_strdup_printf("C%uW%u", i, j);
+
+	return sources;
+}
+
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 {
 	int model_index;
@@ -834,6 +893,7 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct dev_context *devc;
 	char *tmp_str;
+	char **multi_waveform_sources;
 	int ret, len;
 
 	if (!sdi)
@@ -986,6 +1046,68 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		tmp_str = g_strdup_printf("FFT_CH%d", i + 1);
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_FFT, TRUE, tmp_str);
 		g_free(tmp_str);
+	}
+
+	/* Build the Automatic Measurements signal sources and references list. */
+	k = 0;
+	if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
+		scope_models[model_index].num_meas_sources = scope_models[model_index].analog_channels +
+							     scope_models[model_index].digital_channels;
+		for (i = 0; i < scope_models[model_index].analog_channels; i++) {
+			j = strlen((*scope_models[model_index].analog_names)[i]);
+			if (j > k)
+				k = j;
+		}
+	} else { /* The RTO series has multiple waveforms for each analog channel. */
+		scope_models[model_index].num_meas_sources = scope_models[model_index].analog_channels *
+							     MAX_WAVEFORMS_PER_CHANNEL +
+							     scope_models[model_index].digital_channels;
+		multi_waveform_sources = rs_build_multi_waveform_sources(scope_models[model_index].analog_channels,
+									 MAX_WAVEFORMS_PER_CHANNEL);
+		if (!multi_waveform_sources)
+			return SR_ERR_MALLOC;
+		for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++) {
+			j = strlen(multi_waveform_sources[i]);
+			if (j > k)
+				k = j;
+		}
+	}
+	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
+		j = strlen((*scope_models[model_index].digital_names)[i]);
+		if (j > k)
+			k = j;
+	}
+
+	scope_models[model_index].meas_sources = g_malloc0(sizeof(char *) *
+							   scope_models[model_index].num_meas_sources);
+	if (!scope_models[model_index].meas_sources)
+		return SR_ERR_MALLOC;
+	for (i = 0; i < scope_models[model_index].num_meas_sources; i++)
+		(*scope_models[model_index].meas_sources)[i] = g_malloc0(sizeof(char) * k);
+
+	if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
+		for (i = 0; i < scope_models[model_index].analog_channels; i++)
+			strncpy((*scope_models[model_index].meas_sources)[i],
+				(*scope_models[model_index].analog_names)[i],
+				k);
+		for (i = 0; i < scope_models[model_index].digital_channels; i++)
+			strncpy((*scope_models[model_index].meas_sources)[i + scope_models[model_index].analog_channels],
+				(*scope_models[model_index].digital_names)[i],
+				k);
+	} else { /* RTO series. */
+		for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++)
+			strncpy((*scope_models[model_index].meas_sources)[i],
+				multi_waveform_sources[i],
+				k);
+		for (i = 0; i < scope_models[model_index].digital_channels; i++)
+			strncpy((*scope_models[model_index].meas_sources)[i +
+					scope_models[model_index].analog_channels *
+					MAX_WAVEFORMS_PER_CHANNEL],
+				(*scope_models[model_index].digital_names)[i],
+				k);
+		for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++)
+			g_free(multi_waveform_sources[i]);
+		g_free(multi_waveform_sources);
 	}
 
 	devc->model_config = &scope_models[model_index];

@@ -1,8 +1,8 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
  * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
+ * Inspired by the Hameg HMO driver by poljar (Damir Jelić) <poljarinho@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -106,6 +106,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static void clear_helper(struct dev_context *devc)
 {
+	rs_scope_config_free(devc->model_config);
 	rs_scope_state_free(devc->model_state);
 	g_free(devc->analog_groups);
 	g_free(devc->digital_groups);
@@ -165,10 +166,12 @@ static int check_channel_group(const struct dev_context *devc,
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int cg_type, idx, i;
 	const struct dev_context *devc;
 	const struct scope_config *model;
 	const struct scope_state *state;
+	int cg_type, idx, i;
+	float tmp_float;
+	char command[MAX_COMMAND_SIZE];
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -405,6 +408,232 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_FFT_SPAN_RBW_RATIO:
 		*data = g_variant_new_uint64(state->fft_span_rbw_ratio);
+		break;
+	case SR_CONF_MEAS_SOURCE:
+		if (!model->meas_sources || !model->num_meas_sources)
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->meas_sources)[state->meas_source]);
+		break;
+	case SR_CONF_MEAS_REFERENCE:
+		if (!model->meas_sources || !model->num_meas_sources)
+			return SR_ERR_NA;
+		*data = g_variant_new_string((*model->meas_sources)[state->meas_reference]);
+		break;
+	case SR_CONF_MEAS_FREQ:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_FREQ],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_PERIOD:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_PERIOD],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_PEAK:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_PEAK],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_UPPER_PEAK:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_UPPER_PEAK],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_LOWER_PEAK:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_LOWER_PEAK],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_POS_PULSE_COUNT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_POS_PULSE_COUNT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_uint64((unsigned int) tmp_float);
+		break;
+	case SR_CONF_MEAS_NEG_PULSE_COUNT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_NEG_PULSE_COUNT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_uint64((unsigned int) tmp_float);
+		break;
+	case SR_CONF_MEAS_POS_EDGE_COUNT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_POS_EDGE_COUNT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_uint64((unsigned int) tmp_float);
+		break;
+	case SR_CONF_MEAS_NEG_EDGE_COUNT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_NEG_EDGE_COUNT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_uint64((unsigned int) tmp_float);
+		break;
+	case SR_CONF_MEAS_MEAN_HIGH_LEVEL:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_MEAN_HIGH_LEVEL],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_MEAN_LOW_LEVEL:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_MEAN_LOW_LEVEL],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_AMPLITUDE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_AMPLITUDE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_MEAN_VALUE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_MEAN_VALUE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_RMS_VALUE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_RMS_VALUE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_POS_DUTY_CYCLE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_POS_DUTY_CYCLE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_NEG_DUTY_CYCLE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_NEG_DUTY_CYCLE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_POS_PULSE_WIDTH:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_POS_PULSE_WIDTH],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_NEG_PULSE_WIDTH:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_NEG_PULSE_WIDTH],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_CYC_MEAN_VALUE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_CYC_MEAN_VALUE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_CYC_RMS_VALUE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_CYC_RMS_VALUE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_STD_DEVIATION:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_STD_DEVIATION],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_TRIGGER_FREQUENCY:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_TRIGGER_FREQUENCY],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_TRIGGER_PERIOD:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_TRIGGER_PERIOD],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_POS_OVERSHOOT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_POS_OVERSHOOT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_NEG_OVERSHOOT:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_NEG_OVERSHOOT],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_PHASE:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_PHASE],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
+		break;
+	case SR_CONF_MEAS_BURST_WIDTH:
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_GET_MEAS_BURST_WIDTH],
+			   AUTO_MEASUREMENT_INDEX);
+		if (sr_scpi_get_float(sdi->conn, command, &tmp_float) != SR_OK)
+			return SR_ERR;
+		*data = g_variant_new_double(tmp_float);
 		break;
 	case SR_CONF_BEEP_ON_TRIGGER:
 		*data = g_variant_new_boolean(state->beep_on_trigger);
@@ -1117,6 +1346,36 @@ static int config_set(uint32_t key, GVariant *data,
 		if (ret == SR_OK)
 			state->fft_span_rbw_ratio = tmp_uint;
 		break;
+	case SR_CONF_MEAS_SOURCE:
+	case SR_CONF_MEAS_REFERENCE:
+		if (!model->meas_sources || !model->num_meas_sources)
+			return SR_ERR_NA;
+		if ((idx = std_str_idx(data, (const char**) *model->meas_sources, model->num_meas_sources)) < 0)
+			return SR_ERR_ARG;
+		if (key == SR_CONF_MEAS_SOURCE) {
+			i = idx;
+			j = state->meas_reference;
+
+		} else {
+			i = state->meas_source;
+			j = idx;
+		}
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_MEAS_SOURCE_REFERENCE],
+			   AUTO_MEASUREMENT_INDEX,
+			   (*model->meas_sources)[i],
+			   (*model->meas_sources)[j]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		ret = rs_check_esr(sdi);
+		if (ret == SR_OK) {
+			if (key == SR_CONF_MEAS_SOURCE)
+				state->meas_source = idx;
+			else
+				state->meas_reference = idx;
+		}
+		break;
 	case SR_CONF_BEEP_ON_TRIGGER:
 		tmp_bool = g_variant_get_boolean(data);
 		g_snprintf(command, sizeof(command),
@@ -1304,6 +1563,14 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model->fft_window_types || !model->num_fft_window_types)
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(*model->fft_window_types, model->num_fft_window_types);
+		break;
+	case SR_CONF_MEAS_SOURCE:
+	case SR_CONF_MEAS_REFERENCE:
+		if (!model)
+			return SR_ERR_ARG;
+		if (!model->meas_sources || !model->num_meas_sources)
+			return SR_ERR_NA;
+		*data = g_variant_new_strv((const char**) *model->meas_sources, model->num_meas_sources);
 		break;
 	default:
 		return SR_ERR_NA;

@@ -238,6 +238,66 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_FFT_SPAN_RBW_RATIO, SR_T_UINT64, "fft_span_rbw_ratio",
 		"Fast Fourier Transform Span / Resolution Bandwidth ratio", NULL},
 
+	/* Automatic Measurements: source, reference and data retrieval */
+	{SR_CONF_MEAS_SOURCE, SR_T_STRING, "meas_src",
+		"Automatic Measurement source signal", NULL},
+	{SR_CONF_MEAS_REFERENCE, SR_T_STRING, "meas_ref",
+		"Automatic Measurement reference signal", NULL},
+	{SR_CONF_MEAS_FREQ, SR_T_FLOAT, "meas_freq",
+		"Measure frequency ", NULL},
+	{SR_CONF_MEAS_PERIOD, SR_T_FLOAT, "meas_period",
+		"Measure period", NULL},
+	{SR_CONF_MEAS_PEAK, SR_T_FLOAT, "meas_peak",
+		"Measure peak-to-peak value", NULL},
+	{SR_CONF_MEAS_UPPER_PEAK, SR_T_FLOAT, "meas_upeak",
+		"Measure maximum value", NULL},
+	{SR_CONF_MEAS_LOWER_PEAK, SR_T_FLOAT, "meas_lpeak",
+		"Measure minimum value", NULL},
+	{SR_CONF_MEAS_POS_PULSE_COUNT, SR_T_UINT64, "meas_p_pulses",
+		"Count positive pulses", NULL},
+	{SR_CONF_MEAS_NEG_PULSE_COUNT, SR_T_UINT64, "meas_n_pulses",
+		"Count negative pulses", NULL},
+	{SR_CONF_MEAS_POS_EDGE_COUNT, SR_T_UINT64, "meas_p_edges",
+		"Count positive edges", NULL},
+	{SR_CONF_MEAS_NEG_EDGE_COUNT, SR_T_UINT64, "meas_n_edges",
+		"Count negative edges", NULL},
+	{SR_CONF_MEAS_MEAN_HIGH_LEVEL, SR_T_FLOAT, "meas_mean_high",
+		"Measure mean value of high level", NULL},
+	{SR_CONF_MEAS_MEAN_LOW_LEVEL, SR_T_FLOAT, "meas_mean_low",
+		"Measure mean value of low level", NULL},
+	{SR_CONF_MEAS_AMPLITUDE, SR_T_FLOAT, "meas_amplitude",
+		"Measure amplitude", NULL},
+	{SR_CONF_MEAS_MEAN_VALUE, SR_T_FLOAT, "meas_mean",
+		"Measure mean value", NULL},
+	{SR_CONF_MEAS_RMS_VALUE, SR_T_FLOAT, "meas_rms",
+		"Measure RMS value", NULL},
+	{SR_CONF_MEAS_POS_DUTY_CYCLE, SR_T_FLOAT, "meas_p_duty",
+		"Measure positive duty cycle", NULL},
+	{SR_CONF_MEAS_NEG_DUTY_CYCLE, SR_T_FLOAT, "meas_n_duty",
+		"Measure negative duty cycle", NULL},
+	{SR_CONF_MEAS_POS_PULSE_WIDTH, SR_T_FLOAT, "meas_p_pulse_width",
+		"Measure positive pulse width", NULL},
+	{SR_CONF_MEAS_NEG_PULSE_WIDTH, SR_T_FLOAT, "meas_n_pulse_width",
+		"Measure negative pulse width", NULL},
+	{SR_CONF_MEAS_CYC_MEAN_VALUE, SR_T_FLOAT, "meas_cyc_mean",
+		"Measure mean value of the left-most signal period", NULL},
+	{SR_CONF_MEAS_CYC_RMS_VALUE, SR_T_FLOAT, "meas_cyc_rms",
+		"Measure RMS value of the left-most signal period", NULL},
+	{SR_CONF_MEAS_STD_DEVIATION, SR_T_FLOAT, "meas_std_dev",
+		"Measure standard deviation", NULL},
+	{SR_CONF_MEAS_TRIGGER_FREQUENCY, SR_T_FLOAT, "meas_trig_freq",
+		"Measure trigger frequency", NULL},
+	{SR_CONF_MEAS_TRIGGER_PERIOD, SR_T_FLOAT, "meas_trig_per",
+		"Measure trigger period", NULL},
+	{SR_CONF_MEAS_POS_OVERSHOOT, SR_T_FLOAT, "meas_p_overshoot",
+		"Measure positive overshoot", NULL},
+	{SR_CONF_MEAS_NEG_OVERSHOOT, SR_T_FLOAT, "meas_n_overshoot",
+		"Measure negative overshoot", NULL},
+	{SR_CONF_MEAS_PHASE, SR_T_FLOAT, "meas_phase",
+		"Measure phase", NULL},
+	{SR_CONF_MEAS_BURST_WIDTH, SR_T_FLOAT, "meas_burst_width",
+		"Measure burst duration", NULL},
+
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
 		"Session file", NULL},
@@ -703,7 +763,7 @@ static void log_key(const struct sr_dev_inst *sdi,
 	if (key == SR_CONF_DEVICE_OPTIONS)
 		return;
 
-	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	opstr = op & SR_CONF_GET_MASK ? "get" : op == SR_CONF_SET ? "set" : "list";
 	srci = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	tmp_str = g_variant_print(data, TRUE);
@@ -736,7 +796,7 @@ static int check_key(const struct sr_dev_driver *driver,
 		sr_err("Invalid key %d.", key);
 		return SR_ERR_ARG;
 	}
-	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	opstr = op & SR_CONF_GET_MASK ? "get" : op == SR_CONF_SET ? "set" : "list";
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
@@ -826,7 +886,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	if (!driver->config_get)
 		return SR_ERR_ARG;
 
-	if (check_key(driver, sdi, cg, key, SR_CONF_GET, NULL) != SR_OK)
+	if (check_key(driver, sdi, cg, key, SR_CONF_GET_MASK, NULL) != SR_OK)
 		return SR_ERR_ARG;
 
 	if (sdi && !sdi->priv) {
@@ -835,7 +895,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	}
 
 	if ((ret = driver->config_get(key, data, sdi, cg)) == SR_OK) {
-		log_key(sdi, cg, key, SR_CONF_GET, *data);
+		log_key(sdi, cg, key, SR_CONF_GET_MASK, *data);
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
 		g_variant_ref_sink(*data);
