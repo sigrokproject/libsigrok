@@ -655,7 +655,8 @@ static int config_set(uint32_t key, GVariant *data,
 	unsigned int custom_threshold_idx, tmp_uint;
 	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
 	char command3[MAX_COMMAND_SIZE], command4[MAX_COMMAND_SIZE];
-	char float_str[30], *tmp_str;
+	char float_str[30], *tmp_str, *tmp_str2;
+	char **commands;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -680,6 +681,27 @@ static int config_set(uint32_t key, GVariant *data,
 	update_sample_rate = FALSE;
 
 	switch (key) {
+	case SR_CONF_CUSTOM_CMD:
+		tmp_str = (char *)g_variant_get_string(data, (gsize *)&idx);
+		if (idx > MAX_COMMAND_SIZE) {
+			sr_err("SCPI command is too long !");
+			return SR_ERR_ARG;
+		}
+		commands = g_strsplit(tmp_str, ";", 0);
+		for (i = 0; commands[i]; i++) {
+			tmp_str2 = strchr(commands[i], '\0');
+			if ((--tmp_str2)[0] == '?') {
+				ret = sr_scpi_get_string(sdi->conn, commands[i], &tmp_str2);
+				if (ret == SR_OK)
+					printf("'%s'\n", tmp_str2);
+				else
+					break;
+			} else {
+				ret = sr_scpi_send(sdi->conn, commands[i]);
+			}
+		}
+		g_strfreev(commands);
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->samples_limit = g_variant_get_uint64(data);
 		ret = SR_OK;

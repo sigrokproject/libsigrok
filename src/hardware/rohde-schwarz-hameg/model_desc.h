@@ -408,6 +408,7 @@ static const char *rohde_schwarz_rto_scpi_dialect[] = {
 /* Options currently supported on the HMO2524 and HMO3000 series. */
 static const uint32_t devopts_hmo300x[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CUSTOM_CMD | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
@@ -472,6 +473,7 @@ static const uint32_t devopts_hmo300x[] = {
 /* Options currently supported on the HMO Compact, HMO1x02 and RTC1000 series. */
 static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CUSTOM_CMD | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
@@ -535,6 +537,7 @@ static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 /* Options currently supported on the RTB200x, RTM300x and RTA400x series. */
 static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CUSTOM_CMD | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
@@ -595,6 +598,7 @@ static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 /* Options currently supported on the RTO series. */
 static const uint32_t devopts_rto[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CUSTOM_CMD | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET,
