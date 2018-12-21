@@ -1264,6 +1264,13 @@ enum sr_configkey {
 	SR_CONF_TEST_MODE,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Custom command ------------------------------------------------*/
+
+	/** Send a custom command to the device (e.g. SCPI command). */
+	SR_CONF_CUSTOM_CMD,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };
 
 /**
