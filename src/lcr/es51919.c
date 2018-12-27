@@ -27,6 +27,8 @@
 
 #define LOG_PREFIX "es51919"
 
+#ifdef HAVE_SERIAL_COMM
+
 struct dev_buffer {
 	/** Total size of the buffer. */
 	size_t size;
@@ -854,3 +856,5 @@ SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
 
 	return SR_OK;
 }
+
+#endif

@@ -28,6 +28,8 @@
 
 #define LOG_PREFIX "scpi_serial"
 
+#ifdef HAVE_SERIAL_COMM
+
 struct scpi_serial {
 	struct sr_serial_dev_inst *serial;
 	gboolean got_newline;
@@ -214,3 +216,5 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
 	.close         = scpi_serial_close,
 	.free          = scpi_serial_free,
 };
+
+#endif
