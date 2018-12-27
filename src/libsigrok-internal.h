@@ -731,6 +731,7 @@ struct sr_serial_dev_inst;
 #ifdef HAVE_SERIAL_COMM
 struct ser_lib_functions;
 struct ser_hid_chip_functions;
+struct sr_bt_desc;
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
@@ -761,6 +762,25 @@ struct sr_serial_dev_inst {
 	const char *hid_path;
 	hid_device *hid_dev;
 	GSList *hid_source_args;
+#endif
+#ifdef HAVE_BLUETOOTH
+	enum ser_bt_conn_t {
+		SER_BT_CONN_UNKNOWN,	/**!< place holder */
+		SER_BT_CONN_RFCOMM,	/**!< BT classic, RFCOMM channel */
+		SER_BT_CONN_BLE122,	/**!< BLE, BLE122 module, indications */
+		SER_BT_CONN_NRF51,	/**!< BLE, Nordic nRF51, notifications */
+		SER_BT_CONN_CC254x,	/**!< BLE, TI CC254x, notifications */
+		SER_BT_CONN_MAX,	/**!< sentinel */
+	} bt_conn_type;
+	char *bt_addr_local;
+	char *bt_addr_remote;
+	size_t bt_rfcomm_channel;
+	uint16_t bt_notify_handle_read;
+	uint16_t bt_notify_handle_write;
+	uint16_t bt_notify_handle_cccd;
+	uint16_t bt_notify_value_cccd;
+	struct sr_bt_desc *bt_desc;
+	GSList *bt_source_args;
 #endif
 };
 #endif
@@ -1197,6 +1217,8 @@ struct ser_lib_functions {
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp;
 SR_PRIV int ser_name_is_hid(struct sr_serial_dev_inst *serial);
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_hid;
+SR_PRIV int ser_name_is_bt(struct sr_serial_dev_inst *serial);
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_bt;
 
 #ifdef HAVE_LIBHIDAPI
 struct vid_pid_item {

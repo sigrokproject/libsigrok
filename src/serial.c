@@ -5,6 +5,7 @@
  * Copyright (C) 2010-2012 Uwe Hermann <uwe@hermann-uwe.de>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2014 Uffe Jakobsen <uffe@uffe.org>
+ * Copyright (C) 2017-2019 Gerhard Sittig <gerhard.sittig@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,6 +99,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 	 */
 	if (ser_name_is_hid(serial))
 		serial->lib_funcs = ser_lib_funcs_hid;
+	else if (ser_name_is_bt(serial))
+		serial->lib_funcs = ser_lib_funcs_bt;
 	else
 		serial->lib_funcs = ser_lib_funcs_libsp;
 	if (!serial->lib_funcs)
@@ -939,6 +942,10 @@ SR_API GSList *sr_serial_list(const struct sr_dev_driver *driver)
 	}
 	if (ser_lib_funcs_hid && ser_lib_funcs_hid->list) {
 		list_func = ser_lib_funcs_hid->list;
+		tty_devs = list_func(tty_devs, append_port_list);
+	}
+	if (ser_lib_funcs_bt && ser_lib_funcs_bt->list) {
+		list_func = ser_lib_funcs_bt->list;
 		tty_devs = list_func(tty_devs, append_port_list);
 	}
 

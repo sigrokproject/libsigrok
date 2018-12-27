@@ -123,6 +123,7 @@ libsigrok_la_SOURCES += \
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
 	src/serial.c \
+	src/serial_bt.c \
 	src/serial_hid.c \
 	src/serial_hid_ch9325.c \
 	src/serial_hid_cp2110.c \
