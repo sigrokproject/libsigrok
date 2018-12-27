@@ -104,6 +104,8 @@ SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
 
+SR_ARG_OPT_PKG([libbluez], [LIBBLUEZ], , [bluez >= 4.0], [bluetooth >= 4.0])
+
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
 # On Windows, require the latest version we can get our hands on,
@@ -133,7 +135,14 @@ SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
 AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
 
-AS_IF([test "x$sr_have_libserialport" = xyes -o "x$sr_have_libhidapi" = xyes],
+# See if any of the (potentially platform specific) libs are available
+# which provide some means of Bluetooth communication.
+AS_IF([test "x$sr_have_libbluez" = xyes],
+	sr_have_bluetooth=yes, sr_have_bluetooth=no)
+AS_IF([test "x$sr_have_bluetooth" = xyes],
+	[AC_DEFINE([HAVE_BLUETOOTH], [1], [Specifies whether Bluetooth communication is supported.])])
+
+AS_IF([test "x$sr_have_libserialport" = xyes -o "x$sr_have_libhidapi" = xyes -o "x$sr_have_bluetooth" = xyes],
 	sr_have_serial_comm=yes, sr_have_serial_comm=no)
 AS_IF([test "x$sr_have_serial_comm" = xyes],
 	[AC_DEFINE([HAVE_SERIAL_COMM], [1], [Specifies whether serial communication is supported.])])
@@ -184,6 +193,15 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
+
+# Availability of bt_put_le16() depends on the bluez library version.
+AC_CACHE_CHECK([for bt_put_le16], [sr_cv_have_btputle16],
+	[AC_LINK_IFELSE([AC_LANG_PROGRAM(
+			[[#include <bluetooth/bluetooth.h>]],
+			[[bt_put_le16(0, (void *)0);]])],
+		[sr_cv_have_btputle16=yes], [sr_cv_have_btputle16=no])])
+AS_IF([test "x$sr_cv_have_btputle16" = xyes],
+	[AC_DEFINE([HAVE_BT_PUT_LE16], [1], [Specifies whether we have bt_put_le16().])])
 
 ########################
 ##  Hardware drivers  ##
@@ -616,6 +634,8 @@ Enabled serial communication transports:
   - serial comm ................... $sr_have_serial_comm
   - libserialport ................. $sr_have_libserialport
   - hidapi ........................ $sr_have_libhidapi
+  - bluetooth ..................... $sr_have_bluetooth
+  - bluez ......................... $sr_have_libbluez
 
 Enabled SCPI backends:
  - TCP............................. yes

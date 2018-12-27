@@ -169,6 +169,11 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBHIDAPI_VERSION));
 	l = g_slist_append(l, m);
 #endif
+#ifdef HAVE_LIBBLUEZ
+	m = g_slist_append(NULL, g_strdup("bluez"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBBLUEZ_VERSION));
+	l = g_slist_append(l, m);
+#endif
 #ifdef HAVE_LIBFTDI
 	m = g_slist_append(NULL, g_strdup("libftdi"));
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBFTDI_VERSION));
