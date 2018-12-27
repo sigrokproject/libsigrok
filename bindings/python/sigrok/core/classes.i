@@ -568,5 +568,23 @@ std::map<std::string, Glib::VariantBase> dict_to_map_options(PyObject *dict,
 }
 }
 
+/* Create logic packet from Python buffer. */
+%extend sigrok::Context
+{
+    std::shared_ptr<Packet> _create_logic_packet_buf(PyObject *buf, unsigned int unit_size)
+    {
+        Py_buffer view;
+        PyObject_GetBuffer(buf, &view, PyBUF_SIMPLE);
+        return $self->create_logic_packet(view.buf, view.len, unit_size);
+    }
+}
+
+%pythoncode
+{
+    def _Context_create_logic_packet(self, buf, unit_size):
+        return self._create_logic_packet_buf(buf, unit_size)
+
+    Context.create_logic_packet = _Context_create_logic_packet
+}
 
 %include "doc_end.i"
