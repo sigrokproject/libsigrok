@@ -287,6 +287,8 @@ public:
 		vector<shared_ptr<Channel> > channels,
 		const float *data_pointer, unsigned int num_samples, const Quantity *mq,
 		const Unit *unit, vector<const QuantityFlag *> mqflags);
+	/** Create an end packet. */
+	shared_ptr<Packet> create_end_packet();
 	/** Load a saved session.
 	 * @param filename File name string. */
 	shared_ptr<Session> load_session(string filename);

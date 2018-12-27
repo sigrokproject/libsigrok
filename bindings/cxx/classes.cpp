@@ -377,6 +377,14 @@ shared_ptr<Packet> Context::create_analog_packet(
 	return shared_ptr<Packet>{new Packet{nullptr, packet}, default_delete<Packet>{}};
 }
 
+shared_ptr<Packet> Context::create_end_packet()
+{
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_END;
+	return shared_ptr<Packet>{new Packet{nullptr, packet},
+		default_delete<Packet>{}};
+}
+
 shared_ptr<Session> Context::load_session(string filename)
 {
 	return shared_ptr<Session>{
