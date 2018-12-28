@@ -158,6 +158,7 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="4032", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", ENV{ID_SIGROK}="1"
 
 # IKALOGIC ScanaPLUS
+# ftdi-la
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", ENV{ID_SIGROK}="1"
 
 # Kecheng KC-330B
