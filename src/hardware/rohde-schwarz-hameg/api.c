@@ -38,6 +38,7 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 enum {
