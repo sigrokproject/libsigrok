@@ -333,6 +333,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	gchar *trig_mode;
 	unsigned int num_channels, i, j;
+	int buffer_samples;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -398,12 +399,29 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 					}
 				}
 
-				devc->analog_frame_size = devc->digital_frame_size =
-					num_channels == 1 ?
-						devc->model->series->buffer_samples :
-							num_channels == 2 ?
-								devc->model->series->buffer_samples / 2 :
-								devc->model->series->buffer_samples / 4;
+				buffer_samples = devc->model->series->buffer_samples;
+				if (buffer_samples == 0)
+				{
+					/* The DS4000 series does not have a fixed memory depth, it
+					 * can be chosen from the menu and also varies with number
+					 * of active channels. Retrieve the actual number with the
+					 * ACQ:MDEP command. */
+					sr_scpi_get_int(sdi->conn, "ACQ:MDEP?", &buffer_samples);
+					devc->analog_frame_size = devc->digital_frame_size =
+							buffer_samples;
+				}
+				else
+				{
+					/* The DS1000Z series has a fixed memory depth which we
+					 * need to divide correctly according to the number of
+					 * active channels. */
+					devc->analog_frame_size = devc->digital_frame_size =
+						num_channels == 1 ?
+							buffer_samples :
+								num_channels == 2 ?
+									buffer_samples / 2 :
+									buffer_samples / 4;
+				}
 			}
 
 			if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
