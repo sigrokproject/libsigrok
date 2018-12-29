@@ -655,7 +655,7 @@ static int config_set(uint32_t key, GVariant *data,
 	unsigned int custom_threshold_idx, tmp_uint;
 	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
 	char command3[MAX_COMMAND_SIZE], command4[MAX_COMMAND_SIZE];
-	char float_str[30], *tmp_str, *tmp_str2;
+	char float_str[MAX_COMMAND_SIZE], *tmp_str, *tmp_str2;
 	char **commands;
 	struct dev_context *devc;
 	const struct scope_config *model;
