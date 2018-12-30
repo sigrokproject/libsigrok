@@ -116,6 +116,10 @@ libsigrok_la_SOURCES += \
 	src/scpi/vxi_xdr.c \
 	src/scpi/vxi.h
 endif
+# if HAVE_BLUETOOTH
+libsigrok_la_SOURCES += \
+	src/bt/bt_bluez.c
+# endif
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
 	src/serial.c \

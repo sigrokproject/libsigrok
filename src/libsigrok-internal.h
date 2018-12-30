@@ -1225,6 +1225,45 @@ SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid);
 #endif
 #endif
 
+/*--- bt/ API ---------------------------------------------------------------*/
+
+#ifdef HAVE_BLUETOOTH
+SR_PRIV const char *sr_bt_adapter_get_address(size_t idx);
+
+struct sr_bt_desc;
+typedef void (*sr_bt_scan_cb)(void *cb_data, const char *addr, const char *name);
+typedef int (*sr_bt_data_cb)(void *cb_data, uint8_t *data, size_t dlen);
+
+SR_PRIV struct sr_bt_desc *sr_bt_desc_new(void);
+SR_PRIV void sr_bt_desc_free(struct sr_bt_desc *desc);
+
+SR_PRIV int sr_bt_config_cb_scan(struct sr_bt_desc *desc,
+	sr_bt_scan_cb cb, void *cb_data);
+SR_PRIV int sr_bt_config_cb_data(struct sr_bt_desc *desc,
+	sr_bt_data_cb cb, void *cb_data);
+SR_PRIV int sr_bt_config_addr_local(struct sr_bt_desc *desc, const char *addr);
+SR_PRIV int sr_bt_config_addr_remote(struct sr_bt_desc *desc, const char *addr);
+SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel);
+SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
+	uint16_t read_handle, uint16_t write_handle,
+	uint16_t cccd_handle, uint16_t cccd_value);
+
+SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration);
+SR_PRIV int sr_bt_scan_bt(struct sr_bt_desc *desc, int duration);
+
+SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc);
+SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc);
+SR_PRIV void sr_bt_disconnect(struct sr_bt_desc *desc);
+
+SR_PRIV ssize_t sr_bt_read(struct sr_bt_desc *desc,
+	void *data, size_t len);
+SR_PRIV ssize_t sr_bt_write(struct sr_bt_desc *desc,
+	const void *data, size_t len);
+
+SR_PRIV int sr_bt_start_notify(struct sr_bt_desc *desc);
+SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc);
+#endif
+
 /*--- ezusb.c ---------------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
