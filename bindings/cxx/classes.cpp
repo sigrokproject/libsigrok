@@ -1661,6 +1661,11 @@ Output::~Output()
 	check(sr_output_free(_structure));
 }
 
+shared_ptr<OutputFormat> Output::format()
+{
+	return _format;
+}
+
 string Output::receive(shared_ptr<Packet> packet)
 {
 	GString *out;

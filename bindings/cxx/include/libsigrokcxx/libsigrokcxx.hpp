@@ -1016,6 +1016,8 @@ public:
 	/** Update output with data from the given packet.
 	 * @param packet Packet to handle. */
 	string receive(shared_ptr<Packet> packet);
+	/** Output format in use for this output */
+	shared_ptr<OutputFormat> format();
 private:
 	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
 	Output(shared_ptr<OutputFormat> format,
