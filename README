@@ -42,6 +42,7 @@ Requirements for the C library:
  - librevisa >= 0.0.20130412 (optional, used by some drivers)
  - libusb-1.0 >= 1.0.16 (optional, used by some drivers)
  - hidapi >= 0.8.0 (optional, used for some HID based "serial cables")
+ - bluez >= 4.0 (optional, used for Bluetooth communication)
  - libftdi1 >= 1.0 (optional, used by some drivers)
  - libgpib (optional, used by some drivers)
  - libieee1284 (optional, used by some drivers)
