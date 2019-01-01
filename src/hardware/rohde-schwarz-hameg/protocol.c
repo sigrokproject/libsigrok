@@ -297,18 +297,22 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	float tmp_float;
 
 	for (i = 0; i < config->digital_channels; i++) {
-		if (g_ascii_strncasecmp("RTO", sdi->model, 3))
-			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
-				   i);
-		else
-			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
-				   (i / DIGITAL_CHANNELS_PER_POD) + 1, i);
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE]) {
+			if (g_ascii_strncasecmp("RTO", sdi->model, 3))
+				g_snprintf(command, sizeof(command),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
+					   i);
+			else
+				g_snprintf(command, sizeof(command),
+					   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_CHAN_STATE],
+					   (i / DIGITAL_CHANNELS_PER_POD) + 1, i);
 
-		if (sr_scpi_get_bool(scpi, command,
-				     &state->digital_channels[i]) != SR_OK)
-			return SR_ERR;
+			if (sr_scpi_get_bool(scpi, command,
+					     &state->digital_channels[i]) != SR_OK)
+				return SR_ERR;
+		} else {
+			state->digital_channels[i] = TRUE;
+		}
 
 		ch = get_channel_by_index_and_type(sdi->channels, i, SR_CHANNEL_LOGIC);
 		if (ch)

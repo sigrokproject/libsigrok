@@ -1953,20 +1953,22 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 
 			if (ch->enabled == state->digital_channels[ch->index])
 				break;
-			if (g_ascii_strncasecmp("RTO", sdi->model, 3))
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
-					   ch->index,
-					   ch->enabled);
-			else
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
-					   (ch->index / DIGITAL_CHANNELS_PER_POD) + 1, ch->index,
-					   ch->enabled);
+			if ((*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE]) {
+				if (g_ascii_strncasecmp("RTO", sdi->model, 3))
+					g_snprintf(command, sizeof(command),
+						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
+						   ch->index,
+						   ch->enabled);
+				else
+					g_snprintf(command, sizeof(command),
+						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE],
+						   (ch->index / DIGITAL_CHANNELS_PER_POD) + 1, ch->index,
+						   ch->enabled);
 
-			if (sr_scpi_send(scpi, command) != SR_OK) {
-				g_free(pod_enabled);
-				return SR_ERR;
+				if (sr_scpi_send(scpi, command) != SR_OK) {
+					g_free(pod_enabled);
+					return SR_ERR;
+				}
 			}
 
 			state->digital_channels[ch->index] = ch->enabled;

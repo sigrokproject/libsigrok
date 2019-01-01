@@ -211,8 +211,8 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
 	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
 	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
-	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
-	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
+/*	[SCPI_CMD_GET_DIG_CHAN_STATE] missing ! */
+/*	[SCPI_CMD_SET_DIG_CHAN_STATE] missing ! */
 	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",	/* Might not be supported on RTB200x... */
 	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
 	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
