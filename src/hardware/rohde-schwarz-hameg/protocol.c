@@ -336,13 +336,16 @@ static int digital_channel_state_get(const struct sr_dev_inst *sdi,
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
-			   i + 1);
-
-		if (sr_scpi_get_bool(scpi, command,
-				     &state->digital_pods[i].state) != SR_OK)
-			goto exit;
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE]) {
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
+				   i + 1);
+			if (sr_scpi_get_bool(scpi, command,
+					     &state->digital_pods[i].state) != SR_OK)
+				goto exit;
+		} else {
+			state->digital_pods[i].state = TRUE;
+		}
 
 		if (config->logic_threshold && config->num_logic_threshold) {
 			/* Check if the threshold command is based on the POD or nibble channel index. */

@@ -158,6 +158,131 @@ static const char *rohde_schwarz_scpi_dialect[] = {
 };
 
 /*
+ * This dialect is used by the Rohde&Schwarz RTM2000 series.
+ *
+ * It doesn't support directly setting the sample rate, although
+ * it supports setting the maximum sample rate.
+ *
+ * It supports setting a logic threshold for Logic (Pattern)
+ * Trigger on digitized analog channels (custom level).
+ */
+static const char *rohde_schwarz_rtm200x_scpi_dialect[] = {
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:DIG%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT?",
+	[SCPI_CMD_SET_WAVEFORM_SAMPLE_RATE]   = ":ACQ:WRAT %s",
+	[SCPI_CMD_GET_ARITHMETICS_TYPE]	      = ":CHAN:ARIT?",   /* No index needed. Don't use ACQ:TYPE ! */
+	[SCPI_CMD_SET_ARITHMETICS_TYPE]	      = ":CHAN:ARIT %s", /* No index needed. Don't use ACQ:TYPE ! */
+	[SCPI_CMD_GET_INTERPOLATION_MODE]     = ":ACQ:INT?",
+	[SCPI_CMD_SET_INTERPOLATION_MODE]     = ":ACQ:INT %s",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
+/*	[SCPI_CMD_GET_DIG_POD_STATE] missing ! */
+/*	[SCPI_CMD_SET_DIG_POD_STATE] missing ! */
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_COUPLING]	      = ":TRIG:A:EDGE:COUP?",
+	[SCPI_CMD_SET_TRIGGER_COUPLING]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:COUP %s",
+	[SCPI_CMD_GET_TRIGGER_LOWPASS]	      = ":TRIG:A:EDGE:FILT:HFR?",
+	[SCPI_CMD_SET_TRIGGER_LOWPASS]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:HFR %d",
+	[SCPI_CMD_GET_TRIGGER_NOISE_REJ]      = ":TRIG:A:EDGE:FILT:NREJ?",
+	[SCPI_CMD_SET_TRIGGER_NOISE_REJ]      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:FILT:NREJ %d",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
+					        ":TRIG:A:PATT:FUNC AND;" \
+					        ":TRIG:A:PATT:COND \"TRUE\";" \
+					        ":TRIG:A:PATT:MODE OFF;" \
+					        ":TRIG:A:PATT:SOUR \"%s\"",
+	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
+	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
+	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
+	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
+/*	[SCPI_CMD_GET_DIG_CHAN_STATE] missing ! */
+/*	[SCPI_CMD_SET_DIG_CHAN_STATE] missing ! */
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR?",
+	[SCPI_CMD_SET_ANALOG_THRESHOLD]	      = ":CHAN%d:THR %s",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR %s",
+	[SCPI_CMD_GET_BANDWIDTH_LIMIT]	      = ":CHAN%d:BAND?",
+	[SCPI_CMD_SET_BANDWIDTH_LIMIT]	      = ":CHAN%d:BAND %s",
+	[SCPI_CMD_GET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR?",
+	[SCPI_CMD_SET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR:DEF \"%s\"",
+	[SCPI_CMD_GET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT?",
+	[SCPI_CMD_SET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT %s",
+	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE?",
+	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR %s",
+	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
+	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %d",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
+	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
+					        ":CALC:MATH%d:FFT:MAGN:SCAL DBM;" \
+					        ":CALC:MATH%d:SCAL 20;" \
+					        ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
+	[SCPI_CMD_GET_MEAS_SOURCE_REFERENCE]  = ":MEAS%d:MAIN PHAS;:MEAS%d:SOUR?",
+	[SCPI_CMD_SET_MEAS_SOURCE_REFERENCE]  = ":MEAS%d:SOUR %s,%s",
+	[SCPI_CMD_GET_MEAS_FREQ]	      = ":MEAS%d:RES? FREQ",
+	[SCPI_CMD_GET_MEAS_PERIOD]	      = ":MEAS%d:RES? PER",
+	[SCPI_CMD_GET_MEAS_PEAK]	      = ":MEAS%d:RES? PEAK",
+	[SCPI_CMD_GET_MEAS_UPPER_PEAK]	      = ":MEAS%d:RES? UPE",
+	[SCPI_CMD_GET_MEAS_LOWER_PEAK]	      = ":MEAS%d:RES? LPE",
+	[SCPI_CMD_GET_MEAS_POS_PULSE_COUNT]   = ":MEAS%d:RES? PPC",
+	[SCPI_CMD_GET_MEAS_NEG_PULSE_COUNT]   = ":MEAS%d:RES? NPC",
+	[SCPI_CMD_GET_MEAS_POS_EDGE_COUNT]    = ":MEAS%d:RES? REC",
+	[SCPI_CMD_GET_MEAS_NEG_EDGE_COUNT]    = ":MEAS%d:RES? FEC",
+	[SCPI_CMD_GET_MEAS_MEAN_HIGH_LEVEL]   = ":MEAS%d:RES? HIGH",
+	[SCPI_CMD_GET_MEAS_MEAN_LOW_LEVEL]    = ":MEAS%d:RES? LOW",
+	[SCPI_CMD_GET_MEAS_AMPLITUDE]	      = ":MEAS%d:RES? AMPL",
+	[SCPI_CMD_GET_MEAS_MEAN_VALUE]	      = ":MEAS%d:RES? MEAN",
+	[SCPI_CMD_GET_MEAS_RMS_VALUE]	      = ":MEAS%d:RES? RMS",
+	[SCPI_CMD_GET_MEAS_POS_DUTY_CYCLE]    = ":MEAS%d:RES? PDCY",
+	[SCPI_CMD_GET_MEAS_NEG_DUTY_CYCLE]    = ":MEAS%d:RES? NDCY",
+	[SCPI_CMD_GET_MEAS_POS_PULSE_WIDTH]   = ":MEAS%d:RES? PPW",
+	[SCPI_CMD_GET_MEAS_NEG_PULSE_WIDTH]   = ":MEAS%d:RES? NPW",
+	[SCPI_CMD_GET_MEAS_CYC_MEAN_VALUE]    = ":MEAS%d:RES? CYCM",
+	[SCPI_CMD_GET_MEAS_CYC_RMS_VALUE]     = ":MEAS%d:RES? CYCR",
+	[SCPI_CMD_GET_MEAS_STD_DEVIATION]     = ":MEAS%d:RES? STDD",
+	[SCPI_CMD_GET_MEAS_TRIGGER_FREQUENCY] = ":MEAS%d:RES? TFR",
+	[SCPI_CMD_GET_MEAS_TRIGGER_PERIOD]    = ":MEAS%d:RES? TPER",
+	[SCPI_CMD_GET_MEAS_POS_OVERSHOOT]     = ":MEAS%d:RES? POV",
+	[SCPI_CMD_GET_MEAS_NEG_OVERSHOOT]     = ":MEAS%d:RES? NOV",
+	[SCPI_CMD_GET_MEAS_PHASE]	      = ":MEAS%d:RES? PHAS",
+	[SCPI_CMD_GET_MEAS_BURST_WIDTH]	      = ":MEAS%d:RES? BWID",
+	[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_TRIGGER]    = ":SYST:BEEP:TRIG:STAT %d",
+	[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT?",
+	[SCPI_CMD_SET_SYS_BEEP_ON_ERROR]      = ":SYST:BEEP:ERR:STAT %d",
+};
+
+/*
  * This dialect is used by the Rohde&Schwarz RTB2000, RTM3000 and
  * RTA4000 series.
  *
@@ -292,7 +417,7 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
  * value up to the maximum allowed.
  *
  * It doesn't provide a separate setting for the FFT sample rate
- * as in the HMO and RTC1000 series.
+ * as in the HMO, RTC1000 and RTM2000 series.
  *
  * The Logic (Pattern) Trigger doesn't use the analog channels
  * as possible sources, therefore the threshold can be set only
@@ -534,6 +659,67 @@ static const uint32_t devopts_hmocompact_hmo1x02_rtc100x[] = {
 	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
 };
 
+/* Options currently supported on the RTM200x series. */
+static const uint32_t devopts_rtm200x[] = {
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_CUSTOM_CMD | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_WAVEFORM_SAMPLE_RATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ARITHMETICS_TYPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_INTERPOLATION_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_NUM_HDIV | SR_CONF_GET,
+	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LOWPASS | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_NOISE_REJ | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PEAK_DETECTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_WINDOW | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_FFT_FREQUENCY_START | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_STOP | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_SPAN | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_FREQUENCY_CENTER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_RESOLUTION_BW | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_SPAN_RBW_COUPLING | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FFT_SPAN_RBW_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_MEAS_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_MEAS_REFERENCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_MEAS_FREQ | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_PERIOD | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_PEAK | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_UPPER_PEAK | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_LOWER_PEAK | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_POS_PULSE_COUNT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_NEG_PULSE_COUNT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_POS_EDGE_COUNT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_NEG_EDGE_COUNT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_MEAN_HIGH_LEVEL | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_MEAN_LOW_LEVEL | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_AMPLITUDE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_MEAN_VALUE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_RMS_VALUE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_POS_DUTY_CYCLE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_NEG_DUTY_CYCLE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_POS_PULSE_WIDTH | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_NEG_PULSE_WIDTH | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_CYC_MEAN_VALUE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_CYC_RMS_VALUE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_STD_DEVIATION | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_POS_OVERSHOOT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_NEG_OVERSHOOT | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_PHASE | SR_CONF_GET_NO_SHOW,
+	SR_CONF_MEAS_BURST_WIDTH | SR_CONF_GET_NO_SHOW,
+	SR_CONF_BEEP_ON_TRIGGER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_BEEP_ON_ERROR | SR_CONF_GET | SR_CONF_SET,
+};
+
 /* Options currently supported on the RTB200x, RTM300x and RTA400x series. */
 static const uint32_t devopts_rtb200x_rtm300x_rta400x[] = {
 	SR_CONF_OSCILLOSCOPE,
@@ -717,8 +903,8 @@ static const char *arithmetics_type_hmo_compact[] = {
 	"FILT",
 };
 
-/* HMO1002/1202, HMO2524, HMO3000 and RTC100x series. */
-static const char *arithmetics_type_hmo_rtc100x[] = {
+/* HMO1002/1202, HMO2524, HMO3000, RTC100x and RTM200x series. */
+static const char *arithmetics_type_hmo_rtc100x_rtm200x[] = {
 	"OFF",
 	"ENV",
 	"AVER",
@@ -791,6 +977,15 @@ static const char *edge_trigger_coupling_hmo_rtc100x[] = {
 };
 
 /*
+ * The edge trigger coupling options for the RTM200x series.
+ */
+static const char *edge_trigger_coupling_rtm200x[] = {
+	"DC",
+	"AC",
+	"HF",
+};
+
+/*
  * The edge trigger coupling options for the RTB200x,
  * RTM300x and RTA400x series.
  */
@@ -813,10 +1008,10 @@ static const char *logic_threshold_hmo_rtc100x[] = {
 };
 
 /*
- * Predefined logic thresholds for the RTB200x, RTM300x
+ * Predefined logic thresholds for the RTB200x, RTM200x, RTM300x
  * and RTA400x series.
  */
-static const char *logic_threshold_rtb200x_rtm300x_rta400x[] = {
+static const char *logic_threshold_rtb200x_rtm200x_rtm300x_rta400x[] = {
 	"TTL",
 	"ECL",
 	"CMOS",
@@ -873,6 +1068,14 @@ static const char *bandwidth_limit[] = {
 	"B20",
 };
 
+/* Bandwidth limits for the RTM200x series */
+static const char *bandwidth_limit_rtm200x[] = {
+	"FULL",
+	"B20",
+	"B200",
+	"B400",
+};
+
 /* Bandwidth limits for the RTO series */
 static const char *bandwidth_limit_rto[] = {
 	"FULL",
@@ -911,11 +1114,19 @@ static const char *an2_dig16_trigger_sources[] = {
 };
 
 /* RTB2002 and RTM3002 */
-static const char *an2_dig16_sbus_trigger_sources[] = {
+static const char *an2_dig16_sbus2_trigger_sources[] = {
 	"CH1", "CH2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 	"LINE", "EXT", "SBUS1", "SBUS2",
+};
+
+/* RTM2002 */
+static const char *an2_dig16_sbus4_trigger_sources[] = {
+	"CH1", "CH2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "SBUS1", "SBUS2", "SBUS3", "SBUS4",
 };
 
 /* HMO Compact4 */
@@ -934,11 +1145,19 @@ static const char *an4_dig16_trigger_sources[] = {
 };
 
 /* RTB2004, RTM3004 and RTA4004 */
-static const char *an4_dig16_sbus_trigger_sources[] = {
+static const char *an4_dig16_sbus2_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 	"LINE", "EXT", "SBUS1", "SBUS2",
+};
+
+/* RTM2004 */
+static const char *an4_dig16_sbus4_trigger_sources[] = {
+	"CH1", "CH2", "CH3", "CH4",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+	"LINE", "EXT", "SBUS1", "SBUS2", "SBUS3", "SBUS4",
 };
 
 /* RTO series */
@@ -1212,8 +1431,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1281,8 +1500,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1350,8 +1569,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1488,8 +1707,8 @@ static struct scope_config scope_models[] = {
 		.acquisition_mode = &acquisition_mode,
 		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
 
-		.arithmetics_type = &arithmetics_type_hmo_rtc100x,
-		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x),
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
 
 		.interpolation_mode = &interpolation_mode,
 		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
@@ -1565,12 +1784,12 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
 		.logic_threshold_pod_index = FALSE,
 
-		.trigger_sources = &an2_dig16_sbus_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+		.trigger_sources = &an2_dig16_sbus2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus2_trigger_sources),
 
 		.edge_trigger_slopes = &edge_trigger_slopes,
 		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
@@ -1634,12 +1853,12 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtb200x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
 		.logic_threshold_pod_index = FALSE,
 
-		.trigger_sources = &an4_dig16_sbus_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+		.trigger_sources = &an4_dig16_sbus2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus2_trigger_sources),
 
 		.edge_trigger_slopes = &edge_trigger_slopes,
 		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
@@ -1665,6 +1884,142 @@ static struct scope_config scope_models[] = {
 		.num_ydivs = 8,
 
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
+	},
+	{
+		.name = {"RTM2002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.digital_data_pod_index = FALSE,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts_rtm200x,
+		.num_devopts = ARRAY_SIZE(devopts_rtm200x),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
+		/* Random Sampling not available. */
+		.num_random_sampling = 0,
+
+		/* Acquisition mode not available. */
+		.num_acquisition_mode = 0,
+
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
+		.logic_threshold_pod_index = FALSE,
+
+		.trigger_sources = &an2_dig16_sbus4_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus4_trigger_sources),
+
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtm200x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtm200x),
+
+		.fft_cmd_requires_math_wfm_idx = FALSE,
+
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
+		.bandwidth_limit = &bandwidth_limit_rtm200x,
+		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit_rtm200x),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_rtm200x_scpi_dialect,
+	},
+	{
+		.name = {"RTM2004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+
+		.digital_data_pod_index = FALSE,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts_rtm200x,
+		.num_devopts = ARRAY_SIZE(devopts_rtm200x),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
+		/* Random Sampling not available. */
+		.num_random_sampling = 0,
+
+		/* Acquisition mode not available. */
+		.num_acquisition_mode = 0,
+
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
+		.logic_threshold_pod_index = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus4_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus4_trigger_sources),
+
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_rtm200x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtm200x),
+
+		.fft_cmd_requires_math_wfm_idx = FALSE,
+
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
+		.bandwidth_limit = &bandwidth_limit_rtm200x,
+		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit_rtm200x),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_rtm200x_scpi_dialect,
 	},
 	{
 		.name = {"RTM3002", NULL},
@@ -1703,12 +2058,12 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
 		.logic_threshold_pod_index = FALSE,
 
-		.trigger_sources = &an2_dig16_sbus_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+		.trigger_sources = &an2_dig16_sbus2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus2_trigger_sources),
 
 		.edge_trigger_slopes = &edge_trigger_slopes,
 		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
@@ -1771,12 +2126,12 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
 		.logic_threshold_pod_index = FALSE,
 
-		.trigger_sources = &an4_dig16_sbus_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+		.trigger_sources = &an4_dig16_sbus2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus2_trigger_sources),
 
 		.edge_trigger_slopes = &edge_trigger_slopes,
 		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
@@ -1839,12 +2194,12 @@ static struct scope_config scope_models[] = {
 		.coupling_options = &coupling_options_rtm300x,
 		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
 
-		.logic_threshold = &logic_threshold_rtb200x_rtm300x_rta400x,
-		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x_rta400x),
+		.logic_threshold = &logic_threshold_rtb200x_rtm200x_rtm300x_rta400x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm200x_rtm300x_rta400x),
 		.logic_threshold_pod_index = FALSE,
 
-		.trigger_sources = &an4_dig16_sbus_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+		.trigger_sources = &an4_dig16_sbus2_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus2_trigger_sources),
 
 		.edge_trigger_slopes = &edge_trigger_slopes,
 		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),

@@ -1987,23 +1987,25 @@ static int rs_setup_channels(const struct sr_dev_inst *sdi)
 	for (i = 0; i < model->digital_pods; i++) {
 		if (state->digital_pods[i].state == pod_enabled[i])
 			continue;
-		if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
-			g_snprintf(command, sizeof(command),
-				   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
-				   i + 1, pod_enabled[i]);
-			if (sr_scpi_send(scpi, command) != SR_OK) {
-				ret = SR_ERR;
-				break;
-			}
-		} else { /* On the RTO series all bits in the POD need to be enabled individually. */
-			for (j = 0; j < DIGITAL_CHANNELS_PER_POD; j++) {
-				/* To disable a POD (bus), assign the channels to an unused bus (i.e. 3 or 4). */
+		if ((*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE]) {
+			if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 				g_snprintf(command, sizeof(command),
 					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
-					   pod_enabled[i] ? i + 1 : i + 3, i * DIGITAL_CHANNELS_PER_POD + j, 1);
+					   i + 1, pod_enabled[i]);
 				if (sr_scpi_send(scpi, command) != SR_OK) {
 					ret = SR_ERR;
-					goto exit;
+					break;
+				}
+			} else { /* On the RTO series all bits in the POD need to be enabled individually. */
+				for (j = 0; j < DIGITAL_CHANNELS_PER_POD; j++) {
+					/* To disable a POD (bus), assign the channels to an unused bus (i.e. 3 or 4). */
+					g_snprintf(command, sizeof(command),
+						   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
+						   pod_enabled[i] ? i + 1 : i + 3, i * DIGITAL_CHANNELS_PER_POD + j, 1);
+					if (sr_scpi_send(scpi, command) != SR_OK) {
+						ret = SR_ERR;
+						goto exit;
+					}
 				}
 			}
 		}
