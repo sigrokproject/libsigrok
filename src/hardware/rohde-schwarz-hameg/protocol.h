@@ -185,6 +185,8 @@ struct scope_config {
 	const char *(*edge_trigger_coupling)[];
 	const uint8_t num_edge_trigger_coupling;
 
+	const gboolean fft_cmd_requires_math_wfm_idx; /* FFT commands require a math waveform index */
+
 	const char *(*fft_window_types)[];
 	const uint8_t num_fft_window_types;
 
