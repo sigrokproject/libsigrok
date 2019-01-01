@@ -492,28 +492,32 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 
 	sr_info("Fetching scope state");
 
-	/* Save existing Math Expression. */
-	g_snprintf(command, sizeof(command),
-		   (*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION],
-		   MATH_WAVEFORM_INDEX);
+	/* Save existing Math Expression, if supported. */
+	if ((*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION]) {
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_MATH_EXPRESSION],
+			   MATH_WAVEFORM_INDEX);
 
-	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
-		return SR_ERR;
+		if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
+			return SR_ERR;
 
-	strncpy(state->restore_math_expr,
-		sr_scpi_unquote_string(tmp_str),
-		MAX_COMMAND_SIZE - 1);
-	g_free(tmp_str);
+		strncpy(state->restore_math_expr,
+			sr_scpi_unquote_string(tmp_str),
+			MAX_COMMAND_SIZE - 1);
+		g_free(tmp_str);
+	}
 
 	/* If the oscilloscope is currently in FFT mode, switch to normal mode. */
-	if (!g_ascii_strncasecmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
-			   MATH_WAVEFORM_INDEX, FFT_EXIT_MATH_EXPRESSION);
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK) {
-			sr_err("Failed to disable the FFT mode!");
-				return SR_ERR;
+	if ((*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION]) {
+		if (!g_ascii_strncasecmp(FFT_MATH_EXPRESSION, state->restore_math_expr, strlen(FFT_MATH_EXPRESSION))) {
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_SET_MATH_EXPRESSION],
+				   MATH_WAVEFORM_INDEX, FFT_EXIT_MATH_EXPRESSION);
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+			    sr_scpi_get_opc(sdi->conn) != SR_OK) {
+				sr_err("Failed to disable the FFT mode!");
+					return SR_ERR;
+			}
 		}
 	}
 

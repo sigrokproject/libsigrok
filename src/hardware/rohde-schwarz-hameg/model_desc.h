@@ -227,31 +227,31 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
 	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR %s",
 	[SCPI_CMD_GET_BANDWIDTH_LIMIT]	      = ":CHAN%d:BAND?",
 	[SCPI_CMD_SET_BANDWIDTH_LIMIT]	      = ":CHAN%d:BAND %s",
-	[SCPI_CMD_GET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR?",
-	[SCPI_CMD_SET_MATH_EXPRESSION]	      = ":CALC:MATH%d:EXPR:DEF \"%s\"",
-	[SCPI_CMD_GET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT?",
-	[SCPI_CMD_SET_FFT_SAMPLE_RATE]	      = ":CALC:MATH%d:FFT:SRAT %s",
-	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE?",
-	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":CALC:MATH%d:FFT:WIND:TYPE %s",
-	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR?",
-	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":CALC:MATH%d:FFT:STAR %s",
-	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP?",
-	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":CALC:MATH%d:FFT:STOP %s",
-	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN?",
-	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":CALC:MATH%d:FFT:SPAN %s",
-	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR?",
-	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":CALC:MATH%d:FFT:CFR %s",
-	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:ADJ?",
-	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":CALC:MATH%d:FFT:BAND:RES:VAL %s",
-	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO?",
-	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":CALC:MATH%d:FFT:BAND:RES:AUTO %d",
-	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT?",
-	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":CALC:MATH%d:FFT:BAND:RES:RAT %d",
-	[SCPI_CMD_GET_FFT_DATA]		      = ":CALC:MATH%d:ARIT OFF;" \
-					        ":CALC:MATH%d:FFT:MAGN:SCAL DBM;" \
-					        ":CALC:MATH%d:SCAL 20;" \
+/*	[SCPI_CMD_GET_MATH_EXPRESSION] missing ! */
+/*	[SCPI_CMD_SET_MATH_EXPRESSION] missing ! */
+/*	[SCPI_CMD_GET_FFT_SAMPLE_RATE] missing ! */
+/*	[SCPI_CMD_SET_FFT_SAMPLE_RATE] missing ! */
+	[SCPI_CMD_SET_FFT_SOURCE]	      = ":SPEC:SOUR %s",
+	[SCPI_CMD_GET_FFT_WINDOW_TYPE]	      = ":SPEC:FREQ:WIND:TYPE?",
+	[SCPI_CMD_SET_FFT_WINDOW_TYPE]	      = ":SPEC:FREQ:WIND:TYPE %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_START]    = ":SPEC:FREQ:STAR?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_START]    = ":SPEC:FREQ:STAR %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_STOP]     = ":SPEC:FREQ:STOP?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_STOP]     = ":SPEC:FREQ:STOP %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_SPAN]     = ":SPEC:FREQ:SPAN?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_SPAN]     = ":SPEC:FREQ:SPAN %s",
+	[SCPI_CMD_GET_FFT_FREQUENCY_CENTER]   = ":SPEC:FREQ:CENT?",
+	[SCPI_CMD_SET_FFT_FREQUENCY_CENTER]   = ":SPEC:FREQ:CENT %s",
+	[SCPI_CMD_GET_FFT_RESOLUTION_BW]      = ":SPEC:FREQ:BAND:RES:ADJ?",
+	[SCPI_CMD_SET_FFT_RESOLUTION_BW]      = ":SPEC:FREQ:BAND:RES:VAL %s",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_COUPLING]  = ":SPEC:FREQ:BAND:RES:AUTO?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_COUPLING]  = ":SPEC:FREQ:BAND:RES:AUTO %d",
+	[SCPI_CMD_GET_FFT_SPAN_RBW_RATIO]     = ":SPEC:FREQ:BAND:RES:RAT?",
+	[SCPI_CMD_SET_FFT_SPAN_RBW_RATIO]     = ":SPEC:FREQ:BAND:RES:RAT %d",
+	[SCPI_CMD_GET_FFT_DATA]		      = ":SPEC:FREQ:MAGN:SCAL DBM;" \
+					        ":SPEC:FREQ:SCAL 20;" \
 					        ":FORM:BORD %s;" \
-					        ":FORM REAL,32;:CALC:MATH%d:DATA?",
+					        ":FORM REAL,32;:SPEC:WAVE:SPEC:DATA?",
 	[SCPI_CMD_GET_MEAS_SOURCE_REFERENCE]  = ":MEAS%d:MAIN PHAS;:MEAS%d:SOUR?",
 	[SCPI_CMD_SET_MEAS_SOURCE_REFERENCE]  = ":MEAS%d:SOUR %s,%s",
 	[SCPI_CMD_GET_MEAS_FREQ]	      = ":MEAS%d:RES? FREQ",
@@ -292,7 +292,7 @@ static const char *rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect[] = {
  * value up to the maximum allowed.
  *
  * It doesn't provide a separate setting for the FFT sample rate
- * as in the HMO, RTC1000, RTB2000, RTM3000 and RTA4000 series.
+ * as in the HMO and RTC1000 series.
  *
  * The Logic (Pattern) Trigger doesn't use the analog channels
  * as possible sources, therefore the threshold can be set only
@@ -1165,6 +1165,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
 
@@ -1231,6 +1233,8 @@ static struct scope_config scope_models[] = {
 
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
 
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
@@ -1299,6 +1303,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
@@ -1365,6 +1371,8 @@ static struct scope_config scope_models[] = {
 
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
 
 		/* FlatTop window available, but not listed in User Manual version 04. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1434,6 +1442,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
 
@@ -1500,6 +1510,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_hmo,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
 
@@ -1565,6 +1577,8 @@ static struct scope_config scope_models[] = {
 
 		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
 
 		/* FFT support status unclear as of User Manual version 06. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1633,6 +1647,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		/* FFT support status unclear as of User Manual version 06. */
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
@@ -1700,6 +1716,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
@@ -1766,6 +1784,8 @@ static struct scope_config scope_models[] = {
 		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
 
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
 		.fft_window_types = &fft_window_types_rt,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
 
@@ -1831,6 +1851,8 @@ static struct scope_config scope_models[] = {
 
 		.edge_trigger_coupling = &edge_trigger_coupling_rtb200x_rtm300x_rta400x,
 		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_rtb200x_rtm300x_rta400x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
 
 		/* FFT support status unclear as of User Manual version 03. */
 		.fft_window_types = &fft_window_types_rt,
@@ -1899,6 +1921,8 @@ static struct scope_config scope_models[] = {
 
 		/* Edge Trigger Coupling not available. */
 		.num_edge_trigger_coupling = 0,
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
 
 		.fft_window_types = &fft_window_types_rto,
 		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rto),

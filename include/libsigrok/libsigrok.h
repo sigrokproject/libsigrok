@@ -1067,6 +1067,9 @@ enum sr_configkey {
 
 	/*--- Fast Fourier Transform (FFT) ----------------------------------*/
 
+	/** FFT source. */
+	SR_CONF_FFT_SOURCE,
+
 	/** FFT window type. */
 	SR_CONF_FFT_WINDOW,
 
