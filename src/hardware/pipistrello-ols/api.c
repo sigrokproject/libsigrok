@@ -557,13 +557,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	arg[1] = ((readcount - 1) & 0xff00) >> 8;
 	arg[2] = ((readcount - 1) & 0xff0000) >> 16;
 	arg[3] = ((readcount - 1) & 0xff000000) >> 24;
-	if (write_longcommand(devc, CMD_CAPTURE_DELAY, arg) != SR_OK)
+	if (write_longcommand(devc, CMD_CAPTURE_READCOUNT, arg) != SR_OK)
 		return SR_ERR;
 	arg[0] = ((delaycount - 1) & 0xff);
 	arg[1] = ((delaycount - 1) & 0xff00) >> 8;
 	arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
 	arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
-	if (write_longcommand(devc, CMD_CAPTURE_COUNT, arg) != SR_OK)
+	if (write_longcommand(devc, CMD_CAPTURE_DELAYCOUNT, arg) != SR_OK)
 		return SR_ERR;
 
 	/* Flag register. */
