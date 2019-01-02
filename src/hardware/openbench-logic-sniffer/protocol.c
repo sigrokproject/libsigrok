@@ -365,7 +365,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_ols_changrp = 0;
-	for (i = NUM_CHANNELS; i > 0x02; i /= 2) {
+	for (i = 0x20; i > 0x02; i >>= 1) {
 		if ((devc->flag_reg & i) == 0) {
 			num_ols_changrp++;
 		}
