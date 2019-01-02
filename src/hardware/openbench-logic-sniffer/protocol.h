@@ -30,7 +30,6 @@
 
 #define NUM_CHANNELS               32
 #define NUM_TRIGGER_STAGES         4
-#define SERIAL_SPEED               B115200
 #define CLOCK_RATE                 SR_MHZ(100)
 #define MIN_NUM_SAMPLES            4
 #define DEFAULT_SAMPLERATE         SR_KHZ(200)
