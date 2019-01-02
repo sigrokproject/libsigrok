@@ -28,7 +28,6 @@
 
 #define LOG_PREFIX "openbench-logic-sniffer"
 
-#define NUM_CHANNELS               32
 #define NUM_TRIGGER_STAGES         4
 #define CLOCK_RATE                 SR_MHZ(100)
 #define MIN_NUM_SAMPLES            4

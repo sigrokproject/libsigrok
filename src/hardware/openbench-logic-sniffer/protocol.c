@@ -148,11 +148,14 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 
 static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
 {
+	struct dev_context *devc = sdi->priv;
 	int i;
 
 	for (i = 0; i < num_chan; i++)
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				ols_channel_names[i]);
+
+	devc->max_channels = num_chan;
 }
 
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
@@ -303,13 +306,11 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		sr_info("Enabling demux mode.");
 		devc->flag_reg |= FLAG_DEMUX;
 		devc->flag_reg &= ~FLAG_FILTER;
-		devc->max_channels = NUM_CHANNELS / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		sr_info("Disabling demux mode.");
 		devc->flag_reg &= ~FLAG_DEMUX;
 		devc->flag_reg |= FLAG_FILTER;
-		devc->max_channels = NUM_CHANNELS;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
