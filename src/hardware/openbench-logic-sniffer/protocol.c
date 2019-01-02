@@ -141,7 +141,6 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
-	devc->channel_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
 	return devc;
