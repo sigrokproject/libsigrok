@@ -83,7 +83,7 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-#define RESPONSE_DELAY_US (10 * 1000)
+#define RESPONSE_DELAY_US (20 * 1000)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
