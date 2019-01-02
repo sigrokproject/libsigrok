@@ -464,12 +464,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	sr_dbg("Setting sample limit %d, trigger point at %d",
 			(readcount - 1) * 4, (delaycount - 1) * 4);
-	arg[0] = ((readcount - 1) & 0xff);
-	arg[1] = ((readcount - 1) & 0xff00) >> 8;
-	arg[2] = ((delaycount - 1) & 0xff);
-	arg[3] = ((delaycount - 1) & 0xff00) >> 8;
-	if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
-		return SR_ERR;
+
+	if (devc->max_samples > 256 * 1024) {
+		arg[0] = ((readcount - 1) & 0xff);
+		arg[1] = ((readcount - 1) & 0xff00) >> 8;
+		arg[2] = ((readcount - 1) & 0xff0000) >> 16;
+		arg[3] = ((readcount - 1) & 0xff000000) >> 24;
+		if (send_longcommand(serial, CMD_CAPTURE_READCOUNT, arg) != SR_OK)
+			return SR_ERR;
+		arg[0] = ((delaycount - 1) & 0xff);
+		arg[1] = ((delaycount - 1) & 0xff00) >> 8;
+		arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
+		arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
+		if (send_longcommand(serial, CMD_CAPTURE_DELAYCOUNT, arg) != SR_OK)
+			return SR_ERR;
+	} else {
+		arg[0] = ((readcount - 1) & 0xff);
+		arg[1] = ((readcount - 1) & 0xff00) >> 8;
+		arg[2] = ((delaycount - 1) & 0xff);
+		arg[3] = ((delaycount - 1) & 0xff00) >> 8;
+		if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
+			return SR_ERR;
+	}
 
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",

@@ -42,6 +42,8 @@
 #define CMD_SET_DIVIDER            0x80
 #define CMD_CAPTURE_SIZE           0x81
 #define CMD_SET_FLAGS              0x82
+#define CMD_CAPTURE_DELAYCOUNT     0x83		/* extension for Pepino */
+#define CMD_CAPTURE_READCOUNT      0x84		/* extension for Pepino */
 #define CMD_SET_TRIGGER_MASK       0xc0
 #define CMD_SET_TRIGGER_VALUE      0xc1
 #define CMD_SET_TRIGGER_CONFIG     0xc2
