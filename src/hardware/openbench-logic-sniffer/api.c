@@ -396,7 +396,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	uint16_t samplecount, readcount, delaycount;
+	uint32_t samplecount, readcount, delaycount;
 	uint8_t ols_changrp_mask, arg[4];
 	int num_ols_changrp;
 	int ret, i;
