@@ -519,7 +519,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver ols_driver_info = {
 	.name = "ols",
-	.longname = "Openbench Logic Sniffer",
+	.longname = "Openbench Logic Sniffer & SUMP compatibles",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
