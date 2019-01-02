@@ -36,12 +36,12 @@
 /* Command opcodes */
 #define CMD_RESET                  0x00
 #define CMD_RUN                    0x01
-#define CMD_TESTMODE               0x03
 #define CMD_ID                     0x02
+#define CMD_TESTMODE               0x03
 #define CMD_METADATA               0x04
-#define CMD_SET_FLAGS              0x82
 #define CMD_SET_DIVIDER            0x80
 #define CMD_CAPTURE_SIZE           0x81
+#define CMD_SET_FLAGS              0x82
 #define CMD_SET_TRIGGER_MASK       0xc0
 #define CMD_SET_TRIGGER_VALUE      0xc1
 #define CMD_SET_TRIGGER_CONFIG     0xc2
