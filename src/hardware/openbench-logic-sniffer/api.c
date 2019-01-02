@@ -417,14 +417,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/*
 	 * Limit readcount to prevent reading past the end of the hardware
-	 * buffer.
+	 * buffer. Rather read too many samples than too few.
 	 */
 	samplecount = MIN(devc->max_samples / num_ols_changrp, devc->limit_samples);
-	readcount = samplecount / 4;
-
-	/* Rather read too many samples than too few. */
-	if (samplecount % 4 != 0)
-		readcount++;
+	readcount = (samplecount + 3) / 4;
 
 	/* Basic triggers. */
 	if (ols_convert_trigger(sdi) != SR_OK) {
