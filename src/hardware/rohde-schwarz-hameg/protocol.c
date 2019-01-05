@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
+ * Copyright (C) 2018-2019 Guido Trentalancia <guido@trentalancia.com>
  * Inspired by the Hameg HMO driver by poljar (Damir Jelić) <poljarinho@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
