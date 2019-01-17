@@ -67,18 +67,15 @@ static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef _WIN32
 	u_long bytes_available;
-	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
-	return (bytes_available > 0);
+	if(ioctlsocket(tcp->socket, FIONREAD, &bytes_available) != 0){
 #else
-	int status;
-
-	if (ioctl(tcp->socket, FIONREAD, &status) < 0) {	// TIOCMGET
+	int bytes_available;
+	if (ioctl(tcp->socket, FIONREAD, &bytes_available) < 0){ 	// TIOCMGET
+#endif
 		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
 		return FALSE;
 	}
-
-	return (status < 1) ? FALSE : TRUE;
-#endif
+	return (bytes_available > 0);
 }
 
 SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void)
@@ -145,6 +142,15 @@ SR_PRIV int ipdbg_la_tcp_close(struct ipdbg_la_tcp *tcp)
 {
 	int ret = SR_OK;
 
+#ifdef _WIN32
+	if (shutdown(tcp->socket, SD_SEND) != SOCKET_ERROR)
+	{
+		char recvbuf[16];
+		int recvbuflen = 16;
+		// Receive until the peer closes the connection
+		while(recv(tcp->socket, recvbuf, recvbuflen, 0) > 0);
+	}
+#endif
 	if (close(tcp->socket) < 0)
 		ret = SR_ERR;
 
