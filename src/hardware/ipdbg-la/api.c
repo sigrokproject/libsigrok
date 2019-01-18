@@ -262,13 +262,15 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct ipdbg_la_tcp *tcp = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 
-	uint8_t byte;
+	const size_t bufsize = 1024;
+	uint8_t buffer[bufsize];
 
 	if (devc->num_transfers > 0) {
 		while (devc->num_transfers <
 			(devc->limit_samples_max * devc->data_width_bytes)) {
-			ipdbg_la_tcp_receive(tcp, &byte);
-			devc->num_transfers++;
+			int recd = ipdbg_la_tcp_receive(tcp, buffer, bufsize);
+			if (recd > 0)
+				devc->num_transfers += recd;
 		}
 	}
 
