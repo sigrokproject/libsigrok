@@ -182,10 +182,12 @@ static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 	int error_count = 0;
 
 	/* Timeout after 500ms of not receiving data */
-	while ((received < bufsize) && (error_count < 500)) {
-		if (ipdbg_la_tcp_receive(tcp, buf) > 0) {
-			buf++;
-			received++;
+	/* increase timeout in case lab is not just beside the office */
+	while ((received < bufsize) && (error_count < 2000)) {
+		int recd = ipdbg_la_tcp_receive(tcp, buf, bufsize-received);
+		if ( recd > 0 ) {
+			buf += recd;
+			received += recd;
 		} else {
 			error_count++;
 			g_usleep(1000);  /* Sleep for 1ms */
@@ -196,24 +198,16 @@ static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 }
 
 SR_PRIV int ipdbg_la_tcp_receive(struct ipdbg_la_tcp *tcp,
-	uint8_t *buf)
+	uint8_t *buf, size_t bufsize)
 {
 	int received = 0;
-
-	if (data_available(tcp)) {
-		while (received < 1) {
-			int len = recv(tcp->socket, (char *)buf, 1, 0);
-
-			if (len < 0) {
-				sr_err("Receive error: %s", g_strerror(errno));
-				return SR_ERR;
-			} else
-				received += len;
-		}
-
-		return received;
-	} else
+	if (data_available(tcp))
+		received = recv(tcp->socket, (char *)buf, bufsize, 0);
+	if (received < 0) {
+		sr_err("Receive error: %s", g_strerror(errno));
 		return -1;
+	} else
+		return received;
 }
 
 SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi)
@@ -316,14 +310,22 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->num_transfers <
 		(devc->limit_samples_max * devc->data_width_bytes)) {
-		uint8_t byte;
+		const size_t bufsize = 1024;
+		uint8_t buffer[bufsize];
 
-		if (ipdbg_la_tcp_receive(tcp, &byte) == 1) {
-			if (devc->num_transfers <
-				(devc->limit_samples * devc->data_width_bytes))
-				devc->raw_sample_buf[devc->num_transfers] = byte;
-
-			devc->num_transfers++;
+		const int recd = ipdbg_la_tcp_receive(tcp, buffer, bufsize);
+		if ( recd > 0) {
+			int num_move = (((devc->num_transfers + recd) <=
+							 (devc->limit_samples * devc->data_width_bytes))
+			?
+				recd
+			:
+				(int)((devc->limit_samples * devc->data_width_bytes) -
+						devc->num_transfers));
+			if ( num_move > 0 )
+				memcpy(&(devc->raw_sample_buf[devc->num_transfers]),
+						buffer, num_move);
+			devc->num_transfers += recd;
 		}
 	} else {
 		if (devc->delay_value > 0) {
