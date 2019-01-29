@@ -67,10 +67,10 @@ static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef _WIN32
 	u_long bytes_available;
-	if(ioctlsocket(tcp->socket, FIONREAD, &bytes_available) != 0){
+	if (ioctlsocket(tcp->socket, FIONREAD, &bytes_available) != 0) {
 #else
 	int bytes_available;
-	if (ioctl(tcp->socket, FIONREAD, &bytes_available) < 0){ 	// TIOCMGET
+	if (ioctl(tcp->socket, FIONREAD, &bytes_available) < 0) { /* TIOCMGET */
 #endif
 		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
 		return FALSE;
@@ -143,12 +143,11 @@ SR_PRIV int ipdbg_la_tcp_close(struct ipdbg_la_tcp *tcp)
 	int ret = SR_OK;
 
 #ifdef _WIN32
-	if (shutdown(tcp->socket, SD_SEND) != SOCKET_ERROR)
-	{
+	if (shutdown(tcp->socket, SD_SEND) != SOCKET_ERROR) {
 		char recvbuf[16];
 		int recvbuflen = 16;
-		// Receive until the peer closes the connection
-		while(recv(tcp->socket, recvbuf, recvbuflen, 0) > 0);
+		/* Receive until the peer closes the connection. */
+		while (recv(tcp->socket, recvbuf, recvbuflen, 0) > 0);
 	}
 #endif
 	if (close(tcp->socket) < 0)
@@ -181,16 +180,16 @@ static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 	int received = 0;
 	int error_count = 0;
 
-	/* Timeout after 500ms of not receiving data */
-	/* increase timeout in case lab is not just beside the office */
+	/* Timeout after 2s of not receiving data. */
+	/* Increase timeout in case lab is not just beside the office. */
 	while ((received < bufsize) && (error_count < 2000)) {
-		int recd = ipdbg_la_tcp_receive(tcp, buf, bufsize-received);
-		if ( recd > 0 ) {
+		int recd = ipdbg_la_tcp_receive(tcp, buf, bufsize - received);
+		if (recd > 0) {
 			buf += recd;
 			received += recd;
 		} else {
 			error_count++;
-			g_usleep(1000);  /* Sleep for 1ms */
+			g_usleep(1000);
 		}
 	}
 
