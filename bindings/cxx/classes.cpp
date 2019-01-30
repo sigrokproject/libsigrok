@@ -32,6 +32,8 @@
 namespace sigrok
 {
 
+using namespace std;
+
 /** Helper function to translate C errors to C++ exceptions. */
 static void check(int result)
 {
