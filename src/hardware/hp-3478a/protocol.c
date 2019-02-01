@@ -406,6 +406,7 @@ SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data)
 	struct sr_scpi_dev_inst *scpi;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	char status_register;
 
 	(void)fd;
 	(void)revents;
@@ -416,18 +417,28 @@ SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data)
 	scpi = sdi->conn;
 
 	/*
-	 * This is necessary to get the actual range for the encoding digits.
-	 * When SPoll is implemmented, this can be done via SPoll.
+	 * TODO: Wait for SRQ from the DMM when a new measurement is available.
+	 *       For now, we don't wait for a SRQ, but just do a SPoll and
+	 *       check the Data Ready bit (0x01).
+	 *       This is necessary, because (1) reading a value will block the
+	 *       bus until a measurement is available and (2) when switching
+	 *       ranges, there could be a timeout.
 	 */
-	if (hp_3478a_get_status_bytes(sdi) != SR_OK)
+	if (sr_scpi_gpib_spoll(scpi, &status_register) != SR_OK)
+		return FALSE;
+	if (!(((uint8_t)status_register) & 0x01))
+		return TRUE;
+
+	/* Get a reading from the DMM. */
+	if (sr_scpi_get_double(scpi, NULL, &devc->measurement) != SR_OK)
 		return FALSE;
 
 	/*
-	 * TODO: Implement GPIB-SPoll, to get notified by a SRQ when a new
-	 *       measurement is available. This is necessary, because when
-	 *       switching ranges, there could be a timeout.
+	 * This is necessary to get the actual range for the encoding digits.
+	 * Must be called after reading the value, because it resets the
+	 * status register!
 	 */
-	if (sr_scpi_get_double(scpi, NULL, &devc->measurement) != SR_OK)
+	if (hp_3478a_get_status_bytes(sdi) != SR_OK)
 		return FALSE;
 
 	acq_send_measurement(sdi);

@@ -163,4 +163,10 @@ SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 		int channel_command, const char *channel_name,
 		GVariant **gvar, const GVariantType *gvtype, int command, ...);
 
+/*--- GPIB only functions ---------------------------------------------------*/
+
+#ifdef HAVE_LIBGPIB
+SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf);
+#endif
+
 #endif

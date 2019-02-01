@@ -155,6 +155,22 @@ static void scpi_gpib_free(void *priv)
 	g_free(gscpi->name);
 }
 
+SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf)
+{
+	struct scpi_gpib *gscpi = scpi->priv;
+
+	ibrsp(gscpi->descriptor, buf);
+
+	if (ibsta & ERR) {
+		sr_err("Error while serial polling: iberr = %s.",
+			gpib_error_string(iberr));
+		return SR_ERR;
+	}
+	sr_spew("Successful serial poll: 0x%x", (uint8_t)buf[0]);
+
+	return SR_OK;
+}
+
 SR_PRIV const struct sr_scpi_dev_inst scpi_libgpib_dev = {
 	.name = "GPIB",
 	.prefix = "libgpib",
