@@ -60,6 +60,7 @@ extern const struct agdmm_recv agdmm_recvs_u123x[];
 extern const struct agdmm_recv agdmm_recvs_u124x[];
 extern const struct agdmm_recv agdmm_recvs_u124xc[];
 extern const struct agdmm_recv agdmm_recvs_u125x[];
+extern const struct agdmm_recv agdmm_recvs_u127x[];
 extern const struct agdmm_recv agdmm_recvs_u128x[];
 
 /* This works on all the Agilent U12xxA series, although the
@@ -86,6 +87,10 @@ static const struct agdmm_profile supported_agdmm[] = {
 	{ AGILENT_U1252, "U1252B", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
 	{ AGILENT_U1253, "U1253B", 3, agdmm_jobs_live, NULL, agdmm_recvs_u125x },
 
+	{ AGILENT_U1271, "U1271A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
+	{ AGILENT_U1272, "U1272A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
+	{ AGILENT_U1273, "U1273A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
+    
 	{ KEYSIGHT_U1281, "U1281A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
 	{ KEYSIGHT_U1282, "U1282A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
 	ALL_ZERO
