@@ -288,7 +288,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	src = sr_config_new(SR_CONF_SAMPLE_INTERVAL, g_variant_new_uint64(interval));
 	meta.config = g_slist_append(NULL, src);
 	sr_session_send(sdi, &packet);
-	g_free(src);
+	g_slist_free(meta.config);
+	sr_config_free(src);
 
 	if (devc->logged_samples == 0) {
 		/* This ensures the frontend knows the session is done. */

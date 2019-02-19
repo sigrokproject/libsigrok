@@ -282,9 +282,10 @@ static int send_config_update_key(const struct sr_dev_inst *sdi,
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
 
-	meta.config = g_slist_append(meta.config, cfg);
+	meta.config = g_slist_append(NULL, cfg);
 
 	ret = sr_session_send(sdi, &packet);
+	g_slist_free(meta.config);
 	sr_config_free(cfg);
 
 	return ret;

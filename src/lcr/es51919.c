@@ -255,15 +255,20 @@ static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
+	int ret;
 
 	memset(&meta, 0, sizeof(meta));
 
 	packet.type = SR_DF_META;
 	packet.payload = &meta;
 
-	meta.config = g_slist_append(meta.config, cfg);
+	meta.config = g_slist_append(NULL, cfg);
 
-	return sr_session_send(sdi, &packet);
+	ret = sr_session_send(sdi, &packet);
+
+	g_slist_free(meta.config);
+
+	return ret;
 }
 
 static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
