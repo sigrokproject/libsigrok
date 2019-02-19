@@ -107,6 +107,7 @@ The following drivers/devices do not need any firmware upload:
  - maynuo-m97
  - mic-985xx (including all subdrivers)
  - motech-lps-30x
+ - mooshimeter-dmm
  - norma-dmm
  - openbench-logic-sniffer
  - pce-322a
@@ -475,3 +476,74 @@ Example:
 
  $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
 
+
+Mooshimeter
+-----------
+
+The Mooshim Engineering Mooshimeter is controlled via Bluetooth Low Energy
+(sometimes called Bluetooth 4.0), as such it requires a supported Bluetooth
+interface available. The 'conn' option is required and must contain the
+Bluetooth MAC address of the meter.
+
+Example:
+
+  $ sigrok-cli --driver mooshimeter-dmm:conn=12-34-56-78-9A-BC ...
+
+Since the Mooshimeter has no physical interface on the meter itself, the
+channel configuration is set with the 'channel_config' option. The format
+of this option is 'CH1,CH2' where each channel configuration has the form
+'MODE:RANGE:ANALYSIS', with later parts being optional. In addition for
+CLI compatibility, the ',' in the channels can also be a '/' and the ':' in
+the individual configuration can be a ';'.
+
+Available channel 1 modes:
+
+  - Current, A: Current in amps
+  - Temperature, T, K: Internal meter temperature in Kelvin
+  - Resistance, Ohm, W: Resistance in ohms
+  - Diode, D: Diode voltage
+  - Aux, LV: Auxiliary (W input) low voltage sensor (1.2V max)
+
+Available channel 2 modes:
+
+  - Voltage, V: Voltage
+  - Temperature, T, K: Internal meter temperature in Kelvin
+  - Resistance, Ohm, W: Resistance in ohms
+  - Diode, D: Diode voltage
+  - Aux, LV: Auxiliary (W input) low voltage sensor (1.2V max)
+
+Only one channel can use the shared inputs at a time (e.g. if CH1 is measuring
+resistance, CH2 cannot measure low voltage). Temperature is excepted from
+this, so the meter can measure internal temperature and low voltage at the
+same time.
+
+Additionally, the meter can calculate the real power of both channels. This
+generally only makes sense when CH1 is set to current and CH2 is set to a
+voltage and so it is disabled by default. It must be enabled by enabling the
+'P' channel (the third channel).
+
+The range of the channel specification sets the maximum input for that channel
+and is rounded up to the next value the meter itself supports. For example,
+specifying 50 for the voltage will result in the actual maximum of 60.
+Specifying 61 would result in 600. If omitted, sigrok will perform
+auto-ranging of the channel by selecting the next greater value than the
+latest maximum.
+
+The analysis option sets how the meter reports its internal sampling buffer
+to sigrok:
+
+ - Mean, DC: The default is a simple arithmetic mean of the sample buffer
+ - RMS, AC: The root mean square of the sample buffer
+ - Buf, Buffer, Samples: Report the entire sample buffer to sigrok. This
+   results in packets that contain all the samples in the buffer instead
+   of a single output value.
+
+The size of the sample buffer is set with the 'avg_samples' option, while
+the sampling rate is set with the 'samplerate' option. So the update rate
+is avg_samples/samplerate. Both are rounded up to the next supported value
+by the meter.
+
+Example:
+
+  $ sigrok-cli -c channel_config="Aux;0.1/T" --driver mooshimeter-dmm...
+  $ sigrok-cli -c channel_config="A;;AC/V;;AC" --driver mooshimeter-dmm...

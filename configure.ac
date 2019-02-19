@@ -136,12 +136,16 @@ SR_ARG_OPT_CHECK([libieee1284], [LIBIEEE1284],, [
 AS_IF([test "x$sr_have_libieee1284" = xyes],
 	[SR_PREPEND([SR_EXTRA_LIBS], [-lieee1284])])
 
+SR_ARG_OPT_PKG([libgio], [LIBGIO], , [gio-2.0 >= 2.24.0])
+
 # See if any of the (potentially platform specific) libs are available
 # which provide some means of Bluetooth communication.
 AS_IF([test "x$sr_have_libbluez" = xyes],
 	sr_have_bluetooth=yes, sr_have_bluetooth=no)
 AS_IF([test "x$sr_have_bluetooth" = xyes],
 	[AC_DEFINE([HAVE_BLUETOOTH], [1], [Specifies whether Bluetooth communication is supported.])])
+AS_IF([test "x$sr_have_bluetooth" = xyes],
+	[SR_APPEND([sr_deps_avail], [bluetooth_comm])])
 
 AS_IF([test "x$sr_have_libserialport" = xyes -o "x$sr_have_libhidapi" = xyes -o "x$sr_have_bluetooth" = xyes],
 	sr_have_serial_comm=yes, sr_have_serial_comm=no)
@@ -290,6 +294,7 @@ SR_DRIVER([Manson HCS-3xxx], [manson-hcs-3xxx], [serial_comm])
 SR_DRIVER([maynuo-m97], [maynuo-m97])
 SR_DRIVER([MIC 985xx], [mic-985xx], [serial_comm])
 SR_DRIVER([Microchip PICkit2], [microchip-pickit2], [libusb])
+SR_DRIVER([Mooshimeter DMM], [mooshimeter-dmm], [bluetooth_comm libgio])
 SR_DRIVER([Motech LPS 30x], [motech-lps-30x], [serial_comm])
 SR_DRIVER([Norma DMM], [norma-dmm], [serial_comm])
 SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer], [serial_comm])
