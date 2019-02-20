@@ -28,11 +28,13 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
+#define DEFAULT_NUM_LOGIC_CHANNELS		8
+#define DEFAULT_LOGIC_PATTERN			PATTERN_SIGROK
 
-#define DEFAULT_NUM_ANALOG_CHANNELS	4
-#define DEFAULT_ANALOG_AMPLITUDE	10
+#define DEFAULT_NUM_ANALOG_CHANNELS		4
+#define DEFAULT_ANALOG_ENCODING_DIGITS	4
+#define DEFAULT_ANALOG_SPEC_DIGITS		4
+#define DEFAULT_ANALOG_AMPLITUDE		10
 
 /* Note: No spaces allowed because of sigrok-cli. */
 static const char *logic_pattern_str[] = {
@@ -185,9 +187,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
-			ag->packet.meaning->mq = 0;
-			ag->packet.meaning->mqflags = 0;
+			ag->packet.meaning->mq = SR_MQ_VOLTAGE;
+			ag->packet.meaning->mqflags = SR_MQFLAG_DC;
 			ag->packet.meaning->unit = SR_UNIT_VOLT;
+			ag->packet.encoding->digits = DEFAULT_ANALOG_ENCODING_DIGITS;
+			ag->packet.spec->spec_digits = DEFAULT_ANALOG_SPEC_DIGITS;
 			ag->packet.data = ag->pattern_data;
 			ag->pattern = pattern;
 			ag->avg_val = 0.0f;
