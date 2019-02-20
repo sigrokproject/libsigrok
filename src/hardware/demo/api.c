@@ -5,6 +5,7 @@
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +83,7 @@ static const uint32_t devopts_cg_analog_group[] = {
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
+	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
 };
@@ -184,12 +186,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));
 			ag->ch = ch;
+			ag->mq = SR_MQ_VOLTAGE;
+			ag->mq_flags = SR_MQFLAG_DC;
+			ag->unit = SR_UNIT_VOLT;
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
-			ag->packet.meaning->mq = SR_MQ_VOLTAGE;
-			ag->packet.meaning->mqflags = SR_MQFLAG_DC;
-			ag->packet.meaning->unit = SR_UNIT_VOLT;
+			ag->packet.meaning->mq = ag->mq;
+			ag->packet.meaning->mqflags = ag->mq_flags;
+			ag->packet.meaning->unit = ag->unit;
 			ag->packet.encoding->digits = DEFAULT_ANALOG_ENCODING_DIGITS;
 			ag->packet.spec->spec_digits = DEFAULT_ANALOG_SPEC_DIGITS;
 			ag->packet.data = ag->pattern_data;
@@ -231,6 +236,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	struct analog_gen *ag;
+	GVariant *mq_arr[2];
 	int pattern;
 
 	if (!sdi)
@@ -255,6 +261,18 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_AVG_SAMPLES:
 		*data = g_variant_new_uint64(devc->avg_samples);
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = g_hash_table_lookup(devc->ch_ag, ch);
+		mq_arr[0] = g_variant_new_uint32(ag->mq);
+		mq_arr[1] = g_variant_new_uint64(ag->mq_flags);
+		*data = g_variant_new_tuple(mq_arr, 2);
 		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
@@ -297,6 +315,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct analog_gen *ag;
 	struct sr_channel *ch;
+	GVariant *mq_tuple_child;
 	GSList *l;
 	int logic_pattern, analog_pattern;
 
@@ -324,6 +343,21 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_AVG_SAMPLES:
 		devc->avg_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting averaging rate to %" PRIu64, devc->avg_samples);
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type != SR_CHANNEL_ANALOG)
+				return SR_ERR_ARG;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
+			mq_tuple_child = g_variant_get_child_value(data, 0);
+			ag->mq = g_variant_get_uint32(mq_tuple_child);
+			mq_tuple_child = g_variant_get_child_value(data, 1);
+			ag->mq_flags = g_variant_get_uint64(mq_tuple_child);
+			g_variant_unref(mq_tuple_child);
+		}
 		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)

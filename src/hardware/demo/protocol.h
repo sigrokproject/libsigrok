@@ -5,6 +5,7 @@
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -132,6 +133,9 @@ static const char *analog_pattern_str[] = {
 
 struct analog_gen {
 	struct sr_channel *ch;
+	enum sr_mq mq;
+	enum sr_mqflag mq_flags;
+	enum sr_unit unit;
 	enum analog_pattern_type pattern;
 	float amplitude;
 	float pattern_data[ANALOG_BUFSIZE];

@@ -5,6 +5,7 @@
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -399,6 +400,80 @@ static void send_analog_packet(struct analog_gen *ag,
 	devc = sdi->priv;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &ag->packet;
+
+	ag->packet.meaning->channels = g_slist_append(NULL, ag->ch);
+	ag->packet.meaning->mq = ag->mq;
+	ag->packet.meaning->mqflags = ag->mq_flags;
+
+	/* Set a unit for the given quantity */
+	if (ag->mq == SR_MQ_VOLTAGE)
+		ag->packet.meaning->unit = SR_UNIT_VOLT;
+	else if (ag->mq == SR_MQ_CURRENT)
+		ag->packet.meaning->unit = SR_UNIT_AMPERE;
+	else if (ag->mq == SR_MQ_RESISTANCE)
+		ag->packet.meaning->unit = SR_UNIT_OHM;
+	else if (ag->mq == SR_MQ_CAPACITANCE)
+		ag->packet.meaning->unit = SR_UNIT_FARAD;
+	else if (ag->mq == SR_MQ_TEMPERATURE)
+		ag->packet.meaning->unit = SR_UNIT_CELSIUS;
+	else if (ag->mq == SR_MQ_FREQUENCY)
+		ag->packet.meaning->unit = SR_UNIT_HERTZ;
+	else if (ag->mq == SR_MQ_DUTY_CYCLE)
+		ag->packet.meaning->unit = SR_UNIT_PERCENTAGE;
+	else if (ag->mq == SR_MQ_CONTINUITY)
+		ag->packet.meaning->unit = SR_UNIT_OHM;
+	else if (ag->mq == SR_MQ_PULSE_WIDTH)
+		ag->packet.meaning->unit = SR_UNIT_PERCENTAGE;
+	else if (ag->mq == SR_MQ_CONDUCTANCE)
+		ag->packet.meaning->unit = SR_UNIT_SIEMENS;
+	else if (ag->mq == SR_MQ_POWER)
+		ag->packet.meaning->unit = SR_UNIT_WATT;
+	else if (ag->mq == SR_MQ_GAIN)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else if (ag->mq == SR_MQ_SOUND_PRESSURE_LEVEL)
+		ag->packet.meaning->unit = SR_UNIT_DECIBEL_SPL;
+	else if (ag->mq == SR_MQ_CARBON_MONOXIDE)
+		ag->packet.meaning->unit = SR_UNIT_CONCENTRATION;
+	else if (ag->mq == SR_MQ_RELATIVE_HUMIDITY)
+		ag->packet.meaning->unit = SR_UNIT_HUMIDITY_293K;
+	else if (ag->mq == SR_MQ_TIME)
+		ag->packet.meaning->unit = SR_UNIT_SECOND;
+	else if (ag->mq == SR_MQ_WIND_SPEED)
+		ag->packet.meaning->unit = SR_UNIT_METER_SECOND;
+	else if (ag->mq == SR_MQ_PRESSURE)
+		ag->packet.meaning->unit = SR_UNIT_HECTOPASCAL;
+	else if (ag->mq == SR_MQ_PARALLEL_INDUCTANCE)
+		ag->packet.meaning->unit = SR_UNIT_HENRY;
+	else if (ag->mq == SR_MQ_PARALLEL_CAPACITANCE)
+		ag->packet.meaning->unit = SR_UNIT_FARAD;
+	else if (ag->mq == SR_MQ_PARALLEL_RESISTANCE)
+		ag->packet.meaning->unit = SR_UNIT_OHM;
+	else if (ag->mq == SR_MQ_SERIES_INDUCTANCE)
+		ag->packet.meaning->unit = SR_UNIT_HENRY;
+	else if (ag->mq == SR_MQ_SERIES_CAPACITANCE)
+		ag->packet.meaning->unit = SR_UNIT_FARAD;
+	else if (ag->mq == SR_MQ_SERIES_RESISTANCE)
+		ag->packet.meaning->unit = SR_UNIT_OHM;
+	else if (ag->mq == SR_MQ_DISSIPATION_FACTOR)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else if (ag->mq == SR_MQ_QUALITY_FACTOR)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else if (ag->mq == SR_MQ_PHASE_ANGLE)
+		ag->packet.meaning->unit = SR_UNIT_DEGREE;
+	else if (ag->mq == SR_MQ_DIFFERENCE)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else if (ag->mq == SR_MQ_COUNT)
+		ag->packet.meaning->unit = SR_UNIT_PIECE;
+	else if (ag->mq == SR_MQ_POWER_FACTOR)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else if (ag->mq == SR_MQ_APPARENT_POWER)
+		ag->packet.meaning->unit = SR_UNIT_VOLT_AMPERE;
+	else if (ag->mq == SR_MQ_MASS)
+		ag->packet.meaning->unit = SR_UNIT_GRAM;
+	else if (ag->mq == SR_MQ_HARMONIC_RATIO)
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
+	else
+		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
 
 	if (!devc->avg) {
 		ag_pattern_pos = analog_pos % ag->num_samples;
