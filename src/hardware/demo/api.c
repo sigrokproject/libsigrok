@@ -77,12 +77,14 @@ static const uint32_t devopts_cg_logic[] = {
 
 static const uint32_t devopts_cg_analog_group[] = {
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const int32_t trigger_matches[] = {
@@ -304,6 +306,16 @@ static int config_get(uint32_t key, GVariant **data,
 		ag = g_hash_table_lookup(devc->ch_ag, ch);
 		*data = g_variant_new_double(ag->amplitude);
 		break;
+	case SR_CONF_OFFSET:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = g_hash_table_lookup(devc->ch_ag, ch);
+		*data = g_variant_new_double(ag->offset);
+		break;
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
@@ -404,6 +416,17 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			ag = g_hash_table_lookup(devc->ch_ag, ch);
 			ag->amplitude = g_variant_get_double(data);
+		}
+		break;
+	case SR_CONF_OFFSET:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type != SR_CHANNEL_ANALOG)
+				return SR_ERR_ARG;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
+			ag->offset = g_variant_get_double(data);
 		}
 		break;
 	case SR_CONF_CAPTURE_RATIO:
