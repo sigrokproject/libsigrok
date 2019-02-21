@@ -183,6 +183,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Trigger level", NULL},
 	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
 		"External clock source", NULL},
+	{SR_CONF_OFFSET, SR_T_FLOAT, "offset",
+		"Offset", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",

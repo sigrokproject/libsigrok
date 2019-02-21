@@ -995,6 +995,9 @@ enum sr_configkey {
 	 */
 	SR_CONF_EXTERNAL_CLOCK_SOURCE,
 
+	/** Offset of a source without strictly-defined MQ. */
+	SR_CONF_OFFSET,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
