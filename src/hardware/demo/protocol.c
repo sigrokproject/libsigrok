@@ -173,77 +173,75 @@ static const uint8_t pattern_squid[128][128 / 8] = {
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, },
 };
 
-SR_PRIV void demo_generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate)
+SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc)
 {
 	double t, frequency;
-	float value;
+	float amplitude, offset;
+	struct analog_pattern *pattern;
 	unsigned int num_samples, i;
+	float value;
 	int last_end;
 
-	sr_dbg("Generating %s pattern.", analog_pattern_str[ag->pattern]);
-
 	num_samples = ANALOG_BUFSIZE / sizeof(float);
+	frequency = (double) devc->cur_samplerate / ANALOG_SAMPLES_PER_PERIOD;
+	amplitude = DEFAULT_ANALOG_AMPLITUDE;
+	offset = DEFAULT_ANALOG_OFFSET;
 
-	switch (ag->pattern) {
-	case PATTERN_SQUARE:
-		value = ag->amplitude;
-		last_end = 0;
-		for (i = 0; i < num_samples; i++) {
-			if (i % 5 == 0)
-				value = -value;
-			if (i % 10 == 0)
-				last_end = i;
-			ag->pattern_data[i] = value;
-		}
-		ag->num_samples = last_end;
-		break;
-	case PATTERN_SINE:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
+	/* FIXME we actually need only one period. A ringbuffer would be
+	 * useful here. */
+	/* Make sure the number of samples we put out is an integer
+	 * multiple of our period size */
 
-		/* Make sure the number of samples we put out is an integer
-		 * multiple of our period size */
-		/* FIXME we actually need only one period. A ringbuffer would be
-		 * useful here. */
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = ag->amplitude *
-						sin(2 * G_PI * frequency * t);
-		}
-
-		ag->num_samples = num_samples;
-		break;
-	case PATTERN_TRIANGLE:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
-
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = (2 * ag->amplitude / G_PI) *
-						asin(sin(2 * G_PI * frequency * t));
-		}
-
-		ag->num_samples = num_samples;
-		break;
-	case PATTERN_SAWTOOTH:
-		frequency = (double) sample_rate / ANALOG_SAMPLES_PER_PERIOD;
-
-		while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
-			num_samples--;
-
-		for (i = 0; i < num_samples; i++) {
-			t = (double) i / (double) sample_rate;
-			ag->pattern_data[i] = 2 * ag->amplitude *
-						((t * frequency) - floor(0.5f + t * frequency));
-		}
-
-		ag->num_samples = num_samples;
-		break;
+	/* PATTERN_SQUARE */
+	sr_dbg("Generating %s pattern.", analog_pattern_str[PATTERN_SQUARE]);
+	pattern = g_malloc(sizeof(struct analog_pattern));
+	value = amplitude;
+	last_end = 0;
+	for (i = 0; i < num_samples; i++) {
+		if (i % 5 == 0)
+			value = -value;
+		if (i % 10 == 0)
+			last_end = i;
+		pattern->data[i] = value + offset;
 	}
+	pattern->num_samples = last_end;
+	devc->analog_patterns[PATTERN_SQUARE] = pattern;
+
+	/*  Readjusting num_samples for all other patterns */
+	while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
+		num_samples--;
+
+	/* PATTERN_SINE: */
+	sr_dbg("Generating %s pattern.", analog_pattern_str[PATTERN_SINE]);
+	pattern = g_malloc(sizeof(struct analog_pattern));
+	for (i = 0; i < num_samples; i++) {
+		t = (double) i / (double) devc->cur_samplerate;
+		pattern->data[i] = sin(2 * G_PI * frequency * t) * amplitude + offset;
+	}
+	pattern->num_samples = last_end;
+	devc->analog_patterns[PATTERN_SINE] = pattern;
+
+	/* PATTERN_TRIANGLE: */
+	sr_dbg("Generating %s pattern.", analog_pattern_str[PATTERN_TRIANGLE]);
+	pattern = g_malloc(sizeof(struct analog_pattern));
+	for (i = 0; i < num_samples; i++) {
+		t = (double) i / (double) devc->cur_samplerate;
+		pattern->data[i] = (2 / G_PI) * asin(sin(2 * G_PI * frequency * t)) *
+			amplitude + offset;
+	}
+	pattern->num_samples = last_end;
+	devc->analog_patterns[PATTERN_TRIANGLE] = pattern;
+
+	/* PATTERN_SAWTOOTH: */
+	sr_dbg("Generating %s pattern.", analog_pattern_str[PATTERN_SAWTOOTH]);
+	pattern = g_malloc(sizeof(struct analog_pattern));
+	for (i = 0; i < num_samples; i++) {
+		t = (double) i / (double) devc->cur_samplerate;
+		pattern->data[i] = 2 * ((t * frequency) - floor(0.5f + t * frequency)) *
+			amplitude + offset;
+	}
+	pattern->num_samples = last_end;
+	devc->analog_patterns[PATTERN_SAWTOOTH] = pattern;
 }
 
 static uint64_t encode_number_to_gray(uint64_t nr)
@@ -390,9 +388,12 @@ static void send_analog_packet(struct analog_gen *ag,
 {
 	struct sr_datafeed_packet packet;
 	struct dev_context *devc;
+	struct analog_pattern *pattern;
 	uint64_t sending_now, to_avg;
 	int ag_pattern_pos;
 	unsigned int i;
+	float amplitude, offset, value;
+	float *data;
 
 	if (!ag->ch || !ag->ch->enabled)
 		return;
@@ -400,6 +401,8 @@ static void send_analog_packet(struct analog_gen *ag,
 	devc = sdi->priv;
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &ag->packet;
+
+	pattern = devc->analog_patterns[ag->pattern];
 
 	ag->packet.meaning->channels = g_slist_append(NULL, ag->ch);
 	ag->packet.meaning->mq = ag->mq;
@@ -476,22 +479,36 @@ static void send_analog_packet(struct analog_gen *ag,
 		ag->packet.meaning->unit = SR_UNIT_UNITLESS;
 
 	if (!devc->avg) {
-		ag_pattern_pos = analog_pos % ag->num_samples;
-		sending_now = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
-		ag->packet.data = ag->pattern_data + ag_pattern_pos;
+		ag_pattern_pos = analog_pos % pattern->num_samples;
+		sending_now = MIN(analog_todo, pattern->num_samples - ag_pattern_pos);
+		if (ag->amplitude != DEFAULT_ANALOG_AMPLITUDE ||
+			ag->offset != DEFAULT_ANALOG_OFFSET) {
+
+			/* Amplitude or offset changed, modify each sample */
+			amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
+			offset = ag->offset - DEFAULT_ANALOG_OFFSET;
+			data = ag->packet.data;
+			for (i = 0; i < sending_now; i++) {
+				data[i] = pattern->data[ag_pattern_pos + i] * amplitude + offset;
+			}
+		} else {
+			/* Amplitude and offset not changed, use the fast way */
+			ag->packet.data = pattern->data + ag_pattern_pos;
+		}
 		ag->packet.num_samples = sending_now;
 		sr_session_send(sdi, &packet);
 
 		/* Whichever channel group gets there first. */
 		*analog_sent = MAX(*analog_sent, sending_now);
 	} else {
-		ag_pattern_pos = analog_pos % ag->num_samples;
-		to_avg = MIN(analog_todo, ag->num_samples - ag_pattern_pos);
+		ag_pattern_pos = analog_pos % pattern->num_samples;
+		to_avg = MIN(analog_todo, pattern->num_samples - ag_pattern_pos);
+		amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
+		offset = ag->offset - DEFAULT_ANALOG_OFFSET;
 
 		for (i = 0; i < to_avg; i++) {
-			ag->avg_val = (ag->avg_val +
-					*(ag->pattern_data +
-					  ag_pattern_pos + i)) / 2;
+			value = *(pattern->data + ag_pattern_pos + i) * amplitude + offset;
+			ag->avg_val = (ag->avg_val + value) / 2;
 			ag->num_avgs++;
 			/* Time to send averaged data? */
 			if ((devc->avg_samples > 0) && (ag->num_avgs >= devc->avg_samples))
@@ -499,7 +516,8 @@ static void send_analog_packet(struct analog_gen *ag,
 		}
 
 		if (devc->avg_samples == 0) {
-			/* We're averaging all the samples, so wait with
+			/*
+			 * We're averaging all the samples, so wait with
 			 * sending until the very end.
 			 */
 			*analog_sent = ag->num_avgs;

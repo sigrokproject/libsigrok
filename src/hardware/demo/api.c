@@ -33,9 +33,6 @@
 #define DEFAULT_LOGIC_PATTERN			PATTERN_SIGROK
 
 #define DEFAULT_NUM_ANALOG_CHANNELS		4
-#define DEFAULT_ANALOG_ENCODING_DIGITS	4
-#define DEFAULT_ANALOG_SPEC_DIGITS		4
-#define DEFAULT_ANALOG_AMPLITUDE		10
 
 /* Note: No spaces allowed because of sigrok-cli. */
 static const char *logic_pattern_str[] = {
@@ -165,6 +162,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* Analog channels, channel groups and pattern generators. */
 	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 	if (num_analog_channels > 0) {
+		/*
+		 * Have the waveform for analog patterns pre-generated. It's
+		 * supposed to be periodic, so the generator just needs to
+		 * access the prepared sample data (DDS style).
+		 */
+		demo_generate_analog_pattern(devc);
+
 		pattern = 0;
 		/* An "Analog" channel group with all analog channels in it. */
 		acg = g_malloc0(sizeof(struct sr_channel_group));
@@ -190,6 +194,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			ag->mq_flags = SR_MQFLAG_DC;
 			ag->unit = SR_UNIT_VOLT;
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
+			ag->offset = DEFAULT_ANALOG_OFFSET;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
 			ag->packet.meaning->mq = ag->mq;
@@ -197,7 +202,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			ag->packet.meaning->unit = ag->unit;
 			ag->packet.encoding->digits = DEFAULT_ANALOG_ENCODING_DIGITS;
 			ag->packet.spec->spec_digits = DEFAULT_ANALOG_SPEC_DIGITS;
-			ag->packet.data = ag->pattern_data;
+			ag->packet.data = devc->analog_patterns[pattern];
 			ag->pattern = pattern;
 			ag->avg_val = 0.0f;
 			ag->num_avgs = 0;
@@ -472,8 +477,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	int bitpos;
 	uint8_t mask;
-	GHashTableIter iter;
-	void *value;
 	struct sr_trigger *trigger;
 
 	devc = sdi->priv;
@@ -538,15 +541,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->enabled_logic_channels,
 		devc->first_partial_logic_index,
 		devc->first_partial_logic_mask);
-
-	/*
-	 * Have the waveform for analog patterns pre-generated. It's
-	 * supposed to be periodic, so the generator just needs to
-	 * access the prepared sample data (DDS style).
-	 */
-	g_hash_table_iter_init(&iter, devc->ch_ag);
-	while (g_hash_table_iter_next(&iter, NULL, &value))
-		demo_generate_analog_pattern(value, devc->cur_samplerate);
 
 	sr_session_source_add(sdi->session, -1, 0, 100,
 			demo_prepare_data, (struct sr_dev_inst *)sdi);
