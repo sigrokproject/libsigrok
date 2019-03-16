@@ -85,6 +85,7 @@ struct sr_scpi_dev_inst {
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm);
 	int (*open)(struct sr_scpi_dev_inst *scpi);
+	int (*connection_id)(struct sr_scpi_dev_inst *scpi, char **connection_id);
 	int (*source_add)(struct sr_session *session, void *priv, int events,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 	int (*source_remove)(struct sr_session *session, void *priv);
@@ -108,6 +109,8 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id);
 SR_PRIV int sr_scpi_source_add(struct sr_session *session,
 		struct sr_scpi_dev_inst *scpi, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);

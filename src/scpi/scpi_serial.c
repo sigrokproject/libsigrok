@@ -98,6 +98,17 @@ static int scpi_serial_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_serial_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_serial *sscpi = scpi->priv;
+	struct sr_serial_dev_inst *serial = sscpi->serial;
+
+	*connection_id = g_strdup(serial->port);
+
+	return SR_OK;
+}
+
 static int scpi_serial_source_add(struct sr_session *session, void *priv,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
@@ -192,6 +203,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
 	.scan          = scpi_serial_scan,
 	.dev_inst_new  = scpi_serial_dev_inst_new,
 	.open          = scpi_serial_open,
+	.connection_id = scpi_serial_connection_id,
 	.source_add    = scpi_serial_source_add,
 	.source_remove = scpi_serial_source_remove,
 	.send          = scpi_serial_send,

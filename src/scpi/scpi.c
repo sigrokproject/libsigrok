@@ -408,6 +408,21 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 }
 
 /**
+ * Get the connection ID of the SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param connection_id Pointer where to store the connection ID. The caller
+ *        is responsible for g_free()ing the string when it is no longer needed.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	return scpi->connection_id(scpi, connection_id);
+}
+
+/**
  * Add an event source for an SCPI device.
  *
  * @param session The session to add the event source to.

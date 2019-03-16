@@ -92,6 +92,16 @@ static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_vxi_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_vxi *vxi = scpi->priv;
+
+	*connection_id = g_strdup_printf("%s/%s", scpi->prefix, vxi->address);
+
+	return SR_OK;
+}
+
 static int scpi_vxi_source_add(struct sr_session *session, void *priv,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
@@ -224,6 +234,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_vxi_dev = {
 	.priv_size     = sizeof(struct scpi_vxi),
 	.dev_inst_new  = scpi_vxi_dev_inst_new,
 	.open          = scpi_vxi_open,
+	.connection_id = scpi_vxi_connection_id,
 	.source_add    = scpi_vxi_source_add,
 	.source_remove = scpi_vxi_source_remove,
 	.send          = scpi_vxi_send,
