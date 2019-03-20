@@ -205,6 +205,8 @@ struct scope_config {
 	unsigned int num_xdivs;
 	const unsigned int num_ydivs;
 
+	const gboolean system_beep_available;
+
 	const char *(*scpi_dialect)[];
 };
 

@@ -820,25 +820,26 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	}
 
 	/* Not available on all series. */
-	if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]) {
-		/* Check if the Beep On Trigger functionality is enabled or not. */
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]);
+	if (config->system_beep_available) {
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]) {
+			/* Check if the Beep On Trigger functionality is enabled or not. */
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]);
 
-		if (sr_scpi_get_bool(sdi->conn, command,
-				     &state->beep_on_trigger) != SR_OK)
-			return SR_ERR;
-	}
+			if (sr_scpi_get_bool(sdi->conn, command,
+					     &state->beep_on_trigger) != SR_OK)
+				return SR_ERR;
+		}
 
-	/* Not available on all series. */
-	if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]) {
-		/* Check if the Beep On Error functionality is enabled or not. */
-		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]);
+		if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]) {
+			/* Check if the Beep On Error functionality is enabled or not. */
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]);
 
-		if (sr_scpi_get_bool(sdi->conn, command,
-				     &state->beep_on_error) != SR_OK)
-			return SR_ERR;
+			if (sr_scpi_get_bool(sdi->conn, command,
+					     &state->beep_on_error) != SR_OK)
+				return SR_ERR;
+		}
 	}
 
 	if (rs_update_sample_rate(sdi) != SR_OK)
