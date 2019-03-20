@@ -1448,6 +1448,8 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_BEEP_ON_TRIGGER:
+		if (!model->system_beep_available)
+			return SR_ERR_NA;
 		tmp_bool = g_variant_get_boolean(data);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_SYS_BEEP_ON_TRIGGER],
@@ -1460,6 +1462,8 @@ static int config_set(uint32_t key, GVariant *data,
 			state->beep_on_trigger = tmp_bool;
 		break;
 	case SR_CONF_BEEP_ON_ERROR:
+		if (!model->system_beep_available)
+			return SR_ERR_NA;
 		tmp_bool = g_variant_get_boolean(data);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_SYS_BEEP_ON_ERROR],

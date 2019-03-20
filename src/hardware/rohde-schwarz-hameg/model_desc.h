@@ -35,7 +35,8 @@
  * according to the latest available User Manual version.
  *
  * The system beep functionality is misteriously missing from HMO
- * Compact and HMO2524 User Manuals...
+ * Compact and HMO2524 User Manuals, while it is confirmed as missing
+ * in HMO352x.
  */
 static const char *rohde_schwarz_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
@@ -1400,6 +1401,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = FALSE,
+
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
@@ -1468,6 +1471,8 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
+
+		.system_beep_available = TRUE,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
@@ -1538,11 +1543,13 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
-		/* HMO3032/3042/3052/3522 support 16 digital channels. */
-		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
+		/* HMO3522 supports 16 digital channels. */
+		.name = {"HMO3522", NULL},
 		.analog_channels = 2,
 		.digital_channels = 16,
 
@@ -1607,6 +1614,80 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
+
+		.system_beep_available = FALSE,
+
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
+	},
+	{
+		/* HMO3032/3042/3052 support 16 digital channels. */
+		.name = {"HMO3032", "HMO3042", "HMO3052", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.digital_data_pod_index = TRUE,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts_hmo300x,
+		.num_devopts = ARRAY_SIZE(devopts_hmo300x),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
+		.random_sampling = &random_sampling,
+		.num_random_sampling = ARRAY_SIZE(random_sampling),
+
+		.acquisition_mode = &acquisition_mode,
+		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
+
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
+		.logic_threshold_pod_index = TRUE,
+
+		.trigger_sources = &an2_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
+
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
+		/* FlatTop window available, but not listed in User Manual version 04. */
+		.fft_window_types = &fft_window_types_rt,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_rt),
+
+		.bandwidth_limit = &bandwidth_limit,
+		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 8,
+
+		.system_beep_available = TRUE,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
@@ -1677,10 +1758,12 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = FALSE,
+
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
 	{
-		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
+		.name = {"HMO2524", "HMO3524", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
 
@@ -1744,6 +1827,78 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
+
+		.system_beep_available = FALSE,
+
+		.scpi_dialect = &rohde_schwarz_scpi_dialect,
+	},
+	{
+		.name = {"HMO3034", "HMO3044", "HMO3054", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+
+		.digital_data_pod_index = TRUE,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts_hmo300x,
+		.num_devopts = ARRAY_SIZE(devopts_hmo300x),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.waveform_sample_rate = &waveform_sample_rate,
+		.num_waveform_sample_rate = ARRAY_SIZE(waveform_sample_rate),
+
+		.random_sampling = &random_sampling,
+		.num_random_sampling = ARRAY_SIZE(random_sampling),
+
+		.acquisition_mode = &acquisition_mode,
+		.num_acquisition_mode = ARRAY_SIZE(acquisition_mode),
+
+		.arithmetics_type = &arithmetics_type_hmo_rtc100x_rtm200x,
+		.num_arithmetics_type = ARRAY_SIZE(arithmetics_type_hmo_rtc100x_rtm200x),
+
+		.interpolation_mode = &interpolation_mode,
+		.num_interpolation_mode = ARRAY_SIZE(interpolation_mode),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold_hmo_rtc100x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_hmo_rtc100x),
+		.logic_threshold_pod_index = TRUE,
+
+		.trigger_sources = &an4_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
+
+		.edge_trigger_slopes = &edge_trigger_slopes,
+		.num_edge_trigger_slopes = ARRAY_SIZE(edge_trigger_slopes),
+
+		.edge_trigger_coupling = &edge_trigger_coupling_hmo_rtc100x,
+		.num_edge_trigger_coupling = ARRAY_SIZE(edge_trigger_coupling_hmo_rtc100x),
+
+		.fft_cmd_requires_math_wfm_idx = TRUE,
+
+		.fft_window_types = &fft_window_types_hmo,
+		.num_fft_window_types = ARRAY_SIZE(fft_window_types_hmo),
+
+		.bandwidth_limit = &bandwidth_limit,
+		.num_bandwidth_limit = ARRAY_SIZE(bandwidth_limit),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vscale = &vscale,
+		.num_vscale = ARRAY_SIZE(vscale),
+
+		.num_ydivs = 8,
+
+		.system_beep_available = TRUE,
 
 		.scpi_dialect = &rohde_schwarz_scpi_dialect,
 	},
@@ -1814,6 +1969,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
@@ -1883,6 +2040,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
@@ -1950,6 +2109,8 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
+
+		.system_beep_available = TRUE,
 
 		.scpi_dialect = &rohde_schwarz_rtm200x_scpi_dialect,
 	},
@@ -2019,6 +2180,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_rtm200x_scpi_dialect,
 	},
 	{
@@ -2087,6 +2250,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
@@ -2154,6 +2319,8 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 8,
+
+		.system_beep_available = TRUE,
 
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
@@ -2224,6 +2391,8 @@ static struct scope_config scope_models[] = {
 
 		.num_ydivs = 8,
 
+		.system_beep_available = TRUE,
+
 		.scpi_dialect = &rohde_schwarz_rtb200x_rtm300x_rta400x_scpi_dialect,
 	},
 	{
@@ -2292,6 +2461,8 @@ static struct scope_config scope_models[] = {
 		.num_vscale = ARRAY_SIZE(vscale),
 
 		.num_ydivs = 10,
+
+		.system_beep_available = FALSE,
 
 		.scpi_dialect = &rohde_schwarz_rto_scpi_dialect,
 	},
