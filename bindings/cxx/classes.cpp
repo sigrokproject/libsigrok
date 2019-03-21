@@ -544,11 +544,11 @@ Glib::VariantBase Configurable::config_get(const ConfigKey *key) const
 	return Glib::VariantBase(data);
 }
 
-void Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &value)
+int Configurable::config_set(const ConfigKey *key, const Glib::VariantBase &value) const
 {
-	check(sr_config_set(
+	return sr_config_set(
 		config_sdi, config_channel_group,
-		key->id(), const_cast<GVariant*>(value.gobj())));
+		key->id(), const_cast<GVariant*>(value.gobj()));
 }
 
 set<const Capability *> Configurable::config_capabilities(const ConfigKey *key) const

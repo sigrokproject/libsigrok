@@ -326,7 +326,7 @@ public:
 	/** Set configuration for the given key to a specified value.
 	 * @param key ConfigKey to set.
 	 * @param value Value to set. */
-	void config_set(const ConfigKey *key, const Glib::VariantBase &value);
+	int config_set(const ConfigKey *key, const Glib::VariantBase &value) const;
 	/** Enumerate available values for the given configuration key.
 	 * @param key ConfigKey to enumerate values for. */
 	Glib::VariantContainerBase config_list(const ConfigKey *key) const;
