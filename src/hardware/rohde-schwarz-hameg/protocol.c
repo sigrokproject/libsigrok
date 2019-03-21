@@ -919,7 +919,7 @@ static char **rs_build_multi_waveform_sources(const unsigned int channels,
 
 SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 {
-	int ret, model_index, len;
+	int model_index, len;
 	unsigned int i, j, k, group;
 	struct sr_channel *ch;
 	struct dev_context *devc;
@@ -975,6 +975,8 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	if (!devc->analog_groups || !devc->digital_groups) {
 		g_free(devc->analog_groups);
 		g_free(devc->digital_groups);
+		devc->analog_groups = NULL;
+		devc->digital_groups = NULL;
 		return SR_ERR_MALLOC;
 	}
 
@@ -984,6 +986,15 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 			   (*scope_models[model_index].analog_names)[i]);
 
 		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+		if (!devc->analog_groups[i]) {
+			for (j = 0; j < i; j++)
+				g_free(devc->analog_groups[j]);
+			g_free(devc->analog_groups);
+			g_free(devc->digital_groups);
+			devc->analog_groups = NULL;
+			devc->digital_groups = NULL;
+			return SR_ERR_MALLOC;
+		}
 
 		devc->analog_groups[i]->name = g_strdup(
 			(char *)(*scope_models[model_index].analog_names)[i]);
@@ -994,19 +1005,24 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 	}
 
 	/* Add digital channel groups. */
-	ret = SR_OK;
 	for (i = 0; i < scope_models[model_index].digital_pods; i++) {
 		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
 		if (!devc->digital_groups[i]) {
-			ret = SR_ERR_MALLOC;
-			break;
+			for (j = 0; j < i; j++)
+				g_free(devc->digital_groups[j]);
+			for (j = 0; j < scope_models[model_index].analog_channels; j++)
+				g_free(devc->analog_groups[j]);
+			g_free(devc->analog_groups);
+			g_free(devc->digital_groups);
+			devc->analog_groups = NULL;
+			devc->digital_groups = NULL;
+			return SR_ERR_MALLOC;
 		}
+
 		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i + 1);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				   devc->digital_groups[i]);
 	}
-	if (ret != SR_OK)
-		return ret;
 
 	/* Add digital channels. */
 	for (i = 0; i < scope_models[model_index].digital_channels; i++) {
@@ -1064,8 +1080,17 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 							     scope_models[model_index].digital_channels;
 		multi_waveform_sources = rs_build_multi_waveform_sources(scope_models[model_index].analog_channels,
 									 MAX_WAVEFORMS_PER_CHANNEL);
-		if (!multi_waveform_sources)
+		if (!multi_waveform_sources) {
+			for (i = 0; i < scope_models[model_index].analog_channels; i++)
+				g_free(devc->analog_groups[i]);
+			for (i = 0; i < scope_models[model_index].digital_pods; i++)
+				g_free(devc->digital_groups[i]);
+			g_free(devc->analog_groups);
+			g_free(devc->digital_groups);
+			devc->analog_groups = NULL;
+			devc->digital_groups = NULL;
 			return SR_ERR_MALLOC;
+		}
 		for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++) {
 			j = strlen(multi_waveform_sources[i]);
 			if (j > k)
@@ -1080,10 +1105,47 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 
 	scope_models[model_index].meas_sources = g_malloc0(sizeof(char *) *
 							   scope_models[model_index].num_meas_sources);
-	if (!scope_models[model_index].meas_sources)
+	if (!scope_models[model_index].meas_sources) {
+		for (i = 0; i < scope_models[model_index].analog_channels; i++)
+			g_free(devc->analog_groups[i]);
+		for (i = 0; i < scope_models[model_index].digital_pods; i++)
+			g_free(devc->digital_groups[i]);
+		g_free(devc->analog_groups);
+		g_free(devc->digital_groups);
+		devc->analog_groups = NULL;
+		devc->digital_groups = NULL;
+		if (!g_ascii_strncasecmp("RTO", sdi->model, 3)) {
+			for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++)
+				g_free(multi_waveform_sources[i]);
+			g_free(multi_waveform_sources);
+			multi_waveform_sources = NULL;
+		}
 		return SR_ERR_MALLOC;
-	for (i = 0; i < scope_models[model_index].num_meas_sources; i++)
+	}
+	for (i = 0; i < scope_models[model_index].num_meas_sources; i++) {
 		(*scope_models[model_index].meas_sources)[i] = g_malloc0(sizeof(char) * k);
+		if (!(*scope_models[model_index].meas_sources)[i]) {
+			for (j = 0; j < i; j++)
+				g_free((*scope_models[model_index].meas_sources)[j]);
+			g_free(scope_models[model_index].meas_sources);
+			scope_models[model_index].meas_sources = NULL;
+			for (j = 0; j < scope_models[model_index].analog_channels; j++)
+				g_free(devc->analog_groups[j]);
+			for (j = 0; j < scope_models[model_index].digital_pods; j++)
+				g_free(devc->digital_groups[j]);
+			g_free(devc->analog_groups);
+			g_free(devc->digital_groups);
+			devc->analog_groups = NULL;
+			devc->digital_groups = NULL;
+			if (!g_ascii_strncasecmp("RTO", sdi->model, 3)) {
+				for (j = 0; j < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; j++)
+					g_free(multi_waveform_sources[j]);
+				g_free(multi_waveform_sources);
+				multi_waveform_sources = NULL;
+			}
+			return SR_ERR_MALLOC;
+		}
+	}
 
 	if (g_ascii_strncasecmp("RTO", sdi->model, 3)) {
 		for (i = 0; i < scope_models[model_index].analog_channels; i++)
@@ -1108,14 +1170,28 @@ SR_PRIV int rs_init_device(struct sr_dev_inst *sdi)
 		for (i = 0; i < scope_models[model_index].analog_channels * MAX_WAVEFORMS_PER_CHANNEL; i++)
 			g_free(multi_waveform_sources[i]);
 		g_free(multi_waveform_sources);
+		multi_waveform_sources = NULL;
 	}
 
 	devc->model_config = &scope_models[model_index];
 	devc->samples_limit = 0;
 	devc->frame_limit = 0;
 
-	if (!(devc->model_state = scope_state_new(devc->model_config)))
+	if (!(devc->model_state = scope_state_new(devc->model_config))) {
+		for (i = 0; i < scope_models[model_index].num_meas_sources; i++)
+			g_free((*scope_models[model_index].meas_sources)[i]);
+		g_free(scope_models[model_index].meas_sources);
+		scope_models[model_index].meas_sources = NULL;
+		for (i = 0; i < scope_models[model_index].analog_channels; i++)
+			g_free(devc->analog_groups[i]);
+		for (i = 0; i < scope_models[model_index].digital_pods; i++)
+			g_free(devc->digital_groups[i]);
+		g_free(devc->analog_groups);
+		g_free(devc->digital_groups);
+		devc->analog_groups = NULL;
+		devc->digital_groups = NULL;
 		return SR_ERR_MALLOC;
+	}
 
 	return SR_OK;
 }
