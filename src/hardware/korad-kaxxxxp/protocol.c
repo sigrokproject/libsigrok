@@ -332,7 +332,7 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		analog.meaning->channels = l;
 		analog.meaning->mq = SR_MQ_CURRENT;
 		analog.meaning->unit = SR_UNIT_AMPERE;
-		analog.meaning->mqflags = 0;
+		analog.meaning->mqflags = SR_MQFLAG_DC;
 		analog.encoding->digits = 3;
 		analog.spec->spec_digits = 3;
 		analog.data = &devc->current;
