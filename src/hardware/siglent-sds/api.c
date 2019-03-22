@@ -56,7 +56,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -485,7 +485,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new("(tt)", devc->timebases[idx][0],
 			devc->timebases[idx][1]);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (analog_channel < 0) {
 			sr_dbg("Negative analog channel: %d.", analog_channel);
 			return SR_ERR_NA;
@@ -627,7 +627,7 @@ static int config_set(uint32_t key, GVariant *data,
 		else
 			tmp_str = (char *)devc->trigger_source;
 		return siglent_sds_config_set(sdi, "TRSE EDGE,SR,%s,OFF", tmp_str);
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((i = std_cg_idx(cg, devc->analog_groups, devc->model->analog_channels)) < 0)
@@ -740,7 +740,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_CHANNEL_GROUP;
 		*data = std_gvar_array_u64(ARRAY_AND_SIZE(probe_factor));
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;

@@ -248,11 +248,13 @@ SR_API char *sr_si_string_u64(uint64_t x, const char *unit);
 SR_API char *sr_samplerate_string(uint64_t samplerate);
 SR_API char *sr_period_string(uint64_t v_p, uint64_t v_q);
 SR_API char *sr_voltage_string(uint64_t v_p, uint64_t v_q);
+SR_API char *sr_voltage_per_div_string(uint64_t v_p, uint64_t v_q);
 SR_API int sr_parse_sizestring(const char *sizestring, uint64_t *size);
 SR_API uint64_t sr_parse_timestring(const char *timestring);
 SR_API gboolean sr_parse_boolstring(const char *boolstring);
 SR_API int sr_parse_period(const char *periodstr, uint64_t *p, uint64_t *q);
 SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q);
+SR_API int sr_parse_voltage_per_div(const char *voltperdivstr, uint64_t *p, uint64_t *q);
 SR_API int sr_sprintf_ascii(char *buf, const char *format, ...);
 SR_API int sr_vsprintf_ascii(char *buf, const char *format, va_list args);
 SR_API int sr_snprintf_ascii(char *buf, size_t buf_size,

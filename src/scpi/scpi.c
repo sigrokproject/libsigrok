@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
  * Copyright (C) 2015 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -816,6 +817,32 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 }
 
 /**
+ * Send a SCPI *ESR? command, read the reply and store the result
+ * in scpi_response.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK on success, SR_ERR* on failure.
+ */
+SR_PRIV int sr_scpi_get_esr(struct sr_scpi_dev_inst *scpi, int *scpi_response)
+{
+	unsigned int i;
+	int ret, esr;
+
+	for (i = 0; i < SCPI_READ_RETRIES; i++) {
+		ret = sr_scpi_get_int(scpi, SCPI_CMD_ESR, &esr);
+		if (ret == SR_OK && esr >= 0) {
+			*scpi_response = esr;
+			return ret;
+		}
+		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
+	}
+
+	return SR_ERR;
+}
+
+/**
  * Send a SCPI command, read the reply, parse it as comma separated list of
  * floats and store the as an result in scpi_response.
  *
@@ -946,6 +973,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString* response;
+	gsize oldlen;
 	char buf[10];
 	long llen;
 	long datalen;
@@ -975,14 +1003,14 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	*scpi_response = NULL;
 
 	/* Get (the first chunk of) the response. */
-	while (response->len < 2) {
+	do {
 		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
-	}
+	} while (response->len < 2);
 
 	/*
 	 * SCPI protocol data blocks are preceeded with a length spec.
@@ -1029,25 +1057,33 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	g_string_erase(response, 0, 2 + llen);
 
 	/*
-	 * If the initially assumed length does not cover the data block
-	 * length, then re-allocate the buffer size to the now known
-	 * length, and keep reading more chunks of response data.
+	 * Re-allocate the buffer size to the now known length
+	 * and keep reading more chunks of response data.
 	 */
-	if (response->len < (unsigned long)(datalen)) {
-		int oldlen = response->len;
-		g_string_set_size(response, datalen);
-		g_string_set_size(response, oldlen);
-	}
+	oldlen = response->len;
+	g_string_set_size(response, datalen);
+	g_string_set_size(response, oldlen);
 
-	while (response->len < (unsigned long)(datalen)) {
-		ret = scpi_read_response(scpi, response, timeout);
-		if (ret < 0) {
-			g_mutex_unlock(&scpi->scpi_mutex);
-			g_string_free(response, TRUE);
-			return ret;
-		}
-		if (ret > 0)
-			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	if (oldlen < (unsigned long)(datalen)) {
+		do {
+			oldlen = response->len;
+			ret = scpi_read_response(scpi, response, timeout);
+
+			/* On timeout truncate the buffer and send the partial response
+			 * instead of getting stuck on timeouts...
+			 */
+			if (ret == SR_ERR_TIMEOUT) {
+				datalen = oldlen;
+				break;
+			}
+			if (ret < 0) {
+				g_mutex_unlock(&scpi->scpi_mutex);
+				g_string_free(response, TRUE);
+				return ret;
+			}
+			if (ret > 0)
+				timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		} while (response->len < (unsigned long)(datalen));
 	}
 
 	g_mutex_unlock(&scpi->scpi_mutex);

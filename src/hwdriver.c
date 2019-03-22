@@ -75,20 +75,44 @@ static struct sr_key_info sr_key_info_config[] = {
 	/* Device (or channel group) configuration */
 	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",
 		"Sample rate", NULL},
+	{SR_CONF_WAVEFORM_SAMPLE_RATE, SR_T_STRING, "waveform_sample_rate",
+		"Mode for waveform and sample rate", NULL},
+	{SR_CONF_AUTO_RECORD_LENGTH, SR_T_BOOL, "auto_record_length",
+		"Automatic Record Length", NULL},
+	{SR_CONF_RANDOM_SAMPLING, SR_T_STRING, "random_sampling",
+		"Random sampling", NULL},
+	{SR_CONF_ACQUISITION_MODE, SR_T_STRING, "acquisition_mode",
+		"Acquisition mode", NULL},
+	{SR_CONF_ARITHMETICS_TYPE, SR_T_STRING, "arithmetics_type",
+		"Arithmetics type", NULL},
+	{SR_CONF_INTERPOLATION_MODE, SR_T_STRING, "interpolation",
+		"Interpolation mode", NULL},
 	{SR_CONF_CAPTURE_RATIO, SR_T_UINT64, "captureratio",
 		"Pre-trigger capture ratio", NULL},
 	{SR_CONF_PATTERN_MODE, SR_T_STRING, "pattern",
 		"Pattern", NULL},
 	{SR_CONF_RLE, SR_T_BOOL, "rle",
 		"Run length encoding", NULL},
+	{SR_CONF_TRIGGER_SOURCE, SR_T_STRING, "triggersource",
+		"Trigger source", NULL},
 	{SR_CONF_TRIGGER_SLOPE, SR_T_STRING, "triggerslope",
-		"Trigger slope", NULL},
+		"Edge trigger slope", NULL},
+	{SR_CONF_TRIGGER_COUPLING, SR_T_STRING, "triggercoupling",
+		"Edge trigger coupling", NULL},
+	{SR_CONF_TRIGGER_LOWPASS, SR_T_BOOL, "trigger_lp_filter",
+		"Edge trigger low-pass filter", NULL},
+	{SR_CONF_TRIGGER_NOISE_REJ, SR_T_BOOL, "trigger_noise_filter",
+		"Edge trigger noise reject filter", NULL},
+	{SR_CONF_TRIGGER_PATTERN, SR_T_STRING, "triggerpattern",
+		"Trigger pattern", NULL},
+	{SR_CONF_HIGH_RESOLUTION, SR_T_BOOL, "highresolution",
+		"High resolution", NULL},
+	{SR_CONF_PEAK_DETECTION, SR_T_BOOL, "peakdetection",
+		"Peak detection", NULL},
 	{SR_CONF_AVERAGING, SR_T_BOOL, "averaging",
 		"Averaging", NULL},
 	{SR_CONF_AVG_SAMPLES, SR_T_UINT64, "avg_samples",
 		"Number of samples to average over", NULL},
-	{SR_CONF_TRIGGER_SOURCE, SR_T_STRING, "triggersource",
-		"Trigger source", NULL},
 	{SR_CONF_HORIZ_TRIGGERPOS, SR_T_FLOAT, "horiz_triggerpos",
 		"Horizontal trigger position", NULL},
 	{SR_CONF_BUFFERSIZE, SR_T_UINT64, "buffersize",
@@ -97,8 +121,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Time base", NULL},
 	{SR_CONF_FILTER, SR_T_BOOL, "filter",
 		"Filter", NULL},
-	{SR_CONF_VDIV, SR_T_RATIONAL_VOLT, "vdiv",
-		"Volts/div", NULL},
+	{SR_CONF_VSCALE, SR_T_RATIONAL_VOLT_PER_DIV, "vscale",
+		"Vertical scale", NULL},
 	{SR_CONF_COUPLING, SR_T_STRING, "coupling",
 		"Coupling", NULL},
 	{SR_CONF_TRIGGER_MATCH, SR_T_INT32, "triggermatch",
@@ -121,6 +145,12 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Hold min", NULL},
 	{SR_CONF_VOLTAGE_THRESHOLD, SR_T_DOUBLE_RANGE, "voltage_threshold",
 		"Voltage threshold", NULL },
+	{SR_CONF_ANALOG_THRESHOLD_CUSTOM, SR_T_FLOAT, "analog_threshold_custom",
+		"Logic threshold for analog channels (custom)", NULL},
+	{SR_CONF_LOGIC_THRESHOLD, SR_T_STRING, "logic_threshold",
+		"Logic threshold (predefined)", NULL},
+	{SR_CONF_LOGIC_THRESHOLD_CUSTOM, SR_T_FLOAT, "logic_threshold_custom",
+		"Logic threshold (custom)", NULL},
 	{SR_CONF_EXTERNAL_CLOCK, SR_T_BOOL, "external_clock",
 		"External clock mode", NULL},
 	{SR_CONF_SWAP, SR_T_BOOL, "swap",
@@ -183,6 +213,90 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Trigger level", NULL},
 	{SR_CONF_EXTERNAL_CLOCK_SOURCE, SR_T_STRING, "external_clock_source",
 		"External clock source", NULL},
+	{SR_CONF_BANDWIDTH_LIMIT, SR_T_STRING, "bandwidth_limit",
+		"Bandwidth limit", NULL},
+	{SR_CONF_BEEP_ON_TRIGGER, SR_T_BOOL, "beep_on_trigger",
+		"Beep on trigger", NULL},
+	{SR_CONF_BEEP_ON_ERROR, SR_T_BOOL, "beep_on_error",
+		"Beep on error", NULL},
+
+	/* Fast Fourier Transform (FFT) options */
+	{SR_CONF_FFT_WINDOW, SR_T_STRING, "fft_window",
+		"Fast Fourier Transform window type", NULL},
+	{SR_CONF_FFT_FREQUENCY_START, SR_T_FLOAT, "fft_frequency_start",
+		"Fast Fourier Transform start frequency", NULL},
+	{SR_CONF_FFT_FREQUENCY_STOP, SR_T_FLOAT, "fft_frequency_stop",
+		"Fast Fourier Transform stop frequency", NULL},
+	{SR_CONF_FFT_FREQUENCY_SPAN, SR_T_FLOAT, "fft_frequency_span",
+		"Fast Fourier Transform frequency span", NULL},
+	{SR_CONF_FFT_FREQUENCY_CENTER, SR_T_FLOAT, "fft_frequency_center",
+		"Fast Fourier Transform center frequency", NULL},
+	{SR_CONF_FFT_RESOLUTION_BW, SR_T_FLOAT, "fft_resolution_bw",
+		"Fast Fourier Transform Resolution Bandwidth", NULL},
+	{SR_CONF_FFT_SPAN_RBW_COUPLING, SR_T_BOOL, "fft_span_rbw_coupling",
+		"Fast Fourier Transform Span / Resolution Bandwidth coupling", NULL},
+	{SR_CONF_FFT_SPAN_RBW_RATIO, SR_T_UINT64, "fft_span_rbw_ratio",
+		"Fast Fourier Transform Span / Resolution Bandwidth ratio", NULL},
+
+	/* Automatic Measurements: source, reference and data retrieval */
+	{SR_CONF_MEAS_SOURCE, SR_T_STRING, "meas_src",
+		"Automatic Measurement source signal", NULL},
+	{SR_CONF_MEAS_REFERENCE, SR_T_STRING, "meas_ref",
+		"Automatic Measurement reference signal", NULL},
+	{SR_CONF_MEAS_FREQ, SR_T_FLOAT, "meas_freq",
+		"Measure frequency ", NULL},
+	{SR_CONF_MEAS_PERIOD, SR_T_FLOAT, "meas_period",
+		"Measure period", NULL},
+	{SR_CONF_MEAS_PEAK, SR_T_FLOAT, "meas_peak",
+		"Measure peak-to-peak value", NULL},
+	{SR_CONF_MEAS_UPPER_PEAK, SR_T_FLOAT, "meas_upeak",
+		"Measure maximum value", NULL},
+	{SR_CONF_MEAS_LOWER_PEAK, SR_T_FLOAT, "meas_lpeak",
+		"Measure minimum value", NULL},
+	{SR_CONF_MEAS_POS_PULSE_COUNT, SR_T_UINT64, "meas_p_pulses",
+		"Count positive pulses", NULL},
+	{SR_CONF_MEAS_NEG_PULSE_COUNT, SR_T_UINT64, "meas_n_pulses",
+		"Count negative pulses", NULL},
+	{SR_CONF_MEAS_POS_EDGE_COUNT, SR_T_UINT64, "meas_p_edges",
+		"Count positive edges", NULL},
+	{SR_CONF_MEAS_NEG_EDGE_COUNT, SR_T_UINT64, "meas_n_edges",
+		"Count negative edges", NULL},
+	{SR_CONF_MEAS_MEAN_HIGH_LEVEL, SR_T_FLOAT, "meas_mean_high",
+		"Measure mean value of high level", NULL},
+	{SR_CONF_MEAS_MEAN_LOW_LEVEL, SR_T_FLOAT, "meas_mean_low",
+		"Measure mean value of low level", NULL},
+	{SR_CONF_MEAS_AMPLITUDE, SR_T_FLOAT, "meas_amplitude",
+		"Measure amplitude", NULL},
+	{SR_CONF_MEAS_MEAN_VALUE, SR_T_FLOAT, "meas_mean",
+		"Measure mean value", NULL},
+	{SR_CONF_MEAS_RMS_VALUE, SR_T_FLOAT, "meas_rms",
+		"Measure RMS value", NULL},
+	{SR_CONF_MEAS_POS_DUTY_CYCLE, SR_T_FLOAT, "meas_p_duty",
+		"Measure positive duty cycle", NULL},
+	{SR_CONF_MEAS_NEG_DUTY_CYCLE, SR_T_FLOAT, "meas_n_duty",
+		"Measure negative duty cycle", NULL},
+	{SR_CONF_MEAS_POS_PULSE_WIDTH, SR_T_FLOAT, "meas_p_pulse_width",
+		"Measure positive pulse width", NULL},
+	{SR_CONF_MEAS_NEG_PULSE_WIDTH, SR_T_FLOAT, "meas_n_pulse_width",
+		"Measure negative pulse width", NULL},
+	{SR_CONF_MEAS_CYC_MEAN_VALUE, SR_T_FLOAT, "meas_cyc_mean",
+		"Measure mean value of the left-most signal period", NULL},
+	{SR_CONF_MEAS_CYC_RMS_VALUE, SR_T_FLOAT, "meas_cyc_rms",
+		"Measure RMS value of the left-most signal period", NULL},
+	{SR_CONF_MEAS_STD_DEVIATION, SR_T_FLOAT, "meas_std_dev",
+		"Measure standard deviation", NULL},
+	{SR_CONF_MEAS_TRIGGER_FREQUENCY, SR_T_FLOAT, "meas_trig_freq",
+		"Measure trigger frequency", NULL},
+	{SR_CONF_MEAS_TRIGGER_PERIOD, SR_T_FLOAT, "meas_trig_per",
+		"Measure trigger period", NULL},
+	{SR_CONF_MEAS_POS_OVERSHOOT, SR_T_FLOAT, "meas_p_overshoot",
+		"Measure positive overshoot", NULL},
+	{SR_CONF_MEAS_NEG_OVERSHOOT, SR_T_FLOAT, "meas_n_overshoot",
+		"Measure negative overshoot", NULL},
+	{SR_CONF_MEAS_PHASE, SR_T_FLOAT, "meas_phase",
+		"Measure phase", NULL},
+	{SR_CONF_MEAS_BURST_WIDTH, SR_T_FLOAT, "meas_burst_width",
+		"Measure burst duration", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
@@ -215,6 +329,10 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Device mode", NULL},
 	{SR_CONF_TEST_MODE, SR_T_STRING, "test_mode",
 		"Test mode", NULL},
+
+	/* Custom command (e.g. SCPI command) */
+	{SR_CONF_CUSTOM_CMD, SR_T_STRING, "command",
+		"Custom command", NULL},
 
 	ALL_ZERO
 };
@@ -308,6 +426,7 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 		return G_VARIANT_TYPE_DOUBLE;
 	case SR_T_RATIONAL_PERIOD:
 	case SR_T_RATIONAL_VOLT:
+	case SR_T_RATIONAL_VOLT_PER_DIV:
 	case SR_T_UINT64_RANGE:
 	case SR_T_DOUBLE_RANGE:
 		return G_VARIANT_TYPE_TUPLE;
@@ -648,7 +767,7 @@ static void log_key(const struct sr_dev_inst *sdi,
 	if (key == SR_CONF_DEVICE_OPTIONS)
 		return;
 
-	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	opstr = op & SR_CONF_GET_MASK ? "get" : op == SR_CONF_SET ? "set" : "list";
 	srci = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	tmp_str = g_variant_print(data, TRUE);
@@ -681,7 +800,7 @@ static int check_key(const struct sr_dev_driver *driver,
 		sr_err("Invalid key %d.", key);
 		return SR_ERR_ARG;
 	}
-	opstr = op == SR_CONF_GET ? "get" : op == SR_CONF_SET ? "set" : "list";
+	opstr = op & SR_CONF_GET_MASK ? "get" : op == SR_CONF_SET ? "set" : "list";
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
@@ -771,7 +890,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	if (!driver->config_get)
 		return SR_ERR_ARG;
 
-	if (check_key(driver, sdi, cg, key, SR_CONF_GET, NULL) != SR_OK)
+	if (check_key(driver, sdi, cg, key, SR_CONF_GET_MASK, NULL) != SR_OK)
 		return SR_ERR_ARG;
 
 	if (sdi && !sdi->priv) {
@@ -780,7 +899,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 	}
 
 	if ((ret = driver->config_get(key, data, sdi, cg)) == SR_OK) {
-		log_key(sdi, cg, key, SR_CONF_GET, *data);
+		log_key(sdi, cg, key, SR_CONF_GET_MASK, *data);
 		/* Got a floating reference from the driver. Sink it here,
 		 * caller will need to unref when done with it. */
 		g_variant_ref_sink(*data);

@@ -102,6 +102,9 @@ struct context {
 	const char *title;	/* Don't free: will point into the driver struct. */
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 /*
  * TODO:
  *  - Option to print comma-separated bits, or whole bytes/words (for 8/16
@@ -200,6 +203,8 @@ static int init(struct sr_output *o, GHashTable *options)
 			ctx->channels[i++].ch = ch;
 		}
 	}
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -603,29 +608,6 @@ static int receive(const struct sr_output *o,
 	return SR_OK;
 }
 
-static int cleanup(struct sr_output *o)
-{
-	struct context *ctx;
-
-	if (!o || !o->sdi)
-		return SR_ERR_ARG;
-
-	if (o->priv) {
-		ctx = o->priv;
-		g_free((gpointer)ctx->record);
-		g_free((gpointer)ctx->frame);
-		g_free((gpointer)ctx->comment);
-		g_free((gpointer)ctx->gnuplot);
-		g_free((gpointer)ctx->value);
-		g_free(ctx->previous_sample);
-		g_free(ctx->channels);
-		g_free(o->priv);
-		o->priv = NULL;
-	}
-
-	return SR_OK;
-}
-
 static struct sr_option options[] = {
 	{"gnuplot", "gnuplot", "gnuplot script file name", NULL, NULL},
 	{"scale", "scale", "Scale gnuplot graphs", NULL, NULL},
@@ -640,6 +622,43 @@ static struct sr_option options[] = {
 	{"dedup", "Dedup rows", "Set to false to output duplicate rows", NULL, NULL},
 	ALL_ZERO
 };
+
+static int cleanup(struct sr_output *o)
+{
+	struct context *ctx;
+	unsigned int i;
+
+	if (!o || !o->sdi)
+		return SR_ERR_ARG;
+
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
+	for (i = 0; i < ARRAY_SIZE(options); i++) {
+		if (options[i].def)
+			g_variant_unref(options[i].def);
+		if (options[i].values)
+			g_slist_free_full(options[i].values, (GDestroyNotify)g_variant_unref);
+	}
+
+	if (o->priv) {
+		ctx = o->priv;
+		g_free((gpointer)ctx->record);
+		g_free((gpointer)ctx->frame);
+		g_free((gpointer)ctx->comment);
+		g_free((gpointer)ctx->gnuplot);
+		g_free((gpointer)ctx->value);
+		g_free(ctx->previous_sample);
+		g_free(ctx->channels);
+		g_free(o->priv);
+		o->priv = NULL;
+	}
+
+	cleaned = TRUE;
+
+	return SR_OK;
+}
 
 static const struct sr_option *get_options(void)
 {

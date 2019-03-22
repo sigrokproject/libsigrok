@@ -94,7 +94,7 @@ The following drivers/devices do not need any firmware upload:
  - ftdi-la
  - gmc-mh-1x-2x (including all subdrivers)
  - gwinstek-gds-800
- - hameg-hmo
+ - rohde-schwarz-hameg
  - hp-3457a
  - hung-chang-dso-2100
  - ikalogic-scanalogic2
@@ -154,7 +154,7 @@ can auto-detect USB connected devices.
  - conrad-digi-35-cpu
  - fluke-dmm
  - gmc-mh-1x-2x (including all subdrivers)
- - hameg-hmo
+ - rohde-schwarz-hameg
  - link-mso19
  - mic-985xx (including all subdrivers)
  - norma-dmm
@@ -198,7 +198,7 @@ or VXI communication parameters. See these examples:
 
 The following drivers/devices accept network communication parameters:
 
- - hameg-hmo
+ - rohde-schwarz-hameg
  - rigol-ds
  - scpi-dmm
  - siglent-sds
@@ -247,14 +247,13 @@ range of devices, e.g. GPS receivers, which are not handled by libsigrok).
 
 The file is available in contrib/60-libsigrok.rules. This file just contains
 the list of devices and flags these devices with ID_SIGROK="1". Access is
-granted by the 61-libsigrok-plugdev.rules or 61-libsigrok-uaccess.rules files,
-allowing access to members of the plugdev group or to currently logged in
-users, respectively.
+granted by the 61-libsigrok-plugdev.rules or 61-libsigrok.rules files,
+allowing access to members of the plugdev group or to all users, respectively.
 
 When using a libsigrok package from your favorite Linux distribution, the
 files should already be installed in /usr/lib/udev/rules.d/, i.e.
-60-libsigrok.rules and one of the access granting rules files. Use of
-61-libsigrok-uaccess.rules is encouraged on systemd distributions.
+60-libsigrok.rules and one of the two access granting rules files ("plugdev"
+group based or all users).
 
 The access policy can be locally overridden by placing appropriate rules in
 /etc/udev/rules.d/, disabling or ammending the default policy. See the

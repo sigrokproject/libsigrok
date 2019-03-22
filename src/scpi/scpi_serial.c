@@ -33,6 +33,7 @@ struct scpi_serial {
 	gboolean got_newline;
 };
 
+/* Default serial port options for some known USB devices */
 static const struct {
 	uint16_t vendor_id;
 	uint16_t product_id;
@@ -40,7 +41,9 @@ static const struct {
 } scpi_serial_usb_ids[] = {
 	{ 0x0403, 0xed72, "115200/8n1/flow=1" }, /* Hameg HO720 */
 	{ 0x0403, 0xed73, "115200/8n1/flow=1" }, /* Hameg HO730 */
-	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO1002 */
+	{ 0x0aad, 0x0117, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x0aad, 0x0119, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 };
 
 static GSList *scpi_serial_scan(struct drv_context *drvc)
@@ -72,10 +75,29 @@ static GSList *scpi_serial_scan(struct drv_context *drvc)
 static int scpi_serial_dev_inst_new(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm)
 {
+	GSList *l, *r;
+	unsigned i;
 	struct scpi_serial *sscpi = priv;
 
 	(void)drvc;
 	(void)params;
+
+	/* If no serial port option is specified on the command-line using the
+	 * "serialcomm" driver option, but the device is connected through USB
+	 * and it requires a known default serial port option, then used it in
+	 * order to avoid data corruption or even worse problems.
+	 */
+	if (!serialcomm) {
+		for (i = 0; i < ARRAY_SIZE(scpi_serial_usb_ids); i++) {
+			if (!(l = sr_serial_find_usb(scpi_serial_usb_ids[i].vendor_id,
+						scpi_serial_usb_ids[i].product_id)))
+				continue;
+			for (r = l; r; r = r->next)
+				if (!strcmp(resource, r->data) && scpi_serial_usb_ids[i].serialcomm)
+					serialcomm = scpi_serial_usb_ids[i].serialcomm;
+			g_slist_free_full(l, g_free);
+		}
+	}
 
 	sscpi->serial = sr_serial_dev_inst_new(resource, serialcomm);
 

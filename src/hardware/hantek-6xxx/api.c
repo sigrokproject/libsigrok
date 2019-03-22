@@ -43,7 +43,7 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg[] = {
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -389,7 +389,7 @@ static int config_get(uint32_t key, GVariant **data,
 		else
 			return SR_ERR_ARG;
 		switch (key) {
-		case SR_CONF_VDIV:
+		case SR_CONF_VSCALE:
 			vdiv = vdivs[devc->voltage[ch_idx]];
 			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
 			break;
@@ -433,7 +433,7 @@ static int config_set(uint32_t key, GVariant *data,
 		else
 			return SR_ERR_ARG;
 		switch (key) {
-		case SR_CONF_VDIV:
+		case SR_CONF_VSCALE:
 			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 				return SR_ERR_ARG;
 			devc->voltage[ch_idx] = idx;
@@ -481,7 +481,7 @@ static int config_list(uint32_t key, GVariant **data,
 				return SR_ERR_ARG;
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
-		case SR_CONF_VDIV:
+		case SR_CONF_VSCALE:
 			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 			break;
 		default:

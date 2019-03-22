@@ -40,7 +40,7 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg[] = {
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
 };
@@ -317,7 +317,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_BUFFERSIZE:
 		*data = g_variant_new_uint64(buffersizes[devc->last_step]);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if ((idx = std_u8_idx_s(devc->cctl[ch] & 0x33, ARRAY_AND_SIZE(vdivs_map))) < 0)
@@ -377,7 +377,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		devc->last_step = idx;
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!cg)
 			return SR_ERR_CHANNEL_GROUP;
 		if (!g_variant_is_of_type(data, G_VARIANT_TYPE("(tt)")))
@@ -474,7 +474,7 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!sdi || cg)
 			return SR_ERR_NA;
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 	case SR_CONF_COUPLING:
 		if (!sdi)
 			return SR_ERR_NA;
@@ -508,7 +508,7 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_BUFFERSIZE:
 		*data = std_gvar_array_u64(ARRAY_AND_SIZE(buffersizes));
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
 		break;
 	case SR_CONF_COUPLING:

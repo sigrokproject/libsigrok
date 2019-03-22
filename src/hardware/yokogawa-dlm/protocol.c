@@ -235,9 +235,9 @@ static void scope_state_dump(const struct scope_config *config,
 	char *tmp;
 
 	for (i = 0; i < config->analog_channels; i++) {
-		tmp = sr_voltage_string(dlm_vdivs[state->analog_states[i].vdiv][0],
+		tmp = sr_voltage_per_div_string(dlm_vdivs[state->analog_states[i].vdiv][0],
 				dlm_vdivs[state->analog_states[i].vdiv][1]);
-		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vdiv) %2.2e (offset)",
+		sr_info("State of analog channel %d -> %s : %s (coupling) %s (vscale) %2.2e (offset)",
 				i + 1, state->analog_states[i].state ? "On" : "Off",
 				(*config->coupling_options)[state->analog_states[i].coupling],
 				tmp, state->analog_states[i].vertical_offset);

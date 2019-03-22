@@ -48,7 +48,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VSCALE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
@@ -161,7 +161,7 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = g_variant_new_int32(model->num_ydivs);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if ((idx = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
 		*data = g_variant_new("(tt)",
@@ -226,7 +226,7 @@ static int config_set(uint32_t key, GVariant *data,
 				"TRIG_SELECT EDGE,SR,%s", (*model->trigger_sources)[idx]);
 		ret = sr_scpi_send(sdi->conn, command);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if ((idx = std_u64_tuple_idx(data, *model->vdivs, model->num_vdivs)) < 0)
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
@@ -341,7 +341,7 @@ static int config_list(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->timebases, model->num_timebases);
 		break;
-	case SR_CONF_VDIV:
+	case SR_CONF_VSCALE:
 		if (!model)
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);

@@ -37,6 +37,9 @@ struct context {
 	uint64_t samplecount;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
@@ -74,6 +77,8 @@ static int init(struct sr_output *o, GHashTable *options)
 			continue;
 		ctx->channel_index[i++] = ch->index;
 	}
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -259,10 +264,16 @@ static int cleanup(struct sr_output *o)
 	if (!o || !o->priv)
 		return SR_ERR_ARG;
 
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
 	ctx = o->priv;
 	g_free(ctx->prevsample);
 	g_free(ctx->channel_index);
 	g_free(ctx);
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }

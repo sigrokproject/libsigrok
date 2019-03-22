@@ -41,6 +41,9 @@ enum {
 	DIGITS_SPEC,
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
@@ -68,6 +71,8 @@ static int init(struct sr_output *o, GHashTable *options)
 		ctx->num_enabled_channels++;
 	}
 	ctx->fdata = NULL;
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -186,17 +191,29 @@ static const struct sr_option *get_options(void)
 static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
+	unsigned int i;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 	ctx = o->priv;
 
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
+	for (i = 0; i < ARRAY_SIZE(options); i++) {
+		if (options[i].def)
+			g_variant_unref(options[i].def);
+		if (options[i].values)
+			g_slist_free_full(options[i].values, (GDestroyNotify)g_variant_unref);
+	}
+
 	g_ptr_array_free(ctx->channellist, 1);
-	g_variant_unref(options[0].def);
-	g_slist_free_full(options[0].values, (GDestroyNotify)g_variant_unref);
 	g_free(ctx->fdata);
 	g_free(ctx);
 	o->priv = NULL;
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }

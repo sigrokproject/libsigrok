@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,6 +77,11 @@ enum sr_error_code {
 	SR_ERR_CHANNEL_GROUP = -9, /**< A channel group must be specified. */
 	SR_ERR_DATA          =-10, /**< Data is invalid.  */
 	SR_ERR_IO            =-11, /**< Input/output error. */
+	/* SCPI errors. */
+	SR_ERR_SCPI_CMD      =-101, /**< Command error (e.g. SCPI -100 to -199). */
+	SR_ERR_SCPI_EXEC     =-102, /**< Execution error (e.g. SCPI -200 to -299). */
+	SR_ERR_SCPI_DEVICE   =-103, /**< Device-dependent error (e.g. SCPI -300 to -399). */
+	SR_ERR_SCPI_QUERY    =-104, /**< Query error (e.g. SCPI -400 to -499). */
 
 	/* Update sr_strerror()/sr_strerror_name() (error.c) upon changes! */
 };
@@ -141,6 +147,7 @@ enum sr_datatype {
 	SR_T_FLOAT,
 	SR_T_RATIONAL_PERIOD,
 	SR_T_RATIONAL_VOLT,
+	SR_T_RATIONAL_VOLT_PER_DIV,
 	SR_T_KEYVALUE,
 	SR_T_UINT64_RANGE,
 	SR_T_DOUBLE_RANGE,
@@ -590,6 +597,8 @@ enum sr_channeltype {
 	SR_CHANNEL_LOGIC = 10000,
 	/** Channel type is analog channel. */
 	SR_CHANNEL_ANALOG,
+	/** Special channel type for Fast Fourier Transform (FFT). */
+	SR_CHANNEL_FFT,
 };
 
 /** Information on single channel. */
@@ -651,11 +660,16 @@ struct sr_key_info {
 enum sr_configcap {
 	/** Value can be read. */
 	SR_CONF_GET = (1UL << 31),
+	/** Value can be read, but should not be listed as a supported option. */
+	SR_CONF_GET_NO_SHOW = (1UL << 30),
 	/** Value can be written. */
-	SR_CONF_SET = (1UL << 30),
+	SR_CONF_SET = (1UL << 29),
 	/** Possible values can be enumerated. */
-	SR_CONF_LIST = (1UL << 29),
+	SR_CONF_LIST = (1UL << 28),
 };
+
+/** Mask for grouping all the get capabilities. */
+#define SR_CONF_GET_MASK	(SR_CONF_GET | SR_CONF_GET_NO_SHOW)
 
 /** Configuration keys */
 enum sr_configkey {
@@ -758,6 +772,24 @@ enum sr_configkey {
 	/** The device supports setting its samplerate, in Hz. */
 	SR_CONF_SAMPLERATE = 30000,
 
+	/** Mode for setting the waveform acquisition rate and sample rate. */
+	SR_CONF_WAVEFORM_SAMPLE_RATE,
+
+	/** Automatic Record Length (implies maximum sample rate). */
+	SR_CONF_AUTO_RECORD_LENGTH,
+
+	/** Random sampling. */
+	SR_CONF_RANDOM_SAMPLING,
+
+	/** Acquisition mode. */
+	SR_CONF_ACQUISITION_MODE,
+
+	/** Arithmetics type. */
+	SR_CONF_ARITHMETICS_TYPE,
+
+	/** Interpolation mode. */
+	SR_CONF_INTERPOLATION_MODE,
+
 	/** The device supports setting a pre/post-trigger capture ratio. */
 	SR_CONF_CAPTURE_RATIO,
 
@@ -767,8 +799,29 @@ enum sr_configkey {
 	/** The device supports run-length encoding (RLE). */
 	SR_CONF_RLE,
 
-	/** The device supports setting trigger slope. */
+	/** Trigger source. */
+	SR_CONF_TRIGGER_SOURCE,
+
+	/** The device supports setting the edge trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
+
+	/** The device supports setting the edge trigger coupling. */
+	SR_CONF_TRIGGER_COUPLING,
+
+	/** The device supports enabling the edge trigger low-pass filter. */
+	SR_CONF_TRIGGER_LOWPASS,
+
+	/** The device supports enabling the edge trigger noise reject filter. */
+	SR_CONF_TRIGGER_NOISE_REJ,
+
+	/** The device supports setting a pattern for the logic trigger. */
+	SR_CONF_TRIGGER_PATTERN,
+
+	/** High resolution mode. */
+	SR_CONF_HIGH_RESOLUTION,
+
+	/** Peak detection. */
+	SR_CONF_PEAK_DETECTION,
 
 	/** The device supports averaging. */
 	SR_CONF_AVERAGING,
@@ -778,9 +831,6 @@ enum sr_configkey {
 	 * averaged over.
 	 */
 	SR_CONF_AVG_SAMPLES,
-
-	/** Trigger source. */
-	SR_CONF_TRIGGER_SOURCE,
 
 	/** Horizontal trigger position. */
 	SR_CONF_HORIZ_TRIGGERPOS,
@@ -794,8 +844,8 @@ enum sr_configkey {
 	/** Filter. */
 	SR_CONF_FILTER,
 
-	/** Volts/div. */
-	SR_CONF_VDIV,
+	/** Vertical scale, in Volts/div. */
+	SR_CONF_VSCALE,
 
 	/** Coupling. */
 	SR_CONF_COUPLING,
@@ -809,7 +859,7 @@ enum sr_configkey {
 	/** Number of horizontal divisions, as related to SR_CONF_TIMEBASE. */
 	SR_CONF_NUM_HDIV,
 
-	/** Number of vertical divisions, as related to SR_CONF_VDIV. */
+	/** Number of vertical divisions, as related to SR_CONF_VSCALE. */
 	SR_CONF_NUM_VDIV,
 
 	/** Sound pressure level frequency weighting. */
@@ -829,6 +879,15 @@ enum sr_configkey {
 
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
+
+	/** Logic threshold for analog channels: custom numerical value. */
+	SR_CONF_ANALOG_THRESHOLD_CUSTOM,
+
+	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
+	SR_CONF_LOGIC_THRESHOLD,
+
+	/** Logic threshold: custom numerical value. */
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
 
 	/** The device supports using an external clock. */
 	SR_CONF_EXTERNAL_CLOCK,
@@ -995,6 +1054,143 @@ enum sr_configkey {
 	 */
 	SR_CONF_EXTERNAL_CLOCK_SOURCE,
 
+	/** Bandwidth limit. */
+	SR_CONF_BANDWIDTH_LIMIT,
+
+	/** Beep on trigger. */
+	SR_CONF_BEEP_ON_TRIGGER,
+
+	/** Beep on error. */
+	SR_CONF_BEEP_ON_ERROR,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Fast Fourier Transform (FFT) ----------------------------------*/
+
+	/** FFT source. */
+	SR_CONF_FFT_SOURCE,
+
+	/** FFT window type. */
+	SR_CONF_FFT_WINDOW,
+
+	/** FFT start frequency. */
+	SR_CONF_FFT_FREQUENCY_START,
+
+	/** FFT stop frequency. */
+	SR_CONF_FFT_FREQUENCY_STOP,
+
+	/** FFT frequency span. */
+	SR_CONF_FFT_FREQUENCY_SPAN,
+
+	/** FFT center frequency. */
+	SR_CONF_FFT_FREQUENCY_CENTER,
+
+	/** FFT Resolution Bandwidth. */
+	SR_CONF_FFT_RESOLUTION_BW,
+
+	/** FFT Span / Resolution Bandwidth coupling. */
+	SR_CONF_FFT_SPAN_RBW_COUPLING,
+
+	/** FFT Span / Resolution Bandwidth ratio. */
+	SR_CONF_FFT_SPAN_RBW_RATIO,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Automatic Measurements ----------------------------------------*/
+
+	/* Automatic Measurements: source. */
+	SR_CONF_MEAS_SOURCE,
+
+	/* Automatic Measurements: reference. */
+	SR_CONF_MEAS_REFERENCE,
+
+	/* Automatic Measurements: get frequency. */
+	SR_CONF_MEAS_FREQ,
+
+	/* Automatic Measurements: get period. */
+	SR_CONF_MEAS_PERIOD,
+
+	/* Automatic Measurements: get peak-to-peak value. */
+	SR_CONF_MEAS_PEAK,
+
+	/* Automatic Measurements: get maximum value. */
+	SR_CONF_MEAS_UPPER_PEAK,
+
+	/* Automatic Measurements: get minimum value. */
+	SR_CONF_MEAS_LOWER_PEAK,
+
+	/* Automatic Measurements: count positive pulses. */
+	SR_CONF_MEAS_POS_PULSE_COUNT,
+
+	/* Automatic Measurements: count negative pulses. */
+	SR_CONF_MEAS_NEG_PULSE_COUNT,
+
+	/* Automatic Measurements: count rising edges. */
+	SR_CONF_MEAS_POS_EDGE_COUNT,
+
+	/* Automatic Measurements: count falling edges. */
+	SR_CONF_MEAS_NEG_EDGE_COUNT,
+
+	/* Automatic Measurements: get mean value of high level. */
+	SR_CONF_MEAS_MEAN_HIGH_LEVEL,
+
+	/* Automatic Measurements: get mean value of low level. */
+	SR_CONF_MEAS_MEAN_LOW_LEVEL,
+
+	/* Automatic Measurements: get amplitude. */
+	SR_CONF_MEAS_AMPLITUDE,
+
+	/* Automatic Measurements: get mean value. */
+	SR_CONF_MEAS_MEAN_VALUE,
+
+	/* Automatic Measurements: get RMS (Root Mean Square) value. */
+	SR_CONF_MEAS_RMS_VALUE,
+
+	/* Automatic Measurements: get positive duty cycle. */
+	SR_CONF_MEAS_POS_DUTY_CYCLE,
+
+	/* Automatic Measurements: get negative duty cycle. */
+	SR_CONF_MEAS_NEG_DUTY_CYCLE,
+
+	/* Automatic Measurements: get the width of positive pulses. */
+	SR_CONF_MEAS_POS_PULSE_WIDTH,
+
+	/* Automatic Measurements: get the width of negative pulses. */
+	SR_CONF_MEAS_NEG_PULSE_WIDTH,
+
+	/*
+	 * Automatic Measurements: get the mean value of the left-most
+	 * signal period.
+	 */
+	SR_CONF_MEAS_CYC_MEAN_VALUE,
+
+	/*
+	 * Automatic Measurements: get the RMS (Root Mean Square) value
+	 * of the voltage of the left-most signal period.
+	 */
+	SR_CONF_MEAS_CYC_RMS_VALUE,
+
+	/* Automatic Measurements: get the standard deviation. */
+	SR_CONF_MEAS_STD_DEVIATION,
+
+	/* Automatic Measurements: get the frequency of the trigger signal. */
+	SR_CONF_MEAS_TRIGGER_FREQUENCY,
+
+	/* Automatic Measurements: get the period of the trigger signal. */
+	SR_CONF_MEAS_TRIGGER_PERIOD,
+
+	/* Automatic Measurements: get the positive overshoot. */
+	SR_CONF_MEAS_POS_OVERSHOOT,
+
+	/* Automatic Measurements: get the negative overshoot. */
+	SR_CONF_MEAS_NEG_OVERSHOOT,
+
+	/* Automatic Measurements: get the phase (relative to reference). */
+	SR_CONF_MEAS_PHASE,
+
+	/* Automatic Measurements: get the duration of one burst. */
+	SR_CONF_MEAS_BURST_WIDTH,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
@@ -1069,6 +1265,13 @@ enum sr_configkey {
 
 	/** Self test mode. */
 	SR_CONF_TEST_MODE,
+
+	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
+
+	/*--- Custom command ------------------------------------------------*/
+
+	/** Send a custom command to the device (e.g. SCPI command). */
+	SR_CONF_CUSTOM_CMD,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 };

@@ -39,6 +39,9 @@ struct out_context {
 	float *fdata;
 };
 
+/* Avoid cleaning up this module more than once. */
+static gboolean cleaned = FALSE;
+
 static int realloc_chanbufs(const struct sr_output *o, int size)
 {
 	struct out_context *outc;
@@ -113,6 +116,8 @@ static int init(struct sr_output *o, GHashTable *options)
 
 	/* Start off the interleaved buffer with 100 samples/channel. */
 	realloc_chanbufs(o, 100);
+
+	cleaned = FALSE;
 
 	return SR_OK;
 }
@@ -351,8 +356,19 @@ static int cleanup(struct sr_output *o)
 	int i;
 
 	outc = o->priv;
+
+	/* Avoid cleaning it up more than once. */
+	if (cleaned)
+		return SR_OK;
+
+	for (i = 0; i < (int) ARRAY_SIZE(options); i++) {
+		if (options[i].def)
+			g_variant_unref(options[i].def);
+		if (options[i].values)
+			g_slist_free_full(options[i].values, (GDestroyNotify)g_variant_unref);
+	}
+
 	g_slist_free(outc->channels);
-	g_variant_unref(options[0].def);
 	for (i = 0; i < outc->num_channels; i++)
 		g_free(outc->chanbuf[i]);
 	g_free(outc->chanbuf_used);
@@ -360,6 +376,8 @@ static int cleanup(struct sr_output *o)
 	g_free(outc->fdata);
 	g_free(outc);
 	o->priv = NULL;
+
+	cleaned = TRUE;
 
 	return SR_OK;
 }
