@@ -388,18 +388,21 @@ SR_PRIV int cv_read_block(struct dev_context *devc)
 	byte_offset = devc->block_counter * BS;
 	m = byte_offset / (1024 * 1024);
 	mi = m * (1024 * 1024);
-	for (i = 0; i < BS; i++) {
-		if (devc->prof->model == CHRONOVU_LA8) {
+	if (devc->prof->model == CHRONOVU_LA8) {
+		for (i = 0; i < BS; i++) {
 			p = i & (1 << 0);
 			index = m * 2 + (((byte_offset + i) - mi) / 2) * 16;
 			index += (devc->divcount == 0) ? p : (1 - p);
-		} else {
+			devc->final_buf[index] = devc->mangled_buf[i];
+		}
+	} else {
+		for (i = 0; i < BS; i++) {
 			p = i & (1 << 0);
 			q = i & (1 << 1);
 			index = m * 4 + (((byte_offset + i) - mi) / 4) * 32;
 			index += q + (1 - p);
+			devc->final_buf[index] = devc->mangled_buf[i];
 		}
-		devc->final_buf[index] = devc->mangled_buf[i];
 	}
 
 	return SR_OK;
