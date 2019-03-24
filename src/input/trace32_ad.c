@@ -47,7 +47,6 @@
 
 #define CHUNK_SIZE        (4 * 1024 * 1024)
 #define MAX_POD_COUNT     12
-#define HEADER_SIZE       80
 
 #define SPACE             ' '
 #define CTRLZ             '\x1a'
@@ -64,7 +63,8 @@
 
 enum ad_format {
 	AD_FORMAT_UNKNOWN,
-	AD_FORMAT_BINHDR,	/* Binary header, binary data, textual setup info */
+	AD_FORMAT_BINHDR1,	/* Binary header, binary data, textual setup info, v1 */
+	AD_FORMAT_BINHDR2,	/* Binary header, binary data, textual setup info, v2 */
 	AD_FORMAT_TXTHDR,	/* Textual header, binary data */
 };
 
@@ -96,7 +96,7 @@ struct context {
 	char pod_status[MAX_POD_COUNT];
 	struct sr_channel *channels[MAX_POD_COUNT][17]; /* 16 + CLK */
 	uint64_t trigger_timestamp;
-	uint32_t record_size, record_count, cur_record;
+	uint32_t header_size, record_size, record_count, cur_record;
 	int32_t last_record;
 	uint64_t samplerate;
 	double timestamp_scale;
@@ -212,14 +212,19 @@ static int process_header(GString *buf, struct context *inc)
 	enum ad_format format;
 
 	/*
+	 * First-level file header:
 	 * 0x00-1F  file format name
 	 * 0x20 u64 trigger timestamp
 	 * 0x28-2F  unused
 	 * 0x30 u8  compression
 	 * 0x31-35 ??
 	 *  0x32 u8 0x00 (PI), 0x01 (iprobe)
-	 * 0x36 u8  0x08 (PI 250/500), 0x0A (iprobe 250)
-	 * 0x37 u8  0x00 (250), 0x01 (500)
+	 * 0x36 u8  device id: 0x08 (PI 250/500), 0x0A (iprobe 250)
+	 */
+
+	/*
+	 * Second-level file header, version 1:
+	 * 0x37 u8  capture speed: 0x00 (250), 0x01 (500)
 	 * 0x38 u8  record size
 	 * 0x39-3B  const 0x00
 	 * 0x3C u32 number of records
@@ -228,6 +233,31 @@ static int process_header(GString *buf, struct context *inc)
 	 *  0x47 u8 const 0x80=128
 	 *  0x48 u8 const 0x01
 	 * 0x4E-4F ??
+	 */
+
+	/*
+	 * Second-level file header, version 2:
+	 * 0x37 u8  ??
+	 * 0x38 u64 ??
+	 * 0x40 u64 ??
+	 * 0x48 u8  record size
+	 * 0x49-4F  ??
+	 * 0x50 u64 ??
+	 * 0x58 u64 number of records
+	 * 0x60 u64 ??
+	 * 0x68 u64 ??
+	 * 0x70 u64 ??
+	 * 0x78 u64 ??
+	 * 0x80 u64 ??
+	 * 0x88 u64 ?? (timestamp of some kind?)
+	 * 0x90 u64 ??
+	 * 0x98-9E  ??
+	 * 0x9F u8 capture speed: 0x00 (250), 0x01 (500)
+	 * 0xA0 u64 ??
+	 * 0xA8 u64 ??
+	 * 0xB0 u64 ??
+	 * 0xB8-CF  version string? (e.g. '93173--96069', same for all tested .ad files)
+	 * 0xC8 u16 ??
 	 */
 
 	/*
@@ -260,7 +290,7 @@ static int process_header(GString *buf, struct context *inc)
 	format = AD_FORMAT_UNKNOWN;
 	if (has_trace32) {
 		/* Literal "trace32" leader, binary header follows. */
-		format = AD_FORMAT_BINHDR;
+		format = AD_FORMAT_BINHDR1;
 	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == SPACE)) {
 		/* Digit and SPACE leader, currently unsupported text header. */
 		format = AD_FORMAT_TXTHDR;
@@ -278,12 +308,17 @@ static int process_header(GString *buf, struct context *inc)
 	if (!format)
 		return SR_ERR;
 
+	/* If the device id is 0x00, we have a v2 format file. */
+	if (R8(buf->str + 0x36) == 0x00)
+		format = AD_FORMAT_BINHDR2;
+
 	p = printable_name(format_name);
 	if (inc)
 		sr_dbg("File says it's \"%s\" -> format type %u.", p, format);
 	g_free(p);
 
-	record_size = R8(buf->str + 0x38);
+	record_size = (format == AD_FORMAT_BINHDR1) ?
+		R8(buf->str + 0x38) : R8(buf->str + 0x48);
 	device_id = 0;
 
 	if (g_strcmp0(format_name, "trace32 power integrator data") == 0) {
@@ -312,10 +347,18 @@ static int process_header(GString *buf, struct context *inc)
 	inc->device       = device_id;
 	inc->trigger_timestamp = RL64(buf->str + 0x20);
 	inc->compression  = R8(buf->str + 0x30); /* Maps to the enum. */
-	inc->record_mode  = R8(buf->str + 0x37); /* Maps to the enum. */
+	inc->header_size  = (format == AD_FORMAT_BINHDR1) ? 0x50 : 0xCA;
 	inc->record_size  = record_size;
-	inc->record_count = RL32(buf->str + 0x3C);
-	inc->last_record  = RL32S(buf->str + 0x40);
+
+	if (format == AD_FORMAT_BINHDR1) {
+		inc->record_mode  = R8(buf->str + 0x37); /* Maps to the enum. */
+		inc->record_count = RL32(buf->str + 0x3C);
+		inc->last_record  = RL32S(buf->str + 0x40);
+	} else {
+		inc->record_mode  = R8(buf->str + 0x9F); /* Maps to the enum. */
+		inc->record_count = RL32(buf->str + 0x58);
+		inc->last_record  = inc->record_count;
+	}
 
 	sr_dbg("Trigger occured at %lf s.",
 		inc->trigger_timestamp * TIMESTAMP_RESOLUTION);
@@ -735,7 +778,7 @@ static int process_buffer(struct sr_input *in)
 
 	if (!inc->header_read) {
 		res = process_header(in->buf, inc);
-		g_string_erase(in->buf, 0, HEADER_SIZE);
+		g_string_erase(in->buf, 0, inc->header_size);
 		if (res != SR_OK)
 			return res;
 	}
