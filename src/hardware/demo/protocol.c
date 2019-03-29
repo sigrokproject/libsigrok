@@ -187,12 +187,14 @@ SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc)
 	amplitude = DEFAULT_ANALOG_AMPLITUDE;
 	offset = DEFAULT_ANALOG_OFFSET;
 
-	/* FIXME we actually need only one period. A ringbuffer would be
-	 * useful here. */
-	/* Make sure the number of samples we put out is an integer
-	 * multiple of our period size */
+	/*
+	 * FIXME: We actually need only one period. A ringbuffer would be
+	 * useful here.
+	 * Make sure the number of samples we put out is an integer
+	 * multiple of our period size.
+	 */
 
-	/* PATTERN_SQUARE */
+	/* PATTERN_SQUARE: */
 	sr_dbg("Generating %s pattern.", analog_pattern_str[PATTERN_SQUARE]);
 	pattern = g_malloc(sizeof(struct analog_pattern));
 	value = amplitude;
@@ -207,7 +209,7 @@ SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc)
 	pattern->num_samples = last_end;
 	devc->analog_patterns[PATTERN_SQUARE] = pattern;
 
-	/*  Readjusting num_samples for all other patterns */
+	/* Readjusting num_samples for all other patterns. */
 	while (num_samples % ANALOG_SAMPLES_PER_PERIOD != 0)
 		num_samples--;
 
@@ -408,7 +410,7 @@ static void send_analog_packet(struct analog_gen *ag,
 	ag->packet.meaning->mq = ag->mq;
 	ag->packet.meaning->mqflags = ag->mq_flags;
 
-	/* Set a unit for the given quantity */
+	/* Set a unit for the given quantity. */
 	if (ag->mq == SR_MQ_VOLTAGE)
 		ag->packet.meaning->unit = SR_UNIT_VOLT;
 	else if (ag->mq == SR_MQ_CURRENT)
@@ -484,15 +486,14 @@ static void send_analog_packet(struct analog_gen *ag,
 		if (ag->amplitude != DEFAULT_ANALOG_AMPLITUDE ||
 			ag->offset != DEFAULT_ANALOG_OFFSET) {
 
-			/* Amplitude or offset changed, modify each sample */
+			/* Amplitude or offset changed, modify each sample. */
 			amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
 			offset = ag->offset - DEFAULT_ANALOG_OFFSET;
 			data = ag->packet.data;
-			for (i = 0; i < sending_now; i++) {
+			for (i = 0; i < sending_now; i++)
 				data[i] = pattern->data[ag_pattern_pos + i] * amplitude + offset;
-			}
 		} else {
-			/* Amplitude and offset not changed, use the fast way */
+			/* Amplitude and offset unchanged, use the fast way. */
 			ag->packet.data = pattern->data + ag_pattern_pos;
 		}
 		ag->packet.num_samples = sending_now;
