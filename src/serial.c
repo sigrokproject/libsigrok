@@ -226,7 +226,39 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
  * via UART can get stored in a GString (which is a char array). Since
  * the API hides this detail, we can address this issue later when needed.
  * Callers use the API which communicates bytes.
+ *
+ * Applications optionally can register a "per RX chunk" callback, when
+ * they depend on the frame boundaries of the respective physical layer.
+ * Most callers just want the stream of RX data, and can use the buffer.
+ *
+ * The availability of RX chunks to callbacks, as well as the capability
+ * to pass on exact frames as chunks or potential re-assembly of chunks
+ * to a single data block, depend on each transport's implementation.
  */
+
+/**
+ * Register application callback for RX data chunks.
+ *
+ * @param[in] serial Previously initialized serial port instance.
+ * @param[in] cb Routine to call as RX data becomes available.
+ * @param[in] cb_data User data to pass to the callback in addition to RX data.
+ *
+ * @retval SR_ERR_ARG Invalid parameters.
+ * @retval SR_OK Successful registration.
+ *
+ * Callbacks get unregistered by specifying #NULL for the 'cb' parameter.
+ */
+SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
+	serial_rx_chunk_callback cb, void *cb_data)
+{
+	if (!serial)
+		return SR_ERR_ARG;
+
+	serial->rx_chunk_cb_func = cb;
+	serial->rx_chunk_cb_data = cb_data;
+
+	return SR_OK;
+}
 
 /**
  * Discard previously queued RX data. Internal to the serial subsystem,
@@ -282,7 +314,9 @@ SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
 	if (!data || !len)
 		return;
 
-	if (serial->rcv_buffer)
+	if (serial->rx_chunk_cb_func)
+		serial->rx_chunk_cb_func(serial, serial->rx_chunk_cb_data, data, len);
+	else if (serial->rcv_buffer)
 		g_string_append_len(serial->rcv_buffer, (const gchar *)data, len);
 }
 

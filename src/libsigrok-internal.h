@@ -732,6 +732,8 @@ struct sr_serial_dev_inst;
 struct ser_lib_functions;
 struct ser_hid_chip_functions;
 struct sr_bt_desc;
+typedef void (*serial_rx_chunk_callback)(struct sr_serial_dev_inst *serial,
+	void *cb_data, const void *buf, size_t count);
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
@@ -745,6 +747,8 @@ struct sr_serial_dev_inst {
 		int stop_bits;
 	} comm_params;
 	GString *rcv_buffer;
+	serial_rx_chunk_callback rx_chunk_cb_func;
+	void *rx_chunk_cb_data;
 #ifdef HAVE_LIBSERIALPORT
 	/** libserialport port handle */
 	struct sp_port *sp_data;
@@ -1159,6 +1163,8 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count, unsigned int timeout_ms);
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count);
+SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
+		serial_rx_chunk_callback cb, void *cb_data);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
