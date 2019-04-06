@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
- * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2018-2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -160,6 +160,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_mutex_init(&devc->rw_mutex);
 	devc->model = &models[model_id];
 	devc->req_sent_at = 0;
+	devc->cc_mode_1_changed = FALSE;
+	devc->cc_mode_2_changed = FALSE;
+	devc->output_enabled_changed = FALSE;
+	devc->ocp_enabled_changed = FALSE;
+	devc->ovp_enabled_changed = FALSE;
 	sdi->priv = devc;
 
 	/* Get current status of device. */

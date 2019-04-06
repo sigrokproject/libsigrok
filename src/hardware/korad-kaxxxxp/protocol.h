@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
- * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2018-2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,6 +91,12 @@ struct dev_context {
 	gboolean beep_enabled;   /**< Enable beeper. */
 	gboolean ocp_enabled;    /**< Output current protection enabled. */
 	gboolean ovp_enabled;    /**< Output voltage protection enabled. */
+
+	gboolean cc_mode_1_changed;      /**< CC mode of channel 1 has changed. */
+	gboolean cc_mode_2_changed;      /**< CC mode of channel 2 has changed. */
+	gboolean output_enabled_changed; /**< Output enabled state has changed. */
+	gboolean ocp_enabled_changed;    /**< OCP enabled state has changed. */
+	gboolean ovp_enabled_changed;    /**< OVP enabled state has changed. */
 
 	int acquisition_target;  /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */

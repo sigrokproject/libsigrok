@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
- * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2018-2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -172,6 +172,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	char reply[6];
 	float *value;
 	char status_byte;
+	gboolean prev_status;
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
@@ -229,20 +230,42 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	} else {
 		/* We have status reply. */
 		status_byte = reply[0];
-		/* Constant current */
-		devc->cc_mode[0] = !(status_byte & (1 << 0)); /* Channel one */
-		devc->cc_mode[1] = !(status_byte & (1 << 1)); /* Channel two */
+
+		/* Constant current channel one. */
+		prev_status = devc->cc_mode[0];
+		devc->cc_mode[0] = !(status_byte & (1 << 0));
+		devc->cc_mode_1_changed = devc->cc_mode[0] != prev_status;
+		/* Constant current channel two. */
+		prev_status = devc->cc_mode[1];
+		devc->cc_mode[1] = !(status_byte & (1 << 1));
+		devc->cc_mode_2_changed = devc->cc_mode[1] != prev_status;
+
 		/*
-		 * Tracking
+		 * Tracking:
 		 * status_byte & ((1 << 2) | (1 << 3))
 		 * 00 independent 01 series 11 parallel
 		 */
-		devc->beep_enabled = (1 << 4);
-		devc->ocp_enabled = (status_byte & (1 << 5));
-		devc->output_enabled = (status_byte & (1 << 6));
-		/* Velleman LABPS3005 quirk */
-		if (devc->output_enabled)
-			devc->ovp_enabled = (status_byte & (1 << 7));
+		devc->beep_enabled = status_byte & (1 << 4);
+
+		/* OCP enabled. */
+		prev_status = devc->ocp_enabled;
+		devc->ocp_enabled = status_byte & (1 << 5);
+		devc->ocp_enabled_changed = devc->ocp_enabled != prev_status;
+
+		/* Output status. */
+		prev_status = devc->output_enabled;
+		devc->output_enabled = status_byte & (1 << 6);
+		devc->output_enabled_changed = devc->output_enabled != prev_status;
+
+		/* OVP enabled, special handling for Velleman LABPS3005 quirk. */
+		if ((devc->model->model_id == VELLEMAN_LABPS3005D && devc->output_enabled) ||
+			devc->model->model_id != VELLEMAN_LABPS3005D) {
+
+			prev_status = devc->ovp_enabled;
+			devc->ovp_enabled = status_byte & (1 << 7);
+			devc->ovp_enabled_changed = devc->ovp_enabled != prev_status;
+		}
+
 		sr_dbg("Status: 0x%02x", status_byte);
 		sr_spew("Status: CH1: constant %s CH2: constant %s. "
 			"Tracking would be %s. Device is "
@@ -354,6 +377,32 @@ SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data)
 		analog.data = &devc->voltage;
 		sr_session_send(sdi, &packet);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
+	} else if (devc->acquisition_target == KAXXXXP_STATUS) {
+		if (devc->cc_mode_1_changed) {
+			sr_session_send_meta(sdi, SR_CONF_REGULATION,
+				g_variant_new_string((devc->cc_mode[0]) ? "CC" : "CV"));
+			devc->cc_mode_1_changed = FALSE;
+		}
+		if (devc->cc_mode_2_changed) {
+			sr_session_send_meta(sdi, SR_CONF_REGULATION,
+				g_variant_new_string((devc->cc_mode[1]) ? "CC" : "CV"));
+			devc->cc_mode_2_changed = FALSE;
+		}
+		if (devc->output_enabled_changed) {
+			sr_session_send_meta(sdi, SR_CONF_ENABLED,
+				g_variant_new_boolean(devc->output_enabled));
+			devc->output_enabled_changed = FALSE;
+		}
+		if (devc->ocp_enabled_changed) {
+			sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ENABLED,
+				g_variant_new_boolean(devc->ocp_enabled));
+			devc->ocp_enabled_changed = FALSE;
+		}
+		if (devc->ovp_enabled_changed) {
+			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED,
+				g_variant_new_boolean(devc->ovp_enabled));
+			devc->ovp_enabled_changed = FALSE;
+		}
 	}
 	next_measurement(devc);
 
