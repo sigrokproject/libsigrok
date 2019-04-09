@@ -956,6 +956,8 @@ enum sr_configkey {
 	 * Channel regulation
 	 * get: "CV", "CC" or "UR", denoting constant voltage, constant current
 	 *      or unregulated.
+	 *      "CC-" denotes a power supply in current sink mode (e.g. HP 66xxB).
+	 *      "" is used when there is no regulation, e.g. the output is disabled.
 	 */
 	SR_CONF_REGULATION,
 

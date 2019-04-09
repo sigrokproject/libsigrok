@@ -313,6 +313,7 @@ static int config_get(uint32_t key, GVariant **data,
 	char *channel_group_name;
 	int cmd, ret;
 	const char *s;
+	int oper_cond;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -419,24 +420,45 @@ static int config_get(uint32_t key, GVariant **data,
 		channel_group_cmd, channel_group_name, data, gvtype, cmd);
 	g_free(channel_group_name);
 
+	/*
+	 * Handle special cases
+	 */
+
 	if (cmd == SCPI_CMD_GET_OUTPUT_REGULATION) {
-		/*
-		 * The Rigol DP800 series return CV/CC/UR, Philips PM2800
-		 * return VOLT/CURR. We always return a GVariant string in
-		 * the Rigol notation.
-		 */
-		s = g_variant_get_string(*data, NULL);
-		if (!strcmp(s, "VOLT")) {
+		if (devc->device->dialect == SCPI_DIALECT_PHILIPS) {
+			/*
+			* The Philips PM2800 series returns VOLT/CURR. We always return
+			* a GVariant string in the Rigol notation (CV/CC/UR).
+			*/
+			s = g_variant_get_string(*data, NULL);
+			if (!g_strcmp0(s, "VOLT")) {
+				g_variant_unref(*data);
+				*data = g_variant_new_string("CV");
+			} else if (!g_strcmp0(s, "CURR")) {
+				g_variant_unref(*data);
+				*data = g_variant_new_string("CC");
+			}
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Operational Status Register from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &oper_cond);
 			g_variant_unref(*data);
-			*data = g_variant_new_string("CV");
-		} else if (!strcmp(s, "CURR")) {
-			g_variant_unref(*data);
-			*data = g_variant_new_string("CC");
+			if (oper_cond & (1 << 8))
+				*data = g_variant_new_string("CV");
+			else if (oper_cond & (1 << 10))
+				*data = g_variant_new_string("CC");
+			else if (oper_cond & (1 << 11))
+				*data = g_variant_new_string("CC-");
+			else
+				*data = g_variant_new_string("UR");
 		}
 
 		s = g_variant_get_string(*data, NULL);
-		if (strcmp(s, "CV") && strcmp(s, "CC") && strcmp(s, "UR")) {
-			sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
+		if (g_strcmp0(s, "CV") && g_strcmp0(s, "CC") &&
+			g_strcmp0(s, "CC-") && g_strcmp0(s, "UR")) {
+
+			sr_err("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
 			ret = SR_ERR_DATA;
 		}
 	}
