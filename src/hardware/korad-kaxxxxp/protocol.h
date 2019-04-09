@@ -62,9 +62,9 @@ struct korad_kaxxxxp_model {
 /* Reply targets */
 enum {
 	KAXXXXP_CURRENT,
-	KAXXXXP_CURRENT_MAX,
+	KAXXXXP_CURRENT_LIMIT,
 	KAXXXXP_VOLTAGE,
-	KAXXXXP_VOLTAGE_MAX,
+	KAXXXXP_VOLTAGE_TARGET,
 	KAXXXXP_STATUS,
 	KAXXXXP_OUTPUT,
 	KAXXXXP_BEEP,
@@ -82,9 +82,9 @@ struct dev_context {
 	GMutex rw_mutex;
 
 	float current;          /**< Last current value [A] read from device. */
-	float current_max;      /**< Output current set. */
+	float current_limit;    /**< Output current set. */
 	float voltage;          /**< Last voltage value [V] read from device. */
-	float voltage_max;      /**< Output voltage set. */
+	float voltage_target;   /**< Output voltage set. */
 	gboolean cc_mode[2];    /**< Device is in CC mode (otherwise CV). */
 
 	gboolean output_enabled; /**< Is the output enabled? */
@@ -94,6 +94,13 @@ struct dev_context {
 
 	int acquisition_target;  /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */
+
+	float set_current_limit;     /**< New output current to set. */
+	float set_voltage_target;    /**< New output voltage to set. */
+	gboolean set_output_enabled; /**< New output enabled to set. */
+	gboolean set_beep_enabled;   /**< New enable beeper to set. */
+	gboolean set_ocp_enabled;    /**< New OCP enabled to set. */
+	gboolean set_ovp_enabled;    /**< New OVP enabled to set. */
 };
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,

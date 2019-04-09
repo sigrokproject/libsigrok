@@ -199,16 +199,16 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(devc->voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc);
-		*data = g_variant_new_double(devc->voltage_max);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc);
+		*data = g_variant_new_double(devc->voltage_target);
 		break;
 	case SR_CONF_CURRENT:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT, devc);
 		*data = g_variant_new_double(devc->current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc);
-		*data = g_variant_new_double(devc->current_max);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc);
+		*data = g_variant_new_double(devc->current_limit);
 		break;
 	case SR_CONF_ENABLED:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OUTPUT, devc);
@@ -253,34 +253,34 @@ static int config_set(uint32_t key, GVariant *data,
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
 			return SR_ERR_ARG;
-		devc->voltage_max = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc) < 0)
+		devc->set_voltage_target = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->current[0] || dval > devc->model->current[1])
 			return SR_ERR_ARG;
-		devc->current_max = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc) < 0)
+		devc->set_current_limit = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
 		/* Set always so it is possible turn off with sigrok-cli. */
-		devc->output_enabled = bval;
+		devc->set_output_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OUTPUT, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->ocp_enabled = bval;
+		devc->set_ocp_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OCP, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->ovp_enabled = bval;
+		devc->set_ovp_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OVP, devc) < 0)
 			return SR_ERR;
 		break;
