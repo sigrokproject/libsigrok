@@ -251,42 +251,6 @@ static int serial_stream_check(struct sr_serial_dev_inst *serial,
 				       is_valid, timeout_ms, baudrate);
 }
 
-static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
-{
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	int ret;
-
-	memset(&meta, 0, sizeof(meta));
-
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-
-	meta.config = g_slist_append(NULL, cfg);
-
-	ret = sr_session_send(sdi, &packet);
-
-	g_slist_free(meta.config);
-
-	return ret;
-}
-
-static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
-				  GVariant *var)
-{
-	struct sr_config *cfg;
-	int ret;
-
-	cfg = sr_config_new(key, var);
-	if (!cfg)
-		return SR_ERR;
-
-	ret = send_config_update(sdi, cfg);
-	sr_config_free(cfg);
-
-	return ret;
-}
-
 /*
  * Cyrustek ES51919 LCR chipset host protocol.
  *
@@ -569,21 +533,15 @@ static gboolean packet_valid(const uint8_t *pkt)
 	return FALSE;
 }
 
-static int do_config_update(struct sr_dev_inst *sdi, uint32_t key,
-			    GVariant *var)
-{
-	return send_config_update_key(sdi, key, var);
-}
-
 static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
 {
-	return do_config_update(sdi, SR_CONF_OUTPUT_FREQUENCY,
+	return sr_session_send_meta(sdi, SR_CONF_OUTPUT_FREQUENCY,
 				g_variant_new_double(frequencies[freq]));
 }
 
 static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
 {
-	return do_config_update(sdi, SR_CONF_EQUIV_CIRCUIT_MODEL,
+	return sr_session_send_meta(sdi, SR_CONF_EQUIV_CIRCUIT_MODEL,
 				g_variant_new_string(models[model]));
 }
 

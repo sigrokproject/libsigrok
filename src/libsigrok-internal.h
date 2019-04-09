@@ -908,6 +908,8 @@ SR_PRIV int sr_session_source_remove_pollfd(struct sr_session *session,
 SR_PRIV int sr_session_source_remove_channel(struct sr_session *session,
 		GIOChannel *channel);
 
+SR_PRIV int sr_session_send_meta(const struct sr_dev_inst *sdi,
+		uint32_t key, GVariant *var);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_sessionfile_check(const char *filename);
