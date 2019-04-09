@@ -531,6 +531,178 @@ static const struct scpi_command hp_6630b_cmd[] = {
 	ALL_ZERO
 };
 
+static int hp_6630b_init_aquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Monitor CV (256), CC+ (1024) and CC- (2048) bits of the
+	 * Operational Status Register.
+	 * Use both positive and negative transitions of the status bits.
+	 */
+	ret = sr_scpi_send(scpi, "STAT:OPER:PTR 3328;NTR 3328;ENAB 3328");
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Monitor OVP (1), OCP (2), OTP (16) and Unreg (1024) bits of the
+	 * Questionable Status Register.
+	 * Use both positive and negative transitions of the status bits.
+	 */
+	ret = sr_scpi_send(scpi, "STAT:QUES:PTR 1043;NTR 1043;ENAB 1043");
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Service Request Enable Register set for Operational Status Register
+	 * bits (128) and Questionable Status Register bits (8).
+	 * This masks the Status Register generating a SRQ/RQS. Not implemented yet!
+	 */
+	/*
+	ret = sr_scpi_send(scpi, "*SRE 136");
+	if (ret != SR_OK)
+		return ret;
+	*/
+
+	return SR_OK;
+}
+
+static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+	int stb;
+	int ques_even, ques_cond;
+	int oper_even, oper_cond;
+	gboolean output_enabled;
+	gboolean unreg, cv, cc_pos, cc_neg;
+	gboolean regulation_changed;
+	char *regulation;
+
+	scpi = sdi->conn;
+
+	unreg = FALSE;
+	cv = FALSE;
+	cc_pos = FALSE;
+	cc_neg = FALSE;
+	regulation_changed = FALSE;
+
+	/*
+	 * Use SPoll when SCPI uses GPIB as transport layer.
+	 * SPoll is approx. twice as fast as a normal GPIB write + read would be!
+	 */
+#ifdef HAVE_LIBGPIB
+	char spoll_buf;
+
+	if (scpi->transport == SCPI_TRANSPORT_LIBGPIB) {
+		ret = sr_scpi_gpib_spoll(scpi, &spoll_buf);
+		if (ret != SR_OK)
+			return ret;
+		stb = (uint8_t)spoll_buf;
+	}
+	else {
+#endif
+		ret = sr_scpi_get_int(scpi, "*STB?", &stb);
+		if (ret != SR_OK)
+			return ret;
+#ifdef HAVE_LIBGPIB
+	}
+#endif
+
+	/* Questionable status summary bit */
+	if (stb & (1 << 3)) {
+		/* Read the event register to clear it! */
+		ret = sr_scpi_get_int(scpi, "STAT:QUES:EVEN?", &ques_even);
+		if (ret != SR_OK)
+			return ret;
+		/* Now get the values. */
+		ret = sr_scpi_get_int(scpi, "STAT:QUES:COND?", &ques_cond);
+		if (ret != SR_OK)
+			return ret;
+
+		/* OVP */
+		if (ques_even & (1 << 0))
+			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+				g_variant_new_boolean(ques_cond & (1 << 0)));
+
+		/* OCP */
+		if (ques_even & (1 << 1))
+			sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+				g_variant_new_boolean(ques_cond & (1 << 1)));
+
+		/* OTP */
+		if (ques_even & (1 << 4))
+			sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+				g_variant_new_boolean(ques_cond & (1 << 4)));
+
+		/* UNREG */
+		unreg = (ques_cond & (1 << 10));
+		regulation_changed = (ques_even & (1 << 10)) | regulation_changed;
+
+		/*
+		 * Check if output state has changed, due to one of the
+		 * questionable states changed.
+		 * NOTE: The output state is send even if it hasn't changed, but that
+		 * only happends rarely.
+		 */
+		ret = sr_scpi_get_bool(scpi, "OUTP:STAT?", &output_enabled);
+		if (ret != SR_OK)
+			return ret;
+		sr_session_send_meta(sdi, SR_CONF_ENABLED,
+			g_variant_new_boolean(output_enabled));
+	}
+
+	/* Operation status summary bit */
+	if (stb & (1 << 7)) {
+		/* Read the event register to clear it! */
+		ret = sr_scpi_get_int(scpi, "STAT:OPER:EVEN?", &oper_even);
+		if (ret != SR_OK)
+			return ret;
+		/* Now get the values. */
+		ret = sr_scpi_get_int(scpi, "STAT:OPER:COND?", &oper_cond);
+		if (ret != SR_OK)
+			return ret;
+
+		/* CV */
+		cv = (oper_cond & (1 << 8));
+		regulation_changed = (oper_even & (1 << 8)) | regulation_changed;
+		/* CC+ */
+		cc_pos = (oper_cond & (1 << 10));
+		regulation_changed = (oper_even & (1 << 10)) | regulation_changed;
+		/* CC- */
+		cc_neg = (oper_cond & (1 << 11));
+		regulation_changed = (oper_even & (1 << 11)) | regulation_changed;
+	}
+
+	if (regulation_changed) {
+		if (cv && !cc_pos && !cc_neg &&!unreg)
+			regulation = "CV";
+		else if (cc_pos && !cv && !cc_neg && !unreg)
+			regulation = "CC";
+		else if (cc_neg && !cv && !cc_pos && !unreg)
+			regulation = "CC-";
+		else if (unreg && !cv && !cc_pos && !cc_neg)
+			regulation = "UR";
+		else if (!cv && !cc_pos && !cc_neg &&!unreg)
+			/* This happends in case of OCP active */
+			regulation = "";
+		else {
+			/* This happends from time to time (CV and CC+ active). */
+			sr_dbg("Undefined regulation for HP 66xxB "
+				"(CV=%i, CC+=%i, CC-=%i, UR=%i).",
+				cv, cc_pos, cc_neg, unreg);
+			return FALSE;
+		}
+		sr_session_send_meta(sdi, SR_CONF_REGULATION,
+			g_variant_new_string(regulation));
+	}
+
+	return SR_OK;
+}
+
 /* Philips/Fluke PM2800 series */
 static const uint32_t philips_pm2800_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -812,8 +984,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630b_init_aquisition,
+		hp_6630b_update_status,
 	},
 
 	/* HP 6632B */
@@ -824,8 +996,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630b_init_aquisition,
+		hp_6630b_update_status,
 	},
 
 	/* HP 66332A */
@@ -836,8 +1008,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630b_init_aquisition,
+		hp_6630b_update_status,
 	},
 
 	/* HP 6633B */
@@ -848,8 +1020,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630b_init_aquisition,
+		hp_6630b_update_status,
 	},
 
 	/* HP 6634B */
@@ -860,8 +1032,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630b_init_aquisition,
+		hp_6630b_update_status,
 	},
 
 	/* Rigol DP700 series */
