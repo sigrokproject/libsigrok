@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2018 James Churchill <pelrun@gmail.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +21,40 @@
 #include <config.h>
 #include "protocol.h"
 
-SR_PRIV int rdtech_dps_get_reg(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int rdtech_dps_get_reg(const struct sr_dev_inst *sdi,
 		uint16_t address, uint16_t *value)
 {
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[1];
-	int ret = sr_modbus_read_holding_registers(modbus, address, 1, registers);
+	int ret;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_read_holding_registers(modbus, address, 1, registers);
+	g_mutex_unlock(&devc->rw_mutex);
 	*value = RB16(registers + 0);
 	return ret;
 }
 
-SR_PRIV int rdtech_dps_set_reg(struct sr_modbus_dev_inst *modbus,
+SR_PRIV int rdtech_dps_set_reg(const struct sr_dev_inst *sdi,
 		uint16_t address, uint16_t value)
 {
+	struct dev_context *devc;
+	struct sr_modbus_dev_inst *modbus;
 	uint16_t registers[1];
+	int ret;
+
+	devc = sdi->priv;
+	modbus = sdi->conn;
+
 	WB16(registers, value);
-	return sr_modbus_write_multiple_registers(modbus, address, 1, registers);
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_write_multiple_registers(modbus, address, 1, registers);
+	g_mutex_unlock(&devc->rw_mutex);
+	return ret;
 }
 
 SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
@@ -42,6 +62,11 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 {
 	uint16_t registers[2];
 	int ret;
+
+	/*
+	 * No mutex here, because there is no sr_dev_inst when this function
+	 * is called.
+	 */
 	ret = sr_modbus_read_holding_registers(modbus, REG_MODEL, 2, registers);
 	if (ret == SR_OK) {
 		*model = RB16(registers + 0);
@@ -74,20 +99,6 @@ static void send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch,
 	g_slist_free(analog.meaning->channels);
 }
 
-SR_PRIV int rdtech_dps_capture_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
-	int ret;
-
-	modbus = sdi->conn;
-	devc = sdi->priv;
-
-	if ((ret = sr_modbus_read_holding_registers(modbus, REG_UOUT, 3, NULL)) == SR_OK)
-		devc->expecting_registers = 2;
-	return ret;
-}
-
 SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -95,6 +106,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_modbus_dev_inst *modbus;
 	struct sr_datafeed_packet packet;
 	uint16_t registers[3];
+	int ret;
 
 	(void)fd;
 	(void)revents;
@@ -105,8 +117,11 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	modbus = sdi->conn;
 	devc = sdi->priv;
 
-	devc->expecting_registers = 0;
-	if (sr_modbus_read_holding_registers(modbus, -1, 3, registers) == SR_OK) {
+	g_mutex_lock(&devc->rw_mutex);
+	ret = sr_modbus_read_holding_registers(modbus, REG_UOUT, 3, registers);
+	g_mutex_unlock(&devc->rw_mutex);
+
+	if (ret == SR_OK) {
 		packet.type = SR_DF_FRAME_BEGIN;
 		sr_session_send(sdi, &packet);
 
@@ -130,6 +145,5 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	rdtech_dps_capture_start(sdi);
 	return TRUE;
 }
