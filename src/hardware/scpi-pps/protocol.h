@@ -67,6 +67,14 @@ enum pps_scpi_cmds {
 	SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
 };
 
+/* Defines the SCPI dialect */
+enum pps_scpi_dialect {
+	SCPI_DIALECT_UNKNOWN = 1,
+	SCPI_DIALECT_HP_COMP,
+	SCPI_DIALECT_HP_66XXB,
+	SCPI_DIALECT_PHILIPS,
+};
+
 /*
  * These are bit values denoting features a device can have either globally,
  * in scpi_pps.features, or on a per-channel-group basis in
@@ -84,6 +92,7 @@ enum pps_features {
 struct scpi_pps {
 	const char *vendor;
 	const char *model;
+	const enum pps_scpi_dialect dialect;
 	uint64_t features;
 	const uint32_t *devopts;
 	unsigned int num_devopts;

@@ -725,7 +725,7 @@ static const struct scpi_command rs_hmc8043_cmd[] = {
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
-	{ "Agilent", "N5763A", 0,
+	{ "Agilent", "N5763A", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(agilent_n5700a_devopts),
 		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
 		ARRAY_AND_SIZE(agilent_n5763a_ch),
@@ -735,7 +735,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Agilent N5767A */
-	{ "Agilent", "N5767A", 0,
+	{ "Agilent", "N5767A", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(agilent_n5700a_devopts),
 		ARRAY_AND_SIZE(agilent_n5700a_devopts_cg),
 		ARRAY_AND_SIZE(agilent_n5767a_ch),
@@ -745,7 +745,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* BK Precision 9310 */
-	{ "BK", "^9130$", 0,
+	{ "BK", "^9130$", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(bk_9130_devopts),
 		ARRAY_AND_SIZE(bk_9130_devopts_cg),
 		ARRAY_AND_SIZE(bk_9130_ch),
@@ -755,7 +755,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Chroma 61604 */
-	{ "Chroma", "61604", 0,
+	{ "Chroma", "61604", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(chroma_61604_devopts),
 		ARRAY_AND_SIZE(chroma_61604_devopts_cg),
 		ARRAY_AND_SIZE(chroma_61604_ch),
@@ -765,7 +765,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Chroma 62000 series */
-	{ "Chroma", "620[0-9]{2}P-[0-9]{2,3}-[0-9]{1,3}", 0,
+	{ "Chroma", "620[0-9]{2}P-[0-9]{2,3}-[0-9]{1,3}", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(chroma_62000_devopts),
 		ARRAY_AND_SIZE(chroma_62000_devopts_cg),
 		NULL, 0,
@@ -775,7 +775,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6633A */
-	{ "HP", "6633A", 0,
+	{ "HP", "6633A", SCPI_DIALECT_HP_COMP, 0,
 		ARRAY_AND_SIZE(hp_6630a_devopts),
 		ARRAY_AND_SIZE(hp_6630a_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633a_ch),
@@ -785,7 +785,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6631B */
-	{ "HP", "6631B", PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6631B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6631b_ch),
@@ -795,7 +795,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6632B */
-	{ "HP", "6632B", PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6632B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
@@ -805,7 +805,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 66332A */
-	{ "HP", "66332A", PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "66332A", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_66332a_ch),
@@ -815,7 +815,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6633B */
-	{ "HP", "6633B", PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6633B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633b_ch),
@@ -825,7 +825,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6634B */
-	{ "HP", "6634B", PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6634B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6634b_ch),
@@ -835,7 +835,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Rigol DP700 series */
-	{ "Rigol", "^DP711$", 0,
+	{ "Rigol", "^DP711$", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(rigol_dp700_devopts),
 		ARRAY_AND_SIZE(rigol_dp700_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp711_ch),
@@ -843,7 +843,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rigol_dp700_cmd,
 		.probe_channels = NULL,
 	},
-	{ "Rigol", "^DP712$", 0,
+	{ "Rigol", "^DP712$", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(rigol_dp700_devopts),
 		ARRAY_AND_SIZE(rigol_dp700_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp712_ch),
@@ -853,7 +853,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Rigol DP800 series */
-	{ "Rigol", "^DP821A$", PPS_OTP,
+	{ "Rigol", "^DP821A$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp821a_ch),
@@ -861,7 +861,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
 	},
-	{ "Rigol", "^DP831A$", PPS_OTP,
+	{ "Rigol", "^DP831A$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp831_ch),
@@ -869,7 +869,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
 	},
-	{ "Rigol", "^(DP832|DP832A)$", PPS_OTP,
+	{ "Rigol", "^(DP832|DP832A)$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
 		ARRAY_AND_SIZE(rigol_dp800_devopts_cg),
 		ARRAY_AND_SIZE(rigol_dp832_ch),
@@ -879,7 +879,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Philips/Fluke PM2800 series */
-	{ "Philips", "^PM28[13][123]/[01234]{1,2}$", 0,
+	{ "Philips", "^PM28[13][123]/[01234]{1,2}$", SCPI_DIALECT_PHILIPS, 0,
 		ARRAY_AND_SIZE(philips_pm2800_devopts),
 		ARRAY_AND_SIZE(philips_pm2800_devopts_cg),
 		NULL, 0,
@@ -889,7 +889,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Rohde & Schwarz HMC8043 */
-	{ "Rohde&Schwarz", "HMC8043", 0,
+	{ "Rohde&Schwarz", "HMC8043", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(rs_hmc8043_devopts),
 		ARRAY_AND_SIZE(rs_hmc8043_devopts_cg),
 		ARRAY_AND_SIZE(rs_hmc8043_ch),
