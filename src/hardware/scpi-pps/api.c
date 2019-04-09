@@ -313,7 +313,7 @@ static int config_get(uint32_t key, GVariant **data,
 	char *channel_group_name;
 	int cmd, ret;
 	const char *s;
-	int oper_cond;
+	int reg;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -376,7 +376,10 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
@@ -388,7 +391,10 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
@@ -398,6 +404,13 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
+		break;
+	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_REGULATION:
 		gvtype = G_VARIANT_TYPE_STRING;
@@ -442,13 +455,13 @@ static int config_get(uint32_t key, GVariant **data,
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
 			/* Evaluate Operational Status Register from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
-			sr_atoi(s, &oper_cond);
+			sr_atoi(s, &reg);
 			g_variant_unref(*data);
-			if (oper_cond & (1 << 8))
+			if (reg & (1 << 8))
 				*data = g_variant_new_string("CV");
-			else if (oper_cond & (1 << 10))
+			else if (reg & (1 << 10))
 				*data = g_variant_new_string("CC");
-			else if (oper_cond & (1 << 11))
+			else if (reg & (1 << 11))
 				*data = g_variant_new_string("CC-");
 			else
 				*data = g_variant_new_string("UR");
@@ -460,6 +473,36 @@ static int config_get(uint32_t key, GVariant **data,
 
 			sr_err("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
 			ret = SR_ERR_DATA;
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 0 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 0));
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 1 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 1));
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 4 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 4));
 		}
 	}
 
