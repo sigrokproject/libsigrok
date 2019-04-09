@@ -77,7 +77,8 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 }
 
 static void send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch,
-		float value, enum sr_mq mq, enum sr_unit unit, int digits)
+		float value, enum sr_mq mq, enum sr_mqflag mqflags,
+		enum sr_unit unit, int digits)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -90,8 +91,8 @@ static void send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch,
 	analog.num_samples = 1;
 	analog.data = &value;
 	analog.meaning->mq = mq;
+	analog.meaning->mqflags = mqflags;
 	analog.meaning->unit = unit;
-	analog.meaning->mqflags = SR_MQFLAG_DC;
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
@@ -127,13 +128,13 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 
 		send_value(sdi, sdi->channels->data,
 			RB16(registers + 0) / 100.0f,
-			SR_MQ_VOLTAGE, SR_UNIT_VOLT, 3);
+			SR_MQ_VOLTAGE, SR_MQFLAG_DC, SR_UNIT_VOLT, 3);
 		send_value(sdi, sdi->channels->next->data,
 			RB16(registers + 1) / 1000.0f,
-			SR_MQ_CURRENT, SR_UNIT_AMPERE, 4);
+			SR_MQ_CURRENT, SR_MQFLAG_DC, SR_UNIT_AMPERE, 4);
 		send_value(sdi, sdi->channels->next->next->data,
 			RB16(registers + 2) / 100.0f,
-			SR_MQ_POWER, SR_UNIT_WATT, 3);
+			SR_MQ_POWER, 0, SR_UNIT_WATT, 3);
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
