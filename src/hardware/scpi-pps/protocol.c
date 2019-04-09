@@ -105,6 +105,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	analog.meaning->channels = g_slist_append(NULL, devc->cur_acquisition_channel);
 	analog.num_samples = 1;
 	analog.meaning->mq = pch->mq;
+	analog.meaning->mqflags = pch->mqflags;
 	if (pch->mq == SR_MQ_VOLTAGE) {
 		analog.meaning->unit = SR_UNIT_VOLT;
 		analog.encoding->digits = ch_spec->voltage[4];
@@ -118,7 +119,6 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		analog.encoding->digits = ch_spec->power[4];
 		analog.spec->spec_digits = ch_spec->power[3];
 	}
-	analog.meaning->mqflags = SR_MQFLAG_DC;
 	f = (float)g_variant_get_double(gvdata);
 	g_variant_unref(gvdata);
 	analog.data = &f;

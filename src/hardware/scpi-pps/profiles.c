@@ -48,7 +48,7 @@ static const uint32_t agilent_n5700a_devopts_cg[] = {
 };
 
 static const struct channel_group_spec agilent_n5700a_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 static const struct channel_spec agilent_n5767a_ch[] = {
@@ -109,9 +109,9 @@ static const struct channel_spec bk_9130_ch[] = {
 };
 
 static const struct channel_group_spec bk_9130_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP },
-	{ "2", CH_IDX(1), PPS_OVP },
-	{ "3", CH_IDX(2), PPS_OVP },
+	{ "1", CH_IDX(0), PPS_OVP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command bk_9130_cmd[] = {
@@ -156,7 +156,7 @@ static const struct channel_spec chroma_61604_ch[] = {
 };
 
 static const struct channel_group_spec chroma_61604_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_AC },
 };
 
 static const struct scpi_command chroma_61604_cmd[] = {
@@ -199,7 +199,7 @@ static const uint32_t chroma_62000_devopts_cg[] = {
 };
 
 static const struct channel_group_spec chroma_62000_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command chroma_62000_cmd[] = {
@@ -305,7 +305,7 @@ static const struct channel_spec rigol_dp712_ch[] = {
 };
 
 static const struct channel_group_spec rigol_dp700_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 /* Same as the DP800 series, except for the missing :SYST:OTP* commands. */
@@ -383,14 +383,14 @@ static const struct channel_spec rigol_dp832_ch[] = {
 };
 
 static const struct channel_group_spec rigol_dp820_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
-	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 static const struct channel_group_spec rigol_dp830_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP },
-	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP },
-	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command rigol_dp800_cmd[] = {
@@ -491,7 +491,7 @@ static const struct channel_spec hp_6634b_ch[] = {
 };
 
 static const struct channel_group_spec hp_663xx_cg[] = {
-	{ "1", CH_IDX(0), 0 },
+	{ "1", CH_IDX(0), 0, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command hp_6630a_cmd[] = {
@@ -826,6 +826,7 @@ static int philips_pm2800_probe_channels(struct sr_dev_inst *sdi,
 		(*channel_groups)[i].name = (char *)philips_pm2800_names[i];
 		(*channel_groups)[i].channel_index_mask = 1 << i;
 		(*channel_groups)[i].features = PPS_OTP | PPS_OVP | PPS_OCP;
+		(*channel_groups)[i].mqflags = SR_MQFLAG_DC;
 	}
 	*num_channels = *num_channel_groups = num_modules;
 
@@ -878,9 +879,9 @@ static const struct channel_spec rs_hmc8043_ch[] = {
 };
 
 static const struct channel_group_spec rs_hmc8043_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP },
-	{ "2", CH_IDX(1), PPS_OVP },
-	{ "3", CH_IDX(2), PPS_OVP },
+	{ "1", CH_IDX(0), PPS_OVP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command rs_hmc8043_cmd[] = {

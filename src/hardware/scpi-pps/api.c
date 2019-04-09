@@ -152,6 +152,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 				for (l = sdi->channels; l; l = l->next) {
 					ch = l->data;
 					pch = ch->priv;
+					/* Add mqflags from channel_group_spec only to voltage
+					 * and current channels
+					 */
+					if (pch->mq == SR_MQ_VOLTAGE || pch->mq == SR_MQ_CURRENT)
+						pch->mqflags = cgs->mqflags;
+					else
+						pch->mqflags = 0;
 					if (pch->hw_output_idx == j)
 						cg->channels = g_slist_append(cg->channels, ch);
 				}

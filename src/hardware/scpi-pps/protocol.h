@@ -126,10 +126,13 @@ struct channel_group_spec {
 	const char *name;
 	uint64_t channel_index_mask;
 	uint64_t features;
+	/* The mqflags will only be applied to voltage and current channels! */
+	enum sr_mqflag mqflags;
 };
 
 struct pps_channel {
 	enum sr_mq mq;
+	enum sr_mqflag mqflags;
 	unsigned int hw_output_idx;
 	const char *hwname;
 	int digits;
