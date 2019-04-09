@@ -491,7 +491,7 @@ static const struct channel_spec hp_6634b_ch[] = {
 };
 
 static const struct channel_group_spec hp_663xx_cg[] = {
-	{ "1", CH_IDX(0), 0, SR_MQFLAG_DC },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command hp_6630a_cmd[] = {
@@ -978,7 +978,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6631B */
-	{ "HP", "6631B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6631B", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6631b_ch),
@@ -990,7 +990,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6632B */
-	{ "HP", "6632B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6632B", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
@@ -1002,7 +1002,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 66332A */
-	{ "HP", "66332A", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "66332A", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_66332a_ch),
@@ -1014,7 +1014,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6633B */
-	{ "HP", "6633B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6633B", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633b_ch),
@@ -1026,7 +1026,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* HP 6634B */
-	{ "HP", "6634B", SCPI_DIALECT_HP_66XXB, PPS_OVP | PPS_OCP | PPS_OTP,
+	{ "HP", "6634B", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6634b_ch),
