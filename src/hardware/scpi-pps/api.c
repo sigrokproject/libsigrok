@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017,2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -704,6 +704,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Prime the pipe with the first channel. */
 	devc->cur_acquisition_channel = sr_next_enabled_channel(sdi, NULL);
+
+	/* Device specific initialization before aquisition starts. */
+	if (devc->device->init_aquisition)
+		devc->device->init_aquisition(sdi);
 
 	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)

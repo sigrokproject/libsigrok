@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017,2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,6 +107,8 @@ struct scpi_pps {
 	int (*probe_channels) (struct sr_dev_inst *sdi, struct sr_scpi_hw_info *hwinfo,
 		struct channel_spec **channels, unsigned int *num_channels,
 		struct channel_group_spec **channel_groups, unsigned int *num_channel_groups);
+	int (*init_aquisition) (const struct sr_dev_inst *sdi);
+	int (*update_status) (const struct sr_dev_inst *sdi);
 };
 
 struct channel_spec {

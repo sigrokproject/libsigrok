@@ -4,7 +4,7 @@
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
  * Copyright (C) 2015 Google, Inc.
  * (Written by Alexandru Gagniuc <mrnuke@google.com> for Google, Inc.)
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017,2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -740,6 +740,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Agilent N5767A */
@@ -750,6 +752,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* BK Precision 9310 */
@@ -760,6 +764,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(bk_9130_cg),
 		bk_9130_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Chroma 61604 */
@@ -770,6 +776,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(chroma_61604_cg),
 		chroma_61604_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Chroma 62000 series */
@@ -780,6 +788,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		chroma_62000_cmd,
 		.probe_channels = chroma_62000p_probe_channels,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 6633A */
@@ -790,6 +800,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 6631B */
@@ -800,6 +812,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 6632B */
@@ -810,6 +824,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 66332A */
@@ -820,6 +836,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 6633B */
@@ -830,6 +848,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* HP 6634B */
@@ -840,6 +860,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_663xx_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Rigol DP700 series */
@@ -850,6 +872,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp700_cg),
 		rigol_dp700_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 	{ "Rigol", "^DP712$", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(rigol_dp700_devopts),
@@ -858,6 +882,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp700_cg),
 		rigol_dp700_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Rigol DP800 series */
@@ -868,6 +894,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp820_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 	{ "Rigol", "^DP831A$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
@@ -876,6 +904,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp830_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 	{ "Rigol", "^(DP832|DP832A)$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
 		ARRAY_AND_SIZE(rigol_dp800_devopts),
@@ -884,6 +914,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp830_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Philips/Fluke PM2800 series */
@@ -894,6 +926,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		philips_pm2800_cmd,
 		philips_pm2800_probe_channels,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 
 	/* Rohde & Schwarz HMC8043 */
@@ -904,6 +938,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmc8043_cg),
 		rs_hmc8043_cmd,
 		.probe_channels = NULL,
+		.init_aquisition = NULL,
+		.update_status = NULL,
 	},
 };
 
