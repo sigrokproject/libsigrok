@@ -459,6 +459,22 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new_string("CC");
 			}
 		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			if (reg & (1 << 0))
+				*data = g_variant_new_string("CV");
+			else if (reg & (1 << 1))
+				*data = g_variant_new_string("CC");
+			else if (reg & (1 << 2))
+				*data = g_variant_new_string("UR");
+			else if (reg & (1 << 9))
+				*data = g_variant_new_string("CC-");
+			else
+				*data = g_variant_new_string("");
+		}
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
 			/* Evaluate Operational Status Register from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
@@ -475,8 +491,8 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 
 		s = g_variant_get_string(*data, NULL);
-		if (g_strcmp0(s, "CV") && g_strcmp0(s, "CC") &&
-			g_strcmp0(s, "CC-") && g_strcmp0(s, "UR")) {
+		if (g_strcmp0(s, "CV") && g_strcmp0(s, "CC") && g_strcmp0(s, "CC-") &&
+			g_strcmp0(s, "UR") && g_strcmp0(s, "")) {
 
 			sr_err("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
 			ret = SR_ERR_DATA;
