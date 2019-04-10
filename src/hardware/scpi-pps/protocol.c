@@ -118,6 +118,10 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		analog.meaning->unit = SR_UNIT_WATT;
 		analog.encoding->digits = ch_spec->power[4];
 		analog.spec->spec_digits = ch_spec->power[3];
+	} else if (pch->mq == SR_MQ_FREQUENCY) {
+		analog.meaning->unit = SR_UNIT_HERTZ;
+		analog.encoding->digits = ch_spec->frequency[4];
+		analog.spec->spec_digits = ch_spec->frequency[3];
 	}
 	f = (float)g_variant_get_double(gvdata);
 	g_variant_unref(gvdata);
