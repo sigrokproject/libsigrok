@@ -429,7 +429,7 @@ static const struct scpi_command rigol_dp800_cmd[] = {
 	ALL_ZERO
 };
 
-/* HP 663xx series */
+/* HP 663xA series */
 static const uint32_t hp_6630a_devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -446,6 +446,28 @@ static const uint32_t hp_6630a_devopts_cg[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET,
 };
 
+static const struct channel_spec hp_6633a_ch[] = {
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
+};
+
+static const struct channel_group_spec hp_6630a_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+};
+
+static const struct scpi_command hp_6630a_cmd[] = {
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUT 1" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUT 0" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "VOUT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "IOUT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VSET %.4f" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "ISET %.4f" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, "OCP 1" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, "OCP 0" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "OVSET %.4f" },
+	ALL_ZERO
+};
+
+/* HP 663xB series */
 static const uint32_t hp_6630b_devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
@@ -464,10 +486,6 @@ static const uint32_t hp_6630b_devopts_cg[] = {
 	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_REGULATION | SR_CONF_GET,
-};
-
-static const struct channel_spec hp_6633a_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec hp_6631b_ch[] = {
@@ -490,21 +508,8 @@ static const struct channel_spec hp_6634b_ch[] = {
 	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS },
 };
 
-static const struct channel_group_spec hp_663xx_cg[] = {
+static const struct channel_group_spec hp_6630b_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
-};
-
-static const struct scpi_command hp_6630a_cmd[] = {
-	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUT 1" },
-	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUT 0" },
-	{ SCPI_CMD_GET_MEAS_VOLTAGE, "VOUT?" },
-	{ SCPI_CMD_GET_MEAS_CURRENT, "IOUT?" },
-	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VSET %.4f" },
-	{ SCPI_CMD_SET_CURRENT_LIMIT, "ISET %.4f" },
-	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_ENABLE, "OCP 1" },
-	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DISABLE, "OCP 0" },
-	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "OVSET %.4f" },
-	ALL_ZERO
 };
 
 static const struct scpi_command hp_6630b_cmd[] = {
@@ -970,7 +975,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_devopts),
 		ARRAY_AND_SIZE(hp_6630a_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633a_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
 		.init_aquisition = NULL,
@@ -982,7 +987,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6631b_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
 		hp_6630b_init_aquisition,
@@ -994,7 +999,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
 		hp_6630b_init_aquisition,
@@ -1006,7 +1011,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_66332a_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
 		hp_6630b_init_aquisition,
@@ -1018,7 +1023,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6633b_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
 		hp_6630b_init_aquisition,
@@ -1030,7 +1035,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6634b_ch),
-		ARRAY_AND_SIZE(hp_663xx_cg),
+		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
 		hp_6630b_init_aquisition,
