@@ -383,7 +383,8 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
 			gvtype = G_VARIANT_TYPE_STRING;
 		else
 			gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -398,7 +399,8 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
 			gvtype = G_VARIANT_TYPE_STRING;
 		else
 			gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -413,7 +415,8 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
-		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB)
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
 			gvtype = G_VARIANT_TYPE_STRING;
 		else
 			gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -500,6 +503,13 @@ static int config_get(uint32_t key, GVariant **data,
 	}
 
 	if (cmd == SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 3));
+		}
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
 			/* Evaluate Questionable Status Register bit 0 from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
@@ -510,6 +520,13 @@ static int config_get(uint32_t key, GVariant **data,
 	}
 
 	if (cmd == SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 6));
+		}
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
 			/* Evaluate Questionable Status Register bit 1 from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
@@ -520,6 +537,13 @@ static int config_get(uint32_t key, GVariant **data,
 	}
 
 	if (cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 4));
+		}
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
 			/* Evaluate Questionable Status Register bit 4 from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
