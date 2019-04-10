@@ -475,6 +475,99 @@ static const struct scpi_command hp_6630a_cmd[] = {
 	ALL_ZERO
 };
 
+static int hp_6630a_init_aquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Monitor CV (1), CC+ (2), UR (4), OVP (8), OTP (16), OCP (64) and
+	 * CC- (256) bits of the Status Register for the FAULT? query.
+	 */
+	ret = sr_scpi_send(scpi, "UNMASK 607");
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
+static int hp_6630a_update_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+	int fault;
+	gboolean cv, cc_pos, unreg, cc_neg;
+	gboolean regulation_changed;
+	char *regulation;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Use the FAULT register (only 0->1 transitions), this way multiple set
+	 * regulation bits in the STS/ASTS registers are ignored. In rare cases
+	 * we will miss some changes (1->0 transitions, e.g. no regulation at all),
+	 * but SPS/ASPS doesn't work either, unless all states are stored and
+	 * compared to the states in STS/ASTS.
+	 * TODO: Use SPoll or SRQ when SCPI over GPIB is used.
+	 */
+	ret = sr_scpi_get_int(scpi, "FAULT?", &fault);
+	if (ret != SR_OK)
+		return ret;
+
+	/* OVP */
+	if (fault & (1 << 3))
+		sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(fault & (1 << 3)));
+
+	/* OCP */
+	if (fault & (1 << 6))
+		sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+			g_variant_new_boolean(fault & (1 << 6)));
+
+	/* OTP */
+	if (fault & (1 << 4))
+		sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(fault & (1 << 4)));
+
+	/* CV */
+	cv = (fault & (1 << 0));
+	regulation_changed = (fault & (1 << 0));
+	/* CC+ */
+	cc_pos = (fault & (1 << 1));
+	regulation_changed = (fault & (1 << 1)) | regulation_changed;
+	/* UNREG */
+	unreg = (fault & (1 << 2));
+	regulation_changed = (fault & (1 << 2)) | regulation_changed;
+	/* CC- */
+	cc_neg = (fault & (1 << 9));
+	regulation_changed = (fault & (1 << 9)) | regulation_changed;
+
+	if (regulation_changed) {
+		if (cv && !cc_pos && !cc_neg &&!unreg)
+			regulation = "CV";
+		else if (cc_pos && !cv && !cc_neg && !unreg)
+			regulation = "CC";
+		else if (cc_neg && !cv && !cc_pos && !unreg)
+			regulation = "CC-";
+		else if (unreg && !cv && !cc_pos && !cc_neg)
+			regulation = "UR";
+		else if (!cv && !cc_pos && !cc_neg &&!unreg)
+			regulation = "";
+		else {
+			sr_dbg("Undefined regulation for HP 66xxA "
+				"(CV=%i, CC+=%i, CC-=%i, UR=%i).",
+				cv, cc_pos, cc_neg, unreg);
+			return FALSE;
+		}
+		sr_session_send_meta(sdi, SR_CONF_REGULATION,
+			g_variant_new_string(regulation));
+	}
+
+	return SR_OK;
+}
+
 /* HP 663xB series */
 static const uint32_t hp_6630b_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -986,8 +1079,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
-		.update_status = NULL,
+		hp_6630a_init_aquisition,
+		hp_6630a_update_status,
 	},
 
 	/* HP 6631B */
