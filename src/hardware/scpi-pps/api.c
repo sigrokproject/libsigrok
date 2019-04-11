@@ -173,7 +173,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB devices using SCPI over GPIB */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sdi;
 }
@@ -265,7 +268,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	devc = sdi->priv;
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
+
+	/* Don't send SCPI_CMD_REMOTE for HP 66xxB devices using SCPI over GPIB */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
+
 	devc->beeper_was_set = FALSE;
 	if (sr_scpi_cmd_resp(sdi, devc->device->commands, 0, NULL,
 			&beeper, G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
@@ -294,7 +302,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (devc->beeper_was_set)
 		sr_scpi_cmd(sdi, devc->device->commands,
 			0, NULL, SCPI_CMD_BEEPER_ENABLE);
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
+
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB devices using SCPI over GPIB */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sr_scpi_close(scpi);
 }

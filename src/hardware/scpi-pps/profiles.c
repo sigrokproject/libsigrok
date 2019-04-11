@@ -638,6 +638,10 @@ static const struct channel_group_spec hp_6630b_cg[] = {
 };
 
 static const struct scpi_command hp_6630b_cmd[] = {
+	/*
+	 * SCPI_CMD_REMOTE and SCPI_CMD_LOCAL are not used when GPIB is used,
+	 * otherwise the device will report (non critical) error 602.
+	 */
 	{ SCPI_CMD_REMOTE, "SYST:REM" },
 	{ SCPI_CMD_LOCAL, "SYST:LOC" },
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP:STAT?" },
