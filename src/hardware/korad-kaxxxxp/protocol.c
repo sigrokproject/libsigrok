@@ -268,17 +268,16 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 
 		sr_dbg("Status: 0x%02x", status_byte);
 		sr_spew("Status: CH1: constant %s CH2: constant %s. "
-			"Tracking would be %s. Device is "
-			"%s and %s. Buttons are %s. Output is %s "
-			"and extra bit is %s.",
+			"Tracking would be %s and %s. Output is %s. "
+			"OCP is %s, OVP is %s. Device is %s.",
 			(status_byte & (1 << 0)) ? "voltage" : "current",
 			(status_byte & (1 << 1)) ? "voltage" : "current",
 			(status_byte & (1 << 2)) ? "parallel" : "series",
 			(status_byte & (1 << 3)) ? "tracking" : "independent",
-			(status_byte & (1 << 4)) ? "beeping" : "silent",
-			(status_byte & (1 << 5)) ? "locked" : "unlocked",
 			(status_byte & (1 << 6)) ? "enabled" : "disabled",
-			(status_byte & (1 << 7)) ? "true" : "false");
+			(status_byte & (1 << 5)) ? "enabled" : "disabled",
+			(status_byte & (1 << 7)) ? "enabled" : "disabled",
+			(status_byte & (1 << 4)) ? "beeping" : "silent");
 	}
 
 	/* Read the sixth byte from ISET? BUG workaround. */
