@@ -670,6 +670,7 @@ static void scpi_usbtmc_libusb_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_usbtmc_libusb_dev = {
 	.name          = "USBTMC",
 	.prefix        = "usbtmc",
+	.transport     = SCPI_TRANSPORT_USBTMC,
 	.priv_size     = sizeof(struct scpi_usbtmc_libusb),
 	.scan          = scpi_usbtmc_libusb_scan,
 	.dev_inst_new  = scpi_usbtmc_libusb_dev_inst_new,

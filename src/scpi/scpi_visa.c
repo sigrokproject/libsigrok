@@ -166,6 +166,7 @@ static void scpi_visa_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_visa_dev = {
 	.name          = "VISA",
 	.prefix        = "visa",
+	.transport     = SCPI_TRANSPORT_VISA,
 	.priv_size     = sizeof(struct scpi_visa),
 	.dev_inst_new  = scpi_visa_dev_inst_new,
 	.open          = scpi_visa_open,

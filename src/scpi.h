@@ -65,6 +65,16 @@ enum {
 	SCPI_CMD_GET_DIG_CHAN_NAME,
 };
 
+enum scpi_transport_layer {
+	SCPI_TRANSPORT_LIBGPIB,
+	SCPI_TRANSPORT_SERIAL,
+	SCPI_TRANSPORT_RAW_TCP,
+	SCPI_TRANSPORT_RIGOL_TCP,
+	SCPI_TRANSPORT_USBTMC,
+	SCPI_TRANSPORT_VISA,
+	SCPI_TRANSPORT_VXI,
+};
+
 struct scpi_command {
 	int command;
 	const char *string;
@@ -80,6 +90,7 @@ struct sr_scpi_hw_info {
 struct sr_scpi_dev_inst {
 	const char *name;
 	const char *prefix;
+	enum scpi_transport_layer transport;
 	int priv_size;
 	GSList *(*scan)(struct drv_context *drvc);
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,

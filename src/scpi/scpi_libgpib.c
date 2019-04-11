@@ -184,6 +184,7 @@ SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf)
 SR_PRIV const struct sr_scpi_dev_inst scpi_libgpib_dev = {
 	.name          = "GPIB",
 	.prefix        = "libgpib",
+	.transport     = SCPI_TRANSPORT_LIBGPIB,
 	.priv_size     = sizeof(struct scpi_gpib),
 	.dev_inst_new  = scpi_gpib_dev_inst_new,
 	.open          = scpi_gpib_open,

@@ -274,6 +274,7 @@ static void scpi_tcp_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
 	.name          = "RAW TCP",
 	.prefix        = "tcp-raw",
+	.transport     = SCPI_TRANSPORT_RAW_TCP,
 	.priv_size     = sizeof(struct scpi_tcp),
 	.dev_inst_new  = scpi_tcp_dev_inst_new,
 	.open          = scpi_tcp_open,
@@ -292,6 +293,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
 SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_rigol_dev = {
 	.name          = "RIGOL TCP",
 	.prefix        = "tcp-rigol",
+	.transport     = SCPI_TRANSPORT_RIGOL_TCP,
 	.priv_size     = sizeof(struct scpi_tcp),
 	.dev_inst_new  = scpi_tcp_dev_inst_new,
 	.open          = scpi_tcp_open,

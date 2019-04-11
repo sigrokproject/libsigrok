@@ -199,6 +199,7 @@ static void scpi_serial_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
 	.name          = "serial",
 	.prefix        = "",
+	.transport     = SCPI_TRANSPORT_SERIAL,
 	.priv_size     = sizeof(struct scpi_serial),
 	.scan          = scpi_serial_scan,
 	.dev_inst_new  = scpi_serial_dev_inst_new,

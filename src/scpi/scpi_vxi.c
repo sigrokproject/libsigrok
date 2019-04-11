@@ -231,6 +231,7 @@ static void scpi_vxi_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_vxi_dev = {
 	.name          = "VXI",
 	.prefix        = "vxi",
+	.transport     = SCPI_TRANSPORT_VXI,
 	.priv_size     = sizeof(struct scpi_vxi),
 	.dev_inst_new  = scpi_vxi_dev_inst_new,
 	.open          = scpi_vxi_open,
