@@ -169,13 +169,16 @@ SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf)
 {
 	struct scpi_gpib *gscpi = scpi->priv;
 
+	g_mutex_lock(&scpi->scpi_mutex);
 	ibrsp(gscpi->descriptor, buf);
 
 	if (ibsta & ERR) {
 		sr_err("Error while serial polling: iberr = %s.",
 			gpib_error_string(iberr));
+		g_mutex_unlock(&scpi->scpi_mutex);
 		return SR_ERR;
 	}
+	g_mutex_unlock(&scpi->scpi_mutex);
 	sr_spew("Successful serial poll: 0x%x", (uint8_t)buf[0]);
 
 	return SR_OK;
