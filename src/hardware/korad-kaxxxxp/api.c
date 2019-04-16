@@ -68,6 +68,8 @@ static const struct korad_kaxxxxp_model models[] = {
 		"TENMA72-2540V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{TENMA_72_2540_V21, "Tenma", "72-2540",
 		"TENMA 72-2540 V2.1", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{TENMA_72_2535_V21, "Tenma", "72-2535",
+		"TENMA 72-2535 V2.1", 1, {0, 31, 0.01}, {0, 3, 0.001}},
 	{STAMOS_SLS31_V20, "Stamos Soldering", "S-LS-31",
 		"S-LS-31 V2.0", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
 	ALL_ZERO

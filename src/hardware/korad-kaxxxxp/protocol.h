@@ -42,6 +42,7 @@ enum {
 	RND_320K30PV,
 	TENMA_72_2540_V20,
 	TENMA_72_2540_V21,
+	TENMA_72_2535_V21,
 	STAMOS_SLS31_V20,
 	/* Support for future devices with this protocol. */
 };
