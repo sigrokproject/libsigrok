@@ -483,7 +483,7 @@ static const struct scpi_command hp_6630a_cmd[] = {
 	ALL_ZERO
 };
 
-static int hp_6630a_init_aquisition(const struct sr_dev_inst *sdi)
+static int hp_6630a_init_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
@@ -665,7 +665,7 @@ static const struct scpi_command hp_6630b_cmd[] = {
 	ALL_ZERO
 };
 
-static int hp_6630b_init_aquisition(const struct sr_dev_inst *sdi)
+static int hp_6630b_init_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
@@ -1047,7 +1047,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1059,7 +1059,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(agilent_n5700a_cg),
 		agilent_n5700a_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1071,7 +1071,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(bk_9130_cg),
 		bk_9130_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1083,7 +1083,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(chroma_61604_cg),
 		chroma_61604_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1095,7 +1095,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		chroma_62000_cmd,
 		.probe_channels = chroma_62000p_probe_channels,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1112,7 +1112,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
-		hp_6630a_init_aquisition,
+		hp_6630a_init_acquisition,
 		hp_6630a_update_status,
 	},
 	*/
@@ -1125,7 +1125,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
-		hp_6630a_init_aquisition,
+		hp_6630a_init_acquisition,
 		hp_6630a_update_status,
 	},
 
@@ -1137,7 +1137,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
-		hp_6630a_init_aquisition,
+		hp_6630a_init_acquisition,
 		hp_6630a_update_status,
 	},
 
@@ -1149,7 +1149,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630a_cg),
 		hp_6630a_cmd,
 		.probe_channels = NULL,
-		hp_6630a_init_aquisition,
+		hp_6630a_init_acquisition,
 		hp_6630a_update_status,
 	},
 
@@ -1161,7 +1161,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1173,7 +1173,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1185,7 +1185,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1197,7 +1197,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1209,7 +1209,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1221,7 +1221,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1233,7 +1233,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1245,7 +1245,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1257,7 +1257,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_aquisition,
+		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
 	},
 
@@ -1269,7 +1269,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp700_cg),
 		rigol_dp700_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "Rigol", "^DP712$", SCPI_DIALECT_UNKNOWN, 0,
@@ -1279,7 +1279,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp700_cg),
 		rigol_dp700_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1291,7 +1291,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp820_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "Rigol", "^DP831A$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
@@ -1301,7 +1301,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp830_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "Rigol", "^(DP832|DP832A)$", SCPI_DIALECT_UNKNOWN, PPS_OTP,
@@ -1311,7 +1311,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rigol_dp830_cg),
 		rigol_dp800_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1323,7 +1323,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		philips_pm2800_cmd,
 		philips_pm2800_probe_channels,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 
@@ -1335,7 +1335,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmc8043_cg),
 		rs_hmc8043_cmd,
 		.probe_channels = NULL,
-		.init_aquisition = NULL,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 };

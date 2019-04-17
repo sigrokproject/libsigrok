@@ -764,9 +764,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Prime the pipe with the first channel. */
 	devc->cur_acquisition_channel = sr_next_enabled_channel(sdi, NULL);
 
-	/* Device specific initialization before aquisition starts. */
-	if (devc->device->init_aquisition)
-		devc->device->init_aquisition(sdi);
+	/* Device specific initialization before acquisition starts. */
+	if (devc->device->init_acquisition)
+		devc->device->init_acquisition(sdi);
 
 	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)
