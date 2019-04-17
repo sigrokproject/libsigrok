@@ -486,7 +486,6 @@ static const struct scpi_command hp_6630a_cmd[] = {
 static int hp_6630a_init_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
-	int ret;
 
 	scpi = sdi->conn;
 
@@ -494,11 +493,7 @@ static int hp_6630a_init_acquisition(const struct sr_dev_inst *sdi)
 	 * Monitor CV (1), CC+ (2), UR (4), OVP (8), OTP (16), OCP (64) and
 	 * CC- (256) bits of the Status Register for the FAULT? query.
 	 */
-	ret = sr_scpi_send(scpi, "UNMASK 607");
-	if (ret != SR_OK)
-		return ret;
-
-	return SR_OK;
+	return sr_scpi_send(scpi, "UNMASK 607");
 }
 
 static int hp_6630a_update_status(const struct sr_dev_inst *sdi)
@@ -553,7 +548,7 @@ static int hp_6630a_update_status(const struct sr_dev_inst *sdi)
 	regulation_changed = (fault & (1 << 9)) | regulation_changed;
 
 	if (regulation_changed) {
-		if (cv && !cc_pos && !cc_neg &&!unreg)
+		if (cv && !cc_pos && !cc_neg && !unreg)
 			regulation = "CV";
 		else if (cc_pos && !cv && !cc_neg && !unreg)
 			regulation = "CC";
@@ -561,7 +556,7 @@ static int hp_6630a_update_status(const struct sr_dev_inst *sdi)
 			regulation = "CC-";
 		else if (unreg && !cv && !cc_pos && !cc_neg)
 			regulation = "UR";
-		else if (!cv && !cc_pos && !cc_neg &&!unreg)
+		else if (!cv && !cc_pos && !cc_neg && !unreg)
 			regulation = "";
 		else {
 			sr_dbg("Undefined regulation for HP 66xxA "
@@ -779,8 +774,8 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 		/*
 		 * Check if output state has changed, due to one of the
 		 * questionable states changed.
-		 * NOTE: The output state is send even if it hasn't changed, but that
-		 * only happends rarely.
+		 * NOTE: The output state is sent even if it hasn't changed,
+		 * but that only happens rarely.
 		 */
 		ret = sr_scpi_get_bool(scpi, "OUTP:STAT?", &output_enabled);
 		if (ret != SR_OK)
@@ -812,7 +807,7 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 	}
 
 	if (regulation_changed) {
-		if (cv && !cc_pos && !cc_neg &&!unreg)
+		if (cv && !cc_pos && !cc_neg && !unreg)
 			regulation = "CV";
 		else if (cc_pos && !cv && !cc_neg && !unreg)
 			regulation = "CC";
@@ -820,11 +815,11 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 			regulation = "CC-";
 		else if (unreg && !cv && !cc_pos && !cc_neg)
 			regulation = "UR";
-		else if (!cv && !cc_pos && !cc_neg &&!unreg)
-			/* This happends in case of OCP active */
+		else if (!cv && !cc_pos && !cc_neg && !unreg)
+			/* This happens in case of OCP active. */
 			regulation = "";
 		else {
-			/* This happends from time to time (CV and CC+ active). */
+			/* This happens from time to time (CV and CC+ active). */
 			sr_dbg("Undefined regulation for HP 66xxB "
 				"(CV=%i, CC+=%i, CC-=%i, UR=%i).",
 				cv, cc_pos, cc_neg, unreg);

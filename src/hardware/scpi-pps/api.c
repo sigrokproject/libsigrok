@@ -153,7 +153,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 					ch = l->data;
 					pch = ch->priv;
 					/* Add mqflags from channel_group_spec only to voltage
-					 * and current channels
+					 * and current channels.
 					 */
 					if (pch->mq == SR_MQ_VOLTAGE || pch->mq == SR_MQ_CURRENT)
 						pch->mqflags = cgs->mqflags;
@@ -173,7 +173,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	/* Don't send SCPI_CMD_LOCAL for HP 66xxB devices using SCPI over GPIB */
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB using SCPI over GPIB. */
 	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
 			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
 		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
@@ -269,7 +269,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Don't send SCPI_CMD_REMOTE for HP 66xxB devices using SCPI over GPIB */
+	/* Don't send SCPI_CMD_REMOTE for HP 66xxB using SCPI over GPIB. */
 	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
 			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
 		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
@@ -303,7 +303,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 		sr_scpi_cmd(sdi, devc->device->commands,
 			0, NULL, SCPI_CMD_BEEPER_ENABLE);
 
-	/* Don't send SCPI_CMD_LOCAL for HP 66xxB devices using SCPI over GPIB */
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB using SCPI over GPIB. */
 	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
 			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
 		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
