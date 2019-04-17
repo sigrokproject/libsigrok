@@ -571,6 +571,12 @@ SR_PRIV void sr_hw_cleanup_all(const struct sr_context *ctx)
  *
  * A floating reference can be passed in for data.
  *
+ * @param key The config key to use.
+ * @param data The GVariant data to use.
+ *
+ * @return The newly allocated struct sr_config. This function is assumed
+ *         to never fail.
+ *
  * @private
  */
 SR_PRIV struct sr_config *sr_config_new(uint32_t key, GVariant *data)

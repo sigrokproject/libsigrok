@@ -1092,8 +1092,6 @@ SR_PRIV int sr_session_send_meta(const struct sr_dev_inst *sdi,
 	int ret;
 
 	cfg = sr_config_new(key, var);
-	if (!cfg)
-		return SR_ERR;
 
 	memset(&meta, 0, sizeof(meta));
 
