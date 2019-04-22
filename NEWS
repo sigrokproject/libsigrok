@@ -205,7 +205,7 @@ Note: This release DOES change the libsigrok API. That means it is NOT
      - LeCroy LogicStudio
      - mcupro Logic16 clone
      - Pipistrello OLS
-     - SysClk LWLA1016
+     - Sysclk LWLA1016
    - Oscilloscopes:
      - Rigol/Agilent DS1000Z series
      - Yokogawa DLM2000 series

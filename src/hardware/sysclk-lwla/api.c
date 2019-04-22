@@ -67,7 +67,7 @@ static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup("SysClk");
+	sdi->vendor = g_strdup("Sysclk");
 	sdi->model = g_strdup(model->name);
 	sdi->priv = devc;
 
@@ -79,7 +79,7 @@ static struct sr_dev_inst *dev_inst_new(const struct model_info *model)
 	return sdi;
 }
 
-/* Create a new device instance for a libusb device if it is a SysClk LWLA
+/* Create a new device instance for a libusb device if it is a Sysclk LWLA
  * device and also matches the connection specification.
  */
 static struct sr_dev_inst *dev_inst_new_matching(GSList *conn_matches,
@@ -121,7 +121,7 @@ static struct sr_dev_inst *dev_inst_new_matching(GSList *conn_matches,
 	} else {
 		if (conn_matches)
 			sr_warn("USB device %d.%d (%04x:%04x) is not a"
-				" SysClk LWLA.", bus, address, vid, pid);
+				" Sysclk LWLA.", bus, address, vid, pid);
 		return NULL;
 	}
 	sdi = dev_inst_new(model);
@@ -640,7 +640,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver sysclk_lwla_driver_info = {
 	.name = "sysclk-lwla",
-	.longname = "SysClk LWLA series",
+	.longname = "Sysclk LWLA series",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
