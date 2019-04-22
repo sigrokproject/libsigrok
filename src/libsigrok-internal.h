@@ -1054,7 +1054,7 @@ SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *st);
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf,
 		int len, int *pre_trigger_samples);
 
-/*--- hardware/serial.c -----------------------------------------------------*/
+/*--- serial.c --------------------------------------------------------------*/
 
 #ifdef HAVE_LIBSERIALPORT
 enum {
@@ -1098,7 +1098,7 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
 #endif
 
-/*--- hardware/ezusb.c ------------------------------------------------------*/
+/*--- ezusb.c ---------------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
@@ -1108,7 +1108,7 @@ SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
 				  int configuration, const char *name);
 #endif
 
-/*--- hardware/usb.c --------------------------------------------------------*/
+/*--- usb.c -----------------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
@@ -1176,7 +1176,7 @@ SR_PRIV int sr_modbus_write_multiple_registers(struct sr_modbus_dev_inst*modbus,
 SR_PRIV int sr_modbus_close(struct sr_modbus_dev_inst *modbus);
 SR_PRIV void sr_modbus_free(struct sr_modbus_dev_inst *modbus);
 
-/*--- hardware/dmm/es519xx.c ------------------------------------------------*/
+/*--- dmm/es519xx.c ---------------------------------------------------------*/
 
 /**
  * All 11-byte es519xx chips repeat each block twice for each conversion cycle
@@ -1222,7 +1222,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
 		float *floatval, struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/fs9922.c -------------------------------------------------*/
+/*--- dmm/fs9922.c ----------------------------------------------------------*/
 
 #define FS9922_PACKET_SIZE 14
 
@@ -1240,7 +1240,7 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/fs9721.c -------------------------------------------------*/
+/*--- dmm/fs9721.c ----------------------------------------------------------*/
 
 #define FS9721_PACKET_SIZE 14
 
@@ -1260,7 +1260,7 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/ms8250d.c ------------------------------------------------*/
+/*--- dmm/ms8250d.c ---------------------------------------------------------*/
 
 #define MS8250D_PACKET_SIZE 18
 
@@ -1275,7 +1275,7 @@ SR_PRIV gboolean sr_ms8250d_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ms8250d_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
+/*--- dmm/dtm0660.c ---------------------------------------------------------*/
 
 #define DTM0660_PACKET_SIZE 15
 
@@ -1291,7 +1291,7 @@ SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 			struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/m2110.c --------------------------------------------------*/
+/*--- dmm/m2110.c -----------------------------------------------------------*/
 
 #define BBCGM_M2110_PACKET_SIZE 9
 
@@ -1302,7 +1302,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/metex14.c ------------------------------------------------*/
+/*--- dmm/metex14.c ---------------------------------------------------------*/
 
 #define METEX14_PACKET_SIZE 14
 
@@ -1326,7 +1326,7 @@ SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/
+/*--- dmm/rs9lcd.c ----------------------------------------------------------*/
 
 #define RS9LCD_PACKET_SIZE 9
 
@@ -1337,7 +1337,7 @@ SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/bm25x.c --------------------------------------------------*/
+/*--- dmm/bm25x.c -----------------------------------------------------------*/
 
 #define BRYMEN_BM25X_PACKET_SIZE 15
 
@@ -1348,7 +1348,7 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/ut71x.c --------------------------------------------------*/
+/*--- dmm/ut71x.c -----------------------------------------------------------*/
 
 #define UT71X_PACKET_SIZE 11
 
@@ -1363,7 +1363,7 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/vc870.c --------------------------------------------------*/
+/*--- dmm/vc870.c -----------------------------------------------------------*/
 
 #define VC870_PACKET_SIZE 23
 
@@ -1384,7 +1384,7 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/vc96.c ---------------------------------------------------*/
+/*--- dmm/vc96.c ------------------------------------------------------------*/
 
 #define VC96_PACKET_SIZE 13
 
@@ -1399,7 +1399,7 @@ SR_PRIV gboolean sr_vc96_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/lcr/es51919.c ------------------------------------------------*/
+/*--- lcr/es51919.c ---------------------------------------------------------*/
 
 SR_PRIV void es51919_serial_clean(void *priv);
 SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
@@ -1417,7 +1417,7 @@ SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
 SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi);
 
-/*--- hardware/dmm/ut372.c --------------------------------------------------*/
+/*--- dmm/ut372.c -----------------------------------------------------------*/
 
 #define UT372_PACKET_SIZE 27
 
@@ -1429,7 +1429,7 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/asycii.c -------------------------------------------------*/
+/*--- dmm/asycii.c ----------------------------------------------------------*/
 
 #define ASYCII_PACKET_SIZE 16
 
@@ -1454,7 +1454,7 @@ SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
-/*--- src/dmm/eev121gw.c ----------------------------------------------------*/
+/*--- dmm/eev121gw.c --------------------------------------------------------*/
 
 #define EEV121GW_PACKET_SIZE 19
 
@@ -1497,7 +1497,7 @@ SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/scale/kern.c -------------------------------------------------*/
+/*--- scale/kern.c ----------------------------------------------------------*/
 
 struct kern_info {
 	gboolean is_gram, is_carat, is_ounce, is_pound, is_troy_ounce;
