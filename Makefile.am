@@ -554,6 +554,14 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/sysclk-lwla/protocol.c \
 	src/hardware/sysclk-lwla/api.c
 endif
+if HW_SYSCLK_SLA5032
+src_libdrivers_la_SOURCES += \
+	src/hardware/sysclk-sla5032/sla5032.h \
+	src/hardware/sysclk-sla5032/sla5032.c \
+	src/hardware/sysclk-sla5032/protocol.h \
+	src/hardware/sysclk-sla5032/protocol.c \
+	src/hardware/sysclk-sla5032/api.c
+endif
 if HW_TELEINFO
 src_libdrivers_la_SOURCES += \
 	src/hardware/teleinfo/protocol.h \
