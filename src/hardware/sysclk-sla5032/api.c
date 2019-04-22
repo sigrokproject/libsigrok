@@ -231,9 +231,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc->active_fpga_config = FPGA_NOCONF;
 	devc->state = STATE_IDLE;
 
-	ret = sla5032_apply_fpga_config(sdi);
-
-	return ret;
+	return sla5032_apply_fpga_config(sdi);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -332,8 +330,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limit_samples = value;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
-		value = g_variant_get_uint64(data);
-		devc->capture_ratio = value;
+		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	default:
 		/* Must not happen for a key listed in devopts. */

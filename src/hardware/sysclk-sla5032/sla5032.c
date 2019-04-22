@@ -213,15 +213,12 @@ static int la_read_reg(const struct sr_usb_dev_inst *usb, unsigned int reg, uint
 
 static int la_write_reg(const struct sr_usb_dev_inst *usb, unsigned int reg, uint32_t val)
 {
-	int ret;
 	uint32_t val_be;
 
 	val_be = GUINT32_TO_BE(val);
 
-	ret = la_write_cmd_buf(usb, CMD_WRITE_REG, reg * sizeof(uint32_t),
+	return la_write_cmd_buf(usb, CMD_WRITE_REG, reg * sizeof(uint32_t),
 			sizeof(val_be), &val_be); /* wr reg */
-
-	return ret;
 }
 
 static int la_read_mem(const struct sr_usb_dev_inst *usb, unsigned int addr, unsigned int len, void *data)
@@ -245,10 +242,7 @@ static int la_read_mem(const struct sr_usb_dev_inst *usb, unsigned int addr, uns
 
 static int la_read_samples(const struct sr_usb_dev_inst *usb, unsigned int addr)
 {
-	int ret;
-
-	ret = la_write_cmd_buf(usb, CMD_READ_DATA, addr, 0, NULL); /* rd samples */
-	return ret;
+	return la_write_cmd_buf(usb, CMD_READ_DATA, addr, 0, NULL); /* rd samples */
 }
 
 SR_PRIV int sla5032_set_depth(const struct sr_usb_dev_inst *usb, uint32_t pre, uint32_t post)
@@ -260,9 +254,7 @@ SR_PRIV int sla5032_set_depth(const struct sr_usb_dev_inst *usb, uint32_t pre, u
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_write_reg(usb, 6, post);
-
-	return ret;
+	return la_write_reg(usb, 6, post);
 }
 
 SR_PRIV int sla5032_set_triggers(const struct sr_usb_dev_inst *usb,
@@ -281,9 +273,7 @@ SR_PRIV int sla5032_set_triggers(const struct sr_usb_dev_inst *usb,
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_write_reg(usb, 2, trg_mask);
-
-	return ret;
+	return la_write_reg(usb, 2, trg_mask);
 }
 
 static int la_set_res_reg_bit(const struct sr_usb_dev_inst *usb,
@@ -302,9 +292,7 @@ static int la_set_res_reg_bit(const struct sr_usb_dev_inst *usb,
 	else
 		v &= ~(1u << bit);
 
-	ret = la_write_reg(usb, reg, v);
-
-	return ret;
+	return la_write_reg(usb, reg, v);
 }
 
 struct pll_tbl_entry_t
@@ -369,10 +357,8 @@ SR_PRIV int sla5032_set_samplerate(const struct sr_usb_dev_inst *usb, unsigned i
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_set_res_reg_bit(usb, 5, 7,
+	return la_set_res_reg_bit(usb, 5, 7,
 		(e->pll_mul_flags & PLL_MUL1_25) ? 0 : 1); /* bit7 (0=en_mul_1.25) */
-
-	return ret;
 }
 
 SR_PRIV int sla5032_start_sample(const struct sr_usb_dev_inst *usb)
@@ -419,9 +405,7 @@ SR_PRIV int sla5032_start_sample(const struct sr_usb_dev_inst *usb)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_set_res_reg_bit(usb, 5, 2, 1);
-
-	return ret;
+	return la_set_res_reg_bit(usb, 5, 2, 1);
 }
 
 SR_PRIV int sla5032_get_status(const struct sr_usb_dev_inst *usb, uint32_t status[3])
@@ -457,12 +441,8 @@ SR_PRIV int sla5032_get_status(const struct sr_usb_dev_inst *usb, uint32_t statu
 static int la_read_samples_data(const struct sr_usb_dev_inst *usb, void *buf,
 		unsigned int len, int *xfer_len)
 {
-	int ret;
-
-	ret = libusb_bulk_transfer(usb->devhdl, EP_DATA, (uint8_t *)buf, len,
+	return libusb_bulk_transfer(usb->devhdl, EP_DATA, (uint8_t *)buf, len,
 			xfer_len, USB_DATA_TIMEOUT_MS);
-
-	return ret;
 }
 
 SR_PRIV int sla5032_read_data_chunk(const struct sr_usb_dev_inst *usb,
@@ -486,9 +466,7 @@ SR_PRIV int sla5032_read_data_chunk(const struct sr_usb_dev_inst *usb,
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_read_samples_data(usb, buf, len, xfer_len);
-
-	return ret;
+	return la_read_samples_data(usb, buf, len, xfer_len);
 }
 
 SR_PRIV int sla5032_set_read_back(const struct sr_usb_dev_inst *usb)
@@ -499,9 +477,7 @@ SR_PRIV int sla5032_set_read_back(const struct sr_usb_dev_inst *usb)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_write_reg(usb, 5, 0x28);
-
-	return ret;
+	return la_write_reg(usb, 5, 0x28);
 }
 
 SR_PRIV int sla5032_set_pwm1(const struct sr_usb_dev_inst* usb, uint32_t hi, uint32_t lo)
@@ -512,9 +488,7 @@ SR_PRIV int sla5032_set_pwm1(const struct sr_usb_dev_inst* usb, uint32_t hi, uin
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_write_reg(usb, 10, lo);
-
-	return ret;
+	return la_write_reg(usb, 10, lo);
 }
 
 SR_PRIV int sla5032_set_pwm2(const struct sr_usb_dev_inst* usb, uint32_t hi, uint32_t lo)
@@ -525,18 +499,12 @@ SR_PRIV int sla5032_set_pwm2(const struct sr_usb_dev_inst* usb, uint32_t hi, uin
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_write_reg(usb, 12, lo);
-
-	return ret;
+	return la_write_reg(usb, 12, lo);
 }
 
 SR_PRIV int sla5032_write_reg14_zero(const struct sr_usb_dev_inst* usb)
 {
-	int ret;
-
-	ret = la_write_reg(usb, 14, 0);
-
-	return ret;
+	return la_write_reg(usb, 14, 0);
 }
 
 static int la_cfg_fpga_done(const struct sr_usb_dev_inst *usb, unsigned int addr)
