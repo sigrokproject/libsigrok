@@ -241,11 +241,11 @@ SR_PRIV int la_start_acquisition(const struct sr_dev_inst *sdi)
 
 	sr_dbg("start acquision, pre: %" PRIu64 ", post: %" PRIu64 ".", pre, post);
 	pre /= 256;
-	pre = max(pre, 2);
+	pre = MAX(pre, 2);
 	pre--;
 
 	post /= 256;
-	post = max(post, 2);
+	post = MAX(post, 2);
 	post--;
 
 	sr_dbg("start acquision, pre: %" PRIx64 ", post: %" PRIx64 ".", pre, post);
