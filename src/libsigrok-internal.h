@@ -26,15 +26,15 @@
 #ifndef LIBSIGROK_LIBSIGROK_INTERNAL_H
 #define LIBSIGROK_LIBSIGROK_INTERNAL_H
 
-#include <stdarg.h>
-#include <stdio.h>
 #include <glib.h>
-#ifdef HAVE_LIBUSB_1_0
-#include <libusb.h>
-#endif
 #ifdef HAVE_LIBSERIALPORT
 #include <libserialport.h>
 #endif
+#ifdef HAVE_LIBUSB_1_0
+#include <libusb.h>
+#endif
+#include <stdarg.h>
+#include <stdio.h>
 
 struct zip;
 struct zip_stat;
