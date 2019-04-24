@@ -364,48 +364,22 @@ SR_PRIV int sla5032_set_samplerate(const struct sr_usb_dev_inst *usb, unsigned i
 SR_PRIV int sla5032_start_sample(const struct sr_usb_dev_inst *usb)
 {
 	int ret;
+	const unsigned int bits[10][2] = {
+		{2, 0}, {3, 0}, {5, 0}, {6, 1}, {1, 1},
+		{1, 0}, {8, 1}, {8, 0}, {6, 1}, {2, 1},
+	};
 
 	ret = la_write_reg(usb, 14, 1);
 	if (ret != SR_OK)
 		return ret;
 
-	ret = la_set_res_reg_bit(usb, 5, 2, 0);
-	if (ret != SR_OK)
-		return ret;
+	for (size_t i = 0; i < ARRAY_SIZE(bits); i++) {
+		ret = la_set_res_reg_bit(usb, 5, bits[i][0], bits[i][1]);
+		if (ret != SR_OK)
+			return ret;
+	}
 
-	ret = la_set_res_reg_bit(usb, 5, 3, 0);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 5, 0);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 6, 1);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 1, 1);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 1, 0);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 8, 1);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 8, 0);
-	if (ret != SR_OK)
-		return ret;
-
-	ret = la_set_res_reg_bit(usb, 5, 6, 1);
-	if (ret != SR_OK)
-		return ret;
-
-	return la_set_res_reg_bit(usb, 5, 2, 1);
+	return ret;
 }
 
 SR_PRIV int sla5032_get_status(const struct sr_usb_dev_inst *usb, uint32_t status[3])
