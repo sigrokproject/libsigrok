@@ -107,6 +107,6 @@ struct dev_context {
 };
 
 SR_PRIV int sla5032_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int sla5032_apply_fpga_config(const struct sr_dev_inst* sdi);
+SR_PRIV int sla5032_apply_fpga_config(const struct sr_dev_inst *sdi);
 
 #endif

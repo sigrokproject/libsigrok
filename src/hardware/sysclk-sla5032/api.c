@@ -369,15 +369,15 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 }
 
 /* Derive trigger masks from the session's trigger configuration. */
-static int prepare_trigger_masks(const struct sr_dev_inst* sdi)
+static int prepare_trigger_masks(const struct sr_dev_inst *sdi)
 {
 	uint32_t trigger_mask, trigger_values, trigger_edge_mask;
 	uint32_t level_bit, type_bit;
-	struct dev_context* devc;
-	struct sr_trigger* trigger;
-	struct sr_trigger_stage* stage;
-	struct sr_trigger_match* match;
-	const GSList* node;
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	const GSList *node;
 	int idx;
 	enum sr_trigger_matches trg;
 

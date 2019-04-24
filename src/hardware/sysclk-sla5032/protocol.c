@@ -454,7 +454,7 @@ static int sla5032_set_read_back(const struct sr_usb_dev_inst *usb)
 	return la_write_reg(usb, 5, 0x28);
 }
 
-static int sla5032_set_pwm1(const struct sr_usb_dev_inst* usb, uint32_t hi, uint32_t lo)
+static int sla5032_set_pwm1(const struct sr_usb_dev_inst *usb, uint32_t hi, uint32_t lo)
 {
 	int ret;
 
@@ -465,7 +465,7 @@ static int sla5032_set_pwm1(const struct sr_usb_dev_inst* usb, uint32_t hi, uint
 	return la_write_reg(usb, 10, lo);
 }
 
-static int sla5032_set_pwm2(const struct sr_usb_dev_inst* usb, uint32_t hi, uint32_t lo)
+static int sla5032_set_pwm2(const struct sr_usb_dev_inst *usb, uint32_t hi, uint32_t lo)
 {
 	int ret;
 
@@ -476,7 +476,7 @@ static int sla5032_set_pwm2(const struct sr_usb_dev_inst* usb, uint32_t hi, uint
 	return la_write_reg(usb, 12, lo);
 }
 
-static int sla5032_write_reg14_zero(const struct sr_usb_dev_inst* usb)
+static int sla5032_write_reg14_zero(const struct sr_usb_dev_inst *usb)
 {
 	return la_write_reg(usb, 14, 0);
 }
@@ -575,7 +575,7 @@ static unsigned char *load_bitstream(struct sr_context *ctx,
 	return fw_data;
 }
 
-static int sla5032_is_configured(const struct sr_usb_dev_inst* usb, gboolean *is_configured)
+static int sla5032_is_configured(const struct sr_usb_dev_inst *usb, gboolean *is_configured)
 {
 	int ret;
 	uint32_t reg2;
@@ -870,7 +870,7 @@ SR_PRIV int sla5032_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	struct sr_trigger* trigger;
+	struct sr_trigger *trigger;
 	int ret;
 	enum { poll_interval_ms = 100 };
 	uint64_t pre, post;
