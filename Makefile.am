@@ -556,8 +556,6 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_SYSCLK_SLA5032
 src_libdrivers_la_SOURCES += \
-	src/hardware/sysclk-sla5032/sla5032.h \
-	src/hardware/sysclk-sla5032/sla5032.c \
 	src/hardware/sysclk-sla5032/protocol.h \
 	src/hardware/sysclk-sla5032/protocol.c \
 	src/hardware/sysclk-sla5032/api.c

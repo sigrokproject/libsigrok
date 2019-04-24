@@ -26,7 +26,6 @@
 #include <libsigrok/libsigrok.h>
 #include <libsigrok-internal.h>
 #include "protocol.h"
-#include "sla5032.h"
 
  /* Number of logic channels. */
 #define NUM_CHANNELS	32
