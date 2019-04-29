@@ -18,7 +18,6 @@
  */
 
 #include <config.h>
-#include <libserialport.h>
 #include <scpi.h>
 #include <string.h>
 
