@@ -149,6 +149,28 @@ Example:
  $ sigrok-cli --driver <somedriver>:conn=hid/cp2110 ...
  $ sigrok-cli --driver <somedriver>:conn=bt/rfcomm/01-23-45-67-89-ab ...
 
+Formal syntax for serial communication:
+
+ - COM ports (RS232, USB CDC):
+   conn=<com-port>
+ - USB HID cables:
+   conn=hid[/<chip>]
+   conn=hid[/<chip>]/usb=<bus>.<dev>[.<if>]
+   conn=hid[/<chip>]/raw=<path>
+   conn=hid[/<chip>]/sn=<serno>
+   chip can be: ch9325, cp2110
+   path may contain slashes
+   path and serno are "greedy" (span to the end of the spec)
+ - Bluetooth Classic and Bluetooth Low Energy (BLE):
+   conn=bt/<conn>/<addr>
+   conn can be: rfcomm, ble122, nrf51, cc254x
+   addr can be "dense" or separated, bt/cc254x/0123456789ab or
+     bt/rfcomm/11-22-33-44-55-66 or bt/ble122/88:6b:12:34:56:78
+     (note that colons may not be available when the conn= spec is taken
+     from a string that separates fields by colon, e.g. in the "--driver
+     <name>:conn=<spec>" example, that is why the dense form and the use
+     of dashes for separation are supported)
+
 The following drivers/devices require a serial port specification. Some of
 the drivers implement a default for the connection. Some of the drivers
 can auto-detect USB connected devices.
@@ -197,7 +219,7 @@ The following drivers/devices do not require a serial port specification:
  - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
 
-Beyond strict serial communication over COM ports (e.g. /dev/ttyUSB0), the
+Beyond strict serial communication over COM ports (discussed above), the
 conn= property can also address specific USB devices, as well as specify TCP
 or VXI communication parameters. See these examples:
 
