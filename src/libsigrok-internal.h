@@ -1619,21 +1619,26 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 
 /*--- lcr/es51919.c ---------------------------------------------------------*/
 
-SR_PRIV void es51919_serial_clean(void *priv);
-SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
-						const char *vendor,
-						const char *model);
-SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
-				       const struct sr_dev_inst *sdi,
-				       const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi);
-SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi);
+/* Acquisition details which apply to all supported serial-lcr devices. */
+struct lcr_parse_info {
+	size_t ch_idx;
+	uint64_t output_freq;
+	const char *circuit_model;
+};
+
+#define ES51919_PACKET_SIZE	17
+#define ES51919_CHANNEL_COUNT	2
+#define ES51919_COMM_PARAM	"9600/8n1/rts=1/dtr=1"
+
+SR_PRIV int es51919_config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int es51919_config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int es51919_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV gboolean es51919_packet_valid(const uint8_t *pkt);
+SR_PRIV int es51919_packet_parse(const uint8_t *pkt, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
 
 /*--- dmm/ut372.c -----------------------------------------------------------*/
 

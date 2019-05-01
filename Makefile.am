@@ -546,6 +546,8 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_SERIAL_LCR
 src_libdrivers_la_SOURCES += \
+	src/hardware/serial-lcr/protocol.h \
+	src/hardware/serial-lcr/protocol.c \
 	src/hardware/serial-lcr/api.c
 endif
 if HW_SIGLENT_SDS
