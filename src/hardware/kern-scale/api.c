@@ -153,7 +153,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-#define SCALE(ID, CHIPSET, VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \
+#define SCALE(ID, CHIPSET, VENDOR, MODEL, CONN, PACKETSIZE, \
 			VALID, PARSE) \
 	&((struct scale_info) { \
 		{ \
@@ -174,7 +174,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
 			.context = NULL, \
 		}, \
-		VENDOR, MODEL, CONN, BAUDRATE, PACKETSIZE, \
+		VENDOR, MODEL, CONN, PACKETSIZE, \
 		VALID, PARSE, sizeof(struct CHIPSET##_info) \
 	}).di
 
@@ -191,7 +191,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 SR_REGISTER_DEV_DRIVER_LIST(kern_scale_drivers,
 	SCALE(
 		"kern-ew-6200-2nm", kern,
-		"KERN", "EW 6200-2NM", "1200/8n2", 1200,
+		"KERN", "EW 6200-2NM", "1200/8n2",
 		15 /* (or 14) */, sr_kern_packet_valid, sr_kern_parse
 	)
 );
