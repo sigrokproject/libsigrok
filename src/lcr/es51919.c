@@ -209,7 +209,7 @@ static int serial_stream_check_buf(struct sr_serial_dev_inst *serial,
 				   uint8_t *buf, size_t buflen,
 				   size_t packet_size,
 				   packet_valid_callback is_valid,
-				   uint64_t timeout_ms, int baudrate)
+				   uint64_t timeout_ms)
 {
 	size_t len, dropped;
 	int ret;
@@ -221,7 +221,7 @@ static int serial_stream_check_buf(struct sr_serial_dev_inst *serial,
 
 	len = buflen;
 	ret = serial_stream_detect(serial, buf, &len, packet_size,
-				   is_valid, timeout_ms, baudrate);
+				   is_valid, timeout_ms);
 
 	serial_close(serial);
 
@@ -245,12 +245,12 @@ static int serial_stream_check_buf(struct sr_serial_dev_inst *serial,
 static int serial_stream_check(struct sr_serial_dev_inst *serial,
 			       size_t packet_size,
 			       packet_valid_callback is_valid,
-			       uint64_t timeout_ms, int baudrate)
+			       uint64_t timeout_ms)
 {
 	uint8_t buf[128];
 
 	return serial_stream_check_buf(serial, buf, sizeof(buf), packet_size,
-				       is_valid, timeout_ms, baudrate);
+				       is_valid, timeout_ms);
 }
 
 /*
@@ -713,8 +713,7 @@ SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
 	if (!(serial = serial_dev_new(options, "9600/8n1/rts=1/dtr=1")))
 		goto scan_cleanup;
 
-	ret = serial_stream_check(serial, PACKET_SIZE, packet_valid,
-				  3000, 9600);
+	ret = serial_stream_check(serial, PACKET_SIZE, packet_valid, 3000);
 	if (ret != SR_OK)
 		goto scan_cleanup;
 

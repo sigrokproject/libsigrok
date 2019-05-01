@@ -749,9 +749,6 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
  * @param is_valid Callback that assesses whether the packet is valid or not.
  * @param[in] timeout_ms The timeout after which, if no packet is detected, to
  *                       abort scanning.
- * @param[in] baudrate The baudrate of the serial port. This parameter is not
- *                     critical, but it helps fine tune the serial port polling
- *                     delay.
  *
  * @retval SR_OK Valid packet was found within the given timeout.
  * @retval SR_ERR Failure.
@@ -762,7 +759,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 	uint8_t *buf, size_t *buflen,
 	size_t packet_size,
 	packet_valid_callback is_valid,
-	uint64_t timeout_ms, int baudrate)
+	uint64_t timeout_ms)
 {
 	uint64_t start, time, byte_delay_us;
 	size_t ibuf, i, maxlen;
@@ -770,16 +767,16 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 
 	maxlen = *buflen;
 
-	sr_dbg("Detecting packets on %s (timeout = %" PRIu64
-	       "ms, baudrate = %d).", serial->port, timeout_ms, baudrate);
+	sr_dbg("Detecting packets on %s (timeout = %" PRIu64 "ms).",
+		serial->port, timeout_ms);
 
-	if (maxlen < (packet_size / 2) ) {
+	if (maxlen < (packet_size * 2) ) {
 		sr_err("Buffer size must be at least twice the packet size.");
 		return SR_ERR;
 	}
 
 	/* Assume 8n1 transmission. That is 10 bits for every byte. */
-	byte_delay_us = 10 * ((1000 * 1000) / baudrate);
+	byte_delay_us = serial_timeout(serial, 1) * 1000;
 	start = g_get_monotonic_time();
 
 	i = ibuf = len = 0;
