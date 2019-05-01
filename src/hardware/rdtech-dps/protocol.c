@@ -21,6 +21,21 @@
 #include <config.h>
 #include "protocol.h"
 
+SR_PRIV int rdtech_dps_read_holding_registers(struct sr_modbus_dev_inst *modbus,
+		int address, int nb_registers, uint16_t *registers)
+{
+	int i, ret;
+
+	i = 0;
+	do {
+		ret = sr_modbus_read_holding_registers(modbus,
+			address, nb_registers, registers);
+		++i;
+	} while (ret != SR_OK && i < 3);
+
+	return ret;
+}
+
 SR_PRIV int rdtech_dps_get_reg(const struct sr_dev_inst *sdi,
 		uint16_t address, uint16_t *value)
 {
@@ -33,7 +48,7 @@ SR_PRIV int rdtech_dps_get_reg(const struct sr_dev_inst *sdi,
 	modbus = sdi->conn;
 
 	g_mutex_lock(&devc->rw_mutex);
-	ret = sr_modbus_read_holding_registers(modbus, address, 1, registers);
+	ret = rdtech_dps_read_holding_registers(modbus, address, 1, registers);
 	g_mutex_unlock(&devc->rw_mutex);
 	*value = RB16(registers + 0);
 	return ret;
@@ -67,7 +82,7 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 	 * No mutex here, because there is no sr_dev_inst when this function
 	 * is called.
 	 */
-	ret = sr_modbus_read_holding_registers(modbus, REG_MODEL, 2, registers);
+	ret = rdtech_dps_read_holding_registers(modbus, REG_MODEL, 2, registers);
 	if (ret == SR_OK) {
 		*model = RB16(registers + 0);
 		*version = RB16(registers + 1);
@@ -119,6 +134,10 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 
 	g_mutex_lock(&devc->rw_mutex);
+	/*
+	 * Using the libsigrok function here, because it doesn't matter if the
+	 * reading fails. It will be done again in the next acquision cycle anyways.
+	 */
 	ret = sr_modbus_read_holding_registers(modbus, REG_UOUT, 3, registers);
 	g_mutex_unlock(&devc->rw_mutex);
 

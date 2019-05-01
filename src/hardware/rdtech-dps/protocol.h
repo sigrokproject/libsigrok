@@ -85,6 +85,9 @@ enum rdtech_dps_mode {
 	MODE_CC      = 1,
 };
 
+SR_PRIV int rdtech_dps_read_holding_registers(struct sr_modbus_dev_inst *modbus,
+		int address, int nb_registers, uint16_t *registers);
+
 SR_PRIV int rdtech_dps_get_reg(const struct sr_dev_inst *sdi, uint16_t address, uint16_t *value);
 SR_PRIV int rdtech_dps_set_reg(const struct sr_dev_inst *sdi, uint16_t address, uint16_t value);
 
