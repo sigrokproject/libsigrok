@@ -1732,8 +1732,10 @@ SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
 
 struct sr_sw_limits {
 	uint64_t limit_samples;
+	uint64_t limit_frames;
 	uint64_t limit_msec;
 	uint64_t samples_read;
+	uint64_t frames_read;
 	uint64_t start_time;
 };
 
@@ -1745,6 +1747,8 @@ SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits);
 SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits);
 SR_PRIV void sr_sw_limits_update_samples_read(struct sr_sw_limits *limits,
 	uint64_t samples_read);
+SR_PRIV void sr_sw_limits_update_frames_read(struct sr_sw_limits *limits,
+	uint64_t frames_read);
 SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits);
 
 #endif
