@@ -1260,6 +1260,30 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/ms2115b.c ---------------------------------------------------------*/
+
+#define MS2115B_PACKET_SIZE 9
+
+enum ms2115b_display {
+	MS2115B_DISPLAY_MAIN,
+	MS2115B_DISPLAY_SUB,
+	MS2115B_DISPLAY_COUNT,
+};
+
+struct ms2115b_info {
+	/* Selected channel. */
+	size_t ch_idx;
+	gboolean is_ac, is_dc, is_auto;
+	gboolean is_diode, is_beep, is_farad;
+	gboolean is_ohm, is_ampere, is_volt, is_hz;
+	gboolean is_duty_cycle, is_percent;
+};
+
+extern SR_PRIV const char *ms2115b_channel_formats[];
+SR_PRIV gboolean sr_ms2115b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ms2115b_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
 /*--- dmm/ms8250d.c ---------------------------------------------------------*/
 
 #define MS8250D_PACKET_SIZE 18

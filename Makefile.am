@@ -155,6 +155,7 @@ libsigrok_la_SOURCES += \
 	src/dmm/fs9922.c \
 	src/dmm/m2110.c \
 	src/dmm/metex14.c \
+	src/dmm/ms2115b.c \
 	src/dmm/ms8250d.c \
 	src/dmm/rs9lcd.c \
 	src/dmm/ut372.c \

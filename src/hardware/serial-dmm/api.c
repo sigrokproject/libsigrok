@@ -140,6 +140,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
 		dmm->channel_formats = eev121gw_channel_formats;
 	}
+	if (dmm->packet_parse == sr_ms2115b_parse) {
+		dmm->channel_count = MS2115B_DISPLAY_COUNT;
+		dmm->channel_formats = ms2115b_channel_formats;
+	}
 	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
 		size_t ch_num;
 		const char *fmt;
@@ -450,6 +454,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"BBC Goertz Metrawatt", "M2110", "1200/7n2", 1200,
 		BBCGM_M2110_PACKET_SIZE, 0, 0, NULL,
 		sr_m2110_packet_valid, sr_m2110_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms2115b based meters {{{ */
+	DMM(
+		"mastech-ms2115b", ms2115b,
+		"MASTECH", "MS2115B", "1200/8n1",
+		1200, MS2115B_PACKET_SIZE, 0, 0, NULL,
+		sr_ms2115b_packet_valid, sr_ms2115b_parse,
 		NULL
 	),
 	/* }}} */
