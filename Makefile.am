@@ -730,7 +730,7 @@ nodist_bindings_cxx_libsigrokcxx_la_include_HEADERS = \
 pkgconfig_DATA += bindings/cxx/libsigrokcxx.pc
 
 doxy/xml/index.xml: include/libsigrok/libsigrok.h
-	$(AM_V_GEN)cd $(srcdir) && BUILDDIR=$(abs_builddir)/ doxygen Doxyfile 2>/dev/null
+	$(AM_V_GEN)cd $(srcdir) && SRCDIR=$(abs_srcdir)/ BUILDDIR=$(abs_builddir)/ doxygen Doxyfile 2>/dev/null
 
 bindings/swig/enums.i: bindings/cxx/enums.timestamp
 bindings/cxx/enums.cpp: bindings/cxx/enums.timestamp
@@ -765,7 +765,7 @@ CPPXMLDOC = bindings/cxx/doxy/xml/index.xml
 
 $(CPPXMLDOC): bindings/cxx/include/libsigrokcxx/libsigrokcxx.hpp \
 		bindings/cxx/enums.timestamp
-	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
+	$(AM_V_GEN)cd $(srcdir)/bindings/cxx && SRCDIR=$(abs_srcdir)/bindings/cxx/ BUILDDIR=$(abs_builddir)/bindings/cxx/ doxygen Doxyfile 2>/dev/null
 
 # Macro definitions to be used by the SWIG parser.
 swig_defs = -Dnoexcept= -Dprivate=protected -DG_GNUC_BEGIN_IGNORE_DEPRECATIONS= -DG_GNUC_END_IGNORE_DEPRECATIONS=
@@ -813,7 +813,7 @@ python-clean:
 	-$(AM_V_at)$(setup_py) clean --all 2>/dev/null
 
 python-doc:
-	$(AM_V_at)cd $(srcdir)/$(PDIR) && BUILDDIR="$(abs_builddir)/$(PDIR)/" doxygen Doxyfile 2>/dev/null
+	$(AM_V_at)cd $(srcdir)/$(PDIR) && SRCDIR="$(abs_srcdir)/$(PDIR)/" BUILDDIR="$(abs_builddir)/$(PDIR)/" doxygen Doxyfile 2>/dev/null
 
 BUILD_EXTRA += python-build
 INSTALL_EXTRA += python-install
@@ -930,7 +930,7 @@ java-clean:
 	-$(AM_V_at)rm -fr $(JDIR)/doxy
 
 java-doc:
-	$(AM_V_at)cd $(srcdir)/$(JDIR) && BUILDDIR="$(abs_builddir)/$(JDIR)/" doxygen Doxyfile
+	$(AM_V_at)cd $(srcdir)/$(JDIR) && SRCDIR="$(abs_srcdir)/$(JDIR)/" BUILDDIR="$(abs_builddir)/$(JDIR)/" doxygen Doxyfile
 
 BUILD_EXTRA += java-build
 INSTALL_EXTRA += java-install
