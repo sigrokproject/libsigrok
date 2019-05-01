@@ -61,8 +61,9 @@ This is a rough overview of what you need to do in order to add a new driver
 (using the Tondaj SL-814 device as example). It's basically what the
 'new-driver' script (see above) does for you:
 
- - Makefile.am: Add HW_TONDAJ_SL_814 and add to libsigrok_la_SOURCES.
- - configure.ac: Add a DRIVER() and DRIVER2() call.
+ - Makefile.am: Add to src_libdrivers_la_SOURCES under the HW_TONDAJ_SL_814
+   condition.
+ - configure.ac: Add an SR_DRIVER() call.
  - src/drivers.c: Add a tondaj_sl_814_driver_info entry in two places.
  - src/hardware/tondaj-sl-814/ directory: Add api.c, protocol.c, protocol.h.
 
