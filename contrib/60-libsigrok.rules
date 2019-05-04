@@ -33,7 +33,7 @@
 #
 
 ACTION!="add|change", GOTO="libsigrok_rules_end"
-SUBSYSTEM!="usb|usbmisc|usb_device", GOTO="libsigrok_rules_end"
+SUBSYSTEM!="usb|usbmisc|usb_device|hidraw", GOTO="libsigrok_rules_end"
 
 # Agilent USBTMC-connected devices
 # 34405A
