@@ -428,8 +428,7 @@ static int prime_fpga(const struct sr_dev_inst *sdi)
 		return ret;
 
 	if (version != 0x10 && version != 0x13 && version != 0x40 && version != 0x41) {
-		sr_err("Unsupported FPGA version: 0x%02x.", version);
-		return SR_ERR;
+		sr_warn("Unsupported FPGA version: 0x%02x.", version);
 	}
 
 	return SR_OK;
