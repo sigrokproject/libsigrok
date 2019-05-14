@@ -88,6 +88,7 @@ libsigrok_la_SOURCES += \
 	src/input/chronovu_la8.c \
 	src/input/csv.c \
 	src/input/logicport.c \
+	src/input/protocoldata.c \
 	src/input/raw_analog.c \
 	src/input/saleae.c \
 	src/input/trace32_ad.c \
