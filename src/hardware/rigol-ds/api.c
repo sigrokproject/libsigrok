@@ -183,6 +183,7 @@ enum series {
 	DSO1000B,
 	DS1000Z,
 	DS4000,
+	MSO5000,
 	MSO7000A,
 };
 
@@ -212,6 +213,8 @@ static const struct rigol_ds_series supported_series[] = {
 		{50, 1}, {1, 1000}, 12, 1200, 12000000},
 	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{1000, 1}, {1, 1000}, 14, 1400, 0},
+	[MSO5000] = {VENDOR(RIGOL), "MSO5000", PROTOCOL_V5, FORMAT_IEEE488_2,
+		{1000, 1}, {500, 1000000}, 10, 1000, 0},
 	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
 };
@@ -276,6 +279,12 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(MSO5000), "MSO5072", {1, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(MSO5000), "MSO5074", {1, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(MSO5000), "MSO5102", {1, 1000000000}, CH_INFO(2, true), std_cmd},
+	{SERIES(MSO5000), "MSO5104", {1, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(MSO5000), "MSO5204", {1, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(MSO5000), "MSO5354", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	/* TODO: Digital channels are not yet supported on MSO7000A. */
 	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
 };
@@ -871,6 +880,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_datafeed_packet packet;
 	gboolean some_digital;
 	GSList *l;
+	char *cmd;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -913,9 +923,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (rigol_ds_config_set(sdi,
-						devc->model->series->protocol >= PROTOCOL_V3 ?
-							":LA:DIG%d:DISP %s" : ":DIG%d:TURN %s", ch->index,
+				if (devc->model->series->protocol >= PROTOCOL_V5)
+					cmd = ":LA:DISP D%d,%s";
+				else if (devc->model->series->protocol >= PROTOCOL_V3)
+					cmd = ":LA:DIG%d:DISP %s";
+				else
+					cmd = ":DIG%d:TURN %s";
+
+				if (rigol_ds_config_set(sdi, cmd, ch->index,
 						ch->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
 				devc->digital_channels[ch->index] = ch->enabled;

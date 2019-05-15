@@ -370,6 +370,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 		break;
 	case PROTOCOL_V3:
 	case PROTOCOL_V4:
+	case PROTOCOL_V5:
 		if (rigol_ds_config_set(sdi, ":WAV:FORM BYTE") != SR_OK)
 			return SR_ERR;
 		if (devc->data_source == DATA_SOURCE_LIVE) {
@@ -382,7 +383,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 			if (devc->model->series->protocol == PROTOCOL_V3) {
 				if (rigol_ds_config_set(sdi, ":WAV:MODE RAW") != SR_OK)
 					return SR_ERR;
-			} else if (devc->model->series->protocol == PROTOCOL_V4) {
+			} else if (devc->model->series->protocol >= PROTOCOL_V4) {
 				num_channels = 0;
 
 				/* Channels 3 and 4 are multiplexed with D0-7 and D8-15 */
@@ -477,6 +478,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		}
 		break;
 	case PROTOCOL_V4:
+	case PROTOCOL_V5:
 		if (ch->type == SR_CHANNEL_ANALOG) {
 			if (rigol_ds_config_set(sdi, ":WAV:SOUR CHAN%d",
 					ch->index + 1) != SR_OK)
@@ -736,7 +738,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		// TODO: For the MSO1000Z series, we need a way to express that
 		// this data is in fact just for a single channel, with the valid
 		// data for that channel in the LSB of each byte.
-		logic.unitsize = devc->model->series->protocol == PROTOCOL_V4 ? 1 : 2;
+		logic.unitsize = devc->model->series->protocol >= PROTOCOL_V4 ? 1 : 2;
 		logic.data = devc->buffer;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
@@ -849,9 +851,12 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		sr_dbg("Logic analyzer %s, current digital channel state:",
 				devc->la_enabled ? "enabled" : "disabled");
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
-			cmd = g_strdup_printf(
-				devc->model->series->protocol >= PROTOCOL_V3 ?
-					":LA:DIG%d:DISP?" : ":DIG%d:TURN?", i);
+			if (devc->model->series->protocol >= PROTOCOL_V5)
+				cmd = g_strdup_printf(":LA:DISP? D%d", i);
+			else if (devc->model->series->protocol >= PROTOCOL_V3)
+				cmd = g_strdup_printf(":LA:DIG%d:DISP?", i);
+			else
+				cmd = g_strdup_printf(":DIG%d:TURN?", i);
 			res = sr_scpi_get_bool(sdi->conn, cmd, &devc->digital_channels[i]);
 			g_free(cmd);
 			if (res != SR_OK)
