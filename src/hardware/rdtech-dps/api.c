@@ -19,6 +19,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include "protocol.h"
 
 static const uint32_t scanopts[] = {
@@ -49,12 +50,12 @@ static const uint32_t devopts[] = {
 
 /* Model ID, model name, max current, max voltage, max power */
 static const struct rdtech_dps_model supported_models[] = {
-	{ 3005, "DPS3005",  3, 50,  160 },
-	{ 5005, "DPS5005",  5, 50,  250 },
-	{ 5205, "DPH5005",  5, 50,  250 },
-	{ 5015, "DPS5015", 15, 50,  750 },
-	{ 5020, "DPS5020", 20, 50, 1000 },
-	{ 8005, "DPS8005",  5, 80,  408 },
+	{ 3005, "DPS3005",  5, 30,  160, 3, 2 },
+	{ 5005, "DPS5005",  5, 50,  250, 3, 2 },
+	{ 5205, "DPH5005",  5, 50,  250, 3, 2 },
+	{ 5015, "DPS5015", 15, 50,  750, 2, 2 },
+	{ 5020, "DPS5020", 20, 50, 1000, 2, 2 },
+	{ 8005, "DPS8005",  5, 80,  408, 3, 2 },
 };
 
 static struct sr_dev_driver rdtech_dps_driver_info;
@@ -96,6 +97,8 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	devc = g_malloc0(sizeof(struct dev_context));
 	sr_sw_limits_init(&devc->limits);
 	devc->model = model;
+	devc->current_multiplier = pow(10.0, model->current_digits);
+	devc->voltage_multiplier = pow(10.0, model->voltage_digits);
 
 	sdi->priv = devc;
 
@@ -188,19 +191,19 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_VOLTAGE:
 		if ((ret = rdtech_dps_get_reg(sdi, REG_UOUT, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		if ((ret = rdtech_dps_get_reg(sdi, REG_USET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_CURRENT:
 		if ((ret = rdtech_dps_get_reg(sdi, REG_IOUT, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		if ((ret = rdtech_dps_get_reg(sdi, REG_ISET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 1000.0f);
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
@@ -211,7 +214,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		if ((ret = rdtech_dps_get_reg(sdi, PRE_OVPSET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
@@ -222,7 +225,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		if ((ret = rdtech_dps_get_reg(sdi, PRE_OCPSET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 1000.0f);
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -247,13 +250,17 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_ENABLED:
 		return rdtech_dps_set_reg(sdi, REG_ENABLE, g_variant_get_boolean(data));
 	case SR_CONF_VOLTAGE_TARGET:
-		return rdtech_dps_set_reg(sdi, REG_USET, g_variant_get_double(data) * 100);
+		return rdtech_dps_set_reg(sdi, REG_USET,
+			g_variant_get_double(data) * devc->voltage_multiplier);
 	case SR_CONF_CURRENT_LIMIT:
-		return rdtech_dps_set_reg(sdi, REG_ISET, g_variant_get_double(data) * 1000);
+		return rdtech_dps_set_reg(sdi, REG_ISET,
+			g_variant_get_double(data) * devc->current_multiplier);
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		return rdtech_dps_set_reg(sdi, PRE_OVPSET, g_variant_get_double(data) * 100);
+		return rdtech_dps_set_reg(sdi, PRE_OVPSET,
+			g_variant_get_double(data) * devc->voltage_multiplier);
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		return rdtech_dps_set_reg(sdi, PRE_OCPSET, g_variant_get_double(data) * 1000);
+		return rdtech_dps_set_reg(sdi, PRE_OCPSET,
+			g_variant_get_double(data) * devc->current_multiplier);
 	default:
 		return SR_ERR_NA;
 	}
@@ -273,10 +280,12 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_TARGET:
-		*data = std_gvar_min_max_step(0.0, devc->model->max_voltage, 0.001);
+		*data = std_gvar_min_max_step(0.0, devc->model->max_voltage,
+			1 / devc->voltage_multiplier);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		*data = std_gvar_min_max_step(0.0, devc->model->max_current, 0.0001);
+		*data = std_gvar_min_max_step(0.0, devc->model->max_current,
+			1 / devc->current_multiplier);
 		break;
 	default:
 		return SR_ERR_NA;

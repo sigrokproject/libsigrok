@@ -146,14 +146,16 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 		sr_session_send(sdi, &packet);
 
 		send_value(sdi, sdi->channels->data,
-			RB16(registers + 0) / 100.0f,
-			SR_MQ_VOLTAGE, SR_MQFLAG_DC, SR_UNIT_VOLT, 3);
+			RB16(registers + 0) / devc->voltage_multiplier,
+			SR_MQ_VOLTAGE, SR_MQFLAG_DC, SR_UNIT_VOLT,
+			devc->model->voltage_digits);
 		send_value(sdi, sdi->channels->next->data,
-			RB16(registers + 1) / 1000.0f,
-			SR_MQ_CURRENT, SR_MQFLAG_DC, SR_UNIT_AMPERE, 4);
+			RB16(registers + 1) / devc->current_multiplier,
+			SR_MQ_CURRENT, SR_MQFLAG_DC, SR_UNIT_AMPERE,
+			devc->model->current_digits);
 		send_value(sdi, sdi->channels->next->next->data,
 			RB16(registers + 2) / 100.0f,
-			SR_MQ_POWER, 0, SR_UNIT_WATT, 3);
+			SR_MQ_POWER, 0, SR_UNIT_WATT, 2);
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);

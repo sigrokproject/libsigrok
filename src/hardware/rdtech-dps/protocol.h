@@ -34,12 +34,16 @@ struct rdtech_dps_model {
 	unsigned int max_current;
 	unsigned int max_voltage;
 	unsigned int max_power;
+	unsigned int current_digits;
+	unsigned int voltage_digits;
 };
 
 struct dev_context {
 	const struct rdtech_dps_model *model;
 	struct sr_sw_limits limits;
 	GMutex rw_mutex;
+	double current_multiplier;
+	double voltage_multiplier;
 };
 
 enum rdtech_dps_register {
