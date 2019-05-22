@@ -298,10 +298,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
+	uint16_t registers[3];
 	int ret;
 
 	modbus = sdi->conn;
 	devc = sdi->priv;
+
+	/* Prefill actual states */
+	ret = rdtech_dps_read_holding_registers(modbus, REG_PROTECT, 3, registers);
+	if (ret != SR_OK)
+		return ret;
+	devc->actual_ovp_state = RB16(registers + 0) == STATE_OVP;
+	devc->actual_ocp_state = RB16(registers + 0) == STATE_OCP;
+	devc->actual_regulation_state = RB16(registers + 1);
+	devc->actual_output_state = RB16(registers + 2);
 
 	if ((ret = sr_modbus_source_add(sdi->session, modbus, G_IO_IN, 10,
 			rdtech_dps_receive_data, (void *)sdi)) != SR_OK)

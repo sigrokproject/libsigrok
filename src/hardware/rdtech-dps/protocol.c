@@ -121,7 +121,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 	struct sr_datafeed_packet packet;
-	uint16_t registers[3];
+	uint16_t registers[8];
 	int ret;
 
 	(void)fd;
@@ -138,10 +138,11 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	 * Using the libsigrok function here, because it doesn't matter if the
 	 * reading fails. It will be done again in the next acquision cycle anyways.
 	 */
-	ret = sr_modbus_read_holding_registers(modbus, REG_UOUT, 3, registers);
+	ret = sr_modbus_read_holding_registers(modbus, REG_UOUT, 8, registers);
 	g_mutex_unlock(&devc->rw_mutex);
 
 	if (ret == SR_OK) {
+		/* Send channel values */
 		packet.type = SR_DF_FRAME_BEGIN;
 		sr_session_send(sdi, &packet);
 
@@ -159,6 +160,30 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
+
+		/* Check for state changes */
+		if (devc->actual_ovp_state != (RB16(registers + 5) == STATE_OVP)) {
+			devc->actual_ovp_state = RB16(registers + 5) == STATE_OVP;
+			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+				g_variant_new_boolean(devc->actual_ovp_state));
+		}
+		if (devc->actual_ocp_state != (RB16(registers + 5) == STATE_OCP)) {
+			devc->actual_ocp_state = RB16(registers + 5) == STATE_OCP;
+			sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+				g_variant_new_boolean(devc->actual_ocp_state));
+		}
+		if (devc->actual_regulation_state != RB16(registers + 6)) {
+			devc->actual_regulation_state = RB16(registers + 6);
+			sr_session_send_meta(sdi, SR_CONF_REGULATION,
+				g_variant_new_string(
+					devc->actual_regulation_state == MODE_CC ? "CC" : "CV"));
+		}
+		if (devc->actual_output_state != RB16(registers + 7)) {
+			devc->actual_output_state = RB16(registers + 7);
+			sr_session_send_meta(sdi, SR_CONF_ENABLED,
+				g_variant_new_boolean(devc->actual_output_state));
+		}
+
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 

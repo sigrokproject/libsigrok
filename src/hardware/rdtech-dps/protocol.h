@@ -44,6 +44,10 @@ struct dev_context {
 	GMutex rw_mutex;
 	double current_multiplier;
 	double voltage_multiplier;
+	gboolean actual_ovp_state;
+	gboolean actual_ocp_state;
+	uint16_t actual_regulation_state;
+	uint16_t actual_output_state;
 };
 
 enum rdtech_dps_register {
