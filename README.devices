@@ -401,6 +401,9 @@ a short list for convenience:
  - Brymen BM257s: Press HOLD during power-on.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
  - EEVBlog 121GW: Hold "1ms PEAK" until the "BT" indicator is shown.
+ - ES51919 based LCR meters (DER EE DE-5000, PeakTech 2170, UNI-T UT612):
+   Press the button with the "RS232" or "USB" or "PC link" label (usually
+   the "up" cursor button).
  - Gossen Metrawatt Metrahit 1x/2x devices, driver gmc-mh-1x-2x-rs232:
    - Power on the device with the "DATA" button pressed.
    - Metrahit 2x devices must be configured for the respective interface type.
