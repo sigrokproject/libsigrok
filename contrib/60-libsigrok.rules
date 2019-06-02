@@ -270,12 +270,10 @@ ATTRS{idVendor}=="2961", ATTRS{idProduct}=="66b0", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 
 # UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
-# http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 # UNI-T UT325
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", ENV{ID_SIGROK}="1"
 
 # V&A VA4000 multimeter cable (for various V&A DMMs)
-# http://sigrok.org/wiki/Device_cables#V.26A_VA4000
 ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 
 # Victor 70C
