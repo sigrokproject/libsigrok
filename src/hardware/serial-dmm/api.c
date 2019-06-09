@@ -259,7 +259,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* bm86x based meters {{{ */
 	DMM_CONN(
 		"brymen-bm86x", brymen_bm86x, "Brymen", "BM86x",
-		"hid/bu86x", NULL, BRYMEN_BM86X_PACKET_SIZE, 1500, 500,
+		"hid/bu86x", NULL, BRYMEN_BM86X_PACKET_SIZE, 500, 100,
 		sr_brymen_bm86x_packet_request,
 		sr_brymen_bm86x_packet_valid, sr_brymen_bm86x_parse,
 		NULL
