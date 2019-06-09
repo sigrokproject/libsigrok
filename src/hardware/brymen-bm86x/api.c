@@ -200,7 +200,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 }
 
 static struct sr_dev_driver brymen_bm86x_driver_info = {
-	.name = "brymen-bm86x",
+	.name = "brymen-bm86x-usb",
 	.longname = "Brymen BM86X",
 	.api_version = 1,
 	.init = std_init,
