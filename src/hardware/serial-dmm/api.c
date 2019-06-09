@@ -131,6 +131,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->conn = serial;
 	sdi->priv = devc;
 	dmm->channel_count = 1;
+	if (dmm->packet_parse == sr_brymen_bm86x_parse)
+		dmm->channel_count = BRYMEN_BM86X_DISPLAY_COUNT;
 	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
 		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
 		dmm->channel_formats = eev121gw_channel_formats;
@@ -251,6 +253,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Brymen", "BM25x", "9600/8n1/rts=1/dtr=1",
 		BRYMEN_BM25X_PACKET_SIZE, 0, 0, NULL,
 		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
+		NULL
+	),
+	/* }}} */
+	/* bm86x based meters {{{ */
+	DMM_CONN(
+		"brymen-bm86x", brymen_bm86x, "Brymen", "BM86x",
+		"hid/bu86x", NULL, BRYMEN_BM86X_PACKET_SIZE, 1500, 500,
+		sr_brymen_bm86x_packet_request,
+		sr_brymen_bm86x_packet_valid, sr_brymen_bm86x_parse,
 		NULL
 	),
 	/* }}} */
