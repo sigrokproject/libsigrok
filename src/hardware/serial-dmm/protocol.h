@@ -29,6 +29,8 @@ struct dmm_info {
 	const char *vendor;
 	/** Model. */
 	const char *device;
+	/** conn string. */
+	const char *conn;
 	/** serialcomm string. */
 	const char *serialcomm;
 	/** Packet size in bytes. */

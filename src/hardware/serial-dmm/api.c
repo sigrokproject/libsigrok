@@ -61,7 +61,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	dmm = (struct dmm_info *)di;
 
-	conn = NULL;
+	conn = dmm->conn;
 	serialcomm = dmm->serialcomm;
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -194,8 +194,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-#define DMM(ID, CHIPSET, VENDOR, MODEL, SERIALCOMM, PACKETSIZE, TIMEOUT, \
-			DELAY, REQUEST, VALID, PARSE, DETAILS) \
+#define DMM_CONN(ID, CHIPSET, VENDOR, MODEL, \
+		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		REQUEST, VALID, PARSE, DETAILS) \
 	&((struct dmm_info) { \
 		{ \
 			.name = ID, \
@@ -215,9 +216,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
 			.context = NULL, \
 		}, \
-		VENDOR, MODEL, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		VENDOR, MODEL, CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
 		REQUEST, 1, NULL, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
 	}).di
+
+#define DMM(ID, CHIPSET, VENDOR, MODEL, SERIALCOMM, PACKETSIZE, TIMEOUT, \
+		DELAY, REQUEST, VALID, PARSE, DETAILS) \
+	DMM_CONN(ID, CHIPSET, VENDOR, MODEL, NULL, SERIALCOMM, PACKETSIZE, \
+		TIMEOUT, DELAY, REQUEST, VALID, PARSE, DETAILS)
 
 SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/*
