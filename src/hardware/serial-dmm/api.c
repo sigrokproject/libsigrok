@@ -133,12 +133,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->conn = serial;
 	sdi->priv = devc;
 	dmm->channel_count = 1;
-	if (dmm->packet_parse == sr_metex14_4packets_parse)
-		dmm->channel_count = 4;
 	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
 		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
 		dmm->channel_formats = eev121gw_channel_formats;
 	}
+	if (dmm->packet_parse == sr_metex14_4packets_parse)
+		dmm->channel_count = 4;
 	if (dmm->packet_parse == sr_ms2115b_parse) {
 		dmm->channel_count = MS2115B_DISPLAY_COUNT;
 		dmm->channel_formats = ms2115b_channel_formats;
