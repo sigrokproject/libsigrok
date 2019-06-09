@@ -65,7 +65,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct dev_context *devc;
 	size_t i;
 
-	conn = "hid/ch9325";
+	/*
+	 * Implementor's note: Do _not_ add a default conn value here,
+	 * always expect users to specify the connection. Otherwise the
+	 * UT32x driver's scan routine results in false positives, will
+	 * match _any_ UT-D04 cable which uses the same USB HID chip.
+	 */
+	conn = NULL;
 	serialcomm = "2400/8n1";
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -78,6 +84,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		}
 	}
+	if (!conn)
+		return NULL;
 
 	devices = NULL;
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
