@@ -128,6 +128,7 @@ libsigrok_la_SOURCES += \
 	src/serial_hid_bu86x.c \
 	src/serial_hid_ch9325.c \
 	src/serial_hid_cp2110.c \
+	src/serial_hid_victor.c \
 	src/serial_libsp.c \
 	src/scpi/scpi_serial.c
 endif
