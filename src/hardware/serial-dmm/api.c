@@ -443,10 +443,9 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		FS9922_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
 	),
-	DMM(
-		"victor-dmm-ser", fs9922,
-		"Victor", "Victor DMMs (Mini-USB cable)", "2400/8n1",
-		FS9922_PACKET_SIZE, 0, 0, NULL,
+	DMM_CONN(
+		"victor-dmm", fs9922, "Victor", "Victor DMMs",
+		"hid/victor", "2400/8n1", FS9922_PACKET_SIZE, 0, 0, NULL,
 		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
 	),
 	DMM(
