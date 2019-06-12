@@ -81,6 +81,7 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
 	&ft232r_desc,
 	&ft232h_desc,
+	NULL,
 };
 
 static void scan_device(struct ftdi_context *ftdic,
@@ -98,6 +99,8 @@ static void scan_device(struct ftdi_context *ftdic,
 	desc = NULL;
 	for (unsigned long i = 0; i < ARRAY_SIZE(chip_descs); i++) {
 		desc = chip_descs[i];
+		if (!desc)
+			break;
 		if (desc->vendor == usb_desc.idVendor &&
 			desc->product == usb_desc.idProduct)
 			break;
