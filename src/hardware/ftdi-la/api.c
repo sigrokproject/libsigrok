@@ -107,7 +107,7 @@ static void scan_device(struct ftdi_context *ftdic,
 	}
 
 	if (!desc) {
-		sr_spew("Unsupported FTDI device 0x%4x:0x%4x.",
+		sr_spew("Unsupported FTDI device 0x%04x:0x%04x.",
 			usb_desc.idVendor, usb_desc.idProduct);
 		return;
 	}
