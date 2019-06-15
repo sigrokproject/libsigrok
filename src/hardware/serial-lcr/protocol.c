@@ -55,14 +55,6 @@ static void send_frame_start(struct sr_dev_inst *sdi)
 	sr_session_send(sdi, &packet);
 }
 
-static void send_frame_end(struct sr_dev_inst *sdi)
-{
-	struct sr_datafeed_packet packet;
-
-	packet.type = SR_DF_FRAME_END;
-	sr_session_send(sdi, &packet);
-}
-
 static int handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 {
 	struct dev_context *devc;
@@ -106,7 +98,7 @@ static int handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 		g_slist_free(analog.meaning->channels);
 	}
 	if (frame) {
-		send_frame_end(sdi);
+		std_session_send_frame_end(sdi);
 		sr_sw_limits_update_frames_read(&devc->limits, 1);
 	}
 
