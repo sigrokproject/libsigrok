@@ -177,6 +177,32 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	}).di
 
 SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
+	/* {{{ es519xx */
+	DMM(
+		"uni-t-ut60g", es519xx,
+		/* The baudrate is actually 19230, see "Note 1" below. */
+		"UNI-T", "UT60G", 19200,
+		ES519XX_11B_PACKET_SIZE,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL
+	),
+	DMM(
+		"uni-t-ut61e", es519xx,
+		/* The baudrate is actually 19230, see "Note 1" below. */
+		"UNI-T", "UT61E", 19200,
+		ES519XX_14B_PACKET_SIZE,
+		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
+		NULL
+	),
+	DMM(
+		"tenma-72-7750", es519xx,
+		/* The baudrate is actually 19230, see "Note 1" below. */
+		"Tenma", "72-7750", 19200,
+		ES519XX_11B_PACKET_SIZE,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL
+	),
+	/* }}} */
 	/* {{{ fs9721 */
 	DMM(
 		"tecpel-dmm-8061", fs9721,
@@ -296,14 +322,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	),
 	/* }}} */
 	DMM(
-		"uni-t-ut60g", es519xx,
-		/* The baudrate is actually 19230, see "Note 1" below. */
-		"UNI-T", "UT60G", 19200,
-		ES519XX_11B_PACKET_SIZE,
-		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
-		NULL
-	),
-	DMM(
 		"uni-t-ut61b", fs9922,
 		"UNI-T", "UT61B", 2400,
 		FS9922_PACKET_SIZE,
@@ -325,14 +343,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		NULL
 	),
 	DMM(
-		"uni-t-ut61e", es519xx,
-		/* The baudrate is actually 19230, see "Note 1" below. */
-		"UNI-T", "UT61E", 19200,
-		ES519XX_14B_PACKET_SIZE,
-		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
-		NULL
-	),
-	DMM(
 		"voltcraft-vc830", fs9922,
 		/*
 		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
@@ -348,13 +358,5 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		"voltcraft-vc870", vc870,
 		"Voltcraft", "VC-870", 9600, VC870_PACKET_SIZE,
 		sr_vc870_packet_valid, sr_vc870_parse, NULL
-	),
-	DMM(
-		"tenma-72-7750", es519xx,
-		/* The baudrate is actually 19230, see "Note 1" below. */
-		"Tenma", "72-7750", 19200,
-		ES519XX_11B_PACKET_SIZE,
-		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
-		NULL
 	),
 );
