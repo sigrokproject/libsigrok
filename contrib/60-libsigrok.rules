@@ -248,13 +248,19 @@ ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", ENV{ID_SIGROK}="1"
 # sigrok usb-c-grok
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608f", ENV{ID_SIGROK}="1"
 
-# SiLabs CP210x (USB CDC) and SiLabs CP2110 (USB HID) are generic UART
-# bridges, used (among others) in:
+# SiLabs CP210x (USB CDC) UART bridge, used (among others) in:
 # CEM DT-8852
+# Manson HCS-3202
+# MASTECH MS2115B
 # MASTECH MS5308
-# UNI-T UT612
-# UNI-T UT-D09
+# MASTECH MS8250D
+# PeakTech 3330
+# Voltcraft PPS-11815
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ENV{ID_SIGROK}="1"
+
+# SiLabs CP2110 (USB HID) UART bridge, used (among others) in:
+# UNI-T UT612
+# UNI-T UT-D09 multimeter cable (for various UNI-T and rebranded DMMs)
 ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea80", ENV{ID_SIGROK}="1"
 
 # Sysclk LWLA1016
