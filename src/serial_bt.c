@@ -494,10 +494,8 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 	 * Immediately satisfy the caller's request from the RX buffer
 	 * if the requested amount of data is available already.
 	 */
-	if (sr_ser_has_queued_data(serial) >= count) {
-		rc = sr_ser_unqueue_rx_data(serial, buf, count);
-		return rc;
-	}
+	if (sr_ser_has_queued_data(serial) >= count)
+		return sr_ser_unqueue_rx_data(serial, buf, count);
 
 	/*
 	 * When a timeout was specified, then determine the deadline
@@ -766,9 +764,8 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 
 	/* Check whether the device was seen before. */
 	for (l = scan_args->addr_list; l; l = l->next) {
-		if (strcmp(addr, l->data) == 0) {
+		if (strcmp(addr, l->data) == 0)
 			return;
-		}
 	}
 
 	/* Substitute colons in the address by dashes. */

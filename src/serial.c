@@ -55,12 +55,10 @@
 
 #ifdef HAVE_SERIAL_COMM
 
-/* See if a (assumed opened) serial port is of any supported type. */
+/* See if an (assumed opened) serial port is of any supported type. */
 static int dev_is_supported(struct sr_serial_dev_inst *serial)
 {
-	if (!serial)
-		return 0;
-	if (!serial->lib_funcs)
+	if (!serial || !serial->lib_funcs)
 		return 0;
 
 	return 1;
@@ -270,9 +268,7 @@ SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
  */
 SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial)
 {
-	if (!serial)
-		return;
-	if (!serial->rcv_buffer)
+	if (!serial || !serial->rcv_buffer)
 		return;
 
 	g_string_truncate(serial->rcv_buffer, 0);
@@ -288,9 +284,7 @@ SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial)
  */
 SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial)
 {
-	if (!serial)
-		return 0;
-	if (!serial->rcv_buffer)
+	if (!serial || !serial->rcv_buffer)
 		return 0;
 
 	return serial->rcv_buffer->len;
@@ -309,9 +303,7 @@ SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial)
 SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
 	const uint8_t *data, size_t len)
 {
-	if (!serial)
-		return;
-	if (!data || !len)
+	if (!serial || !data || !len)
 		return;
 
 	if (serial->rx_chunk_cb_func)
@@ -336,9 +328,7 @@ SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
 	size_t qlen;
 	GString *buf;
 
-	if (!serial)
-		return 0;
-	if (!data || !len)
+	if (!serial || !data || !len)
 		return 0;
 
 	qlen = sr_ser_has_queued_data(serial);
@@ -1027,9 +1017,7 @@ SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id)
 /** @private */
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes)
 {
-	int bits, baud;
-	int ret;
-	int timeout_ms;
+	int bits, baud, ret, timeout_ms;
 
 	/* Get the bitrate and frame length. */
 	bits = baud = 0;
