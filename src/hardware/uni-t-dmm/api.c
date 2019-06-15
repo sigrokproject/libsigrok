@@ -293,6 +293,24 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	/* }}} */
 	/* {{{ ut71x */
 	DMM(
+		"tenma-72-7730", ut71x,
+		"Tenma", "72-7730", 2400,
+		UT71X_PACKET_SIZE,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
+		"tenma-72-7732", ut71x,
+		"Tenma", "72-7732", 2400,
+		UT71X_PACKET_SIZE,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
+		"tenma-72-9380a", ut71x,
+		"Tenma", "72-9380A", 2400,
+		UT71X_PACKET_SIZE,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
 		"uni-t-ut71a", ut71x,
 		"UNI-T", "UT71A", 2400, UT71X_PACKET_SIZE,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
@@ -335,24 +353,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	DMM(
 		"voltcraft-vc960", ut71x,
 		"Voltcraft", "VC-960", 2400, UT71X_PACKET_SIZE,
-		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"tenma-72-7730", ut71x,
-		"Tenma", "72-7730", 2400,
-		UT71X_PACKET_SIZE,
-		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"tenma-72-7732", ut71x,
-		"Tenma", "72-7732", 2400,
-		UT71X_PACKET_SIZE,
-		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"tenma-72-9380a", ut71x,
-		"Tenma", "72-9380A", 2400,
-		UT71X_PACKET_SIZE,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	/* }}} */
