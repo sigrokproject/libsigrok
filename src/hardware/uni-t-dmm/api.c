@@ -177,19 +177,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	}).di
 
 SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
+	/* {{{ fs9721 */
 	DMM(
 		"tecpel-dmm-8061", fs9721,
 		"Tecpel", "DMM-8061", 2400,
 		FS9721_PACKET_SIZE,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
-	),
-	DMM(
-		"uni-t-ut372", ut372,
-		"UNI-T", "UT372", 2400,
-		UT372_PACKET_SIZE,
-		sr_ut372_packet_valid, sr_ut372_parse,
-		NULL
 	),
 	DMM(
 		"uni-t-ut60a", fs9721,
@@ -204,6 +198,35 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		FS9721_PACKET_SIZE,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"voltcraft-vc820", fs9721,
+		"Voltcraft", "VC-820", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		NULL
+	),
+	DMM(
+		"voltcraft-vc840", fs9721,
+		"Voltcraft", "VC-840", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
+		"tenma-72-7745", fs9721,
+		"Tenma", "72-7745", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	/* }}} */
+	DMM(
+		"uni-t-ut372", ut372,
+		"UNI-T", "UT372", 2400,
+		UT372_PACKET_SIZE,
+		sr_ut372_packet_valid, sr_ut372_parse,
+		NULL
 	),
 	DMM(
 		"uni-t-ut60g", es519xx,
@@ -273,13 +296,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
-		"voltcraft-vc820", fs9721,
-		"Voltcraft", "VC-820", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		NULL
-	),
-	DMM(
 		"voltcraft-vc830", fs9922,
 		/*
 		 * Note: The VC830 doesn't set the 'volt' and 'diode' bits of
@@ -290,13 +306,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		FS9922_PACKET_SIZE,
 		sr_fs9922_packet_valid, sr_fs9922_parse,
 		&sr_fs9922_z1_diode
-	),
-	DMM(
-		"voltcraft-vc840", fs9721,
-		"Voltcraft", "VC-840", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
 	),
 	DMM(
 		"voltcraft-vc870", vc870,
@@ -335,13 +344,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		"Tenma", "72-9380A", 2400,
 		UT71X_PACKET_SIZE,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
-	),
-	DMM(
-		"tenma-72-7745", fs9721,
-		"Tenma", "72-7745", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
 	),
 	DMM(
 		"tenma-72-7750", es519xx,
