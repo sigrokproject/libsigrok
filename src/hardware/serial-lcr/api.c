@@ -399,3 +399,36 @@ SR_REGISTER_DEV_DRIVER_LIST(lcr_es51919_drivers,
 	LCR_ES51919("peaktech-2170", "PeakTech", "2170"),
 	LCR_ES51919("uni-t-ut612", "UNI-T", "UT612"),
 );
+
+#define LCR_VC4080(id, vendor, model) \
+	&((struct lcr_info) { \
+		{ \
+			.name = id, \
+			.longname = vendor " " model, \
+			.api_version = 1, \
+			.init = std_init, \
+			.cleanup = std_cleanup, \
+			.scan = scan, \
+			.dev_list = std_dev_list, \
+			.dev_clear = std_dev_clear, \
+			.config_get = config_get, \
+			.config_set = config_set, \
+			.config_list = config_list, \
+			.dev_open = std_serial_dev_open, \
+			.dev_close = std_serial_dev_close, \
+			.dev_acquisition_start = dev_acquisition_start, \
+			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
+			.context = NULL, \
+		}, \
+		vendor, model, \
+		VC4080_CHANNEL_COUNT, vc4080_channel_formats, \
+		VC4080_COMM_PARAM, VC4080_PACKET_SIZE, \
+		500, vc4080_packet_request, \
+		vc4080_packet_valid, vc4080_packet_parse, \
+		NULL, NULL, vc4080_config_list, \
+	}).di
+
+SR_REGISTER_DEV_DRIVER_LIST(lcr_vc4080_drivers,
+	LCR_VC4080("peaktech-2165", "PeakTech", "2165"),
+	LCR_VC4080("voltcraft-4080", "Voltcraft", "4080"),
+);

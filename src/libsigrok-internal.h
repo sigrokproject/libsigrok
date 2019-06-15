@@ -1661,6 +1661,33 @@ SR_PRIV gboolean es51919_packet_valid(const uint8_t *pkt);
 SR_PRIV int es51919_packet_parse(const uint8_t *pkt, float *floatval,
 	struct sr_datafeed_analog *analog, void *info);
 
+/*--- lcr/vc4080.c ----------------------------------------------------------*/
+
+/* Note: Also uses 'struct lcr_parse_info' from es51919 above. */
+
+#define VC4080_PACKET_SIZE	39
+#define VC4080_COMM_PARAM	"1200/8n1"
+#define VC4080_WITH_DQ_CHANS	0 /* Enable separate D/Q channels? */
+
+enum vc4080_display {
+	VC4080_DISPLAY_PRIMARY,
+	VC4080_DISPLAY_SECONDARY,
+#if VC4080_WITH_DQ_CHANS
+	VC4080_DISPLAY_D_VALUE,
+	VC4080_DISPLAY_Q_VALUE,
+#endif
+	VC4080_CHANNEL_COUNT,
+};
+
+extern SR_PRIV const char *vc4080_channel_formats[VC4080_CHANNEL_COUNT];
+
+SR_PRIV int vc4080_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int vc4080_packet_request(struct sr_serial_dev_inst *serial);
+SR_PRIV gboolean vc4080_packet_valid(const uint8_t *pkt);
+SR_PRIV int vc4080_packet_parse(const uint8_t *pkt, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
 /*--- dmm/ut372.c -----------------------------------------------------------*/
 
 #define UT372_PACKET_SIZE 27

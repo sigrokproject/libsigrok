@@ -178,7 +178,8 @@ libsigrok_la_SOURCES += \
 # Hardware (LCR chip parsers)
 if NEED_SERIAL
 libsigrok_la_SOURCES += \
-	src/lcr/es51919.c
+	src/lcr/es51919.c \
+	src/lcr/vc4080.c
 endif
 
 # Hardware (Scale protocol parsers)
