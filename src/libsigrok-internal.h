@@ -1232,7 +1232,6 @@ extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_bt;
 struct vid_pid_item {
 	uint16_t vid, pid;
 };
-#define VID_PID_TERM	ALL_ZERO
 
 struct ser_hid_chip_functions {
 	const char *chipname;

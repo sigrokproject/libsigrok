@@ -57,7 +57,7 @@
 
 static const struct vid_pid_item vid_pid_items_victor[] = {
 	{ 0x1244, 0xd237, },
-	VID_PID_TERM,
+	ALL_ZERO
 };
 
 static int victor_set_params(struct sr_serial_dev_inst *serial,

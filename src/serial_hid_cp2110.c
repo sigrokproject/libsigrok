@@ -42,7 +42,7 @@
 
 static const struct vid_pid_item vid_pid_items_cp2110[] = {
 	{ 0x10c4, 0xea80, },
-	VID_PID_TERM,
+	ALL_ZERO
 };
 
 enum cp2110_report_id {

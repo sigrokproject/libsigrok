@@ -47,7 +47,7 @@ static const struct vid_pid_item vid_pid_items_ch9325[] = {
 	 * with the same support code.
 	 */
 	{ 0x04fa, 0x2490, },	/* HE2325U */
-	VID_PID_TERM,
+	ALL_ZERO
 };
 
 static int ch9325_set_params(struct sr_serial_dev_inst *serial,
