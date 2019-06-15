@@ -101,10 +101,11 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
+# pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
 SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
 
-SR_ARG_OPT_PKG([libbluez], [LIBBLUEZ], , [bluez >= 4.0], [bluetooth >= 4.0])
+SR_ARG_OPT_PKG([libbluez], [LIBBLUEZ], , [bluez >= 4.0])
 
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
