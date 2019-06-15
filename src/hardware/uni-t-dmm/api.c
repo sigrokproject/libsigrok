@@ -179,6 +179,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	/* {{{ es519xx */
 	DMM(
+		"tenma-72-7750", es519xx,
+		/* The baudrate is actually 19230, see "Note 1" below. */
+		"Tenma", "72-7750", 19200,
+		ES519XX_11B_PACKET_SIZE,
+		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
+		NULL
+	),
+	DMM(
 		"uni-t-ut60g", es519xx,
 		/* The baudrate is actually 19230, see "Note 1" below. */
 		"UNI-T", "UT60G", 19200,
@@ -192,14 +200,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		"UNI-T", "UT61E", 19200,
 		ES519XX_14B_PACKET_SIZE,
 		sr_es519xx_19200_14b_packet_valid, sr_es519xx_19200_14b_parse,
-		NULL
-	),
-	DMM(
-		"tenma-72-7750", es519xx,
-		/* The baudrate is actually 19230, see "Note 1" below. */
-		"Tenma", "72-7750", 19200,
-		ES519XX_11B_PACKET_SIZE,
-		sr_es519xx_19200_11b_packet_valid, sr_es519xx_19200_11b_parse,
 		NULL
 	),
 	/* }}} */
