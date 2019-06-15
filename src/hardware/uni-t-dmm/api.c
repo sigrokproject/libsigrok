@@ -356,9 +356,11 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	/* }}} */
+	/* {{{ vc870 */
 	DMM(
 		"voltcraft-vc870", vc870,
 		"Voltcraft", "VC-870", 9600, VC870_PACKET_SIZE,
 		sr_vc870_packet_valid, sr_vc870_parse, NULL
 	),
+	/* }}} */
 );
