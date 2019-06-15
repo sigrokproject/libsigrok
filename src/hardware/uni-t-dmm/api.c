@@ -212,6 +212,13 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		sr_fs9721_00_temp_c
 	),
 	DMM(
+		"tenma-72-7745", fs9721,
+		"Tenma", "72-7745", 2400,
+		FS9721_PACKET_SIZE,
+		sr_fs9721_packet_valid, sr_fs9721_parse,
+		sr_fs9721_00_temp_c
+	),
+	DMM(
 		"uni-t-ut60a", fs9721,
 		"UNI-T", "UT60A", 2400,
 		FS9721_PACKET_SIZE,
@@ -235,13 +242,6 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 	DMM(
 		"voltcraft-vc840", fs9721,
 		"Voltcraft", "VC-840", 2400,
-		FS9721_PACKET_SIZE,
-		sr_fs9721_packet_valid, sr_fs9721_parse,
-		sr_fs9721_00_temp_c
-	),
-	DMM(
-		"tenma-72-7745", fs9721,
-		"Tenma", "72-7745", 2400,
 		FS9721_PACKET_SIZE,
 		sr_fs9721_packet_valid, sr_fs9721_parse,
 		sr_fs9721_00_temp_c
