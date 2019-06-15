@@ -30,8 +30,10 @@
  * The maximum number of bytes any supported HID chip can communicate
  * within a single request.
  *
- * CP2110: up to 63bytes
- * CH9325: up to 7 bytes
+ * Brymen BU-86X: up to 8 bytes
+ * SiLabs CP2110: up to 63 bytes
+ * Victor DMM:    up to 14 bytes
+ * WCH CH9325:    up to 7 bytes
  */
 #define SER_HID_CHUNK_SIZE	64
 
