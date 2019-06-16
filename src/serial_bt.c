@@ -142,9 +142,9 @@ static int ser_bt_parse_conn_spec(
 	uint16_t *read_hdl, uint16_t *write_hdl,
 	uint16_t *cccd_hdl, uint16_t *cccd_val)
 {
+	char **fields, *field;
 	enum ser_bt_conn_t type;
 	const char *addr;
-	char **fields, *field;
 
 	if (conn_type)
 		*conn_type = SER_BT_CONN_UNKNOWN;
@@ -160,9 +160,6 @@ static int ser_bt_parse_conn_spec(
 		*cccd_hdl = 0;
 	if (cccd_val)
 		*cccd_val = 0;
-
-	type = SER_BT_CONN_UNKNOWN;
-	addr = NULL;
 
 	if (!serial || !spec || !spec[0])
 		return SR_ERR_ARG;
@@ -498,7 +495,6 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 	 * where to stop reception.
 	 */
 	deadline_us = 0;
-	now_us = 0;	/* Silence a (false) compiler warning. */
 	if (timeout_ms) {
 		now_us = g_get_monotonic_time();
 		deadline_us = now_us + timeout_ms * 1000;
