@@ -762,6 +762,8 @@ static int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 		ser_mon = FIELD_NL(raw_serial, SERIAL_MONTH);
 		ser_nr = FIELD_NL(raw_serial, SERIAL_NUMBER);
 		sr_spew("Packet: Y-M %x-%x, nr %x.", ser_year, ser_mon, ser_nr);
+	} else {
+		(void)raw_serial;	/* Silence compiler warning. */
 	}
 
 	switch (display) {
