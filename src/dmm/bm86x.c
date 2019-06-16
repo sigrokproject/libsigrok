@@ -302,6 +302,8 @@ static void brymen_bm86x_parse(const uint8_t *buf, float *floatval,
 			NULL, &temp_unit, NULL, 0x80);
 		ret = brymen_bm86x_parse_digits(&buf[9], 4, txtbuf,
 			floatval, NULL, &digits, 0x10);
+		if (ret != SR_OK)
+			return;
 
 		/* SI unit. */
 		if (buf[14] & 0x08) {
