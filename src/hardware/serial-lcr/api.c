@@ -85,6 +85,117 @@ static gboolean scan_packet_check_func(const uint8_t *buf)
 	return TRUE;
 }
 
+static int scan_lcr_port(const struct lcr_info *lcr,
+	const char *conn, struct sr_serial_dev_inst *serial)
+{
+	size_t len;
+	uint8_t buf[128];
+	int ret;
+	size_t dropped;
+
+	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+		return SR_ERR_IO;
+	sr_info("Probing serial port %s.", conn);
+
+	/*
+	 * See if we can detect a device of specified type.
+	 *
+	 * No supported device provides a means to "identify" yet. No
+	 * supported device requires "packet request" yet. They all just
+	 * send data periodically. So we check if the packets match the
+	 * probed device's expected format.
+	 */
+	serial_flush(serial);
+	if (lcr->packet_request) {
+		ret = lcr->packet_request(serial);
+		if (ret < 0) {
+			sr_err("Failed to request packet: %d.", ret);
+			goto scan_port_cleanup;
+		}
+	}
+	len = sizeof(buf);
+	ret = serial_stream_detect(serial, buf, &len,
+		lcr->packet_size, lcr->packet_valid, 3000);
+	if (ret != SR_OK)
+		goto scan_port_cleanup;
+
+	/*
+	 * If the packets were found to match after more than two packets
+	 * got dropped, something is wrong. This is worth warning about,
+	 * but isn't fatal. The dropped bytes might be due to nonstandard
+	 * cables that ship with some devices.
+	 */
+	dropped = len - lcr->packet_size;
+	if (dropped > 2 * lcr->packet_size)
+		sr_warn("Had to drop unexpected amounts of data.");
+
+	/* Create a device instance for the found device. */
+	sr_info("Found %s %s device on port %s.", lcr->vendor, lcr->model, conn);
+
+scan_port_cleanup:
+	/* Keep serial port open if probe succeeded. */
+	if (ret != SR_OK)
+		serial_close(serial);
+
+	return ret;
+}
+
+static struct sr_dev_inst *create_lcr_sdi(struct lcr_info *lcr,
+	struct sr_serial_dev_inst *serial)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	size_t ch_idx;
+	const char **ch_fmts;
+	const char *fmt;
+	char ch_name[8];
+
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(lcr->vendor);
+	sdi->model = g_strdup(lcr->model);
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
+	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
+	devc->lcr_info = lcr;
+	sr_sw_limits_init(&devc->limits);
+	ch_fmts = lcr->channel_formats;
+	for (ch_idx = 0; ch_idx < lcr->channel_count; ch_idx++) {
+		fmt = (ch_fmts && ch_fmts[ch_idx]) ? ch_fmts[ch_idx] : "P%zu";
+		snprintf(ch_name, sizeof(ch_name), fmt, ch_idx + 1);
+		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, ch_name);
+	}
+
+	return sdi;
+}
+
+static int read_lcr_port(struct sr_dev_inst *sdi,
+	const struct lcr_info *lcr, struct sr_serial_dev_inst *serial)
+{
+	size_t len;
+	uint8_t buf[128];
+	int ret;
+
+	/*
+	 * Receive a few more packets (and process them!) to have the
+	 * current output frequency and circuit model parameter values
+	 * detected. The above "stream detect" phase only synchronized
+	 * to the packets by checking their validity, but it cannot
+	 * provide details. This phase here runs a modified "checker"
+	 * routine which also extracts details from LCR packets after
+	 * the device got detected and parameter storage was prepared.
+	 */
+	sr_info("Retrieving current acquisition parameters.");
+	len = sizeof(buf);
+	scan_packet_check_setup(sdi);
+	ret = serial_stream_detect(serial, buf, &len,
+		lcr->packet_size, scan_packet_check_func, 1000);
+	scan_packet_check_setup(NULL);
+
+	return ret;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct lcr_info *lcr;
@@ -92,15 +203,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l, *devices;
 	const char *conn, *serialcomm;
 	struct sr_serial_dev_inst *serial;
-	uint8_t buf[128];
-	size_t len, dropped;
 	int ret;
 	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	size_t ch_idx;
-	const char **ch_fmts;
-	const char *fmt;
-	char ch_name[8];
 
 	lcr = (struct lcr_info *)di;
 
@@ -121,83 +225,22 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!conn)
 		return NULL;
 
-	/* Open the serial port. */
-	serial = sr_serial_dev_inst_new(conn, serialcomm);
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
-		return NULL;
-	sr_info("Probing serial port %s.", conn);
-
-	/*
-	 * See if we can detect a device of specified type.
-	 *
-	 * No supported device provides a means to "identify" yet. No
-	 * supported device requires "packet request" yet. They all just
-	 * send data periodically. So we check if the packets match the
-	 * probed device's expected format.
-	 */
 	devices = NULL;
-	serial_flush(serial);
-	if (lcr->packet_request) {
-		ret = lcr->packet_request(serial);
-		if (ret < 0) {
-			sr_err("Failed to request packet: %d.", ret);
-			goto scan_cleanup;
-		}
+	/* TODO Handle ambiguous conn= specs, see serial-dmm. */
+
+	/* Open the serial port, check data packets. */
+	serial = sr_serial_dev_inst_new(conn, serialcomm);
+	ret = scan_lcr_port(lcr, conn, serial);
+	if (ret != SR_OK) {
+		/* Probe failed, release 'serial'. */
+		sr_serial_dev_inst_free(serial);
+	} else {
+		/* Create and return device instance, keep 'serial' alive. */
+		sdi = create_lcr_sdi(lcr, serial);
+		devices = g_slist_append(devices, sdi);
+		(void)read_lcr_port(sdi, lcr, serial);
+		serial_close(serial);
 	}
-	len = sizeof(buf);
-	ret = serial_stream_detect(serial, buf, &len,
-		lcr->packet_size, lcr->packet_valid, 3000);
-	if (ret != SR_OK)
-		goto scan_cleanup;
-
-	/*
-	 * If the packets were found to match after more than two packets
-	 * got dropped, something is wrong. This is worth warning about,
-	 * but isn't fatal. The dropped bytes might be due to nonstandard
-	 * cables that ship with some devices.
-	 */
-	dropped = len - lcr->packet_size;
-	if (dropped > 2 * lcr->packet_size)
-		sr_warn("Had to drop unexpected amounts of data.");
-
-	/* Create a device instance for the found device. */
-	sr_info("Found %s %s device on port %s.", lcr->vendor, lcr->model, conn);
-	sdi = g_malloc0(sizeof(*sdi));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(lcr->vendor);
-	sdi->model = g_strdup(lcr->model);
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
-	devc = g_malloc0(sizeof(*devc));
-	sdi->priv = devc;
-	devc->lcr_info = lcr;
-	sr_sw_limits_init(&devc->limits);
-	ch_fmts = lcr->channel_formats;
-	for (ch_idx = 0; ch_idx < lcr->channel_count; ch_idx++) {
-		fmt = (ch_fmts && ch_fmts[ch_idx]) ? ch_fmts[ch_idx] : "P%zu";
-		snprintf(ch_name, sizeof(ch_name), fmt, ch_idx + 1);
-		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, ch_name);
-	}
-	devices = g_slist_append(devices, sdi);
-
-	/*
-	 * Receive a few more packets (and process them!) to have the
-	 * current output frequency and circuit model parameter values
-	 * detected. The above "stream detect" phase only synchronized
-	 * to the packets by checking their validity, but it cannot
-	 * provide details. This phase here runs a modified "checker"
-	 * routine which also extracts details from LCR packets after
-	 * the device got detected and parameter storage was prepared.
-	 */
-	sr_info("Retrieving current acquisition parameters.");
-	len = sizeof(buf);
-	scan_packet_check_setup(sdi);
-	ret = serial_stream_detect(serial, buf, &len,
-		lcr->packet_size, scan_packet_check_func, 1000);
-	scan_packet_check_setup(NULL);
-
-scan_cleanup:
-	serial_close(serial);
 
 	return std_scan_complete(di, devices);
 }
