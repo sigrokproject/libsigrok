@@ -1025,6 +1025,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 			return SR_ERR_NA;
 		have_chip = 1;
 	}
+	(void)have_chip;
 
 	if (chip_ref)
 		*chip_ref = chip;
