@@ -297,8 +297,11 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		break;
 	default:
 		sr_err("Don't know how to query %d.", target);
+		ret = SR_ERR;
+	}
+	if (ret != SR_OK) {
 		g_mutex_unlock(&devc->rw_mutex);
-		return SR_ERR;
+		return ret;
 	}
 
 	devc->req_sent_at = g_get_monotonic_time();
