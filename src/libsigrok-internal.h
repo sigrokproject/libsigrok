@@ -1732,10 +1732,8 @@ struct eev121gw_info {
 
 extern SR_PRIV const char *eev121gw_channel_formats[];
 SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info);
 SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 
 /*--- scale/kern.c ----------------------------------------------------------*/
 
