@@ -124,7 +124,8 @@
  */
 
 static const double frequencies[] = {
-	0, 100, 120, 1000, 10000, 100000,
+	SR_HZ(0), SR_HZ(100), SR_HZ(120),
+	SR_KHZ(1), SR_KHZ(10), SR_KHZ(100),
 };
 
 static const size_t freq_code_map[] = {
@@ -354,7 +355,7 @@ SR_PRIV int es51919_config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
-			ARRAY_AND_SIZE(frequencies), sizeof(double));
+			ARRAY_AND_SIZE(frequencies), sizeof(frequencies[0]));
 		return SR_OK;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(circuit_models));
