@@ -135,8 +135,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 * send data periodically. So we check if the packets match the
 	 * probed device's expected format.
 	 */
-	serial_flush(serial);
 	devices = NULL;
+	serial_flush(serial);
+	if (lcr->packet_request) {
+		ret = lcr->packet_request(serial);
+		if (ret < 0) {
+			sr_err("Failed to request packet: %d.", ret);
+			goto scan_cleanup;
+		}
+	}
 	len = sizeof(buf);
 	ret = serial_stream_detect(serial, buf, &len,
 		lcr->packet_size, lcr->packet_valid, 3000);
@@ -329,6 +336,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}, \
 		vendor, model, ES51919_CHANNEL_COUNT, NULL, \
 		ES51919_COMM_PARAM, ES51919_PACKET_SIZE, \
+		0, NULL, \
 		es51919_packet_valid, es51919_packet_parse, \
 		NULL, NULL, es51919_config_list, \
 	}).di

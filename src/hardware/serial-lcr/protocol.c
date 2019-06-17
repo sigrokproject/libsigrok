@@ -148,10 +148,42 @@ static int handle_new_data(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int handle_timeout(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	const struct lcr_info *lcr;
+	struct sr_serial_dev_inst *serial;
+	int64_t now;
+	int ret;
+
+	devc = sdi->priv;
+	lcr = devc->lcr_info;
+
+	if (!lcr->packet_request)
+		return SR_OK;
+
+	now = g_get_monotonic_time();
+	if (devc->req_next_at && now < devc->req_next_at)
+		return SR_OK;
+
+	serial = sdi->conn;
+	ret = lcr->packet_request(serial);
+	if (ret < 0) {
+		sr_err("Failed to request packet: %d.", ret);
+		return ret;
+	}
+
+	if (lcr->req_timeout_ms)
+		devc->req_next_at = now + lcr->req_timeout_ms * 1000;
+
+	return SR_OK;
+}
+
 SR_PRIV int lcr_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	int ret;
 
 	(void)fd;
 
@@ -161,10 +193,13 @@ SR_PRIV int lcr_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	if (revents == G_IO_IN)
-		handle_new_data(sdi);
-
+		ret = handle_new_data(sdi);
+	else
+		ret = handle_timeout(sdi);
 	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
+	if (ret != SR_OK)
+		return FALSE;
 
 	return TRUE;
 }

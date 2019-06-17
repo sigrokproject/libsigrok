@@ -36,6 +36,8 @@ struct lcr_info {
 	const char **channel_formats;
 	const char *comm;
 	size_t packet_size;
+	int64_t req_timeout_ms;
+	int (*packet_request)(struct sr_serial_dev_inst *serial);
 	gboolean (*packet_valid)(const uint8_t *pkt);
 	int (*packet_parse)(const uint8_t *pkt, float *value,
 		struct sr_datafeed_analog *analog, void *info);
@@ -60,6 +62,7 @@ struct dev_context {
 	struct lcr_parse_info parse_info;
 	uint64_t output_freq;
 	const char *circuit_model;
+	int64_t req_next_at;
 };
 
 SR_PRIV int lcr_receive_data(int fd, int revents, void *cb_data);
