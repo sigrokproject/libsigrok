@@ -98,6 +98,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	size_t ch_idx;
+	const char **ch_fmts;
+	const char *fmt;
 	char ch_name[8];
 
 	lcr = (struct lcr_info *)di;
@@ -163,8 +165,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->priv = devc;
 	devc->lcr_info = lcr;
 	sr_sw_limits_init(&devc->limits);
+	ch_fmts = lcr->channel_formats;
 	for (ch_idx = 0; ch_idx < lcr->channel_count; ch_idx++) {
-		snprintf(ch_name, sizeof(ch_name), "P%zu", ch_idx + 1);
+		fmt = (ch_fmts && ch_fmts[ch_idx]) ? ch_fmts[ch_idx] : "P%zu";
+		snprintf(ch_name, sizeof(ch_name), fmt, ch_idx + 1);
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, ch_name);
 	}
 	devices = g_slist_append(devices, sdi);
@@ -323,7 +327,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.dev_acquisition_stop = std_serial_dev_acquisition_stop, \
 			.context = NULL, \
 		}, \
-		vendor, model, ES51919_CHANNEL_COUNT, \
+		vendor, model, ES51919_CHANNEL_COUNT, NULL, \
 		ES51919_COMM_PARAM, ES51919_PACKET_SIZE, \
 		es51919_packet_valid, es51919_packet_parse, \
 		NULL, NULL, es51919_config_list, \

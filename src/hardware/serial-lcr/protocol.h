@@ -33,6 +33,7 @@ struct lcr_info {
 	const char *vendor;
 	const char *model;
 	size_t channel_count;
+	const char **channel_formats;
 	const char *comm;
 	size_t packet_size;
 	gboolean (*packet_valid)(const uint8_t *pkt);
