@@ -181,9 +181,10 @@ static char *extract_hidapi_path(const char *copy)
 }
 
 /*
- * The HIDAPI specific list() callback, invoked by common serial.c code.
- * Enumerate all devices (no VID:PID is involved).
- * Invoke an 'append' callback with "path" and "name".
+ * Enumerate all devices (no VID:PID is involved). Invoke an 'append'
+ * callback with "path" and "name". Exclusively list connections that
+ * involve supported chip types, because mice and keyboards etc are not
+ * too useful to communicate to measurement equipment.
  */
 static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
 {
@@ -197,14 +198,14 @@ static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
 	devs = hid_enumerate(0x0000, 0x0000);
 	for (curdev = devs; curdev; curdev = curdev->next) {
 		/*
-		 * Determine the chip name from VID:PID (if it's one of
-		 * the supported types with an ID known to us).
+		 * Determine the chip name from VID:PID. Exlusively list
+		 * supported connection types (known chips).
 		 */
 		vid = curdev->vendor_id;
 		pid = curdev->product_id;
 		chipname = ser_hid_chip_find_name_vid_pid(vid, pid);
 		if (!chipname)
-			chipname = "<chip>";
+			continue;
 
 		/*
 		 * Prefix port names such that open() calls with this
