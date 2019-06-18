@@ -297,6 +297,89 @@ static GSource *usb_source_new(struct sr_session *session,
 }
 
 /**
+ * Extract VID:PID or bus.addr from a connection string.
+ *
+ * @param[in] conn Connection string.
+ * @param[out] vid Pointer to extracted vendor ID. Can be #NULL.
+ * @param[out] pid Pointer to extracted product ID. Can be #NULL.
+ * @param[out] bus Pointer to extracted bus number. Can be #NULL.
+ * @param[out] addr Pointer to extracted device number. Can be #NULL.
+ *
+ * @return SR_OK when parsing succeeded, SR_ERR* otherwise.
+ *
+ * @private
+ *
+ * The routine fills in the result variables, and returns the scan success
+ * in the return code. Callers can specify #NULL for variable references
+ * if they are not interested in specific aspects of the USB address.
+ */
+SR_PRIV int sr_usb_split_conn(const char *conn,
+	uint16_t *vid, uint16_t *pid, uint8_t *bus, uint8_t *addr)
+{
+	gboolean valid;
+	GRegex *reg;
+	GMatchInfo *match;
+	char *mstr;
+	uint32_t num;
+
+	if (vid) *vid = 0;
+	if (pid) *pid = 0;
+	if (bus) *bus = 0;
+	if (addr) *addr = 0;
+
+	valid = TRUE;
+	reg = g_regex_new(CONN_USB_VIDPID, 0, 0, NULL);
+	if (g_regex_match(reg, conn, 0, &match)) {
+		/* Found a VID:PID style pattern. */
+		if ((mstr = g_match_info_fetch(match, 1))) {
+			num = strtoul(mstr, NULL, 16);
+			if (num > 0xffff)
+				valid = FALSE;
+			if (vid)
+				*vid = num & 0xffff;
+		}
+		g_free(mstr);
+
+		if ((mstr = g_match_info_fetch(match, 2))) {
+			num = strtoul(mstr, NULL, 16);
+			if (num > 0xffff)
+				valid = FALSE;
+			if (pid)
+				*pid = num & 0xffff;
+		}
+		g_free(mstr);
+	} else {
+		g_match_info_unref(match);
+		g_regex_unref(reg);
+		reg = g_regex_new(CONN_USB_BUSADDR, 0, 0, NULL);
+		if (g_regex_match(reg, conn, 0, &match)) {
+			/* Found a bus.address style pattern. */
+			if ((mstr = g_match_info_fetch(match, 1))) {
+				num = strtoul(mstr, NULL, 10);
+				if (num > 255)
+					valid = FALSE;
+				if (bus)
+					*bus = num & 0xff;
+			}
+			g_free(mstr);
+
+			if ((mstr = g_match_info_fetch(match, 2))) {
+				num = strtoul(mstr, NULL, 10);
+				if (num > 127)
+					valid = FALSE;
+				if (addr)
+					*addr = num & 0x7f;
+			}
+			g_free(mstr);
+		}
+	}
+	g_match_info_unref(match);
+	g_regex_unref(reg);
+
+	return valid ? SR_OK : SR_ERR_ARG;
+}
+
+/**
  * Find USB devices according to a connection string.
  *
  * @param usb_ctx libusb context to use while scanning.
@@ -313,52 +396,17 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	struct libusb_device **devlist;
 	struct libusb_device_descriptor des;
 	GSList *devices;
-	GRegex *reg;
-	GMatchInfo *match;
-	int vid, pid, bus, addr, b, a, ret, i;
-	char *mstr;
+	uint16_t vid, pid;
+	uint8_t bus, addr;
+	int b, a, ret, i;
 
-	vid = pid = bus = addr = 0;
-	reg = g_regex_new(CONN_USB_VIDPID, 0, 0, NULL);
-	if (g_regex_match(reg, conn, 0, &match)) {
-		if ((mstr = g_match_info_fetch(match, 1)))
-			vid = strtoul(mstr, NULL, 16);
-		g_free(mstr);
-
-		if ((mstr = g_match_info_fetch(match, 2)))
-			pid = strtoul(mstr, NULL, 16);
-		g_free(mstr);
-		/* Trying to find USB device via VID:PID. */
-	} else {
-		g_match_info_unref(match);
-		g_regex_unref(reg);
-		reg = g_regex_new(CONN_USB_BUSADDR, 0, 0, NULL);
-		if (g_regex_match(reg, conn, 0, &match)) {
-			if ((mstr = g_match_info_fetch(match, 1)))
-				bus = strtoul(mstr, NULL, 10);
-			g_free(mstr);
-
-			if ((mstr = g_match_info_fetch(match, 2)))
-				addr = strtoul(mstr, NULL, 10);
-			g_free(mstr);
-			/* Trying to find USB device via bus.address. */
-		}
-	}
-	g_match_info_unref(match);
-	g_regex_unref(reg);
-
-	if (vid + pid + bus + addr == 0) {
-		sr_err("Neither VID:PID nor bus.address was specified.");
+	ret = sr_usb_split_conn(conn, &vid, &pid, &bus, &addr);
+	if (ret != SR_OK) {
+		sr_err("Invalid input, or neither VID:PID nor bus.address specified.");
 		return NULL;
 	}
-
-	if (bus > 255) {
-		sr_err("Invalid bus specified: %d.", bus);
-		return NULL;
-	}
-
-	if (addr > 127) {
-		sr_err("Invalid address specified: %d.", addr);
+	if (!(vid && pid) && !(bus && addr)) {
+		sr_err("Could neither determine VID:PID nor bus.address numbers.");
 		return NULL;
 	}
 
@@ -372,12 +420,12 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 			continue;
 		}
 
-		if (vid + pid && (des.idVendor != vid || des.idProduct != pid))
+		if (vid && pid && (des.idVendor != vid || des.idProduct != pid))
 			continue;
 
 		b = libusb_get_bus_number(devlist[i]);
 		a = libusb_get_device_address(devlist[i]);
-		if (bus + addr && (b != bus || a != addr))
+		if (bus && addr && (b != bus || a != addr))
 			continue;
 
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "
