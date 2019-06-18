@@ -591,9 +591,9 @@ static int ser_hid_setup_funcs(struct sr_serial_dev_inst *serial)
  * returns the chip index and advances the spec pointer upon match,
  * returns SER_HID_CHIP_UNKNOWN upon mismatch.
  */
-static enum ser_hid_chip_t ser_hid_chip_find_enum(char **spec_p)
+static enum ser_hid_chip_t ser_hid_chip_find_enum(const char **spec_p)
 {
-	gchar *spec;
+	const gchar *spec;
 	enum ser_hid_chip_t idx;
 	struct ser_hid_chip_functions *desc;
 
@@ -774,7 +774,8 @@ static int ser_hid_parse_conn_spec(
 			serno = g_strdup(p);
 			p += strlen(p);
 		} else if (!chip) {
-			char *copy, *endptr;
+			char *copy;
+			const char *endptr;
 			const char *name;
 			copy = g_strdup(p);
 			endptr = copy;
@@ -960,7 +961,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		sr_dbg("DBG: %s(), name %s", __func__, name);
 		if (!name || !*name)
 			return SR_ERR_NA;
-		chip = ser_hid_chip_find_enum((char **)&name);
+		chip = ser_hid_chip_find_enum(&name);
 		sr_dbg("DBG: %s(), chip %d", __func__, chip);
 		if (chip == SER_HID_CHIP_UNKNOWN)
 			return SR_ERR_NA;
@@ -1058,7 +1059,7 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		sr_dbg("DBG: %s(), name %s", __func__, name);
 		if (!name || !*name)
 			return SR_ERR_NA;
-		chip = ser_hid_chip_find_enum((char **)&name);
+		chip = ser_hid_chip_find_enum(&name);
 		sr_dbg("DBG: %s(), chip %d", __func__, chip);
 		if (chip == SER_HID_CHIP_UNKNOWN)
 			return SR_ERR_NA;
