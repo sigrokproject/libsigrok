@@ -386,7 +386,7 @@ static int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *data_to_send,
 SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 	struct ipdbg_la_tcp *tcp)
 {
-	devc->delay_value = (devc->limit_samples / 100.0) * devc->capture_ratio;
+	devc->delay_value = ((devc->limit_samples - 1) / 100.0) * devc->capture_ratio;
 
 	uint8_t buf;
 	buf = CMD_CFG_LA;
