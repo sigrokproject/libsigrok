@@ -60,26 +60,6 @@ static const struct vid_pid_item vid_pid_items_victor[] = {
 	ALL_ZERO
 };
 
-static int victor_set_params(struct sr_serial_dev_inst *serial,
-	int baudrate, int bits, int parity, int stopbits,
-	int flowcontrol, int rts, int dtr)
-{
-	/*
-	 * The USB HID connection has no concept of UART bitrate or
-	 * frame format. Silently ignore the parameters.
-	 */
-	(void)serial;
-	(void)baudrate;
-	(void)bits;
-	(void)parity;
-	(void)stopbits;
-	(void)flowcontrol;
-	(void)rts;
-	(void)dtr;
-
-	return SR_OK;
-}
-
 /* Reverse bits within a byte. */
 static uint8_t bit_reverse(uint8_t b)
 {
@@ -193,7 +173,11 @@ static struct ser_hid_chip_functions chip_victor = {
 	.chipdesc = "Victor DMM scrambler",
 	.vid_pid_items = vid_pid_items_victor,
 	.max_bytes_per_request = VICTOR_DMM_PACKET_LENGTH,
-	.set_params = victor_set_params,
+	/*
+	 * The USB HID connection has no concept of UART bitrate or
+	 * frame format. Silently ignore the parameters.
+	 */
+	.set_params = std_dummy_set_params,
 	.read_bytes = victor_read_bytes,
 	.write_bytes = victor_write_bytes,
 };

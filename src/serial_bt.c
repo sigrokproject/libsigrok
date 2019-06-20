@@ -574,28 +574,6 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 	return sr_ser_unqueue_rx_data(serial, buf, dlen);
 }
 
-static int ser_bt_set_params(struct sr_serial_dev_inst *serial,
-		int baudrate, int bits, int parity, int stopbits,
-		int flowcontrol, int rts, int dtr)
-{
-	/*
-	 * Bluetooth communication has no concept of bitrate, so ignore
-	 * these arguments silently. Neither need we pass the frame format
-	 * down to internal BT comm routines, nor need we keep the values
-	 * here, since the caller will cache/register them already.
-	 */
-	(void)serial;
-	(void)baudrate;
-	(void)bits;
-	(void)parity;
-	(void)stopbits;
-	(void)flowcontrol;
-	(void)rts;
-	(void)dtr;
-
-	return SR_OK;
-}
-
 struct bt_source_args_t {
 	/* The application callback. */
 	sr_receive_data_callback cb;
@@ -835,7 +813,13 @@ static struct ser_lib_functions serlib_bt = {
 	.drain = ser_bt_drain,
 	.write = ser_bt_write,
 	.read = ser_bt_read,
-	.set_params = ser_bt_set_params,
+	/*
+	 * Bluetooth communication has no concept of bitrate, so ignore
+	 * these arguments silently. Neither need we pass the frame format
+	 * down to internal BT comm routines, nor need we keep the values
+	 * here, since the caller will cache/register them already.
+	 */
+	.set_params = std_dummy_set_params,
 	.setup_source_add = ser_bt_setup_source_add,
 	.setup_source_remove = ser_bt_setup_source_remove,
 	.list = ser_bt_list,

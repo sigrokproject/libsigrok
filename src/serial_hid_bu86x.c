@@ -60,26 +60,6 @@ static const struct vid_pid_item vid_pid_items_bu86x[] = {
 	ALL_ZERO
 };
 
-static int bu86x_set_params(struct sr_serial_dev_inst *serial,
-	int baudrate, int bits, int parity, int stopbits,
-	int flowcontrol, int rts, int dtr)
-{
-	/*
-	 * The IR adapter's communication parameters are fixed and need
-	 * not get configured. Just silently ignore the caller's spec.
-	 */
-	(void)serial;
-	(void)baudrate;
-	(void)bits;
-	(void)parity;
-	(void)stopbits;
-	(void)flowcontrol;
-	(void)rts;
-	(void)dtr;
-
-	return SR_OK;
-}
-
 static int bu86x_read_bytes(struct sr_serial_dev_inst *serial,
 	uint8_t *data, int space, unsigned int timeout)
 {
@@ -108,7 +88,11 @@ static struct ser_hid_chip_functions chip_bu86x = {
 	.chipdesc = "Brymen BU-86X",
 	.vid_pid_items = vid_pid_items_bu86x,
 	.max_bytes_per_request = BU86X_MAX_BYTES_PER_REQUEST,
-	.set_params = bu86x_set_params,
+	/*
+	 * The IR adapter's communication parameters are fixed and need
+	 * not get configured. Just silently ignore the caller's spec.
+	 */
+	.set_params = std_dummy_set_params,
 	.read_bytes = bu86x_read_bytes,
 	.write_bytes = bu86x_write_bytes,
 };

@@ -937,3 +937,20 @@ SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_grou
 
 	return -1;
 }
+
+SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
+	int baudrate, int bits, int parity, int stopbits,
+	int flowcontrol, int rts, int dtr)
+{
+	(void)serial;
+	(void)baudrate;
+	(void)bits;
+	(void)parity;
+	(void)stopbits;
+	(void)flowcontrol;
+	(void)rts;
+	(void)dtr;
+
+	return SR_OK;
+}
+
