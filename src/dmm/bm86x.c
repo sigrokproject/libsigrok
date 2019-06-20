@@ -164,6 +164,7 @@ static void brymen_bm86x_parse(const uint8_t *buf, float *floatval,
 	int ret, digits, is_diode, over_limit, scale;
 	uint8_t ind1, ind15;
 
+	temp_unit = '\0';
 	if (ch_idx == 0) {
 		/*
 		 * Main display. Note that _some_ of the second display's
@@ -212,7 +213,7 @@ static void brymen_bm86x_parse(const uint8_t *buf, float *floatval,
 		} else if (buf[15] & 0x80) {
 			analog->meaning->mq = SR_MQ_DUTY_CYCLE;
 			analog->meaning->unit = SR_UNIT_PERCENTAGE;
-		} else if (buf[ 2] & 0x0a) {
+		} else if ((buf[2] & 0x0a) && temp_unit) {
 			analog->meaning->mq = SR_MQ_TEMPERATURE;
 			if (temp_unit == 'F')
 				analog->meaning->unit = SR_UNIT_FAHRENHEIT;
@@ -278,9 +279,14 @@ static void brymen_bm86x_parse(const uint8_t *buf, float *floatval,
 		analog->encoding->digits  = digits;
 		analog->spec->spec_digits = digits;
 	} else if (ch_idx == 1) {
-		/* Secondary display. */
+		/*
+		 * Secondary display. Also inspect _some_ primary display
+		 * data, to determine the secondary display's validity.
+		 */
+		(void)brymen_bm86x_parse_digits(&buf[2], 6, txtbuf,
+			NULL, &temp_unit, NULL, 0x80);
 		ret = brymen_bm86x_parse_digits(&buf[9], 4, txtbuf,
-			floatval, &temp_unit, &digits, 0x10);
+			floatval, NULL, &digits, 0x10);
 
 		/* SI unit. */
 		if (buf[14] & 0x08) {
@@ -295,7 +301,7 @@ static void brymen_bm86x_parse(const uint8_t *buf, float *floatval,
 		} else if (buf[14] & 0x04) {
 			analog->meaning->mq = SR_MQ_FREQUENCY;
 			analog->meaning->unit = SR_UNIT_HERTZ;
-		} else if (buf[9] & 0x40) {
+		} else if ((buf[9] & 0x40) && temp_unit) {
 			analog->meaning->mq = SR_MQ_TEMPERATURE;
 			if (temp_unit == 'F')
 				analog->meaning->unit = SR_UNIT_FAHRENHEIT;
