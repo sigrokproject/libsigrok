@@ -215,7 +215,6 @@ The following drivers/devices do not require a serial port specification:
  - saleae-logic16
  - sysclk-lwla
  - uni-t-dmm (all non -ser subdrivers)
- - victor-dmm
  - yokogawa-dlm (USBTMC or TCP)
  - zeroplus-logic-cube
 
