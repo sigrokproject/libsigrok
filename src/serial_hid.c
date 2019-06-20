@@ -206,7 +206,7 @@ static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
 		if (serno)
 			g_string_append_printf(desc, " %ls", serno);
 		if (vid && pid)
-			g_string_append_printf(desc, " %04hx:%04hx", vid, pid);
+			g_string_append_printf(desc, " %04hx.%04hx", vid, pid);
 		list = append(list, name, desc->str);
 		g_string_free(desc, TRUE);
 		g_free(name);
