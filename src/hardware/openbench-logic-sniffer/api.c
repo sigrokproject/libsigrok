@@ -32,6 +32,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
@@ -191,6 +192,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		       DEFAULT_SAMPLERATE);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
+	sdi->connection_id = g_strdup(serial->port);
 
 	serial_close(serial);
 
@@ -211,6 +213,11 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	switch (key) {
+	case SR_CONF_CONN:
+		if (!sdi->conn || !sdi->connection_id)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(sdi->connection_id);
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
