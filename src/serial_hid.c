@@ -199,14 +199,14 @@ static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
 		pid = curdev->product_id;
 		desc = g_string_sized_new(128);
 		g_string_append_printf(desc, "HID");
-		if (manuf)
+		if (manuf && wcslen(manuf) != 0)
 			g_string_append_printf(desc, " %ls", manuf);
-		if (prod)
+		if (prod && wcslen(prod) != 0)
 			g_string_append_printf(desc, " %ls", prod);
-		if (serno)
+		if (serno && wcslen(serno) != 0)
 			g_string_append_printf(desc, " %ls", serno);
 		if (vid && pid)
-			g_string_append_printf(desc, " %04hx.%04hx", vid, pid);
+			g_string_append_printf(desc, " [%04hx.%04hx]", vid, pid);
 		list = append(list, name, desc->str);
 		g_string_free(desc, TRUE);
 		g_free(name);
