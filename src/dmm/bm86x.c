@@ -50,14 +50,6 @@ SR_PRIV int sr_brymen_bm86x_packet_request(struct sr_serial_dev_inst *serial)
 
 SR_PRIV gboolean sr_brymen_bm86x_packet_valid(const uint8_t *buf)
 {
-	GString *text;
-
-	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
-		text = sr_hexdump_new(buf, BRYMEN_BM86X_PACKET_SIZE);
-		sr_spew("%s() checking DMM packet: %s", __func__, text->str);
-		sr_hexdump_free(text);
-	}
-
 	/*
 	 * "Model ID3" (3rd HID report, byte 3) is the only documented
 	 * fixed value, and must be 0x86. All other positions either depend
