@@ -167,8 +167,6 @@ static GSList *ser_hid_hidapi_list(GSList *list, sr_ser_list_append_t append)
 		 */
 		vid = curdev->vendor_id;
 		pid = curdev->product_id;
-		sr_dbg("DIAG: hidapi enum, vid:pid %04x:%04x, path %s\n",
-			curdev->vendor_id, curdev->product_id, curdev->path);
 		chipname = ser_hid_chip_find_name_vid_pid(vid, pid);
 		if (!chipname)
 			chipname = "<chip>";
@@ -351,8 +349,6 @@ static int ser_hid_hidapi_open_dev(struct sr_serial_dev_inst *serial)
 	if (!serial->hid_path)
 		serial->hid_path = extract_hidapi_path(serial->usb_path);
 	hid_dev = hid_open_path(serial->hid_path);
-	sr_dbg("DBG: %s(), hid_open_path(\"%s\") => %p", __func__,
-			serial->hid_path, hid_dev);
 	if (!hid_dev) {
 		serial->hid_path = NULL;
 		return SR_ERR_IO;
@@ -395,7 +391,6 @@ static int hidapi_source_cb(int fd, int revents, void *cb_data)
 	uint8_t rx_buf[SER_HID_CHUNK_SIZE];
 	int rc;
 
-	sr_dbg("DBG: %s() fd %d, evt 0x%x, data %p.", __func__, fd, revents, cb_data);
 	args = cb_data;
 
 	/*
@@ -408,7 +403,6 @@ static int hidapi_source_cb(int fd, int revents, void *cb_data)
 		rc = args->serial->hid_chip_funcs->read_bytes(args->serial,
 				rx_buf, sizeof(rx_buf), 0);
 		if (rc > 0) {
-			sr_dbg("DBG: %s() queueing %d bytes.", __func__, rc);
 			ser_hid_mask_databits(args->serial, rx_buf, rc);
 			sr_ser_queue_rx_data(args->serial, rx_buf, rc);
 		}
@@ -423,7 +417,6 @@ static int hidapi_source_cb(int fd, int revents, void *cb_data)
 	if (sr_ser_has_queued_data(args->serial))
 		revents |= G_IO_IN;
 	rc = args->cb(fd, revents, args->cb_data);
-	sr_dbg("DBG: %s() rc %d.", __func__, rc);
 
 	return rc;
 }
@@ -436,7 +429,6 @@ static int ser_hid_hidapi_setup_source_add(struct sr_session *session,
 	struct hidapi_source_args_t *args;
 	int rc;
 
-	sr_dbg("DBG: %s() evt 0x%x, to %d.", __func__, events, timeout);
 	(void)events;
 
 	/* Optionally enforce a minimum poll period. */
@@ -457,7 +449,6 @@ static int ser_hid_hidapi_setup_source_add(struct sr_session *session,
 	 */
 	rc = sr_session_source_add(session, -1, events, timeout,
 			hidapi_source_cb, args);
-	sr_dbg("DBG: %s() added, rc %d.", __func__, rc);
 	if (rc != SR_OK) {
 		g_free(args);
 		return rc;
@@ -472,7 +463,6 @@ static int ser_hid_hidapi_setup_source_remove(struct sr_session *session,
 {
 	(void)serial;
 
-	sr_dbg("DBG: %s().", __func__);
 	(void)sr_session_source_remove(session, -1);
 	/*
 	 * Release callback args here already? Can there be more than
@@ -644,17 +634,6 @@ SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid)
 	return NULL;
 }
 
-static const char *ser_hid_chip_get_text(enum ser_hid_chip_t idx)
-{
-	struct ser_hid_chip_functions *desc;
-
-	desc = get_hid_chip_funcs(idx);
-	if (!desc)
-		return NULL;
-
-	return desc->chipdesc;
-}
-
 /**
  * See if a text string is a valid USB path for a HID device.
  * @param[in] serial The serial port that is about to get opened.
@@ -733,14 +712,11 @@ static int ser_hid_parse_conn_spec(
 
 	if (!serial || !spec || !*spec)
 		return SR_ERR_ARG;
-	sr_dbg("DBG: %s(), input spec: %s", __func__, spec);
 	p = spec;
 
 	/* The "hid" prefix is mandatory. */
-	if (!g_str_has_prefix(p, SER_HID_CONN_PREFIX)) {
-		sr_dbg("DBG: %s(), not a HID port", __func__);
+	if (!g_str_has_prefix(p, SER_HID_CONN_PREFIX))
 		return SR_ERR_ARG;
-	}
 	p += strlen(SER_HID_CONN_PREFIX);
 
 	/*
@@ -756,39 +732,32 @@ static int ser_hid_parse_conn_spec(
 			break;
 		if (g_str_has_prefix(p, SER_HID_USB_PREFIX)) {
 			rc = try_open_path(serial, p);
-			sr_dbg("DBG: %s(), open usb path %s => rc %d", __func__, p, rc);
 			if (rc != SR_OK)
 				return rc;
 			path = g_strdup(p);
 			p += strlen(p);
 		} else if (g_str_has_prefix(p, SER_HID_RAW_PREFIX)) {
 			rc = try_open_path(serial, p);
-			sr_dbg("DBG: %s(), open raw path %s => rc %d", __func__, p, rc);
 			if (rc != SR_OK)
 				return rc;
 			path = g_strdup(p);
 			p += strlen(p);
 		} else if (g_str_has_prefix(p, SER_HID_SNR_PREFIX)) {
 			p += strlen(SER_HID_SNR_PREFIX);
-			sr_dbg("DBG: %s(), snr %s", __func__, p);
 			serno = g_strdup(p);
 			p += strlen(p);
 		} else if (!chip) {
 			char *copy;
 			const char *endptr;
-			const char *name;
 			copy = g_strdup(p);
 			endptr = copy;
 			chip = ser_hid_chip_find_enum(&endptr);
-			sr_dbg("DBG: %s(), chip search, %s => %u", __func__, p, chip);
 			if (!chip) {
 				g_free(copy);
 				return SR_ERR_ARG;
 			}
 			p += endptr - copy;
 			g_free(copy);
-			name = ser_hid_chip_get_text(chip);
-			sr_dbg("DBG: %s(), chip %s", __func__, name);
 		} else {
 			sr_err("unsupported conn= spec %s, error at %s", spec, p);
 			return SR_ERR_ARG;
@@ -799,7 +768,6 @@ static int ser_hid_parse_conn_spec(
 			break;
 	}
 
-	sr_dbg("DBG: %s() done, chip %d, path %s, serno %s", __func__, chip, path, serno);
 	if (chip_ref)
 		*chip_ref = chip;
 	if (path_ref && path)
@@ -818,23 +786,16 @@ static int check_serno(const char *path, const char *serno_want)
 	char serno_got[128];
 	int rc;
 
-	sr_dbg("DBG: %s(\"%s\", \"%s\")", __func__, path, serno_want);
-
 	usb_path = g_strdup(path);
 	hid_path = extract_hidapi_path(usb_path);
 	rc = ser_hid_hidapi_get_serno(hid_path, serno_got, sizeof(serno_got));
-	sr_dbg("DBG: %s(), usb %s, hidapi %s => rc %d", __func__, usb_path, hid_path, rc);
 	g_free(usb_path);
 	if (rc) {
 		sr_dbg("DBG: %s(), could not get serial number", __func__);
 		return 0;
 	}
-	sr_dbg("DBG: %s(), got serno \"%s\"", __func__, serno_got);
 
-	rc = strcmp(serno_got, serno_want) == 0;
-	sr_dbg("DBG: %s(), return %d", __func__, rc);
-
-	return rc;
+	return strcmp(serno_got, serno_want) == 0;
 }
 
 static GSList *append_find(GSList *devs, const char *path)
@@ -866,8 +827,6 @@ static GSList *list_paths_for_vids_pids(const struct vid_pid_item *vid_pids)
 			vid = vid_pids[idx].vid;
 			pid = vid_pids[idx].pid;
 		}
-		sr_dbg("DBG: %s(), searching VID:PID %04hx:%04hx",
-				__func__, vid, pid);
 		list = ser_hid_hidapi_find_usb(list, append_find, vid, pid);
 		if (!vid_pids)
 			break;
@@ -914,8 +873,6 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 	if (!path_ref)
 		return SR_ERR_ARG;
 	path = *path_ref;
-	sr_dbg("DBG: %s() enter, chip %d, path %s, serno %s", __func__,
-			chip, path, serno ? serno : "<none>");
 
 	/*
 	 * Simplify the more complex conditions somewhat by assigning
@@ -939,8 +896,6 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 	have_chip = (chip != SER_HID_CHIP_UNKNOWN) ? 1 : 0;
 	have_path = (path && *path) ? 1 : 0;
 	have_serno = (serno && *serno) ? 1 : 0;
-	sr_dbg("DBG: %s(), have chip %d, path %d, serno %d", __func__,
-			have_chip, have_path, have_serno);
 	if (have_path && have_serno) {
 		sr_err("Unsupported combination of USB path and serno");
 		return SR_ERR_ARG;
@@ -951,33 +906,26 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 	if (have_chip && !chip_funcs->vid_pid_items)
 		return SR_ERR_NA;
 	if (have_path && !have_chip) {
-		sr_dbg("DBG: %s(), searching chip for path %s", __func__, path);
 		vid = pid = 0;
 		rc = ser_hid_hidapi_get_vid_pid(path, &vid, &pid);
-		sr_dbg("DBG: %s(), rc %d, VID:PID %04x:%04x", __func__, rc, vid, pid);
 		if (rc != SR_OK)
 			return rc;
 		name = ser_hid_chip_find_name_vid_pid(vid, pid);
-		sr_dbg("DBG: %s(), name %s", __func__, name);
 		if (!name || !*name)
 			return SR_ERR_NA;
 		chip = ser_hid_chip_find_enum(&name);
-		sr_dbg("DBG: %s(), chip %d", __func__, chip);
 		if (chip == SER_HID_CHIP_UNKNOWN)
 			return SR_ERR_NA;
 		have_chip = 1;
 	}
 	if (have_serno) {
-		sr_dbg("DBG: %s(), searching path for serno %s", __func__, serno);
 		vid_pids = have_chip ? chip_funcs->vid_pid_items : NULL;
 		list = list_paths_for_vids_pids(vid_pids);
-		sr_dbg("DBG: %s(), vid/pid list for chip type %p", __func__, list);
 		if (!list)
 			return SR_ERR_NA;
 		matched = NULL;
 		for (tmplist = list; tmplist; tmplist = tmplist->next) {
 			path = get_hidapi_path_copy(tmplist->data);
-			sr_dbg("DBG: %s(), checking %s", __func__, path);
 			serno_matched = check_serno(path, serno);
 			g_free(path);
 			if (!serno_matched)
@@ -988,31 +936,19 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		if (!matched)
 			return SR_ERR_NA;
 		path = g_strdup(matched->data);
-		sr_dbg("DBG: %s(), match, path %s", __func__, path);
 		have_path = 1;
 		g_slist_free_full(list, g_free);
 	}
 	if (!have_path) {
-		sr_dbg("DBG: %s(), searching path, chip %d", __func__, chip);
 		vid_pids = have_chip ? chip_funcs->vid_pid_items : NULL;
 		list = list_paths_for_vids_pids(vid_pids);
 		if (!list)
 			return SR_ERR_NA;
-		for (tmplist = list; tmplist; tmplist = tmplist->next) {
-			path = tmplist->data;
-			sr_dbg("DBG: %s(), path %s", __func__, path);
-		}
 		matched = matched2 = NULL;
 		if (have_chip) {
 			/* List already only contains specified chip. */
 			matched = list;
-			path = matched->data;
-			sr_dbg("DBG: %s(), match 1 %s", __func__, path);
 			matched2 = list->next;
-			if (matched2) {
-				path = matched2->data;
-				sr_dbg("DBG: %s(), match 2 %s", __func__, path);
-			}
 		}
 		/* Works for lists with one or multiple chips. Saves indentation. */
 		for (tmplist = list; tmplist; tmplist = tmplist->next) {
@@ -1024,12 +960,10 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 				continue;
 			if (!matched) {
 				matched = tmplist;
-				sr_dbg("DBG: %s(), match 1 %s", __func__, path);
 				continue;
 			}
 			if (!matched2) {
 				matched2 = tmplist;
-				sr_dbg("DBG: %s(), match 2 %s", __func__, path);
 				break;
 			}
 		}
@@ -1044,29 +978,23 @@ static int ser_hid_chip_search(enum ser_hid_chip_t *chip_ref,
 		if (matched2)
 			sr_info("More than one cable matches, random pick.");
 		path = get_hidapi_path_copy(matched->data);
-		sr_dbg("DBG: %s(), match, path %s", __func__, path);
 		have_path = 1;
 		g_slist_free_full(list, g_free);
 	}
 	if (have_path && !have_chip) {
-		sr_dbg("DBG: %s(), searching chip for path %s", __func__, path);
 		vid = pid = 0;
 		rc = ser_hid_hidapi_get_vid_pid(path, &vid, &pid);
-		sr_dbg("DBG: %s(), rc %d, VID:PID %04x:%04x", __func__, rc, vid, pid);
 		if (rc != SR_OK)
 			return rc;
 		name = ser_hid_chip_find_name_vid_pid(vid, pid);
-		sr_dbg("DBG: %s(), name %s", __func__, name);
 		if (!name || !*name)
 			return SR_ERR_NA;
 		chip = ser_hid_chip_find_enum(&name);
-		sr_dbg("DBG: %s(), chip %d", __func__, chip);
 		if (chip == SER_HID_CHIP_UNKNOWN)
 			return SR_ERR_NA;
 		have_chip = 1;
 	}
 
-	sr_dbg("DBG: %s() leave, chip %d, path %s", __func__, chip, path);
 	if (chip_ref)
 		*chip_ref = chip;
 	if (path_ref)
@@ -1124,7 +1052,6 @@ static int ser_hid_open(struct sr_serial_dev_inst *serial, int flags)
 	 * device's USB path.
 	 */
 	if (!chip || !usbpath || serno) {
-		sr_dbg("DBG: %s(), searching ...", __func__);
 		rc = ser_hid_chip_search(&chip, &usbpath, serno);
 		if (rc != 0)
 			return SR_ERR_NA;
@@ -1154,7 +1081,6 @@ static int ser_hid_open(struct sr_serial_dev_inst *serial, int flags)
 		serial->usb_serno = NULL;
 		return SR_ERR_IO;
 	}
-	sr_dbg("DBG: %s() done, OK", __func__);
 
 	if (!serial->rcv_buffer)
 		serial->rcv_buffer = g_string_sized_new(SER_HID_CHUNK_SIZE);
@@ -1164,7 +1090,6 @@ static int ser_hid_open(struct sr_serial_dev_inst *serial, int flags)
 
 static int ser_hid_close(struct sr_serial_dev_inst *serial)
 {
-	sr_dbg("DBG: %s()", __func__);
 	ser_hid_hidapi_close_dev(serial);
 
 	return SR_OK;
@@ -1174,21 +1099,14 @@ static int ser_hid_set_params(struct sr_serial_dev_inst *serial,
 	int baudrate, int bits, int parity, int stopbits,
 	int flowcontrol, int rts, int dtr)
 {
-	int rc;
-
-	sr_dbg("DBG: %s() enter", __func__);
 	if (ser_hid_setup_funcs(serial) != 0)
 		return SR_ERR_NA;
-	sr_dbg("DBG: %s() chip funcs set", __func__);
 	if (!serial->hid_chip_funcs || !serial->hid_chip_funcs->set_params)
 		return SR_ERR_NA;
-	sr_dbg("DBG: %s() set params avail", __func__);
-	rc = serial->hid_chip_funcs->set_params(serial,
+
+	return serial->hid_chip_funcs->set_params(serial,
 		baudrate, bits, parity, stopbits,
 		flowcontrol, rts, dtr);
-	sr_dbg("DBG: %s() set params rc %d", __func__, rc);
-
-	return rc;
 }
 
 static int ser_hid_setup_source_add(struct sr_session *session,
@@ -1244,7 +1162,6 @@ static int ser_hid_write(struct sr_serial_dev_inst *serial,
 	if (!serial->hid_chip_funcs->max_bytes_per_request)
 		return SR_ERR_NA;
 
-	sr_dbg("DBG: %s() shall send %zu bytes TX data.", __func__, count);
 	total = 0;
 	max_chunk = serial->hid_chip_funcs->max_bytes_per_request;
 	while (count > 0) {
@@ -1285,9 +1202,6 @@ static int ser_hid_read(struct sr_serial_dev_inst *serial,
 	uint8_t buffer[SER_HID_CHUNK_SIZE];
 	int rc;
 	unsigned int got;
-
-	sr_dbg("DBG: %s() count %zd, block %d, to %u", __func__,
-			count, !nonblocking, timeout_ms);
 
 	if (!serial->hid_chip_funcs || !serial->hid_chip_funcs->read_bytes)
 		return SR_ERR_NA;
@@ -1351,7 +1265,6 @@ static int ser_hid_read(struct sr_serial_dev_inst *serial,
 			return SR_ERR;
 		}
 		if (rc) {
-			sr_dbg("DBG: %s() queueing %d bytes.", __func__, rc);
 			ser_hid_mask_databits(serial, buffer, rc);
 			sr_ser_queue_rx_data(serial, buffer, rc);
 		}
@@ -1384,7 +1297,6 @@ static int ser_hid_read(struct sr_serial_dev_inst *serial,
 	 */
 	if (got > count)
 		got = count;
-	sr_dbg("DBG: %s() passing %d bytes.", __func__, got);
 
 	return sr_ser_unqueue_rx_data(serial, buf, count);
 }
