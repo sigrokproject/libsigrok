@@ -177,6 +177,15 @@ static int read_lcr_port(struct sr_dev_inst *sdi,
 	uint8_t buf[128];
 	int ret;
 
+	serial_flush(serial);
+	if (lcr->packet_request) {
+		ret = lcr->packet_request(serial);
+		if (ret < 0) {
+			sr_err("Failed to request packet: %d.", ret);
+			return ret;
+		}
+	}
+
 	/*
 	 * Receive a few more packets (and process them!) to have the
 	 * current output frequency and circuit model parameter values
@@ -190,7 +199,7 @@ static int read_lcr_port(struct sr_dev_inst *sdi,
 	len = sizeof(buf);
 	scan_packet_check_setup(sdi);
 	ret = serial_stream_detect(serial, buf, &len,
-		lcr->packet_size, scan_packet_check_func, 1000);
+		lcr->packet_size, scan_packet_check_func, 1500);
 	scan_packet_check_setup(NULL);
 
 	return ret;
