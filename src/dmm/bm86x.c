@@ -41,7 +41,6 @@ SR_PRIV int sr_brymen_bm86x_packet_request(struct sr_serial_dev_inst *serial)
 {
 	static const uint8_t request[] = { 0x00, 0x00, 0x86, 0x66, };
 
-	sr_spew("%s() sending request", __func__);
 	serial_write_nonblocking(serial, request, sizeof(request));
 
 	return SR_OK;
