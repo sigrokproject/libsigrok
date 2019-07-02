@@ -616,6 +616,10 @@ static const struct channel_spec hp_6632b_ch[] = {
 	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
 };
 
+static const struct channel_spec hp_66312a_ch[] = {
+	{ "1", { 0, 20.475, 0.0001, 4, 5 }, { 0, 2.0475, 0.0001, 4, 5 }, { 0, 41.92256 }, FREQ_DC_ONLY, { 0, 22, 0.01 }, NO_OCP_LIMITS },
+};
+
 static const struct channel_spec hp_66332a_ch[] = {
 	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
 };
@@ -1213,6 +1217,18 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(hp_6630b_devopts),
 		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
 		ARRAY_AND_SIZE(hp_6632b_ch),
+		ARRAY_AND_SIZE(hp_6630b_cg),
+		hp_6630b_cmd,
+		.probe_channels = NULL,
+		hp_6630b_init_acquisition,
+		hp_6630b_update_status,
+	},
+
+	/* HP 66312A */
+	{ "HP", "66312A", SCPI_DIALECT_HP_66XXB, PPS_OTP,
+		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(hp_6630b_devopts_cg),
+		ARRAY_AND_SIZE(hp_66312a_ch),
 		ARRAY_AND_SIZE(hp_6630b_cg),
 		hp_6630b_cmd,
 		.probe_channels = NULL,
