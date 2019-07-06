@@ -587,25 +587,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			channel = channel->next;
 		}
 
-		/* Compress range mask value and apply range settings. */
-		if (range_mask) {
-			cmd_pkt->trigger[0].flags.data_range_enabled = 1;
-			cmd_pkt->trigger[0].data_range_mask |= range_mask;
-
-			uint32_t new_range_value = 0;
-			uint32_t bit_mask = 1;
-			while (range_mask) {
-				if ((range_mask & 1) != 0) {
-					new_range_value <<= 1;
-					if ((range_value & 1) != 0)
-						new_range_value |= bit_mask;
-					bit_mask <<= 1;
-				}
-				range_mask >>= 1;
-				range_value >>= 1;
-			}
-			cmd_pkt->trigger[0].data_range_max |= range_value;
-		}
+		cmd_pkt->trigger[0].flags.data_range_enabled = 1;
+		cmd_pkt->trigger[0].data_range_mask |= range_mask;
+		cmd_pkt->trigger[0].data_range_max = range_value;
 	}
 
 	usb_source_add(sdi->session, drvc->sr_ctx, 1000,
