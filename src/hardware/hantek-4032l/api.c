@@ -515,7 +515,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	else
 		cmd_pkt->sample_rate = devc->sample_rate;
 
-	/* Set pwm channel values. */
+	/* Set PWM channel values. */
 	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold[0]);
 	devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(devc->cur_threshold[1]);
 
@@ -590,7 +590,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		/* Compress range mask value and apply range settings. */
 		if (range_mask) {
 			cmd_pkt->trigger[0].flags.data_range_enabled = 1;
-			cmd_pkt->trigger[0].data_range_mask |= (range_mask);
+			cmd_pkt->trigger[0].data_range_mask |= range_mask;
 
 			uint32_t new_range_value = 0;
 			uint32_t bit_mask = 1;
