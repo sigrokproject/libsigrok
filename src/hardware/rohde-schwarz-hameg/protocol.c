@@ -643,7 +643,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	/* Not all series support the Edge Trigger Low-Pass filter. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS]) {
 		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS]);
+			   "%s", (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_LOWPASS]);
 
 		if (sr_scpi_get_bool(sdi->conn, command,
 				     &state->edge_trigger_lowpass) != SR_OK)
@@ -653,7 +653,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 	/* Not all series support the Edge Trigger Noise Reject filter. */
 	if ((*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ]) {
 		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ]);
+			   "%s", (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_NOISE_REJ]);
 
 		if (sr_scpi_get_bool(sdi->conn, command,
 				     &state->edge_trigger_noise_rej) != SR_OK)
@@ -824,7 +824,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]) {
 			/* Check if the Beep On Trigger functionality is enabled or not. */
 			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]);
+				   "%s", (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_TRIGGER]);
 
 			if (sr_scpi_get_bool(sdi->conn, command,
 					     &state->beep_on_trigger) != SR_OK)
@@ -834,7 +834,7 @@ SR_PRIV int rs_scope_state_get(const struct sr_dev_inst *sdi)
 		if ((*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]) {
 			/* Check if the Beep On Error functionality is enabled or not. */
 			g_snprintf(command, sizeof(command),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]);
+				   "%s", (*config->scpi_dialect)[SCPI_CMD_GET_SYS_BEEP_ON_ERROR]);
 
 			if (sr_scpi_get_bool(sdi->conn, command,
 					     &state->beep_on_error) != SR_OK)
