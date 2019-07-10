@@ -244,6 +244,13 @@ SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc)
 	}
 	pattern->num_samples = last_end;
 	devc->analog_patterns[PATTERN_SAWTOOTH] = pattern;
+
+	/* PATTERN_ANALOG_RANDOM */
+	/* Pattern not filled here for the random analog data, */
+	/* it will be generated in the send_analog_packet */
+	pattern = g_malloc(sizeof(struct analog_pattern));
+	pattern->num_samples = last_end;
+	devc->analog_patterns[PATTERN_ANALOG_RANDOM] = pattern;
 }
 
 static uint64_t encode_number_to_gray(uint64_t nr)
@@ -484,14 +491,24 @@ static void send_analog_packet(struct analog_gen *ag,
 		ag_pattern_pos = analog_pos % pattern->num_samples;
 		sending_now = MIN(analog_todo, pattern->num_samples - ag_pattern_pos);
 		if (ag->amplitude != DEFAULT_ANALOG_AMPLITUDE ||
-			ag->offset != DEFAULT_ANALOG_OFFSET) {
-
-			/* Amplitude or offset changed, modify each sample. */
-			amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
-			offset = ag->offset - DEFAULT_ANALOG_OFFSET;
+			ag->offset != DEFAULT_ANALOG_OFFSET ||
+			ag->pattern == PATTERN_ANALOG_RANDOM) {
+			/* Amplitude or offset changed (or we generating random data), */
+			/* modify each sample. */
+			if (ag->pattern == PATTERN_ANALOG_RANDOM) {
+				amplitude = ag->amplitude / 500.0;
+				offset = ag->offset - DEFAULT_ANALOG_OFFSET - ag->amplitude;
+			} else {
+				amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
+				offset = ag->offset - DEFAULT_ANALOG_OFFSET;
+			}
 			data = ag->packet.data;
-			for (i = 0; i < sending_now; i++)
-				data[i] = pattern->data[ag_pattern_pos + i] * amplitude + offset;
+			for (i = 0; i < sending_now; i++) {
+				if (ag->pattern == PATTERN_ANALOG_RANDOM)
+					data[i] = (rand() % 1000) * amplitude + offset;
+				else
+					data[i] = pattern->data[ag_pattern_pos + i] * amplitude + offset;
+			}
 		} else {
 			/* Amplitude and offset unchanged, use the fast way. */
 			ag->packet.data = pattern->data + ag_pattern_pos;
@@ -504,11 +521,19 @@ static void send_analog_packet(struct analog_gen *ag,
 	} else {
 		ag_pattern_pos = analog_pos % pattern->num_samples;
 		to_avg = MIN(analog_todo, pattern->num_samples - ag_pattern_pos);
-		amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
-		offset = ag->offset - DEFAULT_ANALOG_OFFSET;
+		if (ag->pattern == PATTERN_ANALOG_RANDOM) {
+			amplitude = ag->amplitude / 500.0;
+			offset = ag->offset - DEFAULT_ANALOG_OFFSET - ag->amplitude;
+		} else {
+			amplitude = ag->amplitude / DEFAULT_ANALOG_AMPLITUDE;
+			offset = ag->offset - DEFAULT_ANALOG_OFFSET;
+		}
 
 		for (i = 0; i < to_avg; i++) {
-			value = *(pattern->data + ag_pattern_pos + i) * amplitude + offset;
+			if (ag->pattern == PATTERN_ANALOG_RANDOM)
+				value = (rand() % 1000) * amplitude + offset;
+			else
+				value = *(pattern->data + ag_pattern_pos + i) * amplitude + offset;
 			ag->avg_val = (ag->avg_val + value) / 2;
 			ag->num_avgs++;
 			/* Time to send averaged data? */
