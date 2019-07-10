@@ -32,7 +32,7 @@
 #define DEFAULT_NUM_LOGIC_CHANNELS		8
 #define DEFAULT_LOGIC_PATTERN			PATTERN_SIGROK
 
-#define DEFAULT_NUM_ANALOG_CHANNELS		4
+#define DEFAULT_NUM_ANALOG_CHANNELS		5
 
 /* Note: No spaces allowed because of sigrok-cli. */
 static const char *logic_pattern_str[] = {

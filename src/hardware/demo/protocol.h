@@ -95,6 +95,7 @@ enum analog_pattern_type {
 	PATTERN_SINE,
 	PATTERN_TRIANGLE,
 	PATTERN_SAWTOOTH,
+	PATTERN_ANALOG_RANDOM,
 };
 
 static const char *analog_pattern_str[] = {
@@ -102,6 +103,7 @@ static const char *analog_pattern_str[] = {
 	"sine",
 	"triangle",
 	"sawtooth",
+	"random",
 };
 
 struct analog_pattern {
