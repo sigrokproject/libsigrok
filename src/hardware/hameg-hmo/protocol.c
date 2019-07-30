@@ -183,6 +183,9 @@ static const char *logic_threshold_rtb200x_rtm300x[] = {
 	"MAN", // overwritten by logic_threshold_custom
 };
 
+/* This might need updates whenever logic_threshold* above change. */
+#define MAX_NUM_LOGIC_THRESHOLD_ENTRIES ARRAY_SIZE(logic_threshold)
+
 /* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
 static const char *an2_dig8_trigger_sources[] = {
 	"CH1", "CH2",
@@ -942,7 +945,7 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 {
 	unsigned int i, idx;
 	int result = SR_ERR;
-	static char *logic_threshold_short[] = {};
+	char *logic_threshold_short[MAX_NUM_LOGIC_THRESHOLD_ENTRIES];
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
