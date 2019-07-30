@@ -767,20 +767,8 @@ enum sr_configkey {
 	/** The device supports run-length encoding (RLE). */
 	SR_CONF_RLE,
 
-	/** Trigger source. */
-	SR_CONF_TRIGGER_SOURCE,
-
 	/** The device supports setting trigger slope. */
 	SR_CONF_TRIGGER_SLOPE,
-
-	/** The device supports setting a pattern for the logic trigger. */
-	SR_CONF_TRIGGER_PATTERN,
-
-	/** High resolution mode. */
-	SR_CONF_HIGH_RESOLUTION,
-
-	/** Peak detection. */
-	SR_CONF_PEAK_DETECTION,
 
 	/** The device supports averaging. */
 	SR_CONF_AVERAGING,
@@ -790,6 +778,9 @@ enum sr_configkey {
 	 * averaged over.
 	 */
 	SR_CONF_AVG_SAMPLES,
+
+	/** Trigger source. */
+	SR_CONF_TRIGGER_SOURCE,
 
 	/** Horizontal trigger position. */
 	SR_CONF_HORIZ_TRIGGERPOS,
@@ -838,12 +829,6 @@ enum sr_configkey {
 
 	/** Logic low-high threshold range. */
 	SR_CONF_VOLTAGE_THRESHOLD,
-
-	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
-	SR_CONF_LOGIC_THRESHOLD,
-
-	/** Logic threshold: custom numerical value. */
-	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
 
 	/** The device supports using an external clock. */
 	SR_CONF_EXTERNAL_CLOCK,
@@ -1014,6 +999,21 @@ enum sr_configkey {
 
 	/** Offset of a source without strictly-defined MQ. */
 	SR_CONF_OFFSET,
+
+	/** The device supports setting a pattern for the logic trigger. */
+	SR_CONF_TRIGGER_PATTERN,
+
+	/** High resolution mode. */
+	SR_CONF_HIGH_RESOLUTION,
+
+	/** Peak detection. */
+	SR_CONF_PEAK_DETECTION,
+
+	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
+	SR_CONF_LOGIC_THRESHOLD,
+
+	/** Logic threshold: custom numerical value. */
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
