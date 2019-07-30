@@ -106,7 +106,7 @@ struct scope_state {
 
 	int trigger_source;
 	int trigger_slope;
-	char trigger_pattern[MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT];
+	char trigger_pattern[MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT + 1];
 
 	gboolean high_resolution;
 	gboolean peak_detection;
