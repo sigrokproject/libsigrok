@@ -446,6 +446,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/manson-hcs-3xxx/protocol.c \
 	src/hardware/manson-hcs-3xxx/api.c
 endif
+if HW_MASTECH_MS6514
+src_libdrivers_la_SOURCES += \
+	src/hardware/mastech-ms6514/protocol.h \
+	src/hardware/mastech-ms6514/protocol.c \
+	src/hardware/mastech-ms6514/api.c
+endif
 if HW_MAYNUO_M97
 src_libdrivers_la_SOURCES += \
 	src/hardware/maynuo-m97/protocol.h \
