@@ -112,7 +112,7 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 	sr_dbg("GPIF delay = %d, clocksource = %sMHz.", delay,
 		(cmd.flags & CMD_START_FLAGS_CLK_48MHZ) ? "48" : "30");
 
-	if (delay <= 0 || delay > MAX_SAMPLE_DELAY) {
+	if (delay < 0 || delay > MAX_SAMPLE_DELAY) {
 		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
 		return SR_ERR;
 	}
