@@ -201,15 +201,6 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
 
-# Availability of bt_put_le16() depends on the bluez library version.
-AC_CACHE_CHECK([for bt_put_le16], [sr_cv_have_btputle16],
-	[AC_LINK_IFELSE([AC_LANG_PROGRAM(
-			[[#include <bluetooth/bluetooth.h>]],
-			[[bt_put_le16(0, (void *)0);]])],
-		[sr_cv_have_btputle16=yes], [sr_cv_have_btputle16=no])])
-AS_IF([test "x$sr_cv_have_btputle16" = xyes],
-	[AC_DEFINE([HAVE_BT_PUT_LE16], [1], [Specifies whether we have bt_put_le16().])])
-
 ########################
 ##  Hardware drivers  ##
 ########################

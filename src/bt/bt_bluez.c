@@ -106,14 +106,6 @@
  * the header doesn't.
  */
 
-#if !defined HAVE_BT_PUT_LE16
-static inline void bt_put_le16(uint16_t v, uint8_t *p)
-{
-	p[0] = (v >> 0) & 0xff;
-	p[1] = (v >> 8) & 0xff;
-}
-#endif
-
 /* }}} compat decls */
 /* {{{ Linux socket specific decls */
 
@@ -898,7 +890,7 @@ SR_PRIV int sr_bt_start_notify(struct sr_bt_desc *desc)
 	if (sr_bt_check_socket_usable(desc) < 0)
 		return -2;
 
-	bt_put_le16(desc->cccd_value, buf);
+	write_u16le(buf, desc->cccd_value);
 	wrlen = sr_bt_char_write_req(desc, desc->cccd_handle, buf, sizeof(buf));
 	if (wrlen != sizeof(buf))
 		return -2;
@@ -1048,7 +1040,7 @@ static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 		return -2;
 
 	header[0] = type;
-	bt_put_le16(handle, &header[1]);
+	write_u16le(&header[1], handle);
 
 	if (data && len)
 		wrlen = writev(desc->fd, iov, ARRAY_SIZE(iov));
