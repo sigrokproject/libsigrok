@@ -279,7 +279,7 @@ struct zip_stat;
 #ifdef __APPLE__
 #define SR_DRIVER_LIST_SECTION "__DATA,__sr_driver_list"
 #else
-#define SR_DRIVER_LIST_SECTION "sr_driver_list"
+#define SR_DRIVER_LIST_SECTION "__sr_driver_list"
 #endif
 
 /**
