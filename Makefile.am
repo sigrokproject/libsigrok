@@ -359,6 +359,7 @@ if HW_FLUKE_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/fluke-dmm/protocol.h \
 	src/hardware/fluke-dmm/protocol.c \
+	src/hardware/fluke-dmm/fluke-28x.c \
 	src/hardware/fluke-dmm/api.c
 endif
 if HW_FTDI_LA
