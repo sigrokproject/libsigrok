@@ -42,6 +42,8 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	/* Which poll command to use */
+	const char *poll_cmd;
 	/* Response handler */
 	void (*handler)(const struct sr_dev_inst *sdi, char **tokens);
 	/* How often to poll, in ms. */
@@ -67,7 +69,7 @@ struct dev_context {
 
 SR_PRIV void fluke_handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens);
 SR_PRIV void fluke_handle_qm_190(const struct sr_dev_inst *sdi, char **tokens);
-SR_PRIV void fluke_handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens);
+SR_PRIV void fluke_handle_qdda_28x(const struct sr_dev_inst *sdi, char **tokens);
 
 SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data);
 

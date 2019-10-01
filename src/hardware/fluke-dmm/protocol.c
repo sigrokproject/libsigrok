@@ -73,6 +73,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	const char *poll_cmd;
 	int len;
 	int64_t now, elapsed;
 
@@ -83,6 +84,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 
 	if (!(devc = sdi->priv))
 		return TRUE;
+
+	poll_cmd = devc->profile->poll_cmd;
 
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
@@ -113,8 +116,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > devc->profile->timeout) {
-		if (serial_write_blocking(serial, "QM\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0)
-			sr_err("Unable to send QM.");
+		if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd), SERIAL_WRITE_TIMEOUT_MS) < 0)
+			sr_err("Unable to send poll command.");
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
 	}
