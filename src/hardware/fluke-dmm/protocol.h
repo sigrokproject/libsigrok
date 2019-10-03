@@ -42,6 +42,8 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	/* Initialize the device channel list */
+	void (*init_channels)(struct sr_dev_inst *sdi);
 	/* Which poll command to use */
 	const char *poll_cmd;
 	/* Response handler */
@@ -66,6 +68,9 @@ struct dev_context {
 	enum sr_unit unit;
 	enum sr_mqflag mqflags;
 };
+
+
+SR_PRIV void fluke_init_channels_28x(struct sr_dev_inst *sdi);
 
 SR_PRIV void fluke_handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens);
 SR_PRIV void fluke_handle_qm_190(const struct sr_dev_inst *sdi, char **tokens);
