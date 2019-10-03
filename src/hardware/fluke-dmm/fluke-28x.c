@@ -81,6 +81,7 @@ static struct attribute_mapping attribute_map[] = {
 	{ "HIGH_CURRENT", MEAS_A_HIGH_CURRENT },
 };
 
+/* This enum corresponds to the channel names in api.c. */
 enum reading_id {
 	READING_LIVE = 0,
 	READING_REL_LIVE,
@@ -94,6 +95,7 @@ enum reading_id {
 	READING_DB_REF,
 	READING_TEMP_OFFSET,
 
+	READING_CH_MAX,
 	READING_INVALID,
 };
 
@@ -411,6 +413,18 @@ err_out:
 	return NULL;
 }
 
+static struct qdda_reading *get_reading(struct qdda_message *qdda, enum reading_id id)
+{
+	int i;
+
+	for (i = 0; i < qdda->num_readings; i++) {
+		if (qdda->readings[i].id == id)
+			return &qdda->readings[i];
+	}
+
+	return NULL;
+}
+
 SR_PRIV void fluke_handle_qdda_28x(const struct sr_dev_inst *sdi,
 				   char **tokens, int num_tokens)
 {
@@ -420,9 +434,12 @@ SR_PRIV void fluke_handle_qdda_28x(const struct sr_dev_inst *sdi,
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
+	GSList *l_ch;
+	GSList ch_only;
 
 	int i;
 	struct qdda_message *qdda;
+	struct qdda_reading *reading;
 	enum sr_mqflag flags;
 
 	devc = sdi->priv;
@@ -440,19 +457,33 @@ SR_PRIV void fluke_handle_qdda_28x(const struct sr_dev_inst *sdi,
 	// TODO: qdda->state
 	// TODO: qdda->attribute
 	// TODO: Continuity measurements (prim./sec. func)
+	sr_dbg("Got %i readings", qdda->num_readings);
+	l_ch = sdi->channels;
+	for (i = 0; i < READING_CH_MAX; i++) {
+		reading = get_reading(qdda, i);
+		if (!reading || !((struct sr_channel *)l_ch->data)->enabled) {
+			l_ch = l_ch->next;
+			continue;
+		}
 
-	sr_analog_init(&analog, &encoding, &meaning, &spec,
-		       qdda->readings[0].decimals - qdda->readings[0].unit_exp);
-	analog.data = &qdda->readings[0].value;
-	analog.meaning->channels = sdi->channels;
-	analog.num_samples = 1;
-	analog.meaning->mq = qdda->readings[0].unit->mq;
-	analog.meaning->mqflags = qdda->readings[0].unit->mqflags;
-	analog.meaning->unit = qdda->readings[0].unit->unit;
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-	sr_session_send(sdi, &packet);
-	sr_sw_limits_update_samples_read(&devc->limits, 1);
+		ch_only.next = NULL;
+		ch_only.data = l_ch->data;
+
+		sr_analog_init(&analog, &encoding, &meaning, &spec,
+			       reading->decimals - reading->unit_exp);
+		analog.data = &reading->value;
+		analog.meaning->channels = &ch_only;
+		analog.num_samples = 1;
+		analog.meaning->mq = reading->unit->mq;
+		analog.meaning->mqflags = flags | reading->unit->mqflags;
+		analog.meaning->unit = reading->unit->unit;
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		sr_session_send(sdi, &packet);
+		sr_sw_limits_update_samples_read(&devc->limits, 1);
+
+		l_ch = l_ch->next;
+	}
 
 	g_free(qdda->modes);
 	g_free(qdda->readings);

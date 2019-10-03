@@ -40,6 +40,7 @@ enum {
 struct flukedmm_profile {
 	int model;
 	const char *modelname;
+	const char **channels;
 	/* Which poll command to use */
 	const char *poll_cmd;
 	/* How often to poll, in ms. */
