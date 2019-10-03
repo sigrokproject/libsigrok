@@ -396,7 +396,7 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	if (ret != SR_OK)
 		return ret;
 	g_strstrip(response);
-	use_double = devc->model->digits > 6;
+	use_double = devc->model->digits >= 6;
 	ret = sr_atod_ascii(response, &info->d_value);
 	if (ret != SR_OK) {
 		g_free(response);
