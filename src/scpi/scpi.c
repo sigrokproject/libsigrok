@@ -1037,7 +1037,29 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	buf[0] = response->str[1];
 	buf[1] = '\0';
 	ret = sr_atol(buf, &llen);
-	if ((ret != SR_OK) || (llen == 0)) {
+	/*
+	 * The form "#0..." is legal, and does not mean "empty response",
+	 * but means that the number of data bytes is not known (or was
+	 * not communicated) at this time. Instead the block ends at an
+	 * "END MESSAGE" termination sequence. Which translates to active
+	 * EOI while a text line termination is sent (CR or LF, and this
+	 * text line termination is not part of the block's data value).
+	 * Since this kind of #0... response is considered rare, and
+	 * depends on specific support in physical transports underneath
+	 * the SCPI layer, let's flag the condition and bail out with an
+	 * error here, until it's found to be a genuine issue in the field.
+	 *
+	 * The SCPI 1999.0 specification (see page 220 and following in
+	 * the "HCOPy" description) references IEEE 488.2, especially
+	 * section 8.7.9 for DEFINITE LENGTH and section 8.7.10 for
+	 * INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE DATA. The latter
+	 * with a leading "#0" length and a trailing "NL^END" marker.
+	 */
+	if (ret == SR_OK && !llen) {
+		sr_err("unsupported INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE");
+		ret = SR_ERR_NA;
+	}
+	if (ret != SR_OK) {
 		g_mutex_unlock(&scpi->scpi_mutex);
 		g_string_free(response, TRUE);
 		return ret;
