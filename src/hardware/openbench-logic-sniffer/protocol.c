@@ -158,6 +158,28 @@ static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
 	devc->max_channels = num_chan;
 }
 
+static void metadata_quirks(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	gboolean is_shrimp;
+
+	if (!sdi)
+		return;
+	devc = sdi->priv;
+	if (!devc)
+		return;
+
+	is_shrimp = sdi->model && strcmp(sdi->model, "Shrimp1.0") == 0;
+	if (is_shrimp) {
+		if (!devc->max_channels)
+			ols_channel_new(sdi, 4);
+		if (!devc->max_samples)
+			devc->max_samples = 256 * 1024;
+		if (!devc->max_samplerate)
+			devc->max_samplerate = SR_MHZ(20);
+	}
+}
+
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
@@ -289,6 +311,9 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	sdi->version = version->str;
 	g_string_free(devname, FALSE);
 	g_string_free(version, FALSE);
+
+	/* Optionally amend received metadata, model specific quirks. */
+	metadata_quirks(sdi);
 
 	return sdi;
 }
