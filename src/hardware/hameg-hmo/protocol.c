@@ -330,7 +330,17 @@ static const uint64_t vdivs[][2] = {
 	{ 2, 1 },
 	{ 5, 1 },
 	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
 };
+/*
+ * It feels a little hacky to use a single table yet use different item
+ * count values here. But it simplifies maintenance, reduces redundancy
+ * by avoiding several vdivs[] table versions of mostly identical content,
+ * still references which declare models' capabilities remain readable.
+ */
+#define VDIVS_COUNT_UPTO_10V	(ARRAY_SIZE(vdivs) - 2)
+#define VDIVS_COUNT_UPTO_50V	(ARRAY_SIZE(vdivs))
 
 static const char *scope_analog_channel_names[] = {
 	"CH1", "CH2", "CH3", "CH4",
@@ -377,7 +387,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -418,7 +428,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -459,7 +469,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -500,7 +510,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -540,7 +550,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -580,7 +590,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_50V,
 
 		.num_ydivs = 8,
 
@@ -620,7 +630,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_50V,
 
 		.num_ydivs = 8,
 
@@ -660,7 +670,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -700,7 +710,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -740,7 +750,7 @@ static struct scope_config scope_models[] = {
 		.num_timebases = ARRAY_SIZE(timebases),
 
 		.vdivs = &vdivs,
-		.num_vdivs = ARRAY_SIZE(vdivs),
+		.num_vdivs = VDIVS_COUNT_UPTO_10V,
 
 		.num_ydivs = 8,
 
@@ -896,7 +906,7 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
 			return SR_ERR;
 
-		if (array_float_get(tmp_str, ARRAY_AND_SIZE(vdivs), &j) != SR_OK) {
+		if (array_float_get(tmp_str, *(config->vdivs), config->num_vdivs, &j) != SR_OK) {
 			g_free(tmp_str);
 			sr_err("Could not determine array index for vertical div scale.");
 			return SR_ERR;
