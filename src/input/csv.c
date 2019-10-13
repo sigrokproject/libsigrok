@@ -965,17 +965,30 @@ static int reset(struct sr_input *in)
 	return SR_OK;
 }
 
+enum option_index {
+	OPT_SINGLE_COL,
+	OPT_NUM_LOGIC,
+	OPT_DELIM,
+	OPT_FORMAT,
+	OPT_COMMENT,
+	OPT_RATE,
+	OPT_FIRST_LOGIC,
+	OPT_HEADER,
+	OPT_START,
+	OPT_MAX,
+};
+
 static struct sr_option options[] = {
-	{ "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
-	{ "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
-	{ "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
-	{ "format", "Data format (single-col. mode)", "The numeric format of the data (single-col. mode): bin, hex, oct", NULL, NULL },
-	{ "comment", "Comment character(s)", "The comment prefix character(s)", NULL, NULL },
-	{ "samplerate", "Samplerate (Hz)", "The sample rate (used during capture) in Hz", NULL, NULL },
-	{ "first-channel", "First channel", "The column number of the first channel (multi-col. mode); bit position for the first channel (single-col. mode)", NULL, NULL },
-	{ "header", "Interpret first line as header (multi-col. mode)", "Treat the first line as header with channel names (multi-col. mode)", NULL, NULL },
-	{ "startline", "Start line", "The line number at which to start processing samples (>= 1)", NULL, NULL },
-	ALL_ZERO
+	[OPT_SINGLE_COL] = { "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
+	[OPT_NUM_LOGIC] = { "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
+	[OPT_DELIM] = { "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
+	[OPT_FORMAT] = { "format", "Data format (single-col. mode)", "The numeric format of the data (single-col. mode): bin, hex, oct", NULL, NULL },
+	[OPT_COMMENT] = { "comment", "Comment character(s)", "The comment prefix character(s)", NULL, NULL },
+	[OPT_RATE] = { "samplerate", "Samplerate (Hz)", "The sample rate (used during capture) in Hz", NULL, NULL },
+	[OPT_FIRST_LOGIC] = { "first-channel", "First channel", "The column number of the first channel (multi-col. mode); bit position for the first channel (single-col. mode)", NULL, NULL },
+	[OPT_HEADER] = { "header", "Interpret first line as header (multi-col. mode)", "Treat the first line as header with channel names (multi-col. mode)", NULL, NULL },
+	[OPT_START] = { "startline", "Start line", "The line number at which to start processing samples (>= 1)", NULL, NULL },
+	[OPT_MAX] = ALL_ZERO,
 };
 
 static const struct sr_option *get_options(void)
@@ -983,20 +996,20 @@ static const struct sr_option *get_options(void)
 	GSList *l;
 
 	if (!options[0].def) {
-		options[0].def = g_variant_ref_sink(g_variant_new_int32(0));
-		options[1].def = g_variant_ref_sink(g_variant_new_int32(0));
-		options[2].def = g_variant_ref_sink(g_variant_new_string(","));
-		options[3].def = g_variant_ref_sink(g_variant_new_string("bin"));
+		options[OPT_SINGLE_COL].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[OPT_NUM_LOGIC].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
+		options[OPT_FORMAT].def = g_variant_ref_sink(g_variant_new_string("bin"));
 		l = NULL;
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("bin")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("hex")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
-		options[3].values = l;
-		options[4].def = g_variant_ref_sink(g_variant_new_string(";"));
-		options[5].def = g_variant_ref_sink(g_variant_new_uint64(0));
-		options[6].def = g_variant_ref_sink(g_variant_new_int32(0));
-		options[7].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
-		options[8].def = g_variant_ref_sink(g_variant_new_int32(1));
+		options[OPT_FORMAT].values = l;
+		options[OPT_COMMENT].def = g_variant_ref_sink(g_variant_new_string(";"));
+		options[OPT_RATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
+		options[OPT_FIRST_LOGIC].def = g_variant_ref_sink(g_variant_new_int32(0));
+		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
+		options[OPT_START].def = g_variant_ref_sink(g_variant_new_int32(1));
 	}
 
 	return options;
