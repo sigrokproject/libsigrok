@@ -116,6 +116,7 @@ struct context {
 
 	/* Current selected samplerate. */
 	uint64_t samplerate;
+	gboolean samplerate_sent;
 
 	/* Number of channels. */
 	size_t num_channels;
@@ -213,12 +214,27 @@ static int flush_logic_samples(const struct sr_input *in)
 {
 	struct context *inc;
 	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
+	uint64_t samplerate;
 	struct sr_datafeed_logic logic;
 	int rc;
 
 	inc = in->priv;
 	if (!inc->datafeed_buf_fill)
 		return SR_OK;
+
+	if (inc->samplerate && !inc->samplerate_sent) {
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		samplerate = inc->samplerate;
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(in->sdi, &packet);
+		g_slist_free(meta.config);
+		sr_config_free(src);
+		inc->samplerate_sent = TRUE;
+	}
 
 	memset(&packet, 0, sizeof(packet));
 	memset(&logic, 0, sizeof(logic));
@@ -814,12 +830,8 @@ static int initial_receive(const struct sr_input *in)
 
 static int process_buffer(struct sr_input *in, gboolean is_eof)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
 	struct context *inc;
 	gsize num_columns;
-	uint64_t samplerate;
 	size_t max_columns, l;
 	int ret;
 	char *p, **lines, *line, **columns;
@@ -827,18 +839,6 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	inc = in->priv;
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi);
-
-		if (inc->samplerate) {
-			packet.type = SR_DF_META;
-			packet.payload = &meta;
-			samplerate = inc->samplerate;
-			src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
-			meta.config = g_slist_append(NULL, src);
-			sr_session_send(in->sdi, &packet);
-			g_slist_free(meta.config);
-			sr_config_free(src);
-		}
-
 		inc->started = TRUE;
 	}
 
