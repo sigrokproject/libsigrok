@@ -175,6 +175,84 @@ struct context {
 };
 
 /*
+ * Primitive operations to handle sample sets:
+ * - Keep a buffer for datafeed submission, capable of holding many
+ *   samples (reduces call overhead, improves throughput).
+ * - Have a "current sample set" pointer reference one position in that
+ *   large samples buffer.
+ * - Clear the current sample set before text line inspection, then set
+ *   the bits which are found active in the current line of text input.
+ *   Phrase the API such that call sites can be kept simple. Advance to
+ *   the next sample set between lines, flush the larger buffer as needed
+ *   (when it is full, or upon EOF).
+ */
+
+static void clear_logic_samples(struct context *inc)
+{
+	inc->sample_buffer = &inc->datafeed_buffer[inc->datafeed_buf_fill];
+	memset(inc->sample_buffer, 0, inc->sample_unit_size);
+}
+
+static void set_logic_level(struct context *inc, size_t ch_idx, int on)
+{
+	size_t byte_idx, bit_idx;
+	uint8_t bit_mask;
+
+	if (ch_idx >= inc->num_channels)
+		return;
+	if (!on)
+		return;
+
+	byte_idx = ch_idx / 8;
+	bit_idx = ch_idx % 8;
+	bit_mask = 1 << bit_idx;
+	inc->sample_buffer[byte_idx] |= bit_mask;
+}
+
+static int flush_logic_samples(const struct sr_input *in)
+{
+	struct context *inc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	int rc;
+
+	inc = in->priv;
+	if (!inc->datafeed_buf_fill)
+		return SR_OK;
+
+	memset(&packet, 0, sizeof(packet));
+	memset(&logic, 0, sizeof(logic));
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = inc->sample_unit_size;
+	logic.length = inc->datafeed_buf_fill;
+	logic.data = inc->datafeed_buffer;
+
+	rc = sr_session_send(in->sdi, &packet);
+	if (rc != SR_OK)
+		return rc;
+
+	inc->datafeed_buf_fill = 0;
+	return SR_OK;
+}
+
+static int queue_logic_samples(const struct sr_input *in)
+{
+	struct context *inc;
+	int rc;
+
+	inc = in->priv;
+
+	inc->datafeed_buf_fill += inc->sample_unit_size;
+	if (inc->datafeed_buf_fill == inc->datafeed_buf_size) {
+		rc = flush_logic_samples(in);
+		if (rc != SR_OK)
+			return rc;
+	}
+	return SR_OK;
+}
+
+/*
  * Primitive operations for text input: Strip comments off text lines.
  * Split text lines into columns. Process input text for individual
  * columns.
@@ -210,25 +288,22 @@ static void strip_comment(char *buf, const GString *prefix)
 static int parse_binstr(const char *str, struct context *inc)
 {
 	gsize i, j, length;
+	char c;
 
 	length = strlen(str);
-
 	if (!length) {
 		sr_err("Column %zu in line %zu is empty.", inc->single_column,
 			inc->line_number);
 		return SR_ERR;
 	}
 
-	/* Clear buffer in order to set bits only. */
-	memset(inc->sample_buffer, 0, inc->sample_unit_size);
-
 	i = inc->first_channel;
-
 	for (j = 0; i < length && j < inc->num_channels; i++, j++) {
-		if (str[length - i - 1] == '1') {
-			inc->sample_buffer[j / 8] |= (1 << (j % 8));
-		} else if (str[length - i - 1] != '0') {
-			sr_err("Invalid value '%s' in column %zu in line %zu.",
+		c = str[length - i - 1];
+		if (c == '1') {
+			set_logic_level(inc, j, 1);
+		} else if (c != '0') {
+			sr_err("Invalid text '%s' in binary column %zu in line %zu.",
 				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
@@ -256,37 +331,26 @@ static int parse_hexstr(const char *str, struct context *inc)
 	char c;
 
 	length = strlen(str);
-
 	if (!length) {
 		sr_err("Column %zu in line %zu is empty.", inc->single_column,
 			inc->line_number);
 		return SR_ERR;
 	}
 
-	/* Clear buffer in order to set bits only. */
-	memset(inc->sample_buffer, 0, inc->sample_unit_size);
-
 	/* Calculate the position of the first hexadecimal digit. */
 	i = inc->first_channel / 4;
-
 	for (j = 0; i < length && j < inc->num_channels; i++) {
 		c = str[length - i - 1];
-
 		if (!g_ascii_isxdigit(c)) {
-			sr_err("Invalid value '%s' in column %zu in line %zu.",
+			sr_err("Invalid text '%s' in hex column %zu in line %zu.",
 				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
 
 		value = g_ascii_xdigit_value(c);
-
 		k = (inc->first_channel + j) % 4;
-
-		for (; j < inc->num_channels && k < 4; k++) {
-			if (value & (1 << k))
-				inc->sample_buffer[j / 8] |= (1 << (j % 8));
-
-			j++;
+		for (; j < inc->num_channels && k < 4; j++, k++) {
+			set_logic_level(inc, j, value & (1 << k));
 		}
 	}
 
@@ -312,37 +376,26 @@ static int parse_octstr(const char *str, struct context *inc)
 	char c;
 
 	length = strlen(str);
-
 	if (!length) {
 		sr_err("Column %zu in line %zu is empty.", inc->single_column,
 			inc->line_number);
 		return SR_ERR;
 	}
 
-	/* Clear buffer in order to set bits only. */
-	memset(inc->sample_buffer, 0, inc->sample_unit_size);
-
 	/* Calculate the position of the first octal digit. */
 	i = inc->first_channel / 3;
-
 	for (j = 0; i < length && j < inc->num_channels; i++) {
 		c = str[length - i - 1];
-
 		if (c < '0' || c > '7') {
-			sr_err("Invalid value '%s' in column %zu in line %zu.",
+			sr_err("Invalid text '%s' in oct column %zu in line %zu.",
 				str, inc->single_column, inc->line_number);
 			return SR_ERR;
 		}
 
 		value = g_ascii_xdigit_value(c);
-
 		k = (inc->first_channel + j) % 3;
-
-		for (; j < inc->num_channels && k < 3; k++) {
-			if (value & (1 << k))
-				inc->sample_buffer[j / 8] |= (1 << (j % 8));
-
-			j++;
+		for (; j < inc->num_channels && k < 3; j++, k++) {
+			set_logic_level(inc, j, value & (1 << k));
 		}
 	}
 
@@ -441,69 +494,22 @@ static int parse_multi_columns(char **columns, struct context *inc)
 	gsize i;
 	char *column;
 
-	/* Clear buffer in order to set bits only. */
-	memset(inc->sample_buffer, 0, inc->sample_unit_size);
-
 	for (i = 0; i < inc->num_channels; i++) {
 		column = columns[i];
 		if (strcmp(column, "1") == 0) {
-			inc->sample_buffer[i / 8] |= (1 << (i % 8));
+			set_logic_level(inc, i, 1);
 		} else if (!strlen(column)) {
 			sr_err("Column %zu in line %zu is empty.",
 				inc->first_channel + i, inc->line_number);
 			return SR_ERR;
 		} else if (strcmp(column, "0") != 0) {
-			sr_err("Invalid value '%s' in column %zu in line %zu.",
+			sr_err("Invalid text '%s' in bit column %zu in line %zu.",
 				column, inc->first_channel + i,
 				inc->line_number);
 			return SR_ERR;
 		}
 	}
 
-	return SR_OK;
-}
-
-static int flush_samples(const struct sr_input *in)
-{
-	struct context *inc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
-	int rc;
-
-	inc = in->priv;
-	if (!inc->datafeed_buf_fill)
-		return SR_OK;
-
-	memset(&packet, 0, sizeof(packet));
-	memset(&logic, 0, sizeof(logic));
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = inc->sample_unit_size;
-	logic.length = inc->datafeed_buf_fill;
-	logic.data = inc->datafeed_buffer;
-
-	rc = sr_session_send(in->sdi, &packet);
-	if (rc != SR_OK)
-		return rc;
-
-	inc->datafeed_buf_fill = 0;
-	return SR_OK;
-}
-
-static int queue_samples(const struct sr_input *in)
-{
-	struct context *inc;
-	int rc;
-
-	inc = in->priv;
-
-	inc->datafeed_buf_fill += inc->sample_unit_size;
-	if (inc->datafeed_buf_fill == inc->datafeed_buf_size) {
-		rc = flush_samples(in);
-		if (rc != SR_OK)
-			return rc;
-	}
-	inc->sample_buffer = &inc->datafeed_buffer[inc->datafeed_buf_fill];
 	return SR_OK;
 }
 
@@ -731,15 +737,14 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * Calculate the minimum buffer size to store the set of samples
 	 * of all channels (unit size). Determine a larger buffer size
 	 * for datafeed submission that is a multiple of the unit size.
-	 * Allocate the larger buffer, and have the "sample buffer" point
-	 * to a location within that large buffer.
+	 * Allocate the larger buffer, the "sample buffer" will point
+	 * to a location within that large buffer later.
 	 */
 	inc->sample_unit_size = (inc->num_channels + 7) / 8;
 	inc->datafeed_buf_size = CHUNK_SIZE;
 	inc->datafeed_buf_size *= inc->sample_unit_size;
 	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
 	inc->datafeed_buf_fill = 0;
-	inc->sample_buffer = &inc->datafeed_buffer[inc->datafeed_buf_fill];
 
 out:
 	if (columns)
@@ -919,6 +924,8 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			return SR_ERR;
 		}
 
+		clear_logic_samples(inc);
+
 		if (inc->multi_column_mode)
 			ret = parse_multi_columns(columns, inc);
 		else
@@ -929,8 +936,8 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			return SR_ERR;
 		}
 
-		/* Send sample data to the session bus. */
-		ret = queue_samples(in);
+		/* Send sample data to the session bus (buffered). */
+		ret = queue_logic_samples(in);
 		if (ret != SR_OK) {
 			sr_err("Sending samples failed.");
 			g_strfreev(columns);
@@ -984,7 +991,7 @@ static int end(struct sr_input *in)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = flush_samples(in);
+	ret = flush_logic_samples(in);
 	if (ret != SR_OK)
 		return ret;
 
