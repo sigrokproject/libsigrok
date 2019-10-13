@@ -446,13 +446,13 @@ static int parse_multi_columns(char **columns, struct context *inc)
 
 	for (i = 0; i < inc->num_channels; i++) {
 		column = columns[i];
-		if (column[0] == '1') {
+		if (strcmp(column, "1") == 0) {
 			inc->sample_buffer[i / 8] |= (1 << (i % 8));
 		} else if (!strlen(column)) {
 			sr_err("Column %zu in line %zu is empty.",
 				inc->first_channel + i, inc->line_number);
 			return SR_ERR;
-		} else if (column[0] != '0') {
+		} else if (strcmp(column, "0") != 0) {
 			sr_err("Invalid value '%s' in column %zu in line %zu.",
 				column, inc->first_channel + i,
 				inc->line_number);
