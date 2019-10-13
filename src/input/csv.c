@@ -181,8 +181,10 @@ static void strip_comment(char *buf, const GString *prefix)
 	if (!prefix->len)
 		return;
 
-	if ((ptr = strstr(buf, prefix->str)))
+	if ((ptr = strstr(buf, prefix->str))) {
 		*ptr = '\0';
+		g_strstrip(buf);
+	}
 }
 
 static int parse_binstr(const char *str, struct context *inc)
