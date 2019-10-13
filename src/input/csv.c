@@ -320,42 +320,39 @@ static char **parse_line(char *buf, struct context *inc, ssize_t max_cols)
 	GSList *list, *l;
 	char **columns;
 	char *column;
-	gsize n, k;
+	gsize seen, taken;
 
-	n = 0;
-	k = 0;
+	seen = 0;
+	taken = 0;
 	list = NULL;
 
 	remainder = buf;
 	str = strstr(remainder, inc->delimiter->str);
-
 	while (str && max_cols) {
-		if (n >= inc->first_column) {
+		if (seen >= inc->first_column) {
 			column = g_strndup(remainder, str - remainder);
 			list = g_slist_prepend(list, g_strstrip(column));
 
 			max_cols--;
-			k++;
+			taken++;
 		}
 
 		remainder = str + inc->delimiter->len;
 		str = strstr(remainder, inc->delimiter->str);
-		n++;
+		seen++;
 	}
 
-	if (buf[0] && max_cols && n >= inc->first_column) {
+	if (buf[0] && max_cols && seen >= inc->first_column) {
 		column = g_strdup(remainder);
 		list = g_slist_prepend(list, g_strstrip(column));
-		k++;
+		taken++;
 	}
 
-	if (!(columns = g_try_new(char *, k + 1)))
+	if (!(columns = g_try_new(char *, taken + 1)))
 		return NULL;
-
-	columns[k--] = NULL;
-
+	columns[taken--] = NULL;
 	for (l = list; l; l = l->next)
-		columns[k--] = l->data;
+		columns[taken--] = l->data;
 
 	g_slist_free(list);
 
