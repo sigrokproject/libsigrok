@@ -174,6 +174,12 @@ struct context {
 	GSList *prev_sr_channels;
 };
 
+/*
+ * Primitive operations for text input: Strip comments off text lines.
+ * Split text lines into columns. Process input text for individual
+ * columns.
+ */
+
 static void strip_comment(char *buf, const GString *prefix)
 {
 	char *ptr;
@@ -187,6 +193,20 @@ static void strip_comment(char *buf, const GString *prefix)
 	}
 }
 
+/* TODO Move parse_line() here. */
+
+/**
+ * @brief Parse a text field into multiple bits, binary presentation.
+ *
+ * @param[in] str	The input text, a run of 0/1 digits.
+ * @param[in] inc	The input module's context.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Invalid input data (empty, or format error).
+ *
+ * This routine modifies the logic levels in the current sample set,
+ * based on the text input which consists of binary digits.
+ */
 static int parse_binstr(const char *str, struct context *inc)
 {
 	gsize i, j, length;
@@ -217,6 +237,18 @@ static int parse_binstr(const char *str, struct context *inc)
 	return SR_OK;
 }
 
+/**
+ * @brief Parse a text field into multiple bits, hexadecimal presentation.
+ *
+ * @param[in] str	The input text, a run of hex digits.
+ * @param[in] inc	The input module's context.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Invalid input data (empty, or format error).
+ *
+ * This routine modifies the logic levels in the current sample set,
+ * based on the text input which consists of hexadecimal digits.
+ */
 static int parse_hexstr(const char *str, struct context *inc)
 {
 	gsize i, j, k, length;
@@ -261,6 +293,18 @@ static int parse_hexstr(const char *str, struct context *inc)
 	return SR_OK;
 }
 
+/**
+ * @brief Parse a text field into multiple bits, octal presentation.
+ *
+ * @param[in] str	The input text, a run of oct digits.
+ * @param[in] inc	The input module's context.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Invalid input data (empty, or format error).
+ *
+ * This routine modifies the logic levels in the current sample set,
+ * based on the text input which consists of octal digits.
+ */
 static int parse_octstr(const char *str, struct context *inc)
 {
 	gsize i, j, k, length;
@@ -305,6 +349,20 @@ static int parse_octstr(const char *str, struct context *inc)
 	return SR_OK;
 }
 
+static int parse_single_column(const char *column, struct context *inc)
+{
+	switch (inc->format) {
+	case FORMAT_BIN:
+		return parse_binstr(column, inc);
+	case FORMAT_HEX:
+		return parse_hexstr(column, inc);
+	case FORMAT_OCT:
+		return parse_octstr(column, inc);
+	}
+
+	return SR_ERR;
+}
+
 /**
  * @brief Splits a text line into a set of columns.
  *
@@ -313,6 +371,12 @@ static int parse_octstr(const char *str, struct context *inc)
  * @param[in] max_cols	The maximum column count, negative to get all of them.
  *
  * @returns An array of strings, representing the columns' text.
+ *
+ * This routine splits a text line on previously determined separators.
+ * A previously determined set of columns gets isolated (starting at a
+ * first position and spanning a given number of columns). A negative
+ * value for the maximum number of columns results in no restriction on
+ * the result set's length (the first columns still get trimmed off).
  */
 static char **parse_line(char *buf, struct context *inc, ssize_t max_cols)
 {
@@ -359,6 +423,19 @@ static char **parse_line(char *buf, struct context *inc, ssize_t max_cols)
 	return columns;
 }
 
+/**
+ * @brief Picks logic levels from multiple binary colomns, one channel per column.
+ *
+ * @param[in] columns	The text fields which are kept in the columns.
+ * @param[in] inc	The input module's context.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Insufficient input, or syntax errors.
+ *
+ * This routine exclusively handles binary input where one logic channel
+ * occupies one column each. All channels are expected to reside in one
+ * consequtive run of columns.
+ */
 static int parse_multi_columns(char **columns, struct context *inc)
 {
 	gsize i;
@@ -384,27 +461,6 @@ static int parse_multi_columns(char **columns, struct context *inc)
 	}
 
 	return SR_OK;
-}
-
-static int parse_single_column(const char *column, struct context *inc)
-{
-	int res;
-
-	res = SR_ERR;
-
-	switch (inc->format) {
-	case FORMAT_BIN:
-		res = parse_binstr(column, inc);
-		break;
-	case FORMAT_HEX:
-		res = parse_hexstr(column, inc);
-		break;
-	case FORMAT_OCT:
-		res = parse_octstr(column, inc);
-		break;
-	}
-
-	return res;
 }
 
 static int flush_samples(const struct sr_input *in)
