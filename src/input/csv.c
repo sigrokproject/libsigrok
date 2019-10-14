@@ -156,7 +156,8 @@ struct context {
 	 * Determines if the first line should be treated as header and used for
 	 * channel names in multi column mode.
 	 */
-	gboolean header;
+	gboolean use_header;
+	gboolean header_seen;
 
 	/* Format sample data is stored in single column mode. */
 	enum single_col_format format;
@@ -574,7 +575,7 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	inc->first_channel = g_variant_get_uint32(g_hash_table_lookup(options, "first-channel"));
 
-	inc->header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
+	inc->use_header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
 
 	inc->start_line = g_variant_get_uint32(g_hash_table_lookup(options, "startline"));
 	if (inc->start_line < 1) {
@@ -737,7 +738,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	channel_name = g_string_sized_new(64);
 	for (i = 0; i < inc->num_channels; i++) {
 		column = columns[i];
-		if (inc->header && inc->multi_column_mode && column[0] != '\0')
+		if (inc->use_header && inc->multi_column_mode && column[0] != '\0')
 			g_string_assign(channel_name, column);
 		else
 			g_string_printf(channel_name, "%zu", i);
@@ -892,9 +893,9 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 		}
 
 		/* Skip the header line, its content was used as the channel names. */
-		if (inc->header) {
+		if (inc->use_header && !inc->header_seen) {
 			sr_spew("Header line %zu skipped.", inc->line_number);
-			inc->header = FALSE;
+			inc->header_seen = TRUE;
 			continue;
 		}
 
