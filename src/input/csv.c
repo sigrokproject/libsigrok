@@ -135,30 +135,23 @@ struct context {
 	uint64_t samplerate;
 	gboolean samplerate_sent;
 
-	/* Number of channels. */
-	size_t num_channels;
+	/* Number of logic channels. */
+	size_t logic_channels;
 
-	/* Column delimiter character(s). */
+	/* Column delimiter (actually separator), comment leader, EOL sequence. */
 	GString *delimiter;
-
-	/* Comment prefix character(s). */
 	GString *comment;
-
-	/* Termination character(s) used in current stream. */
 	char *termination;
 
-	/* Determines if sample data is stored in multiple columns. */
+	/*
+	 * Determines if sample data is stored in multiple columns,
+	 * which column to start at, and how many columns to expect.
+	 */
 	gboolean multi_column_mode;
-
-	/* Parameters how to process the columns. */
-	size_t column_want_count;
-	struct column_details *column_details;
-
-	/* Column number of the sample data in single column mode. */
-	size_t single_column;
-
-	/* Column number of the first channel. */
 	size_t first_column;
+	size_t column_want_count;
+	/* Parameters how to process the columns. */
+	struct column_details *column_details;
 
 	/* Line number to start processing. */
 	size_t start_line;
@@ -169,9 +162,6 @@ struct context {
 	 */
 	gboolean use_header;
 	gboolean header_seen;
-
-	/* Format sample data is stored in single column mode. */
-	enum single_col_format format;
 
 	size_t sample_unit_size;	/**!< Byte count for a single sample. */
 	uint8_t *sample_buffer;		/**!< Buffer for a single sample. */
@@ -211,7 +201,7 @@ static void set_logic_level(struct context *inc, size_t ch_idx, int on)
 	size_t byte_idx, bit_idx;
 	uint8_t bit_mask;
 
-	if (ch_idx >= inc->num_channels)
+	if (ch_idx >= inc->logic_channels)
 		return;
 	if (!on)
 		return;
@@ -270,6 +260,8 @@ static int queue_logic_samples(const struct sr_input *in)
 	int rc;
 
 	inc = in->priv;
+	if (!inc->logic_channels)
+		return SR_OK;
 
 	inc->datafeed_buf_fill += inc->sample_unit_size;
 	if (inc->datafeed_buf_fill == inc->datafeed_buf_size) {
@@ -390,7 +382,7 @@ static char **split_line(char *buf, struct context *inc)
  *
  * @param[in] column	The input text, a run of bin/hex/oct digits.
  * @param[in] inc	The input module's context.
- * @param[in] col_nr	The involved column number (1-based).
+ * @param[in] details	The column processing details.
  *
  * @retval SR_OK	Success.
  * @retval SR_ERR	Invalid input data (empty, or format error).
@@ -398,25 +390,15 @@ static char **split_line(char *buf, struct context *inc)
  * This routine modifies the logic levels in the current sample set,
  * based on the text input and a user provided format spec.
  */
-static int parse_column(const char *column, struct context *inc, size_t col_nr)
+static int parse_logic(const char *column, struct context *inc,
+	const struct column_details *details)
 {
-	const struct column_details *col_det;
 	size_t length, ch_rem, ch_idx, ch_inc;
 	const char *rdptr;
 	char c;
 	gboolean valid;
 	const char *type_text;
 	uint8_t bits;
-
-	/* See whether and how the columns needs to get processed. */
-	col_det = lookup_column_details(inc, col_nr);
-	if (!col_det) {
-		sr_dbg("Column %zu in line %zu without processing details?",
-			col_nr, inc->line_number);
-		return SR_ERR;
-	}
-	if (col_det->text_format == FORMAT_NONE)
-		return SR_OK;
 
 	/*
 	 * Prepare to read the digits from the text end towards the start.
@@ -426,13 +408,13 @@ static int parse_column(const char *column, struct context *inc, size_t col_nr)
 	 */
 	length = strlen(column);
 	if (!length) {
-		sr_err("Column %zu in line %zu is empty.", col_nr,
+		sr_err("Column %zu in line %zu is empty.", details->col_nr,
 			inc->line_number);
 		return SR_ERR;
 	}
 	rdptr = &column[length];
-	ch_idx = col_det->channel_offset;
-	ch_rem = col_det->channel_count;
+	ch_idx = details->channel_offset;
+	ch_rem = details->channel_count;
 
 	/*
 	 * Get another digit and derive up to four logic channels' state from
@@ -442,7 +424,7 @@ static int parse_column(const char *column, struct context *inc, size_t col_nr)
 	while (rdptr > column && ch_rem) {
 		/* Check for valid digits according to the input radix. */
 		c = *(--rdptr);
-		switch (inc->format) {
+		switch (details->text_format) {
 		case FORMAT_BIN:
 			valid = g_ascii_isxdigit(c) && c < '2';
 			ch_inc = 1;
@@ -460,17 +442,14 @@ static int parse_column(const char *column, struct context *inc, size_t col_nr)
 			break;
 		}
 		if (!valid) {
-			type_text = col_format_text[inc->format];
+			type_text = col_format_text[details->text_format];
 			sr_err("Invalid text '%s' in %s type column %zu in line %zu.",
-				column, type_text, col_nr, inc->line_number);
+				column, type_text, details->col_nr, inc->line_number);
 			return SR_ERR;
 		}
 		/* Use the digit's bits for logic channels' data. */
 		bits = g_ascii_xdigit_value(c);
-		switch (inc->format) {
-		case FORMAT_NONE:
-			/* ShouldNotHappen(TM), but silences compiler warning. */
-			return SR_ERR;
+		switch (details->text_format) {
 		case FORMAT_HEX:
 			if (ch_rem >= 4) {
 				ch_rem--;
@@ -491,6 +470,9 @@ static int parse_column(const char *column, struct context *inc, size_t col_nr)
 			ch_rem--;
 			set_logic_level(inc, ch_idx + 0, bits & (1 << 0));
 			break;
+		case FORMAT_NONE:
+			/* ShouldNotHappen(TM), but silences compiler warning. */
+			return SR_ERR;
 		}
 		ch_idx += ch_inc;
 	}
@@ -505,34 +487,61 @@ static int parse_column(const char *column, struct context *inc, size_t col_nr)
 	return SR_OK;
 }
 
+/**
+ * @brief Parse routine which ignores the input text.
+ *
+ * This routine exists to unify dispatch code paths, mapping input file
+ * columns' data types to their respective parse routines.
+ */
+static int parse_ignore(const char *column, struct context *inc,
+	const struct column_details *details)
+{
+	(void)column;
+	(void)inc;
+	(void)details;
+	return SR_OK;
+}
+
+typedef int (*col_parse_cb)(const char *column, struct context *inc,
+	const struct column_details *details);
+
+static const col_parse_cb col_parse_funcs[] = {
+	[FORMAT_NONE] = parse_ignore,
+	[FORMAT_BIN] = parse_logic,
+	[FORMAT_OCT] = parse_logic,
+	[FORMAT_HEX] = parse_logic,
+};
+
 static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
+	size_t single_column;
 	const char *s;
+	enum single_col_format format;
 	int ret;
 
-	in->sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	in->priv = inc = g_malloc0(sizeof(struct context));
+	in->sdi = g_malloc0(sizeof(*in->sdi));
+	in->priv = inc = g_malloc0(sizeof(*inc));
 
-	inc->single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single-column"));
-	inc->multi_column_mode = inc->single_column == 0;
+	single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single-column"));
+	inc->multi_column_mode = single_column == 0;
 
-	inc->num_channels = g_variant_get_uint32(g_hash_table_lookup(options, "numchannels"));
+	inc->logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "numchannels"));
 
 	inc->delimiter = g_string_new(g_variant_get_string(
 			g_hash_table_lookup(options, "delimiter"), NULL));
-	if (inc->delimiter->len == 0) {
+	if (!inc->delimiter->len) {
 		sr_err("Column delimiter cannot be empty.");
 		return SR_ERR_ARG;
 	}
 
 	s = g_variant_get_string(g_hash_table_lookup(options, "format"), NULL);
-	if (!g_ascii_strncasecmp(s, "bin", 3)) {
-		inc->format = FORMAT_BIN;
-	} else if (!g_ascii_strncasecmp(s, "hex", 3)) {
-		inc->format = FORMAT_HEX;
-	} else if (!g_ascii_strncasecmp(s, "oct", 3)) {
-		inc->format = FORMAT_OCT;
+	if (g_ascii_strncasecmp(s, "bin", 3) == 0) {
+		format = FORMAT_BIN;
+	} else if (g_ascii_strncasecmp(s, "hex", 3) == 0) {
+		format = FORMAT_HEX;
+	} else if (g_ascii_strncasecmp(s, "oct", 3) == 0) {
+		format = FORMAT_OCT;
 	} else {
 		sr_err("Invalid format: '%s'", s);
 		return SR_ERR_ARG;
@@ -572,25 +581,25 @@ static int init(struct sr_input *in, GHashTable *options)
 	 * column count here (when the user omitted the spec), and will
 	 * derive it from the first text line of the input file.
 	 */
-	if (inc->single_column && inc->num_channels) {
+	if (single_column && inc->logic_channels) {
 		sr_dbg("DIAG Got single column (%zu) and channels (%zu).",
-			inc->single_column, inc->num_channels);
+			single_column, inc->logic_channels);
 		sr_dbg("DIAG -> column %zu, %zu bits in %s format.",
-			inc->single_column, inc->num_channels,
-			col_format_text[inc->format]);
+			single_column, inc->logic_channels,
+			col_format_text[format]);
 		ret = make_column_details_single(inc,
-			inc->single_column, inc->num_channels, inc->format);
+			single_column, inc->logic_channels, format);
 		if (ret != SR_OK)
 			return ret;
 	} else if (inc->multi_column_mode) {
 		sr_dbg("DIAG Got multi-column, first column %zu, count %zu.",
-			inc->first_column, inc->num_channels);
-		if (inc->num_channels) {
+			inc->first_column, inc->logic_channels);
+		if (inc->logic_channels) {
 			sr_dbg("DIAG -> columns %zu-%zu, 1 bit each.",
 				inc->first_column,
-				inc->first_column + inc->num_channels - 1);
+				inc->first_column + inc->logic_channels - 1);
 			ret = make_column_details_multi(inc, inc->first_column,
-				inc->first_column + inc->num_channels - 1);
+				inc->first_column + inc->logic_channels - 1);
 			if (ret != SR_OK)
 				return ret;
 		} else {
@@ -718,13 +727,13 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	sr_dbg("DIAG Got %zu columns in text line: %s.", num_columns, line);
 
 	/* Optionally update incomplete multi-column specs. */
-	if (inc->multi_column_mode && !inc->num_channels) {
-		inc->num_channels = num_columns - inc->first_column + 1;
+	if (inc->multi_column_mode && !inc->logic_channels) {
+		inc->logic_channels = num_columns - inc->first_column + 1;
 		sr_dbg("DIAG -> multi-column update: columns %zu-%zu, 1 bit each.",
 			inc->first_column,
-			inc->first_column + inc->num_channels - 1);
+			inc->first_column + inc->logic_channels - 1);
 		ret = make_column_details_multi(inc, inc->first_column,
-			inc->first_column + inc->num_channels - 1);
+			inc->first_column + inc->logic_channels - 1);
 		if (ret != SR_OK)
 			goto out;
 	}
@@ -790,7 +799,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * Allocate the larger buffer, the "sample buffer" will point
 	 * to a location within that large buffer later.
 	 */
-	inc->sample_unit_size = (inc->num_channels + 7) / 8;
+	inc->sample_unit_size = (inc->logic_channels + 7) / 8;
 	inc->datafeed_buf_size = CHUNK_SIZE;
 	inc->datafeed_buf_size *= inc->sample_unit_size;
 	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
@@ -867,6 +876,8 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	struct context *inc;
 	gsize num_columns;
 	size_t line_idx, col_idx, col_nr;
+	const struct column_details *details;
+	col_parse_cb parse_func;
 	int ret;
 	char *p, **lines, *line, **columns, *column;
 
@@ -941,12 +952,18 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 			return SR_ERR;
 		}
 
+		/* Have the columns of the current text line processed. */
 		clear_logic_samples(inc);
-
 		for (col_idx = 0; col_idx < inc->column_want_count; col_idx++) {
 			column = columns[col_idx];
 			col_nr = col_idx + 1;
-			ret = parse_column(column, inc, col_nr);
+			details = lookup_column_details(inc, col_nr);
+			if (!details || !details->text_format)
+				continue;
+			parse_func = col_parse_funcs[details->text_format];
+			if (!parse_func)
+				continue;
+			ret = parse_func(column, inc, details);
 			if (ret != SR_OK) {
 				g_strfreev(columns);
 				g_strfreev(lines);
