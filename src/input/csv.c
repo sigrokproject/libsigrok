@@ -685,7 +685,10 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	columns = NULL;
 
 	line_number = 0;
-	lines = g_strsplit_set(buf->str, delim_set, 0);
+	if (inc->termination)
+		lines = g_strsplit(buf->str, inc->termination, 0);
+	else
+		lines = g_strsplit_set(buf->str, delim_set, 0);
 	for (line_idx = 0; (line = lines[line_idx]); line_idx++) {
 		line_number++;
 		if (inc->start_line > line_number) {
@@ -914,9 +917,13 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	g_strstrip(in->buf->str);
 
 	ret = SR_OK;
-	lines = g_strsplit_set(in->buf->str, delim_set, 0);
+	lines = g_strsplit(in->buf->str, inc->termination, 0);
 	for (line_idx = 0; (line = lines[line_idx]); line_idx++) {
 		inc->line_number++;
+		if (inc->line_number < inc->start_line) {
+			sr_spew("Line %zu skipped (before start).", inc->line_number);
+			continue;
+		}
 		if (line[0] == '\0') {
 			sr_spew("Blank line %zu skipped.", inc->line_number);
 			continue;
