@@ -272,6 +272,149 @@ static int queue_logic_samples(const struct sr_input *in)
 	return SR_OK;
 }
 
+/* Helpers for "column processing". */
+
+static int split_column_format(const char *spec,
+	size_t *column_count, enum single_col_format *format, size_t *bit_count)
+{
+	size_t count;
+	char *endp, format_char;
+	enum single_col_format format_code;
+
+	if (!spec || !*spec)
+		return SR_ERR_ARG;
+
+	/* Get the (optional, decimal, default 1) column count. */
+	endp = NULL;
+	count = strtoul(spec, &endp, 10);
+	if (!endp)
+		return SR_ERR_ARG;
+	if (endp == spec)
+		count = 1;
+	if (column_count)
+		*column_count = count;
+	spec = endp;
+
+	/* Get the (mandatory, single letter) type spec (-/xob/l). */
+	format_char = *spec++;
+	switch (format_char) {
+	case '-':	/* Might conflict with number-parsing. */
+	case '/':
+		format_char = '-';
+		format_code = FORMAT_NONE;
+		break;
+	case 'x':
+		format_code = FORMAT_HEX;
+		break;
+	case 'o':
+		format_code = FORMAT_OCT;
+		break;
+	case 'b':
+	case 'l':
+		format_code = FORMAT_BIN;
+		break;
+	default:	/* includes NUL */
+		return SR_ERR_ARG;
+	}
+	if (format)
+		*format = format_code;
+
+	/* Get the (optional, decimal, default 1) bit count. */
+	endp = NULL;
+	count = strtoul(spec, &endp, 10);
+	if (!endp)
+		return SR_ERR_ARG;
+	if (endp == spec)
+		count = 1;
+	if (format_char == '-')
+		count = 0;
+	if (format_char == 'l')
+		count = 1;
+	if (bit_count)
+		*bit_count = count;
+	spec = endp;
+
+	/* Input spec must have been exhausted. */
+	if (*spec)
+		return SR_ERR_ARG;
+
+	return SR_OK;
+}
+
+static int make_column_details_from_format(struct context *inc,
+	const char *column_format)
+{
+	char **formats, *format;
+	size_t format_count, column_count, bit_count;
+	size_t format_idx, c, b, column_idx, channel_idx;
+	enum single_col_format f;
+	struct column_details *detail;
+	int ret;
+
+	/*
+	 * Default to "all single-bit logic in each column" (which is
+	 * the former multi-column mode).
+	 */
+	if (!column_format || !*column_format) {
+		sr_dbg("Missing columns format, assuming multi-column mode.");
+		column_format = "0l";
+	}
+
+	/* Split the input spec, count involved columns and bits. */
+	formats = g_strsplit(column_format, ",", 0);
+	if (!formats) {
+		sr_err("Cannot parse columns format %s (comma split).", column_format);
+		return SR_ERR_ARG;
+	}
+	format_count = g_strv_length(formats);
+	if (!format_count) {
+		sr_err("Cannot parse columns format %s (field count).", column_format);
+		g_strfreev(formats);
+		return SR_ERR_ARG;
+	}
+	column_count = bit_count = 0;
+	for (format_idx = 0; format_idx < format_count; format_idx++) {
+		format = formats[format_idx];
+		ret = split_column_format(format, &c, &f, &b);
+		sr_dbg("fmt %s -> %zu cols, %s fmt, %zu bits, rc %d", format, c, col_format_text[f], b, ret);
+		if (ret != SR_OK) {
+			sr_err("Cannot parse columns format %s (field split, %s).", column_format, format);
+			g_strfreev(formats);
+			return SR_ERR_ARG;
+		}
+		column_count += c;
+		bit_count += c * b;
+	}
+	sr_dbg("Column format %s -> %zu columns, %zu logic channels.",
+		column_format, column_count, bit_count);
+
+	/* Allocate and fill in "column processing" details. */
+	inc->column_want_count = column_count;
+	inc->column_details = g_malloc0_n(column_count, sizeof(inc->column_details[0]));
+	column_idx = channel_idx = 0;
+	for (format_idx = 0; format_idx < format_count; format_idx++) {
+		format = formats[format_idx];
+		(void)split_column_format(format, &c, &f, &b);
+		while (c-- > 0) {
+			detail = &inc->column_details[column_idx++];
+			detail->col_nr = column_idx;
+			detail->text_format = f;
+			if (detail->text_format) {
+				detail->channel_offset = channel_idx;
+				detail->channel_count = b;
+				channel_idx += b;
+			}
+			sr_dbg("detail -> col %zu, fmt %s, ch off/cnt %zu/%zu",
+				detail->col_nr, col_format_text[detail->text_format],
+				detail->channel_offset, detail->channel_count);
+		}
+	}
+	inc->logic_channels = channel_idx;
+	g_strfreev(formats);
+
+	return SR_OK;
+}
+
 static int make_column_details_single(struct context *inc,
 	size_t col_nr, size_t bit_count, enum single_col_format format)
 {
@@ -581,7 +724,12 @@ static int init(struct sr_input *in, GHashTable *options)
 	 * column count here (when the user omitted the spec), and will
 	 * derive it from the first text line of the input file.
 	 */
-	if (single_column && inc->logic_channels) {
+	s = g_variant_get_string(g_hash_table_lookup(options, "column-formats"), NULL);
+	if (s && *s) {
+		ret = make_column_details_from_format(inc, s);
+		if (ret != SR_OK)
+			return ret;
+	} else if (single_column && inc->logic_channels) {
 		sr_dbg("DIAG Got single column (%zu) and channels (%zu).",
 			single_column, inc->logic_channels);
 		sr_dbg("DIAG -> column %zu, %zu bits in %s format.",
@@ -1070,6 +1218,7 @@ static int reset(struct sr_input *in)
 }
 
 enum option_index {
+	OPT_COL_FMTS,
 	OPT_SINGLE_COL,
 	OPT_NUM_LOGIC,
 	OPT_DELIM,
@@ -1083,6 +1232,7 @@ enum option_index {
 };
 
 static struct sr_option options[] = {
+	[OPT_COL_FMTS] = { "column-formats", "Column format specs", "Specifies text columns data types: comma separated list of [<cols>]<fmt>[<bits>]", NULL, NULL },
 	[OPT_SINGLE_COL] = { "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
 	[OPT_NUM_LOGIC] = { "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
 	[OPT_DELIM] = { "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
@@ -1100,6 +1250,7 @@ static const struct sr_option *get_options(void)
 	GSList *l;
 
 	if (!options[0].def) {
+		options[OPT_COL_FMTS].def = g_variant_ref_sink(g_variant_new_string("0l"));
 		options[OPT_SINGLE_COL].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_NUM_LOGIC].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
