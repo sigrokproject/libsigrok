@@ -26,6 +26,7 @@
 
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"	/* String un-quote for channel name from header line. */
 
 #define LOG_PREFIX "input/csv"
 
@@ -666,6 +667,8 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	size_t line_number, line_idx;
 	int ret;
 	char **lines, *line, **columns, *column;
+	const char *col_caption;
+	gboolean got_caption;
 	const struct column_details *detail;
 
 	ret = SR_OK;
@@ -744,20 +747,29 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * line (when requested by the user, and only works in multi
 	 * column mode). In the absence of header text, or in single
 	 * column mode, channels are assigned rather generic names.
+	 *
+	 * Manipulation of the column's caption is acceptable here, the
+	 * header line will never get processed another time.
 	 */
 	channel_name = g_string_sized_new(64);
 	for (col_idx = 0; col_idx < inc->column_want_count; col_idx++) {
+
 		col_nr = col_idx + 1;
 		detail = lookup_column_details(inc, col_nr);
 		if (detail->text_format == FORMAT_NONE)
 			continue;
 		column = columns[col_idx];
+		col_caption = sr_scpi_unquote_string(column);
+		got_caption = inc->use_header && *col_caption;
 		sr_dbg("DIAG col %zu, ch count %zu, text %s.",
-			col_nr, detail->channel_count, column);
+			col_nr, detail->channel_count, col_caption);
 		for (ch_idx = 0; ch_idx < detail->channel_count; ch_idx++) {
 			ch_name_idx = detail->channel_offset + ch_idx;
-			if (inc->use_header && *column && inc->multi_column_mode)
-				g_string_assign(channel_name, column);
+			if (got_caption && detail->channel_count == 1)
+				g_string_assign(channel_name, col_caption);
+			else if (got_caption)
+				g_string_printf(channel_name, "%s[%zu]",
+					col_caption, ch_idx);
 			else
 				g_string_printf(channel_name, "%zu", ch_name_idx);
 			sr_dbg("DIAG ch idx %zu, name %s.", ch_name_idx, channel_name->str);
