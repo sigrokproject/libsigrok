@@ -114,11 +114,12 @@
 /*
  * TODO
  *
- * - Add support for analog input data? (optional)
- *   - Extend the set of supported column types. Just grab a double
- *     value from floating point format input text.
+ * - Extend support for analog input data? (optional)
  *   - Optionally get precision ('digits') from the column's format spec?
  *     From the position which is "bit count" for logic channels?
+ *   - Determine why analog samples of 'double' data type get scrambled
+ *     in sigrok-cli screen output. Is analog.encoding->unitsize not
+ *     handled properly? A sigrok-cli or libsigrok (src/output) issue?
  * - Optionally get sample rate from timestamp column. Just best-effort
  *   approach, not necessarily reliable. Users can always specify rates.
  * - Add a test suite for input modules in general, and CSV in specific?
@@ -128,12 +129,15 @@
  *   samplerates, etc).
  */
 
+typedef float csv_analog_t;	/* 'double' currently is flawed. */
+
 /* Single column formats. */
 enum single_col_format {
 	FORMAT_NONE,	/* Ignore this column. */
 	FORMAT_BIN,	/* Bin digits for a set of bits (or just one bit). */
 	FORMAT_HEX,	/* Hex digits for a set of bits. */
 	FORMAT_OCT,	/* Oct digits for a set of bits. */
+	FORMAT_ANALOG,	/* Floating point number for an analog channel. */
 };
 
 static const char *col_format_text[] = {
@@ -141,6 +145,7 @@ static const char *col_format_text[] = {
 	[FORMAT_BIN] = "binary",
 	[FORMAT_HEX] = "hexadecimal",
 	[FORMAT_OCT] = "octal",
+	[FORMAT_ANALOG] = "analog",
 };
 
 static const char col_format_char[] = {
@@ -148,6 +153,7 @@ static const char col_format_char[] = {
 	[FORMAT_BIN] = 'b',
 	[FORMAT_HEX] = 'x',
 	[FORMAT_OCT] = 'o',
+	[FORMAT_ANALOG] = 'a',
 };
 
 struct column_details {
@@ -164,8 +170,10 @@ struct context {
 	uint64_t samplerate;
 	gboolean samplerate_sent;
 
-	/* Number of logic channels. */
+	/* Number of logic channels. List of names for analog datafeed. */
 	size_t logic_channels;
+	size_t analog_channels;
+	GSList **analog_datafeed_channels;
 
 	/* Column delimiter (actually separator), comment leader, EOL sequence. */
 	GString *delimiter;
@@ -190,10 +198,15 @@ struct context {
 
 	size_t sample_unit_size;	/**!< Byte count for a single sample. */
 	uint8_t *sample_buffer;		/**!< Buffer for a single sample. */
+	csv_analog_t *analog_sample_buffer;	/**!< Buffer for one set of analog values. */
 
 	uint8_t *datafeed_buffer;	/**!< Queue for datafeed submission. */
 	size_t datafeed_buf_size;
 	size_t datafeed_buf_fill;
+	/* "Striped" layout, M samples for N channels each. */
+	csv_analog_t *analog_datafeed_buffer;	/**!< Queue for analog datafeed. */
+	size_t analog_datafeed_buf_size;
+	size_t analog_datafeed_buf_fill;
 
 	/* Current line number. */
 	size_t line_number;
@@ -215,8 +228,32 @@ struct context {
  *   (when it is full, or upon EOF).
  */
 
+static int flush_samplerate(const struct sr_input *in)
+{
+	struct context *inc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	struct sr_config *src;
+
+	inc = in->priv;
+	if (inc->samplerate && !inc->samplerate_sent) {
+		packet.type = SR_DF_META;
+		packet.payload = &meta;
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+		meta.config = g_slist_append(NULL, src);
+		sr_session_send(in->sdi, &packet);
+		g_slist_free(meta.config);
+		sr_config_free(src);
+		inc->samplerate_sent = TRUE;
+	}
+
+	return SR_OK;
+}
+
 static void clear_logic_samples(struct context *inc)
 {
+	if (!inc->logic_channels)
+		return;
 	inc->sample_buffer = &inc->datafeed_buffer[inc->datafeed_buf_fill];
 	memset(inc->sample_buffer, 0, inc->sample_unit_size);
 }
@@ -241,8 +278,6 @@ static int flush_logic_samples(const struct sr_input *in)
 {
 	struct context *inc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
 	struct sr_datafeed_logic logic;
 	int rc;
 
@@ -250,16 +285,9 @@ static int flush_logic_samples(const struct sr_input *in)
 	if (!inc->datafeed_buf_fill)
 		return SR_OK;
 
-	if (inc->samplerate && !inc->samplerate_sent) {
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-		meta.config = g_slist_append(NULL, src);
-		sr_session_send(in->sdi, &packet);
-		g_slist_free(meta.config);
-		sr_config_free(src);
-		inc->samplerate_sent = TRUE;
-	}
+	rc = flush_samplerate(in);
+	if (rc != SR_OK)
+		return rc;
 
 	memset(&packet, 0, sizeof(packet));
 	memset(&logic, 0, sizeof(logic));
@@ -289,6 +317,100 @@ static int queue_logic_samples(const struct sr_input *in)
 	inc->datafeed_buf_fill += inc->sample_unit_size;
 	if (inc->datafeed_buf_fill == inc->datafeed_buf_size) {
 		rc = flush_logic_samples(in);
+		if (rc != SR_OK)
+			return rc;
+	}
+	return SR_OK;
+}
+
+static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t value);
+
+static void clear_analog_samples(struct context *inc)
+{
+	size_t idx;
+
+	if (!inc->analog_channels)
+		return;
+	inc->analog_sample_buffer = &inc->analog_datafeed_buffer[inc->analog_datafeed_buf_fill];
+	for (idx = 0; idx < inc->analog_channels; idx++)
+		set_analog_value(inc, idx, 0.0);
+}
+
+static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t value)
+{
+	if (ch_idx >= inc->analog_channels)
+		return;
+	if (!value)
+		return;
+	inc->analog_sample_buffer[ch_idx * inc->analog_datafeed_buf_size] = value;
+}
+
+static int flush_analog_samples(const struct sr_input *in)
+{
+	/* TODO Use proper 'digits' value for this input module. */
+	static const int digits = 3;
+
+	struct context *inc;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+	csv_analog_t *samples;
+	size_t ch_idx;
+	int rc;
+
+	inc = in->priv;
+	if (!inc->analog_datafeed_buf_fill)
+		return SR_OK;
+
+	rc = flush_samplerate(in);
+	if (rc != SR_OK)
+		return rc;
+
+	samples = inc->analog_datafeed_buffer;
+	for (ch_idx = 0; ch_idx < inc->analog_channels; ch_idx++) {
+		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+		memset(&packet, 0, sizeof(packet));
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.num_samples = inc->analog_datafeed_buf_fill;
+		analog.data = samples;
+		analog.meaning->channels = inc->analog_datafeed_channels[ch_idx];
+		analog.meaning->mq = 0;
+		analog.meaning->mqflags = 0;
+		analog.meaning->unit = 0;
+		analog.encoding->unitsize = sizeof(samples[0]);
+		analog.encoding->is_signed = TRUE;
+		analog.encoding->is_float = TRUE;
+#ifdef WORDS_BIGENDIAN
+		analog.encoding->is_bigendian = TRUE;
+#else
+		analog.encoding->is_bigendian = FALSE;
+#endif
+		analog.encoding->digits = spec.spec_digits;
+		rc = sr_session_send(in->sdi, &packet);
+		if (rc != SR_OK)
+			return rc;
+		samples += inc->analog_datafeed_buf_size;
+	}
+
+	inc->analog_datafeed_buf_fill = 0;
+	return SR_OK;
+}
+
+static int queue_analog_samples(const struct sr_input *in)
+{
+	struct context *inc;
+	int rc;
+
+	inc = in->priv;
+	if (!inc->analog_channels)
+		return SR_OK;
+
+	inc->analog_datafeed_buf_fill++;
+	if (inc->analog_datafeed_buf_fill == inc->analog_datafeed_buf_size) {
+		rc = flush_analog_samples(in);
 		if (rc != SR_OK)
 			return rc;
 	}
@@ -342,6 +464,9 @@ static int split_column_format(const char *spec,
 	case 'l':
 		format_code = FORMAT_BIN;
 		break;
+	case 'a':
+		format_code = FORMAT_ANALOG;
+		break;
 	default:	/* includes NUL */
 		return SR_ERR_ARG;
 	}
@@ -355,9 +480,11 @@ static int split_column_format(const char *spec,
 		return SR_ERR_ARG;
 	if (endp == spec)
 		count = 1;
-	if (format_char == '-')
+	if (!format_code)
 		count = 0;
 	if (format_char == 'l')
+		count = 1;
+	if (format_code == FORMAT_ANALOG)
 		count = 1;
 	if (bit_count)
 		*bit_count = count;
@@ -375,15 +502,16 @@ static int make_column_details_from_format(const struct sr_input *in,
 {
 	struct context *inc;
 	char **formats, *format;
-	size_t format_count, column_count, bit_count;
+	size_t format_count, column_count, logic_count, analog_count;
 	size_t auto_column_count;
-	size_t format_idx, c, b, column_idx, channel_idx;
+	size_t format_idx, c, b, column_idx, channel_idx, analog_idx;
 	enum single_col_format f;
 	struct column_details *detail;
 	GString *channel_name;
 	size_t create_idx;
 	char *column;
 	const char *caption;
+	int channel_type, channel_sdi_nr;
 	int ret;
 
 	inc = in->priv;
@@ -401,7 +529,7 @@ static int make_column_details_from_format(const struct sr_input *in,
 		g_strfreev(formats);
 		return SR_ERR_ARG;
 	}
-	column_count = bit_count = 0;
+	column_count = logic_count = analog_count = 0;
 	auto_column_count = 0;
 	for (format_idx = 0; format_idx < format_count; format_idx++) {
 		format = formats[format_idx];
@@ -423,10 +551,13 @@ static int make_column_details_from_format(const struct sr_input *in,
 			c = auto_column_count;
 		}
 		column_count += c;
-		bit_count += c * b;
+		if (f == FORMAT_ANALOG)
+			analog_count += c;
+		else if (f)
+			logic_count += c * b;
 	}
-	sr_dbg("Column format %s -> %zu columns, %zu logic channels.",
-		column_format, column_count, bit_count);
+	sr_dbg("Column format %s -> %zu columns, %zu logic, %zu analog channels.",
+		column_format, column_count, logic_count, analog_count);
 
 	/* Allocate and fill in "column processing" details. Create channels. */
 	inc->column_want_count = column_count;
@@ -437,7 +568,7 @@ static int make_column_details_from_format(const struct sr_input *in,
 		return SR_ERR_ARG;
 	}
 	inc->column_details = g_malloc0_n(column_count, sizeof(inc->column_details[0]));
-	column_idx = channel_idx = 0;
+	column_idx = channel_idx = analog_idx = 0;
 	channel_name = g_string_sized_new(64);
 	for (format_idx = 0; format_idx < format_count; format_idx++) {
 		/* Process a format field, which can span multiple columns. */
@@ -450,10 +581,14 @@ static int make_column_details_from_format(const struct sr_input *in,
 			detail = &inc->column_details[column_idx++];
 			detail->col_nr = column_idx;
 			detail->text_format = f;
-			if (detail->text_format) {
+			if (detail->text_format == FORMAT_ANALOG) {
+				detail->channel_offset = analog_idx;
+				detail->channel_count = 1;
+				analog_idx += detail->channel_count;
+			} else if (detail->text_format) {
 				detail->channel_offset = channel_idx;
 				detail->channel_count = b;
-				channel_idx += b;
+				channel_idx += detail->channel_count;
 			}
 			sr_dbg("detail -> col %zu, fmt %s, ch off/cnt %zu/%zu",
 				detail->col_nr, col_format_text[detail->text_format],
@@ -487,12 +622,20 @@ static int make_column_details_from_format(const struct sr_input *in,
 					g_string_printf(channel_name, "%zu",
 						detail->channel_offset + create_idx);
 				}
-				sr_channel_new(in->sdi, detail->channel_offset + create_idx,
-					SR_CHANNEL_LOGIC, TRUE, channel_name->str);
+				if (detail->text_format == FORMAT_ANALOG) {
+					channel_sdi_nr = logic_count + detail->channel_offset + create_idx;
+					channel_type = SR_CHANNEL_ANALOG;
+				} else {
+					channel_sdi_nr = detail->channel_offset + create_idx;
+					channel_type = SR_CHANNEL_LOGIC;
+				}
+				sr_channel_new(in->sdi, channel_sdi_nr,
+					channel_type, TRUE, channel_name->str);
 			}
 		}
 	}
 	inc->logic_channels = channel_idx;
+	inc->analog_channels = analog_idx;
 	g_string_free(channel_name, TRUE);
 	g_strfreev(formats);
 
@@ -635,6 +778,7 @@ static int parse_logic(const char *column, struct context *inc,
 			ch_rem--;
 			set_logic_level(inc, ch_idx + 0, bits & (1 << 0));
 			break;
+		case FORMAT_ANALOG:
 		case FORMAT_NONE:
 			/* ShouldNotHappen(TM), but silences compiler warning. */
 			return SR_ERR;
@@ -648,6 +792,55 @@ static int parse_logic(const char *column, struct context *inc,
 	 * significant bits ignored (which can be considered a feature
 	 * and not really a limitation).
 	 */
+
+	return SR_OK;
+}
+
+/**
+ * @brief Parse a floating point text into an analog value.
+ *
+ * @param[in] column	The input text, a floating point number.
+ * @param[in] inc	The input module's context.
+ * @param[in] details	The column processing details.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Invalid input data (empty, or format error).
+ *
+ * This routine modifies the analog values in the current sample set,
+ * based on the text input and a user provided format spec.
+ */
+static int parse_analog(const char *column, struct context *inc,
+	const struct column_details *details)
+{
+	size_t length;
+	double dvalue; float fvalue;
+	csv_analog_t value;
+	int ret;
+
+	if (details->text_format != FORMAT_ANALOG)
+		return SR_ERR_BUG;
+
+	length = strlen(column);
+	if (!length) {
+		sr_err("Column %zu in line %zu is empty.", details->col_nr,
+			inc->line_number);
+		return SR_ERR;
+	}
+	if (sizeof(value) == sizeof(double)) {
+		ret = sr_atod_ascii(column, &dvalue);
+		value = dvalue;
+	} else if (sizeof(value) == sizeof(float)) {
+		ret = sr_atof_ascii(column, &fvalue);
+		value = fvalue;
+	} else {
+		ret = SR_ERR_BUG;
+	}
+	if (ret != SR_OK) {
+		sr_err("Cannot parse analog text %s in column %zu in line %zu.",
+			column, details->col_nr, inc->line_number);
+		return SR_ERR_DATA;
+	}
+	set_analog_value(inc, details->channel_offset, value);
 
 	return SR_OK;
 }
@@ -675,6 +868,7 @@ static const col_parse_cb col_parse_funcs[] = {
 	[FORMAT_BIN] = parse_logic,
 	[FORMAT_OCT] = parse_logic,
 	[FORMAT_HEX] = parse_logic,
+	[FORMAT_ANALOG] = parse_analog,
 };
 
 static int init(struct sr_input *in, GHashTable *options)
@@ -834,7 +1028,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 {
 	struct context *inc;
 	size_t num_columns;
-	size_t line_number, line_idx;
+	size_t line_number, line_idx, ch_idx;
 	int ret;
 	char **lines, *line, **columns;
 
@@ -916,11 +1110,40 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * Allocate the larger buffer, the "sample buffer" will point
 	 * to a location within that large buffer later.
 	 */
-	inc->sample_unit_size = (inc->logic_channels + 7) / 8;
-	inc->datafeed_buf_size = CHUNK_SIZE;
-	inc->datafeed_buf_size *= inc->sample_unit_size;
-	inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
-	inc->datafeed_buf_fill = 0;
+	if (inc->logic_channels) {
+		inc->sample_unit_size = (inc->logic_channels + 7) / 8;
+		inc->datafeed_buf_size = CHUNK_SIZE;
+		inc->datafeed_buf_size *= inc->sample_unit_size;
+		inc->datafeed_buffer = g_malloc(inc->datafeed_buf_size);
+		if (!inc->datafeed_buffer) {
+			sr_err("Cannot allocate datafeed send buffer (logic).");
+			ret = SR_ERR_MALLOC;
+			goto out;
+		}
+		inc->datafeed_buf_fill = 0;
+	}
+
+	if (inc->analog_channels) {
+		size_t sample_size, sample_count;
+		sample_size = sizeof(inc->analog_datafeed_buffer[0]);
+		inc->analog_datafeed_buf_size = CHUNK_SIZE;
+		inc->analog_datafeed_buf_size /= sample_size;
+		inc->analog_datafeed_buf_size /= inc->analog_channels;
+		sample_count = inc->analog_channels * inc->analog_datafeed_buf_size;
+		inc->analog_datafeed_buffer = g_malloc0(sample_count * sample_size);
+		if (!inc->analog_datafeed_buffer) {
+			sr_err("Cannot allocate datafeed send buffer (analog).");
+			ret = SR_ERR_MALLOC;
+			goto out;
+		}
+		inc->analog_datafeed_buf_fill = 0;
+		inc->analog_datafeed_channels = g_malloc0_n(inc->analog_channels, sizeof(inc->analog_datafeed_channels[0]));
+		for (ch_idx = 0; ch_idx < inc->analog_channels; ch_idx++) {
+			void *channel;
+			channel = g_slist_nth_data(in->sdi->channels, inc->logic_channels + ch_idx);
+			inc->analog_datafeed_channels[ch_idx] = g_slist_append(NULL, channel);
+		}
+	}
 
 out:
 	if (columns)
@@ -1075,6 +1298,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 
 		/* Have the columns of the current text line processed. */
 		clear_logic_samples(inc);
+		clear_analog_samples(inc);
 		for (col_idx = 0; col_idx < inc->column_want_count; col_idx++) {
 			column = columns[col_idx];
 			col_nr = col_idx + 1;
@@ -1094,6 +1318,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 
 		/* Send sample data to the session bus (buffered). */
 		ret = queue_logic_samples(in);
+		ret += queue_analog_samples(in);
 		if (ret != SR_OK) {
 			sr_err("Sending samples failed.");
 			g_strfreev(columns);
@@ -1148,6 +1373,7 @@ static int end(struct sr_input *in)
 		return ret;
 
 	ret = flush_logic_samples(in);
+	ret += flush_analog_samples(in);
 	if (ret != SR_OK)
 		return ret;
 
@@ -1170,6 +1396,8 @@ static void cleanup(struct sr_input *in)
 	inc->termination = NULL;
 	g_free(inc->datafeed_buffer);
 	inc->datafeed_buffer = NULL;
+	g_free(inc->analog_datafeed_buffer);
+	inc->analog_datafeed_buffer = NULL;
 }
 
 static int reset(struct sr_input *in)
