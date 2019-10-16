@@ -371,16 +371,24 @@ static int split_column_format(const char *spec,
 	return SR_OK;
 }
 
-static int make_column_details_from_format(struct context *inc,
-	const char *column_format)
+static int make_column_details_from_format(const struct sr_input *in,
+	const char *column_format, char **column_texts)
 {
+	struct context *inc;
 	char **formats, *format;
 	size_t format_count, column_count, bit_count;
 	size_t auto_column_count;
 	size_t format_idx, c, b, column_idx, channel_idx;
 	enum single_col_format f;
 	struct column_details *detail;
+	GString *channel_name;
+	size_t create_idx;
+	char *column;
+	const char *caption;
 	int ret;
+
+	inc = in->priv;
+	inc->column_seen_count = g_strv_length(column_texts);
 
 	/* Split the input spec, count involved columns and bits. */
 	formats = g_strsplit(column_format, ",", 0);
@@ -421,16 +429,25 @@ static int make_column_details_from_format(struct context *inc,
 	sr_dbg("Column format %s -> %zu columns, %zu logic channels.",
 		column_format, column_count, bit_count);
 
-	/* Allocate and fill in "column processing" details. */
+	/* Allocate and fill in "column processing" details. Create channels. */
 	inc->column_want_count = column_count;
+	if (inc->column_seen_count < inc->column_want_count) {
+		sr_err("Insufficient input text width for desired data amount, got %zu but want %zu columns.",
+			inc->column_seen_count, inc->column_want_count);
+		g_strfreev(formats);
+		return SR_ERR_ARG;
+	}
 	inc->column_details = g_malloc0_n(column_count, sizeof(inc->column_details[0]));
 	column_idx = channel_idx = 0;
+	channel_name = g_string_sized_new(64);
 	for (format_idx = 0; format_idx < format_count; format_idx++) {
+		/* Process a format field, which can span multiple columns. */
 		format = formats[format_idx];
 		(void)split_column_format(format, &c, &f, &b);
 		if (f && !c)
 			c = auto_column_count;
 		while (c-- > 0) {
+			/* Fill in a column's processing details. */
 			detail = &inc->column_details[column_idx++];
 			detail->col_nr = column_idx;
 			detail->text_format = f;
@@ -442,9 +459,42 @@ static int make_column_details_from_format(struct context *inc,
 			sr_dbg("detail -> col %zu, fmt %s, ch off/cnt %zu/%zu",
 				detail->col_nr, col_format_text[detail->text_format],
 				detail->channel_offset, detail->channel_count);
+			if (!detail->text_format)
+				continue;
+			/*
+			 * Create channels with appropriate names. Optionally
+			 * use text from a header line (when requested by the
+			 * user). In the absence of header text, channels are
+			 * assigned rather generic names.
+			 *
+			 * Manipulation of the column's caption (when a header
+			 * line is seen) is acceptable, because this header
+			 * line won't get processed another time.
+			 */
+			column = column_texts[detail->col_nr - 1];
+			if (inc->use_header && column && *column)
+				caption = sr_scpi_unquote_string(column);
+			else
+				caption = NULL;
+			if (!caption || !*caption)
+				caption = NULL;
+			for (create_idx = 0; create_idx < detail->channel_count; create_idx++) {
+				if (caption && detail->channel_count == 1) {
+					g_string_assign(channel_name, caption);
+				} else if (caption) {
+					g_string_printf(channel_name, "%s[%zu]",
+						caption, create_idx);
+				} else {
+					g_string_printf(channel_name, "%zu",
+						detail->channel_offset + create_idx);
+				}
+				sr_channel_new(in->sdi, detail->channel_offset + create_idx,
+					SR_CHANNEL_LOGIC, TRUE, channel_name->str);
+			}
 		}
 	}
 	inc->logic_channels = channel_idx;
+	g_string_free(channel_name, TRUE);
 	g_strfreev(formats);
 
 	return SR_OK;
@@ -792,19 +842,16 @@ static const char *get_line_termination(GString *buf)
 static int initial_parse(const struct sr_input *in, GString *buf)
 {
 	struct context *inc;
-	GString *channel_name;
-	size_t num_columns, ch_idx, ch_name_idx, col_idx, col_nr;
+	size_t num_columns;
 	size_t line_number, line_idx;
 	int ret;
-	char **lines, *line, **columns, *column;
-	const char *col_caption;
-	gboolean got_caption;
-	const struct column_details *detail;
+	char **lines, *line, **columns;
 
 	ret = SR_OK;
 	inc = in->priv;
 	columns = NULL;
 
+	/* Search for the first line to process (header or data). */
 	line_number = 0;
 	if (inc->termination)
 		lines = g_strsplit(buf->str, inc->termination, 0);
@@ -835,7 +882,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		goto out;
 	}
 
-	/* See how many columns the current line has. */
+	/* Get the number of columns in the line. */
 	columns = split_line(line, inc);
 	if (!columns) {
 		sr_err("Error while parsing line %zu.", line_number);
@@ -851,72 +898,27 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	sr_dbg("DIAG Got %zu columns in text line: %s.", num_columns, line);
 
 	/*
-	 * Track the observed number of columns in the input file. Do
-	 * process the previously gathered columns format spec now that
-	 * automatic channel count can be dealt with.
+	 * Interpret the user provided column format specs. This might
+	 * involve inspection of the now received input text, to support
+	 * e.g. automatic detection of channel counts in the absence of
+	 * user provided specs. Optionally a header line is used to get
+	 * channels' names.
+	 *
+	 * Check the then created channels for consistency across .reset
+	 * and .receive sequences (file re-load).
 	 */
-	inc->column_seen_count = num_columns;
-	ret = make_column_details_from_format(inc, inc->column_formats);
+	ret = make_column_details_from_format(in, inc->column_formats, columns);
 	if (ret != SR_OK) {
 		sr_err("Cannot parse columns format using line %zu.", line_number);
 		goto out;
 	}
-
-	/*
-	 * Assume all lines have equal length (column count). Bail out
-	 * early on suspicious or insufficient input data (check input
-	 * which became available here against previous user specs or
-	 * auto-determined properties, regardless of layout variant).
-	 */
-	if (num_columns < inc->column_want_count) {
-		sr_err("Insufficient input text width for desired data amount, got %zu but want %zu columns.",
-			num_columns, inc->column_want_count);
-		ret = SR_ERR;
-		goto out;
-	}
-
-	/*
-	 * Determine channel names. Optionally use text from a header
-	 * line (when requested by the user, and only works in multi
-	 * column mode). In the absence of header text, or in single
-	 * column mode, channels are assigned rather generic names.
-	 *
-	 * Manipulation of the column's caption is acceptable here, the
-	 * header line will never get processed another time.
-	 */
-	channel_name = g_string_sized_new(64);
-	for (col_idx = 0; col_idx < inc->column_want_count; col_idx++) {
-
-		col_nr = col_idx + 1;
-		detail = lookup_column_details(inc, col_nr);
-		if (detail->text_format == FORMAT_NONE)
-			continue;
-		column = columns[col_idx];
-		col_caption = sr_scpi_unquote_string(column);
-		got_caption = inc->use_header && *col_caption;
-		sr_dbg("DIAG col %zu, ch count %zu, text %s.",
-			col_nr, detail->channel_count, col_caption);
-		for (ch_idx = 0; ch_idx < detail->channel_count; ch_idx++) {
-			ch_name_idx = detail->channel_offset + ch_idx;
-			if (got_caption && detail->channel_count == 1)
-				g_string_assign(channel_name, col_caption);
-			else if (got_caption)
-				g_string_printf(channel_name, "%s[%zu]",
-					col_caption, ch_idx);
-			else
-				g_string_printf(channel_name, "%zu", ch_name_idx);
-			sr_dbg("DIAG ch idx %zu, name %s.", ch_name_idx, channel_name->str);
-			sr_channel_new(in->sdi, ch_name_idx, SR_CHANNEL_LOGIC, TRUE,
-				channel_name->str);
-		}
-	}
-	g_string_free(channel_name, TRUE);
 	if (!check_header_in_reread(in)) {
 		ret = SR_ERR_DATA;
 		goto out;
 	}
 
 	/*
+	 * Allocate buffer memory for datafeed submission of sample data.
 	 * Calculate the minimum buffer size to store the set of samples
 	 * of all channels (unit size). Determine a larger buffer size
 	 * for datafeed submission that is a multiple of the unit size.
