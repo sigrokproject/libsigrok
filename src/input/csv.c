@@ -35,42 +35,80 @@
 /*
  * The CSV input module has the following options:
  *
- * single-column: Specifies the column number which stores the sample data for
- *                single column mode and enables single column mode. Multi
- *                column mode is used if this parameter is omitted.
+ * column_formats: Specifies the data formats and channel counts for the
+ *     input file's text columns. Accepts a comma separated list of tuples
+ *     with: an optional column repeat count ('*' as a wildcard meaning
+ *     "all remaining columns", only applicable to the last field), a format
+ *     specifying character ('x' hexadecimal, 'o' octal, 'b' binary, 'l'
+ *     single-bit logic), and an optional bit count (translating to: logic
+ *     channels communicated in that column). This "column_formats" option
+ *     is most versatile, other forms of specifying the column layout only
+ *     exist for backwards compatibility.
  *
- * numchannels:   Specifies the number of channels to use. In multi column mode
- *                the number of channels are the number of columns and in single
- *                column mode the number of bits (LSB first) beginning at
- *                'first-channel'.
+ * single_column: Specifies the column number which contains the logic data
+ *     for single-column mode. All logic data is taken from several bits
+ *     which all are kept within that one column. Only exists for backwards
+ *     compatibility, see "column_formats" for more flexibility.
  *
- * delimiter:     Specifies the delimiter for columns. Must be at least one
- *                character. Comma is used as default delimiter.
+ * first_column: Specifies the number of the first column with logic data
+ *     in simple multi-column mode. Only exists for backwards compatibility,
+ *     see "column_formats" for more flexibility.
  *
- * format:        Specifies the format of the sample data in single column mode.
- *                Available formats are: 'bin', 'hex' and 'oct'. The binary
- *                format is used by default. This option has no effect in multi
- *                column mode.
+ * logic_channels: Specifies the number of logic channels. Is required in
+ *     simple single-column mode. Is optional in simple multi-column mode
+ *     (and defaults to all remaining columns). Only exists for backwards
+ *     compatibility, see "column_formats" for more flexibility.
  *
- * comment:       Specifies the prefix character(s) for comments. No prefix
- *                characters are used by default which disables removing of
- *                comments.
+ * single_format: Specifies the format of the input text in simple single-
+ *     column mode. Available formats are: 'bin' (default), 'hex' and 'oct'.
+ *     Simple multi-column mode always uses single-bit data per column.
+ *     Only exists for backwards compatibility, see "column_formats" for
+ *     more flexibility.
  *
- * samplerate:    Samplerate which the sample data was captured with. Default
- *                value is 0.
+ * start_line: Specifies at which line to start processing the input file.
+ *     Allows to skip leading lines which neither are header nor data lines.
+ *     By default all of the input file gets processed.
  *
- * first-channel: Column number of the first channel in multi column mode and
- *                position of the bit for the first channel in single column mode.
- *                Default value is 0.
+ * header: Boolean option, controls whether the first processed line is used
+ *     to determine channel names. Off by default. Generic channel names are
+ *     used in the absence of header line content.
  *
- * header:        Determines if the first line should be treated as header
- *                and used for channel names in multi column mode. Empty header
- *                names will be replaced by the channel number. If enabled in
- *                single column mode the first line will be skipped. Usage of
- *                header is disabled by default.
+ * samplerate: Specifies the samplerate of the input data. Defaults to 0.
+ *     User specs take precedence over data which optionally gets derived
+ *     from input data.
  *
- * startline:     Line number to start processing sample data. Must be greater
- *                than 0. The default line number to start processing is 1.
+ * column_separator: Specifies the sequence which separates the text file
+ *     columns. Cannot be empty. Defaults to comma.
+ *
+ * comment_leader: Specifies the sequence which starts comments that run
+ *     up to the end of the current text line. Can be empty to disable
+ *     comment support. Defaults to semicolon.
+ *
+ * Typical examples of using these options:
+ * - ... -I csv:column_formats=*l ...
+ *   All columns are single-bit logic data. Identical to the previous
+ *   multi-column mode (the default when no options were given at all).
+ * - ... -I csv:column_formats=3-,*l ...
+ *   Ignore the first three columns, get single-bit logic data from all
+ *   remaining lines (multi-column mode with first-column above 1).
+ * - ... -I csv:column_formats=3-,4l,x8 ...
+ *   Ignore the first three columns, get single-bit logic data from the
+ *   next four columns, then eight-bit data in hex format from the next
+ *   column. More columns may follow in the input text but won't get
+ *   processed. (Mix of previous multi-column as well as single-column
+ *   modes.)
+ * - ... -I csv:column_formats=4x8,b16,5l ...
+ *   Get eight-bit data in hex format from the first four columns, then
+ *   sixteen-bit data in binary format, then five times single-bit data.
+ * - ... -I csv:single_column=2:single_format=bin:logic_channels=8 ...
+ *   Get eight logic bits in binary format from column 2. (Simple
+ *   single-column mode, corresponds to the "-,b8" format.)
+ * - ... -I csv:first_column=6:logic_channels=4 ...
+ *   Get four single-bit logic channels from columns 6 to 9 respectively.
+ *   (Simple multi-column mode, corresponds to the "5-,4b" format.)
+ * - ... -I csv:start_line=20:header=yes:...
+ *   Skip the first 19 text lines. Use line 20 to derive channel names.
+ *   Data starts at line 21.
  */
 
 /*
@@ -617,18 +655,18 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->sdi = g_malloc0(sizeof(*in->sdi));
 	in->priv = inc = g_malloc0(sizeof(*inc));
 
-	single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single-column"));
+	single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single_column"));
 
-	logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "numchannels"));
+	logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "logic_channels"));
 
 	inc->delimiter = g_string_new(g_variant_get_string(
-			g_hash_table_lookup(options, "delimiter"), NULL));
+			g_hash_table_lookup(options, "column_separator"), NULL));
 	if (!inc->delimiter->len) {
-		sr_err("Column delimiter cannot be empty.");
+		sr_err("Column separator cannot be empty.");
 		return SR_ERR_ARG;
 	}
 
-	s = g_variant_get_string(g_hash_table_lookup(options, "format"), NULL);
+	s = g_variant_get_string(g_hash_table_lookup(options, "single_format"), NULL);
 	if (g_ascii_strncasecmp(s, "bin", 3) == 0) {
 		format = FORMAT_BIN;
 	} else if (g_ascii_strncasecmp(s, "hex", 3) == 0) {
@@ -636,30 +674,30 @@ static int init(struct sr_input *in, GHashTable *options)
 	} else if (g_ascii_strncasecmp(s, "oct", 3) == 0) {
 		format = FORMAT_OCT;
 	} else {
-		sr_err("Invalid format: '%s'", s);
+		sr_err("Invalid single-column format: '%s'", s);
 		return SR_ERR_ARG;
 	}
 
 	inc->comment = g_string_new(g_variant_get_string(
-			g_hash_table_lookup(options, "comment"), NULL));
+			g_hash_table_lookup(options, "comment_leader"), NULL));
 	if (g_string_equal(inc->comment, inc->delimiter)) {
 		/*
 		 * Using the same sequence as comment leader and column
-		 * delimiter won't work. The user probably specified ';'
-		 * as the column delimiter but did not adjust the comment
+		 * separator won't work. The user probably specified ';'
+		 * as the column separator but did not adjust the comment
 		 * leader. Try DWIM, drop comment strippin support here.
 		 */
-		sr_warn("Comment leader and column delimiter conflict, disabling comment support.");
+		sr_warn("Comment leader and column separator conflict, disabling comment support.");
 		g_string_truncate(inc->comment, 0);
 	}
 
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
-	first_column = g_variant_get_uint32(g_hash_table_lookup(options, "first-column"));
+	first_column = g_variant_get_uint32(g_hash_table_lookup(options, "first_column"));
 
 	inc->use_header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
 
-	inc->start_line = g_variant_get_uint32(g_hash_table_lookup(options, "startline"));
+	inc->start_line = g_variant_get_uint32(g_hash_table_lookup(options, "start_line"));
 	if (inc->start_line < 1) {
 		sr_err("Invalid start line %zu.", inc->start_line);
 		return SR_ERR_ARG;
@@ -676,10 +714,10 @@ static int init(struct sr_input *in, GHashTable *options)
 	 * of input data was seen. To support automatic determination of
 	 * e.g. channel counts from column counts.
 	 */
-	s = g_variant_get_string(g_hash_table_lookup(options, "column-formats"), NULL);
+	s = g_variant_get_string(g_hash_table_lookup(options, "column_formats"), NULL);
 	if (s && *s) {
 		inc->column_formats = g_strdup(s);
-		sr_dbg("User specified column-formats: %s.", s);
+		sr_dbg("User specified column_formats: %s.", s);
 	} else if (single_column && logic_channels) {
 		format_char = col_format_char[format];
 		if (single_column == 1) {
@@ -690,7 +728,7 @@ static int init(struct sr_input *in, GHashTable *options)
 				single_column - 1,
 				format_char, logic_channels);
 		}
-		sr_dbg("Backwards compat single-column, col %zu, fmt %s, bits %zu -> %s.",
+		sr_dbg("Backwards compat single_column, col %zu, fmt %s, bits %zu -> %s.",
 			single_column, col_format_text[format], logic_channels,
 			inc->column_formats);
 	} else if (!single_column) {
@@ -705,7 +743,7 @@ static int init(struct sr_input *in, GHashTable *options)
 			first_column, logic_channels,
 			inc->column_formats);
 	} else {
-		sr_warn("Unknown or unsupported format spec, assuming trivial multi-column.");
+		sr_warn("Unknown or unsupported columns layout spec, assuming simple multi-column mode.");
 		inc->column_formats = g_strdup("*l");
 	}
 
@@ -1171,28 +1209,68 @@ static int reset(struct sr_input *in)
 enum option_index {
 	OPT_COL_FMTS,
 	OPT_SINGLE_COL,
-	OPT_NUM_LOGIC,
-	OPT_DELIM,
-	OPT_FORMAT,
-	OPT_COMMENT,
-	OPT_RATE,
 	OPT_FIRST_COL,
-	OPT_HEADER,
+	OPT_NUM_LOGIC,
+	OPT_FORMAT,
 	OPT_START,
+	OPT_HEADER,
+	OPT_RATE,
+	OPT_DELIM,
+	OPT_COMMENT,
 	OPT_MAX,
 };
 
 static struct sr_option options[] = {
-	[OPT_COL_FMTS] = { "column-formats", "Column format specs", "Specifies text columns data types: comma separated list of [<cols>]<fmt>[<bits>]", NULL, NULL },
-	[OPT_SINGLE_COL] = { "single-column", "Single column", "Enable single-column mode, using the specified column (>= 1); 0: multi-col. mode", NULL, NULL },
-	[OPT_NUM_LOGIC] = { "numchannels", "Number of logic channels", "The number of (logic) channels (single-col. mode: number of bits beginning at 'first channel', LSB-first)", NULL, NULL },
-	[OPT_DELIM] = { "delimiter", "Column delimiter", "The column delimiter (>= 1 characters)", NULL, NULL },
-	[OPT_FORMAT] = { "format", "Data format (single-col. mode)", "The numeric format of the data (single-col. mode): bin, hex, oct", NULL, NULL },
-	[OPT_COMMENT] = { "comment", "Comment character(s)", "The comment prefix character(s)", NULL, NULL },
-	[OPT_RATE] = { "samplerate", "Samplerate (Hz)", "The sample rate (used during capture) in Hz", NULL, NULL },
-	[OPT_FIRST_COL] = { "first-column", "First column", "The column number of the first channel (multi-col. mode)", NULL, NULL },
-	[OPT_HEADER] = { "header", "Interpret first line as header (multi-col. mode)", "Treat the first line as header with channel names (multi-col. mode)", NULL, NULL },
-	[OPT_START] = { "startline", "Start line", "The line number at which to start processing samples (>= 1)", NULL, NULL },
+	[OPT_COL_FMTS] = {
+		"column_formats", "Column format specs",
+		"Specifies text columns data types: comma separated list of [<cols>]<fmt>[<bits>], with -/x/o/b/l format specifiers.",
+		NULL, NULL,
+	},
+	[OPT_SINGLE_COL] = {
+		"single_column", "Single column",
+		"Enable single-column mode, exclusively use text from the specified column (number starting at 1).",
+		NULL, NULL,
+	},
+	[OPT_FIRST_COL] = {
+		"first_column", "First column",
+		"Number of the first column with logic data in simple multi-column mode (number starting at 1, default 1).",
+		NULL, NULL,
+	},
+	[OPT_NUM_LOGIC] = {
+		"logic_channels", "Number of logic channels",
+		"Logic channel count, required in simple single-column mode, defaults to \"all remaining columns\" in simple multi-column mode. Obsoleted by 'column_formats'.",
+		NULL, NULL,
+	},
+	[OPT_FORMAT] = {
+		"single_format", "Data format for simple single-column mode.",
+		"The number format of single-column mode input data: bin, hex, oct.",
+		NULL, NULL,
+	},
+	[OPT_START] = {
+		"start_line", "Start line",
+		"The line number at which to start processing input text (default: 1).",
+		NULL, NULL,
+	},
+	[OPT_HEADER] = {
+		"header", "Get channel names from first line.",
+		"Use the first processed line's column captions (when available) as channel names.",
+		NULL, NULL,
+	},
+	[OPT_RATE] = {
+		"samplerate", "Samplerate (Hz)",
+		"The input data's sample rate in Hz.",
+		NULL, NULL,
+	},
+	[OPT_DELIM] = {
+		"column_separator", "Column separator",
+		"The sequence which separates text columns. Non-empty text, comma by default.",
+		NULL, NULL,
+	},
+	[OPT_COMMENT] = {
+		"comment_leader", "Comment leader character",
+		"The text which starts comments at the end of text lines.",
+		NULL, NULL,
+	},
 	[OPT_MAX] = ALL_ZERO,
 };
 
@@ -1203,19 +1281,19 @@ static const struct sr_option *get_options(void)
 	if (!options[0].def) {
 		options[OPT_COL_FMTS].def = g_variant_ref_sink(g_variant_new_string(""));
 		options[OPT_SINGLE_COL].def = g_variant_ref_sink(g_variant_new_uint32(0));
+		options[OPT_FIRST_COL].def = g_variant_ref_sink(g_variant_new_uint32(1));
 		options[OPT_NUM_LOGIC].def = g_variant_ref_sink(g_variant_new_uint32(0));
-		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[OPT_FORMAT].def = g_variant_ref_sink(g_variant_new_string("bin"));
 		l = NULL;
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("bin")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("hex")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
 		options[OPT_FORMAT].values = l;
-		options[OPT_COMMENT].def = g_variant_ref_sink(g_variant_new_string(";"));
-		options[OPT_RATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
-		options[OPT_FIRST_COL].def = g_variant_ref_sink(g_variant_new_uint32(1));
-		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[OPT_START].def = g_variant_ref_sink(g_variant_new_uint32(1));
+		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
+		options[OPT_RATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
+		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
+		options[OPT_COMMENT].def = g_variant_ref_sink(g_variant_new_string(";"));
 	}
 
 	return options;
