@@ -114,34 +114,18 @@
 /*
  * TODO
  *
- * - Determine how the text line handling can get improved, regarding
- *   all of robustness and flexibility and correctness.
- *   - The current implementation splits on "any run of CR and LF". Which
- *     translates to: Line numbers are wrong in the presence of empty
- *     lines in the input stream. See below for an (expensive) fix.
- *   - Dropping support for CR style end-of-line markers could improve
- *     the situation a lot. Code could search for and split on LF, and
- *     trim optional trailing CR. This would result in proper support
- *     for CRLF (Windows) as well as LF (Unix), and allow for correct
- *     line number counts.
- *   - When support for CR-only line termination cannot get dropped,
- *     then the current implementation is inappropriate. Currently the
- *     input stream is scanned for the first occurance of either of the
- *     supported termination styles (which is good). For the remaining
- *     session a consistent encoding of the text lines is assumed (which
- *     is acceptable).
- *   - When line numbers need to be correct and reliable, _and_ the full
- *     set of previously supported line termination sequences are required,
- *     and potentially more are to get added for improved compatibility
- *     with more platforms or generators, then the current approach of
- *     splitting on runs of termination characters needs to get replaced,
- *     by the more expensive approach to scan for and count the initially
- *     determined termination sequence.
- *
  * - Add support for analog input data? (optional)
- *   - Needs a syntax first for user specs which channels (columns) are
- *     logic and which are analog. May need heuristics(?) to guess from
- *     input data in the absence of user provided specs.
+ *   - Extend the set of supported column types. Just grab a double
+ *     value from floating point format input text.
+ *   - Optionally get precision ('digits') from the column's format spec?
+ *     From the position which is "bit count" for logic channels?
+ * - Optionally get sample rate from timestamp column. Just best-effort
+ *   approach, not necessarily reliable. Users can always specify rates.
+ * - Add a test suite for input modules in general, and CSV in specific?
+ *   Becomes more important with the multitude of options and their
+ *   interaction. Could cover edge cases (BOM presence, line termination
+ *   absence, etc) and auto-stuff as well (channel names, channel counts,
+ *   samplerates, etc).
  */
 
 /* Single column formats. */
