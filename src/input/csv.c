@@ -243,7 +243,6 @@ static int flush_logic_samples(const struct sr_input *in)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_meta meta;
 	struct sr_config *src;
-	uint64_t samplerate;
 	struct sr_datafeed_logic logic;
 	int rc;
 
@@ -254,8 +253,7 @@ static int flush_logic_samples(const struct sr_input *in)
 	if (inc->samplerate && !inc->samplerate_sent) {
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
-		samplerate = inc->samplerate;
-		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(samplerate));
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
 		g_slist_free(meta.config);
@@ -312,6 +310,7 @@ static int split_column_format(const char *spec,
 	/* Get the (optional, decimal, default 1) column count. Accept '*'. */
 	endp = NULL;
 	if (*spec == '*') {
+		/* Workaround, strtoul("*") won't always yield expected endp. */
 		count = 0;
 		endp = (char *)&spec[1];
 	} else {
@@ -328,7 +327,7 @@ static int split_column_format(const char *spec,
 	/* Get the (mandatory, single letter) type spec (-/xob/l). */
 	format_char = *spec++;
 	switch (format_char) {
-	case '-':	/* Might conflict with number-parsing. */
+	case '-':
 	case '/':
 		format_char = '-';
 		format_code = FORMAT_NONE;
@@ -690,16 +689,13 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = inc = g_malloc0(sizeof(*inc));
 
 	single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single_column"));
-
 	logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "logic_channels"));
-
 	inc->delimiter = g_string_new(g_variant_get_string(
 			g_hash_table_lookup(options, "column_separator"), NULL));
 	if (!inc->delimiter->len) {
 		sr_err("Column separator cannot be empty.");
 		return SR_ERR_ARG;
 	}
-
 	s = g_variant_get_string(g_hash_table_lookup(options, "single_format"), NULL);
 	if (g_ascii_strncasecmp(s, "bin", 3) == 0) {
 		format = FORMAT_BIN;
@@ -711,7 +707,6 @@ static int init(struct sr_input *in, GHashTable *options)
 		sr_err("Invalid single-column format: '%s'", s);
 		return SR_ERR_ARG;
 	}
-
 	inc->comment = g_string_new(g_variant_get_string(
 			g_hash_table_lookup(options, "comment_leader"), NULL));
 	if (g_string_equal(inc->comment, inc->delimiter)) {
@@ -724,13 +719,9 @@ static int init(struct sr_input *in, GHashTable *options)
 		sr_warn("Comment leader and column separator conflict, disabling comment support.");
 		g_string_truncate(inc->comment, 0);
 	}
-
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
-
 	first_column = g_variant_get_uint32(g_hash_table_lookup(options, "first_column"));
-
 	inc->use_header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
-
 	inc->start_line = g_variant_get_uint32(g_hash_table_lookup(options, "start_line"));
 	if (inc->start_line < 1) {
 		sr_err("Invalid start line %zu.", inc->start_line);
