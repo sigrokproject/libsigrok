@@ -121,6 +121,13 @@ static const char *col_format_text[] = {
 	[FORMAT_OCT] = "octal",
 };
 
+static const char col_format_char[] = {
+	[FORMAT_NONE] = '?',
+	[FORMAT_BIN] = 'b',
+	[FORMAT_HEX] = 'x',
+	[FORMAT_OCT] = 'o',
+};
+
 struct column_details {
 	size_t col_nr;
 	enum single_col_format text_format;
@@ -143,14 +150,10 @@ struct context {
 	GString *comment;
 	char *termination;
 
-	/*
-	 * Determines if sample data is stored in multiple columns,
-	 * which column to start at, and how many columns to expect.
-	 */
-	gboolean multi_column_mode;
-	size_t first_column;
+	/* Format specs for input columns, and processing state. */
+	size_t column_seen_count;
+	const char *column_formats;
 	size_t column_want_count;
-	/* Parameters how to process the columns. */
 	struct column_details *column_details;
 
 	/* Line number to start processing. */
@@ -284,9 +287,14 @@ static int split_column_format(const char *spec,
 	if (!spec || !*spec)
 		return SR_ERR_ARG;
 
-	/* Get the (optional, decimal, default 1) column count. */
+	/* Get the (optional, decimal, default 1) column count. Accept '*'. */
 	endp = NULL;
-	count = strtoul(spec, &endp, 10);
+	if (*spec == '*') {
+		count = 0;
+		endp = (char *)&spec[1];
+	} else {
+		count = strtoul(spec, &endp, 10);
+	}
 	if (!endp)
 		return SR_ERR_ARG;
 	if (endp == spec)
@@ -346,19 +354,11 @@ static int make_column_details_from_format(struct context *inc,
 {
 	char **formats, *format;
 	size_t format_count, column_count, bit_count;
+	size_t auto_column_count;
 	size_t format_idx, c, b, column_idx, channel_idx;
 	enum single_col_format f;
 	struct column_details *detail;
 	int ret;
-
-	/*
-	 * Default to "all single-bit logic in each column" (which is
-	 * the former multi-column mode).
-	 */
-	if (!column_format || !*column_format) {
-		sr_dbg("Missing columns format, assuming multi-column mode.");
-		column_format = "0l";
-	}
 
 	/* Split the input spec, count involved columns and bits. */
 	formats = g_strsplit(column_format, ",", 0);
@@ -373,6 +373,7 @@ static int make_column_details_from_format(struct context *inc,
 		return SR_ERR_ARG;
 	}
 	column_count = bit_count = 0;
+	auto_column_count = 0;
 	for (format_idx = 0; format_idx < format_count; format_idx++) {
 		format = formats[format_idx];
 		ret = split_column_format(format, &c, &f, &b);
@@ -381,6 +382,16 @@ static int make_column_details_from_format(struct context *inc,
 			sr_err("Cannot parse columns format %s (field split, %s).", column_format, format);
 			g_strfreev(formats);
 			return SR_ERR_ARG;
+		}
+		if (f && !c) {
+			/* User requested "auto-count", must be last format. */
+			if (formats[format_idx + 1]) {
+				sr_err("Auto column count must be last format field.");
+				g_strfreev(formats);
+				return SR_ERR_ARG;
+			}
+			auto_column_count = inc->column_seen_count - column_count;
+			c = auto_column_count;
 		}
 		column_count += c;
 		bit_count += c * b;
@@ -395,6 +406,8 @@ static int make_column_details_from_format(struct context *inc,
 	for (format_idx = 0; format_idx < format_count; format_idx++) {
 		format = formats[format_idx];
 		(void)split_column_format(format, &c, &f, &b);
+		if (f && !c)
+			c = auto_column_count;
 		while (c-- > 0) {
 			detail = &inc->column_details[column_idx++];
 			detail->col_nr = column_idx;
@@ -411,68 +424,6 @@ static int make_column_details_from_format(struct context *inc,
 	}
 	inc->logic_channels = channel_idx;
 	g_strfreev(formats);
-
-	return SR_OK;
-}
-
-static int make_column_details_single(struct context *inc,
-	size_t col_nr, size_t bit_count, enum single_col_format format)
-{
-	struct column_details *details;
-
-	/*
-	 * Need at least as many columns to also include the one with
-	 * the single-column input data.
-	 */
-	inc->column_want_count = col_nr;
-
-	/*
-	 * Allocate the columns' processing details. Columns are counted
-	 * from 1 (user's perspective), array items from 0 (programmer's
-	 * perspective).
-	 */
-	inc->column_details = g_malloc0_n(col_nr, sizeof(inc->column_details[0]));
-	details = &inc->column_details[col_nr - 1];
-	details->col_nr = col_nr;
-
-	/*
-	 * In single-column mode this single column will hold all bits
-	 * of all logic channels, in the user specified number format.
-	 */
-	details->text_format = format;
-	details->channel_offset = 0;
-	details->channel_count = bit_count;
-
-	return SR_OK;
-}
-
-static int make_column_details_multi(struct context *inc,
-	size_t first_col, size_t last_col)
-{
-	struct column_details *details;
-	size_t col_nr;
-
-	/*
-	 * Need at least as many columns to also include the one with
-	 * the last channel's data.
-	 */
-	inc->column_want_count = last_col;
-
-	/*
-	 * Allocate the columns' processing details. Columns are counted
-	 * from 1, array items from 0.
-	 * In multi-column mode each column will hold a single bit for
-	 * the respective channel.
-	 */
-	inc->column_details = g_malloc0_n(last_col, sizeof(inc->column_details[0]));
-	for (col_nr = first_col; col_nr <= last_col; col_nr++) {
-		details = &inc->column_details[col_nr - 1];
-		details->col_nr = col_nr;
-		details->text_format = FORMAT_BIN;
-		details->channel_offset = col_nr - first_col;
-		details->channel_count = 1;
-	}
-
 
 	return SR_OK;
 }
@@ -658,18 +609,17 @@ static const col_parse_cb col_parse_funcs[] = {
 static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
-	size_t single_column;
+	size_t single_column, first_column, logic_channels;
 	const char *s;
 	enum single_col_format format;
-	int ret;
+	char format_char;
 
 	in->sdi = g_malloc0(sizeof(*in->sdi));
 	in->priv = inc = g_malloc0(sizeof(*inc));
 
 	single_column = g_variant_get_uint32(g_hash_table_lookup(options, "single-column"));
-	inc->multi_column_mode = single_column == 0;
 
-	inc->logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "numchannels"));
+	logic_channels = g_variant_get_uint32(g_hash_table_lookup(options, "numchannels"));
 
 	inc->delimiter = g_string_new(g_variant_get_string(
 			g_hash_table_lookup(options, "delimiter"), NULL));
@@ -705,7 +655,7 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	inc->samplerate = g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
-	inc->first_column = g_variant_get_uint32(g_hash_table_lookup(options, "first-column"));
+	first_column = g_variant_get_uint32(g_hash_table_lookup(options, "first-column"));
 
 	inc->use_header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
 
@@ -716,46 +666,47 @@ static int init(struct sr_input *in, GHashTable *options)
 	}
 
 	/*
-	 * Derive the set of columns to inspect and their respective
-	 * formats from simple input specs. Remain close to the previous
-	 * set of option keywords and their meaning. Exclusively support
-	 * a single column with multiple bits in it, or an adjacent set
-	 * of colums with one bit each. The latter may not know the total
-	 * column count here (when the user omitted the spec), and will
-	 * derive it from the first text line of the input file.
+	 * Scan flexible, to get prefered format specs which describe
+	 * the input file's data formats. As well as some simple specs
+	 * for backwards compatibility and user convenience.
+	 *
+	 * This logic ends up with a copy of the format string, either
+	 * user provided or internally derived. Actual creation of the
+	 * column processing details gets deferred until the first line
+	 * of input data was seen. To support automatic determination of
+	 * e.g. channel counts from column counts.
 	 */
 	s = g_variant_get_string(g_hash_table_lookup(options, "column-formats"), NULL);
 	if (s && *s) {
-		ret = make_column_details_from_format(inc, s);
-		if (ret != SR_OK)
-			return ret;
-	} else if (single_column && inc->logic_channels) {
-		sr_dbg("DIAG Got single column (%zu) and channels (%zu).",
-			single_column, inc->logic_channels);
-		sr_dbg("DIAG -> column %zu, %zu bits in %s format.",
-			single_column, inc->logic_channels,
-			col_format_text[format]);
-		ret = make_column_details_single(inc,
-			single_column, inc->logic_channels, format);
-		if (ret != SR_OK)
-			return ret;
-	} else if (inc->multi_column_mode) {
-		sr_dbg("DIAG Got multi-column, first column %zu, count %zu.",
-			inc->first_column, inc->logic_channels);
-		if (inc->logic_channels) {
-			sr_dbg("DIAG -> columns %zu-%zu, 1 bit each.",
-				inc->first_column,
-				inc->first_column + inc->logic_channels - 1);
-			ret = make_column_details_multi(inc, inc->first_column,
-				inc->first_column + inc->logic_channels - 1);
-			if (ret != SR_OK)
-				return ret;
+		inc->column_formats = g_strdup(s);
+		sr_dbg("User specified column-formats: %s.", s);
+	} else if (single_column && logic_channels) {
+		format_char = col_format_char[format];
+		if (single_column == 1) {
+			inc->column_formats = g_strdup_printf("%c%zu",
+				format_char, logic_channels);
 		} else {
-			sr_dbg("DIAG -> incomplete spec, have to update later.");
+			inc->column_formats = g_strdup_printf("%zu-,%c%zu",
+				single_column - 1,
+				format_char, logic_channels);
 		}
+		sr_dbg("Backwards compat single-column, col %zu, fmt %s, bits %zu -> %s.",
+			single_column, col_format_text[format], logic_channels,
+			inc->column_formats);
+	} else if (!single_column) {
+		if (first_column > 1) {
+			inc->column_formats = g_strdup_printf("%zu-,%zul",
+				first_column - 1, logic_channels);
+		} else {
+			inc->column_formats = g_strdup_printf("%zul",
+				logic_channels);
+		}
+		sr_dbg("Backwards compat multi-column, col %zu, chans %zu -> %s.",
+			first_column, logic_channels,
+			inc->column_formats);
 	} else {
-		sr_err("Unknown or unsupported combination of option values.");
-		return SR_ERR_ARG;
+		sr_warn("Unknown or unsupported format spec, assuming trivial multi-column.");
+		inc->column_formats = g_strdup("*l");
 	}
 
 	return SR_OK;
@@ -877,16 +828,16 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	}
 	sr_dbg("DIAG Got %zu columns in text line: %s.", num_columns, line);
 
-	/* Optionally update incomplete multi-column specs. */
-	if (inc->multi_column_mode && !inc->logic_channels) {
-		inc->logic_channels = num_columns - inc->first_column + 1;
-		sr_dbg("DIAG -> multi-column update: columns %zu-%zu, 1 bit each.",
-			inc->first_column,
-			inc->first_column + inc->logic_channels - 1);
-		ret = make_column_details_multi(inc, inc->first_column,
-			inc->first_column + inc->logic_channels - 1);
-		if (ret != SR_OK)
-			goto out;
+	/*
+	 * Track the observed number of columns in the input file. Do
+	 * process the previously gathered columns format spec now that
+	 * automatic channel count can be dealt with.
+	 */
+	inc->column_seen_count = num_columns;
+	ret = make_column_details_from_format(inc, inc->column_formats);
+	if (ret != SR_OK) {
+		sr_err("Cannot parse columns format using line %zu.", line_number);
+		goto out;
 	}
 
 	/*
@@ -1151,7 +1102,7 @@ static int receive(struct sr_input *in, GString *buf)
 	g_string_append_len(in->buf, buf->str, buf->len);
 
 	inc = in->priv;
-	if (!inc->termination) {
+	if (!inc->column_seen_count) {
 		ret = initial_receive(in);
 		if (ret == SR_ERR_NA)
 			/* Not enough data yet. */
@@ -1250,7 +1201,7 @@ static const struct sr_option *get_options(void)
 	GSList *l;
 
 	if (!options[0].def) {
-		options[OPT_COL_FMTS].def = g_variant_ref_sink(g_variant_new_string("0l"));
+		options[OPT_COL_FMTS].def = g_variant_ref_sink(g_variant_new_string(""));
 		options[OPT_SINGLE_COL].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_NUM_LOGIC].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
