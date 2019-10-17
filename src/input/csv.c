@@ -115,8 +115,6 @@
  * TODO
  *
  * - Extend support for analog input data? (optional)
- *   - Optionally get precision ('digits') from the column's format spec?
- *     From the position which is "bit count" for logic channels?
  *   - Determine why analog samples of 'double' data type get scrambled
  *     in sigrok-cli screen output. Is analog.encoding->unitsize not
  *     handled properly? A sigrok-cli or libsigrok (src/output) issue?
@@ -161,6 +159,7 @@ struct column_details {
 	enum single_col_format text_format;
 	size_t channel_offset;
 	size_t channel_count;
+	int analog_digits;
 };
 
 struct context {
@@ -170,10 +169,9 @@ struct context {
 	uint64_t samplerate;
 	gboolean samplerate_sent;
 
-	/* Number of logic channels. List of names for analog datafeed. */
+	/* Number of channels. */
 	size_t logic_channels;
 	size_t analog_channels;
-	GSList **analog_datafeed_channels;
 
 	/* Column delimiter (actually separator), comment leader, EOL sequence. */
 	GString *delimiter;
@@ -207,6 +205,8 @@ struct context {
 	csv_analog_t *analog_datafeed_buffer;	/**!< Queue for analog datafeed. */
 	size_t analog_datafeed_buf_size;
 	size_t analog_datafeed_buf_fill;
+	GSList **analog_datafeed_channels;
+	int *analog_datafeed_digits;
 
 	/* Current line number. */
 	size_t line_number;
@@ -347,9 +347,6 @@ static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t va
 
 static int flush_analog_samples(const struct sr_input *in)
 {
-	/* TODO Use proper 'digits' value for this input module. */
-	static const int digits = 3;
-
 	struct context *inc;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -358,6 +355,7 @@ static int flush_analog_samples(const struct sr_input *in)
 	struct sr_analog_spec spec;
 	csv_analog_t *samples;
 	size_t ch_idx;
+	int digits;
 	int rc;
 
 	inc = in->priv;
@@ -370,6 +368,7 @@ static int flush_analog_samples(const struct sr_input *in)
 
 	samples = inc->analog_datafeed_buffer;
 	for (ch_idx = 0; ch_idx < inc->analog_channels; ch_idx++) {
+		digits = inc->analog_datafeed_digits[ch_idx];
 		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 		memset(&packet, 0, sizeof(packet));
 		packet.type = SR_DF_ANALOG;
@@ -479,12 +478,10 @@ static int split_column_format(const char *spec,
 	if (!endp)
 		return SR_ERR_ARG;
 	if (endp == spec)
-		count = 1;
+		count = (format_code == FORMAT_ANALOG) ? 3 : 1;
 	if (!format_code)
 		count = 0;
 	if (format_char == 'l')
-		count = 1;
-	if (format_code == FORMAT_ANALOG)
 		count = 1;
 	if (bit_count)
 		*bit_count = count;
@@ -584,6 +581,7 @@ static int make_column_details_from_format(const struct sr_input *in,
 			if (detail->text_format == FORMAT_ANALOG) {
 				detail->channel_offset = analog_idx;
 				detail->channel_count = 1;
+				detail->analog_digits = b;
 				analog_idx += detail->channel_count;
 			} else if (detail->text_format) {
 				detail->channel_offset = channel_idx;
@@ -1125,6 +1123,8 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 
 	if (inc->analog_channels) {
 		size_t sample_size, sample_count;
+		size_t detail_idx;
+		int *digits_item;
 		sample_size = sizeof(inc->analog_datafeed_buffer[0]);
 		inc->analog_datafeed_buf_size = CHUNK_SIZE;
 		inc->analog_datafeed_buf_size /= sample_size;
@@ -1142,6 +1142,13 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 			void *channel;
 			channel = g_slist_nth_data(in->sdi->channels, inc->logic_channels + ch_idx);
 			inc->analog_datafeed_channels[ch_idx] = g_slist_append(NULL, channel);
+		}
+		inc->analog_datafeed_digits = g_malloc0(inc->analog_channels * sizeof(inc->analog_datafeed_digits[0]));
+		digits_item = inc->analog_datafeed_digits;
+		for (detail_idx = 0; detail_idx < inc->column_want_count; detail_idx++) {
+			if (inc->column_details[detail_idx].text_format != FORMAT_ANALOG)
+				continue;
+			*digits_item++ = inc->column_details[detail_idx].analog_digits;
 		}
 	}
 
