@@ -43,11 +43,12 @@
  *     single-bit logic), and an optional bit count (translating to: logic
  *     channels communicated in that column). The 'a' format marks analog
  *     data, an optionally following number is the digits count (resolution).
- *     This "column_formats" option is most versatile, other forms of
- *	specifying the column layout only exist for backwards compatibility,
- *	and are rather limited. They exclusively support logic input data in
- *	strictly adjacent columns, with further constraints on column layout
- *	for multi-bit data.
+ *     The 't' format marks timestamp values, which could help in automatic
+ *     determination of the input stream's samplerate. This "column_formats"
+ *     option is most versatile, other forms of specifying the column layout
+ *     only exist for backwards compatibility, and are rather limited. They
+ *     exclusively support logic input data in strictly adjacent columns,
+ *     with further constraints on column layout for multi-bit data.
  *
  * single_column: Specifies the column number which contains the logic data
  *     for single-column mode. All logic data is taken from several bits
@@ -116,6 +117,14 @@
  * - ... -I csv:column_formats=*a6 ...
  *   Each column contains an analog value with six significant digits
  *   after the decimal period.
+ * - ... -I csv:column_formats=t,2a ...
+ *   The first column contains timestamps, the next two columns contain
+ *   analog values. The capture's samplerate could get determined from
+ *   the timestamp values if not provided by the user by means of the
+ *   'samplerate' option. This assumes a mere number in units of seconds,
+ *   and equidistant rows, there is no fancy support for textual unit
+ *   suffixes nor gaps in the stream of samples nor other non-linearity,
+ *   just '-' ignore the column if the format is not supported).
  */
 
 /*
@@ -153,6 +162,7 @@ enum single_col_format {
 	FORMAT_HEX,	/* Hex digits for a set of bits. */
 	FORMAT_OCT,	/* Oct digits for a set of bits. */
 	FORMAT_ANALOG,	/* Floating point number for an analog channel. */
+	FORMAT_TIME,	/* Timestamps. */
 };
 
 static const char *col_format_text[] = {
@@ -161,6 +171,7 @@ static const char *col_format_text[] = {
 	[FORMAT_HEX] = "hexadecimal",
 	[FORMAT_OCT] = "octal",
 	[FORMAT_ANALOG] = "analog",
+	[FORMAT_TIME] = "timestamp",
 };
 
 static const char col_format_char[] = {
@@ -169,6 +180,7 @@ static const char col_format_char[] = {
 	[FORMAT_HEX] = 'x',
 	[FORMAT_OCT] = 'o',
 	[FORMAT_ANALOG] = 'a',
+	[FORMAT_TIME] = 't',
 };
 
 static gboolean format_is_ignore(enum single_col_format fmt)
@@ -186,6 +198,11 @@ static gboolean format_is_analog(enum single_col_format fmt)
 	return fmt == FORMAT_ANALOG;
 }
 
+static gboolean format_is_timestamp(enum single_col_format fmt)
+{
+	return fmt == FORMAT_TIME;
+}
+
 struct column_details {
 	size_t col_nr;
 	enum single_col_format text_format;
@@ -198,8 +215,9 @@ struct column_details {
 struct context {
 	gboolean started;
 
-	/* Current selected samplerate. */
+	/* Current samplerate, optionally determined from input data. */
 	uint64_t samplerate;
+	double prev_timestamp;
 	gboolean samplerate_sent;
 
 	/* Number of channels. */
@@ -498,6 +516,9 @@ static int split_column_format(const char *spec,
 		break;
 	case 'a':
 		format_code = FORMAT_ANALOG;
+		break;
+	case 't':
+		format_code = FORMAT_TIME;
 		break;
 	default:	/* includes NUL */
 		return SR_ERR_ARG;
@@ -890,6 +911,95 @@ static int parse_analog(const char *column, struct context *inc,
 }
 
 /**
+ * @brief Parse a timestamp text, auto-determine samplerate.
+ *
+ * @param[in] column	The input text, a floating point number.
+ * @param[in] inc	The input module's context.
+ * @param[in] details	The column processing details.
+ *
+ * @retval SR_OK	Success.
+ * @retval SR_ERR	Invalid input data (empty, or format error).
+ *
+ * This routine attempts to automatically determine the input data's
+ * samplerate from text rows' timestamp values. Only simple formats are
+ * supported, user provided values always take precedence.
+ */
+static int parse_timestamp(const char *column, struct context *inc,
+	const struct column_details *details)
+{
+	double ts, rate;
+	int ret;
+
+	if (!format_is_timestamp(details->text_format))
+		return SR_ERR_BUG;
+
+	/*
+	 * Implementor's notes on timestamp interpretation. Use a simple
+	 * approach for improved maintainability which covers most cases
+	 * of input data. There is not much gain in adding complexity,
+	 * users can easily provide the rate when auto-detection fails.
+	 * - Bail out if samplerate is known already.
+	 * - Try to interpret the timestamp (simple float conversion).
+	 *   If conversion fails then clear all previous knowledge and
+	 *   bail out (non-fatal, perhaps warn). Silently ignore values
+	 *   of zero since those could be silent fails -- assume that
+	 *   genuine data contains at least two adjacent rows with useful
+	 *   timestamps for the feature to work reliably. Annoying users
+	 *   with "failed to detect" messages is acceptable here, since
+	 *   users expecting the feature to work should provide useful
+	 *   data, and there are easy ways to disable the detection or
+	 *   ignore the column.
+	 * - If there is no previous timestamp, keep the current value
+	 *   for later reference and bail out.
+	 * - If a previous timestamp was seen, determine the difference
+	 *   between them, and derive the samplerate. Update internal
+	 *   state (the value automatically gets sent to the datafeed),
+	 *   and clear previous knowledge. Subsequent calls will ignore
+	 *   following input data (see above, rate is known).
+	 *
+	 * TODO Potential future improvements:
+	 * - Prefer rationals over floats for improved precision and
+	 *   reduced rounding errors which result in odd rates.
+	 * - Support other formats ("2 ms" or similar)?
+	 */
+	if (inc->samplerate)
+		return SR_OK;
+	ret = sr_atod_ascii(column, &ts);
+	if (ret != SR_OK)
+		ts = 0.0;
+	if (!ts) {
+		sr_warn("Cannot convert timestamp text %s in line %zu (or zero value).",
+			column, inc->line_number);
+		inc->prev_timestamp = 0.0;
+		return SR_OK;
+	}
+	if (!inc->prev_timestamp) {
+		sr_dbg("First timestamp value %g in line %zu.",
+			ts, inc->line_number);
+		inc->prev_timestamp = ts;
+		return SR_OK;
+	}
+	sr_dbg("Second timestamp value %g in line %zu.", ts, inc->line_number);
+	ts -= inc->prev_timestamp;
+	sr_dbg("Timestamp difference %g in line %zu.",
+		ts, inc->line_number);
+	if (!ts) {
+		sr_warn("Zero timestamp difference in line %zu.",
+			inc->line_number);
+		inc->prev_timestamp = ts;
+		return SR_OK;
+	}
+	rate = 1.0 / ts;
+	rate += 0.5;
+	rate = (uint64_t)rate;
+	sr_dbg("Rate from timestamp %g in line %zu.", rate, inc->line_number);
+	inc->samplerate = rate;
+	inc->prev_timestamp = 0.0;
+
+	return SR_OK;
+}
+
+/**
  * @brief Parse routine which ignores the input text.
  *
  * This routine exists to unify dispatch code paths, mapping input file
@@ -913,6 +1023,7 @@ static const col_parse_cb col_parse_funcs[] = {
 	[FORMAT_OCT] = parse_logic,
 	[FORMAT_HEX] = parse_logic,
 	[FORMAT_ANALOG] = parse_analog,
+	[FORMAT_TIME] = parse_timestamp,
 };
 
 static int init(struct sr_input *in, GHashTable *options)
@@ -1486,7 +1597,7 @@ enum option_index {
 static struct sr_option options[] = {
 	[OPT_COL_FMTS] = {
 		"column_formats", "Column format specs",
-		"Specifies text columns data types: A comma separated list of [<cols>]<fmt>[<bits>] items, with - to ignore columns, x/o/b/l for logic data, a (and resolution) for analog data.",
+		"Specifies text columns data types: A comma separated list of [<cols>]<fmt>[<bits>] items, with - to ignore columns, x/o/b/l for logic data, a (and resolution) for analog data, t for timestamps.",
 		NULL, NULL,
 	},
 	[OPT_SINGLE_COL] = {
