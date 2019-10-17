@@ -44,7 +44,10 @@
  *     channels communicated in that column). The 'a' format marks analog
  *     data, an optionally following number is the digits count (resolution).
  *     This "column_formats" option is most versatile, other forms of
- *     specifying the column layout only exist for backwards compatibility.
+ *	specifying the column layout only exist for backwards compatibility,
+ *	and are rather limited. They exclusively support logic input data in
+ *	strictly adjacent columns, with further constraints on column layout
+ *	for multi-bit data.
  *
  * single_column: Specifies the column number which contains the logic data
  *     for single-column mode. All logic data is taken from several bits
@@ -167,6 +170,21 @@ static const char col_format_char[] = {
 	[FORMAT_OCT] = 'o',
 	[FORMAT_ANALOG] = 'a',
 };
+
+static gboolean format_is_ignore(enum single_col_format fmt)
+{
+	return fmt == FORMAT_NONE;
+}
+
+static gboolean format_is_logic(enum single_col_format fmt)
+{
+	return fmt >= FORMAT_BIN && fmt <= FORMAT_OCT;
+}
+
+static gboolean format_is_analog(enum single_col_format fmt)
+{
+	return fmt == FORMAT_ANALOG;
+}
 
 struct column_details {
 	size_t col_nr;
@@ -493,8 +511,8 @@ static int split_column_format(const char *spec,
 	if (!endp)
 		return SR_ERR_ARG;
 	if (endp == spec)
-		count = (format_code == FORMAT_ANALOG) ? 3 : 1;
-	if (!format_code)
+		count = format_is_analog(format_code) ? 3 : 1;
+	if (format_is_ignore(format_code))
 		count = 0;
 	if (format_char == 'l')
 		count = 1;
@@ -563,9 +581,9 @@ static int make_column_details_from_format(const struct sr_input *in,
 			c = auto_column_count;
 		}
 		column_count += c;
-		if (f == FORMAT_ANALOG)
+		if (format_is_analog(f))
 			analog_count += c;
-		else if (f)
+		else if (format_is_logic(f))
 			logic_count += c * b;
 	}
 	sr_dbg("Column format %s -> %zu columns, %zu logic, %zu analog channels.",
@@ -593,21 +611,25 @@ static int make_column_details_from_format(const struct sr_input *in,
 			detail = &inc->column_details[column_idx++];
 			detail->col_nr = column_idx;
 			detail->text_format = f;
-			if (detail->text_format == FORMAT_ANALOG) {
+			if (format_is_analog(detail->text_format)) {
 				detail->channel_offset = analog_idx;
 				detail->channel_count = 1;
 				detail->analog_digits = b;
 				analog_idx += detail->channel_count;
-			} else if (detail->text_format) {
+			} else if (format_is_logic(detail->text_format)) {
 				detail->channel_offset = channel_idx;
 				detail->channel_count = b;
 				channel_idx += detail->channel_count;
-			}
-			sr_dbg("detail -> col %zu, fmt %s, ch off/cnt %zu/%zu",
-				detail->col_nr, col_format_text[detail->text_format],
-				detail->channel_offset, detail->channel_count);
-			if (!detail->text_format)
+			} else if (format_is_ignore(detail->text_format)) {
+				/* EMPTY */
 				continue;
+			} else {
+				/*
+				 * Neither logic nor analog data, nor ignore.
+				 * Format was noted. No channel creation involved.
+				 */
+				continue;
+			}
 			/*
 			 * Pick most appropriate channel names. Optionally
 			 * use text from a header line (when requested by the
@@ -627,7 +649,10 @@ static int make_column_details_from_format(const struct sr_input *in,
 				caption = NULL;
 			/*
 			 * TODO Need we first create _all_ logic channels,
-			 * before creating analog channels?
+			 * before creating analog channels? Just store the
+			 * parameters here (index, type, name) and have the
+			 * creation sequence done outside of the format
+			 * spec parse loop.
 			 */
 			for (create_idx = 0; create_idx < detail->channel_count; create_idx++) {
 				if (caption && detail->channel_count == 1) {
@@ -639,13 +664,15 @@ static int make_column_details_from_format(const struct sr_input *in,
 					g_string_printf(channel_name, "%zu",
 						detail->channel_offset + create_idx);
 				}
-				if (detail->text_format == FORMAT_ANALOG) {
+				if (format_is_analog(detail->text_format)) {
 					channel_sdi_nr = logic_count + detail->channel_offset + create_idx;
 					channel_type = SR_CHANNEL_ANALOG;
 					detail->channel_index = g_slist_length(in->sdi->channels);
-				} else {
+				} else if (format_is_logic(detail->text_format)) {
 					channel_sdi_nr = detail->channel_offset + create_idx;
 					channel_type = SR_CHANNEL_LOGIC;
+				} else {
+					continue;
 				}
 				sr_channel_new(in->sdi, channel_sdi_nr,
 					channel_type, TRUE, channel_name->str);
@@ -796,8 +823,7 @@ static int parse_logic(const char *column, struct context *inc,
 			ch_rem--;
 			set_logic_level(inc, ch_idx + 0, bits & (1 << 0));
 			break;
-		case FORMAT_ANALOG:
-		case FORMAT_NONE:
+		default:
 			/* ShouldNotHappen(TM), but silences compiler warning. */
 			return SR_ERR;
 		}
@@ -835,7 +861,7 @@ static int parse_analog(const char *column, struct context *inc,
 	csv_analog_t value;
 	int ret;
 
-	if (details->text_format != FORMAT_ANALOG)
+	if (!format_is_analog(details->text_format))
 		return SR_ERR_BUG;
 
 	length = strlen(column);
@@ -1127,6 +1153,11 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	 * for datafeed submission that is a multiple of the unit size.
 	 * Allocate the larger buffer, the "sample buffer" will point
 	 * to a location within that large buffer later.
+	 *
+	 * TODO Move channel creation here, and just store required
+	 * parameters in the format parser above? Could simplify the
+	 * arrangement that logic and analog channels get created in
+	 * strict sequence in their respective groups.
 	 */
 	if (inc->logic_channels) {
 		inc->sample_unit_size = (inc->logic_channels + 7) / 8;
@@ -1164,7 +1195,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		digits_item = inc->analog_datafeed_digits;
 		for (detail_idx = 0; detail_idx < inc->column_want_count; detail_idx++) {
 			detail = &inc->column_details[detail_idx];
-			if (detail->text_format != FORMAT_ANALOG)
+			if (!format_is_analog(detail->text_format))
 				continue;
 			channel = g_slist_nth_data(in->sdi->channels, detail->channel_index);
 			inc->analog_datafeed_channels[detail->channel_offset] = g_slist_append(NULL, channel);
