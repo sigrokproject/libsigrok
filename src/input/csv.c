@@ -114,10 +114,20 @@
 /*
  * TODO
  *
- * - Extend support for analog input data? (optional)
+ * - Extend support for analog input data.
  *   - Determine why analog samples of 'double' data type get scrambled
  *     in sigrok-cli screen output. Is analog.encoding->unitsize not
  *     handled properly? A sigrok-cli or libsigrok (src/output) issue?
+ *   - Reconsider the channel creation after format processing. Current
+ *     logic may "bleed" channel names into the analog group when logic
+ *     channels' columns follow analog columns (seen with "-,2a,x8").
+ *     Trying to sort it out, a naive change used to map logic channels'
+ *     data to incorrect bitmap positions. The whole channel numbering
+ *     needs reconsideration. Probably it's easiest to first create _all_
+ *     logic channels so that they have adjacent numbers starting at 0
+ *     (addressing logic bits), then all analog channels (again adjacent)
+ *     to simplify the calculation of their index in the sample set as
+ *     well as their sdi channel index from the "analog column index".
  * - Optionally get sample rate from timestamp column. Just best-effort
  *   approach, not necessarily reliable. Users can always specify rates.
  * - Add a test suite for input modules in general, and CSV in specific?
@@ -159,6 +169,7 @@ struct column_details {
 	enum single_col_format text_format;
 	size_t channel_offset;
 	size_t channel_count;
+	size_t channel_index;
 	int analog_digits;
 };
 
@@ -610,6 +621,10 @@ static int make_column_details_from_format(const struct sr_input *in,
 				caption = NULL;
 			if (!caption || !*caption)
 				caption = NULL;
+			/*
+			 * TODO Need we first create _all_ logic channels,
+			 * before creating analog channels?
+			 */
 			for (create_idx = 0; create_idx < detail->channel_count; create_idx++) {
 				if (caption && detail->channel_count == 1) {
 					g_string_assign(channel_name, caption);
@@ -623,6 +638,7 @@ static int make_column_details_from_format(const struct sr_input *in,
 				if (detail->text_format == FORMAT_ANALOG) {
 					channel_sdi_nr = logic_count + detail->channel_offset + create_idx;
 					channel_type = SR_CHANNEL_ANALOG;
+					detail->channel_index = g_slist_length(in->sdi->channels);
 				} else {
 					channel_sdi_nr = detail->channel_offset + create_idx;
 					channel_type = SR_CHANNEL_LOGIC;
@@ -1026,7 +1042,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 {
 	struct context *inc;
 	size_t num_columns;
-	size_t line_number, line_idx, ch_idx;
+	size_t line_number, line_idx;
 	int ret;
 	char **lines, *line, **columns;
 
@@ -1124,7 +1140,9 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 	if (inc->analog_channels) {
 		size_t sample_size, sample_count;
 		size_t detail_idx;
+		struct column_details *detail;
 		int *digits_item;
+		void *channel;
 		sample_size = sizeof(inc->analog_datafeed_buffer[0]);
 		inc->analog_datafeed_buf_size = CHUNK_SIZE;
 		inc->analog_datafeed_buf_size /= sample_size;
@@ -1137,18 +1155,16 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 			goto out;
 		}
 		inc->analog_datafeed_buf_fill = 0;
-		inc->analog_datafeed_channels = g_malloc0_n(inc->analog_channels, sizeof(inc->analog_datafeed_channels[0]));
-		for (ch_idx = 0; ch_idx < inc->analog_channels; ch_idx++) {
-			void *channel;
-			channel = g_slist_nth_data(in->sdi->channels, inc->logic_channels + ch_idx);
-			inc->analog_datafeed_channels[ch_idx] = g_slist_append(NULL, channel);
-		}
+		inc->analog_datafeed_channels = g_malloc0(inc->analog_channels * sizeof(inc->analog_datafeed_channels[0]));
 		inc->analog_datafeed_digits = g_malloc0(inc->analog_channels * sizeof(inc->analog_datafeed_digits[0]));
 		digits_item = inc->analog_datafeed_digits;
 		for (detail_idx = 0; detail_idx < inc->column_want_count; detail_idx++) {
-			if (inc->column_details[detail_idx].text_format != FORMAT_ANALOG)
+			detail = &inc->column_details[detail_idx];
+			if (detail->text_format != FORMAT_ANALOG)
 				continue;
-			*digits_item++ = inc->column_details[detail_idx].analog_digits;
+			channel = g_slist_nth_data(in->sdi->channels, detail->channel_index);
+			inc->analog_datafeed_channels[detail->channel_offset] = g_slist_append(NULL, channel);
+			*digits_item++ = detail->analog_digits;
 		}
 	}
 
