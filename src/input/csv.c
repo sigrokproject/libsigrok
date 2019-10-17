@@ -41,9 +41,10 @@
  *     "all remaining columns", only applicable to the last field), a format
  *     specifying character ('x' hexadecimal, 'o' octal, 'b' binary, 'l'
  *     single-bit logic), and an optional bit count (translating to: logic
- *     channels communicated in that column). This "column_formats" option
- *     is most versatile, other forms of specifying the column layout only
- *     exist for backwards compatibility.
+ *     channels communicated in that column). The 'a' format marks analog
+ *     data, an optionally following number is the digits count (resolution).
+ *     This "column_formats" option is most versatile, other forms of
+ *     specifying the column layout only exist for backwards compatibility.
  *
  * single_column: Specifies the column number which contains the logic data
  *     for single-column mode. All logic data is taken from several bits
@@ -109,6 +110,9 @@
  * - ... -I csv:start_line=20:header=yes:...
  *   Skip the first 19 text lines. Use line 20 to derive channel names.
  *   Data starts at line 21.
+ * - ... -I csv:column_formats=*a6 ...
+ *   Each column contains an analog value with six significant digits
+ *   after the decimal period.
  */
 
 /*
@@ -605,7 +609,7 @@ static int make_column_details_from_format(const struct sr_input *in,
 			if (!detail->text_format)
 				continue;
 			/*
-			 * Create channels with appropriate names. Optionally
+			 * Pick most appropriate channel names. Optionally
 			 * use text from a header line (when requested by the
 			 * user). In the absence of header text, channels are
 			 * assigned rather generic names.
@@ -1451,17 +1455,17 @@ enum option_index {
 static struct sr_option options[] = {
 	[OPT_COL_FMTS] = {
 		"column_formats", "Column format specs",
-		"Specifies text columns data types: comma separated list of [<cols>]<fmt>[<bits>], with -/x/o/b/l format specifiers.",
+		"Specifies text columns data types: A comma separated list of [<cols>]<fmt>[<bits>] items, with - to ignore columns, x/o/b/l for logic data, a (and resolution) for analog data.",
 		NULL, NULL,
 	},
 	[OPT_SINGLE_COL] = {
 		"single_column", "Single column",
-		"Enable single-column mode, exclusively use text from the specified column (number starting at 1).",
+		"Enable single-column mode, exclusively use text from the specified column (number starting at 1). Obsoleted by 'column_formats'.",
 		NULL, NULL,
 	},
 	[OPT_FIRST_COL] = {
 		"first_column", "First column",
-		"Number of the first column with logic data in simple multi-column mode (number starting at 1, default 1).",
+		"Number of the first column with logic data in simple multi-column mode (number starting at 1, default 1). Obsoleted by 'column_formats'.",
 		NULL, NULL,
 	},
 	[OPT_NUM_LOGIC] = {
@@ -1471,7 +1475,7 @@ static struct sr_option options[] = {
 	},
 	[OPT_FORMAT] = {
 		"single_format", "Data format for simple single-column mode.",
-		"The number format of single-column mode input data: bin, hex, oct.",
+		"The number format of single-column mode input data: bin, hex, oct. Obsoleted by 'column_formats'.",
 		NULL, NULL,
 	},
 	[OPT_START] = {
@@ -1481,12 +1485,12 @@ static struct sr_option options[] = {
 	},
 	[OPT_HEADER] = {
 		"header", "Get channel names from first line.",
-		"Use the first processed line's column captions (when available) as channel names.",
+		"Use the first processed line's column captions (when available) as channel names. Off by default",
 		NULL, NULL,
 	},
 	[OPT_RATE] = {
 		"samplerate", "Samplerate (Hz)",
-		"The input data's sample rate in Hz.",
+		"The input data's sample rate in Hz. No default value.",
 		NULL, NULL,
 	},
 	[OPT_DELIM] = {
@@ -1496,7 +1500,7 @@ static struct sr_option options[] = {
 	},
 	[OPT_COMMENT] = {
 		"comment_leader", "Comment leader character",
-		"The text which starts comments at the end of text lines.",
+		"The text which starts comments at the end of text lines, semicolon by default.",
 		NULL, NULL,
 	},
 	[OPT_MAX] = ALL_ZERO,
