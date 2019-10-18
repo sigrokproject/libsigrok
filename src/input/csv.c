@@ -1585,11 +1585,11 @@ enum option_index {
 	OPT_SINGLE_COL,
 	OPT_FIRST_COL,
 	OPT_NUM_LOGIC,
-	OPT_FORMAT,
-	OPT_START,
+	OPT_SINGLE_FMT,
+	OPT_START_LINE,
 	OPT_HEADER,
-	OPT_RATE,
-	OPT_DELIM,
+	OPT_SAMPLERATE,
+	OPT_COL_SEP,
 	OPT_COMMENT,
 	OPT_MAX,
 };
@@ -1597,30 +1597,30 @@ enum option_index {
 static struct sr_option options[] = {
 	[OPT_COL_FMTS] = {
 		"column_formats", "Column format specs",
-		"Specifies text columns data types: A comma separated list of [<cols>]<fmt>[<bits>] items, with - to ignore columns, x/o/b/l for logic data, a (and resolution) for analog data, t for timestamps.",
+		"Text columns data types. A comma separated list of [<cols>]<fmt>[<bits>] items. * for all remaining columns. - ignores columns, x/o/b/l logic data, a (and digits) analog data, t timestamps.",
 		NULL, NULL,
 	},
 	[OPT_SINGLE_COL] = {
 		"single_column", "Single column",
-		"Enable single-column mode, exclusively use text from the specified column (number starting at 1). Obsoleted by 'column_formats'.",
+		"Simple single-column mode, exclusively use text from the specified column (number starting at 1). Obsoleted by 'column_formats=4-,x16'.",
 		NULL, NULL,
 	},
 	[OPT_FIRST_COL] = {
 		"first_column", "First column",
-		"Number of the first column with logic data in simple multi-column mode (number starting at 1, default 1). Obsoleted by 'column_formats'.",
+		"First column with logic data in simple multi-column mode (number starting at 1, default 1). Obsoleted by 'column_formats=4-,*l'.",
 		NULL, NULL,
 	},
 	[OPT_NUM_LOGIC] = {
 		"logic_channels", "Number of logic channels",
-		"Logic channel count, required in simple single-column mode, defaults to \"all remaining columns\" in simple multi-column mode. Obsoleted by 'column_formats'.",
+		"Logic channel count, required in simple single-column mode, defaults to \"all remaining columns\" in simple multi-column mode. Obsoleted by 'column_formats=8l'.",
 		NULL, NULL,
 	},
-	[OPT_FORMAT] = {
+	[OPT_SINGLE_FMT] = {
 		"single_format", "Data format for simple single-column mode.",
-		"The number format of single-column mode input data: bin, hex, oct. Obsoleted by 'column_formats'.",
+		"The input text number format of simple single-column mode: bin, hex, oct. Obsoleted by 'column_formats=x8'.",
 		NULL, NULL,
 	},
-	[OPT_START] = {
+	[OPT_START_LINE] = {
 		"start_line", "Start line",
 		"The line number at which to start processing input text (default: 1).",
 		NULL, NULL,
@@ -1630,12 +1630,12 @@ static struct sr_option options[] = {
 		"Use the first processed line's column captions (when available) as channel names. Off by default",
 		NULL, NULL,
 	},
-	[OPT_RATE] = {
+	[OPT_SAMPLERATE] = {
 		"samplerate", "Samplerate (Hz)",
 		"The input data's sample rate in Hz. No default value.",
 		NULL, NULL,
 	},
-	[OPT_DELIM] = {
+	[OPT_COL_SEP] = {
 		"column_separator", "Column separator",
 		"The sequence which separates text columns. Non-empty text, comma by default.",
 		NULL, NULL,
@@ -1657,16 +1657,16 @@ static const struct sr_option *get_options(void)
 		options[OPT_SINGLE_COL].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_FIRST_COL].def = g_variant_ref_sink(g_variant_new_uint32(1));
 		options[OPT_NUM_LOGIC].def = g_variant_ref_sink(g_variant_new_uint32(0));
-		options[OPT_FORMAT].def = g_variant_ref_sink(g_variant_new_string("bin"));
+		options[OPT_SINGLE_FMT].def = g_variant_ref_sink(g_variant_new_string("bin"));
 		l = NULL;
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("bin")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("hex")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
-		options[OPT_FORMAT].values = l;
-		options[OPT_START].def = g_variant_ref_sink(g_variant_new_uint32(1));
+		options[OPT_SINGLE_FMT].values = l;
+		options[OPT_START_LINE].def = g_variant_ref_sink(g_variant_new_uint32(1));
 		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
-		options[OPT_RATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
-		options[OPT_DELIM].def = g_variant_ref_sink(g_variant_new_string(","));
+		options[OPT_SAMPLERATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
+		options[OPT_COL_SEP].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[OPT_COMMENT].def = g_variant_ref_sink(g_variant_new_string(";"));
 	}
 
