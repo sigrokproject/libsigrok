@@ -127,27 +127,18 @@
  *   and equidistant rows, there is no fancy support for textual unit
  *   suffixes nor gaps in the stream of samples nor other non-linearity,
  *   just '-' ignore the column if the format is not supported).
+ *
+ * IMPORTANT! Make sure the .format_match() logic matches the default
+ * values for the input module's options. Ideally the format match test
+ * shall pass for all input data that is supported by default.
  */
 
 /*
  * TODO
  *
- * - Extend support for analog input data.
- *   - Determine why analog samples of 'double' data type get scrambled
- *     in sigrok-cli screen output. Is analog.encoding->unitsize not
- *     handled properly? A sigrok-cli or libsigrok (src/output) issue?
- *   - Reconsider the channel creation after format processing. Current
- *     logic may "bleed" channel names into the analog group when logic
- *     channels' columns follow analog columns (seen with "-,2a,x8").
- *     Trying to sort it out, a naive change used to map logic channels'
- *     data to incorrect bitmap positions. The whole channel numbering
- *     needs reconsideration. Probably it's easiest to first create _all_
- *     logic channels so that they have adjacent numbers starting at 0
- *     (addressing logic bits), then all analog channels (again adjacent)
- *     to simplify the calculation of their index in the sample set as
- *     well as their sdi channel index from the "analog column index".
- * - Optionally get sample rate from timestamp column. Just best-effort
- *   approach, not necessarily reliable. Users can always specify rates.
+ * - Unbreak analog data when submitted in the 'double' data type. This
+ *   was observed with sigrok-cli screen output. Is analog.encoding->unitsize
+ *   not handled appropriately? Is it a sigrok-cli or libsigrok issue?
  * - Add a test suite for input modules in general, and CSV in specific?
  *   Becomes more important with the multitude of options and their
  *   interaction. Could cover edge cases (BOM presence, line termination
