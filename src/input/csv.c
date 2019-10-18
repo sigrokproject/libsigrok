@@ -20,9 +20,11 @@
 
 #include "config.h"
 
+#include <ctype.h>
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -1026,6 +1028,125 @@ static const col_parse_cb col_parse_funcs[] = {
 	[FORMAT_TIME] = parse_timestamp,
 };
 
+/*
+ * BEWARE! Implementor's notes. Sync with feature set and default option
+ * values required during maintenance of the input module implementation.
+ *
+ * When applications invoke .format_match() routines, trying automatic
+ * determination of an input file's format handler, then no options are
+ * in effect. Because specifying options requires selection of an input
+ * module to pass the options to, which obsoletes the format-match check.
+ *
+ * Which means that we only need to deal with the default format here,
+ * which happens to be the simple multi-column format without header
+ * lines or leading garbage. Which means that the check can be rather
+ * strict, resulting in high levels of confidence upon match, never
+ * "accidently" winning for unreadable or unsupported-by-default formats.
+ *
+ * This .format_match() logic only needs to become more involved when
+ * default option values change, or when automatic detection of column
+ * data types improves. Then the supported-by-default types of input
+ * data must be considered acceptable here in the format-match check
+ * as well.
+ *
+ * Notice that the format check cannot re-use regular processing logic
+ * when their implementation assumes proper input data and wll generate
+ * diagnostics for unexpected input data. Failure to match the format is
+ * non-fatal here, mismatch must remain silent. It's up to applications
+ * how large a chunk of data gets passed here (start of the file's
+ * content). But inspection of the first few hundred bytes will usually
+ * be GoodEnough(TM) for the format-match purpose. Notice that filenames
+ * need not necessarily be available to the format-match routine.
+ *
+ * This implementation errs on the safe side. Users can always select
+ * the CSV input module when automatic format detection fails.
+ */
+static int format_match(GHashTable *metadata, unsigned int *confidence)
+{
+	const int match_confidence = 100;
+	const char *default_extension = ".csv";
+	const char *line_termination = "\n";
+	const char *comment_leader = ";";
+	const char *column_separator = ",";
+	const char *binary_charset = "01";
+
+	const char *fn;
+	GString *buf;
+	size_t fn_len;
+	GString *tmpbuf;
+	gboolean status;
+	size_t line_idx, col_idx;
+	char *rdptr, **lines, *line;
+	char **cols, *col;
+
+	/* Get the application provided input data properties. */
+	fn = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_FILENAME));
+	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
+
+	/* Filenames are a strong hint. Use then when available. */
+	if (fn && *fn && (fn_len = strlen(fn)) >= strlen(default_extension)) {
+		if (strcasecmp(&fn[fn_len - strlen(default_extension)], default_extension) == 0) {
+			*confidence = 10;
+			return SR_OK;
+		}
+	}
+
+	/*
+	 * Check file content for compatibility with the input module's
+	 * default format. Which translates to:
+	 * - Must be at least one text line worth of input data. Ignore
+	 *   incomplete lines at the end of the available buffer.
+	 * - Must be LF terminated text lines, optional CR-LF sequence.
+	 *   (Drop CR-only for simplicity since that's rare and users
+	 *   can override the automatic detection.)
+	 * - Strip comments and skip empty lines.
+	 * - Data lines must be binary input (potentially multiple bits
+	 *   per column which then get ignored). Presence of comma is
+	 *   optional but then must be followed by another data column.
+	 * - No other content is acceptable, there neither are ignored
+	 *   columns nor analog data nor timestamps in the default layout.
+	 *   (See the above "sync format match with default options"
+	 *   comment though during maintenance!)
+	 * Run the check on a copy to not affect the caller's buffer.
+	 */
+	if (!buf || !buf->len || !buf->str || !*buf->str)
+		return SR_ERR;
+	rdptr = g_strstr_len(buf->str, buf->len, line_termination);
+	if (!rdptr)
+		return SR_ERR;
+	tmpbuf = g_string_new_len(buf->str, rdptr + 1 - buf->str);
+	tmpbuf->str[tmpbuf->len - 1] = '\0';
+	status = TRUE;
+	*confidence = match_confidence;
+	lines = g_strsplit(tmpbuf->str, line_termination, 0);
+	for (line_idx = 0; status && (line = lines[line_idx]); line_idx++) {
+		rdptr = strstr(line, comment_leader);
+		if (rdptr)
+			*rdptr = '\0';
+		line = g_strstrip(line);
+		if (!line || !*line)
+			continue;
+		cols = g_strsplit(line, column_separator, 0);
+		if (!cols) {
+			status = FALSE;
+			break;
+		}
+		for (col_idx = 0; status && (col = cols[col_idx]); col_idx++) {
+			if (strspn(col, binary_charset) != strlen(col)) {
+				status = FALSE;
+				break;
+			}
+		}
+		g_strfreev(cols);
+	}
+	g_strfreev(lines);
+	g_string_free(tmpbuf, TRUE);
+
+	if (!status)
+		return SR_ERR;
+	return SR_OK;
+}
+
 static int init(struct sr_input *in, GHashTable *options)
 {
 	struct context *inc;
@@ -1678,7 +1799,9 @@ SR_PRIV struct sr_input_module input_csv = {
 	.name = "CSV",
 	.desc = "Comma-separated values",
 	.exts = (const char*[]){"csv", NULL},
+	.metadata = { SR_INPUT_META_FILENAME, SR_INPUT_META_HEADER | SR_INPUT_META_REQUIRED },
 	.options = get_options,
+	.format_match = format_match,
 	.init = init,
 	.receive = receive,
 	.end = end,
