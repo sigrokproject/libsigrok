@@ -210,6 +210,7 @@ struct context {
 
 	/* Current samplerate, optionally determined from input data. */
 	uint64_t samplerate;
+	uint64_t calc_samplerate;
 	double prev_timestamp;
 	gboolean samplerate_sent;
 
@@ -281,10 +282,12 @@ static int flush_samplerate(const struct sr_input *in)
 	struct sr_config *src;
 
 	inc = in->priv;
-	if (inc->samplerate && !inc->samplerate_sent) {
+	if (!inc->calc_samplerate && inc->samplerate)
+		inc->calc_samplerate = inc->samplerate;
+	if (inc->calc_samplerate && !inc->samplerate_sent) {
 		packet.type = SR_DF_META;
 		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
+		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->calc_samplerate));
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(in->sdi, &packet);
 		g_slist_free(meta.config);
@@ -973,13 +976,13 @@ static int parse_timestamp(const char *column, struct context *inc,
 	 *   reduced rounding errors which result in odd rates.
 	 * - Support other formats ("2 ms" or similar)?
 	 */
-	if (inc->samplerate)
+	if (inc->calc_samplerate)
 		return SR_OK;
 	ret = sr_atod_ascii(column, &ts);
 	if (ret != SR_OK)
 		ts = 0.0;
 	if (!ts) {
-		sr_warn("Cannot convert timestamp text %s in line %zu (or zero value).",
+		sr_info("Cannot convert timestamp text %s in line %zu (or zero value).",
 			column, inc->line_number);
 		inc->prev_timestamp = 0.0;
 		return SR_OK;
@@ -1004,7 +1007,7 @@ static int parse_timestamp(const char *column, struct context *inc,
 	rate += 0.5;
 	rate = (uint64_t)rate;
 	sr_dbg("Rate from timestamp %g in line %zu.", rate, inc->line_number);
-	inc->samplerate = rate;
+	inc->calc_samplerate = rate;
 	inc->prev_timestamp = 0.0;
 
 	return SR_OK;
