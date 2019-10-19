@@ -257,6 +257,7 @@ struct context {
 
 	/* List of previously created sigrok channels. */
 	GSList *prev_sr_channels;
+	GSList **prev_df_channels;
 };
 
 /*
@@ -1257,15 +1258,30 @@ static int init(struct sr_input *in, GHashTable *options)
  * Check the channel list for consistency across file re-import. See
  * the VCD input module for more details and motivation.
  */
+static void release_df_channels(struct context *inc, GSList **l)
+{
+	size_t idx;
+
+	if (!inc->analog_channels || !l)
+		return;
+	for (idx = 0; idx < inc->analog_channels; idx++)
+		g_slist_free(l[idx]);
+	g_free(l);
+}
 
 static void keep_header_for_reread(const struct sr_input *in)
 {
 	struct context *inc;
 
 	inc = in->priv;
+
 	g_slist_free_full(inc->prev_sr_channels, sr_channel_free_cb);
 	inc->prev_sr_channels = in->sdi->channels;
 	in->sdi->channels = NULL;
+
+	release_df_channels(inc, inc->prev_df_channels);
+	inc->prev_df_channels = inc->analog_datafeed_channels;
+	inc->analog_datafeed_channels = NULL;
 }
 
 static int check_header_in_reread(const struct sr_input *in)
@@ -1284,9 +1300,14 @@ static int check_header_in_reread(const struct sr_input *in)
 		sr_err("Channel list change not supported for file re-read.");
 		return FALSE;
 	}
+
 	g_slist_free_full(in->sdi->channels, sr_channel_free_cb);
 	in->sdi->channels = inc->prev_sr_channels;
 	inc->prev_sr_channels = NULL;
+
+	release_df_channels(inc, inc->analog_datafeed_channels);
+	inc->analog_datafeed_channels = inc->prev_df_channels;
+	inc->prev_df_channels = NULL;
 
 	return TRUE;
 }
@@ -1671,10 +1692,12 @@ static int end(struct sr_input *in)
 
 static void cleanup(struct sr_input *in)
 {
-	struct context *inc;
+	struct context *inc, save_ctx;
 
+	/* Keep channel references between file re-imports. */
 	keep_header_for_reread(in);
 
+	/* Release dynamically allocated resources. */
 	inc = in->priv;
 
 	g_free(inc->termination);
@@ -1683,12 +1706,31 @@ static void cleanup(struct sr_input *in)
 	inc->datafeed_buffer = NULL;
 	g_free(inc->analog_datafeed_buffer);
 	inc->analog_datafeed_buffer = NULL;
+	g_free(inc->analog_datafeed_digits);
+	inc->analog_datafeed_digits = NULL;
+	/* analog_datafeed_channels was released in keep_header_for_reread() */
+	/* TODO Release channel names (before releasing details). */
+	g_free(inc->column_details);
+	inc->column_details = NULL;
+
+	/* Clear internal state, but keep what .init() has provided. */
+	save_ctx = *inc;
+	memset(inc, 0, sizeof(*inc));
+	inc->samplerate = save_ctx.samplerate;
+	inc->delimiter = save_ctx.delimiter;
+	inc->comment = save_ctx.comment;
+	inc->column_formats = save_ctx.column_formats;
+	inc->start_line = save_ctx.start_line;
+	inc->use_header = save_ctx.use_header;
+	inc->prev_sr_channels = save_ctx.prev_sr_channels;
+	inc->prev_df_channels = save_ctx.prev_df_channels;
 }
 
 static int reset(struct sr_input *in)
 {
-	struct context *inc = in->priv;
+	struct context *inc;
 
+	inc = in->priv;
 	cleanup(in);
 	inc->started = FALSE;
 	g_string_truncate(in->buf, 0);
