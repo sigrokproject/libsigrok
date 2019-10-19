@@ -1502,7 +1502,8 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	const struct column_details *details;
 	col_parse_cb parse_func;
 	int ret;
-	char *p, **lines, *line, **columns, *column;
+	char *processed_up_to;
+	char **lines, *line, **columns, *column;
 
 	inc = in->priv;
 	if (!inc->started) {
@@ -1526,16 +1527,17 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	if (!in->buf->len)
 		return SR_OK;
 	if (is_eof) {
-		p = in->buf->str + in->buf->len;
+		processed_up_to = in->buf->str + in->buf->len;
 	} else {
-		p = g_strrstr_len(in->buf->str, in->buf->len, inc->termination);
-		if (!p)
-			return SR_ERR;
-		*p = '\0';
-		p += strlen(inc->termination);
+		processed_up_to = g_strrstr_len(in->buf->str, in->buf->len,
+			inc->termination);
+		if (!processed_up_to)
+			return SR_OK;
+		*processed_up_to = '\0';
+		processed_up_to += strlen(inc->termination);
 	}
-	g_strstrip(in->buf->str);
 
+	/* Split input text lines and process their columns. */
 	ret = SR_OK;
 	lines = g_strsplit(in->buf->str, inc->termination, 0);
 	for (line_idx = 0; (line = lines[line_idx]); line_idx++) {
@@ -1612,7 +1614,7 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 		g_strfreev(columns);
 	}
 	g_strfreev(lines);
-	g_string_erase(in->buf, 0, p - in->buf->str);
+	g_string_erase(in->buf, 0, processed_up_to - in->buf->str);
 
 	return ret;
 }
