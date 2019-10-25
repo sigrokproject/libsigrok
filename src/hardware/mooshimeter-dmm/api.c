@@ -115,6 +115,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (ret < 0)
 		goto err;
 
+	ret = sr_bt_connect_ble(desc);
+	if (ret < 0)
+		goto err;
+	sr_bt_disconnect(desc);
+
 	struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	struct dev_context *devc = g_malloc0(sizeof(struct dev_context));
 
