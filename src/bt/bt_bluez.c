@@ -394,7 +394,6 @@ static int sr_bt_desc_open(struct sr_bt_desc *desc, int *id_ref)
 		return -1;
 	sr_dbg("BLE open");
 
-	sr_spew("get devid");
 	if (desc->local_addr[0]) {
 		id = hci_devid(desc->local_addr);
 	} else if (desc->remote_addr[0]) {
@@ -411,7 +410,6 @@ static int sr_bt_desc_open(struct sr_bt_desc *desc, int *id_ref)
 	if (id_ref)
 		*id_ref = id;
 
-	sr_spew("open HCI socket");
 	sock = hci_open_dev(id);
 	if (sock < 0) {
 		perror("open HCI socket");
@@ -452,10 +450,8 @@ static int sr_bt_scan_prep(struct sr_bt_desc *desc)
 
 	if (!desc)
 		return -1;
-	sr_dbg("BLE scan prep");
 
 	/* TODO Replace magic values with symbolic identifiers. */
-	sr_spew("set LE scan params");
 	type = 0x01;	/* LE public? */
 	ival = htobs(0x0010);
 	window = htobs(0x0010);
@@ -469,7 +465,6 @@ static int sr_bt_scan_prep(struct sr_bt_desc *desc)
 		return -1;
 	}
 
-	sr_spew("set LE scan enable");
 	enable = 1;
 	dup = 1;
 	timeout = 1000;
@@ -480,7 +475,6 @@ static int sr_bt_scan_prep(struct sr_bt_desc *desc)
 	}
 
 	/* Save the current filter. For later restoration. */
-	sr_spew("get HCI filter");
 	slen = sizeof(desc->orig_filter);
 	rc = getsockopt(desc->fd, SOL_HCI, HCI_FILTER,
 		&desc->orig_filter, &slen);
@@ -489,7 +483,6 @@ static int sr_bt_scan_prep(struct sr_bt_desc *desc)
 		return -1;
 	}
 
-	sr_spew("set HCI filter");
 	hci_filter_clear(&scan_filter);
 	hci_filter_set_ptype(HCI_EVENT_PKT, &scan_filter);
 	hci_filter_set_event(EVT_LE_META_EVENT, &scan_filter);
@@ -511,10 +504,8 @@ static int sr_bt_scan_post(struct sr_bt_desc *desc)
 
 	if (!desc)
 		return -1;
-	sr_dbg("BLE scan post");
 
 	/* Restore previous HCI filter. */
-	sr_spew("set HCI filter");
 	rc = setsockopt(desc->fd, SOL_HCI, HCI_FILTER,
 		&desc->orig_filter, sizeof(desc->orig_filter));
 	if (rc < 0) {
@@ -522,7 +513,6 @@ static int sr_bt_scan_post(struct sr_bt_desc *desc)
 		return -1;
 	}
 
-	sr_spew("set LE scan enable");
 	enable = 0;
 	dup = 1;
 	timeout = 1000;
@@ -572,17 +562,14 @@ SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration)
 		return -1;
 	sr_dbg("BLE scan (LE)");
 
-	sr_spew("desc open");
 	rc = sr_bt_desc_open(desc, NULL);
 	if (rc < 0)
 		return -1;
 
-	sr_spew("scan prep");
 	rc = sr_bt_scan_prep(desc);
 	if (rc < 0)
 		return -1;
 
-	sr_spew("scan loop");
 	deadline = time(NULL);
 	deadline += duration;
 	while (time(NULL) <= deadline) {
@@ -593,9 +580,7 @@ SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration)
 		if (rdlen < 0)
 			break;
 		if (!rdlen) {
-			sr_spew("usleep() start");
 			g_usleep(50000);
-			sr_spew("usleep() done");
 			continue;
 		}
 		if (rdlen < 1 + HCI_EVENT_HDR_SIZE)
@@ -624,7 +609,6 @@ SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration)
 		}
 	}
 
-	sr_spew("scan post");
 	rc = sr_bt_scan_post(desc);
 	if (rc < 0)
 		return -1;
@@ -691,7 +675,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 		return -1;
 	sr_dbg("BLE connect, remote addr %s", desc->remote_addr);
 
-	sr_spew("socket()");
 	s = socket(AF_BLUETOOTH, SOCK_SEQPACKET, 0);
 	if (s < 0) {
 		perror("socket create");
@@ -699,7 +682,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 	}
 	desc->fd = s;
 
-	sr_spew("bind()");
 	memset(&sl2, 0, sizeof(sl2));
 	sl2.l2_family = AF_BLUETOOTH;
 	sl2.l2_psm = 0;
@@ -721,7 +703,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 			.level = BT_SECURITY_LOW,
 			.key_size = 0,
 		};
-		sr_spew("security");
 		ret = setsockopt(s, SOL_BLUETOOTH, BT_SECURITY, &buf, sizeof(buf));
 		if (ret < 0) {
 			perror("setsockopt");
@@ -729,7 +710,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 		}
 	}
 
-	sr_spew("connect()");
 	str2ba(desc->remote_addr, &mac);
 	memcpy(&sl2.l2_bdaddr, &mac, sizeof(sl2.l2_bdaddr));
 	sl2.l2_bdaddr_type = BDADDR_LE_PUBLIC;
@@ -753,7 +733,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 		sr_spew("in progress ...");
 
 		do {
-			sr_spew("poll(OUT)");
 			memset(fds, 0, sizeof(fds));
 			fds[0].fd = s;
 			fds[0].events = POLLOUT;
@@ -767,7 +746,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 			if (!(fds[0].revents & POLLOUT))
 				continue;
 		} while (1);
-		sr_spew("poll(INVAL)");
 		memset(fds, 0, sizeof(fds));
 		fds[0].fd = s;
 		fds[0].events = POLLNVAL;
@@ -782,7 +760,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 			close(s);
 			return -1;
 		}
-		sr_spew("getsocktop(SO_ERROR)");
 		solen = sizeof(soerror);
 		ret = getsockopt(s, SOL_SOCKET, SO_ERROR, &soerror, &solen);
 		if (ret < 0) {
@@ -801,7 +778,6 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 		 * getsockopt(SOL_BLUETOOTH, BT_RCVMTU, u16);
 		 */
 	}
-	sr_spew("connect() => rc %d, fd %d", ret, desc->fd);
 	if (ret < 0) {
 		perror("connect");
 		return ret;
@@ -825,7 +801,6 @@ SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc)
 	if (!desc->rfcomm_channel)
 		desc->rfcomm_channel = 1;
 
-	sr_spew("socket()");
 	fd = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
 	if (fd < 0) {
 		perror("socket");
@@ -833,7 +808,6 @@ SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc)
 	}
 	desc->fd = fd;
 
-	sr_spew("connect()");
 	memset(&addr, 0, sizeof(addr));
 	addr.rc_family = AF_BLUETOOTH;
 	str2ba(desc->remote_addr, &addr.rc_bdaddr);
@@ -862,7 +836,6 @@ static int sr_bt_check_socket_usable(struct sr_bt_desc *desc)
 	struct pollfd fds[1];
 	int ret;
 
-	sr_spew("socket usability check");
 	if (!desc)
 		return -1;
 	if (desc->fd < 0)
@@ -901,7 +874,6 @@ SR_PRIV int sr_bt_start_notify(struct sr_bt_desc *desc)
 	if (sr_bt_check_socket_usable(desc) < 0)
 		return -2;
 
-	sr_spew("write()");
 	bt_put_le16(desc->cccd_value, buf);
 	wrlen = sr_bt_char_write_req(desc, desc->cccd_handle, buf, sizeof(buf));
 	if (wrlen != sizeof(buf))
@@ -919,7 +891,6 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 	uint8_t *packet_data;
 	size_t packet_dlen;
 
-	sr_dbg("BLE check notify");
 	if (!desc)
 		return -1;
 
@@ -927,14 +898,11 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 		return -2;
 
 	/* Get another message from the Bluetooth socket. */
-	sr_spew("read() non-blocking");
 	rdlen = sr_bt_read(desc, buf, sizeof(buf));
-	sr_spew("read() => %zd", rdlen);
 	if (rdlen < 0)
 		return -2;
 	if (!rdlen)
 		return 0;
-	sr_spew("read() len %zd, type 0x%02x", rdlen, buf[0]);
 
 	/* Get header fields and references to the payload data. */
 	packet_type = 0x00;
@@ -952,15 +920,15 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 	/* Dispatch according to the message type. */
 	switch (packet_type) {
 	case BLE_ATT_ERROR_RESP:
-		sr_spew("error response");
+		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "error response");
 		/* EMPTY */
 		break;
 	case BLE_ATT_WRITE_RESP:
-		sr_spew("write response");
+		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "write response");
 		/* EMPTY */
 		break;
 	case BLE_ATT_HANDLE_INDICATION:
-		sr_spew("handle indication");
+		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "handle indication");
 		sr_bt_write_type(desc, BLE_ATT_HANDLE_CONFIRMATION);
 		if (packet_handle != desc->read_handle)
 			return -4;
@@ -970,7 +938,7 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 			return 0;
 		return desc->data_cb(desc->data_cb_data, packet_data, packet_dlen);
 	case BLE_ATT_HANDLE_NOTIFICATION:
-		sr_spew("handle notification");
+		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "handle notification");
 		if (packet_handle != desc->read_handle)
 			return -4;
 		if (!packet_data)
@@ -992,7 +960,6 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 SR_PRIV ssize_t sr_bt_write(struct sr_bt_desc *desc,
 	const void *data, size_t len)
 {
-	sr_dbg("BLE write (raw)");
 	if (!desc)
 		return -1;
 	if (desc->fd < 0)
@@ -1013,7 +980,6 @@ static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type)
 {
 	ssize_t wrlen;
 
-	sr_dbg("BLE write (type)");
 	if (!desc)
 		return -1;
 	if (desc->fd < 0)
@@ -1035,7 +1001,6 @@ static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type)
 static ssize_t sr_bt_write_type_handle(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle)
 {
-	sr_dbg("BLE write (type, handle)");
 	return sr_bt_write_type_handle_bytes(desc, type, handle, NULL, 0);
 }
 #endif
@@ -1050,7 +1015,6 @@ static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 	};
 	ssize_t wrlen;
 
-	sr_dbg("BLE write (type, handle, data)");
 	if (!desc)
 		return -1;
 	if (desc->fd < 0)
@@ -1080,8 +1044,6 @@ static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 static ssize_t sr_bt_char_write_req(struct sr_bt_desc *desc,
 	uint16_t handle, const void *data, size_t len)
 {
-	sr_dbg("BLE write-char req");
-
 	return sr_bt_write_type_handle_bytes(desc, BLE_ATT_WRITE_REQ,
 		handle, data, len);
 }
@@ -1092,7 +1054,6 @@ SR_PRIV ssize_t sr_bt_read(struct sr_bt_desc *desc, void *data, size_t len)
 	int ret;
 	ssize_t rdlen;
 
-	sr_dbg("BLE read (non-blocking)");
 	if (!desc)
 		return -1;
 	if (desc->fd < 0)
@@ -1101,12 +1062,10 @@ SR_PRIV ssize_t sr_bt_read(struct sr_bt_desc *desc, void *data, size_t len)
 	if (sr_bt_check_socket_usable(desc) < 0)
 		return -2;
 
-	sr_spew("poll(POLLIN)");
 	memset(fds, 0, sizeof(fds));
 	fds[0].fd = desc->fd;
 	fds[0].events = POLLIN;
 	ret = poll(fds, ARRAY_SIZE(fds), 0);
-	sr_spew("poll(%d, POLLIN) => 0x%x", desc->fd, fds[0].revents);
 	if (ret < 0)
 		return ret;
 	if (!ret)
@@ -1114,9 +1073,7 @@ SR_PRIV ssize_t sr_bt_read(struct sr_bt_desc *desc, void *data, size_t len)
 	if (!(fds[0].revents & POLLIN))
 		return 0;
 
-	sr_spew("read()");
 	rdlen = read(desc->fd, data, len);
-	sr_spew("read() => %zd", rdlen);
 
 	return rdlen;
 }
