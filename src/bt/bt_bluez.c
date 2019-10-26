@@ -217,12 +217,12 @@ SR_PRIV const char *sr_bt_adapter_get_address(size_t idx)
 	char addr[20];
 
 	rc = hci_devinfo(idx, &info);
-	sr_dbg("DIAG: hci_devinfo(%zu) => rc %d", idx, rc);
+	sr_spew("DIAG: hci_devinfo(%zu) => rc %d", idx, rc);
 	if (rc < 0)
 		return NULL;
 
 	rc = ba2str(&info.bdaddr, addr);
-	sr_dbg("DIAG: ba2str() => rc %d", rc);
+	sr_spew("DIAG: ba2str() => rc %d", rc);
 	if (rc < 0)
 		return NULL;
 
@@ -403,7 +403,7 @@ static int sr_bt_desc_open(struct sr_bt_desc *desc, int *id_ref)
 		id = hci_get_route(NULL);
 	}
 	if (id < 0) {
-		sr_spew("devid failed");
+		sr_err("devid failed");
 		return -1;
 	}
 	desc->devid = id;
