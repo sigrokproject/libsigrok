@@ -91,6 +91,7 @@
 #define LOG_PREFIX "bt-bluez"
 /** @endcond */
 
+#define CONNECT_BLE_TIMEOUT	20	/* Connect timeout in seconds. */
 #define STORE_MAC_REVERSE	1
 #define ACCEPT_NONSEP_MAC	1
 
@@ -668,6 +669,7 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 	struct sockaddr_l2 sl2;
 	bdaddr_t mac;
 	int s, ret;
+	gint64 deadline;
 
 	if (!desc)
 		return -1;
@@ -710,6 +712,8 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 		}
 	}
 
+	deadline = g_get_monotonic_time();
+	deadline += CONNECT_BLE_TIMEOUT * 1000 * 1000;
 	str2ba(desc->remote_addr, &mac);
 	memcpy(&sl2.l2_bdaddr, &mac, sizeof(sl2.l2_bdaddr));
 	sl2.l2_bdaddr_type = BDADDR_LE_PUBLIC;
@@ -745,6 +749,10 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 				continue;
 			if (!(fds[0].revents & POLLOUT))
 				continue;
+			if (g_get_monotonic_time() >= deadline) {
+				sr_warn("Connect attempt timed out");
+				return SR_ERR_IO;
+			}
 		} while (1);
 		memset(fds, 0, sizeof(fds));
 		fds[0].fd = s;
