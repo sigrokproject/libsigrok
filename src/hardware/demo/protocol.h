@@ -161,6 +161,7 @@ struct analog_gen {
 };
 
 SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc);
+SR_PRIV void demo_free_analog_pattern(struct dev_context *devc);
 SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data);
 
 #endif

@@ -252,6 +252,15 @@ SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc)
 	devc->analog_patterns[PATTERN_ANALOG_RANDOM] = pattern;
 }
 
+SR_PRIV void demo_free_analog_pattern(struct dev_context *devc)
+{
+	g_free(devc->analog_patterns[PATTERN_SQUARE]);
+	g_free(devc->analog_patterns[PATTERN_SINE]);
+	g_free(devc->analog_patterns[PATTERN_TRIANGLE]);
+	g_free(devc->analog_patterns[PATTERN_SAWTOOTH]);
+	g_free(devc->analog_patterns[PATTERN_ANALOG_RANDOM]);
+}
+
 static uint64_t encode_number_to_gray(uint64_t nr)
 {
 	return nr ^ (nr >> 1);

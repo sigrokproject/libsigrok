@@ -225,6 +225,8 @@ static void clear_helper(struct dev_context *devc)
 	GHashTableIter iter;
 	void *value;
 
+	demo_free_analog_pattern(devc);
+
 	/* Analog generators. */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
