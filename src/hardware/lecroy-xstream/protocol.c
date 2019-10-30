@@ -645,12 +645,6 @@ SR_PRIV int lecroy_xstream_receive_data(int fd, int revents, void *cb_data)
 	if (ch->type != SR_CHANNEL_ANALOG)
 		return SR_ERR;
 
-	/* Pass on the received data of the channel(s). */
-	if (sr_scpi_read_data(sdi->conn, buf, 4) != 4) {
-		sr_err("Reading header failed, scope probably didn't send any data.");
-		return TRUE;
-	}
-
 	if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 		if (data)
 			g_byte_array_free(data, TRUE);
