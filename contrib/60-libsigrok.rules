@@ -170,6 +170,10 @@ ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a001", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a002", ENV{ID_SIGROK}="1"
 
+# LeCroy WaveRunner
+# 05ff:1023: 625Zi
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="1023", ENV{ID_SIGROK}="1"
+
 # Link Instruments MSO-19
 ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", ENV{ID_SIGROK}="1"
 
