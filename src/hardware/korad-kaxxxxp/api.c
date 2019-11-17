@@ -62,6 +62,8 @@ static const struct korad_kaxxxxp_model models[] = {
 		"KORAD KD3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KD3005P_V20_NOSP, "Korad", "KD3005P",
 		"KORADKD3005PV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{RND_320_KD3005P, "RND", "KD3005P",
+		"RND 320-KD3005P V4.2", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{RND_320K30PV, "RND", "KA3005P",
 		"RND 320-KA3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{TENMA_72_2540_V20, "Tenma", "72-2540",
@@ -124,6 +126,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (strlen(models[i].id) > len)
 			len = strlen(models[i].id);
 	}
+
+	/*
+	 * Some models also include the serial number:
+	 * RND 320-KD3005P V4.2 SN:59834414
+	 */
+	len += 12;
+
 	memset(&reply, 0, sizeof(reply));
 	sr_dbg("Want max %d bytes.", len);
 	if ((korad_kaxxxxp_send_cmd(serial, "*IDN?") < 0))
@@ -134,6 +143,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	sr_dbg("Received: %d, %s", i, reply);
 	model_id = -1;
+
+	/* Truncate before serial number. */
+	char *sn = g_strrstr(reply, " SN:");
+	if (sn)
+		*sn = '\0';
+
 	for (i = 0; models[i].id; i++) {
 		if (!g_strcmp0(models[i].id, reply))
 			model_id = i;
