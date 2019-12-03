@@ -386,6 +386,9 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	case SR_MQ_FREQUENCY:
 		unit = SR_UNIT_HERTZ;
 		break;
+	case SR_MQ_TIME:
+		unit = SR_UNIT_SECOND;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
