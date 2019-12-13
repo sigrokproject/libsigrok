@@ -89,19 +89,45 @@ SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 	return SR_ERR_NA;
 }
 
+SR_PRIV int hp_3478a_set_range(const struct sr_dev_inst *sdi, int range_exp)
+{
+	int ret;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+
+	/* No need to send command if we're not changing the range. */
+	if (devc->range_exp == range_exp)
+		return SR_OK;
+
+	/* -99 is a dummy exponent for auto ranging. */
+	if (range_exp == -99)
+		ret = sr_scpi_send(scpi, "RA");
+	else
+		ret = sr_scpi_send(scpi, "R%i", range_exp);
+	if (ret != SR_OK)
+		return ret;
+
+	return hp_3478a_get_status_bytes(sdi);
+}
+
 static int parse_range_vdc(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30MV)
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30MV) {
+		devc->range_exp = -2;
 		devc->enc_digits = devc->spec_digits - 2;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300MV)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300MV) {
+		devc->range_exp = -1;
 		devc->enc_digits = devc->spec_digits - 3;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_3V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_3V) {
+		devc->range_exp = 0;
 		devc->enc_digits = devc->spec_digits - 1;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30V) {
+		devc->range_exp = 1;
 		devc->enc_digits = devc->spec_digits - 2;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_300V) {
+		devc->range_exp = 2;
 		devc->enc_digits = devc->spec_digits - 3;
-	else
+	} else
 		return SR_ERR_DATA;
 
 	return SR_OK;
@@ -109,15 +135,19 @@ static int parse_range_vdc(struct dev_context *devc, uint8_t range_byte)
 
 static int parse_range_vac(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300MV)
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300MV) {
+		devc->range_exp = -1;
 		devc->enc_digits = devc->spec_digits - 3;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_3V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_3V) {
+		devc->range_exp = 0;
 		devc->enc_digits = devc->spec_digits - 1;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_30V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_30V) {
+		devc->range_exp = 1;
 		devc->enc_digits = devc->spec_digits - 2;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300V)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VAC_300V) {
+		devc->range_exp = 2;
 		devc->enc_digits = devc->spec_digits - 3;
-	else
+	} else
 		return SR_ERR_DATA;
 
 	return SR_OK;
@@ -125,11 +155,13 @@ static int parse_range_vac(struct dev_context *devc, uint8_t range_byte)
 
 static int parse_range_a(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_300MA)
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_300MA) {
+		devc->range_exp = -1;
 		devc->enc_digits = devc->spec_digits - 3;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_3A)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_A_3A) {
+		devc->range_exp = 0;
 		devc->enc_digits = devc->spec_digits - 1;
-	else
+	} else
 		return SR_ERR_DATA;
 
 	return SR_OK;
@@ -137,21 +169,28 @@ static int parse_range_a(struct dev_context *devc, uint8_t range_byte)
 
 static int parse_range_ohm(struct dev_context *devc, uint8_t range_byte)
 {
-	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30R)
+	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30R) {
+		devc->range_exp = 1;
 		devc->enc_digits = devc->spec_digits - 2;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300R)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300R) {
+		devc->range_exp = 2;
 		devc->enc_digits = devc->spec_digits - 3;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3KR)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3KR) {
+		devc->range_exp = 3;
 		devc->enc_digits = devc->spec_digits - 1;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30KR)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30KR) {
+		devc->range_exp = 4;
 		devc->enc_digits = devc->spec_digits - 2;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300KR)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_300KR) {
+		devc->range_exp = 5;
 		devc->enc_digits = devc->spec_digits - 3;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3MR)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_3MR) {
+		devc->range_exp = 6;
 		devc->enc_digits = devc->spec_digits - 1;
-	else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30MR)
+	} else if ((range_byte & SB1_RANGE_BLOCK) == RANGE_OHM_30MR) {
+		devc->range_exp = 7;
 		devc->enc_digits = devc->spec_digits - 2;
-	else
+	} else
 		return SR_ERR_DATA;
 
 	return SR_OK;
@@ -171,14 +210,17 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 
 	/* Function + Range */
 	devc->measurement_mq_flags = 0;
+	devc->acquisition_mq_flags = 0;
 	if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_VDC) {
 		devc->measurement_mq = SR_MQ_VOLTAGE;
 		devc->measurement_mq_flags |= SR_MQFLAG_DC;
+		devc->acquisition_mq_flags |= SR_MQFLAG_DC;
 		devc->measurement_unit = SR_UNIT_VOLT;
 		parse_range_vdc(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_VAC) {
 		devc->measurement_mq = SR_MQ_VOLTAGE;
-		devc->measurement_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+		devc->measurement_mq_flags |= SR_MQFLAG_AC;
+		devc->acquisition_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		devc->measurement_unit = SR_UNIT_VOLT;
 		parse_range_vac(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_2WR) {
@@ -188,16 +230,19 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_4WR) {
 		devc->measurement_mq = SR_MQ_RESISTANCE;
 		devc->measurement_mq_flags |= SR_MQFLAG_FOUR_WIRE;
+		devc->acquisition_mq_flags |= SR_MQFLAG_FOUR_WIRE;
 		devc->measurement_unit = SR_UNIT_OHM;
 		parse_range_ohm(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_ADC) {
 		devc->measurement_mq = SR_MQ_CURRENT;
 		devc->measurement_mq_flags |= SR_MQFLAG_DC;
+		devc->acquisition_mq_flags |= SR_MQFLAG_DC;
 		devc->measurement_unit = SR_UNIT_AMPERE;
 		parse_range_a(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_AAC) {
 		devc->measurement_mq = SR_MQ_CURRENT;
-		devc->measurement_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+		devc->measurement_mq_flags |= SR_MQFLAG_AC;
+		devc->acquisition_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		devc->measurement_unit = SR_UNIT_AMPERE;
 		parse_range_a(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_EXR) {
@@ -242,10 +287,11 @@ static int parse_status_byte(struct dev_context *devc, uint8_t status_byte)
 		devc->auto_zero = FALSE;
 
 	/* Auto-Range */
-	if ((status_byte & STATUS_AUTO_RANGE) == STATUS_AUTO_RANGE)
-		devc->measurement_mq_flags |= SR_MQFLAG_AUTORANGE;
-	else
-		devc->measurement_mq_flags &= ~SR_MQFLAG_AUTORANGE;
+	if ((status_byte & STATUS_AUTO_RANGE) == STATUS_AUTO_RANGE) {
+		devc->acquisition_mq_flags |= SR_MQFLAG_AUTORANGE;
+		devc->range_exp = -99;
+	} else
+		devc->acquisition_mq_flags &= ~SR_MQFLAG_AUTORANGE;
 
 	/* Internal trigger */
 	if ((status_byte & STATUS_INT_TRIGGER) == STATUS_INT_TRIGGER)
@@ -392,7 +438,7 @@ static void acq_send_measurement(struct sr_dev_inst *sdi)
 	encoding.digits = devc->enc_digits;
 
 	meaning.mq = devc->measurement_mq;
-	meaning.mqflags = devc->measurement_mq_flags;
+	meaning.mqflags = devc->acquisition_mq_flags;
 	meaning.unit = devc->measurement_unit;
 	meaning.channels = sdi->channels;
 

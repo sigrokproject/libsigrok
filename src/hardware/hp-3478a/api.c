@@ -34,6 +34,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const struct {
@@ -41,17 +42,59 @@ static const struct {
 	enum sr_mqflag mqflag;
 } mqopts[] = {
 	{SR_MQ_VOLTAGE, SR_MQFLAG_DC},
-	{SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_AUTORANGE},
-	{SR_MQ_VOLTAGE, SR_MQFLAG_AC | SR_MQFLAG_RMS},
-	{SR_MQ_VOLTAGE, SR_MQFLAG_AC | SR_MQFLAG_RMS | SR_MQFLAG_AUTORANGE},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC},
 	{SR_MQ_CURRENT, SR_MQFLAG_DC},
-	{SR_MQ_CURRENT, SR_MQFLAG_DC | SR_MQFLAG_AUTORANGE},
-	{SR_MQ_CURRENT, SR_MQFLAG_AC | SR_MQFLAG_RMS},
-	{SR_MQ_CURRENT, SR_MQFLAG_AC | SR_MQFLAG_RMS | SR_MQFLAG_AUTORANGE},
+	{SR_MQ_CURRENT, SR_MQFLAG_AC},
 	{SR_MQ_RESISTANCE, 0},
-	{SR_MQ_RESISTANCE, 0 | SR_MQFLAG_AUTORANGE},
 	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE},
-	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE | SR_MQFLAG_AUTORANGE},
+};
+
+
+static const struct {
+	enum sr_mq mq;
+	enum sr_mqflag mqflag;
+	int range_exp;
+	const char *range_str;
+} rangeopts[] = {
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,             -99,   "Auto"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,              -2,   "30mV"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,              -1,   "300mV"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,               0,   "3V"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,               1,   "30V"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_DC,               2,   "300V"},
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC,             -99,   "Auto"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC,              -1,   "300mV"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC,               0,   "3V"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC,               1,   "30V"},
+	{SR_MQ_VOLTAGE, SR_MQFLAG_AC,               2,   "300V"},
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_CURRENT, SR_MQFLAG_DC,             -99,   "Auto"},
+	{SR_MQ_CURRENT, SR_MQFLAG_DC,              -1,   "300mV"},
+	{SR_MQ_CURRENT, SR_MQFLAG_DC,               0,   "3V"},
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_CURRENT, SR_MQFLAG_AC,             -99,   "Auto"},
+	{SR_MQ_CURRENT, SR_MQFLAG_AC,              -1,   "300mV"},
+	{SR_MQ_CURRENT, SR_MQFLAG_AC,               0,   "3V"},
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_RESISTANCE, 0,                     -99,   "Auto"},
+	{SR_MQ_RESISTANCE, 0,                       1,   "30"},
+	{SR_MQ_RESISTANCE, 0,                       2,   "300"},
+	{SR_MQ_RESISTANCE, 0,                       3,   "3k"},
+	{SR_MQ_RESISTANCE, 0,                       4,   "30k"},
+	{SR_MQ_RESISTANCE, 0,                       5,   "300k"},
+	{SR_MQ_RESISTANCE, 0,                       6,   "3M"},
+	{SR_MQ_RESISTANCE, 0,                       7,   "30M"},
+	/* -99 is a dummy exponent for auto ranging. */
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,   -99,   "Auto"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     1,   "30R"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     2,   "300R"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     3,   "3kR"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     4,   "30kR"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     5,   "300kR"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     6,   "3MR"},
+	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     7,   "30MR"},
 };
 
 static struct sr_dev_driver hp_3478a_driver_info;
@@ -118,6 +161,8 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	int ret;
 	GVariant *arr[2];
+	unsigned int i;
+	const char *range_str;
 
 	(void)cg;
 
@@ -135,6 +180,21 @@ static int config_get(uint32_t key, GVariant **data,
 		arr[1] = g_variant_new_uint64(devc->measurement_mq_flags);
 		*data = g_variant_new_tuple(arr, 2);
 		break;
+	case SR_CONF_RANGE:
+		ret = hp_3478a_get_status_bytes(sdi);
+		if (ret != SR_OK)
+			return ret;
+		range_str = "Auto";
+		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
+			if (rangeopts[i].mq == devc->measurement_mq &&
+					rangeopts[i].mqflag == devc->measurement_mq_flags &&
+					rangeopts[i].range_exp == devc->range_exp) {
+				range_str = rangeopts[i].range_str;
+				break;
+			}
+		}
+		*data = g_variant_new_string(range_str);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -149,6 +209,8 @@ static int config_set(uint32_t key, GVariant *data,
 	enum sr_mq mq;
 	enum sr_mqflag mq_flags;
 	GVariant *tuple_child;
+	unsigned int i;
+	const char *range_str;
 
 	(void)cg;
 
@@ -165,6 +227,16 @@ static int config_set(uint32_t key, GVariant *data,
 		mq_flags = g_variant_get_uint64(tuple_child);
 		g_variant_unref(tuple_child);
 		return hp_3478a_set_mq(sdi, mq, mq_flags);
+	case SR_CONF_RANGE:
+		range_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
+			if (rangeopts[i].mq == devc->measurement_mq &&
+					rangeopts[i].mqflag == devc->measurement_mq_flags &&
+					g_strcmp0(rangeopts[i].range_str, range_str) == 0) {
+				return hp_3478a_set_range(sdi, rangeopts[i].range_exp);
+			}
+		}
+		return SR_ERR_NA;
 	default:
 		return SR_ERR_NA;
 	}
@@ -175,9 +247,13 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	struct dev_context *devc;
+	int ret;
 	unsigned int i;
 	GVariant *gvar, *arr[2];
 	GVariantBuilder gvb;
+
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -194,6 +270,19 @@ static int config_list(uint32_t key, GVariant **data,
 			arr[1] = g_variant_new_uint64(mqopts[i].mqflag);
 			gvar = g_variant_new_tuple(arr, 2);
 			g_variant_builder_add_value(&gvb, gvar);
+		}
+		*data = g_variant_builder_end(&gvb);
+		break;
+	case SR_CONF_RANGE:
+		ret = hp_3478a_get_status_bytes(sdi);
+		if (ret != SR_OK)
+			return ret;
+		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
+			if (rangeopts[i].mq == devc->measurement_mq &&
+					rangeopts[i].mqflag == devc->measurement_mq_flags) {
+				g_variant_builder_add(&gvb, "s", rangeopts[i].range_str);
+			}
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
