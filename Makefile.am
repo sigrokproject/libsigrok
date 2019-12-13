@@ -608,6 +608,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-dmm/protocol.c \
 	src/hardware/uni-t-dmm/api.c
 endif
+if HW_UNI_T_UT181A
+src_libdrivers_la_SOURCES += \
+	src/hardware/uni-t-ut181a/protocol.h \
+	src/hardware/uni-t-ut181a/protocol.c \
+	src/hardware/uni-t-ut181a/api.c
+endif
 if HW_UNI_T_UT32X
 src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-ut32x/protocol.h \
