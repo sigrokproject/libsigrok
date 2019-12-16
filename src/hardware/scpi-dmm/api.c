@@ -51,16 +51,20 @@ static const struct scpi_command cmdset_agilent[] = {
 
 
 /*
- * cmdset_hp is used for the 34401a, which was added to this code after the 34405a and 34465a.
- * It differs in starting the measurement with INIT -- MEAS without a trailing '?' as used for 
- * the 34405ais not valid for the 34401a and gives an error. 
- * I'm surprised the same instruction sequence doesn't work and INIT may work for both, but I 
- * don't have the others to re-test. 
+ * cmdset_hp is used for the 34401A, which was added to this code after the 
+ * 34405A and HP34465A.
+ * It differs in starting the measurement with INIT : using MEAS without a 
+ * trailing '?' (as used for the 34405A) is not valid for the 34401A and 
+ * gives an error. 
+ * I'm surprised the same instruction sequence doesn't work and INIT may 
+ * work for both, but I don't have the others to re-test. 
  *
- * On the 34401a, 
- *  MEAS <optional parameters> ? configres, arms, triggers and waits for a reading
+ * On the 34401A, 
+ *  MEAS <optional parameters> ? configures, arms, triggers and waits 
+         for a reading
  *  CONF <parameters> configures
- *  INIT prepares for triggering (trigger mode is not set, assumed internal - external might time out)
+ *  INIT prepares for triggering (trigger mode is not set, assumed 
+         internal - external might time out)
  *  *OPC waits for completion and
  *  READ? retrieves the result
  */
@@ -122,7 +126,10 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34401a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-                1000 * 1500, // 34401A typically takes 1020ms for AC readings but default is 1000ms
+		/* 34401A typically takes 1020ms for AC readings 
+		 * but default is 1000ms 
+		 */
+		1000 * 1500, 
 	},
 };
 
@@ -178,7 +185,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->driver = &scpi_dmm_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sr_scpi_hw_info_free(hw_info);
-        if (model->read_timeout_us)  // non-default read timeout
+        if (model->read_timeout_us)  /* non-default read timeout */
 		scpi->read_timeout_us = model->read_timeout_us;
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
