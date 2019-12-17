@@ -1015,6 +1015,9 @@ enum sr_configkey {
 	/** Logic threshold: custom numerical value. */
 	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
 
+	/** The measurement range of a DMM or the output range of a power supply. */
+	SR_CONF_RANGE,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
