@@ -497,6 +497,10 @@ SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data)
 	if (sr_scpi_get_double(scpi, NULL, &devc->measurement) != SR_OK)
 		return FALSE;
 
+	/* Check for overflow. */
+	if (devc->measurement >= 9.998e+9)
+		devc->measurement = INFINITY;
+
 	/*
 	 * This is necessary to get the actual range for the encoding digits.
 	 * Must be called after reading the value, because it resets the
