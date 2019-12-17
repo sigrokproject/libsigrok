@@ -162,6 +162,7 @@ struct channel_context {
 SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 				enum sr_mqflag mq_flags);
 SR_PRIV int hp_3478a_set_range(const struct sr_dev_inst *sdi, int range_exp);
+SR_PRIV int hp_3478a_set_digits(const struct sr_dev_inst *sdi, uint8_t digits);
 SR_PRIV int hp_3478a_get_status_bytes(const struct sr_dev_inst *sdi);
 SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data);
 

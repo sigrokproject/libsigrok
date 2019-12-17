@@ -35,6 +35,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DIGITS | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const struct {
@@ -48,7 +49,6 @@ static const struct {
 	{SR_MQ_RESISTANCE, 0},
 	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE},
 };
-
 
 static const struct {
 	enum sr_mq mq;
@@ -95,6 +95,16 @@ static const struct {
 	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     5,   "300kR"},
 	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     6,   "3MR"},
 	{SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE,     7,   "30MR"},
+};
+
+/** Available digits as strings. */
+static const char *digits[] = {
+	"3.5", "4.5", "5.5",
+};
+
+/** Mapping between devc->spec_digits and digits string. */
+static const char *digits_map[] = {
+	"", "", "", "", "3.5", "4.5", "5.5",
 };
 
 static struct sr_dev_driver hp_3478a_driver_info;
@@ -195,6 +205,12 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_new_string(range_str);
 		break;
+	case SR_CONF_DIGITS:
+		ret = hp_3478a_get_status_bytes(sdi);
+		if (ret != SR_OK)
+			return ret;
+		*data = g_variant_new_string(digits_map[devc->spec_digits]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -211,6 +227,7 @@ static int config_set(uint32_t key, GVariant *data,
 	GVariant *tuple_child;
 	unsigned int i;
 	const char *range_str;
+	const char *digits_str;
 
 	(void)cg;
 
@@ -235,6 +252,13 @@ static int config_set(uint32_t key, GVariant *data,
 					g_strcmp0(rangeopts[i].range_str, range_str) == 0) {
 				return hp_3478a_set_range(sdi, rangeopts[i].range_exp);
 			}
+		}
+		return SR_ERR_NA;
+	case SR_CONF_DIGITS:
+		digits_str = g_variant_get_string(data, NULL);
+		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
+			if (g_strcmp0(digits_map[i], digits_str) == 0)
+				return hp_3478a_set_digits(sdi, i);
 		}
 		return SR_ERR_NA;
 	default:
@@ -286,6 +310,9 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_builder_end(&gvb);
 		break;
+	case SR_CONF_DIGITS:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(digits));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -308,7 +335,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * NOTE: For faster readings, there are some things one can do:
 	 *     - Turn off the display: sr_scpi_send(scpi, "D3SIGROK").
 	 *     - Set the line frequency to 60Hz via switch (back of the unit).
-	 *     - Set to 3.5 digits measurement (add config key SR_CONF_DIGITS).
+	 *     - Set to 3.5 digits measurement.
 	 */
 
 	/* Set to internal trigger. */

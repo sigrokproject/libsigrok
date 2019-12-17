@@ -110,6 +110,24 @@ SR_PRIV int hp_3478a_set_range(const struct sr_dev_inst *sdi, int range_exp)
 	return hp_3478a_get_status_bytes(sdi);
 }
 
+SR_PRIV int hp_3478a_set_digits(const struct sr_dev_inst *sdi, uint8_t digits)
+{
+	int ret;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+
+	/* No need to send command if we're not changing the range. */
+	if (devc->spec_digits == digits)
+		return SR_OK;
+
+	/* digits are based on devc->spec_digits, so we have to substract 1 */
+	ret = sr_scpi_send(scpi, "N%i", digits-1);
+	if (ret != SR_OK)
+		return ret;
+
+	return hp_3478a_get_status_bytes(sdi);
+}
+
 static int parse_range_vdc(struct dev_context *devc, uint8_t range_byte)
 {
 	if ((range_byte & SB1_RANGE_BLOCK) == RANGE_VDC_30MV) {
