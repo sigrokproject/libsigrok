@@ -197,6 +197,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Logic threshold (custom)", NULL},
 	{SR_CONF_RANGE, SR_T_STRING, "range",
 		"Range", NULL},
+	{SR_CONF_DIGITS, SR_T_STRING, "digits",
+		"Digits", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",

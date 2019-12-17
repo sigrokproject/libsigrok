@@ -1018,6 +1018,9 @@ enum sr_configkey {
 	/** The measurement range of a DMM or the output range of a power supply. */
 	SR_CONF_RANGE,
 
+	/** The number of digits (e.g. for a DMM). */
+	SR_CONF_DIGITS,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
