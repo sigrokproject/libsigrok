@@ -168,11 +168,17 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 	*triggerpos = result[0] | (result[1] << 8) | (result[2] << 16);
 	*stoppos = result[3] | (result[4] << 8) | (result[5] << 16);
 
-	/* Not really sure why this must be done, but according to spec. */
+	/*
+	 * These "position" values point to after the event (end of
+	 * capture data, trigger condition matched). This is why they
+	 * get decremented here. Sample memory consists of 512-byte
+	 * chunks with meta data in the upper 64 bytes. Thus when the
+	 * decrements takes us into this upper part of the chunk, then
+	 * further move backwards to the end of the chunk's data part.
+	 */
 	if ((--*stoppos & 0x1ff) == 0x1ff)
 		*stoppos -= 64;
-
-	if ((*--triggerpos & 0x1ff) == 0x1ff)
+	if ((--*triggerpos & 0x1ff) == 0x1ff)
 		*triggerpos -= 64;
 
 	return 1;
@@ -1009,8 +1015,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	dl_events_in_line = 64 * 7;
-	trg_line = ~0;
-	trg_event = ~0;
 
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1038,6 +1042,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	/* Check if trigger has fired. */
 	modestatus = sigma_get_register(READ_MODE, devc);
+	trg_line = ~0;
+	trg_event = ~0;
 	if (modestatus & RMR_TRIGGERED) {
 		trg_line = triggerpos >> 9;
 		trg_event = triggerpos & 0x1ff;
