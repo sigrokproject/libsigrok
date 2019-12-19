@@ -37,6 +37,11 @@ The following drivers/devices require a firmware upload upon connection:
    'sigrok-firmware' repository/project under a license which allows us
    to redistribute them.
 
+ - dreamsourcelab-dslogic: The DreamSourceLab DSLogic/DSCope device series
+   requires various firmware files and FPGA bitstream files.
+   These can be extracted/downloaded from the vendor's GitHub repo using a
+   tool from our 'sigrok-util' repository/project.
+
  - fx2lafw: Logic analyzers based on the Cypress FX2(LP) chip need the
    firmware files from the 'sigrok-firmware-fx2lafw' repository/project.
    The firmware is written from scratch and licensed under the GNU GPLv2+.
@@ -64,6 +69,11 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Linux application using a tool
    from our 'sigrok-util' repository/project.
 
+ - saleae-logic-pro: The Saleae Logic Pro 16 needs a firmware file for the
+   Cypress FX3 chip in the device, as well as an FPGA bitstream file.
+   These can be extracted from the vendor's Linux application using a tool
+   from our 'sigrok-util' repository/project.
+
  - sysclk-lwla:
 
     - The Sysclk LWLA1034 requires various bitstream files.
@@ -74,6 +84,12 @@ The following drivers/devices require a firmware upload upon connection:
       These can be extracted from the vendor's Windows drivers using a tool
       from our 'sigrok-util' repository/project.
 
+ - sysclk-sla5032: The Sysclk SLA5032 needs an FPGA bitstream file.
+   This file can be copied (and renamed) from the Windows vendor software
+   installation directory. Details:
+
+     https://sigrok.org/wiki/Sysclk_SLA5032#Firmware
+
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
@@ -82,7 +98,6 @@ The following drivers/devices do not need any firmware upload:
  - atten-pps3xxx
  - baylibre-acme
  - beaglelogic
- - brymen-bm86x
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
@@ -90,29 +105,40 @@ The following drivers/devices do not need any firmware upload:
  - colead-slm
  - conrad-digi-35-cpu
  - demo
+ - fluke-45
  - fluke-dmm
  - ftdi-la
  - gmc-mh-1x-2x (including all subdrivers)
  - gwinstek-gds-800
+ - gwinstek-gpd
  - hameg-hmo
+ - hantek-4032l
  - hp-3457a
+ - hp-3478a
  - hung-chang-dso-2100
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
+ - ipdbg-la
  - kecheng-kc-330b
  - kern-scale
+ - korad-kaxxxxp
  - lascar-el-usb
+ - lecroy-xstream
  - link-mso19
  - manson-hcs-3xxx
  - maynuo-m97
  - mic-985xx (including all subdrivers)
- - motech-lps-30x
+ - microchip-pickit2
  - mooshimeter-dmm
+ - motech-lps-30x
  - norma-dmm
  - openbench-logic-sniffer
  - pce-322a
  - pipistrello-ols
+ - rdtech-dps
  - rigol-ds
+ - rohde-schwarz-sme-0x
+ - scpi-dmm
  - scpi-pps
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
@@ -122,9 +148,9 @@ The following drivers/devices do not need any firmware upload:
  - tondaj-sl-814
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
- - victor-dmm
  - yokogawa-dlm
  - zeroplus-logic-cube
+ - zketech-ebd-usb
 
 
 Specifying serial ports
@@ -159,7 +185,7 @@ Formal syntax for serial communication:
    conn=hid[/<chip>]/usb=<bus>.<dev>[.<if>]
    conn=hid[/<chip>]/raw=<path>
    conn=hid[/<chip>]/sn=<serno>
-   chip can be: ch9325, cp2110
+   chip can be: bu86x, ch9325, cp2110, victor
    path may contain slashes
    path and serno are "greedy" (span to the end of the spec)
  - Bluetooth Classic and Bluetooth Low Energy (BLE):
@@ -172,52 +198,8 @@ Formal syntax for serial communication:
      <name>:conn=<spec>" example, that is why the dense form and the use
      of dashes for separation are supported)
 
-The following drivers/devices require a serial port specification. Some of
-the drivers implement a default for the connection. Some of the drivers
-can auto-detect USB connected devices.
-
- - agilent-dmm
- - appa-55ii
- - atten-pps3xxx
- - brymen-dmm
- - cem-dt-885x
- - center-3xx (including all subdrivers)
- - colead-slm
- - conrad-digi-35-cpu
- - fluke-dmm
- - gmc-mh-1x-2x (including all subdrivers)
- - hameg-hmo
- - link-mso19
- - mic-985xx (including all subdrivers)
- - norma-dmm
- - openbench-logic-sniffer
- - rigol-ds (for RS232; not required for USBTMC or TCP)
- - serial-dmm (including all subdrivers)
- - serial-lcr (including all subdrivers)
- - teleinfo
- - tondaj-sl-814
- - uni-t-dmm (all -ser subdrivers)
- - uni-t-ut32x
-
-The following drivers/devices do not require a serial port specification:
-
- - asix-sigma
- - brymen-bm86x
- - chronovu-la
- - demo
- - fx2lafw
- - hantek-dso
- - ikalogic-scanalogic2
- - ikalogic-scanaplus
- - kecheng-kc-330b
- - lascar-el-usb
- - pipistrello-ols
- - rigol-ds (USBTMC or TCP)
- - saleae-logic16
- - sysclk-lwla
- - uni-t-dmm (all non -ser subdrivers)
- - yokogawa-dlm (USBTMC or TCP)
- - zeroplus-logic-cube
+Some of the drivers implement a default for the connection. Some of the
+drivers can auto-detect USB connected devices.
 
 Beyond strict serial communication over COM ports (discussed above), the
 conn= property can also address specific USB devices, as well as specify TCP
@@ -227,14 +209,6 @@ or VXI communication parameters. See these examples:
  $ sigrok-cli --driver <somedriver>:conn=tcp-raw/<ipaddr>/<port> ...
  $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
  $ sigrok-cli --driver <somedriver>:conn=usbtmc/<bus>.<addr> ...
-
-The following drivers/devices accept network communication parameters:
-
- - hameg-hmo
- - rigol-ds
- - scpi-dmm
- - siglent-sds
- - yokogawa-dlm
 
 
 Specifying serial port parameters
