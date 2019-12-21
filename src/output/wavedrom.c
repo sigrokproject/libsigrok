@@ -24,54 +24,48 @@
 
 #define LOG_PREFIX "output/wavedrom"
 
-struct context
-{
+struct context {
 	uint32_t channel_count;
-	// TODO: remove this, channels are available with each call
 	struct sr_channel **channels;
-
-	// output strings
-	GString **channel_outputs;
+	GString **channel_outputs; /* output strings */
 };
 
-// takes all data collected in context and
-// renders it all to a JSON string.
+/* Converts accumulated output data to a JSON string. */
 static GString *wavedrom_render(const struct context *ctx)
 {
-	// open
-	GString *output = g_string_new("{ \"signal\": [");
-	uint32_t ch, i;
-	char lastChar, currentChar;
+	GString *output;
+	size_t ch, i;
+	char last_char, curr_char;
 
+	output = g_string_new("{ \"signal\": [");
 	for (ch = 0; ch < ctx->channel_count; ch++) {
 		if (!ctx->channel_outputs[ch])
 			continue;
 
-		// channel strip
+		/* Channel strip. */
 		g_string_append_printf(output,
 			"{ \"name\": \"%s\", \"wave\": \"", ctx->channels[ch]->name);
 
-		lastChar = 0;
+		last_char = 0;
 		for (i = 0; i < ctx->channel_outputs[ch]->len; i++) {
-			currentChar = ctx->channel_outputs[ch]->str[i];
-			// data point
-			if (currentChar == lastChar) {
+			curr_char = ctx->channel_outputs[ch]->str[i];
+			/* Data point. */
+			if (curr_char == last_char) {
 				g_string_append_c(output, '.');
 			} else {
-				g_string_append_c(output, currentChar);
-				lastChar = currentChar;
+				g_string_append_c(output, curr_char);
+				last_char = curr_char;
 			}
 		}
 		if (ch < ctx->channel_count - 1) {
 			g_string_append(output, "\" },");
 		} else {
-			// last channel - no comma
+			/* Last channel, no comma. */
 			g_string_append(output, "\" }");
 		}
 	}
-
-	// close
 	g_string_append(output, "], \"config\": { \"skin\": \"narrow\" }}");
+
 	return output;
 }
 
@@ -80,30 +74,26 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *channel;
 	GSList *l;
-	uint32_t i;
+	size_t i;
 
 	(void)options;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
 
-	o->priv = ctx = g_malloc(sizeof(struct context));
+	o->priv = ctx = g_malloc0(sizeof(*ctx));
 
 	ctx->channel_count = g_slist_length(o->sdi->channels);
-	ctx->channels = g_malloc(
-		sizeof(struct sr_channel) * ctx->channel_count);
-	ctx->channel_outputs = g_malloc(
-		sizeof(GString *) * ctx->channel_count);
+	ctx->channels = g_malloc0(
+		sizeof(ctx->channels[0]) * ctx->channel_count);
+	ctx->channel_outputs = g_malloc0(
+		sizeof(ctx->channel_outputs[0]) * ctx->channel_count);
 
 	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
 		channel = l->data;
-		if (channel->enabled &&
-			channel->type == SR_CHANNEL_LOGIC) {
+		if (channel->enabled && channel->type == SR_CHANNEL_LOGIC) {
 			ctx->channels[i] = channel;
 			ctx->channel_outputs[i] = g_string_new(NULL);
-		} else {
-			ctx->channels[i] = NULL;
-			ctx->channel_outputs[i] = NULL;
 		}
 	}
 
@@ -113,7 +103,7 @@ static int init(struct sr_output *o, GHashTable *options)
 static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
-	uint32_t i;
+	GString *s;
 
 	if (!o)
 		return SR_ERR_ARG;
@@ -122,9 +112,10 @@ static int cleanup(struct sr_output *o)
 	o->priv = NULL;
 
 	if (ctx) {
-		for (i = 0; i < ctx->channel_count; i++) {
-			if (ctx->channel_outputs[i])
-				g_string_free(ctx->channel_outputs[i], TRUE);
+		while (--ctx->channel_count) {
+			s = ctx->channel_outputs[ctx->channel_count];
+			if (s)
+				g_string_free(s, TRUE);
 		}
 		g_free(ctx->channel_outputs);
 		g_free(ctx->channels);
@@ -135,15 +126,17 @@ static int cleanup(struct sr_output *o)
 }
 
 static void process_logic(const struct context *ctx,
-			  const struct sr_datafeed_logic *logic)
+	const struct sr_datafeed_logic *logic)
 {
-	unsigned int sample_count, ch, i;
+	size_t sample_count, ch, i;
 	uint8_t *sample;
 
 	sample_count = logic->length / logic->unitsize;
 
-	// extract the logic bits for each channel and
-	// store them as wavedrom letters (1/0) in each channel's string
+	/*
+	 * Extract the logic bits for each channel and store them
+	 * as wavedrom letters (1/0) in each channel's text string.
+	 */
 	for (ch = 0; ch < ctx->channel_count; ch++) {
 		if (ctx->channels[ch]) {
 			for (i = 0; i < sample_count; i++) {
@@ -151,7 +144,7 @@ static void process_logic(const struct context *ctx,
 
 				if (ctx->channel_outputs[ch]) {
 					g_string_append_c(ctx->channel_outputs[ch],
-									  sample[ch / 8] & (1 << (ch % 8)) ? '1' : '0');
+						sample[ch / 8] & (1 << (ch % 8)) ? '1' : '0');
 				}
 			}
 		}
@@ -159,7 +152,7 @@ static void process_logic(const struct context *ctx,
 }
 
 static int receive(const struct sr_output *o,
-		   const struct sr_datafeed_packet *packet, GString **out)
+	const struct sr_datafeed_packet *packet, GString **out)
 {
 	struct context *ctx;
 
@@ -184,7 +177,7 @@ static int receive(const struct sr_output *o,
 
 SR_PRIV struct sr_output_module output_wavedrom = {
 	.id = "wavedrom",
-	.name = "WAVEDROM",
+	.name = "WaveDrom",
 	.desc = "WaveDrom.com file format",
 	.exts = (const char *[]){"wavedrom", "json", NULL},
 	.flags = 0,
