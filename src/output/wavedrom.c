@@ -69,6 +69,56 @@ static GString *wavedrom_render(const struct context *ctx)
 	return output;
 }
 
+static void process_logic(const struct context *ctx,
+	const struct sr_datafeed_logic *logic)
+{
+	size_t sample_count, ch, i;
+	uint8_t *sample;
+
+	sample_count = logic->length / logic->unitsize;
+
+	/*
+	 * Extract the logic bits for each channel and store them
+	 * as wavedrom letters (1/0) in each channel's text string.
+	 */
+	for (ch = 0; ch < ctx->channel_count; ch++) {
+		if (ctx->channels[ch]) {
+			for (i = 0; i < sample_count; i++) {
+				sample = logic->data + i * logic->unitsize;
+
+				if (ctx->channel_outputs[ch]) {
+					g_string_append_c(ctx->channel_outputs[ch],
+						sample[ch / 8] & (1 << (ch % 8)) ? '1' : '0');
+				}
+			}
+		}
+	}
+}
+
+static int receive(const struct sr_output *o,
+	const struct sr_datafeed_packet *packet, GString **out)
+{
+	struct context *ctx;
+
+	*out = NULL;
+
+	if (!o || !o->sdi || !o->priv)
+		return SR_ERR_ARG;
+
+	ctx = o->priv;
+
+	switch (packet->type) {
+	case SR_DF_LOGIC:
+		process_logic(ctx, packet->payload);
+		break;
+	case SR_DF_END:
+		*out = wavedrom_render(ctx);
+		break;
+	}
+
+	return SR_OK;
+}
+
 static int init(struct sr_output *o, GHashTable *options)
 {
 	struct context *ctx;
@@ -120,56 +170,6 @@ static int cleanup(struct sr_output *o)
 		g_free(ctx->channel_outputs);
 		g_free(ctx->channels);
 		g_free(ctx);
-	}
-
-	return SR_OK;
-}
-
-static void process_logic(const struct context *ctx,
-	const struct sr_datafeed_logic *logic)
-{
-	size_t sample_count, ch, i;
-	uint8_t *sample;
-
-	sample_count = logic->length / logic->unitsize;
-
-	/*
-	 * Extract the logic bits for each channel and store them
-	 * as wavedrom letters (1/0) in each channel's text string.
-	 */
-	for (ch = 0; ch < ctx->channel_count; ch++) {
-		if (ctx->channels[ch]) {
-			for (i = 0; i < sample_count; i++) {
-				sample = logic->data + i * logic->unitsize;
-
-				if (ctx->channel_outputs[ch]) {
-					g_string_append_c(ctx->channel_outputs[ch],
-						sample[ch / 8] & (1 << (ch % 8)) ? '1' : '0');
-				}
-			}
-		}
-	}
-}
-
-static int receive(const struct sr_output *o,
-	const struct sr_datafeed_packet *packet, GString **out)
-{
-	struct context *ctx;
-
-	*out = NULL;
-
-	if (!o || !o->sdi || !o->priv)
-		return SR_ERR_ARG;
-
-	ctx = o->priv;
-
-	switch (packet->type) {
-	case SR_DF_LOGIC:
-		process_logic(ctx, packet->payload);
-		break;
-	case SR_DF_END:
-		*out = wavedrom_render(ctx);
-		break;
 	}
 
 	return SR_OK;
