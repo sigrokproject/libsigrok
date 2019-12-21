@@ -73,24 +73,47 @@ static void process_logic(const struct context *ctx,
 	const struct sr_datafeed_logic *logic)
 {
 	size_t sample_count, ch, i;
-	uint8_t *sample;
+	uint8_t *sample, bit;
+	GString *accu;
 
-	sample_count = logic->length / logic->unitsize;
+	if (!ctx->channel_count)
+		return;
 
 	/*
 	 * Extract the logic bits for each channel and store them
 	 * as wavedrom letters (1/0) in each channel's text string.
+	 * This transforms the input which consists of sample sets
+	 * that span multiple channels into output stripes per logic
+	 * channel which consist of bits for that individual channel.
+	 *
+	 * TODO Reduce memory consumption during accumulation of
+	 * output data.
+	 *
+	 * Ideally we'd accumulate binary chunks, and defer conversion
+	 * to the text format. Analog data already won't get here, only
+	 * logic data does. When the per-channel transformation also
+	 * gets deferred until later, then the only overhead would be
+	 * for disabled logic channels. Which may be acceptable or even
+	 * negligable.
+	 *
+	 * An optional addition to the above mentioned accumulation of
+	 * binary data is RLE compression. Mark both the position in the
+	 * accumulated data as well as a repetition counter, instead of
+	 * repeatedly storing the same sample set. The efficiency of
+	 * this approach of course depends on the change rate of input
+	 * data. But the approach perfectly matches the WaveDrom syntax
+	 * for repeated bit patterns, and thus is easily handled in the
+	 * text rendering stage of the output module.
 	 */
-	for (ch = 0; ch < ctx->channel_count; ch++) {
-		if (ctx->channels[ch]) {
-			for (i = 0; i < sample_count; i++) {
-				sample = logic->data + i * logic->unitsize;
-
-				if (ctx->channel_outputs[ch]) {
-					g_string_append_c(ctx->channel_outputs[ch],
-						sample[ch / 8] & (1 << (ch % 8)) ? '1' : '0');
-				}
-			}
+	sample_count = logic->length / logic->unitsize;
+	for (i = 0; i < sample_count; i++) {
+		sample = logic->data + i * logic->unitsize;
+		for (ch = 0; ch < ctx->channel_count; ch++) {
+			accu = ctx->channel_outputs[ch];
+			if (!accu)
+				continue;
+			bit = sample[ch / 8] & (1 << (ch % 8));
+			g_string_append_c(accu, bit ? '1' : '0');
 		}
 	}
 }
