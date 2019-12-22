@@ -44,7 +44,7 @@
  *          Values are "channel", "units", "off". Defaults to "units".
  *
  * time:    Whether or not the first column should include the time the sample
- *          was taken. Defaults to TRUE.
+ *          was taken. Defaults to FALSE.
  *
  * trigger: Whether or not to add a "trigger" column as the last column.
  *          Defaults to FALSE.
@@ -658,7 +658,7 @@ static const struct sr_option *get_options(void)
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("channel")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("off")));
 		options[7].values = l;
-		options[8].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
+		options[8].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[10].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 	}
