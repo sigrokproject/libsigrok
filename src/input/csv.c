@@ -751,7 +751,7 @@ static void strip_comment(char *buf, const GString *prefix)
 }
 
 /**
- * @brief Splits a text line into a set of columns.
+ * Splits a text line into a set of columns.
  *
  * @param[in] buf	The input text line to split.
  * @param[in] inc	The input module's context.
@@ -766,7 +766,7 @@ static char **split_line(char *buf, struct context *inc)
 }
 
 /**
- * @brief Parse a multi-bit field into several logic channels.
+ * Parse a multi-bit field into several logic channels.
  *
  * @param[in] column	The input text, a run of bin/hex/oct digits.
  * @param[in] inc	The input module's context.
@@ -876,7 +876,7 @@ static int parse_logic(const char *column, struct context *inc,
 }
 
 /**
- * @brief Parse a floating point text into an analog value.
+ * Parse a floating point text into an analog value.
  *
  * @param[in] column	The input text, a floating point number.
  * @param[in] inc	The input module's context.
@@ -925,7 +925,7 @@ static int parse_analog(const char *column, struct context *inc,
 }
 
 /**
- * @brief Parse a timestamp text, auto-determine samplerate.
+ * Parse a timestamp text, auto-determine samplerate.
  *
  * @param[in] column	The input text, a floating point number.
  * @param[in] inc	The input module's context.
@@ -1014,7 +1014,7 @@ static int parse_timestamp(const char *column, struct context *inc,
 }
 
 /**
- * @brief Parse routine which ignores the input text.
+ * Parse routine which ignores the input text.
  *
  * This routine exists to unify dispatch code paths, mapping input file
  * columns' data types to their respective parse routines.
@@ -1388,7 +1388,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		ret = SR_ERR;
 		goto out;
 	}
-	sr_dbg("DIAG Got %zu columns in text line: %s.", num_columns, line);
+	sr_dbg("Got %zu columns in text line: %s.", num_columns, line);
 
 	/*
 	 * Interpret the user provided column format specs. This might
