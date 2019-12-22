@@ -350,6 +350,7 @@ static int flush_logic_samples(const struct sr_input *in)
 		return rc;
 
 	inc->datafeed_buf_fill = 0;
+
 	return SR_OK;
 }
 
@@ -368,6 +369,7 @@ static int queue_logic_samples(const struct sr_input *in)
 		if (rc != SR_OK)
 			return rc;
 	}
+
 	return SR_OK;
 }
 
@@ -443,6 +445,7 @@ static int flush_analog_samples(const struct sr_input *in)
 	}
 
 	inc->analog_datafeed_buf_fill = 0;
+
 	return SR_OK;
 }
 
@@ -461,6 +464,7 @@ static int queue_analog_samples(const struct sr_input *in)
 		if (rc != SR_OK)
 			return rc;
 	}
+
 	return SR_OK;
 }
 
@@ -728,6 +732,7 @@ static const struct column_details *lookup_column_details(struct context *inc, s
 		return NULL;
 	if (!nr || nr > inc->column_want_count)
 		return NULL;
+
 	return &inc->column_details[nr - 1];
 }
 
@@ -1025,6 +1030,7 @@ static int parse_ignore(const char *column, struct context *inc,
 	(void)column;
 	(void)inc;
 	(void)details;
+
 	return SR_OK;
 }
 
@@ -1156,6 +1162,7 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 	if (!status)
 		return SR_ERR;
+
 	return SR_OK;
 }
 
