@@ -1795,7 +1795,7 @@ static struct sr_option options[] = {
 	},
 	[OPT_HEADER] = {
 		"header", "Get channel names from first line.",
-		"Use the first processed line's column captions (when available) as channel names. Off by default",
+		"Use the first processed line's column captions (when available) as channel names. Enabled by default.",
 		NULL, NULL,
 	},
 	[OPT_SAMPLERATE] = {
@@ -1832,7 +1832,7 @@ static const struct sr_option *get_options(void)
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("oct")));
 		options[OPT_SINGLE_FMT].values = l;
 		options[OPT_START_LINE].def = g_variant_ref_sink(g_variant_new_uint32(1));
-		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
+		options[OPT_HEADER].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[OPT_SAMPLERATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[OPT_COL_SEP].def = g_variant_ref_sink(g_variant_new_string(","));
 		options[OPT_COMMENT].def = g_variant_ref_sink(g_variant_new_string(";"));
