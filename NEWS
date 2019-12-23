@@ -1,3 +1,212 @@
+0.5.2 (2019-12-23)
+------------------
+
+Note: This release does NOT change the libsigrok public C API in incompatible
+      ways. While new config keys have been added (additional enum
+      entries / numbers), no existing interfaces were changed or removed.
+      Frontends should continue to work fine without recompiling or relinking.
+
+ * New supported hardware:
+   - Logic analyzers:
+     - Microchip PICkit2
+     - Sysclk SLA5032
+   - Multimeters:
+     - Agilent 34405A
+     - Agilent U1271
+     - Agilent U1272
+     - Agilent U1273
+     - HP 34401A
+     - Keysight 34465A
+     - MASTECH MS2115B
+     - Mooshimeter
+   - Power supplies:
+     - BK Precision 9130
+     - HP 6611C
+     - HP 6612C
+     - HP 6613C
+     - HP 6614C
+     - HP 66312A
+     - HP 6632A
+     - HP 6634A
+     - Korad KA3005P (with 0xBC as extra byte in the model ID).
+     - Korad KD6005P
+     - Manson HCS-3300
+     - Manson HCS-3302
+     - RND 320-KD3005P
+     - Stamos S-LS-31
+     - TENMA 72-2535 V2.1
+     - Voltcraft DPPS-32-15
+   - Oscilloscopes:
+     - Agilent DSO1000B series
+     - Hameg HMO3522
+     - Rigol MSO5000 series
+     - Rohde&Schwarz HMO1000 series (e.g. bug #1286)
+     - Rohde&Schwarz RTA4000 series
+     - Rohde&Schwarz RTB2000 series
+     - Rohde&Schwarz RTC1000 series
+     - Rohde&Schwarz RTM3000 series
+     - YiXingDianZi MDSO
+   - LCR meters:
+     - MASTECH MS5308
+     - PeakTech 2165
+     - UNI-T UT612
+     - Voltcraft 4080
+   - Thermometers:
+     - MASTECH MS6514
+ * New config keys:
+   - SR_CONF_OFFSET
+   - SR_CONF_TRIGGER_PATTERN
+   - SR_CONF_HIGH_RESOLUTION
+   - SR_CONF_PEAK_DETECTION
+   - SR_CONF_LOGIC_THRESHOLD
+   - SR_CONF_LOGIC_THRESHOLD_CUSTOM
+   - SR_CONF_RANGE
+   - SR_CONF_DIGITS
+ * New output modules:
+   - wavedrom: WaveDrom JSON-based digital timing diagrams.
+ * Build dependencies:
+   - hidapi >= 0.8.0 (optional, used for some HID based "serial cables")
+   - bluez/libbluetooth >= 4.0 (optional, used for Bluetooth/BLE; Linux-only)
+   - libgio >= 2.32.0 (optional, used by some drivers)
+ * C++ bindings:
+   - Add Output::format().
+   - Avoid "using namespace" in headers (bug #1354).
+ * Python bindings:
+   - Add data array for logic packet payload.
+   - Add override for Context.create_logic_packet().
+   - Add new Context::create_end_packet() method.
+ * Backend:
+   - Add support for "serial over USB HID" transport, e.g. in DMMs (bug #555).
+     Supported chips/protocols: WCH CH9325, SiLabs CP2110, Brymen BU-86X IR
+     adapter, Victor DMM chip.
+   - Add support for Bluetooth and BLE (currently Linux-only).
+   - Add support for "serial over Bluetooth/BLE" transport (used e.g. in DMMs).
+   - serial: Add support for optional "RX chunk" callback.
+   - Remove sr_dev_close call from std_serial_dev_acquisition_stop (bug #1271).
+ * input/trace32_ad:
+   - Add support for new file format (BINHDR2).
+ * input/csv:
+   - Unbreak re-import of CSV files.
+   - Various parsing robustness improvements.
+   - Introduce generic "column processing" support.
+   - Various module option changes and renames.
+   - Add support for analog input data.
+   - Add support for timestamp columns, auto detect samplerate.
+   - Add automatic format match support.
+   - Set default "header" option value to true.
+   - Fix incorrect/incomplete startline/newline handling (bug #968).
+ * output/analog:
+   - Also print meta strings (not just numbers).
+ * output/vcd:
+   - Use larger data type to internally store frequency.
+   - Support smaller timescales with higher resolution.
+ * output/csv:
+   - Set default "time" option value to false.
+ * scpi:
+   - Add connenction_id() function to all SCPI drivers.
+   - scpi_libgpib: Add mutex to SPoll.
+ * dmm/bm86x:
+   - Unbreak temperature modes for two probes and no probes (bug #1394).
+ * brymen-bm86x, victor-dmm:
+   - Removed in favor of serial-dmm based driver support.
+ * scpi-pps:
+   - Add support for various config keys for HP 66xxB power supplies.
+   - Add init_acquisition() and update_status() for HP 66xxB power supplies.
+   - Set device and channel group feature for HP 66xxB.
+   - Don't use SCPI_CMD_REMOTE/_LOCAL for HP 66xxB devices when in GPIB mode.
+   - Add support for various config keys for HP 66xxA power supplies.
+   - Add configurable sr_mqflags.
+   - Add missing frequency channel settings for acquisition.
+ * hantek-4032l:
+   - Fix broken triggering on low signal (bug #1402).
+ * hameg-hmo:
+   - Use g_byte_array_free() instead of g_free() (bug #1324).
+   - Remove invalid HMO2522, add missing HMO3522 (bug #1322).
+   - Add support for 16 digital (logic) channels, i.e. two pods.
+   - Add support for various new config keys.
+   - Avoid getting stuck upon SCPI timeouts (bug #1323).
+   - Try to find a valid serialcomm if none is supplied (bug #1321).
+   - When setting slope, also set trigger type to edge (bug #1328).
+   - Use 1-based (not 0-based) POD numbers.
+   - Fix for an incorrect samplerate being returned.
+   - Fix the upper limit for the vertical scale.
+ * agilent-dmm:
+   - Fix support for Agilent/Keysight U1252A.
+ * asix-sigma:
+   - Fix a compiler warning (bug #1411).
+ * beaglelogic:
+   - Fix mismatched printf specifiers.
+ * saleae-logic16:
+   - Warn (instead of erroring out) if FPGA is unsupported.
+ * demo:
+   - Set an initial MQ, MQ flag and digits to the analog package.
+   - Get/set measurement quantity for the analog channels.
+   - Get/set amplitude while data acquisition is running.
+   - Get/set new config key SR_CONF_OFFSET.
+   - Add random analog signal generation.
+ * korad-kaxxxxp:
+   - Add SR_MQFLAG_DC flag to the current channel packet.
+   - Fix bug when setting values while acquisition is running.
+   - Send META packet when states have changed.
+ * lecroy-xstream:
+   - Remove header read, which caused issues on some devices (PR #33).
+ * uni-t-ut32x:
+   - Pre-set to default conn= spec.
+   - Use common code for sample/time limits.
+   - Improve robustness of packet parser, more diagnostics.
+ * chronovu-la:
+    - Fix broken triggering (#1369).
+ * openbench-logic-sniffer:
+   - Use 32bit for handling sample counts.
+   - Extend reponse delay when scanning device (helps on Pepino).
+   - Add feature to support >256K memory.
+   - Introduce metadata quirks support, unbreak Logic Shrimp.
+ * ftdi-la:
+   - Added FTDI FT232H device ID.
+   - Do enter the error path upon VID:PID mismatch (bug #1390).
+ * hp-3478a:
+   - Check via GPIB serial poll if new data is available.
+   - Add get/set/list of measurement ranges.
+   - Add get/set/list of digits.
+   - Check for measurement value overflow.
+ * manson-hcs-3xxx:
+   - Add support for some models with changes ID string (e.g. bug #1441).
+ * fx2lafw:
+   - Add support for 48MHz sampling (for very short intervals only).
+ * ipdbg-la:
+   - Check if limit samples is valid.
+   - Improve acquisition speed.
+   - Fix various issues on Windows.
+   - Fix an issue when capture rate is 100% (bug #1393).
+ * scpi-dmm:
+   - Accept serialcomm= scan options.
+   - Run OPC queries immediately before essential commands.
+ * brymen-bm86x:
+   - Fix incorrect channel indices.
+ * dmm/eev121gw:
+   - Add missing scale items for sub display in power modes.
+ * rigol-ds:
+   - Fix memory buffer readout on DS4000 series.
+ * fluke-45:
+   - Avoid NULL dereference in the probe routine.
+   - Disable ECHO test, it confuses other SCPI devices (bug #1272).
+ ∗ fluke-dmm:
+   - Fix use-after-free bugs (bug #1423).
+ * rdtech-dps:
+   - Synchronize read and write operations.
+   - Retry sr_modbus_read_holding_registers() up to 3 times.
+   - Handle different per-model current/voltage digits (bug #1385).
+   - Send META package when states have changed.
+ * udev:
+   - Add an additional Rohde&Schwarz HMO VID/PID.
+   - Add Siglent SDS1104X-E VID/PID (bug #1357).
+   - Add Lecroy WaveRunner VID/PID.
+ * Build system:
+   - Fix an issue when building in directories that are symlinks (bug #547).
+   - Fix C++ bindings compilation with Doxygen >= 1.8.16 (bug #1422).
+ * Fix various memory leaks in the backend and in drivers.
+ * README.devices: Update/amend docs, add more examples.
+
 0.5.1 (2018-10-14)
 ------------------
 
