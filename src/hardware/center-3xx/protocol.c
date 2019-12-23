@@ -64,7 +64,7 @@ static void log_packet(const uint8_t *buf, int idx)
 static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 {
 	int i;
-	uint16_t temp_u16;
+	int16_t temp_i16;
 
 	log_packet(buf, idx);
 
@@ -89,9 +89,8 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 
 	/* Byte 7+8/9+10/11+12/13+14: channel T1/T2/T3/T4 temperature. */
 	for (i = 0; i < NUM_CHANNELS; i++) {
-		temp_u16 = buf[8 + (i * 2)];
-		temp_u16 |= ((uint16_t)buf[7 + (i * 2)] << 8);
-		info->temp[i] = (float)temp_u16;
+		temp_i16 = RL16S(&buf[7 + 2 * i]);
+		info->temp[i] = (float)temp_i16;
 	}
 
 	/* Byte 43: Specifies whether we need to divide the value(s) by 10. */
