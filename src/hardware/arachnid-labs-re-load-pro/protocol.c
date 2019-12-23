@@ -265,31 +265,6 @@ SR_PRIV int reloadpro_get_voltage_current(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int send_config_update_key(const struct sr_dev_inst *sdi,
-		uint32_t key, GVariant *var)
-{
-	struct sr_config *cfg;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	int ret;
-
-	cfg = sr_config_new(key, var);
-	if (!cfg)
-		return SR_ERR;
-
-	memset(&meta, 0, sizeof(meta));
-
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-
-	meta.config = g_slist_append(meta.config, cfg);
-
-	ret = sr_session_send(sdi, &packet);
-	sr_config_free(cfg);
-
-	return ret;
-}
-
 static void handle_packet(const struct sr_dev_inst *sdi)
 {
 	struct sr_datafeed_packet packet;
@@ -306,7 +281,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	if (g_str_has_prefix((const char *)devc->buf, "overtemp")) {
 		sr_warn("Overtemperature condition!");
 		devc->otp_active = TRUE;
-		send_config_update_key(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+		sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
 			g_variant_new_boolean(TRUE));
 		return;
 	}
@@ -314,7 +289,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	if (g_str_has_prefix((const char *)devc->buf, "undervolt")) {
 		sr_warn("Undervoltage condition!");
 		devc->uvc_active = TRUE;
-		send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
+		sr_session_send_meta(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE,
 			g_variant_new_boolean(TRUE));
 		return;
 	}
@@ -329,7 +304,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 		devc->current_limit = g_ascii_strtod(tokens[1], NULL) / 1000;
 		g_strfreev(tokens);
 		g_cond_signal(&devc->current_limit_cond);
-		send_config_update_key(sdi, SR_CONF_CURRENT_LIMIT,
+		sr_session_send_meta(sdi, SR_CONF_CURRENT_LIMIT,
 			g_variant_new_double(devc->current_limit));
 		return;
 	}
@@ -340,12 +315,12 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 		g_strfreev(tokens);
 		g_cond_signal(&devc->uvc_threshold_cond);
 		if (devc->uvc_threshold == .0) {
-			send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
+			sr_session_send_meta(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
 				g_variant_new_boolean(FALSE));
 		} else {
-			send_config_update_key(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
+			sr_session_send_meta(sdi, SR_CONF_UNDER_VOLTAGE_CONDITION,
 				g_variant_new_boolean(TRUE));
-			send_config_update_key(sdi,
+			sr_session_send_meta(sdi,
 				SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD,
 				g_variant_new_double(devc->uvc_threshold));
 		}

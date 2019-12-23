@@ -141,17 +141,50 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	/* Acquisition settings */
 	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
-	devc->channel_mask = 0xffffffff;
 	devc->flag_reg = 0;
 
 	return devc;
+}
+
+static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
+{
+	struct dev_context *devc = sdi->priv;
+	int i;
+
+	for (i = 0; i < num_chan; i++)
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
+				ols_channel_names[i]);
+
+	devc->max_channels = num_chan;
+}
+
+static void metadata_quirks(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	gboolean is_shrimp;
+
+	if (!sdi)
+		return;
+	devc = sdi->priv;
+	if (!devc)
+		return;
+
+	is_shrimp = sdi->model && strcmp(sdi->model, "Shrimp1.0") == 0;
+	if (is_shrimp) {
+		if (!devc->max_channels)
+			ols_channel_new(sdi, 4);
+		if (!devc->max_samples)
+			devc->max_samples = 256 * 1024;
+		if (!devc->max_samplerate)
+			devc->max_samplerate = SR_MHZ(20);
+	}
 }
 
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	uint32_t tmp_int, ui;
+	uint32_t tmp_int;
 	uint8_t key, type, token;
 	int delay_ms;
 	GString *tmp_str, *devname, *version;
@@ -222,9 +255,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_int; ui++)
-					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
-							ols_channel_names[ui]);
+				ols_channel_new(sdi, tmp_int);
 				break;
 			case 0x01:
 				/* Amount of sample memory available (bytes) */
@@ -258,9 +289,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			switch (token) {
 			case 0x00:
 				/* Number of usable channels */
-				for (ui = 0; ui < tmp_c; ui++)
-					sr_channel_new(sdi, ui, SR_CHANNEL_LOGIC, TRUE,
-							ols_channel_names[ui]);
+				ols_channel_new(sdi, tmp_c);
 				break;
 			case 0x01:
 				/* protocol version */
@@ -283,6 +312,9 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	g_string_free(devname, FALSE);
 	g_string_free(version, FALSE);
 
+	/* Optionally amend received metadata, model specific quirks. */
+	metadata_quirks(sdi);
+
 	return sdi;
 }
 
@@ -299,13 +331,11 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 		sr_info("Enabling demux mode.");
 		devc->flag_reg |= FLAG_DEMUX;
 		devc->flag_reg &= ~FLAG_FILTER;
-		devc->max_channels = NUM_CHANNELS / 2;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		sr_info("Disabling demux mode.");
 		devc->flag_reg &= ~FLAG_DEMUX;
 		devc->flag_reg |= FLAG_FILTER;
-		devc->max_channels = NUM_CHANNELS;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
@@ -366,7 +396,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_ols_changrp = 0;
-	for (i = NUM_CHANNELS; i > 0x02; i /= 2) {
+	for (i = 0x20; i > 0x02; i >>= 1) {
 		if ((devc->flag_reg & i) == 0) {
 			num_ols_changrp++;
 		}

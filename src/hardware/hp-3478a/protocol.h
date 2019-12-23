@@ -138,8 +138,12 @@ struct dev_context {
 
 	double measurement;
 	enum sr_mq measurement_mq;
+	/** The measurement mq flags only contain flags for AC, DC and 4-wire. */
 	enum sr_mqflag measurement_mq_flags;
+	/** The acquisition mq flags also contain flags for autoranging and RMS. */
+	enum sr_mqflag acquisition_mq_flags;
 	enum sr_unit measurement_unit;
+	int range_exp;
 	uint8_t enc_digits;
 	uint8_t spec_digits;
 
@@ -157,6 +161,8 @@ struct channel_context {
 
 SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 				enum sr_mqflag mq_flags);
+SR_PRIV int hp_3478a_set_range(const struct sr_dev_inst *sdi, int range_exp);
+SR_PRIV int hp_3478a_set_digits(const struct sr_dev_inst *sdi, uint8_t digits);
 SR_PRIV int hp_3478a_get_status_bytes(const struct sr_dev_inst *sdi);
 SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data);
 

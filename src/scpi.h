@@ -33,36 +33,50 @@
 #define SCPI_CMD_OPC "*OPC?"
 
 enum {
-	SCPI_CMD_SET_TRIGGER_SOURCE = 1,
+	SCPI_CMD_GET_TIMEBASE = 1,
 	SCPI_CMD_SET_TIMEBASE,
-	SCPI_CMD_SET_VERTICAL_DIV,
+	SCPI_CMD_GET_HORIZONTAL_DIV,
+	SCPI_CMD_GET_VERTICAL_SCALE,
+	SCPI_CMD_SET_VERTICAL_SCALE,
+	SCPI_CMD_GET_TRIGGER_SOURCE,
+	SCPI_CMD_SET_TRIGGER_SOURCE,
+	SCPI_CMD_GET_TRIGGER_SLOPE,
 	SCPI_CMD_SET_TRIGGER_SLOPE,
+	SCPI_CMD_GET_TRIGGER_PATTERN,
+	SCPI_CMD_SET_TRIGGER_PATTERN,
+	SCPI_CMD_GET_HIGH_RESOLUTION,
+	SCPI_CMD_SET_HIGH_RESOLUTION,
+	SCPI_CMD_GET_PEAK_DETECTION,
+	SCPI_CMD_SET_PEAK_DETECTION,
+	SCPI_CMD_GET_COUPLING,
 	SCPI_CMD_SET_COUPLING,
+	SCPI_CMD_GET_HORIZ_TRIGGERPOS,
 	SCPI_CMD_SET_HORIZ_TRIGGERPOS,
 	SCPI_CMD_GET_ANALOG_CHAN_STATE,
-	SCPI_CMD_GET_DIG_CHAN_STATE,
-	SCPI_CMD_GET_TIMEBASE,
-	SCPI_CMD_GET_VERTICAL_DIV,
-	SCPI_CMD_GET_VERTICAL_OFFSET,
-	SCPI_CMD_GET_TRIGGER_SOURCE,
-	SCPI_CMD_GET_HORIZ_TRIGGERPOS,
-	SCPI_CMD_GET_TRIGGER_SLOPE,
-	SCPI_CMD_GET_COUPLING,
 	SCPI_CMD_SET_ANALOG_CHAN_STATE,
+	SCPI_CMD_GET_DIG_CHAN_STATE,
 	SCPI_CMD_SET_DIG_CHAN_STATE,
+	SCPI_CMD_GET_VERTICAL_OFFSET,
 	SCPI_CMD_GET_DIG_POD_STATE,
 	SCPI_CMD_SET_DIG_POD_STATE,
 	SCPI_CMD_GET_ANALOG_DATA,
 	SCPI_CMD_GET_DIG_DATA,
 	SCPI_CMD_GET_SAMPLE_RATE,
-	SCPI_CMD_GET_SAMPLE_RATE_LIVE,
-	SCPI_CMD_GET_DATA_FORMAT,
-	SCPI_CMD_GET_PROBE_FACTOR,
-	SCPI_CMD_SET_PROBE_FACTOR,
 	SCPI_CMD_GET_PROBE_UNIT,
-	SCPI_CMD_SET_PROBE_UNIT,
-	SCPI_CMD_GET_ANALOG_CHAN_NAME,
-	SCPI_CMD_GET_DIG_CHAN_NAME,
+	SCPI_CMD_GET_DIG_POD_THRESHOLD,
+	SCPI_CMD_SET_DIG_POD_THRESHOLD,
+	SCPI_CMD_GET_DIG_POD_USER_THRESHOLD,
+	SCPI_CMD_SET_DIG_POD_USER_THRESHOLD,
+};
+
+enum scpi_transport_layer {
+	SCPI_TRANSPORT_LIBGPIB,
+	SCPI_TRANSPORT_SERIAL,
+	SCPI_TRANSPORT_RAW_TCP,
+	SCPI_TRANSPORT_RIGOL_TCP,
+	SCPI_TRANSPORT_USBTMC,
+	SCPI_TRANSPORT_VISA,
+	SCPI_TRANSPORT_VXI,
 };
 
 struct scpi_command {
@@ -80,11 +94,13 @@ struct sr_scpi_hw_info {
 struct sr_scpi_dev_inst {
 	const char *name;
 	const char *prefix;
+	enum scpi_transport_layer transport;
 	int priv_size;
 	GSList *(*scan)(struct drv_context *drvc);
 	int (*dev_inst_new)(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm);
 	int (*open)(struct sr_scpi_dev_inst *scpi);
+	int (*connection_id)(struct sr_scpi_dev_inst *scpi, char **connection_id);
 	int (*source_add)(struct sr_session *session, void *priv, int events,
 		int timeout, sr_receive_data_callback cb, void *cb_data);
 	int (*source_remove)(struct sr_session *session, void *priv);
@@ -108,6 +124,8 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
+SR_PRIV int sr_scpi_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id);
 SR_PRIV int sr_scpi_source_add(struct sr_session *session,
 		struct sr_scpi_dev_inst *scpi, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);
@@ -149,6 +167,8 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 			struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
+SR_PRIV const char *sr_scpi_unquote_string(char *s);
+
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor);
 SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable,
 		int command);
@@ -160,5 +180,11 @@ SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 		const struct scpi_command *cmdtable,
 		int channel_command, const char *channel_name,
 		GVariant **gvar, const GVariantType *gvtype, int command, ...);
+
+/*--- GPIB only functions ---------------------------------------------------*/
+
+#ifdef HAVE_LIBGPIB
+SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf);
+#endif
 
 #endif

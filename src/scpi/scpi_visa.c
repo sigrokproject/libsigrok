@@ -68,6 +68,16 @@ static int scpi_visa_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_visa_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_visa *vscpi = scpi->priv;
+
+	*connection_id = g_strdup_printf("%s/%s", scpi->prefix, vscpi->resource);
+
+	return SR_OK;
+}
+
 static int scpi_visa_source_add(struct sr_session *session, void *priv,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
@@ -154,17 +164,19 @@ static void scpi_visa_free(void *priv)
 }
 
 SR_PRIV const struct sr_scpi_dev_inst scpi_visa_dev = {
-	.name = "VISA",
-	.prefix = "visa",
-	.priv_size = sizeof(struct scpi_visa),
-	.dev_inst_new = scpi_visa_dev_inst_new,
-	.open = scpi_visa_open,
-	.source_add = scpi_visa_source_add,
+	.name          = "VISA",
+	.prefix        = "visa",
+	.transport     = SCPI_TRANSPORT_VISA,
+	.priv_size     = sizeof(struct scpi_visa),
+	.dev_inst_new  = scpi_visa_dev_inst_new,
+	.open          = scpi_visa_open,
+	.connection_id = scpi_visa_connection_id,
+	.source_add    = scpi_visa_source_add,
 	.source_remove = scpi_visa_source_remove,
-	.send = scpi_visa_send,
-	.read_begin = scpi_visa_read_begin,
-	.read_data = scpi_visa_read_data,
+	.send          = scpi_visa_send,
+	.read_begin    = scpi_visa_read_begin,
+	.read_data     = scpi_visa_read_data,
 	.read_complete = scpi_visa_read_complete,
-	.close = scpi_visa_close,
-	.free = scpi_visa_free,
+	.close         = scpi_visa_close,
+	.free          = scpi_visa_free,
 };

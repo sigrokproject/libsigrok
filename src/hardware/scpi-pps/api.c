@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017,2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -152,6 +152,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 				for (l = sdi->channels; l; l = l->next) {
 					ch = l->data;
 					pch = ch->priv;
+					/* Add mqflags from channel_group_spec only to voltage
+					 * and current channels.
+					 */
+					if (pch->mq == SR_MQ_VOLTAGE || pch->mq == SR_MQ_CURRENT)
+						pch->mqflags = cgs->mqflags;
+					else
+						pch->mqflags = 0;
 					if (pch->hw_output_idx == j)
 						cg->channels = g_slist_append(cg->channels, ch);
 				}
@@ -166,7 +173,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB using SCPI over GPIB. */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sdi;
 }
@@ -258,7 +268,12 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	devc = sdi->priv;
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
+
+	/* Don't send SCPI_CMD_REMOTE for HP 66xxB using SCPI over GPIB. */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_REMOTE);
+
 	devc->beeper_was_set = FALSE;
 	if (sr_scpi_cmd_resp(sdi, devc->device->commands, 0, NULL,
 			&beeper, G_VARIANT_TYPE_BOOLEAN, SCPI_CMD_BEEPER) == SR_OK) {
@@ -287,7 +302,11 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (devc->beeper_was_set)
 		sr_scpi_cmd(sdi, devc->device->commands,
 			0, NULL, SCPI_CMD_BEEPER_ENABLE);
-	sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
+
+	/* Don't send SCPI_CMD_LOCAL for HP 66xxB using SCPI over GPIB. */
+	if (!(devc->device->dialect == SCPI_DIALECT_HP_66XXB &&
+			scpi->transport == SCPI_TRANSPORT_LIBGPIB))
+		sr_scpi_cmd(sdi, devc->device->commands, 0, NULL, SCPI_CMD_LOCAL);
 
 	return sr_scpi_close(scpi);
 }
@@ -313,6 +332,7 @@ static int config_get(uint32_t key, GVariant **data,
 	char *channel_group_name;
 	int cmd, ret;
 	const char *s;
+	int reg;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -375,7 +395,11 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
@@ -387,7 +411,11 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ENABLED;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		gvtype = G_VARIANT_TYPE_BOOLEAN;
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
@@ -397,6 +425,14 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
+		break;
+	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+			devc->device->dialect == SCPI_DIALECT_HP_COMP)
+			gvtype = G_VARIANT_TYPE_STRING;
+		else
+			gvtype = G_VARIANT_TYPE_BOOLEAN;
+		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE;
 		break;
 	case SR_CONF_REGULATION:
 		gvtype = G_VARIANT_TYPE_STRING;
@@ -419,25 +455,113 @@ static int config_get(uint32_t key, GVariant **data,
 		channel_group_cmd, channel_group_name, data, gvtype, cmd);
 	g_free(channel_group_name);
 
+	/*
+	 * Handle special cases
+	 */
+
 	if (cmd == SCPI_CMD_GET_OUTPUT_REGULATION) {
-		/*
-		 * The Rigol DP800 series return CV/CC/UR, Philips PM2800
-		 * return VOLT/CURR. We always return a GVariant string in
-		 * the Rigol notation.
-		 */
-		s = g_variant_get_string(*data, NULL);
-		if (!strcmp(s, "VOLT")) {
+		if (devc->device->dialect == SCPI_DIALECT_PHILIPS) {
+			/*
+			* The Philips PM2800 series returns VOLT/CURR. We always return
+			* a GVariant string in the Rigol notation (CV/CC/UR).
+			*/
+			s = g_variant_get_string(*data, NULL);
+			if (!g_strcmp0(s, "VOLT")) {
+				g_variant_unref(*data);
+				*data = g_variant_new_string("CV");
+			} else if (!g_strcmp0(s, "CURR")) {
+				g_variant_unref(*data);
+				*data = g_variant_new_string("CC");
+			}
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
 			g_variant_unref(*data);
-			*data = g_variant_new_string("CV");
-		} else if (!strcmp(s, "CURR")) {
+			if (reg & (1 << 0))
+				*data = g_variant_new_string("CV");
+			else if (reg & (1 << 1))
+				*data = g_variant_new_string("CC");
+			else if (reg & (1 << 2))
+				*data = g_variant_new_string("UR");
+			else if (reg & (1 << 9))
+				*data = g_variant_new_string("CC-");
+			else
+				*data = g_variant_new_string("");
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Operational Status Register from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
 			g_variant_unref(*data);
-			*data = g_variant_new_string("CC");
+			if (reg & (1 << 8))
+				*data = g_variant_new_string("CV");
+			else if (reg & (1 << 10))
+				*data = g_variant_new_string("CC");
+			else if (reg & (1 << 11))
+				*data = g_variant_new_string("CC-");
+			else
+				*data = g_variant_new_string("UR");
 		}
 
 		s = g_variant_get_string(*data, NULL);
-		if (strcmp(s, "CV") && strcmp(s, "CC") && strcmp(s, "UR")) {
-			sr_dbg("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
+		if (g_strcmp0(s, "CV") && g_strcmp0(s, "CC") && g_strcmp0(s, "CC-") &&
+			g_strcmp0(s, "UR") && g_strcmp0(s, "")) {
+
+			sr_err("Unknown response to SCPI_CMD_GET_OUTPUT_REGULATION: %s", s);
 			ret = SR_ERR_DATA;
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 3));
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 0 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 0));
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 6));
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 1 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 1));
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_COMP) {
+			/* Evaluate Status Register from a HP 66xx in COMP mode. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 4));
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+			/* Evaluate Questionable Status Register bit 4 from a HP 66xxB. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			*data = g_variant_new_boolean(reg & (1 << 4));
 		}
 	}
 
@@ -639,6 +763,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Prime the pipe with the first channel. */
 	devc->cur_acquisition_channel = sr_next_enabled_channel(sdi, NULL);
+
+	/* Device specific initialization before acquisition starts. */
+	if (devc->device->init_acquisition)
+		devc->device->init_acquisition(sdi);
 
 	if ((ret = sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
 			scpi_pps_receive_data, (void *)sdi)) != SR_OK)

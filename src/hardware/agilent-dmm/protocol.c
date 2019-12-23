@@ -574,6 +574,12 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags[i] = 0;
 		devc->cur_exponent[i] = 0;
 		devc->cur_digits[i] = 3 - resolution;
+	} else if (!strcmp(mstr, "MA")) {
+		devc->cur_mq[i] = SR_MQ_CURRENT;
+		devc->cur_unit[i] = SR_UNIT_AMPERE;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = -3;
+		devc->cur_digits[i] = 8 - resolution;
 	} else if (!strcmp(mstr, "UA")) {
 		devc->cur_mq[i] = SR_MQ_CURRENT;
 		devc->cur_unit[i] = SR_UNIT_AMPERE;
@@ -603,6 +609,12 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 		devc->cur_mqflags[i] = SR_MQFLAG_DIODE | SR_MQFLAG_DC;
 		devc->cur_exponent[i] = 0;
 		devc->cur_digits[i] = 3;
+	} else if (!strcmp(mstr, "TEMP")) {
+		devc->cur_mq[i] = SR_MQ_TEMPERATURE;
+		devc->cur_unit[i] = SR_UNIT_CELSIUS;
+		devc->cur_mqflags[i] = 0;
+		devc->cur_exponent[i] = 0;
+		devc->cur_digits[i] = 1;
 	} else if (!strcmp(mstr, "CAP")) {
 		devc->cur_mq[i] = SR_MQ_CAPACITANCE;
 		devc->cur_unit[i] = SR_UNIT_FARAD;
@@ -625,6 +637,8 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 				devc->cur_mqflags[i] |= SR_MQFLAG_RMS;
 		} else if (!strcmp(mstr, "DC")) {
 			devc->cur_mqflags[i] |= SR_MQFLAG_DC;
+		} else if (!strcmp(mstr, "ACDC")) {
+			devc->cur_mqflags[i] |= SR_MQFLAG_AC | SR_MQFLAG_DC | SR_MQFLAG_RMS;
 		} else {
 			sr_dbg("Unknown first argument '%s'.", mstr);
 		}
@@ -632,7 +646,14 @@ static int recv_conf_u123x(const struct sr_dev_inst *sdi, GMatchInfo *match)
 	} else
 		devc->cur_mqflags[i] &= ~(SR_MQFLAG_AC | SR_MQFLAG_DC);
 
-	return JOB_CONF;
+	struct sr_channel *prev_conf = devc->cur_conf;
+	devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+	if (devc->cur_conf->index >= MIN(devc->profile->nb_channels, 2))
+		devc->cur_conf = sr_next_enabled_channel(sdi, devc->cur_conf);
+	if (devc->cur_conf->index > prev_conf->index)
+		return JOB_AGAIN;
+	else
+		return JOB_CONF;
 }
 
 static int recv_conf_u124x_5x(const struct sr_dev_inst *sdi, GMatchInfo *match)
@@ -1017,12 +1038,24 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u125x },
 	{ "^\\*([0-9])$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
-	{ "^\"(VOLT|CURR|RES|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
-	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
-	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
-	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{8}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT|CURR|RES|CONT|COND|CAP|FREQ) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{6}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(VOLT:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{6}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CURR:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{6}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(CPER:[40]-20mA) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{6}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(PULS:PWID|PULS:PWID:[ACD]+) ([-+][0-9\\.E\\-+]+),([-+][0-9]\\.[0-9]{6}E([-+][0-9]{2}))\"$", recv_conf_u124x_5x },
+	{ "^\"(TEMP:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
 	{ "^\"(T[0-9]:[A-Z]+) ([A-Z]+)\"$", recv_conf_u124x_5x },
-	{ "^\"(DIOD)\"$", recv_conf_u124x_5x },
+	{ "^\"(DIOD|PULS:[PN]DUT)\"$", recv_conf_u124x_5x },
+	ALL_ZERO
+};
+
+SR_PRIV const struct agdmm_recv agdmm_recvs_u127x[] = {
+	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u123x },
+	{ "^\\*([0-9])$", recv_switch },
+	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
+	{ "^\"(V|MV|A|MA|UA|FREQ),(\\d),(AC|DC|ACDC)\"$", recv_conf_u123x },
+	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
+	{ "^\"(DIOD|TEMP)\"$", recv_conf_u123x },
 	ALL_ZERO
 };
 

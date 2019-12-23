@@ -83,7 +83,7 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-#define RESPONSE_DELAY_US (10 * 1000)
+#define RESPONSE_DELAY_US (20 * 1000)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -135,7 +135,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	g_usleep(RESPONSE_DELAY_US);
 
-	if (sp_input_waiting(serial->data) == 0) {
+	if (serial_has_receive_data(serial) == 0) {
 		sr_dbg("Didn't get any reply.");
 		return NULL;
 	}
@@ -159,7 +159,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	g_usleep(RESPONSE_DELAY_US);
 
-	if (sp_input_waiting(serial->data) != 0) {
+	if (serial_has_receive_data(serial) != 0) {
 		/* Got metadata. */
 		sdi = get_metadata(serial);
 	} else {
@@ -396,7 +396,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	uint16_t samplecount, readcount, delaycount;
+	uint32_t samplecount, readcount, delaycount;
 	uint8_t ols_changrp_mask, arg[4];
 	int num_ols_changrp;
 	int ret, i;
@@ -417,14 +417,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/*
 	 * Limit readcount to prevent reading past the end of the hardware
-	 * buffer.
+	 * buffer. Rather read too many samples than too few.
 	 */
 	samplecount = MIN(devc->max_samples / num_ols_changrp, devc->limit_samples);
-	readcount = samplecount / 4;
-
-	/* Rather read too many samples than too few. */
-	if (samplecount % 4 != 0)
-		readcount++;
+	readcount = (samplecount + 3) / 4;
 
 	/* Basic triggers. */
 	if (ols_convert_trigger(sdi) != SR_OK) {
@@ -468,12 +464,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Send sample limit and pre/post-trigger capture ratio. */
 	sr_dbg("Setting sample limit %d, trigger point at %d",
 			(readcount - 1) * 4, (delaycount - 1) * 4);
-	arg[0] = ((readcount - 1) & 0xff);
-	arg[1] = ((readcount - 1) & 0xff00) >> 8;
-	arg[2] = ((delaycount - 1) & 0xff);
-	arg[3] = ((delaycount - 1) & 0xff00) >> 8;
-	if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
-		return SR_ERR;
+
+	if (devc->max_samples > 256 * 1024) {
+		arg[0] = ((readcount - 1) & 0xff);
+		arg[1] = ((readcount - 1) & 0xff00) >> 8;
+		arg[2] = ((readcount - 1) & 0xff0000) >> 16;
+		arg[3] = ((readcount - 1) & 0xff000000) >> 24;
+		if (send_longcommand(serial, CMD_CAPTURE_READCOUNT, arg) != SR_OK)
+			return SR_ERR;
+		arg[0] = ((delaycount - 1) & 0xff);
+		arg[1] = ((delaycount - 1) & 0xff00) >> 8;
+		arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
+		arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
+		if (send_longcommand(serial, CMD_CAPTURE_DELAYCOUNT, arg) != SR_OK)
+			return SR_ERR;
+	} else {
+		arg[0] = ((readcount - 1) & 0xff);
+		arg[1] = ((readcount - 1) & 0xff00) >> 8;
+		arg[2] = ((delaycount - 1) & 0xff);
+		arg[3] = ((delaycount - 1) & 0xff00) >> 8;
+		if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
+			return SR_ERR;
+	}
 
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
@@ -523,7 +535,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver ols_driver_info = {
 	.name = "ols",
-	.longname = "Openbench Logic Sniffer",
+	.longname = "Openbench Logic Sniffer & SUMP compatibles",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,

@@ -956,6 +956,8 @@ enum sr_configkey {
 	 * Channel regulation
 	 * get: "CV", "CC" or "UR", denoting constant voltage, constant current
 	 *      or unregulated.
+	 *      "CC-" denotes a power supply in current sink mode (e.g. HP 66xxB).
+	 *      "" is used when there is no regulation, e.g. the output is disabled.
 	 */
 	SR_CONF_REGULATION,
 
@@ -994,6 +996,30 @@ enum sr_configkey {
 	 * multiple external clock channels.
 	 */
 	SR_CONF_EXTERNAL_CLOCK_SOURCE,
+
+	/** Offset of a source without strictly-defined MQ. */
+	SR_CONF_OFFSET,
+
+	/** The device supports setting a pattern for the logic trigger. */
+	SR_CONF_TRIGGER_PATTERN,
+
+	/** High resolution mode. */
+	SR_CONF_HIGH_RESOLUTION,
+
+	/** Peak detection. */
+	SR_CONF_PEAK_DETECTION,
+
+	/** Logic threshold: predefined levels (TTL, ECL, CMOS, etc). */
+	SR_CONF_LOGIC_THRESHOLD,
+
+	/** Logic threshold: custom numerical value. */
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM,
+
+	/** The measurement range of a DMM or the output range of a power supply. */
+	SR_CONF_RANGE,
+
+	/** The number of digits (e.g. for a DMM). */
+	SR_CONF_DIGITS,
 
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 

@@ -8,7 +8,7 @@ const DataType *ConfigKey::data_type() const
 	return DataType::get(info->datatype);
 }
 
-string ConfigKey::identifier() const
+std::string ConfigKey::identifier() const
 {
 	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, id());
 	if (!info)
@@ -16,7 +16,7 @@ string ConfigKey::identifier() const
 	return valid_string(info->id);
 }
 
-string ConfigKey::description() const
+std::string ConfigKey::description() const
 {
 	const struct sr_key_info *info = sr_key_info_get(SR_KEY_CONFIG, id());
 	if (!info)
@@ -24,7 +24,7 @@ string ConfigKey::description() const
 	return valid_string(info->name);
 }
 
-const ConfigKey *ConfigKey::get_by_identifier(string identifier)
+const ConfigKey *ConfigKey::get_by_identifier(std::string identifier)
 {
 	const struct sr_key_info *info = sr_key_info_name_get(SR_KEY_CONFIG, identifier.c_str());
 	if (!info)
@@ -70,7 +70,7 @@ static inline double stod( const std::string& str )
 }
 #endif
 
-Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
+Glib::VariantBase ConfigKey::parse_string(std::string value, enum sr_datatype dt)
 {
 	GVariant *variant;
 	uint64_t p, q;
@@ -116,7 +116,7 @@ Glib::VariantBase ConfigKey::parse_string(string value, enum sr_datatype dt)
 	return Glib::VariantBase(variant, false);
 }
 
-Glib::VariantBase ConfigKey::parse_string(string value) const
+Glib::VariantBase ConfigKey::parse_string(std::string value) const
 {
 	enum sr_datatype dt = (enum sr_datatype)(data_type()->id());
 	return parse_string(value, dt);

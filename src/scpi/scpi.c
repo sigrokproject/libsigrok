@@ -31,12 +31,13 @@
 #define SCPI_READ_RETRY_TIMEOUT_US (10 * 1000)
 
 static const char *scpi_vendors[][2] = {
-	{ "HEWLETT-PACKARD", "HP" },
 	{ "Agilent Technologies", "Agilent" },
-	{ "RIGOL TECHNOLOGIES", "Rigol" },
-	{ "PHILIPS", "Philips" },
 	{ "CHROMA", "Chroma" },
 	{ "Chroma ATE", "Chroma" },
+	{ "HEWLETT-PACKARD", "HP" },
+	{ "Keysight Technologies", "Keysight" },
+	{ "PHILIPS", "Philips" },
+	{ "RIGOL TECHNOLOGIES", "Rigol" },
 };
 
 /**
@@ -99,7 +100,7 @@ static const struct sr_scpi_dev_inst *scpi_devs[] = {
 #ifdef HAVE_LIBGPIB
 	&scpi_libgpib_dev,
 #endif
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 	&scpi_serial_dev, /* Must be last as it matches any resource. */
 #endif
 };
@@ -404,6 +405,21 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 	g_mutex_init(&scpi->scpi_mutex);
 
 	return scpi->open(scpi);
+}
+
+/**
+ * Get the connection ID of the SCPI device.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param connection_id Pointer where to store the connection ID. The caller
+ *        is responsible for g_free()ing the string when it is no longer needed.
+ *
+ * @return SR_OK on success, SR_ERR on failure.
+ */
+SR_PRIV int sr_scpi_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	return scpi->connection_id(scpi, connection_id);
 }
 
 /**
@@ -945,6 +961,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString* response;
+	gsize oldlen;
 	char buf[10];
 	long llen;
 	long datalen;
@@ -974,14 +991,14 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	*scpi_response = NULL;
 
 	/* Get (the first chunk of) the response. */
-	while (response->len < 2) {
+	do {
 		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
 			return ret;
 		}
-	}
+	} while (response->len < 2);
 
 	/*
 	 * SCPI protocol data blocks are preceeded with a length spec.
@@ -1028,25 +1045,33 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	g_string_erase(response, 0, 2 + llen);
 
 	/*
-	 * If the initially assumed length does not cover the data block
-	 * length, then re-allocate the buffer size to the now known
-	 * length, and keep reading more chunks of response data.
+	 * Re-allocate the buffer size to the now known length
+	 * and keep reading more chunks of response data.
 	 */
-	if (response->len < (unsigned long)(datalen)) {
-		int oldlen = response->len;
-		g_string_set_size(response, datalen);
-		g_string_set_size(response, oldlen);
-	}
+	oldlen = response->len;
+	g_string_set_size(response, datalen);
+	g_string_set_size(response, oldlen);
 
-	while (response->len < (unsigned long)(datalen)) {
-		ret = scpi_read_response(scpi, response, timeout);
-		if (ret < 0) {
-			g_mutex_unlock(&scpi->scpi_mutex);
-			g_string_free(response, TRUE);
-			return ret;
-		}
-		if (ret > 0)
-			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	if (oldlen < (unsigned long)(datalen)) {
+		do {
+			oldlen = response->len;
+			ret = scpi_read_response(scpi, response, timeout);
+
+			/* On timeout truncate the buffer and send the partial response
+			 * instead of getting stuck on timeouts...
+			 */
+			if (ret == SR_ERR_TIMEOUT) {
+				datalen = oldlen;
+				break;
+			}
+			if (ret < 0) {
+				g_mutex_unlock(&scpi->scpi_mutex);
+				g_string_free(response, TRUE);
+				return ret;
+			}
+			if (ret > 0)
+				timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		} while (response->len < (unsigned long)(datalen));
 	}
 
 	g_mutex_unlock(&scpi->scpi_mutex);
@@ -1091,9 +1116,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	 * model, serial number of the instrument and the firmware version.
 	 */
 	tokens = g_strsplit(response, ",", 0);
-
-	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
-
+	num_tokens = g_strv_length(tokens);
 	if (num_tokens < 4) {
 		sr_dbg("IDN response not according to spec: %80.s.", response);
 		g_strfreev(tokens);
@@ -1137,6 +1160,48 @@ SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info)
 	g_free(hw_info->serial_number);
 	g_free(hw_info->firmware_version);
 	g_free(hw_info);
+}
+
+/**
+ * Remove potentially enclosing pairs of quotes, un-escape content.
+ * This implementation modifies the caller's buffer when quotes are found
+ * and doubled quote characters need to get removed from the content.
+ *
+ * @param[in, out] s	The SCPI string to check and un-quote.
+ *
+ * @return The start of the un-quoted string.
+ */
+SR_PRIV const char *sr_scpi_unquote_string(char *s)
+{
+	size_t s_len;
+	char quotes[3];
+	char *rdptr;
+
+	/* Immediately bail out on invalid or short input. */
+	if (!s || !*s)
+		return s;
+	s_len = strlen(s);
+	if (s_len < 2)
+		return s;
+
+	/* Check for matching quote characters front and back. */
+	if (s[0] != '\'' && s[0] != '"')
+		return s;
+	if (s[0] != s[s_len - 1])
+		return s;
+
+	/* Need to strip quotes, and un-double quote chars inside. */
+	quotes[0] = quotes[1] = *s;
+	quotes[2] = '\0';
+	s[s_len - 1] = '\0';
+	s++;
+	rdptr = s;
+	while ((rdptr = strstr(rdptr, quotes)) != NULL) {
+		memmove(rdptr, rdptr + 1, strlen(rdptr));
+		rdptr++;
+	}
+
+	return s;
 }
 
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor)

@@ -47,7 +47,6 @@
 
 #define CHUNK_SIZE        (4 * 1024 * 1024)
 #define MAX_POD_COUNT     12
-#define HEADER_SIZE       80
 
 #define SPACE             ' '
 #define CTRLZ             '\x1a'
@@ -64,7 +63,8 @@
 
 enum ad_format {
 	AD_FORMAT_UNKNOWN,
-	AD_FORMAT_BINHDR,	/* Binary header, binary data, textual setup info */
+	AD_FORMAT_BINHDR1,	/* Binary header, binary data, textual setup info, v1 */
+	AD_FORMAT_BINHDR2,	/* Binary header, binary data, textual setup info, v2 */
 	AD_FORMAT_TXTHDR,	/* Textual header, binary data */
 };
 
@@ -96,7 +96,7 @@ struct context {
 	char pod_status[MAX_POD_COUNT];
 	struct sr_channel *channels[MAX_POD_COUNT][17]; /* 16 + CLK */
 	uint64_t trigger_timestamp;
-	uint32_t record_size, record_count, cur_record;
+	uint32_t header_size, record_size, record_count, cur_record;
 	int32_t last_record;
 	uint64_t samplerate;
 	double timestamp_scale;
@@ -212,22 +212,52 @@ static int process_header(GString *buf, struct context *inc)
 	enum ad_format format;
 
 	/*
-	 * 00-31 (0x00-1F) file format name
-	 * 32-39 (0x20-27) trigger timestamp       u64
-	 * 40-47 (0x28-2F) unused
-	 * 48    (0x30)    compression
-	 * 49-53 (0x31-35) ??
-	 *       50 (0x32) 0x00 (PI), 0x01 (iprobe)
-	 * 54    (0x36)    0x08 (PI 250/500), 0x0A (iprobe 250)
-	 * 55    (0x37)    0x00 (250), 0x01 (500)
-	 * 56    (0x38)    record size             u8
-	 * 57-59 (0x39-3B) const 0x00
-	 * 60-63 (0x3C-3F) number of records       u32
-	 * 64-67 (0x40-43) id of last record       s32
-	 * 68-77 (0x44-4D) ??
-	 *       71 (0x47) const 0x80=128
-	 *       72 (0x48) const 0x01
-	 * 78-79 (0x4E-4F) ??
+	 * First-level file header:
+	 * 0x00-1F  file format name
+	 * 0x20 u64 trigger timestamp
+	 * 0x28-2F  unused
+	 * 0x30 u8  compression
+	 * 0x31-35 ??
+	 *  0x32 u8 0x00 (PI), 0x01 (iprobe)
+	 * 0x36 u8  device id: 0x08 (PI 250/500), 0x0A (iprobe 250)
+	 */
+
+	/*
+	 * Second-level file header, version 1:
+	 * 0x37 u8  capture speed: 0x00 (250), 0x01 (500)
+	 * 0x38 u8  record size
+	 * 0x39-3B  const 0x00
+	 * 0x3C u32 number of records
+	 * 0x40 s32 id of last record
+	 * 0x44-4D ??
+	 *  0x47 u8 const 0x80=128
+	 *  0x48 u8 const 0x01
+	 * 0x4E-4F ??
+	 */
+
+	/*
+	 * Second-level file header, version 2:
+	 * 0x37 u8  ??
+	 * 0x38 u64 ??
+	 * 0x40 u64 ??
+	 * 0x48 u8  record size
+	 * 0x49-4F  ??
+	 * 0x50 u64 ??
+	 * 0x58 u64 number of records
+	 * 0x60 u64 ??
+	 * 0x68 u64 ??
+	 * 0x70 u64 ??
+	 * 0x78 u64 ??
+	 * 0x80 u64 ??
+	 * 0x88 u64 ?? (timestamp of some kind?)
+	 * 0x90 u64 ??
+	 * 0x98-9E  ??
+	 * 0x9F u8 capture speed: 0x00 (250), 0x01 (500)
+	 * 0xA0 u64 ??
+	 * 0xA8 u64 ??
+	 * 0xB0 u64 ??
+	 * 0xB8-CF  version string? (e.g. '93173--96069', same for all tested .ad files)
+	 * 0xC8 u16 ??
 	 */
 
 	/*
@@ -260,7 +290,7 @@ static int process_header(GString *buf, struct context *inc)
 	format = AD_FORMAT_UNKNOWN;
 	if (has_trace32) {
 		/* Literal "trace32" leader, binary header follows. */
-		format = AD_FORMAT_BINHDR;
+		format = AD_FORMAT_BINHDR1;
 	} else if (g_ascii_isdigit(format_name[0]) && (format_name[1] == SPACE)) {
 		/* Digit and SPACE leader, currently unsupported text header. */
 		format = AD_FORMAT_TXTHDR;
@@ -278,12 +308,17 @@ static int process_header(GString *buf, struct context *inc)
 	if (!format)
 		return SR_ERR;
 
+	/* If the device id is 0x00, we have a v2 format file. */
+	if (R8(buf->str + 0x36) == 0x00)
+		format = AD_FORMAT_BINHDR2;
+
 	p = printable_name(format_name);
 	if (inc)
 		sr_dbg("File says it's \"%s\" -> format type %u.", p, format);
 	g_free(p);
 
-	record_size = R8(buf->str + 56);
+	record_size = (format == AD_FORMAT_BINHDR1) ?
+		R8(buf->str + 0x38) : R8(buf->str + 0x48);
 	device_id = 0;
 
 	if (g_strcmp0(format_name, "trace32 power integrator data") == 0) {
@@ -310,12 +345,20 @@ static int process_header(GString *buf, struct context *inc)
 
 	inc->format       = format;
 	inc->device       = device_id;
-	inc->trigger_timestamp = RL64(buf->str + 32);
-	inc->compression  = R8(buf->str + 48); /* Maps to the enum. */
-	inc->record_mode  = R8(buf->str + 55); /* Maps to the enum. */
+	inc->trigger_timestamp = RL64(buf->str + 0x20);
+	inc->compression  = R8(buf->str + 0x30); /* Maps to the enum. */
+	inc->header_size  = (format == AD_FORMAT_BINHDR1) ? 0x50 : 0xCA;
 	inc->record_size  = record_size;
-	inc->record_count = RL32(buf->str + 60);
-	inc->last_record  = RL32S(buf->str + 64);
+
+	if (format == AD_FORMAT_BINHDR1) {
+		inc->record_mode  = R8(buf->str + 0x37); /* Maps to the enum. */
+		inc->record_count = RL32(buf->str + 0x3C);
+		inc->last_record  = RL32S(buf->str + 0x40);
+	} else {
+		inc->record_mode  = R8(buf->str + 0x9F); /* Maps to the enum. */
+		inc->record_count = RL32(buf->str + 0x58);
+		inc->last_record  = inc->record_count;
+	}
 
 	sr_dbg("Trigger occured at %lf s.",
 		inc->trigger_timestamp * TIMESTAMP_RESOLUTION);
@@ -417,36 +460,36 @@ static void process_record_pi(struct sr_input *in, gsize start)
 	buf = in->buf;
 
 	/*
-	 * 00-07 timestamp
-	 * 08-09 A15..0
-	 * 10-11 B15..0
-	 * 12-13 C15..0
-	 * 14-15 D15..0
-	 * 16-17 E15..0
-	 * 18-19 F15..0
-	 * 20-23 ??
-	 * 24-25 J15..0                         Not present in 500MHz mode
-	 * 26-27 K15..0                         Not present in 500MHz mode
-	 * 28-29 L15..0                         Not present in 500MHz mode
-	 * 30-31 M15..0                         Not present in 500MHz mode
-	 * 32-33 N15..0                         Not present in 500MHz mode
-	 * 34-35 O15..0                         Not present in 500MHz mode
-	 * 36-39 ??                             Not present in 500MHz mode
-	 * 40/24 CLKF..A (32=CLKF, .., 1=CLKA)
-	 * 41    CLKO..J (32=CLKO, .., 1=CLKJ)  Not present in 500MHz mode
-	 * 42/25    ??
-	 * 43/26    ??
-	 * 44/27    ??
+	 * 0x00 u8  timestamp
+	 * 0x08 u16 A15..0
+	 * 0x0A u16 B15..0
+	 * 0x0C u16 C15..0
+	 * 0x0E u16 D15..0
+	 * 0x10 u16 E15..0
+	 * 0x12 u16 F15..0
+	 * 0x14 u32 ??
+	 * 0x18 u16 J15..0                          Not present in 500MHz mode
+	 * 0x1A u16 K15..0                          Not present in 500MHz mode
+	 * 0x1C u16 L15..0                          Not present in 500MHz mode
+	 * 0x1E u16 M15..0                          Not present in 500MHz mode
+	 * 0x20 u16 N15..0                          Not present in 500MHz mode
+	 * 0x22 u16 O15..0                          Not present in 500MHz mode
+	 * 0x24 u32 ??                              Not present in 500MHz mode
+	 * 0x28/18 u8 CLKF..A (32=CLKF, .., 1=CLKA)
+	 * 0x29/1A u8 CLKO..J (32=CLKO, .., 1=CLKJ) Not present in 500MHz mode
+	 * 0x2A/19 u8 ??
+	 * 0x2B/1A u8 ??
+	 * 0x2C/1B u8 ??
 	 */
 
 	timestamp = RL64(buf->str + start);
 
 	if (inc->record_mode == AD_MODE_500MHZ) {
 		pod_count = 6;
-		clk_offset = 24;
+		clk_offset = 0x18;
 	} else {
 		pod_count = 12;
-		clk_offset = 40;
+		clk_offset = 0x28;
 	}
 
 	payload_bit = 0;
@@ -459,52 +502,52 @@ static void process_record_pi(struct sr_input *in, gsize start)
 
 		switch (pod) {
 		case 0: /* A */
-			pod_data = RL16(buf->str + start + 8);
+			pod_data = RL16(buf->str + start + 0x08);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 1) << 16;
 			break;
 		case 1: /* B */
-			pod_data = RL16(buf->str + start + 10);
+			pod_data = RL16(buf->str + start + 0x0A);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 2) << 15;
 			break;
 		case 2: /* C */
-			pod_data = RL16(buf->str + start + 12);
+			pod_data = RL16(buf->str + start + 0x0C);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 4) << 14;
 			break;
 		case 3: /* D */
-			pod_data = RL16(buf->str + start + 14);
+			pod_data = RL16(buf->str + start + 0x0E);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 8) << 13;
 			break;
 		case 4: /* E */
-			pod_data = RL16(buf->str + start + 16);
+			pod_data = RL16(buf->str + start + 0x10);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 16) << 12;
 			break;
 		case 5: /* F */
-			pod_data = RL16(buf->str + start + 18);
+			pod_data = RL16(buf->str + start + 0x12);
 			pod_data |= (RL16(buf->str + start + clk_offset) & 32) << 11;
 			break;
 		case 6: /* J */
-			pod_data = RL16(buf->str + start + 24);
-			pod_data |= (RL16(buf->str + start + 41) & 1) << 16;
+			pod_data = RL16(buf->str + start + 0x18);
+			pod_data |= (RL16(buf->str + start + 0x29) & 1) << 16;
 			break;
 		case 7: /* K */
-			pod_data = RL16(buf->str + start + 26);
-			pod_data |= (RL16(buf->str + start + 41) & 2) << 15;
+			pod_data = RL16(buf->str + start + 0x1A);
+			pod_data |= (RL16(buf->str + start + 0x29) & 2) << 15;
 			break;
 		case 8: /* L */
-			pod_data = RL16(buf->str + start + 28);
-			pod_data |= (RL16(buf->str + start + 41) & 4) << 14;
+			pod_data = RL16(buf->str + start + 0x1C);
+			pod_data |= (RL16(buf->str + start + 0x29) & 4) << 14;
 			break;
 		case 9: /* M */
-			pod_data = RL16(buf->str + start + 30);
-			pod_data |= (RL16(buf->str + start + 41) & 8) << 13;
+			pod_data = RL16(buf->str + start + 0x1E);
+			pod_data |= (RL16(buf->str + start + 0x29) & 8) << 13;
 			break;
 		case 10: /* N */
-			pod_data = RL16(buf->str + start + 32);
-			pod_data |= (RL16(buf->str + start + 41) & 16) << 12;
+			pod_data = RL16(buf->str + start + 0x20);
+			pod_data |= (RL16(buf->str + start + 0x29) & 16) << 12;
 			break;
 		case 11: /* O */
-			pod_data = RL16(buf->str + start + 34);
-			pod_data |= (RL16(buf->str + start + 41) & 32) << 11;
+			pod_data = RL16(buf->str + start + 0x22);
+			pod_data |= (RL16(buf->str + start + 0x29) & 32) << 11;
 			break;
 		default:
 			sr_err("Don't know how to obtain data for pod %d.", pod);
@@ -575,15 +618,15 @@ static void process_record_iprobe(struct sr_input *in, gsize start)
 	inc = in->priv;
 
 	/*
-	 * 00-07 timestamp
-	 * 08-09 IP15..0
-	 * 10    CLK
+	 * 0x00 u64 timestamp
+	 * 0x08 u16 IP15..0
+	 * 0x0A u8  CLK
 	 */
 
 	timestamp = RL64(in->buf->str + start);
-	single_payload[0] = R8(in->buf->str + start + 8);
-	single_payload[1] = R8(in->buf->str + start + 9);
-	single_payload[2] = R8(in->buf->str + start + 10) & 1;
+	single_payload[0] = R8(in->buf->str + start + 0x08);
+	single_payload[1] = R8(in->buf->str + start + 0x09);
+	single_payload[2] = R8(in->buf->str + start + 0x0A) & 1;
 	payload_len = 3;
 
 	if (timestamp == inc->trigger_timestamp && !inc->trigger_sent) {
@@ -735,7 +778,7 @@ static int process_buffer(struct sr_input *in)
 
 	if (!inc->header_read) {
 		res = process_header(in->buf, inc);
-		g_string_erase(in->buf, 0, HEADER_SIZE);
+		g_string_erase(in->buf, 0, inc->header_size);
 		if (res != SR_OK)
 			return res;
 	}

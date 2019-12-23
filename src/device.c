@@ -23,6 +23,7 @@
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 /** @cond PRIVATE */
 #define LOG_PREFIX "device"
@@ -61,7 +62,7 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 {
 	struct sr_channel *ch;
 
-	ch = g_malloc0(sizeof(struct sr_channel));
+	ch = g_malloc0(sizeof(*ch));
 	ch->sdi = sdi;
 	ch->index = index;
 	ch->type = type;
@@ -404,7 +405,7 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 {
 	struct sr_dev_inst *sdi;
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi = g_malloc0(sizeof(*sdi));
 
 	sdi->vendor = g_strdup(vendor);
 	sdi->model = g_strdup(model);
@@ -494,7 +495,7 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 {
 	struct sr_usb_dev_inst *udi;
 
-	udi = g_malloc0(sizeof(struct sr_usb_dev_inst));
+	udi = g_malloc0(sizeof(*udi));
 	udi->bus = bus;
 	udi->address = address;
 	udi->devhdl = hdl;
@@ -517,7 +518,7 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 
 /**
  * Allocate and init a struct for a serial device instance.
@@ -543,7 +544,7 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 {
 	struct sr_serial_dev_inst *serial;
 
-	serial = g_malloc0(sizeof(struct sr_serial_dev_inst));
+	serial = g_malloc0(sizeof(*serial));
 	serial->port = g_strdup(port);
 	if (serialcomm)
 		serial->serialcomm = g_strdup(serialcomm);
@@ -575,7 +576,7 @@ SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_usbtmc_dev_inst *usbtmc;
 
-	usbtmc = g_malloc0(sizeof(struct sr_usbtmc_dev_inst));
+	usbtmc = g_malloc0(sizeof(*usbtmc));
 	usbtmc->device = g_strdup(device);
 	usbtmc->fd = -1;
 
@@ -808,19 +809,24 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 #ifdef HAVE_LIBUSB_1_0
 	struct drv_context *drvc;
 	int cnt, i, a, b;
-	char connection_id[64];
+	char conn_id_usb[64];
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device **devlist;
 #endif
 
+#ifdef HAVE_SERIAL_COMM
+	struct sr_serial_dev_inst *serial;
+#endif
+
+	struct sr_scpi_dev_inst *scpi;
+	char *conn_id_scpi;
+
 	if (!sdi)
 		return NULL;
 
-#ifdef HAVE_LIBSERIALPORT
-	struct sr_serial_dev_inst *serial;
-
+#ifdef HAVE_SERIAL_COMM
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_SERIAL)) {
-		/* connection_id isn't populated, let's do that here. */
+		/* connection_id isn't populated, let's do that for serial devices. */
 
 		serial = sdi->conn;
 		((struct sr_dev_inst *)sdi)->connection_id = g_strdup(serial->port);
@@ -829,7 +835,7 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 
 #ifdef HAVE_LIBUSB_1_0
 	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_USB)) {
-		/* connection_id isn't populated, let's do that here. */
+		/* connection_id isn't populated, let's do that for USB devices. */
 
 		drvc = sdi->driver->context;
 		usb = sdi->conn;
@@ -847,16 +853,25 @@ SR_API const char *sr_dev_inst_connid_get(const struct sr_dev_inst *sdi)
 			if (b != usb->bus || a != usb->address)
 				continue;
 
-			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			if (usb_get_port_path(devlist[i], conn_id_usb, sizeof(conn_id_usb)) < 0)
 				continue;
 
-			((struct sr_dev_inst *)sdi)->connection_id = g_strdup(connection_id);
+			((struct sr_dev_inst *)sdi)->connection_id = g_strdup(conn_id_usb);
 			break;
 		}
 
 		libusb_free_device_list(devlist, 1);
 	}
 #endif
+
+	if ((!sdi->connection_id) && (sdi->inst_type == SR_INST_SCPI)) {
+		/* connection_id isn't populated, let's do that for SCPI devices. */
+
+		scpi = sdi->conn;
+		sr_scpi_connection_id(scpi, &conn_id_scpi);
+		((struct sr_dev_inst *)sdi)->connection_id = g_strdup(conn_id_scpi);
+		g_free(conn_id_scpi);
+	}
 
 	return sdi->connection_id;
 }

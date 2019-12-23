@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +28,7 @@
 SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
+	const struct scpi_pps *device;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_analog_encoding encoding;
@@ -52,6 +54,9 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	if (!(device = devc->device))
+		return TRUE;
+
 	pch = devc->cur_acquisition_channel->priv;
 
 	channel_group_cmd = 0;
@@ -59,6 +64,15 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (g_slist_length(sdi->channel_groups) > 1) {
 		channel_group_cmd = SCPI_CMD_SELECT_CHANNEL;
 		channel_group_name = pch->hwname;
+	}
+
+	/*
+	 * When the current channel is the first in the array, perform the device
+	 * specific status update first.
+	 */
+	if (devc->cur_acquisition_channel == sr_next_enabled_channel(sdi, NULL) &&
+		device->update_status) {
+		device->update_status(sdi);
 	}
 
 	if (pch->mq == SR_MQ_VOLTAGE) {
@@ -91,6 +105,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	analog.meaning->channels = g_slist_append(NULL, devc->cur_acquisition_channel);
 	analog.num_samples = 1;
 	analog.meaning->mq = pch->mq;
+	analog.meaning->mqflags = pch->mqflags;
 	if (pch->mq == SR_MQ_VOLTAGE) {
 		analog.meaning->unit = SR_UNIT_VOLT;
 		analog.encoding->digits = ch_spec->voltage[4];
@@ -103,8 +118,11 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		analog.meaning->unit = SR_UNIT_WATT;
 		analog.encoding->digits = ch_spec->power[4];
 		analog.spec->spec_digits = ch_spec->power[3];
+	} else if (pch->mq == SR_MQ_FREQUENCY) {
+		analog.meaning->unit = SR_UNIT_HERTZ;
+		analog.encoding->digits = ch_spec->frequency[4];
+		analog.spec->spec_digits = ch_spec->frequency[3];
 	}
-	analog.meaning->mqflags = SR_MQFLAG_DC;
 	f = (float)g_variant_get_double(gvdata);
 	g_variant_unref(gvdata);
 	analog.data = &f;

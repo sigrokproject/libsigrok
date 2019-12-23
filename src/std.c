@@ -305,7 +305,7 @@ SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 
 /**
  * Standard serial driver dev_open() callback API helper.
@@ -392,11 +392,6 @@ SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	if ((ret = sr_dev_close(sdi)) < 0) {
-		sr_err("%s: Failed to close device: %d.", prefix, ret);
-		return ret;
-	}
-
 	return std_session_send_df_end(sdi);
 }
 
@@ -454,7 +449,7 @@ SR_PRIV int std_dev_clear_with_callback(const struct sr_dev_driver *driver,
 			driver->dev_close(sdi);
 
 		if (sdi->conn) {
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 			if (sdi->inst_type == SR_INST_SERIAL)
 				sr_serial_dev_inst_free(sdi->conn);
 #endif
@@ -624,7 +619,7 @@ SR_PRIV GVariant *std_gvar_tuple_array(const uint64_t a[][2], unsigned int n)
 	GVariant *rational[2];
 	GVariantBuilder gvb;
 
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_TUPLE);
 
 	for (i = 0; i < n; i++) {
 		rational[0] = g_variant_new_uint64(a[i][0]);
@@ -643,7 +638,7 @@ SR_PRIV GVariant *std_gvar_tuple_rational(const struct sr_rational *r, unsigned 
 	GVariant *rational[2];
 	GVariantBuilder gvb;
 
-	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_TUPLE);
 
 	for (i = 0; i < n; i++) {
 		rational[0] = g_variant_new_uint64(r[i].p);
@@ -937,3 +932,20 @@ SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_grou
 
 	return -1;
 }
+
+SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
+	int baudrate, int bits, int parity, int stopbits,
+	int flowcontrol, int rts, int dtr)
+{
+	(void)serial;
+	(void)baudrate;
+	(void)bits;
+	(void)parity;
+	(void)stopbits;
+	(void)flowcontrol;
+	(void)rts;
+	(void)dtr;
+
+	return SR_OK;
+}
+

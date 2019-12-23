@@ -20,7 +20,6 @@
 #ifndef LIBSIGROK_HARDWARE_SIGLENT_SDS_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_SIGLENT_SDS_PROTOCOL_H
 
-#include <stdbool.h>
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
@@ -78,7 +77,7 @@ struct siglent_sds_model {
 	const char *name;
 	uint64_t min_timebase[2];
 	unsigned int analog_channels;
-	bool has_digital;
+	gboolean has_digital;
 	unsigned int digital_channels;
 };
 

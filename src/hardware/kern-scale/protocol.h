@@ -31,8 +31,6 @@ struct scale_info {
 	const char *device;
 	/** serialconn string. */
 	const char *conn;
-	/** Baud rate. */
-	uint32_t baudrate;
 	/** Packet size in bytes. */
 	int packet_size;
 	/** Packet validation function. */

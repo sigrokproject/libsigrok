@@ -371,7 +371,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		packet.payload = &meta;
 		meta.config = g_slist_append(NULL, src);
 		sr_session_send(sdi, &packet);
-		g_free(src);
+		g_slist_free(meta.config);
+		sr_config_free(src);
 	}
 
 	if (!(devc->xfer = libusb_alloc_transfer(0)))

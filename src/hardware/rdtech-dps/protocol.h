@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2018 James Churchill <pelrun@gmail.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,12 +34,20 @@ struct rdtech_dps_model {
 	unsigned int max_current;
 	unsigned int max_voltage;
 	unsigned int max_power;
+	unsigned int current_digits;
+	unsigned int voltage_digits;
 };
 
 struct dev_context {
 	const struct rdtech_dps_model *model;
 	struct sr_sw_limits limits;
-	int expecting_registers;
+	GMutex rw_mutex;
+	double current_multiplier;
+	double voltage_multiplier;
+	gboolean actual_ovp_state;
+	gboolean actual_ocp_state;
+	uint16_t actual_regulation_state;
+	uint16_t actual_output_state;
 };
 
 enum rdtech_dps_register {
@@ -84,13 +93,15 @@ enum rdtech_dps_mode {
 	MODE_CC      = 1,
 };
 
-SR_PRIV int rdtech_dps_get_reg(struct sr_modbus_dev_inst *modbus, uint16_t address, uint16_t *value);
-SR_PRIV int rdtech_dps_set_reg(struct sr_modbus_dev_inst *modbus, uint16_t address, uint16_t value);
+SR_PRIV int rdtech_dps_read_holding_registers(struct sr_modbus_dev_inst *modbus,
+		int address, int nb_registers, uint16_t *registers);
+
+SR_PRIV int rdtech_dps_get_reg(const struct sr_dev_inst *sdi, uint16_t address, uint16_t *value);
+SR_PRIV int rdtech_dps_set_reg(const struct sr_dev_inst *sdi, uint16_t address, uint16_t value);
 
 SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 		uint16_t *model, uint16_t *version);
 
-SR_PRIV int rdtech_dps_capture_start(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data);
 
 #endif

@@ -1072,6 +1072,42 @@ static void datafeed_dump(const struct sr_datafeed_packet *packet)
 }
 
 /**
+ * Helper to send a meta datafeed package (SR_DF_META) to the session bus.
+ *
+ * @param sdi The device instance to send the package from. Must not be NULL.
+ * @param key The config key to send to the session bus.
+ * @param var The value to send to the session bus.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ *
+ * @private
+ */
+SR_PRIV int sr_session_send_meta(const struct sr_dev_inst *sdi,
+		uint32_t key, GVariant *var)
+{
+	struct sr_config *cfg;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_meta meta;
+	int ret;
+
+	cfg = sr_config_new(key, var);
+
+	memset(&meta, 0, sizeof(meta));
+
+	packet.type = SR_DF_META;
+	packet.payload = &meta;
+
+	meta.config = g_slist_append(NULL, cfg);
+
+	ret = sr_session_send(sdi, &packet);
+	g_slist_free(meta.config);
+	sr_config_free(cfg);
+
+	return ret;
+}
+
+/**
  * Send a packet to whatever is listening on the datafeed bus.
  *
  * Hardware drivers use this to send a data packet to the frontend.

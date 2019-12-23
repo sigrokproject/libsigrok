@@ -467,7 +467,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 	struct sr_channel *ch;
 	int len, i;
 	float wait;
-	gboolean read_complete = false;
+	gboolean read_complete = FALSE;
 
 	(void)fd;
 
@@ -556,7 +556,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 			}
 
 			do {
-				read_complete = false;
+				read_complete = FALSE;
 				if (devc->num_block_bytes > devc->num_samples) {
 					/* We received all data as one block. */
 					/* Offset the data block buffer past the IEEE header and description header. */
@@ -612,7 +612,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 					sr_dbg("Transfer has been completed.");
 					devc->num_header_bytes = 0;
 					devc->num_block_bytes = 0;
-					read_complete = true;
+					read_complete = TRUE;
 					if (!sr_scpi_read_complete(scpi)) {
 						sr_err("Read should have been completed.");
 						packet.type = SR_DF_FRAME_END;

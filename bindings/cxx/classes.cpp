@@ -32,6 +32,8 @@
 namespace sigrok
 {
 
+using namespace std;
+
 /** Helper function to translate C errors to C++ exceptions. */
 static void check(int result)
 {
@@ -375,6 +377,14 @@ shared_ptr<Packet> Context::create_analog_packet(
 	packet->type = SR_DF_ANALOG;
 	packet->payload = analog;
 	return shared_ptr<Packet>{new Packet{nullptr, packet}, default_delete<Packet>{}};
+}
+
+shared_ptr<Packet> Context::create_end_packet()
+{
+	auto packet = g_new(struct sr_datafeed_packet, 1);
+	packet->type = SR_DF_END;
+	return shared_ptr<Packet>{new Packet{nullptr, packet},
+		default_delete<Packet>{}};
 }
 
 shared_ptr<Session> Context::load_session(string filename)
@@ -936,6 +946,7 @@ Session::Session(shared_ptr<Context> context, string filename) :
 		_owned_devices.emplace(sdi, move(device));
 	}
 	_context->_session = this;
+	g_slist_free(dev_list);
 }
 
 Session::~Session()
@@ -970,6 +981,7 @@ vector<shared_ptr<Device>> Session::devices()
 		auto *const sdi = static_cast<struct sr_dev_inst *>(dev->data);
 		result.push_back(get_device(sdi));
 	}
+	g_slist_free(dev_list);
 	return result;
 }
 
@@ -1649,6 +1661,11 @@ Output::Output(string filename, shared_ptr<OutputFormat> format,
 Output::~Output()
 {
 	check(sr_output_free(_structure));
+}
+
+shared_ptr<OutputFormat> Output::format()
+{
+	return _format;
 }
 
 string Output::receive(shared_ptr<Packet> packet)

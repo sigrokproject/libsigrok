@@ -99,7 +99,7 @@ static int zip_create(const struct sr_output *o)
 	meta = g_key_file_new();
 
 	g_key_file_set_string(meta, "global", "sigrok version",
-			SR_PACKAGE_VERSION_STRING);
+			sr_package_version_string_get());
 
 	devgroup = "device 1";
 

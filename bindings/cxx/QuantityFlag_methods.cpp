@@ -1,7 +1,7 @@
-vector<const QuantityFlag *>
+std::vector<const QuantityFlag *>
     QuantityFlag::flags_from_mask(unsigned int mask)
 {
-    auto result = vector<const QuantityFlag *>();
+    auto result = std::vector<const QuantityFlag *>();
     while (mask)
     {
         unsigned int new_mask = mask & (mask - 1);
@@ -12,7 +12,7 @@ vector<const QuantityFlag *>
     return result;
 }
 
-unsigned int QuantityFlag::mask_from_flags(vector<const QuantityFlag *> flags)
+unsigned int QuantityFlag::mask_from_flags(std::vector<const QuantityFlag *> flags)
 {
     unsigned int result = 0;
     for (auto flag : flags)

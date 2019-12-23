@@ -26,6 +26,8 @@
 
 #define LOG_PREFIX "modbus_serial"
 
+#ifdef HAVE_SERIAL_COMM
+
 #define BUFFER_SIZE 1024
 
 struct modbus_serial_rtu {
@@ -207,3 +209,5 @@ SR_PRIV const struct sr_modbus_dev_inst modbus_serial_rtu_dev = {
 	.close         = modbus_serial_rtu_close,
 	.free          = modbus_serial_rtu_free,
 };
+
+#endif

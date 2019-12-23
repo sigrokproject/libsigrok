@@ -214,7 +214,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return std_serial_dev_acquisition_stop(sdi);
 }
 
-SR_PRIV struct sr_dev_driver zketech_ebd_usb_driver_info = {
+static struct sr_dev_driver zketech_ebd_usb_driver_info = {
 	.name = "zketech-ebd-usb",
 	.longname = "ZKETECH EBD-USB",
 	.api_version = 1,

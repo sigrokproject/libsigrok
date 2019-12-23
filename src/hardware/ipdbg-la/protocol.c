@@ -67,18 +67,15 @@ static gboolean data_available(struct ipdbg_la_tcp *tcp)
 {
 #ifdef _WIN32
 	u_long bytes_available;
-	ioctlsocket(tcp->socket, FIONREAD, &bytes_available);
-	return (bytes_available > 0);
+	if (ioctlsocket(tcp->socket, FIONREAD, &bytes_available) != 0) {
 #else
-	int status;
-
-	if (ioctl(tcp->socket, FIONREAD, &status) < 0) {	// TIOCMGET
+	int bytes_available;
+	if (ioctl(tcp->socket, FIONREAD, &bytes_available) < 0) { /* TIOCMGET */
+#endif
 		sr_err("FIONREAD failed: %s\n", g_strerror(errno));
 		return FALSE;
 	}
-
-	return (status < 1) ? FALSE : TRUE;
-#endif
+	return (bytes_available > 0);
 }
 
 SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void)
@@ -145,6 +142,14 @@ SR_PRIV int ipdbg_la_tcp_close(struct ipdbg_la_tcp *tcp)
 {
 	int ret = SR_OK;
 
+#ifdef _WIN32
+	if (shutdown(tcp->socket, SD_SEND) != SOCKET_ERROR) {
+		char recvbuf[16];
+		int recvbuflen = 16;
+		/* Receive until the peer closes the connection. */
+		while (recv(tcp->socket, recvbuf, recvbuflen, 0) > 0);
+	}
+#endif
 	if (close(tcp->socket) < 0)
 		ret = SR_ERR;
 
@@ -175,14 +180,16 @@ static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 	int received = 0;
 	int error_count = 0;
 
-	/* Timeout after 500ms of not receiving data */
-	while ((received < bufsize) && (error_count < 500)) {
-		if (ipdbg_la_tcp_receive(tcp, buf) > 0) {
-			buf++;
-			received++;
+	/* Timeout after 2s of not receiving data. */
+	/* Increase timeout in case lab is not just beside the office. */
+	while ((received < bufsize) && (error_count < 2000)) {
+		int recd = ipdbg_la_tcp_receive(tcp, buf, bufsize - received);
+		if (recd > 0) {
+			buf += recd;
+			received += recd;
 		} else {
 			error_count++;
-			g_usleep(1000);  /* Sleep for 1ms */
+			g_usleep(1000);
 		}
 	}
 
@@ -190,24 +197,16 @@ static int tcp_receive_blocking(struct ipdbg_la_tcp *tcp,
 }
 
 SR_PRIV int ipdbg_la_tcp_receive(struct ipdbg_la_tcp *tcp,
-	uint8_t *buf)
+	uint8_t *buf, size_t bufsize)
 {
 	int received = 0;
-
-	if (data_available(tcp)) {
-		while (received < 1) {
-			int len = recv(tcp->socket, (char *)buf, 1, 0);
-
-			if (len < 0) {
-				sr_err("Receive error: %s", g_strerror(errno));
-				return SR_ERR;
-			} else
-				received += len;
-		}
-
-		return received;
-	} else
+	if (data_available(tcp))
+		received = recv(tcp->socket, (char *)buf, bufsize, 0);
+	if (received < 0) {
+		sr_err("Receive error: %s", g_strerror(errno));
 		return -1;
+	} else
+		return received;
 }
 
 SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi)
@@ -310,14 +309,22 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->num_transfers <
 		(devc->limit_samples_max * devc->data_width_bytes)) {
-		uint8_t byte;
+		const size_t bufsize = 1024;
+		uint8_t buffer[bufsize];
 
-		if (ipdbg_la_tcp_receive(tcp, &byte) == 1) {
-			if (devc->num_transfers <
-				(devc->limit_samples * devc->data_width_bytes))
-				devc->raw_sample_buf[devc->num_transfers] = byte;
-
-			devc->num_transfers++;
+		const int recd = ipdbg_la_tcp_receive(tcp, buffer, bufsize);
+		if ( recd > 0) {
+			int num_move = (((devc->num_transfers + recd) <=
+							 (devc->limit_samples * devc->data_width_bytes))
+			?
+				recd
+			:
+				(int)((devc->limit_samples * devc->data_width_bytes) -
+						devc->num_transfers));
+			if ( num_move > 0 )
+				memcpy(&(devc->raw_sample_buf[devc->num_transfers]),
+						buffer, num_move);
+			devc->num_transfers += recd;
 		}
 	} else {
 		if (devc->delay_value > 0) {
@@ -379,7 +386,7 @@ static int send_escaping(struct ipdbg_la_tcp *tcp, uint8_t *data_to_send,
 SR_PRIV int ipdbg_la_send_delay(struct dev_context *devc,
 	struct ipdbg_la_tcp *tcp)
 {
-	devc->delay_value = (devc->limit_samples / 100.0) * devc->capture_ratio;
+	devc->delay_value = ((devc->limit_samples - 1) / 100.0) * devc->capture_ratio;
 
 	uint8_t buf;
 	buf = CMD_CFG_LA;

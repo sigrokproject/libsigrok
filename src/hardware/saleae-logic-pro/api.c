@@ -26,8 +26,6 @@
 #define BUF_SIZE (16 * 1024)
 #define BUF_TIMEOUT 1000
 
-SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info;
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -459,7 +457,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info = {
+static struct sr_dev_driver saleae_logic_pro_driver_info = {
 	.name = "saleae-logic-pro",
 	.longname = "Saleae Logic Pro",
 	.api_version = 1,
@@ -477,5 +475,4 @@ SR_PRIV struct sr_dev_driver saleae_logic_pro_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-
 SR_REGISTER_DEV_DRIVER(saleae_logic_pro_driver_info);

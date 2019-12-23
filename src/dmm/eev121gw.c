@@ -523,55 +523,63 @@ static const struct mode_range_items *mode_ranges_main[] = {
 static const struct mode_range_items mode_ranges_temp_sub = {
 	.range_count = 2,
 	.ranges = {
-		[1] = { .desc = "sub 100.0C", .digits = 1, .factor = 1, },
+		[1] = { .desc =  "100.0C", .digits = 1, .factor = 1, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_freq_sub = {
 	.range_count = 4,
 	.ranges = {
-		[1] = { .desc = "999.9Hz", .digits = 1, .factor = 1, },
-		[2] = { .desc = "99.99Hz", .digits = 2, .factor = 2, },
-		[3] = { .desc = "9.999kHz", .digits = 3, .factor = 3, },
+		[1] = { .desc =  "999.9Hz", .digits = 1, .factor = 1, },
+		[2] = { .desc =  "99.99Hz", .digits = 2, .factor = 2, },
+		[3] = { .desc =  "9.999kHz", .digits = 3, .factor = 3, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_batt_sub = {
 	.range_count = 2,
 	.ranges = {
-		[1] = { .desc = "sub 10.0V", .digits = 1, .factor = 1, },
+		[1] = { .desc =   "10.0V", .digits = 1, .factor = 1, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_gain_sub = {
 	.range_count = 4,
 	.ranges = {
-		[1] = { .desc = "dbm 5000.0dBm", .digits = 1, .factor = 1, },
-		[2] = { .desc = "dbm 500.00dBm", .digits = 2, .factor = 2, },
-		[3] = { .desc = "dbm 50.000dBm", .digits = 3, .factor = 3, },
+		[1] = { .desc = "5000.0dBm", .digits = 1, .factor = 1, },
+		[2] = { .desc = "500.00dBm", .digits = 2, .factor = 2, },
+		[3] = { .desc = "50.000dBm", .digits = 3, .factor = 3, },
 	},
 };
 
 static const struct mode_range_items mode_ranges_diode_sub = {
 	.range_count = 1,
 	.ranges = {
-		[0] = { .desc = "diode 15.0V", .digits = 0, .factor = 0, },
+		[0] = { .desc =   "15.0V", .digits = 0, .factor = 0, },
 	},
 };
 
-/* TODO: Complete the list of ranges. Only tested with low voltages so far. */
 static const struct mode_range_items mode_ranges_volts_sub = {
 	.range_count = 5,
 	.ranges = {
+		[3] = { .desc = "50.000V", .digits = 3, .factor = 3, },
 		[4] = { .desc = "5.0000V", .digits = 4, .factor = 4, },
 	},
 };
 
-/* TODO: Complete the list of ranges. Only tested with low voltages so far. */
 static const struct mode_range_items mode_ranges_mamps_sub = {
-	.range_count = 3,
+	.range_count = 5,
 	.ranges = {
 		[2] = { .desc = "500.00mA", .digits = 5, .factor = 5, },
+		[3] = { .desc = "50.000mA", .digits = 6, .factor = 6, },
+		[4] = { .desc = "5.0000mA", .digits = 7, .factor = 7, },
+	},
+};
+
+static const struct mode_range_items mode_ranges_uamps_sub = {
+	.range_count = 5,
+	.ranges = {
+		[4] = { .desc = "5.0000mA", .digits = 7, .factor = 7, },
 	},
 };
 
@@ -580,6 +588,10 @@ static const struct mode_range_items *mode_ranges_sub[] = {
 	[MODE_AC_V] = &mode_ranges_volts_sub,
 	[MODE_DC_A] = &mode_ranges_mamps_sub,
 	[MODE_AC_A] = &mode_ranges_mamps_sub,
+	[MODE_DC_MA] = &mode_ranges_mamps_sub,
+	[MODE_AC_MA] = &mode_ranges_mamps_sub,
+	[MODE_DC_UA] = &mode_ranges_uamps_sub,
+	[MODE_AC_UA] = &mode_ranges_uamps_sub,
 	[MODE_FREQ] = &mode_ranges_freq_sub,
 	[MODE_DIODE] = &mode_ranges_diode_sub,
 	[MODE_SUB_TEMPC] = &mode_ranges_temp_sub,
@@ -679,7 +691,7 @@ SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf)
  * @return SR_OK upon success, SR_ERR upon failure. Upon errors, the
  *         'analog' variable contents are undefined and should not be used.
  */
-SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
+static int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info)
 {
 	struct eev121gw_info *info_local;
@@ -1015,7 +1027,7 @@ SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 		/*
 		 * Get those fields which correspond to the secondary
 		 * display. The value's mantissa has 16 bits. The sign
-		 * is separate is only applies to some of the modes.
+		 * is separate and only applies to some of the modes.
 		 * Scaling and precision also depend on the mode. The
 		 * interpretation of the secondary display is different
 		 * from the main display: The 'range' is not an index
@@ -1056,36 +1068,6 @@ SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
 			info_local->is_neg = is_sign;
 		}
 		is_k = FIELD_NB(raw_sub_range, SUB_RANGE_K);
-
-		/*
-		 * TODO: Re-check the power mode display as more data becomes
-		 * available.
-		 *
-		 * The interpretation of the secondary display in power (VA)
-		 * modes is uncertain. The mode suggests A or uA units but the
-		 * value is supposed to be mA without a reliable condition
-		 * for us to check...
-		 *
-		 * f2  17 84 21 21  18 02 00 00  01 04 00 0b  00 00  0a 40 00  3f
-		 * f2  17 84 21 21  18 02 00 00  15 03 00 00  00 00  0a 40 00  27
-		 *                  DC VA        DC V / DC A
-		 *                  25.000VA     dot 4 / dot 3
-		 *
-		 * f2  17 84 21 21  18 00 00 26  01 04 4c 57  00 00  0e 40 00  0f
-		 * f2  17 84 21 21  18 00 00 26  15 02 00 c7  00 00  0e 40 00  c1
-		 *                  3.8mVA DC    1.9543V
-		 *                                 1.98mA (!) DC A + dot 2 -> milli(!) amps?
-		 *
-		 * f2  17 84 21 21  17 00 07 85  01 04 4c 5a  00 00  0e 40 00  a9
-		 * f2  17 84 21 21  17 00 07 85  13 04 26 7b  00 00  0e 40 00  f0
-		 *                  1.925mVA DC  1.9546V
-		 *                               0.9852mA
-		 *
-		 * f2  17 84 21 21  16 02 11 e0  01 04 26 39  00 02  0e 40 00  d2
-		 * f2  17 84 21 21  16 02 11 e0  11 04 12 44  00 02  0e 40 00  8b
-		 *                  457.6uVA DC  0.9785V
-		 *                               0.4676mA (!) DC uA + dot 4 -> milli(!) amps?
-		 */
 
 		switch (sub_mode) {
 		case MODE_DC_V:

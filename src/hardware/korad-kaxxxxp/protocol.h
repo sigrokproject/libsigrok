@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
- * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2018-2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,11 +36,16 @@ enum {
 	VELLEMAN_LABPS3005D,
 	KORAD_KA3005P,
 	KORAD_KA3005P_0X01,
+	KORAD_KA3005P_0XBC,
 	KORAD_KD3005P,
 	KORAD_KD3005P_V20_NOSP,
+	RND_320_KD3005P,
 	RND_320K30PV,
 	TENMA_72_2540_V20,
 	TENMA_72_2540_V21,
+	TENMA_72_2535_V21,
+	STAMOS_SLS31_V20,
+	KORAD_KD6005P,
 	/* Support for future devices with this protocol. */
 };
 
@@ -58,9 +63,9 @@ struct korad_kaxxxxp_model {
 /* Reply targets */
 enum {
 	KAXXXXP_CURRENT,
-	KAXXXXP_CURRENT_MAX,
+	KAXXXXP_CURRENT_LIMIT,
 	KAXXXXP_VOLTAGE,
-	KAXXXXP_VOLTAGE_MAX,
+	KAXXXXP_VOLTAGE_TARGET,
 	KAXXXXP_STATUS,
 	KAXXXXP_OUTPUT,
 	KAXXXXP_BEEP,
@@ -78,9 +83,9 @@ struct dev_context {
 	GMutex rw_mutex;
 
 	float current;          /**< Last current value [A] read from device. */
-	float current_max;      /**< Output current set. */
+	float current_limit;    /**< Output current set. */
 	float voltage;          /**< Last voltage value [V] read from device. */
-	float voltage_max;      /**< Output voltage set. */
+	float voltage_target;   /**< Output voltage set. */
 	gboolean cc_mode[2];    /**< Device is in CC mode (otherwise CV). */
 
 	gboolean output_enabled; /**< Is the output enabled? */
@@ -88,8 +93,21 @@ struct dev_context {
 	gboolean ocp_enabled;    /**< Output current protection enabled. */
 	gboolean ovp_enabled;    /**< Output voltage protection enabled. */
 
+	gboolean cc_mode_1_changed;      /**< CC mode of channel 1 has changed. */
+	gboolean cc_mode_2_changed;      /**< CC mode of channel 2 has changed. */
+	gboolean output_enabled_changed; /**< Output enabled state has changed. */
+	gboolean ocp_enabled_changed;    /**< OCP enabled state has changed. */
+	gboolean ovp_enabled_changed;    /**< OVP enabled state has changed. */
+
 	int acquisition_target;  /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */
+
+	float set_current_limit;     /**< New output current to set. */
+	float set_voltage_target;    /**< New output voltage to set. */
+	gboolean set_output_enabled; /**< New output enabled to set. */
+	gboolean set_beep_enabled;   /**< New enable beeper to set. */
+	gboolean set_ocp_enabled;    /**< New OCP enabled to set. */
+	gboolean set_ovp_enabled;    /**< New OVP enabled to set. */
 };
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,

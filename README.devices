@@ -37,6 +37,11 @@ The following drivers/devices require a firmware upload upon connection:
    'sigrok-firmware' repository/project under a license which allows us
    to redistribute them.
 
+ - dreamsourcelab-dslogic: The DreamSourceLab DSLogic/DSCope device series
+   requires various firmware files and FPGA bitstream files.
+   These can be extracted/downloaded from the vendor's GitHub repo using a
+   tool from our 'sigrok-util' repository/project.
+
  - fx2lafw: Logic analyzers based on the Cypress FX2(LP) chip need the
    firmware files from the 'sigrok-firmware-fx2lafw' repository/project.
    The firmware is written from scratch and licensed under the GNU GPLv2+.
@@ -64,6 +69,11 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Linux application using a tool
    from our 'sigrok-util' repository/project.
 
+ - saleae-logic-pro: The Saleae Logic Pro 16 needs a firmware file for the
+   Cypress FX3 chip in the device, as well as an FPGA bitstream file.
+   These can be extracted from the vendor's Linux application using a tool
+   from our 'sigrok-util' repository/project.
+
  - sysclk-lwla:
 
     - The Sysclk LWLA1034 requires various bitstream files.
@@ -74,6 +84,12 @@ The following drivers/devices require a firmware upload upon connection:
       These can be extracted from the vendor's Windows drivers using a tool
       from our 'sigrok-util' repository/project.
 
+ - sysclk-sla5032: The Sysclk SLA5032 needs an FPGA bitstream file.
+   This file can be copied (and renamed) from the Windows vendor software
+   installation directory. Details:
+
+     https://sigrok.org/wiki/Sysclk_SLA5032#Firmware
+
 The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
@@ -82,7 +98,6 @@ The following drivers/devices do not need any firmware upload:
  - atten-pps3xxx
  - baylibre-acme
  - beaglelogic
- - brymen-bm86x
  - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
@@ -90,28 +105,40 @@ The following drivers/devices do not need any firmware upload:
  - colead-slm
  - conrad-digi-35-cpu
  - demo
+ - fluke-45
  - fluke-dmm
  - ftdi-la
  - gmc-mh-1x-2x (including all subdrivers)
  - gwinstek-gds-800
+ - gwinstek-gpd
  - hameg-hmo
+ - hantek-4032l
  - hp-3457a
+ - hp-3478a
  - hung-chang-dso-2100
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
+ - ipdbg-la
  - kecheng-kc-330b
  - kern-scale
+ - korad-kaxxxxp
  - lascar-el-usb
+ - lecroy-xstream
  - link-mso19
  - manson-hcs-3xxx
  - maynuo-m97
  - mic-985xx (including all subdrivers)
+ - microchip-pickit2
+ - mooshimeter-dmm
  - motech-lps-30x
  - norma-dmm
  - openbench-logic-sniffer
  - pce-322a
  - pipistrello-ols
+ - rdtech-dps
  - rigol-ds
+ - rohde-schwarz-sme-0x
+ - scpi-dmm
  - scpi-pps
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
@@ -121,16 +148,23 @@ The following drivers/devices do not need any firmware upload:
  - tondaj-sl-814
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
- - victor-dmm
  - yokogawa-dlm
  - zeroplus-logic-cube
+ - zketech-ebd-usb
 
 
 Specifying serial ports
 -----------------------
 
 Many devices supported by libsigrok use serial port based cables (real RS232
-or USB-to-serial ones) to connect to a PC.
+or USB-to-serial ones, CDC class) to connect to a PC. These serial cables are
+supported by the libserialport library. Some vendors prefer to use HID chips
+instead of CDC chips in their serial cables. These cables can get supported
+by means of the hidapi library. Note that each chip type requires specific
+support in the libsigrok library. Bluetooth connected devices may be supported
+as well when they communicate by means of RFCOMM channels, or one of the
+implemented BLE notification/indication approaches, and one of the Bluetooth
+supporting platforms is used.
 
 For all these devices, you need to specify the serial port they are connected
 to (e.g. using the 'conn' option in sigrok-cli). It is not possible to scan
@@ -139,67 +173,42 @@ for such devices without specifying a serial port.
 Example:
 
  $ sigrok-cli --driver <somedriver>:conn=/dev/ttyUSB0 ...
+ $ sigrok-cli --driver <somedriver>:conn=hid/cp2110 ...
+ $ sigrok-cli --driver <somedriver>:conn=bt/rfcomm/01-23-45-67-89-ab ...
 
-The following drivers/devices require a serial port specification. Some of
-the drivers implement a default for the connection.
+Formal syntax for serial communication:
 
- - agilent-dmm
- - appa-55ii
- - atten-pps3xxx
- - brymen-dmm
- - cem-dt-885x
- - center-3xx (including all subdrivers)
- - colead-slm
- - conrad-digi-35-cpu
- - fluke-dmm
- - gmc-mh-1x-2x (including all subdrivers)
- - hameg-hmo
- - link-mso19
- - mic-985xx (including all subdrivers)
- - norma-dmm
- - openbench-logic-sniffer
- - rigol-ds (for RS232; not required for USBTMC or TCP)
- - serial-dmm (including all subdrivers)
- - serial-lcr (including all subdrivers)
- - teleinfo
- - tondaj-sl-814
+ - COM ports (RS232, USB CDC):
+   conn=<com-port>
+ - USB HID cables:
+   conn=hid[/<chip>]
+   conn=hid[/<chip>]/usb=<bus>.<dev>[.<if>]
+   conn=hid[/<chip>]/raw=<path>
+   conn=hid[/<chip>]/sn=<serno>
+   chip can be: bu86x, ch9325, cp2110, victor
+   path may contain slashes
+   path and serno are "greedy" (span to the end of the spec)
+ - Bluetooth Classic and Bluetooth Low Energy (BLE):
+   conn=bt/<conn>/<addr>
+   conn can be: rfcomm, ble122, nrf51, cc254x
+   addr can be "dense" or separated, bt/cc254x/0123456789ab or
+     bt/rfcomm/11-22-33-44-55-66 or bt/ble122/88:6b:12:34:56:78
+     (note that colons may not be available when the conn= spec is taken
+     from a string that separates fields by colon, e.g. in the "--driver
+     <name>:conn=<spec>" example, that is why the dense form and the use
+     of dashes for separation are supported)
 
-The following drivers/devices do not require a serial port specification:
+Some of the drivers implement a default for the connection. Some of the
+drivers can auto-detect USB connected devices.
 
- - asix-sigma
- - brymen-bm86x
- - chronovu-la
- - demo
- - fx2lafw
- - hantek-dso
- - ikalogic-scanalogic2
- - ikalogic-scanaplus
- - kecheng-kc-330b
- - lascar-el-usb
- - pipistrello-ols
- - rigol-ds (USBTMC or TCP)
- - saleae-logic16
- - sysclk-lwla
- - uni-t-dmm (including all subdrivers)
- - uni-t-ut32x
- - victor-dmm
- - yokogawa-dlm (USBTMC or TCP)
- - zeroplus-logic-cube
-
-Beyond strict serial communication over COM ports (e.g. /dev/ttyUSB0), the
+Beyond strict serial communication over COM ports (discussed above), the
 conn= property can also address specific USB devices, as well as specify TCP
 or VXI communication parameters. See these examples:
 
  $ sigrok-cli --driver <somedriver>:conn=<vid>.<pid> ...
  $ sigrok-cli --driver <somedriver>:conn=tcp-raw/<ipaddr>/<port> ...
  $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
-
-The following drivers/devices accept network communication parameters:
-
- - hameg-hmo
- - rigol-ds
- - siglent-sds
- - yokogawa-dlm
+ $ sigrok-cli --driver <somedriver>:conn=usbtmc/<bus>.<addr> ...
 
 
 Specifying serial port parameters
@@ -284,9 +293,11 @@ UNI-T DMM (and rebranded models) cables
 UNI-T multimeters (and rebranded devices, e.g. some Voltcraft models) can
 ship with different PC connectivity cables:
 
+ - UT-D02 (RS232 cable)
  - UT-D04 (USB/HID cable with Hoitek HE2325U chip, USB VID/PID 04fa:2490)
  - UT-D04 (USB/HID cable with WCH CH9325 chip, USB VID/PID 1a86:e008)
- - UT-D02 (RS232 cable)
+ - UT-D07 (Bluetooth adapter, ISSC BL79 BLETR chip)
+ - UT-D09 (USB/HID cable with SiL CP2110 chip, USB VID/PID 10c4:ea80)
 
 The above cables are all physically compatible (same IR connector shape)
 with all/most currently known UNI-T multimeters. For example, you can
@@ -361,7 +372,12 @@ a short list for convenience:
 
  - BBC Goertz Metrawatt M2110: Briefly press the "Start/Reset" button on the
    interface panel on top.
+ - Brymen BM257s: Press HOLD during power-on.
  - Digitek DT4000ZC: Briefly press the "RS232" button.
+ - EEVBlog 121GW: Hold "1ms PEAK" until the "BT" indicator is shown.
+ - ES51919 based LCR meters (DER EE DE-5000, PeakTech 2170, UNI-T UT612):
+   Press the button with the "RS232" or "USB" or "PC link" label (usually
+   the "up" cursor button).
  - Gossen Metrawatt Metrahit 1x/2x devices, driver gmc-mh-1x-2x-rs232:
    - Power on the device with the "DATA" button pressed.
    - Metrahit 2x devices must be configured for the respective interface type.
@@ -373,6 +389,7 @@ a short list for convenience:
       'SI232 online' (28-29S) or 'SI232 store' (22-26x). The interface must
       be configured to the same baud rate as the host (default 9600).
       Multimeter and interface must be configured to the same address.
+ - MASTECH MS6514: Press the "Setup/PC-Link" button for roughly 3 seconds.
  - Metrix MX56C: Press the PRINT button to have the meter send acquisition
    data via IR. Hold the PRINT button to adjust the meter's transmission
    interval.
@@ -434,3 +451,74 @@ Example:
 
  $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
 
+
+Mooshimeter
+-----------
+
+The Mooshim Engineering Mooshimeter is controlled via Bluetooth Low Energy
+(sometimes called Bluetooth 4.0), as such it requires a supported Bluetooth
+interface available. The 'conn' option is required and must contain the
+Bluetooth MAC address of the meter.
+
+Example:
+
+  $ sigrok-cli --driver mooshimeter-dmm:conn=12-34-56-78-9A-BC ...
+
+Since the Mooshimeter has no physical interface on the meter itself, the
+channel configuration is set with the 'channel_config' option. The format
+of this option is 'CH1,CH2' where each channel configuration has the form
+'MODE:RANGE:ANALYSIS', with later parts being optional. In addition for
+CLI compatibility, the ',' in the channels can also be a '/' and the ':' in
+the individual configuration can be a ';'.
+
+Available channel 1 modes:
+
+  - Current, A: Current in amps
+  - Temperature, T, K: Internal meter temperature in Kelvin
+  - Resistance, Ohm, W: Resistance in ohms
+  - Diode, D: Diode voltage
+  - Aux, LV: Auxiliary (W input) low voltage sensor (1.2V max)
+
+Available channel 2 modes:
+
+  - Voltage, V: Voltage
+  - Temperature, T, K: Internal meter temperature in Kelvin
+  - Resistance, Ohm, W: Resistance in ohms
+  - Diode, D: Diode voltage
+  - Aux, LV: Auxiliary (W input) low voltage sensor (1.2V max)
+
+Only one channel can use the shared inputs at a time (e.g. if CH1 is measuring
+resistance, CH2 cannot measure low voltage). Temperature is excepted from
+this, so the meter can measure internal temperature and low voltage at the
+same time.
+
+Additionally, the meter can calculate the real power of both channels. This
+generally only makes sense when CH1 is set to current and CH2 is set to a
+voltage and so it is disabled by default. It must be enabled by enabling the
+'P' channel (the third channel).
+
+The range of the channel specification sets the maximum input for that channel
+and is rounded up to the next value the meter itself supports. For example,
+specifying 50 for the voltage will result in the actual maximum of 60.
+Specifying 61 would result in 600. If omitted, sigrok will perform
+auto-ranging of the channel by selecting the next greater value than the
+latest maximum.
+
+The analysis option sets how the meter reports its internal sampling buffer
+to sigrok:
+
+ - Mean, DC: The default is a simple arithmetic mean of the sample buffer
+ - RMS, AC: The root mean square of the sample buffer
+ - Buf, Buffer, Samples: Report the entire sample buffer to sigrok. This
+   results in packets that contain all the samples in the buffer instead
+   of a single output value.
+
+The size of the sample buffer is set with the 'avg_samples' option, while
+the sampling rate is set with the 'samplerate' option. So the update rate
+is avg_samples/samplerate. Both are rounded up to the next supported value
+by the meter.
+
+Example:
+
+  $ sigrok-cli -c channel_config="Aux;0.1/T" --driver mooshimeter-dmm...
+  $ sigrok-cli -c channel_config="A;;AC/V;;AC" --driver mooshimeter-dmm...

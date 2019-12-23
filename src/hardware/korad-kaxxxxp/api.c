@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Hannu Vuolasaho <vuokkosetae@gmail.com>
- * Copyright (C) 2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2018-2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,16 +55,27 @@ static const struct korad_kaxxxxp_model models[] = {
 	/* Sometimes the KA3005P has an extra 0x01 after the ID. */
 	{KORAD_KA3005P_0X01, "Korad", "KA3005P",
 		"KORADKA3005PV2.0\x01", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	/* Sometimes the KA3005P has an extra 0xBC after the ID. */
+	{KORAD_KA3005P_0XBC, "Korad", "KA3005P",
+		"KORADKA3005PV2.0\xBC", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KD3005P, "Korad", "KD3005P",
 		"KORAD KD3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{KORAD_KD3005P_V20_NOSP, "Korad", "KD3005P",
 		"KORADKD3005PV2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{RND_320_KD3005P, "RND", "KD3005P",
+		"RND 320-KD3005P V4.2", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{RND_320K30PV, "RND", "KA3005P",
 		"RND 320-KA3005P V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{TENMA_72_2540_V20, "Tenma", "72-2540",
 		"TENMA72-2540V2.0", 1, {0, 31, 0.01}, {0, 5, 0.001}},
 	{TENMA_72_2540_V21, "Tenma", "72-2540",
 		"TENMA 72-2540 V2.1", 1, {0, 31, 0.01}, {0, 5, 0.001}},
+	{TENMA_72_2535_V21, "Tenma", "72-2535",
+		"TENMA 72-2535 V2.1", 1, {0, 31, 0.01}, {0, 3, 0.001}},
+	{STAMOS_SLS31_V20, "Stamos Soldering", "S-LS-31",
+		"S-LS-31 V2.0", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
+	{KORAD_KD6005P, "Korad", "KD6005P",
+		"KORAD KD6005P V2.2", 1, {0, 61, 0.01}, {0, 5, 0.001}},
 	ALL_ZERO
 };
 
@@ -115,6 +126,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (strlen(models[i].id) > len)
 			len = strlen(models[i].id);
 	}
+
+	/*
+	 * Some models also include the serial number:
+	 * RND 320-KD3005P V4.2 SN:59834414
+	 */
+	len += 12;
+
 	memset(&reply, 0, sizeof(reply));
 	sr_dbg("Want max %d bytes.", len);
 	if ((korad_kaxxxxp_send_cmd(serial, "*IDN?") < 0))
@@ -125,8 +143,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	sr_dbg("Received: %d, %s", i, reply);
 	model_id = -1;
+
+	/* Truncate before serial number. */
+	char *sn = g_strrstr(reply, " SN:");
+	if (sn)
+		*sn = '\0';
+
 	for (i = 0; models[i].id; i++) {
-		if (!strcmp(models[i].id, reply))
+		if (!g_strcmp0(models[i].id, reply))
 			model_id = i;
 	}
 	if (model_id < 0) {
@@ -151,6 +175,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_mutex_init(&devc->rw_mutex);
 	devc->model = &models[model_id];
 	devc->req_sent_at = 0;
+	devc->cc_mode_1_changed = FALSE;
+	devc->cc_mode_2_changed = FALSE;
+	devc->output_enabled_changed = FALSE;
+	devc->ocp_enabled_changed = FALSE;
+	devc->ovp_enabled_changed = FALSE;
 	sdi->priv = devc;
 
 	/* Get current status of device. */
@@ -190,16 +219,16 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(devc->voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc);
-		*data = g_variant_new_double(devc->voltage_max);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc);
+		*data = g_variant_new_double(devc->voltage_target);
 		break;
 	case SR_CONF_CURRENT:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT, devc);
 		*data = g_variant_new_double(devc->current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc);
-		*data = g_variant_new_double(devc->current_max);
+		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc);
+		*data = g_variant_new_double(devc->current_limit);
 		break;
 	case SR_CONF_ENABLED:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_OUTPUT, devc);
@@ -244,34 +273,34 @@ static int config_set(uint32_t key, GVariant *data,
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->voltage[0] || dval > devc->model->voltage[1])
 			return SR_ERR_ARG;
-		devc->voltage_max = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_MAX, devc) < 0)
+		devc->set_voltage_target = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_VOLTAGE_TARGET, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		dval = g_variant_get_double(data);
 		if (dval < devc->model->current[0] || dval > devc->model->current[1])
 			return SR_ERR_ARG;
-		devc->current_max = dval;
-		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_MAX, devc) < 0)
+		devc->set_current_limit = dval;
+		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_CURRENT_LIMIT, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_ENABLED:
 		bval = g_variant_get_boolean(data);
 		/* Set always so it is possible turn off with sigrok-cli. */
-		devc->output_enabled = bval;
+		devc->set_output_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OUTPUT, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->ocp_enabled = bval;
+		devc->set_ocp_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OCP, devc) < 0)
 			return SR_ERR;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		bval = g_variant_get_boolean(data);
-		devc->ovp_enabled = bval;
+		devc->set_ovp_enabled = bval;
 		if (korad_kaxxxxp_set_value(sdi->conn, KAXXXXP_OVP, devc) < 0)
 			return SR_ERR;
 		break;

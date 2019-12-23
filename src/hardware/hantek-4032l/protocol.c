@@ -132,7 +132,7 @@ static void send_data(struct sr_dev_inst *sdi,
 		sr_session_send(sdi, &trig);
 
 		/* Send rest of data. */
-		logic.length = (sample_count-trigger_offset) * sizeof(uint32_t);
+		logic.length = (sample_count - trigger_offset) * sizeof(uint32_t);
 		logic.data = data + trigger_offset;
 		if (logic.length)
 			sr_session_send(sdi, &packet);

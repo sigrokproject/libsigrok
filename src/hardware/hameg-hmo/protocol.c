@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,42 +31,102 @@ SR_PRIV void hmo_send_logic_packet(struct sr_dev_inst *sdi,
 SR_PRIV void hmo_cleanup_logic_data(struct dev_context *devc);
 
 static const char *hameg_scpi_dialect[] = {
-	[SCPI_CMD_GET_DIG_DATA]		    = ":FORM UINT,8;:POD%d:DATA?",
-	[SCPI_CMD_GET_TIMEBASE]		    = ":TIM:SCAL?",
-	[SCPI_CMD_SET_TIMEBASE]		    = ":TIM:SCAL %s",
-	[SCPI_CMD_GET_COUPLING]		    = ":CHAN%d:COUP?",
-	[SCPI_CMD_SET_COUPLING]		    = ":CHAN%d:COUP %s",
-	[SCPI_CMD_GET_SAMPLE_RATE]	    = ":ACQ:SRAT?",
-	[SCPI_CMD_GET_SAMPLE_RATE_LIVE]	    = ":%s:DATA:POINTS?",
-	[SCPI_CMD_GET_ANALOG_DATA]	    = ":FORM:BORD %s;" \
-					      ":FORM REAL,32;:CHAN%d:DATA?",
-	[SCPI_CMD_GET_VERTICAL_DIV]	    = ":CHAN%d:SCAL?",
-	[SCPI_CMD_SET_VERTICAL_DIV]	    = ":CHAN%d:SCAL %s",
-	[SCPI_CMD_GET_DIG_POD_STATE]	    = ":POD%d:STAT?",
-	[SCPI_CMD_SET_DIG_POD_STATE]	    = ":POD%d:STAT %d",
-	[SCPI_CMD_GET_TRIGGER_SLOPE]	    = ":TRIG:A:EDGE:SLOP?",
-	[SCPI_CMD_SET_TRIGGER_SLOPE]	    = ":TRIG:A:EDGE:SLOP %s",
-	[SCPI_CMD_GET_TRIGGER_SOURCE]	    = ":TRIG:A:SOUR?",
-	[SCPI_CMD_SET_TRIGGER_SOURCE]	    = ":TRIG:A:SOUR %s",
-	[SCPI_CMD_GET_DIG_CHAN_STATE]	    = ":LOG%d:STAT?",
-	[SCPI_CMD_SET_DIG_CHAN_STATE]	    = ":LOG%d:STAT %d",
-	[SCPI_CMD_GET_VERTICAL_OFFSET]	    = ":CHAN%d:POS?",
-	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	    = ":TIM:POS?",
-	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	    = ":TIM:POS %s",
-	[SCPI_CMD_GET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT?",
-	[SCPI_CMD_SET_ANALOG_CHAN_STATE]    = ":CHAN%d:STAT %d",
-	[SCPI_CMD_GET_PROBE_UNIT]	    = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":POD%d:STAT?",
+	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":POD%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
+					        ":TRIG:A:PATT:FUNC AND;" \
+					        ":TRIG:A:PATT:COND \"TRUE\";" \
+					        ":TRIG:A:PATT:MODE OFF;" \
+					        ":TRIG:A:PATT:SOUR \"%s\"",
+	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
+	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
+	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
+	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
+	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":POD%d:THR?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":POD%d:THR %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":POD%d:THR:UDL%d %s",
+};
+
+static const char *rohde_schwarz_log_not_pod_scpi_dialect[] = {
+	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:LOG%d:DATA?",
+	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",
+	[SCPI_CMD_SET_TIMEBASE]		      = ":TIM:SCAL %s",
+	[SCPI_CMD_GET_HORIZONTAL_DIV]	      = ":TIM:DIV?",
+	[SCPI_CMD_GET_COUPLING]		      = ":CHAN%d:COUP?",
+	[SCPI_CMD_SET_COUPLING]		      = ":CHAN%d:COUP %s",
+	[SCPI_CMD_GET_SAMPLE_RATE]	      = ":ACQ:SRAT?",
+	[SCPI_CMD_GET_ANALOG_DATA]	      = ":FORM:BORD %s;" \
+					        ":FORM REAL,32;:CHAN%d:DATA?",
+	[SCPI_CMD_GET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL?",
+	[SCPI_CMD_SET_VERTICAL_SCALE]	      = ":CHAN%d:SCAL %s",
+	[SCPI_CMD_GET_DIG_POD_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_POD_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:A:SOUR %s",
+	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:A:EDGE:SLOP?",
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:A:TYPE EDGE;:TRIG:A:EDGE:SLOP %s",
+	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
+	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
+					        ":TRIG:A:PATT:FUNC AND;" \
+					        ":TRIG:A:PATT:COND \"TRUE\";" \
+					        ":TRIG:A:PATT:MODE OFF;" \
+					        ":TRIG:A:PATT:SOUR \"%s\"",
+	[SCPI_CMD_GET_HIGH_RESOLUTION]	      = ":ACQ:HRES?",
+	[SCPI_CMD_SET_HIGH_RESOLUTION]	      = ":ACQ:HRES %s",
+	[SCPI_CMD_GET_PEAK_DETECTION]	      = ":ACQ:PEAK?",
+	[SCPI_CMD_SET_PEAK_DETECTION]	      = ":ACQ:PEAK %s",
+	[SCPI_CMD_GET_DIG_CHAN_STATE]	      = ":LOG%d:STAT?",
+	[SCPI_CMD_SET_DIG_CHAN_STATE]	      = ":LOG%d:STAT %d",
+	[SCPI_CMD_GET_VERTICAL_OFFSET]	      = ":CHAN%d:POS?",	/* Might not be supported on RTB200x... */
+	[SCPI_CMD_GET_HORIZ_TRIGGERPOS]	      = ":TIM:POS?",
+	[SCPI_CMD_SET_HORIZ_TRIGGERPOS]	      = ":TIM:POS %s",
+	[SCPI_CMD_GET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT?",
+	[SCPI_CMD_SET_ANALOG_CHAN_STATE]      = ":CHAN%d:STAT %d",
+	[SCPI_CMD_GET_PROBE_UNIT]	      = ":PROB%d:SET:ATT:UNIT?",
+	[SCPI_CMD_GET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH?",
+	[SCPI_CMD_SET_DIG_POD_THRESHOLD]      = ":DIG%d:TECH %s",
+	[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR?",
+	[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD] = ":DIG%d:THR %s",
 };
 
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_PATTERN | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PEAK_DETECTION | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
@@ -74,8 +135,26 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint32_t devopts_cg_digital[] = {
+	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
+};
+
 static const char *coupling_options[] = {
 	"AC",  // AC with 50 Ohm termination (152x, 202x, 30xx, 1202)
+	"ACL", // AC with 1 MOhm termination
+	"DC",  // DC with 50 Ohm termination
+	"DCL", // DC with 1 MOhm termination
+	"GND",
+};
+
+static const char *coupling_options_rtb200x[] = {
+	"ACL", // AC with 1 MOhm termination
+	"DCL", // DC with 1 MOhm termination
+	"GND",
+};
+
+static const char *coupling_options_rtm300x[] = {
 	"ACL", // AC with 1 MOhm termination
 	"DC",  // DC with 50 Ohm termination
 	"DCL", // DC with 1 MOhm termination
@@ -88,26 +167,115 @@ static const char *scope_trigger_slopes[] = {
 	"EITH",
 };
 
-static const char *compact2_trigger_sources[] = {
+/* Predefined logic thresholds. */
+static const char *logic_threshold[] = {
+	"TTL",
+	"ECL",
+	"CMOS",
+	"USER1",
+	"USER2", // overwritten by logic_threshold_custom, use USER1 for permanent setting
+};
+
+static const char *logic_threshold_rtb200x_rtm300x[] = {
+	"TTL",
+	"ECL",
+	"CMOS",
+	"MAN", // overwritten by logic_threshold_custom
+};
+
+/* This might need updates whenever logic_threshold* above change. */
+#define MAX_NUM_LOGIC_THRESHOLD_ENTRIES ARRAY_SIZE(logic_threshold)
+
+/* RTC1002, HMO Compact2 and HMO1002/HMO1202 */
+static const char *an2_dig8_trigger_sources[] = {
 	"CH1", "CH2",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-static const char *compact4_trigger_sources[] = {
+/* HMO3xx2 */
+static const char *an2_dig16_trigger_sources[] = {
+	"CH1", "CH2",
+	"LINE", "EXT", "PATT", "BUS1", "BUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+/* RTB2002 and RTM3002 */
+static const char *an2_dig16_sbus_trigger_sources[] = {
+	"CH1", "CH2",
+	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+/* HMO Compact4 */
+static const char *an4_dig8_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 };
 
-static const char *compact4_dig16_trigger_sources[] = {
+/* HMO3xx4 and HMO2524 */
+static const char *an4_dig16_trigger_sources[] = {
 	"CH1", "CH2", "CH3", "CH4",
 	"LINE", "EXT", "PATT", "BUS1", "BUS2",
 	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
+/* RTB2004, RTM3004 and RTA4004 */
+static const char *an4_dig16_sbus_trigger_sources[] = {
+	"CH1", "CH2", "CH3", "CH4",
+	"LINE", "EXT", "PATT", "SBUS1", "SBUS2",
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
 static const uint64_t timebases[][2] = {
+	/* nanoseconds */
+	{ 1, 1000000000 },
+	{ 2, 1000000000 },
+	{ 5, 1000000000 },
+	{ 10, 1000000000 },
+	{ 20, 1000000000 },
+	{ 50, 1000000000 },
+	{ 100, 1000000000 },
+	{ 200, 1000000000 },
+	{ 500, 1000000000 },
+	/* microseconds */
+	{ 1, 1000000 },
+	{ 2, 1000000 },
+	{ 5, 1000000 },
+	{ 10, 1000000 },
+	{ 20, 1000000 },
+	{ 50, 1000000 },
+	{ 100, 1000000 },
+	{ 200, 1000000 },
+	{ 500, 1000000 },
+	/* milliseconds */
+	{ 1, 1000 },
+	{ 2, 1000 },
+	{ 5, 1000 },
+	{ 10, 1000 },
+	{ 20, 1000 },
+	{ 50, 1000 },
+	{ 100, 1000 },
+	{ 200, 1000 },
+	{ 500, 1000 },
+	/* seconds */
+	{ 1, 1 },
+	{ 2, 1 },
+	{ 5, 1 },
+	{ 10, 1 },
+	{ 20, 1 },
+	{ 50, 1 },
+};
+
+/* HMO Compact series (HMO722/724/1022/1024/1522/1524/2022/2024) do
+ * not support 1 ns timebase setting.
+ */
+static const uint64_t timebases_hmo_compact[][2] = {
 	/* nanoseconds */
 	{ 2, 1000000000 },
 	{ 5, 1000000000 },
@@ -162,8 +330,6 @@ static const uint64_t vdivs[][2] = {
 	{ 2, 1 },
 	{ 5, 1 },
 	{ 10, 1 },
-	{ 20, 1 },
-	{ 50, 1 },
 };
 
 static const char *scope_analog_channel_names[] = {
@@ -175,14 +341,12 @@ static const char *scope_digital_channel_names[] = {
 	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
 };
 
-static const struct scope_config scope_models[] = {
+static struct scope_config scope_models[] = {
 	{
-		/* HMO2522/3032/3042/3052 support 16 digital channels but they're not supported yet. */
-		.name = {"HMO1002", "HMO722", "HMO1022", "HMO1522", "HMO2022", "HMO2522",
-				"HMO3032", "HMO3042", "HMO3052", NULL},
+		/* HMO Compact2: HMO722/1022/1522/2022 support only 8 digital channels. */
+		.name = {"HMO722", "HMO1022", "HMO1522", "HMO2022", NULL},
 		.analog_channels = 2,
 		.digital_channels = 8,
-		.digital_pods = 1,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -193,31 +357,37 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact2_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact2_trigger_sources),
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an2_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
 
-		.timebases = &timebases,
-		.num_timebases = ARRAY_SIZE(timebases),
+		.timebases = &timebases_hmo_compact,
+		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
 
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &hameg_scpi_dialect,
 	},
 	{
-		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
-		.analog_channels = 4,
+		/* RTC1002 and HMO1002/HMO1202 support only 8 digital channels. */
+		.name = {"RTC1002", "HMO1002", "HMO1202", NULL},
+		.analog_channels = 2,
 		.digital_channels = 8,
-		.digital_pods = 1,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -228,11 +398,18 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact4_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact4_trigger_sources),
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an2_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig8_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -243,7 +420,88 @@ static const struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
+		.num_ydivs = 8,
+
+		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		/* HMO3032/3042/3052/3522 support 16 digital channels. */
+		.name = {"HMO3032", "HMO3042", "HMO3052", "HMO3522", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an2_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		/* HMO Compact4: HMO724/1024/1524/2024 support only 8 digital channels. */
+		.name = {"HMO724", "HMO1024", "HMO1524", "HMO2024", NULL},
+		.analog_channels = 4,
+		.digital_channels = 8,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options,
+		.num_coupling_options = ARRAY_SIZE(coupling_options),
+
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an4_dig8_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig8_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases_hmo_compact,
+		.num_timebases = ARRAY_SIZE(timebases_hmo_compact),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
 		.num_ydivs = 8,
 
 		.scpi_dialect = &hameg_scpi_dialect,
@@ -252,7 +510,6 @@ static const struct scope_config scope_models[] = {
 		.name = {"HMO2524", "HMO3034", "HMO3044", "HMO3054", "HMO3524", NULL},
 		.analog_channels = 4,
 		.digital_channels = 16,
-		.digital_pods = 2,
 
 		.analog_names = &scope_analog_channel_names,
 		.digital_names = &scope_digital_channel_names,
@@ -263,11 +520,18 @@ static const struct scope_config scope_models[] = {
 		.devopts_cg_analog = &devopts_cg_analog,
 		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
 
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
 		.coupling_options = &coupling_options,
 		.num_coupling_options = ARRAY_SIZE(coupling_options),
 
-		.trigger_sources = &compact4_dig16_trigger_sources,
-		.num_trigger_sources = ARRAY_SIZE(compact4_dig16_trigger_sources),
+		.logic_threshold = &logic_threshold,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold),
+		.logic_threshold_for_pod = TRUE,
+
+		.trigger_sources = &an4_dig16_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_trigger_sources),
 
 		.trigger_slopes = &scope_trigger_slopes,
 		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
@@ -278,10 +542,209 @@ static const struct scope_config scope_models[] = {
 		.vdivs = &vdivs,
 		.num_vdivs = ARRAY_SIZE(vdivs),
 
-		.num_xdivs = 12,
 		.num_ydivs = 8,
 
 		.scpi_dialect = &hameg_scpi_dialect,
+	},
+	{
+		.name = {"RTB2002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtb200x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an2_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTB2004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtb200x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtb200x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTM3002", NULL},
+		.analog_channels = 2,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an2_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an2_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTM3004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
+	},
+	{
+		.name = {"RTA4004", NULL},
+		.analog_channels = 4,
+		.digital_channels = 16,
+
+		.analog_names = &scope_analog_channel_names,
+		.digital_names = &scope_digital_channel_names,
+
+		.devopts = &devopts,
+		.num_devopts = ARRAY_SIZE(devopts),
+
+		.devopts_cg_analog = &devopts_cg_analog,
+		.num_devopts_cg_analog = ARRAY_SIZE(devopts_cg_analog),
+
+		.devopts_cg_digital = &devopts_cg_digital,
+		.num_devopts_cg_digital = ARRAY_SIZE(devopts_cg_digital),
+
+		.coupling_options = &coupling_options_rtm300x,
+		.num_coupling_options = ARRAY_SIZE(coupling_options_rtm300x),
+
+		.logic_threshold = &logic_threshold_rtb200x_rtm300x,
+		.num_logic_threshold = ARRAY_SIZE(logic_threshold_rtb200x_rtm300x),
+		.logic_threshold_for_pod = FALSE,
+
+		.trigger_sources = &an4_dig16_sbus_trigger_sources,
+		.num_trigger_sources = ARRAY_SIZE(an4_dig16_sbus_trigger_sources),
+
+		.trigger_slopes = &scope_trigger_slopes,
+		.num_trigger_slopes = ARRAY_SIZE(scope_trigger_slopes),
+
+		.timebases = &timebases,
+		.num_timebases = ARRAY_SIZE(timebases),
+
+		.vdivs = &vdivs,
+		.num_vdivs = ARRAY_SIZE(vdivs),
+
+		.num_ydivs = 8,
+
+		.scpi_dialect = &rohde_schwarz_log_not_pod_scpi_dialect,
 	},
 };
 
@@ -306,8 +769,15 @@ static void scope_state_dump(const struct scope_config *config,
 	}
 
 	for (i = 0; i < config->digital_pods; i++) {
-		sr_info("State of digital POD %d -> %s", i,
-			state->digital_pods[i] ? "On" : "Off");
+		if (!strncmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold], 4) ||
+		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			sr_info("State of digital POD %d -> %s : %E (threshold)", i + 1,
+				state->digital_pods[i].state ? "On" : "Off",
+				state->digital_pods[i].user_threshold);
+		else
+			sr_info("State of digital POD %d -> %s : %s (threshold)", i + 1,
+				state->digital_pods[i].state ? "On" : "Off",
+				(*config->logic_threshold)[state->digital_pods[i].threshold]);
 	}
 
 	tmp = sr_period_string((*config->timebases)[state->timebase][0],
@@ -319,10 +789,15 @@ static void scope_state_dump(const struct scope_config *config,
 	sr_info("Current samplerate: %s", tmp);
 	g_free(tmp);
 
-	sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
-		(*config->trigger_sources)[state->trigger_source],
-		(*config->trigger_slopes)[state->trigger_slope],
-		state->horiz_triggerpos);
+	if (!strcmp("PATT", (*config->trigger_sources)[state->trigger_source]))
+		sr_info("Current trigger: %s (pattern), %.2f (offset)",
+			state->trigger_pattern,
+			state->horiz_triggerpos);
+	else // Edge (slope) trigger
+		sr_info("Current trigger: %s (source), %s (slope) %.2f (offset)",
+			(*config->trigger_sources)[state->trigger_source],
+			(*config->trigger_slopes)[state->trigger_slope],
+			state->horiz_triggerpos);
 }
 
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
@@ -331,10 +806,8 @@ static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi,
 	char *tmp;
 	int idx;
 
-	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK) {
-		g_free(tmp);
+	if (sr_scpi_get_string(scpi, command, &tmp) != SR_OK)
 		return SR_ERR;
-	}
 
 	if ((idx = std_str_idx_s(tmp, *array, n)) < 0) {
 		g_free(tmp);
@@ -417,7 +890,7 @@ static int analog_channel_state_get(struct sr_dev_inst *sdi,
 			ch->enabled = state->analog_channels[i].state;
 
 		g_snprintf(command, sizeof(command),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_DIV],
+			   (*config->scpi_dialect)[SCPI_CMD_GET_VERTICAL_SCALE],
 			   i + 1);
 
 		if (sr_scpi_get_string(scpi, command, &tmp_str) != SR_OK)
@@ -470,7 +943,9 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 				     const struct scope_config *config,
 				     struct scope_state *state)
 {
-	unsigned int i;
+	unsigned int i, idx;
+	int result = SR_ERR;
+	char *logic_threshold_short[MAX_NUM_LOGIC_THRESHOLD_ENTRIES];
 	char command[MAX_COMMAND_SIZE];
 	struct sr_channel *ch;
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
@@ -489,17 +964,80 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi,
 			ch->enabled = state->digital_channels[i];
 	}
 
+	/* According to the SCPI standard, on models that support multiple
+	 * user-defined logic threshold settings the response to the command
+	 * SCPI_CMD_GET_DIG_POD_THRESHOLD might return "USER" instead of
+	 * "USER1".
+	 *
+	 * This makes more difficult to validate the response when the logic
+	 * threshold is set to "USER1" and therefore we need to prevent device
+	 * opening failures in such configuration case...
+	 */
+	for (i = 0; i < config->num_logic_threshold; i++) {
+		logic_threshold_short[i] = g_strdup((*config->logic_threshold)[i]);
+		if (!strcmp("USER1", (*config->logic_threshold)[i]))
+			g_strlcpy(logic_threshold_short[i],
+				  (*config->logic_threshold)[i], strlen((*config->logic_threshold)[i]));
+	}
+
 	for (i = 0; i < config->digital_pods; i++) {
 		g_snprintf(command, sizeof(command),
 			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_STATE],
 			   i + 1);
 
 		if (sr_scpi_get_bool(scpi, command,
-				     &state->digital_pods[i]) != SR_OK)
-			return SR_ERR;
+				     &state->digital_pods[i].state) != SR_OK)
+			goto exit;
+
+		/* Check if the threshold command is based on the POD or digital channel index. */
+		if (config->logic_threshold_for_pod)
+			idx = i + 1;
+		else
+			idx = i * DIGITAL_CHANNELS_PER_POD;
+
+		g_snprintf(command, sizeof(command),
+			   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_THRESHOLD],
+			   idx);
+
+		/* Check for both standard and shortened responses. */
+		if (scope_state_get_array_option(scpi, command, config->logic_threshold,
+						 config->num_logic_threshold,
+						 &state->digital_pods[i].threshold) != SR_OK)
+			if (scope_state_get_array_option(scpi, command, (const char * (*)[]) &logic_threshold_short,
+							 config->num_logic_threshold,
+							 &state->digital_pods[i].threshold) != SR_OK)
+				goto exit;
+
+		/* If used-defined or custom threshold is active, get the level. */
+		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   idx, 1); /* USER1 logic threshold setting. */
+		else if (!strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   idx, 2); /* USER2 for custom logic_threshold setting. */
+		else if (!strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+			 !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			g_snprintf(command, sizeof(command),
+				   (*config->scpi_dialect)[SCPI_CMD_GET_DIG_POD_USER_THRESHOLD],
+				   idx); /* USER or MAN for custom logic_threshold setting. */
+		if (!strcmp("USER1", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("USER2", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("USER", (*config->logic_threshold)[state->digital_pods[i].threshold]) ||
+		    !strcmp("MAN", (*config->logic_threshold)[state->digital_pods[i].threshold]))
+			if (sr_scpi_get_float(scpi, command,
+			    &state->digital_pods[i].user_threshold) != SR_OK)
+				goto exit;
 	}
 
-	return SR_OK;
+	result = SR_OK;
+
+exit:
+	for (i = 0; i < config->num_logic_threshold; i++)
+		g_free(logic_threshold_short[i]);
+
+	return result;
 }
 
 SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
@@ -507,58 +1045,18 @@ SR_PRIV int hmo_update_sample_rate(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
-	int tmp;
-	unsigned int i;
 	float tmp_float;
-	gboolean channel_found;
-	char tmp_str[MAX_COMMAND_SIZE];
-	char chan_name[20];
 
 	devc = sdi->priv;
 	config = devc->model_config;
 	state = devc->model_state;
-	channel_found = FALSE;
 
-	for (i = 0; i < config->analog_channels; i++) {
-		if (!state->analog_channels[i].state)
-			continue;
-		g_snprintf(chan_name, sizeof(chan_name), "CHAN%d", i + 1);
-		g_snprintf(tmp_str, sizeof(tmp_str),
-			   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
-			   chan_name);
-		channel_found = TRUE;
-		break;
-	}
+	if (sr_scpi_get_float(sdi->conn,
+			      (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE],
+			      &tmp_float) != SR_OK)
+		return SR_ERR;
 
-	if (!channel_found) {
-		for (i = 0; i < config->digital_pods; i++) {
-			if (!state->digital_pods[i])
-				continue;
-			g_snprintf(chan_name, sizeof(chan_name), "POD%d", i);
-			g_snprintf(tmp_str, sizeof(tmp_str),
-				   (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE_LIVE],
-				   chan_name);
-			channel_found = TRUE;
-			break;
-		}
-	}
-
-	/* No channel is active, ask the instrument for the sample rate
-	 * in single shot mode */
-	if (!channel_found) {
-		if (sr_scpi_get_float(sdi->conn,
-				      (*config->scpi_dialect)[SCPI_CMD_GET_SAMPLE_RATE],
-				      &tmp_float) != SR_OK)
-			return SR_ERR;
-
-		state->sample_rate = tmp_float;
-	} else {
-		if (sr_scpi_get_int(sdi->conn, tmp_str, &tmp) != SR_OK)
-			return SR_ERR;
-		state->sample_rate = tmp / (((float) (*config->timebases)[state->timebase][0] /
-					     (*config->timebases)[state->timebase][1]) *
-					    config->num_xdivs);
-	}
+	state->sample_rate = tmp_float;
 
 	return SR_OK;
 }
@@ -584,11 +1082,6 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	if (digital_channel_state_get(sdi, config, state) != SR_OK)
 		return SR_ERR;
 
-	if (sr_scpi_get_float(sdi->conn,
-			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
-			&tmp_float) != SR_OK)
-		return SR_ERR;
-
 	if (sr_scpi_get_string(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_TIMEBASE],
 			&tmp_str) != SR_OK)
@@ -602,6 +1095,12 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 	g_free(tmp_str);
 
 	state->timebase = i;
+
+	/* Determine the number of horizontal (x) divisions. */
+	if (sr_scpi_get_int(sdi->conn,
+	    (*config->scpi_dialect)[SCPI_CMD_GET_HORIZONTAL_DIV],
+	    (int *)&config->num_xdivs) != SR_OK)
+		return SR_ERR;
 
 	if (sr_scpi_get_float(sdi->conn,
 			(*config->scpi_dialect)[SCPI_CMD_GET_HORIZ_TRIGGERPOS],
@@ -625,6 +1124,35 @@ SR_PRIV int hmo_scope_state_get(struct sr_dev_inst *sdi)
 			&state->trigger_slope) != SR_OK)
 		return SR_ERR;
 
+	if (sr_scpi_get_string(sdi->conn,
+			       (*config->scpi_dialect)[SCPI_CMD_GET_TRIGGER_PATTERN],
+			       &tmp_str) != SR_OK)
+		return SR_ERR;
+	strncpy(state->trigger_pattern,
+		sr_scpi_unquote_string(tmp_str),
+		MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+	g_free(tmp_str);
+
+	if (sr_scpi_get_string(sdi->conn,
+			     (*config->scpi_dialect)[SCPI_CMD_GET_HIGH_RESOLUTION],
+			     &tmp_str) != SR_OK)
+		return SR_ERR;
+	if (!strcmp("OFF", tmp_str))
+		state->high_resolution = FALSE;
+	else
+		state->high_resolution = TRUE;
+	g_free(tmp_str);
+
+	if (sr_scpi_get_string(sdi->conn,
+			     (*config->scpi_dialect)[SCPI_CMD_GET_PEAK_DETECTION],
+			     &tmp_str) != SR_OK)
+		return SR_ERR;
+	if (!strcmp("OFF", tmp_str))
+		state->peak_detection = FALSE;
+	else
+		state->peak_detection = TRUE;
+	g_free(tmp_str);
+
 	if (hmo_update_sample_rate(sdi) != SR_OK)
 		return SR_ERR;
 
@@ -645,7 +1173,7 @@ static struct scope_state *scope_state_new(const struct scope_config *config)
 	state->digital_channels = g_malloc0_n(
 			config->digital_channels, sizeof(gboolean));
 	state->digital_pods = g_malloc0_n(config->digital_pods,
-			sizeof(gboolean));
+			sizeof(struct digital_pod_state));
 
 	return state;
 }
@@ -682,9 +1210,12 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 	}
 
 	if (model_index == -1) {
-		sr_dbg("Unsupported HMO device.");
+		sr_dbg("Unsupported device.");
 		return SR_ERR_NA;
 	}
+
+	/* Configure the number of PODs given the number of digital channels. */
+	scope_models[model_index].digital_pods = scope_models[model_index].digital_channels / DIGITAL_CHANNELS_PER_POD;
 
 	devc->analog_groups = g_malloc0(sizeof(struct sr_channel_group*) *
 					scope_models[model_index].analog_channels);
@@ -719,7 +1250,7 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 			ret = SR_ERR_MALLOC;
 			break;
 		}
-		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i);
+		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i + 1);
 		sdi->channel_groups = g_slist_append(sdi->channel_groups,
 				   devc->digital_groups[i]);
 	}
@@ -731,12 +1262,13 @@ SR_PRIV int hmo_init_device(struct sr_dev_inst *sdi)
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 			   (*scope_models[model_index].digital_names)[i]);
 
-		group = i / 8;
+		group = i / DIGITAL_CHANNELS_PER_POD;
 		devc->digital_groups[group]->channels = g_slist_append(
 			devc->digital_groups[group]->channels, ch);
 	}
 
 	devc->model_config = &scope_models[model_index];
+	devc->samples_limit = 0;
 	devc->frame_limit = 0;
 
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
@@ -775,8 +1307,6 @@ SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
 	} else {
 		store = devc->logic_data;
 		size = store->len / devc->pod_count;
-		if (size != pod_data->len)
-			return;
 		if (group >= devc->pod_count)
 			return;
 	}
@@ -792,6 +1322,10 @@ SR_PRIV void hmo_queue_logic_data(struct dev_context *devc,
 		*logic_data = pod_data->data[idx];
 		logic_data += logic_step;
 	}
+
+	/* Truncate acquisition if a smaller number of samples has been requested. */
+	if (devc->samples_limit > 0 && devc->logic_data->len > devc->samples_limit * devc->pod_count)
+		devc->logic_data->len = devc->samples_limit * devc->pod_count;
 }
 
 /* Submit data for all channels, after the individual groups got collected. */
@@ -881,7 +1415,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
 				g_byte_array_free(data, TRUE);
-
 			return TRUE;
 		}
 
@@ -889,6 +1422,9 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 		analog.data = data->data;
 		analog.num_samples = data->len / sizeof(float);
+		/* Truncate acquisition if a smaller number of samples has been requested. */
+		if (devc->samples_limit > 0 && analog.num_samples > devc->samples_limit)
+			analog.num_samples = devc->samples_limit;
 		analog.encoding = &encoding;
 		analog.meaning = &meaning;
 		analog.spec = &spec;
@@ -921,13 +1457,15 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		spec.spec_digits = 2;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
+		devc->num_samples = data->len / sizeof(float);
 		g_slist_free(meaning.channels);
 		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
 	case SR_CHANNEL_LOGIC:
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
-			g_free(data);
+			if (data)
+				g_byte_array_free(data, TRUE);
 			return TRUE;
 		}
 
@@ -948,14 +1486,18 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 			packet.type = SR_DF_LOGIC;
 			logic.data = data->data;
 			logic.length = data->len;
+			/* Truncate acquisition if a smaller number of samples has been requested. */
+			if (devc->samples_limit > 0 && logic.length > devc->samples_limit)
+				logic.length = devc->samples_limit;
 			logic.unitsize = 1;
 			packet.payload = &logic;
 			sr_session_send(sdi, &packet);
 		} else {
-			group = ch->index / 8;
+			group = ch->index / DIGITAL_CHANNELS_PER_POD;
 			hmo_queue_logic_data(devc, group, data);
 		}
 
+		devc->num_samples = data->len / devc->pod_count;
 		g_byte_array_free(data, TRUE);
 		data = NULL;
 		break;
@@ -989,10 +1531,10 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 
 	/*
 	 * End of frame was reached. Stop acquisition after the specified
-	 * number of frames, or continue reception by starting over at
-	 * the first enabled channel.
+	 * number of frames or after the specified number of samples, or
+	 * continue reception by starting over at the first enabled channel.
 	 */
-	if (++devc->num_frames == devc->frame_limit) {
+	if (++devc->num_frames >= devc->frame_limit || devc->num_samples >= devc->samples_limit) {
 		sr_dev_acquisition_stop(sdi);
 		hmo_cleanup_logic_data(devc);
 	} else {

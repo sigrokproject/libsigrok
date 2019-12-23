@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Janne Huttunen <jahuttun@gmail.com>
+ * Copyright (C) 2019 Gerhard Sittig <gerhard.sittig@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,269 +19,16 @@
  */
 
 #include <config.h>
-#include <stdint.h>
-#include <string.h>
-#include <math.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include <math.h>
+#include <stdint.h>
+#include <string.h>
 
 #define LOG_PREFIX "es51919"
 
-struct dev_buffer {
-	/** Total size of the buffer. */
-	size_t size;
-	/** Amount of data currently in the buffer. */
-	size_t len;
-	/** Offset where the data starts in the buffer. */
-	size_t offset;
-	/** Space for the data. */
-	uint8_t data[];
-};
-
-static struct dev_buffer *dev_buffer_new(size_t size)
-{
-	struct dev_buffer *dbuf;
-
-	dbuf = g_malloc0(sizeof(struct dev_buffer) + size);
-	dbuf->size = size;
-	dbuf->len = 0;
-	dbuf->offset = 0;
-
-	return dbuf;
-}
-
-static void dev_buffer_destroy(struct dev_buffer *dbuf)
-{
-	g_free(dbuf);
-}
-
-static int dev_buffer_fill_serial(struct dev_buffer *dbuf,
-				  struct sr_dev_inst *sdi)
-{
-	struct sr_serial_dev_inst *serial;
-	int len;
-
-	serial = sdi->conn;
-
-	/* If we already have data, move it to the beginning of the buffer. */
-	if (dbuf->len > 0 && dbuf->offset > 0)
-		memmove(dbuf->data, dbuf->data + dbuf->offset, dbuf->len);
-
-	dbuf->offset = 0;
-
-	len = dbuf->size - dbuf->len;
-	len = serial_read_nonblocking(serial, dbuf->data + dbuf->len, len);
-	if (len < 0) {
-		sr_err("Serial port read error: %d.", len);
-		return len;
-	}
-
-	dbuf->len += len;
-
-	return SR_OK;
-}
-
-static uint8_t *dev_buffer_packet_find(struct dev_buffer *dbuf,
-				gboolean (*packet_valid)(const uint8_t *),
-				size_t packet_size)
-{
-	size_t offset;
-
-	while (dbuf->len >= packet_size) {
-		if (packet_valid(dbuf->data + dbuf->offset)) {
-			offset = dbuf->offset;
-			dbuf->offset += packet_size;
-			dbuf->len -= packet_size;
-			return dbuf->data + offset;
-		}
-		dbuf->offset++;
-		dbuf->len--;
-	}
-
-	return NULL;
-}
-
-struct dev_limit_counter {
-	/** The current number of received samples/frames/etc. */
-	uint64_t count;
-	/** The limit (in number of samples/frames/etc.). */
-	uint64_t limit;
-};
-
-static void dev_limit_counter_start(struct dev_limit_counter *cnt)
-{
-	cnt->count = 0;
-}
-
-static void dev_limit_counter_inc(struct dev_limit_counter *cnt)
-{
-	cnt->count++;
-}
-
-static void dev_limit_counter_limit_set(struct dev_limit_counter *cnt,
-					uint64_t limit)
-{
-	cnt->limit = limit;
-}
-
-static gboolean dev_limit_counter_limit_reached(struct dev_limit_counter *cnt)
-{
-	if (cnt->limit && cnt->count >= cnt->limit) {
-		sr_info("Requested counter limit reached.");
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-struct dev_time_counter {
-	/** The starting time of current sampling run. */
-	int64_t starttime;
-	/** The time limit (in milliseconds). */
-	uint64_t limit;
-};
-
-static void dev_time_counter_start(struct dev_time_counter *cnt)
-{
-	cnt->starttime = g_get_monotonic_time();
-}
-
-static void dev_time_limit_set(struct dev_time_counter *cnt, uint64_t limit)
-{
-	cnt->limit = limit;
-}
-
-static gboolean dev_time_limit_reached(struct dev_time_counter *cnt)
-{
-	int64_t time;
-
-	if (cnt->limit) {
-		time = (g_get_monotonic_time() - cnt->starttime) / 1000;
-		if (time > (int64_t)cnt->limit) {
-			sr_info("Requested time limit reached.");
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
-static void serial_conf_get(GSList *options, const char *def_serialcomm,
-			    const char **conn, const char **serialcomm)
-{
-	struct sr_config *src;
-	GSList *l;
-
-	*conn = *serialcomm = NULL;
-	for (l = options; l; l = l->next) {
-		src = l->data;
-		switch (src->key) {
-		case SR_CONF_CONN:
-			*conn = g_variant_get_string(src->data, NULL);
-			break;
-		case SR_CONF_SERIALCOMM:
-			*serialcomm = g_variant_get_string(src->data, NULL);
-			break;
-		}
-	}
-
-	if (*serialcomm == NULL)
-		*serialcomm = def_serialcomm;
-}
-
-static struct sr_serial_dev_inst *serial_dev_new(GSList *options,
-						 const char *def_serialcomm)
-
-{
-	const char *conn, *serialcomm;
-
-	serial_conf_get(options, def_serialcomm, &conn, &serialcomm);
-
-	if (!conn)
-		return NULL;
-
-	return sr_serial_dev_inst_new(conn, serialcomm);
-}
-
-static int serial_stream_check_buf(struct sr_serial_dev_inst *serial,
-				   uint8_t *buf, size_t buflen,
-				   size_t packet_size,
-				   packet_valid_callback is_valid,
-				   uint64_t timeout_ms, int baudrate)
-{
-	size_t len, dropped;
-	int ret;
-
-	if ((ret = serial_open(serial, SERIAL_RDWR)) != SR_OK)
-		return ret;
-
-	serial_flush(serial);
-
-	len = buflen;
-	ret = serial_stream_detect(serial, buf, &len, packet_size,
-				   is_valid, timeout_ms, baudrate);
-
-	serial_close(serial);
-
-	if (ret != SR_OK)
-		return ret;
-
-	/*
-	 * If we dropped more than two packets worth of data, something is
-	 * wrong. We shouldn't quit however, since the dropped bytes might be
-	 * just zeroes at the beginning of the stream. Those can occur as a
-	 * combination of the nonstandard cable that ships with some devices
-	 * and the serial port or USB to serial adapter.
-	 */
-	dropped = len - packet_size;
-	if (dropped > 2 * packet_size)
-		sr_warn("Had to drop too much data.");
-
-	return SR_OK;
-}
-
-static int serial_stream_check(struct sr_serial_dev_inst *serial,
-			       size_t packet_size,
-			       packet_valid_callback is_valid,
-			       uint64_t timeout_ms, int baudrate)
-{
-	uint8_t buf[128];
-
-	return serial_stream_check_buf(serial, buf, sizeof(buf), packet_size,
-				       is_valid, timeout_ms, baudrate);
-}
-
-static int send_config_update(struct sr_dev_inst *sdi, struct sr_config *cfg)
-{
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-
-	memset(&meta, 0, sizeof(meta));
-
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-
-	meta.config = g_slist_append(meta.config, cfg);
-
-	return sr_session_send(sdi, &packet);
-}
-
-static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
-				  GVariant *var)
-{
-	struct sr_config *cfg;
-	int ret;
-
-	cfg = sr_config_new(key, var);
-	if (!cfg)
-		return SR_ERR;
-
-	ret = send_config_update(sdi, cfg);
-	sr_config_free(cfg);
-
-	return ret;
-}
+#ifdef HAVE_SERIAL_COMM
 
 /*
  * Cyrustek ES51919 LCR chipset host protocol.
@@ -375,31 +123,45 @@ static int send_config_update_key(struct sr_dev_inst *sdi, uint32_t key,
  * 0x10: footer2 (0x0a) ?
  */
 
-#define PACKET_SIZE 17
-
 static const double frequencies[] = {
-	100, 120, 1000, 10000, 100000, 0,
+	SR_HZ(0), SR_HZ(100), SR_HZ(120),
+	SR_KHZ(1), SR_KHZ(10), SR_KHZ(100),
 };
+
+static const size_t freq_code_map[] = {
+	1, 2, 3, 4, 5, 0,
+};
+
+static uint64_t get_frequency(size_t code)
+{
+	uint64_t freq;
+
+	if (code >= ARRAY_SIZE(freq_code_map)) {
+		sr_err("Unknown output frequency code %zu.", code);
+		return frequencies[0];
+	}
+
+	code = freq_code_map[code];
+	freq = frequencies[code];
+
+	return freq;
+}
 
 enum { MODEL_NONE, MODEL_PAR, MODEL_SER, MODEL_AUTO, };
 
-static const char *const models[] = {
+static const char *const circuit_models[] = {
 	"NONE", "PARALLEL", "SERIES", "AUTO",
 };
 
-struct dev_context {
-	struct dev_limit_counter frame_count;
+static const char *get_equiv_model(size_t code)
+{
+	if (code >= ARRAY_SIZE(circuit_models)) {
+		sr_err("Unknown equivalent circuit model code %zu.", code);
+		return "NONE";
+	}
 
-	struct dev_time_counter time_count;
-
-	struct dev_buffer *buf;
-
-	/** The frequency of the test signal (index to frequencies[]). */
-	unsigned int freq;
-
-	/** Equivalent circuit model (index to models[]). */
-	unsigned int model;
-};
+	return circuit_models[code];
+}
 
 static const uint8_t *pkt_to_buf(const uint8_t *pkt, int is_secondary)
 {
@@ -443,18 +205,22 @@ static int parse_mq(const uint8_t *pkt, int is_secondary, int is_parallel)
 static float parse_value(const uint8_t *buf, int *digits)
 {
 	static const int exponents[] = {0, -1, -2, -3, -4, -5, -6, -7};
+
 	int exponent;
 	int16_t val;
+	float fval;
 
 	exponent = exponents[buf[3] & 7];
 	*digits = -exponent;
 	val = (buf[1] << 8) | buf[2];
-	return (float)val * powf(10, exponent);
+	fval = (float)val;
+	fval *= powf(10, exponent);
+
+	return fval;
 }
 
 static void parse_measurement(const uint8_t *pkt, float *floatval,
-			      struct sr_datafeed_analog *analog,
-			      int is_secondary)
+	struct sr_datafeed_analog *analog, int is_secondary)
 {
 	static const struct {
 		int unit;
@@ -476,6 +242,7 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 		{ SR_UNIT_PERCENTAGE, 0 }, /* % */
 		{ SR_UNIT_DEGREE,     0 }, /* degree */
 	};
+
 	const uint8_t *buf;
 	int digits, exponent;
 	int state;
@@ -523,371 +290,80 @@ static void parse_measurement(const uint8_t *pkt, float *floatval,
 	analog->spec->spec_digits = digits - exponent;
 }
 
-static unsigned int parse_freq(const uint8_t *pkt)
+static uint64_t parse_freq(const uint8_t *pkt)
 {
-	unsigned int freq;
-
-	freq = pkt[3] >> 5;
-
-	if (freq >= ARRAY_SIZE(frequencies)) {
-		sr_err("Unknown frequency %u.", freq);
-		freq = ARRAY_SIZE(frequencies) - 1;
-	}
-
-	return freq;
+	return get_frequency(pkt[3] >> 5);
 }
 
-static unsigned int parse_model(const uint8_t *pkt)
+static const char *parse_model(const uint8_t *pkt)
 {
+	size_t code;
+
 	if (pkt[2] & 0x40)
-		return MODEL_AUTO;
+		code = MODEL_AUTO;
 	else if (parse_mq(pkt, 0, 0) == SR_MQ_RESISTANCE)
-		return MODEL_NONE;
-	else if (pkt[2] & 0x80)
-		return MODEL_PAR;
+		code = MODEL_NONE;
 	else
-		return MODEL_SER;
+		code = (pkt[2] & 0x80) ? MODEL_PAR : MODEL_SER;
+
+	return get_equiv_model(code);
 }
 
-static gboolean packet_valid(const uint8_t *pkt)
+SR_PRIV gboolean es51919_packet_valid(const uint8_t *pkt)
 {
-	/*
-	 * If the first two bytes of the packet are indeed a constant
-	 * header, they should be checked too. Since we don't know it
-	 * for sure, we'll just check the last two for now since they
-	 * seem to be constant just like in the other Cyrustek chipset
-	 * protocols.
-	 */
-	if (pkt[15] == 0xd && pkt[16] == 0xa)
-		return TRUE;
 
-	return FALSE;
-}
+	/* Check for fixed 0x00 0x0d prefix. */
+	if (pkt[0] != 0x00 || pkt[1] != 0x0d)
+		return FALSE;
 
-static int do_config_update(struct sr_dev_inst *sdi, uint32_t key,
-			    GVariant *var)
-{
-	return send_config_update_key(sdi, key, var);
-}
+	/* Check for fixed 0x0d 0x0a suffix. */
+	if (pkt[15] != 0x0d || pkt[16] != 0x0a)
+		return FALSE;
 
-static int send_freq_update(struct sr_dev_inst *sdi, unsigned int freq)
-{
-	return do_config_update(sdi, SR_CONF_OUTPUT_FREQUENCY,
-				g_variant_new_double(frequencies[freq]));
-}
-
-static int send_model_update(struct sr_dev_inst *sdi, unsigned int model)
-{
-	return do_config_update(sdi, SR_CONF_EQUIV_CIRCUIT_MODEL,
-				g_variant_new_string(models[model]));
-}
-
-static void handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
-{
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
-	struct sr_analog_encoding encoding;
-	struct sr_analog_meaning meaning;
-	struct sr_analog_spec spec;
-	struct dev_context *devc;
-	unsigned int val;
-	float floatval;
-	gboolean frame;
-	struct sr_channel *channel;
-
-	devc = sdi->priv;
-
-	val = parse_freq(pkt);
-	if (val != devc->freq) {
-		if (send_freq_update(sdi, val) == SR_OK)
-			devc->freq = val;
-		else
-			return;
-	}
-
-	val = parse_model(pkt);
-	if (val != devc->model) {
-		if (send_model_update(sdi, val) == SR_OK)
-			devc->model = val;
-		else
-			return;
-	}
-
-	frame = FALSE;
-
-	/* Note: digits/spec_digits will be overridden later. */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 0);
-
-	analog.num_samples = 1;
-	analog.data = &floatval;
-
-	channel = sdi->channels->data;
-	analog.meaning->channels = g_slist_append(NULL, channel);
-
-	parse_measurement(pkt, &floatval, &analog, 0);
-	if (analog.meaning->mq != 0 && channel->enabled) {
-		if (!frame) {
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-			frame = TRUE;
-		}
-
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-
-		sr_session_send(sdi, &packet);
-	}
-
-	g_slist_free(analog.meaning->channels);
-
-	channel = sdi->channels->next->data;
-	analog.meaning->channels = g_slist_append(NULL, channel);
-
-	parse_measurement(pkt, &floatval, &analog, 1);
-	if (analog.meaning->mq != 0 && channel->enabled) {
-		if (!frame) {
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-			frame = TRUE;
-		}
-
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-
-		sr_session_send(sdi, &packet);
-	}
-
-	g_slist_free(analog.meaning->channels);
-
-	if (frame) {
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
-		dev_limit_counter_inc(&devc->frame_count);
-	}
-}
-
-static int handle_new_data(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	uint8_t *pkt;
-	int ret;
-
-	devc = sdi->priv;
-
-	ret = dev_buffer_fill_serial(devc->buf, sdi);
-	if (ret < 0)
-		return ret;
-
-	while ((pkt = dev_buffer_packet_find(devc->buf, packet_valid,
-					     PACKET_SIZE)))
-		handle_packet(sdi, pkt);
-
-	return SR_OK;
-}
-
-static int receive_data(int fd, int revents, void *cb_data)
-{
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-
-	(void)fd;
-
-	if (!(sdi = cb_data))
-		return TRUE;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* Serial data arrived. */
-		handle_new_data(sdi);
-	}
-
-	if (dev_limit_counter_limit_reached(&devc->frame_count) ||
-	    dev_time_limit_reached(&devc->time_count))
-		sr_dev_acquisition_stop(sdi);
-
+	/* Packet appears to be valid. */
 	return TRUE;
 }
 
-static const char *const channel_names[] = { "P1", "P2" };
-
-static int setup_channels(struct sr_dev_inst *sdi)
+SR_PRIV int es51919_packet_parse(const uint8_t *pkt, float *val,
+	struct sr_datafeed_analog *analog, void *info)
 {
-	unsigned int i;
+	struct lcr_parse_info *parse_info;
 
-	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
+	parse_info = info;
+	if (!parse_info->ch_idx) {
+		parse_info->output_freq = parse_freq(pkt);
+		parse_info->circuit_model = parse_model(pkt);
+	}
+	if (val && analog)
+		parse_measurement(pkt, val, analog, parse_info->ch_idx == 1);
 
 	return SR_OK;
 }
 
-SR_PRIV void es51919_serial_clean(void *priv)
+/*
+ * These are the get/set/list routines for the _chip_ specific parameters,
+ * the _device_ driver resides in src/hardware/serial-lcr/ instead.
+ */
+
+SR_PRIV int es51919_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
 
-	if (!(devc = priv))
-		return;
-
-	dev_buffer_destroy(devc->buf);
-}
-
-SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
-						const char *vendor,
-						const char *model)
-{
-	struct sr_serial_dev_inst *serial;
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-	int ret;
-
-	serial = NULL;
-	sdi = NULL;
-	devc = NULL;
-
-	if (!(serial = serial_dev_new(options, "9600/8n1/rts=1/dtr=1")))
-		goto scan_cleanup;
-
-	ret = serial_stream_check(serial, PACKET_SIZE, packet_valid,
-				  3000, 9600);
-	if (ret != SR_OK)
-		goto scan_cleanup;
-
-	sr_info("Found device on port %s.", serial->port);
-
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(vendor);
-	sdi->model = g_strdup(model);
-	devc = g_malloc0(sizeof(struct dev_context));
-	devc->buf = dev_buffer_new(PACKET_SIZE * 8);
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
-	sdi->priv = devc;
-
-	if (setup_channels(sdi) != SR_OK)
-		goto scan_cleanup;
-
-	return sdi;
-
-scan_cleanup:
-	es51919_serial_clean(devc);
-	sr_dev_inst_free(sdi);
-	sr_serial_dev_inst_free(serial);
-
-	return NULL;
-}
-
-SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg)
-{
-	struct dev_context *devc;
-
+	(void)sdi;
 	(void)cg;
 
-	devc = sdi->priv;
-
 	switch (key) {
-	case SR_CONF_OUTPUT_FREQUENCY:
-		*data = g_variant_new_double(frequencies[devc->freq]);
-		break;
-	case SR_CONF_EQUIV_CIRCUIT_MODEL:
-		*data = g_variant_new_string(models[devc->model]);
-		break;
-	default:
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
-SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg)
-{
-	struct dev_context *devc;
-	uint64_t val;
-
-	(void)cg;
-
-	if (!(devc = sdi->priv))
-		return SR_ERR_BUG;
-
-	switch (key) {
-	case SR_CONF_LIMIT_MSEC:
-		val = g_variant_get_uint64(data);
-		dev_time_limit_set(&devc->time_count, val);
-		sr_dbg("Setting time limit to %" PRIu64 ".", val);
-		break;
-	case SR_CONF_LIMIT_FRAMES:
-		val = g_variant_get_uint64(data);
-		dev_limit_counter_limit_set(&devc->frame_count, val);
-		sr_dbg("Setting frame limit to %" PRIu64 ".", val);
-		break;
-	default:
-		sr_spew("%s: Unsupported key %u", __func__, key);
-		return SR_ERR_NA;
-	}
-
-	return SR_OK;
-}
-
-static const uint32_t scanopts[] = {
-	SR_CONF_CONN,
-	SR_CONF_SERIALCOMM,
-};
-
-static const uint32_t drvopts[] = {
-	SR_CONF_LCRMETER,
-};
-
-static const uint32_t devopts[] = {
-	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
-	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
-	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_LIST,
-	SR_CONF_EQUIV_CIRCUIT_MODEL | SR_CONF_GET | SR_CONF_LIST,
-};
-
-SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
-				       const struct sr_dev_inst *sdi,
-				       const struct sr_channel_group *cg)
-{
-	switch (key) {
-	case SR_CONF_SCAN_OPTIONS:
-	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_OUTPUT_FREQUENCY:
 		*data = g_variant_new_fixed_array(G_VARIANT_TYPE_DOUBLE,
-			ARRAY_AND_SIZE(frequencies), sizeof(double));
-		break;
+			ARRAY_AND_SIZE(frequencies), sizeof(frequencies[0]));
+		return SR_OK;
 	case SR_CONF_EQUIV_CIRCUIT_MODEL:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(models));
-		break;
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(circuit_models));
+		return SR_OK;
 	default:
 		return SR_ERR_NA;
 	}
-
-	return SR_OK;
+	/* UNREACH */
 }
 
-SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-
-	if (!(devc = sdi->priv))
-		return SR_ERR_BUG;
-
-	dev_limit_counter_start(&devc->frame_count);
-	dev_time_counter_start(&devc->time_count);
-
-	std_session_send_df_header(sdi);
-
-	serial = sdi->conn;
-	serial_source_add(sdi->session, serial, G_IO_IN, 50,
-			  receive_data, (void *)sdi);
-
-	return SR_OK;
-}
+#endif

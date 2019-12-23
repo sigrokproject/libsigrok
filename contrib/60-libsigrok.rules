@@ -33,7 +33,7 @@
 #
 
 ACTION!="add|change", GOTO="libsigrok_rules_end"
-SUBSYSTEM!="usb|usbmisc|usb_device", GOTO="libsigrok_rules_end"
+SUBSYSTEM!="usb|usbmisc|usb_device|hidraw", GOTO="libsigrok_rules_end"
 
 # Agilent USBTMC-connected devices
 # 34405A
@@ -54,9 +54,6 @@ ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", ENV{ID_SIGROK}="1"
 
 # Brymen BU-86X adapter (e.g. for Brymen BM867/BM869 and possibly others).
 ATTRS{idVendor}=="0820", ATTRS{idProduct}=="0001", ENV{ID_SIGROK}="1"
-
-# CEM DT-8852
-ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ENV{ID_SIGROK}="1"
 
 # ChronoVu LA8 (new VID/PID)
 # ChronoVu LA16 (new VID/PID)
@@ -158,6 +155,7 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="4032", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", ENV{ID_SIGROK}="1"
 
 # IKALOGIC ScanaPLUS
+# ftdi-la
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", ENV{ID_SIGROK}="1"
 
 # Kecheng KC-330B
@@ -171,6 +169,10 @@ ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 # LeCroy LogicStudio16
 ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a001", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="a002", ENV{ID_SIGROK}="1"
+
+# LeCroy WaveRunner
+# 05ff:1023: 625Zi
+ATTRS{idVendor}=="05ff", ATTRS{idProduct}=="1023", ENV{ID_SIGROK}="1"
 
 # Link Instruments MSO-19
 ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", ENV{ID_SIGROK}="1"
@@ -208,7 +210,11 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", ENV{ID_SIGROK}="1"
 # Rigol DP800 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0e11", ENV{ID_SIGROK}="1"
 
-# Rohde&Schwarz HMO1002 Series VCP/USBTMC mode
+# Rigol MSO5000 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0515", ENV{ID_SIGROK}="1"
+
+# Rohde&Schwarz HMO series mixed-signal oscilloscope (previously branded Hameg) VCP/USBTMC mode
+ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0117", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0119", ENV{ID_SIGROK}="1"
 
@@ -232,6 +238,7 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
 
 # Siglent USBTMC devices.
 # f4ec:ee3a: E.g. SDS1052DL+ scope
+# f4ec:ee38: E.g. SDS1104X-E scope
 # f4ed:ee3a: E.g. SDS1202X-E scope or SDG1010 waveform generator
 ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ed", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
@@ -249,27 +256,46 @@ ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608e", ENV{ID_SIGROK}="1"
 # sigrok usb-c-grok
 ATTRS{idVendor}=="1d50", ATTRS{idProduct}=="608f", ENV{ID_SIGROK}="1"
 
-# SysClk LWLA1016
+# SiLabs CP210x (USB CDC) UART bridge, used (among others) in:
+# CEM DT-8852
+# Manson HCS-3202
+# MASTECH MS2115B
+# MASTECH MS5308
+# MASTECH MS8250D
+# PeakTech 3330
+# Voltcraft PPS-11815
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ENV{ID_SIGROK}="1"
+
+# SiLabs CP2110 (USB HID) UART bridge, used (among others) in:
+# UNI-T UT612
+# UNI-T UT-D09 multimeter cable (for various UNI-T and rebranded DMMs)
+ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea80", ENV{ID_SIGROK}="1"
+
+# Sysclk LWLA1016
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6688", ENV{ID_SIGROK}="1"
 
-# SysClk LWLA1034
+# Sysclk LWLA1034
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6689", ENV{ID_SIGROK}="1"
+
+# Sysclk SLA5032 ("32CH 500M" mode)
+ATTRS{idVendor}=="2961", ATTRS{idProduct}=="66b0", ENV{ID_SIGROK}="1"
 
 # Testo 435
 ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 
 # UNI-T UT-D04 multimeter cable (for various UNI-T and rebranded DMMs)
-# http://sigrok.org/wiki/Device_cables#UNI-T_UT-D04
 # UNI-T UT325
 ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="e008", ENV{ID_SIGROK}="1"
 
 # V&A VA4000 multimeter cable (for various V&A DMMs)
-# http://sigrok.org/wiki/Device_cables#V.26A_VA4000
 ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 
 # Victor 70C
 # Victor 86C
 ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
+
+# YiXingDianZi MDSO
+ATTRS{idVendor}=="d4a2", ATTRS{idProduct}=="5660", ENV{ID_SIGROK}="1"
 
 # ZEROPLUS Logic Cube LAP-C series
 # There are various devices in the ZEROPLUS Logic Cube series:

@@ -49,8 +49,8 @@
 #define CMD_METADATA               0x04
 #define CMD_SET_DIVIDER            0x80
 #define CMD_SET_FLAGS              0x82
-#define CMD_CAPTURE_COUNT          0x83
-#define CMD_CAPTURE_DELAY          0x84
+#define CMD_CAPTURE_DELAYCOUNT     0x83
+#define CMD_CAPTURE_READCOUNT      0x84
 #define CMD_SET_TRIGGER_MASK       0xc0
 #define CMD_SET_TRIGGER_VALUE      0xc1
 #define CMD_SET_TRIGGER_CONFIG     0xc2

@@ -5,6 +5,7 @@
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +37,11 @@
 /* This is a development feature: it starts a new frame every n samples. */
 #define SAMPLES_PER_FRAME		1000UL
 #define DEFAULT_LIMIT_FRAMES		0
+
+#define DEFAULT_ANALOG_ENCODING_DIGITS	4
+#define DEFAULT_ANALOG_SPEC_DIGITS		4
+#define DEFAULT_ANALOG_AMPLITUDE		10
+#define DEFAULT_ANALOG_OFFSET			0.
 
 /* Logic patterns we can generate. */
 enum logic_pattern_type {
@@ -89,6 +95,20 @@ enum analog_pattern_type {
 	PATTERN_SINE,
 	PATTERN_TRIANGLE,
 	PATTERN_SAWTOOTH,
+	PATTERN_ANALOG_RANDOM,
+};
+
+static const char *analog_pattern_str[] = {
+	"square",
+	"sine",
+	"triangle",
+	"sawtooth",
+	"random",
+};
+
+struct analog_pattern {
+	float data[ANALOG_BUFSIZE];
+	unsigned int num_samples;
 };
 
 struct dev_context {
@@ -109,6 +129,7 @@ struct dev_context {
 	enum logic_pattern_type logic_pattern;
 	uint8_t logic_data[LOGIC_BUFSIZE];
 	/* Analog */
+	struct analog_pattern *analog_patterns[ARRAY_SIZE(analog_pattern_str)];
 	int32_t num_analog_channels;
 	GHashTable *ch_ag;
 	gboolean avg; /* True if averaging is enabled */
@@ -123,19 +144,14 @@ struct dev_context {
 	struct soft_trigger_logic *stl;
 };
 
-static const char *analog_pattern_str[] = {
-	"square",
-	"sine",
-	"triangle",
-	"sawtooth",
-};
-
 struct analog_gen {
 	struct sr_channel *ch;
+	enum sr_mq mq;
+	enum sr_mqflag mq_flags;
+	enum sr_unit unit;
 	enum analog_pattern_type pattern;
 	float amplitude;
-	float pattern_data[ANALOG_BUFSIZE];
-	unsigned int num_samples;
+	float offset;
 	struct sr_datafeed_analog packet;
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
@@ -144,7 +160,8 @@ struct analog_gen {
 	unsigned int num_avgs; /* Number of samples averaged */
 };
 
-SR_PRIV void demo_generate_analog_pattern(struct analog_gen *ag, uint64_t sample_rate);
+SR_PRIV void demo_generate_analog_pattern(struct dev_context *devc);
+SR_PRIV void demo_free_analog_pattern(struct dev_context *devc);
 SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data);
 
 #endif

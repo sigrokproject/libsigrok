@@ -31,7 +31,7 @@ struct context {
 	int num_enabled_channels;
 	uint8_t *prevsample;
 	gboolean header_done;
-	int period;
+	uint64_t period;
 	int *channel_index;
 	uint64_t samplerate;
 	uint64_t samplecount;
@@ -78,6 +78,38 @@ static int init(struct sr_output *o, GHashTable *options)
 	return SR_OK;
 }
 
+/*
+ * VCD can only handle 1/10/100 factors in the s to fs range. Find a
+ * suitable timescale which satisfies this resolution constraint, yet
+ * won't result in excessive overhead.
+ */
+static uint64_t get_timescale_freq(uint64_t samplerate)
+{
+	uint64_t timescale;
+	int max_up_scale;
+
+	/* Go to the next full decade. */
+	timescale = 1;
+	while (timescale < samplerate) {
+		timescale *= 10;
+	}
+
+	/*
+	 * Avoid loss of precision, go up a few more decades when needed.
+	 * For example switch to 10GHz timescale when samplerate is 400MHz.
+	 * Stop after at most factor 100 to not loop endlessly for odd
+	 * samplerates, yet provide good enough accuracy.
+	 */
+	max_up_scale = 2;
+	while (max_up_scale--) {
+		if (timescale / samplerate * samplerate == timescale)
+			break;
+		timescale *= 10;
+	}
+
+	return timescale;
+}
+
 static GString *gen_header(const struct sr_output *o)
 {
 	struct context *ctx;
@@ -102,7 +134,7 @@ static GString *gen_header(const struct sr_output *o)
 
 	/* generator */
 	g_string_append_printf(header, "$version %s %s $end\n",
-			PACKAGE_NAME, SR_PACKAGE_VERSION_STRING);
+			PACKAGE_NAME, sr_package_version_string_get());
 	g_string_append_printf(header, "$comment\n  Acquisition with "
 			"%d/%d channels", ctx->num_enabled_channels, num_channels);
 
@@ -121,13 +153,7 @@ static GString *gen_header(const struct sr_output *o)
 	g_string_append_printf(header, "\n$end\n");
 
 	/* timescale */
-	/* VCD can only handle 1/10/100 (s - fs), so scale up first */
-	if (ctx->samplerate > SR_MHZ(1))
-		ctx->period = SR_GHZ(1);
-	else if (ctx->samplerate > SR_KHZ(1))
-		ctx->period = SR_MHZ(1);
-	else
-		ctx->period = SR_KHZ(1);
+	ctx->period = get_timescale_freq(ctx->samplerate);
 	frequency_s = sr_period_string(1, ctx->period);
 	g_string_append_printf(header, "$timescale %s $end\n", frequency_s);
 	g_free(frequency_s);

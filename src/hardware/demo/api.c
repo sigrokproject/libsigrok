@@ -5,6 +5,7 @@
  * Copyright (C) 2011 Olivier Fauchon <olivier@aixmarseille.com>
  * Copyright (C) 2012 Alexandru Gagniuc <mr.nuke.me@gmail.com>
  * Copyright (C) 2015 Bartosz Golaszewski <bgolaszewski@baylibre.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +29,10 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define DEFAULT_NUM_LOGIC_CHANNELS	8
-#define DEFAULT_LOGIC_PATTERN		PATTERN_SIGROK
+#define DEFAULT_NUM_LOGIC_CHANNELS		8
+#define DEFAULT_LOGIC_PATTERN			PATTERN_SIGROK
 
-#define DEFAULT_NUM_ANALOG_CHANNELS	4
-#define DEFAULT_ANALOG_AMPLITUDE	10
+#define DEFAULT_NUM_ANALOG_CHANNELS		5
 
 /* Note: No spaces allowed because of sigrok-cli. */
 static const char *logic_pattern_str[] = {
@@ -77,11 +77,14 @@ static const uint32_t devopts_cg_logic[] = {
 
 static const uint32_t devopts_cg_analog_group[] = {
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
+	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const int32_t trigger_matches[] = {
@@ -161,6 +164,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* Analog channels, channel groups and pattern generators. */
 	devc->ch_ag = g_hash_table_new(g_direct_hash, g_direct_equal);
 	if (num_analog_channels > 0) {
+		/*
+		 * Have the waveform for analog patterns pre-generated. It's
+		 * supposed to be periodic, so the generator just needs to
+		 * access the prepared sample data (DDS style).
+		 */
+		demo_generate_analog_pattern(devc);
+
 		pattern = 0;
 		/* An "Analog" channel group with all analog channels in it. */
 		acg = g_malloc0(sizeof(struct sr_channel_group));
@@ -182,13 +192,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));
 			ag->ch = ch;
+			ag->mq = SR_MQ_VOLTAGE;
+			ag->mq_flags = SR_MQFLAG_DC;
+			ag->unit = SR_UNIT_VOLT;
 			ag->amplitude = DEFAULT_ANALOG_AMPLITUDE;
+			ag->offset = DEFAULT_ANALOG_OFFSET;
 			sr_analog_init(&ag->packet, &ag->encoding, &ag->meaning, &ag->spec, 2);
 			ag->packet.meaning->channels = cg->channels;
-			ag->packet.meaning->mq = 0;
-			ag->packet.meaning->mqflags = 0;
-			ag->packet.meaning->unit = SR_UNIT_VOLT;
-			ag->packet.data = ag->pattern_data;
+			ag->packet.meaning->mq = ag->mq;
+			ag->packet.meaning->mqflags = ag->mq_flags;
+			ag->packet.meaning->unit = ag->unit;
+			ag->packet.encoding->digits = DEFAULT_ANALOG_ENCODING_DIGITS;
+			ag->packet.spec->spec_digits = DEFAULT_ANALOG_SPEC_DIGITS;
+			ag->packet.data = devc->analog_patterns[pattern];
 			ag->pattern = pattern;
 			ag->avg_val = 0.0f;
 			ag->num_avgs = 0;
@@ -209,6 +225,8 @@ static void clear_helper(struct dev_context *devc)
 	GHashTableIter iter;
 	void *value;
 
+	demo_free_analog_pattern(devc);
+
 	/* Analog generators. */
 	g_hash_table_iter_init(&iter, devc->ch_ag);
 	while (g_hash_table_iter_next(&iter, NULL, &value))
@@ -227,6 +245,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	struct analog_gen *ag;
+	GVariant *mq_arr[2];
 	int pattern;
 
 	if (!sdi)
@@ -251,6 +270,18 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_AVG_SAMPLES:
 		*data = g_variant_new_uint64(devc->avg_samples);
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = g_hash_table_lookup(devc->ch_ag, ch);
+		mq_arr[0] = g_variant_new_uint32(ag->mq);
+		mq_arr[1] = g_variant_new_uint64(ag->mq_flags);
+		*data = g_variant_new_tuple(mq_arr, 2);
 		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
@@ -277,6 +308,16 @@ static int config_get(uint32_t key, GVariant **data,
 		ag = g_hash_table_lookup(devc->ch_ag, ch);
 		*data = g_variant_new_double(ag->amplitude);
 		break;
+	case SR_CONF_OFFSET:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		/* Any channel in the group will do. */
+		ch = cg->channels->data;
+		if (ch->type != SR_CHANNEL_ANALOG)
+			return SR_ERR_ARG;
+		ag = g_hash_table_lookup(devc->ch_ag, ch);
+		*data = g_variant_new_double(ag->offset);
+		break;
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
@@ -293,6 +334,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct analog_gen *ag;
 	struct sr_channel *ch;
+	GVariant *mq_tuple_child;
 	GSList *l;
 	int logic_pattern, analog_pattern;
 
@@ -320,6 +362,21 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_AVG_SAMPLES:
 		devc->avg_samples = g_variant_get_uint64(data);
 		sr_dbg("Setting averaging rate to %" PRIu64, devc->avg_samples);
+		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type != SR_CHANNEL_ANALOG)
+				return SR_ERR_ARG;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
+			mq_tuple_child = g_variant_get_child_value(data, 0);
+			ag->mq = g_variant_get_uint32(mq_tuple_child);
+			mq_tuple_child = g_variant_get_child_value(data, 1);
+			ag->mq_flags = g_variant_get_uint64(mq_tuple_child);
+			g_variant_unref(mq_tuple_child);
+		}
 		break;
 	case SR_CONF_PATTERN_MODE:
 		if (!cg)
@@ -361,6 +418,17 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			ag = g_hash_table_lookup(devc->ch_ag, ch);
 			ag->amplitude = g_variant_get_double(data);
+		}
+		break;
+	case SR_CONF_OFFSET:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		for (l = cg->channels; l; l = l->next) {
+			ch = l->data;
+			if (ch->type != SR_CHANNEL_ANALOG)
+				return SR_ERR_ARG;
+			ag = g_hash_table_lookup(devc->ch_ag, ch);
+			ag->offset = g_variant_get_double(data);
 		}
 		break;
 	case SR_CONF_CAPTURE_RATIO:
@@ -434,8 +502,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	int bitpos;
 	uint8_t mask;
-	GHashTableIter iter;
-	void *value;
 	struct sr_trigger *trigger;
 
 	devc = sdi->priv;
@@ -500,15 +566,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->enabled_logic_channels,
 		devc->first_partial_logic_index,
 		devc->first_partial_logic_mask);
-
-	/*
-	 * Have the waveform for analog patterns pre-generated. It's
-	 * supposed to be periodic, so the generator just needs to
-	 * access the prepared sample data (DDS style).
-	 */
-	g_hash_table_iter_init(&iter, devc->ch_ag);
-	while (g_hash_table_iter_next(&iter, NULL, &value))
-		demo_generate_analog_pattern(value, devc->cur_samplerate);
 
 	sr_session_source_add(sdi->session, -1, 0, 100,
 			demo_prepare_data, (struct sr_dev_inst *)sdi);

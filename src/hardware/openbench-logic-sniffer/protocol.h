@@ -28,9 +28,7 @@
 
 #define LOG_PREFIX "openbench-logic-sniffer"
 
-#define NUM_CHANNELS               32
 #define NUM_TRIGGER_STAGES         4
-#define SERIAL_SPEED               B115200
 #define CLOCK_RATE                 SR_MHZ(100)
 #define MIN_NUM_SAMPLES            4
 #define DEFAULT_SAMPLERATE         SR_KHZ(200)
@@ -38,12 +36,14 @@
 /* Command opcodes */
 #define CMD_RESET                  0x00
 #define CMD_RUN                    0x01
-#define CMD_TESTMODE               0x03
 #define CMD_ID                     0x02
+#define CMD_TESTMODE               0x03
 #define CMD_METADATA               0x04
-#define CMD_SET_FLAGS              0x82
 #define CMD_SET_DIVIDER            0x80
 #define CMD_CAPTURE_SIZE           0x81
+#define CMD_SET_FLAGS              0x82
+#define CMD_CAPTURE_DELAYCOUNT     0x83		/* extension for Pepino */
+#define CMD_CAPTURE_READCOUNT      0x84		/* extension for Pepino */
 #define CMD_SET_TRIGGER_MASK       0xc0
 #define CMD_SET_TRIGGER_VALUE      0xc1
 #define CMD_SET_TRIGGER_CONFIG     0xc2

@@ -59,6 +59,16 @@ static int scpi_gpib_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_gpib_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_gpib *gscpi = scpi->priv;
+
+	*connection_id = g_strdup_printf("%s/%s", scpi->prefix, gscpi->name);
+
+	return SR_OK;
+}
+
 static int scpi_gpib_source_add(struct sr_session *session, void *priv,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
@@ -155,18 +165,39 @@ static void scpi_gpib_free(void *priv)
 	g_free(gscpi->name);
 }
 
+SR_PRIV int sr_scpi_gpib_spoll(struct sr_scpi_dev_inst *scpi, char *buf)
+{
+	struct scpi_gpib *gscpi = scpi->priv;
+
+	g_mutex_lock(&scpi->scpi_mutex);
+	ibrsp(gscpi->descriptor, buf);
+
+	if (ibsta & ERR) {
+		sr_err("Error while serial polling: iberr = %s.",
+			gpib_error_string(iberr));
+		g_mutex_unlock(&scpi->scpi_mutex);
+		return SR_ERR;
+	}
+	g_mutex_unlock(&scpi->scpi_mutex);
+	sr_spew("Successful serial poll: 0x%x", (uint8_t)buf[0]);
+
+	return SR_OK;
+}
+
 SR_PRIV const struct sr_scpi_dev_inst scpi_libgpib_dev = {
-	.name = "GPIB",
-	.prefix = "libgpib",
-	.priv_size = sizeof(struct scpi_gpib),
-	.dev_inst_new = scpi_gpib_dev_inst_new,
-	.open = scpi_gpib_open,
-	.source_add = scpi_gpib_source_add,
+	.name          = "GPIB",
+	.prefix        = "libgpib",
+	.transport     = SCPI_TRANSPORT_LIBGPIB,
+	.priv_size     = sizeof(struct scpi_gpib),
+	.dev_inst_new  = scpi_gpib_dev_inst_new,
+	.open          = scpi_gpib_open,
+	.connection_id = scpi_gpib_connection_id,
+	.source_add    = scpi_gpib_source_add,
 	.source_remove = scpi_gpib_source_remove,
-	.send = scpi_gpib_send,
-	.read_begin = scpi_gpib_read_begin,
-	.read_data = scpi_gpib_read_data,
+	.send          = scpi_gpib_send,
+	.read_begin    = scpi_gpib_read_begin,
+	.read_data     = scpi_gpib_read_data,
 	.read_complete = scpi_gpib_read_complete,
-	.close = scpi_gpib_close,
-	.free = scpi_gpib_free,
+	.close         = scpi_gpib_close,
+	.free          = scpi_gpib_free,
 };

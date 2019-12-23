@@ -18,6 +18,7 @@
  */
 
 #include <config.h>
+#include <inttypes.h>
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -106,6 +107,7 @@ static struct usbtmc_blacklist blacklist_remote[] = {
 	{ 0x1ab1, 0x0588 }, /* Rigol DS1000 series */
 	{ 0x1ab1, 0x04b0 }, /* Rigol DS2000 series */
 	{ 0x1ab1, 0x04b1 }, /* Rigol DS4000 series */
+	{ 0x1ab1, 0x0515 }, /* Rigol MSO5000 series */
 	{ 0x0957, 0x0588 }, /* Agilent DSO1000 series (rebadged Rigol DS1000) */
 	{ 0x0b21, 0xffff }, /* All Yokogawa devices */
 	{ 0xf4ec, 0xffff }, /* All Siglent SDS devices */
@@ -413,6 +415,18 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_usbtmc_libusb_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_usbtmc_libusb *uscpi = scpi->priv;
+	struct sr_usb_dev_inst *usb = uscpi->usb;
+
+	*connection_id = g_strdup_printf("%s/%" PRIu8 ".%" PRIu8 "",
+		scpi->prefix, usb->bus, usb->address);
+
+	return SR_OK;
+}
+
 static int scpi_usbtmc_libusb_source_add(struct sr_session *session,
 		void *priv, int events, int timeout, sr_receive_data_callback cb,
 		void *cb_data)
@@ -657,10 +671,12 @@ static void scpi_usbtmc_libusb_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_usbtmc_libusb_dev = {
 	.name          = "USBTMC",
 	.prefix        = "usbtmc",
+	.transport     = SCPI_TRANSPORT_USBTMC,
 	.priv_size     = sizeof(struct scpi_usbtmc_libusb),
 	.scan          = scpi_usbtmc_libusb_scan,
 	.dev_inst_new  = scpi_usbtmc_libusb_dev_inst_new,
 	.open          = scpi_usbtmc_libusb_open,
+	.connection_id = scpi_usbtmc_libusb_connection_id,
 	.source_add    = scpi_usbtmc_libusb_source_add,
 	.source_remove = scpi_usbtmc_libusb_source_remove,
 	.send          = scpi_usbtmc_libusb_send,

@@ -58,7 +58,8 @@ SR_PRIV struct ipdbg_la_tcp *ipdbg_la_tcp_new(void);
 SR_PRIV void ipdbg_la_tcp_free(struct ipdbg_la_tcp *tcp);
 SR_PRIV int ipdbg_la_tcp_open(struct ipdbg_la_tcp *tcp);
 SR_PRIV int ipdbg_la_tcp_close(struct ipdbg_la_tcp *tcp);
-SR_PRIV int ipdbg_la_tcp_receive(struct ipdbg_la_tcp *tcp, uint8_t *buf);
+SR_PRIV int ipdbg_la_tcp_receive(struct ipdbg_la_tcp *tcp,
+	uint8_t *buf, size_t bufsize);
 
 SR_PRIV int ipdbg_la_convert_trigger(const struct sr_dev_inst *sdi);
 

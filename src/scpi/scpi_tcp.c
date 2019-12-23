@@ -115,6 +115,17 @@ static int scpi_tcp_open(struct sr_scpi_dev_inst *scpi)
 	return SR_OK;
 }
 
+static int scpi_tcp_connection_id(struct sr_scpi_dev_inst *scpi,
+		char **connection_id)
+{
+	struct scpi_tcp *tcp = scpi->priv;
+
+	*connection_id = g_strdup_printf("%s/%s:%s",
+		scpi->prefix, tcp->address, tcp->port);
+
+	return SR_OK;
+}
+
 static int scpi_tcp_source_add(struct sr_session *session, void *priv,
 		int events, int timeout, sr_receive_data_callback cb, void *cb_data)
 {
@@ -263,9 +274,11 @@ static void scpi_tcp_free(void *priv)
 SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
 	.name          = "RAW TCP",
 	.prefix        = "tcp-raw",
+	.transport     = SCPI_TRANSPORT_RAW_TCP,
 	.priv_size     = sizeof(struct scpi_tcp),
 	.dev_inst_new  = scpi_tcp_dev_inst_new,
 	.open          = scpi_tcp_open,
+	.connection_id = scpi_tcp_connection_id,
 	.source_add    = scpi_tcp_source_add,
 	.source_remove = scpi_tcp_source_remove,
 	.send          = scpi_tcp_send,
@@ -280,9 +293,11 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
 SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_rigol_dev = {
 	.name          = "RIGOL TCP",
 	.prefix        = "tcp-rigol",
+	.transport     = SCPI_TRANSPORT_RIGOL_TCP,
 	.priv_size     = sizeof(struct scpi_tcp),
 	.dev_inst_new  = scpi_tcp_dev_inst_new,
 	.open          = scpi_tcp_open,
+	.connection_id = scpi_tcp_connection_id,
 	.source_add    = scpi_tcp_source_add,
 	.source_remove = scpi_tcp_source_remove,
 	.send          = scpi_tcp_send,

@@ -31,6 +31,12 @@
 #include "scpi.h"
 #include "protocol.h"
 
+/*
+ * This test violates the SCPI protocol, and confuses other devices.
+ * Disable it for now, until a better location was found.
+ */
+#define ECHO_TEST 0
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -62,17 +68,19 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	unsigned int i;
 	const struct fluke_scpi_dmm_model *model = NULL;
 	gchar *channel_name;
+#if ECHO_TEST
 	char *response;
+#endif
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->conn = scpi;
-
+#if ECHO_TEST
 	/* Test for serial port ECHO enabled. */
+	response = NULL;
 	sr_scpi_get_string(scpi, "ECHO-TEST", &response);
-	if (strcmp(response, "ECHO-TEST") == 0) {
+	if (response && strcmp(response, "ECHO-TEST") == 0) {
 		sr_err("Serial port ECHO is ON. Please turn it OFF!");
 		return NULL;
 	}
+#endif
 
 	/* Get device IDN. */
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
@@ -100,6 +108,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	/* Set up device parameters. */
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->vendor = g_strdup(model->vendor);
 	sdi->model = g_strdup(model->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -107,18 +116,18 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->conn = scpi;
 	sdi->driver = &fluke_45_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
+	sr_scpi_hw_info_free(hw_info);
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->num_channels = model->num_channels;
 	devc->cmdset = cmdset;
+	sdi->priv = devc;
 
 	/* Create channels. */
 	for (i = 0; i < devc->num_channels; i++) {
 		channel_name = g_strdup_printf("P%d", i + 1);
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, channel_name);
 	}
-
-	sdi->priv = devc;
 
 	return sdi;
 }

@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2018 James Churchill <pelrun@gmail.com>
+ * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
  */
 
 #include <config.h>
+#include <math.h>
 #include "protocol.h"
 
 static const uint32_t scanopts[] = {
@@ -48,12 +50,12 @@ static const uint32_t devopts[] = {
 
 /* Model ID, model name, max current, max voltage, max power */
 static const struct rdtech_dps_model supported_models[] = {
-	{ 3005, "DPS3005",  3, 50,  160 },
-	{ 5005, "DPS5005",  5, 50,  250 },
-	{ 5205, "DPH5005",  5, 50,  250 },
-	{ 5015, "DPS5015", 15, 50,  750 },
-	{ 5020, "DPS5020", 20, 50, 1000 },
-	{ 8005, "DPS8005",  5, 80,  408 },
+	{ 3005, "DPS3005",  5, 30,  160, 3, 2 },
+	{ 5005, "DPS5005",  5, 50,  250, 3, 2 },
+	{ 5205, "DPH5005",  5, 50,  250, 3, 2 },
+	{ 5015, "DPS5015", 15, 50,  750, 2, 2 },
+	{ 5020, "DPS5020", 20, 50, 1000, 2, 2 },
+	{ 8005, "DPS8005",  5, 80,  408, 3, 2 },
 };
 
 static struct sr_dev_driver rdtech_dps_driver_info;
@@ -95,7 +97,8 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	devc = g_malloc0(sizeof(struct dev_context));
 	sr_sw_limits_init(&devc->limits);
 	devc->model = model;
-	devc->expecting_registers = 0;
+	devc->current_multiplier = pow(10.0, model->current_digits);
+	devc->voltage_multiplier = pow(10.0, model->voltage_digits);
 
 	sdi->priv = devc;
 
@@ -142,31 +145,20 @@ static int dev_open(struct sr_dev_inst *sdi)
 	if (sr_modbus_open(modbus) < 0)
 		return SR_ERR;
 
-	rdtech_dps_set_reg(modbus, REG_LOCK, 1);
+	rdtech_dps_set_reg(sdi, REG_LOCK, 1);
 
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 
 	modbus = sdi->conn;
-
 	if (!modbus)
 		return SR_ERR_BUG;
 
-	devc = sdi->priv;
-
-	if (devc->expecting_registers) {
-		/* Wait for the last data that was requested from the device. */
-		uint16_t registers[devc->expecting_registers];
-		sr_modbus_read_holding_registers(modbus, -1,
-			devc->expecting_registers, registers);
-	}
-
-	rdtech_dps_set_reg(modbus, REG_LOCK, 0);
+	rdtech_dps_set_reg(sdi, REG_LOCK, 0);
 
 	return sr_modbus_close(modbus);
 }
@@ -175,13 +167,11 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
 	int ret;
 	uint16_t ivalue;
 
 	(void)cg;
 
-	modbus = sdi->conn;
 	devc = sdi->priv;
 
 	ret = SR_OK;
@@ -191,51 +181,51 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_ENABLE, &ivalue)) == SR_OK)
+		if ((ret = rdtech_dps_get_reg(sdi, REG_ENABLE, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue);
 		break;
 	case SR_CONF_REGULATION:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_CV_CC, &ivalue)) != SR_OK)
+		if ((ret = rdtech_dps_get_reg(sdi, REG_CV_CC, &ivalue)) != SR_OK)
 			break;
 		*data = g_variant_new_string((ivalue == MODE_CC) ? "CC" : "CV");
 		break;
 	case SR_CONF_VOLTAGE:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_UOUT, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, REG_UOUT, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_USET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, REG_USET, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_CURRENT:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_IOUT, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, REG_IOUT, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_ISET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 1000.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, REG_ISET, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_PROTECT, &ivalue)) == SR_OK)
+		if ((ret = rdtech_dps_get_reg(sdi, REG_PROTECT, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue == STATE_OVP);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		if ((ret = rdtech_dps_get_reg(modbus, PRE_OVPSET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 100.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, PRE_OVPSET, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->voltage_multiplier);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		if ((ret = rdtech_dps_get_reg(modbus, REG_PROTECT, &ivalue)) == SR_OK)
+		if ((ret = rdtech_dps_get_reg(sdi, REG_PROTECT, &ivalue)) == SR_OK)
 			*data = g_variant_new_boolean(ivalue == STATE_OCP);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		if ((ret = rdtech_dps_get_reg(modbus, PRE_OCPSET, &ivalue)) == SR_OK)
-			*data = g_variant_new_double((float)ivalue / 1000.0f);
+		if ((ret = rdtech_dps_get_reg(sdi, PRE_OCPSET, &ivalue)) == SR_OK)
+			*data = g_variant_new_double((float)ivalue / devc->current_multiplier);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -248,11 +238,9 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_modbus_dev_inst *modbus;
 
 	(void)cg;
 
-	modbus = sdi->conn;
 	devc = sdi->priv;
 
 	switch (key) {
@@ -260,15 +248,19 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_ENABLED:
-		return rdtech_dps_set_reg(modbus, REG_ENABLE, g_variant_get_boolean(data));
+		return rdtech_dps_set_reg(sdi, REG_ENABLE, g_variant_get_boolean(data));
 	case SR_CONF_VOLTAGE_TARGET:
-		return rdtech_dps_set_reg(modbus, REG_USET, g_variant_get_double(data) * 100);
+		return rdtech_dps_set_reg(sdi, REG_USET,
+			g_variant_get_double(data) * devc->voltage_multiplier);
 	case SR_CONF_CURRENT_LIMIT:
-		return rdtech_dps_set_reg(modbus, REG_ISET, g_variant_get_double(data) * 1000);
+		return rdtech_dps_set_reg(sdi, REG_ISET,
+			g_variant_get_double(data) * devc->current_multiplier);
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		return rdtech_dps_set_reg(modbus, PRE_OVPSET, g_variant_get_double(data) * 100);
+		return rdtech_dps_set_reg(sdi, PRE_OVPSET,
+			g_variant_get_double(data) * devc->voltage_multiplier);
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		return rdtech_dps_set_reg(modbus, PRE_OCPSET, g_variant_get_double(data) * 1000);
+		return rdtech_dps_set_reg(sdi, PRE_OCPSET,
+			g_variant_get_double(data) * devc->current_multiplier);
 	default:
 		return SR_ERR_NA;
 	}
@@ -288,10 +280,12 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_VOLTAGE_TARGET:
-		*data = std_gvar_min_max_step(0.0, devc->model->max_voltage, 0.001);
+		*data = std_gvar_min_max_step(0.0, devc->model->max_voltage,
+			1 / devc->voltage_multiplier);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		*data = std_gvar_min_max_step(0.0, devc->model->max_current, 0.0001);
+		*data = std_gvar_min_max_step(0.0, devc->model->max_current,
+			1 / devc->current_multiplier);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -304,10 +298,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
+	uint16_t registers[3];
 	int ret;
 
 	modbus = sdi->conn;
 	devc = sdi->priv;
+
+	/* Prefill actual states */
+	ret = rdtech_dps_read_holding_registers(modbus, REG_PROTECT, 3, registers);
+	if (ret != SR_OK)
+		return ret;
+	devc->actual_ovp_state = RB16(registers + 0) == STATE_OVP;
+	devc->actual_ocp_state = RB16(registers + 0) == STATE_OCP;
+	devc->actual_regulation_state = RB16(registers + 1);
+	devc->actual_output_state = RB16(registers + 2);
 
 	if ((ret = sr_modbus_source_add(sdi->session, modbus, G_IO_IN, 10,
 			rdtech_dps_receive_data, (void *)sdi)) != SR_OK)
@@ -316,7 +320,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
-	return rdtech_dps_capture_start(sdi);
+	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)

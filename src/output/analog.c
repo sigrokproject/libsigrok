@@ -118,6 +118,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				g_string_append_printf(*out, "%"
 					G_GUINT64_FORMAT,
 					g_variant_get_uint64(src->data));
+			} else if (srci->datatype == SR_T_STRING) {
+				g_string_append_printf(*out, "%s",
+					g_variant_get_string(src->data, NULL));
 			}
 			g_string_append(*out, "\n");
 		}

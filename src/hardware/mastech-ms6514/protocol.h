@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2014 Aurelien Jacobs <aurel@gnuage.org>
+ * Copyright (C) 2019 Dave Buechi <db@pflutsch.ch>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LIBSIGROK_HARDWARE_BRYMEN_BM86X_PROTOCOL_H
-#define LIBSIGROK_HARDWARE_BRYMEN_BM86X_PROTOCOL_H
+#ifndef LIBSIGROK_HARDWARE_MASTECH_MS6514_PROTOCOL_H
+#define LIBSIGROK_HARDWARE_MASTECH_MS6514_PROTOCOL_H
 
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "brymen-bm86x"
+#define LOG_PREFIX "mastech-ms6514"
 
-struct dev_context {
-	struct sr_sw_limits sw_limits;
-	int detached_kernel_driver; /**< Whether kernel driver was detached or not */
-	int interrupt_pending;
+#define MASTECH_MS6514_NUM_CHANNELS	2
+#define MASTECH_MS6514_BUF_SIZE		(3 * 18)
+#define MASTECH_MS6514_FRAME_SIZE 	18
+#define DEFAULT_DATA_SOURCE		DATA_SOURCE_LIVE
+
+enum mastech_ms6614_data_source {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
 };
 
-SR_PRIV int brymen_bm86x_receive_data(int fd, int revents, void *cb_data);
+enum mastech_ms6614_command {
+	CMD_GET_STORED = 0xA1
+};
+
+struct dev_context {
+	struct sr_sw_limits limits;
+	enum mastech_ms6614_data_source data_source;
+	unsigned int buf_len;
+	uint8_t buf[MASTECH_MS6514_BUF_SIZE];
+	unsigned int log_buf_len;
+};
+
+SR_PRIV int mastech_ms6514_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV gboolean mastech_ms6514_packet_valid(const uint8_t *buf);
 
 #endif

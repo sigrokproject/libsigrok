@@ -22,6 +22,14 @@
 #include <math.h>
 #include "protocol.h"
 
+#define SEP	"\r\n"
+#define BLANK	':'
+#define NEG	';'
+
+/*
+ * Get a temperature value from a four-character buffer. The value is
+ * encoded in ASCII and the unit is deci-degrees (tenths of degrees).
+ */
 static float parse_temperature(unsigned char *buf)
 {
 	float temp;
@@ -31,23 +39,22 @@ static float parse_temperature(unsigned char *buf)
 	negative = FALSE;
 	temp = 0.0;
 	for (i = 0; i < 4; i++) {
-		if (buf[i] == 0x3a)
+		if (buf[i] == BLANK)
 			continue;
-		if (buf[i] == 0x3b) {
+		if (buf[i] == NEG) {
 			if (negative) {
 				sr_dbg("Double negative sign!");
 				return NAN;
-			} else {
-				negative = TRUE;
-				continue;
 			}
+			negative = TRUE;
+			continue;
 		}
-		if (buf[i] < 0x30 || buf[i] > 0x39) {
+		if (buf[i] < '0' || buf[i] > '9') {
 			sr_dbg("Invalid digit '%.2x'!", buf[i]);
 			return NAN;
 		}
 		temp *= 10;
-		temp += (buf[i] - 0x30);
+		temp += buf[i] - '0';
 	}
 	temp /= 10;
 	if (negative)
@@ -56,7 +63,7 @@ static float parse_temperature(unsigned char *buf)
 	return temp;
 }
 
-static void process_packet(struct sr_dev_inst *sdi)
+static void process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_packet packet;
@@ -66,34 +73,36 @@ static void process_packet(struct sr_dev_inst *sdi)
 	struct sr_analog_spec spec;
 	GString *spew;
 	float temp;
-	int i;
 	gboolean is_valid;
 
-	devc = sdi->priv;
-	sr_dbg("Received full 19-byte packet.");
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
-		spew = g_string_sized_new(60);
-		for (i = 0; i < devc->packet_len; i++)
-			g_string_append_printf(spew, "%.2x ", devc->packet[i]);
-		sr_spew("%s", spew->str);
-		g_string_free(spew, TRUE);
+		spew = sr_hexdump_new(pkt, len);
+		sr_spew("Got a packet, len %zu, bytes%s", len, spew->str);
+		sr_hexdump_free(spew);
 	}
+	if (len != PACKET_SIZE)
+		return;
+	if (pkt[17] != SEP[0] || pkt[18] != SEP[1])
+		return;
+	if (pkt[8] != '0' || pkt[16] != '1')
+		return;
+	sr_dbg("Processing 19-byte packet.");
 
 	is_valid = TRUE;
-	if (devc->packet[1] == 0x3b && devc->packet[2] == 0x3b
-			&& devc->packet[3] == 0x3b && devc->packet[4] == 0x3b)
+	if (pkt[1] == NEG && pkt[2] == NEG && pkt[3] == NEG && pkt[4] == NEG)
 		/* No measurement: missing channel, empty storage location, ... */
 		is_valid = FALSE;
 
-	temp = parse_temperature(devc->packet + 1);
+	temp = parse_temperature(&pkt[1]);
 	if (isnan(temp))
 		is_valid = FALSE;
 
 	if (is_valid) {
+		memset(&packet, 0, sizeof(packet));
 		sr_analog_init(&analog, &encoding, &meaning, &spec, 1);
 		analog.meaning->mq = SR_MQ_TEMPERATURE;
 		analog.meaning->mqflags = 0;
-		switch (devc->packet[5] - 0x30) {
+		switch (pkt[5] - '0') {
 		case 1:
 			analog.meaning->unit = SR_UNIT_CELSIUS;
 			break;
@@ -105,9 +114,9 @@ static void process_packet(struct sr_dev_inst *sdi)
 			break;
 		default:
 			/* We can still pass on the measurement, whatever it is. */
-			sr_dbg("Unknown unit 0x%.2x.", devc->packet[5]);
+			sr_dbg("Unknown unit 0x%.2x.", pkt[5]);
 		}
-		switch (devc->packet[13] - 0x30) {
+		switch (pkt[13] - '0') {
 		case 0:
 			/* Channel T1. */
 			analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
@@ -123,7 +132,7 @@ static void process_packet(struct sr_dev_inst *sdi)
 			analog.meaning->mqflags |= SR_MQFLAG_RELATIVE;
 			break;
 		default:
-			sr_err("Unknown channel 0x%.2x.", devc->packet[13]);
+			sr_err("Unknown channel 0x%.2x.", pkt[13]);
 			is_valid = FALSE;
 		}
 		if (is_valid) {
@@ -136,100 +145,132 @@ static void process_packet(struct sr_dev_inst *sdi)
 		}
 	}
 
-	/* We count packets even if the temperature was invalid. This way
-	 * a sample limit on "Memory" data source still works: unused
-	 * memory slots come through as "----" measurements. */
-	devc->num_samples++;
-	if (devc->limit_samples && devc->num_samples >= devc->limit_samples)
+	/*
+	 * We count packets even if the measurement was invalid. This way
+	 * a sample limit on "Memory" data source still works: Unused
+	 * memory slots come through as "----" measurements.
+	 */
+	devc = sdi->priv;
+	sr_sw_limits_update_samples_read(&devc->limits, 1);
+	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
 }
 
-SR_PRIV void LIBUSB_CALL uni_t_ut32x_receive_transfer(struct libusb_transfer *transfer)
+static int process_buffer(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_dev_inst *sdi;
-	int hid_payload_len, ret;
+	uint8_t *pkt;
+	size_t remain, idx;
 
-	sdi = transfer->user_data;
+	/*
+	 * Specifically do not insist on finding the packet boundary at
+	 * the end of the most recently received data chunk. Serial
+	 * ports might involve hardware buffers (FIFO). We want to sync
+	 * as fast as possible.
+	 *
+	 * Handle the synchronized situation first. Process complete
+	 * packets that reside at the start of the buffer. Then fallback
+	 * to incomplete or unaligned packets if the receive buffer
+	 * still contains data bytes. (Depending on the bitrate and the
+	 * poll interval, we may always end up in the manual search. But
+	 * considering the update rate - two or three packets per second
+	 * - this is not an issue.)
+	 */
 	devc = sdi->priv;
-	if (transfer->actual_length == 8) {
-		/* CH9325 encodes length in low nibble of first byte, with
-		 * bytes 1-7 being the (padded) payload. */
-		hid_payload_len = transfer->buffer[0] & 0x0f;
-		memcpy(devc->packet + devc->packet_len, transfer->buffer + 1,
-				hid_payload_len);
-		devc->packet_len += hid_payload_len;
-		if (devc->packet_len >= 2
-				&& devc->packet[devc->packet_len - 2] == 0x0d
-				&& devc->packet[devc->packet_len - 1] == 0x0a) {
-			/* Got end of packet, but do we have a complete packet? */
-			if (devc->packet_len == 19)
-				process_packet(sdi);
-			/* Either way, done with it. */
-			devc->packet_len = 0;
-		} else if (devc->packet_len > 19) {
-			/* Guard against garbage from the device overrunning
-			 * our packet buffer. */
-			sr_dbg("Buffer overrun!");
-			devc->packet_len = 0;
-		}
+	pkt = &devc->packet[0];
+	while (devc->packet_len >= PACKET_SIZE &&
+			pkt[PACKET_SIZE - 2] == SEP[0] &&
+			pkt[PACKET_SIZE - 1] == SEP[1]) {
+		process_packet(sdi, &pkt[0], PACKET_SIZE);
+		remain = devc->packet_len - PACKET_SIZE;
+		if (remain)
+			memmove(&pkt[0], &pkt[PACKET_SIZE], remain);
+		devc->packet_len -= PACKET_SIZE;
 	}
 
-	/* Get the next transfer (unless we're shutting down). */
-	if (sdi->status != SR_ST_STOPPING) {
-		if ((ret = libusb_submit_transfer(devc->xfer)) != 0) {
-			sr_dbg("Failed to resubmit transfer: %s", libusb_error_name(ret));
-			sdi->status = SR_ST_STOPPING;
-			libusb_free_transfer(devc->xfer);
-		}
-	} else
-		libusb_free_transfer(devc->xfer);
+	/*
+	 * The 'for' loop and the increment upon re-iteration after
+	 * setting the loop var to zero is not an issue. The marker has
+	 * two bytes, so effectively starting the search at offset 1 is
+	 * fine for the specific packet layout.
+	 */
+	for (idx = 0; idx < devc->packet_len; idx++) {
+		if (idx < 1)
+			continue;
+		if (pkt[idx - 1] != SEP[0] || pkt[idx] != SEP[1])
+			continue;
+		/* Found a packet that spans up to and including 'idx'. */
+		idx++;
+		process_packet(sdi, &pkt[0], idx);
+		remain = devc->packet_len - idx;
+		if (remain)
+			memmove(&pkt[0], &pkt[idx], remain);
+		devc->packet_len -= idx;
+		idx = 0;
+	}
 
+	return 0;
 }
 
-SR_PRIV int uni_t_ut32x_handle_events(int fd, int revents, void *cb_data)
+/* Gets invoked when RX data is available. */
+static int ut32x_receive_data(struct sr_dev_inst *sdi)
 {
-	struct drv_context *drvc;
 	struct dev_context *devc;
-	struct sr_dev_driver *di;
+	struct sr_serial_dev_inst *serial;
+	size_t len;
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+
+	/*
+	 * Discard receive data when the buffer is exhausted. This shall
+	 * allow to (re-)synchronize to the data stream when we find it
+	 * in an arbitrary state. Drain more data from the serial port,
+	 * and check the receive buffer for packets.
+	 */
+	if (devc->packet_len == sizeof(devc->packet)) {
+		process_packet(sdi, &devc->packet[0], devc->packet_len);
+		devc->packet_len = 0;
+	}
+	len = sizeof(devc->packet) - devc->packet_len;
+	len = serial_read_nonblocking(serial,
+			&devc->packet[devc->packet_len], len);
+	if (!len)
+		return 0;
+
+	devc->packet_len += len;
+	process_buffer(sdi);
+
+	return 0;
+}
+
+/* Gets periodically invoked by the glib main loop. */
+SR_PRIV int ut32x_handle_events(int fd, int revents, void *cb_data)
+{
 	struct sr_dev_inst *sdi;
-	struct sr_usb_dev_inst *usb;
-	struct timeval tv;
-	int len, ret;
-	unsigned char cmd[2];
+	struct sr_serial_dev_inst *serial;
+	uint8_t cmd;
 
 	(void)fd;
-	(void)revents;
 
-	if (!(sdi = cb_data))
+	sdi = cb_data;
+	if (!sdi)
+		return TRUE;
+	serial = sdi->conn;
+	if (!serial)
 		return TRUE;
 
-	di = sdi->driver;
-	drvc = di->context;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	memset(&tv, 0, sizeof(struct timeval));
-	libusb_handle_events_timeout_completed(drvc->sr_ctx->libusb_ctx, &tv,
-			NULL);
+	if (revents & G_IO_IN)
+		ut32x_receive_data(sdi);
 
 	if (sdi->status == SR_ST_STOPPING) {
-		usb_source_remove(sdi->session, drvc->sr_ctx);
+		serial_source_remove(sdi->session, serial);
 		std_session_send_df_end(sdi);
-
-		/* Tell the device to stop sending USB packets. */
-		usb = sdi->conn;
-		cmd[0] = 0x01;
-		cmd[1] = CMD_STOP;
-		ret = libusb_bulk_transfer(usb->devhdl, EP_OUT, cmd, 2, &len, 5);
-		if (ret != 0 || len != 2) {
-			/* Warning only, doesn't matter. */
-			sr_dbg("Failed to send stop command: %s", libusb_error_name(ret));
-		}
-
 		sdi->status = SR_ST_ACTIVE;
-		return TRUE;
+
+		/* Tell the device to stop sending data. */
+		cmd = CMD_STOP;
+		serial_write_blocking(serial, &cmd, sizeof(cmd), 0);
 	}
 
 	return TRUE;

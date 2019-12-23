@@ -26,15 +26,22 @@
 #ifndef LIBSIGROK_LIBSIGROK_INTERNAL_H
 #define LIBSIGROK_LIBSIGROK_INTERNAL_H
 
-#include <stdarg.h>
-#include <stdio.h>
+#include "config.h"
+
 #include <glib.h>
-#ifdef HAVE_LIBUSB_1_0
-#include <libusb.h>
+#ifdef HAVE_LIBHIDAPI
+#include <hidapi.h>
 #endif
 #ifdef HAVE_LIBSERIALPORT
 #include <libserialport.h>
 #endif
+#ifdef HAVE_LIBUSB_1_0
+#include <libusb.h>
+#endif
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 struct zip;
 struct zip_stat;
@@ -272,7 +279,7 @@ struct zip_stat;
 #ifdef __APPLE__
 #define SR_DRIVER_LIST_SECTION "__DATA,__sr_driver_list"
 #else
-#define SR_DRIVER_LIST_SECTION "sr_driver_list"
+#define SR_DRIVER_LIST_SECTION "__sr_driver_list"
 #endif
 
 /**
@@ -720,14 +727,67 @@ struct sr_usb_dev_inst {
 };
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+struct sr_serial_dev_inst;
+#ifdef HAVE_SERIAL_COMM
+struct ser_lib_functions;
+struct ser_hid_chip_functions;
+struct sr_bt_desc;
+typedef void (*serial_rx_chunk_callback)(struct sr_serial_dev_inst *serial,
+	void *cb_data, const void *buf, size_t count);
 struct sr_serial_dev_inst {
 	/** Port name, e.g. '/dev/tty42'. */
 	char *port;
 	/** Comm params for serial_set_paramstr(). */
 	char *serialcomm;
+	struct ser_lib_functions *lib_funcs;
+	struct {
+		int bit_rate;
+		int data_bits;
+		int parity_bits;
+		int stop_bits;
+	} comm_params;
+	GString *rcv_buffer;
+	serial_rx_chunk_callback rx_chunk_cb_func;
+	void *rx_chunk_cb_data;
+#ifdef HAVE_LIBSERIALPORT
 	/** libserialport port handle */
-	struct sp_port *data;
+	struct sp_port *sp_data;
+#endif
+#ifdef HAVE_LIBHIDAPI
+	enum ser_hid_chip_t {
+		SER_HID_CHIP_UNKNOWN,		/**!< place holder */
+		SER_HID_CHIP_BTC_BU86X,		/**!< Brymen BU86x */
+		SER_HID_CHIP_SIL_CP2110,	/**!< SiLabs CP2110 */
+		SER_HID_CHIP_VICTOR_DMM,	/**!< Victor 70/86 DMM cable */
+		SER_HID_CHIP_WCH_CH9325,	/**!< WCH CH9325 */
+		SER_HID_CHIP_LAST,		/**!< sentinel */
+	} hid_chip;
+	struct ser_hid_chip_functions *hid_chip_funcs;
+	char *usb_path;
+	char *usb_serno;
+	const char *hid_path;
+	hid_device *hid_dev;
+	GSList *hid_source_args;
+#endif
+#ifdef HAVE_BLUETOOTH
+	enum ser_bt_conn_t {
+		SER_BT_CONN_UNKNOWN,	/**!< place holder */
+		SER_BT_CONN_RFCOMM,	/**!< BT classic, RFCOMM channel */
+		SER_BT_CONN_BLE122,	/**!< BLE, BLE122 module, indications */
+		SER_BT_CONN_NRF51,	/**!< BLE, Nordic nRF51, notifications */
+		SER_BT_CONN_CC254x,	/**!< BLE, TI CC254x, notifications */
+		SER_BT_CONN_MAX,	/**!< sentinel */
+	} bt_conn_type;
+	char *bt_addr_local;
+	char *bt_addr_remote;
+	size_t bt_rfcomm_channel;
+	uint16_t bt_notify_handle_read;
+	uint16_t bt_notify_handle_write;
+	uint16_t bt_notify_handle_cccd;
+	uint16_t bt_notify_value_cccd;
+	struct sr_bt_desc *bt_desc;
+	GSList *bt_source_args;
+#endif
 };
 #endif
 
@@ -829,7 +889,31 @@ SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
 #endif
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
+#ifndef HAVE_LIBSERIALPORT
+/*
+ * Some identifiers which initially got provided by libserialport are
+ * used internally within the libsigrok serial layer's implementation,
+ * while libserialport no longer is the exclusive provider of serial
+ * communication support. Declare the identifiers here so they remain
+ * available across all build configurations.
+ */
+enum libsp_parity {
+	SP_PARITY_NONE = 0,
+	SP_PARITY_ODD = 1,
+	SP_PARITY_EVEN = 2,
+	SP_PARITY_MARK = 3,
+	SP_PARITY_SPACE = 4,
+};
+
+enum libsp_flowcontrol {
+	SP_FLOWCONTROL_NONE = 0,
+	SP_FLOWCONTROL_XONXOFF = 1,
+	SP_FLOWCONTROL_RTSCTS = 2,
+	SP_FLOWCONTROL_DTRDSR = 3,
+};
+#endif
+
 /* Serial-specific instances */
 SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm);
@@ -908,6 +992,8 @@ SR_PRIV int sr_session_source_remove_pollfd(struct sr_session *session,
 SR_PRIV int sr_session_source_remove_channel(struct sr_session *session,
 		GIOChannel *channel);
 
+SR_PRIV int sr_session_send_meta(const struct sr_dev_inst *sdi,
+		uint32_t key, GVariant *var);
 SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 		const struct sr_datafeed_packet *packet);
 SR_PRIV int sr_sessionfile_check(const char *filename);
@@ -944,7 +1030,7 @@ SR_PRIV int std_dummy_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_close(struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_acquisition_start(const struct sr_dev_inst *sdi);
 SR_PRIV int std_dummy_dev_acquisition_stop(struct sr_dev_inst *sdi);
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int std_serial_dev_open(struct sr_dev_inst *sdi);
 SR_PRIV int std_serial_dev_acquisition_stop(struct sr_dev_inst *sdi);
 #endif
@@ -1001,6 +1087,10 @@ SR_PRIV int std_double_tuple_idx_d0(const double d, const double a[][2], unsigne
 
 SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_group *a[], unsigned int n);
 
+SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
+	int baudrate, int bits, int parity, int stopbits,
+	int flowcontrol, int rts, int dtr);
+
 /*--- resource.c ------------------------------------------------------------*/
 
 SR_PRIV int64_t sr_file_get_size(FILE *file);
@@ -1052,9 +1142,9 @@ SR_PRIV void soft_trigger_logic_free(struct soft_trigger_logic *st);
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *st, uint8_t *buf,
 		int len, int *pre_trigger_samples);
 
-/*--- hardware/serial.c -----------------------------------------------------*/
+/*--- serial.c --------------------------------------------------------------*/
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 enum {
 	SERIAL_RDWR = 1,
 	SERIAL_RDONLY = 2,
@@ -1062,10 +1152,15 @@ enum {
 
 typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
 
+typedef GSList *(*sr_ser_list_append_t)(GSList *devs, const char *name,
+		const char *desc);
+typedef GSList *(*sr_ser_find_append_t)(GSList *devs, const char *name);
+
 SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags);
 SR_PRIV int serial_close(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_flush(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial);
+SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial);
 SR_PRIV int serial_write_blocking(struct sr_serial_dev_inst *serial,
 		const void *buf, size_t count, unsigned int timeout_ms);
 SR_PRIV int serial_write_nonblocking(struct sr_serial_dev_inst *serial,
@@ -1074,6 +1169,8 @@ SR_PRIV int serial_read_blocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count, unsigned int timeout_ms);
 SR_PRIV int serial_read_nonblocking(struct sr_serial_dev_inst *serial, void *buf,
 		size_t count);
+SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
+		serial_rx_chunk_callback cb, void *cb_data);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
@@ -1084,7 +1181,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 				 uint8_t *buf, size_t *buflen,
 				 size_t packet_size,
 				 packet_valid_callback is_valid,
-				 uint64_t timeout_ms, int baudrate);
+				 uint64_t timeout_ms);
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_session *session,
@@ -1094,9 +1191,115 @@ SR_PRIV int serial_source_remove(struct sr_session *session,
 		struct sr_serial_dev_inst *serial);
 SR_PRIV GSList *sr_serial_find_usb(uint16_t vendor_id, uint16_t product_id);
 SR_PRIV int serial_timeout(struct sr_serial_dev_inst *port, int num_bytes);
+
+SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial);
+SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial);
+SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
+		const uint8_t *data, size_t len);
+SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
+		uint8_t *data, size_t len);
+
+struct ser_lib_functions {
+	int (*open)(struct sr_serial_dev_inst *serial, int flags);
+	int (*close)(struct sr_serial_dev_inst *serial);
+	int (*flush)(struct sr_serial_dev_inst *serial);
+	int (*drain)(struct sr_serial_dev_inst *serial);
+	int (*write)(struct sr_serial_dev_inst *serial,
+			const void *buf, size_t count,
+			int nonblocking, unsigned int timeout_ms);
+	int (*read)(struct sr_serial_dev_inst *serial,
+			void *buf, size_t count,
+			int nonblocking, unsigned int timeout_ms);
+	int (*set_params)(struct sr_serial_dev_inst *serial,
+			int baudrate, int bits, int parity, int stopbits,
+			int flowcontrol, int rts, int dtr);
+	int (*setup_source_add)(struct sr_session *session,
+			struct sr_serial_dev_inst *serial,
+			int events, int timeout,
+			sr_receive_data_callback cb, void *cb_data);
+	int (*setup_source_remove)(struct sr_session *session,
+			struct sr_serial_dev_inst *serial);
+	GSList *(*list)(GSList *list, sr_ser_list_append_t append);
+	GSList *(*find_usb)(GSList *list, sr_ser_find_append_t append,
+			uint16_t vendor_id, uint16_t product_id);
+	int (*get_frame_format)(struct sr_serial_dev_inst *serial,
+			int *baud, int *bits);
+	size_t (*get_rx_avail)(struct sr_serial_dev_inst *serial);
+};
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_libsp;
+SR_PRIV int ser_name_is_hid(struct sr_serial_dev_inst *serial);
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_hid;
+SR_PRIV int ser_name_is_bt(struct sr_serial_dev_inst *serial);
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_bt;
+
+#ifdef HAVE_LIBHIDAPI
+struct vid_pid_item {
+	uint16_t vid, pid;
+};
+
+struct ser_hid_chip_functions {
+	const char *chipname;
+	const char *chipdesc;
+	const struct vid_pid_item *vid_pid_items;
+	const int max_bytes_per_request;
+	int (*set_params)(struct sr_serial_dev_inst *serial,
+			int baudrate, int bits, int parity, int stopbits,
+			int flowcontrol, int rts, int dtr);
+	int (*read_bytes)(struct sr_serial_dev_inst *serial,
+			uint8_t *data, int space, unsigned int timeout);
+	int (*write_bytes)(struct sr_serial_dev_inst *serial,
+			const uint8_t *data, int space);
+	int (*flush)(struct sr_serial_dev_inst *serial);
+	int (*drain)(struct sr_serial_dev_inst *serial);
+};
+extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_bu86x;
+extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_ch9325;
+extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_cp2110;
+extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_victor;
+SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid);
+#endif
 #endif
 
-/*--- hardware/ezusb.c ------------------------------------------------------*/
+/*--- bt/ API ---------------------------------------------------------------*/
+
+#ifdef HAVE_BLUETOOTH
+SR_PRIV const char *sr_bt_adapter_get_address(size_t idx);
+
+struct sr_bt_desc;
+typedef void (*sr_bt_scan_cb)(void *cb_data, const char *addr, const char *name);
+typedef int (*sr_bt_data_cb)(void *cb_data, uint8_t *data, size_t dlen);
+
+SR_PRIV struct sr_bt_desc *sr_bt_desc_new(void);
+SR_PRIV void sr_bt_desc_free(struct sr_bt_desc *desc);
+
+SR_PRIV int sr_bt_config_cb_scan(struct sr_bt_desc *desc,
+	sr_bt_scan_cb cb, void *cb_data);
+SR_PRIV int sr_bt_config_cb_data(struct sr_bt_desc *desc,
+	sr_bt_data_cb cb, void *cb_data);
+SR_PRIV int sr_bt_config_addr_local(struct sr_bt_desc *desc, const char *addr);
+SR_PRIV int sr_bt_config_addr_remote(struct sr_bt_desc *desc, const char *addr);
+SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel);
+SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
+	uint16_t read_handle, uint16_t write_handle,
+	uint16_t cccd_handle, uint16_t cccd_value);
+
+SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration);
+SR_PRIV int sr_bt_scan_bt(struct sr_bt_desc *desc, int duration);
+
+SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc);
+SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc);
+SR_PRIV void sr_bt_disconnect(struct sr_bt_desc *desc);
+
+SR_PRIV ssize_t sr_bt_read(struct sr_bt_desc *desc,
+	void *data, size_t len);
+SR_PRIV ssize_t sr_bt_write(struct sr_bt_desc *desc,
+	const void *data, size_t len);
+
+SR_PRIV int sr_bt_start_notify(struct sr_bt_desc *desc);
+SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc);
+#endif
+
+/*--- ezusb.c ---------------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear);
@@ -1106,7 +1309,7 @@ SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
 				  int configuration, const char *name);
 #endif
 
-/*--- hardware/usb.c --------------------------------------------------------*/
+/*--- usb.c -----------------------------------------------------------------*/
 
 #ifdef HAVE_LIBUSB_1_0
 SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn);
@@ -1174,7 +1377,7 @@ SR_PRIV int sr_modbus_write_multiple_registers(struct sr_modbus_dev_inst*modbus,
 SR_PRIV int sr_modbus_close(struct sr_modbus_dev_inst *modbus);
 SR_PRIV void sr_modbus_free(struct sr_modbus_dev_inst *modbus);
 
-/*--- hardware/dmm/es519xx.c ------------------------------------------------*/
+/*--- dmm/es519xx.c ---------------------------------------------------------*/
 
 /**
  * All 11-byte es519xx chips repeat each block twice for each conversion cycle
@@ -1220,7 +1423,7 @@ SR_PRIV gboolean sr_es519xx_19200_14b_sel_lpf_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_es519xx_19200_14b_sel_lpf_parse(const uint8_t *buf,
 		float *floatval, struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/fs9922.c -------------------------------------------------*/
+/*--- dmm/fs9922.c ----------------------------------------------------------*/
 
 #define FS9922_PACKET_SIZE 14
 
@@ -1238,7 +1441,7 @@ SR_PRIV int sr_fs9922_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9922_z1_diode(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/fs9721.c -------------------------------------------------*/
+/*--- dmm/fs9721.c ----------------------------------------------------------*/
 
 #define FS9721_PACKET_SIZE 14
 
@@ -1258,7 +1461,31 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/ms8250d.c ------------------------------------------------*/
+/*--- dmm/ms2115b.c ---------------------------------------------------------*/
+
+#define MS2115B_PACKET_SIZE 9
+
+enum ms2115b_display {
+	MS2115B_DISPLAY_MAIN,
+	MS2115B_DISPLAY_SUB,
+	MS2115B_DISPLAY_COUNT,
+};
+
+struct ms2115b_info {
+	/* Selected channel. */
+	size_t ch_idx;
+	gboolean is_ac, is_dc, is_auto;
+	gboolean is_diode, is_beep, is_farad;
+	gboolean is_ohm, is_ampere, is_volt, is_hz;
+	gboolean is_duty_cycle, is_percent;
+};
+
+extern SR_PRIV const char *ms2115b_channel_formats[];
+SR_PRIV gboolean sr_ms2115b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ms2115b_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
+/*--- dmm/ms8250d.c ---------------------------------------------------------*/
 
 #define MS8250D_PACKET_SIZE 18
 
@@ -1273,7 +1500,7 @@ SR_PRIV gboolean sr_ms8250d_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ms8250d_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/dtm0660.c ------------------------------------------------*/
+/*--- dmm/dtm0660.c ---------------------------------------------------------*/
 
 #define DTM0660_PACKET_SIZE 15
 
@@ -1289,7 +1516,7 @@ SR_PRIV gboolean sr_dtm0660_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_dtm0660_parse(const uint8_t *buf, float *floatval,
 			struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/m2110.c --------------------------------------------------*/
+/*--- dmm/m2110.c -----------------------------------------------------------*/
 
 #define BBCGM_M2110_PACKET_SIZE 9
 
@@ -1300,7 +1527,7 @@ SR_PRIV gboolean sr_m2110_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_m2110_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/metex14.c ------------------------------------------------*/
+/*--- dmm/metex14.c ---------------------------------------------------------*/
 
 #define METEX14_PACKET_SIZE 14
 
@@ -1314,7 +1541,7 @@ struct metex14_info {
 	gboolean is_hfe, is_unitless, is_logic, is_min, is_max, is_avg;
 };
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_metex14_packet_valid(const uint8_t *buf);
@@ -1324,7 +1551,7 @@ SR_PRIV gboolean sr_metex14_4packets_valid(const uint8_t *buf);
 SR_PRIV int sr_metex14_4packets_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/rs9lcd.c -------------------------------------------------*/
+/*--- dmm/rs9lcd.c ----------------------------------------------------------*/
 
 #define RS9LCD_PACKET_SIZE 9
 
@@ -1335,7 +1562,7 @@ SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/bm25x.c --------------------------------------------------*/
+/*--- dmm/bm25x.c -----------------------------------------------------------*/
 
 #define BRYMEN_BM25X_PACKET_SIZE 15
 
@@ -1346,7 +1573,21 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/ut71x.c --------------------------------------------------*/
+/*--- dmm/bm86x.c -----------------------------------------------------------*/
+
+#define BRYMEN_BM86X_PACKET_SIZE 24
+#define BRYMEN_BM86X_DISPLAY_COUNT 2
+
+struct brymen_bm86x_info { size_t ch_idx; };
+
+#ifdef HAVE_SERIAL_COMM
+SR_PRIV int sr_brymen_bm86x_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean sr_brymen_bm86x_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_brymen_bm86x_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
+/*--- dmm/ut71x.c -----------------------------------------------------------*/
 
 #define UT71X_PACKET_SIZE 11
 
@@ -1361,7 +1602,7 @@ SR_PRIV gboolean sr_ut71x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut71x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/vc870.c --------------------------------------------------*/
+/*--- dmm/vc870.c -----------------------------------------------------------*/
 
 #define VC870_PACKET_SIZE 23
 
@@ -1382,7 +1623,7 @@ SR_PRIV gboolean sr_vc870_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc870_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/vc96.c ---------------------------------------------------*/
+/*--- dmm/vc96.c ------------------------------------------------------------*/
 
 #define VC96_PACKET_SIZE 13
 
@@ -1397,25 +1638,57 @@ SR_PRIV gboolean sr_vc96_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/lcr/es51919.c ------------------------------------------------*/
+/*--- lcr/es51919.c ---------------------------------------------------------*/
 
-SR_PRIV void es51919_serial_clean(void *priv);
-SR_PRIV struct sr_dev_inst *es51919_serial_scan(GSList *options,
-						const char *vendor,
-						const char *model);
-SR_PRIV int es51919_serial_config_get(uint32_t key, GVariant **data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_config_set(uint32_t key, GVariant *data,
-				      const struct sr_dev_inst *sdi,
-				      const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_config_list(uint32_t key, GVariant **data,
-				       const struct sr_dev_inst *sdi,
-				       const struct sr_channel_group *cg);
-SR_PRIV int es51919_serial_acquisition_start(const struct sr_dev_inst *sdi);
-SR_PRIV int es51919_serial_acquisition_stop(struct sr_dev_inst *sdi);
+/* Acquisition details which apply to all supported serial-lcr devices. */
+struct lcr_parse_info {
+	size_t ch_idx;
+	uint64_t output_freq;
+	const char *circuit_model;
+};
 
-/*--- hardware/dmm/ut372.c --------------------------------------------------*/
+#define ES51919_PACKET_SIZE	17
+#define ES51919_CHANNEL_COUNT	2
+#define ES51919_COMM_PARAM	"9600/8n1/rts=1/dtr=1"
+
+SR_PRIV int es51919_config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int es51919_config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int es51919_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV gboolean es51919_packet_valid(const uint8_t *pkt);
+SR_PRIV int es51919_packet_parse(const uint8_t *pkt, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
+/*--- lcr/vc4080.c ----------------------------------------------------------*/
+
+/* Note: Also uses 'struct lcr_parse_info' from es51919 above. */
+
+#define VC4080_PACKET_SIZE	39
+#define VC4080_COMM_PARAM	"1200/8n1"
+#define VC4080_WITH_DQ_CHANS	0 /* Enable separate D/Q channels? */
+
+enum vc4080_display {
+	VC4080_DISPLAY_PRIMARY,
+	VC4080_DISPLAY_SECONDARY,
+#if VC4080_WITH_DQ_CHANS
+	VC4080_DISPLAY_D_VALUE,
+	VC4080_DISPLAY_Q_VALUE,
+#endif
+	VC4080_CHANNEL_COUNT,
+};
+
+extern SR_PRIV const char *vc4080_channel_formats[VC4080_CHANNEL_COUNT];
+
+SR_PRIV int vc4080_config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int vc4080_packet_request(struct sr_serial_dev_inst *serial);
+SR_PRIV gboolean vc4080_packet_valid(const uint8_t *pkt);
+SR_PRIV int vc4080_packet_parse(const uint8_t *pkt, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
+/*--- dmm/ut372.c -----------------------------------------------------------*/
 
 #define UT372_PACKET_SIZE 27
 
@@ -1427,7 +1700,7 @@ SR_PRIV gboolean sr_ut372_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_ut372_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/dmm/asycii.c -------------------------------------------------*/
+/*--- dmm/asycii.c ----------------------------------------------------------*/
 
 #define ASYCII_PACKET_SIZE 16
 
@@ -1445,14 +1718,14 @@ struct asycii_info {
 	gboolean is_invalid;
 };
 
-#ifdef HAVE_LIBSERIALPORT
+#ifdef HAVE_SERIAL_COMM
 SR_PRIV int sr_asycii_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_asycii_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_asycii_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
-/*--- src/dmm/eev121gw.c ----------------------------------------------------*/
+/*--- dmm/eev121gw.c --------------------------------------------------------*/
 
 #define EEV121GW_PACKET_SIZE 19
 
@@ -1490,12 +1763,10 @@ struct eev121gw_info {
 
 extern SR_PRIV const char *eev121gw_channel_formats[];
 SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
-SR_PRIV int sr_eev121gw_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info);
 SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
-			     struct sr_datafeed_analog *analog, void *info);
+		struct sr_datafeed_analog *analog, void *info);
 
-/*--- hardware/scale/kern.c -------------------------------------------------*/
+/*--- scale/kern.c ----------------------------------------------------------*/
 
 struct kern_info {
 	gboolean is_gram, is_carat, is_ounce, is_pound, is_troy_ounce;
@@ -1512,8 +1783,10 @@ SR_PRIV int sr_kern_parse(const uint8_t *buf, float *floatval,
 
 struct sr_sw_limits {
 	uint64_t limit_samples;
+	uint64_t limit_frames;
 	uint64_t limit_msec;
 	uint64_t samples_read;
+	uint64_t frames_read;
 	uint64_t start_time;
 };
 
@@ -1525,6 +1798,8 @@ SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits);
 SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits);
 SR_PRIV void sr_sw_limits_update_samples_read(struct sr_sw_limits *limits,
 	uint64_t samples_read);
+SR_PRIV void sr_sw_limits_update_frames_read(struct sr_sw_limits *limits,
+	uint64_t frames_read);
 SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits);
 
 #endif

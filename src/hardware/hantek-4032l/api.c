@@ -167,7 +167,7 @@ static const uint64_t samplerates_hw[] = {
 	SR_MHZ(320),
 };
 
-SR_PRIV struct sr_dev_driver hantek_4032l_driver_info;
+static struct sr_dev_driver hantek_4032l_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -515,7 +515,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	else
 		cmd_pkt->sample_rate = devc->sample_rate;
 
-	/* Set pwm channel values. */
+	/* Set PWM channel values. */
 	devc->cmd_pkt.pwm_a = h4032l_voltage2pwm(devc->cur_threshold[0]);
 	devc->cmd_pkt.pwm_b = h4032l_voltage2pwm(devc->cur_threshold[1]);
 
@@ -587,25 +587,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			channel = channel->next;
 		}
 
-		/* Compress range mask value and apply range settings. */
-		if (range_mask) {
-			cmd_pkt->trigger[0].flags.data_range_enabled = 1;
-			cmd_pkt->trigger[0].data_range_mask |= (range_mask);
-
-			uint32_t new_range_value = 0;
-			uint32_t bit_mask = 1;
-			while (range_mask) {
-				if ((range_mask & 1) != 0) {
-					new_range_value <<= 1;
-					if ((range_value & 1) != 0)
-						new_range_value |= bit_mask;
-					bit_mask <<= 1;
-				}
-				range_mask >>= 1;
-				range_value >>= 1;
-			}
-			cmd_pkt->trigger[0].data_range_max |= range_value;
-		}
+		cmd_pkt->trigger[0].flags.data_range_enabled = 1;
+		cmd_pkt->trigger[0].data_range_mask |= range_mask;
+		cmd_pkt->trigger[0].data_range_max = range_value;
 	}
 
 	usb_source_add(sdi->session, drvc->sr_ctx, 1000,
@@ -621,7 +605,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return h4032l_stop(sdi);
 }
 
-SR_PRIV struct sr_dev_driver hantek_4032l_driver_info = {
+static struct sr_dev_driver hantek_4032l_driver_info = {
 	.name = "hantek-4032l",
 	.longname = "Hantek 4032L",
 	.api_version = 1,

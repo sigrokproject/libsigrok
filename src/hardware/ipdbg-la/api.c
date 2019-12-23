@@ -42,8 +42,6 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_EDGE,
 };
 
-SR_PRIV struct sr_dev_driver ipdbg_la_driver_info;
-
 static void ipdbg_la_split_addr_port(const char *conn, char **addr,
 	char **port)
 {
@@ -209,7 +207,11 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
+		{
+			uint64_t limit_samples = g_variant_get_uint64(data);
+			if (limit_samples <= devc->limit_samples_max)
+				devc->limit_samples = limit_samples;
+		}
 		break;
 	default:
 		return SR_ERR_NA;
@@ -260,13 +262,15 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct ipdbg_la_tcp *tcp = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 
-	uint8_t byte;
+	const size_t bufsize = 1024;
+	uint8_t buffer[bufsize];
 
 	if (devc->num_transfers > 0) {
 		while (devc->num_transfers <
 			(devc->limit_samples_max * devc->data_width_bytes)) {
-			ipdbg_la_tcp_receive(tcp, &byte);
-			devc->num_transfers++;
+			int recd = ipdbg_la_tcp_receive(tcp, buffer, bufsize);
+			if (recd > 0)
+				devc->num_transfers += recd;
 		}
 	}
 
@@ -276,7 +280,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
+static struct sr_dev_driver ipdbg_la_driver_info = {
 	.name = "ipdbg-la",
 	.longname = "IPDBG LA",
 	.api_version = 1,
@@ -294,5 +298,4 @@ SR_PRIV struct sr_dev_driver ipdbg_la_driver_info = {
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
-
 SR_REGISTER_DEV_DRIVER(ipdbg_la_driver_info);

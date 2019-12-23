@@ -300,6 +300,11 @@ SR_PRIV int cv_convert_trigger(const struct sr_dev_inst *sdi)
 					|| match->match == SR_TRIGGER_RISING)
 				devc->trigger_pattern |= channel_bit;
 
+			/* LA8 and LA16 support state triggering. */
+			if (match->match == SR_TRIGGER_ONE
+					|| match->match == SR_TRIGGER_ZERO)
+				devc->trigger_mask |= channel_bit;
+
 			/* LA16 (but not LA8) supports edge triggering. */
 			if ((devc->prof->model == CHRONOVU_LA16)) {
 				if (match->match == SR_TRIGGER_RISING

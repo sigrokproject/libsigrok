@@ -2,7 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2014 Bert Vermeulen <bert@biot.com>
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017,2019 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ enum pps_scpi_cmds {
 	SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION,
 	SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_ENABLE,
 	SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE,
+	SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE,
 	SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED,
 	SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_ENABLE,
 	SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_DISABLE,
@@ -65,6 +66,14 @@ enum pps_scpi_cmds {
 	SCPI_CMD_GET_OVER_CURRENT_PROTECTION_ACTIVE,
 	SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD,
 	SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD,
+};
+
+/* Defines the SCPI dialect */
+enum pps_scpi_dialect {
+	SCPI_DIALECT_UNKNOWN = 1,
+	SCPI_DIALECT_HP_COMP,
+	SCPI_DIALECT_HP_66XXB,
+	SCPI_DIALECT_PHILIPS,
 };
 
 /*
@@ -84,6 +93,7 @@ enum pps_features {
 struct scpi_pps {
 	const char *vendor;
 	const char *model;
+	const enum pps_scpi_dialect dialect;
 	uint64_t features;
 	const uint32_t *devopts;
 	unsigned int num_devopts;
@@ -97,6 +107,8 @@ struct scpi_pps {
 	int (*probe_channels) (struct sr_dev_inst *sdi, struct sr_scpi_hw_info *hwinfo,
 		struct channel_spec **channels, unsigned int *num_channels,
 		struct channel_group_spec **channel_groups, unsigned int *num_channel_groups);
+	int (*init_acquisition) (const struct sr_dev_inst *sdi);
+	int (*update_status) (const struct sr_dev_inst *sdi);
 };
 
 struct channel_spec {
@@ -114,10 +126,13 @@ struct channel_group_spec {
 	const char *name;
 	uint64_t channel_index_mask;
 	uint64_t features;
+	/* The mqflags will only be applied to voltage and current channels! */
+	enum sr_mqflag mqflags;
 };
 
 struct pps_channel {
 	enum sr_mq mq;
+	enum sr_mqflag mqflags;
 	unsigned int hw_output_idx;
 	const char *hwname;
 	int digits;

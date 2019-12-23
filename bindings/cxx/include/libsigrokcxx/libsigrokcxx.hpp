@@ -87,8 +87,6 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 namespace sigrok
 {
 
-using namespace std;
-
 /* Forward declarations */
 class SR_API Error;
 class SR_API Context;
@@ -124,7 +122,7 @@ class SR_API Option;
 class SR_API UserDevice;
 
 /** Exception thrown when an error code is returned by any libsigrok call. */
-class SR_API Error: public exception
+class SR_API Error: public std::exception
 {
 public:
 	explicit Error(int result);
@@ -139,7 +137,7 @@ class SR_API ParentOwned
 {
 private:
 	/* Weak pointer for shared_from_this() implementation. */
-	weak_ptr<Class> _weak_this;
+	std::weak_ptr<Class> _weak_this;
 
 	static void reset_parent(Class *object)
 	{
@@ -162,14 +160,14 @@ protected:
 		This strategy ensures that the destructors for both the child and
 		the parent are called at the correct time, i.e. only when all
 		references to both the parent and all its children are gone. */
-	shared_ptr<Parent> _parent;
+	std::shared_ptr<Parent> _parent;
 
 	ParentOwned() {}
 
 	/* Note, this implementation will create a new smart_ptr if none exists. */
-	shared_ptr<Class> shared_from_this()
+	std::shared_ptr<Class> shared_from_this()
 	{
-		shared_ptr<Class> shared = _weak_this.lock();
+		std::shared_ptr<Class> shared = _weak_this.lock();
 
 		if (!shared)
 		{
@@ -180,7 +178,7 @@ protected:
 		return shared;
 	}
 
-	shared_ptr<Class> share_owned_by(shared_ptr<Parent> parent)
+	std::shared_ptr<Class> share_owned_by(std::shared_ptr<Parent> parent)
 	{
 		if (!parent)
 			throw Error(SR_ERR_BUG);
@@ -190,7 +188,7 @@ protected:
 
 public:
 	/* Get parent object that owns this object. */
-	shared_ptr<Parent> parent()
+	std::shared_ptr<Parent> parent()
 	{
 		return _parent;
 	}
@@ -198,14 +196,14 @@ public:
 
 /* Base template for classes whose resources are owned by the user. */
 template <class Class>
-class SR_API UserOwned : public enable_shared_from_this<Class>
+class SR_API UserOwned : public std::enable_shared_from_this<Class>
 {
 protected:
 	UserOwned() {}
 
-	shared_ptr<Class> shared_from_this()
+	std::shared_ptr<Class> shared_from_this()
 	{
-		auto shared = enable_shared_from_this<Class>::shared_from_this();
+		auto shared = std::enable_shared_from_this<Class>::shared_from_this();
 		if (!shared)
 			throw Error(SR_ERR_BUG);
 		return shared;
@@ -213,7 +211,7 @@ protected:
 };
 
 /** Type of log callback */
-typedef function<void(const LogLevel *, string message)> LogCallbackFunction;
+typedef std::function<void(const LogLevel *, std::string message)> LogCallbackFunction;
 
 /** Resource reader delegate. */
 class SR_API ResourceReader
@@ -223,7 +221,7 @@ public:
 	virtual ~ResourceReader();
 private:
 	/** Resource open hook. */
-	virtual void open(struct sr_resource *res, string name) = 0;
+	virtual void open(struct sr_resource *res, std::string name) = 0;
 	/** Resource close hook. */
 	virtual void close(struct sr_resource *res) = 0;
 	/** Resource read hook. */
@@ -243,19 +241,19 @@ class SR_API Context : public UserOwned<Context>
 {
 public:
 	/** Create new context */
-	static shared_ptr<Context> create();
+	static std::shared_ptr<Context> create();
 	/** libsigrok package version. */
-	static string package_version();
+	static std::string package_version();
 	/** libsigrok library version. */
-	static string lib_version();
+	static std::string lib_version();
 	/** Available hardware drivers, indexed by name. */
-	map<string, shared_ptr<Driver> > drivers();
+	std::map<std::string, std::shared_ptr<Driver> > drivers();
 	/** Available input formats, indexed by name. */
-	map<string, shared_ptr<InputFormat> > input_formats();
+	std::map<std::string, std::shared_ptr<InputFormat> > input_formats();
 	/** Lookup the responsible input module for an input file. */
-	shared_ptr<InputFormat> input_format_match(string filename);
+	std::shared_ptr<InputFormat> input_format_match(std::string filename);
 	/** Available output formats, indexed by name. */
-	map<string, shared_ptr<OutputFormat> > output_formats();
+	std::map<std::string, std::shared_ptr<OutputFormat> > output_formats();
 	/** Current log level. */
 	const LogLevel *log_level() const;
 	/** Set the log level.
@@ -270,41 +268,43 @@ public:
 	 * @param reader The resource reader delegate, or nullptr to unset. */
 	void set_resource_reader(ResourceReader *reader);
 	/** Create a new session. */
-	shared_ptr<Session> create_session();
+	std::shared_ptr<Session> create_session();
 	/** Create a new user device. */
-	shared_ptr<UserDevice> create_user_device(
-		string vendor, string model, string version);
+	std::shared_ptr<UserDevice> create_user_device(
+		std::string vendor, std::string model, std::string version);
 	/** Create a header packet. */
-	shared_ptr<Packet> create_header_packet(Glib::TimeVal start_time);
+	std::shared_ptr<Packet> create_header_packet(Glib::TimeVal start_time);
 	/** Create a meta packet. */
-	shared_ptr<Packet> create_meta_packet(
-		map<const ConfigKey *, Glib::VariantBase> config);
+	std::shared_ptr<Packet> create_meta_packet(
+		std::map<const ConfigKey *, Glib::VariantBase> config);
 	/** Create a logic packet. */
-	shared_ptr<Packet> create_logic_packet(
+	std::shared_ptr<Packet> create_logic_packet(
 		void *data_pointer, size_t data_length, unsigned int unit_size);
 	/** Create an analog packet. */
-	shared_ptr<Packet> create_analog_packet(
-		vector<shared_ptr<Channel> > channels,
+	std::shared_ptr<Packet> create_analog_packet(
+		std::vector<std::shared_ptr<Channel> > channels,
 		float *data_pointer, unsigned int num_samples, const Quantity *mq,
-		const Unit *unit, vector<const QuantityFlag *> mqflags);
+		const Unit *unit, std::vector<const QuantityFlag *> mqflags);
+	/** Create an end packet. */
+	std::shared_ptr<Packet> create_end_packet();
 	/** Load a saved session.
 	 * @param filename File name string. */
-	shared_ptr<Session> load_session(string filename);
+	std::shared_ptr<Session> load_session(std::string filename);
 	/** Create a new trigger.
 	 * @param name Name string for new trigger. */
-	shared_ptr<Trigger> create_trigger(string name);
+	std::shared_ptr<Trigger> create_trigger(std::string name);
 	/** Open an input file.
 	 * @param filename File name string. */
-	shared_ptr<Input> open_file(string filename);
+	std::shared_ptr<Input> open_file(std::string filename);
 	/** Open an input stream based on header data.
 	 * @param header Initial data from stream. */
-	shared_ptr<Input> open_stream(string header);
-	map<string, string> serials(shared_ptr<Driver> driver) const;
+	std::shared_ptr<Input> open_stream(std::string header);
+	std::map<std::string, std::string> serials(std::shared_ptr<Driver> driver) const;
 private:
 	struct sr_context *_structure;
-	map<string, unique_ptr<Driver> > _drivers;
-	map<string, unique_ptr<InputFormat> > _input_formats;
-	map<string, unique_ptr<OutputFormat> > _output_formats;
+	std::map<std::string, std::unique_ptr<Driver> > _drivers;
+	std::map<std::string, std::unique_ptr<InputFormat> > _input_formats;
+	std::map<std::string, std::unique_ptr<OutputFormat> > _output_formats;
 	Session *_session;
 	LogCallbackFunction _log_callback;
 	Context();
@@ -319,7 +319,7 @@ class SR_API Configurable
 {
 public:
 	/** Supported configuration keys. */
-	set<const ConfigKey *> config_keys() const;
+	std::set<const ConfigKey *> config_keys() const;
 	/** Read configuration for the given key.
 	 * @param key ConfigKey to read. */
 	Glib::VariantBase config_get(const ConfigKey *key) const;
@@ -332,7 +332,7 @@ public:
 	Glib::VariantContainerBase config_list(const ConfigKey *key) const;
 	/** Enumerate configuration capabilities for the given configuration key.
 	 * @param key ConfigKey to enumerate capabilities for. */
-	set<const Capability *> config_capabilities(const ConfigKey *key) const;
+	std::set<const Capability *> config_capabilities(const ConfigKey *key) const;
 	/** Check whether a configuration capability is supported for a given key.
 	 * @param key ConfigKey to check.
 	 * @param capability Capability to check for. */
@@ -353,19 +353,19 @@ class SR_API Driver : public ParentOwned<Driver, Context>, public Configurable
 {
 public:
 	/** Name of this driver. */
-	string name() const;
+	std::string name() const;
 	/** Long name for this driver. */
-	string long_name() const;
+	std::string long_name() const;
 	/** Scan options supported by this driver. */
-	set<const ConfigKey *> scan_options() const;
+	std::set<const ConfigKey *> scan_options() const;
 	/** Scan for devices and return a list of devices found.
 	 * @param options Mapping of (ConfigKey, value) pairs. */
-	vector<shared_ptr<HardwareDevice> > scan(map<const ConfigKey *, Glib::VariantBase>
-			options = map<const ConfigKey *, Glib::VariantBase>());
+	std::vector<std::shared_ptr<HardwareDevice> > scan(std::map<const ConfigKey *, Glib::VariantBase>
+			options = std::map<const ConfigKey *, Glib::VariantBase>());
 private:
 	struct sr_dev_driver *_structure;
 	bool _initialized;
-	vector<HardwareDevice *> _devices;
+	std::vector<HardwareDevice *> _devices;
 	explicit Driver(struct sr_dev_driver *structure);
 	~Driver();
 	friend class Context;
@@ -379,19 +379,19 @@ class SR_API Device : public Configurable
 {
 public:
 	/** Vendor name for this device. */
-	string vendor() const;
+	std::string vendor() const;
 	/** Model name for this device. */
-	string model() const;
+	std::string model() const;
 	/** Version string for this device. */
-	string version() const;
+	std::string version() const;
 	/** Serial number for this device. */
-	string serial_number() const;
+	std::string serial_number() const;
 	/** Connection ID for this device. */
-	string connection_id() const;
+	std::string connection_id() const;
 	/** List of the channels available on this device. */
-	vector<shared_ptr<Channel> > channels();
+	std::vector<std::shared_ptr<Channel> > channels();
 	/** Channel groups available on this device, indexed by name. */
-	map<string, shared_ptr<ChannelGroup> > channel_groups();
+	std::map<std::string, std::shared_ptr<ChannelGroup> > channel_groups();
 	/** Open device. */
 	void open();
 	/** Close device. */
@@ -399,13 +399,13 @@ public:
 protected:
 	explicit Device(struct sr_dev_inst *structure);
 	~Device();
-	virtual shared_ptr<Device> get_shared_from_this() = 0;
-	shared_ptr<Channel> get_channel(struct sr_channel *ptr);
+	virtual std::shared_ptr<Device> get_shared_from_this() = 0;
+	std::shared_ptr<Channel> get_channel(struct sr_channel *ptr);
 
 	struct sr_dev_inst *_structure;
-	map<struct sr_channel *, unique_ptr<Channel> > _channels;
+	std::map<struct sr_channel *, std::unique_ptr<Channel> > _channels;
 private:
-	map<string, unique_ptr<ChannelGroup> > _channel_groups;
+	std::map<std::string, std::unique_ptr<ChannelGroup> > _channel_groups;
 
 	friend class Session;
 	friend class Channel;
@@ -422,12 +422,12 @@ class SR_API HardwareDevice :
 {
 public:
 	/** Driver providing this device. */
-	shared_ptr<Driver> driver();
+	std::shared_ptr<Driver> driver();
 private:
-	HardwareDevice(shared_ptr<Driver> driver, struct sr_dev_inst *structure);
+	HardwareDevice(std::shared_ptr<Driver> driver, struct sr_dev_inst *structure);
 	~HardwareDevice();
-	shared_ptr<Device> get_shared_from_this();
-	shared_ptr<Driver> _driver;
+	std::shared_ptr<Device> get_shared_from_this();
+	std::shared_ptr<Driver> _driver;
 
 	friend class Driver;
 	friend class ChannelGroup;
@@ -441,11 +441,11 @@ class SR_API UserDevice :
 {
 public:
 	/** Add a new channel to this device. */
-	shared_ptr<Channel> add_channel(unsigned int index, const ChannelType *type, string name);
+	std::shared_ptr<Channel> add_channel(unsigned int index, const ChannelType *type, std::string name);
 private:
-	UserDevice(string vendor, string model, string version);
+	UserDevice(std::string vendor, std::string model, std::string version);
 	~UserDevice();
-	shared_ptr<Device> get_shared_from_this();
+	std::shared_ptr<Device> get_shared_from_this();
 
 	friend class Context;
 	friend struct std::default_delete<UserDevice>;
@@ -457,10 +457,10 @@ class SR_API Channel :
 {
 public:
 	/** Current name of this channel. */
-	string name() const;
+	std::string name() const;
 	/** Set the name of this channel. *
 	 * @param name Name string to set. */
-	void set_name(string name);
+	void set_name(std::string name);
 	/** Type of this channel. */
 	const ChannelType *type() const;
 	/** Enabled status of this channel. */
@@ -491,13 +491,13 @@ class SR_API ChannelGroup :
 {
 public:
 	/** Name of this channel group. */
-	string name() const;
+	std::string name() const;
 	/** List of the channels in this group. */
-	vector<shared_ptr<Channel> > channels();
+	std::vector<std::shared_ptr<Channel> > channels();
 private:
 	ChannelGroup(const Device *device, struct sr_channel_group *structure);
 	~ChannelGroup();
-	vector<Channel *> _channels;
+	std::vector<Channel *> _channels;
 	friend class Device;
 	friend struct std::default_delete<ChannelGroup>;
 };
@@ -507,17 +507,17 @@ class SR_API Trigger : public UserOwned<Trigger>
 {
 public:
 	/** Name of this trigger configuration. */
-	string name() const;
+	std::string name() const;
 	/** List of the stages in this trigger. */
-	vector<shared_ptr<TriggerStage> > stages();
+	std::vector<std::shared_ptr<TriggerStage> > stages();
 	/** Add a new stage to this trigger. */
-	shared_ptr<TriggerStage> add_stage();
+	std::shared_ptr<TriggerStage> add_stage();
 private:
-	Trigger(shared_ptr<Context> context, string name);
+	Trigger(std::shared_ptr<Context> context, std::string name);
 	~Trigger();
 	struct sr_trigger *_structure;
-	shared_ptr<Context> _context;
-	vector<unique_ptr<TriggerStage> > _stages;
+	std::shared_ptr<Context> _context;
+	std::vector<std::unique_ptr<TriggerStage> > _stages;
 	friend class Context;
 	friend class Session;
 	friend struct std::default_delete<Trigger>;
@@ -531,19 +531,19 @@ public:
 	/** Index number of this stage. */
 	int number() const;
 	/** List of match conditions on this stage. */
-	vector<shared_ptr<TriggerMatch> > matches();
+	std::vector<std::shared_ptr<TriggerMatch> > matches();
 	/** Add a new match condition to this stage.
 	 * @param channel Channel to match on.
 	 * @param type TriggerMatchType to apply. */
-	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type);
+	void add_match(std::shared_ptr<Channel> channel, const TriggerMatchType *type);
 	/** Add a new match condition to this stage.
 	 * @param channel Channel to match on.
 	 * @param type TriggerMatchType to apply.
 	 * @param value Threshold value. */
-	void add_match(shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
+	void add_match(std::shared_ptr<Channel> channel, const TriggerMatchType *type, float value);
 private:
 	struct sr_trigger_stage *_structure;
-	vector<unique_ptr<TriggerMatch> > _matches;
+	std::vector<std::unique_ptr<TriggerMatch> > _matches;
 	explicit TriggerStage(struct sr_trigger_stage *structure);
 	~TriggerStage();
 	friend class Trigger;
@@ -556,25 +556,25 @@ class SR_API TriggerMatch :
 {
 public:
 	/** Channel this condition matches on. */
-	shared_ptr<Channel> channel();
+	std::shared_ptr<Channel> channel();
 	/** Type of match. */
 	const TriggerMatchType *type() const;
 	/** Threshold value. */
 	float value() const;
 private:
-	TriggerMatch(struct sr_trigger_match *structure, shared_ptr<Channel> channel);
+	TriggerMatch(struct sr_trigger_match *structure, std::shared_ptr<Channel> channel);
 	~TriggerMatch();
 	struct sr_trigger_match *_structure;
-	shared_ptr<Channel> _channel;
+	std::shared_ptr<Channel> _channel;
 	friend class TriggerStage;
 	friend struct std::default_delete<TriggerMatch>;
 };
 
 /** Type of session stopped callback */
-typedef function<void()> SessionStoppedCallback;
+typedef std::function<void()> SessionStoppedCallback;
 
 /** Type of datafeed callback */
-typedef function<void(shared_ptr<Device>, shared_ptr<Packet>)>
+typedef std::function<void(std::shared_ptr<Device>, std::shared_ptr<Packet>)>
 	DatafeedCallbackFunction;
 
 /* Data required for C callback function to call a C++ datafeed callback */
@@ -599,7 +599,7 @@ class SR_API SessionDevice :
 private:
 	explicit SessionDevice(struct sr_dev_inst *sdi);
 	~SessionDevice();
-	shared_ptr<Device> get_shared_from_this();
+	std::shared_ptr<Device> get_shared_from_this();
 
 	friend class Session;
 	friend struct std::default_delete<SessionDevice>;
@@ -611,9 +611,9 @@ class SR_API Session : public UserOwned<Session>
 public:
 	/** Add a device to this session.
 	 * @param device Device to add. */
-	void add_device(shared_ptr<Device> device);
+	void add_device(std::shared_ptr<Device> device);
 	/** List devices attached to this session. */
-	vector<shared_ptr<Device> > devices();
+	std::vector<std::shared_ptr<Device> > devices();
 	/** Remove all devices from this session. */
 	void remove_devices();
 	/** Add a datafeed callback to this session.
@@ -632,27 +632,27 @@ public:
 	/** Set callback to be invoked on session stop. */
 	void set_stopped_callback(SessionStoppedCallback callback);
 	/** Get current trigger setting. */
-	shared_ptr<Trigger> trigger();
+	std::shared_ptr<Trigger> trigger();
 	/** Get the context. */
-	shared_ptr<Context> context();
+	std::shared_ptr<Context> context();
 	/** Set trigger setting.
 	 * @param trigger Trigger object to use. */
-	void set_trigger(shared_ptr<Trigger> trigger);
+	void set_trigger(std::shared_ptr<Trigger> trigger);
 	/** Get filename this session was loaded from. */
-	string filename() const;
+	std::string filename() const;
 private:
-	explicit Session(shared_ptr<Context> context);
-	Session(shared_ptr<Context> context, string filename);
+	explicit Session(std::shared_ptr<Context> context);
+	Session(std::shared_ptr<Context> context, std::string filename);
 	~Session();
-	shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
+	std::shared_ptr<Device> get_device(const struct sr_dev_inst *sdi);
 	struct sr_session *_structure;
-	const shared_ptr<Context> _context;
-	map<const struct sr_dev_inst *, unique_ptr<SessionDevice> > _owned_devices;
-	map<const struct sr_dev_inst *, shared_ptr<Device> > _other_devices;
-	vector<unique_ptr<DatafeedCallbackData> > _datafeed_callbacks;
+	const std::shared_ptr<Context> _context;
+	std::map<const struct sr_dev_inst *, std::unique_ptr<SessionDevice> > _owned_devices;
+	std::map<const struct sr_dev_inst *, std::shared_ptr<Device> > _other_devices;
+	std::vector<std::unique_ptr<DatafeedCallbackData> > _datafeed_callbacks;
 	SessionStoppedCallback _stopped_callback;
-	string _filename;
-	shared_ptr<Trigger> _trigger;
+	std::string _filename;
+	std::shared_ptr<Trigger> _trigger;
 
 	friend class Context;
 	friend class DatafeedCallbackData;
@@ -667,14 +667,14 @@ public:
 	/** Type of this packet. */
 	const PacketType *type() const;
 	/** Payload of this packet. */
-	shared_ptr<PacketPayload> payload();
+	std::shared_ptr<PacketPayload> payload();
 private:
-	Packet(shared_ptr<Device> device,
+	Packet(std::shared_ptr<Device> device,
 		const struct sr_datafeed_packet *structure);
 	~Packet();
 	const struct sr_datafeed_packet *_structure;
-	shared_ptr<Device> _device;
-	unique_ptr<PacketPayload> _payload;
+	std::shared_ptr<Device> _device;
+	std::unique_ptr<PacketPayload> _payload;
 
 	friend class Session;
 	friend class Output;
@@ -694,7 +694,7 @@ protected:
 	PacketPayload();
 	virtual ~PacketPayload() = 0;
 private:
-	virtual shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent) = 0;
+	virtual std::shared_ptr<PacketPayload> share_owned_by(std::shared_ptr<Packet> parent) = 0;
 
 	friend class Packet;
 	friend class Output;
@@ -714,7 +714,7 @@ public:
 private:
 	explicit Header(const struct sr_datafeed_header *structure);
 	~Header();
-	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+	std::shared_ptr<PacketPayload> share_owned_by(std::shared_ptr<Packet> parent);
 
 	const struct sr_datafeed_header *_structure;
 
@@ -728,14 +728,14 @@ class SR_API Meta :
 {
 public:
 	/* Mapping of (ConfigKey, value) pairs. */
-	map<const ConfigKey *, Glib::VariantBase> config() const;
+	std::map<const ConfigKey *, Glib::VariantBase> config() const;
 private:
 	explicit Meta(const struct sr_datafeed_meta *structure);
 	~Meta();
-	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+	std::shared_ptr<PacketPayload> share_owned_by(std::shared_ptr<Packet> parent);
 
 	const struct sr_datafeed_meta *_structure;
-	map<const ConfigKey *, Glib::VariantBase> _config;
+	std::map<const ConfigKey *, Glib::VariantBase> _config;
 
 	friend class Packet;
 };
@@ -755,7 +755,7 @@ public:
 private:
 	explicit Logic(const struct sr_datafeed_logic *structure);
 	~Logic();
-	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+	std::shared_ptr<PacketPayload> share_owned_by(std::shared_ptr<Packet> parent);
 
 	const struct sr_datafeed_logic *_structure;
 
@@ -780,7 +780,7 @@ public:
 	/** Number of samples in this packet. */
 	unsigned int num_samples() const;
 	/** Channels for which this packet contains data. */
-	vector<shared_ptr<Channel> > channels();
+	std::vector<std::shared_ptr<Channel> > channels();
 	/** Size of a single sample in bytes. */
 	unsigned int unitsize() const;
 	/** Samples use a signed data type. */
@@ -798,15 +798,15 @@ public:
 	/** TBD */
 	bool is_digits_decimal() const;
 	/** TBD */
-	shared_ptr<Rational> scale();
+	std::shared_ptr<Rational> scale();
 	/** TBD */
-	shared_ptr<Rational> offset();
+	std::shared_ptr<Rational> offset();
 	/** Measured quantity of the samples in this packet. */
 	const Quantity *mq() const;
 	/** Unit of the samples in this packet. */
 	const Unit *unit() const;
 	/** Measurement flags associated with the samples in this packet. */
-	vector<const QuantityFlag *> mq_flags() const;
+	std::vector<const QuantityFlag *> mq_flags() const;
 	/**
 	 * Provides a Logic packet that contains a conversion of the analog
 	 * data using a simple threshold.
@@ -817,7 +817,7 @@ public:
 	 *                 logic->data_pointer() will be allocated and must
 	 *                 be freed by the caller.
 	 */
-	shared_ptr<Logic> get_logic_via_threshold(float threshold,
+	std::shared_ptr<Logic> get_logic_via_threshold(float threshold,
 		uint8_t *data_ptr=nullptr) const;
 	/**
 	 * Provides a Logic packet that contains a conversion of the analog
@@ -833,12 +833,12 @@ public:
 	 *                 logic->data_pointer() will be allocated and must be
 	 *                 freed by the caller.
 	 */
-	shared_ptr<Logic> get_logic_via_schmitt_trigger(float lo_thr,
+	std::shared_ptr<Logic> get_logic_via_schmitt_trigger(float lo_thr,
 		float hi_thr, uint8_t *state, uint8_t *data_ptr=nullptr) const;
 private:
 	explicit Analog(const struct sr_datafeed_analog *structure);
 	~Analog();
-	shared_ptr<PacketPayload> share_owned_by(shared_ptr<Packet> parent);
+	std::shared_ptr<PacketPayload> share_owned_by(std::shared_ptr<Packet> parent);
 
 	const struct sr_datafeed_analog *_structure;
 
@@ -859,7 +859,7 @@ public:
 private:
 	explicit Rational(const struct sr_rational *structure);
 	~Rational();
-	shared_ptr<Rational> share_owned_by(shared_ptr<Analog> parent);
+	std::shared_ptr<Rational> share_owned_by(std::shared_ptr<Analog> parent);
 
 	const struct sr_rational *_structure;
 
@@ -873,18 +873,18 @@ class SR_API InputFormat :
 {
 public:
 	/** Name of this input format. */
-	string name() const;
+	std::string name() const;
 	/** Description of this input format. */
-	string description() const;
+	std::string description() const;
 	/** A list of preferred file name extensions for this file format.
 	 * @note This list is a recommendation only. */
-	vector<string> extensions() const;
+	std::vector<std::string> extensions() const;
 	/** Options supported by this input format. */
-	map<string, shared_ptr<Option> > options();
+	std::map<std::string, std::shared_ptr<Option> > options();
 	/** Create an input using this input format.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Input> create_input(map<string, Glib::VariantBase>
-			options = map<string, Glib::VariantBase>());
+	std::shared_ptr<Input> create_input(std::map<std::string, Glib::VariantBase>
+			options = std::map<std::string, Glib::VariantBase>());
 private:
 	explicit InputFormat(const struct sr_input_module *structure);
 	~InputFormat();
@@ -901,7 +901,7 @@ class SR_API Input : public UserOwned<Input>
 {
 public:
 	/** Virtual device associated with this input. */
-	shared_ptr<InputDevice> device();
+	std::shared_ptr<InputDevice> device();
 	/** Send next stream data.
 	 * @param data Next stream data.
 	 * @param length Length of data. */
@@ -910,11 +910,11 @@ public:
 	void end();
 	void reset();
 private:
-	Input(shared_ptr<Context> context, const struct sr_input *structure);
+	Input(std::shared_ptr<Context> context, const struct sr_input *structure);
 	~Input();
 	const struct sr_input *_structure;
-	shared_ptr<Context> _context;
-	unique_ptr<InputDevice> _device;
+	std::shared_ptr<Context> _context;
+	std::unique_ptr<InputDevice> _device;
 
 	friend class Context;
 	friend class InputFormat;
@@ -927,10 +927,10 @@ class SR_API InputDevice :
 	public Device
 {
 private:
-	InputDevice(shared_ptr<Input> input, struct sr_dev_inst *sdi);
+	InputDevice(std::shared_ptr<Input> input, struct sr_dev_inst *sdi);
 	~InputDevice();
-	shared_ptr<Device> get_shared_from_this();
-	shared_ptr<Input> _input;
+	std::shared_ptr<Device> get_shared_from_this();
+	std::shared_ptr<Input> _input;
 	friend class Input;
 	friend struct std::default_delete<InputDevice>;
 };
@@ -940,23 +940,23 @@ class SR_API Option : public UserOwned<Option>
 {
 public:
 	/** Short name of this option suitable for command line usage. */
-	string id() const;
+	std::string id() const;
 	/** Short name of this option suitable for GUI usage. */
-	string name() const;
+	std::string name() const;
 	/** Description of this option in a sentence. */
-	string description() const;
+	std::string description() const;
 	/** Default value for this option. */
 	Glib::VariantBase default_value() const;
 	/** Possible values for this option, if a limited set. */
-	vector<Glib::VariantBase> values() const;
+	std::vector<Glib::VariantBase> values() const;
 	/** Parse a string argument into the appropriate type for this option. */
-	Glib::VariantBase parse_string(string value);
+	Glib::VariantBase parse_string(std::string value);
 private:
 	Option(const struct sr_option *structure,
-		shared_ptr<const struct sr_option *> structure_array);
+		std::shared_ptr<const struct sr_option *> structure_array);
 	~Option();
 	const struct sr_option *_structure;
-	shared_ptr<const struct sr_option *> _structure_array;
+	std::shared_ptr<const struct sr_option *> _structure_array;
 
 	friend class InputFormat;
 	friend class OutputFormat;
@@ -969,26 +969,26 @@ class SR_API OutputFormat :
 {
 public:
 	/** Name of this output format. */
-	string name() const;
+	std::string name() const;
 	/** Description of this output format. */
-	string description() const;
+	std::string description() const;
 	/** A list of preferred file name extensions for this file format.
 	 * @note This list is a recommendation only. */
-	vector<string> extensions() const;
+	std::vector<std::string> extensions() const;
 	/** Options supported by this output format. */
-	map<string, shared_ptr<Option> > options();
+	std::map<std::string, std::shared_ptr<Option> > options();
 	/** Create an output using this format.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Output> create_output(shared_ptr<Device> device,
-		map<string, Glib::VariantBase> options = map<string, Glib::VariantBase>());
+	std::shared_ptr<Output> create_output(std::shared_ptr<Device> device,
+		std::map<std::string, Glib::VariantBase> options = std::map<std::string, Glib::VariantBase>());
 	/** Create an output using this format.
 	 * @param filename Name of destination file.
 	 * @param device Device to output for.
 	 * @param options Mapping of (option name, value) pairs. */
-	shared_ptr<Output> create_output(string filename,
-		shared_ptr<Device> device,
-		map<string, Glib::VariantBase> options = map<string, Glib::VariantBase>());
+	std::shared_ptr<Output> create_output(std::string filename,
+		std::shared_ptr<Device> device,
+		std::map<std::string, Glib::VariantBase> options = std::map<std::string, Glib::VariantBase>());
 	/**
 	 * Checks whether a given flag is set.
 	 * @param flag Flag to check
@@ -1013,19 +1013,21 @@ class SR_API Output : public UserOwned<Output>
 public:
 	/** Update output with data from the given packet.
 	 * @param packet Packet to handle. */
-	string receive(shared_ptr<Packet> packet);
+	std::string receive(std::shared_ptr<Packet> packet);
+	/** Output format in use for this output */
+	std::shared_ptr<OutputFormat> format();
 private:
-	Output(shared_ptr<OutputFormat> format, shared_ptr<Device> device);
-	Output(shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
-	Output(string filename, shared_ptr<OutputFormat> format,
-		shared_ptr<Device> device, map<string, Glib::VariantBase> options);
+	Output(std::shared_ptr<OutputFormat> format, std::shared_ptr<Device> device);
+	Output(std::shared_ptr<OutputFormat> format,
+		std::shared_ptr<Device> device, std::map<std::string, Glib::VariantBase> options);
+	Output(std::string filename, std::shared_ptr<OutputFormat> format,
+		std::shared_ptr<Device> device, std::map<std::string, Glib::VariantBase> options);
 	~Output();
 
 	const struct sr_output *_structure;
-	const shared_ptr<OutputFormat> _format;
-	const shared_ptr<Device> _device;
-	const map<string, Glib::VariantBase> _options;
+	const std::shared_ptr<OutputFormat> _format;
+	const std::shared_ptr<Device> _device;
+	const std::map<std::string, Glib::VariantBase> _options;
 
 	friend class OutputFormat;
 	friend struct std::default_delete<Output>;
@@ -1041,7 +1043,7 @@ public:
 		return static_cast<int>(_id);
 	}
 	/** The name associated with this value. */
-	string name() const
+	std::string name() const
 	{
 		return _name;
 	}
@@ -1071,7 +1073,7 @@ protected:
 private:
 	static const std::map<const Enum, const Class * const> _values;
 	const Enum _id;
-	const string _name;
+	const std::string _name;
 };
 
 }

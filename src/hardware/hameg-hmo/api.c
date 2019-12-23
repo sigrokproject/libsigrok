@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 poljar (Damir Jelić) <poljarinho@gmail.com>
+ * Copyright (C) 2018 Guido Trentalancia <guido@trentalancia.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +23,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-#define SERIALCOMM "115200/8n1/flow=1"
-
 static struct sr_dev_driver hameg_hmo_driver_info;
 
 static const char *manufacturers[] = {
@@ -38,6 +37,7 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LOGIC_ANALYZER,
 };
 
 enum {
@@ -151,7 +151,7 @@ static int check_channel_group(struct dev_context *devc,
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int cg_type, idx;
+	int cg_type, idx, i;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -201,6 +201,15 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_SLOPE:
 		*data = g_variant_new_string((*model->trigger_slopes)[state->trigger_slope]);
 		break;
+	case SR_CONF_TRIGGER_PATTERN:
+		*data = g_variant_new_string(state->trigger_pattern);
+		break;
+	case SR_CONF_HIGH_RESOLUTION:
+		*data = g_variant_new_boolean(state->high_resolution);
+		break;
+	case SR_CONF_PEAK_DETECTION:
+		*data = g_variant_new_boolean(state->peak_detection);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(state->horiz_triggerpos);
 		break;
@@ -216,6 +225,40 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(state->sample_rate);
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		*data = g_variant_new_string((*model->logic_threshold)[state->digital_pods[idx].threshold]);
+		break;
+	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		/* Check if the oscilloscope is currently in custom threshold mode. */
+		for (i = 0; i < model->num_logic_threshold; i++) {
+			if (!strcmp("USER2", (*model->logic_threshold)[i]))
+				if (strcmp("USER2", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+			if (!strcmp("USER", (*model->logic_threshold)[i]))
+				if (strcmp("USER", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+			if (!strcmp("MAN", (*model->logic_threshold)[i]))
+				if (strcmp("MAN", (*model->logic_threshold)[state->digital_pods[idx].threshold]))
+					return SR_ERR_NA;
+		}
+		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -226,13 +269,14 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, cg_type, idx, j;
-	char command[MAX_COMMAND_SIZE], float_str[30];
+	int ret, cg_type, idx, i, j;
+	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
+	char float_str[30], *tmp_str;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
-	double tmp_d;
-	gboolean update_sample_rate;
+	double tmp_d, tmp_d2;
+	gboolean update_sample_rate, tmp_bool;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -247,18 +291,13 @@ static int config_set(uint32_t key, GVariant *data,
 	update_sample_rate = FALSE;
 
 	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+		devc->samples_limit = g_variant_get_uint64(data);
+		ret = SR_OK;
+		break;
 	case SR_CONF_LIMIT_FRAMES:
 		devc->frame_limit = g_variant_get_uint64(data);
 		ret = SR_OK;
-		break;
-	case SR_CONF_TRIGGER_SOURCE:
-		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
-			return SR_ERR_ARG;
-		state->trigger_source = idx;
-		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
-			   (*model->trigger_sources)[idx]);
-		ret = sr_scpi_send(sdi->conn, command);
 		break;
 	case SR_CONF_VDIV:
 		if (!cg)
@@ -267,52 +306,131 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
-		state->analog_channels[j].vdiv = idx;
 		g_ascii_formatd(float_str, sizeof(float_str), "%E",
 			(float) (*model->vdivs)[idx][0] / (*model->vdivs)[idx][1]);
 		g_snprintf(command, sizeof(command),
-			   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_DIV],
+			   (*model->scpi_dialect)[SCPI_CMD_SET_VERTICAL_SCALE],
 			   j + 1, float_str);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
+		state->analog_channels[j].vdiv = idx;
 		ret = SR_OK;
 		break;
 	case SR_CONF_TIMEBASE:
 		if ((idx = std_u64_tuple_idx(data, *model->timebases, model->num_timebases)) < 0)
 			return SR_ERR_ARG;
-		state->timebase = idx;
 		g_ascii_formatd(float_str, sizeof(float_str), "%E",
 			(float) (*model->timebases)[idx][0] / (*model->timebases)[idx][1]);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TIMEBASE],
 			   float_str);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->timebase = idx;
+		ret = SR_OK;
 		update_sample_rate = TRUE;
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		tmp_d = g_variant_get_double(data);
 		if (tmp_d < 0.0 || tmp_d > 1.0)
 			return SR_ERR;
-		state->horiz_triggerpos = tmp_d;
-		tmp_d = -(tmp_d - 0.5) *
+		tmp_d2 = -(tmp_d - 0.5) *
 			((double) (*model->timebases)[state->timebase][0] /
 			(*model->timebases)[state->timebase][1])
 			 * model->num_xdivs;
-		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d2);
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_HORIZ_TRIGGERPOS],
 			   float_str);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->horiz_triggerpos = tmp_d;
+		ret = SR_OK;
+		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		if ((idx = std_str_idx(data, *model->trigger_sources, model->num_trigger_sources)) < 0)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SOURCE],
+			   (*model->trigger_sources)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->trigger_source = idx;
+		ret = SR_OK;
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if ((idx = std_str_idx(data, *model->trigger_slopes, model->num_trigger_slopes)) < 0)
 			return SR_ERR_ARG;
-		state->trigger_slope = idx;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_SLOPE],
 			   (*model->trigger_slopes)[idx]);
-		ret = sr_scpi_send(sdi->conn, command);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->trigger_slope = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_TRIGGER_PATTERN:
+		tmp_str = (char *)g_variant_get_string(data, 0);
+		idx = strlen(tmp_str);
+		if (idx == 0 || idx > model->analog_channels + model->digital_channels)
+			return SR_ERR_ARG;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_TRIGGER_PATTERN],
+			   tmp_str);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		strncpy(state->trigger_pattern,
+			tmp_str,
+			MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT);
+		ret = SR_OK;
+		break;
+	case SR_CONF_HIGH_RESOLUTION:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
+			   tmp_bool ? "AUTO" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		/* High Resolution mode automatically switches off Peak Detection. */
+		if (tmp_bool) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
+				   "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					 sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			state->peak_detection = FALSE;
+		}
+		state->high_resolution = tmp_bool;
+		ret = SR_OK;
+		break;
+	case SR_CONF_PEAK_DETECTION:
+		tmp_bool = g_variant_get_boolean(data);
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_PEAK_DETECTION],
+			   tmp_bool ? "AUTO" : "OFF");
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		/* Peak Detection automatically switches off High Resolution mode. */
+		if (tmp_bool) {
+			g_snprintf(command, sizeof(command),
+				   (*model->scpi_dialect)[SCPI_CMD_SET_HIGH_RESOLUTION],
+				   "OFF");
+			if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+					 sr_scpi_get_opc(sdi->conn) != SR_OK)
+				return SR_ERR;
+			state->high_resolution = FALSE;
+		}
+		state->peak_detection = tmp_bool;
+		ret = SR_OK;
 		break;
 	case SR_CONF_COUPLING:
 		if (!cg)
@@ -321,22 +439,101 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->analog_groups, model->analog_channels)) < 0)
 			return SR_ERR_ARG;
-		state->analog_channels[j].coupling = idx;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_COUPLING],
 			   j + 1, (*model->coupling_options)[idx]);
 		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
 		    sr_scpi_get_opc(sdi->conn) != SR_OK)
 			return SR_ERR;
+		state->analog_channels[j].coupling = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((idx = std_str_idx(data, *model->logic_threshold, model->num_logic_threshold)) < 0)
+			return SR_ERR_ARG;
+		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+                /* Check if the threshold command is based on the POD or digital channel index. */
+		if (model->logic_threshold_for_pod)
+			i = j + 1;
+		else
+			i = j * DIGITAL_CHANNELS_PER_POD;
+		g_snprintf(command, sizeof(command),
+			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+			   i, (*model->logic_threshold)[idx]);
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->digital_pods[j].threshold = idx;
+		ret = SR_OK;
+		break;
+	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (cg_type != CG_DIGITAL)
+			return SR_ERR_NA;
+		if (!model)
+			return SR_ERR_ARG;
+		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
+			return SR_ERR_ARG;
+		tmp_d = g_variant_get_double(data);
+		if (tmp_d < -2.0 || tmp_d > 8.0)
+			return SR_ERR;
+		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
+		/* Check if the threshold command is based on the POD or digital channel index. */
+		if (model->logic_threshold_for_pod)
+			idx = j + 1;
+		else
+			idx = j * DIGITAL_CHANNELS_PER_POD;
+		/* Try to support different dialects exhaustively. */
+		for (i = 0; i < model->num_logic_threshold; i++) {
+			if (!strcmp("USER2", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, 2, float_str); /* USER2 */
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "USER2");
+				break;
+			}
+			if (!strcmp("USER", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, float_str);
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "USER");
+				break;
+			}
+			if (!strcmp("MAN", (*model->logic_threshold)[i])) {
+				g_snprintf(command, sizeof(command),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
+					   idx, float_str);
+				g_snprintf(command2, sizeof(command2),
+					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
+					   idx, "MAN");
+				break;
+			}
+		}
+		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		if (sr_scpi_send(sdi->conn, command2) != SR_OK ||
+		    sr_scpi_get_opc(sdi->conn) != SR_OK)
+			return SR_ERR;
+		state->digital_pods[j].user_threshold = tmp_d;
 		ret = SR_OK;
 		break;
 	default:
 		ret = SR_ERR_NA;
 		break;
 	}
-
-	if (ret == SR_OK)
-		ret = sr_scpi_get_opc(sdi->conn);
 
 	if (ret == SR_OK && update_sample_rate)
 		ret = hmo_update_sample_rate(sdi);
@@ -371,6 +568,8 @@ static int config_list(uint32_t key, GVariant **data,
 				*data = std_gvar_array_u32(ARRAY_AND_SIZE(drvopts));
 		} else if (cg_type == CG_ANALOG) {
 			*data = std_gvar_array_u32(*model->devopts_cg_analog, model->num_devopts_cg_analog);
+		} else if (cg_type == CG_DIGITAL) {
+			*data = std_gvar_array_u32(*model->devopts_cg_digital, model->num_devopts_cg_digital);
 		} else {
 			*data = std_gvar_array_u32(NULL, 0);
 		}
@@ -403,6 +602,13 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!model)
 			return SR_ERR_ARG;
 		*data = std_gvar_tuple_array(*model->vdivs, model->num_vdivs);
+		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg)
+			return SR_ERR_CHANNEL_GROUP;
+		if (!model)
+			return SR_ERR_ARG;
+		*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -437,7 +643,7 @@ SR_PRIV int hmo_request_data(const struct sr_dev_inst *sdi)
 	case SR_CHANNEL_LOGIC:
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_GET_DIG_DATA],
-			   ch->index < 8 ? 1 : 2);
+			   ch->index / DIGITAL_CHANNELS_PER_POD + 1);
 		break;
 	default:
 		sr_err("Invalid channel type.");
@@ -474,7 +680,7 @@ static int hmo_check_channels(GSList *channels)
 				enabled_chan[idx] = TRUE;
 			break;
 		case SR_CHANNEL_LOGIC:
-			idx = ch->index / 8;
+			idx = ch->index / DIGITAL_CHANNELS_PER_POD;
 			if (idx < ARRAY_SIZE(enabled_pod))
 				enabled_pod[idx] = TRUE;
 			break;
@@ -539,10 +745,10 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 		case SR_CHANNEL_LOGIC:
 			/*
 			 * A digital POD needs to be enabled for every group of
-			 * 8 channels.
+			 * DIGITAL_CHANNELS_PER_POD channels.
 			 */
 			if (ch->enabled)
-				pod_enabled[ch->index < 8 ? 0 : 1] = TRUE;
+				pod_enabled[ch->index / DIGITAL_CHANNELS_PER_POD] = TRUE;
 
 			if (ch->enabled == state->digital_channels[ch->index])
 				break;
@@ -566,7 +772,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 
 	ret = SR_OK;
 	for (i = 0; i < model->digital_pods; i++) {
-		if (state->digital_pods[i] == pod_enabled[i])
+		if (state->digital_pods[i].state == pod_enabled[i])
 			continue;
 		g_snprintf(command, sizeof(command),
 			   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_STATE],
@@ -575,7 +781,7 @@ static int hmo_setup_channels(const struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 			break;
 		}
-		state->digital_pods[i] = pod_enabled[i];
+		state->digital_pods[i].state = pod_enabled[i];
 		setup_changed = TRUE;
 	}
 	g_free(pod_enabled);
@@ -601,6 +807,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	devc->num_samples = 0;
+	devc->num_frames = 0;
+
 	/* Preset empty results. */
 	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
 		digital_added[group] = FALSE;
@@ -617,7 +826,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (!ch->enabled)
 			continue;
 		/* Only add a single digital channel per group (pod). */
-		group = ch->index / 8;
+		group = ch->index / DIGITAL_CHANNELS_PER_POD;
 		if (ch->type != SR_CHANNEL_LOGIC || !digital_added[group]) {
 			devc->enabled_channels = g_slist_append(
 					devc->enabled_channels, ch);
@@ -681,6 +890,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	devc->num_samples = 0;
 	devc->num_frames = 0;
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
