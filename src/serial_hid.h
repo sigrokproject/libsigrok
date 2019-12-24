@@ -17,8 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SERIAL_HID_H
-#define SERIAL_HID_H
+#ifndef LIBSIGROK_SERIAL_HID_H
+#define LIBSIGROK_SERIAL_HID_H
 
 /* The prefix for port names which are HID based. */
 #define SER_HID_CONN_PREFIX	"hid"
