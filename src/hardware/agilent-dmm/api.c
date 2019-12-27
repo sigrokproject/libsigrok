@@ -90,6 +90,7 @@ static const struct agdmm_profile supported_agdmm[] = {
 	{ AGILENT_U1271, "U1271A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
 	{ AGILENT_U1272, "U1272A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
 	{ AGILENT_U1273, "U1273A", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
+	{ AGILENT_U1273AX, "U1273AX", 3, agdmm_jobs_live, NULL, agdmm_recvs_u127x },
 
 	{ KEYSIGHT_U1281, "U1281A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
 	{ KEYSIGHT_U1282, "U1282A", 3, agdmm_jobs_live, agdmm_jobs_log, agdmm_recvs_u128x },
