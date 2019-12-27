@@ -1051,7 +1051,7 @@ SR_PRIV const struct agdmm_recv agdmm_recvs_u125x[] = {
 
 SR_PRIV const struct agdmm_recv agdmm_recvs_u127x[] = {
 	{ "^\"(\\d\\d.{18}\\d)\"$", recv_stat_u123x },
-	{ "^\\*([0-9])$", recv_switch },
+	{ "^\\*([0-9]+)$", recv_switch },
 	{ "^([-+][0-9]\\.[0-9]{8}E[-+][0-9]{2})$", recv_fetc },
 	{ "^\"(V|MV|A|MA|UA|FREQ),(\\d),(AC|DC|ACDC)\"$", recv_conf_u123x },
 	{ "^\"(RES|CAP),(\\d)\"$", recv_conf_u123x},
