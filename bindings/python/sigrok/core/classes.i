@@ -112,6 +112,9 @@ typedef guint pyg_flags_type;
     g_free(value);
 }
 
+/* Use the same typemap above for Glib::VariantContainerBase */
+%apply Glib::VariantBase { Glib::VariantContainerBase }
+
 /* Map from callable PyObject to LogCallbackFunction */
 %typecheck(SWIG_TYPECHECK_POINTER) sigrok::LogCallbackFunction {
     $1 = PyCallable_Check($input);
