@@ -242,6 +242,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000), "DS1052E", {5, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DS1000), "DS1102E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DS1000), "DS1152E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DS1000), "DS1152E-EDU", {2, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DS1000), "DS1052D", {5, 1000000000}, CH_INFO(2, true), std_cmd},
 	{SERIES(DS1000), "DS1102D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
 	{SERIES(DS1000), "DS1152D", {2, 1000000000}, CH_INFO(2, true), std_cmd},
