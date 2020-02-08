@@ -268,6 +268,11 @@ SR_REGISTER_DEV_DRIVER_LIST(uni_t_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
+		"uni-t-ut804", ut71x,
+		"UNI-T", "UT804", 2400, UT71X_PACKET_SIZE,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
 		"voltcraft-vc820", fs9721,
 		"Voltcraft", "VC-820", 2400,
 		FS9721_PACKET_SIZE,

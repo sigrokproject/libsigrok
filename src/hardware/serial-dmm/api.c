@@ -647,6 +647,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
 	),
 	DMM(
+		"uni-t-ut804-ser", ut71x,
+		"UNI-T", "UT804", "2400/7o1/rts=0/dtr=1",
+		UT71X_PACKET_SIZE, 0, 0, NULL,
+		sr_ut71x_packet_valid, sr_ut71x_parse, NULL
+	),
+	DMM(
 		"voltcraft-vc920-ser", ut71x,
 		"Voltcraft", "VC-920 (UT-D02 cable)", "2400/7o1/rts=0/dtr=1",
 		UT71X_PACKET_SIZE, 0, 0, NULL,
