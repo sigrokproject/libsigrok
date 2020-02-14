@@ -62,7 +62,7 @@ enum {
 	TRIGGER_STATUS5,
 	TRIGGER_STATUS6,
 	TRIGGER_STATUS7,
-	TRIGGER_STATUS8,
+	TRIGGER_EDGE,
 
 	TRIGGER_COUNT0			= 0x50,
 	TRIGGER_COUNT1,
@@ -108,7 +108,8 @@ enum {
 	READ_RAM_STATUS			= 0xa0,
 };
 
-static int g_trigger_status[9] = { 0 };
+static int g_trigger_status[8] = { 0 };
+static int g_trigger_edge = 0;
 static int g_trigger_count = 1;
 static int g_filter_status[8] = { 0 };
 static int g_filter_enable = 0;
@@ -461,8 +462,9 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	gl_reg_write(devh, CLOCK_SOURCE, 0x03);
 
 	/* Set_Trigger_Status */
-	for (i = 0; i < 9; i++)
+	for (i = 0; i < 8; i++)
 		gl_reg_write(devh, TRIGGER_STATUS0 + i, g_trigger_status[i]);
+	gl_reg_write(devh, TRIGGER_EDGE, g_trigger_edge);
 
 	__analyzer_set_trigger_count(devh, g_trigger_count);
 
@@ -518,6 +520,15 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_ONE:
 				g_trigger_status[channel / 4] |= 1 << (channel % 4 * 2);
+				break;
+			case SR_TRIGGER_RISING:
+				g_trigger_edge = 0x40 | (channel & 0x1F);
+				break;
+			case SR_TRIGGER_FALLING:
+				g_trigger_edge = 0x80 | (channel & 0x1F);
+				break;
+			case SR_TRIGGER_EDGE:
+				g_trigger_edge = 0xc0 | (channel & 0x1F);
 				break;
 			default:
 				sr_err("Unsupported match %d", match->match);
