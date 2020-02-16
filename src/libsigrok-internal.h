@@ -1766,6 +1766,21 @@ SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/ms8236.c ---------------------------------------------------------*/
+
+#define MS8236_PACKET_SIZE 22
+
+struct ms8236_info {
+        gboolean is_ac, is_dc, is_auto, is_rs232, is_micro, is_nano, is_kilo;
+        gboolean is_diode, is_milli, is_percent, is_mega, is_beep, is_farad;
+        gboolean is_ohm, is_rel, is_hold, is_ampere, is_volt, is_hz, is_bat;
+        gboolean is_ncv, is_min, is_max, is_sign, is_autotimer;
+};
+
+SR_PRIV gboolean sr_ms8236_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_ms8236_parse(const uint8_t *buf, float *floatval,
+                             struct sr_datafeed_analog *analog, void *info);
+
 /*--- scale/kern.c ----------------------------------------------------------*/
 
 struct kern_info {

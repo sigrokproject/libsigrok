@@ -682,6 +682,15 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
+        /* MS8236 based meters {{{ */
+        DMM(
+                "hyelec-ms8236", ms8236,
+                "HYELEC", "MS8236", "2400/8n1/rts=0/dtr=1",
+                MS8236_PACKET_SIZE, 0, 0, NULL,
+                sr_ms8236_packet_valid, sr_ms8236_parse,
+                NULL
+        )
+        /* }}} */
 	/*
 	 * The list is sorted. Add new items in the respective chip's group.
 	 */
