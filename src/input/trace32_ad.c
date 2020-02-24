@@ -550,6 +550,7 @@ static void process_record_pi(struct sr_input *in, gsize start)
 			pod_data |= (RL16(buf->str + start + 0x29) & 32) << 11;
 			break;
 		default:
+			pod_data = 0;
 			sr_err("Don't know how to obtain data for pod %d.", pod);
 		}
 
