@@ -93,6 +93,9 @@
 #define STORE_MAC_REVERSE	1
 #define ACCEPT_NONSEP_MAC	1
 
+#define CONNECT_RFCOMM_TRIES	3
+#define CONNECT_RFCOMM_RETRY_MS	100
+
 /* Silence warning about (currently) unused routine. */
 #define WITH_WRITE_TYPE_HANDLE	0
 
@@ -795,7 +798,7 @@ SR_PRIV int sr_bt_connect_ble(struct sr_bt_desc *desc)
 SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc)
 {
 	struct sockaddr_rc addr;
-	int fd, rc;
+	int i, fd, rc;
 
 	if (!desc)
 		return -1;
@@ -807,25 +810,40 @@ SR_PRIV int sr_bt_connect_rfcomm(struct sr_bt_desc *desc)
 	if (!desc->rfcomm_channel)
 		desc->rfcomm_channel = 1;
 
-	fd = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-	if (fd < 0) {
-		perror("socket");
-		return -1;
-	}
-	desc->fd = fd;
-
 	memset(&addr, 0, sizeof(addr));
 	addr.rc_family = AF_BLUETOOTH;
 	str2ba(desc->remote_addr, &addr.rc_bdaddr);
 	addr.rc_channel = desc->rfcomm_channel;
-	rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-	if (rc < 0) {
-		perror("connect");
-		return -2;
-	}
-	sr_spew("connected");
 
-	return 0;
+	/*
+	 * There are cases where connect returns EBUSY if we are re-connecting
+	 * to a device. Try multiple times to work around this issue.
+	 */
+	for (i = 0; i < CONNECT_RFCOMM_TRIES; i++) {
+		fd = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+		if (fd < 0) {
+			perror("socket");
+			return -1;
+		}
+
+		rc = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
+		if (rc >= 0) {
+			sr_spew("connected");
+			desc->fd = fd;
+			return 0;
+		} else if (rc < 0 && errno == EBUSY) {
+			close(fd);
+			g_usleep(CONNECT_RFCOMM_RETRY_MS * 1000);
+		} else {
+			close(fd);
+			perror("connect");
+			return -2;
+		}
+	}
+
+	sr_err("Connect failed, device busy.");
+
+	return -2;
 }
 
 SR_PRIV void sr_bt_disconnect(struct sr_bt_desc *desc)
