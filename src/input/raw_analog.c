@@ -54,21 +54,31 @@ struct sample_format {
 
 static const struct sample_format sample_formats[] =
 {
-	                // bytes, signed, floating, bigendian, digits, digits decimal, scale, offset
-	{ "S8",         { 1, TRUE,  FALSE, FALSE,  7, FALSE, { 1,                     128}, { 0, 1}}},
-	{ "U8",         { 1, FALSE, FALSE, FALSE,  8, FALSE, { 1,                     255}, {-1, 2}}},
-	{ "S16_LE",     { 2, TRUE,  FALSE, FALSE, 15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
-	{ "U16_LE",     { 2, FALSE, FALSE, FALSE, 16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
-	{ "S16_BE",     { 2, TRUE,  FALSE, TRUE,  15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
-	{ "U16_BE",     { 2, FALSE, FALSE, TRUE,  16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
-	{ "S32_LE",     { 4, TRUE,  FALSE, FALSE, 31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
-	{ "U32_LE",     { 4, FALSE, FALSE, FALSE, 32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
-	{ "S32_BE",     { 4, TRUE,  FALSE, TRUE,  31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
-	{ "U32_BE",     { 4, FALSE, FALSE, TRUE,  32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
-	{ "FLOAT_LE",   { 4, TRUE,  TRUE,  FALSE,   6, TRUE,  { 1,                       1}, { 0, 1}}},
-	{ "FLOAT_BE",   { 4, TRUE,  TRUE,  TRUE,    6, TRUE,  { 1,                       1}, { 0, 1}}},
-	{ "FLOAT64_LE", { 8, TRUE,  TRUE,  FALSE,  15, TRUE,  { 1,                       1}, { 0, 1}}},
-	{ "FLOAT64_BE", { 8, TRUE,  TRUE,  TRUE,   15, TRUE,  { 1,                       1}, { 0, 1}}},
+	                                // bytes, signed, floating, bigendian, digits, digits decimal, scale, offset
+	{ "S8 (-1..1)",                 { 1, TRUE,  FALSE, FALSE,  7, FALSE, { 1,                     128}, { 0, 1}}},
+	{ "S8 (-128..127)",             { 1, TRUE,  FALSE, FALSE,  7, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "U8 (0..1)",                  { 1, FALSE, FALSE, FALSE,  8, FALSE, { 1,                     255}, {-1, 2}}},
+	{ "U8 (0..255)",                { 1, FALSE, FALSE, FALSE,  8, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "S16_LE (-1..1)",             { 2, TRUE,  FALSE, FALSE, 15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "S16_LE (-32768..32767)",     { 2, TRUE,  FALSE, FALSE, 15, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "U16_LE (0..1)",              { 2, FALSE, FALSE, FALSE, 16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "U16_LE (0..65535)",          { 2, FALSE, FALSE, FALSE, 16, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "S16_BE (-1..1)",             { 2, TRUE,  FALSE, TRUE,  15, FALSE, { 1,           INT16_MAX + 1}, { 0, 1}}},
+	{ "S16_BE (-32768..32767)",     { 2, TRUE,  FALSE, TRUE,  15, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "U16_BE (0..1)",              { 2, FALSE, FALSE, TRUE,  16, FALSE, { 1,              UINT16_MAX}, {-1, 2}}},
+	{ "U16_BE (0..65535)",          { 2, FALSE, FALSE, TRUE,  16, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "S32_LE (-1..1)",             { 4, TRUE,  FALSE, FALSE, 31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "S32_LE (-2147483648..2147483647)", { 4, TRUE,  FALSE, FALSE, 31, FALSE, { 1,                 1}, { 0, 1}}},
+	{ "U32_LE (0..1)",              { 4, FALSE, FALSE, FALSE, 32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "U32_LE (0..4294967295)",     { 4, FALSE, FALSE, FALSE, 32, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "S32_BE (-1..1)",             { 4, TRUE,  FALSE, TRUE,  31, FALSE, { 1, (uint64_t)INT32_MAX + 1}, { 0, 1}}},
+	{ "S32_BE (-2147483648..2147483647)", { 4, TRUE,  FALSE, TRUE,  31, FALSE, { 1,                 1}, { 0, 1}}},
+	{ "U32_BE (0..1)",              { 4, FALSE, FALSE, TRUE,  32, FALSE, { 1,              UINT32_MAX}, {-1, 2}}},
+	{ "U32_BE (0..4294967295)",     { 4, FALSE, FALSE, TRUE,  32, FALSE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT_LE",                   { 4, TRUE,  TRUE,  FALSE,   6, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT_BE",                   { 4, TRUE,  TRUE,  TRUE,    6, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_LE",                 { 8, TRUE,  TRUE,  FALSE,  15, TRUE, { 1,                       1}, { 0, 1}}},
+	{ "FLOAT64_BE",                 { 8, TRUE,  TRUE,  TRUE,   15, TRUE, { 1,                       1}, { 0, 1}}},
 };
 
 static int parse_format_string(const char *format)
