@@ -51,6 +51,7 @@ lib_LTLIBRARIES = libsigrok.la
 libsigrok_la_SOURCES = \
 	src/backend.c \
 	src/conversion.c \
+	src/crc.c \
 	src/device.c \
 	src/session.c \
 	src/session_file.c \

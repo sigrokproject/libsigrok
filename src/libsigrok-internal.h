@@ -1324,6 +1324,22 @@ SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
 #endif
 
 
+/*--- crc.c -----------------------------------------------------------------*/
+
+#define SR_CRC16_DEFAULT_INIT 0xffffU
+
+/**
+ * Calculate a CRC16 checksum using the 0x8005 polynomial.
+ *
+ * This CRC16 flavor is also known as CRC16-ANSI or CRC16-MODBUS.
+ *
+ * @param crc Initial value (typically 0xffff)
+ * @param buffer Input buffer
+ * @param len Buffer length
+ * @return Checksum
+ */
+SR_PRIV uint16_t sr_crc16(uint16_t crc, const uint8_t *buffer, int len);
+
 /*--- modbus/modbus.c -------------------------------------------------------*/
 
 struct sr_modbus_dev_inst {

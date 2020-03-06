@@ -81,27 +81,6 @@ static int modbus_serial_rtu_source_remove(struct sr_session *session,
 	return serial_source_remove(session, serial);
 }
 
-static uint16_t modbus_serial_rtu_crc(uint16_t crc,
-		const uint8_t *buffer, int len)
-{
-	int i;
-
-	if (!buffer || len < 0)
-		return crc;
-
-	while (len--) {
-		crc ^= *buffer++;
-		for (i = 0; i < 8; i++) {
-			int carry = crc & 1;
-			crc >>= 1;
-			if (carry)
-				crc ^= 0xA001;
-		}
-	}
-
-	return crc;
-}
-
 static int modbus_serial_rtu_send(void *priv,
 		const uint8_t *buffer, int buffer_size)
 {
@@ -119,8 +98,8 @@ static int modbus_serial_rtu_send(void *priv,
 	if (result < 0)
 		return SR_ERR;
 
-	crc = modbus_serial_rtu_crc(0xFFFF, &slave_addr, sizeof(slave_addr));
-	crc = modbus_serial_rtu_crc(crc, buffer, buffer_size);
+	crc = sr_crc16(SR_CRC16_DEFAULT_INIT, &slave_addr, sizeof(slave_addr));
+	crc = sr_crc16(crc, buffer, buffer_size);
 
 	result = serial_write_blocking(serial, &crc, sizeof(crc), 0);
 	if (result < 0)
@@ -143,8 +122,8 @@ static int modbus_serial_rtu_read_begin(void *priv, uint8_t *function_code)
 	if (ret != 1)
 		return SR_ERR;
 
-	modbus->crc = modbus_serial_rtu_crc(0xFFFF, &slave_addr, sizeof(slave_addr));
-	modbus->crc = modbus_serial_rtu_crc(modbus->crc, function_code, 1);
+	modbus->crc = sr_crc16(SR_CRC16_DEFAULT_INIT, &slave_addr, sizeof(slave_addr));
+	modbus->crc = sr_crc16(modbus->crc, function_code, 1);
 
 	return SR_OK;
 }
@@ -157,7 +136,7 @@ static int modbus_serial_rtu_read_data(void *priv, uint8_t *buf, int maxlen)
 	ret = serial_read_nonblocking(modbus->serial, buf, maxlen);
 	if (ret < 0)
 		return ret;
-	modbus->crc = modbus_serial_rtu_crc(modbus->crc, buf, ret);
+	modbus->crc = sr_crc16(modbus->crc, buf, ret);
 	return ret;
 }
 
