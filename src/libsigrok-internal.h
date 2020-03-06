@@ -1323,6 +1323,73 @@ SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
 		const char *manufacturer, const char *product);
 #endif
 
+/*--- binary_helpers.c ------------------------------------------------------*/
+
+/** Binary value type */
+enum binary_value_type {
+	BVT_UINT8 = 0,
+	BVT_BE_UINT8 = BVT_UINT8,
+	BVT_LE_UINT8 = BVT_UINT8,
+
+	BVT_BE_UINT16,
+	BVT_BE_UINT32,
+	BVT_BE_UINT64,
+	BVT_BE_FLOAT,
+
+	BVT_LE_UINT16,
+	BVT_LE_UINT32,
+	BVT_LE_UINT64,
+	BVT_LE_FLOAT,
+};
+
+/** Binary value specification */
+struct binary_value_spec {
+	/** Offset into binary blob */
+	size_t offset;
+	/** Data type to decode */
+	enum binary_value_type type;
+	/** Scale factor to get native units */
+	float scale;
+};
+
+/** Binary channel definition */
+struct binary_analog_channel {
+	/** Channel name */
+	const char *name;
+	/** Binary value in data stream */
+	struct binary_value_spec spec;
+	/** Significant digits */
+	int digits;
+	/** Measured quantity */
+	enum sr_mq mq;
+	/** Measured unit */
+	enum sr_unit unit;
+};
+
+/**
+ * Read extract a value from a binary blob.
+ *
+ * @param out Pointer to output buffer.
+ * @param spec Binary value specification
+ * @param data Pointer to binary blob
+ * @param length Size of binary blob
+ * @return SR_OK on success, SR_ERR_* error code on failure.
+ */
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const void *data, size_t length);
+
+/**
+ * Send an analog channel packet based on a binary analog channel
+ * specification.
+ *
+ * @param sdi Device instance
+ * @param ch Sigrok channel
+ * @param spec Channel specification
+ * @param data Pointer to binary blob
+ * @param length Size of binary blob
+ * @return SR_OK on success, SR_ERR_* error code on failure.
+ */
+SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch,
+				   const struct binary_analog_channel *spec, const void *data, size_t length);
 
 /*--- modbus/modbus.c -------------------------------------------------------*/
 
