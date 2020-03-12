@@ -1004,10 +1004,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	dl_events_in_line = 64 * 7;
 
-	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
-	if (!dram_line)
-		return FALSE;
-
 	sr_info("Downloading sample data.");
 	devc->state.state = SIGMA_DOWNLOAD;
 
@@ -1063,6 +1059,9 @@ static int download_capture(struct sr_dev_inst *sdi)
 	} else {
 		dl_first_line = 0;
 	}
+	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
+	if (!dram_line)
+		return FALSE;
 	dl_lines_done = 0;
 	while (dl_lines_total > dl_lines_done) {
 		/* We can download only up-to 32 DRAM lines in one go! */
