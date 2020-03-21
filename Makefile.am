@@ -417,6 +417,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/kern-scale/protocol.c \
 	src/hardware/kern-scale/api.c
 endif
+if HW_KINGST_LA2016
+src_libdrivers_la_SOURCES += \
+	src/hardware/kingst-la2016/protocol.h \
+	src/hardware/kingst-la2016/protocol.c \
+	src/hardware/kingst-la2016/api.c
+endif
 if HW_KORAD_KAXXXXP
 src_libdrivers_la_SOURCES += \
 	src/hardware/korad-kaxxxxp/protocol.h \
