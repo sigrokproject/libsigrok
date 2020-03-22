@@ -623,7 +623,6 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 	}
 	sr_dbg("i2: 0x%08x, 0x%08x", i2[0], i2[1]);
 	
-	// self._write_config()
 	if ((ret = upload_fpga_bitstream(sdi)) != SR_OK) {
 		sr_err("failed to upload fpga bitstream");
 		return ret;
@@ -636,7 +635,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
+	if((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
 		sr_err("failed to read unknown_resp1");
 		return ret;
 	}
@@ -653,7 +652,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
+	if((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
 		sr_err("failed to read unknown_resp2");
 		return ret;
 	}
