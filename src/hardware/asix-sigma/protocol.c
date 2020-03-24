@@ -1016,7 +1016,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	sigma_set_register(WRITE_MODE, WMR_FORCESTOP | WMR_SDRAMWRITEEN, devc);
 	do {
 		if (sigma_read_register(READ_MODE, &modestatus, 1, devc) != 1) {
-			sr_err("sigma: failed while waiting for RMR_POSTTRIGGERED bit");
+			sr_err("failed while waiting for RMR_POSTTRIGGERED bit");
 			return FALSE;
 		}
 	} while (!(modestatus & RMR_POSTTRIGGERED));
@@ -1029,7 +1029,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	/* Check if trigger has fired. */
 	if (sigma_read_register(READ_MODE, &modestatus, 1, devc) != 1) {
-		sr_err("sigma: failed to read READ_MODE register");
+		sr_err("failed to read READ_MODE register");
 		return FALSE;
 	}
 	trg_line = ~0;
