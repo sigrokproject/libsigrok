@@ -31,9 +31,7 @@
 #include <windows.h> /* for HANDLE */
 #endif
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "serial-hid"
-/** @endcond */
 
 #ifdef HAVE_SERIAL_COMM
 
@@ -665,8 +663,6 @@ static int try_open_path(struct sr_serial_dev_inst *serial, const char *path)
  * @return 0 upon success, non-zero upon failure. Fills the *_ref output
  * values.
  *
- * @internal
- *
  * Summary of parsing rules as they are implemented:
  * - Insist on the "hid" prefix. Accept "hid" alone without any other
  *   additional field.
@@ -844,8 +840,6 @@ static GSList *list_paths_for_vids_pids(const struct vid_pid_item *vid_pids)
  *
  * @retval SR_OK upon success
  * @retval SR_ERR_* upon failure.
- *
- * @internal
  *
  * This routine fills in blanks which the conn= spec parser left open.
  * When not specified yet, the HID chip type gets determined. When a

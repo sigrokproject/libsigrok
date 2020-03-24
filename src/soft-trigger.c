@@ -22,9 +22,9 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/* @cond PRIVATE */
+/** @cond PRIVATE */
 #define LOG_PREFIX "soft-trigger"
-/* @endcond */
+/** @endcond */
 
 SR_PRIV int logic_channel_unitsize(GSList *channels)
 {

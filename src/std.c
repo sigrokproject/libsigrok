@@ -21,8 +21,6 @@
  * @file
  *
  * Standard API helper functions.
- *
- * @internal
  */
 
 /* Needed for gettimeofday(), at least on FreeBSD. */

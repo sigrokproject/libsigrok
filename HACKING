@@ -164,7 +164,9 @@ Doxygen
 
  - Mark private functions (SR_PRIV) with /** @private */, so that Doxygen
    doesn't include them in the output. Functions that are "static" anyway
-   don't need to be marked like this.
+   don't need to be marked like this. Functions in non-public files that
+   are explicitly excluded in Doxyfile don't need to be marked either.
+   Don't use @internal, always use @private instead.
 
  - Mark private variables/#defines with /** @cond PRIVATE */ and
    /** @endcond */, so that Doxygen doesn't include them in the output.

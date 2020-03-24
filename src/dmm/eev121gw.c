@@ -22,8 +22,6 @@
  *
  * EEVblog 121GW 19-bytes binary protocol parser.
  *
- * @internal
- *
  * Note that this protocol is different from other meters. We need not
  * decode the LCD presentation (segments a-g and dot of seven segment
  * displays). Neither need we decode a textual presentation consisting

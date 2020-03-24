@@ -245,6 +245,8 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
  * @retval SR_OK Successful registration.
  *
  * Callbacks get unregistered by specifying #NULL for the 'cb' parameter.
+ *
+ * @private
  */
 SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
 	serial_rx_chunk_callback cb, void *cb_data)
@@ -264,7 +266,7 @@ SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
  *
  * @param[in] serial Previously opened serial port instance.
  *
- * @internal
+ * @private
  */
 SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial)
 {
@@ -280,7 +282,7 @@ SR_PRIV void sr_ser_discard_queued_data(struct sr_serial_dev_inst *serial)
  *
  * @param[in] serial Previously opened serial port instance.
  *
- * @internal
+ * @private
  */
 SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial)
 {
@@ -298,7 +300,7 @@ SR_PRIV size_t sr_ser_has_queued_data(struct sr_serial_dev_inst *serial)
  * @param[in] data Pointer to data bytes to queue.
  * @param[in] len Number of data bytes to queue.
  *
- * @internal
+ * @private
  */
 SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
 	const uint8_t *data, size_t len)
@@ -320,7 +322,7 @@ SR_PRIV void sr_ser_queue_rx_data(struct sr_serial_dev_inst *serial,
  * @param[out] data Pointer to store retrieved data bytes into.
  * @param[in] len Number of data bytes to retrieve.
  *
- * @internal
+ * @private
  */
 SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
 	uint8_t *data, size_t len)
@@ -355,6 +357,8 @@ SR_PRIV size_t sr_ser_unqueue_rx_data(struct sr_serial_dev_inst *serial,
  *
  * Returns 0 if no receive data is available, or if the amount of
  * available receive data cannot get determined.
+ *
+ * @private
  */
 SR_PRIV size_t serial_has_receive_data(struct sr_serial_dev_inst *serial)
 {

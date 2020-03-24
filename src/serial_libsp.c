@@ -31,9 +31,7 @@
 #include <windows.h> /* for HANDLE */
 #endif
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "serial-libsp"
-/** @endcond */
 
 /**
  * @file
@@ -282,13 +280,11 @@ static int sr_ser_libsp_set_params(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
-/** @cond PRIVATE */
 #ifdef G_OS_WIN32
 typedef HANDLE event_handle;
 #else
 typedef int event_handle;
 #endif
-/** @endcond */
 
 static int sr_ser_libsp_source_add_int(struct sr_serial_dev_inst *serial,
 	int events,

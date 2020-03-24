@@ -20,7 +20,6 @@
 /**
  * @file
  * Software limits helper functions
- * @internal
  */
 
 #include <config.h>

@@ -53,7 +53,6 @@ struct datafeed_callback {
 
 /** Custom GLib event source for generic descriptor I/O.
  * @see https://developer.gnome.org/glib/stable/glib-The-Main-Event-Loop.html
- * @internal
  */
 struct fd_source {
 	GSource base;

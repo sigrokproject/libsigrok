@@ -21,9 +21,9 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/* * @cond PRIVATE */
+/** @cond PRIVATE */
 #define LOG_PREFIX "trigger"
-/* * @endcond */
+/** @endcond */
 
 /**
  * @file

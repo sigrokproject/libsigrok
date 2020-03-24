@@ -87,9 +87,7 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "bt-bluez"
-/** @endcond */
 
 #define CONNECT_BLE_TIMEOUT	20	/* Connect timeout in seconds. */
 #define STORE_MAC_REVERSE	1

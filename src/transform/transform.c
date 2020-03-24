@@ -45,7 +45,7 @@
 extern SR_PRIV struct sr_transform_module transform_nop;
 extern SR_PRIV struct sr_transform_module transform_scale;
 extern SR_PRIV struct sr_transform_module transform_invert;
-/* @endcond */
+/** @endcond */
 
 static const struct sr_transform_module *transform_module_list[] = {
 	&transform_nop,

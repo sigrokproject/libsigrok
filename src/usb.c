@@ -38,7 +38,6 @@ typedef int libusb_os_handle;
 #endif
 
 /** Custom GLib event source for libusb I/O.
- * @internal
  */
 struct usb_source {
 	GSource base;

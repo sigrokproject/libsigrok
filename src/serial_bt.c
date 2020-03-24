@@ -24,9 +24,7 @@
 #include <string.h>
 #include <memory.h>
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "serial-bt"
-/** @endcond */
 
 #ifdef HAVE_SERIAL_COMM
 #ifdef HAVE_BLUETOOTH
@@ -108,8 +106,6 @@ static const char *conn_name_text(enum ser_bt_conn_t type)
  * @param[out] cccd_val The BLE notify CCCD value (if applicable).
  *
  * @return 0 upon success, non-zero upon failure.
- *
- * @internal
  *
  * Summary of parsing rules as they are implemented:
  * - Implementor's note: Automatic scan for available devices is not

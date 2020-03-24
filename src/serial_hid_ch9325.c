@@ -24,9 +24,7 @@
 #include "serial_hid.h"
 #include <string.h>
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "serial-ch9325"
-/** @endcond */
 
 #ifdef HAVE_SERIAL_COMM
 #ifdef HAVE_LIBHIDAPI

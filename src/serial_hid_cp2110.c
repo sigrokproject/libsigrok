@@ -25,9 +25,7 @@
 #include "serial_hid.h"
 #include <string.h>
 
-/** @cond PRIVATE */
 #define LOG_PREFIX "serial-cp2110"
-/** @endcond */
 
 #ifdef HAVE_SERIAL_COMM
 #ifdef HAVE_LIBHIDAPI

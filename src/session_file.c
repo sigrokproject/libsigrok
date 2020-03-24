@@ -43,7 +43,9 @@
  * @{
  */
 
+/** @cond PRIVATE */
 extern SR_PRIV struct sr_dev_driver session_driver;
+/** @endcond */
 static int session_driver_initialized = 0;
 
 #if !HAVE_ZIP_DISCARD

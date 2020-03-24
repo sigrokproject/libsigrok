@@ -34,10 +34,12 @@
 SR_PRIV extern const struct sr_dev_driver *sr_driver_list__start[];
 SR_PRIV extern const struct sr_dev_driver *sr_driver_list__stop[];
 
-/** @private
+/**
  * Initialize the driver list in a fresh libsigrok context.
  *
  * @param ctx Pointer to a libsigrok context struct. Must not be NULL.
+ *
+ * @private
  */
 SR_API void sr_drivers_init(struct sr_context *ctx)
 {

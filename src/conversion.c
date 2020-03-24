@@ -26,7 +26,9 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+/** @cond PRIVATE */
 #define LOG_PREFIX "conv"
+/** @endcond */
 
 /**
  * Convert analog values to logic values by using a fixed threshold.

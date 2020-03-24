@@ -93,6 +93,8 @@ SR_PRIV void sr_channel_free(struct sr_channel *ch)
 
 /**
  * Wrapper around @ref sr_channel_free(), suitable for glib iterators.
+ *
+ * @private
  */
 SR_PRIV void sr_channel_free_cb(void *p)
 {
@@ -203,7 +205,7 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
  *
  * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
  *
- * @internal
+ * @private
  */
 SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2)
 {
@@ -229,7 +231,7 @@ SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *c
  *
  * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
  *
- * @internal
+ * @private
  */
 SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2)
 {
