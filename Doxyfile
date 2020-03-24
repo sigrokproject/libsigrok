@@ -850,51 +850,11 @@ INPUT_ENCODING         = UTF-8
 # *.m, *.markdown, *.md, *.mm, *.dox, *.py, *.pyw, *.f90, *.f95, *.f03, *.f08,
 # *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf, *.qsf and *.ice.
 
-FILE_PATTERNS          = *.c \
-                         *.cc \
-                         *.cxx \
-                         *.cpp \
-                         *.c++ \
-                         *.java \
-                         *.ii \
-                         *.ixx \
-                         *.ipp \
-                         *.i++ \
-                         *.inl \
-                         *.idl \
-                         *.ddl \
-                         *.odl \
-                         *.h \
-                         *.hh \
-                         *.hxx \
-                         *.hpp \
-                         *.h++ \
-                         *.cs \
-                         *.d \
-                         *.php \
-                         *.php4 \
-                         *.php5 \
-                         *.phtml \
-                         *.inc \
-                         *.m \
-                         *.markdown \
-                         *.md \
-                         *.mm \
-                         *.dox \
-                         *.py \
-                         *.pyw \
-                         *.f90 \
-                         *.f95 \
-                         *.f03 \
-                         *.f08 \
-                         *.f \
-                         *.for \
-                         *.tcl \
-                         *.vhd \
-                         *.vhdl \
-                         *.ucf \
-                         *.qsf \
-                         *.ice
+# BEWARE! DON'T set the variable to an empty value. Don't set the variable
+# at all instead. See https://github.com/doxygen/doxygen/issues/7190 and
+# https://sigrok.org/bugzilla/show_bug.cgi?id=1422 (can get reverted when
+# the Doxygen version which causes the issue no longer is used in the wild).
+## FILE_PATTERNS          =
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
