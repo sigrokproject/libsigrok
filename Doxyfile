@@ -874,6 +874,8 @@ EXCLUDE                = config.h \
                          src/session_driver.c \
                          src/std.c \
                          src/drivers.c \
+                         src/driver_list_start.c \
+                         src/driver_list_stop.c \
                          src/ezusb.c \
                          src/fallback.c \
                          src/soft-trigger.c \
@@ -904,9 +906,10 @@ EXCLUDE_PATTERNS       = */src/hardware/* \
                          */src/lcr/* \
                          */src/modbus/* \
                          */src/scale/* \
-                         */src/tests/* \
-                         */src/bindings/* \
-                         */src/doxy/*
+                         */src/bt/* \
+                         */src/serial_* \
+                         */bindings/* \
+                         */doxy/*
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
