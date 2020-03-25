@@ -220,7 +220,7 @@ error:
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret, channel;
+	int channel;
 	const struct dev_context *devc;
 	const struct sr_channel *ch;
 
@@ -244,7 +244,6 @@ static int config_get(uint32_t key, GVariant **data,
 	} else {
 		ch = cg->channels->data;
 		channel = ch->index;
-		ret = SR_OK;
 		switch (key) {
 		case SR_CONF_VOLTAGE:
 			*data = g_variant_new_double(
@@ -267,7 +266,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
