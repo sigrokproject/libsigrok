@@ -410,5 +410,3 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx,
 	*size = res_size;
 	return buf;
 }
-
-/** @} */

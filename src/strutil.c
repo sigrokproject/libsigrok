@@ -595,12 +595,12 @@ SR_API int sr_vsnprintf_ascii(char *buf, size_t buf_size,
 /**
  * Convert a sequence of bytes to its textual representation ("hex dump").
  *
- * Callers should free the allocated GString. See @ref sr_hexdump_free().
+ * Callers should free the allocated GString. See sr_hexdump_free().
  *
  * @param[in] data Pointer to the byte sequence to print.
  * @param[in] len Number of bytes to print.
  *
- * @return #NULL upon error, newly allocated GString pointer otherwise.
+ * @return NULL upon error, newly allocated GString pointer otherwise.
  *
  * @private
  */
@@ -620,7 +620,7 @@ SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len)
 }
 
 /**
- * Free a hex dump text that was created by @ref sr_hexdump_new().
+ * Free a hex dump text that was created by sr_hexdump_new().
  *
  * @param[in] s Pointer to the GString to release.
  *

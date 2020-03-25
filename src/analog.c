@@ -602,9 +602,8 @@ SR_API int sr_rational_mult(struct sr_rational *res, const struct sr_rational *a
  * @param[out] res Result.
  *
  * @retval SR_OK Success.
- * @retval SR_ERR_ARG Division by zero.
- * @retval SR_ERR_ARG Denominator of divisor too large.
- * @retval SR_ERR_ARG Resulting value too large.
+ * @retval SR_ERR_ARG Division by zero, denominator of divisor too large,
+ *                    or resulting value too large.
  *
  * @since 0.5.0
  */

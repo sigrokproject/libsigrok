@@ -92,7 +92,7 @@ SR_PRIV void sr_channel_free(struct sr_channel *ch)
 }
 
 /**
- * Wrapper around @ref sr_channel_free(), suitable for glib iterators.
+ * Wrapper around sr_channel_free(), suitable for glib iterators.
  *
  * @private
  */
@@ -203,7 +203,7 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
  * @param[in] ch1 First channel.
  * @param[in] ch2 Second channel.
  *
- * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ * @return TRUE upon differences or unexpected input, FALSE otherwise.
  *
  * @private
  */
@@ -229,7 +229,7 @@ SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *c
  * @param[in] l1 First channel list.
  * @param[in] l2 Second channel list.
  *
- * @return #TRUE upon differences or unexpected input, #FALSE otherwise.
+ * @return TRUE upon differences or unexpected input, FALSE otherwise.
  *
  * @private
  */
@@ -420,6 +420,7 @@ SR_API struct sr_dev_inst *sr_dev_inst_user_new(const char *vendor,
 /**
  * Add a new channel to the specified device instance.
  *
+ * @param[in] sdi Device instance to use. Must not be NULL.
  * @param[in] index @copydoc sr_channel::index
  * @param[in] type @copydoc sr_channel::type
  * @param[in] name @copydoc sr_channel::name

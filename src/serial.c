@@ -244,7 +244,7 @@ SR_PRIV int serial_drain(struct sr_serial_dev_inst *serial)
  * @retval SR_ERR_ARG Invalid parameters.
  * @retval SR_OK Successful registration.
  *
- * Callbacks get unregistered by specifying #NULL for the 'cb' parameter.
+ * Callbacks get unregistered by specifying NULL for the 'cb' parameter.
  *
  * @private
  */

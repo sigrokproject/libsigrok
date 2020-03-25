@@ -69,7 +69,7 @@ SR_API int sr_a2l_threshold(const struct sr_datafeed_analog *analog,
  *
  * @param analog The analog input values.
  * @param lo_thr The low threshold - result becomes 0 below it.
- * @param lo_thr The high threshold - result becomes 1 above it.
+ * @param hi_thr The high threshold - result becomes 1 above it.
  * @param state The internal converter state. Must contain the state of logic
  *        sample n-1, will contain the state of logic sample n+count upon exit.
  * @param output The converted output values; either 0 or 1. Must provide

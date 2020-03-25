@@ -157,7 +157,9 @@ static void fd_source_finalize(GSource *source)
  * @param session The session the event source belongs to.
  * @param key The key used to identify this source.
  * @param fd The file descriptor or HANDLE.
+ * @param events Events.
  * @param timeout_ms The timeout interval in ms, or -1 to wait indefinitely.
+ *
  * @return A new event source object, or NULL on failure.
  */
 static GSource *fd_source_new(struct sr_session *session, void *key,
