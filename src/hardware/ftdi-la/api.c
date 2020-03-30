@@ -57,6 +57,17 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 	}
 };
 
+static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
+	.vendor = 0x0403,
+	.product = 0x8A98,
+	.samplerate_div = 20,
+    /* 20 PIN JTAG Header */
+	.channel_names = {
+		"TCK", "TDI", "TDO", "TMS", "RST", "nTRST", "DBGRQ", "RTCK",
+		NULL
+	}
+};
+
 static const struct ftdi_chip_desc ft232r_desc = {
 	.vendor = 0x0403,
 	.product = 0x6001,
@@ -79,6 +90,7 @@ static const struct ftdi_chip_desc ft232h_desc = {
 
 static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
+	&ft2232h_tumpa_desc,
 	&ft232r_desc,
 	&ft232h_desc,
 	NULL,
