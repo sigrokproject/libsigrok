@@ -61,7 +61,7 @@ static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 	.vendor = 0x0403,
 	.product = 0x8A98,
 	.samplerate_div = 20,
-    /* 20 PIN JTAG Header */
+	/* 20 PIN JTAG Header */
 	.channel_names = {
 		"TCK", "TDI", "TDO", "TMS", "RST", "nTRST", "DBGRQ", "RTCK",
 		NULL
