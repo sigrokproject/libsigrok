@@ -78,6 +78,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
 #include <glibmm.h>
 G_GNUC_END_IGNORE_DEPRECATIONS
 
+#include <functional>
 #include <stdexcept>
 #include <memory>
 #include <vector>
