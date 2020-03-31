@@ -134,7 +134,7 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	struct dev_context *devc;
 
 	devc = g_malloc0(sizeof(struct dev_context));
-	devc->trigger_at = -1;
+	devc->trigger_at_smpl = OLS_NO_TRIGGER;
 
 	return devc;
 }
@@ -491,16 +491,16 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("Received %d bytes, %d samples, %d decompressed samples.",
 				devc->cnt_bytes, devc->cnt_samples,
 				devc->cnt_samples_rle);
-		if (devc->trigger_at != -1) {
+		if (devc->trigger_at_smpl != OLS_NO_TRIGGER) {
 			/*
 			 * A trigger was set up, so we need to tell the frontend
 			 * about it.
 			 */
-			if (devc->trigger_at > 0) {
+			if (devc->trigger_at_smpl > 0) {
 				/* There are pre-trigger samples, send those first. */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
-				logic.length = devc->trigger_at * 4;
+				logic.length = devc->trigger_at_smpl * 4;
 				logic.unitsize = 4;
 				logic.data = devc->raw_sample_buf +
 					(devc->limit_samples - devc->num_samples) * 4;
@@ -513,9 +513,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			/* Send post-trigger samples. */
 			packet.type = SR_DF_LOGIC;
 			packet.payload = &logic;
-			logic.length = (devc->num_samples * 4) - (devc->trigger_at * 4);
+			logic.length = (devc->num_samples * 4) - (devc->trigger_at_smpl * 4);
 			logic.unitsize = 4;
-			logic.data = devc->raw_sample_buf + devc->trigger_at * 4 +
+			logic.data = devc->raw_sample_buf + devc->trigger_at_smpl * 4 +
 				(devc->limit_samples - devc->num_samples) * 4;
 			sr_session_send(sdi, &packet);
 		} else {

@@ -65,6 +65,9 @@
 #define FLAG_FILTER                (1 << 1)
 #define FLAG_DEMUX                 (1 << 0)
 
+/* Capture context magic numbers */
+#define OLS_NO_TRIGGER (-1)
+
 struct dev_context {
 	/* constant device properties: */
 	int max_channels;
@@ -77,7 +80,7 @@ struct dev_context {
 	uint32_t cur_samplerate_divider;
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
-	int trigger_at;
+	int trigger_at_smpl;
 	uint32_t channel_mask;
 	uint32_t trigger_mask[NUM_TRIGGER_STAGES];
 	uint32_t trigger_value[NUM_TRIGGER_STAGES];
