@@ -497,10 +497,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->capture_flags & CAPTURE_FLAG_RLE ? "on" : "off",
 			devc->capture_flags & CAPTURE_FLAG_NOISE_FILTER ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off");
+
 	/*
 	 * Enable/disable OLS channel groups in the flag register according
 	 * to the channel mask. 1 means "disable channel".
 	 */
+	devc->capture_flags &= ~0x3c;
 	devc->capture_flags |= ~(ols_changrp_mask << 2) & 0x3c;
 
 	/* RLE mode is always zero, for now. */
