@@ -50,20 +50,24 @@
 /* Trigger config */
 #define TRIGGER_START              (1 << 3)
 
-/* Bitmasks for capture_flags */
-/* 12-13 unused, 14-15 RLE mode (we hardcode mode 0). */
-#define CAPTURE_FLAG_INTERNAL_TEST_MODE (1 << 11)
-#define CAPTURE_FLAG_EXTERNAL_TEST_MODE (1 << 10)
-#define CAPTURE_FLAG_SWAP_CHANNELS      (1 << 9)
-#define CAPTURE_FLAG_RLE                (1 << 8)
-#define CAPTURE_FLAG_SLOPE_FALLING      (1 << 7)
-#define CAPTURE_FLAG_CLOCK_EXTERNAL     (1 << 6)
-#define CAPTURE_FLAG_CHANNELGROUP_4     (1 << 5)
-#define CAPTURE_FLAG_CHANNELGROUP_3     (1 << 4)
-#define CAPTURE_FLAG_CHANNELGROUP_2     (1 << 3)
-#define CAPTURE_FLAG_CHANNELGROUP_1     (1 << 2)
-#define CAPTURE_FLAG_NOISE_FILTER       (1 << 1)
-#define CAPTURE_FLAG_DEMUX              (1 << 0)
+/* Bit mask used for "set flags" command (0x82) */
+/* Take care about bit positions in diagrams, they are inverted. */
+#define CAPTURE_FLAG_RLEMODE1            (1 << 15)
+#define CAPTURE_FLAG_RLEMODE0            (1 << 14)
+#define CAPTURE_FLAG_RESERVED1           (1 << 13)
+#define CAPTURE_FLAG_RESERVED0           (1 << 12)
+#define CAPTURE_FLAG_INTERNAL_TEST_MODE  (1 << 11)
+#define CAPTURE_FLAG_EXTERNAL_TEST_MODE  (1 << 10)
+#define CAPTURE_FLAG_SWAP_CHANNELS       (1 << 9)
+#define CAPTURE_FLAG_RLE                 (1 << 8)
+#define CAPTURE_FLAG_INVERT_EXT_CLOCK    (1 << 7)
+#define CAPTURE_FLAG_CLOCK_EXTERNAL      (1 << 6)
+#define CAPTURE_FLAG_DISABLE_CHANGROUP_4 (1 << 5)
+#define CAPTURE_FLAG_DISABLE_CHANGROUP_3 (1 << 4)
+#define CAPTURE_FLAG_DISABLE_CHANGROUP_2 (1 << 3)
+#define CAPTURE_FLAG_DISABLE_CHANGROUP_1 (1 << 2)
+#define CAPTURE_FLAG_NOISE_FILTER        (1 << 1)
+#define CAPTURE_FLAG_DEMUX               (1 << 0)
 
 /* Capture context magic numbers */
 #define OLS_NO_TRIGGER (-1)
