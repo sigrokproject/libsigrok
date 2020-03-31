@@ -134,14 +134,7 @@ SR_PRIV struct dev_context *ols_dev_new(void)
 	struct dev_context *devc;
 
 	devc = g_malloc0(sizeof(struct dev_context));
-
-	/* Device-specific settings */
-	devc->max_samples = devc->max_samplerate = devc->protocol_version = 0;
-
-	/* Acquisition settings */
-	devc->limit_samples = devc->capture_ratio = 0;
 	devc->trigger_at = -1;
-	devc->flag_reg = 0;
 
 	return devc;
 }
