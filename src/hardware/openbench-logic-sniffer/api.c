@@ -358,7 +358,7 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int set_trigger(const struct sr_dev_inst *sdi, int stage)
+static int set_basic_trigger(const struct sr_dev_inst *sdi, int stage)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
@@ -367,7 +367,7 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	cmd = CMD_SET_TRIGGER_MASK + stage * 4;
+	cmd = CMD_SET_BASIC_TRIGGER_MASK0 + stage * 4;
 	arg[0] = devc->trigger_mask[stage] & 0xff;
 	arg[1] = (devc->trigger_mask[stage] >> 8) & 0xff;
 	arg[2] = (devc->trigger_mask[stage] >> 16) & 0xff;
@@ -375,7 +375,7 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	if (send_longcommand(serial, cmd, arg) != SR_OK)
 		return SR_ERR;
 
-	cmd = CMD_SET_TRIGGER_VALUE + stage * 4;
+	cmd = CMD_SET_BASIC_TRIGGER_VALUE0 + stage * 4;
 	arg[0] = devc->trigger_value[stage] & 0xff;
 	arg[1] = (devc->trigger_value[stage] >> 8) & 0xff;
 	arg[2] = (devc->trigger_value[stage] >> 16) & 0xff;
@@ -383,7 +383,7 @@ static int set_trigger(const struct sr_dev_inst *sdi, int stage)
 	if (send_longcommand(serial, cmd, arg) != SR_OK)
 		return SR_ERR;
 
-	cmd = CMD_SET_TRIGGER_CONFIG + stage * 4;
+	cmd = CMD_SET_BASIC_TRIGGER_CONFIG0 + stage * 4;
 	arg[0] = arg[1] = arg[3] = 0x00;
 	arg[2] = stage;
 	if (stage == devc->num_stages)
@@ -443,13 +443,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->trigger_at_smpl = (readcount - delaycount) * 4 - devc->num_stages;
 		for (i = 0; i <= devc->num_stages; i++) {
 			sr_dbg("Setting OLS stage %d trigger.", i);
-			if ((ret = set_trigger(sdi, i)) != SR_OK)
+			if ((ret = set_basic_trigger(sdi, i)) != SR_OK)
 				return ret;
 		}
 	} else {
 		/* No triggers configured, force trigger on first stage. */
 		sr_dbg("Forcing trigger at stage 0.");
-		if ((ret = set_trigger(sdi, 0)) != SR_OK)
+		if ((ret = set_basic_trigger(sdi, 0)) != SR_OK)
 			return ret;
 		delaycount = readcount;
 	}
@@ -512,7 +512,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(serial, CMD_RUN) != SR_OK)
+	if (send_shortcommand(serial, CMD_ARM_BASIC_TRIGGER) != SR_OK)
 		return SR_ERR;
 
 	/* Reset all operational states. */

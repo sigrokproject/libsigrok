@@ -171,6 +171,9 @@ static void metadata_quirks(struct sr_dev_inst *sdi)
 		if (!devc->max_samplerate)
 			devc->max_samplerate = SR_MHZ(20);
 	}
+
+	if (sdi->version && strstr(sdi->version, "FPGA version 3.07"))
+		devc->device_flags |= DEVICE_FLAG_IS_DEMON_CORE;
 }
 
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
@@ -178,7 +181,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	uint32_t tmp_int;
-	uint8_t key, type, token;
+	uint8_t key, type;
 	int delay_ms;
 	GString *tmp_str, *devname, *version;
 	guchar tmp_c;
@@ -196,12 +199,11 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 		delay_ms = serial_timeout(serial, 1);
 		if (serial_read_blocking(serial, &key, 1, delay_ms) != 1)
 			break;
-		if (key == 0x00) {
+		if (key == METADATA_TOKEN_END) {
 			sr_dbg("Got metadata key 0x00, metadata ends.");
 			break;
 		}
 		type = key >> 5;
-		token = key & 0x1f;
 		switch (type) {
 		case 0:
 			/* NULL-terminated string */
@@ -209,21 +211,20 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			delay_ms = serial_timeout(serial, 1);
 			while (serial_read_blocking(serial, &tmp_c, 1, delay_ms) == 1 && tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
-			sr_dbg("Got metadata key 0x%.2x value '%s'.",
-			       key, tmp_str->str);
-			switch (token) {
-			case 0x01:
+			sr_dbg("Got metadata token 0x%.2x value '%s'.", key, tmp_str->str);
+			switch (key) {
+			case METADATA_TOKEN_DEVICE_NAME:
 				/* Device name */
 				devname = g_string_append(devname, tmp_str->str);
 				break;
-			case 0x02:
+			case METADATA_TOKEN_FPGA_VERSION:
 				/* FPGA firmware version */
 				if (version->len)
 					g_string_append(version, ", ");
 				g_string_append(version, "FPGA version ");
 				g_string_append(version, tmp_str->str);
 				break;
-			case 0x03:
+			case METADATA_TOKEN_ANCILLARY_VERSION:
 				/* Ancillary version */
 				if (version->len)
 					g_string_append(version, ", ");
@@ -231,8 +232,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 				g_string_append(version, tmp_str->str);
 				break;
 			default:
-				sr_info("ols: unknown token 0x%.2x: '%s'",
-					token, tmp_str->str);
+				sr_info("ols: unknown token 0x%.2x: '%s'", key, tmp_str->str);
 				break;
 			}
 			g_string_free(tmp_str, TRUE);
@@ -243,32 +243,30 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			if (serial_read_blocking(serial, &tmp_int, 4, delay_ms) != 4)
 				break;
 			tmp_int = RB32(&tmp_int);
-			sr_dbg("Got metadata key 0x%.2x value 0x%.8x.",
-			       key, tmp_int);
-			switch (token) {
-			case 0x00:
+			sr_dbg("Got metadata token 0x%.2x value 0x%.8x.", key, tmp_int);
+			switch (key) {
+			case METADATA_TOKEN_NUM_PROBES_LONG:
 				/* Number of usable channels */
 				ols_channel_new(sdi, tmp_int);
 				break;
-			case 0x01:
+			case METADATA_TOKEN_SAMPLE_MEMORY_BYTES:
 				/* Amount of sample memory available (bytes) */
 				devc->max_samples = tmp_int;
 				break;
-			case 0x02:
+			case METADATA_TOKEN_DYNAMIC_MEMORY_BYTES:
 				/* Amount of dynamic memory available (bytes) */
 				/* what is this for? */
 				break;
-			case 0x03:
+			case METADATA_TOKEN_MAX_SAMPLE_RATE_HZ:
 				/* Maximum sample rate (Hz) */
 				devc->max_samplerate = tmp_int;
 				break;
-			case 0x04:
+			case METADATA_TOKEN_PROTOCOL_VERSION_LONG:
 				/* protocol version */
 				devc->protocol_version = tmp_int;
 				break;
 			default:
-				sr_info("Unknown token 0x%.2x: 0x%.8x.",
-					token, tmp_int);
+				sr_info("Unknown token 0x%.2x: 0x%.8x.", key, tmp_int);
 				break;
 			}
 			break;
@@ -277,20 +275,18 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			delay_ms = serial_timeout(serial, 1);
 			if (serial_read_blocking(serial, &tmp_c, 1, delay_ms) != 1)
 				break;
-			sr_dbg("Got metadata key 0x%.2x value 0x%.2x.",
-			       key, tmp_c);
-			switch (token) {
-			case 0x00:
+			sr_dbg("Got metadata token 0x%.2x value 0x%.2x.", key, tmp_c);
+			switch (key) {
+			case METADATA_TOKEN_NUM_PROBES_SHORT:
 				/* Number of usable channels */
 				ols_channel_new(sdi, tmp_c);
 				break;
-			case 0x01:
+			case METADATA_TOKEN_PROTOCOL_VERSION_SHORT:
 				/* protocol version */
 				devc->protocol_version = tmp_c;
 				break;
 			default:
-				sr_info("Unknown token 0x%.2x: 0x%.2x.",
-					token, tmp_c);
+				sr_info("Unknown token 0x%.2x: 0x%.2x.", key, tmp_c);
 				break;
 			}
 			break;
