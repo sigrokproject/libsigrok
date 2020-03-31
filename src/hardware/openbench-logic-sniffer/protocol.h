@@ -37,7 +37,6 @@
 #define CMD_RESET                  0x00
 #define CMD_RUN                    0x01
 #define CMD_ID                     0x02
-#define CMD_TESTMODE               0x03
 #define CMD_METADATA               0x04
 #define CMD_SET_DIVIDER            0x80
 #define CMD_CAPTURE_SIZE           0x81
