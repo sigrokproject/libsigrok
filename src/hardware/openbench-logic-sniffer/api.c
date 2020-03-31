@@ -502,6 +502,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * to the channel mask. 1 means "disable channel".
 	 */
 	devc->capture_flags |= ~(ols_changrp_mask << 2) & 0x3c;
+
+	/* RLE mode is always zero, for now. */
+
 	arg[0] = devc->capture_flags & 0xff;
 	arg[1] = devc->capture_flags >> 8;
 	arg[2] = arg[3] = 0x00;
