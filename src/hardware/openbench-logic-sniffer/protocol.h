@@ -28,10 +28,13 @@
 
 #define LOG_PREFIX "openbench-logic-sniffer"
 
-#define NUM_BASIC_TRIGGER_STAGES   4
-#define CLOCK_RATE                 SR_MHZ(100)
-#define MIN_NUM_SAMPLES            4
-#define DEFAULT_SAMPLERATE         SR_KHZ(200)
+#define NUM_BASIC_TRIGGER_STAGES     4
+#define NUM_ADVANCED_TRIGGER_STAGES  15
+#define NUM_ADVANCED_EDGE_TRIGGERS   2
+#define NUM_ADVANCED_LEVEL_TRIGGERS  10
+#define CLOCK_RATE                   SR_MHZ(100)
+#define MIN_NUM_SAMPLES              4
+#define DEFAULT_SAMPLERATE           SR_KHZ(200)
 
 /* Command opcodes */
 #define CMD_RESET                     0x00

@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
+ * Copyright (C) 2011 Ian Davis
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +26,9 @@ struct ols_basic_trigger_desc {
 	uint32_t trigger_value[NUM_BASIC_TRIGGER_STAGES];
 	int num_stages;
 };
+
+static int ols_convert_and_set_up_advanced_trigger(
+	const struct sr_dev_inst *sdi, int *num_stages);
 
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
 		uint8_t command)
@@ -106,7 +110,8 @@ SR_PRIV uint32_t ols_channel_mask(const struct sr_dev_inst *sdi)
 	return channel_mask;
 }
 
-static int convert_trigger(const struct sr_dev_inst *sdi, struct ols_basic_trigger_desc *ols_trigger)
+static int ols_convert_basic_trigger(
+	const struct sr_dev_inst *sdi, struct ols_basic_trigger_desc *ols_trigger)
 {
 	struct sr_trigger *trigger;
 	struct sr_trigger_stage *stage;
@@ -137,9 +142,18 @@ static int convert_trigger(const struct sr_dev_inst *sdi, struct ols_basic_trigg
 			if (!match->channel->enabled)
 				/* Ignore disabled channels with a trigger. */
 				continue;
+
 			ols_trigger->trigger_mask[stage->stage] |= 1 << match->channel->index;
-			if (match->match == SR_TRIGGER_ONE)
+			switch (match->match) {
+			case SR_TRIGGER_ZERO:
+				break;
+			case SR_TRIGGER_ONE:
 				ols_trigger->trigger_value[stage->stage] |= 1 << match->channel->index;
+				break;
+			default:
+				sr_err("Unsupported trigger type: %d", match->match);
+				return SR_ERR;
+			}
 		}
 	}
 
@@ -366,8 +380,13 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 
 	ols_send_reset(serial);
 
-	serial_source_remove(sdi->session, serial);
-	std_session_send_df_end(sdi);
+	int ret = serial_source_remove(sdi->session, serial);
+	if (ret != SR_OK)
+		sr_warn("Couldn't close serial port: %i", ret);
+
+	ret = std_session_send_df_end(sdi);
+	if (ret != SR_OK)
+		sr_warn("Couldn't end session: %i", ret);
 }
 
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
@@ -626,6 +645,14 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial = sdi->conn;
 
+	/*
+	* According to http://mygizmos.org/ols/Logic-Sniffer-FPGA-Spec.pdf
+	* reset command must be send prior each arm command
+	*/
+	sr_dbg("Send reset command before trigger configure");
+	RETURN_ON_ERROR(ols_send_reset(serial));
+
+
 	int num_changroups = 0;
 	uint8_t changroup_mask = 0;
 	uint32_t channel_mask = ols_channel_mask(sdi);
@@ -646,32 +673,42 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	uint32_t delaycount;
 	int trigger_point = OLS_NO_TRIGGER;
 
-	/* Basic triggers. */
-	struct ols_basic_trigger_desc basic_trigger_desc;
-	if (convert_trigger(sdi, &basic_trigger_desc) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
-	if (basic_trigger_desc.num_stages > 0) {
-		/*
-		 * According to http://mygizmos.org/ols/Logic-Sniffer-FPGA-Spec.pdf
-		 * reset command must be send prior each arm command
-		 */
-		sr_dbg("Send reset command before trigger configure");
-		RETURN_ON_ERROR(ols_send_reset(serial));
-
-		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		trigger_point = (readcount - delaycount) * 4 - 1;
-		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
-			sr_dbg("Setting OLS stage %d trigger.", i);
-			RETURN_ON_ERROR(ols_set_basic_trigger_stage(&basic_trigger_desc, serial, i));
+	if (!(devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE)) {
+		/* basic trigger only */
+		struct ols_basic_trigger_desc basic_trigger_desc;
+		if (ols_convert_basic_trigger(sdi, &basic_trigger_desc) != SR_OK) {
+			sr_err("Failed to configure channels.");
+			return SR_ERR;
+		}
+		if (basic_trigger_desc.num_stages > 0) {
+			delaycount = readcount * (1 - devc->capture_ratio / 100.0);
+			trigger_point = (readcount - delaycount) * 4 - 1;
+			for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
+				sr_dbg("Setting OLS stage %d trigger.", i);
+				RETURN_ON_ERROR(ols_set_basic_trigger_stage(
+					&basic_trigger_desc, serial, i));
+			}
+		} else {
+			/* No triggers configured, force trigger on first stage. */
+			sr_dbg("Forcing trigger at stage 0.");
+			basic_trigger_desc.num_stages = 1;
+			RETURN_ON_ERROR(ols_set_basic_trigger_stage(
+				&basic_trigger_desc, serial, 0));
+			delaycount = readcount;
 		}
 	} else {
-		/* No triggers configured, force trigger on first stage. */
-		sr_dbg("Forcing trigger at stage 0.");
-		basic_trigger_desc.num_stages = 1;
-		RETURN_ON_ERROR(ols_set_basic_trigger_stage(&basic_trigger_desc, serial, 0));
-		delaycount = readcount;
+		/* advanced trigger setup */
+		gboolean will_trigger = FALSE;
+		if(ols_convert_and_set_up_advanced_trigger(sdi, &will_trigger) != SR_OK) {
+			sr_err("Advanced trigger setup failed.");
+			return SR_ERR;
+		}
+
+		if (will_trigger) {
+			delaycount = readcount * (1 - devc->capture_ratio / 100.0);
+			trigger_point = (readcount - delaycount) * 4;
+		} else
+			delaycount = readcount;
 	}
 
 	/*
@@ -740,5 +777,454 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 
 	RETURN_ON_ERROR(ols_send_longdata(serial, CMD_SET_FLAGS, devc->capture_flags));
 
+	return SR_OK;
+}
+
+
+/* set up a level trigger stage to trigger when (input & mask) == target */
+static int ols_set_advanced_level_trigger(
+	struct sr_serial_dev_inst *serial,
+	uint8_t num_trigger_term, /* 0-9 for trigger terms a-j */
+	uint32_t target,
+	uint32_t mask)
+{
+	uint32_t lutmask = 1;
+	uint32_t lutbits[4] = {0, 0, 0, 0};
+
+	for (uint32_t i = 0; i < 16; ++i)
+	{
+		if (((i ^ ((target >>  0) & 0xF)) & ((mask >>  0) & 0xF)) == 0)
+      lutbits[0] |= lutmask;
+		if (((i ^ ((target >>  4) & 0xF)) & ((mask >>  4) & 0xF)) == 0)
+      lutbits[0] |= (lutmask << 16);
+		if (((i ^ ((target >>  8) & 0xF)) & ((mask >>  8) & 0xF)) == 0)
+      lutbits[1] |= lutmask;
+		if (((i ^ ((target >> 12) & 0xF)) & ((mask >> 12) & 0xF)) == 0)
+      lutbits[1] |= (lutmask << 16);
+		if (((i ^ ((target >> 16) & 0xF)) & ((mask >> 16) & 0xF)) == 0)
+      lutbits[2] |= lutmask;
+		if (((i ^ ((target >> 20) & 0xF)) & ((mask >> 20) & 0xF)) == 0)
+			lutbits[2] |= (lutmask << 16);
+		if (((i ^ ((target >> 24) & 0xF)) & ((mask >> 24) & 0xF)) == 0)
+			lutbits[3] |= lutmask;
+		if (((i ^ ((target >> 28) & 0xF)) & ((mask >> 28) & 0xF)) == 0)
+			lutbits[3] |= (lutmask << 16);
+		lutmask <<= 1;
+	}
+
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, 0x20 + (num_trigger_term % 10)));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, lutbits[3]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, lutbits[2]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, lutbits[1]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, lutbits[0]));
+	return SR_OK;
+}
+
+#define OLS_ADV_TRIG_EDGERISE0 0x0A0A
+#define OLS_ADV_TRIG_EDGERISE1 0x00CC
+#define OLS_ADV_TRIG_EDGEFALL0 0x5050
+#define OLS_ADV_TRIG_EDGEFALL1 0x3300
+#define OLS_ADV_TRIG_EDGEBOTH0 (OLS_ADV_TRIG_EDGERISE0 | OLS_ADV_TRIG_EDGEFALL0)
+#define OLS_ADV_TRIG_EDGEBOTH1 (OLS_ADV_TRIG_EDGERISE1 | OLS_ADV_TRIG_EDGEFALL1)
+#define OLS_ADV_TRIG_EDGENEITHER0 (~OLS_ADV_TRIG_EDGEBOTH0 & 0xFFFF) /* means neither rise nor fall: constant signal */
+#define OLS_ADV_TRIG_EDGENEITHER1 (~OLS_ADV_TRIG_EDGEBOTH1 & 0xFFFF)
+
+/* Set up edge trigger LUTs.
+ *
+ * All edge triggers of one unit are ORed together, not ANDed. This
+ * differs from level triggers, where all levels have to be met at the
+ * same time. This code is at least consistent in that it also ORs together
+ * pairs of edge triggers.
+ */
+static int ols_set_advanced_edge_trigger(
+	struct sr_serial_dev_inst *serial,
+	int edgesel, /* which edge trigger unit, 0 or 1 */
+	uint32_t rising_edge,
+	uint32_t falling_edge,
+	uint32_t neither_edge)
+{
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, 0x34 + (edgesel & 1)));
+
+	uint32_t lutbits = 0;
+	uint32_t bitmask = 0x80000000;
+	for (unsigned int i = 0; i < 16; i = i + 1) {
+		/* Evaluate indata bit1... */
+		if (neither_edge & bitmask)
+			lutbits |= OLS_ADV_TRIG_EDGENEITHER1;
+		else {
+			if (rising_edge & bitmask) lutbits |= OLS_ADV_TRIG_EDGERISE1;
+			if (falling_edge & bitmask) lutbits |= OLS_ADV_TRIG_EDGEFALL1;
+		}
+		bitmask >>= 1;
+
+		/* Evaluate indata bit0... */
+		if (neither_edge & bitmask)
+			lutbits |= OLS_ADV_TRIG_EDGENEITHER0;
+		else {
+			if (rising_edge & bitmask) lutbits |= OLS_ADV_TRIG_EDGERISE0;
+			if (falling_edge & bitmask) lutbits |= OLS_ADV_TRIG_EDGEFALL0;
+		}
+		bitmask >>= 1;
+
+		if ((i & 1) == 0)
+			lutbits <<= 16;
+		else {
+			/* write total of 256 bits */
+			RETURN_ON_ERROR(ols_send_longdata(
+				serial, CMD_SET_ADVANCED_TRIG_WRITE, lutbits));
+			lutbits = 0;
+		}
+	}
+
+	return SR_OK;
+}
+
+static int ols_set_advanced_trigger_timer (
+	struct sr_serial_dev_inst *serial,
+	int timersel, /* 0 or 1 */
+	uint64_t count_10ns)
+{
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, 0x38 + (timersel & 1) * 2));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, count_10ns & 0xFFFFFFFF));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, 0x39 + (timersel & 1) * 2));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, count_10ns >> 32));
+	return SR_OK;
+}
+
+#define OLS_ADV_TRIG_STATETERM_HIT 0
+#define OLS_ADV_TRIG_STATETERM_ELSE 1
+#define OLS_ADV_TRIG_STATETERM_CAPTURE 2
+
+#define OLS_ADV_TRIG_OP_NOP 0
+#define OLS_ADV_TRIG_OP_ANY 1
+#define OLS_ADV_TRIG_OP_AND 2
+#define OLS_ADV_TRIG_OP_NAND 3
+#define OLS_ADV_TRIG_OP_OR 4
+#define OLS_ADV_TRIG_OP_NOR 5
+#define OLS_ADV_TRIG_OP_XOR 6
+#define OLS_ADV_TRIG_OP_NXOR 7
+#define OLS_ADV_TRIG_OP_A 8
+#define OLS_ADV_TRIG_OP_B 9
+/*                                      NOP    ANY      AND    NAND     OR      NOR     XOR    NXOR      A      B */
+static const uint32_t pairvalue[] =  {0x0000, 0xFFFF, 0x8000, 0x7FFF, 0xF888, 0x0777, 0x7888, 0x8777, 0x8888, 0xF000};
+static const uint32_t midvalue[] =   {0x0000, 0xFFFF, 0x8000, 0x7FFF, 0xFFFE, 0x0001, 0x0116, 0xFEE9, 0xEEEE, 0xFFF0};
+static const uint32_t finalvalue[] = {0x0000, 0xFFFF, 0x0008, 0x0007, 0x000E, 0x0001, 0x0006, 0x0009, 0x0002, 0x0004};
+
+/*
+ * Trigger input summing stage: Combines different inputs in arbitrary ways.
+ * Keep in mind that all primary inputs (a, edge etc.) output a pair of bits per
+ * input. That's why those LUTs have 2 inputs, whereas the mid LUTs have
+ * 4 inputs. Only half of the final LUT is used.
+ */
+static int ols_set_advanced_trigger_sum(
+	struct sr_serial_dev_inst *serial,
+	int statenum, /* 0-15 */
+	int stateterm, /* 0: hit, 1: else, 2: capture */
+	int op_ab,
+	int op_c_range1,
+	int op_d_edge1,
+	int op_e_timer1,
+	int op_fg,
+	int op_h_range2,
+	int op_i_edge2,
+	int op_j_timer2,
+	int op_mid1, /* sums up a, b, c, range1, d, edge1, e, timer1 */
+	int op_mid2, /* sums up f, g, h, range2, i, edge2, j, timer2 */
+	int op_final) /* sums up mid1, mid2 */
+{
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, 0x40 + (statenum * 4) + stateterm));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE, finalvalue[op_final]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE,
+		(midvalue[op_mid2] << 16) | midvalue[op_mid1]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE,
+		(pairvalue[op_j_timer2] << 16) | pairvalue[op_i_edge2]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE,
+		(pairvalue[op_h_range2] << 16) | pairvalue[op_fg]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE,
+		(pairvalue[op_e_timer1] << 16) | pairvalue[op_d_edge1]));
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_WRITE,
+		(pairvalue[op_c_range1] << 16) | pairvalue[op_ab]));
+	return SR_OK;
+}
+
+#define TRIGSTATE_STATENUM_MASK 0xF
+#define TRIGSTATE_OBTAIN_MASK 0x000FFFFF
+#define TRIGSTATE_ELSE_BITOFS 20
+#define TRIGSTATE_STOLS_ADV_TRIG_OP_TIMER0 0x01000000
+#define TRIGSTATE_STOLS_ADV_TRIG_OP_TIMER1 0x02000000
+#define TRIGSTATE_CLEAR_TIMER0 0x04000000
+#define TRIGSTATE_CLEAR_TIMER1 0x08000000
+#define TRIGSTATE_START_TIMER0 0x10000000
+#define TRIGSTATE_START_TIMER1 0x20000000
+#define TRIGSTATE_TRIGGER_FLAG 0x40000000
+#define TRIGSTATE_LASTSTATE 0x80000000
+
+static int ols_set_advanced_trigger_state(
+	struct sr_serial_dev_inst *serial,
+	uint8_t statenum, /* 0 to 15 */
+	gboolean last_state,
+	gboolean set_trigger,
+	uint8_t start_timer, /* bit0=timer1, bit1=timer2 */
+	uint8_t stop_timer,  /* bit0=timer1, bit1=timer2 */
+	uint8_t clear_timer, /* bit0=timer1, bit1=timer2 */
+	uint8_t else_state,  /* 0 to 15 */
+	uint32_t obtain_count)
+{
+	uint32_t value =
+		((else_state & TRIGSTATE_STATENUM_MASK) << TRIGSTATE_ELSE_BITOFS) |
+		(obtain_count & TRIGSTATE_OBTAIN_MASK);
+	if (last_state)      value |= TRIGSTATE_LASTSTATE;
+	if (set_trigger)     value |= TRIGSTATE_TRIGGER_FLAG;
+	if (start_timer & 1) value |= TRIGSTATE_START_TIMER0;
+	if (start_timer & 2) value |= TRIGSTATE_START_TIMER1;
+	if (stop_timer  & 1) value |= TRIGSTATE_STOLS_ADV_TRIG_OP_TIMER0;
+	if (stop_timer  & 2) value |= TRIGSTATE_STOLS_ADV_TRIG_OP_TIMER1;
+	if (clear_timer & 1) value |= TRIGSTATE_CLEAR_TIMER0;
+	if (clear_timer & 2) value |= TRIGSTATE_CLEAR_TIMER1;
+
+	RETURN_ON_ERROR(ols_send_longdata(
+		serial, CMD_SET_ADVANCED_TRIG_SEL, statenum & TRIGSTATE_STATENUM_MASK));
+	RETURN_ON_ERROR(ols_send_longdata(serial, CMD_SET_ADVANCED_TRIG_WRITE, value));
+	return SR_OK;
+}
+
+static int ols_set_advanced_trigger_sums_and_stages(
+	struct sr_serial_dev_inst *serial,
+	int ols_stage,
+	int sum_inputs[8],
+	gboolean is_last_stage,
+	gboolean start_timer0)
+{
+	/*
+	 * Hit only when all inputs are true. Always capture for pre-trigger and
+	 * acquisition. Never execute the "Else" action, since we advance trigger
+	 * stages implicity via hits.
+	 */
+	RETURN_ON_ERROR(ols_set_advanced_trigger_sum(serial, ols_stage, OLS_ADV_TRIG_STATETERM_HIT,
+		sum_inputs[0], sum_inputs[1], sum_inputs[2], sum_inputs[3],
+		sum_inputs[4], sum_inputs[5], sum_inputs[6], sum_inputs[7],
+		OLS_ADV_TRIG_OP_AND, OLS_ADV_TRIG_OP_AND,
+		OLS_ADV_TRIG_OP_AND));
+	RETURN_ON_ERROR(ols_set_advanced_trigger_sum(serial, ols_stage, OLS_ADV_TRIG_STATETERM_CAPTURE,
+		OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+		OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+		OLS_ADV_TRIG_OP_AND, OLS_ADV_TRIG_OP_AND,
+		OLS_ADV_TRIG_OP_ANY));
+	RETURN_ON_ERROR(ols_set_advanced_trigger_sum(serial, ols_stage, OLS_ADV_TRIG_STATETERM_ELSE,
+		OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+		OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+		OLS_ADV_TRIG_OP_AND, OLS_ADV_TRIG_OP_AND,
+		OLS_ADV_TRIG_OP_NOP));
+
+	/*
+		* Tell the state machine to move to the next stage on a hit by not
+		* setting the trigger flag. The last stage executes the trigger.
+		*/
+	RETURN_ON_ERROR(ols_set_advanced_trigger_state(serial, ols_stage,
+		is_last_stage, is_last_stage, start_timer0 ? 1 : 0, 0, 0, 0, 0));
+
+	return SR_OK;
+}
+
+static int ols_convert_and_set_up_advanced_trigger(
+		const struct sr_dev_inst *sdi, gboolean* will_trigger) {
+	struct sr_serial_dev_inst *serial = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+
+	int ols_stage = 0;
+
+	if(devc->capture_ratio > 0) {
+		/*
+		 * We need to set up a timer to ensure enough samples are captured to
+		 * fulfill the pre-trigger ratio. In RLE mode, this is not necessarily
+		 * true. It would be possible to wait longer, to ensure that enough
+		 * compressed samples are captured, but this could take ages and is
+		 * probably not what the user wants.
+		 */
+
+		uint64_t effective_divider = devc->capture_flags & CAPTURE_FLAG_DEMUX
+			? (devc->cur_samplerate_divider + 1) / 2
+			: (devc->cur_samplerate_divider + 1);
+		uint64_t pretrigger_10ns_ticks =
+			devc->limit_samples * effective_divider * devc->capture_ratio
+			/ 100 /* percent */;
+		sr_dbg(
+			"Inserting pre-trigger delay of %" PRIu64 "0 ns", pretrigger_10ns_ticks);
+
+		RETURN_ON_ERROR(ols_set_advanced_trigger_timer(
+			serial, 0, pretrigger_10ns_ticks));
+
+		int sum_inputs[8] = {
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY
+		};
+
+		/* first stage: start timer, advance immediately to second stage */
+		RETURN_ON_ERROR(ols_set_advanced_trigger_sums_and_stages(
+			serial, ols_stage++, sum_inputs, FALSE, TRUE));
+
+		/* second stage: wait until timer expires */
+		sum_inputs[3] = OLS_ADV_TRIG_OP_B;
+		RETURN_ON_ERROR(ols_set_advanced_trigger_sums_and_stages(
+			serial, ols_stage++, sum_inputs, FALSE, TRUE));
+	}
+
+	struct sr_trigger *trigger;
+	if (!(trigger = sr_session_trigger_get(sdi->session))) {
+		*will_trigger = FALSE;
+
+		/* Set up immediate trigger to capture and trigger regardless of any input. */
+		int sum_inputs[8] = {
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY
+		};
+		RETURN_ON_ERROR(ols_set_advanced_trigger_sums_and_stages(
+			serial, ols_stage, sum_inputs, TRUE, FALSE));
+		return SR_OK;
+	}
+
+	int num_req_trigger_stages = g_slist_length(trigger->stages);
+	if (ols_stage + num_req_trigger_stages > NUM_ADVANCED_TRIGGER_STAGES) {
+		sr_err("Too many trigger stages: %d requested + %d internal > %d available",
+				num_req_trigger_stages, ols_stage, NUM_ADVANCED_TRIGGER_STAGES);
+		return SR_ERR;
+	}
+
+	sr_dbg("Setting OLS advanced trigger for %i stages", num_req_trigger_stages);
+
+	const int last_stage = ols_stage + num_req_trigger_stages - 1;
+	int num_stages_with_level_trigger = 0;
+	int num_stages_with_edge_trigger = 0;
+	for (const GSList *l = trigger->stages; l; l = l->next) {
+		struct sr_trigger_stage *stage = l->data;
+
+		/* channel bit masks: */
+		uint32_t level_mask = 0;
+		uint32_t level_value = 0;
+		uint32_t edge_rising = 0;
+		uint32_t edge_falling = 0;
+
+		int current_level_term = -1;
+		int current_edge_term = -1;
+
+		for (const GSList *m = stage->matches; m; m = m->next) {
+			struct sr_trigger_match *match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+
+			int chan_bit = 1 << match->channel->index;
+			switch (match->match) {
+			case SR_TRIGGER_ZERO:
+				level_mask |= chan_bit;
+				break;
+			case SR_TRIGGER_ONE:
+				level_mask |= chan_bit;
+				level_value |= chan_bit;
+				break;
+			case SR_TRIGGER_RISING:
+				edge_rising |= chan_bit;
+				break;
+			case SR_TRIGGER_FALLING:
+				edge_falling |= chan_bit;
+				break;
+			case SR_TRIGGER_EDGE:
+				edge_rising |= chan_bit;
+				edge_falling |= chan_bit;
+				break;
+			default:
+				sr_err("Unsupported trigger type: %d", match->match);
+				return SR_ERR;
+			}
+		}
+
+		if (level_mask) {
+			if(num_stages_with_level_trigger >= NUM_ADVANCED_LEVEL_TRIGGERS) {
+				sr_err("Too many level triggers, only %d supported.",
+					NUM_ADVANCED_LEVEL_TRIGGERS);
+				return SR_ERR;
+			}
+
+			ols_set_advanced_level_trigger(
+				serial, num_stages_with_level_trigger, level_value, level_mask);
+			current_level_term = num_stages_with_level_trigger;
+			++num_stages_with_level_trigger;
+		}
+
+		if (edge_rising | edge_falling) {
+			if(num_stages_with_edge_trigger >= NUM_ADVANCED_EDGE_TRIGGERS) {
+				sr_err("Too many edge triggers, only %d supported.",
+					NUM_ADVANCED_EDGE_TRIGGERS);
+				return SR_ERR;
+			}
+
+			ols_set_advanced_edge_trigger(
+				serial, num_stages_with_edge_trigger, edge_rising, edge_falling, 0U);
+			current_edge_term = num_stages_with_edge_trigger;
+			++num_stages_with_edge_trigger;
+		}
+
+		gboolean is_last_stage = ols_stage == last_stage;
+
+		/* map stage indices to the input pairs and pair position in the summing unit: */
+		int sum_inputs[8] = {
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY,
+				OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY, OLS_ADV_TRIG_OP_ANY
+		};
+		#define A OLS_ADV_TRIG_OP_A
+		#define B OLS_ADV_TRIG_OP_B
+		static const int level_stage_to_input_pair[10] = {0, 0, 1, 2, 3, 4, 4, 5, 6, 7};
+		static const int level_stage_to_input_ab[10] =   {A, B, A, A, A, A, B, A, A, A};
+		static const int edge_stage_to_input_pair[2] =   {2, 6};
+		#undef A
+		#undef B
+
+		int level_summing_input = current_level_term >= 0
+			? level_stage_to_input_pair[current_level_term] : -1 ;
+		int edge_summing_input = current_edge_term >= 0
+			? edge_stage_to_input_pair[current_edge_term] : -1;
+
+		if(level_summing_input >= 0)
+			sum_inputs[level_summing_input] =
+				level_stage_to_input_ab[current_level_term];
+		if(edge_summing_input >= 0)
+			sum_inputs[edge_summing_input] = OLS_ADV_TRIG_OP_B;
+
+		/* If level and edge input end up in on the same input pair, and them together: */
+		if(level_summing_input >= 0 && level_summing_input == edge_summing_input)
+			sum_inputs[level_summing_input] = OLS_ADV_TRIG_OP_AND;
+
+		sr_spew(" Stage %d, lvl mask %.4x, edge %.4x, level term %d, "
+			"edge term %d -> "
+			"trigger sum %.4X %.4X %.4X %.4X %.4X %.4X %.4X %.4X",
+			ols_stage, level_mask, (edge_falling | edge_rising), current_level_term,
+			current_edge_term,
+			sum_inputs[0], sum_inputs[1], sum_inputs[2], sum_inputs[3],
+			sum_inputs[4], sum_inputs[5], sum_inputs[6], sum_inputs[7]);
+
+		RETURN_ON_ERROR(ols_set_advanced_trigger_sums_and_stages(
+			serial, ols_stage, sum_inputs, is_last_stage, 0));
+
+		++ols_stage;
+	}
+
+	*will_trigger = ols_stage > 0 ? TRUE : FALSE;
 	return SR_OK;
 }
