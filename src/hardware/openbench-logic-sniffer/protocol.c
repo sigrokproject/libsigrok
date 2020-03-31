@@ -20,7 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-
 struct ols_basic_trigger_desc {
 	uint32_t trigger_mask[NUM_BASIC_TRIGGER_STAGES];
 	uint32_t trigger_value[NUM_BASIC_TRIGGER_STAGES];
@@ -62,6 +61,14 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
 		return SR_ERR;
 
 	return SR_OK;
+}
+
+static int ols_send_longdata(struct sr_serial_dev_inst *serial,
+		uint8_t command, uint32_t value)
+{
+	uint8_t data[4];
+	WL32(data, value);
+	return send_longcommand(serial, command, data);
 }
 
 SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial)
@@ -535,19 +542,11 @@ static int ols_set_basic_trigger_stage(const struct ols_basic_trigger_desc *trig
 	uint8_t cmd, arg[4];
 
 	cmd = CMD_SET_BASIC_TRIGGER_MASK0 + stage * 4;
-	arg[0] = trigger_desc->trigger_mask[stage] & 0xff;
-	arg[1] = (trigger_desc->trigger_mask[stage] >> 8) & 0xff;
-	arg[2] = (trigger_desc->trigger_mask[stage] >> 16) & 0xff;
-	arg[3] = (trigger_desc->trigger_mask[stage] >> 24) & 0xff;
-	if (send_longcommand(serial, cmd, arg) != SR_OK)
+	if (ols_send_longdata(serial, cmd, trigger_desc->trigger_mask[stage]) != SR_OK)
 		return SR_ERR;
 
 	cmd = CMD_SET_BASIC_TRIGGER_VALUE0 + stage * 4;
-	arg[0] = trigger_desc->trigger_value[stage] & 0xff;
-	arg[1] = (trigger_desc->trigger_value[stage] >> 8) & 0xff;
-	arg[2] = (trigger_desc->trigger_value[stage] >> 16) & 0xff;
-	arg[3] = (trigger_desc->trigger_value[stage] >> 24) & 0xff;
-	if (send_longcommand(serial, cmd, arg) != SR_OK)
+	if (ols_send_longdata(serial, cmd, trigger_desc->trigger_value[stage]) != SR_OK)
 		return SR_ERR;
 
 	cmd = CMD_SET_BASIC_TRIGGER_CONFIG0 + stage * 4;
@@ -564,7 +563,6 @@ static int ols_set_basic_trigger_stage(const struct ols_basic_trigger_desc *trig
 
 SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	int ret;
-	uint8_t arg[4];
 
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial = sdi->conn;
@@ -620,11 +618,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	/* Samplerate. */
 	sr_dbg("Setting samplerate to %" PRIu64 "Hz (divider %u)",
 			devc->cur_samplerate, devc->cur_samplerate_divider);
-	arg[0] = devc->cur_samplerate_divider & 0xff;
-	arg[1] = (devc->cur_samplerate_divider & 0xff00) >> 8;
-	arg[2] = (devc->cur_samplerate_divider & 0xff0000) >> 16;
-	arg[3] = 0x00;
-	if (send_longcommand(serial, CMD_SET_DIVIDER, arg) != SR_OK)
+	if (ols_send_longdata(serial, CMD_SET_DIVIDER, devc->cur_samplerate_divider & 0x00FFFFFF) != SR_OK)
 		return SR_ERR;
 
 	/* Send sample limit and pre/post-trigger capture ratio. */
@@ -632,23 +626,14 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 			(readcount - 1) * 4, (delaycount - 1) * 4);
 
 	if (devc->max_samples > 256 * 1024) {
-		arg[0] = ((readcount - 1) & 0xff);
-		arg[1] = ((readcount - 1) & 0xff00) >> 8;
-		arg[2] = ((readcount - 1) & 0xff0000) >> 16;
-		arg[3] = ((readcount - 1) & 0xff000000) >> 24;
-		if (send_longcommand(serial, CMD_CAPTURE_READCOUNT, arg) != SR_OK)
+		if (ols_send_longdata(serial, CMD_CAPTURE_READCOUNT, readcount-1) != SR_OK)
 			return SR_ERR;
-		arg[0] = ((delaycount - 1) & 0xff);
-		arg[1] = ((delaycount - 1) & 0xff00) >> 8;
-		arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
-		arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
-		if (send_longcommand(serial, CMD_CAPTURE_DELAYCOUNT, arg) != SR_OK)
+		if (ols_send_longdata(serial, CMD_CAPTURE_DELAYCOUNT, delaycount-1) != SR_OK)
 			return SR_ERR;
 	} else {
-		arg[0] = ((readcount - 1) & 0xff);
-		arg[1] = ((readcount - 1) & 0xff00) >> 8;
-		arg[2] = ((delaycount - 1) & 0xff);
-		arg[3] = ((delaycount - 1) & 0xff00) >> 8;
+		uint8_t arg[4];
+		WL16(&arg[0], readcount-1);
+		WL16(&arg[2], delaycount-1);
 		if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
 			return SR_ERR;
 	}
@@ -673,10 +658,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 
 	/* RLE mode is always zero, for now. */
 
-	arg[0] = devc->capture_flags & 0xff;
-	arg[1] = devc->capture_flags >> 8;
-	arg[2] = arg[3] = 0x00;
-	if (send_longcommand(serial, CMD_SET_FLAGS, arg) != SR_OK)
+	if (ols_send_longdata(serial, CMD_SET_FLAGS, devc->capture_flags) != SR_OK)
 		return SR_ERR;
 
 	return SR_OK;
