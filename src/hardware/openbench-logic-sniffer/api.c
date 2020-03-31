@@ -37,6 +37,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_SET,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SWAP | SR_CONF_SET,
 	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
@@ -45,6 +46,11 @@ static const uint32_t devopts[] = {
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
+};
+
+static const char* external_clock_edges[] = {
+	"rising", // positive edge
+	"falling" // negative edge
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -223,6 +229,10 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_RLE:
 		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
 		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_string(external_clock_edges[
+			devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK ? 1 : 0]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -264,6 +274,16 @@ static int config_set(uint32_t key, GVariant *data,
 		} else {
 			sr_info("Disabled external clock.");
 			devc->capture_flags &= ~CAPTURE_FLAG_CLOCK_EXTERNAL;
+		}
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		stropt = g_variant_get_string(data, NULL);
+		if (!strcmp(stropt, external_clock_edges[1])) {
+			sr_info("Triggering on falling edge of external clock.");
+			devc->capture_flags |= CAPTURE_FLAG_INVERT_EXT_CLOCK;
+		} else {
+			sr_info("Triggering on rising edge of external clock.");
+			devc->capture_flags &= ~CAPTURE_FLAG_INVERT_EXT_CLOCK;
 		}
 		break;
 	case SR_CONF_PATTERN_MODE:
@@ -324,6 +344,9 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = std_gvar_array_str(ARRAY_AND_SIZE(external_clock_edges));
 		break;
 	case SR_CONF_PATTERN_MODE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
@@ -491,12 +514,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* Flag register. */
-	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
+	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s, %s clock%s",
 			devc->capture_flags & CAPTURE_FLAG_INTERNAL_TEST_MODE ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_EXTERNAL_TEST_MODE ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_RLE ? "on" : "off",
 			devc->capture_flags & CAPTURE_FLAG_NOISE_FILTER ? "on": "off",
-			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off");
+			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off",
+			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? "external" : "internal",
+			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? (devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK
+				? " on falling edge" : "on rising edge") : "");
 
 	/*
 	 * Enable/disable OLS channel groups in the flag register according
