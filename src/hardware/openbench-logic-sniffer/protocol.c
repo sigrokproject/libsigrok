@@ -322,13 +322,13 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 
 	if (samplerate > CLOCK_RATE) {
 		sr_info("Enabling demux mode.");
-		devc->flag_reg |= FLAG_DEMUX;
-		devc->flag_reg &= ~FLAG_FILTER;
+		devc->capture_flags |= CAPTURE_FLAG_DEMUX;
+		devc->capture_flags &= ~CAPTURE_FLAG_NOISE_FILTER;
 		devc->cur_samplerate_divider = (CLOCK_RATE * 2 / samplerate) - 1;
 	} else {
 		sr_info("Disabling demux mode.");
-		devc->flag_reg &= ~FLAG_DEMUX;
-		devc->flag_reg |= FLAG_FILTER;
+		devc->capture_flags &= ~CAPTURE_FLAG_DEMUX;
+		devc->capture_flags |= CAPTURE_FLAG_NOISE_FILTER;
 		devc->cur_samplerate_divider = (CLOCK_RATE / samplerate) - 1;
 	}
 
@@ -336,7 +336,7 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 	 * from the requested.
 	 */
 	devc->cur_samplerate = CLOCK_RATE / (devc->cur_samplerate_divider + 1);
-	if (devc->flag_reg & FLAG_DEMUX)
+	if (devc->capture_flags & CAPTURE_FLAG_DEMUX)
 		devc->cur_samplerate *= 2;
 	if (devc->cur_samplerate != samplerate)
 		sr_info("Can't match samplerate %" PRIu64 ", using %"
@@ -390,7 +390,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 
 	num_ols_changrp = 0;
 	for (i = 0x20; i > 0x02; i >>= 1) {
-		if ((devc->flag_reg & i) == 0) {
+		if ((devc->capture_flags & i) == 0) {
 			num_ols_changrp++;
 		}
 	}
@@ -416,7 +416,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			sample = devc->sample[0] | (devc->sample[1] << 8) \
 					| (devc->sample[2] << 16) | (devc->sample[3] << 24);
 			sr_dbg("Received sample 0x%.*x.", devc->num_bytes * 2, sample);
-			if (devc->flag_reg & FLAG_RLE) {
+			if (devc->capture_flags & CAPTURE_FLAG_RLE) {
 				/*
 				 * In RLE mode the high bit of the sample is the
 				 * "count" flag, meaning this sample is the number
@@ -452,14 +452,14 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				j = 0;
 				memset(devc->tmp_sample, 0, 4);
 				for (i = 0; i < 4; i++) {
-					if (((devc->flag_reg >> 2) & (1 << i)) == 0) {
+					if (((devc->capture_flags >> 2) & (1 << i)) == 0) {
 						/*
 						 * This channel group was
 						 * enabled, copy from received
 						 * sample.
 						 */
 						devc->tmp_sample[i] = devc->sample[j++];
-					} else if (devc->flag_reg & FLAG_DEMUX && (i > 2)) {
+					} else if (devc->capture_flags & CAPTURE_FLAG_DEMUX && (i > 2)) {
 						/* group 2 & 3 get added to 0 & 1 */
 						devc->tmp_sample[i - 2] = devc->sample[j++];
 					}

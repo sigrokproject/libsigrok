@@ -50,20 +50,20 @@
 /* Trigger config */
 #define TRIGGER_START              (1 << 3)
 
-/* Bitmasks for CMD_FLAGS */
+/* Bitmasks for capture_flags */
 /* 12-13 unused, 14-15 RLE mode (we hardcode mode 0). */
-#define FLAG_INTERNAL_TEST_MODE    (1 << 11)
-#define FLAG_EXTERNAL_TEST_MODE    (1 << 10)
-#define FLAG_SWAP_CHANNELS         (1 << 9)
-#define FLAG_RLE                   (1 << 8)
-#define FLAG_SLOPE_FALLING         (1 << 7)
-#define FLAG_CLOCK_EXTERNAL        (1 << 6)
-#define FLAG_CHANNELGROUP_4        (1 << 5)
-#define FLAG_CHANNELGROUP_3        (1 << 4)
-#define FLAG_CHANNELGROUP_2        (1 << 3)
-#define FLAG_CHANNELGROUP_1        (1 << 2)
-#define FLAG_FILTER                (1 << 1)
-#define FLAG_DEMUX                 (1 << 0)
+#define CAPTURE_FLAG_INTERNAL_TEST_MODE (1 << 11)
+#define CAPTURE_FLAG_EXTERNAL_TEST_MODE (1 << 10)
+#define CAPTURE_FLAG_SWAP_CHANNELS      (1 << 9)
+#define CAPTURE_FLAG_RLE                (1 << 8)
+#define CAPTURE_FLAG_SLOPE_FALLING      (1 << 7)
+#define CAPTURE_FLAG_CLOCK_EXTERNAL     (1 << 6)
+#define CAPTURE_FLAG_CHANNELGROUP_4     (1 << 5)
+#define CAPTURE_FLAG_CHANNELGROUP_3     (1 << 4)
+#define CAPTURE_FLAG_CHANNELGROUP_2     (1 << 3)
+#define CAPTURE_FLAG_CHANNELGROUP_1     (1 << 2)
+#define CAPTURE_FLAG_NOISE_FILTER       (1 << 1)
+#define CAPTURE_FLAG_DEMUX              (1 << 0)
 
 /* Capture context magic numbers */
 #define OLS_NO_TRIGGER (-1)
@@ -85,7 +85,7 @@ struct dev_context {
 	uint32_t trigger_mask[NUM_TRIGGER_STAGES];
 	uint32_t trigger_value[NUM_TRIGGER_STAGES];
 	int num_stages;
-	uint16_t flag_reg;
+	uint16_t capture_flags;
 
 	unsigned int num_transfers;
 	unsigned int num_samples;
