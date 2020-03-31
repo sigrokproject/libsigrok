@@ -36,7 +36,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_EXTERNAL_CLOCK | SR_CONF_SET,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SWAP | SR_CONF_SET,
@@ -228,6 +228,10 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_RLE:
 		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		*data = g_variant_new_boolean(
+			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? TRUE : FALSE);
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_string(external_clock_edges[
