@@ -67,11 +67,13 @@
 #define FLAG_DEMUX                 (1 << 0)
 
 struct dev_context {
+	/* constant device properties: */
 	int max_channels;
 	uint32_t max_samples;
 	uint32_t max_samplerate;
 	uint32_t protocol_version;
 
+	/* acquisition-related properties: */
 	uint64_t cur_samplerate;
 	uint32_t cur_samplerate_divider;
 	uint64_t limit_samples;
