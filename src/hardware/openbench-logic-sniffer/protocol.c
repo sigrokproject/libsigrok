@@ -509,25 +509,19 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 
 			/* Send the trigger. */
 			std_session_send_df_trigger(sdi);
-
-			/* Send post-trigger samples. */
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = (devc->num_samples * 4) - (devc->trigger_at_smpl * 4);
-			logic.unitsize = 4;
-			logic.data = devc->raw_sample_buf + devc->trigger_at_smpl * 4 +
-				(devc->limit_samples - devc->num_samples) * 4;
-			sr_session_send(sdi, &packet);
-		} else {
-			/* no trigger was used */
-			packet.type = SR_DF_LOGIC;
-			packet.payload = &logic;
-			logic.length = devc->num_samples * 4;
-			logic.unitsize = 4;
-			logic.data = devc->raw_sample_buf +
-				(devc->limit_samples - devc->num_samples) * 4;
-			sr_session_send(sdi, &packet);
 		}
+
+		/* Send post-trigger / all captured samples. */
+		int num_pre_trigger_samples = devc->trigger_at_smpl == OLS_NO_TRIGGER
+			? 0 : devc->trigger_at_smpl;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = (devc->num_samples - num_pre_trigger_samples) * 4;
+		logic.unitsize = 4;
+		logic.data = devc->raw_sample_buf + (num_pre_trigger_samples +
+			devc->limit_samples - devc->num_samples) * 4;
+		sr_session_send(sdi, &packet);
+
 		g_free(devc->raw_sample_buf);
 
 		serial_flush(serial);
