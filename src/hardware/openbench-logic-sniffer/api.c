@@ -213,15 +213,15 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_PATTERN_MODE:
-		if (devc->flag_reg & FLAG_EXTERNAL_TEST_MODE)
+		if (devc->capture_flags & CAPTURE_FLAG_EXTERNAL_TEST_MODE)
 			*data = g_variant_new_string(STR_PATTERN_EXTERNAL);
-		else if (devc->flag_reg & FLAG_INTERNAL_TEST_MODE)
+		else if (devc->capture_flags & CAPTURE_FLAG_INTERNAL_TEST_MODE)
 			*data = g_variant_new_string(STR_PATTERN_INTERNAL);
 		else
 			*data = g_variant_new_string(STR_PATTERN_NONE);
 		break;
 	case SR_CONF_RLE:
-		*data = g_variant_new_boolean(devc->flag_reg & FLAG_RLE ? TRUE : FALSE);
+		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -260,10 +260,10 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_EXTERNAL_CLOCK:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling external clock.");
-			devc->flag_reg |= FLAG_CLOCK_EXTERNAL;
+			devc->capture_flags |= CAPTURE_FLAG_CLOCK_EXTERNAL;
 		} else {
 			sr_info("Disabled external clock.");
-			devc->flag_reg &= ~FLAG_CLOCK_EXTERNAL;
+			devc->capture_flags &= ~CAPTURE_FLAG_CLOCK_EXTERNAL;
 		}
 		break;
 	case SR_CONF_PATTERN_MODE:
@@ -273,33 +273,33 @@ static int config_set(uint32_t key, GVariant *data,
 			flag = 0x0000;
 		} else if (!strcmp(stropt, STR_PATTERN_INTERNAL)) {
 			sr_info("Enabling internal test mode.");
-			flag = FLAG_INTERNAL_TEST_MODE;
+			flag = CAPTURE_FLAG_INTERNAL_TEST_MODE;
 		} else if (!strcmp(stropt, STR_PATTERN_EXTERNAL)) {
 			sr_info("Enabling external test mode.");
-			flag = FLAG_EXTERNAL_TEST_MODE;
+			flag = CAPTURE_FLAG_EXTERNAL_TEST_MODE;
 		} else {
 			return SR_ERR;
 		}
-		devc->flag_reg &= ~FLAG_INTERNAL_TEST_MODE;
-		devc->flag_reg &= ~FLAG_EXTERNAL_TEST_MODE;
-		devc->flag_reg |= flag;
+		devc->capture_flags &= ~CAPTURE_FLAG_INTERNAL_TEST_MODE;
+		devc->capture_flags &= ~CAPTURE_FLAG_EXTERNAL_TEST_MODE;
+		devc->capture_flags |= flag;
 		break;
 	case SR_CONF_SWAP:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling channel swapping.");
-			devc->flag_reg |= FLAG_SWAP_CHANNELS;
+			devc->capture_flags |= CAPTURE_FLAG_SWAP_CHANNELS;
 		} else {
 			sr_info("Disabling channel swapping.");
-			devc->flag_reg &= ~FLAG_SWAP_CHANNELS;
+			devc->capture_flags &= ~CAPTURE_FLAG_SWAP_CHANNELS;
 		}
 		break;
 	case SR_CONF_RLE:
 		if (g_variant_get_boolean(data)) {
 			sr_info("Enabling RLE.");
-			devc->flag_reg |= FLAG_RLE;
+			devc->capture_flags |= CAPTURE_FLAG_RLE;
 		} else {
 			sr_info("Disabling RLE.");
-			devc->flag_reg &= ~FLAG_RLE;
+			devc->capture_flags &= ~CAPTURE_FLAG_RLE;
 		}
 		break;
 	default:
@@ -332,7 +332,7 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		if (devc->flag_reg & FLAG_RLE)
+		if (devc->capture_flags & CAPTURE_FLAG_RLE)
 			return SR_ERR_NA;
 		if (devc->max_samples == 0)
 			/* Device didn't specify sample memory size in metadata. */
@@ -492,18 +492,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Flag register. */
 	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s",
-			devc->flag_reg & FLAG_INTERNAL_TEST_MODE ? "on": "off",
-			devc->flag_reg & FLAG_EXTERNAL_TEST_MODE ? "on": "off",
-			devc->flag_reg & FLAG_RLE ? "on" : "off",
-			devc->flag_reg & FLAG_FILTER ? "on": "off",
-			devc->flag_reg & FLAG_DEMUX ? "on" : "off");
+			devc->capture_flags & CAPTURE_FLAG_INTERNAL_TEST_MODE ? "on": "off",
+			devc->capture_flags & CAPTURE_FLAG_EXTERNAL_TEST_MODE ? "on": "off",
+			devc->capture_flags & CAPTURE_FLAG_RLE ? "on" : "off",
+			devc->capture_flags & CAPTURE_FLAG_NOISE_FILTER ? "on": "off",
+			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off");
 	/*
 	 * Enable/disable OLS channel groups in the flag register according
 	 * to the channel mask. 1 means "disable channel".
 	 */
-	devc->flag_reg |= ~(ols_changrp_mask << 2) & 0x3c;
-	arg[0] = devc->flag_reg & 0xff;
-	arg[1] = devc->flag_reg >> 8;
+	devc->capture_flags |= ~(ols_changrp_mask << 2) & 0x3c;
+	arg[0] = devc->capture_flags & 0xff;
+	arg[1] = devc->capture_flags >> 8;
 	arg[2] = arg[3] = 0x00;
 	if (send_longcommand(serial, CMD_SET_FLAGS, arg) != SR_OK)
 		return SR_ERR;
