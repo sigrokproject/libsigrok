@@ -501,7 +501,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			 * A trigger was set up, so we need to tell the frontend
 			 * about it.
 			 */
-			if (devc->trigger_at_smpl > 0) {
+			if (devc->trigger_at_smpl > 0
+					&& (unsigned int)devc->trigger_at_smpl <= devc->num_samples) {
 				/* There are pre-trigger samples, send those first. */
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
@@ -516,14 +517,16 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 
 		/* Send post-trigger / all captured samples. */
-		int num_pre_trigger_samples = devc->trigger_at_smpl == OLS_NO_TRIGGER
-			? 0 : devc->trigger_at_smpl;
-		packet.type = SR_DF_LOGIC;
-		packet.payload = &logic;
-		logic.length = (devc->num_samples - num_pre_trigger_samples) * 4;
-		logic.unitsize = 4;
-		logic.data = devc->raw_sample_buf + num_pre_trigger_samples *4;
-		sr_session_send(sdi, &packet);
+		unsigned int num_pre_trigger_samples = devc->trigger_at_smpl == OLS_NO_TRIGGER
+			? 0 : MIN((unsigned int)devc->trigger_at_smpl, devc->num_samples);
+		if (devc->num_samples > num_pre_trigger_samples) {
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.length = (devc->num_samples - num_pre_trigger_samples) * 4;
+			logic.unitsize = 4;
+			logic.data = devc->raw_sample_buf + num_pre_trigger_samples *4;
+			sr_session_send(sdi, &packet);
+		}
 
 		g_free(devc->raw_sample_buf);
 		devc->raw_sample_buf = 0;
