@@ -71,13 +71,26 @@ static int ols_send_longdata(struct sr_serial_dev_inst *serial,
 
 SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial)
 {
-	unsigned int i;
+	int i, ret;
+	char dummy[16];
 
-	for (i = 0; i < 5; i++) {
+	/* Drain all data so that the remote side is surely listening. */
+	while ((ret = serial_read_nonblocking(serial, &dummy, 16)) > 0);
+	if (ret != SR_OK)
+		return ret;
+
+	for (i = 0; i < 5; i++)
 		RETURN_ON_ERROR(send_shortcommand(serial, CMD_RESET));
-	}
 
-	return SR_OK;
+	/*
+	 * Remove all stray output that arrived in between.
+	 * This is likely to happen when RLE is being used because
+	 * the device seems to return a bit more data than we request.
+	 */
+	int delay_ms = serial_timeout(serial, 16);
+	while ((ret = serial_read_blocking(serial, &dummy, 16, delay_ms)) > 0);
+
+	return ret;
 }
 
 /* Configures the channel mask based on which channels are enabled. */
@@ -348,13 +361,11 @@ SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct sr_serial_dev_inst *serial;
+	struct sr_serial_dev_inst *serial = sdi->conn;
 
-	serial = sdi->conn;
 	ols_send_reset(serial);
 
 	serial_source_remove(sdi->session, serial);
-
 	std_session_send_df_end(sdi);
 }
 
