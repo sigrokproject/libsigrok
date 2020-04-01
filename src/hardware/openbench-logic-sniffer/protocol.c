@@ -550,7 +550,7 @@ static int ols_set_basic_trigger_stage(
 	cmd = CMD_SET_BASIC_TRIGGER_CONFIG0 + stage * 4;
 	arg[0] = arg[1] = arg[3] = 0x00;
 	arg[2] = stage;
-	if (stage == trigger_desc->num_stages)
+	if (stage == trigger_desc->num_stages - 1)
 		/* Last stage, fire when this one matches. */
 		arg[3] |= TRIGGER_START;
 	RETURN_ON_ERROR(send_longcommand(serial, cmd, arg));
@@ -596,13 +596,14 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
 		devc->trigger_at_smpl = (readcount - delaycount) * 4 - basic_trigger_desc.num_stages;
-		for (int i = 0; i <= basic_trigger_desc.num_stages; i++) {
+		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
 			sr_dbg("Setting OLS stage %d trigger.", i);
 			RETURN_ON_ERROR(ols_set_basic_trigger_stage(&basic_trigger_desc, serial, i));
 		}
 	} else {
 		/* No triggers configured, force trigger on first stage. */
 		sr_dbg("Forcing trigger at stage 0.");
+		basic_trigger_desc.num_stages = 1;
 		RETURN_ON_ERROR(ols_set_basic_trigger_stage(&basic_trigger_desc, serial, 0));
 		delaycount = readcount;
 	}
