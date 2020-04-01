@@ -462,9 +462,6 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 						 * sample.
 						 */
 						tmp_sample[i] = devc->sample[j++];
-					} else if (devc->capture_flags & CAPTURE_FLAG_DEMUX && (i > 2)) {
-						/* group 2 & 3 get added to 0 & 1 */
-						tmp_sample[i - 2] = devc->sample[j++];
 					}
 				}
 				memcpy(devc->sample, tmp_sample, 4);
