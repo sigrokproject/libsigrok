@@ -154,6 +154,23 @@ static GString *gen_header(const struct sr_output *o)
 	return header;
 }
 
+static void maybe_add_trigger(struct context *ctx, GString *out) {
+	if (ctx->trigger <= -1)
+		return;
+
+	int offset = ctx->trigger;
+
+	/*
+	 * Sample data lines have one character per bit and
+	 * no separator between bytes. Align trigger marker
+	 * to this layout.
+	 */
+	g_string_append_printf(out, "%*sT:%*s^ %d\n", ctx->max_namelen - 1, "", offset, "", offset);
+
+	ctx->trigger = -1;
+}
+
+
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
 {
@@ -162,7 +179,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	const struct sr_config *src;
 	GSList *l;
 	struct context *ctx;
-	int idx, offset, curbit, prevbit;
+	int idx, curbit, prevbit;
 	uint64_t i, j;
 	gchar *p, c;
 	size_t charidx;
@@ -214,16 +231,8 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					/* Flush line buffers. */
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
-					if (j == ctx->num_enabled_channels - 1 && ctx->trigger > -1) {
-						/*
-						 * Sample data lines have one character per bit and
-						 * no separator between bytes. Align trigger marker
-						 * to this layout.
-						 */
-						offset = ctx->trigger;
-						g_string_append_printf(*out, "%*sT:%*s^ %d\n", ctx->max_namelen - 1, "", offset, "", ctx->trigger);
-						ctx->trigger = -1;
-					}
+					if (j == ctx->num_enabled_channels - 1)
+						maybe_add_trigger(ctx, *out);
 					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]->str);
 				}
 			}
@@ -241,6 +250,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				g_string_append_len(*out, ctx->lines[i]->str, ctx->lines[i]->len);
 				g_string_append_c(*out, '\n');
 			}
+			maybe_add_trigger(ctx, *out);
 		}
 		break;
 	}
