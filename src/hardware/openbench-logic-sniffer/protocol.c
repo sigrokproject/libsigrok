@@ -463,7 +463,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					}
 				}
 				memcpy(devc->sample, devc->tmp_sample, 4);
-				sr_spew("Expanded sample: 0x%.8x.", sample);
+				sr_spew("Expanded sample: 0x%.2hhx%.2hhx%.2hhx%.2hhx ",
+					devc->sample[3], devc->sample[2], devc->sample[1], devc->sample[0]);
 			}
 
 			/*
