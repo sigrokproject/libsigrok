@@ -43,7 +43,8 @@ struct context {
 	int trigger;
 	uint64_t samplerate;
 	int *channel_index;
-	char **channel_names;
+	GString **channel_names;
+	int max_namelen;
 	char **line_values;
 	uint8_t *prev_sample;
 	gboolean header_done;
@@ -58,7 +59,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	unsigned int i, j;
+	unsigned int i, j, max_namelen;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -88,6 +89,18 @@ static int init(struct sr_output *o, GHashTable *options)
 	ctx->lines = g_malloc(sizeof(GString *) * ctx->num_enabled_channels);
 	ctx->prev_sample = g_malloc(g_slist_length(o->sdi->channels));
 
+	max_namelen = 0;
+	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+		ch = l->data;
+		if (ch->type != SR_CHANNEL_LOGIC)
+			continue;
+		if (!ch->enabled)
+			continue;
+
+		max_namelen = MAX(max_namelen, strlen(ch->name));
+	}
+	ctx->max_namelen = max_namelen;
+
 	j = 0;
 	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
 		ch = l->data;
@@ -95,10 +108,14 @@ static int init(struct sr_output *o, GHashTable *options)
 			continue;
 		if (!ch->enabled)
 			continue;
+
 		ctx->channel_index[j] = ch->index;
-		ctx->channel_names[j] = ch->name;
+		ctx->channel_names[j] = g_string_sized_new(16);
+		g_string_printf(ctx->channel_names[j], "%*s%s", (int)(max_namelen - strlen(ch->name)), "", ch->name);
+
 		ctx->lines[j] = g_string_sized_new(80);
-		g_string_printf(ctx->lines[j], "%s:", ch->name);
+		g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]->str);
+
 		j++;
 	}
 
@@ -204,10 +221,10 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 						 * to this layout.
 						 */
 						offset = ctx->trigger;
-						g_string_append_printf(*out, "T:%*s^ %d\n", offset, "", ctx->trigger);
+						g_string_append_printf(*out, "%*sT:%*s^ %d\n", ctx->max_namelen - 1, "", offset, "", ctx->trigger);
 						ctx->trigger = -1;
 					}
-					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]);
+					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]->str);
 				}
 			}
 			if (ctx->spl_cnt == ctx->spl)
@@ -244,9 +261,11 @@ static int cleanup(struct sr_output *o)
 
 	g_free(ctx->channel_index);
 	g_free(ctx->prev_sample);
-	g_free(ctx->channel_names);
-	for (i = 0; i < ctx->num_enabled_channels; i++)
+	for (i = 0; i < ctx->num_enabled_channels; i++) {
+		g_string_free(ctx->channel_names[i], TRUE);
 		g_string_free(ctx->lines[i], TRUE);
+	}
+	g_free(ctx->channel_names);
 	g_free(ctx->lines);
 	g_free((gpointer)ctx->charset);
 	g_free(ctx);
