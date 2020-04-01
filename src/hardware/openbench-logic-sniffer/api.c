@@ -368,10 +368,10 @@ static int config_list(uint32_t key, GVariant **data,
 		 * Channel groups are turned off if no channels in that group are
 		 * enabled, making more room for samples for the enabled group.
 		*/
-		ols_channel_mask(sdi);
+		uint32_t channel_mask = ols_channel_mask(sdi);
 		num_ols_changrp = 0;
 		for (i = 0; i < 4; i++) {
-			if (devc->channel_mask & (0xff << (i * 8)))
+			if (channel_mask & (0xff << (i * 8)))
 				num_ols_changrp++;
 		}
 
@@ -385,163 +385,18 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int set_basic_trigger(const struct sr_dev_inst *sdi, int stage)
-{
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
-	uint8_t cmd, arg[4];
-
-	devc = sdi->priv;
-	serial = sdi->conn;
-
-	cmd = CMD_SET_BASIC_TRIGGER_MASK0 + stage * 4;
-	arg[0] = devc->trigger_mask[stage] & 0xff;
-	arg[1] = (devc->trigger_mask[stage] >> 8) & 0xff;
-	arg[2] = (devc->trigger_mask[stage] >> 16) & 0xff;
-	arg[3] = (devc->trigger_mask[stage] >> 24) & 0xff;
-	if (send_longcommand(serial, cmd, arg) != SR_OK)
-		return SR_ERR;
-
-	cmd = CMD_SET_BASIC_TRIGGER_VALUE0 + stage * 4;
-	arg[0] = devc->trigger_value[stage] & 0xff;
-	arg[1] = (devc->trigger_value[stage] >> 8) & 0xff;
-	arg[2] = (devc->trigger_value[stage] >> 16) & 0xff;
-	arg[3] = (devc->trigger_value[stage] >> 24) & 0xff;
-	if (send_longcommand(serial, cmd, arg) != SR_OK)
-		return SR_ERR;
-
-	cmd = CMD_SET_BASIC_TRIGGER_CONFIG0 + stage * 4;
-	arg[0] = arg[1] = arg[3] = 0x00;
-	arg[2] = stage;
-	if (stage == devc->num_stages)
-		/* Last stage, fire when this one matches. */
-		arg[3] |= TRIGGER_START;
-	if (send_longcommand(serial, cmd, arg) != SR_OK)
-		return SR_ERR;
-
-	return SR_OK;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
+	int ret;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	uint32_t samplecount, readcount, delaycount;
-	uint8_t ols_changrp_mask, arg[4];
-	int num_ols_changrp;
-	int ret, i;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	ols_channel_mask(sdi);
-
-	num_ols_changrp = 0;
-	ols_changrp_mask = 0;
-	for (i = 0; i < 4; i++) {
-		if (devc->channel_mask & (0xff << (i * 8))) {
-			ols_changrp_mask |= (1 << i);
-			num_ols_changrp++;
-		}
-	}
-
-	/*
-	 * Limit readcount to prevent reading past the end of the hardware
-	 * buffer. Rather read too many samples than too few.
-	 */
-	samplecount = MIN(devc->max_samples / num_ols_changrp, devc->limit_samples);
-	readcount = (samplecount + 3) / 4;
-
-	/* Basic triggers. */
-	if (ols_convert_trigger(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
-		return SR_ERR;
-	}
-	if (devc->num_stages > 0) {
-		/*
-		 * According to http://mygizmos.org/ols/Logic-Sniffer-FPGA-Spec.pdf
-		 * reset command must be send prior each arm command
-		 */
-		sr_dbg("Send reset command before trigger configure");
-		if (ols_send_reset(serial) != SR_OK)
-			return SR_ERR;
-
-		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		devc->trigger_at_smpl = (readcount - delaycount) * 4 - devc->num_stages;
-		for (i = 0; i <= devc->num_stages; i++) {
-			sr_dbg("Setting OLS stage %d trigger.", i);
-			if ((ret = set_basic_trigger(sdi, i)) != SR_OK)
-				return ret;
-		}
-	} else {
-		/* No triggers configured, force trigger on first stage. */
-		sr_dbg("Forcing trigger at stage 0.");
-		if ((ret = set_basic_trigger(sdi, 0)) != SR_OK)
-			return ret;
-		delaycount = readcount;
-	}
-
-	/* Samplerate. */
-	sr_dbg("Setting samplerate to %" PRIu64 "Hz (divider %u)",
-			devc->cur_samplerate, devc->cur_samplerate_divider);
-	arg[0] = devc->cur_samplerate_divider & 0xff;
-	arg[1] = (devc->cur_samplerate_divider & 0xff00) >> 8;
-	arg[2] = (devc->cur_samplerate_divider & 0xff0000) >> 16;
-	arg[3] = 0x00;
-	if (send_longcommand(serial, CMD_SET_DIVIDER, arg) != SR_OK)
-		return SR_ERR;
-
-	/* Send sample limit and pre/post-trigger capture ratio. */
-	sr_dbg("Setting sample limit %d, trigger point at %d",
-			(readcount - 1) * 4, (delaycount - 1) * 4);
-
-	if (devc->max_samples > 256 * 1024) {
-		arg[0] = ((readcount - 1) & 0xff);
-		arg[1] = ((readcount - 1) & 0xff00) >> 8;
-		arg[2] = ((readcount - 1) & 0xff0000) >> 16;
-		arg[3] = ((readcount - 1) & 0xff000000) >> 24;
-		if (send_longcommand(serial, CMD_CAPTURE_READCOUNT, arg) != SR_OK)
-			return SR_ERR;
-		arg[0] = ((delaycount - 1) & 0xff);
-		arg[1] = ((delaycount - 1) & 0xff00) >> 8;
-		arg[2] = ((delaycount - 1) & 0xff0000) >> 16;
-		arg[3] = ((delaycount - 1) & 0xff000000) >> 24;
-		if (send_longcommand(serial, CMD_CAPTURE_DELAYCOUNT, arg) != SR_OK)
-			return SR_ERR;
-	} else {
-		arg[0] = ((readcount - 1) & 0xff);
-		arg[1] = ((readcount - 1) & 0xff00) >> 8;
-		arg[2] = ((delaycount - 1) & 0xff);
-		arg[3] = ((delaycount - 1) & 0xff00) >> 8;
-		if (send_longcommand(serial, CMD_CAPTURE_SIZE, arg) != SR_OK)
-			return SR_ERR;
-	}
-
-	/* Flag register. */
-	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s, %s clock%s",
-			devc->capture_flags & CAPTURE_FLAG_INTERNAL_TEST_MODE ? "on": "off",
-			devc->capture_flags & CAPTURE_FLAG_EXTERNAL_TEST_MODE ? "on": "off",
-			devc->capture_flags & CAPTURE_FLAG_RLE ? "on" : "off",
-			devc->capture_flags & CAPTURE_FLAG_NOISE_FILTER ? "on": "off",
-			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off",
-			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? "external" : "internal",
-			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? (devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK
-				? " on falling edge" : "on rising edge") : "");
-
-	/*
-	 * Enable/disable OLS channel groups in the flag register according
-	 * to the channel mask. 1 means "disable channel".
-	 */
-	devc->capture_flags &= ~0x3c;
-	devc->capture_flags |= ~(ols_changrp_mask << 2) & 0x3c;
-
-	/* RLE mode is always zero, for now. */
-
-	arg[0] = devc->capture_flags & 0xff;
-	arg[1] = devc->capture_flags >> 8;
-	arg[2] = arg[3] = 0x00;
-	if (send_longcommand(serial, CMD_SET_FLAGS, arg) != SR_OK)
-		return SR_ERR;
+	ret = ols_prepare_acquisition(sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Start acquisition on the device. */
 	if (send_shortcommand(serial, CMD_ARM_BASIC_TRIGGER) != SR_OK)
