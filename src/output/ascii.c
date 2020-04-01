@@ -39,7 +39,6 @@
 struct context {
 	unsigned int num_enabled_channels;
 	int spl;
-	int bit_cnt;
 	int spl_cnt;
 	int trigger;
 	uint64_t samplerate;
