@@ -412,10 +412,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* If the device stops sending for longer than it takes to send a byte,
 	 * that means it's finished. But wait at least 100 ms to be safe.
 	 */
-	serial_source_add(sdi->session, serial, G_IO_IN, 100,
+	return serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			ols_receive_data, (struct sr_dev_inst *)sdi);
-
-	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
