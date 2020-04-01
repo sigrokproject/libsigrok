@@ -456,7 +456,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				 * the number of channels.
 				 */
 				j = 0;
-				memset(devc->tmp_sample, 0, 4);
+				uint8_t tmp_sample[4] = {0,0,0,0};
 				for (i = 0; i < 4; i++) {
 					if (((devc->capture_flags >> 2) & (1 << i)) == 0) {
 						/*
@@ -464,13 +464,13 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 						 * enabled, copy from received
 						 * sample.
 						 */
-						devc->tmp_sample[i] = devc->sample[j++];
+						tmp_sample[i] = devc->sample[j++];
 					} else if (devc->capture_flags & CAPTURE_FLAG_DEMUX && (i > 2)) {
 						/* group 2 & 3 get added to 0 & 1 */
-						devc->tmp_sample[i - 2] = devc->sample[j++];
+						tmp_sample[i - 2] = devc->sample[j++];
 					}
 				}
-				memcpy(devc->sample, devc->tmp_sample, 4);
+				memcpy(devc->sample, tmp_sample, 4);
 				sr_spew("Expanded sample: 0x%.2hhx%.2hhx%.2hhx%.2hhx ",
 					devc->sample[3], devc->sample[2], devc->sample[1], devc->sample[0]);
 			}
