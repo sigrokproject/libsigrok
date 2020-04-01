@@ -366,7 +366,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	uint32_t sample;
-	int num_changroups, offset, j;
+	int num_changroups, j;
 	unsigned int i;
 	unsigned char byte;
 
@@ -435,12 +435,6 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					return TRUE;
 				}
 			}
-			devc->num_samples += devc->rle_count + 1;
-			if (devc->num_samples > devc->limit_samples) {
-				/* Save us from overrunning the buffer. */
-				devc->rle_count -= devc->num_samples - devc->limit_samples;
-				devc->num_samples = devc->limit_samples;
-			}
 
 			if (num_changroups < 4) {
 				/*
@@ -469,16 +463,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					devc->sample[3], devc->sample[2], devc->sample[1], devc->sample[0]);
 			}
 
-			/*
-			 * the OLS sends its sample buffer backwards.
-			 * store it in reverse order here, so we can dump
-			 * this on the session bus later.
-			 */
-			offset = (devc->limit_samples - devc->num_samples) * 4;
-			for (i = 0; i <= devc->rle_count; i++) {
-				memcpy(devc->raw_sample_buf + offset + (i * 4),
-				       devc->sample, 4);
-			}
+			unsigned int samples_to_write = devc->rle_count + 1;
+			for (i = 0; i < samples_to_write; i++)
+				memcpy(devc->raw_sample_buf + (devc->num_samples + i) * 4, devc->sample, 4);
+
+			devc->num_samples += samples_to_write;
+
 			memset(devc->sample, 0, 4);
 			devc->num_bytes = 0;
 			devc->rle_count = 0;
@@ -492,6 +482,18 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		sr_dbg("Received %d bytes, %d samples, %d decompressed samples.",
 				devc->cnt_bytes, devc->cnt_samples,
 				devc->cnt_samples_rle);
+
+		/*
+		 * The OLS sends its sample buffer backwards.
+		 * Flip it back before sending it on the session bus.
+		 */
+		for(i = 0; i < devc->num_samples/2; i++) {
+			uint8_t temp[4];
+			memcpy(temp, &devc->raw_sample_buf[4*i], 4);
+			memmove(&devc->raw_sample_buf[4*i], &devc->raw_sample_buf[4*(devc->num_samples-i-1)], 4);
+			memcpy(&devc->raw_sample_buf[4*(devc->num_samples-i-1)], temp, 4);
+		}
+
 		if (devc->trigger_at_smpl != OLS_NO_TRIGGER) {
 			/*
 			 * A trigger was set up, so we need to tell the frontend
