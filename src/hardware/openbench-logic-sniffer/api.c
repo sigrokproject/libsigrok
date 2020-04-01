@@ -360,8 +360,6 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		if (devc->capture_flags & CAPTURE_FLAG_RLE)
-			return SR_ERR_NA;
 		if (devc->max_samples == 0)
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
