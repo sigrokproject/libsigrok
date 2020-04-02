@@ -114,16 +114,15 @@ struct dev_context {
 	int trigger_at_smpl;
 	uint16_t capture_flags;
 
-	unsigned int num_samples;
-	int num_bytes;
-	int cnt_bytes;
-	int cnt_samples;
-	int cnt_samples_rle;
+	unsigned int cnt_rx_bytes; /* number of bytes received */
+	unsigned int raw_sample_size; /* valid bytes in sample[4] */
+	unsigned char raw_sample[4]; /* raw sample, assembled from received bytes */
+	unsigned int cnt_rx_raw_samples; /* number of raw samples received */
 
 	unsigned int rle_count;
-	unsigned char sample[4];
-	unsigned char *raw_sample_buf;
-	unsigned int raw_sample_buf_size;
+	unsigned char *sample_buf;
+	unsigned int sample_buf_size;
+	unsigned int cnt_samples; /* number of final samples in sample_buf */
 };
 
 SR_PRIV extern const char *ols_channel_names[];
