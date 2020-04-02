@@ -593,11 +593,12 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	}
 
 	/*
-	 * Limit readcount to prevent reading past the end of the hardware
-	 * buffer. Rather read too many samples than too few.
+	 * Limit the number of samples to what the hardware can do.
+	 * The sample count is always a multiple of four.
 	 */
-	uint32_t samplecount = MIN(devc->max_samples / num_changroups, devc->limit_samples);
-	uint32_t readcount = (samplecount + 3) / 4;
+	devc->limit_samples =
+		(MIN(devc->max_samples / num_changroups, devc->limit_samples) + 3) / 4 * 4;
+	uint32_t readcount = devc->limit_samples / 4;
 	uint32_t delaycount;
 
 	/* Basic triggers. */
