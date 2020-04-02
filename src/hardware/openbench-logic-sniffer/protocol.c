@@ -543,6 +543,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 
 		g_free(devc->sample_buf);
 		devc->sample_buf = 0;
+		devc->sample_buf_size = 0;
 
 		serial_flush(serial);
 		abort_acquisition(sdi);
