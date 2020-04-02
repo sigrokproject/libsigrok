@@ -112,6 +112,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 	int trigger_at_smpl;
+	int trigger_rle_at_smpl_from_end;
 	uint16_t capture_flags;
 
 	unsigned int cnt_rx_bytes; /* number of bytes received */
