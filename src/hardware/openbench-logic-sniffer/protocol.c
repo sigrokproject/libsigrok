@@ -379,7 +379,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	uint32_t sample;
 	int num_bytes_read;
-	unsigned int i, j, num_changroups;
+	unsigned int num_changroups;
 	gboolean received_a_byte;
 
 	(void)fd;
@@ -394,7 +394,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	num_changroups = 0;
-	for (i = 0x20; i > 0x02; i >>= 1) {
+	for (uint16_t i = 0x20; i > 0x02; i >>= 1) {
 		if ((devc->capture_flags & i) == 0) {
 			num_changroups++;
 		}
@@ -431,8 +431,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				if (devc->raw_sample[devc->raw_sample_size - 1] & 0x80) {
 					/* Clear the high bit. */
 					sample &= ~(0x80 << (devc->raw_sample_size - 1) * 8);
-					devc->rle_count = sample;
-					sr_dbg("RLE count: %u.", devc->rle_count);
+					devc->rle_count += sample;
+					sr_dbg("RLE count: %" PRIu64, devc->rle_count);
 					devc->raw_sample_size = 0;
 
 					if (devc->trigger_at_smpl != OLS_NO_TRIGGER
@@ -458,9 +458,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				 * expecting a full 32-bit sample, based on
 				 * the number of channels.
 				 */
-				j = 0;
+				unsigned int j = 0;
 				uint8_t tmp_sample[4] = {0,0,0,0};
-				for (i = 0; i < 4; i++) {
+				for (unsigned int i = 0; i < 4; i++) {
 					if (((devc->capture_flags >> 2) & (1 << i)) == 0) {
 						/*
 						 * This channel group was
@@ -476,11 +476,11 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					devc->raw_sample[0]);
 			}
 
-			unsigned int samples_to_write = devc->rle_count + 1;
-			unsigned int new_sample_buf_size =
+			uint64_t samples_to_write = devc->rle_count + 1;
+			uint64_t new_sample_buf_size =
 				4 * MAX(devc->limit_samples, devc->cnt_samples + samples_to_write);
 			if (devc->sample_buf_size < new_sample_buf_size) {
-				unsigned int old_size = devc->sample_buf_size;
+				uint64_t old_size = devc->sample_buf_size;
 				new_sample_buf_size *= 2;
 				devc->sample_buf = g_try_realloc(devc->sample_buf, new_sample_buf_size);
 				devc->sample_buf_size = new_sample_buf_size;
@@ -500,7 +500,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				&& (unsigned int)devc->trigger_at_smpl == devc->cnt_rx_raw_samples)
 					devc->trigger_rle_at_smpl_from_end = devc->cnt_samples;
 
-			for (i = 0; i < samples_to_write; i++)
+			for (uint64_t i = 0; i < samples_to_write; i++)
 				memcpy(devc->sample_buf + (devc->cnt_samples + i) * 4, devc->raw_sample,
 					4);
 
@@ -524,7 +524,8 @@ process_and_forward:
 		 * we've acquired all the samples we asked for -- we're done.
 		 * Send the (properly-ordered) buffer to the frontend.
 		 */
-		sr_dbg("Received %d bytes, %d raw samples, %d decompressed samples.",
+		sr_dbg(
+				"Received %d bytes, %d raw samples, %" PRIu64 " decompressed samples.",
 				devc->cnt_rx_bytes, devc->cnt_rx_raw_samples,
 				devc->cnt_samples);
 
@@ -543,7 +544,7 @@ process_and_forward:
 		 * The OLS sends its sample buffer backwards.
 		 * Flip it back before sending it on the session bus.
 		 */
-		for(i = 0; i < devc->cnt_samples/2; i++) {
+		for(uint64_t i = 0; i < devc->cnt_samples/2; i++) {
 			uint8_t temp[4];
 			memcpy(temp, &devc->sample_buf[4*i], 4);
 			memmove(&devc->sample_buf[4*i],
@@ -726,7 +727,16 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	devc->capture_flags &= ~0x3c;
 	devc->capture_flags |= ~(changroup_mask << 2) & 0x3c;
 
-	/* RLE mode is always zero, for now. */
+	/*
+	 * Demon Core supports RLE mode 3. In this mode, an arbitrary number of
+	 * consecutive RLE messages can occur. The value is only sent whenever
+	 * it changes. In contrast, mode 0 repeats the value after every RLE
+	 * message, even if it didn't change.
+	 */
+	if (devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE)
+		devc->capture_flags |= CAPTURE_FLAG_RLEMODE0 | CAPTURE_FLAG_RLEMODE1;
+	else
+		devc->capture_flags &= ~(CAPTURE_FLAG_RLEMODE0 | CAPTURE_FLAG_RLEMODE1);
 
 	RETURN_ON_ERROR(ols_send_longdata(serial, CMD_SET_FLAGS, devc->capture_flags));
 
