@@ -305,7 +305,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/* Prefill actual states */
+	g_mutex_lock(&devc->rw_mutex);
 	ret = rdtech_dps_read_holding_registers(modbus, REG_PROTECT, 3, registers);
+	g_mutex_unlock(&devc->rw_mutex);
 	if (ret != SR_OK)
 		return ret;
 	devc->actual_ovp_state = RB16(registers + 0) == STATE_OVP;
