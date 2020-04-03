@@ -140,11 +140,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_modbus_dev_inst *modbus = sdi->conn;
-
-	if (sr_modbus_open(modbus) < 0)
-		return SR_ERR;
-
 	rdtech_dps_set_reg(sdi, REG_LOCK, 1);
 
 	return SR_OK;
