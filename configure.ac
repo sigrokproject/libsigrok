@@ -444,7 +444,7 @@ AS_IF([test "x$HAVE_PYMOD_NUMPY" != xyes],
 	[SR_APPEND([sr_python_missing], [', '], [numpy])])
 
 # The Python bindings use SWIG to generate code.
-AC_CHECK_PROGS([SWIG], [swig swig3.0 swig2.0])
+AC_CHECK_PROGS([SWIG], [swig swig4.0 swig3.0 swig2.0])
 AS_IF([test "x$SWIG" != x],
     AC_MSG_CHECKING([for $SWIG version])
     [SWIG_VERSION=`$SWIG -version 2>&1 | sed -n 's/SWIG Version //p'`]
