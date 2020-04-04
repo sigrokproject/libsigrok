@@ -94,10 +94,18 @@ VECTOR(std::shared_ptr<sigrok::HardwareDevice>, HardwareDevice)
   "java.util.Map<JKey, JValue>"
 
 %typemap(javain,
+/* SWIG 4.0.0 changed the std::map wrappers in an incompatible way. */
+#if SWIG_VERSION >= 0x040000
+    pre="  $javaclassname temp$javainput = new $javaclassname();
+    for (java.util.Map.Entry<JKey, JValue> entry : $javainput.entrySet())
+      temp$javainput.put(entry.getKey(), entry.getValue());",
+    pgcppname="temp$javainput")
+#else
     pre="  $javaclassname temp$javainput = new $javaclassname();
     for (java.util.Map.Entry<JKey, JValue> entry : $javainput.entrySet())
       temp$javainput.set(entry.getKey(), entry.getValue());",
     pgcppname="temp$javainput")
+#endif
   std::map< CKey, CValue > "$javaclassname.getCPtr(temp$javainput)"
 
 %typemap(javaout) std::map< CKey, CValue > {
