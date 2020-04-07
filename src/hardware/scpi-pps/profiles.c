@@ -1037,6 +1037,53 @@ static const struct scpi_command rs_hmc8043_cmd[] = {
 	ALL_ZERO
 };
 
+static const uint32_t rs_hmp4040_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t rs_hmp4040_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec rs_hmp4040_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_group_spec rs_hmp4040_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
+	{ "4", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
+};
+
+static const struct scpi_command rs_hmp4040_cmd[] = {
+	{ SCPI_CMD_SELECT_CHANNEL, "INST:NSEL %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE, "VOLT:PROT:TRIP?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV %.6f" },
+	ALL_ZERO
+};
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
 	{ "Agilent", "N5763A", SCPI_DIALECT_UNKNOWN, 0,
@@ -1349,6 +1396,19 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
+	
+	/* Rohde & Schwarz HAMEG HMP4040 */
+	{ "HAMEG", "HMP4040", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(rs_hmp4040_devopts),
+		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
+		ARRAY_AND_SIZE(rs_hmp4040_ch),
+		ARRAY_AND_SIZE(rs_hmp4040_cg),
+		rs_hmp4040_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	
 };
 
 SR_PRIV unsigned int num_pps_profiles = ARRAY_SIZE(pps_profiles);
