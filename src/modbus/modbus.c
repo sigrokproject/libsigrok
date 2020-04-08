@@ -51,13 +51,14 @@ static struct sr_dev_inst *sr_modbus_scan_resource(const char *resource,
 		return NULL;
 	};
 
-	if ((sdi = probe_device(modbus)))
-		return sdi;
+	sdi = probe_device(modbus);
 
 	sr_modbus_close(modbus);
-	sr_modbus_free(modbus);
 
-	return NULL;
+	if(!sdi)
+		sr_modbus_free(modbus);
+
+	return sdi;
 }
 
 /**
