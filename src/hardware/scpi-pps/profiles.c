@@ -1064,7 +1064,7 @@ static const struct channel_group_spec rs_hmp4040_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP, SR_MQFLAG_DC },
 	{ "2", CH_IDX(1), PPS_OVP, SR_MQFLAG_DC },
 	{ "3", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
-	{ "4", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
+	{ "4", CH_IDX(3), PPS_OVP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command rs_hmp4040_cmd[] = {
