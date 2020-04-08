@@ -467,7 +467,7 @@ static int config_get(uint32_t key, GVariant **data,
 		    cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE)) {
 		if(!cg) {
 			/* can only query STAT:QUES:INST:ISUMx register with explicit channel mentioned */
-			sr_err("can only query regulatio or OTP-active for provided channel group!");
+			sr_err("can only query regulation or OTP-active for provided channel group!");
 			return SR_ERR_NA;
 		}
 		ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
