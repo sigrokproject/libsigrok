@@ -505,6 +505,9 @@ SR_PRIV int analyzer_add_triggers(const struct sr_dev_inst *sdi)
 	if (!(trigger = sr_session_trigger_get(sdi->session)))
 		return SR_OK;
 
+	memset(g_trigger_status, 0, sizeof(g_trigger_status));
+	g_trigger_edge = 0;
+
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
 		for (m = stage->matches; m; m = m->next) {
