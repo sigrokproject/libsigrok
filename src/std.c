@@ -195,6 +195,30 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int send_df_without_payload(const struct sr_dev_inst *sdi, uint16_t packet_type)
+{
+	const char *prefix;
+	int ret;
+	struct sr_datafeed_packet packet;
+
+	if (!sdi) {
+		sr_err("%s: Invalid argument.", __func__);
+		return SR_ERR_ARG;
+	}
+
+	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
+
+	packet.type = packet_type;
+	packet.payload = NULL;
+
+	if ((ret = sr_session_send(sdi, &packet)) < 0) {
+		sr_err("%s: Failed to send packet of type %d: %d.", prefix, packet_type, ret);
+		return ret;
+	}
+
+	return SR_OK;
+}
+
 /**
  * Standard API helper for sending an SR_DF_END packet.
  *
@@ -209,26 +233,7 @@ SR_PRIV int std_session_send_df_header(const struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
 {
-	const char *prefix;
-	int ret;
-	struct sr_datafeed_packet packet;
-
-	if (!sdi) {
-		sr_err("%s: Invalid argument.", __func__);
-		return SR_ERR_ARG;
-	}
-
-	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
-
-	packet.type = SR_DF_END;
-	packet.payload = NULL;
-
-	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%s: Failed to send SR_DF_END packet: %d.", prefix, ret);
-		return ret;
-	}
-
-	return SR_OK;
+	return send_df_without_payload(sdi, SR_DF_END);
 }
 
 /**
@@ -244,33 +249,13 @@ SR_PRIV int std_session_send_df_end(const struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_session_send_df_trigger(const struct sr_dev_inst *sdi)
 {
-	const char *prefix;
-	int ret;
-	struct sr_datafeed_packet packet;
-
-	if (!sdi) {
-		sr_err("%s: Invalid argument.", __func__);
-		return SR_ERR_ARG;
-	}
-
-	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
-
-	packet.type = SR_DF_TRIGGER;
-	packet.payload = NULL;
-
-	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%s: Failed to send SR_DF_TRIGGER packet: %d.", prefix, ret);
-		return ret;
-	}
-
-	return SR_OK;
+	return send_df_without_payload(sdi, SR_DF_TRIGGER);
 }
 
 /**
  * Standard API helper for sending an SR_DF_FRAME_BEGIN packet.
  *
- * This function can be used to simplify most drivers'
- * frame handling.
+ * This function can be used to simplify most drivers' frame handling.
  *
  * @param[in] sdi The device instance to use. Must not be NULL.
  *
@@ -280,33 +265,13 @@ SR_PRIV int std_session_send_df_trigger(const struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
 {
-	const char *prefix;
-	int ret;
-	struct sr_datafeed_packet packet;
-
-	if (!sdi) {
-		sr_err("%s: Invalid argument.", __func__);
-		return SR_ERR_ARG;
-	}
-
-	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
-
-	packet.type = SR_DF_FRAME_BEGIN;
-	packet.payload = NULL;
-
-	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%s: Failed to send SR_DF_FRAME_BEGIN packet: %d.", prefix, ret);
-		return ret;
-	}
-
-	return SR_OK;
+	return send_df_without_payload(sdi, SR_DF_FRAME_BEGIN);
 }
 
 /**
  * Standard API helper for sending an SR_DF_FRAME_END packet.
  *
- * This function can be used to simplify most drivers'
- * frame handling.
+ * This function can be used to simplify most drivers' frame handling.
  *
  * @param[in] sdi The device instance to use. Must not be NULL.
  *
@@ -316,26 +281,7 @@ SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
  */
 SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
 {
-	const char *prefix;
-	int ret;
-	struct sr_datafeed_packet packet;
-
-	if (!sdi) {
-		sr_err("%s: Invalid argument.", __func__);
-		return SR_ERR_ARG;
-	}
-
-	prefix = (sdi->driver) ? sdi->driver->name : "unknown";
-
-	packet.type = SR_DF_FRAME_END;
-	packet.payload = NULL;
-
-	if ((ret = sr_session_send(sdi, &packet)) < 0) {
-		sr_err("%s: Failed to send SR_DF_FRAME_END packet: %d.", prefix, ret);
-		return ret;
-	}
-
-	return SR_OK;
+	return send_df_without_payload(sdi, SR_DF_FRAME_END);
 }
 
 #ifdef HAVE_SERIAL_COMM
