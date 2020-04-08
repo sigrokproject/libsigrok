@@ -704,7 +704,6 @@ static void send_chunk(struct sr_dev_inst *sdi, unsigned char *buf,
  */
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
-	struct sr_datafeed_packet packet;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int num_samples, pre;
@@ -782,8 +781,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->framebuf = NULL;
 
 		/* Mark the end of this frame. */
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 
 		if (devc->limit_frames && ++devc->num_frames >= devc->limit_frames) {
 			/* Terminate session */
@@ -797,7 +795,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 static int handle_event(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
-	struct sr_datafeed_packet packet;
 	struct timeval tv;
 	struct sr_dev_driver *di;
 	struct dev_context *devc;
@@ -889,8 +886,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 		devc->dev_state = FETCH_DATA;
 
 		/* Tell the frontend a new frame is on the way. */
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_begin(sdi);
 		break;
 	case CAPTURE_READY_9BIT:
 		/* TODO */

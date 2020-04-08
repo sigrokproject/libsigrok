@@ -1402,10 +1402,8 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 * Send "frame begin" packet upon reception of data for the
 	 * first enabled channel.
 	 */
-	if (devc->current_channel == devc->enabled_channels) {
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
-	}
+	if (devc->current_channel == devc->enabled_channels)
+		std_session_send_df_frame_begin(sdi);
 
 	/*
 	 * Pass on the received data of the channel(s).
@@ -1526,8 +1524,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 */
 	hmo_cleanup_logic_data(devc);
 
-	packet.type = SR_DF_FRAME_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_end(sdi);
 
 	/*
 	 * End of frame was reached. Stop acquisition after the specified

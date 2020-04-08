@@ -224,9 +224,7 @@ SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 	sr_dbg("Current limit %f", current_limit);
 
 	/* Begin frame. */
-	packet.type = SR_DF_FRAME_BEGIN;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_begin(sdi);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
 
@@ -257,9 +255,7 @@ SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 	g_slist_free(l);
 
 	/* End frame. */
-	packet.type = SR_DF_FRAME_END;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_end(sdi);
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 	if (sr_sw_limits_check(&devc->limits))

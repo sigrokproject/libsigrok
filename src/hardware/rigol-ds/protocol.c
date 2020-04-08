@@ -666,8 +666,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				return TRUE;
 			if (len == -1) {
 				sr_err("Error while reading block header, aborting capture.");
-				packet.type = SR_DF_FRAME_END;
-				sr_session_send(sdi, &packet);
+				std_session_send_df_frame_end(sdi);
 				sr_dev_acquisition_stop(sdi);
 				return TRUE;
 			}
@@ -699,8 +698,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	if (len == -1) {
 		sr_err("Error while reading block data, aborting capture.");
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
@@ -761,8 +759,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* End acquisition when data for all channels is acquired. */
 		if (!sr_scpi_read_complete(scpi) && !devc->channel_entry->next) {
 			sr_err("Read should have been completed");
-			packet.type = SR_DF_FRAME_END;
-			sr_session_send(sdi, &packet);
+			std_session_send_df_frame_end(sdi);
 			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		}
@@ -796,8 +793,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		rigol_ds_channel_start(sdi);
 	} else {
 		/* Done with this frame. */
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 
 		if (++devc->num_frames == devc->limit_frames) {
 			/* Last frame, stop capture. */
@@ -809,8 +805,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			rigol_ds_capture_start(sdi);
 
 			/* Start of next frame. */
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
+			std_session_send_df_frame_begin(sdi);
 		}
 	}
 

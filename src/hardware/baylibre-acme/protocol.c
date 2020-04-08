@@ -703,7 +703,7 @@ SR_PRIV void bl_acme_close_channel(struct sr_channel *ch)
 SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 {
 	uint64_t nrexpiration;
-	struct sr_datafeed_packet packet, framep;
+	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
@@ -759,8 +759,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 	 * accuracy.
 	 */
 	for (i = 0; i < nrexpiration; i++) {
-		framep.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &framep);
+		std_session_send_df_frame_begin(sdi);
 
 		/*
 		 * Due to different units used in each channel we're sending
@@ -788,8 +787,7 @@ SR_PRIV int bl_acme_receive_data(int fd, int revents, void *cb_data)
 			sr_session_send(sdi, &packet);
 		}
 
-		framep.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &framep);
+		std_session_send_df_frame_end(sdi);
 	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);

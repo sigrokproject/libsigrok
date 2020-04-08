@@ -338,9 +338,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	g_strfreev(tokens);
 
 	/* Begin frame. */
-	packet.type = SR_DF_FRAME_BEGIN;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_begin(sdi);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
 
@@ -373,9 +371,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	g_slist_free(l);
 
 	/* End frame. */
-	packet.type = SR_DF_FRAME_END;
-	packet.payload = NULL;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_end(sdi);
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }

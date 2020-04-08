@@ -415,7 +415,6 @@ static int read_subframe(const struct sr_dev_inst *sdi, uint8_t *buf)
 
 SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 {
-	struct sr_datafeed_packet packet = { .type = SR_DF_FRAME_BEGIN };
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	uint8_t state, buf[1000];
@@ -443,7 +442,7 @@ SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 		return FALSE;
 	}
 
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_begin(sdi);
 
 	if (devc->channel) {
 		while (read_subframe(sdi, buf)) {
@@ -456,8 +455,7 @@ SR_PRIV int hung_chang_dso_2100_poll(int fd, int revents, void *cb_data)
 		}
 	}
 
-	packet.type = SR_DF_FRAME_END;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_end(sdi);
 
 	if (++devc->frame >= devc->frame_limit)
 		sr_dev_acquisition_stop(sdi);

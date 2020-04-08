@@ -166,7 +166,6 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
-	struct sr_datafeed_packet packet;
 	uint16_t registers[4];
 
 	(void)fd;
@@ -180,8 +179,7 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 
 	devc->expecting_registers = 0;
 	if (sr_modbus_read_holding_registers(modbus, -1, 4, registers) == SR_OK) {
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_begin(sdi);
 
 		maynuo_m97_session_send_value(sdi, sdi->channels->data,
 		                              RBFL(registers + 0),
@@ -190,8 +188,7 @@ SR_PRIV int maynuo_m97_receive_data(int fd, int revents, void *cb_data)
 		                              RBFL(registers + 2),
 		                              SR_MQ_CURRENT, SR_UNIT_AMPERE, 4);
 
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
 	}
 

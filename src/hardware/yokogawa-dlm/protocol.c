@@ -1018,7 +1018,6 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 	struct scope_state *model_state;
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	struct sr_datafeed_packet packet;
 	int chunk_len, num_bytes;
 	static GArray *data = NULL;
 
@@ -1065,10 +1064,8 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 	devc->data_pending = FALSE;
 
 	/* Signal the beginning of a new frame if this is the first channel. */
-	if (devc->current_channel == devc->enabled_channels) {
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
-	}
+	if (devc->current_channel == devc->enabled_channels)
+		std_session_send_df_frame_begin(sdi);
 
 	if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
 		sr_err("Encountered malformed block data header.");
@@ -1111,8 +1108,7 @@ SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
 	 * and set the next enabled channel. Then, request its data.
 	 */
 	if (!devc->current_channel->next) {
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 		devc->current_channel = devc->enabled_channels;
 
 		/*

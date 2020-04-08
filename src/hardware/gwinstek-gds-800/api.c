@@ -189,17 +189,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
 	if (devc->df_started) {
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
-
+		std_session_send_df_frame_end(sdi);
 		std_session_send_df_end(sdi);
-
 		devc->df_started = FALSE;
 	}
 

@@ -141,11 +141,8 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 				} else {
 					/* Start acquiring next frame. */
 					if (devc->df_started) {
-						packet.type = SR_DF_FRAME_END;
-						sr_session_send(sdi, &packet);
-
-						packet.type = SR_DF_FRAME_BEGIN;
-						sr_session_send(sdi, &packet);
+						std_session_send_df_frame_end(sdi);
+						std_session_send_df_frame_begin(sdi);
 					}
 
 					devc->cur_acq_frame++;
@@ -202,10 +199,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 
 		if (!devc->df_started) {
 			std_session_send_df_header(sdi);
-
-			packet.type = SR_DF_FRAME_BEGIN;
-			sr_session_send(sdi, &packet);
-
+			std_session_send_df_frame_begin(sdi);
 			devc->df_started = TRUE;
 		}
 		break;
@@ -271,11 +265,8 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			} else {
 				/* Start acquiring next frame. */
 				if (devc->df_started) {
-					packet.type = SR_DF_FRAME_END;
-					sr_session_send(sdi, &packet);
-
-					packet.type = SR_DF_FRAME_BEGIN;
-					sr_session_send(sdi, &packet);
+					std_session_send_df_frame_end(sdi);
+					std_session_send_df_frame_begin(sdi);
 				}
 				devc->cur_acq_frame++;
 				devc->state = START_ACQUISITION;

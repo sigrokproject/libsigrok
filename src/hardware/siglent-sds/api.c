@@ -799,7 +799,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	struct sr_datafeed_packet packet;
 	gboolean some_digital;
 	GSList *l, *d;
 
@@ -900,8 +899,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Start of first frame. */
-	packet.type = SR_DF_FRAME_BEGIN;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_begin(sdi);
 
 	return SR_OK;
 }

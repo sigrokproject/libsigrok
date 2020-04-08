@@ -31,7 +31,6 @@ static void send_frame_start(struct sr_dev_inst *sdi)
 	struct lcr_parse_info *info;
 	uint64_t freq;
 	const char *model;
-	struct sr_datafeed_packet packet;
 
 	devc = sdi->priv;
 	info = &devc->parse_info;
@@ -51,8 +50,7 @@ static void send_frame_start(struct sr_dev_inst *sdi)
 	}
 
 	/* Data is about to get sent. Start a new frame. */
-	packet.type = SR_DF_FRAME_BEGIN;
-	sr_session_send(sdi, &packet);
+	std_session_send_df_frame_begin(sdi);
 }
 
 static int handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)

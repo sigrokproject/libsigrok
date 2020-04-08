@@ -120,7 +120,6 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
-	struct sr_datafeed_packet packet;
 	uint16_t registers[8];
 	int ret;
 
@@ -143,8 +142,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 
 	if (ret == SR_OK) {
 		/* Send channel values */
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_begin(sdi);
 
 		send_value(sdi, sdi->channels->data,
 			RB16(registers + 0) / devc->voltage_multiplier,
@@ -158,8 +156,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 			RB16(registers + 2) / 100.0f,
 			SR_MQ_POWER, 0, SR_UNIT_WATT, 2);
 
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 
 		/* Check for state changes */
 		if (devc->actual_ovp_state != (RB16(registers + 5) == STATE_OVP)) {
