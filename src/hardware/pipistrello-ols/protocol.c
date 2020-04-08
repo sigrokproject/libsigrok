@@ -636,8 +636,7 @@ SR_PRIV int p_ols_receive_data(int fd, int revents, void *cb_data)
 			}
 
 			/* Send the trigger. */
-			packet.type = SR_DF_TRIGGER;
-			sr_session_send(sdi, &packet);
+			std_session_send_df_trigger(sdi);
 
 			/* Send post-trigger samples. */
 			packet.type = SR_DF_LOGIC;

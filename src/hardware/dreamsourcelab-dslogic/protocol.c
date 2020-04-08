@@ -776,7 +776,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		(DSLOGIC_ATOMIC_BYTES * channel_count);
 
 	gboolean packet_has_error = FALSE;
-	struct sr_datafeed_packet packet;
 	unsigned int num_samples;
 	int trigger_offset;
 
@@ -856,9 +855,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			devc->sent_samples += trigger_offset;
 			/* Trigger position. */
 			devc->trigger_pos = 0;
-			packet.type = SR_DF_TRIGGER;
-			packet.payload = NULL;
-			sr_session_send(sdi, &packet);
+			std_session_send_df_trigger(sdi);
 			/* Post trigger samples. */
 			num_samples -= trigger_offset;
 			send_data(sdi, devc->deinterleave_buffer

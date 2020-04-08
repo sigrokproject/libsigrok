@@ -338,8 +338,7 @@ SR_PRIV int ipdbg_la_receive_data(int fd, int revents, void *cb_data)
 		}
 
 		/* Send the trigger. */
-		packet.type = SR_DF_TRIGGER;
-		sr_session_send(cb_data, &packet);
+		std_session_send_df_trigger(cb_data);
 
 		/* Send post-trigger samples. */
 		packet.type = SR_DF_LOGIC;

@@ -122,10 +122,8 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 			 * through the capture ratio.
 			 */
 			if (devc->trigger_type != TRIGGER_TYPE_NONE &&
-					devc->pre_trigger_samples == 0) {
-				packet.type = SR_DF_TRIGGER;
-				sr_session_send(sdi, &packet);
-			}
+					devc->pre_trigger_samples == 0)
+				std_session_send_df_trigger(sdi);
 		}
 
 		for (; k >= 0; k--) {
@@ -164,8 +162,7 @@ static void process_sample_data(const struct sr_dev_inst *sdi)
 				logic.data = buffer;
 				sr_session_send(sdi, &packet);
 
-				packet.type = SR_DF_TRIGGER;
-				sr_session_send(sdi, &packet);
+				std_session_send_df_trigger(sdi);
 
 				n = 0;
 			}

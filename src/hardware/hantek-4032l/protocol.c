@@ -114,10 +114,6 @@ static void send_data(struct sr_dev_inst *sdi,
 		.type = SR_DF_LOGIC,
 		.payload = &logic
 	};
-	const struct sr_datafeed_packet trig = {
-		.type = SR_DF_TRIGGER,
-		.payload = NULL
-	};
 	size_t trigger_offset;
 
 	if (devc->trigger_pos >= devc->sent_samples &&
@@ -129,7 +125,7 @@ static void send_data(struct sr_dev_inst *sdi,
 			sr_session_send(sdi, &packet);
 
 		/* Send trigger position. */
-		sr_session_send(sdi, &trig);
+		std_session_send_df_trigger(sdi);
 
 		/* Send rest of data. */
 		logic.length = (sample_count - trigger_offset) * sizeof(uint32_t);

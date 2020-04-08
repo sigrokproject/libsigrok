@@ -1003,7 +1003,6 @@ static void LIBUSB_CALL recv_bulk_transfer(struct libusb_transfer *xfer)
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	struct sr_datafeed_packet packet;
 	uint32_t bytes_left, length;
 	uint16_t read_offset, trigger_offset;
 
@@ -1069,10 +1068,7 @@ static void LIBUSB_CALL recv_bulk_transfer(struct libusb_transfer *xfer)
 	}
 
 	/* Here comes the trigger. */
-	packet.type = SR_DF_TRIGGER;
-	packet.payload = NULL;
-
-	sr_session_send(sdi, &packet);
+	std_session_send_df_trigger(sdi);
 
 	/* Send post-trigger samples. */
 	while (bytes_left > 0) {

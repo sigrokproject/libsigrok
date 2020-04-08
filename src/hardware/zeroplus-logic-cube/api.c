@@ -583,12 +583,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			buf_offset += logic.length;
 		}
 
-		if (samples_read == trigger_offset) {
-			/* Send out trigger */
-			packet.type = SR_DF_TRIGGER;
-			packet.payload = NULL;
-			sr_session_send(sdi, &packet);
-		}
+		if (samples_read == trigger_offset)
+			std_session_send_df_trigger(sdi);
 
 		/* Send out data (or data after trigger) */
 		packet.type = SR_DF_LOGIC;

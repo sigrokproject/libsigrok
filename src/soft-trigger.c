@@ -175,7 +175,6 @@ static gboolean logic_check_match(struct soft_trigger_logic *stl,
 SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
 		uint8_t *buf, int len, int *pre_trigger_samples)
 {
-	struct sr_datafeed_packet packet;
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	GSList *l, *l_stage;
@@ -216,9 +215,7 @@ SR_PRIV int soft_trigger_logic_check(struct soft_trigger_logic *stl,
 				/* Fire trigger. */
 				offset = i / stl->unitsize;
 
-				packet.type = SR_DF_TRIGGER;
-				packet.payload = NULL;
-				sr_session_send(stl->sdi, &packet);
+				std_session_send_df_trigger(stl->sdi);
 				break;
 			}
 		} else if (stl->cur_stage > 0) {

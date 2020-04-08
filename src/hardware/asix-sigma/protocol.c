@@ -907,10 +907,8 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 		}
 
 		/* Only send trigger if explicitly enabled. */
-		if (devc->use_triggers) {
-			packet.type = SR_DF_TRIGGER;
-			sr_session_send(sdi, &packet);
-		}
+		if (devc->use_triggers)
+			std_session_send_df_trigger(sdi);
 	}
 
 	/*

@@ -396,12 +396,8 @@ static int read_subframe(const struct sr_dev_inst *sdi, uint8_t *buf)
 			if (interleave)
 				num *= 2;
 			if (!devc->step) {
-				struct sr_datafeed_packet packet = {
-					.type = SR_DF_TRIGGER
-				};
-
 				push_samples(sdi, buf, 6);
-				sr_session_send(sdi, &packet);
+				std_session_send_df_trigger(sdi);
 				buf += 6;
 				num -= 6;
 			}

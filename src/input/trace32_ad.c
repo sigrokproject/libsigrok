@@ -447,7 +447,6 @@ static void flush_output_buffer(struct sr_input *in)
 
 static void process_record_pi(struct sr_input *in, gsize start)
 {
-	struct sr_datafeed_packet packet;
 	struct context *inc;
 	uint64_t timestamp, next_timestamp;
 	uint32_t pod_data;
@@ -580,10 +579,7 @@ static void process_record_pi(struct sr_input *in, gsize start)
 	if (timestamp == inc->trigger_timestamp && !inc->trigger_sent) {
 		sr_dbg("Trigger @%lf s, record #%d.",
 			timestamp * TIMESTAMP_RESOLUTION, inc->cur_record);
-
-		packet.type = SR_DF_TRIGGER;
-		packet.payload = NULL;
-		sr_session_send(in->sdi, &packet);
+		std_session_send_df_trigger(in->sdi);
 		inc->trigger_sent = TRUE;
 	}
 
@@ -610,7 +606,6 @@ static void process_record_pi(struct sr_input *in, gsize start)
 
 static void process_record_iprobe(struct sr_input *in, gsize start)
 {
-	struct sr_datafeed_packet packet;
 	struct context *inc;
 	uint64_t timestamp, next_timestamp;
 	char single_payload[3];
@@ -633,10 +628,7 @@ static void process_record_iprobe(struct sr_input *in, gsize start)
 	if (timestamp == inc->trigger_timestamp && !inc->trigger_sent) {
 		sr_dbg("Trigger @%lf s, record #%d.",
 			timestamp * TIMESTAMP_RESOLUTION, inc->cur_record);
-
-		packet.type = SR_DF_TRIGGER;
-		packet.payload = NULL;
-		sr_session_send(in->sdi, &packet);
+		std_session_send_df_trigger(in->sdi);
 		inc->trigger_sent = TRUE;
 	}
 
