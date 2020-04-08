@@ -714,7 +714,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 	devc->spent_us += todo_us;
 
 	if (devc->limit_frames && devc->sent_frame_samples >= SAMPLES_PER_FRAME) {
-		std_session_send_frame_end(sdi);
+		std_session_send_df_frame_end(sdi);
 		devc->sent_frame_samples = 0;
 		devc->limit_frames--;
 		if (!devc->limit_frames) {
@@ -742,7 +742,7 @@ SR_PRIV int demo_prepare_data(int fd, int revents, void *cb_data)
 		sr_dev_acquisition_stop(sdi);
 	} else if (devc->limit_frames) {
 		if (devc->sent_frame_samples == 0)
-			std_session_send_frame_begin(sdi);
+			std_session_send_df_frame_begin(sdi);
 	}
 
 	return G_SOURCE_CONTINUE;

@@ -573,7 +573,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	if (devc->limit_frames > 0)
-		std_session_send_frame_begin(sdi);
+		std_session_send_df_frame_begin(sdi);
 
 	/* We use this timestamp to decide how many more samples to send. */
 	devc->start_us = g_get_monotonic_time();
@@ -591,7 +591,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	if (devc->limit_frames > 0)
-		std_session_send_frame_end(sdi);
+		std_session_send_df_frame_end(sdi);
 
 	std_session_send_df_end(sdi);
 

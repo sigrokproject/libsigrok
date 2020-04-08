@@ -98,7 +98,7 @@ static int handle_packet(struct sr_dev_inst *sdi, const uint8_t *pkt)
 		g_slist_free(analog.meaning->channels);
 	}
 	if (frame) {
-		std_session_send_frame_end(sdi);
+		std_session_send_df_frame_end(sdi);
 		sr_sw_limits_update_frames_read(&devc->limits, 1);
 	}
 

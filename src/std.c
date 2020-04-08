@@ -263,7 +263,7 @@ SR_PRIV int std_session_send_df_trigger(const struct sr_dev_inst *sdi)
  * @retval SR_ERR_ARG Invalid argument.
  * @retval other Other error.
  */
-SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
+SR_PRIV int std_session_send_df_frame_begin(const struct sr_dev_inst *sdi)
 {
 	return send_df_without_payload(sdi, SR_DF_FRAME_BEGIN);
 }
@@ -279,7 +279,7 @@ SR_PRIV int std_session_send_frame_begin(const struct sr_dev_inst *sdi)
  * @retval SR_ERR_ARG Invalid argument.
  * @retval other Other error.
  */
-SR_PRIV int std_session_send_frame_end(const struct sr_dev_inst *sdi)
+SR_PRIV int std_session_send_df_frame_end(const struct sr_dev_inst *sdi)
 {
 	return send_df_without_payload(sdi, SR_DF_FRAME_END);
 }
