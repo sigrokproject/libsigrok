@@ -1044,6 +1044,7 @@ static const uint32_t rs_hmp4040_devopts[] = {
 };
 
 static const uint32_t rs_hmp4040_devopts_cg[] = {
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
@@ -1051,6 +1052,8 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 	SR_CONF_CURRENT | SR_CONF_GET,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
 static const struct channel_spec rs_hmp4040_ch[] = {
@@ -1061,10 +1064,10 @@ static const struct channel_spec rs_hmp4040_ch[] = {
 };
 
 static const struct channel_group_spec rs_hmp4040_cg[] = {
-	{ "1", CH_IDX(0), PPS_OVP, SR_MQFLAG_DC },
-	{ "2", CH_IDX(1), PPS_OVP, SR_MQFLAG_DC },
-	{ "3", CH_IDX(2), PPS_OVP, SR_MQFLAG_DC },
-	{ "4", CH_IDX(3), PPS_OVP, SR_MQFLAG_DC },
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OTP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OTP, SR_MQFLAG_DC },
+	{ "3", CH_IDX(2), PPS_OVP | PPS_OTP, SR_MQFLAG_DC },
+	{ "4", CH_IDX(3), PPS_OVP | PPS_OTP, SR_MQFLAG_DC },
 };
 
 static const struct scpi_command rs_hmp4040_cmd[] = {
@@ -1078,9 +1081,11 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP?" },
 	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON" },
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF" },
+	{ SCPI_CMD_GET_OUTPUT_REGULATION, "STAT:QUES:INST:ISUM%s:COND?" },
 	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ACTIVE, "VOLT:PROT:TRIP?" },
 	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV?" },
 	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV %.6f" },
+	{ SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE, "STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
 };
 
@@ -1398,7 +1403,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 	
 	/* Rohde & Schwarz HAMEG HMP4040 */
-	{ "HAMEG", "HMP4040", SCPI_DIALECT_UNKNOWN, 0,
+	{ "HAMEG", "HMP4040", SCPI_DIALECT_HMP, 0,
 		ARRAY_AND_SIZE(rs_hmp4040_devopts),
 		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
 		ARRAY_AND_SIZE(rs_hmp4040_ch),
