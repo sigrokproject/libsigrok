@@ -1045,7 +1045,7 @@ static const uint32_t rs_hmp4040_devopts[] = {
 
 static const uint32_t rs_hmp4040_devopts_cg[] = {
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET, // we could SR_CONF_SET(VOLTage:PROTection:CLEar) but there is noc SCPI_CMD-define for that
 	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -1088,6 +1088,79 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	{ SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE, "STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
 };
+
+static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+	int ret;
+	int status;
+	char fmt[] = "STAT:QUES:INST:ISUM%s:COND?";
+	char cmd[sizeof(fmt) - 2 + 8]; // allow for max 8-char channel name
+	GVariant *data;
+	const struct channel_spec *ch_spec;
+	struct pps_hw_channel_state *ch_state;
+	struct pps_hw_channel_state cur_state = {};
+
+	/*
+	  STB? & STAT:QUES:INST:ISUM seems to be not functional
+	  atleast not in fw version 2.30
+	*/
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
+
+	for(unsigned int i = 0; i < devc->device->num_channels; i++) {
+		ch_spec = &devc->device->channels[i];
+		ch_state = &devc->hw_channel_state[i];
+		
+		snprintf(cmd, sizeof(cmd), fmt, ch_spec->name);
+		ret = sr_scpi_get_int(scpi, cmd, &status);
+		if (ret != SR_OK)
+			return ret;
+
+		cur_state.ovp = (status & (1 << 9)) ? TRUE : FALSE; // todo: why do i need this?
+		cur_state.otp = (status & (1 << 4)) ? TRUE : FALSE;
+		cur_state.regulation = status & 3;
+		// there is also a Fuse state in bit 10
+
+		if (memcmp(&cur_state, ch_state, sizeof(cur_state)) == 0)
+			continue;
+		
+		if(devc->cur_meta_data_source != i) {
+			devc->cur_meta_data_source = i;
+			sr_session_send_meta(sdi, SR_CONF_DATA_SOURCE,
+					     g_variant_new_string(ch_spec->name));
+		}
+
+		if(cur_state.ovp != ch_state->ovp)
+			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+					     g_variant_new_boolean(cur_state.ovp));
+
+		if(cur_state.ovp != ch_state->otp)
+			sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+					     g_variant_new_boolean(cur_state.otp));
+
+		if(cur_state.regulation != ch_state->regulation) {
+			if (cur_state.regulation & (1 << 0))
+				data = g_variant_new_string("CC");
+			else if (cur_state.regulation & (1 << 1))
+				data = g_variant_new_string("CV");
+			else {
+				sr_session_send_meta(sdi, SR_CONF_ENABLED,
+						     g_variant_new_boolean(FALSE));
+				data = g_variant_new_string("UR");
+			}
+			
+			sr_session_send_meta(sdi, SR_CONF_REGULATION,
+					     data);
+		}
+		
+		memcpy(ch_state, &cur_state, sizeof(cur_state));
+	}
+
+	return SR_OK;
+}
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
@@ -1411,7 +1484,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
-		.update_status = NULL,
+		rs_hmp_update_status,
 	},
 	
 };

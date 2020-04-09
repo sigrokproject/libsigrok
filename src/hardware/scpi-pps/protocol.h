@@ -139,6 +139,13 @@ struct pps_channel {
 	int digits;
 };
 
+struct pps_hw_channel_state {
+	gboolean ovp;
+	gboolean ocp;
+	gboolean otp;
+	int regulation;
+};
+
 struct pps_channel_instance {
 	enum sr_mq mq;
 	int command;
@@ -164,6 +171,9 @@ struct dev_context {
 
 	struct sr_channel *cur_acquisition_channel;
 	struct sr_sw_limits limits;
+
+	unsigned int cur_meta_data_source;
+	struct pps_hw_channel_state *hw_channel_state;
 };
 
 SR_PRIV extern unsigned int num_pps_profiles;
