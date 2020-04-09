@@ -89,7 +89,7 @@ static int packet_parse(const uint8_t *buf, int idx, struct center_info *info)
 
 	/* Byte 7+8/9+10/11+12/13+14: channel T1/T2/T3/T4 temperature. */
 	for (i = 0; i < NUM_CHANNELS; i++) {
-		temp_i16 = RL16S(&buf[7 + 2 * i]);
+		temp_i16 = RB16S(&buf[7 + 2 * i]);
 		info->temp[i] = (float)temp_i16;
 	}
 
