@@ -674,7 +674,7 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
-	struct pps_channel* pps_ch;
+	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
 	int i;
 	const char *s[16];
@@ -722,10 +722,10 @@ static int config_list(uint32_t key, GVariant **data,
 		 * specification for use in series or parallel mode.
 		 */
 		ch = cg->channels->data;
-		pps_ch = ch->priv;
+		pch = ch->priv;
 		if (!devc || !devc->device)
 			return SR_ERR_ARG;
-		ch_spec = &(devc->device->channels[pps_ch->hw_output_idx]);
+		ch_spec = &(devc->device->channels[pch->hw_output_idx]);
 
 		switch (key) {
 		case SR_CONF_DEVICE_OPTIONS:
