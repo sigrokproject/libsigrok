@@ -101,7 +101,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->device = device;
 	sr_sw_limits_init(&devc->limits);
-	devc->cur_meta_data_source = device->num_channels; // deliberately invalid index
+	devc->cur_meta_data_source = device->num_channels; /* seting this deliberately to an invalid index */
 	devc->hw_channel_state = g_malloc0(device->num_channels * sizeof(struct pps_hw_channel_state));
 	sdi->priv = devc;
 
@@ -395,7 +395,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		if(devc->device->dialect == SCPI_DIALECT_HMP) {
-			/* OVP is always enabled  */
+			/* OVP is always enabled */
 			*data = g_variant_new_boolean(1);
 			return 0;
 		}
@@ -432,7 +432,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if(devc->device->dialect == SCPI_DIALECT_HMP) {
-			/* OTP is always enabled  */
+			/* OTP is always enabled */
 			*data = g_variant_new_boolean(1);
 			return 0;
 		}
@@ -531,7 +531,7 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new_string("UR");
 		}
 		if (devc->device->dialect == SCPI_DIALECT_HMP) {
-			/* Evaluate Condition Status Register from a HMP series */
+			/* Evaluate Condition Status Register from a HMP series device. */
 			s = g_variant_get_string(*data, NULL);
 			sr_atoi(s, &reg);
 			g_variant_unref(*data);

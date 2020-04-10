@@ -1045,7 +1045,8 @@ static const uint32_t rs_hmp4040_devopts[] = {
 
 static const uint32_t rs_hmp4040_devopts_cg[] = {
 	SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED | SR_CONF_GET,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET, // we could SR_CONF_SET(VOLTage:PROTection:CLEar) but there is noc SCPI_CMD-define for that
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET, /* we could have SR_CONF_SET (via VOLT:PROT:CLE) 
+								 but there is noc SCPI_CMD-defined for that yet. */
 	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -1103,8 +1104,8 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 	struct pps_hw_channel_state cur_state = {};
 
 	/*
-	  STB? & STAT:QUES:INST:ISUM seems to be not functional
-	  atleast not in fw version 2.30
+	 *STB? & STAT:QUES:INST:ISUM? seems to be non functional
+	  at least not in fw version 2.30.
 	*/
 
 	scpi = sdi->conn;
@@ -1119,10 +1120,10 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 		if (ret != SR_OK)
 			return ret;
 
-		cur_state.ovp = (status & (1 << 9)) ? TRUE : FALSE; // todo: why do i need this?
-		cur_state.otp = (status & (1 << 4)) ? TRUE : FALSE;
+		cur_state.ovp = (status & (1 << 9)) ? TRUE : FALSE;
+		cur_state.otp = (status & (1 << 4));
 		cur_state.regulation = status & 3;
-		// there is also a Fuse state in bit 10
+		/* there is also a Fuse state in bit 10 */
 
 		if (memcmp(&cur_state, ch_state, sizeof(cur_state)) == 0)
 			continue;
