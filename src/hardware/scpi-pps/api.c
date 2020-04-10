@@ -396,7 +396,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		if(devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* OVP is always enabled */
-			*data = g_variant_new_boolean(1);
+			*data = g_variant_new_boolean(TRUE);
 			return 0;
 		}
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -433,7 +433,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if(devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* OTP is always enabled */
-			*data = g_variant_new_boolean(1);
+			*data = g_variant_new_boolean(TRUE);
 			return 0;
 		}
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
