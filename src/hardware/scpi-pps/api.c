@@ -102,7 +102,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	devc->device = device;
 	sr_sw_limits_init(&devc->limits);
 	devc->cur_meta_data_source = device->num_channels; /* seting this deliberately to an invalid index */
-	if(device->dialect == SCPI_DIALECT_HMP)
+	if (device->dialect == SCPI_DIALECT_HMP)
 		devc->hw_channel_state = g_malloc0(device->num_channels * sizeof(struct pps_hw_channel_state));
 	sdi->priv = devc;
 
@@ -318,7 +318,7 @@ static void clear_helper(struct dev_context *devc)
 {
 	g_free(devc->channels);
 	g_free(devc->channel_groups);
-	if(devc->hw_channel_state)
+	if (devc->hw_channel_state)
 		g_free(devc->hw_channel_state);
 }
 
@@ -396,7 +396,7 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_CURRENT_LIMIT;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-		if(devc->device->dialect == SCPI_DIALECT_HMP) {
+		if (devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* OVP is always enabled */
 			*data = g_variant_new_boolean(TRUE);
 			return 0;
@@ -433,7 +433,7 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD;
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
-		if(devc->device->dialect == SCPI_DIALECT_HMP) {
+		if (devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* OTP is always enabled */
 			*data = g_variant_new_boolean(TRUE);
 			return 0;
@@ -470,7 +470,7 @@ static int config_get(uint32_t key, GVariant **data,
 	if (devc->device->dialect == SCPI_DIALECT_HMP && (
 		    cmd == SCPI_CMD_GET_OUTPUT_REGULATION ||
 		    cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE)) {
-		if(!cg) {
+		if (!cg) {
 			/* can only query STAT:QUES:INST:ISUMx register with explicit channel mentioned */
 			sr_err("can only query regulation or OTP-active for provided channel group!");
 			return SR_ERR_NA;
