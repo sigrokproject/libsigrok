@@ -1121,6 +1121,26 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
+	/*
+	  setting for each enabled channel
+  	    STAT:QUES:INST:ISUMx:ENABLE <- (1 << 0) | (1 << 1) | (1 << 4) | (1 << 9) -> 531
+	  then reading from STAT:QUES:INST:EVENT? should report when one of the channels
+	  produced an CC/CV, OTP,OVP event (rising edge).
+
+	  interessting bits of these registers:
+	    STAT:QUES:INST: 1 - summary of inst1, 2 - summary of inst2, ...
+	    STAT:QUES:INST:ISUMx: 0 - CC, 1 - CV, 4 - OTP, 9 - OVP, 10 - FUSE
+
+	  BUT: STAT:QUES:INST:ISUMx:EVENT? always reports continuously either CC or CV
+	  not only on change, and reading the event register does not clear it.
+	  -> so reading STAT:QUES:INST also always reports all channels that are enabled!
+
+	  when setting STAT:QUES:INST:ISUM1:ENABLE without the CC/CV bits, and testing 
+	  OVP reporting -> all works as expected!
+	  but to also get CC/CV state we need to read per instrument COND? anyways...
+	  saw this behaviour for firmware versions 2.30 and 2.62
+	 */
+
 	while(TRUE) {
 		/* for each enabled channel */
 		ch = sr_next_enabled_channel(sdi, ch);
