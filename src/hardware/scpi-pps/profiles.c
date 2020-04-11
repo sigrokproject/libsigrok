@@ -1159,7 +1159,7 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
 					     g_variant_new_boolean(cur_state.ovp ? TRUE : FALSE));
 
-		if (cur_state.ovp != ch_state->otp)
+		if (cur_state.otp != ch_state->otp)
 			sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
 					     g_variant_new_boolean(cur_state.otp ? TRUE : FALSE));
 
