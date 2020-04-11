@@ -30,7 +30,7 @@
 
 #define LOG_PREFIX "kingst-la2016"
 
-// device is little endian
+/* device is little endian */
 
 #define LA2016_VID		0x77a1
 #define LA2016_PID		0x01a2
@@ -103,15 +103,15 @@ struct dev_context {
 	uint16_t cur_channels;
 	int num_channels;
 
-	// derived stuff
+	/* derived stuff */
 	uint64_t pre_trigger_size;
 
-	// state after sampling
+	/* state after sampling */
 	int had_triggers_configured;
 	int have_trigger;
 	int transfer_finished;
 	capture_info_t info;
-	unsigned int n_transfer_packets_to_read; // each with 5 acq packets
+	unsigned int n_transfer_packets_to_read; /* each with 5 acq packets */
 	unsigned int n_bytes_to_read;
 	unsigned int n_reps_until_trigger;
 	unsigned int reading_behind_trigger;
@@ -119,22 +119,22 @@ struct dev_context {
 	uint32_t read_pos;
 
 	unsigned int convbuffer_size;
-	uint8_t* convbuffer;
-	struct libusb_transfer* transfer;
+	uint8_t *convbuffer;
+	struct libusb_transfer *transfer;
 };
 
-SR_PRIV int la2016_upload_firmware(struct sr_context* sr_ctx, libusb_device* dev, uint16_t product_id);
-SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_has_triggered(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst* sdi, libusb_transfer_cb_fn cb);
-SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi);
-SR_PRIV int la2016_deinit_device(const struct sr_dev_inst* sdi);
+SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id);
+SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb);
+SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi);
 
 #ifndef WORDS_BIGENDIAN
-// this host is big-endian, need to swap from/to device inplace
+/* this host is big-endian, need to swap from/to device inplace */
 #define inplace_WL32(obj) do { uint32_t tmp = obj; WL32(&(obj), tmp); } while (0)
 #define inplace_RL32(obj) obj = RL32(&(obj))
 #define inplace_WL16(obj) do { uint16_t tmp = obj; WL16(&(obj), tmp); } while (0)
@@ -174,7 +174,7 @@ SR_PRIV int la2016_deinit_device(const struct sr_dev_inst* sdi);
 	} while (0)
 
 #else
-// this host is little-endian, same as device
+/* this host is little-endian, same as device */
 #define pwm_setting_dev_le(obj)   (void)obj
 #define trigger_cfg_le(obj)       (void)obj
 #define sample_config_le(obj)     (void)obj

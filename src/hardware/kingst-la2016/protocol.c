@@ -40,21 +40,21 @@
 #define MAX_PWM_FREQ     SR_MHZ(20)
 #define PWM_CLOCK        SR_MHZ(200)
 
-// registers for control request 32:
+/* registers for control request 32: */
 #define CTRL_RUN         0x00
 #define CTRL_PWM_EN      0x02
-#define CTRL_BULK        0x10 // can be read to get 12 byte sampling_info (III)
+#define CTRL_BULK        0x10 /* can be read to get 12 byte sampling_info (III) */
 #define CTRL_SAMPLING    0x20
 #define CTRL_TRIGGER     0x30
 #define CTRL_THRESHOLD   0x48
 #define CTRL_PWM1        0x70
 #define CTRL_PWM2        0x78
 
-static int ctrl_in(const struct sr_dev_inst* sdi,
+static int ctrl_in(const struct sr_dev_inst *sdi,
 		   uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
-		   void* data, uint16_t wLength)
+		   void *data, uint16_t wLength)
 {
-	struct sr_usb_dev_inst* usb;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 
 	usb = sdi->conn;
@@ -71,11 +71,11 @@ static int ctrl_in(const struct sr_dev_inst* sdi,
 	return SR_OK;
 }
 
-static int ctrl_out(const struct sr_dev_inst* sdi,
+static int ctrl_out(const struct sr_dev_inst *sdi,
 		    uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
-		    void* data, uint16_t wLength)
+		    void *data, uint16_t wLength)
 {
-	struct sr_usb_dev_inst* usb;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 
 	usb = sdi->conn;
@@ -92,10 +92,10 @@ static int ctrl_out(const struct sr_dev_inst* sdi,
 	return SR_OK;
 }
 
-static int upload_fpga_bitstream(const struct sr_dev_inst* sdi)
+static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 {
-	struct drv_context* drvc;
-	struct sr_usb_dev_inst* usb;
+	struct drv_context *drvc;
+	struct sr_usb_dev_inst *usb;
 	struct sr_resource bitstream;
 	uint32_t cmd;
 	uint8_t cmd_resp;
@@ -115,7 +115,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst* sdi)
 	}
 
 	WL32(&cmd, 0x2b602);
-	if((ret = ctrl_out(sdi, 80, 0x00, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 80, 0x00, 0, &cmd, sizeof(cmd))) != SR_OK) {
 		sr_err("failed to give upload init command");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
@@ -150,23 +150,23 @@ static int upload_fpga_bitstream(const struct sr_dev_inst* sdi)
 		return ret;
 	sr_info("FPGA bitstream upload (%d bytes) done.", pos);
 
-	if((ret = ctrl_in(sdi, 80, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 80, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
 		sr_err("failed to read response after FPGA bitstream upload");
 		return ret;
 	}
-	if(cmd_resp != 0)
+	if (cmd_resp != 0)
 		sr_warn("after fpga bitstream upload command response is 0x%02x, expect 0", cmd_resp);
 
-	if((ret = ctrl_out(sdi, 16, 0x01, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 16, 0x01, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed enable fpga");
 		return ret;
 	}
 	return SR_OK;
 }
 
-static int set_threshold_voltage(const struct sr_dev_inst* sdi, float voltage)
+static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	float o1, o2, v1, v2, f;
         uint32_t cfg;
 	int ret;
@@ -179,7 +179,7 @@ static int set_threshold_voltage(const struct sr_dev_inst* sdi, float voltage)
 	
         sr_dbg("set threshold voltage %.2fV", voltage);
 	ret = ctrl_out(sdi, 32, CTRL_THRESHOLD, 0, &cfg, sizeof(cfg));
-	if(ret != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("error setting new threshold voltage of %.2fV (%d)", voltage, RL16(&cfg));
 		return ret;
 	}
@@ -187,9 +187,9 @@ static int set_threshold_voltage(const struct sr_dev_inst* sdi, float voltage)
 	return SR_OK;
 }
 
-static int enable_pwm(const struct sr_dev_inst* sdi, uint8_t p1, uint8_t p2)
+static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
         uint8_t cfg;
 	int ret;
 
@@ -201,7 +201,7 @@ static int enable_pwm(const struct sr_dev_inst* sdi, uint8_t p1, uint8_t p2)
 	
         sr_dbg("set pwm enable %d %d", p1, p2);
 	ret = ctrl_out(sdi, 32, CTRL_PWM_EN, 0, &cfg, sizeof(cfg));
-	if(ret != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("error setting new pwm enable 0x%02x", cfg);
 		return ret;
 	}
@@ -210,12 +210,12 @@ static int enable_pwm(const struct sr_dev_inst* sdi, uint8_t p1, uint8_t p2)
 	return SR_OK;
 }
 
-static int set_pwm(const struct sr_dev_inst* sdi, uint8_t which, float freq, float duty)
+static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, float duty)
 {
         int CTRL_PWM[] = { CTRL_PWM1, CTRL_PWM2 };
-	struct dev_context* devc;
+	struct dev_context *devc;
 	pwm_setting_dev_t cfg;
-	pwm_setting_t* setting;
+	pwm_setting_t *setting;
 	int ret;
 	
 	devc = sdi->priv;
@@ -239,7 +239,7 @@ static int set_pwm(const struct sr_dev_inst* sdi, uint8_t which, float freq, flo
 	
 	pwm_setting_dev_le(cfg);
 	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, &cfg, sizeof(cfg));
-	if(ret != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("error setting new pwm%d config %d %d", which, cfg.period, cfg.duty);
 		return ret;
 	}
@@ -251,45 +251,45 @@ static int set_pwm(const struct sr_dev_inst* sdi, uint8_t which, float freq, flo
 	return SR_OK;
 }
 
-static int set_defaults(const struct sr_dev_inst* sdi)
+static int set_defaults(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	int ret;
 
 	devc = sdi->priv;
 
-	devc->capture_ratio = 5; // percent
+	devc->capture_ratio = 5; /* percent */
 	devc->cur_channels = 0xffff;
 	devc->limit_samples = 5000000;
 	devc->cur_samplerate = 200000000;
 	
 	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
-	if(ret) return ret;
+	if (ret) return ret;
 	
 	ret = enable_pwm(sdi, 0, 0);
-	if(ret) return ret;
+	if (ret) return ret;
 	
 	ret = set_pwm(sdi, 1, 1e3, 50);
-	if(ret) return ret;
+	if (ret) return ret;
 	
 	ret = set_pwm(sdi, 2, 100e3, 50);
-	if(ret) return ret;
+	if (ret) return ret;
 	
 	ret = enable_pwm(sdi, 1, 1);
-	if(ret) return ret;
+	if (ret) return ret;
 	
 	return SR_OK;
 }
 
-static int set_trigger_config(const struct sr_dev_inst* sdi)
+static int set_trigger_config(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
-	struct sr_trigger* trigger;
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
 	trigger_cfg_t cfg;
-	GSList* stages;
-	GSList* channel;
-	struct sr_trigger_stage* stage1;
-	struct sr_trigger_match* match;
+	GSList *stages;
+	GSList *channel;
+	struct sr_trigger_stage *stage1;
+	struct sr_trigger_match *match;
 	uint16_t ch_mask;
 	int ret;
 
@@ -307,7 +307,6 @@ static int set_trigger_config(const struct sr_dev_inst* sdi)
 			sr_err("Only one trigger stage supported for now.");
 			return SR_ERR;
 		}
-		// go on
 		channel = stage1->matches;
 		while (channel) {
 			match = channel->data;
@@ -323,7 +322,7 @@ static int set_trigger_config(const struct sr_dev_inst* sdi)
 				cfg.high_or_falling |= ch_mask;
 				break;
 			case SR_TRIGGER_RISING:
-				if((cfg.enabled & ~cfg.level)) {
+				if ((cfg.enabled & ~cfg.level)) {
 					sr_err("Only one trigger signal with falling-/rising-edge allowed.");
 					return SR_ERR;
 				}
@@ -331,7 +330,7 @@ static int set_trigger_config(const struct sr_dev_inst* sdi)
 				cfg.high_or_falling &= ~ch_mask;
 				break;
 			case SR_TRIGGER_FALLING:
-				if((cfg.enabled & ~cfg.level)) {
+				if ((cfg.enabled & ~cfg.level)) {
 					sr_err("Only one trigger signal with falling-/rising-edge allowed.");
 					return SR_ERR;
 				}
@@ -360,16 +359,16 @@ static int set_trigger_config(const struct sr_dev_inst* sdi)
 	
 	trigger_cfg_le(cfg);
 	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, &cfg, sizeof(cfg));
-	if(ret != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("error setting trigger config!");
 		return ret;
 	}
 	return SR_OK;
 }
 
-static int set_sample_config(const struct sr_dev_inst* sdi)
+static int set_sample_config(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	sample_config_t cfg;
 	double clock_divisor;
 	uint64_t psa;
@@ -385,7 +384,7 @@ static int set_sample_config(const struct sr_dev_inst* sdi)
 	}
 	
 	clock_divisor = MAX_SAMPLE_RATE / (double)devc->cur_samplerate;
-	if(clock_divisor > 0xffff)
+	if (clock_divisor > 0xffff)
 		clock_divisor = 0xffff;
         cfg.clock_divisor = (uint16_t)(clock_divisor + 0.5);
 	devc->cur_samplerate = MAX_SAMPLE_RATE / cfg.clock_divisor;
@@ -408,7 +407,7 @@ static int set_sample_config(const struct sr_dev_inst* sdi)
 
 	sample_config_le(cfg);
 	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, &cfg, sizeof(cfg));
-	if(ret != SR_OK) {
+	if (ret != SR_OK) {
 		sr_err("error setting sample config!");
 		return ret;
 	}
@@ -423,7 +422,7 @@ static int set_sample_config(const struct sr_dev_inst* sdi)
    0: waiting
    3: triggered
 */
-static uint16_t run_state(const struct sr_dev_inst* sdi)
+static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 	int ret;
@@ -436,20 +435,20 @@ static uint16_t run_state(const struct sr_dev_inst* sdi)
 	return state;
 }
 
-static int set_run_mode(const struct sr_dev_inst* sdi, uint8_t fast_blinking)
+static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t fast_blinking)
 {
         int ret;
 	
-	if((ret = ctrl_out(sdi, 32, CTRL_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 32, CTRL_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
 		sr_err("failed to send set-run-mode command %d", fast_blinking);
 		return ret;
 	}
 	return SR_OK;
 }
 
-static int get_capture_info(const struct sr_dev_inst* sdi)
+static int get_capture_info(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	int ret;
 	
 	devc = sdi->priv;
@@ -465,64 +464,64 @@ static int get_capture_info(const struct sr_dev_inst* sdi)
 	       devc->info.n_rep_packets_before_trigger, devc->info.n_rep_packets_before_trigger,
 	       devc->info.write_pos, devc->info.write_pos);
 	
-        if(devc->info.n_rep_packets % 5)
+        if (devc->info.n_rep_packets % 5)
 		sr_warn("number of packets is not as expected multiples of 5: %d", devc->info.n_rep_packets);
 	
 	return SR_OK;
 }
 
-SR_PRIV int la2016_upload_firmware(struct sr_context* sr_ctx, libusb_device* dev, uint16_t product_id)
+SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id)
 {
 	char fw_file[1024];
 	snprintf(fw_file, sizeof(fw_file) - 1, UC_FIRMWARE, product_id);
 	return ezusb_upload_firmware(sr_ctx, dev, 0, fw_file);
 }
 
-SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	int ret;
 	uint8_t cmd;
 	
 	devc = sdi->priv;
 	
 	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	cmd = 0;
-	if((ret = ctrl_out(sdi, 32, 0x03, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 32, 0x03, 0, &cmd, sizeof(cmd))) != SR_OK) {
 		sr_err("failed to send stop sampling command");
 		return ret;
 	}
 
 	ret = set_trigger_config(sdi);
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 	
 	ret = set_sample_config(sdi);
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 	
 	return SR_OK;
 }
 
-SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	return set_run_mode(sdi, 3);
 }
 
-SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	return set_run_mode(sdi, 0);
 }
 
-SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 {
 	return la2016_stop_acquisition(sdi);
 }
 
-SR_PRIV int la2016_has_triggered(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 	
@@ -531,19 +530,19 @@ SR_PRIV int la2016_has_triggered(const struct sr_dev_inst* sdi)
 	return (state & 0x3) == 1;
 }
 
-SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst* sdi, libusb_transfer_cb_fn cb)
+SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb)
 {
-	struct dev_context* devc;
-	struct sr_usb_dev_inst* usb;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 	uint32_t bulk_cfg[2];
 	uint32_t to_read;
-	uint8_t* buffer;
+	uint8_t *buffer;
 
 	devc = sdi->priv;
 	usb = sdi->conn;
 	
-	if((ret = get_capture_info(sdi)) != SR_OK)
+	if ((ret = get_capture_info(sdi)) != SR_OK)
 		return ret;
 
 	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / 5;
@@ -554,28 +553,28 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst* sdi, libusb_transfe
 	sr_dbg("want to read %d tfer-packets starting from pos %d",
 	       devc->n_transfer_packets_to_read, devc->read_pos);
 
-	if((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to reset bulk state");
 		return ret;
 	}
 	WL32(&bulk_cfg[0], devc->read_pos);
 	WL32(&bulk_cfg[1], devc->n_bytes_to_read);
 	sr_dbg("will read from 0x%08x, 0x%08x bytes", devc->read_pos, devc->n_bytes_to_read);
-	if((ret = ctrl_out(sdi, 32, CTRL_BULK, 0, &bulk_cfg, sizeof(bulk_cfg))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 32, CTRL_BULK, 0, &bulk_cfg, sizeof(bulk_cfg))) != SR_OK) {
 		sr_err("failed to send bulk config");
 		return ret;
 	}
-	if((ret = ctrl_out(sdi, 48, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 48, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to unblock bulk transfers");
 		return ret;
 	}
 	
 	to_read = devc->n_bytes_to_read;
-	if(to_read > LA2016_BULK_MAX)
+	if (to_read > LA2016_BULK_MAX)
 		to_read = LA2016_BULK_MAX;
 	
 	buffer = g_try_malloc(to_read);
-	if(!buffer) {
+	if (!buffer) {
 		sr_err("Failed to allocate %d bytes for bulk transfer", to_read);
 		return SR_ERR_MALLOC;
 	}
@@ -596,7 +595,7 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst* sdi, libusb_transfe
 	return SR_OK;
 }
 
-SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
 	int ret;
 	uint32_t i1;
@@ -611,13 +610,13 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 	uint8_t expected_unknown_resp2[] = { 0xa3, 0x08, 0x06, 0x83, 0x96, 0x29, 0x15, 0xe1, 0x92, 0x74, 0x00, 0x00 };
 	uint8_t unknown_resp2[sizeof(expected_unknown_resp2)];
 
-	if((ret = ctrl_in(sdi, 162, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 162, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
 		sr_err("failed to read i1");
 		return ret;
 	}
 	sr_dbg("i1: 0x%08x", i1);
 	
-	if((ret = ctrl_in(sdi, 162, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 162, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
 		sr_err("failed to read i2");
 		return ret;
 	}
@@ -630,37 +629,37 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 
 	run_state(sdi);
 	
-	if((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1))) != SR_OK) {
 		sr_err("failed to send unknown_cmd1");
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
 		sr_err("failed to read unknown_resp1");
 		return ret;
 	}
-	if(memcmp(unknown_resp1, expected_unknown_resp1, sizeof(unknown_resp1)))
+	if (memcmp(unknown_resp1, expected_unknown_resp1, sizeof(unknown_resp1)))
 		sr_dbg("unknown_cmd1 response is not as expected!");
 
 	
 	state = run_state(sdi);
-	if(state != 0x85e9)
+	if (state != 0x85e9)
 		sr_warn("expect run state to be 0x85e9, but it reads 0x%04x", state);
 
-	if((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd2, sizeof(unknown_cmd2))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd2, sizeof(unknown_cmd2))) != SR_OK) {
 		sr_err("failed to send unknown_cmd2");
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
 		sr_err("failed to read unknown_resp2");
 		return ret;
 	}
-	if(memcmp(unknown_resp2, expected_unknown_resp2, sizeof(unknown_resp2)))
+	if (memcmp(unknown_resp2, expected_unknown_resp2, sizeof(unknown_resp2)))
 		sr_dbg("unknown_cmd2 response is not as expected!");
 	
 
-	if((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to send unknown_cmd3");
 		return ret;
 	}
@@ -669,11 +668,11 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst* sdi)
 	return set_defaults(sdi);
 }
 
-SR_PRIV int la2016_deinit_device(const struct sr_dev_inst* sdi)
+SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi)
 {
         int ret;
 	
-	if((ret = ctrl_out(sdi, 16, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, 16, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to send deinit command");
 		return ret;
 	}

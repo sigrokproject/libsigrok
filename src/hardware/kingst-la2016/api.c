@@ -20,7 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// mostly stolen from src/hardware/saleae-logic16/
+/* mostly stolen from src/hardware/saleae-logic16/ *
 
 #include <config.h>
 #include <glib.h>
@@ -41,7 +41,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	// SR_CONF_CONTINUOUS,
+	/* todo: SR_CONF_CONTINUOUS, */
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_GET | SR_CONF_LIST,
@@ -112,20 +112,20 @@ static const char *logic_threshold[] = {
 
 #define array_length(a) (sizeof(a) / sizeof((a)[0]))
 
-static GSList* scan(struct sr_dev_driver* di, GSList* options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context* drvc;
-	struct dev_context* devc;
-	struct sr_dev_inst* sdi;
-	struct sr_usb_dev_inst* usb;
-	struct sr_config* src;
-	GSList* l;
-	GSList* devices;
-	GSList* conn_devices;
+	struct drv_context *drvc;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_usb_dev_inst *usb;
+	struct sr_config *src;
+	GSList *l;
+	GSList *devices;
+	GSList *conn_devices;
 	struct libusb_device_descriptor des;
-	libusb_device** devlist;
+	libusb_device **devlist;
 	unsigned int i, j;
-	const char* conn;
+	const char *conn;
 	char connection_id[64];
 	int64_t fw_updated;
 	unsigned int dev_addr;
@@ -183,14 +183,14 @@ static GSList* scan(struct sr_dev_driver* di, GSList* options)
 		if (des.iProduct != 2) {
 			sr_info("device at '%s' has no firmware loaded!", connection_id);
 
-			if(la2016_upload_firmware(drvc->sr_ctx, devlist[i], des.idProduct) != SR_OK) {
+			if (la2016_upload_firmware(drvc->sr_ctx, devlist[i], des.idProduct) != SR_OK) {
 				sr_err("uC firmware upload failed!");
 				g_free(sdi->connection_id);
 				g_free(sdi);
 				continue;
 			}
 			fw_updated = g_get_monotonic_time();
-			dev_addr = 0xff; // to mark that we don't know address yet... ugly
+			dev_addr = 0xff; /* to mark that we don't know address yet... ugly */
 		}
 		
 		sdi->vendor = g_strdup("Kingst");
@@ -220,13 +220,13 @@ static GSList* scan(struct sr_dev_driver* di, GSList* options)
 	return std_scan_complete(di, devices);
 }
 
-static int la2016_dev_open(struct sr_dev_inst* sdi)
+static int la2016_dev_open(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_driver* di;
-	libusb_device** devlist;
-	struct sr_usb_dev_inst* usb;
+	struct sr_dev_driver *di;
+	libusb_device **devlist;
+	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
-	struct drv_context* drvc;
+	struct drv_context *drvc;
 	int ret, i, device_count;
 	char connection_id[64];
 
@@ -315,9 +315,9 @@ static int la2016_dev_open(struct sr_dev_inst* sdi)
 	return SR_OK;
 }
 
-static int dev_open(struct sr_dev_inst* sdi)
+static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	int64_t timediff_us, timediff_ms;
 	uint64_t reset_done;
 	uint64_t now;
@@ -333,9 +333,9 @@ static int dev_open(struct sr_dev_inst* sdi)
 	if (devc->fw_updated > 0) {
 		sr_info("Waiting for device to reset after firmware upload.");
 		/* Takes >= 2000ms for the uC to be gone from the USB bus. */
-		reset_done = devc->fw_updated + 18 * (uint64_t)1e5; // 1.8 seconds
+		reset_done = devc->fw_updated + 18 * (uint64_t)1e5; /* 1.8 seconds */
 		now = g_get_monotonic_time();
-		if(reset_done > now)
+		if (reset_done > now)
 			g_usleep(reset_done - now);
 		timediff_ms = 0;
 		while (timediff_ms < MAX_RENUM_DELAY_MS) {
@@ -364,9 +364,9 @@ static int dev_open(struct sr_dev_inst* sdi)
 	return SR_OK;
 }
 
-static int dev_close(struct sr_dev_inst* sdi)
+static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct sr_usb_dev_inst* usb;
+	struct sr_usb_dev_inst *usb;
 
 	usb = sdi->conn;
 
@@ -384,10 +384,10 @@ static int dev_close(struct sr_dev_inst* sdi)
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant** data, const struct sr_dev_inst* sdi, const struct sr_channel_group* cg)
+static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context* devc;
-	struct sr_usb_dev_inst* usb;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	double rounded;
 	
 	(void)cg;
@@ -434,9 +434,9 @@ static int config_get(uint32_t key, GVariant** data, const struct sr_dev_inst* s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant* data, const struct sr_dev_inst* sdi, const struct sr_channel_group* cg)
+static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	double low, high;
 	int idx;
 	
@@ -457,13 +457,13 @@ static int config_set(uint32_t key, GVariant* data, const struct sr_dev_inst* sd
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		devc->threshold_voltage = (low + high) / 2.0;
-		devc->threshold_voltage_idx = MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1; // USER
+		devc->threshold_voltage_idx = MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1; /* USER */
 		break;
 	case SR_CONF_LOGIC_THRESHOLD: {
 		if ((idx = std_str_idx(data, logic_threshold, MAX_NUM_LOGIC_THRESHOLD_ENTRIES)) < 0)
 			return SR_ERR_ARG;
-		if(idx == MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1) {
-			// user threshold
+		if (idx == MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1) {
+			/* user threshold */
 		} else {
 			devc->threshold_voltage = logic_threshold_value[idx];
 		}
@@ -480,7 +480,7 @@ static int config_set(uint32_t key, GVariant* data, const struct sr_dev_inst* sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant** data, const struct sr_dev_inst* sdi, const struct sr_channel_group* cg)
+static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -510,17 +510,17 @@ static int config_list(uint32_t key, GVariant** data, const struct sr_dev_inst* 
 	return SR_OK;
 }
 
-static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsigned int num_tfers)
+static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsigned int num_tfers)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_packet sr_packet;
-	transfer_packet_t* packet;
-	acq_packet_t* p;
+	transfer_packet_t *packet;
+	acq_packet_t *p;
 	unsigned int max_samples, n_samples, total_samples, free_n_samples, ptotal;
 	unsigned int i, j, k;
 	int do_signal_trigger;
-	uint16_t* wp;
+	uint16_t *wp;
 
 	devc = sdi->priv;
 	
@@ -536,7 +536,7 @@ static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsi
 	total_samples = 0;
 	do_signal_trigger = 0;
 
-	if(devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
+	if (devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
 		sr_packet.type = SR_DF_TRIGGER;
 		sr_packet.payload = NULL;
 		sr_session_send(sdi, &sr_packet);
@@ -552,13 +552,12 @@ static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsi
 		ptotal = 0;
 		for(k = 0; k < array_length(packet->packet); k++) {
 			free_n_samples = max_samples - n_samples;
-			if(free_n_samples < 256 || do_signal_trigger) {
+			if (free_n_samples < 256 || do_signal_trigger) {
 				logic.length = n_samples * 2;
-				// sr_spew("send %d samples down the session bus", n_samples);
 				sr_session_send(sdi, &sr_packet);
 				n_samples = 0;
 				wp = (uint16_t*)devc->convbuffer;
-				if(do_signal_trigger) {
+				if (do_signal_trigger) {
 					sr_packet.type = SR_DF_TRIGGER;
 					sr_packet.payload = NULL;
 					sr_session_send(sdi, &sr_packet);
@@ -569,16 +568,15 @@ static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsi
 				}
 			}
 			p = packet->packet + k;
-			// sr_spew("  %3d times 0x%02x", p->repetitions, p->state);
 			for(j = 0; j < p->repetitions; j++)
 				*(wp++) = p->state;
 			n_samples += p->repetitions;
 			total_samples += p->repetitions;
 			ptotal += p->repetitions;
 			devc->total_samples += p->repetitions;
-			if(!devc->reading_behind_trigger) {
+			if (!devc->reading_behind_trigger) {
 				devc->n_reps_until_trigger --;
-				if(devc->n_reps_until_trigger == 0) {
+				if (devc->n_reps_until_trigger == 0) {
 					devc->reading_behind_trigger = 1;
 					do_signal_trigger = 1;
 					sr_dbg("  here is trigger position after %" PRIu64 " samples, %.6fms",
@@ -587,13 +585,11 @@ static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsi
 				}
 			}
 		}
-		// sr_spew("%5d samples in packet %d", ptotal, i);
 	}
-	if(n_samples) {
+	if (n_samples) {
 		logic.length = n_samples * 2;
-		// sr_spew("send %d samples down the session bus", n_samples);
 		sr_session_send(sdi, &sr_packet);
-		if(do_signal_trigger) {
+		if (do_signal_trigger) {
 			sr_packet.type = SR_DF_TRIGGER;
 			sr_packet.payload = NULL;
 			sr_session_send(sdi, &sr_packet);
@@ -603,11 +599,11 @@ static void send_chunk(struct sr_dev_inst* sdi, transfer_packet_t* packets, unsi
 }
 
 
-static void LIBUSB_CALL receive_transfer(struct libusb_transfer* transfer)
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
-	struct sr_dev_inst* sdi;
-	struct dev_context* devc;
-	struct sr_usb_dev_inst* usb;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
 	int ret;
 
 	sdi = transfer->user_data;
@@ -624,9 +620,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer* transfer)
 	send_chunk(sdi, (transfer_packet_t*)transfer->buffer, transfer->actual_length / sizeof(transfer_packet_t));
 	
 	devc->n_bytes_to_read -= transfer->actual_length;
-	if(devc->n_bytes_to_read) {
+	if (devc->n_bytes_to_read) {
 		uint32_t to_read = devc->n_bytes_to_read;
-		if(to_read > LA2016_BULK_MAX)
+		if (to_read > LA2016_BULK_MAX)
 			to_read = LA2016_BULK_MAX;
 		libusb_fill_bulk_transfer(
 			transfer, usb->devhdl,
@@ -643,11 +639,11 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer* transfer)
 	devc->transfer_finished = 1;
 }
 
-static int handle_event(int fd, int revents, void* cb_data)
+static int handle_event(int fd, int revents, void *cb_data)
 {
-	const struct sr_dev_inst* sdi;
-	struct dev_context* devc;
-	struct drv_context* drvc;
+	const struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct drv_context *drvc;
 	struct sr_datafeed_packet packet;
 	struct timeval tv;
 
@@ -658,9 +654,8 @@ static int handle_event(int fd, int revents, void* cb_data)
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 	
-	if(devc->have_trigger == 0) {
-		if(la2016_has_triggered(sdi) == 0) {
-			// continue waiting
+	if (devc->have_trigger == 0) {
+		if (la2016_has_triggered(sdi) == 0) {
 			sr_dbg("not yet ready for download...");
 			return TRUE;
 		}
@@ -668,8 +663,8 @@ static int handle_event(int fd, int revents, void* cb_data)
 		devc->transfer_finished = 0;
 		devc->reading_behind_trigger = 0;
 		devc->total_samples = 0;
-		// we can start retrieving data!
-		if(la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
+		/* we can start retrieving data! */
+		if (la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
 			sr_err("failed to start retrieval!");
 			return FALSE;
 		}
@@ -683,7 +678,7 @@ static int handle_event(int fd, int revents, void* cb_data)
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 	
-	if(devc->transfer_finished) {
+	if (devc->transfer_finished) {
 		sr_dbg("transfer is finished!");
 		packet.type = SR_DF_FRAME_END;
 		sr_session_send(sdi, &packet);
@@ -702,21 +697,21 @@ static int handle_event(int fd, int revents, void* cb_data)
 	return TRUE;
 }
 
-static void abort_acquisition(struct dev_context* devc)
+static void abort_acquisition(struct dev_context *devc)
 {
-	if(devc->transfer)
+	if (devc->transfer)
 		libusb_cancel_transfer(devc->transfer);
 }
 
-static int configure_channels(const struct sr_dev_inst* sdi)
+static int configure_channels(const struct sr_dev_inst *sdi)
 {
-	struct dev_context* devc;
+	struct dev_context *devc;
 
 	devc = sdi->priv;
 	devc->cur_channels = 0;
 	devc->num_channels = 0;
-	for (GSList* l = sdi->channels; l; l = l->next) {
-		struct sr_channel* ch = (struct sr_channel*)l->data;
+	for (GSList *l = sdi->channels; l; l = l->next) {
+		struct sr_channel *ch = (struct sr_channel*)l->data;
 		
 		if (ch->enabled == FALSE)
 			continue;
@@ -727,11 +722,11 @@ static int configure_channels(const struct sr_dev_inst* sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst* sdi)
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct sr_dev_driver* di;
-	struct drv_context* drvc;
-	struct dev_context* devc;
+	struct sr_dev_driver *di;
+	struct drv_context *drvc;
+	struct dev_context *devc;
 	int ret;
 
 	di = sdi->driver;
@@ -743,7 +738,7 @@ static int dev_acquisition_start(const struct sr_dev_inst* sdi)
 		return SR_ERR;
 	}
 	
-	devc->convbuffer_size = 4 * 1024 * 1024; // array_length(transfer_packet_t.packet) * 256;
+	devc->convbuffer_size = 4 * 1024 * 1024;
 	if (!(devc->convbuffer = g_try_malloc(devc->convbuffer_size))) {
 		sr_err("Conversion buffer malloc failed.");
 		return SR_ERR_MALLOC;
@@ -770,7 +765,7 @@ static int dev_acquisition_start(const struct sr_dev_inst* sdi)
 	return SR_OK;
 }
 
-static int dev_acquisition_stop(struct sr_dev_inst* sdi)
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	int ret;
 
