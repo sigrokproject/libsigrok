@@ -1094,14 +1094,14 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
-	int ret;
-	int status;
-	char fmt[] = "STAT:QUES:INST:ISUM%s:COND?";
-	char cmd[sizeof(fmt) - 2 + 8]; // allow for max 8-char channel name
-	GVariant *data;
 	const struct channel_spec *ch_spec;
 	struct pps_hw_channel_state *ch_state;
+	char fmt[] = "STAT:QUES:INST:ISUM%s:COND?";
+	char cmd[sizeof(fmt) - 2 + 8]; /* allow for max 8-char channel name */
+	int status;
+	int ret;
 	struct pps_hw_channel_state cur_state = {};
+	GVariant *data;
 
 	/*
 	 *STB? & STAT:QUES:INST:ISUM? seems to be non functional
@@ -1120,7 +1120,7 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 		if (ret != SR_OK)
 			return ret;
 
-		cur_state.ovp = (status & (1 << 9)) ? TRUE : FALSE;
+		cur_state.ovp = (status & (1 << 9));
 		cur_state.otp = (status & (1 << 4));
 		cur_state.regulation = status & 3;
 		/* there is also a Fuse state in bit 10 */
@@ -1128,21 +1128,21 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 		if (memcmp(&cur_state, ch_state, sizeof(cur_state)) == 0)
 			continue;
 		
-		if(devc->cur_meta_data_source != i) {
 			devc->cur_meta_data_source = i;
+		if (devc->cur_meta_data_source != hw_idx) {
 			sr_session_send_meta(sdi, SR_CONF_DATA_SOURCE,
 					     g_variant_new_string(ch_spec->name));
 		}
 
-		if(cur_state.ovp != ch_state->ovp)
+		if (cur_state.ovp != ch_state->ovp)
 			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
-					     g_variant_new_boolean(cur_state.ovp));
+					     g_variant_new_boolean(cur_state.ovp ? TRUE : FALSE));
 
-		if(cur_state.ovp != ch_state->otp)
+		if (cur_state.ovp != ch_state->otp)
 			sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
-					     g_variant_new_boolean(cur_state.otp));
+					     g_variant_new_boolean(cur_state.otp ? TRUE : FALSE));
 
-		if(cur_state.regulation != ch_state->regulation) {
+		if (cur_state.regulation != ch_state->regulation) {
 			if (cur_state.regulation & (1 << 0))
 				data = g_variant_new_string("CC");
 			else if (cur_state.regulation & (1 << 1))
@@ -1153,8 +1153,7 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 				data = g_variant_new_string("UR");
 			}
 			
-			sr_session_send_meta(sdi, SR_CONF_REGULATION,
-					     data);
+			sr_session_send_meta(sdi, SR_CONF_REGULATION, data);
 		}
 		
 		memcpy(ch_state, &cur_state, sizeof(cur_state));
