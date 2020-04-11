@@ -1094,6 +1094,12 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
 	struct dev_context *devc;
+	struct sr_channel *ch = NULL;
+	struct sr_channel *first_ch = NULL;
+	struct pps_channel *pch;
+	unsigned int hw_idx;
+	unsigned int hw_idx_mask;
+	unsigned int hw_idx_seen = 0;
 	const struct channel_spec *ch_spec;
 	struct pps_hw_channel_state *ch_state;
 	char fmt[] = "STAT:QUES:INST:ISUM%s:COND?";
@@ -1111,9 +1117,24 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	devc = sdi->priv;
 
-	for(unsigned int i = 0; i < devc->device->num_channels; i++) {
-		ch_spec = &devc->device->channels[i];
-		ch_state = &devc->hw_channel_state[i];
+	while(TRUE) {
+		/* for each enabled channel */
+		ch = sr_next_enabled_channel(sdi, ch);
+		if (first_ch == NULL)
+			first_ch = ch;
+		else if (ch == first_ch)
+			break;
+		
+		/* but only once per hardware-/pps-channel */
+		pch = ch->priv;
+		hw_idx = pch->hw_output_idx;
+		hw_idx_mask = 1 << hw_idx;
+		if (hw_idx_seen & hw_idx_mask)
+			continue;
+		hw_idx_seen |= hw_idx_mask;
+
+		ch_spec = &devc->device->channels[hw_idx];
+		ch_state = &devc->hw_channel_state[hw_idx];
 		
 		snprintf(cmd, sizeof(cmd), fmt, ch_spec->name);
 		ret = sr_scpi_get_int(scpi, cmd, &status);
@@ -1128,8 +1149,8 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 		if (memcmp(&cur_state, ch_state, sizeof(cur_state)) == 0)
 			continue;
 		
-			devc->cur_meta_data_source = i;
 		if (devc->cur_meta_data_source != hw_idx) {
+			devc->cur_meta_data_source = hw_idx;
 			sr_session_send_meta(sdi, SR_CONF_DATA_SOURCE,
 					     g_variant_new_string(ch_spec->name));
 		}
