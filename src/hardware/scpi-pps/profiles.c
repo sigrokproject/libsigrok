@@ -1058,10 +1058,10 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 };
 
 static const struct channel_spec rs_hmp4040_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec rs_hmp4040_cg[] = {
@@ -1088,6 +1088,15 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:PROT:LEV %.6f" },
 	{ SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE, "STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
+	/* currently unused device commands:
+	   OUTP:GEN
+	   VOLT? MAX, CURR? MAX
+	   VOLT:PROT:CLE, VOLT:PROT:MODE
+	   FUSE:STAT, FUSE:TRIP?, FUSE:LINK, FUSE:UNL
+	   ARB:...
+	   SYST:LOC, SYST:REM, SYST:RWL, SYST:MIX
+	   SYST:BEEP:IMM
+	*/
 };
 
 static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
@@ -1108,11 +1117,6 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 	int ret;
 	struct pps_hw_channel_state cur_state = {};
 	GVariant *data;
-
-	/*
-	 *STB? & STAT:QUES:INST:ISUM? seems to be non functional
-	  at least not in fw version 2.30.
-	*/
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
