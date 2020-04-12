@@ -68,6 +68,17 @@ static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 	}
 };
 
+static const struct ftdi_chip_desc ft4232h_desc = {
+	.vendor = 0x0403,
+	.product = 0x6011,
+	.samplerate_div = 20,
+	.channel_names = {
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",	"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
+		/* TODO: BDBUS[0..7], CDBUS[0..7], DDBUS[0..7] channels. */
+		NULL
+	}
+};
+
 static const struct ftdi_chip_desc ft232r_desc = {
 	.vendor = 0x0403,
 	.product = 0x6001,
@@ -91,6 +102,7 @@ static const struct ftdi_chip_desc ft232h_desc = {
 static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
 	&ft2232h_tumpa_desc,
+	&ft4232h_desc,
 	&ft232r_desc,
 	&ft232h_desc,
 	NULL,
