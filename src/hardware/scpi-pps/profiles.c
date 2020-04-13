@@ -1175,7 +1175,7 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 		
 		if (devc->cur_meta_data_source != hw_idx) {
 			devc->cur_meta_data_source = hw_idx;
-			sr_session_send_meta(sdi, SR_CONF_DATA_SOURCE,
+			sr_session_send_meta(sdi, SR_CONF_CHANNEL_GROUP,
 					     g_variant_new_string(ch_spec->name));
 		}
 
