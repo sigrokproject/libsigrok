@@ -1213,7 +1213,7 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 			else if (cur_state.regulation & (1 << 1))
 				data = g_variant_new_string("CV");
 			else {
-				data = g_variant_new_string("UR");
+				data = g_variant_new_string("");
 			}
 			
 			sr_session_send_meta(sdi, SR_CONF_REGULATION, data);
