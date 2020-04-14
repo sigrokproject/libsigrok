@@ -1099,6 +1099,26 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	*/
 };
 
+
+static int rs_hmp_init_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Sets the system to remote state. The front panel and remote
+	 * control are possible simultaneously (mixed mode).
+	 */
+	ret = sr_scpi_send(scpi, "SYST:MIX");
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
+
 static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi;
@@ -1193,13 +1213,16 @@ static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
 			else if (cur_state.regulation & (1 << 1))
 				data = g_variant_new_string("CV");
 			else {
-				sr_session_send_meta(sdi, SR_CONF_ENABLED,
-						     g_variant_new_boolean(FALSE));
 				data = g_variant_new_string("UR");
 			}
 			
 			sr_session_send_meta(sdi, SR_CONF_REGULATION, data);
 		}
+
+		if (cur_state.regulation != 0 && ch_state->regulation == 0)
+			sr_session_send_meta(sdi, SR_CONF_ENABLED, g_variant_new_boolean(TRUE));
+		else if (cur_state.regulation == 0 && ch_state->regulation != 0)
+			sr_session_send_meta(sdi, SR_CONF_ENABLED, g_variant_new_boolean(FALSE));
 		
 		memcpy(ch_state, &cur_state, sizeof(cur_state));
 	}
@@ -1528,7 +1551,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = NULL,
+		rs_hmp_init_acquisition,
 		rs_hmp_update_status,
 	},
 	
