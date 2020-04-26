@@ -116,6 +116,10 @@ enum ANALOG_TRIGGER_CONDITION sr_libm2k_analog_trigger_condition_get(struct M2k 
 void sr_libm2k_analog_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx,
 					    enum ANALOG_TRIGGER_CONDITION condition);
 
+float sr_libm2k_analog_trigger_level_get(struct M2k *m2k, unsigned int chnIdx);
+
+void sr_libm2k_analog_trigger_level_set(struct M2k *m2k, unsigned int chnIdx, float level);
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 

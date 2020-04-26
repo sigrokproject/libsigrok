@@ -46,6 +46,7 @@ static const uint32_t devopts_cg_analog_group[] = {
 static const uint32_t devopts_cg_analog_channel[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -285,6 +286,9 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string(
 				trigger_slopes[sr_libm2k_analog_trigger_condition_get(devc->m2k, idx)]);
 			break;
+		case SR_CONF_TRIGGER_LEVEL:
+			*data = g_variant_new_double(sr_libm2k_analog_trigger_level_get(devc->m2k, idx));
+			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {
 				return SR_ERR_ARG;
@@ -407,6 +411,14 @@ static int config_set(uint32_t key, GVariant *data,
 				sr_libm2k_analog_trigger_condition_set(devc->m2k, ch_idx, HIGH);
 			}
 			g_free(trigger_slope);
+			break;
+		case SR_CONF_TRIGGER_LEVEL:
+			analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0)
+					 ? TRUE : FALSE;
+			if (analog_enabled) {
+				sr_libm2k_analog_trigger_level_set(devc->m2k, ch_idx,
+								   g_variant_get_double(data));
+			}
 			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {

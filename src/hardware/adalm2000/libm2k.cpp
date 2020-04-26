@@ -173,6 +173,18 @@ void sr_libm2k_analog_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx
 	trigger->setAnalogCondition(chnIdx, static_cast<libm2k::M2K_TRIGGER_CONDITION_ANALOG>(condition));
 }
 
+float sr_libm2k_analog_trigger_level_get(struct M2k *m2k, unsigned int chnIdx)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return static_cast<float>(trigger->getAnalogLevel(chnIdx));
+}
+
+void sr_libm2k_analog_trigger_level_set(struct M2k *m2k, unsigned int chnIdx, float level)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogLevel(chnIdx, static_cast<double>(level));
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {
