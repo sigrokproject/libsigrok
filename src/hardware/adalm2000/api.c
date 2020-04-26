@@ -40,6 +40,7 @@ static const uint32_t devopts_cg_analog_group[] = {
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
+	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -233,6 +234,16 @@ static int config_get(uint32_t key, GVariant **data,
 		ch = cg->channels->data;
 		idx = ch->index;
 		switch (key) {
+		case SR_CONF_HIGH_RESOLUTION:
+			if (ch->type != SR_CHANNEL_ANALOG) {
+				return SR_ERR_ARG;
+			}
+			if (sr_libm2k_analog_range_get(devc->m2k, idx) == PLUS_MINUS_2_5V) {
+				*data = g_variant_new_boolean(TRUE);
+			} else {
+				*data = g_variant_new_boolean(FALSE);
+			}
+			break;
 		default:
 			return SR_ERR_NA;
 		}
@@ -245,8 +256,8 @@ static int config_set(uint32_t key, GVariant *data,
 		      const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
-	int ch_idx;
-	gboolean analog_enabled, digital_enabled;
+	int ch_idx, idx;
+	gboolean analog_enabled, digital_enabled, high_resolution;
 	struct sr_channel *ch;
 	struct dev_context *devc;
 
@@ -284,6 +295,17 @@ static int config_set(uint32_t key, GVariant *data,
 		ch_idx = ch->index;
 
 		switch (key) {
+		case SR_CONF_HIGH_RESOLUTION:
+			if (ch->type != SR_CHANNEL_ANALOG) {
+				return SR_ERR_ARG;
+			}
+			high_resolution = g_variant_get_boolean(data);
+			if (high_resolution) {
+				sr_libm2k_analog_range_set(devc->m2k, ch_idx, PLUS_MINUS_2_5V);
+			} else {
+				sr_libm2k_analog_range_set(devc->m2k, ch_idx, PLUS_MINUS_25V);
+			}
+			break;
 		default:
 			return SR_ERR_NA;
 		}

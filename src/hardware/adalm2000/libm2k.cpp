@@ -112,6 +112,20 @@ void sr_libm2k_analog_oversampling_ratio_set(struct M2k *m2k, int oversampling)
 	analogIn->setOversamplingRatio(oversampling);
 }
 
+enum M2K_RANGE sr_libm2k_analog_range_get(struct M2k *m2k, unsigned int channel)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	return static_cast<M2K_RANGE>(analogIn->getRange(
+		static_cast<libm2k::analog::ANALOG_IN_CHANNEL>(channel)));
+}
+
+void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_RANGE range)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->setRange(static_cast<libm2k::analog::ANALOG_IN_CHANNEL>(channel),
+			   static_cast<libm2k::analog::M2K_RANGE>(range));
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {

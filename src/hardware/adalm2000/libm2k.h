@@ -26,6 +26,11 @@
 extern "C" {
 #endif
 
+enum M2K_RANGE {
+	PLUS_MINUS_25V = 0,
+	PLUS_MINUS_2_5V = 1,
+};
+
 struct CONTEXT_INFO {
 	const char *id_vendor;
 	const char *id_product;
@@ -53,6 +58,10 @@ double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate);
 int sr_libm2k_analog_oversampling_ratio_get(struct M2k *m2k);
 
 void sr_libm2k_analog_oversampling_ratio_set(struct M2k *m2k, int oversampling);
+
+enum M2K_RANGE sr_libm2k_analog_range_get(struct M2k *m2k, unsigned int channel);
+
+void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_RANGE range);
 
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
