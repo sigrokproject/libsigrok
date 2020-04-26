@@ -48,6 +48,20 @@ enum M2K_RANGE {
 	PLUS_MINUS_2_5V = 1,
 };
 
+enum ANALOG_TRIGGER_SOURCE {
+	CH_1 = 0,
+	CH_2 = 1,
+	CH_1_OR_CH_2 = 2,
+	CH_1_AND_CH_2 = 3,
+	CH_1_XOR_CH_2 = 4,
+	SRC_DIGITAL_IN = 5,
+};
+
+enum ANALOG_TRIGGER_MODE {
+	ALWAYS = 0,
+	ANALOG = 1,
+};
+
 struct CONTEXT_INFO {
 	const char *id_vendor;
 	const char *id_product;
@@ -79,6 +93,16 @@ void sr_libm2k_analog_oversampling_ratio_set(struct M2k *m2k, int oversampling);
 enum M2K_RANGE sr_libm2k_analog_range_get(struct M2k *m2k, unsigned int channel);
 
 void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_RANGE range);
+
+/* Analog trigger */
+enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k);
+
+void sr_libm2k_analog_trigger_source_set(struct M2k *m2k, enum ANALOG_TRIGGER_SOURCE source);
+
+enum ANALOG_TRIGGER_MODE sr_libm2k_analog_trigger_mode_get(struct M2k *m2k, unsigned int chnIdx);
+
+void sr_libm2k_analog_trigger_mode_set(struct M2k *m2k, unsigned int chnIdx,
+				       enum ANALOG_TRIGGER_MODE mode);
 
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);

@@ -40,6 +40,7 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg_analog_group[] = {
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
@@ -64,6 +65,15 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(1),
 	SR_MHZ(10),
 	SR_MHZ(100),
+};
+
+static const char *trigger_sources[] = {
+	"CHANNEL 1",
+	"CHANNEL 2",
+	"CHANNEL 1 OR CHANNEL 2",
+	"CHANNEL 1 AND CHANNEL 2",
+	"CHANNEL 1 XOR CHANNEL 2",
+	"NONE",
 };
 
 static struct sr_dev_driver adalm2000_driver_info;
@@ -251,6 +261,15 @@ static int config_get(uint32_t key, GVariant **data,
 		ch = cg->channels->data;
 		idx = ch->index;
 		switch (key) {
+		case SR_CONF_TRIGGER_SOURCE:
+			if (sr_libm2k_analog_trigger_mode_get(devc->m2k, 0) == ALWAYS &&
+			    sr_libm2k_analog_trigger_mode_get(devc->m2k, 1) == ALWAYS) {
+				*data = g_variant_new_string(trigger_sources[5]);
+			} else {
+				*data = g_variant_new_string(
+					trigger_sources[sr_libm2k_analog_trigger_source_get(devc->m2k)]);
+			}
+			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {
 				return SR_ERR_ARG;
@@ -274,6 +293,7 @@ static int config_set(uint32_t key, GVariant *data,
 		      const struct sr_channel_group *cg)
 {
 	int ch_idx, idx;
+	char *trigger_source;
 	gboolean analog_enabled, digital_enabled, high_resolution;
 	struct sr_channel *ch;
 	struct dev_context *devc;
@@ -320,6 +340,40 @@ static int config_set(uint32_t key, GVariant *data,
 		ch_idx = ch->index;
 
 		switch (key) {
+		case SR_CONF_TRIGGER_SOURCE:
+			if (ch->type != SR_CHANNEL_ANALOG) {
+				return SR_ERR_ARG;
+			}
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0) {
+				return SR_ERR_ARG;
+			}
+			trigger_source = g_strdup(trigger_sources[idx]);
+			if (!strcmp(trigger_source, trigger_sources[0])) {
+				sr_libm2k_analog_trigger_source_set(devc->m2k, CH_1);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ANALOG);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ALWAYS);
+			} else if (!strcmp(trigger_source, trigger_sources[1])) {
+				sr_libm2k_analog_trigger_source_set(devc->m2k, CH_2);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ALWAYS);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ANALOG);
+			} else if (!strcmp(trigger_source, trigger_sources[2])) {
+				sr_libm2k_analog_trigger_source_set(devc->m2k, CH_1_OR_CH_2);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ANALOG);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ANALOG);
+			} else if (!strcmp(trigger_source, trigger_sources[3])) {
+				sr_libm2k_analog_trigger_source_set(devc->m2k, CH_1_AND_CH_2);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ANALOG);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ANALOG);
+			} else if (!strcmp(trigger_source, trigger_sources[4])) {
+				sr_libm2k_analog_trigger_source_set(devc->m2k, CH_1_XOR_CH_2);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ANALOG);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ANALOG);
+			} else {
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 0, ALWAYS);
+				sr_libm2k_analog_trigger_mode_set(devc->m2k, 1, ALWAYS);
+			}
+			g_free(trigger_source);
+			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {
 				return SR_ERR_ARG;
@@ -378,6 +432,9 @@ static int config_list(uint32_t key, GVariant **data,
 			} else {
 				*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 			}
+			break;
+		case SR_CONF_TRIGGER_SOURCE:
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 			break;
 		default:
 			return SR_ERR_NA;

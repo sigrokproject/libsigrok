@@ -134,6 +134,32 @@ void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_
 			   static_cast<libm2k::analog::M2K_RANGE>(range));
 }
 
+/* Analog trigger */
+enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return static_cast<ANALOG_TRIGGER_SOURCE>(trigger->getAnalogSource());
+}
+
+void sr_libm2k_analog_trigger_source_set(struct M2k *m2k, enum ANALOG_TRIGGER_SOURCE source)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogSource(static_cast<libm2k::M2K_TRIGGER_SOURCE_ANALOG>(source));
+}
+
+enum ANALOG_TRIGGER_MODE sr_libm2k_analog_trigger_mode_get(struct M2k *m2k, unsigned int chnIdx)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return static_cast<ANALOG_TRIGGER_MODE>(trigger->getAnalogMode(chnIdx));
+}
+
+void sr_libm2k_analog_trigger_mode_set(struct M2k *m2k, unsigned int chnIdx,
+				       enum ANALOG_TRIGGER_MODE mode)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogMode(chnIdx, static_cast<libm2k::M2K_TRIGGER_MODE>(mode));
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {
