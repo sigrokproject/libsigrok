@@ -20,6 +20,25 @@
 #include <config.h>
 #include "protocol.h"
 
+SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int type)
+{
+	struct sr_channel *ch;
+	int nb_channels;
+	GSList *l;
+
+	nb_channels = 0;
+
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == type) {
+			if (ch->enabled) {
+				nb_channels++;
+			}
+		}
+	}
+	return nb_channels;
+}
+
 SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;

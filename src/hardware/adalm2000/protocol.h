@@ -50,6 +50,8 @@ struct dev_context {
 	struct sr_analog_spec spec;
 };
 
+SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
+
 SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data);
 
 #endif
