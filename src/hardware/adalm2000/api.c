@@ -545,9 +545,30 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
+	struct dev_context *devc;
+	gboolean analog_enabled, digital_enabled;
 
-	(void)sdi;
+	devc = sdi->priv;
+
+	sr_libm2k_analog_acquisition_cancel(devc->m2k);
+	sr_libm2k_digital_acquisition_cancel(devc->m2k);
+
+	analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0) ? TRUE : FALSE;
+	digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0) ? TRUE : FALSE;
+
+	if (sr_libm2k_has_mixed_signal(devc->m2k)) {
+		sr_libm2k_mixed_signal_acquisition_stop(devc->m2k);
+	} else {
+		if (digital_enabled) {
+			sr_libm2k_digital_acquisition_stop(devc->m2k);
+		}
+		if (analog_enabled) {
+			sr_libm2k_analog_acquisition_stop(devc->m2k);
+		}
+	}
+
+	sr_session_source_remove(sdi->session, -1);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
