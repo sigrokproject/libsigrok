@@ -81,22 +81,120 @@ SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data)
+static void send_analog_packet(struct sr_dev_inst *sdi, float *data, int index, uint64_t sending_now)
 {
-	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct sr_channel *ch;
+	struct sr_datafeed_packet packet;
 
-	(void)fd;
-
-	if (!(sdi = cb_data))
-		return TRUE;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* TODO */
+	if (!(devc = sdi->priv)) {
+		return;
 	}
 
-	return TRUE;
+	ch = g_slist_nth_data(sdi->channels, DEFAULT_NUM_LOGIC_CHANNELS + index);
+	devc->meaning.channels = g_slist_append(NULL, ch);
+
+	devc->packet.data = data;
+	devc->packet.num_samples = sending_now;
+
+	packet.payload = &devc->packet;
+	packet.type = SR_DF_ANALOG;
+
+	sr_session_send(sdi, &packet);
+}
+
+SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_channel *ch;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	uint64_t samples_todo, logic_done, analog_done, sending_now, analog_sent;
+	int64_t elapsed_us, limit_us, todo_us;
+	uint32_t *logic_data;
+	float **analog_data;
+	GSList *l;
+
+	(void) fd;
+	(void) revents;
+
+	if (!(sdi = cb_data)) {
+		return TRUE;
+	}
+
+	if (!(devc = sdi->priv)) {
+		return TRUE;
+	}
+
+	elapsed_us = g_get_monotonic_time() - devc->start_time;
+	limit_us = 1000 * devc->limit_msec;
+
+	if (limit_us > 0 && limit_us < elapsed_us) {
+		todo_us = MAX(0, limit_us - devc->spent_us);
+	} else {
+		todo_us = MAX(0, elapsed_us - devc->spent_us);
+	}
+
+	samples_todo = (todo_us * sr_libm2k_digital_samplerate_get(devc->m2k) + G_USEC_PER_SEC - 1)
+		       / G_USEC_PER_SEC;
+
+	if (devc->limit_samples > 0) {
+		if (devc->limit_samples < devc->sent_samples) {
+			samples_todo = 0;
+		} else if (devc->limit_samples - devc->sent_samples < samples_todo) {
+			samples_todo = devc->limit_samples - devc->sent_samples;
+		}
+	}
+
+	if (samples_todo == 0) {
+		return G_SOURCE_CONTINUE;
+	}
+
+	todo_us = samples_todo * G_USEC_PER_SEC / sr_libm2k_digital_samplerate_get(devc->m2k);
+
+	logic_done = 0;
+	analog_done = 0;
+
+	while (logic_done < samples_todo || analog_done < samples_todo) {
+		if (analog_done < samples_todo) {
+			analog_sent = MIN(samples_todo - analog_done, devc->buffersize);
+
+			analog_data = sr_libm2k_analog_samples_get(devc->m2k, devc->buffersize);
+			for (l = sdi->channels; l; l = l->next) {
+				ch = l->data;
+				if (ch->type == SR_CHANNEL_ANALOG) {
+					if (ch->enabled) {
+						send_analog_packet(sdi, analog_data[ch->index],
+								   ch->index, analog_sent);
+					}
+				}
+			}
+			analog_done += analog_sent;
+		}
+		if (logic_done < samples_todo) {
+			logic_data = sr_libm2k_digital_samples_get(devc->m2k, devc->buffersize);
+
+			packet.type = SR_DF_LOGIC;
+			packet.payload = &logic;
+			logic.unitsize = devc->logic_unitsize;
+
+			sending_now = MIN(samples_todo - logic_done, devc->buffersize);
+
+			logic.length = sending_now * devc->logic_unitsize;
+			logic.data = logic_data;
+			sr_session_send(sdi, &packet);
+			logic_done += sending_now;
+		}
+
+	}
+
+	devc->sent_samples += logic_done;
+	devc->spent_us += todo_us;
+	if ((devc->limit_samples > 0 && devc->sent_samples >= devc->limit_samples)
+	    || (limit_us > 0 && devc->spent_us >= limit_us)) {
+		sr_dev_acquisition_stop(sdi);
+	}
+
+	return G_SOURCE_CONTINUE;
 }

@@ -535,10 +535,57 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	struct dev_context *devc;
+	GSList *l;
+	gboolean analog_enabled, digital_enabled;
+	struct sr_channel *ch;
 
-	(void)sdi;
+	devc = sdi->priv;
+	devc->sent_samples = 0;
+	analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0) ? TRUE : FALSE;
+	digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0) ? TRUE : FALSE;
+
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_ANALOG) {
+			sr_libm2k_analog_channel_enable(devc->m2k, ch->index, 1);
+		}
+	}
+
+	if (adalm2000_convert_trigger(sdi) != SR_OK) {
+		sr_err("Failed to configure triggers.");
+		return SR_ERR;
+	}
+
+	if (analog_enabled) {
+		if (devc->avg) {
+			sr_libm2k_analog_oversampling_ratio_set(devc->m2k, devc->avg_samples);
+		}
+		sr_libm2k_analog_kernel_buffers_count_set(devc->m2k, 64);
+		sr_libm2k_analog_streaming_flag_set(devc->m2k, 0);
+	}
+	if (digital_enabled) {
+		sr_libm2k_digital_kernel_buffers_count_set(devc->m2k, 64);
+		sr_libm2k_digital_streaming_flag_set(devc->m2k, 0);
+	}
+
+	if (sr_libm2k_has_mixed_signal(devc->m2k)) {
+		sr_libm2k_mixed_signal_acquisition_start(devc->m2k, devc->buffersize);
+	} else {
+		if (analog_enabled) {
+			sr_libm2k_analog_acquisition_start(devc->m2k, devc->buffersize);
+		}
+		if (digital_enabled) {
+			sr_libm2k_digital_acquisition_start(devc->m2k, devc->buffersize);
+		}
+	}
+
+	std_session_send_df_header(sdi);
+	sr_session_source_add(sdi->session, -1, G_IO_IN, 0, adalm2000_receive_data,
+			      (struct sr_dev_inst *) sdi);
+
+	devc->start_time = g_get_monotonic_time();
+	devc->spent_us = 0;
 
 	return SR_OK;
 }
