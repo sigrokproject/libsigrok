@@ -20,6 +20,28 @@
 #include <config.h>
 #include "protocol.h"
 
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t devopts[] = {
+};
+
+static const uint32_t devopts_cg_analog_group[] = {
+};
+
+static const uint32_t devopts_cg_analog_channel[] = {
+};
+
+static const uint32_t devopts_cg[] = {
+};
+
 static struct sr_dev_driver adalm2000_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -96,22 +118,42 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		       const struct sr_dev_inst *sdi,
+		       const struct sr_channel_group *cg)
 {
-	int ret;
+	struct sr_channel *ch;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
+		case SR_CONF_DEVICE_OPTIONS:
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+					       scanopts, drvopts,
+					       devopts);
 
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		ch = cg->channels->data;
+
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			if (ch->type == SR_CHANNEL_ANALOG) {
+				if (strcmp(cg->name, "Analog") == 0) {
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_group));
+				} else {
+					*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog_channel));
+				}
+			} else {
+				*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
+			}
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
-
-	return ret;
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
