@@ -24,6 +24,7 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "libm2k.h"
 
 #define LOG_PREFIX "adalm2000"
 
@@ -51,6 +52,8 @@ struct dev_context {
 };
 
 SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
+
+SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi);
 
 SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data);
 

@@ -36,6 +36,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 };
 
 static const uint32_t devopts_cg_analog_group[] = {
@@ -46,6 +47,14 @@ static const uint32_t devopts_cg_analog_channel[] = {
 };
 
 static const uint32_t devopts_cg[] = {
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const uint64_t samplerates[] = {
@@ -347,6 +356,11 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_samplerates(
 				ARRAY_AND_SIZE(samplerates));
 			break;
+		case SR_CONF_TRIGGER_MATCH:
+			*data = std_gvar_array_i32(
+				ARRAY_AND_SIZE(trigger_matches));
+			break;
+
 		default:
 			return SR_ERR_NA;
 		}

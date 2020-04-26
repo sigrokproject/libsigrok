@@ -26,6 +26,23 @@
 extern "C" {
 #endif
 
+#define SR_NO_TRIGGER                -1
+
+enum DIGITAL_TRIGGER_SOURCE {
+	SRC_TRIGGER_IN = 0,
+	SRC_ANALOG_IN = 1,
+	SRC_NONE = 2,
+};
+
+enum M2K_TRIGGER_CONDITION_DIGITAL {
+	RISING_EDGE_DIGITAL = 0,
+	FALLING_EDGE_DIGITAL = 1,
+	LOW_LEVEL_DIGITAL = 2,
+	HIGH_LEVEL_DIGITAL = 3,
+	ANY_EDGE_DIGITAL = 4,
+	NO_TRIGGER_DIGITAL = 5
+};
+
 enum M2K_RANGE {
 	PLUS_MINUS_25V = 0,
 	PLUS_MINUS_2_5V = 1,
@@ -67,6 +84,13 @@ void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 
 double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate);
+
+/* Digital trigger*/
+void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_SOURCE source);
+
+enum M2K_TRIGGER_CONDITION_DIGITAL sr_libm2k_digital_trigger_condition_get(struct M2k *m2k, unsigned int chnIdx);
+
+void sr_libm2k_digital_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx, uint32_t cond);
 
 #ifdef __cplusplus
 }

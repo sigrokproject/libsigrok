@@ -22,6 +22,8 @@
 #include <libm2k/contextbuilder.hpp>
 #include <libm2k/digital/m2kdigital.hpp>
 #include <libm2k/analog/m2kanalogin.hpp>
+#include <libm2k/m2khardwaretrigger.hpp>
+#include <libsigrok/libsigrok.h>
 #include <string.h>
 
 extern "C" {
@@ -36,6 +38,12 @@ libm2k::analog::M2kAnalogIn *getAnalogIn(struct M2k *m2k)
 {
 	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
 	return ctx->getAnalogIn();
+}
+
+libm2k::M2kHardwareTrigger *getTrigger(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	return ctx->getDigital()->getTrigger();
 }
 
 /* Context */
@@ -137,6 +145,48 @@ double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate)
 {
 	libm2k::digital::M2kDigital *digital = getDigital(m2k);
 	return digital->setSampleRateIn(samplerate);
+}
+
+/* Digital trigger */
+void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_SOURCE source)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setDigitalSource(static_cast<libm2k::M2K_TRIGGER_SOURCE_DIGITAL>(source));
+}
+
+enum M2K_TRIGGER_CONDITION_DIGITAL sr_libm2k_digital_trigger_condition_get(struct M2k *m2k, unsigned int chnIdx)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return static_cast<M2K_TRIGGER_CONDITION_DIGITAL>(trigger->getDigitalCondition(chnIdx));
+}
+
+void sr_libm2k_digital_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx, uint32_t cond)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	libm2k::M2K_TRIGGER_CONDITION_DIGITAL condition;
+	switch (cond) {
+	case SR_TRIGGER_ZERO:
+		condition = libm2k::LOW_LEVEL_DIGITAL;
+		break;
+	case SR_TRIGGER_ONE:
+		condition = libm2k::HIGH_LEVEL_DIGITAL;
+		break;
+	case SR_TRIGGER_RISING:
+		condition = libm2k::RISING_EDGE_DIGITAL;
+		break;
+	case SR_TRIGGER_FALLING:
+		condition = libm2k::FALLING_EDGE_DIGITAL;
+		break;
+	case SR_TRIGGER_EDGE:
+		condition = libm2k::ANY_EDGE_DIGITAL;
+		break;
+	case SR_NO_TRIGGER:
+		condition = libm2k::NO_TRIGGER_DIGITAL;
+		break;
+	default:
+		condition = libm2k::NO_TRIGGER_DIGITAL;
+	}
+	trigger->setDigitalCondition(chnIdx, condition);
 }
 
 }

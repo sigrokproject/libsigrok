@@ -39,6 +39,48 @@ SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int typ
 	return nb_channels;
 }
 
+SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	struct sr_channel *ch;
+	const GSList *l, *m;
+
+	devc = sdi->priv;
+
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type == SR_CHANNEL_LOGIC) {
+			if (ch->enabled) {
+				sr_libm2k_digital_trigger_condition_set(devc->m2k, ch->index,
+									SR_NO_TRIGGER);
+			}
+		}
+	}
+
+	if (!(trigger = sr_session_trigger_get(sdi->session))) {
+		return SR_OK;
+	}
+
+	sr_libm2k_digital_streaming_flag_set(devc->m2k, 0);
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled) {
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			}
+			sr_libm2k_digital_trigger_condition_set(devc->m2k, match->channel->index,
+								match->match);
+		}
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int adalm2000_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
