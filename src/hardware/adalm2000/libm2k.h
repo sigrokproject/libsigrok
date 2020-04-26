@@ -101,6 +101,14 @@ enum M2K_RANGE sr_libm2k_analog_range_get(struct M2k *m2k, unsigned int channel)
 
 void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_RANGE range);
 
+void sr_libm2k_analog_acquisition_start(struct M2k *m2k, unsigned int buffer_size);
+
+float **sr_libm2k_analog_samples_get(struct M2k *m2k, uint64_t nb_samples);
+
+void sr_libm2k_analog_acquisition_cancel(struct M2k *m2k);
+
+void sr_libm2k_analog_acquisition_stop(struct M2k *m2k);
+
 /* Analog trigger */
 enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k);
 

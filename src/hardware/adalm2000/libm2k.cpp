@@ -134,6 +134,39 @@ void sr_libm2k_analog_range_set(struct M2k *m2k, unsigned int channel, enum M2K_
 			   static_cast<libm2k::analog::M2K_RANGE>(range));
 }
 
+void sr_libm2k_analog_acquisition_start(struct M2k *m2k, unsigned int buffer_size)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->startAcquisition(buffer_size);
+}
+
+float **sr_libm2k_analog_samples_get(struct M2k *m2k, uint64_t nb_samples)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+
+	const double *data = analogIn->getSamplesInterleaved(nb_samples);
+	float **samples = new float *[2];
+	samples[0] = new float[nb_samples];
+	samples[1] = new float[nb_samples];
+	for (unsigned int i = 0, j = 0; i < nb_samples; i++, j += 2) {
+		samples[0][i] = (float) data[j];
+		samples[1][i] = (float) data[j + 1];
+	}
+	return samples;
+}
+
+void sr_libm2k_analog_acquisition_cancel(struct M2k *m2k)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->cancelAcquisition();
+}
+
+void sr_libm2k_analog_acquisition_stop(struct M2k *m2k)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->stopAcquisition();
+}
+
 /* Analog trigger */
 enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k)
 {
