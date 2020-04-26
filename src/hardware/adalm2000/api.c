@@ -44,6 +44,7 @@ static const uint32_t devopts_cg_analog_group[] = {
 };
 
 static const uint32_t devopts_cg_analog_channel[] = {
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -74,6 +75,13 @@ static const char *trigger_sources[] = {
 	"CHANNEL 1 AND CHANNEL 2",
 	"CHANNEL 1 XOR CHANNEL 2",
 	"NONE",
+};
+
+static const char *trigger_slopes[] = {
+	"RISING",
+	"FALLING",
+	"LOW",
+	"HIGH",
 };
 
 static struct sr_dev_driver adalm2000_driver_info;
@@ -270,6 +278,13 @@ static int config_get(uint32_t key, GVariant **data,
 					trigger_sources[sr_libm2k_analog_trigger_source_get(devc->m2k)]);
 			}
 			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			if (ch->type != SR_CHANNEL_ANALOG) {
+				return SR_ERR_ARG;
+			}
+			*data = g_variant_new_string(
+				trigger_slopes[sr_libm2k_analog_trigger_condition_get(devc->m2k, idx)]);
+			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {
 				return SR_ERR_ARG;
@@ -293,7 +308,7 @@ static int config_set(uint32_t key, GVariant *data,
 		      const struct sr_channel_group *cg)
 {
 	int ch_idx, idx;
-	char *trigger_source;
+	char *trigger_source, *trigger_slope;
 	gboolean analog_enabled, digital_enabled, high_resolution;
 	struct sr_channel *ch;
 	struct dev_context *devc;
@@ -374,6 +389,25 @@ static int config_set(uint32_t key, GVariant *data,
 			}
 			g_free(trigger_source);
 			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			if (ch->type != SR_CHANNEL_ANALOG) {
+				return SR_ERR_ARG;
+			}
+			if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0) {
+				return SR_ERR_ARG;
+			}
+			trigger_slope = g_strdup(trigger_slopes[idx]);
+			if (strcmp(trigger_slope, trigger_slopes[0]) == 0) {
+				sr_libm2k_analog_trigger_condition_set(devc->m2k, ch_idx, RISING);
+			} else if (strcmp(trigger_slope, trigger_slopes[1]) == 0) {
+				sr_libm2k_analog_trigger_condition_set(devc->m2k, ch_idx, FALLING);
+			} else if (strcmp(trigger_slope, trigger_slopes[2]) == 0) {
+				sr_libm2k_analog_trigger_condition_set(devc->m2k, ch_idx, LOW);
+			} else if (strcmp(trigger_slope, trigger_slopes[3]) == 0) {
+				sr_libm2k_analog_trigger_condition_set(devc->m2k, ch_idx, HIGH);
+			}
+			g_free(trigger_slope);
+			break;
 		case SR_CONF_HIGH_RESOLUTION:
 			if (ch->type != SR_CHANNEL_ANALOG) {
 				return SR_ERR_ARG;
@@ -435,6 +469,9 @@ static int config_list(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_TRIGGER_SOURCE:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
+			break;
+		case SR_CONF_TRIGGER_SLOPE:
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_slopes));
 			break;
 		default:
 			return SR_ERR_NA;

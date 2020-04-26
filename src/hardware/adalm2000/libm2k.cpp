@@ -160,6 +160,19 @@ void sr_libm2k_analog_trigger_mode_set(struct M2k *m2k, unsigned int chnIdx,
 	trigger->setAnalogMode(chnIdx, static_cast<libm2k::M2K_TRIGGER_MODE>(mode));
 }
 
+enum ANALOG_TRIGGER_CONDITION sr_libm2k_analog_trigger_condition_get(struct M2k *m2k, unsigned int chnIdx)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return static_cast<ANALOG_TRIGGER_CONDITION>(trigger->getAnalogCondition(chnIdx));
+}
+
+void sr_libm2k_analog_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx,
+					    enum ANALOG_TRIGGER_CONDITION condition)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogCondition(chnIdx, static_cast<libm2k::M2K_TRIGGER_CONDITION_ANALOG>(condition));
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {

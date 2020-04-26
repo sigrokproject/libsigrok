@@ -62,6 +62,13 @@ enum ANALOG_TRIGGER_MODE {
 	ANALOG = 1,
 };
 
+enum ANALOG_TRIGGER_CONDITION {
+	RISING = 0,
+	FALLING = 1,
+	LOW = 2,
+	HIGH = 3,
+};
+
 struct CONTEXT_INFO {
 	const char *id_vendor;
 	const char *id_product;
@@ -103,6 +110,11 @@ enum ANALOG_TRIGGER_MODE sr_libm2k_analog_trigger_mode_get(struct M2k *m2k, unsi
 
 void sr_libm2k_analog_trigger_mode_set(struct M2k *m2k, unsigned int chnIdx,
 				       enum ANALOG_TRIGGER_MODE mode);
+
+enum ANALOG_TRIGGER_CONDITION sr_libm2k_analog_trigger_condition_get(struct M2k *m2k, unsigned int chnIdx);
+
+void sr_libm2k_analog_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx,
+					    enum ANALOG_TRIGGER_CONDITION condition);
 
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
