@@ -100,6 +100,18 @@ double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate)
 	return analogIn->setSampleRate(samplerate);
 }
 
+int sr_libm2k_analog_oversampling_ratio_get(struct M2k *m2k)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	return analogIn->getOversamplingRatio();
+}
+
+void sr_libm2k_analog_oversampling_ratio_set(struct M2k *m2k, int oversampling)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->setOversamplingRatio(oversampling);
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {

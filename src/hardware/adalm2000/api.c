@@ -32,6 +32,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog_group[] = {
@@ -171,6 +173,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 	sr_libm2k_context_adc_calibrate(devc->m2k);
+	devc->avg_samples = sr_libm2k_analog_oversampling_ratio_get(devc->m2k);
 
 	return SR_OK;
 }
@@ -216,6 +219,12 @@ static int config_get(uint32_t key, GVariant **data,
 			}
 			*data = g_variant_new_uint64(samplerate);
 			break;
+		case SR_CONF_AVERAGING:
+			*data = g_variant_new_boolean(devc->avg);
+			break;
+		case SR_CONF_AVG_SAMPLES:
+			*data = g_variant_new_uint64(devc->avg_samples);
+			break;
 
 		default:
 			return SR_ERR_NA;
@@ -260,6 +269,12 @@ static int config_set(uint32_t key, GVariant *data,
 			if (digital_enabled) {
 				sr_libm2k_digital_samplerate_set(devc->m2k, g_variant_get_uint64(data));
 			}
+			break;
+		case SR_CONF_AVERAGING:
+			devc->avg = g_variant_get_boolean(data);
+			break;
+		case SR_CONF_AVG_SAMPLES:
+			devc->avg_samples = g_variant_get_uint64(data);
 			break;
 		default:
 			return SR_ERR_NA;

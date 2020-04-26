@@ -50,6 +50,10 @@ double sr_libm2k_analog_samplerate_get(struct M2k *m2k);
 
 double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate);
 
+int sr_libm2k_analog_oversampling_ratio_get(struct M2k *m2k);
+
+void sr_libm2k_analog_oversampling_ratio_set(struct M2k *m2k, int oversampling);
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 
