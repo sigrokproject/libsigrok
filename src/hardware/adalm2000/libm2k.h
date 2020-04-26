@@ -137,6 +137,14 @@ double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 
 double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate);
 
+void sr_libm2k_digital_acquisition_start(struct M2k *m2k, unsigned int buffer_size);
+
+uint32_t *sr_libm2k_digital_samples_get(struct M2k *m2k, uint64_t nb_samples);
+
+void sr_libm2k_digital_acquisition_cancel(struct M2k *m2k);
+
+void sr_libm2k_digital_acquisition_stop(struct M2k *m2k);
+
 /* Digital trigger*/
 void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_SOURCE source);
 

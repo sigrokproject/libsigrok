@@ -243,6 +243,30 @@ double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate)
 	return digital->setSampleRateIn(samplerate);
 }
 
+void sr_libm2k_digital_acquisition_start(struct M2k *m2k, unsigned int buffer_size)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	digital->startAcquisition(buffer_size);
+}
+
+uint32_t *sr_libm2k_digital_samples_get(struct M2k *m2k, uint64_t nb_samples)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	return (uint32_t *) digital->getSamplesP(nb_samples);
+}
+
+void sr_libm2k_digital_acquisition_cancel(struct M2k *m2k)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	digital->cancelAcquisition();
+}
+
+void sr_libm2k_digital_acquisition_stop(struct M2k *m2k)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	digital->stopAcquisition();
+}
+
 /* Digital trigger */
 void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_SOURCE source)
 {
