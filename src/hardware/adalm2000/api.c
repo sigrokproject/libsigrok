@@ -32,6 +32,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
@@ -220,6 +222,12 @@ static int config_get(uint32_t key, GVariant **data,
 			}
 			*data = g_variant_new_uint64(samplerate);
 			break;
+		case SR_CONF_LIMIT_SAMPLES:
+			*data = g_variant_new_uint64(devc->limit_samples);
+			break;
+		case SR_CONF_LIMIT_MSEC:
+			*data = g_variant_new_uint64(devc->limit_msec);
+			break;
 		case SR_CONF_AVERAGING:
 			*data = g_variant_new_boolean(devc->avg);
 			break;
@@ -280,6 +288,14 @@ static int config_set(uint32_t key, GVariant *data,
 			if (digital_enabled) {
 				sr_libm2k_digital_samplerate_set(devc->m2k, g_variant_get_uint64(data));
 			}
+			break;
+		case SR_CONF_LIMIT_SAMPLES:
+			devc->limit_samples = g_variant_get_uint64(data);
+			devc->limit_msec = 0;
+			break;
+		case SR_CONF_LIMIT_MSEC:
+			devc->limit_msec = g_variant_get_uint64(data);
+			devc->limit_samples = 0;
 			break;
 		case SR_CONF_AVERAGING:
 			devc->avg = g_variant_get_boolean(data);
