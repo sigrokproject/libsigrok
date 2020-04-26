@@ -31,6 +31,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const uint32_t devopts_cg_analog_group[] = {
@@ -40,6 +41,15 @@ static const uint32_t devopts_cg_analog_channel[] = {
 };
 
 static const uint32_t devopts_cg[] = {
+};
+
+static const uint64_t samplerates[] = {
+	SR_KHZ(1),
+	SR_KHZ(10),
+	SR_KHZ(100),
+	SR_MHZ(1),
+	SR_MHZ(10),
+	SR_MHZ(100),
 };
 
 static struct sr_dev_driver adalm2000_driver_info;
@@ -182,41 +192,88 @@ static int dev_close(struct sr_dev_inst *sdi)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
+	unsigned int idx, samplerate;
+	gboolean analog_enabled, digital_enabled;
+	struct sr_channel *ch;
+	struct dev_context *devc;
+	if (!sdi) {
+		return SR_ERR_ARG;
 	}
 
-	return ret;
+	devc = sdi->priv;
+
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_SAMPLERATE:
+			digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0)
+					  ? TRUE : FALSE;
+			samplerate = sr_libm2k_analog_samplerate_get(devc->m2k);
+			if (digital_enabled) {
+				sr_libm2k_digital_samplerate_set(devc->m2k, samplerate);
+			}
+			*data = g_variant_new_uint64(samplerate);
+			break;
+
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		ch = cg->channels->data;
+		idx = ch->index;
+		switch (key) {
+		default:
+			return SR_ERR_NA;
+		}
+	}
+
+	return SR_OK;
 }
 
 static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
-	int ret;
+	int ch_idx;
+	gboolean analog_enabled, digital_enabled;
+	struct sr_channel *ch;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
+	if (!sdi) {
+		return SR_ERR_ARG;
 	}
 
-	return ret;
+	devc = sdi->priv;
+
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_SAMPLERATE:
+			analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0)
+					 ? TRUE : FALSE;
+			digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0)
+					  ? TRUE : FALSE;
+			if (analog_enabled) {
+				sr_libm2k_analog_samplerate_set(devc->m2k, g_variant_get_uint64(data));
+			}
+			if (digital_enabled) {
+				sr_libm2k_digital_samplerate_set(devc->m2k, g_variant_get_uint64(data));
+			}
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		ch = cg->channels->data;
+		ch_idx = ch->index;
+
+		switch (key) {
+		default:
+			return SR_ERR_NA;
+		}
+	}
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
@@ -233,6 +290,10 @@ static int config_list(uint32_t key, GVariant **data,
 					       scanopts, drvopts,
 					       devopts);
 
+		case SR_CONF_SAMPLERATE:
+			*data = std_gvar_samplerates(
+				ARRAY_AND_SIZE(samplerates));
+			break;
 		default:
 			return SR_ERR_NA;
 		}

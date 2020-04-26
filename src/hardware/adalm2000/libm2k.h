@@ -45,6 +45,16 @@ void sr_libm2k_context_adc_calibrate(struct M2k *m2k);
 int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info);
 
 
+/* Analog */
+double sr_libm2k_analog_samplerate_get(struct M2k *m2k);
+
+double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate);
+
+/* Digital */
+double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
+
+double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate);
+
 #ifdef __cplusplus
 }
 #endif

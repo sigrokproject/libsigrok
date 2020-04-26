@@ -20,9 +20,24 @@
 #include "libm2k.h"
 #include <libm2k/m2k.hpp>
 #include <libm2k/contextbuilder.hpp>
+#include <libm2k/digital/m2kdigital.hpp>
+#include <libm2k/analog/m2kanalogin.hpp>
 #include <string.h>
 
 extern "C" {
+
+libm2k::digital::M2kDigital *getDigital(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	return ctx->getDigital();
+}
+
+libm2k::analog::M2kAnalogIn *getAnalogIn(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	return ctx->getAnalogIn();
+}
+
 /* Context */
 M2k *sr_libm2k_context_open(const char *uri)
 {
@@ -70,6 +85,32 @@ int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info)
 	}
 	*info = ctxs_info;
 	return ctxs.size();
+}
+
+/* Analog */
+double sr_libm2k_analog_samplerate_get(struct M2k *m2k)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	return analogIn->getSampleRate();
+}
+
+double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	return analogIn->setSampleRate(samplerate);
+}
+
+/* Digital */
+double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	return digital->getSampleRateIn();
+}
+
+double sr_libm2k_digital_samplerate_set(struct M2k *m2k, double samplerate)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	return digital->setSampleRateIn(samplerate);
 }
 
 }
