@@ -95,6 +95,8 @@ void sr_libm2k_mixed_signal_acquisition_stop(struct M2k *m2k);
 
 
 /* Analog */
+void sr_libm2k_analog_channel_enable(struct M2k *m2k, unsigned int chnIdx, int enable);
+
 double sr_libm2k_analog_samplerate_get(struct M2k *m2k);
 
 double sr_libm2k_analog_samplerate_set(struct M2k *m2k, double samplerate);
@@ -114,6 +116,9 @@ float **sr_libm2k_analog_samples_get(struct M2k *m2k, uint64_t nb_samples);
 void sr_libm2k_analog_acquisition_cancel(struct M2k *m2k);
 
 void sr_libm2k_analog_acquisition_stop(struct M2k *m2k);
+
+void sr_libm2k_analog_kernel_buffers_count_set(struct M2k *m2k, unsigned int count);
+
 
 /* Analog trigger */
 enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k);
@@ -138,6 +143,9 @@ int sr_libm2k_analog_trigger_delay_get(struct M2k *m2k);
 
 void sr_libm2k_analog_trigger_delay_set(struct M2k *m2k, int delay);
 
+void sr_libm2k_analog_streaming_flag_set(struct M2k *m2k, int flag);
+
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 
@@ -151,6 +159,9 @@ void sr_libm2k_digital_acquisition_cancel(struct M2k *m2k);
 
 void sr_libm2k_digital_acquisition_stop(struct M2k *m2k);
 
+void sr_libm2k_digital_kernel_buffers_count_set(struct M2k *m2k, unsigned int count);
+
+
 /* Digital trigger*/
 void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_SOURCE source);
 
@@ -161,6 +172,9 @@ void sr_libm2k_digital_trigger_condition_set(struct M2k *m2k, unsigned int chnId
 int sr_libm2k_digital_trigger_delay_get(struct M2k *m2k);
 
 void sr_libm2k_digital_trigger_delay_set(struct M2k *m2k, int delay);
+
+void sr_libm2k_digital_streaming_flag_set(struct M2k *m2k, int flag);
+
 
 #ifdef __cplusplus
 }

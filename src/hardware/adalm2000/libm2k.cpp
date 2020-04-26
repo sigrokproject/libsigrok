@@ -114,6 +114,12 @@ void sr_libm2k_mixed_signal_acquisition_stop(struct M2k *m2k)
 }
 
 /* Analog */
+void sr_libm2k_analog_channel_enable(struct M2k *m2k, unsigned int chnIdx, int enable)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->enableChannel(chnIdx, static_cast<bool>(enable));
+}
+
 double sr_libm2k_analog_samplerate_get(struct M2k *m2k)
 {
 	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
@@ -185,6 +191,12 @@ void sr_libm2k_analog_acquisition_stop(struct M2k *m2k)
 	analogIn->stopAcquisition();
 }
 
+void sr_libm2k_analog_kernel_buffers_count_set(struct M2k *m2k, unsigned int count)
+{
+	libm2k::analog::M2kAnalogIn *analogIn = getAnalogIn(m2k);
+	analogIn->setKernelBuffersCount(count);
+}
+
 /* Analog trigger */
 enum ANALOG_TRIGGER_SOURCE sr_libm2k_analog_trigger_source_get(struct M2k *m2k)
 {
@@ -248,6 +260,12 @@ void sr_libm2k_analog_trigger_delay_set(struct M2k *m2k, int delay)
 	trigger->setAnalogDelay(delay);
 }
 
+void sr_libm2k_analog_streaming_flag_set(struct M2k *m2k, int flag)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogStreamingFlag(static_cast<bool>(flag));
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {
@@ -283,6 +301,12 @@ void sr_libm2k_digital_acquisition_stop(struct M2k *m2k)
 {
 	libm2k::digital::M2kDigital *digital = getDigital(m2k);
 	digital->stopAcquisition();
+}
+
+void sr_libm2k_digital_kernel_buffers_count_set(struct M2k *m2k, unsigned int count)
+{
+	libm2k::digital::M2kDigital *digital = getDigital(m2k);
+	digital->setKernelBuffersCountIn(count);
 }
 
 /* Digital trigger */
@@ -337,6 +361,12 @@ void sr_libm2k_digital_trigger_delay_set(struct M2k *m2k, int delay)
 {
 	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
 	trigger->setDigitalDelay(delay);
+}
+
+void sr_libm2k_digital_streaming_flag_set(struct M2k *m2k, int flag)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setDigitalStreamingFlag(flag);
 }
 
 }
