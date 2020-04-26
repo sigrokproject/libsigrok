@@ -46,19 +46,108 @@ static struct sr_dev_driver adalm2000_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	GSList *devices;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	struct sr_channel *ch;
 
-	(void)options;
+	struct sr_channel_group *cg, *acg;
+	struct sr_config *src;
+	GSList *l, *devices;
+	struct CONTEXT_INFO **devlist;
+	unsigned int i, j, len;
+	char *conn;
+	char channel_name[16];
+	char ip[30];
+	gboolean ip_connection;
 
+	conn = NULL;
+	ip_connection = FALSE;
+
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = (char *) g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+
+	if (conn) {
+		if (strstr(conn, "tcp")) {
+			strtok(conn, "/");
+			snprintf(ip, 30, "ip:%s", strtok(NULL, "/"));
+			ip_connection = TRUE;
+		}
+	}
 	devices = NULL;
-	drvc = di->context;
-	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	len = sr_libm2k_context_get_all(&devlist);
 
-	return devices;
+	for (i = 0; i < len; i++) {
+		struct CONTEXT_INFO *info = (struct CONTEXT_INFO *) devlist[i];
+
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		devc = g_malloc0(sizeof(struct dev_context));
+
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(info->manufacturer);
+		sdi->model = g_strdup(info->product);
+		sdi->serial_num = g_strdup(info->serial);
+		sdi->connection_id = g_strdup(info->uri);
+		if (ip_connection) {
+			sdi->conn = g_strdup(ip);
+		} else {
+			sdi->conn = g_strdup(info->uri);
+		}
+
+		cg = g_malloc0(sizeof(struct sr_channel_group));
+		cg->name = g_strdup("Logic");
+
+		for (j = 0; j < DEFAULT_NUM_LOGIC_CHANNELS; j++) {
+			snprintf(channel_name, 16, "DIO%d", j);
+			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
+					    channel_name);
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
+		sdi->channel_groups = g_slist_append(NULL, cg);
+
+		acg = g_malloc0(sizeof(struct sr_channel_group));
+		acg->name = g_strdup("Analog");
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
+
+		for (j = 0; j < DEFAULT_NUM_ANALOG_CHANNELS; j++) {
+			snprintf(channel_name, 16, "A%d", j);
+
+			cg = g_malloc0(sizeof(struct sr_channel_group));
+			cg->name = g_strdup(channel_name);
+
+			ch = sr_channel_new(sdi, j,
+					    SR_CHANNEL_ANALOG, TRUE,
+					    channel_name);
+
+			acg->channels = g_slist_append(acg->channels, ch);
+
+			cg->channels = g_slist_append(cg->channels, ch);
+			sdi->channel_groups = g_slist_append(
+				sdi->channel_groups, cg);
+
+		}
+		devc->m2k = NULL;
+		devc->logic_unitsize = 2;
+		devc->buffersize = 1 << 16;
+		sr_analog_init(&devc->packet, &devc->encoding, &devc->meaning,
+			       &devc->spec, 6);
+
+		devc->meaning.mq = SR_MQ_VOLTAGE;
+		devc->meaning.unit = SR_UNIT_VOLT;
+		devc->meaning.mqflags = 0;
+
+		sdi->priv = devc;
+		sdi->inst_type = SR_INST_USB;
+
+		devices = g_slist_append(devices, sdi);
+	}
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)

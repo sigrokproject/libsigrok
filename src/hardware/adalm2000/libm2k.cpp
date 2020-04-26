@@ -18,6 +18,29 @@
  */
 
 #include "libm2k.h"
+#include <libm2k/m2k.hpp>
+#include <libm2k/contextbuilder.hpp>
+#include <string.h>
 
 extern "C" {
+/* Context */
+int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info)
+{
+	auto ctxs = libm2k::context::getContextsInfo();
+
+	struct CONTEXT_INFO **ctxs_info = (struct CONTEXT_INFO **) malloc(
+		ctxs.size() * sizeof(struct CONTEXT_INFO *));
+	for (unsigned int i = 0; i < ctxs.size(); ++i) {
+		ctxs_info[i] = (struct CONTEXT_INFO *) malloc(sizeof(struct CONTEXT_INFO));
+		ctxs_info[i]->id_vendor = ctxs[i]->id_vendor.c_str();
+		ctxs_info[i]->id_product = ctxs[i]->id_product.c_str();
+		ctxs_info[i]->manufacturer = ctxs[i]->manufacturer.c_str();
+		ctxs_info[i]->product = ctxs[i]->product.c_str();
+		ctxs_info[i]->serial = ctxs[i]->serial.c_str();
+		ctxs_info[i]->uri = ctxs[i]->uri.c_str();
+	}
+	*info = ctxs_info;
+	return ctxs.size();
+}
+
 }

@@ -26,6 +26,18 @@
 extern "C" {
 #endif
 
+struct CONTEXT_INFO {
+	const char *id_vendor;
+	const char *id_product;
+	const char *manufacturer;
+	const char *product;
+	const char *serial;
+	const char *uri;
+};
+
+/* Context */
+int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info);
+
 
 #ifdef __cplusplus
 }
