@@ -30,6 +30,7 @@
 
 #define DEFAULT_NUM_LOGIC_CHANNELS               16
 #define DEFAULT_NUM_ANALOG_CHANNELS               2
+#define MAX_NEG_DELAY                         -8192
 
 struct dev_context {
 	struct M2k *m2k;

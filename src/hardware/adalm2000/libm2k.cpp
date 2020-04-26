@@ -185,6 +185,18 @@ void sr_libm2k_analog_trigger_level_set(struct M2k *m2k, unsigned int chnIdx, fl
 	trigger->setAnalogLevel(chnIdx, static_cast<double>(level));
 }
 
+int sr_libm2k_analog_trigger_delay_get(struct M2k *m2k)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return trigger->getAnalogDelay();
+}
+
+void sr_libm2k_analog_trigger_delay_set(struct M2k *m2k, int delay)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setAnalogDelay(delay);
+}
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k)
 {
@@ -238,6 +250,18 @@ void sr_libm2k_digital_trigger_condition_set(struct M2k *m2k, unsigned int chnId
 		condition = libm2k::NO_TRIGGER_DIGITAL;
 	}
 	trigger->setDigitalCondition(chnIdx, condition);
+}
+
+int sr_libm2k_digital_trigger_delay_get(struct M2k *m2k)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	return trigger->getDigitalDelay();
+}
+
+void sr_libm2k_digital_trigger_delay_set(struct M2k *m2k, int delay)
+{
+	libm2k::M2kHardwareTrigger *trigger = getTrigger(m2k);
+	trigger->setDigitalDelay(delay);
 }
 
 }

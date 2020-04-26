@@ -37,6 +37,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog_group[] = {
@@ -229,7 +230,8 @@ static int config_get(uint32_t key, GVariant **data,
 		      const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
-	unsigned int idx, samplerate;
+	unsigned int idx, capture_ratio, samplerate;
+	int delay;
 	gboolean analog_enabled, digital_enabled;
 	struct sr_channel *ch;
 	struct dev_context *devc;
@@ -262,7 +264,32 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_AVG_SAMPLES:
 			*data = g_variant_new_uint64(devc->avg_samples);
 			break;
+		case SR_CONF_CAPTURE_RATIO:
+			analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0)
+					 ? TRUE : FALSE;
+			digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0)
+					  ? TRUE : FALSE;
 
+			if (analog_enabled) {
+				delay = sr_libm2k_analog_trigger_delay_get(devc->m2k);
+			} else {
+				delay = sr_libm2k_digital_trigger_delay_get(devc->m2k);
+			}
+			if (delay > 0) {
+				delay = 0;
+				capture_ratio = 0;
+			} else {
+				capture_ratio = delay * 100 / MAX_NEG_DELAY;
+			}
+
+			if (analog_enabled) {
+				sr_libm2k_analog_trigger_delay_set(devc->m2k, 0);
+			}
+			if (digital_enabled) {
+				sr_libm2k_digital_trigger_delay_set(devc->m2k, delay);
+			}
+			*data = g_variant_new_uint64(capture_ratio);
+			break;
 		default:
 			return SR_ERR_NA;
 		}
@@ -311,7 +338,7 @@ static int config_set(uint32_t key, GVariant *data,
 		      const struct sr_dev_inst *sdi,
 		      const struct sr_channel_group *cg)
 {
-	int ch_idx, idx;
+	int ch_idx, idx, delay;
 	char *trigger_source, *trigger_slope;
 	gboolean analog_enabled, digital_enabled, high_resolution;
 	struct sr_channel *ch;
@@ -344,6 +371,20 @@ static int config_set(uint32_t key, GVariant *data,
 		case SR_CONF_LIMIT_MSEC:
 			devc->limit_msec = g_variant_get_uint64(data);
 			devc->limit_samples = 0;
+			break;
+		case SR_CONF_CAPTURE_RATIO:
+			analog_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) > 0)
+					 ? TRUE : FALSE;
+			digital_enabled = (adalm2000_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0)
+					  ? TRUE : FALSE;
+			delay = MAX_NEG_DELAY *
+				(int) g_variant_get_uint64(data) / 100;
+			if (analog_enabled) {
+				sr_libm2k_analog_trigger_delay_set(devc->m2k, delay);
+			}
+			if (digital_enabled) {
+				sr_libm2k_digital_trigger_delay_set(devc->m2k, delay);
+			}
 			break;
 		case SR_CONF_AVERAGING:
 			devc->avg = g_variant_get_boolean(data);

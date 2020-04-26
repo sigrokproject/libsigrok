@@ -120,6 +120,10 @@ float sr_libm2k_analog_trigger_level_get(struct M2k *m2k, unsigned int chnIdx);
 
 void sr_libm2k_analog_trigger_level_set(struct M2k *m2k, unsigned int chnIdx, float level);
 
+int sr_libm2k_analog_trigger_delay_get(struct M2k *m2k);
+
+void sr_libm2k_analog_trigger_delay_set(struct M2k *m2k, int delay);
+
 /* Digital */
 double sr_libm2k_digital_samplerate_get(struct M2k *m2k);
 
@@ -131,6 +135,10 @@ void sr_libm2k_digital_trigger_source_set(struct M2k *m2k, enum DIGITAL_TRIGGER_
 enum M2K_TRIGGER_CONDITION_DIGITAL sr_libm2k_digital_trigger_condition_get(struct M2k *m2k, unsigned int chnIdx);
 
 void sr_libm2k_digital_trigger_condition_set(struct M2k *m2k, unsigned int chnIdx, uint32_t cond);
+
+int sr_libm2k_digital_trigger_delay_get(struct M2k *m2k);
+
+void sr_libm2k_digital_trigger_delay_set(struct M2k *m2k, int delay);
 
 #ifdef __cplusplus
 }
