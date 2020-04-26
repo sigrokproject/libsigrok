@@ -24,6 +24,23 @@
 
 extern "C" {
 /* Context */
+M2k *sr_libm2k_context_open(const char *uri)
+{
+	libm2k::context::M2k *ctx;
+	if (strlen(uri) == 0) {
+		ctx = libm2k::context::m2kOpen();
+	} else {
+		ctx = libm2k::context::m2kOpen(uri);
+	}
+	return (M2k *) ctx;
+}
+
+void sr_libm2k_context_adc_calibrate(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	ctx->calibrateADC();
+}
+
 int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info)
 {
 	auto ctxs = libm2k::context::getContextsInfo();

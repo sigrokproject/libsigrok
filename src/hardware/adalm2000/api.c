@@ -152,9 +152,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	devc = sdi->priv;
+	devc->m2k = sr_libm2k_context_open(sdi->conn);
+	if (!devc->m2k) {
+		sr_err("Failed to open device");
+		return SR_ERR;
+	}
+	sr_libm2k_context_adc_calibrate(devc->m2k);
 
 	return SR_OK;
 }
