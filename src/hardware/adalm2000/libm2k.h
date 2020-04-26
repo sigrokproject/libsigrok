@@ -38,6 +38,8 @@ struct CONTEXT_INFO {
 /* Context */
 struct M2k *sr_libm2k_context_open(const char *uri);
 
+int sr_libm2k_context_close(struct M2k **m2k);
+
 void sr_libm2k_context_adc_calibrate(struct M2k *m2k);
 
 int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info);

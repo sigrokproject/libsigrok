@@ -167,10 +167,17 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc;
+	int ret;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	devc = sdi->priv;
 
+	sr_info("Closing device on ...");
+	ret = sr_libm2k_context_close(&(devc->m2k));
+	if (ret) {
+		sr_err("Failed to close device");
+		return SR_ERR;
+	}
 	return SR_OK;
 }
 

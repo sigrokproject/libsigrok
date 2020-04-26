@@ -35,6 +35,18 @@ M2k *sr_libm2k_context_open(const char *uri)
 	return (M2k *) ctx;
 }
 
+int sr_libm2k_context_close(struct M2k **m2k)
+{
+	if (*m2k == nullptr) {
+		return 0;
+	}
+	auto ctx = (libm2k::context::M2k *) *m2k;
+
+	libm2k::context::contextClose(ctx, false);
+	*m2k = nullptr;
+	return 0;
+}
+
 void sr_libm2k_context_adc_calibrate(struct M2k *m2k)
 {
 	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
