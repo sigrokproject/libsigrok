@@ -68,197 +68,552 @@ struct zip_stat;
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define R8(x)     ((unsigned)((const uint8_t*)(x))[0])
+static inline uint8_t read_u8(const uint8_t *p)
+{
+	return p[0];
+}
+#define R8(x)	read_u8((const uint8_t *)(x))
 
 /**
  * Read a 16 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RB16(x)  (((unsigned)((const uint8_t*)(x))[0] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[1])
+static inline uint16_t read_u16be(const uint8_t *p)
+{
+	uint16_t u;
+
+	u = 0;
+	u <<= 8; u |= p[0];
+	u <<= 8; u |= p[1];
+
+	return u;
+}
+#define RB16(x) read_u16be((const uint8_t *)(x))
 
 /**
  * Read a 16 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RL16(x)  (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[0])
+static inline uint16_t read_u16le(const uint8_t *p)
+{
+	uint16_t u;
+
+	u = 0;
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[0];
+
+	return u;
+}
+#define RL16(x) read_u16le((const uint8_t *)(x))
 
 /**
  * Read a 16 bits big endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding signed integer
  */
-#define RB16S(x)  ((int16_t) \
-                  (((unsigned)((const uint8_t*)(x))[0] <<  8) | \
-                    (unsigned)((const uint8_t*)(x))[1]))
+static inline int16_t read_i16be(const uint8_t *p)
+{
+	uint16_t u;
+	int16_t i;
+
+	u = read_u16be(p);
+	i = (int16_t)u;
+
+	return i;
+}
+#define RB16S(x) read_i16be((const uint8_t *)(x))
 
 /**
  * Read a 16 bits little endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding signed integer
  */
-#define RL16S(x)  ((int16_t) \
-                  (((unsigned)((const uint8_t*)(x))[1] <<  8) | \
-                    (unsigned)((const uint8_t*)(x))[0]))
+static inline int16_t read_i16le(const uint8_t *p)
+{
+	uint16_t u;
+	int16_t i;
+
+	u = read_u16le(p);
+	i = (int16_t)u;
+
+	return i;
+}
+#define RL16S(x) read_i16le((const uint8_t *)(x))
 
 /**
  * Read a 32 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RB32(x)  (((unsigned)((const uint8_t*)(x))[0] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[1] << 16) | \
-                  ((unsigned)((const uint8_t*)(x))[2] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[3])
+static inline uint32_t read_u32be(const uint8_t *p)
+{
+	uint32_t u;
+
+	u = 0;
+	u <<= 8; u |= p[0];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[2];
+	u <<= 8; u |= p[3];
+
+	return u;
+}
+#define RB32(x) read_u32be((const uint8_t *)(x))
 
 /**
  * Read a 32 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RL32(x)  (((unsigned)((const uint8_t*)(x))[3] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[2] << 16) | \
-                  ((unsigned)((const uint8_t*)(x))[1] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[0])
+static inline uint32_t read_u32le(const uint8_t *p)
+{
+	uint32_t u;
+
+	u = 0;
+	u <<= 8; u |= p[3];
+	u <<= 8; u |= p[2];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[0];
+
+	return u;
+}
+#define RL32(x) read_u32le((const uint8_t *)(x))
 
 /**
  * Read a 32 bits big endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding signed integer
  */
-#define RB32S(x)  ((int32_t) \
-                 (((unsigned)((const uint8_t*)(x))[0] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[1] << 16) | \
-                  ((unsigned)((const uint8_t*)(x))[2] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[3]))
+static inline int32_t read_i32be(const uint8_t *p)
+{
+	uint32_t u;
+	int32_t i;
+
+	u = read_u32be(p);
+	i = (int32_t)u;
+
+	return i;
+}
+#define RB32S(x) read_i32be((const uint8_t *)(x))
 
 /**
  * Read a 32 bits little endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding signed integer
  */
-#define RL32S(x)  ((int32_t) \
-                 (((unsigned)((const uint8_t*)(x))[3] << 24) | \
-                  ((unsigned)((const uint8_t*)(x))[2] << 16) | \
-                  ((unsigned)((const uint8_t*)(x))[1] <<  8) | \
-                   (unsigned)((const uint8_t*)(x))[0]))
+static inline int32_t read_i32le(const uint8_t *p)
+{
+	uint32_t u;
+	int32_t i;
+
+	u = read_u32le(p);
+	i = (int32_t)u;
+
+	return i;
+}
+#define RL32S(x) read_i32le((const uint8_t *)(x))
 
 /**
  * Read a 64 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RB64(x)  (((uint64_t)((const uint8_t*)(x))[0] << 56) | \
-                  ((uint64_t)((const uint8_t*)(x))[1] << 48) | \
-                  ((uint64_t)((const uint8_t*)(x))[2] << 40) | \
-                  ((uint64_t)((const uint8_t*)(x))[3] << 32) | \
-                  ((uint64_t)((const uint8_t*)(x))[4] << 24) | \
-                  ((uint64_t)((const uint8_t*)(x))[5] << 16) | \
-                  ((uint64_t)((const uint8_t*)(x))[6] <<  8) | \
-                   (uint64_t)((const uint8_t*)(x))[7])
+static inline uint64_t read_u64be(const uint8_t *p)
+{
+	uint64_t u;
+
+	u = 0;
+	u <<= 8; u |= p[0];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[2];
+	u <<= 8; u |= p[3];
+	u <<= 8; u |= p[4];
+	u <<= 8; u |= p[5];
+	u <<= 8; u |= p[6];
+	u <<= 8; u |= p[7];
+
+	return u;
+}
+#define RB64(x) read_u64be((const uint8_t *)(x))
 
 /**
  * Read a 64 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RL64(x)  (((uint64_t)((const uint8_t*)(x))[7] << 56) | \
-                  ((uint64_t)((const uint8_t*)(x))[6] << 48) | \
-                  ((uint64_t)((const uint8_t*)(x))[5] << 40) | \
-                  ((uint64_t)((const uint8_t*)(x))[4] << 32) | \
-                  ((uint64_t)((const uint8_t*)(x))[3] << 24) | \
-                  ((uint64_t)((const uint8_t*)(x))[2] << 16) | \
-                  ((uint64_t)((const uint8_t*)(x))[1] <<  8) | \
-                   (uint64_t)((const uint8_t*)(x))[0])
+static inline uint64_t read_u64le(const uint8_t *p)
+{
+	uint64_t u;
+
+	u = 0;
+	u <<= 8; u |= p[7];
+	u <<= 8; u |= p[6];
+	u <<= 8; u |= p[5];
+	u <<= 8; u |= p[4];
+	u <<= 8; u |= p[3];
+	u <<= 8; u |= p[2];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[0];
+
+	return u;
+}
+#define RL64(x) read_u64le((const uint8_t *)(x))
+
+/**
+ * Read a 64 bits big endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+static inline int64_t read_i64be(const uint8_t *p)
+{
+	uint64_t u;
+	int64_t i;
+
+	u = read_u64be(p);
+	i = (int64_t)u;
+
+	return i;
+}
+#define RB64S(x) read_i64be((const uint8_t *)(x))
 
 /**
  * Read a 64 bits little endian signed integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
  */
-#define RL64S(x)  ((int64_t) \
-                 (((uint64_t)((const uint8_t*)(x))[7] << 56) | \
-                  ((uint64_t)((const uint8_t*)(x))[6] << 48) | \
-                  ((uint64_t)((const uint8_t*)(x))[5] << 40) | \
-                  ((uint64_t)((const uint8_t*)(x))[4] << 32) | \
-                  ((uint64_t)((const uint8_t*)(x))[3] << 24) | \
-                  ((uint64_t)((const uint8_t*)(x))[2] << 16) | \
-                  ((uint64_t)((const uint8_t*)(x))[1] <<  8) | \
-                   (uint64_t)((const uint8_t*)(x))[0]))
+static inline int64_t read_i64le(const uint8_t *p)
+{
+	uint64_t u;
+	int64_t i;
+
+	u = read_u64le(p);
+	i = (int64_t)u;
+
+	return i;
+}
+#define RL64S(x) read_i64le((const uint8_t *)(x))
 
 /**
  * Read a 32 bits big endian float out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding float
  */
-#define RBFL(x)  ((union { uint32_t u; float f; }) { .u = RB32(x) }.f)
+static inline float read_fltbe(const uint8_t *p)
+{
+	/*
+	 * Implementor's note: Strictly speaking the "union" trick
+	 * is not portable. But this phrase was found to work on the
+	 * project's supported platforms, and serve well until a more
+	 * appropriate phrase is found.
+	 */
+	union { uint32_t u32; float flt; } u;
+	float f;
+
+	u.u32 = read_u32be(p);
+	f = u.flt;
+
+	return f;
+}
+#define RBFL(x) read_fltbe((const uint8_t *)(x))
 
 /**
  * Read a 32 bits little endian float out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding float
  */
-#define RLFL(x)  ((union { uint32_t u; float f; }) { .u = RL32(x) }.f)
+static inline float read_fltle(const uint8_t *p)
+{
+	/*
+	 * Implementor's note: Strictly speaking the "union" trick
+	 * is not portable. But this phrase was found to work on the
+	 * project's supported platforms, and serve well until a more
+	 * appropriate phrase is found.
+	 */
+	union { uint32_t u32; float flt; } u;
+	float f;
+
+	u.u32 = read_u32le(p);
+	f = u.flt;
+
+	return f;
+}
+#define RLFL(x) read_fltle((const uint8_t *)(x))
 
 /**
  * Write a 8 bits unsigned integer to memory.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define W8(p, x)    do { ((uint8_t*)(p))[0] = (uint8_t) (x);      } while (0)
+static inline void write_u8(uint8_t *p, uint8_t x)
+{
+	p[0] = x;
+}
+#define W8(p, x) write_u8((uint8_t *)(p), (uint8_t)(x))
 
 /**
  * Write a 16 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define WB16(p, x)  do { ((uint8_t*)(p))[1] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>8);  } while (0)
+static inline void write_u16be(uint8_t *p, uint16_t x)
+{
+	p[1] = x & 0xff; x >>= 8;
+	p[0] = x & 0xff; x >>= 8;
+}
+#define WB16(p, x) write_u16be((uint8_t *)(p), (uint16_t)(x))
 
 /**
  * Write a 16 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define WL16(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  } while (0)
+static inline void write_u16le(uint8_t *p, uint16_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+}
+#define WL16(p, x) write_u16le((uint8_t *)(p), (uint16_t)(x))
 
 /**
  * Write a 32 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define WB32(p, x)  do { ((uint8_t*)(p))[3] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[2] = (uint8_t)((x)>>8);  \
-                         ((uint8_t*)(p))[1] = (uint8_t)((x)>>16); \
-                         ((uint8_t*)(p))[0] = (uint8_t)((x)>>24); } while (0)
+static inline void write_u32be(uint8_t *p, uint32_t x)
+{
+	p[3] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[0] = x & 0xff; x >>= 8;
+}
+#define WB32(p, x) write_u32be((uint8_t *)(p), (uint32_t)(x))
 
 /**
  * Write a 32 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
  */
-#define WL32(p, x)  do { ((uint8_t*)(p))[0] = (uint8_t) (x);      \
-                         ((uint8_t*)(p))[1] = (uint8_t)((x)>>8);  \
-                         ((uint8_t*)(p))[2] = (uint8_t)((x)>>16); \
-                         ((uint8_t*)(p))[3] = (uint8_t)((x)>>24); } while (0)
+static inline void write_u32le(uint8_t *p, uint32_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+}
+#define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
 
 /**
  * Write a 32 bits float to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input float
  */
-#define WBFL(p, x)  WB32(p, (union { uint32_t u; float f; }) { .f = x }.u)
+static inline void write_fltbe(uint8_t *p, float x)
+{
+	union { uint32_t u; float f; } u;
+	u.f = x;
+	write_u32be(p, u.u);
+}
+#define WBFL(p, x) write_fltbe((uint8_t *)(p), (x))
 
 /**
  * Write a 32 bits float to memory stored as little endian.
  * @param p a pointer to the output memory
  * @param x the input float
  */
-#define WLFL(p, x)  WL32(p, (union { uint32_t u; float f; }) { .f = x }.u)
+static inline void write_fltle(uint8_t *p, float x)
+{
+	union { uint32_t u; float f; } u;
+	u.f = x;
+	write_u32le(p, u.u);
+}
+#define WLFL(p, x) write_fltle((uint8_t *)(p), float (x))
+
+/* Endianess conversion helpers with read/write position increment. */
+
+/**
+ * Read unsigned 8bit integer from raw memory, increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint8_t read_u8_inc(const uint8_t **p)
+{
+	uint8_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u8(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 16bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint16_t read_u16be_inc(const uint8_t **p)
+{
+	uint16_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u16be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 16bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint16_t read_u16le_inc(const uint8_t **p)
+{
+	uint16_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u16le(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 32bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint32_t read_u32be_inc(const uint8_t **p)
+{
+	uint32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u32be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 32bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint32_t read_u32le_inc(const uint8_t **p)
+{
+	uint32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u32le(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 64bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint64_t read_u64be_inc(const uint8_t **p)
+{
+	uint64_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u64be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 64bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint64_t read_u64le_inc(const uint8_t **p)
+{
+	uint64_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u64le(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Write unsigned 8bit integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u8_inc(uint8_t **p, uint8_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u8(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 16bit big endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u16be_inc(uint8_t **p, uint16_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u16be(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 16bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u16le_inc(uint8_t **p, uint16_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u16le(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 32bit big endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u32be_inc(uint8_t **p, uint32_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u32be(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 32bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u32le_inc(uint8_t **p, uint32_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u32le(*p, x);
+	*p += sizeof(x);
+}
 
 /* Portability fixes for FreeBSD. */
 #ifdef __FreeBSD__
