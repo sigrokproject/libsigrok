@@ -348,7 +348,7 @@ static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_chan
 	gboolean low_channels; /* Lower channels enabled */
 	gboolean high_channels; /* Higher channels enabled */
 	int len, channel_index;
-	long samples_index;
+	uint64_t samples_index;
 
 	len = 0;
 	channel_index = 0;
@@ -414,7 +414,7 @@ static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_chan
 				}
 
 				/* Storing the converted temp values from the the scope into the buffers. */
-				for (long index = 0; index < tmp_samplebuf->len; index++) {
+				for (uint64_t index = 0; index < tmp_samplebuf->len; index++) {
 					uint8_t value = g_array_index(tmp_samplebuf, uint8_t, index);
 					if (ch->index < 8)
 						g_array_append_val(data_low_channels, value);
@@ -561,7 +561,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 					devc->buffer += devc->block_header_size;
 					len = devc->num_samples;
 				} else {
-					sr_dbg("Requesting: %li bytes.", devc->num_samples - devc->num_block_bytes);
+					sr_dbg("Requesting: %" PRIu64 " bytes.", devc->num_samples - devc->num_block_bytes);
 					len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples-devc->num_block_bytes);
 					if (len == -1) {
 						sr_err("Read error, aborting capture.");
@@ -930,7 +930,7 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	sr_dbg("Current timebase: %g.", devc->timebase);
 	devc->samplerate = devc->memory_depth_analog / (devc->timebase * devc->model->series->num_horizontal_divs);
 	sr_dbg("Current samplerate: %0f.", devc->samplerate);
-	sr_dbg("Current memory depth: %lu.", devc->memory_depth_analog);
+	sr_dbg("Current memory depth: %" PRIu64 ".", devc->memory_depth_analog);
 
 	return SR_OK;
 }
