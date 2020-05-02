@@ -138,7 +138,7 @@ static gboolean usb_source_dispatch(GSource *source,
 		sr_err("Callback not set, cannot dispatch event.");
 		return G_SOURCE_REMOVE;
 	}
-	keep = (*(sr_receive_data_callback)callback)(-1, revents, user_data);
+	keep = (*SR_RECEIVE_DATA_CALLBACK(callback))(-1, revents, user_data);
 
 	if (G_LIKELY(keep) && G_LIKELY(!g_source_is_destroyed(source))) {
 		if (usource->timeout_us >= 0)
@@ -455,7 +455,7 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 	if (!source)
 		return SR_ERR;
 
-	g_source_set_callback(source, (GSourceFunc)cb, cb_data, NULL);
+	g_source_set_callback(source, G_SOURCE_FUNC(cb), cb_data, NULL);
 
 	ret = sr_session_source_add_internal(session, ctx->libusb_ctx, source);
 	g_source_unref(source);

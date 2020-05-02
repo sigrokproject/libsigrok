@@ -56,6 +56,13 @@ struct zip_stat;
 #define ARRAY_AND_SIZE(a) (a), ARRAY_SIZE(a)
 #endif
 
+#ifndef G_SOURCE_FUNC
+#define G_SOURCE_FUNC(f) ((GSourceFunc) (void (*)(void)) (f)) /* Since 2.58. */
+#endif
+
+#define SR_RECEIVE_DATA_CALLBACK(f) \
+	((sr_receive_data_callback) (void (*)(void)) (f))
+
 /**
  * Read a 8 bits unsigned integer out of memory.
  * @param x a pointer to the input memory

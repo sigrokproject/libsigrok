@@ -126,7 +126,7 @@ static gboolean fd_source_dispatch(GSource *source,
 		sr_err("Callback not set, cannot dispatch event.");
 		return G_SOURCE_REMOVE;
 	}
-	keep = (*(sr_receive_data_callback)callback)
+	keep = (*SR_RECEIVE_DATA_CALLBACK(callback))
 			(fsource->pollfd.fd, revents, user_data);
 
 	if (fsource->timeout_us >= 0 && G_LIKELY(keep)
@@ -1237,7 +1237,7 @@ SR_PRIV int sr_session_fd_source_add(struct sr_session *session,
 	if (!source)
 		return SR_ERR;
 
-	g_source_set_callback(source, (GSourceFunc)cb, cb_data, NULL);
+	g_source_set_callback(source, G_SOURCE_FUNC(cb), cb_data, NULL);
 
 	ret = sr_session_source_add_internal(session, key, source);
 	g_source_unref(source);
