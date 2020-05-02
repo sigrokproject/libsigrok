@@ -93,7 +93,8 @@ struct context {
 	uint32_t num_samples;
 	uint32_t channel_count, logic_channel_count;
 	uint32_t channels_seen;
-	uint64_t period;
+	uint64_t sample_rate;
+	uint64_t sample_scale;
 	uint64_t sample_time;
 	uint8_t *previous_sample;
 	float *analog_samples;
@@ -218,31 +219,28 @@ static GString *gen_header(const struct sr_output *o,
 	GString *header;
 	GSList *channels, *l;
 	unsigned int num_channels, i;
-	uint64_t samplerate = 0, sr;
 	char *samplerate_s;
 
 	ctx = o->priv;
 	header = g_string_sized_new(512);
 
-	if (ctx->period == 0) {
+	if (ctx->sample_rate == 0) {
 		if (sr_config_get(o->sdi->driver, o->sdi, NULL,
 				  SR_CONF_SAMPLERATE, &gvar) == SR_OK) {
-			samplerate = g_variant_get_uint64(gvar);
+			ctx->sample_rate = g_variant_get_uint64(gvar);
 			g_variant_unref(gvar);
 		}
 
 		i = 0;
-		sr = 1;
-		while (sr < samplerate) {
+		ctx->sample_scale = 1;
+		while (ctx->sample_scale < ctx->sample_rate) {
 			i++;
-			sr *= 1000;
+			ctx->sample_scale *= 1000;
 		}
-		if (samplerate)
-			ctx->period = sr / samplerate;
 		if (i < ARRAY_SIZE(xlabels))
 			ctx->xlabel = xlabels[i];
-		sr_info("Set sample period to %" PRIu64 " %s",
-			ctx->period, ctx->xlabel);
+		sr_info("Set sample rate, scale to %" PRIu64 ", %" PRIu64 " %s",
+			ctx->sample_rate, ctx->sample_scale, ctx->xlabel);
 	}
 	ctx->title = (o->sdi && o->sdi->driver) ? o->sdi->driver->longname : "unknown";
 
@@ -271,8 +269,8 @@ static GString *gen_header(const struct sr_output *o,
 			g_string_truncate(header, header->len - 1);
 		}
 		g_string_append_printf(header, "\n");
-		if (samplerate != 0) {
-			samplerate_s = sr_samplerate_string(samplerate);
+		if (ctx->sample_rate != 0) {
+			samplerate_s = sr_samplerate_string(ctx->sample_rate);
 			g_string_append_printf(header, "%s Samplerate: %s\n",
 					       ctx->comment, samplerate_s);
 			g_free(samplerate_s);
@@ -442,7 +440,7 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			ctx->previous_sample = g_malloc0(analog_size + ctx->num_logic_channels);
 
 		for (i = 0; i < ctx->num_samples; i++) {
-			ctx->sample_time += ctx->period;
+			ctx->sample_time = (ctx->sample_scale * i) / ctx->sample_rate;
 			analog_sample =
 			    &ctx->analog_samples[i * ctx->num_analog_channels];
 			logic_sample =
