@@ -89,7 +89,7 @@ ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="8613", ENV{ID_SIGROK}="1"
 # Dangerous Prototypes Buspirate (v3)
 # ChronoVu LA8 (old VID/PID)
 # ChronoVu LA16 (old VID/PID)
-# ftdi-la
+# ftdi-la (FT232R)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ENV{ID_SIGROK}="1"
 
 # Dangerous Prototypes Buspirate (v4)
@@ -155,10 +155,10 @@ ATTRS{idVendor}=="04b5", ATTRS{idProduct}=="4032", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="20a0", ATTRS{idProduct}=="4123", ENV{ID_SIGROK}="1"
 
 # IKALOGIC ScanaPLUS
-# ftdi-la
+# ftdi-la (FT232H)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", ENV{ID_SIGROK}="1"
 
-# TIAO USB Multi Protocol Adapter (TUMPA)
+# ftdi-la (TIAO USB Multi Protocol Adapter (TUMPA))
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8a98", ENV{ID_SIGROK}="1"
 
 # Kecheng KC-330B
@@ -184,8 +184,11 @@ ATTRS{idVendor}=="3195", ATTRS{idProduct}=="f190", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fa95", ENV{ID_SIGROK}="1"
 
 # MiniLA Mockup
-# ftdi-la
+# ftdi-la (FT2232H)
 ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ENV{ID_SIGROK}="1"
+
+# ftdi-la (FT4232H)
+ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6011", ENV{ID_SIGROK}="1"
 
 # MIC 98581
 # MIC 98583
