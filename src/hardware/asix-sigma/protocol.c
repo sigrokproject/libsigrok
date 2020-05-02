@@ -47,18 +47,15 @@ SR_PRIV const uint64_t samplerates[] = {
 
 SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
 
-static const char firmware_files[][24] = {
-	/* 50 MHz, supports 8 bit fractions */
-	"asix-sigma-50.fw",
-	/* 100 MHz */
-	"asix-sigma-100.fw",
-	/* 200 MHz */
-	"asix-sigma-200.fw",
-	/* Synchronous clock from pin */
-	"asix-sigma-50sync.fw",
-	/* Frequency counter */
-	"asix-sigma-phasor.fw",
+static const char *firmware_files[] = {
+	"asix-sigma-50.fw", /* Up to 50MHz sample rate, 8bit divider. */
+	"asix-sigma-100.fw", /* 100MHz sample rate, fixed. */
+	"asix-sigma-200.fw", /* 200MHz sample rate, fixed. */
+	"asix-sigma-50sync.fw", /* Synchronous clock from external pin. */
+	"asix-sigma-phasor.fw", /* Frequency counter. */
 };
+
+#define SIGMA_FIRMWARE_SIZE_LIMIT (256 * 1024)
 
 static int sigma_read(void *buf, size_t size, struct dev_context *devc)
 {
@@ -370,8 +367,8 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 	int ret = SR_OK;
 
 	/* Retrieve the on-disk firmware file content. */
-	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
-			name, &file_size, 256 * 1024);
+	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE, name,
+		&file_size, SIGMA_FIRMWARE_SIZE_LIMIT);
 	if (!firmware)
 		return SR_ERR;
 
