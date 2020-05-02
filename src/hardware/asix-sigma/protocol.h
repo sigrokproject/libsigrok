@@ -39,7 +39,7 @@
  * the implementation got fixed. Yet keep the code in place and allow
  * developers to turn on this switch during development.
  */
-#define ASIX_SIGMA_WITH_TRIGGER	0
+#define ASIX_SIGMA_WITH_TRIGGER	1
 
 /* Experimental support for OMEGA (scan only, operation is ENOIMPL). */
 #define ASIX_WITH_OMEGA 0
