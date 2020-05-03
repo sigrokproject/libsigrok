@@ -240,6 +240,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_MEASURED_QUANTITY:
 		tuple_child = g_variant_get_child_value(data, 0);
 		mq = g_variant_get_uint32(tuple_child);
+		g_variant_unref(tuple_child);
 		tuple_child = g_variant_get_child_value(data, 1);
 		mq_flags = g_variant_get_uint64(tuple_child);
 		g_variant_unref(tuple_child);
