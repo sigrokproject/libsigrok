@@ -99,8 +99,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	/*
 	 * First stop potentially running monitoring and wait for 50ms before
 	 * next command can be sent.

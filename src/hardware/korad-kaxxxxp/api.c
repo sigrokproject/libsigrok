@@ -128,8 +128,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	/* Get the device model. */
 	len = 0;
 	for (i = 0; models[i].id; i++) {

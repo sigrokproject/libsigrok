@@ -67,8 +67,6 @@ static GSList *center_scan(const char *conn, const char *serialcomm, int idx)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	sr_info("Found device on port %s.", conn);
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));

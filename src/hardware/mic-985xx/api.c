@@ -67,8 +67,6 @@ static GSList *mic_scan(const char *conn, const char *serialcomm, int idx)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	/* TODO: Query device type. */
 	// ret = mic_cmd_get_device_info(serial);
 

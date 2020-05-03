@@ -122,10 +122,13 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 	if (ret != SR_OK)
 		return ret;
 
-	if (serial->serialcomm)
-		return serial_set_paramstr(serial, serial->serialcomm);
-	else
-		return SR_OK;
+	if (serial->serialcomm) {
+		ret = serial_set_paramstr(serial, serial->serialcomm);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	return serial_flush(serial);
 }
 
 /**

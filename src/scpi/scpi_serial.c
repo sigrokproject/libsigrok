@@ -114,9 +114,6 @@ static int scpi_serial_open(struct sr_scpi_dev_inst *scpi)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
-	if (serial_flush(serial) != SR_OK)
-		return SR_ERR;
-
 	sscpi->got_newline = FALSE;
 
 	return SR_OK;

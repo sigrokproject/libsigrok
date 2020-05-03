@@ -85,7 +85,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Probing serial port %s.", conn);
 
 	devices = NULL;
-	serial_flush(serial);
 
 	/* Request a packet if the DMM requires this. */
 	if (dmm->packet_request) {

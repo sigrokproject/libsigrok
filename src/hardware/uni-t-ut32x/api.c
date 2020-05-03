@@ -90,7 +90,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devices = NULL;
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	rc = serial_open(serial, SERIAL_RDWR);
-	serial_flush(serial);
 	/* Cannot query/identify the device. Successful open shall suffice. */
 	serial_close(serial);
 	if (rc != SR_OK) {

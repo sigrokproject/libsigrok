@@ -99,8 +99,6 @@ static GSList *scan(struct sr_dev_driver *drv, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	buf = g_malloc(BUF_MAX);
 
 	snprintf(req, sizeof(req), "%s\r\n",

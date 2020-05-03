@@ -113,8 +113,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options, int modelid)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	/* This is how the vendor software scans for hardware. */
 	memset(packet, 0, PACKET_SIZE);
 	packet[0] = 0xaa;
