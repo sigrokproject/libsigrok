@@ -102,6 +102,7 @@ static enum model scan_model_sm(struct sr_serial_dev_inst *serial)
 	 * Try to find message consisting of device code and several
 	 * (at least 4) data bytes.
 	 */
+	serial_flush(serial);
 	for (bytecnt = 0; bytecnt < 100; bytecnt++) {
 		byte = read_byte(serial, timeout_us);
 		if ((byte == -1) || (timeout_us < g_get_monotonic_time()))
@@ -175,8 +176,6 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	}
 
-	serial_flush(serial);
-
 	model = scan_model_sm(serial);
 
 	/*
@@ -187,10 +186,8 @@ static GSList *scan_1x_2x_rs232(struct sr_dev_driver *di, GSList *options)
 		serialcomm = SERIALCOMM_1X_RS232;
 		g_free(serial->serialcomm);
 		serial->serialcomm = g_strdup(serialcomm);
-		if (serial_set_paramstr(serial, serialcomm) == SR_OK) {
-			serial_flush(serial);
+		if (serial_set_paramstr(serial, serialcomm) == SR_OK)
 			model = scan_model_sm(serial);
-		}
 	}
 
 	if (model != METRAHIT_NONE) {

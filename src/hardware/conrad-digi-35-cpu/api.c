@@ -75,7 +75,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
 	serial_close(serial);
 
 	sr_spew("Conrad DIGI 35 CPU assumed at %s.", conn);

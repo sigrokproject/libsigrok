@@ -57,9 +57,6 @@ static int modbus_serial_rtu_open(void *priv)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return SR_ERR;
 
-	if (serial_flush(serial) != SR_OK)
-		return SR_ERR;
-
 	return SR_OK;
 }
 

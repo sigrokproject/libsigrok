@@ -378,7 +378,6 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 		goto exit_err;
 
 	/* Query and verify model string. */
-	serial_flush(serial);
 	if (lps_cmd_reply(buf, serial, "MODEL") != SR_OK)
 		return NULL;
 

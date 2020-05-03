@@ -118,8 +118,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
-
 	sr_info("Probing serial port %s.", conn);
 
 	/* Get the device model. */

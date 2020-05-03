@@ -105,7 +105,6 @@ static int scan_lcr_port(const struct lcr_info *lcr,
 	 * send data periodically. So we check if the packets match the
 	 * probed device's expected format.
 	 */
-	serial_flush(serial);
 	if (lcr->packet_request) {
 		ret = lcr->packet_request(serial);
 		if (ret < 0) {

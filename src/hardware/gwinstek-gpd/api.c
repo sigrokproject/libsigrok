@@ -107,7 +107,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	serial_flush(serial);
 	gpd_send_cmd(serial, "*IDN?\n");
 	if (gpd_receive_reply(serial, reply, sizeof(reply)) != SR_OK) {
 		sr_err("Device did not reply.");

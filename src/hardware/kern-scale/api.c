@@ -79,7 +79,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Probing serial port %s.", conn);
 
 	devices = NULL;
-	serial_flush(serial);
 
 	sr_spew("Set O1 mode (continuous values, stable and unstable ones).");
 	if (serial_write_blocking(serial, "O1\r\n", 4, 0) < 0)
