@@ -32,6 +32,10 @@ static const char *channel_names[] = {
 	"9", "10", "11", "12", "13", "14", "15", "16",
 };
 
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
 };
@@ -39,6 +43,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 #if ASIX_SIGMA_WITH_TRIGGER
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
@@ -65,83 +70,212 @@ static int dev_clear(const struct sr_dev_driver *di)
 	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
+static gboolean bus_addr_in_devices(int bus, int addr, GSList *devs)
+{
+	struct sr_usb_dev_inst *usb;
+
+	for (/* EMPTY */; devs; devs = devs->next) {
+		usb = devs->data;
+		if (usb->bus == bus && usb->address == addr)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static gboolean known_vid_pid(const struct libusb_device_descriptor *des)
+{
+	if (des->idVendor != USB_VENDOR_ASIX)
+		return FALSE;
+	if (des->idProduct != USB_PRODUCT_SIGMA && des->idProduct != USB_PRODUCT_OMEGA)
+		return FALSE;
+	return TRUE;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	struct drv_context *drvc;
+	libusb_context *usbctx;
+	const char *conn;
+	GSList *l, *conn_devices;
+	struct sr_config *src;
+	GSList *devices;
+	libusb_device **devlist, *devitem;
+	int bus, addr;
+	struct libusb_device_descriptor des;
+	struct libusb_device_handle *hdl;
+	int ret;
+	char conn_id[20];
+	char serno_txt[16];
+	char *end;
+	long serno_num, serno_pre;
+	enum asix_device_type dev_type;
+	const char *dev_text;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct ftdi_device_list *devlist;
-	char serial_txt[10];
-	uint32_t serial;
-	int ret;
-	unsigned int i;
+	size_t devidx, chidx;
 
-	(void)options;
+	drvc = di->context;
+	usbctx = drvc->sr_ctx->libusb_ctx;
 
-	devc = g_malloc0(sizeof(struct dev_context));
-
-	ftdi_init(&devc->ftdic);
-
-	if ((ret = ftdi_usb_find_all(&devc->ftdic, &devlist,
-	    USB_VENDOR, USB_PRODUCT)) <= 0) {
-		if (ret < 0)
-			sr_err("ftdi_usb_find_all(): %d", ret);
-		goto free;
+	/* Find all devices which match an (optional) conn= spec. */
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
 	}
+	conn_devices = NULL;
+	if (conn)
+		conn_devices = sr_usb_find(usbctx, conn);
+	if (conn && !conn_devices)
+		return NULL;
 
-	/* Make sure it's a version 1 or 2 SIGMA. */
-	ftdi_usb_get_strings(&devc->ftdic, devlist->dev, NULL, 0, NULL, 0,
-			     serial_txt, sizeof(serial_txt));
-	sscanf(serial_txt, "%x", &serial);
+	/* Find all ASIX logic analyzers (which match the connection spec). */
+	devices = NULL;
+	libusb_get_device_list(usbctx, &devlist);
+	for (devidx = 0; devlist[devidx]; devidx++) {
+		devitem = devlist[devidx];
 
-	if (serial < 0xa6010000 || serial > 0xa602ffff) {
-		sr_err("Only SIGMA and SIGMA2 are supported "
-		       "in this version of libsigrok.");
-		goto free;
+		/* Check for connection match if a user spec was given. */
+		bus = libusb_get_bus_number(devitem);
+		addr = libusb_get_device_address(devitem);
+		if (conn && !bus_addr_in_devices(bus, addr, conn_devices))
+			continue;
+		snprintf(conn_id, sizeof(conn_id), "%d.%d", bus, addr);
+
+		/*
+		 * Check for known VID:PID pairs. Get the serial number,
+		 * to then derive the device type from it.
+		 */
+		libusb_get_device_descriptor(devitem, &des);
+		if (!known_vid_pid(&des))
+			continue;
+		if (!des.iSerialNumber) {
+			sr_warn("Cannot get serial number (index 0).");
+			continue;
+		}
+		ret = libusb_open(devitem, &hdl);
+		if (ret < 0) {
+			sr_warn("Cannot open USB device %04x.%04x: %s.",
+				des.idVendor, des.idProduct,
+				libusb_error_name(ret));
+			continue;
+		}
+		ret = libusb_get_string_descriptor_ascii(hdl,
+			des.iSerialNumber,
+			(unsigned char *)serno_txt, sizeof(serno_txt));
+		if (ret < 0) {
+			sr_warn("Cannot get serial number (%s).",
+				libusb_error_name(ret));
+			libusb_close(hdl);
+			continue;
+		}
+		libusb_close(hdl);
+
+		/*
+		 * All ASIX logic analyzers have a serial number, which
+		 * reads as a hex number, and tells the device type.
+		 */
+		ret = sr_atol_base(serno_txt, &serno_num, &end, 16);
+		if (ret != SR_OK || !end || *end) {
+			sr_warn("Cannot interpret serial number %s.", serno_txt);
+			continue;
+		}
+		dev_type = ASIX_TYPE_NONE;
+		dev_text = NULL;
+		serno_pre = serno_num >> 16;
+		switch (serno_pre) {
+		case 0xa601:
+			dev_type = ASIX_TYPE_SIGMA;
+			dev_text = "SIGMA";
+			sr_info("Found SIGMA, serno %s.", serno_txt);
+			break;
+		case 0xa602:
+			dev_type = ASIX_TYPE_SIGMA;
+			dev_text = "SIGMA2";
+			sr_info("Found SIGMA2, serno %s.", serno_txt);
+			break;
+		case 0xa603:
+			dev_type = ASIX_TYPE_OMEGA;
+			dev_text = "OMEGA";
+			sr_info("Found OMEGA, serno %s.", serno_txt);
+			if (!ASIX_WITH_OMEGA) {
+				sr_warn("OMEGA support is not implemented yet.");
+				continue;
+			}
+			break;
+		default:
+			sr_warn("Unknown serno %s, skipping.", serno_txt);
+			continue;
+		}
+
+		/* Create a device instance, add it to the result set. */
+
+		sdi = g_malloc0(sizeof(*sdi));
+		devices = g_slist_append(devices, sdi);
+		sdi->status = SR_ST_INITIALIZING;
+		sdi->vendor = g_strdup("ASIX");
+		sdi->model = g_strdup(dev_text);
+		sdi->serial_num = g_strdup(serno_txt);
+		sdi->connection_id = g_strdup(conn_id);
+		for (chidx = 0; chidx < ARRAY_SIZE(channel_names); chidx++)
+			sr_channel_new(sdi, chidx, SR_CHANNEL_LOGIC,
+				TRUE, channel_names[chidx]);
+
+		devc = g_malloc0(sizeof(*devc));
+		sdi->priv = devc;
+		devc->id.vid = des.idVendor;
+		devc->id.pid = des.idProduct;
+		devc->id.serno = serno_num;
+		devc->id.prefix = serno_pre;
+		devc->id.type = dev_type;
+		devc->cur_samplerate = samplerates[0];
+		devc->limit_msec = 0;
+		devc->limit_samples = 0;
+		devc->cur_firmware = -1;
+		devc->num_channels = 0;
+		devc->samples_per_event = 0;
+		devc->capture_ratio = 50;
+		devc->use_triggers = 0;
 	}
+	libusb_free_device_list(devlist, 1);
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 
-	sr_info("Found ASIX SIGMA - Serial: %s", serial_txt);
-
-	devc->cur_samplerate = samplerates[0];
-	devc->limit_msec = 0;
-	devc->limit_samples = 0;
-	devc->cur_firmware = -1;
-	devc->num_channels = 0;
-	devc->samples_per_event = 0;
-	devc->capture_ratio = 50;
-	devc->use_triggers = 0;
-
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INITIALIZING;
-	sdi->vendor = g_strdup("ASIX");
-	sdi->model = g_strdup("SIGMA");
-
-	for (i = 0; i < ARRAY_SIZE(channel_names); i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
-
-	sdi->priv = devc;
-
-	ftdi_list_free(&devlist);
-
-	return std_scan_complete(di, g_slist_append(NULL, sdi));
-
-free:
-	ftdi_deinit(&devc->ftdic);
-	g_free(devc);
-	return NULL;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	long vid, pid;
+	const char *serno;
 	int ret;
 
 	devc = sdi->priv;
 
-	if ((ret = ftdi_usb_open_desc(&devc->ftdic,
-			USB_VENDOR, USB_PRODUCT, USB_DESCRIPTION, NULL)) < 0) {
-		sr_err("Failed to open device (%d): %s.",
-		       ret, ftdi_get_error_string(&devc->ftdic));
-		return SR_ERR;
+	if (devc->id.type == ASIX_TYPE_OMEGA && !ASIX_WITH_OMEGA) {
+		sr_err("OMEGA support is not implemented yet.");
+		return SR_ERR_NA;
+	}
+	vid = devc->id.vid;
+	pid = devc->id.pid;
+	serno = sdi->serial_num;
+
+	ret = ftdi_init(&devc->ftdic);
+	if (ret < 0) {
+		sr_err("Cannot initialize FTDI context (%d): %s.",
+			ret, ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR_IO;
+	}
+	ret = ftdi_usb_open_desc_index(&devc->ftdic, vid, pid, NULL, serno, 0);
+	if (ret < 0) {
+		sr_err("Cannot open device (%d): %s.",
+			ret, ftdi_get_error_string(&devc->ftdic));
+		return SR_ERR_IO;
 	}
 
 	return SR_OK;
@@ -150,10 +284,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int ret;
 
 	devc = sdi->priv;
 
-	return (ftdi_usb_close(&devc->ftdic) == 0) ? SR_OK : SR_ERR;
+	ret = ftdi_usb_close(&devc->ftdic);
+	ftdi_deinit(&devc->ftdic);
+
+	return (ret == 0) ? SR_OK : SR_ERR;
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -168,6 +306,9 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	switch (key) {
+	case SR_CONF_CONN:
+		*data = g_variant_new_string(sdi->connection_id);
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
@@ -225,8 +366,11 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
+		if (cg)
+			return SR_ERR_NA;
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(samplerates, samplerates_count);
 		break;

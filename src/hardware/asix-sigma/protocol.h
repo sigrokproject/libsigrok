@@ -40,9 +40,18 @@
  */
 #define ASIX_SIGMA_WITH_TRIGGER	0
 
-#define USB_VENDOR			0xa600
-#define USB_PRODUCT			0xa000
-#define USB_DESCRIPTION			"ASIX SIGMA"
+/* Experimental support for OMEGA (scan only, operation is ENOIMPL). */
+#define ASIX_WITH_OMEGA 0
+
+#define USB_VENDOR_ASIX			0xa600
+#define USB_PRODUCT_SIGMA		0xa000
+#define USB_PRODUCT_OMEGA		0xa004
+
+enum asix_device_type {
+	ASIX_TYPE_NONE,
+	ASIX_TYPE_SIGMA,
+	ASIX_TYPE_OMEGA,
+};
 
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
@@ -254,6 +263,12 @@ struct sigma_state {
 };
 
 struct dev_context {
+	struct {
+		uint16_t vid, pid;
+		uint32_t serno;
+		uint16_t prefix;
+		enum asix_device_type type;
+	} id;
 	struct ftdi_context ftdic;
 	uint64_t cur_samplerate;
 	uint64_t limit_msec;
