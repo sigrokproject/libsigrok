@@ -92,6 +92,60 @@ SR_PRIV int sr_atol(const char *str, long *ret)
 }
 
 /**
+ * Convert a text to a number including support for non-decimal bases.
+ * Also optionally returns the position after the number, where callers
+ * can either error out, or support application specific suffixes.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] ret The conversion result.
+ * @param[out] end The position after the number.
+ * @param[in] base The number format's base, can be 0.
+ *
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Conversion failed.
+ *
+ * @private
+ *
+ * This routine is more general than @ref sr_atol(), which strictly
+ * expects the input text to contain just a decimal number, and nothing
+ * else in addition. The @ref sr_atol_base() routine accepts trailing
+ * text after the number, and supports non-decimal numbers (bin, hex),
+ * including automatic detection from prefix text.
+ */
+SR_PRIV int sr_atol_base(const char *str, long *ret, char **end, int base)
+{
+	long num;
+	char *endptr;
+
+	/* Add "0b" prefix support which strtol(3) may be missing. */
+	while (str && isspace(*str))
+		str++;
+	if (!base && strncmp(str, "0b", strlen("0b")) == 0) {
+		str += strlen("0b");
+		base = 2;
+	}
+
+	/* Run the number conversion. Quick bail out if that fails. */
+	errno = 0;
+	endptr = NULL;
+	num = strtol(str, &endptr, base);
+	if (!endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+	*ret = num;
+
+	/* Advance to optional non-space trailing suffix. */
+	while (endptr && isspace(*endptr))
+		endptr++;
+	if (end)
+		*end = endptr;
+
+	return SR_OK;
+}
+
+/**
  * Convert a string representation of a numeric value (base 10) to an integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid integer. The function sets errno according to the details of the
