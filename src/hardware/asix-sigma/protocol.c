@@ -263,21 +263,70 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 }
 
 /*
- * Configure the FPGA for bitbang mode.
- * This sequence is documented in section 2. of the ASIX Sigma programming
- * manual. This sequence is necessary to configure the FPGA in the Sigma
- * into Bitbang mode, in which it can be programmed with the firmware.
+ * See Xilinx UG332 for Spartan-3 FPGA configuration. The SIGMA device
+ * uses FTDI bitbang mode for netlist download in slave serial mode.
+ * (LATER: The OMEGA device's cable contains a more capable FTDI chip
+ * and uses MPSSE mode for bitbang. -- Can we also use FT232H in FT245
+ * compatible bitbang mode? For maximum code re-use and reduced libftdi
+ * dependency? See section 3.5.5 of FT232H: D0 clk, D1 data (out), D2
+ * data (in), D3 select, D4-7 GPIOL. See section 3.5.7 for MCU FIFO.)
+ *
+ * 750kbps rate (four times the speed of sigmalogan) works well for
+ * netlist download. All pins except INIT_B are output pins during
+ * configuration download.
+ *
+ * Some pins are inverted as a byproduct of level shifting circuitry.
+ * That's why high CCLK level (from the cable's point of view) is idle
+ * from the FPGA's perspective.
+ *
+ * The vendor's literature discusses a "suicide sequence" which ends
+ * regular FPGA execution and should be sent before entering bitbang
+ * mode and sending configuration data. Set D7 and toggle D2, D3, D4
+ * a few times.
+ */
+#define BB_PIN_CCLK (1 << 0) /* D0, CCLK */
+#define BB_PIN_PROG (1 << 1) /* D1, PROG */
+#define BB_PIN_D2   (1 << 2) /* D2, (part of) SUICIDE */
+#define BB_PIN_D3   (1 << 3) /* D3, (part of) SUICIDE */
+#define BB_PIN_D4   (1 << 4) /* D4, (part of) SUICIDE (unused?) */
+#define BB_PIN_INIT (1 << 5) /* D5, INIT, input pin */
+#define BB_PIN_DIN  (1 << 6) /* D6, DIN */
+#define BB_PIN_D7   (1 << 7) /* D7, (part of) SUICIDE */
+
+#define BB_BITRATE (750 * 1000)
+#define BB_PINMASK (0xff & ~BB_PIN_INIT)
+
+/*
+ * Initiate slave serial mode for configuration download. Which is done
+ * by pulsing PROG_B and sensing INIT_B. Make sure CCLK is idle before
+ * initiating the configuration download. Run a "suicide sequence" first
+ * to terminate the regular FPGA operation before reconfiguration.
  */
 static int sigma_fpga_init_bitbang(struct dev_context *devc)
 {
 	uint8_t suicide[] = {
-		0x84, 0x84, 0x88, 0x84, 0x88, 0x84, 0x88, 0x84,
+		BB_PIN_D7 | BB_PIN_D2,
+		BB_PIN_D7 | BB_PIN_D2,
+		BB_PIN_D7 |           BB_PIN_D3,
+		BB_PIN_D7 | BB_PIN_D2,
+		BB_PIN_D7 |           BB_PIN_D3,
+		BB_PIN_D7 | BB_PIN_D2,
+		BB_PIN_D7 |           BB_PIN_D3,
+		BB_PIN_D7 | BB_PIN_D2,
 	};
 	uint8_t init_array[] = {
-		0x01, 0x03, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01,
-		0x01, 0x01,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK | BB_PIN_PROG,
+		BB_PIN_CCLK | BB_PIN_PROG,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
+		BB_PIN_CCLK,
 	};
-	int i, ret, timeout = (10 * 1000);
+	int retries, ret;
 	uint8_t data;
 
 	/* Section 2. part 1), do the FPGA suicide. */
@@ -286,19 +335,18 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 	sigma_write(suicide, sizeof(suicide), devc);
 	sigma_write(suicide, sizeof(suicide), devc);
 
-	/* Section 2. part 2), do pulse on D1. */
+	/* Section 2. part 2), pulse PROG. */
 	sigma_write(init_array, sizeof(init_array), devc);
 	ftdi_usb_purge_buffers(&devc->ftdic);
 
-	/* Wait until the FPGA asserts D6/INIT_B. */
-	for (i = 0; i < timeout; i++) {
+	/* Wait until the FPGA asserts INIT_B. */
+	retries = 10;
+	while (retries--) {
 		ret = sigma_read(&data, 1, devc);
 		if (ret < 0)
 			return ret;
-		/* Test if pin D6 got asserted. */
-		if (data & (1 << 5))
-			return 0;
-		/* The D6 was not asserted yet, wait a bit. */
+		if (data & BB_PIN_INIT)
+			return SR_OK;
 		g_usleep(10 * 1000);
 	}
 
@@ -310,42 +358,49 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
  */
 static int sigma_fpga_init_la(struct dev_context *devc)
 {
-	/* Initialize the logic analyzer mode. */
+	/*
+	 * TODO Construct the sequence at runtime? Such that request data
+	 * and response check values will match more apparently?
+	 */
 	uint8_t mode_regval = WMR_SDRAMINIT;
 	uint8_t logic_mode_start[] = {
+		/* Read ID register. */
 		REG_ADDR_LOW  | (READ_ID & 0xf),
 		REG_ADDR_HIGH | (READ_ID >> 4),
-		REG_READ_ADDR,	/* Read ID register. */
+		REG_READ_ADDR,
 
+		/* Write 0x55 to scratch register, read back. */
 		REG_ADDR_LOW | (WRITE_TEST & 0xf),
 		REG_DATA_LOW | 0x5,
 		REG_DATA_HIGH_WRITE | 0x5,
-		REG_READ_ADDR,	/* Read scratch register. */
+		REG_READ_ADDR,
 
+		/* Write 0xaa to scratch register, read back. */
 		REG_DATA_LOW | 0xa,
 		REG_DATA_HIGH_WRITE | 0xa,
-		REG_READ_ADDR,	/* Read scratch register. */
+		REG_READ_ADDR,
 
+		/* Initiate SDRAM initialization in mode register. */
 		REG_ADDR_LOW | (WRITE_MODE & 0xf),
 		REG_DATA_LOW | (mode_regval & 0xf),
 		REG_DATA_HIGH_WRITE | (mode_regval >> 4),
 	};
-
 	uint8_t result[3];
 	int ret;
 
-	/* Initialize the logic analyzer mode. */
+	/*
+	 * Send the command sequence which contains 3 READ requests.
+	 * Expect to see the corresponding 3 response bytes.
+	 */
 	sigma_write(logic_mode_start, sizeof(logic_mode_start), devc);
-
-	/* Expect a 3 byte reply since we issued three READ requests. */
-	ret = sigma_read(result, 3, devc);
-	if (ret != 3)
+	ret = sigma_read(result, ARRAY_SIZE(result), devc);
+	if (ret != ARRAY_SIZE(result))
 		goto err;
-
 	if (result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa)
 		goto err;
 
 	return SR_OK;
+
 err:
 	sr_err("Configuration failed. Invalid reply received.");
 	return SR_ERR;
@@ -359,24 +414,27 @@ err:
 static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 			      uint8_t **bb_cmd, gsize *bb_cmd_size)
 {
-	size_t i, file_size, bb_size;
-	char *firmware;
-	uint8_t *bb_stream, *bbs;
+	uint8_t *firmware;
+	size_t file_size;
+	uint8_t *p;
+	size_t l;
 	uint32_t imm;
-	int bit, v;
-	int ret = SR_OK;
+	size_t bb_size;
+	uint8_t *bb_stream, *bbs, byte, mask, v;
 
 	/* Retrieve the on-disk firmware file content. */
 	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE, name,
 		&file_size, SIGMA_FIRMWARE_SIZE_LIMIT);
 	if (!firmware)
-		return SR_ERR;
+		return SR_ERR_IO;
 
 	/* Unscramble the file content (XOR with "random" sequence). */
+	p = firmware;
+	l = file_size;
 	imm = 0x3f6df2ab;
-	for (i = 0; i < file_size; i++) {
+	while (l--) {
 		imm = (imm + 0xa853753) % 177 + (imm * 0x8034052);
-		firmware[i] ^= imm & 0xff;
+		*p++ ^= imm & 0xff;
 	}
 
 	/*
@@ -395,28 +453,32 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 	 * the bitbang samples, and release the allocated memory.
 	 */
 	bb_size = file_size * 8 * 2;
-	bb_stream = (uint8_t *)g_try_malloc(bb_size);
+	bb_stream = g_try_malloc(bb_size);
 	if (!bb_stream) {
 		sr_err("%s: Failed to allocate bitbang stream", __func__);
-		ret = SR_ERR_MALLOC;
-		goto exit;
+		g_free(firmware);
+		return SR_ERR_MALLOC;
 	}
 	bbs = bb_stream;
-	for (i = 0; i < file_size; i++) {
-		for (bit = 7; bit >= 0; bit--) {
-			v = (firmware[i] & (1 << bit)) ? 0x40 : 0x00;
-			*bbs++ = v | 0x01;
+	p = firmware;
+	l = file_size;
+	while (l--) {
+		byte = *p++;
+		mask = 0x80;
+		while (mask) {
+			v = (byte & mask) ? BB_PIN_DIN : 0;
+			mask >>= 1;
+			*bbs++ = v | BB_PIN_CCLK;
 			*bbs++ = v;
 		}
 	}
+	g_free(firmware);
 
 	/* The transformation completed successfully, return the result. */
 	*bb_cmd = bb_stream;
 	*bb_cmd_size = bb_size;
 
-exit:
-	g_free(firmware);
-	return ret;
+	return SR_OK;
 }
 
 static int upload_firmware(struct sr_context *ctx,
@@ -435,27 +497,26 @@ static int upload_firmware(struct sr_context *ctx,
 		return SR_OK;
 	}
 
-	ret = ftdi_set_bitmode(&devc->ftdic, 0xdf, BITMODE_BITBANG);
+	/* Set the cable to bitbang mode. */
+	ret = ftdi_set_bitmode(&devc->ftdic, BB_PINMASK, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
-
-	/* Four times the speed of sigmalogan - Works well. */
-	ret = ftdi_set_baudrate(&devc->ftdic, 750 * 1000);
+	ret = ftdi_set_baudrate(&devc->ftdic, BB_BITRATE);
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
-	/* Initialize the FPGA for firmware upload. */
+	/* Initiate FPGA configuration mode. */
 	ret = sigma_fpga_init_bitbang(devc);
 	if (ret)
 		return ret;
 
-	/* Prepare firmware. */
+	/* Prepare wire format of the firmware image. */
 	ret = sigma_fw_2_bitbang(ctx, firmware, &buf, &buf_size);
 	if (ret != SR_OK) {
 		sr_err("An error occurred while reading the firmware: %s",
@@ -463,22 +524,20 @@ static int upload_firmware(struct sr_context *ctx,
 		return ret;
 	}
 
-	/* Upload firmware. */
+	/* Write the FPGA netlist to the cable. */
 	sr_info("Uploading firmware file '%s'.", firmware);
 	sigma_write(buf, buf_size, devc);
 
 	g_free(buf);
 
-	ret = ftdi_set_bitmode(&devc->ftdic, 0x00, BITMODE_RESET);
+	/* Leave bitbang mode and discard pending input data. */
+	ret = ftdi_set_bitmode(&devc->ftdic, 0, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
 		       ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
-
 	ftdi_usb_purge_buffers(&devc->ftdic);
-
-	/* Discard garbage. */
 	while (sigma_read(&pins, 1, devc) == 1)
 		;
 
@@ -487,8 +546,8 @@ static int upload_firmware(struct sr_context *ctx,
 	if (ret != SR_OK)
 		return ret;
 
+	/* Keep track of successful firmware download completion. */
 	devc->cur_firmware = firmware_idx;
-
 	sr_info("Firmware uploaded.");
 
 	return SR_OK;
