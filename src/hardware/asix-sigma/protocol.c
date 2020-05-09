@@ -163,6 +163,14 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 	 * chunks with meta data in the upper 64 bytes. Thus when the
 	 * decrements takes us into this upper part of the chunk, then
 	 * further move backwards to the end of the chunk's data part.
+	 *
+	 * TODO Re-consider the above comment's validity. It's true
+	 * that a 1024byte row contains 512 u16 entities, of which 64
+	 * are timestamps and 448 are events with sample data. It's not
+	 * true that 64bytes of metadata reside at the top of a 512byte
+	 * block in a row.
+	 *
+	 * TODO Use ROW_MASK and CLUSTERS_PER_ROW here?
 	 */
 	if ((--*stoppos & 0x1ff) == 0x1ff)
 		*stoppos -= 64;
@@ -206,7 +214,7 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 	}
 	sigma_write(buf, idx, devc);
 
-	return sigma_read(data, numchunks * CHUNK_SIZE, devc);
+	return sigma_read(data, numchunks * ROW_LENGTH_BYTES, devc);
 }
 
 /* Upload trigger look-up tables to Sigma. */
@@ -859,11 +867,11 @@ static void sigma_session_send(struct sr_dev_inst *sdi,
 }
 
 /*
- * This size translates to: event count (1K events per cluster), times
- * the sample width (unitsize, 16bits per event), times the maximum
- * number of samples per event.
+ * This size translates to: number of events per row (strictly speaking
+ * 448, assuming "up to 512" does not harm here) times the sample data's
+ * unit size (16 bits), times the maximum number of samples per event (4).
  */
-#define SAMPLES_BUFFER_SIZE	(1024 * 2 * 4)
+#define SAMPLES_BUFFER_SIZE	(ROW_LENGTH_U16 * sizeof(uint16_t) * 4)
 
 static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 				      unsigned int events_in_cluster,
@@ -894,6 +902,13 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
 	 * If this cluster is not adjacent to the previously received
 	 * cluster, then send the appropriate number of samples with the
 	 * previous values to the sigrok session. This "decodes RLE".
+	 *
+	 * TODO Improve (mostly: generalize) support for queueing data
+	 * before submission to the session bus. This implementation
+	 * happens to work for "up to 1024 samples" despite the "up to
+	 * 512 entities of 16 bits", due to the "up to 4 sample points
+	 * per event" factor. A better implementation would eliminate
+	 * these magic numbers.
 	 */
 	for (ts = 0; ts < tsdiff; ts++) {
 		i = ts % 1024;
@@ -1016,7 +1031,7 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 	triggered = 0;
 
 	/* Check if trigger is in this chunk. */
-	if (trigger_event < (64 * 7)) {
+	if (trigger_event < EVENTS_PER_ROW) {
 		if (devc->cur_samplerate <= SR_MHZ(50)) {
 			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
 					     trigger_event);
@@ -1062,7 +1077,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t trg_line, trg_event;
 
 	devc = sdi->priv;
-	dl_events_in_line = 64 * 7;
+	dl_events_in_line = EVENTS_PER_ROW;
 
 	sr_info("Downloading sample data.");
 	devc->state.state = SIGMA_DOWNLOAD;
@@ -1109,15 +1124,13 @@ static int download_capture(struct sr_dev_inst *sdi)
 	 *
 	 * When RMR_ROUND is set, the circular buffer in DRAM has wrapped
 	 * around. Since the status of the very next line is uncertain in
-	 * that case, we skip it and start reading from the next line. The
-	 * circular buffer has 32K lines (0x8000).
+	 * that case, we skip it and start reading from the next line.
 	 */
-	dl_lines_total = (stoppos >> 9) + 1;
+	dl_first_line = 0;
+	dl_lines_total = (stoppos >> ROW_SHIFT) + 1;
 	if (modestatus & RMR_ROUND) {
 		dl_first_line = dl_lines_total + 1;
-		dl_lines_total = 0x8000 - 2;
-	} else {
-		dl_first_line = 0;
+		dl_lines_total = ROW_COUNT - 2;
 	}
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
@@ -1128,7 +1141,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 		dl_lines_curr = MIN(chunks_per_read, dl_lines_total - dl_lines_done);
 
 		dl_line = dl_first_line + dl_lines_done;
-		dl_line %= 0x8000;
+		dl_line %= ROW_COUNT;
 		bufsz = sigma_read_dram(dl_line, dl_lines_curr,
 					(uint8_t *)dram_line, devc);
 		/* TODO: Check bufsz. For now, just avoid compiler warnings. */

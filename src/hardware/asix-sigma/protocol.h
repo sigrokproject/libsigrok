@@ -126,11 +126,6 @@ enum sigma_read_register {
 #define LEDSEL0			6
 #define LEDSEL1			7
 
-
-#define EVENTS_PER_CLUSTER	7
-
-#define CHUNK_SIZE		1024
-
 /* WRITE_MODE register fields. */
 #define WMR_SDRAMWRITEEN	(1 << 0)
 #define WMR_SDRAMREADEN		(1 << 1)
@@ -155,8 +150,16 @@ enum sigma_read_register {
  * Layout of the sample data DRAM, which will be downloaded to the PC:
  *
  * Sigma memory is organized in 32K rows. Each row contains 64 clusters.
- * Each cluster contains a timestamp (16bit) and 7 samples (16bits each).
- * Total memory size is 32K x 64 x 8 x 2 bytes == 32 MB (256 Mbit).
+ * Each cluster contains a timestamp (16bit) and 7 events (16bits each).
+ * Events contain 16 bits of sample data (potentially taken at multiple
+ * sample points, see below).
+ *
+ * Total memory size is 32K x 64 x 8 x 2 bytes == 32 MiB (256 Mbit). The
+ * size of a memory row is 1024 bytes. Assuming x16 organization of the
+ * memory array, address specs (sample count, trigger position) are kept
+ * in 24bit entities. The upper 15 bit address the "row", the lower 9 bit
+ * refer to the "event" within the row. Because there is one timestamp for
+ * seven events each, one memory row can hold up to 64x7 == 448 events.
  *
  * Sample data is represented in 16bit quantities. The first sample in
  * the cluster corresponds to the cluster's timestamp. Each next sample
@@ -164,33 +167,35 @@ enum sigma_read_register {
  * one sample period, according to the samplerate). In the absence of
  * pin level changes, no data is provided (RLE compression). A cluster
  * is enforced for each 64K ticks of the timestamp, to reliably handle
- * rollover and determination of the next timestamp of the next cluster.
+ * rollover and determine the next timestamp of the next cluster.
  *
+ * For samplerates up to 50MHz, an event directly translates to one set
+ * of sample data at a single sample point, spanning up to 16 channels.
  * For samplerates of 100MHz, there is one 16 bit entity for each 20ns
  * period (50MHz rate). The 16 bit memory contains 2 samples of up to
  * 8 channels. Bits of multiple samples are interleaved. For samplerates
  * of 200MHz one 16bit entity contains 4 samples of up to 4 channels,
  * each 5ns apart.
- *
- * Memory addresses (sample count, trigger position) are kept in 24bit
- * entities. The upper 15 bit refer to the "row", the lower 9 bit refer
- * to the "event" within the row. Because there is one timestamp for
- * seven samples each, one memory row can hold up to 64x7 == 448 samples.
  */
 
-/* One "DRAM cluster" contains a timestamp and 7 samples, 16b total. */
-struct sigma_dram_cluster {
-	uint8_t		timestamp_lo;
-	uint8_t		timestamp_hi;
-	struct {
-		uint8_t	sample_hi;
-		uint8_t	sample_lo;
-	}		samples[7];
-};
+#define ROW_COUNT		32768
+#define ROW_LENGTH_BYTES	1024
+#define ROW_LENGTH_U16		(ROW_LENGTH_BYTES / sizeof(uint16_t))
+#define ROW_SHIFT		9 /* log2 of u16 count */
+#define ROW_MASK		((1UL << ROW_SHIFT) - 1)
+#define EVENTS_PER_CLUSTER	7
+#define CLUSTERS_PER_ROW	(ROW_LENGTH_U16 / (1 + EVENTS_PER_CLUSTER))
+#define EVENTS_PER_ROW		(CLUSTERS_PER_ROW * EVENTS_PER_CLUSTER)
 
-/* One "DRAM line" contains 64 "DRAM clusters", 1024b total. */
 struct sigma_dram_line {
-	struct sigma_dram_cluster	cluster[64];
+	struct sigma_dram_cluster {
+		uint8_t timestamp_lo;
+		uint8_t timestamp_hi;
+		struct sigma_dram_event {
+			uint8_t sample_hi;
+			uint8_t sample_lo;
+		} samples[EVENTS_PER_CLUSTER];
+	} cluster[CLUSTERS_PER_ROW];
 };
 
 struct clockselect_50 {
