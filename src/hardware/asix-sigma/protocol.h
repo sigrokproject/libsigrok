@@ -55,14 +55,14 @@ enum asix_device_type {
 
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
-	WRITE_TRIGGER_SELECT0	= 1,
-	WRITE_TRIGGER_SELECT1	= 2,
+	WRITE_TRIGGER_SELECT	= 1,
+	WRITE_TRIGGER_SELECT2	= 2,
 	WRITE_MODE		= 3,
 	WRITE_MEMROW		= 4,
 	WRITE_POST_TRIGGER	= 5,
 	WRITE_TRIGGER_OPTION	= 6,
 	WRITE_PIN_VIEW		= 7,
-
+	/* Unassigned register locations. */
 	WRITE_TEST		= 15,
 };
 
@@ -79,8 +79,9 @@ enum sigma_read_register {
 	READ_PIN_CHANGE_HIGH	= 9,
 	READ_BLOCK_LAST_TS_LOW	= 10,
 	READ_BLOCK_LAST_TS_HIGH	= 11,
-	READ_PIN_VIEW		= 12,
-
+	READ_BLOCK_TS_OVERRUN	= 12,
+	READ_PIN_VIEW		= 13,
+	/* Unassigned register location. */
 	READ_TEST		= 15,
 };
 

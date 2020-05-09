@@ -250,13 +250,13 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 		if (lut->m1d[3] & bit)
 			tmp[1] |= 0x80;
 
-		sigma_write_register(WRITE_TRIGGER_SELECT0, tmp, sizeof(tmp),
+		sigma_write_register(WRITE_TRIGGER_SELECT, tmp, sizeof(tmp),
 				     devc);
-		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x30 | i, devc);
+		sigma_set_register(WRITE_TRIGGER_SELECT2, 0x30 | i, devc);
 	}
 
 	/* Send the parameters */
-	sigma_write_register(WRITE_TRIGGER_SELECT0, (uint8_t *) &lut->params,
+	sigma_write_register(WRITE_TRIGGER_SELECT, (uint8_t *) &lut->params,
 			     sizeof(lut->params), devc);
 
 	return SR_OK;

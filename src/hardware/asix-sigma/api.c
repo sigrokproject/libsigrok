@@ -412,12 +412,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* Enter trigger programming mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT1, 0x20, devc);
+	sigma_set_register(WRITE_TRIGGER_SELECT2, 0x20, devc);
 
 	triggerselect = 0;
 	if (devc->cur_samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
-		sigma_set_register(WRITE_TRIGGER_SELECT1, 0x81, devc);
+		sigma_set_register(WRITE_TRIGGER_SELECT2, 0x81, devc);
 
 		/* Find which pin to trigger on from mask. */
 		for (triggerpin = 0; triggerpin < 8; triggerpin++)
@@ -451,7 +451,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			     sizeof(struct triggerinout), devc);
 
 	/* Go back to normal mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT1, triggerselect, devc);
+	sigma_set_register(WRITE_TRIGGER_SELECT2, triggerselect, devc);
 
 	/* Set clock select register. */
 	clockselect.async = 0;
