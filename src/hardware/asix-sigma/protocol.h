@@ -53,6 +53,44 @@ enum asix_device_type {
 	ASIX_TYPE_OMEGA,
 };
 
+/*
+ * FPGA commands are 8bits wide. The upper nibble is a command opcode,
+ * the lower nibble can carry operand values. 8bit register addresses
+ * and 8bit data values get communicated in two steps.
+ */
+
+/* Register access. */
+#define REG_ADDR_LOW		(0x0 << 4)
+#define REG_ADDR_HIGH		(0x1 << 4)
+#define REG_DATA_LOW		(0x2 << 4)
+#define REG_DATA_HIGH_WRITE	(0x3 << 4)
+#define REG_READ_ADDR		(0x4 << 4)
+#define REG_ADDR_ADJUST		(1 << 0) /* Auto adjust register address. */
+#define REG_ADDR_DOWN		(1 << 1) /* 1 decrement, 0 increment. */
+#define REG_ADDR_INC		(REG_ADDR_ADJUST)
+#define REG_ADDR_DEC		(REG_ADDR_ADJUST | REG_ADDR_DOWN)
+
+/* Sample memory access. */
+#define REG_DRAM_WAIT_ACK	(0x5 << 4) /* Wait for completion. */
+#define REG_DRAM_BLOCK		(0x6 << 4) /* DRAM to BRAM, plus bank select. */
+#define REG_DRAM_BLOCK_BEGIN	(0x8 << 4) /* Read first BRAM bytes. */
+#define REG_DRAM_BLOCK_DATA	(0xa << 4) /* Read full BRAM block. */
+#define REG_DRAM_SEL_N		(0x1 << 4) /* Bank select, added to 6/8/a. */
+#define REG_DRAM_SEL_BOOL(b)	((b) ? REG_DRAM_SEL_N : 0)
+
+/*
+ * Registers at a specific address can have different meanings depending
+ * on whether data is read or written. This is why direction is part of
+ * the programming language identifiers.
+ *
+ * The vendor documentation suggests that in addition to the first 16
+ * register addresses which implement the logic analyzer's feature set,
+ * there are 240 more registers in the 16 to 255 address range which
+ * are available to applications and plugin features. Can libsigrok's
+ * asix-sigma driver store configuration data there, to avoid expensive
+ * operations (think: firmware re-load).
+ */
+
 enum sigma_write_register {
 	WRITE_CLOCK_SELECT	= 0,
 	WRITE_TRIGGER_SELECT	= 1,
@@ -84,31 +122,6 @@ enum sigma_read_register {
 	/* Unassigned register location. */
 	READ_TEST		= 15,
 };
-
-/*
- * FPGA commands are 8bits wide. The upper nibble is a command opcode,
- * the lower nibble can carry operand values. 8bit register addresses
- * and 8bit data values get communicated in two steps.
- */
-
-/* Register access. */
-#define REG_ADDR_LOW		(0x0 << 4)
-#define REG_ADDR_HIGH		(0x1 << 4)
-#define REG_DATA_LOW		(0x2 << 4)
-#define REG_DATA_HIGH_WRITE	(0x3 << 4)
-#define REG_READ_ADDR		(0x4 << 4)
-#define REG_ADDR_ADJUST		(1 << 0) /* Auto adjust register address. */
-#define REG_ADDR_DOWN		(1 << 1) /* 1 decrement, 0 increment. */
-#define REG_ADDR_INC		(REG_ADDR_ADJUST)
-#define REG_ADDR_DEC		(REG_ADDR_ADJUST | REG_ADDR_DOWN)
-
-/* Sample memory access. */
-#define REG_DRAM_WAIT_ACK	(0x5 << 4) /* Wait for completion. */
-#define REG_DRAM_BLOCK		(0x6 << 4) /* DRAM to BRAM, plus bank select. */
-#define REG_DRAM_BLOCK_BEGIN	(0x8 << 4) /* Read first BRAM bytes. */
-#define REG_DRAM_BLOCK_DATA	(0xa << 4) /* Read full BRAM block. */
-#define REG_DRAM_SEL_N		(0x1 << 4) /* Bank select, added to 6/8/a. */
-#define REG_DRAM_SEL_BOOL(b)	((b) ? REG_DRAM_SEL_N : 0)
 
 #define LEDSEL0			6
 #define LEDSEL1			7
