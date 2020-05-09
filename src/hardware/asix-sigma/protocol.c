@@ -134,15 +134,18 @@ static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len,
 static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 			  struct dev_context *devc)
 {
+	/*
+	 * Read 6 registers starting at trigger position LSB.
+	 * Which yields two 24bit counter values.
+	 */
 	uint8_t buf[] = {
 		REG_ADDR_LOW | READ_TRIGGER_POS_LOW,
-
-		REG_READ_ADDR | NEXT_REG,
-		REG_READ_ADDR | NEXT_REG,
-		REG_READ_ADDR | NEXT_REG,
-		REG_READ_ADDR | NEXT_REG,
-		REG_READ_ADDR | NEXT_REG,
-		REG_READ_ADDR | NEXT_REG,
+		REG_READ_ADDR | REG_ADDR_INC,
+		REG_READ_ADDR | REG_ADDR_INC,
+		REG_READ_ADDR | REG_ADDR_INC,
+		REG_READ_ADDR | REG_ADDR_INC,
+		REG_READ_ADDR | REG_ADDR_INC,
+		REG_READ_ADDR | REG_ADDR_INC,
 	};
 	uint8_t result[6];
 
@@ -172,32 +175,35 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 			   uint8_t *data, struct dev_context *devc)
 {
-	size_t i;
 	uint8_t buf[4096];
 	int idx;
+	size_t chunk;
+	int sel;
+	gboolean is_last;
 
-	/* Send the startchunk. Index start with 1. */
+	/* Communicate DRAM start address (memory row, aka samples line). */
 	idx = 0;
 	buf[idx++] = startchunk >> 8;
 	buf[idx++] = startchunk & 0xff;
 	sigma_write_register(WRITE_MEMROW, buf, idx, devc);
 
-	/* Read the DRAM. */
+	/*
+	 * Access DRAM content. Fetch from DRAM to FPGA's internal RAM,
+	 * then transfer via USB. Interleave the FPGA's DRAM access and
+	 * USB transfer, use alternating buffers (0/1) in the process.
+	 */
 	idx = 0;
 	buf[idx++] = REG_DRAM_BLOCK;
 	buf[idx++] = REG_DRAM_WAIT_ACK;
-
-	for (i = 0; i < numchunks; i++) {
-		/* Alternate bit to copy from DRAM to cache. */
-		if (i != (numchunks - 1))
-			buf[idx++] = REG_DRAM_BLOCK | (((i + 1) % 2) << 4);
-
-		buf[idx++] = REG_DRAM_BLOCK_DATA | ((i % 2) << 4);
-
-		if (i != (numchunks - 1))
+	for (chunk = 0; chunk < numchunks; chunk++) {
+		sel = chunk % 2;
+		is_last = chunk == numchunks - 1;
+		if (!is_last)
+			buf[idx++] = REG_DRAM_BLOCK | REG_DRAM_SEL_BOOL(!sel);
+		buf[idx++] = REG_DRAM_BLOCK_DATA | REG_DRAM_SEL_BOOL(sel);
+		if (!is_last)
 			buf[idx++] = REG_DRAM_WAIT_ACK;
 	}
-
 	sigma_write(buf, idx, devc);
 
 	return sigma_read(data, numchunks * CHUNK_SIZE, devc);
