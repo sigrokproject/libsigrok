@@ -656,6 +656,157 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 }
 
 /*
+ * Arrange for a session feed submit buffer. A queue where a number of
+ * samples gets accumulated to reduce the number of send calls. Which
+ * also enforces an optional sample count limit for data acquisition.
+ *
+ * The buffer holds up to CHUNK_SIZE bytes. The unit size is fixed (the
+ * driver provides a fixed channel layout regardless of samplerate).
+ */
+
+#define CHUNK_SIZE	(4 * 1024 * 1024)
+
+struct submit_buffer {
+	size_t unit_size;
+	size_t max_samples, curr_samples;
+	uint8_t *sample_data;
+	uint8_t *write_pointer;
+	struct sr_dev_inst *sdi;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	struct sr_sw_limits limit_samples;
+};
+
+static int alloc_submit_buffer(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct submit_buffer *buffer;
+	size_t size;
+
+	devc = sdi->priv;
+
+	buffer = g_malloc0(sizeof(*buffer));
+	devc->buffer = buffer;
+
+	buffer->unit_size = sizeof(uint16_t);
+	size = CHUNK_SIZE;
+	size /= buffer->unit_size;
+	buffer->max_samples = size;
+	size *= buffer->unit_size;
+	buffer->sample_data = g_try_malloc0(size);
+	if (!buffer->sample_data)
+		return SR_ERR_MALLOC;
+	buffer->write_pointer = buffer->sample_data;
+	sr_sw_limits_init(&buffer->limit_samples);
+
+	buffer->sdi = sdi;
+	memset(&buffer->logic, 0, sizeof(buffer->logic));
+	buffer->logic.unitsize = buffer->unit_size;
+	buffer->logic.data = buffer->sample_data;
+	memset(&buffer->packet, 0, sizeof(buffer->packet));
+	buffer->packet.type = SR_DF_LOGIC;
+	buffer->packet.payload = &buffer->logic;
+
+	return SR_OK;
+}
+
+static int setup_submit_buffer(struct dev_context *devc)
+{
+	struct submit_buffer *buffer;
+	int ret;
+	GVariant *data;
+	uint64_t total;
+
+	buffer = devc->buffer;
+
+	total = devc->limit_samples;
+	if (total) {
+		data = g_variant_new_uint64(total);
+		ret = sr_sw_limits_config_set(&buffer->limit_samples,
+			SR_CONF_LIMIT_SAMPLES, data);
+		g_variant_unref(data);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	sr_sw_limits_acquisition_start(&buffer->limit_samples);
+
+	return SR_OK;
+}
+
+static void free_submit_buffer(struct dev_context *devc)
+{
+	struct submit_buffer *buffer;
+
+	if (!devc)
+		return;
+
+	buffer = devc->buffer;
+	if (!buffer)
+		return;
+	devc->buffer = NULL;
+
+	g_free(buffer->sample_data);
+	g_free(buffer);
+}
+
+static int flush_submit_buffer(struct dev_context *devc)
+{
+	struct submit_buffer *buffer;
+	int ret;
+
+	buffer = devc->buffer;
+
+	/* Is queued sample data available? */
+	if (!buffer->curr_samples)
+		return SR_OK;
+
+	/* Submit to the session feed. */
+	buffer->logic.length = buffer->curr_samples * buffer->unit_size;
+	ret = sr_session_send(buffer->sdi, &buffer->packet);
+	if (ret != SR_OK)
+		return ret;
+
+	/* Rewind queue position. */
+	buffer->curr_samples = 0;
+	buffer->write_pointer = buffer->sample_data;
+
+	return SR_OK;
+}
+
+static int addto_submit_buffer(struct dev_context *devc,
+	uint16_t sample, size_t count)
+{
+	struct submit_buffer *buffer;
+	int ret;
+
+	buffer = devc->buffer;
+	if (sr_sw_limits_check(&buffer->limit_samples))
+		count = 0;
+
+	/*
+	 * Individually accumulate and check each sample, such that
+	 * accumulation between flushes won't exceed local storage, and
+	 * enforcement of user specified limits is exact.
+	 */
+	while (count--) {
+		WL16(buffer->write_pointer, sample);
+		buffer->write_pointer += buffer->unit_size;
+		buffer->curr_samples++;
+		if (buffer->curr_samples == buffer->max_samples) {
+			ret = flush_submit_buffer(devc);
+			if (ret != SR_OK)
+				return ret;
+		}
+		sr_sw_limits_update_samples_read(&buffer->limit_samples, 1);
+		if (sr_sw_limits_check(&buffer->limit_samples))
+			break;
+	}
+
+	return SR_OK;
+}
+
+/*
  * In 100 and 200 MHz mode, only a single pin rising/falling can be
  * set as trigger. In other modes, two rising/falling triggers can be set,
  * in addition to value/mask trigger for any number of channels.
@@ -770,6 +921,48 @@ static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 	return i & 0x7;
 }
 
+static gboolean sample_matches_trigger(struct dev_context *devc, uint16_t sample)
+{
+	/* TODO
+	 * Check whether the combination of this very sample and the
+	 * previous state match the configured trigger condition. This
+	 * improves the resolution of the trigger marker's position.
+	 * The hardware provided position is coarse, and may point to
+	 * a position before the actual match.
+	 *
+	 * See the previous get_trigger_offset() implementation. This
+	 * code needs to get re-used here.
+	 */
+	(void)devc;
+	(void)sample;
+	(void)get_trigger_offset;
+
+	return FALSE;
+}
+
+static int check_and_submit_sample(struct dev_context *devc,
+	uint16_t sample, size_t count, gboolean check_trigger)
+{
+	gboolean triggered;
+	int ret;
+
+	triggered = check_trigger && sample_matches_trigger(devc, sample);
+	if (triggered) {
+		ret = flush_submit_buffer(devc);
+		if (ret != SR_OK)
+			return ret;
+		ret = std_session_send_df_trigger(devc->buffer->sdi);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	ret = addto_submit_buffer(devc, sample, count);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 /*
  * Return the timestamp of "DRAM cluster".
  */
@@ -832,173 +1025,66 @@ static uint16_t sigma_deinterlace_200mhz_data(uint16_t indata, int idx)
 	return outdata;
 }
 
-static void store_sr_sample(uint8_t *samples, int idx, uint16_t data)
+static void sigma_decode_dram_cluster(struct dev_context *devc,
+	struct sigma_dram_cluster *dram_cluster,
+	size_t events_in_cluster, gboolean triggered)
 {
-	samples[2 * idx + 0] = (data >> 0) & 0xff;
-	samples[2 * idx + 1] = (data >> 8) & 0xff;
-}
-
-/*
- * Local wrapper around sr_session_send() calls. Make sure to not send
- * more samples to the session's datafeed than what was requested by a
- * previously configured (optional) sample count.
- */
-static void sigma_session_send(struct sr_dev_inst *sdi,
-				struct sr_datafeed_packet *packet)
-{
-	struct dev_context *devc;
-	struct sr_datafeed_logic *logic;
-	uint64_t send_now;
-
-	devc = sdi->priv;
-	if (devc->limit_samples) {
-		logic = (void *)packet->payload;
-		send_now = logic->length / logic->unitsize;
-		if (devc->sent_samples + send_now > devc->limit_samples) {
-			send_now = devc->limit_samples - devc->sent_samples;
-			logic->length = send_now * logic->unitsize;
-		}
-		if (!send_now)
-			return;
-		devc->sent_samples += send_now;
-	}
-
-	sr_session_send(sdi, packet);
-}
-
-/*
- * This size translates to: number of events per row (strictly speaking
- * 448, assuming "up to 512" does not harm here) times the sample data's
- * unit size (16 bits), times the maximum number of samples per event (4).
- */
-#define SAMPLES_BUFFER_SIZE	(ROW_LENGTH_U16 * sizeof(uint16_t) * 4)
-
-static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
-				      unsigned int events_in_cluster,
-				      unsigned int triggered,
-				      struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc = sdi->priv;
-	struct sigma_state *ss = &devc->state;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
+	struct sigma_state *ss;
 	uint16_t tsdiff, ts, sample, item16;
-	uint8_t samples[SAMPLES_BUFFER_SIZE];
-	uint8_t *send_ptr;
-	size_t send_count, trig_count;
 	unsigned int i;
-	int j;
 
-	ts = sigma_dram_cluster_ts(dram_cluster);
-	tsdiff = ts - ss->lastts;
-	ss->lastts = ts + EVENTS_PER_CLUSTER;
-
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = 2;
-	logic.data = samples;
+	if (!devc->use_triggers || !ASIX_SIGMA_WITH_TRIGGER)
+		triggered = FALSE;
 
 	/*
 	 * If this cluster is not adjacent to the previously received
 	 * cluster, then send the appropriate number of samples with the
 	 * previous values to the sigrok session. This "decodes RLE".
 	 *
-	 * TODO Improve (mostly: generalize) support for queueing data
-	 * before submission to the session bus. This implementation
-	 * happens to work for "up to 1024 samples" despite the "up to
-	 * 512 entities of 16 bits", due to the "up to 4 sample points
-	 * per event" factor. A better implementation would eliminate
-	 * these magic numbers.
+	 * These samples cannot match the trigger since they just repeat
+	 * the previously submitted data pattern. (This assumption holds
+	 * for simple level and edge triggers. It would not for timed or
+	 * counted conditions, which currently are not supported.)
 	 */
-	for (ts = 0; ts < tsdiff; ts++) {
-		i = ts % 1024;
-		store_sr_sample(samples, i, ss->lastsample);
-
-		/*
-		 * If we have 1024 samples ready or we're at the
-		 * end of submitting the padding samples, submit
-		 * the packet to Sigrok. Since constant data is
-		 * sent, duplication of data for rates above 50MHz
-		 * is simple.
-		 */
-		if ((i == 1023) || (ts == tsdiff - 1)) {
-			logic.length = (i + 1) * logic.unitsize;
-			for (j = 0; j < devc->samples_per_event; j++)
-				sigma_session_send(sdi, &packet);
-		}
+	ss = &devc->state;
+	ts = sigma_dram_cluster_ts(dram_cluster);
+	tsdiff = ts - ss->lastts;
+	if (tsdiff > 0) {
+		size_t count;
+		count = tsdiff * devc->samples_per_event;
+		(void)check_and_submit_sample(devc, ss->lastsample, count, FALSE);
 	}
+	ss->lastts = ts + EVENTS_PER_CLUSTER;
 
 	/*
-	 * Parse the samples in current cluster and prepare them
-	 * to be submitted to Sigrok. Cope with memory layouts that
-	 * vary with the samplerate.
+	 * Grab sample data from the current cluster and prepare their
+	 * submission to the session feed. Handle samplerate dependent
+	 * memory layout of sample data. Accumulation of data chunks
+	 * before submission is transparent to this code path, specific
+	 * buffer depth is neither assumed nor required here.
 	 */
-	send_ptr = &samples[0];
-	send_count = 0;
 	sample = 0;
 	for (i = 0; i < events_in_cluster; i++) {
 		item16 = sigma_dram_cluster_data(dram_cluster, i);
 		if (devc->cur_samplerate == SR_MHZ(200)) {
 			sample = sigma_deinterlace_200mhz_data(item16, 0);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 1);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 2);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 3);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 		} else if (devc->cur_samplerate == SR_MHZ(100)) {
 			sample = sigma_deinterlace_100mhz_data(item16, 0);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_100mhz_data(item16, 1);
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 		} else {
 			sample = item16;
-			store_sr_sample(samples, send_count++, sample);
+			check_and_submit_sample(devc, sample, 1, triggered);
 		}
 	}
-
-	/*
-	 * If a trigger position applies, then provide the datafeed with
-	 * the first part of data up to that position, then send the
-	 * trigger marker.
-	 */
-	int trigger_offset = 0;
-	if (triggered) {
-		/*
-		 * Trigger is not always accurate to sample because of
-		 * pipeline delay. However, it always triggers before
-		 * the actual event. We therefore look at the next
-		 * samples to pinpoint the exact position of the trigger.
-		 */
-		trigger_offset = get_trigger_offset(samples,
-					ss->lastsample, &devc->trigger);
-
-		if (trigger_offset > 0) {
-			trig_count = trigger_offset * devc->samples_per_event;
-			packet.type = SR_DF_LOGIC;
-			logic.length = trig_count * logic.unitsize;
-			sigma_session_send(sdi, &packet);
-			send_ptr += trig_count * logic.unitsize;
-			send_count -= trig_count;
-		}
-
-		/* Only send trigger if explicitly enabled. */
-		if (devc->use_triggers)
-			std_session_send_df_trigger(sdi);
-	}
-
-	/*
-	 * Send the data after the trigger, or all of the received data
-	 * if no trigger position applies.
-	 */
-	if (send_count) {
-		packet.type = SR_DF_LOGIC;
-		logic.length = send_count * logic.unitsize;
-		logic.data = send_ptr;
-		sigma_session_send(sdi, &packet);
-	}
-
 	ss->lastsample = sample;
 }
 
@@ -1011,24 +1097,20 @@ static void sigma_decode_dram_cluster(struct sigma_dram_cluster *dram_cluster,
  * For 50 MHz and below, events contain one sample for each channel,
  * spread 20 ns apart.
  */
-static int decode_chunk_ts(struct sigma_dram_line *dram_line,
-			   uint16_t events_in_line,
-			   uint32_t trigger_event,
-			   struct sr_dev_inst *sdi)
+static int decode_chunk_ts(struct dev_context *devc,
+	struct sigma_dram_line *dram_line,
+	size_t events_in_line, size_t trigger_event)
 {
 	struct sigma_dram_cluster *dram_cluster;
-	struct dev_context *devc;
 	unsigned int clusters_in_line;
 	unsigned int events_in_cluster;
 	unsigned int i;
-	uint32_t trigger_cluster, triggered;
+	uint32_t trigger_cluster;
 
-	devc = sdi->priv;
 	clusters_in_line = events_in_line;
 	clusters_in_line += EVENTS_PER_CLUSTER - 1;
 	clusters_in_line /= EVENTS_PER_CLUSTER;
 	trigger_cluster = ~0;
-	triggered = 0;
 
 	/* Check if trigger is in this chunk. */
 	if (trigger_event < EVENTS_PER_ROW) {
@@ -1053,9 +1135,8 @@ static int decode_chunk_ts(struct sigma_dram_line *dram_line,
 			events_in_cluster = EVENTS_PER_CLUSTER;
 		}
 
-		triggered = (i == trigger_cluster);
-		sigma_decode_dram_cluster(dram_cluster, events_in_cluster,
-					  triggered, sdi);
+		sigma_decode_dram_cluster(devc, dram_cluster,
+			events_in_cluster, i == trigger_cluster);
 	}
 
 	return SR_OK;
@@ -1075,6 +1156,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t dl_first_line, dl_line;
 	uint32_t dl_events_in_line;
 	uint32_t trg_line, trg_event;
+	int ret;
 
 	devc = sdi->priv;
 	dl_events_in_line = EVENTS_PER_ROW;
@@ -1135,6 +1217,12 @@ static int download_capture(struct sr_dev_inst *sdi)
 	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
 	if (!dram_line)
 		return FALSE;
+	ret = alloc_submit_buffer(sdi);
+	if (ret != SR_OK)
+		return FALSE;
+	ret = setup_submit_buffer(devc);
+	if (ret != SR_OK)
+		return FALSE;
 	dl_lines_done = 0;
 	while (dl_lines_total > dl_lines_done) {
 		/* We can download only up-to 32 DRAM lines in one go! */
@@ -1164,12 +1252,14 @@ static int download_capture(struct sr_dev_inst *sdi)
 			if (dl_lines_done + i == trg_line)
 				trigger_event = trg_event;
 
-			decode_chunk_ts(dram_line + i, dl_events_in_line,
-					trigger_event, sdi);
+			decode_chunk_ts(devc, dram_line + i,
+				dl_events_in_line, trigger_event);
 		}
 
 		dl_lines_done += dl_lines_curr;
 	}
+	flush_submit_buffer(devc);
+	free_submit_buffer(devc);
 	g_free(dram_line);
 
 	std_session_send_df_end(sdi);

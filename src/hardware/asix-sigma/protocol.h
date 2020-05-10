@@ -293,6 +293,8 @@ struct sigma_state {
 	uint16_t lastsample;
 };
 
+struct submit_buffer;
+
 struct dev_context {
 	struct {
 		uint16_t vid, pid;
@@ -314,6 +316,7 @@ struct dev_context {
 	struct sigma_trigger trigger;
 	int use_triggers;
 	struct sigma_state state;
+	struct submit_buffer *buffer;
 };
 
 extern SR_PRIV const uint64_t samplerates[];
