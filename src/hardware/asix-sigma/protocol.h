@@ -303,14 +303,12 @@ struct dev_context {
 		enum asix_device_type type;
 	} id;
 	struct ftdi_context ftdic;
-	uint64_t cur_samplerate;
-	uint64_t limit_msec;
-	uint64_t limit_samples;
-	uint64_t sent_samples;
-	uint64_t start_time;
+	uint64_t samplerate;
+	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
+	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
+	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
 	int cur_firmware;
 	int num_channels;
-	int cur_channels;
 	int samples_per_event;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
@@ -326,9 +324,9 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 				 struct dev_context *devc);
 SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
 SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);
-SR_PRIV uint64_t sigma_limit_samples_to_msec(const struct dev_context *devc,
-					     uint64_t limit_samples);
-SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate);
+SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
+SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc);
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int sigma_build_basic_trigger(struct triggerlut *lut, struct dev_context *devc);

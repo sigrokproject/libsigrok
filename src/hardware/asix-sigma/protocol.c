@@ -568,48 +568,132 @@ static int upload_firmware(struct sr_context *ctx,
 }
 
 /*
- * Sigma doesn't support limiting the number of samples, so we have to
- * translate the number and the samplerate to an elapsed time.
+ * The driver supports user specified time or sample count limits. The
+ * device's hardware supports neither, and hardware compression prevents
+ * reliable detection of "fill levels" (currently reached sample counts)
+ * from register values during acquisition. That's why the driver needs
+ * to apply some heuristics:
  *
- * In addition we need to ensure that the last data cluster has passed
- * the hardware pipeline, and became available to the PC side. With RLE
- * compression up to 327ms could pass before another cluster accumulates
- * at 200kHz samplerate when input pins don't change.
+ * - The (optional) sample count limit and the (normalized) samplerate
+ *   get mapped to an estimated duration for these samples' acquisition.
+ * - The (optional) time limit gets checked as well. The lesser of the
+ *   two limits will terminate the data acquisition phase. The exact
+ *   sample count limit gets enforced in session feed submission paths.
+ * - Some slack needs to be given to account for hardware pipelines as
+ *   well as late storage of last chunks after compression thresholds
+ *   are tripped. The resulting data set will span at least the caller
+ *   specified period of time, which shall be perfectly acceptable.
+ *
+ * With RLE compression active, up to 64K sample periods can pass before
+ * a cluster accumulates. Which translates to 327ms at 200kHz. Add two
+ * times that period for good measure, one is not enough to flush the
+ * hardware pipeline (observation from an earlier experiment).
  */
-SR_PRIV uint64_t sigma_limit_samples_to_msec(const struct dev_context *devc,
-					     uint64_t limit_samples)
+SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 {
-	uint64_t limit_msec;
+	int ret;
+	GVariant *data;
+	uint64_t user_count, user_msecs;
 	uint64_t worst_cluster_time_ms;
+	uint64_t count_msecs, acquire_msecs;
 
-	limit_msec = limit_samples * 1000 / devc->cur_samplerate;
-	worst_cluster_time_ms = 65536 * 1000 / devc->cur_samplerate;
-	/*
-	 * One cluster time is not enough to flush pipeline when sampling
-	 * grounded pins with 1 sample limit at 200kHz. Hence the 2* fix.
-	 */
-	return limit_msec + 2 * worst_cluster_time_ms;
+	sr_sw_limits_init(&devc->acq_limits);
+
+	/* Get sample count limit, convert to msecs. */
+	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+		SR_CONF_LIMIT_SAMPLES, &data);
+	if (ret != SR_OK)
+		return ret;
+	user_count = g_variant_get_uint64(data);
+	g_variant_unref(data);
+	count_msecs = 0;
+	if (user_count)
+		count_msecs = 1000 * user_count / devc->samplerate + 1;
+
+	/* Get time limit, which is in msecs. */
+	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+		SR_CONF_LIMIT_MSEC, &data);
+	if (ret != SR_OK)
+		return ret;
+	user_msecs = g_variant_get_uint64(data);
+	g_variant_unref(data);
+
+	/* Get the lesser of them, with both being optional. */
+	acquire_msecs = ~0ull;
+	if (user_count && count_msecs < acquire_msecs)
+		acquire_msecs = count_msecs;
+	if (user_msecs && user_msecs < acquire_msecs)
+		acquire_msecs = user_msecs;
+	if (acquire_msecs == ~0ull)
+		return SR_OK;
+
+	/* Add some slack, and use that timeout for acquisition. */
+	worst_cluster_time_ms = 1000 * 65536 / devc->samplerate;
+	acquire_msecs += 2 * worst_cluster_time_ms;
+	data = g_variant_new_uint64(acquire_msecs);
+	ret = sr_sw_limits_config_set(&devc->acq_limits,
+		SR_CONF_LIMIT_MSEC, data);
+	g_variant_unref(data);
+	if (ret != SR_OK)
+		return ret;
+
+	sr_sw_limits_acquisition_start(&devc->acq_limits);
+	return SR_OK;
 }
 
-SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t samplerate)
+/*
+ * Check whether a caller specified samplerate matches the device's
+ * hardware constraints (can be used for acquisition). Optionally yield
+ * a value that approximates the original spec.
+ *
+ * This routine assumes that input specs are in the 200kHz to 200MHz
+ * range of supported rates, and callers typically want to normalize a
+ * given value to the hardware capabilities. Values in the 50MHz range
+ * get rounded up by default, to avoid a more expensive check for the
+ * closest match, while higher sampling rate is always desirable during
+ * measurement. Input specs which exactly match hardware capabilities
+ * remain unaffected. Because 100/200MHz rates also limit the number of
+ * available channels, they are not suggested by this routine, instead
+ * callers need to pick them consciously.
+ */
+SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate)
+{
+	uint64_t div, rate;
+
+	/* Accept exact matches for 100/200MHz. */
+	if (want_rate == SR_MHZ(200) || want_rate == SR_MHZ(100)) {
+		if (have_rate)
+			*have_rate = want_rate;
+		return SR_OK;
+	}
+
+	/* Accept 200kHz to 50MHz range, and map to near value. */
+	if (want_rate >= SR_KHZ(200) && want_rate <= SR_MHZ(50)) {
+		div = SR_MHZ(50) / want_rate;
+		rate = SR_MHZ(50) / div;
+		if (have_rate)
+			*have_rate = rate;
+		return SR_OK;
+	}
+
+	return SR_ERR_ARG;
+}
+
+SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	size_t i;
+	uint64_t samplerate;
 	int ret;
 	int num_channels;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
-	ret = SR_OK;
 
-	/* Reject rates that are not in the list of supported rates. */
-	for (i = 0; i < samplerates_count; i++) {
-		if (samplerates[i] == samplerate)
-			break;
-	}
-	if (i >= samplerates_count || samplerates[i] == 0)
-		return SR_ERR_SAMPLERATE;
+	/* Accept any caller specified rate which the hardware supports. */
+	ret = sigma_normalize_samplerate(devc->samplerate, &samplerate);
+	if (ret != SR_OK)
+		return ret;
 
 	/*
 	 * Depending on the samplerates of 200/100/50- MHz, specific
@@ -629,27 +713,14 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sampler
 	}
 
 	/*
-	 * Derive the sample period from the sample rate as well as the
-	 * number of samples that the device will communicate within
-	 * an "event" (memory organization internal to the device).
+	 * The samplerate affects the number of available logic channels
+	 * as well as a sample memory layout detail (the number of samples
+	 * which the device will communicate within an "event").
 	 */
 	if (ret == SR_OK) {
 		devc->num_channels = num_channels;
-		devc->cur_samplerate = samplerate;
 		devc->samples_per_event = 16 / devc->num_channels;
 		devc->state.state = SIGMA_IDLE;
-	}
-
-	/*
-	 * Support for "limit_samples" is implemented by stopping
-	 * acquisition after a corresponding period of time.
-	 * Re-calculate that period of time, in case the limit is
-	 * set first and the samplerate gets (re-)configured later.
-	 */
-	if (ret == SR_OK && devc->limit_samples) {
-		uint64_t msecs;
-		msecs = sigma_limit_samples_to_msec(devc, devc->limit_samples);
-		devc->limit_msec = msecs;
 	}
 
 	return ret;
@@ -674,7 +745,6 @@ struct submit_buffer {
 	struct sr_dev_inst *sdi;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_sw_limits limit_samples;
 };
 
 static int alloc_submit_buffer(struct sr_dev_inst *sdi)
@@ -697,7 +767,7 @@ static int alloc_submit_buffer(struct sr_dev_inst *sdi)
 	if (!buffer->sample_data)
 		return SR_ERR_MALLOC;
 	buffer->write_pointer = buffer->sample_data;
-	sr_sw_limits_init(&buffer->limit_samples);
+	sr_sw_limits_init(&devc->feed_limits);
 
 	buffer->sdi = sdi;
 	memset(&buffer->logic, 0, sizeof(buffer->logic));
@@ -710,26 +780,33 @@ static int alloc_submit_buffer(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int setup_submit_buffer(struct dev_context *devc)
+static int setup_submit_limit(struct dev_context *devc)
 {
-	struct submit_buffer *buffer;
+	struct sr_sw_limits *limits;
 	int ret;
 	GVariant *data;
 	uint64_t total;
 
-	buffer = devc->buffer;
+	limits = &devc->feed_limits;
 
-	total = devc->limit_samples;
+	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+		SR_CONF_LIMIT_SAMPLES, &data);
+	if (ret != SR_OK)
+		return ret;
+	total = g_variant_get_uint64(data);
+	g_variant_unref(data);
+
+	sr_sw_limits_init(limits);
 	if (total) {
 		data = g_variant_new_uint64(total);
-		ret = sr_sw_limits_config_set(&buffer->limit_samples,
+		ret = sr_sw_limits_config_set(limits,
 			SR_CONF_LIMIT_SAMPLES, data);
 		g_variant_unref(data);
 		if (ret != SR_OK)
 			return ret;
 	}
 
-	sr_sw_limits_acquisition_start(&buffer->limit_samples);
+	sr_sw_limits_acquisition_start(limits);
 
 	return SR_OK;
 }
@@ -778,10 +855,12 @@ static int addto_submit_buffer(struct dev_context *devc,
 	uint16_t sample, size_t count)
 {
 	struct submit_buffer *buffer;
+	struct sr_sw_limits *limits;
 	int ret;
 
 	buffer = devc->buffer;
-	if (sr_sw_limits_check(&buffer->limit_samples))
+	limits = &devc->feed_limits;
+	if (sr_sw_limits_check(limits))
 		count = 0;
 
 	/*
@@ -798,8 +877,8 @@ static int addto_submit_buffer(struct dev_context *devc,
 			if (ret != SR_OK)
 				return ret;
 		}
-		sr_sw_limits_update_samples_read(&buffer->limit_samples, 1);
-		if (sr_sw_limits_check(&buffer->limit_samples))
+		sr_sw_limits_update_samples_read(limits, 1);
+		if (sr_sw_limits_check(limits))
 			break;
 	}
 
@@ -837,7 +916,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				/* Ignore disabled channels with a trigger. */
 				continue;
 			channelbit = 1 << (match->channel->index);
-			if (devc->cur_samplerate >= SR_MHZ(100)) {
+			if (devc->samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
 				if (trigger_set) {
 					sr_err("Only a single pin trigger is "
@@ -1066,7 +1145,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	sample = 0;
 	for (i = 0; i < events_in_cluster; i++) {
 		item16 = sigma_dram_cluster_data(dram_cluster, i);
-		if (devc->cur_samplerate == SR_MHZ(200)) {
+		if (devc->samplerate == SR_MHZ(200)) {
 			sample = sigma_deinterlace_200mhz_data(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 1);
@@ -1075,7 +1154,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 3);
 			check_and_submit_sample(devc, sample, 1, triggered);
-		} else if (devc->cur_samplerate == SR_MHZ(100)) {
+		} else if (devc->samplerate == SR_MHZ(100)) {
 			sample = sigma_deinterlace_100mhz_data(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_100mhz_data(item16, 1);
@@ -1114,7 +1193,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 
 	/* Check if trigger is in this chunk. */
 	if (trigger_event < EVENTS_PER_ROW) {
-		if (devc->cur_samplerate <= SR_MHZ(50)) {
+		if (devc->samplerate <= SR_MHZ(50)) {
 			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
 					     trigger_event);
 		}
@@ -1196,8 +1275,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 		trg_event = triggerpos & 0x1ff;
 	}
 
-	devc->sent_samples = 0;
-
 	/*
 	 * Determine how many "DRAM lines" of 1024 bytes each we need to
 	 * retrieve from the Sigma hardware, so that we have a complete
@@ -1220,7 +1297,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	ret = alloc_submit_buffer(sdi);
 	if (ret != SR_OK)
 		return FALSE;
-	ret = setup_submit_buffer(devc);
+	ret = setup_submit_limit(devc);
 	if (ret != SR_OK)
 		return FALSE;
 	dl_lines_done = 0;
@@ -1278,18 +1355,9 @@ static int download_capture(struct sr_dev_inst *sdi)
 static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	uint64_t running_msec;
-	uint64_t current_time;
 
 	devc = sdi->priv;
-
-	/*
-	 * Check if the selected sampling duration passed. Sample count
-	 * limits are covered by this enforced timeout as well.
-	 */
-	current_time = g_get_monotonic_time();
-	running_msec = (current_time - devc->start_time) / 1000;
-	if (running_msec >= devc->limit_msec)
+	if (sr_sw_limits_check(&devc->acq_limits))
 		return download_capture(sdi);
 
 	return TRUE;

@@ -233,12 +233,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.serno = serno_num;
 		devc->id.prefix = serno_pre;
 		devc->id.type = dev_type;
-		devc->cur_samplerate = samplerates[0];
-		devc->limit_msec = 0;
-		devc->limit_samples = 0;
+		devc->samplerate = samplerates[0];
+		sr_sw_limits_init(&devc->cfg_limits);
 		devc->cur_firmware = -1;
-		devc->num_channels = 0;
-		devc->samples_per_event = 0;
 		devc->capture_ratio = 50;
 		devc->use_triggers = 0;
 	}
@@ -310,14 +307,11 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(sdi->connection_id);
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(devc->cur_samplerate);
+		*data = g_variant_new_uint64(devc->samplerate);
 		break;
 	case SR_CONF_LIMIT_MSEC:
-		*data = g_variant_new_uint64(devc->limit_msec);
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
+		return sr_sw_limits_config_get(&devc->cfg_limits, key, data);
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
@@ -334,6 +328,8 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int ret;
+	uint64_t want_rate, have_rate;
 
 	(void)cg;
 
@@ -341,15 +337,24 @@ static int config_set(uint32_t key, GVariant *data,
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		return sigma_set_samplerate(sdi, g_variant_get_uint64(data));
+		want_rate = g_variant_get_uint64(data);
+		ret = sigma_normalize_samplerate(want_rate, &have_rate);
+		if (ret != SR_OK)
+			return ret;
+		if (have_rate != want_rate) {
+			char *text_want, *text_have;
+			text_want = sr_samplerate_string(want_rate);
+			text_have = sr_samplerate_string(have_rate);
+			sr_info("Adjusted samplerate %s to %s.",
+				text_want, text_have);
+			g_free(text_want);
+			g_free(text_have);
+		}
+		devc->samplerate = have_rate;
+		break;
 	case SR_CONF_LIMIT_MSEC:
-		devc->limit_msec = g_variant_get_uint64(data);
-		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		devc->limit_msec = sigma_limit_samples_to_msec(devc,
-						devc->limit_samples);
-		break;
+		return sr_sw_limits_config_set(&devc->cfg_limits, key, data);
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
@@ -400,22 +405,32 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	/*
+	 * Setup the device's samplerate from the value which up to now
+	 * just got checked and stored. As a byproduct this can pick and
+	 * send firmware to the device, reduce the number of available
+	 * logic channels, etc.
+	 *
+	 * Determine an acquisition timeout from optionally configured
+	 * sample count or time limits. Which depends on the samplerate.
+	 */
+	ret = sigma_set_samplerate(sdi);
+	if (ret != SR_OK)
+		return ret;
+	ret = sigma_set_acquire_timeout(devc);
+	if (ret != SR_OK)
+		return ret;
+
 	if (sigma_convert_trigger(sdi) != SR_OK) {
 		sr_err("Failed to configure triggers.");
 		return SR_ERR;
-	}
-
-	/* If the samplerate has not been set, default to 200 kHz. */
-	if (devc->cur_firmware == -1) {
-		if ((ret = sigma_set_samplerate(sdi, SR_KHZ(200))) != SR_OK)
-			return ret;
 	}
 
 	/* Enter trigger programming mode. */
 	sigma_set_register(WRITE_TRIGGER_SELECT2, 0x20, devc);
 
 	triggerselect = 0;
-	if (devc->cur_samplerate >= SR_MHZ(100)) {
+	if (devc->samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
 		sigma_set_register(WRITE_TRIGGER_SELECT2, 0x81, devc);
 
@@ -432,7 +447,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (devc->trigger.fallingmask)
 			triggerselect |= 1 << 3;
 
-	} else if (devc->cur_samplerate <= SR_MHZ(50)) {
+	} else if (devc->samplerate <= SR_MHZ(50)) {
 		/* All other modes. */
 		sigma_build_basic_trigger(&lut, devc);
 
@@ -457,10 +472,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	clockselect.async = 0;
 	clockselect.fraction = 1 - 1;		/* Divider 1. */
 	clockselect.disabled_channels = 0x0000;	/* All channels enabled. */
-	if (devc->cur_samplerate == SR_MHZ(200)) {
+	if (devc->samplerate == SR_MHZ(200)) {
 		/* Enable 4 channels. */
 		clockselect.disabled_channels = 0xf0ff;
-	} else if (devc->cur_samplerate == SR_MHZ(100)) {
+	} else if (devc->samplerate == SR_MHZ(100)) {
 		/* Enable 8 channels. */
 		clockselect.disabled_channels = 0x00ff;
 	} else {
@@ -471,7 +486,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		 * (The driver lists a discrete set of sample rates, but
 		 * all of them fit the above description.)
 		 */
-		clockselect.fraction = SR_MHZ(50) / devc->cur_samplerate - 1;
+		clockselect.fraction = SR_MHZ(50) / devc->samplerate - 1;
 	}
 	clock_idx = 0;
 	clock_bytes[clock_idx++] = clockselect.async;
@@ -485,7 +500,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			   (devc->capture_ratio * 255) / 100, devc);
 
 	/* Start acqusition. */
-	devc->start_time = g_get_monotonic_time();
 	regval =  WMR_TRGRES | WMR_SDRAMWRITEEN;
 #if ASIX_SIGMA_WITH_TRIGGER
 	regval |= WMR_TRGEN;
