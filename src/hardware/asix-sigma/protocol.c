@@ -511,6 +511,8 @@ static int upload_firmware(struct sr_context *ctx,
 		return SR_OK;
 	}
 
+	devc->state.state = SIGMA_CONFIG;
+
 	/* Set the cable to bitbang mode. */
 	ret = ftdi_set_bitmode(&devc->ftdic, BB_PINMASK, BITMODE_BITBANG);
 	if (ret < 0) {
@@ -561,6 +563,7 @@ static int upload_firmware(struct sr_context *ctx,
 		return ret;
 
 	/* Keep track of successful firmware download completion. */
+	devc->state.state = SIGMA_IDLE;
 	devc->cur_firmware = firmware_idx;
 	sr_info("Firmware uploaded.");
 
@@ -720,7 +723,6 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	if (ret == SR_OK) {
 		devc->num_channels = num_channels;
 		devc->samples_per_event = 16 / devc->num_channels;
-		devc->state.state = SIGMA_IDLE;
 	}
 
 	return ret;

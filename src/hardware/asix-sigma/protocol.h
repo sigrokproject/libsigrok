@@ -284,6 +284,7 @@ enum triggerfunc {
 struct sigma_state {
 	enum {
 		SIGMA_UNINITIALIZED = 0,
+		SIGMA_CONFIG,
 		SIGMA_IDLE,
 		SIGMA_CAPTURE,
 		SIGMA_STOPPING,
