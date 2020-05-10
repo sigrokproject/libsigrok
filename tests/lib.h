@@ -53,5 +53,6 @@ Suite *suite_version(void);
 Suite *suite_device(void);
 Suite *suite_trigger(void);
 Suite *suite_analog(void);
+Suite *suite_conv(void);
 
 #endif

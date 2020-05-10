@@ -715,7 +715,8 @@ tests_main_SOURCES = \
 	tests/driver_all.c \
 	tests/device.c \
 	tests/trigger.c \
-	tests/analog.c
+	tests/analog.c \
+	tests/conv.c
 
 tests_main_LDADD = libsigrok.la $(SR_EXTRA_LIBS) $(TESTS_LIBS)
 
