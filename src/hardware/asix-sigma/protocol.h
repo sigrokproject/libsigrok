@@ -123,8 +123,8 @@ enum sigma_read_register {
 	READ_TEST		= 15,
 };
 
-#define LEDSEL0			6
-#define LEDSEL1			7
+#define TRGSEL2_LEDSEL0		(1 << 6)
+#define TRGSEL2_LEDSEL1		(1 << 7)
 
 /* WRITE_MODE register fields. */
 #define WMR_SDRAMWRITEEN	(1 << 0)
@@ -145,6 +145,22 @@ enum sigma_read_register {
 #define RMR_TRIGGERED		(1 << 5)
 #define RMR_POSTTRIGGERED	(1 << 6)
 /* not used: bit position 7 */
+
+/*
+ * Trigger options. First and second write are similar, but _some_
+ * positions change their meaning.
+ */
+#define TRGOPT_TRGIEN		(1 << 7)
+#define TRGOPT_TRGOEN		(1 << 6)
+#define TRGOPT_TRGOINEN		(1 << 5) /* 1st write */
+#define TRGOPT_TRGINEG		TRGOPT1_TRGOINEN /* 2nd write */
+#define TRGOPT_TRGOEVNTEN	(1 << 4) /* 1st write */
+#define TRGOPT_TRGOPIN		TRGOPT1_TRGOEVNTEN /* 2nd write */
+#define TRGOPT_TRGOOUTEN	(1 << 3) /* 1st write */
+#define TRGOPT_TRGOLONG		TRGOPT1_TRGOOUTEN /* 2nd write */
+#define TRGOPT_TRGOUTR_OUT	(1 << 1)
+#define TRGOPT_TRGOUTR_EN	(1 << 0)
+#define TRGOPT_CLEAR_MASK	(TRGOPT_TRGOINEN | TRGOPT_TRGOEVNTEN | TRGOPT_TRGOOUTEN)
 
 /*
  * Layout of the sample data DRAM, which will be downloaded to the PC:
@@ -189,18 +205,16 @@ enum sigma_read_register {
 
 struct sigma_dram_line {
 	struct sigma_dram_cluster {
-		uint8_t timestamp_lo;
-		uint8_t timestamp_hi;
+		uint8_t timestamp[sizeof(uint16_t)];
 		struct sigma_dram_event {
-			uint8_t sample_hi;
-			uint8_t sample_lo;
+			uint8_t sample[sizeof(uint16_t)];
 		} samples[EVENTS_PER_CLUSTER];
 	} cluster[CLUSTERS_PER_ROW];
 };
 
 struct clockselect_50 {
 	uint8_t async;
-	uint8_t fraction;
+	uint64_t fraction;
 	uint16_t disabled_channels;
 };
 

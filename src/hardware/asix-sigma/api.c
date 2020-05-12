@@ -405,9 +405,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t triggerselect;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-	uint8_t regval;
-	uint8_t clock_bytes[sizeof(clockselect)];
-	size_t clock_idx;
+	uint8_t regval, trgconf_bytes[2], clock_bytes[4], *wrptr;
+	size_t count;
 
 	devc = sdi->priv;
 
@@ -449,7 +448,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 
 		/* Set trigger pin and light LED on trigger. */
-		triggerselect = (1 << LEDSEL1) | (triggerpin & 0x7);
+		triggerselect = TRGSEL2_LEDSEL1 | (triggerpin & 0x7);
 
 		/* Default rising edge. */
 		if (devc->trigger.fallingmask)
@@ -461,30 +460,47 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 		sigma_write_trigger_lut(devc, &lut);
 
-		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
+		triggerselect = TRGSEL2_LEDSEL1 | TRGSEL2_LEDSEL0;
 	}
 
 	/* Setup trigger in and out pins to default values. */
 	memset(&triggerinout_conf, 0, sizeof(struct triggerinout));
 	triggerinout_conf.trgout_bytrigger = 1;
 	triggerinout_conf.trgout_enable = 1;
+	/* TODO
+	 * Verify the correctness of this implementation. The previous
+	 * version used to assign to a C language struct with bit fields
+	 * which is highly non-portable and hard to guess the resulting
+	 * raw memory layout or wire transfer content. The C struct's
+	 * field names did not match the vendor documentation's names.
+	 * Which means that I could not verify "on paper" either. Let's
+	 * re-visit this code later during research for trigger support.
+	 */
+	wrptr = trgconf_bytes;
+	regval = 0;
+	if (triggerinout_conf.trgout_bytrigger)
+		regval |= TRGOPT_TRGOOUTEN;
+	write_u8_inc(&wrptr, regval);
+	regval &= ~TRGOPT_CLEAR_MASK;
+	if (triggerinout_conf.trgout_enable)
+		regval |= TRGOPT_TRGOEN;
+	write_u8_inc(&wrptr, regval);
+	count = wrptr - trgconf_bytes;
+	sigma_write_register(devc, WRITE_TRIGGER_OPTION, trgconf_bytes, count);
 
-	sigma_write_register(devc, WRITE_TRIGGER_OPTION,
-		(uint8_t *)&triggerinout_conf, sizeof(struct triggerinout));
-
-	/* Go back to normal mode. */
+	/* Leave trigger programming mode. */
 	sigma_set_register(devc, WRITE_TRIGGER_SELECT2, triggerselect);
 
 	/* Set clock select register. */
 	clockselect.async = 0;
-	clockselect.fraction = 1 - 1;		/* Divider 1. */
+	clockselect.fraction = 1;		/* Divider 1. */
 	clockselect.disabled_channels = 0x0000;	/* All channels enabled. */
 	if (devc->samplerate == SR_MHZ(200)) {
 		/* Enable 4 channels. */
-		clockselect.disabled_channels = 0xf0ff;
+		clockselect.disabled_channels = 0xfff0;
 	} else if (devc->samplerate == SR_MHZ(100)) {
 		/* Enable 8 channels. */
-		clockselect.disabled_channels = 0x00ff;
+		clockselect.disabled_channels = 0xff00;
 	} else {
 		/*
 		 * 50 MHz mode, or fraction thereof. The 50MHz reference
@@ -493,14 +509,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		 * (The driver lists a discrete set of sample rates, but
 		 * all of them fit the above description.)
 		 */
-		clockselect.fraction = SR_MHZ(50) / devc->samplerate - 1;
+		clockselect.fraction = SR_MHZ(50) / devc->samplerate;
 	}
-	clock_idx = 0;
-	clock_bytes[clock_idx++] = clockselect.async;
-	clock_bytes[clock_idx++] = clockselect.fraction;
-	clock_bytes[clock_idx++] = clockselect.disabled_channels & 0xff;
-	clock_bytes[clock_idx++] = clockselect.disabled_channels >> 8;
-	sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, clock_idx);
+	wrptr = clock_bytes;
+	write_u8_inc(&wrptr, clockselect.async);
+	write_u8_inc(&wrptr, clockselect.fraction - 1);
+	write_u16be_inc(&wrptr, clockselect.disabled_channels);
+	count = wrptr - clock_bytes;
+	sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, count);
 
 	/* Setup maximum post trigger time. */
 	sigma_set_register(devc, WRITE_POST_TRIGGER,
