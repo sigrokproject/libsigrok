@@ -67,7 +67,8 @@ static void clear_helper(struct dev_context *devc)
 
 static int dev_clear(const struct sr_dev_driver *di)
 {
-	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
+	return std_dev_clear_with_callback(di,
+		(std_dev_clear_callback)clear_helper);
 }
 
 static gboolean bus_addr_in_devices(int bus, int addr, GSList *devs)
@@ -85,9 +86,13 @@ static gboolean bus_addr_in_devices(int bus, int addr, GSList *devs)
 
 static gboolean known_vid_pid(const struct libusb_device_descriptor *des)
 {
+	gboolean is_sigma, is_omega;
+
 	if (des->idVendor != USB_VENDOR_ASIX)
 		return FALSE;
-	if (des->idProduct != USB_PRODUCT_SIGMA && des->idProduct != USB_PRODUCT_OMEGA)
+	is_sigma = des->idProduct == USB_PRODUCT_SIGMA;
+	is_omega = des->idProduct == USB_PRODUCT_OMEGA;
+	if (!is_sigma && !is_omega)
 		return FALSE;
 	return TRUE;
 }
@@ -375,7 +380,8 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cg)
 			return SR_ERR_NA;
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg,
+			scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates(samplerates, samplerates_count);
 		break;
@@ -427,18 +433,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* Enter trigger programming mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT2, 0x20, devc);
+	sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x20);
 
 	triggerselect = 0;
 	if (devc->samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
-		sigma_set_register(WRITE_TRIGGER_SELECT2, 0x81, devc);
+		sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x81);
 
 		/* Find which pin to trigger on from mask. */
-		for (triggerpin = 0; triggerpin < 8; triggerpin++)
-			if ((devc->trigger.risingmask | devc->trigger.fallingmask) &
-			    (1 << triggerpin))
+		for (triggerpin = 0; triggerpin < 8; triggerpin++) {
+			if (devc->trigger.risingmask & (1 << triggerpin))
 				break;
+			if (devc->trigger.fallingmask & (1 << triggerpin))
+				break;
+		}
 
 		/* Set trigger pin and light LED on trigger. */
 		triggerselect = (1 << LEDSEL1) | (triggerpin & 0x7);
@@ -449,9 +457,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	} else if (devc->samplerate <= SR_MHZ(50)) {
 		/* All other modes. */
-		sigma_build_basic_trigger(&lut, devc);
+		sigma_build_basic_trigger(devc, &lut);
 
-		sigma_write_trigger_lut(&lut, devc);
+		sigma_write_trigger_lut(devc, &lut);
 
 		triggerselect = (1 << LEDSEL1) | (1 << LEDSEL0);
 	}
@@ -461,12 +469,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	triggerinout_conf.trgout_bytrigger = 1;
 	triggerinout_conf.trgout_enable = 1;
 
-	sigma_write_register(WRITE_TRIGGER_OPTION,
-			     (uint8_t *) &triggerinout_conf,
-			     sizeof(struct triggerinout), devc);
+	sigma_write_register(devc, WRITE_TRIGGER_OPTION,
+		(uint8_t *)&triggerinout_conf, sizeof(struct triggerinout));
 
 	/* Go back to normal mode. */
-	sigma_set_register(WRITE_TRIGGER_SELECT2, triggerselect, devc);
+	sigma_set_register(devc, WRITE_TRIGGER_SELECT2, triggerselect);
 
 	/* Set clock select register. */
 	clockselect.async = 0;
@@ -493,23 +500,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	clock_bytes[clock_idx++] = clockselect.fraction;
 	clock_bytes[clock_idx++] = clockselect.disabled_channels & 0xff;
 	clock_bytes[clock_idx++] = clockselect.disabled_channels >> 8;
-	sigma_write_register(WRITE_CLOCK_SELECT, clock_bytes, clock_idx, devc);
+	sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, clock_idx);
 
 	/* Setup maximum post trigger time. */
-	sigma_set_register(WRITE_POST_TRIGGER,
-			   (devc->capture_ratio * 255) / 100, devc);
+	sigma_set_register(devc, WRITE_POST_TRIGGER,
+		(devc->capture_ratio * 255) / 100);
 
 	/* Start acqusition. */
-	regval =  WMR_TRGRES | WMR_SDRAMWRITEEN;
+	regval = WMR_TRGRES | WMR_SDRAMWRITEEN;
 #if ASIX_SIGMA_WITH_TRIGGER
 	regval |= WMR_TRGEN;
 #endif
-	sigma_set_register(WRITE_MODE, regval, devc);
+	sigma_set_register(devc, WRITE_MODE, regval);
 
 	std_session_send_df_header(sdi);
 
 	/* Add capture source. */
-	sr_session_source_add(sdi->session, -1, 0, 10, sigma_receive_data, (void *)sdi);
+	sr_session_source_add(sdi->session, -1, 0, 10,
+		sigma_receive_data, (void *)sdi);
 
 	devc->state.state = SIGMA_CAPTURE;
 

@@ -330,15 +330,18 @@ struct dev_context {
 extern SR_PRIV const uint64_t samplerates[];
 extern SR_PRIV const size_t samplerates_count;
 
-SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
-				 struct dev_context *devc);
-SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc);
-SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc);
+SR_PRIV int sigma_write_register(struct dev_context *devc,
+	uint8_t reg, uint8_t *data, size_t len);
+SR_PRIV int sigma_set_register(struct dev_context *devc,
+	uint8_t reg, uint8_t value);
+SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
+	struct triggerlut *lut);
 SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc);
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int sigma_build_basic_trigger(struct triggerlut *lut, struct dev_context *devc);
+SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
+	struct triggerlut *lut);
 
 #endif

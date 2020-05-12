@@ -57,27 +57,27 @@ static const char *firmware_files[] = {
 
 #define SIGMA_FIRMWARE_SIZE_LIMIT (256 * 1024)
 
-static int sigma_read(void *buf, size_t size, struct dev_context *devc)
+static int sigma_read(struct dev_context *devc, void *buf, size_t size)
 {
 	int ret;
 
 	ret = ftdi_read_data(&devc->ftdic, (unsigned char *)buf, size);
 	if (ret < 0) {
 		sr_err("ftdi_read_data failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdic));
 	}
 
 	return ret;
 }
 
-static int sigma_write(void *buf, size_t size, struct dev_context *devc)
+static int sigma_write(struct dev_context *devc, void *buf, size_t size)
 {
 	int ret;
 
 	ret = ftdi_write_data(&devc->ftdic, (unsigned char *)buf, size);
 	if (ret < 0)
 		sr_err("ftdi_write_data failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdic));
 	else if ((size_t) ret != size)
 		sr_err("ftdi_write_data did not complete write.");
 
@@ -88,16 +88,15 @@ static int sigma_write(void *buf, size_t size, struct dev_context *devc)
  * NOTE: We chose the buffer size to be large enough to hold any write to the
  * device. We still print a message just in case.
  */
-SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
-				 struct dev_context *devc)
+SR_PRIV int sigma_write_register(struct dev_context *devc,
+	uint8_t reg, uint8_t *data, size_t len)
 {
 	size_t i;
 	uint8_t buf[80];
 	int idx = 0;
 
 	if ((2 * len + 2) > sizeof(buf)) {
-		sr_err("Attempted to write %zu bytes, but buffer is too small.",
-		       len);
+		sr_err("Write buffer too small to write %zu bytes.", len);
 		return SR_ERR_BUG;
 	}
 
@@ -109,16 +108,17 @@ SR_PRIV int sigma_write_register(uint8_t reg, uint8_t *data, size_t len,
 		buf[idx++] = REG_DATA_HIGH_WRITE | (data[i] >> 4);
 	}
 
-	return sigma_write(buf, idx, devc);
+	return sigma_write(devc, buf, idx);
 }
 
-SR_PRIV int sigma_set_register(uint8_t reg, uint8_t value, struct dev_context *devc)
+SR_PRIV int sigma_set_register(struct dev_context *devc,
+	uint8_t reg, uint8_t value)
 {
-	return sigma_write_register(reg, &value, 1, devc);
+	return sigma_write_register(devc, reg, &value, sizeof(value));
 }
 
-static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len,
-			       struct dev_context *devc)
+static int sigma_read_register(struct dev_context *devc,
+	uint8_t reg, uint8_t *data, size_t len)
 {
 	uint8_t buf[3];
 
@@ -126,13 +126,13 @@ static int sigma_read_register(uint8_t reg, uint8_t *data, size_t len,
 	buf[1] = REG_ADDR_HIGH | (reg >> 4);
 	buf[2] = REG_READ_ADDR;
 
-	sigma_write(buf, sizeof(buf), devc);
+	sigma_write(devc, buf, sizeof(buf));
 
-	return sigma_read(data, len, devc);
+	return sigma_read(devc, data, len);
 }
 
-static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
-			  struct dev_context *devc)
+static int sigma_read_pos(struct dev_context *devc,
+	uint32_t *stoppos, uint32_t *triggerpos)
 {
 	/*
 	 * Read 6 registers starting at trigger position LSB.
@@ -149,9 +149,9 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 	};
 	uint8_t result[6];
 
-	sigma_write(buf, sizeof(buf), devc);
+	sigma_write(devc, buf, sizeof(buf));
 
-	sigma_read(result, sizeof(result), devc);
+	sigma_read(devc, result, sizeof(result));
 
 	*triggerpos = result[0] | (result[1] << 8) | (result[2] << 16);
 	*stoppos = result[3] | (result[4] << 8) | (result[5] << 16);
@@ -180,8 +180,8 @@ static int sigma_read_pos(uint32_t *stoppos, uint32_t *triggerpos,
 	return 1;
 }
 
-static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
-			   uint8_t *data, struct dev_context *devc)
+static int sigma_read_dram(struct dev_context *devc,
+	uint16_t startchunk, size_t numchunks, uint8_t *data)
 {
 	uint8_t buf[4096];
 	int idx;
@@ -193,7 +193,7 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 	idx = 0;
 	buf[idx++] = startchunk >> 8;
 	buf[idx++] = startchunk & 0xff;
-	sigma_write_register(WRITE_MEMROW, buf, idx, devc);
+	sigma_write_register(devc, WRITE_MEMROW, buf, idx);
 
 	/*
 	 * Access DRAM content. Fetch from DRAM to FPGA's internal RAM,
@@ -212,13 +212,14 @@ static int sigma_read_dram(uint16_t startchunk, size_t numchunks,
 		if (!is_last)
 			buf[idx++] = REG_DRAM_WAIT_ACK;
 	}
-	sigma_write(buf, idx, devc);
+	sigma_write(devc, buf, idx);
 
-	return sigma_read(data, numchunks * ROW_LENGTH_BYTES, devc);
+	return sigma_read(devc, data, numchunks * ROW_LENGTH_BYTES);
 }
 
 /* Upload trigger look-up tables to Sigma. */
-SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *devc)
+SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
+	struct triggerlut *lut)
 {
 	int i;
 	uint8_t tmp[2];
@@ -264,14 +265,14 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 		if (lut->m1d[3] & bit)
 			tmp[1] |= 0x80;
 
-		sigma_write_register(WRITE_TRIGGER_SELECT, tmp, sizeof(tmp),
-				     devc);
-		sigma_set_register(WRITE_TRIGGER_SELECT2, 0x30 | i, devc);
+		sigma_write_register(devc, WRITE_TRIGGER_SELECT,
+			tmp, sizeof(tmp));
+		sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x30 | i);
 	}
 
 	/* Send the parameters */
-	sigma_write_register(WRITE_TRIGGER_SELECT, (uint8_t *) &lut->params,
-			     sizeof(lut->params), devc);
+	sigma_write_register(devc, WRITE_TRIGGER_SELECT,
+		(uint8_t *)&lut->params, sizeof(lut->params));
 
 	return SR_OK;
 }
@@ -350,21 +351,21 @@ static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 	uint8_t data;
 
 	/* Section 2. part 1), do the FPGA suicide. */
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
-	sigma_write(suicide, sizeof(suicide), devc);
+	sigma_write(devc, suicide, sizeof(suicide));
+	sigma_write(devc, suicide, sizeof(suicide));
+	sigma_write(devc, suicide, sizeof(suicide));
+	sigma_write(devc, suicide, sizeof(suicide));
 	g_usleep(10 * 1000);
 
 	/* Section 2. part 2), pulse PROG. */
-	sigma_write(init_array, sizeof(init_array), devc);
+	sigma_write(devc, init_array, sizeof(init_array));
 	g_usleep(10 * 1000);
 	ftdi_usb_purge_buffers(&devc->ftdic);
 
 	/* Wait until the FPGA asserts INIT_B. */
 	retries = 10;
 	while (retries--) {
-		ret = sigma_read(&data, 1, devc);
+		ret = sigma_read(devc, &data, 1);
 		if (ret < 0)
 			return ret;
 		if (data & BB_PIN_INIT)
@@ -408,7 +409,7 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 	uint8_t mode_regval = WMR_SDRAMINIT;
 	uint8_t logic_mode_start[] = {
 		/* Read ID register. */
-		REG_ADDR_LOW  | (READ_ID & 0xf),
+		REG_ADDR_LOW | (READ_ID & 0xf),
 		REG_ADDR_HIGH | (READ_ID >> 4),
 		REG_READ_ADDR,
 
@@ -435,8 +436,8 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 	 * Send the command sequence which contains 3 READ requests.
 	 * Expect to see the corresponding 3 response bytes.
 	 */
-	sigma_write(logic_mode_start, sizeof(logic_mode_start), devc);
-	ret = sigma_read(result, ARRAY_SIZE(result), devc);
+	sigma_write(devc, logic_mode_start, sizeof(logic_mode_start));
+	ret = sigma_read(devc, result, ARRAY_SIZE(result));
 	if (ret != ARRAY_SIZE(result))
 		goto err;
 	if (result[0] != 0xa6 || result[1] != 0x55 || result[2] != 0xaa)
@@ -455,7 +456,7 @@ err:
  * by the caller of this function.
  */
 static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
-			      uint8_t **bb_cmd, gsize *bb_cmd_size)
+	uint8_t **bb_cmd, gsize *bb_cmd_size)
 {
 	uint8_t *firmware;
 	size_t file_size;
@@ -524,8 +525,8 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 	return SR_OK;
 }
 
-static int upload_firmware(struct sr_context *ctx,
-	struct dev_context *devc, enum sigma_firmware_idx firmware_idx)
+static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
+	enum sigma_firmware_idx firmware_idx)
 {
 	int ret;
 	unsigned char *buf;
@@ -552,13 +553,13 @@ static int upload_firmware(struct sr_context *ctx,
 	ret = ftdi_set_bitmode(&devc->ftdic, BB_PINMASK, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 	ret = ftdi_set_baudrate(&devc->ftdic, BB_BITRATE);
 	if (ret < 0) {
 		sr_err("ftdi_set_baudrate failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 
@@ -570,14 +571,13 @@ static int upload_firmware(struct sr_context *ctx,
 	/* Prepare wire format of the firmware image. */
 	ret = sigma_fw_2_bitbang(ctx, firmware, &buf, &buf_size);
 	if (ret != SR_OK) {
-		sr_err("An error occurred while reading the firmware: %s",
-		       firmware);
+		sr_err("Could not prepare file %s for download.", firmware);
 		return ret;
 	}
 
 	/* Write the FPGA netlist to the cable. */
 	sr_info("Uploading firmware file '%s'.", firmware);
-	sigma_write(buf, buf_size, devc);
+	sigma_write(devc, buf, buf_size);
 
 	g_free(buf);
 
@@ -585,11 +585,11 @@ static int upload_firmware(struct sr_context *ctx,
 	ret = ftdi_set_bitmode(&devc->ftdic, 0, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("ftdi_set_bitmode failed: %s",
-		       ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdic));
 		return SR_ERR;
 	}
 	ftdi_usb_purge_buffers(&devc->ftdic);
-	while (sigma_read(&pins, 1, devc) == 1)
+	while (sigma_read(devc, &pins, 1) == 1)
 		;
 
 	/* Initialize the FPGA for logic-analyzer mode. */
@@ -949,15 +949,15 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 		stage = l->data;
 		for (m = stage->matches; m; m = m->next) {
 			match = m->data;
+			/* Ignore disabled channels with a trigger. */
 			if (!match->channel->enabled)
-				/* Ignore disabled channels with a trigger. */
 				continue;
 			channelbit = 1 << (match->channel->index);
 			if (devc->samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
 				if (trigger_set) {
 					sr_err("Only a single pin trigger is "
-							"supported in 100 and 200MHz mode.");
+						"supported in 100 and 200MHz mode.");
 					return SR_ERR;
 				}
 				if (match->match == SR_TRIGGER_FALLING)
@@ -966,7 +966,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					devc->trigger.risingmask |= channelbit;
 				else {
 					sr_err("Only rising/falling trigger is "
-							"supported in 100 and 200MHz mode.");
+						"supported in 100 and 200MHz mode.");
 					return SR_ERR;
 				}
 
@@ -993,8 +993,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				 * does not permit ORed triggers.
 				 */
 				if (trigger_set > 1) {
-					sr_err("Only 1 rising/falling trigger "
-						   "is supported.");
+					sr_err("Only 1 rising/falling trigger is supported.");
 					return SR_ERR;
 				}
 			}
@@ -1006,7 +1005,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 
 /* Software trigger to determine exact trigger position. */
 static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
-			      struct sigma_trigger *t)
+	struct sigma_trigger *t)
 {
 	int i;
 	uint16_t sample = 0;
@@ -1167,8 +1166,9 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	tsdiff = ts - ss->lastts;
 	if (tsdiff > 0) {
 		size_t count;
+		sample = ss->lastsample;
 		count = tsdiff * devc->samples_per_event;
-		(void)check_and_submit_sample(devc, ss->lastsample, count, FALSE);
+		(void)check_and_submit_sample(devc, sample, count, FALSE);
 	}
 	ss->lastts = ts + EVENTS_PER_CLUSTER;
 
@@ -1286,22 +1286,22 @@ static int download_capture(struct sr_dev_inst *sdi)
 	 * clusters to DRAM regardless of whether pin state changes) and
 	 * raise the POSTTRIGGERED flag.
 	 */
-	sigma_set_register(WRITE_MODE, WMR_FORCESTOP | WMR_SDRAMWRITEEN, devc);
+	sigma_set_register(devc, WRITE_MODE, WMR_FORCESTOP | WMR_SDRAMWRITEEN);
 	do {
-		if (sigma_read_register(READ_MODE, &modestatus, 1, devc) != 1) {
+		if (sigma_read_register(devc, READ_MODE, &modestatus, 1) != 1) {
 			sr_err("failed while waiting for RMR_POSTTRIGGERED bit");
 			return FALSE;
 		}
 	} while (!(modestatus & RMR_POSTTRIGGERED));
 
 	/* Set SDRAM Read Enable. */
-	sigma_set_register(WRITE_MODE, WMR_SDRAMREADEN, devc);
+	sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
 
 	/* Get the current position. */
-	sigma_read_pos(&stoppos, &triggerpos, devc);
+	sigma_read_pos(devc, &stoppos, &triggerpos);
 
 	/* Check if trigger has fired. */
-	if (sigma_read_register(READ_MODE, &modestatus, 1, devc) != 1) {
+	if (sigma_read_register(devc, READ_MODE, &modestatus, 1) != 1) {
 		sr_err("failed to read READ_MODE register");
 		return FALSE;
 	}
@@ -1344,8 +1344,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 		dl_line = dl_first_line + dl_lines_done;
 		dl_line %= ROW_COUNT;
-		bufsz = sigma_read_dram(dl_line, dl_lines_curr,
-					(uint8_t *)dram_line, devc);
+		bufsz = sigma_read_dram(devc, dl_line, dl_lines_curr,
+					(uint8_t *)dram_line);
 		/* TODO: Check bufsz. For now, just avoid compiler warnings. */
 		(void)bufsz;
 
@@ -1454,7 +1454,7 @@ static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
 
 /* Add a logical function to LUT mask. */
 static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
-				 int index, int neg, uint16_t *mask)
+	int index, int neg, uint16_t *mask)
 {
 	int i, j;
 	int x[2][2], tmp, a, b, aset, bset, rset;
@@ -1539,7 +1539,8 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
  * simple pin change and state triggers. Only two transitions (rise/fall) can be
  * set at any time, but a full mask and value can be set (0/1).
  */
-SR_PRIV int sigma_build_basic_trigger(struct triggerlut *lut, struct dev_context *devc)
+SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
+	struct triggerlut *lut)
 {
 	int i,j;
 	uint16_t masks[2] = { 0, 0 };
