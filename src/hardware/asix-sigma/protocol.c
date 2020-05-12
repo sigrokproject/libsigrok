@@ -313,10 +313,16 @@ SR_PRIV int sigma_write_trigger_lut(struct triggerlut *lut, struct dev_context *
 /*
  * Initiate slave serial mode for configuration download. Which is done
  * by pulsing PROG_B and sensing INIT_B. Make sure CCLK is idle before
- * initiating the configuration download. Run a "suicide sequence" first
- * to terminate the regular FPGA operation before reconfiguration.
+ * initiating the configuration download.
+ *
+ * Run a "suicide sequence" first to terminate the regular FPGA operation
+ * before reconfiguration. The FTDI cable is single channel, and shares
+ * pins which are used for data communication in FIFO mode with pins that
+ * are used for FPGA configuration in bitbang mode. Hardware defaults for
+ * unconfigured hardware, and runtime conditions after FPGA configuration
+ * need to cooperate such that re-configuration of the FPGA can start.
  */
-static int sigma_fpga_init_bitbang(struct dev_context *devc)
+static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 {
 	uint8_t suicide[] = {
 		BB_PIN_D7 | BB_PIN_D2,
@@ -348,9 +354,11 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 	sigma_write(suicide, sizeof(suicide), devc);
 	sigma_write(suicide, sizeof(suicide), devc);
 	sigma_write(suicide, sizeof(suicide), devc);
+	g_usleep(10 * 1000);
 
 	/* Section 2. part 2), pulse PROG. */
 	sigma_write(init_array, sizeof(init_array), devc);
+	g_usleep(10 * 1000);
 	ftdi_usb_purge_buffers(&devc->ftdic);
 
 	/* Wait until the FPGA asserts INIT_B. */
@@ -365,6 +373,27 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
 	}
 
 	return SR_ERR_TIMEOUT;
+}
+
+/*
+ * This is belt and braces. Re-run the bitbang initiation sequence a few
+ * times should first attempts fail. Failure is rare but can happen (was
+ * observed during driver development).
+ */
+static int sigma_fpga_init_bitbang(struct dev_context *devc)
+{
+	size_t retries;
+	int ret;
+
+	retries = 10;
+	while (retries--) {
+		ret = sigma_fpga_init_bitbang_once(devc);
+		if (ret == SR_OK)
+			return ret;
+		if (ret != SR_ERR_TIMEOUT)
+			return ret;
+	}
+	return ret;
 }
 
 /*
