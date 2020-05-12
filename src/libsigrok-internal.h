@@ -143,6 +143,23 @@ static inline int16_t read_i16le(const uint8_t *p)
 #define RL16S(x) read_i16le((const uint8_t *)(x))
 
 /**
+ * Read a 24 bits little endian unsigned integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+static inline uint32_t read_u24le(const uint8_t *p)
+{
+	uint32_t u;
+
+	u = 0;
+	u <<= 8; u |= p[2];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[0];
+
+	return u;
+}
+
+/**
  * Read a 32 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
@@ -495,6 +512,23 @@ static inline uint32_t read_u32be_inc(const uint8_t **p)
 		return 0;
 	v = read_u32be(*p);
 	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 24bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint32_t read_u24le_inc(const uint8_t **p)
+{
+	uint32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u24le(*p);
+	*p += 3 * sizeof(uint8_t);
 
 	return v;
 }
