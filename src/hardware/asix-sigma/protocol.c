@@ -27,22 +27,22 @@
 #include "protocol.h"
 
 /*
- * The ASIX Sigma supports arbitrary integer frequency divider in
- * the 50MHz mode. The divider is in range 1...256 , allowing for
- * very precise sampling rate selection. This driver supports only
- * a subset of the sampling rates.
+ * The ASIX SIGMA hardware supports fixed 200MHz and 100MHz sample rates
+ * (by means of separate firmware images). As well as 50MHz divided by
+ * an integer divider in the 1..256 range (by the "typical" firmware).
+ * Which translates to a strict lower boundary of around 195kHz.
+ *
+ * This driver "suggests" a subset of the available rates by listing a
+ * few discrete values, while setter routines accept any user specified
+ * rate that is supported by the hardware.
  */
 SR_PRIV const uint64_t samplerates[] = {
-	SR_KHZ(200),	/* div=250 */
-	SR_KHZ(250),	/* div=200 */
-	SR_KHZ(500),	/* div=100 */
-	SR_MHZ(1),	/* div=50  */
-	SR_MHZ(5),	/* div=10  */
-	SR_MHZ(10),	/* div=5   */
-	SR_MHZ(25),	/* div=2   */
-	SR_MHZ(50),	/* div=1   */
-	SR_MHZ(100),	/* Special FW needed */
-	SR_MHZ(200),	/* Special FW needed */
+	/* 50MHz and integer divider. 1/2/5 steps (where possible). */
+	SR_KHZ(200), SR_KHZ(500),
+	SR_MHZ(1), SR_MHZ(2), SR_MHZ(5),
+	SR_MHZ(10), SR_MHZ(25), SR_MHZ(50),
+	/* 100MHz/200MHz, fixed rates in special firmware. */
+	SR_MHZ(100), SR_MHZ(200),
 };
 
 SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
