@@ -294,6 +294,15 @@ struct sigma_state {
 	uint16_t lastsample;
 };
 
+enum sigma_firmware_idx {
+	SIGMA_FW_NONE,
+	SIGMA_FW_50MHZ,
+	SIGMA_FW_100MHZ,
+	SIGMA_FW_200MHZ,
+	SIGMA_FW_SYNC,
+	SIGMA_FW_FREQ,
+};
+
 struct submit_buffer;
 
 struct dev_context {
@@ -308,7 +317,7 @@ struct dev_context {
 	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
 	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
 	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
-	int cur_firmware;
+	enum sigma_firmware_idx firmware_idx;
 	int num_channels;
 	int samples_per_event;
 	uint64_t capture_ratio;

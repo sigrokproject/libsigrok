@@ -235,7 +235,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.type = dev_type;
 		devc->samplerate = samplerates[0];
 		sr_sw_limits_init(&devc->cfg_limits);
-		devc->cur_firmware = -1;
+		devc->firmware_idx = SIGMA_FW_NONE;
 		devc->capture_ratio = 50;
 		devc->use_triggers = 0;
 	}

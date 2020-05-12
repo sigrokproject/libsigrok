@@ -48,11 +48,11 @@ SR_PRIV const uint64_t samplerates[] = {
 SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
 
 static const char *firmware_files[] = {
-	"asix-sigma-50.fw", /* Up to 50MHz sample rate, 8bit divider. */
-	"asix-sigma-100.fw", /* 100MHz sample rate, fixed. */
-	"asix-sigma-200.fw", /* 200MHz sample rate, fixed. */
-	"asix-sigma-50sync.fw", /* Synchronous clock from external pin. */
-	"asix-sigma-phasor.fw", /* Frequency counter. */
+	[SIGMA_FW_50MHZ] = "asix-sigma-50.fw", /* 50MHz, 8bit divider. */
+	[SIGMA_FW_100MHZ] = "asix-sigma-100.fw", /* 100MHz, fixed. */
+	[SIGMA_FW_200MHZ] = "asix-sigma-200.fw", /* 200MHz, fixed. */
+	[SIGMA_FW_SYNC] = "asix-sigma-50sync.fw", /* Sync from external pin. */
+	[SIGMA_FW_FREQ] = "asix-sigma-phasor.fw", /* Frequency counter. */
 };
 
 #define SIGMA_FIRMWARE_SIZE_LIMIT (256 * 1024)
@@ -496,7 +496,7 @@ static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
 }
 
 static int upload_firmware(struct sr_context *ctx,
-		int firmware_idx, struct dev_context *devc)
+	struct dev_context *devc, enum sigma_firmware_idx firmware_idx)
 {
 	int ret;
 	unsigned char *buf;
@@ -504,9 +504,15 @@ static int upload_firmware(struct sr_context *ctx,
 	size_t buf_size;
 	const char *firmware;
 
-	/* Avoid downloading the same firmware multiple times. */
+	/* Check for valid firmware file selection. */
+	if (firmware_idx >= ARRAY_SIZE(firmware_files))
+		return SR_ERR_ARG;
 	firmware = firmware_files[firmware_idx];
-	if (devc->cur_firmware == firmware_idx) {
+	if (!firmware || !*firmware)
+		return SR_ERR_ARG;
+
+	/* Avoid downloading the same firmware multiple times. */
+	if (devc->firmware_idx == firmware_idx) {
 		sr_info("Not uploading firmware file '%s' again.", firmware);
 		return SR_OK;
 	}
@@ -564,7 +570,7 @@ static int upload_firmware(struct sr_context *ctx,
 
 	/* Keep track of successful firmware download completion. */
 	devc->state.state = SIGMA_IDLE;
-	devc->cur_firmware = firmware_idx;
+	devc->firmware_idx = firmware_idx;
 	sr_info("Firmware uploaded.");
 
 	return SR_OK;
@@ -705,13 +711,13 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	 */
 	num_channels = devc->num_channels;
 	if (samplerate <= SR_MHZ(50)) {
-		ret = upload_firmware(drvc->sr_ctx, 0, devc);
+		ret = upload_firmware(drvc->sr_ctx, devc, SIGMA_FW_50MHZ);
 		num_channels = 16;
 	} else if (samplerate == SR_MHZ(100)) {
-		ret = upload_firmware(drvc->sr_ctx, 1, devc);
+		ret = upload_firmware(drvc->sr_ctx, devc, SIGMA_FW_100MHZ);
 		num_channels = 8;
 	} else if (samplerate == SR_MHZ(200)) {
-		ret = upload_firmware(drvc->sr_ctx, 2, devc);
+		ret = upload_firmware(drvc->sr_ctx, devc, SIGMA_FW_200MHZ);
 		num_channels = 4;
 	}
 
