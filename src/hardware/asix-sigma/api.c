@@ -4,6 +4,7 @@
  * Copyright (C) 2010-2012 Håvard Espeland <gus@ping.uio.no>,
  * Copyright (C) 2010 Martin Stensgård <mastensg@ping.uio.no>
  * Copyright (C) 2010 Carl Henrik Lunde <chlunde@ping.uio.no>
+ * Copyright (C) 2020 Gerhard Sittig <gerhard.sittig@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
