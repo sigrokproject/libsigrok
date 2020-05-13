@@ -1121,7 +1121,7 @@ static int check_and_submit_sample(struct dev_context *devc,
  */
 static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
 {
-	return read_u16le(&cluster->timestamp[0]);
+	return read_u16le((const uint8_t *)&cluster->timestamp);
 }
 
 /*
@@ -1129,7 +1129,7 @@ static uint16_t sigma_dram_cluster_ts(struct sigma_dram_cluster *cluster)
  */
 static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
 {
-	return read_u16le(&cl->samples[idx].sample[0]);
+	return read_u16le((const uint8_t *)&cl->samples[idx]);
 }
 
 /*

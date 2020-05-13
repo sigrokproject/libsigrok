@@ -205,10 +205,8 @@ enum sigma_read_register {
 
 struct sigma_dram_line {
 	struct sigma_dram_cluster {
-		uint8_t timestamp[sizeof(uint16_t)];
-		struct sigma_dram_event {
-			uint8_t sample[sizeof(uint16_t)];
-		} samples[EVENTS_PER_CLUSTER];
+		uint16_t timestamp;
+		uint16_t samples[EVENTS_PER_CLUSTER];
 	} cluster[CLUSTERS_PER_ROW];
 };
 
