@@ -314,19 +314,6 @@ enum triggerfunc {
 	FUNC_NXOR,
 };
 
-struct sigma_state {
-	enum {
-		SIGMA_UNINITIALIZED = 0,
-		SIGMA_CONFIG,
-		SIGMA_IDLE,
-		SIGMA_CAPTURE,
-		SIGMA_STOPPING,
-		SIGMA_DOWNLOAD,
-	} state;
-	uint16_t lastts;
-	uint16_t lastsample;
-};
-
 enum sigma_firmware_idx {
 	SIGMA_FW_NONE,
 	SIGMA_FW_50MHZ,
@@ -372,12 +359,24 @@ struct dev_context {
 		struct sr_sw_limits submit;
 	} limit;
 	enum sigma_firmware_idx firmware_idx;
-	size_t num_channels;
-	size_t samples_per_event;
+	struct {
+		/* Interpretation of sample memory. */
+		size_t num_channels;
+		size_t samples_per_event;
+		uint16_t lastts;
+		uint16_t lastsample;
+	} interp;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
 	gboolean use_triggers;
-	struct sigma_state state;
+	enum {
+		SIGMA_UNINITIALIZED = 0,
+		SIGMA_CONFIG,
+		SIGMA_IDLE,
+		SIGMA_CAPTURE,
+		SIGMA_STOPPING,
+		SIGMA_DOWNLOAD,
+	} state;
 	struct submit_buffer *buffer;
 };
 

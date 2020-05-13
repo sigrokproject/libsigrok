@@ -550,7 +550,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Derive a mask where bits are set for unavailable channels.
 	 * Either send the single byte, or the full byte sequence.
 	 */
-	pindis_mask = ~BITS_MASK(devc->num_channels);
+	pindis_mask = ~BITS_MASK(devc->interp.num_channels);
 	if (devc->clock.samplerate > SR_MHZ(50)) {
 		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
 			pindis_mask & 0xff);
@@ -608,7 +608,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	devc->state.state = SIGMA_CAPTURE;
+	devc->state = SIGMA_CAPTURE;
 
 	return SR_OK;
 }
@@ -626,10 +626,10 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	 * already. The detour is required to have sample data retrieved
 	 * for forced acquisition stops.
 	 */
-	if (devc->state.state == SIGMA_CAPTURE) {
-		devc->state.state = SIGMA_STOPPING;
+	if (devc->state == SIGMA_CAPTURE) {
+		devc->state = SIGMA_STOPPING;
 	} else {
-		devc->state.state = SIGMA_IDLE;
+		devc->state = SIGMA_IDLE;
 		(void)sr_session_source_remove(sdi->session, -1);
 	}
 

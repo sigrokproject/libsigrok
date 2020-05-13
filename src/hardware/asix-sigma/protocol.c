@@ -838,7 +838,7 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 		return SR_OK;
 	}
 
-	devc->state.state = SIGMA_CONFIG;
+	devc->state = SIGMA_CONFIG;
 
 	/* Set the cable to bitbang mode. */
 	ret = ftdi_set_bitmode(&devc->ftdi.ctx, BB_PINMASK, BITMODE_BITBANG);
@@ -896,7 +896,7 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 	}
 
 	/* Keep track of successful firmware download completion. */
-	devc->state.state = SIGMA_IDLE;
+	devc->state = SIGMA_IDLE;
 	devc->firmware_idx = firmware_idx;
 	sr_info("Firmware uploaded.");
 
@@ -1083,7 +1083,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	 * firmware is required and higher rates might limit the set
 	 * of available channels.
 	 */
-	num_channels = devc->num_channels;
+	num_channels = devc->interp.num_channels;
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(drvc->sr_ctx, devc, SIGMA_FW_50MHZ);
 		num_channels = 16;
@@ -1101,8 +1101,8 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	 * which the device will communicate within an "event").
 	 */
 	if (ret == SR_OK) {
-		devc->num_channels = num_channels;
-		devc->samples_per_event = 16 / devc->num_channels;
+		devc->interp.num_channels = num_channels;
+		devc->interp.samples_per_event = 16 / devc->interp.num_channels;
 	}
 
 	/*
@@ -1465,7 +1465,7 @@ static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
  * One 16bit item contains two samples of 8bits each. The bits of
  * multiple samples are interleaved.
  */
-static uint16_t sigma_deinterlace_100mhz_data(uint16_t indata, int idx)
+static uint16_t sigma_deinterlace_data_2x8(uint16_t indata, int idx)
 {
 	uint16_t outdata;
 
@@ -1487,7 +1487,7 @@ static uint16_t sigma_deinterlace_100mhz_data(uint16_t indata, int idx)
  * One 16bit item contains four samples of 4bits each. The bits of
  * multiple samples are interleaved.
  */
-static uint16_t sigma_deinterlace_200mhz_data(uint16_t indata, int idx)
+static uint16_t sigma_deinterlace_data_4x4(uint16_t indata, int idx)
 {
 	uint16_t outdata;
 
@@ -1504,7 +1504,6 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	struct sigma_dram_cluster *dram_cluster,
 	size_t events_in_cluster, gboolean triggered)
 {
-	struct sigma_state *ss;
 	uint16_t tsdiff, ts, sample, item16;
 	size_t count;
 	size_t evt;
@@ -1522,15 +1521,14 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	 * for simple level and edge triggers. It would not for timed or
 	 * counted conditions, which currently are not supported.)
 	 */
-	ss = &devc->state;
 	ts = sigma_dram_cluster_ts(dram_cluster);
-	tsdiff = ts - ss->lastts;
+	tsdiff = ts - devc->interp.lastts;
 	if (tsdiff > 0) {
-		sample = ss->lastsample;
-		count = tsdiff * devc->samples_per_event;
+		sample = devc->interp.lastsample;
+		count = tsdiff * devc->interp.samples_per_event;
 		(void)check_and_submit_sample(devc, sample, count, FALSE);
 	}
-	ss->lastts = ts + EVENTS_PER_CLUSTER;
+	devc->interp.lastts = ts + EVENTS_PER_CLUSTER;
 
 	/*
 	 * Grab sample data from the current cluster and prepare their
@@ -1542,26 +1540,26 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	sample = 0;
 	for (evt = 0; evt < events_in_cluster; evt++) {
 		item16 = sigma_dram_cluster_data(dram_cluster, evt);
-		if (devc->clock.samplerate == SR_MHZ(200)) {
-			sample = sigma_deinterlace_200mhz_data(item16, 0);
+		if (devc->interp.samples_per_event == 4) {
+			sample = sigma_deinterlace_data_4x4(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 1);
+			sample = sigma_deinterlace_data_4x4(item16, 1);
 			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 2);
+			sample = sigma_deinterlace_data_4x4(item16, 2);
 			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 3);
+			sample = sigma_deinterlace_data_4x4(item16, 3);
 			check_and_submit_sample(devc, sample, 1, triggered);
-		} else if (devc->clock.samplerate == SR_MHZ(100)) {
-			sample = sigma_deinterlace_100mhz_data(item16, 0);
+		} else if (devc->interp.samples_per_event == 2) {
+			sample = sigma_deinterlace_data_2x8(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_100mhz_data(item16, 1);
+			sample = sigma_deinterlace_data_2x8(item16, 1);
 			check_and_submit_sample(devc, sample, 1, triggered);
 		} else {
 			sample = item16;
 			check_and_submit_sample(devc, sample, 1, triggered);
 		}
 	}
-	ss->lastsample = sample;
+	devc->interp.lastsample = sample;
 }
 
 /*
@@ -1636,7 +1634,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	sr_info("Downloading sample data.");
-	devc->state.state = SIGMA_DOWNLOAD;
+	devc->state = SIGMA_DOWNLOAD;
 
 	/*
 	 * Ask the hardware to stop data acquisition. Reception of the
@@ -1715,9 +1713,9 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 		/* This is the first DRAM line, so find the initial timestamp. */
 		if (dl_lines_done == 0) {
-			devc->state.lastts =
+			devc->interp.lastts =
 				sigma_dram_cluster_ts(&dram_line[0].cluster[0]);
-			devc->state.lastsample = 0;
+			devc->interp.lastsample = 0;
 		}
 
 		for (line_idx = 0; line_idx < dl_lines_curr; line_idx++) {
@@ -1743,7 +1741,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 
 	std_session_send_df_end(sdi);
 
-	devc->state.state = SIGMA_IDLE;
+	devc->state = SIGMA_IDLE;
 	sr_dev_acquisition_stop(sdi);
 
 	return TRUE;
@@ -1776,7 +1774,7 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 	sdi = cb_data;
 	devc = sdi->priv;
 
-	if (devc->state.state == SIGMA_IDLE)
+	if (devc->state == SIGMA_IDLE)
 		return TRUE;
 
 	/*
@@ -1785,9 +1783,9 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 	 * keep checking configured limits which will terminate the
 	 * acquisition and initiate download.
 	 */
-	if (devc->state.state == SIGMA_STOPPING)
+	if (devc->state == SIGMA_STOPPING)
 		return download_capture(sdi);
-	if (devc->state.state == SIGMA_CAPTURE)
+	if (devc->state == SIGMA_CAPTURE)
 		return sigma_capture_mode(sdi);
 
 	return TRUE;
