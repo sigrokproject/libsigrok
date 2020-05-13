@@ -155,9 +155,9 @@ enum trgsel_selcode_t {
 	TRGSEL_SELCODE_NEVER = 3,
 };
 
-#define TRGSEL2_PINS_MASK	(0x07 << 0)
+#define TRGSEL2_PINS_MASK	BIT_MASK(3)
 #define TRGSEL2_PINPOL_RISE	(1 << 3)
-#define TRGSEL2_LUT_ADDR_MASK	(0x0f << 0)
+#define TRGSEL2_LUT_ADDR_MASK	BIT_MASK(4)
 #define TRGSEL2_LUT_WRITE	(1 << 4)
 #define TRGSEL2_RESET		(1 << 5)
 #define TRGSEL2_LEDSEL0		(1 << 6)
@@ -249,43 +249,21 @@ struct sigma_dram_line {
 
 /* The effect of all these are still a bit unclear. */
 struct triggerinout {
-	uint8_t trgout_resistor_enable : 1;
-	uint8_t trgout_resistor_pullup : 1;
-	uint8_t reserved1 : 1;
-	uint8_t trgout_bytrigger : 1;
-	uint8_t trgout_byevent : 1;
-	uint8_t trgout_bytriggerin : 1;
-	uint8_t reserved2 : 2;
-
-	/* Should be set same as the first two */
-	uint8_t trgout_resistor_enable2 : 1;
-	uint8_t trgout_resistor_pullup2 : 1;
-
-	uint8_t reserved3 : 1;
-	uint8_t trgout_long : 1;
-	uint8_t trgout_pin : 1; /* Use 1k resistor. Pullup? */
-	uint8_t trgin_negate : 1;
-	uint8_t trgout_enable : 1;
-	uint8_t trgin_enable : 1;
+	gboolean trgout_resistor_enable, trgout_resistor_pullup;
+	gboolean trgout_resistor_enable2, trgout_resistor_pullup2;
+	gboolean trgout_bytrigger, trgout_byevent, trgout_bytriggerin;
+	gboolean trgout_long, trgout_pin; /* 1ms pulse, 1k resistor */
+	gboolean trgin_negate, trgout_enable, trgin_enable;
 };
 
 struct triggerlut {
-	/* The actual LUTs. */
 	uint16_t m0d[4], m1d[4], m2d[4];
 	uint16_t m3q, m3s, m4;
-
-	/* Parameters should be sent as a single register write. */
 	struct {
-		uint8_t selc : 2;
-		uint8_t selpresc : 6;
-
-		uint8_t selinc : 2;
-		uint8_t selres : 2;
-		uint8_t sela : 2;
-		uint8_t selb : 2;
-
-		uint16_t cmpb;
-		uint16_t cmpa;
+		uint8_t selpresc;
+		uint8_t sela, selb, selc;
+		uint8_t selinc, selres;
+		uint16_t cmpa, cmpb;
 	} params;
 };
 
