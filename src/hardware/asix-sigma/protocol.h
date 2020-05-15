@@ -343,27 +343,34 @@ struct dev_context {
 	struct submit_buffer *buffer;
 };
 
-extern SR_PRIV const uint64_t samplerates[];
-extern SR_PRIV const size_t samplerates_count;
-
 /* "Automatic" and forced USB connection open/close support. */
 SR_PRIV int sigma_check_open(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_check_close(struct dev_context *devc);
 SR_PRIV int sigma_force_open(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_force_close(struct dev_context *devc);
 
+/* Send register content (simple and complex) to the hardware. */
 SR_PRIV int sigma_write_register(struct dev_context *devc,
 	uint8_t reg, uint8_t *data, size_t len);
 SR_PRIV int sigma_set_register(struct dev_context *devc,
 	uint8_t reg, uint8_t value);
 SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	struct triggerlut *lut);
+
+/* Samplerate constraints check, get/set/list helpers. */
 SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
+
+extern SR_PRIV const uint64_t samplerates[];
+extern SR_PRIV const size_t samplerates_count;
+
+/* Preparation of data acquisition, spec conversion, hardware configuration. */
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc);
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi);
-SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut);
+
+/* Callback to periodically drive acuisition progress. */
+SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data);
 
 #endif
