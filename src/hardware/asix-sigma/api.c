@@ -465,7 +465,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* Setup trigger in and out pins to default values. */
-	memset(&triggerinout_conf, 0, sizeof(struct triggerinout));
+	memset(&triggerinout_conf, 0, sizeof(triggerinout_conf));
 	triggerinout_conf.trgout_bytrigger = 1;
 	triggerinout_conf.trgout_enable = 1;
 	/* TODO

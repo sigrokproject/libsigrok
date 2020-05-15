@@ -976,8 +976,9 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	int channelbit, trigger_set;
 
 	devc = sdi->priv;
-	memset(&devc->trigger, 0, sizeof(struct sigma_trigger));
-	if (!(trigger = sr_session_trigger_get(sdi->session)))
+	memset(&devc->trigger, 0, sizeof(devc->trigger));
+	trigger = sr_session_trigger_get(sdi->session);
+	if (!trigger)
 		return SR_OK;
 
 	trigger_set = 0;
@@ -1303,12 +1304,11 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t i;
 	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
 	uint32_t dl_first_line, dl_line;
-	uint32_t dl_events_in_line;
+	uint32_t dl_events_in_line, trigger_event;
 	uint32_t trg_line, trg_event;
 	int ret;
 
 	devc = sdi->priv;
-	dl_events_in_line = EVENTS_PER_ROW;
 
 	sr_info("Downloading sample data.");
 	devc->state.state = SIGMA_DOWNLOAD;
@@ -1394,12 +1394,13 @@ static int download_capture(struct sr_dev_inst *sdi)
 		}
 
 		for (i = 0; i < dl_lines_curr; i++) {
-			uint32_t trigger_event = ~0;
 			/* The last "DRAM line" need not span its full length. */
+			dl_events_in_line = EVENTS_PER_ROW;
 			if (dl_lines_done + i == dl_lines_total - 1)
 				dl_events_in_line = stoppos & ROW_MASK;
 
 			/* Test if the trigger happened on this line. */
+			trigger_event = ~0;
 			if (dl_lines_done + i == trg_line)
 				trigger_event = trg_event;
 
@@ -1497,7 +1498,7 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 	int i, j;
 	int x[2][2], tmp, a, b, aset, bset, rset;
 
-	memset(x, 0, 4 * sizeof(int));
+	memset(x, 0, sizeof(x));
 
 	/* Trigger detect condition. */
 	switch (oper) {
@@ -1581,9 +1582,10 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut)
 {
 	int i,j;
-	uint16_t masks[2] = { 0, 0 };
+	uint16_t masks[2];
 
-	memset(lut, 0, sizeof(struct triggerlut));
+	memset(lut, 0, sizeof(*lut));
+	memset(&masks, 0, sizeof(masks));
 
 	/* Constant for simple triggers. */
 	lut->m4 = 0xa000;
