@@ -245,7 +245,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* TODO Retrieve some of this state from hardware? */
 		devc->firmware_idx = SIGMA_FW_NONE;
-		devc->samplerate = samplerates[0];
+		devc->samplerate = sigma_get_samplerate(sdi);
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
@@ -363,7 +363,7 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg,
 			scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates(samplerates, samplerates_count);
+		*data = sigma_get_samplerates_list();
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:

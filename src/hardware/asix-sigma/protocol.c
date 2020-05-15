@@ -37,7 +37,7 @@
  * few discrete values, while setter routines accept any user specified
  * rate that is supported by the hardware.
  */
-SR_PRIV const uint64_t samplerates[] = {
+static const uint64_t samplerates[] = {
 	/* 50MHz and integer divider. 1/2/5 steps (where possible). */
 	SR_KHZ(200), SR_KHZ(500),
 	SR_MHZ(1), SR_MHZ(2), SR_MHZ(5),
@@ -46,7 +46,10 @@ SR_PRIV const uint64_t samplerates[] = {
 	SR_MHZ(100), SR_MHZ(200),
 };
 
-SR_PRIV const size_t samplerates_count = ARRAY_SIZE(samplerates);
+SR_PRIV GVariant *sigma_get_samplerates_list(void)
+{
+	return std_gvar_samplerates(samplerates, ARRAY_SIZE(samplerates));
+}
 
 static const char *firmware_files[] = {
 	[SIGMA_FW_50MHZ] = "asix-sigma-50.fw", /* 50MHz, 8bit divider. */
@@ -962,6 +965,13 @@ SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate)
 	}
 
 	return SR_ERR_ARG;
+}
+
+SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi)
+{
+	/* TODO Retrieve value from hardware. */
+	(void)sdi;
+	return samplerates[0];
 }
 
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)

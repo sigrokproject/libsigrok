@@ -359,9 +359,8 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 
 /* Samplerate constraints check, get/set/list helpers. */
 SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
-
-extern SR_PRIV const uint64_t samplerates[];
-extern SR_PRIV const size_t samplerates_count;
+SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi);
+SR_PRIV GVariant *sigma_get_samplerates_list(void);
 
 /* Preparation of data acquisition, spec conversion, hardware configuration. */
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi);
