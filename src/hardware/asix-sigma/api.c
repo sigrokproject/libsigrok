@@ -63,7 +63,7 @@ static const int32_t trigger_matches[] = {
 
 static void clear_helper(struct dev_context *devc)
 {
-	ftdi_deinit(&devc->ftdic);
+	(void)sigma_force_close(devc);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
@@ -239,11 +239,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.serno = serno_num;
 		devc->id.prefix = serno_pre;
 		devc->id.type = dev_type;
-		devc->samplerate = samplerates[0];
 		sr_sw_limits_init(&devc->cfg_limits);
-		devc->firmware_idx = SIGMA_FW_NONE;
 		devc->capture_ratio = 50;
 		devc->use_triggers = 0;
+
+		/* TODO Retrieve some of this state from hardware? */
+		devc->firmware_idx = SIGMA_FW_NONE;
+		devc->samplerate = samplerates[0];
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
@@ -254,9 +256,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	long vid, pid;
-	const char *serno;
-	int ret;
 
 	devc = sdi->priv;
 
@@ -264,37 +263,17 @@ static int dev_open(struct sr_dev_inst *sdi)
 		sr_err("OMEGA support is not implemented yet.");
 		return SR_ERR_NA;
 	}
-	vid = devc->id.vid;
-	pid = devc->id.pid;
-	serno = sdi->serial_num;
 
-	ret = ftdi_init(&devc->ftdic);
-	if (ret < 0) {
-		sr_err("Cannot initialize FTDI context (%d): %s.",
-			ret, ftdi_get_error_string(&devc->ftdic));
-		return SR_ERR_IO;
-	}
-	ret = ftdi_usb_open_desc_index(&devc->ftdic, vid, pid, NULL, serno, 0);
-	if (ret < 0) {
-		sr_err("Cannot open device (%d): %s.",
-			ret, ftdi_get_error_string(&devc->ftdic));
-		return SR_ERR_IO;
-	}
-
-	return SR_OK;
+	return sigma_force_open(sdi);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret;
 
 	devc = sdi->priv;
 
-	ret = ftdi_usb_close(&devc->ftdic);
-	ftdi_deinit(&devc->ftdic);
-
-	return (ret == 0) ? SR_OK : SR_ERR;
+	return sigma_force_close(devc);
 }
 
 static int config_get(uint32_t key, GVariant **data,

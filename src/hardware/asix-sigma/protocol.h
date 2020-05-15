@@ -325,7 +325,10 @@ struct dev_context {
 		uint16_t prefix;
 		enum asix_device_type type;
 	} id;
-	struct ftdi_context ftdic;
+	struct {
+		struct ftdi_context ctx;
+		gboolean is_open, must_close;
+	} ftdi;
 	uint64_t samplerate;
 	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
 	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
@@ -342,6 +345,12 @@ struct dev_context {
 
 extern SR_PRIV const uint64_t samplerates[];
 extern SR_PRIV const size_t samplerates_count;
+
+/* "Automatic" and forced USB connection open/close support. */
+SR_PRIV int sigma_check_open(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_check_close(struct dev_context *devc);
+SR_PRIV int sigma_force_open(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_force_close(struct dev_context *devc);
 
 SR_PRIV int sigma_write_register(struct dev_context *devc,
 	uint8_t reg, uint8_t *data, size_t len);

@@ -58,6 +58,119 @@ static const char *firmware_files[] = {
 
 #define SIGMA_FIRMWARE_SIZE_LIMIT (256 * 1024)
 
+static int sigma_ftdi_open(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int vid, pid;
+	const char *serno;
+	int ret;
+
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	if (devc->ftdi.is_open)
+		return SR_OK;
+
+	vid = devc->id.vid;
+	pid = devc->id.pid;
+	serno = sdi->serial_num;
+	if (!vid || !pid || !serno || !*serno)
+		return SR_ERR_ARG;
+
+	ret = ftdi_init(&devc->ftdi.ctx);
+	if (ret < 0) {
+		sr_err("Cannot initialize FTDI context (%d): %s.",
+			ret, ftdi_get_error_string(&devc->ftdi.ctx));
+		return SR_ERR_IO;
+	}
+	ret = ftdi_usb_open_desc_index(&devc->ftdi.ctx,
+		vid, pid, NULL, serno, 0);
+	if (ret < 0) {
+		sr_err("Cannot open device (%d): %s.",
+			ret, ftdi_get_error_string(&devc->ftdi.ctx));
+		return SR_ERR_IO;
+	}
+	devc->ftdi.is_open = TRUE;
+
+	return SR_OK;
+}
+
+static int sigma_ftdi_close(struct dev_context *devc)
+{
+	int ret;
+
+	ret = ftdi_usb_close(&devc->ftdi.ctx);
+	devc->ftdi.is_open = FALSE;
+	devc->ftdi.must_close = FALSE;
+	ftdi_deinit(&devc->ftdi.ctx);
+
+	return ret == 0 ? SR_OK : SR_ERR_IO;
+}
+
+SR_PRIV int sigma_check_open(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	if (devc->ftdi.is_open)
+		return SR_OK;
+
+	ret = sigma_ftdi_open(sdi);
+	if (ret != SR_OK)
+		return ret;
+	devc->ftdi.must_close = TRUE;
+
+	return ret;
+}
+
+SR_PRIV int sigma_check_close(struct dev_context *devc)
+{
+	int ret;
+
+	if (!devc)
+		return SR_ERR_ARG;
+
+	if (devc->ftdi.must_close) {
+		ret = sigma_ftdi_close(devc);
+		if (ret != SR_OK)
+			return ret;
+		devc->ftdi.must_close = FALSE;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int sigma_force_open(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	ret = sigma_ftdi_open(sdi);
+	if (ret != SR_OK)
+		return ret;
+	devc->ftdi.must_close = FALSE;
+
+	return SR_OK;
+}
+
+SR_PRIV int sigma_force_close(struct dev_context *devc)
+{
+	return sigma_ftdi_close(devc);
+}
+
 /*
  * BEWARE! Error propagation is important, as are kinds of return values.
  *
@@ -77,10 +190,10 @@ static int sigma_read_raw(struct dev_context *devc, void *buf, size_t size)
 {
 	int ret;
 
-	ret = ftdi_read_data(&devc->ftdic, (unsigned char *)buf, size);
+	ret = ftdi_read_data(&devc->ftdi.ctx, (unsigned char *)buf, size);
 	if (ret < 0) {
 		sr_err("USB data read failed: %s",
-			ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdi.ctx));
 	}
 
 	return ret;
@@ -90,10 +203,10 @@ static int sigma_write_raw(struct dev_context *devc, const void *buf, size_t siz
 {
 	int ret;
 
-	ret = ftdi_write_data(&devc->ftdic, buf, size);
+	ret = ftdi_write_data(&devc->ftdi.ctx, buf, size);
 	if (ret < 0) {
 		sr_err("USB data write failed: %s",
-			ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdi.ctx));
 	} else if ((size_t)ret != size) {
 		sr_err("USB data write length mismatch.");
 	}
@@ -459,7 +572,7 @@ static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 	if (ret != SR_OK)
 		return ret;
 	g_usleep(10 * 1000);
-	ftdi_usb_purge_buffers(&devc->ftdic);
+	ftdi_usb_purge_buffers(&devc->ftdi.ctx);
 
 	/*
 	 * Wait until the FPGA asserts INIT_B. Check in a maximum number
@@ -677,16 +790,16 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 	devc->state.state = SIGMA_CONFIG;
 
 	/* Set the cable to bitbang mode. */
-	ret = ftdi_set_bitmode(&devc->ftdic, BB_PINMASK, BITMODE_BITBANG);
+	ret = ftdi_set_bitmode(&devc->ftdi.ctx, BB_PINMASK, BITMODE_BITBANG);
 	if (ret < 0) {
 		sr_err("Could not setup cable mode for upload: %s",
-			ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdi.ctx));
 		return SR_ERR;
 	}
-	ret = ftdi_set_baudrate(&devc->ftdic, BB_BITRATE);
+	ret = ftdi_set_baudrate(&devc->ftdi.ctx, BB_BITRATE);
 	if (ret < 0) {
 		sr_err("Could not setup bitrate for upload: %s",
-			ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdi.ctx));
 		return SR_ERR;
 	}
 
@@ -714,13 +827,13 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 	}
 
 	/* Leave bitbang mode and discard pending input data. */
-	ret = ftdi_set_bitmode(&devc->ftdic, 0, BITMODE_RESET);
+	ret = ftdi_set_bitmode(&devc->ftdi.ctx, 0, BITMODE_RESET);
 	if (ret < 0) {
 		sr_err("Could not setup cable mode after upload: %s",
-			ftdi_get_error_string(&devc->ftdic));
+			ftdi_get_error_string(&devc->ftdi.ctx));
 		return SR_ERR;
 	}
-	ftdi_usb_purge_buffers(&devc->ftdic);
+	ftdi_usb_purge_buffers(&devc->ftdi.ctx);
 	while (sigma_read_raw(devc, &pins, sizeof(pins)) > 0)
 		;
 
