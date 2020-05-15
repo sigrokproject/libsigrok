@@ -427,18 +427,23 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	if (sigma_convert_trigger(sdi) != SR_OK) {
-		sr_err("Failed to configure triggers.");
-		return SR_ERR;
+	ret = sigma_convert_trigger(sdi);
+	if (ret != SR_OK) {
+		sr_err("Could not configure triggers.");
+		return ret;
 	}
 
 	/* Enter trigger programming mode. */
-	sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x20);
+	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x20);
+	if (ret != SR_OK)
+		return ret;
 
 	triggerselect = 0;
 	if (devc->samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
-		sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x81);
+		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x81);
+		if (ret != SR_OK)
+			return ret;
 
 		/* Find which pin to trigger on from mask. */
 		for (triggerpin = 0; triggerpin < 8; triggerpin++) {
@@ -457,9 +462,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	} else if (devc->samplerate <= SR_MHZ(50)) {
 		/* All other modes. */
-		sigma_build_basic_trigger(devc, &lut);
+		ret = sigma_build_basic_trigger(devc, &lut);
+		if (ret != SR_OK)
+			return ret;
 
-		sigma_write_trigger_lut(devc, &lut);
+		ret = sigma_write_trigger_lut(devc, &lut);
+		if (ret != SR_OK)
+			return ret;
 
 		triggerselect = TRGSEL2_LEDSEL1 | TRGSEL2_LEDSEL0;
 	}
@@ -487,10 +496,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		regval |= TRGOPT_TRGOEN;
 	write_u8_inc(&wrptr, regval);
 	count = wrptr - trgconf_bytes;
-	sigma_write_register(devc, WRITE_TRIGGER_OPTION, trgconf_bytes, count);
+	ret = sigma_write_register(devc, WRITE_TRIGGER_OPTION,
+		trgconf_bytes, count);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Leave trigger programming mode. */
-	sigma_set_register(devc, WRITE_TRIGGER_SELECT2, triggerselect);
+	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, triggerselect);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Set clock select register. */
 	clockselect.async = 0;
@@ -517,24 +531,34 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	write_u8_inc(&wrptr, clockselect.fraction - 1);
 	write_u16be_inc(&wrptr, clockselect.disabled_channels);
 	count = wrptr - clock_bytes;
-	sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, count);
+	ret = sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, count);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Setup maximum post trigger time. */
-	sigma_set_register(devc, WRITE_POST_TRIGGER,
+	ret = sigma_set_register(devc, WRITE_POST_TRIGGER,
 		(devc->capture_ratio * 255) / 100);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Start acqusition. */
 	regval = WMR_TRGRES | WMR_SDRAMWRITEEN;
 #if ASIX_SIGMA_WITH_TRIGGER
 	regval |= WMR_TRGEN;
 #endif
-	sigma_set_register(devc, WRITE_MODE, regval);
+	ret = sigma_set_register(devc, WRITE_MODE, regval);
+	if (ret != SR_OK)
+		return ret;
 
-	std_session_send_df_header(sdi);
+	ret = std_session_send_df_header(sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Add capture source. */
-	sr_session_source_add(sdi->session, -1, 0, 10,
+	ret = sr_session_source_add(sdi->session, -1, 0, 10,
 		sigma_receive_data, (void *)sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	devc->state.state = SIGMA_CAPTURE;
 
@@ -558,7 +582,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		devc->state.state = SIGMA_STOPPING;
 	} else {
 		devc->state.state = SIGMA_IDLE;
-		sr_session_source_remove(sdi->session, -1);
+		(void)sr_session_source_remove(sdi->session, -1);
 	}
 
 	return SR_OK;
