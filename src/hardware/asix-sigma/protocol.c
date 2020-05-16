@@ -433,59 +433,71 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	struct triggerlut *lut)
 {
 	int lut_addr;
-	uint8_t tmp[2];
 	uint16_t bit;
+	uint8_t m3d, m2d, m1d, m0d;
 	uint8_t buf[6], *wrptr, regval;
 	int ret;
 
-	/* Transpose the table and send to Sigma. */
+	/*
+	 * Translate the LUT part of the trigger configuration from the
+	 * application's perspective to the hardware register's bitfield
+	 * layout. Send the LUT to the device. This configures the logic
+	 * which combines pin levels or edges.
+	 */
 	for (lut_addr = 0; lut_addr < 16; lut_addr++) {
 		bit = 1 << lut_addr;
 
-		tmp[0] = tmp[1] = 0;
-
-		if (lut->m2d[0] & bit)
-			tmp[0] |= 0x01;
-		if (lut->m2d[1] & bit)
-			tmp[0] |= 0x02;
-		if (lut->m2d[2] & bit)
-			tmp[0] |= 0x04;
-		if (lut->m2d[3] & bit)
-			tmp[0] |= 0x08;
-
-		if (lut->m3 & bit)
-			tmp[0] |= 0x10;
-		if (lut->m3s & bit)
-			tmp[0] |= 0x20;
+		/* - M4 M3S M3Q */
+		m3d = 0;
 		if (lut->m4 & bit)
-			tmp[0] |= 0x40;
+			m3d |= 1 << 2;
+		if (lut->m3s & bit)
+			m3d |= 1 << 1;
+		if (lut->m3 & bit)
+			m3d |= 1 << 0;
 
-		if (lut->m0d[0] & bit)
-			tmp[1] |= 0x01;
-		if (lut->m0d[1] & bit)
-			tmp[1] |= 0x02;
-		if (lut->m0d[2] & bit)
-			tmp[1] |= 0x04;
-		if (lut->m0d[3] & bit)
-			tmp[1] |= 0x08;
+		/* M2D3 M2D2 M2D1 M2D0 */
+		m2d = 0;
+		if (lut->m2d[3] & bit)
+			m2d |= 1 << 3;
+		if (lut->m2d[2] & bit)
+			m2d |= 1 << 2;
+		if (lut->m2d[1] & bit)
+			m2d |= 1 << 1;
+		if (lut->m2d[0] & bit)
+			m2d |= 1 << 0;
 
-		if (lut->m1d[0] & bit)
-			tmp[1] |= 0x10;
-		if (lut->m1d[1] & bit)
-			tmp[1] |= 0x20;
-		if (lut->m1d[2] & bit)
-			tmp[1] |= 0x40;
+		/* M1D3 M1D2 M1D1 M1D0 */
+		m1d = 0;
 		if (lut->m1d[3] & bit)
-			tmp[1] |= 0x80;
+			m1d |= 1 << 3;
+		if (lut->m1d[2] & bit)
+			m1d |= 1 << 2;
+		if (lut->m1d[1] & bit)
+			m1d |= 1 << 1;
+		if (lut->m1d[0] & bit)
+			m1d |= 1 << 0;
+
+		/* M0D3 M0D2 M0D1 M0D0 */
+		m0d = 0;
+		if (lut->m0d[3] & bit)
+			m0d |= 1 << 3;
+		if (lut->m0d[2] & bit)
+			m0d |= 1 << 2;
+		if (lut->m0d[1] & bit)
+			m0d |= 1 << 1;
+		if (lut->m0d[0] & bit)
+			m0d |= 1 << 0;
 
 		/*
-		 * This logic seems redundant, but separates the value
-		 * determination from the wire format, and is useful
-		 * during future maintenance and research.
+		 * Send 16bits with M3D/M2D and M1D/M0D bit masks to the
+		 * TriggerSelect register, then strobe the LUT write by
+		 * passing A3-A0 to TriggerSelect2. Hold RESET during LUT
+		 * programming.
 		 */
 		wrptr = buf;
-		write_u8_inc(&wrptr, tmp[0]);
-		write_u8_inc(&wrptr, tmp[1]);
+		write_u8_inc(&wrptr, (m3d << 4) | (m2d << 0));
+		write_u8_inc(&wrptr, (m1d << 4) | (m0d << 0));
 		ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT,
 			buf, wrptr - buf);
 		if (ret != SR_OK)
@@ -497,7 +509,9 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 			return ret;
 	}
 
-	/* Send the parameters */
+	/*
+	 * Send the parameters. This covers counters and durations.
+	 */
 	wrptr = buf;
 	regval = 0;
 	regval |= (lut->params.selc & TRGSEL_SELC_MASK) << TRGSEL_SELC_SHIFT;
