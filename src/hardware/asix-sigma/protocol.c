@@ -1014,11 +1014,51 @@ SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate)
 	return SR_ERR_ARG;
 }
 
-SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi)
+/* Gets called at probe time. Can seed software settings from hardware state. */
+SR_PRIV int sigma_fetch_hw_config(const struct sr_dev_inst *sdi)
 {
-	/* TODO Retrieve value from hardware. */
+	struct dev_context *devc;
+	int ret;
+	uint8_t regaddr, regval;
+
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Seed configuration values from defaults. */
+	devc->firmware_idx = SIGMA_FW_NONE;
+	devc->clock.samplerate = samplerates[0];
+
+	/* TODO
+	 * Ideally the device driver could retrieve recently stored
+	 * details from hardware registers, thus re-use user specified
+	 * configuration values across sigrok sessions. Which could
+	 * avoid repeated expensive though unnecessary firmware uploads,
+	 * improve performance and usability. Unfortunately it appears
+	 * that the registers range which is documented as available for
+	 * application use keeps providing 0xff data content. At least
+	 * with the netlist version which ships with sigrok. The same
+	 * was observed with unused registers in the first page.
+	 */
+	return SR_ERR_NA;
+
+	/* This is for research, currently does not work yet. */
+	ret = sigma_check_open(sdi);
+	regaddr = 16;
+	regaddr = 14;
+	ret = sigma_set_register(devc, regaddr, 'F');
+	ret = sigma_get_register(devc, regaddr, &regval);
+	sr_warn("%s() reg[%u] val[%u] rc[%d]", __func__, regaddr, regval, ret);
+	ret = sigma_check_close(devc);
+	return ret;
+}
+
+/* Gets called after successful (volatile) hardware configuration. */
+SR_PRIV int sigma_store_hw_config(const struct sr_dev_inst *sdi)
+{
+	/* TODO See above, registers seem to not hold written data. */
 	(void)sdi;
-	return samplerates[0];
+	return SR_ERR_NA;
 }
 
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
@@ -1063,6 +1103,14 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 		devc->num_channels = num_channels;
 		devc->samples_per_event = 16 / devc->num_channels;
 	}
+
+	/*
+	 * Store the firmware type and most recently configured samplerate
+	 * in hardware, such that subsequent sessions can start from there.
+	 * This is a "best effort" approach. Failure is non-fatal.
+	 */
+	if (ret == SR_OK)
+		(void)sigma_store_hw_config(sdi);
 
 	return ret;
 }

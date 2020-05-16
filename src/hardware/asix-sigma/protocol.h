@@ -90,6 +90,12 @@ enum asix_device_type {
  * are available to applications and plugin features. Can libsigrok's
  * asix-sigma driver store configuration data there, to avoid expensive
  * operations (think: firmware re-load).
+ *
+ * Update: The documentation may be incorrect, or the FPGA netlist may
+ * be incomplete. Experiments show that registers beyond 0x0f can get
+ * accessed, USB communication passes, but data bytes are always 0xff.
+ * Are several firmware versions around, and the documentation does not
+ * match the one that ships with sigrok?
  */
 
 enum sigma_write_register {
@@ -103,6 +109,9 @@ enum sigma_write_register {
 	WRITE_PIN_VIEW		= 7,
 	/* Unassigned register locations. */
 	WRITE_TEST		= 15,
+	/* Reserved for plugin features. */
+	REG_PLUGIN_START	= 16,
+	REG_PLUGIN_STOP		= 256,
 };
 
 enum sigma_read_register {
@@ -122,6 +131,7 @@ enum sigma_read_register {
 	READ_PIN_VIEW		= 13,
 	/* Unassigned register location. */
 	READ_TEST		= 15,
+	/* Reserved for plugin features. See above. */
 };
 
 #define HI4(b)			(((b) >> 4) & 0x0f)
@@ -368,6 +378,10 @@ SR_PRIV int sigma_check_close(struct dev_context *devc);
 SR_PRIV int sigma_force_open(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_force_close(struct dev_context *devc);
 
+/* Save configuration across sessions, to reduce cost of continuation. */
+SR_PRIV int sigma_store_hw_config(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_fetch_hw_config(const struct sr_dev_inst *sdi);
+
 /* Send register content (simple and complex) to the hardware. */
 SR_PRIV int sigma_write_register(struct dev_context *devc,
 	uint8_t reg, uint8_t *data, size_t len);
@@ -378,7 +392,6 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 
 /* Samplerate constraints check, get/set/list helpers. */
 SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
-SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi);
 SR_PRIV GVariant *sigma_get_samplerates_list(void);
 
 /* Preparation of data acquisition, spec conversion, hardware configuration. */

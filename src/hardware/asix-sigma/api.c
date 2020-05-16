@@ -252,9 +252,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->capture_ratio = 50;
 		devc->use_triggers = 0;
 
-		/* TODO Retrieve some of this state from hardware? */
-		devc->firmware_idx = SIGMA_FW_NONE;
-		devc->clock.samplerate = sigma_get_samplerate(sdi);
+		/* Get current hardware configuration (or use defaults). */
+		(void)sigma_fetch_hw_config(sdi);
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
