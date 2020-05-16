@@ -1732,25 +1732,42 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 }
 
 /* Build a LUT entry used by the trigger functions. */
-static void build_lut_entry(uint16_t value, uint16_t mask, uint16_t *entry)
+static void build_lut_entry(uint16_t *lut_entry,
+	uint16_t spec_value, uint16_t spec_mask)
 {
-	int i, j, k, bit;
+	size_t quad, bitidx, ch;
+	uint16_t quadmask, bitmask;
+	gboolean spec_value_low, bit_idx_low;
 
-	/* For each quad channel. */
-	for (i = 0; i < 4; i++) {
-		entry[i] = 0xffff;
-
-		/* For each bit in LUT. */
-		for (j = 0; j < 16; j++) {
-
-			/* For each channel in quad. */
-			for (k = 0; k < 4; k++) {
-				bit = 1 << (i * 4 + k);
-
-				/* Set bit in entry */
-				if ((mask & bit) && ((!(value & bit)) !=
-							(!(j & (1 << k)))))
-					entry[i] &= ~(1 << j);
+	/*
+	 * For each quad-channel-group, for each bit in the LUT (each
+	 * bit pattern of the channel signals, aka LUT address), for
+	 * each channel in the quad, setup the bit in the LUT entry.
+	 *
+	 * Start from all-ones in the LUT (true, always matches), then
+	 * "pessimize the truthness" for specified conditions.
+	 */
+	for (quad = 0; quad < 4; quad++) {
+		lut_entry[quad] = ~0;
+		for (bitidx = 0; bitidx < 16; bitidx++) {
+			for (ch = 0; ch < 4; ch++) {
+				quadmask = 1 << ch;
+				bitmask = quadmask << (quad * 4);
+				if (!(spec_mask & bitmask))
+					continue;
+				/*
+				 * This bit is part of the spec. The
+				 * condition which gets checked here
+				 * (got checked in all implementations
+				 * so far) is uncertain. A bit position
+				 * in the current index' number(!) is
+				 * checked?
+				 */
+				spec_value_low = !(spec_value & bitmask);
+				bit_idx_low = !(bitidx & quadmask);
+				if (spec_value_low == bit_idx_low)
+					continue;
+				lut_entry[quad] &= ~(1 << bitidx);
 			}
 		}
 	}
@@ -1846,32 +1863,40 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut)
 {
-	int i, j;
 	uint16_t masks[2];
+	int bitidx, condidx;
+	uint16_t value, mask;
 
+	/* Start assuming simple triggers. */
 	memset(lut, 0, sizeof(*lut));
-	memset(&masks, 0, sizeof(masks));
-
-	/* Constant for simple triggers. */
 	lut->m4 = 0xa000;
+	lut->m3 = 0xffff;
 
-	/* Value/mask trigger support. */
-	build_lut_entry(devc->trigger.simplevalue, devc->trigger.simplemask,
-			lut->m2d);
+	/* Process value/mask triggers. */
+	value = devc->trigger.simplevalue;
+	mask = devc->trigger.simplemask;
+	build_lut_entry(lut->m2d, value, mask);
 
-	/* Rise/fall trigger support. */
-	for (i = 0, j = 0; i < 16; i++) {
-		if (devc->trigger.risingmask & (1 << i) ||
-		    devc->trigger.fallingmask & (1 << i))
-			masks[j++] = 1 << i;
+	/* Scan for and process rise/fall triggers. */
+	memset(&masks, 0, sizeof(masks));
+	condidx = 0;
+	for (bitidx = 0; bitidx < 16; bitidx++) {
+		mask = 1 << bitidx;
+		value = devc->trigger.risingmask | devc->trigger.fallingmask;
+		if (!(value & mask))
+			continue;
+		if (condidx == 0)
+			build_lut_entry(lut->m0d, mask, mask);
+		if (condidx == 1)
+			build_lut_entry(lut->m1d, mask, mask);
+		masks[condidx++] = mask;
+		if (condidx == ARRAY_SIZE(masks))
+			break;
 	}
 
-	build_lut_entry(masks[0], masks[0], lut->m0d);
-	build_lut_entry(masks[1], masks[1], lut->m1d);
-
-	/* Add glue logic */
+	/* Add glue logic for rise/fall triggers. */
 	if (masks[0] || masks[1]) {
-		/* Transition trigger. */
+		lut->m3 = 0;
 		if (masks[0] & devc->trigger.risingmask)
 			add_trigger_function(OP_RISE, FUNC_OR, 0, 0, &lut->m3);
 		if (masks[0] & devc->trigger.fallingmask)
@@ -1880,9 +1905,6 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 			add_trigger_function(OP_RISE, FUNC_OR, 1, 0, &lut->m3);
 		if (masks[1] & devc->trigger.fallingmask)
 			add_trigger_function(OP_FALL, FUNC_OR, 1, 0, &lut->m3);
-	} else {
-		/* Only value/mask trigger. */
-		lut->m3 = 0xffff;
 	}
 
 	/* Triggertype: event. */
