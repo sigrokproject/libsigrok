@@ -380,9 +380,10 @@ static int config_list(uint32_t key, GVariant **data,
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct clockselect_50 clockselect;
+	uint16_t pindis_mask;
+	uint8_t async, div;
 	int triggerpin, ret;
-	uint8_t triggerselect;
+	uint8_t trigsel2;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
 	uint8_t regval, trgconf_bytes[2], clock_bytes[4], *wrptr;
@@ -417,9 +418,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	triggerselect = 0;
+	trigsel2 = 0;
 	if (devc->samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
+		/* TODO Decipher the 0x81 magic number's purpose. */
 		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x81);
 		if (ret != SR_OK)
 			return ret;
@@ -433,23 +435,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 
 		/* Set trigger pin and light LED on trigger. */
-		triggerselect = TRGSEL2_LEDSEL1 | (triggerpin & 0x7);
+		trigsel2 = triggerpin & TRGSEL2_PINS_MASK;
+		trigsel2 |= TRGSEL2_LEDSEL1;
 
 		/* Default rising edge. */
+		/* TODO Documentation disagrees, bit set means _rising_ edge. */
 		if (devc->trigger.fallingmask)
-			triggerselect |= 1 << 3;
+			trigsel2 |= TRGSEL2_PINPOL_RISE;
 
 	} else if (devc->samplerate <= SR_MHZ(50)) {
-		/* All other modes. */
+		/* 50MHz firmware modes. */
+
+		/* Translate application specs to hardware perspective. */
 		ret = sigma_build_basic_trigger(devc, &lut);
 		if (ret != SR_OK)
 			return ret;
 
+		/* Communicate resulting register values to the device. */
 		ret = sigma_write_trigger_lut(devc, &lut);
 		if (ret != SR_OK)
 			return ret;
 
-		triggerselect = TRGSEL2_LEDSEL1 | TRGSEL2_LEDSEL0;
+		trigsel2 = TRGSEL2_LEDSEL1 | TRGSEL2_LEDSEL0;
 	}
 
 	/* Setup trigger in and out pins to default values. */
@@ -481,36 +488,42 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* Leave trigger programming mode. */
-	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, triggerselect);
+	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, trigsel2);
 	if (ret != SR_OK)
 		return ret;
 
-	/* Set clock select register. */
-	clockselect.async = 0;
-	clockselect.fraction = 1;		/* Divider 1. */
-	clockselect.disabled_channels = 0x0000;	/* All channels enabled. */
-	if (devc->samplerate == SR_MHZ(200)) {
-		/* Enable 4 channels. */
-		clockselect.disabled_channels = 0xfff0;
-	} else if (devc->samplerate == SR_MHZ(100)) {
-		/* Enable 8 channels. */
-		clockselect.disabled_channels = 0xff00;
+	/*
+	 * Samplerate dependent clock and channels configuration. Some
+	 * channels by design are not available at higher clock rates.
+	 * Register layout differs between firmware variants (depth 1
+	 * with LSB channel mask above 50MHz, depth 4 with more details
+	 * up to 50MHz).
+	 *
+	 * Derive a mask where bits are set for unavailable channels.
+	 * Either send the single byte, or the full byte sequence.
+	 */
+	pindis_mask = ~((1UL << devc->num_channels) - 1);
+	if (devc->samplerate > SR_MHZ(50)) {
+		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
+			pindis_mask & 0xff);
 	} else {
+		wrptr = clock_bytes;
+		/* Select 50MHz base clock, and divider. */
+		async = 0;
+		div = SR_MHZ(50) / devc->samplerate - 1;
 		/*
-		 * 50 MHz mode, or fraction thereof. The 50MHz reference
-		 * can get divided by any integer in the range 1 to 256.
-		 * Divider minus 1 gets written to the hardware.
-		 * (The driver lists a discrete set of sample rates, but
-		 * all of them fit the above description.)
+		 * TODO Optionally use external clock.
+		 * async[0] = 1 to enable external clock
+		 * div[5] = 1 to select falling edge
+		 * div[4] = 1 to select rising edge
+		 * div[3:0] = 1..16 to select clock pin
 		 */
-		clockselect.fraction = SR_MHZ(50) / devc->samplerate;
+		write_u8_inc(&wrptr, async);
+		write_u8_inc(&wrptr, div);
+		write_u16be_inc(&wrptr, pindis_mask);
+		ret = sigma_write_register(devc, WRITE_CLOCK_SELECT,
+			clock_bytes, wrptr - clock_bytes);
 	}
-	wrptr = clock_bytes;
-	write_u8_inc(&wrptr, clockselect.async);
-	write_u8_inc(&wrptr, clockselect.fraction - 1);
-	write_u16be_inc(&wrptr, clockselect.disabled_channels);
-	count = wrptr - clock_bytes;
-	ret = sigma_write_register(devc, WRITE_CLOCK_SELECT, clock_bytes, count);
 	if (ret != SR_OK)
 		return ret;
 

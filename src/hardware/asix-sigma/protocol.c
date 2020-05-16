@@ -458,10 +458,13 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 		wrptr = buf;
 		write_u8_inc(&wrptr, tmp[0]);
 		write_u8_inc(&wrptr, tmp[1]);
-		ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT, buf, wrptr - buf);
+		ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT,
+			buf, wrptr - buf);
 		if (ret != SR_OK)
 			return ret;
-		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x30 | i);
+		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2,
+			TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
+			(i & TRGSEL2_LUT_ADDR_MASK));
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -1799,7 +1802,7 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut)
 {
-	int i,j;
+	int i, j;
 	uint16_t masks[2];
 
 	memset(lut, 0, sizeof(*lut));

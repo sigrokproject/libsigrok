@@ -124,6 +124,11 @@ enum sigma_read_register {
 	READ_TEST		= 15,
 };
 
+#define TRGSEL2_PINS_MASK	(0x07 << 0)
+#define TRGSEL2_PINPOL_RISE	(1 << 3)
+#define TRGSEL2_LUT_ADDR_MASK	(0x0f << 0)
+#define TRGSEL2_LUT_WRITE	(1 << 4)
+#define TRGSEL2_RESET		(1 << 5)
 #define TRGSEL2_LEDSEL0		(1 << 6)
 #define TRGSEL2_LEDSEL1		(1 << 7)
 
@@ -209,12 +214,6 @@ struct sigma_dram_line {
 		uint16_t timestamp;
 		uint16_t samples[EVENTS_PER_CLUSTER];
 	} cluster[CLUSTERS_PER_ROW];
-};
-
-struct clockselect_50 {
-	uint8_t async;
-	uint64_t fraction;
-	uint16_t disabled_channels;
 };
 
 /* The effect of all these are still a bit unclear. */
