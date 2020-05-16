@@ -414,7 +414,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	/* Enter trigger programming mode. */
-	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x20);
+	trigsel2 = TRGSEL2_RESET;
+	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, trigsel2);
 	if (ret != SR_OK)
 		return ret;
 

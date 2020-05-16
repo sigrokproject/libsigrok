@@ -246,23 +246,35 @@ static int sigma_write_sr(struct dev_context *devc, const void *buf, size_t size
  * that's a programmer's error and needs adjustment in the complete call
  * stack of the respective code path.
  */
+#define SIGMA_MAX_REG_DEPTH	32
+
+/*
+ * Implementor's note: The FPGA command set supports register access
+ * with automatic address adjustment. This operation is documented to
+ * wrap within a 16-address range, it cannot cross boundaries where the
+ * register address' nibble overflows. An internal helper assumes that
+ * callers remain within this auto-adjustment range, and thus multi
+ * register access requests can never exceed that count.
+ */
+#define SIGMA_MAX_REG_COUNT	16
+
 SR_PRIV int sigma_write_register(struct dev_context *devc,
 	uint8_t reg, uint8_t *data, size_t len)
 {
-	uint8_t buf[80], *wrptr;
+	uint8_t buf[2 + SIGMA_MAX_REG_DEPTH * 2], *wrptr;
 	size_t idx;
 
-	if (2 + 2 * len > sizeof(buf)) {
+	if (len > SIGMA_MAX_REG_DEPTH) {
 		sr_err("Short write buffer for %zu bytes to reg %u.", len, reg);
 		return SR_ERR_BUG;
 	}
 
 	wrptr = buf;
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (reg & 0xf));
-	write_u8_inc(&wrptr, REG_ADDR_HIGH | (reg >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(reg));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(reg));
 	for (idx = 0; idx < len; idx++) {
-		write_u8_inc(&wrptr, REG_DATA_LOW | (data[idx] & 0xf));
-		write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | (data[idx] >> 4));
+		write_u8_inc(&wrptr, REG_DATA_LOW | LO4(data[idx]));
+		write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | HI4(data[idx]));
 	}
 
 	return sigma_write_sr(devc, buf, wrptr - buf);
@@ -281,8 +293,8 @@ static int sigma_read_register(struct dev_context *devc,
 	int ret;
 
 	wrptr = buf;
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (reg & 0xf));
-	write_u8_inc(&wrptr, REG_ADDR_HIGH | (reg >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(reg));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(reg));
 	write_u8_inc(&wrptr, REG_READ_ADDR);
 	ret = sigma_write_sr(devc, buf, wrptr - buf);
 	if (ret != SR_OK)
@@ -291,37 +303,51 @@ static int sigma_read_register(struct dev_context *devc,
 	return sigma_read_sr(devc, data, len);
 }
 
+static int sigma_get_register(struct dev_context *devc,
+	uint8_t reg, uint8_t *data)
+{
+	return sigma_read_register(devc, reg, data, sizeof(*data));
+}
+
+static int sigma_get_registers(struct dev_context *devc,
+	uint8_t reg, uint8_t *data, size_t count)
+{
+	uint8_t buf[2 + SIGMA_MAX_REG_COUNT], *wrptr;
+	size_t idx;
+	int ret;
+
+	if (count > SIGMA_MAX_REG_COUNT) {
+		sr_err("Short command buffer for %zu reg reads at %u.", count, reg);
+		return SR_ERR_BUG;
+	}
+
+	wrptr = buf;
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(reg));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(reg));
+	for (idx = 0; idx < count; idx++)
+		write_u8_inc(&wrptr, REG_READ_ADDR | REG_ADDR_INC);
+	ret = sigma_write_sr(devc, buf, wrptr - buf);
+	if (ret != SR_OK)
+		return ret;
+
+	return sigma_read_sr(devc, data, count);
+}
+
 static int sigma_read_pos(struct dev_context *devc,
 	uint32_t *stoppos, uint32_t *triggerpos, uint8_t *mode)
 {
-	/*
-	 * Read 7 registers starting at trigger position LSB.
-	 * Which yields two 24bit counter values, and mode flags.
-	 */
-	const uint8_t buf[] = {
-		/* Setup first register address. */
-		REG_ADDR_LOW | READ_TRIGGER_POS_LOW,
-		/* Retrieve trigger position. */
-		REG_READ_ADDR | REG_ADDR_INC,
-		REG_READ_ADDR | REG_ADDR_INC,
-		REG_READ_ADDR | REG_ADDR_INC,
-		/* Retrieve stop position. */
-		REG_READ_ADDR | REG_ADDR_INC,
-		REG_READ_ADDR | REG_ADDR_INC,
-		REG_READ_ADDR | REG_ADDR_INC,
-		/* Retrieve mode register. */
-		REG_READ_ADDR | REG_ADDR_INC,
-	}, *rdptr;
 	uint8_t result[7];
+	const uint8_t *rdptr;
 	uint32_t v32;
 	uint8_t v8;
 	int ret;
 
-	ret = sigma_write_sr(devc, buf, sizeof(buf));
-	if (ret != SR_OK)
-		return ret;
-
-	ret = sigma_read_sr(devc, result, sizeof(result));
+	/*
+	 * Read 7 registers starting at trigger position LSB.
+	 * Which yields two 24bit counter values, and mode flags.
+	 */
+	ret = sigma_get_registers(devc, READ_TRIGGER_POS_LOW,
+		result, sizeof(result));
 	if (ret != SR_OK)
 		return ret;
 
@@ -358,7 +384,7 @@ static int sigma_read_pos(struct dev_context *devc,
 static int sigma_read_dram(struct dev_context *devc,
 	uint16_t startchunk, size_t numchunks, uint8_t *data)
 {
-	uint8_t buf[128], *wrptr;
+	uint8_t buf[128], *wrptr, regval;
 	size_t chunk;
 	int sel, ret;
 	gboolean is_last;
@@ -370,8 +396,7 @@ static int sigma_read_dram(struct dev_context *devc,
 
 	/* Communicate DRAM start address (memory row, aka samples line). */
 	wrptr = buf;
-	write_u8_inc(&wrptr, startchunk >> 8);
-	write_u8_inc(&wrptr, startchunk & 0xff);
+	write_u16be_inc(&wrptr, startchunk);
 	ret = sigma_write_register(devc, WRITE_MEMROW, buf, wrptr - buf);
 	if (ret != SR_OK)
 		return ret;
@@ -387,9 +412,12 @@ static int sigma_read_dram(struct dev_context *devc,
 	for (chunk = 0; chunk < numchunks; chunk++) {
 		sel = chunk % 2;
 		is_last = chunk == numchunks - 1;
-		if (!is_last)
-			write_u8_inc(&wrptr, REG_DRAM_BLOCK | REG_DRAM_SEL_BOOL(!sel));
-		write_u8_inc(&wrptr, REG_DRAM_BLOCK_DATA | REG_DRAM_SEL_BOOL(sel));
+		if (!is_last) {
+			regval = REG_DRAM_BLOCK | REG_DRAM_SEL_BOOL(!sel);
+			write_u8_inc(&wrptr, regval);
+		}
+		regval = REG_DRAM_BLOCK_DATA | REG_DRAM_SEL_BOOL(sel);
+		write_u8_inc(&wrptr, regval);
 		if (!is_last)
 			write_u8_inc(&wrptr, REG_DRAM_WAIT_ACK);
 	}
@@ -404,15 +432,15 @@ static int sigma_read_dram(struct dev_context *devc,
 SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	struct triggerlut *lut)
 {
-	int i;
+	int lut_addr;
 	uint8_t tmp[2];
 	uint16_t bit;
 	uint8_t buf[6], *wrptr, regval;
 	int ret;
 
 	/* Transpose the table and send to Sigma. */
-	for (i = 0; i < 16; i++) {
-		bit = 1 << i;
+	for (lut_addr = 0; lut_addr < 16; lut_addr++) {
+		bit = 1 << lut_addr;
 
 		tmp[0] = tmp[1] = 0;
 
@@ -464,7 +492,7 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 			return ret;
 		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2,
 			TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
-			(i & TRGSEL2_LUT_ADDR_MASK));
+			(lut_addr & TRGSEL2_LUT_ADDR_MASK));
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -472,17 +500,17 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	/* Send the parameters */
 	wrptr = buf;
 	regval = 0;
-	regval |= lut->params.selc << 6;
-	regval |= lut->params.selpresc << 0;
+	regval |= (lut->params.selc & TRGSEL_SELC_MASK) << TRGSEL_SELC_SHIFT;
+	regval |= (lut->params.selpresc & TRGSEL_SELPRESC_MASK) << TRGSEL_SELPRESC_SHIFT;
 	write_u8_inc(&wrptr, regval);
 	regval = 0;
-	regval |= lut->params.selinc << 6;
-	regval |= lut->params.selres << 4;
-	regval |= lut->params.sela << 2;
-	regval |= lut->params.selb << 0;
+	regval |= (lut->params.selinc & TRGSEL_SELINC_MASK) << TRGSEL_SELINC_SHIFT;
+	regval |= (lut->params.selres & TRGSEL_SELRES_MASK) << TRGSEL_SELRES_SHIFT;
+	regval |= (lut->params.sela & TRGSEL_SELA_MASK) << TRGSEL_SELA_SHIFT;
+	regval |= (lut->params.selb & TRGSEL_SELB_MASK) << TRGSEL_SELB_SHIFT;
 	write_u8_inc(&wrptr, regval);
-	write_u16le_inc(&wrptr, lut->params.cmpb);
-	write_u16le_inc(&wrptr, lut->params.cmpa);
+	write_u16be_inc(&wrptr, lut->params.cmpb);
+	write_u16be_inc(&wrptr, lut->params.cmpa);
 	ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT, buf, wrptr - buf);
 	if (ret != SR_OK)
 		return ret;
@@ -632,7 +660,7 @@ static int sigma_fpga_init_bitbang(struct dev_context *devc)
  */
 static int sigma_fpga_init_la(struct dev_context *devc)
 {
-	uint8_t buf[16], *wrptr;
+	uint8_t buf[20], *wrptr;
 	uint8_t data_55, data_aa, mode;
 	uint8_t result[3];
 	const uint8_t *rdptr;
@@ -641,29 +669,32 @@ static int sigma_fpga_init_la(struct dev_context *devc)
 	wrptr = buf;
 
 	/* Read ID register. */
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (READ_ID & 0xf));
-	write_u8_inc(&wrptr, REG_ADDR_HIGH | (READ_ID >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(READ_ID));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(READ_ID));
 	write_u8_inc(&wrptr, REG_READ_ADDR);
 
 	/* Write 0x55 to scratch register, read back. */
 	data_55 = 0x55;
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (WRITE_TEST & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_LOW | (data_55 & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | (data_55 >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(WRITE_TEST));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(WRITE_TEST));
+	write_u8_inc(&wrptr, REG_DATA_LOW | LO4(data_55));
+	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | HI4(data_55));
 	write_u8_inc(&wrptr, REG_READ_ADDR);
 
 	/* Write 0xaa to scratch register, read back. */
 	data_aa = 0xaa;
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (WRITE_TEST & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_LOW | (data_aa & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | (data_aa >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(WRITE_TEST));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(WRITE_TEST));
+	write_u8_inc(&wrptr, REG_DATA_LOW | LO4(data_aa));
+	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | HI4(data_aa));
 	write_u8_inc(&wrptr, REG_READ_ADDR);
 
 	/* Initiate SDRAM initialization in mode register. */
 	mode = WMR_SDRAMINIT;
-	write_u8_inc(&wrptr, REG_ADDR_LOW | (WRITE_MODE & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_LOW | (mode & 0xf));
-	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | (mode >> 4));
+	write_u8_inc(&wrptr, REG_ADDR_LOW | LO4(WRITE_MODE));
+	write_u8_inc(&wrptr, REG_ADDR_HIGH | HI4(WRITE_MODE));
+	write_u8_inc(&wrptr, REG_DATA_LOW | LO4(mode));
+	write_u8_inc(&wrptr, REG_DATA_HIGH_WRITE | HI4(mode));
 
 	/*
 	 * Send the command sequence which contains 3 READ requests.
@@ -1544,8 +1575,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 	do {
-		ret = sigma_read_register(devc, READ_MODE,
-			&modestatus, sizeof(modestatus));
+		ret = sigma_get_register(devc, READ_MODE, &modestatus);
 		if (ret != SR_OK) {
 			sr_err("Could not poll for post-trigger state.");
 			return FALSE;
