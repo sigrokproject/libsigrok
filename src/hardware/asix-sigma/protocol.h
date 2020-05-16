@@ -129,10 +129,6 @@ enum sigma_read_register {
 
 #define BIT_MASK(l)	((1UL << (l)) - 1)
 
-#define TRGSEL_SELC_MASK	BIT_MASK(2)
-#define TRGSEL_SELC_SHIFT	0
-#define TRGSEL_SELPRESC_MASK	BIT_MASK(4)
-#define TRGSEL_SELPRESC_SHIFT	4
 #define TRGSEL_SELINC_MASK	BIT_MASK(2)
 #define TRGSEL_SELINC_SHIFT	0
 #define TRGSEL_SELRES_MASK	BIT_MASK(2)
@@ -141,6 +137,18 @@ enum sigma_read_register {
 #define TRGSEL_SELA_SHIFT	4
 #define TRGSEL_SELB_MASK	BIT_MASK(2)
 #define TRGSEL_SELB_SHIFT	6
+#define TRGSEL_SELC_MASK	BIT_MASK(2)
+#define TRGSEL_SELC_SHIFT	8
+#define TRGSEL_SELPRESC_MASK	BIT_MASK(4)
+#define TRGSEL_SELPRESC_SHIFT	12
+
+enum trgsel_selcode_t {
+	TRGSEL_SELCODE_LEVEL = 0,
+	TRGSEL_SELCODE_FALL = 1,
+	TRGSEL_SELCODE_RISE = 2,
+	TRGSEL_SELCODE_EVENT = 3,
+	TRGSEL_SELCODE_NEVER = 3,
+};
 
 #define TRGSEL2_PINS_MASK	(0x07 << 0)
 #define TRGSEL2_PINPOL_RISE	(1 << 3)
@@ -259,7 +267,7 @@ struct triggerinout {
 struct triggerlut {
 	/* The actual LUTs. */
 	uint16_t m0d[4], m1d[4], m2d[4];
-	uint16_t m3, m3s, m4;
+	uint16_t m3q, m3s, m4;
 
 	/* Parameters should be sent as a single register write. */
 	struct {

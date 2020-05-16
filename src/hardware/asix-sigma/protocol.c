@@ -435,7 +435,8 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	int lut_addr;
 	uint16_t bit;
 	uint8_t m3d, m2d, m1d, m0d;
-	uint8_t buf[6], *wrptr, regval;
+	uint8_t buf[6], *wrptr;
+	uint16_t selreg;
 	int ret;
 
 	/*
@@ -453,7 +454,7 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 			m3d |= 1 << 2;
 		if (lut->m3s & bit)
 			m3d |= 1 << 1;
-		if (lut->m3 & bit)
+		if (lut->m3q & bit)
 			m3d |= 1 << 0;
 
 		/* M2D3 M2D2 M2D1 M2D0 */
@@ -513,16 +514,14 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	 * Send the parameters. This covers counters and durations.
 	 */
 	wrptr = buf;
-	regval = 0;
-	regval |= (lut->params.selc & TRGSEL_SELC_MASK) << TRGSEL_SELC_SHIFT;
-	regval |= (lut->params.selpresc & TRGSEL_SELPRESC_MASK) << TRGSEL_SELPRESC_SHIFT;
-	write_u8_inc(&wrptr, regval);
-	regval = 0;
-	regval |= (lut->params.selinc & TRGSEL_SELINC_MASK) << TRGSEL_SELINC_SHIFT;
-	regval |= (lut->params.selres & TRGSEL_SELRES_MASK) << TRGSEL_SELRES_SHIFT;
-	regval |= (lut->params.sela & TRGSEL_SELA_MASK) << TRGSEL_SELA_SHIFT;
-	regval |= (lut->params.selb & TRGSEL_SELB_MASK) << TRGSEL_SELB_SHIFT;
-	write_u8_inc(&wrptr, regval);
+	selreg = 0;
+	selreg |= (lut->params.selinc & TRGSEL_SELINC_MASK) << TRGSEL_SELINC_SHIFT;
+	selreg |= (lut->params.selres & TRGSEL_SELRES_MASK) << TRGSEL_SELRES_SHIFT;
+	selreg |= (lut->params.sela & TRGSEL_SELA_MASK) << TRGSEL_SELA_SHIFT;
+	selreg |= (lut->params.selb & TRGSEL_SELB_MASK) << TRGSEL_SELB_SHIFT;
+	selreg |= (lut->params.selc & TRGSEL_SELC_MASK) << TRGSEL_SELC_SHIFT;
+	selreg |= (lut->params.selpresc & TRGSEL_SELPRESC_MASK) << TRGSEL_SELPRESC_SHIFT;
+	write_u16be_inc(&wrptr, selreg);
 	write_u16be_inc(&wrptr, lut->params.cmpb);
 	write_u16be_inc(&wrptr, lut->params.cmpa);
 	ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT, buf, wrptr - buf);
@@ -1870,7 +1869,7 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	/* Start assuming simple triggers. */
 	memset(lut, 0, sizeof(*lut));
 	lut->m4 = 0xa000;
-	lut->m3 = 0xffff;
+	lut->m3q = 0xffff;
 
 	/* Process value/mask triggers. */
 	value = devc->trigger.simplevalue;
@@ -1896,19 +1895,22 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 
 	/* Add glue logic for rise/fall triggers. */
 	if (masks[0] || masks[1]) {
-		lut->m3 = 0;
+		lut->m3q = 0;
 		if (masks[0] & devc->trigger.risingmask)
-			add_trigger_function(OP_RISE, FUNC_OR, 0, 0, &lut->m3);
+			add_trigger_function(OP_RISE, FUNC_OR, 0, 0, &lut->m3q);
 		if (masks[0] & devc->trigger.fallingmask)
-			add_trigger_function(OP_FALL, FUNC_OR, 0, 0, &lut->m3);
+			add_trigger_function(OP_FALL, FUNC_OR, 0, 0, &lut->m3q);
 		if (masks[1] & devc->trigger.risingmask)
-			add_trigger_function(OP_RISE, FUNC_OR, 1, 0, &lut->m3);
+			add_trigger_function(OP_RISE, FUNC_OR, 1, 0, &lut->m3q);
 		if (masks[1] & devc->trigger.fallingmask)
-			add_trigger_function(OP_FALL, FUNC_OR, 1, 0, &lut->m3);
+			add_trigger_function(OP_FALL, FUNC_OR, 1, 0, &lut->m3q);
 	}
 
 	/* Triggertype: event. */
-	lut->params.selres = 3;
+	lut->params.selres = TRGSEL_SELCODE_NEVER;
+	lut->params.selinc = TRGSEL_SELCODE_LEVEL;
+	lut->params.sela = 0; /* Counter >= CMPA && LEVEL */
+	lut->params.cmpa = 0; /* Count 0 -> 1 already triggers. */
 
 	return SR_OK;
 }
