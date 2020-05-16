@@ -46,10 +46,19 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_EXTERNAL_CLOCK_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 #if ASIX_SIGMA_WITH_TRIGGER
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 #endif
+};
+
+static const char *ext_clock_edges[] = {
+	[SIGMA_CLOCK_EDGE_RISING] = "rising",
+	[SIGMA_CLOCK_EDGE_FALLING] = "falling",
+	[SIGMA_CLOCK_EDGE_EITHER] = "either",
 };
 
 #if ASIX_SIGMA_WITH_TRIGGER
@@ -245,7 +254,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* TODO Retrieve some of this state from hardware? */
 		devc->firmware_idx = SIGMA_FW_NONE;
-		devc->samplerate = sigma_get_samplerate(sdi);
+		devc->clock.samplerate = sigma_get_samplerate(sdi);
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
@@ -280,6 +289,7 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	const char *clock_text;
 
 	(void)cg;
 
@@ -292,7 +302,18 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(sdi->connection_id);
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(devc->samplerate);
+		*data = g_variant_new_uint64(devc->clock.samplerate);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		*data = g_variant_new_boolean(devc->clock.use_ext_clock);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		clock_text = channel_names[devc->clock.clock_pin];
+		*data = g_variant_new_string(clock_text);
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		clock_text = ext_clock_edges[devc->clock.clock_edge];
+		*data = g_variant_new_string(clock_text);
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
@@ -315,6 +336,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	int ret;
 	uint64_t want_rate, have_rate;
+	int idx;
 
 	(void)cg;
 
@@ -335,7 +357,22 @@ static int config_set(uint32_t key, GVariant *data,
 			g_free(text_want);
 			g_free(text_have);
 		}
-		devc->samplerate = have_rate;
+		devc->clock.samplerate = have_rate;
+		break;
+	case SR_CONF_EXTERNAL_CLOCK:
+		devc->clock.use_ext_clock = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		idx = std_str_idx(data, ARRAY_AND_SIZE(channel_names));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->clock.clock_pin = idx;
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		idx = std_str_idx(data, ARRAY_AND_SIZE(ext_clock_edges));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->clock.clock_edge = idx;
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
@@ -364,6 +401,12 @@ static int config_list(uint32_t key, GVariant **data,
 			scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = sigma_get_samplerates_list();
+		break;
+	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_names));
+		break;
+	case SR_CONF_CLOCK_EDGE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_edges));
 		break;
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
@@ -399,7 +442,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 *
 	 * Determine an acquisition timeout from optionally configured
 	 * sample count or time limits. Which depends on the samplerate.
+	 * Force 50MHz samplerate when external clock is in use.
 	 */
+	if (devc->clock.use_ext_clock) {
+		if (devc->clock.samplerate != SR_MHZ(50))
+			sr_info("External clock, forcing 50MHz samplerate.");
+		devc->clock.samplerate = SR_MHZ(50);
+	}
 	ret = sigma_set_samplerate(sdi);
 	if (ret != SR_OK)
 		return ret;
@@ -420,7 +469,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	trigsel2 = 0;
-	if (devc->samplerate >= SR_MHZ(100)) {
+	if (devc->clock.samplerate >= SR_MHZ(100)) {
 		/* 100 and 200 MHz mode. */
 		/* TODO Decipher the 0x81 magic number's purpose. */
 		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, 0x81);
@@ -444,7 +493,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		if (devc->trigger.fallingmask)
 			trigsel2 |= TRGSEL2_PINPOL_RISE;
 
-	} else if (devc->samplerate <= SR_MHZ(50)) {
+	} else if (devc->clock.samplerate <= SR_MHZ(50)) {
 		/* 50MHz firmware modes. */
 
 		/* Translate application specs to hardware perspective. */
@@ -504,21 +553,30 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Either send the single byte, or the full byte sequence.
 	 */
 	pindis_mask = ~((1UL << devc->num_channels) - 1);
-	if (devc->samplerate > SR_MHZ(50)) {
+	if (devc->clock.samplerate > SR_MHZ(50)) {
 		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
 			pindis_mask & 0xff);
 	} else {
 		wrptr = clock_bytes;
 		/* Select 50MHz base clock, and divider. */
 		async = 0;
-		div = SR_MHZ(50) / devc->samplerate - 1;
-		/*
-		 * TODO Optionally use external clock.
-		 * async[0] = 1 to enable external clock
-		 * div[5] = 1 to select falling edge
-		 * div[4] = 1 to select rising edge
-		 * div[3:0] = 1..16 to select clock pin
-		 */
+		div = SR_MHZ(50) / devc->clock.samplerate - 1;
+		if (devc->clock.use_ext_clock) {
+			async = CLKSEL_CLKSEL8;
+			div = devc->clock.clock_pin + 1;
+			switch (devc->clock.clock_edge) {
+			case SIGMA_CLOCK_EDGE_RISING:
+				div |= CLKSEL_RISING;
+				break;
+			case SIGMA_CLOCK_EDGE_FALLING:
+				div |= CLKSEL_FALLING;
+				break;
+			case SIGMA_CLOCK_EDGE_EITHER:
+				div |= CLKSEL_RISING;
+				div |= CLKSEL_FALLING;
+				break;
+			}
+		}
 		write_u8_inc(&wrptr, async);
 		write_u8_inc(&wrptr, div);
 		write_u16be_inc(&wrptr, pindis_mask);

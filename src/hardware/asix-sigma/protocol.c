@@ -943,7 +943,7 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	g_variant_unref(data);
 	count_msecs = 0;
 	if (user_count)
-		count_msecs = 1000 * user_count / devc->samplerate + 1;
+		count_msecs = 1000 * user_count / devc->clock.samplerate + 1;
 
 	/* Get time limit, which is in msecs. */
 	ret = sr_sw_limits_config_get(&devc->cfg_limits,
@@ -963,7 +963,7 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 		return SR_OK;
 
 	/* Add some slack, and use that timeout for acquisition. */
-	worst_cluster_time_ms = 1000 * 65536 / devc->samplerate;
+	worst_cluster_time_ms = 1000 * 65536 / devc->clock.samplerate;
 	acquire_msecs += 2 * worst_cluster_time_ms;
 	data = g_variant_new_uint64(acquire_msecs);
 	ret = sr_sw_limits_config_set(&devc->acq_limits,
@@ -1033,7 +1033,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	drvc = sdi->driver->context;
 
 	/* Accept any caller specified rate which the hardware supports. */
-	ret = sigma_normalize_samplerate(devc->samplerate, &samplerate);
+	ret = sigma_normalize_samplerate(devc->clock.samplerate, &samplerate);
 	if (ret != SR_OK)
 		return ret;
 
@@ -1257,7 +1257,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 			if (!match->channel->enabled)
 				continue;
 			channelbit = 1 << match->channel->index;
-			if (devc->samplerate >= SR_MHZ(100)) {
+			if (devc->clock.samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
 				if (trigger_set) {
 					sr_err("100/200MHz modes limited to single trigger pin.");
@@ -1481,7 +1481,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	sample = 0;
 	for (i = 0; i < events_in_cluster; i++) {
 		item16 = sigma_dram_cluster_data(dram_cluster, i);
-		if (devc->samplerate == SR_MHZ(200)) {
+		if (devc->clock.samplerate == SR_MHZ(200)) {
 			sample = sigma_deinterlace_200mhz_data(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 1);
@@ -1490,7 +1490,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_200mhz_data(item16, 3);
 			check_and_submit_sample(devc, sample, 1, triggered);
-		} else if (devc->samplerate == SR_MHZ(100)) {
+		} else if (devc->clock.samplerate == SR_MHZ(100)) {
 			sample = sigma_deinterlace_100mhz_data(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
 			sample = sigma_deinterlace_100mhz_data(item16, 1);
@@ -1529,7 +1529,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 
 	/* Check if trigger is in this chunk. */
 	if (trigger_event < EVENTS_PER_ROW) {
-		if (devc->samplerate <= SR_MHZ(50)) {
+		if (devc->clock.samplerate <= SR_MHZ(50)) {
 			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
 					     trigger_event);
 		}

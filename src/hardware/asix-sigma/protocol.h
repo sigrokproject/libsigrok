@@ -129,6 +129,11 @@ enum sigma_read_register {
 
 #define BIT_MASK(l)	((1UL << (l)) - 1)
 
+#define CLKSEL_CLKSEL8		(1 << 0)
+#define CLKSEL_PINMASK		BIT_MASK(4)
+#define CLKSEL_RISING		(1 << 4)
+#define CLKSEL_FALLING		(1 << 5)
+
 #define TRGSEL_SELINC_MASK	BIT_MASK(2)
 #define TRGSEL_SELINC_SHIFT	0
 #define TRGSEL_SELRES_MASK	BIT_MASK(2)
@@ -341,6 +346,12 @@ enum sigma_firmware_idx {
 	SIGMA_FW_FREQ,
 };
 
+enum ext_clock_edge_t {
+	SIGMA_CLOCK_EDGE_RISING,
+	SIGMA_CLOCK_EDGE_FALLING,
+	SIGMA_CLOCK_EDGE_EITHER,
+};
+
 struct submit_buffer;
 
 struct dev_context {
@@ -354,7 +365,12 @@ struct dev_context {
 		struct ftdi_context ctx;
 		gboolean is_open, must_close;
 	} ftdi;
-	uint64_t samplerate;
+	struct {
+		uint64_t samplerate;
+		gboolean use_ext_clock;
+		size_t clock_pin;
+		enum ext_clock_edge_t clock_edge;
+	} clock;
 	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
 	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
 	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
