@@ -248,7 +248,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.serno = serno_num;
 		devc->id.prefix = serno_pre;
 		devc->id.type = dev_type;
-		sr_sw_limits_init(&devc->cfg_limits);
+		sr_sw_limits_init(&devc->limit.config);
 		devc->capture_ratio = 50;
 		devc->use_triggers = FALSE;
 
@@ -316,7 +316,7 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
-		return sr_sw_limits_config_get(&devc->cfg_limits, key, data);
+		return sr_sw_limits_config_get(&devc->limit.config, key, data);
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
@@ -375,7 +375,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
-		return sr_sw_limits_config_set(&devc->cfg_limits, key, data);
+		return sr_sw_limits_config_set(&devc->limit.config, key, data);
 #if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);

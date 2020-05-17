@@ -359,9 +359,16 @@ struct dev_context {
 		size_t clock_pin;
 		enum ext_clock_edge_t clock_edge;
 	} clock;
-	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
-	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
-	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
+	struct {
+		/*
+		 * User specified configuration values, in contrast to
+		 * internal arrangement of acquisition, and submission
+		 * to the session feed.
+		 */
+		struct sr_sw_limits config;
+		struct sr_sw_limits acquire;
+		struct sr_sw_limits submit;
+	} limit;
 	enum sigma_firmware_idx firmware_idx;
 	size_t num_channels;
 	size_t samples_per_event;

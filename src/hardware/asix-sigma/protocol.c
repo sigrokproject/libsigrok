@@ -933,10 +933,10 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	uint64_t worst_cluster_time_ms;
 	uint64_t count_msecs, acquire_msecs;
 
-	sr_sw_limits_init(&devc->acq_limits);
+	sr_sw_limits_init(&devc->limit.acquire);
 
 	/* Get sample count limit, convert to msecs. */
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_SAMPLES, &data);
 	if (ret != SR_OK)
 		return ret;
@@ -947,7 +947,7 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 		count_msecs = 1000 * user_count / devc->clock.samplerate + 1;
 
 	/* Get time limit, which is in msecs. */
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_MSEC, &data);
 	if (ret != SR_OK)
 		return ret;
@@ -967,13 +967,13 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	worst_cluster_time_ms = 1000 * 65536 / devc->clock.samplerate;
 	acquire_msecs += 2 * worst_cluster_time_ms;
 	data = g_variant_new_uint64(acquire_msecs);
-	ret = sr_sw_limits_config_set(&devc->acq_limits,
+	ret = sr_sw_limits_config_set(&devc->limit.acquire,
 		SR_CONF_LIMIT_MSEC, data);
 	g_variant_unref(data);
 	if (ret != SR_OK)
 		return ret;
 
-	sr_sw_limits_acquisition_start(&devc->acq_limits);
+	sr_sw_limits_acquisition_start(&devc->limit.acquire);
 	return SR_OK;
 }
 
@@ -1157,7 +1157,7 @@ static int alloc_submit_buffer(struct sr_dev_inst *sdi)
 	if (!buffer->sample_data)
 		return SR_ERR_MALLOC;
 	buffer->write_pointer = buffer->sample_data;
-	sr_sw_limits_init(&devc->feed_limits);
+	sr_sw_limits_init(&devc->limit.submit);
 
 	buffer->sdi = sdi;
 	memset(&buffer->logic, 0, sizeof(buffer->logic));
@@ -1177,9 +1177,9 @@ static int setup_submit_limit(struct dev_context *devc)
 	GVariant *data;
 	uint64_t total;
 
-	limits = &devc->feed_limits;
+	limits = &devc->limit.submit;
 
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_SAMPLES, &data);
 	if (ret != SR_OK)
 		return ret;
@@ -1249,7 +1249,7 @@ static int addto_submit_buffer(struct dev_context *devc,
 	int ret;
 
 	buffer = devc->buffer;
-	limits = &devc->feed_limits;
+	limits = &devc->limit.submit;
 	if (sr_sw_limits_check(limits))
 		count = 0;
 
@@ -1759,7 +1759,7 @@ static int sigma_capture_mode(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 
 	devc = sdi->priv;
-	if (sr_sw_limits_check(&devc->acq_limits))
+	if (sr_sw_limits_check(&devc->limit.acquire))
 		return download_capture(sdi);
 
 	return TRUE;
