@@ -1839,12 +1839,17 @@ static void build_lut_entry(uint16_t *lut_entry,
 static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 	size_t index, gboolean neg, uint16_t *mask)
 {
-	size_t i, j;
-	int x[2][2], tmp, a, b, aset, bset, rset;
+	int x[2][2], a, b, aset, bset, rset;
+	size_t bitidx;
 
+	/*
+	 * Beware! The x, a, b, aset, bset, rset variables strictly
+	 * require the limited 0..1 range. They are not interpreted
+	 * as logically true, instead bit arith is done on them.
+	 */
+
+	/* Construct a pattern which detects the condition. */
 	memset(x, 0, sizeof(x));
-
-	/* Trigger detect condition. */
 	switch (oper) {
 	case OP_LEVEL:
 		x[0][1] = 1;
@@ -1880,8 +1885,11 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		break;
 	}
 
-	/* Transpose if neg is set. */
+	/* Transpose the pattern if the condition is negated. */
 	if (neg) {
+		size_t i, j;
+		int tmp;
+
 		for (i = 0; i < 2; i++) {
 			for (j = 0; j < 2; j++) {
 				tmp = x[i][j];
@@ -1891,29 +1899,30 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		}
 	}
 
-	/* Update mask with function. */
-	for (i = 0; i < 16; i++) {
-		a = (i >> (2 * index + 0)) & 1;
-		b = (i >> (2 * index + 1)) & 1;
+	/* Update the LUT mask with the function's condition. */
+	for (bitidx = 0; bitidx < 16; bitidx++) {
+		a = (bitidx & BIT(2 * index + 0)) ? 1 : 0;
+		b = (bitidx & BIT(2 * index + 1)) ? 1 : 0;
 
-		aset = (*mask >> i) & 1;
+		aset = (*mask & BIT(bitidx)) ? 1 : 0;
 		bset = x[b][a];
 
-		rset = 0;
 		if (func == FUNC_AND || func == FUNC_NAND)
 			rset = aset & bset;
 		else if (func == FUNC_OR || func == FUNC_NOR)
 			rset = aset | bset;
 		else if (func == FUNC_XOR || func == FUNC_NXOR)
 			rset = aset ^ bset;
+		else
+			rset = 0;
 
 		if (func == FUNC_NAND || func == FUNC_NOR || func == FUNC_NXOR)
-			rset = !rset;
-
-		*mask &= ~BIT(i);
+			rset = 1 - rset;
 
 		if (rset)
-			*mask |= BIT(i);
+			*mask |= BIT(bitidx);
+		else
+			*mask &= ~BIT(bitidx);
 	}
 }
 
