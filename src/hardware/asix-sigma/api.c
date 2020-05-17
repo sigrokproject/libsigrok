@@ -250,7 +250,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.type = dev_type;
 		sr_sw_limits_init(&devc->cfg_limits);
 		devc->capture_ratio = 50;
-		devc->use_triggers = 0;
+		devc->use_triggers = FALSE;
 
 		/* Get current hardware configuration (or use defaults). */
 		(void)sigma_fetch_hw_config(sdi);
@@ -424,12 +424,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	uint16_t pindis_mask;
 	uint8_t async, div;
-	int triggerpin, ret;
+	int ret;
+	size_t triggerpin;
 	uint8_t trigsel2;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-	uint8_t regval, trgconf_bytes[2], clock_bytes[4], *wrptr;
-	size_t count;
+	uint8_t regval, cmd_bytes[4], *wrptr;
 
 	devc = sdi->priv;
 
@@ -510,8 +510,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Setup trigger in and out pins to default values. */
 	memset(&triggerinout_conf, 0, sizeof(triggerinout_conf));
-	triggerinout_conf.trgout_bytrigger = 1;
-	triggerinout_conf.trgout_enable = 1;
+	triggerinout_conf.trgout_bytrigger = TRUE;
+	triggerinout_conf.trgout_enable = TRUE;
 	/* TODO
 	 * Verify the correctness of this implementation. The previous
 	 * version used to assign to a C language struct with bit fields
@@ -521,7 +521,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Which means that I could not verify "on paper" either. Let's
 	 * re-visit this code later during research for trigger support.
 	 */
-	wrptr = trgconf_bytes;
+	wrptr = cmd_bytes;
 	regval = 0;
 	if (triggerinout_conf.trgout_bytrigger)
 		regval |= TRGOPT_TRGOOUTEN;
@@ -530,9 +530,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (triggerinout_conf.trgout_enable)
 		regval |= TRGOPT_TRGOEN;
 	write_u8_inc(&wrptr, regval);
-	count = wrptr - trgconf_bytes;
 	ret = sigma_write_register(devc, WRITE_TRIGGER_OPTION,
-		trgconf_bytes, count);
+		cmd_bytes, wrptr - cmd_bytes);
 	if (ret != SR_OK)
 		return ret;
 
@@ -556,7 +555,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
 			pindis_mask & 0xff);
 	} else {
-		wrptr = clock_bytes;
+		wrptr = cmd_bytes;
 		/* Select 50MHz base clock, and divider. */
 		async = 0;
 		div = SR_MHZ(50) / devc->clock.samplerate - 1;
@@ -580,7 +579,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		write_u8_inc(&wrptr, div);
 		write_u16be_inc(&wrptr, pindis_mask);
 		ret = sigma_write_register(devc, WRITE_CLOCK_SELECT,
-			clock_bytes, wrptr - clock_bytes);
+			cmd_bytes, wrptr - cmd_bytes);
 	}
 	if (ret != SR_OK)
 		return ret;

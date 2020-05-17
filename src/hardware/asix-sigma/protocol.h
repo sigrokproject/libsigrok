@@ -363,11 +363,11 @@ struct dev_context {
 	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
 	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
 	enum sigma_firmware_idx firmware_idx;
-	int num_channels;
-	int samples_per_event;
+	size_t num_channels;
+	size_t samples_per_event;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
-	int use_triggers;
+	gboolean use_triggers;
 	struct sigma_state state;
 	struct submit_buffer *buffer;
 };

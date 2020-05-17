@@ -382,7 +382,7 @@ static int sigma_read_pos(struct dev_context *devc,
 }
 
 static int sigma_read_dram(struct dev_context *devc,
-	uint16_t startchunk, size_t numchunks, uint8_t *data)
+	size_t startchunk, size_t numchunks, uint8_t *data)
 {
 	uint8_t buf[128], *wrptr, regval;
 	size_t chunk;
@@ -432,10 +432,10 @@ static int sigma_read_dram(struct dev_context *devc,
 SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	struct triggerlut *lut)
 {
-	int lut_addr;
+	size_t lut_addr;
 	uint16_t bit;
 	uint8_t m3d, m2d, m1d, m0d;
-	uint8_t buf[6], *wrptr;
+	uint8_t buf[6], *wrptr, v8;
 	uint16_t selreg;
 	int ret;
 
@@ -503,9 +503,9 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 			buf, wrptr - buf);
 		if (ret != SR_OK)
 			return ret;
-		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2,
-			TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
-			(lut_addr & TRGSEL2_LUT_ADDR_MASK));
+		v8 = TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
+			(lut_addr & TRGSEL2_LUT_ADDR_MASK);
+		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, v8);
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -601,7 +601,8 @@ static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 		BB_PIN_CCLK,
 		BB_PIN_CCLK,
 	};
-	int retries, ret;
+	size_t retries;
+	int ret;
 	uint8_t data;
 
 	/* Section 2. part 1), do the FPGA suicide. */
@@ -746,7 +747,7 @@ static int sigma_fpga_init_la(struct dev_context *devc)
  * by the caller of this function.
  */
 static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
-	uint8_t **bb_cmd, gsize *bb_cmd_size)
+	uint8_t **bb_cmd, size_t *bb_cmd_size)
 {
 	uint8_t *firmware;
 	size_t file_size;
@@ -1067,7 +1068,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	uint64_t samplerate;
 	int ret;
-	int num_channels;
+	size_t num_channels;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
@@ -1288,7 +1289,8 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	const GSList *l, *m;
-	int channelbit, trigger_set;
+	uint16_t channelbit;
+	size_t trigger_set;
 
 	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(devc->trigger));
@@ -1358,7 +1360,7 @@ static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
 	struct sigma_trigger *t)
 {
 	const uint8_t *rdptr;
-	int i;
+	size_t i;
 	uint16_t sample;
 
 	rdptr = samples;
@@ -1493,7 +1495,8 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 {
 	struct sigma_state *ss;
 	uint16_t tsdiff, ts, sample, item16;
-	unsigned int i;
+	size_t count;
+	size_t evt;
 
 	if (!devc->use_triggers || !ASIX_SIGMA_WITH_TRIGGER)
 		triggered = FALSE;
@@ -1512,7 +1515,6 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	ts = sigma_dram_cluster_ts(dram_cluster);
 	tsdiff = ts - ss->lastts;
 	if (tsdiff > 0) {
-		size_t count;
 		sample = ss->lastsample;
 		count = tsdiff * devc->samples_per_event;
 		(void)check_and_submit_sample(devc, sample, count, FALSE);
@@ -1527,8 +1529,8 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	 * buffer depth is neither assumed nor required here.
 	 */
 	sample = 0;
-	for (i = 0; i < events_in_cluster; i++) {
-		item16 = sigma_dram_cluster_data(dram_cluster, i);
+	for (evt = 0; evt < events_in_cluster; evt++) {
+		item16 = sigma_dram_cluster_data(dram_cluster, evt);
 		if (devc->clock.samplerate == SR_MHZ(200)) {
 			sample = sigma_deinterlace_200mhz_data(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
@@ -1565,17 +1567,17 @@ static int decode_chunk_ts(struct dev_context *devc,
 	size_t events_in_line, size_t trigger_event)
 {
 	struct sigma_dram_cluster *dram_cluster;
-	unsigned int clusters_in_line;
-	unsigned int events_in_cluster;
-	unsigned int i;
-	uint32_t trigger_cluster;
+	size_t clusters_in_line;
+	size_t events_in_cluster;
+	size_t cluster;
+	size_t trigger_cluster;
 
 	clusters_in_line = events_in_line;
 	clusters_in_line += EVENTS_PER_CLUSTER - 1;
 	clusters_in_line /= EVENTS_PER_CLUSTER;
-	trigger_cluster = ~0;
 
 	/* Check if trigger is in this chunk. */
+	trigger_cluster = ~0UL;
 	if (trigger_event < EVENTS_PER_ROW) {
 		if (devc->clock.samplerate <= SR_MHZ(50)) {
 			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
@@ -1587,11 +1589,11 @@ static int decode_chunk_ts(struct dev_context *devc,
 	}
 
 	/* For each full DRAM cluster. */
-	for (i = 0; i < clusters_in_line; i++) {
-		dram_cluster = &dram_line->cluster[i];
+	for (cluster = 0; cluster < clusters_in_line; cluster++) {
+		dram_cluster = &dram_line->cluster[cluster];
 
 		/* The last cluster might not be full. */
-		if ((i == clusters_in_line - 1) &&
+		if ((cluster == clusters_in_line - 1) &&
 		    (events_in_line % EVENTS_PER_CLUSTER)) {
 			events_in_cluster = events_in_line % EVENTS_PER_CLUSTER;
 		} else {
@@ -1599,7 +1601,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 		}
 
 		sigma_decode_dram_cluster(devc, dram_cluster,
-			events_in_cluster, i == trigger_cluster);
+			events_in_cluster, cluster == trigger_cluster);
 	}
 
 	return SR_OK;
@@ -1613,11 +1615,11 @@ static int download_capture(struct sr_dev_inst *sdi)
 	struct sigma_dram_line *dram_line;
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
-	uint32_t i;
-	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
-	uint32_t dl_first_line, dl_line;
-	uint32_t dl_events_in_line, trigger_event;
-	uint32_t trg_line, trg_event;
+	size_t line_idx;
+	size_t dl_lines_total, dl_lines_curr, dl_lines_done;
+	size_t dl_first_line, dl_line;
+	size_t dl_events_in_line, trigger_event;
+	size_t trg_line, trg_event;
 	int ret;
 
 	devc = sdi->priv;
@@ -1654,8 +1656,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 		sr_err("Could not query capture positions/state.");
 		return FALSE;
 	}
-	trg_line = ~0;
-	trg_event = ~0;
+	trg_line = ~0UL;
+	trg_event = ~0UL;
 	if (modestatus & RMR_TRIGGERED) {
 		trg_line = triggerpos >> ROW_SHIFT;
 		trg_event = triggerpos & ROW_MASK;
@@ -1705,18 +1707,18 @@ static int download_capture(struct sr_dev_inst *sdi)
 			devc->state.lastsample = 0;
 		}
 
-		for (i = 0; i < dl_lines_curr; i++) {
+		for (line_idx = 0; line_idx < dl_lines_curr; line_idx++) {
 			/* The last "DRAM line" need not span its full length. */
 			dl_events_in_line = EVENTS_PER_ROW;
-			if (dl_lines_done + i == dl_lines_total - 1)
+			if (dl_lines_done + line_idx == dl_lines_total - 1)
 				dl_events_in_line = stoppos & ROW_MASK;
 
 			/* Test if the trigger happened on this line. */
-			trigger_event = ~0;
-			if (dl_lines_done + i == trg_line)
+			trigger_event = ~0UL;
+			if (dl_lines_done + line_idx == trg_line)
 				trigger_event = trg_event;
 
-			decode_chunk_ts(devc, dram_line + i,
+			decode_chunk_ts(devc, dram_line + line_idx,
 				dl_events_in_line, trigger_event);
 		}
 
@@ -1822,9 +1824,9 @@ static void build_lut_entry(uint16_t *lut_entry,
 
 /* Add a logical function to LUT mask. */
 static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
-	int index, int neg, uint16_t *mask)
+	size_t index, gboolean neg, uint16_t *mask)
 {
-	int i, j;
+	size_t i, j;
 	int x[2][2], tmp, a, b, aset, bset, rset;
 
 	memset(x, 0, sizeof(x));
@@ -1911,7 +1913,7 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut)
 {
 	uint16_t masks[2];
-	int bitidx, condidx;
+	size_t bitidx, condidx;
 	uint16_t value, mask;
 
 	/* Start assuming simple triggers. */
