@@ -446,49 +446,49 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	 * which combines pin levels or edges.
 	 */
 	for (lut_addr = 0; lut_addr < 16; lut_addr++) {
-		bit = 1 << lut_addr;
+		bit = BIT(lut_addr);
 
 		/* - M4 M3S M3Q */
 		m3d = 0;
 		if (lut->m4 & bit)
-			m3d |= 1 << 2;
+			m3d |= BIT(2);
 		if (lut->m3s & bit)
-			m3d |= 1 << 1;
+			m3d |= BIT(1);
 		if (lut->m3q & bit)
-			m3d |= 1 << 0;
+			m3d |= BIT(0);
 
 		/* M2D3 M2D2 M2D1 M2D0 */
 		m2d = 0;
 		if (lut->m2d[3] & bit)
-			m2d |= 1 << 3;
+			m2d |= BIT(3);
 		if (lut->m2d[2] & bit)
-			m2d |= 1 << 2;
+			m2d |= BIT(2);
 		if (lut->m2d[1] & bit)
-			m2d |= 1 << 1;
+			m2d |= BIT(1);
 		if (lut->m2d[0] & bit)
-			m2d |= 1 << 0;
+			m2d |= BIT(0);
 
 		/* M1D3 M1D2 M1D1 M1D0 */
 		m1d = 0;
 		if (lut->m1d[3] & bit)
-			m1d |= 1 << 3;
+			m1d |= BIT(3);
 		if (lut->m1d[2] & bit)
-			m1d |= 1 << 2;
+			m1d |= BIT(2);
 		if (lut->m1d[1] & bit)
-			m1d |= 1 << 1;
+			m1d |= BIT(1);
 		if (lut->m1d[0] & bit)
-			m1d |= 1 << 0;
+			m1d |= BIT(0);
 
 		/* M0D3 M0D2 M0D1 M0D0 */
 		m0d = 0;
 		if (lut->m0d[3] & bit)
-			m0d |= 1 << 3;
+			m0d |= BIT(3);
 		if (lut->m0d[2] & bit)
-			m0d |= 1 << 2;
+			m0d |= BIT(2);
 		if (lut->m0d[1] & bit)
-			m0d |= 1 << 1;
+			m0d |= BIT(1);
 		if (lut->m0d[0] & bit)
-			m0d |= 1 << 0;
+			m0d |= BIT(0);
 
 		/*
 		 * Send 16bits with M3D/M2D and M1D/M0D bit masks to the
@@ -553,14 +553,14 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
  * mode and sending configuration data. Set D7 and toggle D2, D3, D4
  * a few times.
  */
-#define BB_PIN_CCLK (1 << 0) /* D0, CCLK */
-#define BB_PIN_PROG (1 << 1) /* D1, PROG */
-#define BB_PIN_D2   (1 << 2) /* D2, (part of) SUICIDE */
-#define BB_PIN_D3   (1 << 3) /* D3, (part of) SUICIDE */
-#define BB_PIN_D4   (1 << 4) /* D4, (part of) SUICIDE (unused?) */
-#define BB_PIN_INIT (1 << 5) /* D5, INIT, input pin */
-#define BB_PIN_DIN  (1 << 6) /* D6, DIN */
-#define BB_PIN_D7   (1 << 7) /* D7, (part of) SUICIDE */
+#define BB_PIN_CCLK BIT(0) /* D0, CCLK */
+#define BB_PIN_PROG BIT(1) /* D1, PROG */
+#define BB_PIN_D2   BIT(2) /* D2, (part of) SUICIDE */
+#define BB_PIN_D3   BIT(3) /* D3, (part of) SUICIDE */
+#define BB_PIN_D4   BIT(4) /* D4, (part of) SUICIDE (unused?) */
+#define BB_PIN_INIT BIT(5) /* D5, INIT, input pin */
+#define BB_PIN_DIN  BIT(6) /* D6, DIN */
+#define BB_PIN_D7   BIT(7) /* D7, (part of) SUICIDE */
 
 #define BB_BITRATE (750 * 1000)
 #define BB_PINMASK (0xff & ~BB_PIN_INIT)
@@ -1312,7 +1312,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 			/* Ignore disabled channels with a trigger. */
 			if (!match->channel->enabled)
 				continue;
-			channelbit = 1 << match->channel->index;
+			channelbit = BIT(match->channel->index);
 			if (devc->clock.samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
 				if (trigger_set) {
@@ -1813,7 +1813,7 @@ static void build_lut_entry(uint16_t *lut_entry,
 		lut_entry[quad] = ~0;
 		for (bitidx = 0; bitidx < 16; bitidx++) {
 			for (ch = 0; ch < 4; ch++) {
-				quadmask = 1 << ch;
+				quadmask = BIT(ch);
 				bitmask = quadmask << (quad * 4);
 				if (!(spec_mask & bitmask))
 					continue;
@@ -1829,7 +1829,7 @@ static void build_lut_entry(uint16_t *lut_entry,
 				bit_idx_low = !(bitidx & quadmask);
 				if (spec_value_low == bit_idx_low)
 					continue;
-				lut_entry[quad] &= ~(1 << bitidx);
+				lut_entry[quad] &= ~BIT(bitidx);
 			}
 		}
 	}
@@ -1910,10 +1910,10 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		if (func == FUNC_NAND || func == FUNC_NOR || func == FUNC_NXOR)
 			rset = !rset;
 
-		*mask &= ~(1 << i);
+		*mask &= ~BIT(i);
 
 		if (rset)
-			*mask |= 1 << i;
+			*mask |= BIT(i);
 	}
 }
 
@@ -1947,7 +1947,7 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	memset(&masks, 0, sizeof(masks));
 	condidx = 0;
 	for (bitidx = 0; bitidx < 16; bitidx++) {
-		mask = 1 << bitidx;
+		mask = BIT(bitidx);
 		value = devc->trigger.risingmask | devc->trigger.fallingmask;
 		if (!(value & mask))
 			continue;

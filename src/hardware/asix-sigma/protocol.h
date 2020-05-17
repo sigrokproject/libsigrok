@@ -54,6 +54,13 @@ enum asix_device_type {
 	ASIX_TYPE_OMEGA,
 };
 
+/* Mask to isolate one bit, mask to span a number of bits. */
+#define BIT(pos)		(1UL << (pos))
+#define BITS_MASK(count)	((1UL << (count)) - 1)
+
+#define HI4(b)			(((b) >> 4) & 0x0f)
+#define LO4(b)			(((b) >> 0) & 0x0f)
+
 /*
  * FPGA commands are 8bits wide. The upper nibble is a command opcode,
  * the lower nibble can carry operand values. 8bit register addresses
@@ -66,8 +73,8 @@ enum asix_device_type {
 #define REG_DATA_LOW		(0x2 << 4)
 #define REG_DATA_HIGH_WRITE	(0x3 << 4)
 #define REG_READ_ADDR		(0x4 << 4)
-#define REG_ADDR_ADJUST		(1 << 0) /* Auto adjust register address. */
-#define REG_ADDR_DOWN		(1 << 1) /* 1 decrement, 0 increment. */
+#define REG_ADDR_ADJUST		BIT(0) /* Auto adjust register address. */
+#define REG_ADDR_DOWN		BIT(1) /* 1 decrement, 0 increment. */
 #define REG_ADDR_INC		(REG_ADDR_ADJUST)
 #define REG_ADDR_DEC		(REG_ADDR_ADJUST | REG_ADDR_DOWN)
 
@@ -134,27 +141,22 @@ enum sigma_read_register {
 	/* Reserved for plugin features. See above. */
 };
 
-#define HI4(b)			(((b) >> 4) & 0x0f)
-#define LO4(b)			(((b) >> 0) & 0x0f)
+#define CLKSEL_CLKSEL8		BIT(0)
+#define CLKSEL_PINMASK		BITS_MASK(4)
+#define CLKSEL_RISING		BIT(4)
+#define CLKSEL_FALLING		BIT(5)
 
-#define BIT_MASK(l)	((1UL << (l)) - 1)
-
-#define CLKSEL_CLKSEL8		(1 << 0)
-#define CLKSEL_PINMASK		BIT_MASK(4)
-#define CLKSEL_RISING		(1 << 4)
-#define CLKSEL_FALLING		(1 << 5)
-
-#define TRGSEL_SELINC_MASK	BIT_MASK(2)
+#define TRGSEL_SELINC_MASK	BITS_MASK(2)
 #define TRGSEL_SELINC_SHIFT	0
-#define TRGSEL_SELRES_MASK	BIT_MASK(2)
+#define TRGSEL_SELRES_MASK	BITS_MASK(2)
 #define TRGSEL_SELRES_SHIFT	2
-#define TRGSEL_SELA_MASK	BIT_MASK(2)
+#define TRGSEL_SELA_MASK	BITS_MASK(2)
 #define TRGSEL_SELA_SHIFT	4
-#define TRGSEL_SELB_MASK	BIT_MASK(2)
+#define TRGSEL_SELB_MASK	BITS_MASK(2)
 #define TRGSEL_SELB_SHIFT	6
-#define TRGSEL_SELC_MASK	BIT_MASK(2)
+#define TRGSEL_SELC_MASK	BITS_MASK(2)
 #define TRGSEL_SELC_SHIFT	8
-#define TRGSEL_SELPRESC_MASK	BIT_MASK(4)
+#define TRGSEL_SELPRESC_MASK	BITS_MASK(4)
 #define TRGSEL_SELPRESC_SHIFT	12
 
 enum trgsel_selcode_t {
@@ -165,48 +167,48 @@ enum trgsel_selcode_t {
 	TRGSEL_SELCODE_NEVER = 3,
 };
 
-#define TRGSEL2_PINS_MASK	BIT_MASK(3)
-#define TRGSEL2_PINPOL_RISE	(1 << 3)
-#define TRGSEL2_LUT_ADDR_MASK	BIT_MASK(4)
-#define TRGSEL2_LUT_WRITE	(1 << 4)
-#define TRGSEL2_RESET		(1 << 5)
-#define TRGSEL2_LEDSEL0		(1 << 6)
-#define TRGSEL2_LEDSEL1		(1 << 7)
+#define TRGSEL2_PINS_MASK	BITS_MASK(3)
+#define TRGSEL2_PINPOL_RISE	BIT(3)
+#define TRGSEL2_LUT_ADDR_MASK	BITS_MASK(4)
+#define TRGSEL2_LUT_WRITE	BIT(4)
+#define TRGSEL2_RESET		BIT(5)
+#define TRGSEL2_LEDSEL0		BIT(6)
+#define TRGSEL2_LEDSEL1		BIT(7)
 
 /* WRITE_MODE register fields. */
-#define WMR_SDRAMWRITEEN	(1 << 0)
-#define WMR_SDRAMREADEN		(1 << 1)
-#define WMR_TRGRES		(1 << 2)
-#define WMR_TRGEN		(1 << 3)
-#define WMR_FORCESTOP		(1 << 4)
-#define WMR_TRGSW		(1 << 5)
+#define WMR_SDRAMWRITEEN	BIT(0)
+#define WMR_SDRAMREADEN		BIT(1)
+#define WMR_TRGRES		BIT(2)
+#define WMR_TRGEN		BIT(3)
+#define WMR_FORCESTOP		BIT(4)
+#define WMR_TRGSW		BIT(5)
 /* not used: bit position 6 */
-#define WMR_SDRAMINIT		(1 << 7)
+#define WMR_SDRAMINIT		BIT(7)
 
 /* READ_MODE register fields. */
-#define RMR_SDRAMWRITEEN	(1 << 0)
-#define RMR_SDRAMREADEN		(1 << 1)
+#define RMR_SDRAMWRITEEN	BIT(0)
+#define RMR_SDRAMREADEN		BIT(1)
 /* not used: bit position 2 */
-#define RMR_TRGEN		(1 << 3)
-#define RMR_ROUND		(1 << 4)
-#define RMR_TRIGGERED		(1 << 5)
-#define RMR_POSTTRIGGERED	(1 << 6)
+#define RMR_TRGEN		BIT(3)
+#define RMR_ROUND		BIT(4)
+#define RMR_TRIGGERED		BIT(5)
+#define RMR_POSTTRIGGERED	BIT(6)
 /* not used: bit position 7 */
 
 /*
  * Trigger options. First and second write are similar, but _some_
  * positions change their meaning.
  */
-#define TRGOPT_TRGIEN		(1 << 7)
-#define TRGOPT_TRGOEN		(1 << 6)
-#define TRGOPT_TRGOINEN		(1 << 5) /* 1st write */
+#define TRGOPT_TRGIEN		BIT(7)
+#define TRGOPT_TRGOEN		BIT(6)
+#define TRGOPT_TRGOINEN		BIT(5) /* 1st write */
 #define TRGOPT_TRGINEG		TRGOPT1_TRGOINEN /* 2nd write */
-#define TRGOPT_TRGOEVNTEN	(1 << 4) /* 1st write */
+#define TRGOPT_TRGOEVNTEN	BIT(4) /* 1st write */
 #define TRGOPT_TRGOPIN		TRGOPT1_TRGOEVNTEN /* 2nd write */
-#define TRGOPT_TRGOOUTEN	(1 << 3) /* 1st write */
+#define TRGOPT_TRGOOUTEN	BIT(3) /* 1st write */
 #define TRGOPT_TRGOLONG		TRGOPT1_TRGOOUTEN /* 2nd write */
-#define TRGOPT_TRGOUTR_OUT	(1 << 1)
-#define TRGOPT_TRGOUTR_EN	(1 << 0)
+#define TRGOPT_TRGOUTR_OUT	BIT(1)
+#define TRGOPT_TRGOUTR_EN	BIT(0)
 #define TRGOPT_CLEAR_MASK	(TRGOPT_TRGOINEN | TRGOPT_TRGOEVNTEN | TRGOPT_TRGOOUTEN)
 
 /*
@@ -245,7 +247,7 @@ enum trgsel_selcode_t {
 #define ROW_LENGTH_BYTES	1024
 #define ROW_LENGTH_U16		(ROW_LENGTH_BYTES / sizeof(uint16_t))
 #define ROW_SHIFT		9 /* log2 of u16 count */
-#define ROW_MASK		((1UL << ROW_SHIFT) - 1)
+#define ROW_MASK		BITS_MASK(ROW_SHIFT)
 #define EVENTS_PER_CLUSTER	7
 #define CLUSTERS_PER_ROW	(ROW_LENGTH_U16 / (1 + EVENTS_PER_CLUSTER))
 #define EVENTS_PER_ROW		(CLUSTERS_PER_ROW * EVENTS_PER_CLUSTER)

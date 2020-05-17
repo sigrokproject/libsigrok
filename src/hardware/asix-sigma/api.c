@@ -477,9 +477,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 		/* Find which pin to trigger on from mask. */
 		for (triggerpin = 0; triggerpin < 8; triggerpin++) {
-			if (devc->trigger.risingmask & (1 << triggerpin))
+			if (devc->trigger.risingmask & BIT(triggerpin))
 				break;
-			if (devc->trigger.fallingmask & (1 << triggerpin))
+			if (devc->trigger.fallingmask & BIT(triggerpin))
 				break;
 		}
 
@@ -550,7 +550,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Derive a mask where bits are set for unavailable channels.
 	 * Either send the single byte, or the full byte sequence.
 	 */
-	pindis_mask = ~((1UL << devc->num_channels) - 1);
+	pindis_mask = ~BITS_MASK(devc->num_channels);
 	if (devc->clock.samplerate > SR_MHZ(50)) {
 		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
 			pindis_mask & 0xff);
