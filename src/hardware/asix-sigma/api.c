@@ -592,9 +592,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Start acqusition. */
 	regval = WMR_TRGRES | WMR_SDRAMWRITEEN;
-#if ASIX_SIGMA_WITH_TRIGGER
-	regval |= WMR_TRGEN;
-#endif
+	if (devc->use_triggers && ASIX_SIGMA_WITH_TRIGGER)
+		regval |= WMR_TRGEN;
 	ret = sigma_set_register(devc, WRITE_MODE, regval);
 	if (ret != SR_OK)
 		return ret;

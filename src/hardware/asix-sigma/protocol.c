@@ -1294,9 +1294,15 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(devc->trigger));
+	devc->use_triggers = FALSE;
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
+
+	if (!ASIX_SIGMA_WITH_TRIGGER) {
+		sr_warn("Trigger support is not implemented. Ignoring the spec.");
+		return SR_OK;
+	}
 
 	trigger_set = 0;
 	for (l = trigger->stages; l; l = l->next) {
@@ -1352,6 +1358,9 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 		}
 	}
 
+	/* Keep track whether triggers are involved during acquisition. */
+	devc->use_triggers = TRUE;
+
 	return SR_OK;
 }
 
@@ -1403,7 +1412,9 @@ static gboolean sample_matches_trigger(struct dev_context *devc, uint16_t sample
 	 * See the previous get_trigger_offset() implementation. This
 	 * code needs to get re-used here.
 	 */
-	(void)devc;
+	if (!devc->use_triggers)
+		return FALSE;
+
 	(void)sample;
 	(void)get_trigger_offset;
 
@@ -1656,6 +1667,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 		sr_err("Could not query capture positions/state.");
 		return FALSE;
 	}
+	if (!devc->use_triggers)
+		triggerpos = ~0;
 	trg_line = ~0UL;
 	trg_event = ~0UL;
 	if (modestatus & RMR_TRIGGERED) {
@@ -1916,8 +1929,12 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	size_t bitidx, condidx;
 	uint16_t value, mask;
 
-	/* Start assuming simple triggers. */
+	/* Setup something that "won't match" in the absence of a spec. */
 	memset(lut, 0, sizeof(*lut));
+	if (!devc->use_triggers)
+		return SR_OK;
+
+	/* Start assuming simple triggers. Edges are handled below. */
 	lut->m4 = 0xa000;
 	lut->m3q = 0xffff;
 
