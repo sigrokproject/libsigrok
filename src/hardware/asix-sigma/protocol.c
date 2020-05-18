@@ -435,8 +435,9 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	size_t lut_addr;
 	uint16_t bit;
 	uint8_t m3d, m2d, m1d, m0d;
-	uint8_t buf[6], *wrptr, v8;
-	uint16_t selreg;
+	uint8_t buf[6], *wrptr;
+	uint8_t trgsel2;
+	uint16_t lutreg, selreg;
 	int ret;
 
 	/*
@@ -497,15 +498,19 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 		 * programming.
 		 */
 		wrptr = buf;
-		write_u8_inc(&wrptr, (m3d << 4) | (m2d << 0));
-		write_u8_inc(&wrptr, (m1d << 4) | (m0d << 0));
+		lutreg = 0;
+		lutreg <<= 4; lutreg |= m3d;
+		lutreg <<= 4; lutreg |= m2d;
+		lutreg <<= 4; lutreg |= m1d;
+		lutreg <<= 4; lutreg |= m0d;
+		write_u16be_inc(&wrptr, lutreg);
 		ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT,
 			buf, wrptr - buf);
 		if (ret != SR_OK)
 			return ret;
-		v8 = TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
+		trgsel2 = TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
 			(lut_addr & TRGSEL2_LUT_ADDR_MASK);
-		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, v8);
+		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, trgsel2);
 		if (ret != SR_OK)
 			return ret;
 	}
