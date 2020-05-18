@@ -1274,6 +1274,26 @@ static int addto_submit_buffer(struct dev_context *devc,
 	return SR_OK;
 }
 
+static int alloc_sample_buffer(struct dev_context *devc)
+{
+	size_t alloc_size;
+
+	devc->interp.fetch.lines_per_read = 32;
+	alloc_size = sizeof(devc->interp.fetch.rcvd_lines[0]);
+	alloc_size *= devc->interp.fetch.lines_per_read;
+	devc->interp.fetch.rcvd_lines = g_try_malloc0(alloc_size);
+	if (!devc->interp.fetch.rcvd_lines)
+		return SR_ERR_MALLOC;
+
+	return SR_OK;
+}
+
+static void free_sample_buffer(struct dev_context *devc)
+{
+	g_free(devc->interp.fetch.rcvd_lines);
+	devc->interp.fetch.rcvd_lines = NULL;
+}
+
 /*
  * In 100 and 200 MHz mode, only a single pin rising/falling can be
  * set as trigger. In other modes, two rising/falling triggers can be set,
@@ -1522,13 +1542,13 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	 * counted conditions, which currently are not supported.)
 	 */
 	ts = sigma_dram_cluster_ts(dram_cluster);
-	tsdiff = ts - devc->interp.lastts;
+	tsdiff = ts - devc->interp.last.ts;
 	if (tsdiff > 0) {
-		sample = devc->interp.lastsample;
+		sample = devc->interp.last.sample;
 		count = tsdiff * devc->interp.samples_per_event;
 		(void)check_and_submit_sample(devc, sample, count, FALSE);
 	}
-	devc->interp.lastts = ts + EVENTS_PER_CLUSTER;
+	devc->interp.last.ts = ts + EVENTS_PER_CLUSTER;
 
 	/*
 	 * Grab sample data from the current cluster and prepare their
@@ -1559,7 +1579,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 			check_and_submit_sample(devc, sample, 1, triggered);
 		}
 	}
-	devc->interp.lastsample = sample;
+	devc->interp.last.sample = sample;
 }
 
 /*
@@ -1618,10 +1638,8 @@ static int decode_chunk_ts(struct dev_context *devc,
 
 static int download_capture(struct sr_dev_inst *sdi)
 {
-	const uint32_t chunks_per_read = 32;
-
 	struct dev_context *devc;
-	struct sigma_dram_line *dram_line;
+	struct sigma_sample_interp *interp;
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
 	size_t line_idx;
@@ -1632,6 +1650,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	int ret;
 
 	devc = sdi->priv;
+	interp = &devc->interp;
 
 	sr_info("Downloading sample data.");
 	devc->state = SIGMA_DOWNLOAD;
@@ -1690,8 +1709,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 		dl_first_line = dl_lines_total + 1;
 		dl_lines_total = ROW_COUNT - 2;
 	}
-	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
-	if (!dram_line)
+	ret = alloc_sample_buffer(devc);
+	if (ret != SR_OK)
 		return FALSE;
 	ret = alloc_submit_buffer(sdi);
 	if (ret != SR_OK)
@@ -1701,21 +1720,24 @@ static int download_capture(struct sr_dev_inst *sdi)
 		return FALSE;
 	dl_lines_done = 0;
 	while (dl_lines_total > dl_lines_done) {
-		/* We can download only up-to 32 DRAM lines in one go! */
-		dl_lines_curr = MIN(chunks_per_read, dl_lines_total - dl_lines_done);
 
+		/* Get another set of DRAM lines in one read. */
+		dl_lines_curr = dl_lines_total - dl_lines_done;
+		if (dl_lines_curr > interp->fetch.lines_per_read)
+			dl_lines_curr = interp->fetch.lines_per_read;
 		dl_line = dl_first_line + dl_lines_done;
 		dl_line %= ROW_COUNT;
 		ret = sigma_read_dram(devc, dl_line, dl_lines_curr,
-			(uint8_t *)dram_line);
+			(uint8_t *)interp->fetch.rcvd_lines);
 		if (ret != SR_OK)
 			return FALSE;
+		interp->fetch.curr_line = &interp->fetch.rcvd_lines[0];
 
-		/* This is the first DRAM line, so find the initial timestamp. */
+		/* Seed initial timestamp from the first DRAM line. */
 		if (dl_lines_done == 0) {
-			devc->interp.lastts =
-				sigma_dram_cluster_ts(&dram_line[0].cluster[0]);
-			devc->interp.lastsample = 0;
+			interp->last.ts =
+				sigma_dram_cluster_ts(&interp->fetch.curr_line->cluster[0]);
+			interp->last.sample = 0;
 		}
 
 		for (line_idx = 0; line_idx < dl_lines_curr; line_idx++) {
@@ -1729,15 +1751,16 @@ static int download_capture(struct sr_dev_inst *sdi)
 			if (dl_lines_done + line_idx == trg_line)
 				trigger_event = trg_event;
 
-			decode_chunk_ts(devc, dram_line + line_idx,
+			decode_chunk_ts(devc, interp->fetch.curr_line,
 				dl_events_in_line, trigger_event);
+			interp->fetch.curr_line++;
 		}
 
 		dl_lines_done += dl_lines_curr;
 	}
 	flush_submit_buffer(devc);
 	free_submit_buffer(devc);
-	g_free(dram_line);
+	free_sample_buffer(devc);
 
 	std_session_send_df_end(sdi);
 

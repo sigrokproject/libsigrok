@@ -359,12 +359,19 @@ struct dev_context {
 		struct sr_sw_limits submit;
 	} limit;
 	enum sigma_firmware_idx firmware_idx;
-	struct {
+	struct sigma_sample_interp {
 		/* Interpretation of sample memory. */
 		size_t num_channels;
 		size_t samples_per_event;
-		uint16_t lastts;
-		uint16_t lastsample;
+		struct {
+			uint16_t ts;
+			uint16_t sample;
+		} last;
+		struct {
+			size_t lines_per_read; /* USB transfer limit */
+			struct sigma_dram_line *rcvd_lines;
+			struct sigma_dram_line *curr_line;
+		} fetch;
 	} interp;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
