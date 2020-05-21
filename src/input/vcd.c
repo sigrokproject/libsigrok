@@ -529,14 +529,18 @@ static void parse_contents(const struct sr_input *in, char *data)
 		} else if (strchr("bB", tokens[i][0]) != NULL) {
 			bit = (tokens[i][1] == '1');
 
+			if (!tokens[++i]) {
+				sr_dbg("Identifier missing!");
+				break;
+			}
+
 			/*
 			 * Bail out if a) char after 'b' is NUL, or b) there is
-			 * a second character after 'b', or c) there is no
-			 * identifier.
+			 * a second character after 'b'
 			 */
-			if (!tokens[i][1] || tokens[i][2] || !tokens[++i]) {
+			if (!tokens[i][1] || tokens[i][2]) {
 				sr_dbg("Unexpected vector format!");
-				break;
+				continue;
 			}
 
 			process_bit(inc, tokens[i], bit);
