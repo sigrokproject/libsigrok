@@ -24,9 +24,9 @@
 #include "protocol.h"
 
 /*
- * Channel numbers seem to go from 1-16, according to this image:
- * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg
- * (the cable has two additional GND pins, and a TI and TO pin)
+ * Channels are labelled 1-16, see this vendor's image of the cable:
+ * http://tools.asix.net/img/sigma_sigmacab_pins_720.jpg (TI/TO are
+ * additional trigger in/out signals).
  */
 static const char *channel_names[] = {
 	"1", "2", "3", "4", "5", "6", "7", "8",
