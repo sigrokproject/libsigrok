@@ -518,6 +518,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	DMM(
+		"metex-me21", metex14,
+		"Metex", "ME-21", "2400/7n2/rts=0/dtr=1",
+		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
+		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	DMM(
 		"metex-me31", metex14,
 		"Metex", "ME-31", "600/7n2/rts=0/dtr=1",
 		METEX14_PACKET_SIZE, 0, 0, sr_metex14_packet_request,
