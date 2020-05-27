@@ -1255,7 +1255,7 @@ static int addto_submit_buffer(struct dev_context *devc,
 
 	buffer = devc->buffer;
 	limits = &devc->limit.submit;
-	if (sr_sw_limits_check(limits))
+	if (!devc->use_triggers && sr_sw_limits_check(limits))
 		count = 0;
 
 	/*
@@ -1272,7 +1272,7 @@ static int addto_submit_buffer(struct dev_context *devc,
 				return ret;
 		}
 		sr_sw_limits_update_samples_read(limits, 1);
-		if (sr_sw_limits_check(limits))
+		if (!devc->use_triggers && sr_sw_limits_check(limits))
 			break;
 	}
 
@@ -1423,6 +1423,7 @@ static int alloc_sample_buffer(struct dev_context *devc,
 	 * location. The "4 clusters" distance is an arbitrary choice.
 	 */
 	rewind_trig_arm_pos(devc, 4 * EVENTS_PER_CLUSTER);
+	memset(&interp->trig_chk, 0, sizeof(interp->trig_chk));
 
 	/* Determine which DRAM lines to fetch from the device. */
 	memset(&interp->fetch, 0, sizeof(interp->fetch));
@@ -1585,61 +1586,44 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* Software trigger to determine exact trigger position. */
-static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
-	struct sigma_trigger *t)
-{
-	const uint8_t *rdptr;
-	size_t i;
-	uint16_t sample;
-
-	rdptr = samples;
-	sample = 0;
-	for (i = 0; i < 8; i++) {
-		if (i > 0)
-			last_sample = sample;
-		sample = read_u16le_inc(&rdptr);
-
-		/* Simple triggers. */
-		if ((sample & t->simplemask) != t->simplevalue)
-			continue;
-
-		/* Rising edge. */
-		if (((last_sample & t->risingmask) != 0) ||
-		    ((sample & t->risingmask) != t->risingmask))
-			continue;
-
-		/* Falling edge. */
-		if ((last_sample & t->fallingmask) != t->fallingmask ||
-		    (sample & t->fallingmask) != 0)
-			continue;
-
-		break;
-	}
-
-	/* If we did not match, return original trigger pos. */
-	return i & 0x7;
-}
-
 static gboolean sample_matches_trigger(struct dev_context *devc, uint16_t sample)
 {
-	/* TODO
-	 * Check whether the combination of this very sample and the
-	 * previous state match the configured trigger condition. This
-	 * improves the resolution of the trigger marker's position.
-	 * The hardware provided position is coarse, and may point to
-	 * a position before the actual match.
-	 *
-	 * See the previous get_trigger_offset() implementation. This
-	 * code needs to get re-used here.
+	struct sigma_sample_interp *interp;
+	uint16_t last_sample;
+	struct sigma_trigger *t;
+	gboolean simple_match, rising_match, falling_match;
+	gboolean matched;
+
+	/*
+	 * This logic is about improving the precision of the hardware
+	 * provided trigger match position. Software checks are only
+	 * required for a short range of samples, and only when a user
+	 * specified trigger condition was involved during acquisition.
 	 */
+	if (!devc)
+		return FALSE;
 	if (!devc->use_triggers)
 		return FALSE;
+	interp = &devc->interp;
+	if (!interp->trig_chk.armed)
+		return FALSE;
 
-	(void)sample;
-	(void)get_trigger_offset;
+	/*
+	 * Check if the current sample and its most recent transition
+	 * match the initially provided trigger condition. The data
+	 * must not fail either of the individual checks. Unused
+	 * trigger features remain neutral in the summary expression.
+	 */
+	last_sample = interp->last.sample;
+	t = &devc->trigger;
+	simple_match = (sample & t->simplemask) == t->simplevalue;
+	rising_match = ((last_sample & t->risingmask) == 0) &&
+			((sample & t->risingmask) == t->risingmask);
+	falling_match = ((last_sample & t->fallingmask) == t->fallingmask) &&
+			((sample & t->fallingmask) == 0);
+	matched = simple_match && rising_match && falling_match;
 
-	return FALSE;
+	return matched;
 }
 
 static int send_trigger_marker(struct dev_context *devc)
@@ -1657,21 +1641,16 @@ static int send_trigger_marker(struct dev_context *devc)
 }
 
 static int check_and_submit_sample(struct dev_context *devc,
-	uint16_t sample, size_t count, gboolean check_trigger)
+	uint16_t sample, size_t count)
 {
 	gboolean triggered;
 	int ret;
 
-	/*
-	 * Ignore the condition provided by the "inner loop" logic of
-	 * sample memory iteration. Instead use device context status
-	 * for the period with software trigger match checks.
-	 */
-	check_trigger = devc->interp.trig_chk.armed;
-
-	triggered = check_trigger && sample_matches_trigger(devc, sample);
-	if (triggered)
+	triggered = sample_matches_trigger(devc, sample);
+	if (triggered) {
 		send_trigger_marker(devc);
+		devc->interp.trig_chk.matched = TRUE;
+	}
 
 	ret = addto_submit_buffer(devc, sample, count);
 	if (ret != SR_OK)
@@ -1802,7 +1781,7 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	if (tsdiff > 0) {
 		sample = devc->interp.last.sample;
 		count = tsdiff * devc->interp.samples_per_event;
-		(void)check_and_submit_sample(devc, sample, count, FALSE);
+		(void)check_and_submit_sample(devc, sample, count);
 	}
 	devc->interp.last.ts = ts + EVENTS_PER_CLUSTER;
 
@@ -1818,27 +1797,27 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 		item16 = sigma_dram_cluster_data(dram_cluster, evt);
 		if (devc->interp.samples_per_event == 4) {
 			sample = sigma_deinterlace_data_4x4(item16, 0);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 1);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 2);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 3);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 		} else if (devc->interp.samples_per_event == 2) {
 			sample = sigma_deinterlace_data_2x8(item16, 0);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_2x8(item16, 1);
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 		} else {
 			sample = item16;
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
 			devc->interp.last.sample = sample;
 		}
 		sigma_location_increment(&devc->interp.iter);
