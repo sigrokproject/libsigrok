@@ -1290,6 +1290,92 @@ static void sigma_location_break_down(struct sigma_location *loc)
 	loc->cluster = loc->cluster / EVENTS_PER_CLUSTER;
 }
 
+static gboolean sigma_location_is_eq(struct sigma_location *loc1,
+	struct sigma_location *loc2, gboolean with_event)
+{
+
+	if (!loc1 || !loc2)
+		return FALSE;
+
+	if (loc1->line != loc2->line)
+		return FALSE;
+	if (loc1->cluster != loc2->cluster)
+		return FALSE;
+
+	if (with_event && loc1->event != loc2->event)
+		return FALSE;
+
+	return TRUE;
+}
+
+/* Decrement the broken-down location fields (leave 'raw' as is). */
+static void sigma_location_decrement(struct sigma_location *loc,
+	gboolean with_event)
+{
+
+	if (!loc)
+		return;
+
+	if (with_event) {
+		if (loc->event--)
+			return;
+		loc->event = EVENTS_PER_CLUSTER - 1;
+	}
+
+	if (loc->cluster--)
+		return;
+	loc->cluster = CLUSTERS_PER_ROW - 1;
+
+	if (loc->line--)
+		return;
+	loc->line = ROW_COUNT - 1;
+}
+
+static void sigma_location_increment(struct sigma_location *loc)
+{
+
+	if (!loc)
+		return;
+
+	if (++loc->event < EVENTS_PER_CLUSTER)
+		return;
+	loc->event = 0;
+	if (++loc->cluster < CLUSTERS_PER_ROW)
+		return;
+	loc->cluster = 0;
+	if (++loc->line < ROW_COUNT)
+		return;
+	loc->line = 0;
+}
+
+/*
+ * Determine the position where to open the period of trigger match
+ * checks. Setup an "impossible" location when triggers are not used.
+ * Start from the hardware provided 'trig' position otherwise, and
+ * go back a few clusters, but don't go before the 'start' position.
+ */
+static void rewind_trig_arm_pos(struct dev_context *devc, size_t count)
+{
+	struct sigma_sample_interp *interp;
+
+	if (!devc)
+		return;
+	interp = &devc->interp;
+
+	if (!devc->use_triggers) {
+		interp->trig_arm.raw = ~0;
+		sigma_location_break_down(&interp->trig_arm);
+		return;
+	}
+
+	interp->trig_arm = interp->trig;
+	while (count--) {
+		if (sigma_location_is_eq(&interp->trig_arm, &interp->start, TRUE))
+			break;
+		sigma_location_decrement(&interp->trig_arm, TRUE);
+	}
+}
+
 static int alloc_sample_buffer(struct dev_context *devc,
 	size_t stop_pos, size_t trig_pos, uint8_t mode)
 {
@@ -1328,6 +1414,15 @@ static int alloc_sample_buffer(struct dev_context *devc,
 	sigma_location_break_down(&interp->stop);
 	sigma_location_break_down(&interp->trig);
 	sigma_location_break_down(&interp->iter);
+
+	/*
+	 * The hardware provided trigger location "is late" because of
+	 * latency in hardware pipelines. It points to after the trigger
+	 * condition match. Arrange for a software check of sample data
+	 * matches starting just a little before the hardware provided
+	 * location. The "4 clusters" distance is an arbitrary choice.
+	 */
+	rewind_trig_arm_pos(devc, 4 * EVENTS_PER_CLUSTER);
 
 	/* Determine which DRAM lines to fetch from the device. */
 	memset(&interp->fetch, 0, sizeof(interp->fetch));
@@ -1547,27 +1642,82 @@ static gboolean sample_matches_trigger(struct dev_context *devc, uint16_t sample
 	return FALSE;
 }
 
+static int send_trigger_marker(struct dev_context *devc)
+{
+	int ret;
+
+	ret = flush_submit_buffer(devc);
+	if (ret != SR_OK)
+		return ret;
+	ret = std_session_send_df_trigger(devc->buffer->sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 static int check_and_submit_sample(struct dev_context *devc,
 	uint16_t sample, size_t count, gboolean check_trigger)
 {
 	gboolean triggered;
 	int ret;
 
+	/*
+	 * Ignore the condition provided by the "inner loop" logic of
+	 * sample memory iteration. Instead use device context status
+	 * for the period with software trigger match checks.
+	 */
+	check_trigger = devc->interp.trig_chk.armed;
+
 	triggered = check_trigger && sample_matches_trigger(devc, sample);
-	if (triggered) {
-		ret = flush_submit_buffer(devc);
-		if (ret != SR_OK)
-			return ret;
-		ret = std_session_send_df_trigger(devc->buffer->sdi);
-		if (ret != SR_OK)
-			return ret;
-	}
+	if (triggered)
+		send_trigger_marker(devc);
 
 	ret = addto_submit_buffer(devc, sample, count);
 	if (ret != SR_OK)
 		return ret;
 
 	return SR_OK;
+}
+
+static void sigma_location_check(struct dev_context *devc)
+{
+	struct sigma_sample_interp *interp;
+
+	if (!devc)
+		return;
+	interp = &devc->interp;
+
+	/*
+	 * Manage the period of trigger match checks in software.
+	 * Start supervision somewhere before the hardware provided
+	 * location. Stop supervision after an arbitrary amount of
+	 * event slots, or when a match was found.
+	 */
+	if (interp->trig_chk.armed) {
+		interp->trig_chk.evt_remain--;
+		if (!interp->trig_chk.evt_remain || interp->trig_chk.matched)
+			interp->trig_chk.armed = FALSE;
+	}
+	if (!interp->trig_chk.armed && !interp->trig_chk.matched) {
+		if (sigma_location_is_eq(&interp->iter, &interp->trig_arm, TRUE)) {
+			interp->trig_chk.armed = TRUE;
+			interp->trig_chk.matched = FALSE;
+			interp->trig_chk.evt_remain = 8 * EVENTS_PER_CLUSTER;
+		}
+	}
+
+	/*
+	 * Force a trigger marker when the software check found no match
+	 * yet while the hardware provided position was reached. This
+	 * very probably is a user initiated button press.
+	 */
+	if (interp->trig_chk.armed) {
+		if (sigma_location_is_eq(&interp->iter, &interp->trig, TRUE)) {
+			(void)send_trigger_marker(devc);
+			interp->trig_chk.matched = TRUE;
+		}
+	}
 }
 
 /*
@@ -1669,23 +1819,31 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 		if (devc->interp.samples_per_event == 4) {
 			sample = sigma_deinterlace_data_4x4(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 1);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 2);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_4x4(item16, 3);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 		} else if (devc->interp.samples_per_event == 2) {
 			sample = sigma_deinterlace_data_2x8(item16, 0);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 			sample = sigma_deinterlace_data_2x8(item16, 1);
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 		} else {
 			sample = item16;
 			check_and_submit_sample(devc, sample, 1, triggered);
+			devc->interp.last.sample = sample;
 		}
+		sigma_location_increment(&devc->interp.iter);
+		sigma_location_check(devc);
 	}
-	devc->interp.last.sample = sample;
 }
 
 /*
@@ -1831,8 +1989,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 				dl_events_in_line, trigger_event);
 			interp->fetch.curr_line++;
 			interp->fetch.lines_done++;
-			interp->iter.line++;
-			interp->iter.line %= ROW_COUNT;
 		}
 	}
 	flush_submit_buffer(devc);

@@ -369,7 +369,7 @@ struct dev_context {
 		} last;
 		struct sigma_location {
 			size_t raw, line, cluster, event;
-		} start, stop, trig, iter;
+		} start, stop, trig, iter, trig_arm;
 		struct {
 			size_t lines_total, lines_done;
 			size_t lines_per_read; /* USB transfer limit */
@@ -377,6 +377,11 @@ struct dev_context {
 			struct sigma_dram_line *rcvd_lines;
 			struct sigma_dram_line *curr_line;
 		} fetch;
+		struct {
+			gboolean armed;
+			gboolean matched;
+			size_t evt_remain;
+		} trig_chk;
 	} interp;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
