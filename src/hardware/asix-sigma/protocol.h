@@ -367,8 +367,13 @@ struct dev_context {
 			uint16_t ts;
 			uint16_t sample;
 		} last;
+		struct sigma_location {
+			size_t raw, line, cluster, event;
+		} start, stop, trig, iter;
 		struct {
+			size_t lines_total, lines_done;
 			size_t lines_per_read; /* USB transfer limit */
+			size_t lines_rcvd;
 			struct sigma_dram_line *rcvd_lines;
 			struct sigma_dram_line *curr_line;
 		} fetch;

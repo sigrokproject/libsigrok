@@ -1279,16 +1279,117 @@ static int addto_submit_buffer(struct dev_context *devc,
 	return SR_OK;
 }
 
-static int alloc_sample_buffer(struct dev_context *devc)
+static void sigma_location_break_down(struct sigma_location *loc)
 {
+
+	loc->line = loc->raw / ROW_LENGTH_U16;
+	loc->line += ROW_COUNT;
+	loc->line %= ROW_COUNT;
+	loc->cluster = loc->raw % ROW_LENGTH_U16;
+	loc->event = loc->cluster % EVENTS_PER_CLUSTER;
+	loc->cluster = loc->cluster / EVENTS_PER_CLUSTER;
+}
+
+static int alloc_sample_buffer(struct dev_context *devc,
+	size_t stop_pos, size_t trig_pos, uint8_t mode)
+{
+	struct sigma_sample_interp *interp;
+	gboolean wrapped;
 	size_t alloc_size;
 
-	devc->interp.fetch.lines_per_read = 32;
+	interp = &devc->interp;
+
+	/*
+	 * Either fetch sample memory from absolute start of DRAM to the
+	 * current write position. Or from after the current write position
+	 * to before the current write position, if the write pointer has
+	 * wrapped around at the upper DRAM boundary. Assume that the line
+	 * which most recently got written to is of unknown state, ignore
+	 * its content in the "wrapped" case.
+	 */
+	wrapped = mode & RMR_ROUND;
+	interp->start.raw = 0;
+	interp->stop.raw = stop_pos;
+	if (wrapped) {
+		interp->start.raw = stop_pos;
+		interp->start.raw >>= ROW_SHIFT;
+		interp->start.raw++;
+		interp->start.raw <<= ROW_SHIFT;
+		interp->stop.raw = stop_pos;
+		interp->stop.raw >>= ROW_SHIFT;
+		interp->stop.raw--;
+		interp->stop.raw <<= ROW_SHIFT;
+	}
+	interp->trig.raw = trig_pos;
+	interp->iter.raw = 0;
+
+	/* Break down raw values to line, cluster, event fields. */
+	sigma_location_break_down(&interp->start);
+	sigma_location_break_down(&interp->stop);
+	sigma_location_break_down(&interp->trig);
+	sigma_location_break_down(&interp->iter);
+
+	/* Determine which DRAM lines to fetch from the device. */
+	memset(&interp->fetch, 0, sizeof(interp->fetch));
+	interp->fetch.lines_total = interp->stop.line + 1;
+	interp->fetch.lines_total -= interp->start.line;
+	interp->fetch.lines_total += ROW_COUNT;
+	interp->fetch.lines_total %= ROW_COUNT;
+	interp->fetch.lines_done = 0;
+
+	/* Arrange for chunked download, N lines per USB request. */
+	interp->fetch.lines_per_read = 32;
 	alloc_size = sizeof(devc->interp.fetch.rcvd_lines[0]);
 	alloc_size *= devc->interp.fetch.lines_per_read;
 	devc->interp.fetch.rcvd_lines = g_try_malloc0(alloc_size);
 	if (!devc->interp.fetch.rcvd_lines)
 		return SR_ERR_MALLOC;
+
+	return SR_OK;
+}
+
+static uint16_t sigma_deinterlace_data_4x4(uint16_t indata, int idx);
+static uint16_t sigma_deinterlace_data_2x8(uint16_t indata, int idx);
+
+static int fetch_sample_buffer(struct dev_context *devc)
+{
+	struct sigma_sample_interp *interp;
+	size_t count;
+	int ret;
+	const uint8_t *rdptr;
+	uint16_t ts, data;
+
+	interp = &devc->interp;
+
+	/* First invocation? Seed the iteration position. */
+	if (!interp->fetch.lines_done) {
+		interp->iter = interp->start;
+	}
+
+	/* Get another set of DRAM lines in one read call. */
+	count = interp->fetch.lines_total - interp->fetch.lines_done;
+	if (count > interp->fetch.lines_per_read)
+		count = interp->fetch.lines_per_read;
+	ret = sigma_read_dram(devc, interp->iter.line, count,
+		(uint8_t *)interp->fetch.rcvd_lines);
+	if (ret != SR_OK)
+		return ret;
+	interp->fetch.lines_rcvd = count;
+	interp->fetch.curr_line = &interp->fetch.rcvd_lines[0];
+
+	/* First invocation? Get initial timestamp and sample data. */
+	if (!interp->fetch.lines_done) {
+		rdptr = (void *)interp->fetch.curr_line;
+		ts = read_u16le_inc(&rdptr);
+		data = read_u16le_inc(&rdptr);
+		if (interp->samples_per_event == 4) {
+			data = sigma_deinterlace_data_4x4(data, 0);
+		} else if (interp->samples_per_event == 2) {
+			data = sigma_deinterlace_data_2x8(data, 0);
+		}
+		interp->last.ts = ts;
+		interp->last.sample = data;
+	}
 
 	return SR_OK;
 }
@@ -1611,7 +1712,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 	clusters_in_line /= EVENTS_PER_CLUSTER;
 
 	/* Check if trigger is in this chunk. */
-	trigger_cluster = ~0UL;
+	trigger_cluster = ~UINT64_C(0);
 	if (trigger_event < EVENTS_PER_ROW) {
 		if (devc->clock.samplerate <= SR_MHZ(50)) {
 			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
@@ -1647,11 +1748,6 @@ static int download_capture(struct sr_dev_inst *sdi)
 	struct sigma_sample_interp *interp;
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
-	size_t line_idx;
-	size_t dl_lines_total, dl_lines_curr, dl_lines_done;
-	size_t dl_first_line, dl_line;
-	size_t dl_events_in_line, trigger_event;
-	size_t trg_line, trg_event;
 	int ret;
 
 	devc = sdi->priv;
@@ -1665,6 +1761,9 @@ static int download_capture(struct sr_dev_inst *sdi)
 	 * FORCESTOP request makes the hardware "disable RLE" (store
 	 * clusters to DRAM regardless of whether pin state changes) and
 	 * raise the POSTTRIGGERED flag.
+	 *
+	 * Then switch the hardware from DRAM write (data acquisition)
+	 * to DRAM read (sample memory download).
 	 */
 	modestatus = WMR_FORCESTOP | WMR_SDRAMWRITEEN;
 	ret = sigma_set_register(devc, WRITE_MODE, modestatus);
@@ -1677,13 +1776,15 @@ static int download_capture(struct sr_dev_inst *sdi)
 			return FALSE;
 		}
 	} while (!(modestatus & RMR_POSTTRIGGERED));
-
-	/* Set SDRAM Read Enable. */
 	ret = sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
 	if (ret != SR_OK)
 		return ret;
 
-	/* Get the current position. Check if trigger has fired. */
+	/*
+	 * Get the current positions (acquisition write pointer, and
+	 * trigger match location). With disabled triggers, use a value
+	 * for the location that will never match during interpretation.
+	 */
 	ret = sigma_read_pos(devc, &stoppos, &triggerpos, &modestatus);
 	if (ret != SR_OK) {
 		sr_err("Could not query capture positions/state.");
@@ -1691,77 +1792,48 @@ static int download_capture(struct sr_dev_inst *sdi)
 	}
 	if (!devc->use_triggers)
 		triggerpos = ~0;
-	trg_line = ~0UL;
-	trg_event = ~0UL;
-	if (modestatus & RMR_TRIGGERED) {
-		trg_line = triggerpos >> ROW_SHIFT;
-		trg_event = triggerpos & ROW_MASK;
-	}
+	if (!(modestatus & RMR_TRIGGERED))
+		triggerpos = ~0;
 
 	/*
-	 * Determine how many "DRAM lines" of 1024 bytes each we need to
-	 * retrieve from the Sigma hardware, so that we have a complete
-	 * set of samples. Note that the last line need not contain 64
-	 * clusters, it might be partially filled only.
-	 *
-	 * When RMR_ROUND is set, the circular buffer in DRAM has wrapped
-	 * around. Since the status of the very next line is uncertain in
-	 * that case, we skip it and start reading from the next line.
+	 * Determine which area of the sample memory to retrieve,
+	 * allocate a receive buffer, and setup counters/pointers.
 	 */
-	dl_first_line = 0;
-	dl_lines_total = (stoppos >> ROW_SHIFT) + 1;
-	if (modestatus & RMR_ROUND) {
-		dl_first_line = dl_lines_total + 1;
-		dl_lines_total = ROW_COUNT - 2;
-	}
-	ret = alloc_sample_buffer(devc);
+	ret = alloc_sample_buffer(devc, stoppos, triggerpos, modestatus);
 	if (ret != SR_OK)
 		return FALSE;
+
 	ret = alloc_submit_buffer(sdi);
 	if (ret != SR_OK)
 		return FALSE;
 	ret = setup_submit_limit(devc);
 	if (ret != SR_OK)
 		return FALSE;
-	dl_lines_done = 0;
-	while (dl_lines_total > dl_lines_done) {
+	while (interp->fetch.lines_done < interp->fetch.lines_total) {
+		size_t dl_events_in_line, trigger_event;
 
-		/* Get another set of DRAM lines in one read. */
-		dl_lines_curr = dl_lines_total - dl_lines_done;
-		if (dl_lines_curr > interp->fetch.lines_per_read)
-			dl_lines_curr = interp->fetch.lines_per_read;
-		dl_line = dl_first_line + dl_lines_done;
-		dl_line %= ROW_COUNT;
-		ret = sigma_read_dram(devc, dl_line, dl_lines_curr,
-			(uint8_t *)interp->fetch.rcvd_lines);
+		/* Read another chunk of sample memory (several lines). */
+		ret = fetch_sample_buffer(devc);
 		if (ret != SR_OK)
 			return FALSE;
-		interp->fetch.curr_line = &interp->fetch.rcvd_lines[0];
 
-		/* Seed initial timestamp from the first DRAM line. */
-		if (dl_lines_done == 0) {
-			interp->last.ts =
-				sigma_dram_cluster_ts(&interp->fetch.curr_line->cluster[0]);
-			interp->last.sample = 0;
-		}
-
-		for (line_idx = 0; line_idx < dl_lines_curr; line_idx++) {
-			/* The last "DRAM line" need not span its full length. */
+		/* Process lines of sample data. Last line may be short. */
+		while (interp->fetch.lines_rcvd--) {
 			dl_events_in_line = EVENTS_PER_ROW;
-			if (dl_lines_done + line_idx == dl_lines_total - 1)
-				dl_events_in_line = stoppos & ROW_MASK;
-
-			/* Test if the trigger happened on this line. */
-			trigger_event = ~0UL;
-			if (dl_lines_done + line_idx == trg_line)
-				trigger_event = trg_event;
-
+			if (interp->iter.line == interp->stop.line) {
+				dl_events_in_line = interp->stop.raw & ROW_MASK;
+			}
+			trigger_event = ~UINT64_C(0);
+			if (interp->iter.line == interp->trig.line) {
+				trigger_event = interp->trig.raw & ROW_MASK;
+			}
 			decode_chunk_ts(devc, interp->fetch.curr_line,
 				dl_events_in_line, trigger_event);
 			interp->fetch.curr_line++;
+			interp->fetch.lines_done++;
+			interp->iter.line++;
+			interp->iter.line %= ROW_COUNT;
 		}
-
-		dl_lines_done += dl_lines_curr;
 	}
 	flush_submit_buffer(devc);
 	free_submit_buffer(devc);
