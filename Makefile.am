@@ -410,6 +410,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ipdbg-la/protocol.c \
 	src/hardware/ipdbg-la/api.c
 endif
+if HW_ITECH_IT8500
+src_libdrivers_la_SOURCES += \
+	src/hardware/itech-it8500/protocol.h \
+	src/hardware/itech-it8500/protocol.c \
+	src/hardware/itech-it8500/api.c
+endif
 if HW_KECHENG_KC_330B
 src_libdrivers_la_SOURCES += \
 	src/hardware/kecheng-kc-330b/protocol.h \
