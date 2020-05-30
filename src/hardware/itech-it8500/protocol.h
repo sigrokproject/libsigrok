@@ -27,9 +27,123 @@
 
 #define LOG_PREFIX "itech-it8500"
 
-struct dev_context {
+#define ITECH_IT8500_MAX_MODEL_NAME_LEN 5
+
+enum itech_it8500_modes {
+	CC = 0,
+	CV = 1,
+	CW = 2,
+	CR = 3 ,
 };
+
+enum itech_it8500_command {
+	CMD_GET_LOAD_LIMITS = 0x01,
+	CMD_SET_HW_OPP_VALUE = 0x02,
+	CMD_GET_HW_OPP_VALUE = 0x03,
+	CMD_SET_VON_MODE = 0x0e,
+	CMD_GET_VON_MODE = 0x0f,
+	CMD_SET_VON_VALUE = 0x10,
+	CMD_GET_VON_VALUE = 0x11,
+	RESPONSE = 0x12,  /* this is sent as response to command not returning data */
+	CMD_SET_REMOTE_MODE = 0x20,
+	CMD_LOAD_ON_OFF = 0x21,
+	CMD_SET_MAX_VOLTAGE = 0x22,
+	CMD_GET_MAX_VOLTAGE = 0x23,
+	CMD_SET_MAX_CURRENT = 0x24,
+	CMD_GET_MAX_CURRENT = 0x25,
+	CMD_SET_MAX_POWER = 0x26,
+	CMD_GET_MAX_POWER = 0x27,
+	CMD_SET_MODE = 0x28,
+	CMD_GET_MODE = 0x29,
+	CMD_SET_CC_CURRENT = 0x2a,
+	CMD_GET_CC_CURRENT = 0x2b,
+	CMD_SET_CV_VOLTAGE = 0x2c,
+	CMD_GET_CV_VOLTAGE = 0x2d,
+	CMD_SET_CW_POWER = 0x2e,
+	CMD_GET_CW_POWER = 0x2f,
+	CMD_SET_CR_RESISTANCE = 0x30,
+	CMD_GET_CR_RESISTANCE = 0x31,
+	CMD_SET_BATTERY_MIN_VOLTAGE = 0x4e,
+	CMD_GET_BATTERY_MIN_VOLTAGE = 0x4f,
+	CMD_SET_LOAD_ON_TIMER = 0x50,
+	CMD_GET_LOAD_ON_TIMER = 0x51,
+	CMD_LOAD_ON_TIMER = 0x52,
+	CMD_LOAD_ON_TIME_STATUS = 0x53,
+	CMD_SET_ADDRESS = 0x54,
+	CMD_LOCAL_CONTROL = 0x55,
+	CMD_REMOTE_SENSING = 0x56,
+	CMD_REMOTE_SENSING_STATUS = 0x57,
+	CMD_SET_TRIGGER_SOURCE = 0x58,
+	CMD_GET_TRIGGER_SOURCE = 0x59,
+	CMD_TRIGGER = 0x5a,
+	CMD_SAVE_SETTINGS = 0x5b,
+	CMD_LOAD_SETTINGS = 0x5c,
+	CMD_SET_FUNCTION = 0x5d,
+	CMD_GET_FUNCTION = 0x5e,
+	CMD_GET_STATE = 0x5f,
+	CMD_GET_MODEL_INFO = 0x6a,
+	CMD_GET_BARCODE_INFO = 0x6b,
+	CMD_SET_OCP_VALUE = 0x80,
+	CMD_GET_OCP_VALUE = 0x81,
+	CMD_SET_OCP_DELAY = 0x82,
+	CMD_GET_OCP_DELAY = 0x83,
+	CMD_ENABLE_OCP = 0x84,
+	CMD_DISABLE_OCP = 0x85,
+	CMD_SET_OPP_VALUE = 0x86,
+	CMD_GET_OPP_VALUE = 0x87,
+	CMD_SET_OPP_DELAY = 0x88,
+	CMD_GET_OPP_DELAY = 0x89,
+};
+
+struct itech_it8500_cmd_packet {
+	char preamble;  /* must be 0xAA */
+	char address;   /* unit address: 0..254 [255 = broadcast] (optional) */
+	char command;   /* command number */
+	char data[22];  /* command/response data (0-22 bytes) */
+	char checksum;  /* checksum (modulo 256) */
+};
+
+struct dev_context {
+	char model[ITECH_IT8500_MAX_MODEL_NAME_LEN + 1];
+	int fw_ver_major;
+	int fw_ver_minor;
+	unsigned char address;
+	double max_current;
+	double min_voltage;
+	double max_voltage;
+	double max_power;
+	double min_resistance;
+	double max_resistance;
+	double voltage;
+	double current;
+	double power;
+	unsigned char operation_state;
+	unsigned int demand_state;
+	enum itech_it8500_modes mode;
+	gboolean load_on;
+
+	unsigned int sample_rate;
+	struct sr_sw_limits limits;
+};
+
 
 SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
 
+SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
+SR_PRIV int itech_it8500_decode_int(const char *buf, unsigned char len);
+SR_PRIV void itech_it8500_encode_int(char *buf, unsigned char len, int value);
+SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode);
+SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
+					     struct sr_channel *ch, float value,
+					     enum sr_mq mq, enum sr_unit unit,
+					     int digits);
+
+SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
+				  struct itech_it8500_cmd_packet *cmd,
+				  struct itech_it8500_cmd_packet **response);
+SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
+				    struct dev_context *devc);
+SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
+				 enum itech_it8500_command command,
+				 int *result);
 #endif
