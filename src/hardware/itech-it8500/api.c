@@ -20,7 +20,7 @@
 #include <config.h>
 #include "protocol.h"
 
-#define DEFAULT_SERIALCOMM "38400/8n1"
+#define DEFAULT_SERIALCOMM "9600/8n1"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
