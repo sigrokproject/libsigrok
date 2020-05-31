@@ -1757,14 +1757,11 @@ static uint16_t sigma_deinterlace_data_4x4(uint16_t indata, int idx)
 
 static void sigma_decode_dram_cluster(struct dev_context *devc,
 	struct sigma_dram_cluster *dram_cluster,
-	size_t events_in_cluster, gboolean triggered)
+	size_t events_in_cluster)
 {
 	uint16_t tsdiff, ts, sample, item16;
 	size_t count;
 	size_t evt;
-
-	if (!devc->use_triggers || !ASIX_SIGMA_WITH_TRIGGER)
-		triggered = FALSE;
 
 	/*
 	 * If this cluster is not adjacent to the previously received
@@ -1836,29 +1833,16 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
  */
 static int decode_chunk_ts(struct dev_context *devc,
 	struct sigma_dram_line *dram_line,
-	size_t events_in_line, size_t trigger_event)
+	size_t events_in_line)
 {
 	struct sigma_dram_cluster *dram_cluster;
 	size_t clusters_in_line;
 	size_t events_in_cluster;
 	size_t cluster;
-	size_t trigger_cluster;
 
 	clusters_in_line = events_in_line;
 	clusters_in_line += EVENTS_PER_CLUSTER - 1;
 	clusters_in_line /= EVENTS_PER_CLUSTER;
-
-	/* Check if trigger is in this chunk. */
-	trigger_cluster = ~UINT64_C(0);
-	if (trigger_event < EVENTS_PER_ROW) {
-		if (devc->clock.samplerate <= SR_MHZ(50)) {
-			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
-					     trigger_event);
-		}
-
-		/* Find in which cluster the trigger occurred. */
-		trigger_cluster = trigger_event / EVENTS_PER_CLUSTER;
-	}
 
 	/* For each full DRAM cluster. */
 	for (cluster = 0; cluster < clusters_in_line; cluster++) {
@@ -1873,7 +1857,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 		}
 
 		sigma_decode_dram_cluster(devc, dram_cluster,
-			events_in_cluster, cluster == trigger_cluster);
+			events_in_cluster);
 	}
 
 	return SR_OK;
@@ -1947,7 +1931,7 @@ static int download_capture(struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return FALSE;
 	while (interp->fetch.lines_done < interp->fetch.lines_total) {
-		size_t dl_events_in_line, trigger_event;
+		size_t dl_events_in_line;
 
 		/* Read another chunk of sample memory (several lines). */
 		ret = fetch_sample_buffer(devc);
@@ -1960,12 +1944,8 @@ static int download_capture(struct sr_dev_inst *sdi)
 			if (interp->iter.line == interp->stop.line) {
 				dl_events_in_line = interp->stop.raw & ROW_MASK;
 			}
-			trigger_event = ~UINT64_C(0);
-			if (interp->iter.line == interp->trig.line) {
-				trigger_event = interp->trig.raw & ROW_MASK;
-			}
 			decode_chunk_ts(devc, interp->fetch.curr_line,
-				dl_events_in_line, trigger_event);
+				dl_events_in_line);
 			interp->fetch.curr_line++;
 			interp->fetch.lines_done++;
 		}
