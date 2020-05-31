@@ -1494,6 +1494,7 @@ static void free_sample_buffer(struct dev_context *devc)
 {
 	g_free(devc->interp.fetch.rcvd_lines);
 	devc->interp.fetch.rcvd_lines = NULL;
+	devc->interp.fetch.lines_per_read = 0;
 }
 
 /*
@@ -1870,66 +1871,93 @@ static int download_capture(struct sr_dev_inst *sdi)
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
 	int ret;
+	size_t chunks_per_receive_call;
 
 	devc = sdi->priv;
 	interp = &devc->interp;
 
-	sr_info("Downloading sample data.");
-	devc->state = SIGMA_DOWNLOAD;
-
 	/*
+	 * Check the mode register. Force stop the current acquisition
+	 * if it has not yet terminated before. Will block until the
+	 * acquisition stops, assuming that this won't take long. Should
+	 * execute exactly once, then keep finding its condition met.
+	 *
 	 * Ask the hardware to stop data acquisition. Reception of the
 	 * FORCESTOP request makes the hardware "disable RLE" (store
 	 * clusters to DRAM regardless of whether pin state changes) and
 	 * raise the POSTTRIGGERED flag.
-	 *
-	 * Then switch the hardware from DRAM write (data acquisition)
-	 * to DRAM read (sample memory download).
 	 */
-	modestatus = WMR_FORCESTOP | WMR_SDRAMWRITEEN;
-	ret = sigma_set_register(devc, WRITE_MODE, modestatus);
-	if (ret != SR_OK)
-		return ret;
-	do {
-		ret = sigma_get_register(devc, READ_MODE, &modestatus);
-		if (ret != SR_OK) {
-			sr_err("Could not poll for post-trigger state.");
+	ret = sigma_get_register(devc, READ_MODE, &modestatus);
+	if (ret != SR_OK) {
+		sr_err("Could not determine current device state.");
+		return FALSE;
+	}
+	if (!(modestatus & RMR_POSTTRIGGERED)) {
+		sr_info("Downloading sample data.");
+		devc->state = SIGMA_DOWNLOAD;
+
+		modestatus = WMR_FORCESTOP | WMR_SDRAMWRITEEN;
+		ret = sigma_set_register(devc, WRITE_MODE, modestatus);
+		if (ret != SR_OK)
 			return FALSE;
-		}
-	} while (!(modestatus & RMR_POSTTRIGGERED));
-	ret = sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
-	if (ret != SR_OK)
-		return ret;
+		do {
+			ret = sigma_get_register(devc, READ_MODE, &modestatus);
+			if (ret != SR_OK) {
+				sr_err("Could not poll for post-trigger state.");
+				return FALSE;
+			}
+		} while (!(modestatus & RMR_POSTTRIGGERED));
+	}
 
 	/*
+	 * Switch the hardware from DRAM write (data acquisition) to
+	 * DRAM read (sample memory download). Prepare resources for
+	 * sample memory content retrieval. Should execute exactly once,
+	 * then keep finding its condition met.
+	 *
 	 * Get the current positions (acquisition write pointer, and
 	 * trigger match location). With disabled triggers, use a value
 	 * for the location that will never match during interpretation.
-	 */
-	ret = sigma_read_pos(devc, &stoppos, &triggerpos, &modestatus);
-	if (ret != SR_OK) {
-		sr_err("Could not query capture positions/state.");
-		return FALSE;
-	}
-	if (!devc->use_triggers)
-		triggerpos = ~0;
-	if (!(modestatus & RMR_TRIGGERED))
-		triggerpos = ~0;
-
-	/*
 	 * Determine which area of the sample memory to retrieve,
 	 * allocate a receive buffer, and setup counters/pointers.
 	 */
-	ret = alloc_sample_buffer(devc, stoppos, triggerpos, modestatus);
-	if (ret != SR_OK)
-		return FALSE;
+	if (!interp->fetch.lines_per_read) {
+		ret = sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
+		if (ret != SR_OK)
+			return FALSE;
 
-	ret = alloc_submit_buffer(sdi);
-	if (ret != SR_OK)
-		return FALSE;
-	ret = setup_submit_limit(devc);
-	if (ret != SR_OK)
-		return FALSE;
+		ret = sigma_read_pos(devc, &stoppos, &triggerpos, &modestatus);
+		if (ret != SR_OK) {
+			sr_err("Could not query capture positions/state.");
+			return FALSE;
+		}
+		if (!devc->use_triggers)
+			triggerpos = ~0;
+		if (!(modestatus & RMR_TRIGGERED))
+			triggerpos = ~0;
+
+		ret = alloc_sample_buffer(devc, stoppos, triggerpos, modestatus);
+		if (ret != SR_OK)
+			return FALSE;
+
+		ret = alloc_submit_buffer(sdi);
+		if (ret != SR_OK)
+			return FALSE;
+		ret = setup_submit_limit(devc);
+		if (ret != SR_OK)
+			return FALSE;
+	}
+
+	/*
+	 * Get another set of sample memory rows, and interpret its
+	 * content. Will execute as many times as it takes to complete
+	 * the memory region that the recent acquisition spans.
+	 *
+	 * The size of a receive call's workload and the main loop's
+	 * receive call poll period determine the UI responsiveness and
+	 * the overall transfer time for the sample memory content.
+	 */
+	chunks_per_receive_call = 50;
 	while (interp->fetch.lines_done < interp->fetch.lines_total) {
 		size_t dl_events_in_line;
 
@@ -1949,15 +1977,35 @@ static int download_capture(struct sr_dev_inst *sdi)
 			interp->fetch.curr_line++;
 			interp->fetch.lines_done++;
 		}
+
+		/* Keep returning to application code for large data sets. */
+		if (!--chunks_per_receive_call) {
+			ret = flush_submit_buffer(devc);
+			if (ret != SR_OK)
+				return FALSE;
+			break;
+		}
 	}
-	flush_submit_buffer(devc);
-	free_submit_buffer(devc);
-	free_sample_buffer(devc);
 
-	std_session_send_df_end(sdi);
+	/*
+	 * Release previously allocated resources, and adjust state when
+	 * all of the sample memory was retrieved, and interpretation has
+	 * completed. Should execute exactly once.
+	 */
+	if (interp->fetch.lines_done >= interp->fetch.lines_total) {
+		ret = flush_submit_buffer(devc);
+		if (ret != SR_OK)
+			return FALSE;
+		free_submit_buffer(devc);
+		free_sample_buffer(devc);
 
-	devc->state = SIGMA_IDLE;
-	sr_dev_acquisition_stop(sdi);
+		ret = std_session_send_df_end(sdi);
+		if (ret != SR_OK)
+			return FALSE;
+
+		devc->state = SIGMA_IDLE;
+		sr_dev_acquisition_stop(sdi);
+	}
 
 	return TRUE;
 }
@@ -1994,11 +2042,14 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 
 	/*
 	 * When the application has requested to stop the acquisition,
-	 * then immediately start downloading sample data. Otherwise
+	 * then immediately start downloading sample data. Continue a
+	 * previously initiated download until completion. Otherwise
 	 * keep checking configured limits which will terminate the
 	 * acquisition and initiate download.
 	 */
 	if (devc->state == SIGMA_STOPPING)
+		return download_capture(sdi);
+	if (devc->state == SIGMA_DOWNLOAD)
 		return download_capture(sdi);
 	if (devc->state == SIGMA_CAPTURE)
 		return sigma_capture_mode(sdi);
