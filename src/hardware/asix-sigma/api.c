@@ -433,6 +433,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	/* Convert caller's trigger spec to driver's internal format. */
+	ret = sigma_convert_trigger(sdi);
+	if (ret != SR_OK) {
+		sr_err("Could not configure triggers.");
+		return ret;
+	}
+
 	/*
 	 * Setup the device's samplerate from the value which up to now
 	 * just got checked and stored. As a byproduct this can pick and
@@ -454,12 +461,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	ret = sigma_set_acquire_timeout(devc);
 	if (ret != SR_OK)
 		return ret;
-
-	ret = sigma_convert_trigger(sdi);
-	if (ret != SR_OK) {
-		sr_err("Could not configure triggers.");
-		return ret;
-	}
 
 	/* Enter trigger programming mode. */
 	trigsel2 = TRGSEL2_RESET;

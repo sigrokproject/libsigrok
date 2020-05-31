@@ -939,6 +939,7 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	uint64_t count_msecs, acquire_msecs;
 
 	sr_sw_limits_init(&devc->limit.acquire);
+	devc->late_trigger_timeout = FALSE;
 
 	/* Get sample count limit, convert to msecs. */
 	ret = sr_sw_limits_config_get(&devc->limit.config,
@@ -948,6 +949,10 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	user_count = g_variant_get_uint64(data);
 	g_variant_unref(data);
 	count_msecs = 0;
+	if (devc->use_triggers) {
+		user_count *= 100 - devc->capture_ratio;
+		user_count /= 100;
+	}
 	if (user_count)
 		count_msecs = 1000 * user_count / devc->clock.samplerate + 1;
 
@@ -958,14 +963,18 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 		return ret;
 	user_msecs = g_variant_get_uint64(data);
 	g_variant_unref(data);
+	if (devc->use_triggers) {
+		user_msecs *= 100 - devc->capture_ratio;
+		user_msecs /= 100;
+	}
 
 	/* Get the lesser of them, with both being optional. */
-	acquire_msecs = ~0ull;
+	acquire_msecs = ~UINT64_C(0);
 	if (user_count && count_msecs < acquire_msecs)
 		acquire_msecs = count_msecs;
 	if (user_msecs && user_msecs < acquire_msecs)
 		acquire_msecs = user_msecs;
-	if (acquire_msecs == ~0ull)
+	if (acquire_msecs == ~UINT64_C(0))
 		return SR_OK;
 
 	/* Add some slack, and use that timeout for acquisition. */
@@ -978,7 +987,12 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	if (ret != SR_OK)
 		return ret;
 
-	sr_sw_limits_acquisition_start(&devc->limit.acquire);
+	/* Deferred or immediate (trigger-less) timeout period start. */
+	if (devc->use_triggers)
+		devc->late_trigger_timeout = TRUE;
+	else
+		sr_sw_limits_acquisition_start(&devc->limit.acquire);
+
 	return SR_OK;
 }
 
@@ -2018,9 +2032,58 @@ static int download_capture(struct sr_dev_inst *sdi)
 static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int ret;
+	uint32_t stoppos, triggerpos;
+	uint8_t mode;
+	gboolean full, wrapped, triggered, complete;
 
 	devc = sdi->priv;
+
+	/*
+	 * Get and interpret current acquisition status. Some of these
+	 * thresholds are rather arbitrary.
+	 */
+	ret = sigma_read_pos(devc, &stoppos, &triggerpos, &mode);
+	if (ret != SR_OK)
+		return FALSE;
+	stoppos >>= ROW_SHIFT;
+	full = stoppos >= ROW_COUNT - 2;
+	wrapped = mode & RMR_ROUND;
+	triggered = mode & RMR_TRIGGERED;
+	complete = mode & RMR_POSTTRIGGERED;
+
+	/*
+	 * Acquisition completed in the hardware? Start or continue
+	 * sample memory content download.
+	 * (Can user initiated button presses result in auto stop?
+	 * Will they "trigger", and later result in expired time limit
+	 * of post trigger conditions?)
+	 */
+	if (complete)
+		return download_capture(sdi);
+
+	/*
+	 * Previously configured acquisition period exceeded? Start
+	 * sample download. Start the timeout period late when triggers
+	 * are used (unknown period from acquisition start to trigger
+	 * match).
+	 */
 	if (sr_sw_limits_check(&devc->limit.acquire))
+		return download_capture(sdi);
+	if (devc->late_trigger_timeout && triggered) {
+		sr_sw_limits_acquisition_start(&devc->limit.acquire);
+		devc->late_trigger_timeout = FALSE;
+	}
+
+	/*
+	 * No trigger specified, and sample memory exhausted? Start
+	 * download (may otherwise keep acquiring, even for infinite
+	 * amounts of time without a user specified time/count limit).
+	 * This handles situations when users specify limits which
+	 * exceed the device's capabilities.
+	 */
+	(void)full;
+	if (!devc->use_triggers && wrapped)
 		return download_capture(sdi);
 
 	return TRUE;

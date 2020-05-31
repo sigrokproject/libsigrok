@@ -386,6 +386,7 @@ struct dev_context {
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
 	gboolean use_triggers;
+	gboolean late_trigger_timeout;
 	enum {
 		SIGMA_UNINITIALIZED = 0,
 		SIGMA_CONFIG,
