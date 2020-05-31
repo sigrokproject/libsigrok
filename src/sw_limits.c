@@ -43,9 +43,7 @@
  */
 SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits)
 {
-	limits->limit_samples = 0;
-	limits->limit_frames = 0;
-	limits->limit_msec = 0;
+	memset(limits, 0, sizeof(*limits));
 }
 
 /**
@@ -153,7 +151,7 @@ SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits)
 		}
 	}
 
-	if (limits->limit_msec) {
+	if (limits->limit_msec && limits->start_time) {
 		guint64 now;
 		now = g_get_monotonic_time();
 		if (now > limits->start_time &&
