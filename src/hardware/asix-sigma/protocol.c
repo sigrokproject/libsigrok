@@ -1512,12 +1512,93 @@ static void free_sample_buffer(struct dev_context *devc)
 }
 
 /*
- * In 100 and 200 MHz mode, only a single pin rising/falling can be
- * set as trigger. In other modes, two rising/falling triggers can be set,
- * in addition to value/mask trigger for any number of channels.
+ * Parse application provided trigger conditions to the driver's internal
+ * presentation. Yields a mask of pins of interest, and their expected
+ * pin levels or edges.
  *
- * The Sigma supports complex triggers using boolean expressions, but this
- * has not been implemented yet.
+ * In 100 and 200 MHz mode, only a single pin's rising/falling edge can be
+ * set as trigger. In 50- MHz modes, two rising/falling edges can be set,
+ * in addition to value/mask specs for any number of channels.
+ *
+ * Hardware implementation detail: When more than one edge is specified,
+ * then the condition is only considered a match when _all_ transitions
+ * are seen in the same 20ns check interval, regardless of the user's
+ * perceived samplerate which can be a fraction of 50MHz. Which reduces
+ * practical use to edges on a single pin in addition to data patterns.
+ * Which still covers a lot of users' typical scenarios. Not an issue,
+ * just something to remain aware of.
+ *
+ * The Sigma hardware also supports complex triggers which involve the
+ * logical combination of several patterns, pulse durations, counts of
+ * condition matches, A-then-B sequences, etc. But this has not been
+ * implemented yet here, and applications may lack means to express
+ * these conditions (present the complex conditions to users for entry
+ * and review, pass application specs to drivers covering the versatile
+ * combinations).
+ *
+ * Implementor's note: This routine currently exclusively accepts input
+ * in the form of sr_trigger stages, which results from "01rf-" choices
+ * on a multitude of individual GUI traces, or the CLI's --trigger spec
+ * which takes one list of <pin>=<value/edge> details.
+ *
+ * TODO Consider the addition of SR_CONF_TRIGGER_PATTERN support, which
+ * accepts a single free form string argument, and could describe a
+ * multi-bit pattern without the tedious trace name/index selection.
+ * Fortunately the number of channels is fixed for this device, we need
+ * not come up with variable length support and counts beyond 64. _When_
+ * --trigger as well as SR_CONF_TRIGGER_PATTERN are supported, then the
+ * implementation needs to come up with priorities for these sources of
+ * input specs, or enforce exclusive use of either form (at one time,
+ * per acquisition / invocation).
+ *
+ * Text forms that may be worth supporting:
+ * - Simple forms, mere numbers, optional base specs. These are easiest
+ *   to implement with existing common conversion helpers.
+ *     triggerpattern=<value>[/<mask>]
+ *     triggerpattern=255
+ *     triggerpattern=45054
+ *     triggerpattern=0xaffe
+ *     triggerpattern=0xa0f0/0xf0f0
+ *     triggerpattern=0b1010111111111110/0x7ffe
+ * - Alternative bit pattern form, including wildcards in a single value.
+ *   This cannot use common conversion support, needs special handling.
+ *     triggerpattern=0b1010xxxx1111xxx0
+ *   This is most similar to SR_CONF_TRIGGER_PATTERN as hameg-hmo uses
+ *   it. Passes the app's spec via SCPI to the device. See section 2.3.5
+ *   "Pattern trigger" and :TRIG:A:PATT:SOUR in the Hameg document.
+ * - Prefixed form to tell the above variants apart, and support both of
+ *   them at the same time. Additional optional separator for long digit
+ *   runs, and edge support in the form which lists individual bits (not
+ *   useful for dec/hex formats).
+ *     triggerpattern=value=45054
+ *     triggerpattern=value=0b1010111111111110
+ *     triggerpattern=value=0xa0f0,mask=0xf0f0
+ *     triggerpattern=bits=1010-xxxx-1111-xxxx
+ *     triggerpattern=bits=0010-r100
+ *
+ * TODO Check this set of processing rules for completeness/correctness.
+ * - Do implement the prefixed format which covers most use cases, _and_
+ *   should be usable from CLI and GUI environments.
+ * - Default to 'bits=' prefix if none was found (and only accept one
+ *   single key/value pair in that case with the default key).
+ * - Accept dash and space separators in the 'bits=' value. Stick with
+ *   mere unseparated values for value and mask, use common conversion.
+ *   This results in transparent dec/bin/oct/hex support. Underscores?
+ * - Accept 0/1 binary digits in 'bits=', as well as r/f/e edge specs.
+ * - Only use --trigger (struct sr_trigger) when SR_CONF_TRIGGER_PATTERN
+ *   is absent? Or always accept --trigger in addition to the data pattern
+ *   spec? Then only accept edge specs from --trigger, since data pattern
+ *   was most importantly motivated by address/data bus inspection?
+ * - TODO Consider edge=<pin><slope> as an optional additional spec in
+ *   the value= and mask= group? Does that help make exclusive support
+ *   for either --trigger or -c triggerpattern acceptable?
+ *     triggerpattern=value=0xa0f0,mask=0xb0f0,edge=15r
+ *     triggerpattern=bits=1r10-xxxx-1111-xxxx
+ *     triggerpattern=1r10-xxxx-1111-xxxx
+ * - *Any* input spec regardless of format and origin must end up in the
+ *   'struct sigma_trigger' internal presentation used by this driver.
+ *   It's desirable to have sigma_convert_trigger() do all the parsing,
+ *   and constraint checking in a central location.
  */
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 {
@@ -1527,16 +1608,18 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	struct sr_trigger_match *match;
 	const GSList *l, *m;
 	uint16_t channelbit;
-	size_t trigger_set;
+	size_t edge_count;
 
 	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(devc->trigger));
 	devc->use_triggers = FALSE;
+
+	/* TODO Consider additional SR_CONF_TRIGGER_PATTERN support. */
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
 
-	trigger_set = 0;
+	edge_count = 0;
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
 		for (m = stage->matches; m; m = m->next) {
@@ -1547,7 +1630,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 			channelbit = BIT(match->channel->index);
 			if (devc->clock.samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
-				if (trigger_set) {
+				if (edge_count > 0) {
 					sr_err("100/200MHz modes limited to single trigger pin.");
 					return SR_ERR;
 				}
@@ -1560,7 +1643,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					return SR_ERR;
 				}
 
-				trigger_set++;
+				edge_count++;
 			} else {
 				/* Simple trigger support (event). */
 				if (match->match == SR_TRIGGER_ONE) {
@@ -1571,10 +1654,10 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					devc->trigger.simplemask |= channelbit;
 				} else if (match->match == SR_TRIGGER_FALLING) {
 					devc->trigger.fallingmask |= channelbit;
-					trigger_set++;
+					edge_count++;
 				} else if (match->match == SR_TRIGGER_RISING) {
 					devc->trigger.risingmask |= channelbit;
-					trigger_set++;
+					edge_count++;
 				}
 
 				/*
@@ -1582,7 +1665,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				 * but they are ORed and the current trigger syntax
 				 * does not permit ORed triggers.
 				 */
-				if (trigger_set > 1) {
+				if (edge_count > 1) {
 					sr_err("Limited to 1 edge trigger.");
 					return SR_ERR;
 				}

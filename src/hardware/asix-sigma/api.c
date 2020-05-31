@@ -51,6 +51,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	/* Consider SR_CONF_TRIGGER_PATTERN (SR_T_STRING, GET/SET) support. */
 };
 
 static const char *ext_clock_edges[] = {
