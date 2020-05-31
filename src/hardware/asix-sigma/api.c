@@ -49,10 +49,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#if ASIX_SIGMA_WITH_TRIGGER
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-#endif
 };
 
 static const char *ext_clock_edges[] = {
@@ -61,14 +59,12 @@ static const char *ext_clock_edges[] = {
 	[SIGMA_CLOCK_EDGE_EITHER] = "either",
 };
 
-#if ASIX_SIGMA_WITH_TRIGGER
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
 };
-#endif
 
 static void clear_helper(struct dev_context *devc)
 {
@@ -317,11 +313,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
 		return sr_sw_limits_config_get(&devc->limit.config, key, data);
-#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -376,11 +370,9 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
 		return sr_sw_limits_config_set(&devc->limit.config, key, data);
-#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -407,11 +399,9 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_edges));
 		break;
-#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -593,7 +583,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Start acqusition. */
 	regval = WMR_TRGRES | WMR_SDRAMWRITEEN;
-	if (devc->use_triggers && ASIX_SIGMA_WITH_TRIGGER)
+	if (devc->use_triggers)
 		regval |= WMR_TRGEN;
 	ret = sigma_set_register(devc, WRITE_MODE, regval);
 	if (ret != SR_OK)

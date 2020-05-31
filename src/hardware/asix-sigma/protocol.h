@@ -33,14 +33,6 @@
 
 #define LOG_PREFIX "asix-sigma"
 
-/*
- * Triggers are not working in this implementation. Stop claiming
- * support for the feature which effectively is not available, until
- * the implementation got fixed. Yet keep the code in place and allow
- * developers to turn on this switch during development.
- */
-#define ASIX_SIGMA_WITH_TRIGGER	1
-
 /* Experimental support for OMEGA (scan only, operation is ENOIMPL). */
 #define ASIX_WITH_OMEGA 0
 

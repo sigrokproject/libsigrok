@@ -1536,11 +1536,6 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	if (!trigger)
 		return SR_OK;
 
-	if (!ASIX_SIGMA_WITH_TRIGGER) {
-		sr_warn("Trigger support is not implemented. Ignoring the spec.");
-		return SR_OK;
-	}
-
 	trigger_set = 0;
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
