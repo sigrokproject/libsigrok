@@ -84,7 +84,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	GSList *l;
 	struct itech_it8500_cmd_packet *cmd, *response;
-	int fw_major, fw_minor;
+	uint8_t fw_major, fw_minor;
 	char *unit_model, *unit_serial;
 	double max_i, max_v, min_v, max_p, max_r, min_r;
 	int ret;
@@ -137,10 +137,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto error;
 	fw_major = response->data[6];
 	fw_minor = response->data[5];
-	response->data[5]=0;
-	unit_model = g_strdup(&response->data[0]);
-	response->data[17]=0;
-	unit_serial = g_strdup(&response->data[7]);
+	response->data[5] = 0;
+	unit_model = g_strdup((const char*)&response->data[0]);
+	response->data[17] = 0;
+	unit_serial = g_strdup((const char*)&response->data[7]);
 	sr_info("Model name: %s (v%x.%02x)", unit_model, fw_major, fw_minor);
 	sr_info("Serial number: %s", unit_serial);
 	sr_info("Address: %d", response->address);
@@ -151,12 +151,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	cmd->command = CMD_GET_LOAD_LIMITS;
 	if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK)
 		goto error;
-	max_i = itech_it8500_decode_int(&response->data[0],4) / 10000.0;
-	max_v = itech_it8500_decode_int(&response->data[4],4) / 1000.0;
-	min_v = itech_it8500_decode_int(&response->data[8],4) / 1000.0;
-	max_p = itech_it8500_decode_int(&response->data[12],4) / 1000.0;
-	max_r = itech_it8500_decode_int(&response->data[16],4) / 1000.0;
-	min_r = itech_it8500_decode_int(&response->data[20],2) / 1000.0;
+	max_i = itech_it8500_decode_int(&response->data[0], 4) / 10000.0;
+	max_v = itech_it8500_decode_int(&response->data[4], 4) / 1000.0;
+	min_v = itech_it8500_decode_int(&response->data[8], 4) / 1000.0;
+	max_p = itech_it8500_decode_int(&response->data[12], 4) / 1000.0;
+	max_r = itech_it8500_decode_int(&response->data[16], 4) / 1000.0;
+	min_r = itech_it8500_decode_int(&response->data[20], 2) / 1000.0;
 	sr_info("Max current: %.0f A", max_i);
 	sr_info("Max power: %.0f W", max_p);
 	sr_info("Voltage range: %.1f - %.1f V", min_v, max_v);
@@ -259,8 +259,8 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_REGULATION:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
-			*data = g_variant_new_string(itech_it8500_mode_to_string(
-							     devc->mode));
+			*data = g_variant_new_string(
+				itech_it8500_mode_to_string(devc->mode));
 		}
 		break;
 	case SR_CONF_VOLTAGE:
@@ -269,8 +269,8 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		if ((ret = itech_it8500_get_int(serial,
-						CMD_GET_CV_VOLTAGE, &ivalue)) == SR_OK) {
+		if ((ret = itech_it8500_get_int(serial, CMD_GET_CV_VOLTAGE,
+						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
 		}
 		break;
@@ -280,22 +280,25 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		if ((ret = itech_it8500_get_int(serial,
-						CMD_GET_CC_CURRENT, &ivalue)) == SR_OK) {
+		if ((ret = itech_it8500_get_int(serial, CMD_GET_CC_CURRENT,
+						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 10000.0);
 		}
 		break;
 
 #if 0
-        /* commented out for now as libsigrok doesnt yet have CW / CR mode support... */
+        /*
+	 * commented out for now as libsigrok doesnt yet have CW / CR mode
+	 * support...
+	 */
 	case SR_CONF_POWER:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
 			*data = g_variant_new_double(devc->power);
 		}
 		break;
 	case SR_CONF_POWER_LIMIT:
-		if ((ret = itech_it8500_get_int(serial,
-						CMD_GET_CW_POWER, &ivalue)) == SR_OK) {
+		if ((ret = itech_it8500_get_int(serial, CMD_GET_CW_POWER,
+						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
 		}
 		break;
@@ -313,7 +316,8 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
-			*data = g_variant_new_boolean(devc->demand_state & 0x0002);
+			*data = g_variant_new_boolean(devc->demand_state
+						      & 0x0002);
 		}
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
@@ -329,12 +333,12 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
-			*data = g_variant_new_boolean(devc->demand_state & 0x0004);
+			*data = g_variant_new_boolean(devc->demand_state
+						      & 0x0004);
 		}
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		if ((ret = itech_it8500_get_int(serial,
-						CMD_GET_MAX_CURRENT,
+		if ((ret = itech_it8500_get_int(serial, CMD_GET_MAX_CURRENT,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 10000.0);
 		}
@@ -344,8 +348,10 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
-			*data = g_variant_new_boolean(devc->demand_state & 0x0010);
+		if ((ret = itech_it8500_get_status(serial, devc))
+		    == SR_OK) {
+			*data = g_variant_new_boolean(devc->demand_state
+						      & 0x0010);
 		}
 		break;
 
@@ -363,7 +369,8 @@ static int config_set(uint32_t key, GVariant *data,
 	struct sr_serial_dev_inst *serial;
 	struct itech_it8500_cmd_packet *cmd, *response;
 	int ret, ivalue;
-	unsigned int new_sr;
+	uint64_t new_sr;
+	const char *s;
 
 	sr_dbg("%s(%u,%p,%p,%p): called", __func__, key, data, sdi, cg);
 
@@ -400,14 +407,15 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_REGULATION:
 		cmd->command = CMD_SET_MODE;
-		if (!strncmp(g_variant_get_string(data, NULL),"CV",2)) {
-			cmd->data[0]=1;
-		} else if (!strncmp(g_variant_get_string(data, NULL),"CC",2)) {
-			cmd->data[0]=0;
-		} else if (!strncmp(g_variant_get_string(data, NULL),"CW",2)) {
-			cmd->data[0]=2;
-		} else if (!strncmp(g_variant_get_string(data, NULL),"CR",2)) {
-			cmd->data[0]=3;
+		s = g_variant_get_string(data, NULL);
+		if (!strncmp(s, "CV", 2)) {
+			cmd->data[0] = 1;
+		} else if (!strncmp(s, "CC", 2)) {
+			cmd->data[0] = 0;
+		} else if (!strncmp(s, "CW", 2)) {
+			cmd->data[0] = 2;
+		} else if (!strncmp(s, "CR", 2)) {
+			cmd->data[0] = 3;
 		} else {
 			ret = SR_ERR_NA;
 			break;
@@ -478,12 +486,16 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_VOLTAGE_TARGET:
 		if (!devc)
 			return SR_ERR_ARG;
-		*data = std_gvar_min_max_step(devc->min_voltage, devc->max_voltage, 0.01);
+		*data = std_gvar_min_max_step(devc->min_voltage,
+					      devc->max_voltage,
+					      0.01);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		if (!devc)
 			return SR_ERR_ARG;
-		*data = std_gvar_min_max_step(0.0, devc->max_current, 0.001);
+		*data = std_gvar_min_max_step(0.0,
+					      devc->max_current,
+					      0.001);
 		break;
 
 	default:

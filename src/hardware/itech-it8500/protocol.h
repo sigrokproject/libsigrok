@@ -95,19 +95,23 @@ enum itech_it8500_command {
 	CMD_GET_OPP_DELAY = 0x89,
 };
 
+/*
+ * this is data structure sent to the load, must use only uint8_t to
+ * keep code portable...
+ */
 struct itech_it8500_cmd_packet {
-	char preamble;  /* must be 0xAA */
-	char address;   /* unit address: 0..254 [255 = broadcast] (optional) */
-	char command;   /* command number */
-	char data[22];  /* command/response data (0-22 bytes) */
-	char checksum;  /* checksum (modulo 256) */
+	uint8_t preamble;  /* must be 0xAA */
+	uint8_t address;   /* unit address: 0..254 [255 = broadcast] (optional) */
+	uint8_t command;   /* command number */
+	uint8_t data[22];  /* command/response data (0-22 bytes) */
+	uint8_t checksum;  /* checksum (modulo 256) */
 };
 
 struct dev_context {
 	char model[ITECH_IT8500_MAX_MODEL_NAME_LEN + 1];
-	int fw_ver_major;
-	int fw_ver_minor;
-	unsigned char address;
+	uint8_t fw_ver_major;
+	uint8_t fw_ver_minor;
+	uint8_t address;
 	double max_current;
 	double min_voltage;
 	double max_voltage;
@@ -117,12 +121,12 @@ struct dev_context {
 	double voltage;
 	double current;
 	double power;
-	unsigned char operation_state;
-	unsigned int demand_state;
+	uint8_t operation_state;
+	uint16_t demand_state;
 	enum itech_it8500_modes mode;
 	gboolean load_on;
 
-	unsigned int sample_rate;
+	uint64_t sample_rate;
 	struct sr_sw_limits limits;
 };
 
@@ -130,8 +134,8 @@ struct dev_context {
 SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
-SR_PRIV int itech_it8500_decode_int(const char *buf, unsigned char len);
-SR_PRIV void itech_it8500_encode_int(char *buf, unsigned char len, int value);
+SR_PRIV int itech_it8500_decode_int(const uint8_t *buf, uint8_t len);
+SR_PRIV void itech_it8500_encode_int(uint8_t *buf, uint8_t len, int value);
 SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode);
 SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 					     struct sr_channel *ch, float value,

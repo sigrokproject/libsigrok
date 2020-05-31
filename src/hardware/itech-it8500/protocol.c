@@ -41,7 +41,7 @@ SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
 	return checksum;
 }
 
-SR_PRIV int itech_it8500_decode_int(const char *buf, unsigned char len)
+SR_PRIV int itech_it8500_decode_int(const uint8_t *buf, uint8_t len)
 {
 	int i;
 
@@ -60,7 +60,7 @@ SR_PRIV int itech_it8500_decode_int(const char *buf, unsigned char len)
 	return i;
 }
 
-SR_PRIV void itech_it8500_encode_int(char *buf, unsigned char len, int value)
+SR_PRIV void itech_it8500_encode_int(uint8_t *buf, uint8_t len, int value)
 {
 	if (!buf || len < 1)
 		return;
@@ -120,20 +120,21 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 
 	ret = serial_read_blocking(serial, resp, packet_size, 100);
 	if (ret < packet_size) {
-		sr_err("%s: timeout waiting response to command: %d", __func__, ret);
+		sr_err("%s: timeout waiting response to command: %d",
+		       __func__, ret);
 		goto error;
 	}
 	sr_spew("%s: response packet received: %02x", __func__, resp->command);
 
 	if (resp->preamble != 0xaa) {
-		sr_err("%s: invalid packet received (first byte: %02x)", __func__,
-		       resp->preamble);
+		sr_err("%s: invalid packet received (first byte: %02x)",
+		       __func__, resp->preamble);
 		goto error;
 	}
 
 	checksum = itech_it8500_checksum(resp);
 	if (resp->checksum != checksum) {
-		sr_err("%s: invalid response packet received: checksum mismatch",
+		sr_err("%s: invalid packet received: checksum mismatch",
 		       __func__);
 		goto error;
 	}
@@ -146,7 +147,8 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 		}
 	} else {
 		if (resp->command != cmd->command) {
-			sr_err("%s: invalid response received: %02x (expected: %02x)",
+			sr_err("%s: invalid response received: %02x"
+			       " (expected: %02x)",
 			       __func__, resp->command, cmd->command);
 			goto error;
 		}
@@ -191,7 +193,7 @@ SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
 		current = itech_it8500_decode_int(&resp->data[4], 4) / 10000.0;
 		power = itech_it8500_decode_int(&resp->data[8], 4) / 1000.0;
 		operation_state = resp->data[12];
-		demand_state = itech_it8500_decode_int(&resp->data[13],2);
+		demand_state = itech_it8500_decode_int(&resp->data[13], 2);
 		if (demand_state & 0x0040)
 			mode = CC;
 		else if (demand_state & 0x0080)
@@ -255,7 +257,12 @@ SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
 	return ret;
 }
 
-SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi, struct sr_channel *ch, float value, enum sr_mq mq, enum sr_unit unit, int digits)
+SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
+					     struct sr_channel *ch,
+					     float value,
+					     enum sr_mq mq,
+					     enum sr_unit unit,
+					     int digits)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -285,7 +292,8 @@ SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data)
 	GSList *l;
 	int ret;
 
-	sr_spew("%s(%d,%d,%p): called (%d)", __func__, fd, revents, cb_data,G_IO_IN);
+	sr_spew("%s(%d,%d,%p): called (%d)", __func__, fd, revents,
+		cb_data, G_IO_IN);
 
 	(void)fd;
 	(void)revents;
@@ -303,16 +311,22 @@ SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data)
 		std_session_send_df_frame_begin(sdi);
 
 		l = g_slist_nth(sdi->channels, 0);
-		itech_it8500_channel_send_value(sdi, l->data, (float) devc->voltage,
-						SR_MQ_VOLTAGE, SR_UNIT_VOLT, 5);
+		itech_it8500_channel_send_value(sdi, l->data,
+						(float) devc->voltage,
+						SR_MQ_VOLTAGE,
+						SR_UNIT_VOLT, 5);
 
 		l = g_slist_nth(sdi->channels, 1);
-		itech_it8500_channel_send_value(sdi, l->data, (float) devc->current,
-						SR_MQ_CURRENT, SR_UNIT_AMPERE, 5);
+		itech_it8500_channel_send_value(sdi, l->data,
+						(float) devc->current,
+						SR_MQ_CURRENT,
+						SR_UNIT_AMPERE, 5);
 
 		l = g_slist_nth(sdi->channels, 2);
-		itech_it8500_channel_send_value(sdi, l->data, (float) devc->power,
-						SR_MQ_POWER, SR_UNIT_WATT, 5);
+		itech_it8500_channel_send_value(sdi, l->data,
+						(float) devc->power,
+						SR_MQ_POWER,
+						SR_UNIT_WATT, 5);
 
 		std_session_send_df_frame_end(sdi);
 		sr_sw_limits_update_samples_read(&devc->limits, 1);
