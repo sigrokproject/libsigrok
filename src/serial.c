@@ -574,7 +574,7 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 	const char *paramstr)
 {
 /** @cond PRIVATE */
-#define SERIAL_COMM_SPEC "^(\\d+)/([5678])([neo])([12])(.*)$"
+#define SERIAL_COMM_SPEC "^(\\d+)(/([5678])([neo])([12]))?(.*)$"
 /** @endcond */
 
 	GRegex *reg;
@@ -582,7 +582,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 	int speed, databits, parity, stopbits, flow, rts, dtr, i;
 	char *mstr, **opts, **kv;
 
-	speed = databits = parity = stopbits = flow = 0;
+	speed = flow = 0;
+	databits = 8;
+	parity = SP_PARITY_NONE;
+	stopbits = 1;
 	rts = dtr = -1;
 	sr_spew("Parsing parameters from \"%s\".", paramstr);
 	reg = g_regex_new(SERIAL_COMM_SPEC, 0, 0, NULL);
@@ -590,10 +593,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		if ((mstr = g_match_info_fetch(match, 1)))
 			speed = strtoul(mstr, NULL, 10);
 		g_free(mstr);
-		if ((mstr = g_match_info_fetch(match, 2)))
+		if ((mstr = g_match_info_fetch(match, 3)) && mstr[0])
 			databits = strtoul(mstr, NULL, 10);
 		g_free(mstr);
-		if ((mstr = g_match_info_fetch(match, 3))) {
+		if ((mstr = g_match_info_fetch(match, 4)) && mstr[0]) {
 			switch (mstr[0]) {
 			case 'n':
 				parity = SP_PARITY_NONE;
@@ -607,10 +610,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 			}
 		}
 		g_free(mstr);
-		if ((mstr = g_match_info_fetch(match, 4)))
+		if ((mstr = g_match_info_fetch(match, 5)) && mstr[0])
 			stopbits = strtoul(mstr, NULL, 10);
 		g_free(mstr);
-		if ((mstr = g_match_info_fetch(match, 5)) && mstr[0] != '\0') {
+		if ((mstr = g_match_info_fetch(match, 6)) && mstr[0] != '\0') {
 			if (mstr[0] != '/') {
 				sr_dbg("missing separator before extra options");
 				speed = 0;
@@ -658,6 +661,8 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 	}
 	g_match_info_unref(match);
 	g_regex_unref(reg);
+	sr_spew("Got params: rate %d, frame %d/%d/%d, flow %d, rts %d, dtr %d.",
+		speed, databits, parity, stopbits, flow, rts, dtr);
 
 	if (speed) {
 		return serial_set_params(serial, speed, databits, parity,
