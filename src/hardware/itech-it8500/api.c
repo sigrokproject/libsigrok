@@ -175,12 +175,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	cmd->command = CMD_GET_LOAD_LIMITS;
 	if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK)
 		goto error;
-	max_i = itech_it8500_decode_int(&response->data[0], 4) / 10000.0;
-	max_v = itech_it8500_decode_int(&response->data[4], 4) / 1000.0;
-	min_v = itech_it8500_decode_int(&response->data[8], 4) / 1000.0;
-	max_p = itech_it8500_decode_int(&response->data[12], 4) / 1000.0;
-	max_r = itech_it8500_decode_int(&response->data[16], 4) / 1000.0;
-	min_r = itech_it8500_decode_int(&response->data[20], 2) / 1000.0;
+	max_i = RL32(&response->data[0]) / 10000.0;
+	max_v = RL32(&response->data[4]) / 1000.0;
+	min_v = RL32(&response->data[8]) / 1000.0;
+	max_p = RL32(&response->data[12]) / 1000.0;
+	max_r = RL32(&response->data[16]) / 1000.0;
+	min_r = RL16(&response->data[20]) / 1000.0;
 	sr_info("Max current: %.0f A", max_i);
 	sr_info("Max power: %.0f W", max_p);
 	sr_info("Voltage range: %.1f - %.1f V", min_v, max_v);
@@ -453,25 +453,25 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_TARGET:
 		cmd->command = CMD_SET_CV_VOLTAGE;
 		ivalue = g_variant_get_double(data) * 1000.0;
-		itech_it8500_encode_int(&cmd->data[0], 4, ivalue);
+		WL32(&cmd->data[0], ivalue);
 		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		cmd->command = CMD_SET_CC_CURRENT;
 		ivalue = g_variant_get_double(data) * 10000.0;
-		itech_it8500_encode_int(&cmd->data[0], 4, ivalue);
+		WL32(&cmd->data[0], ivalue);
 		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		cmd->command = CMD_SET_MAX_VOLTAGE;
 		ivalue = g_variant_get_double(data) * 1000.0;
-		itech_it8500_encode_int(&cmd->data[0], 4, ivalue);
+		WL32(&cmd->data[0], ivalue);
 		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		cmd->command = CMD_SET_MAX_CURRENT;
 		ivalue = g_variant_get_double(data) * 10000.0;
-		itech_it8500_encode_int(&cmd->data[0], 4, ivalue);
+		WL32(&cmd->data[0], ivalue);
 		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 

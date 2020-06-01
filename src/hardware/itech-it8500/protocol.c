@@ -41,40 +41,6 @@ SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
 	return checksum;
 }
 
-SR_PRIV int itech_it8500_decode_int(const uint8_t *buf, uint8_t len)
-{
-	int i;
-
-	if (!buf || !(len == 1 || len == 2 || len == 4))
-		return -1;
-
-	i = (unsigned char)buf[0];
-	if (len >= 2) {
-		i += (unsigned char)buf[1] << 8;
-		if (len >= 4) {
-			i += (unsigned char)buf[2] << 16;
-			i += (unsigned char)buf[3] << 24;
-		}
-	}
-
-	return i;
-}
-
-SR_PRIV void itech_it8500_encode_int(uint8_t *buf, uint8_t len, int value)
-{
-	if (!buf || len < 1)
-		return;
-
-	buf[0] = value & 0xff;
-	if (len < 2)
-		return;
-	buf[1] = (value >> 8) & 0xff;
-	if (len < 4)
-		return;
-	buf[2] = (value >> 16) & 0xff;
-	buf[3] = (value >> 24) & 0xff;
-}
-
 SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode)
 {
 	switch (mode) {
@@ -189,11 +155,11 @@ SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
 
 	ret = itech_it8500_send_cmd(serial, cmd, &resp);
 	if (ret == SR_OK) {
-		voltage = itech_it8500_decode_int(&resp->data[0], 4) / 1000.0;
-		current = itech_it8500_decode_int(&resp->data[4], 4) / 10000.0;
-		power = itech_it8500_decode_int(&resp->data[8], 4) / 1000.0;
+		voltage = RL32(&resp->data[0]) / 1000.0;
+		current = RL32(&resp->data[4]) / 10000.0;
+		power = RL32(&resp->data[8]) / 1000.0;
 		operation_state = resp->data[12];
-		demand_state = itech_it8500_decode_int(&resp->data[13], 2);
+		demand_state = RL16(&resp->data[13]);
 		if (demand_state & 0x0040)
 			mode = CC;
 		else if (demand_state & 0x0080)
@@ -247,7 +213,7 @@ SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
 
 	ret = itech_it8500_send_cmd(serial, cmd, &resp);
 	if (ret == SR_OK) {
-		*result = itech_it8500_decode_int(&resp->data[0], 4);
+		*result = RL32(&resp->data[0]);
 	}
 
 	g_free(cmd);

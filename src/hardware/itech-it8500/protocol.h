@@ -134,8 +134,6 @@ struct dev_context {
 SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
 
 SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
-SR_PRIV int itech_it8500_decode_int(const uint8_t *buf, uint8_t len);
-SR_PRIV void itech_it8500_encode_int(uint8_t *buf, uint8_t len, int value);
 SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode);
 SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 					     struct sr_channel *ch, float value,
