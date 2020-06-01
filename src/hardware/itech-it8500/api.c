@@ -22,6 +22,11 @@
 
 #define DEFAULT_SERIALCOMM "9600/8n1"
 
+#define MIN_SAMPLE_RATE SR_HZ(1)
+#define MAX_SAMPLE_RATE SR_HZ(60)
+#define DEFAULT_SAMPLE_RATE SR_HZ(10)
+
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -58,12 +63,6 @@ static const uint32_t devopts_cg[] = {
 	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
 };
 
-
-#define MIN_SAMPLE_RATE SR_HZ(1)
-#define MAX_SAMPLE_RATE SR_HZ(60)
-#define DEFAULT_SAMPLE_RATE SR_HZ(10)
-#define SAMPLERATES_LIST_LEN  (sizeof(samplerates)/sizeof(uint64_t))
-
 static const uint64_t samplerates[] = {
 	SR_HZ(1),
 	SR_HZ(2),
@@ -78,6 +77,7 @@ static const uint64_t samplerates[] = {
 };
 
 static struct sr_dev_driver itech_it8500_driver_info;
+
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -147,7 +147,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (max_samplerate > MAX_SAMPLE_RATE)
 		max_samplerate = MAX_SAMPLE_RATE;
 	devc->max_sample_rate_idx = 0;
-	for (u = 0; u < SAMPLERATES_LIST_LEN; u++) {
+	for (u = 0; u < ARRAY_SIZE(samplerates); u++) {
 		if (samplerates[u] > max_samplerate)
 			break;
 		devc->max_sample_rate_idx = u;
@@ -509,7 +509,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(samplerates,
+		*data = std_gvar_samplerates_steps(samplerates, 1 +
 						   devc->max_sample_rate_idx);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
