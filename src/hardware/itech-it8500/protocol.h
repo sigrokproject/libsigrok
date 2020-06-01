@@ -125,7 +125,7 @@ struct dev_context {
 	uint16_t demand_state;
 	enum itech_it8500_modes mode;
 	gboolean load_on;
-
+	uint32_t max_sample_rate_idx;
 	uint64_t sample_rate;
 	struct sr_sw_limits limits;
 };

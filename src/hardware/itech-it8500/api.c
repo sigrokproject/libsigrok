@@ -60,15 +60,21 @@ static const uint32_t devopts_cg[] = {
 
 
 #define MIN_SAMPLE_RATE SR_HZ(1)
-#define MAX_SAMPLE_RATE SR_HZ(100)
+#define MAX_SAMPLE_RATE SR_HZ(60)
+#define DEFAULT_SAMPLE_RATE SR_HZ(10)
+#define SAMPLERATES_LIST_LEN  (sizeof(samplerates)/sizeof(uint64_t))
 
 static const uint64_t samplerates[] = {
 	SR_HZ(1),
 	SR_HZ(2),
 	SR_HZ(5),
 	SR_HZ(10),
+	SR_HZ(15),
+	SR_HZ(20),
+	SR_HZ(30),
+	SR_HZ(40),
 	SR_HZ(50),
-	SR_HZ(100),
+	SR_HZ(60),
 };
 
 static struct sr_dev_driver itech_it8500_driver_info;
@@ -87,6 +93,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	uint8_t fw_major, fw_minor;
 	char *unit_model, *unit_serial;
 	double max_i, max_v, min_v, max_p, max_r, min_r;
+	uint64_t max_samplerate;
+	uint32_t u;
 	int ret;
 
 
@@ -128,6 +136,22 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto error;
 	serial_flush(serial);
+
+	/*
+	 * calculate maxium "safe" sample rate based on serial connection
+	 * speed (bit rate)
+	 */
+	max_samplerate = (serial->comm_params.bit_rate / 9600) * 15;
+	if (max_samplerate <  15)
+		max_samplerate = 10;
+	if (max_samplerate > MAX_SAMPLE_RATE)
+		max_samplerate = MAX_SAMPLE_RATE;
+	devc->max_sample_rate_idx = 0;
+	for (u = 0; u < SAMPLERATES_LIST_LEN; u++) {
+		if (samplerates[u] > max_samplerate)
+			break;
+		devc->max_sample_rate_idx = u;
+	}
 
 	/*
 	 * get load model information
@@ -187,7 +211,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->max_power = max_p;
 	devc->min_resistance = min_r;
 	devc->max_resistance = max_r;
-	devc->sample_rate = SR_HZ(10);
+	devc->sample_rate = DEFAULT_SAMPLE_RATE;
+	sr_info("Default sample rate: %lld Hz", devc->sample_rate);
+	sr_info("Maximum sample rate: %lld Hz",
+		samplerates[devc->max_sample_rate_idx]);
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -394,7 +421,8 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		new_sr = g_variant_get_uint64(data);
-		if (new_sr < MIN_SAMPLE_RATE || new_sr > MAX_SAMPLE_RATE) {
+		if (new_sr < MIN_SAMPLE_RATE ||
+		    new_sr > samplerates[devc->max_sample_rate_idx]) {
 			ret = SR_ERR_SAMPLERATE;
 			break;
 		}
@@ -481,7 +509,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		*data = std_gvar_samplerates_steps(samplerates,
+						   devc->max_sample_rate_idx);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		if (!devc)
