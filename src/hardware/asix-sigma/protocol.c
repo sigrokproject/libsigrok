@@ -382,7 +382,7 @@ static int sigma_read_pos(struct dev_context *devc,
 }
 
 static int sigma_read_dram(struct dev_context *devc,
-	uint16_t startchunk, size_t numchunks, uint8_t *data)
+	size_t startchunk, size_t numchunks, uint8_t *data)
 {
 	uint8_t buf[128], *wrptr, regval;
 	size_t chunk;
@@ -432,11 +432,12 @@ static int sigma_read_dram(struct dev_context *devc,
 SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	struct triggerlut *lut)
 {
-	int lut_addr;
+	size_t lut_addr;
 	uint16_t bit;
 	uint8_t m3d, m2d, m1d, m0d;
 	uint8_t buf[6], *wrptr;
-	uint16_t selreg;
+	uint8_t trgsel2;
+	uint16_t lutreg, selreg;
 	int ret;
 
 	/*
@@ -446,49 +447,49 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 	 * which combines pin levels or edges.
 	 */
 	for (lut_addr = 0; lut_addr < 16; lut_addr++) {
-		bit = 1 << lut_addr;
+		bit = BIT(lut_addr);
 
 		/* - M4 M3S M3Q */
 		m3d = 0;
 		if (lut->m4 & bit)
-			m3d |= 1 << 2;
+			m3d |= BIT(2);
 		if (lut->m3s & bit)
-			m3d |= 1 << 1;
+			m3d |= BIT(1);
 		if (lut->m3q & bit)
-			m3d |= 1 << 0;
+			m3d |= BIT(0);
 
 		/* M2D3 M2D2 M2D1 M2D0 */
 		m2d = 0;
 		if (lut->m2d[3] & bit)
-			m2d |= 1 << 3;
+			m2d |= BIT(3);
 		if (lut->m2d[2] & bit)
-			m2d |= 1 << 2;
+			m2d |= BIT(2);
 		if (lut->m2d[1] & bit)
-			m2d |= 1 << 1;
+			m2d |= BIT(1);
 		if (lut->m2d[0] & bit)
-			m2d |= 1 << 0;
+			m2d |= BIT(0);
 
 		/* M1D3 M1D2 M1D1 M1D0 */
 		m1d = 0;
 		if (lut->m1d[3] & bit)
-			m1d |= 1 << 3;
+			m1d |= BIT(3);
 		if (lut->m1d[2] & bit)
-			m1d |= 1 << 2;
+			m1d |= BIT(2);
 		if (lut->m1d[1] & bit)
-			m1d |= 1 << 1;
+			m1d |= BIT(1);
 		if (lut->m1d[0] & bit)
-			m1d |= 1 << 0;
+			m1d |= BIT(0);
 
 		/* M0D3 M0D2 M0D1 M0D0 */
 		m0d = 0;
 		if (lut->m0d[3] & bit)
-			m0d |= 1 << 3;
+			m0d |= BIT(3);
 		if (lut->m0d[2] & bit)
-			m0d |= 1 << 2;
+			m0d |= BIT(2);
 		if (lut->m0d[1] & bit)
-			m0d |= 1 << 1;
+			m0d |= BIT(1);
 		if (lut->m0d[0] & bit)
-			m0d |= 1 << 0;
+			m0d |= BIT(0);
 
 		/*
 		 * Send 16bits with M3D/M2D and M1D/M0D bit masks to the
@@ -497,15 +498,19 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 		 * programming.
 		 */
 		wrptr = buf;
-		write_u8_inc(&wrptr, (m3d << 4) | (m2d << 0));
-		write_u8_inc(&wrptr, (m1d << 4) | (m0d << 0));
+		lutreg = 0;
+		lutreg <<= 4; lutreg |= m3d;
+		lutreg <<= 4; lutreg |= m2d;
+		lutreg <<= 4; lutreg |= m1d;
+		lutreg <<= 4; lutreg |= m0d;
+		write_u16be_inc(&wrptr, lutreg);
 		ret = sigma_write_register(devc, WRITE_TRIGGER_SELECT,
 			buf, wrptr - buf);
 		if (ret != SR_OK)
 			return ret;
-		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2,
-			TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
-			(lut_addr & TRGSEL2_LUT_ADDR_MASK));
+		trgsel2 = TRGSEL2_RESET | TRGSEL2_LUT_WRITE |
+			(lut_addr & TRGSEL2_LUT_ADDR_MASK);
+		ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, trgsel2);
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -553,14 +558,14 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
  * mode and sending configuration data. Set D7 and toggle D2, D3, D4
  * a few times.
  */
-#define BB_PIN_CCLK (1 << 0) /* D0, CCLK */
-#define BB_PIN_PROG (1 << 1) /* D1, PROG */
-#define BB_PIN_D2   (1 << 2) /* D2, (part of) SUICIDE */
-#define BB_PIN_D3   (1 << 3) /* D3, (part of) SUICIDE */
-#define BB_PIN_D4   (1 << 4) /* D4, (part of) SUICIDE (unused?) */
-#define BB_PIN_INIT (1 << 5) /* D5, INIT, input pin */
-#define BB_PIN_DIN  (1 << 6) /* D6, DIN */
-#define BB_PIN_D7   (1 << 7) /* D7, (part of) SUICIDE */
+#define BB_PIN_CCLK BIT(0) /* D0, CCLK */
+#define BB_PIN_PROG BIT(1) /* D1, PROG */
+#define BB_PIN_D2   BIT(2) /* D2, (part of) SUICIDE */
+#define BB_PIN_D3   BIT(3) /* D3, (part of) SUICIDE */
+#define BB_PIN_D4   BIT(4) /* D4, (part of) SUICIDE (unused?) */
+#define BB_PIN_INIT BIT(5) /* D5, INIT, input pin */
+#define BB_PIN_DIN  BIT(6) /* D6, DIN */
+#define BB_PIN_D7   BIT(7) /* D7, (part of) SUICIDE */
 
 #define BB_BITRATE (750 * 1000)
 #define BB_PINMASK (0xff & ~BB_PIN_INIT)
@@ -601,7 +606,8 @@ static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 		BB_PIN_CCLK,
 		BB_PIN_CCLK,
 	};
-	int retries, ret;
+	size_t retries;
+	int ret;
 	uint8_t data;
 
 	/* Section 2. part 1), do the FPGA suicide. */
@@ -746,7 +752,7 @@ static int sigma_fpga_init_la(struct dev_context *devc)
  * by the caller of this function.
  */
 static int sigma_fw_2_bitbang(struct sr_context *ctx, const char *name,
-	uint8_t **bb_cmd, gsize *bb_cmd_size)
+	uint8_t **bb_cmd, size_t *bb_cmd_size)
 {
 	uint8_t *firmware;
 	size_t file_size;
@@ -837,7 +843,7 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 		return SR_OK;
 	}
 
-	devc->state.state = SIGMA_CONFIG;
+	devc->state = SIGMA_CONFIG;
 
 	/* Set the cable to bitbang mode. */
 	ret = ftdi_set_bitmode(&devc->ftdi.ctx, BB_PINMASK, BITMODE_BITBANG);
@@ -895,7 +901,7 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 	}
 
 	/* Keep track of successful firmware download completion. */
-	devc->state.state = SIGMA_IDLE;
+	devc->state = SIGMA_IDLE;
 	devc->firmware_idx = firmware_idx;
 	sr_info("Firmware uploaded.");
 
@@ -932,47 +938,61 @@ SR_PRIV int sigma_set_acquire_timeout(struct dev_context *devc)
 	uint64_t worst_cluster_time_ms;
 	uint64_t count_msecs, acquire_msecs;
 
-	sr_sw_limits_init(&devc->acq_limits);
+	sr_sw_limits_init(&devc->limit.acquire);
+	devc->late_trigger_timeout = FALSE;
 
 	/* Get sample count limit, convert to msecs. */
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_SAMPLES, &data);
 	if (ret != SR_OK)
 		return ret;
 	user_count = g_variant_get_uint64(data);
 	g_variant_unref(data);
 	count_msecs = 0;
+	if (devc->use_triggers) {
+		user_count *= 100 - devc->capture_ratio;
+		user_count /= 100;
+	}
 	if (user_count)
 		count_msecs = 1000 * user_count / devc->clock.samplerate + 1;
 
 	/* Get time limit, which is in msecs. */
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_MSEC, &data);
 	if (ret != SR_OK)
 		return ret;
 	user_msecs = g_variant_get_uint64(data);
 	g_variant_unref(data);
+	if (devc->use_triggers) {
+		user_msecs *= 100 - devc->capture_ratio;
+		user_msecs /= 100;
+	}
 
 	/* Get the lesser of them, with both being optional. */
-	acquire_msecs = ~0ull;
+	acquire_msecs = ~UINT64_C(0);
 	if (user_count && count_msecs < acquire_msecs)
 		acquire_msecs = count_msecs;
 	if (user_msecs && user_msecs < acquire_msecs)
 		acquire_msecs = user_msecs;
-	if (acquire_msecs == ~0ull)
+	if (acquire_msecs == ~UINT64_C(0))
 		return SR_OK;
 
 	/* Add some slack, and use that timeout for acquisition. */
 	worst_cluster_time_ms = 1000 * 65536 / devc->clock.samplerate;
 	acquire_msecs += 2 * worst_cluster_time_ms;
 	data = g_variant_new_uint64(acquire_msecs);
-	ret = sr_sw_limits_config_set(&devc->acq_limits,
+	ret = sr_sw_limits_config_set(&devc->limit.acquire,
 		SR_CONF_LIMIT_MSEC, data);
 	g_variant_unref(data);
 	if (ret != SR_OK)
 		return ret;
 
-	sr_sw_limits_acquisition_start(&devc->acq_limits);
+	/* Deferred or immediate (trigger-less) timeout period start. */
+	if (devc->use_triggers)
+		devc->late_trigger_timeout = TRUE;
+	else
+		sr_sw_limits_acquisition_start(&devc->limit.acquire);
+
 	return SR_OK;
 }
 
@@ -1014,11 +1034,51 @@ SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate)
 	return SR_ERR_ARG;
 }
 
-SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi)
+/* Gets called at probe time. Can seed software settings from hardware state. */
+SR_PRIV int sigma_fetch_hw_config(const struct sr_dev_inst *sdi)
 {
-	/* TODO Retrieve value from hardware. */
+	struct dev_context *devc;
+	int ret;
+	uint8_t regaddr, regval;
+
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Seed configuration values from defaults. */
+	devc->firmware_idx = SIGMA_FW_NONE;
+	devc->clock.samplerate = samplerates[0];
+
+	/* TODO
+	 * Ideally the device driver could retrieve recently stored
+	 * details from hardware registers, thus re-use user specified
+	 * configuration values across sigrok sessions. Which could
+	 * avoid repeated expensive though unnecessary firmware uploads,
+	 * improve performance and usability. Unfortunately it appears
+	 * that the registers range which is documented as available for
+	 * application use keeps providing 0xff data content. At least
+	 * with the netlist version which ships with sigrok. The same
+	 * was observed with unused registers in the first page.
+	 */
+	return SR_ERR_NA;
+
+	/* This is for research, currently does not work yet. */
+	ret = sigma_check_open(sdi);
+	regaddr = 16;
+	regaddr = 14;
+	ret = sigma_set_register(devc, regaddr, 'F');
+	ret = sigma_get_register(devc, regaddr, &regval);
+	sr_warn("%s() reg[%u] val[%u] rc[%d]", __func__, regaddr, regval, ret);
+	ret = sigma_check_close(devc);
+	return ret;
+}
+
+/* Gets called after successful (volatile) hardware configuration. */
+SR_PRIV int sigma_store_hw_config(const struct sr_dev_inst *sdi)
+{
+	/* TODO See above, registers seem to not hold written data. */
 	(void)sdi;
-	return samplerates[0];
+	return SR_ERR_NA;
 }
 
 SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
@@ -1027,7 +1087,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	uint64_t samplerate;
 	int ret;
-	int num_channels;
+	size_t num_channels;
 
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
@@ -1042,7 +1102,7 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	 * firmware is required and higher rates might limit the set
 	 * of available channels.
 	 */
-	num_channels = devc->num_channels;
+	num_channels = devc->interp.num_channels;
 	if (samplerate <= SR_MHZ(50)) {
 		ret = upload_firmware(drvc->sr_ctx, devc, SIGMA_FW_50MHZ);
 		num_channels = 16;
@@ -1060,9 +1120,17 @@ SR_PRIV int sigma_set_samplerate(const struct sr_dev_inst *sdi)
 	 * which the device will communicate within an "event").
 	 */
 	if (ret == SR_OK) {
-		devc->num_channels = num_channels;
-		devc->samples_per_event = 16 / devc->num_channels;
+		devc->interp.num_channels = num_channels;
+		devc->interp.samples_per_event = 16 / devc->interp.num_channels;
 	}
+
+	/*
+	 * Store the firmware type and most recently configured samplerate
+	 * in hardware, such that subsequent sessions can start from there.
+	 * This is a "best effort" approach. Failure is non-fatal.
+	 */
+	if (ret == SR_OK)
+		(void)sigma_store_hw_config(sdi);
 
 	return ret;
 }
@@ -1108,7 +1176,7 @@ static int alloc_submit_buffer(struct sr_dev_inst *sdi)
 	if (!buffer->sample_data)
 		return SR_ERR_MALLOC;
 	buffer->write_pointer = buffer->sample_data;
-	sr_sw_limits_init(&devc->feed_limits);
+	sr_sw_limits_init(&devc->limit.submit);
 
 	buffer->sdi = sdi;
 	memset(&buffer->logic, 0, sizeof(buffer->logic));
@@ -1128,9 +1196,9 @@ static int setup_submit_limit(struct dev_context *devc)
 	GVariant *data;
 	uint64_t total;
 
-	limits = &devc->feed_limits;
+	limits = &devc->limit.submit;
 
-	ret = sr_sw_limits_config_get(&devc->cfg_limits,
+	ret = sr_sw_limits_config_get(&devc->limit.config,
 		SR_CONF_LIMIT_SAMPLES, &data);
 	if (ret != SR_OK)
 		return ret;
@@ -1200,8 +1268,8 @@ static int addto_submit_buffer(struct dev_context *devc,
 	int ret;
 
 	buffer = devc->buffer;
-	limits = &devc->feed_limits;
-	if (sr_sw_limits_check(limits))
+	limits = &devc->limit.submit;
+	if (!devc->use_triggers && sr_sw_limits_check(limits))
 		count = 0;
 
 	/*
@@ -1218,20 +1286,319 @@ static int addto_submit_buffer(struct dev_context *devc,
 				return ret;
 		}
 		sr_sw_limits_update_samples_read(limits, 1);
-		if (sr_sw_limits_check(limits))
+		if (!devc->use_triggers && sr_sw_limits_check(limits))
 			break;
 	}
 
 	return SR_OK;
 }
 
+static void sigma_location_break_down(struct sigma_location *loc)
+{
+
+	loc->line = loc->raw / ROW_LENGTH_U16;
+	loc->line += ROW_COUNT;
+	loc->line %= ROW_COUNT;
+	loc->cluster = loc->raw % ROW_LENGTH_U16;
+	loc->event = loc->cluster % EVENTS_PER_CLUSTER;
+	loc->cluster = loc->cluster / EVENTS_PER_CLUSTER;
+}
+
+static gboolean sigma_location_is_eq(struct sigma_location *loc1,
+	struct sigma_location *loc2, gboolean with_event)
+{
+
+	if (!loc1 || !loc2)
+		return FALSE;
+
+	if (loc1->line != loc2->line)
+		return FALSE;
+	if (loc1->cluster != loc2->cluster)
+		return FALSE;
+
+	if (with_event && loc1->event != loc2->event)
+		return FALSE;
+
+	return TRUE;
+}
+
+/* Decrement the broken-down location fields (leave 'raw' as is). */
+static void sigma_location_decrement(struct sigma_location *loc,
+	gboolean with_event)
+{
+
+	if (!loc)
+		return;
+
+	if (with_event) {
+		if (loc->event--)
+			return;
+		loc->event = EVENTS_PER_CLUSTER - 1;
+	}
+
+	if (loc->cluster--)
+		return;
+	loc->cluster = CLUSTERS_PER_ROW - 1;
+
+	if (loc->line--)
+		return;
+	loc->line = ROW_COUNT - 1;
+}
+
+static void sigma_location_increment(struct sigma_location *loc)
+{
+
+	if (!loc)
+		return;
+
+	if (++loc->event < EVENTS_PER_CLUSTER)
+		return;
+	loc->event = 0;
+	if (++loc->cluster < CLUSTERS_PER_ROW)
+		return;
+	loc->cluster = 0;
+	if (++loc->line < ROW_COUNT)
+		return;
+	loc->line = 0;
+}
+
 /*
- * In 100 and 200 MHz mode, only a single pin rising/falling can be
- * set as trigger. In other modes, two rising/falling triggers can be set,
- * in addition to value/mask trigger for any number of channels.
+ * Determine the position where to open the period of trigger match
+ * checks. Setup an "impossible" location when triggers are not used.
+ * Start from the hardware provided 'trig' position otherwise, and
+ * go back a few clusters, but don't go before the 'start' position.
+ */
+static void rewind_trig_arm_pos(struct dev_context *devc, size_t count)
+{
+	struct sigma_sample_interp *interp;
+
+	if (!devc)
+		return;
+	interp = &devc->interp;
+
+	if (!devc->use_triggers) {
+		interp->trig_arm.raw = ~0;
+		sigma_location_break_down(&interp->trig_arm);
+		return;
+	}
+
+	interp->trig_arm = interp->trig;
+	while (count--) {
+		if (sigma_location_is_eq(&interp->trig_arm, &interp->start, TRUE))
+			break;
+		sigma_location_decrement(&interp->trig_arm, TRUE);
+	}
+}
+
+static int alloc_sample_buffer(struct dev_context *devc,
+	size_t stop_pos, size_t trig_pos, uint8_t mode)
+{
+	struct sigma_sample_interp *interp;
+	gboolean wrapped;
+	size_t alloc_size;
+
+	interp = &devc->interp;
+
+	/*
+	 * Either fetch sample memory from absolute start of DRAM to the
+	 * current write position. Or from after the current write position
+	 * to before the current write position, if the write pointer has
+	 * wrapped around at the upper DRAM boundary. Assume that the line
+	 * which most recently got written to is of unknown state, ignore
+	 * its content in the "wrapped" case.
+	 */
+	wrapped = mode & RMR_ROUND;
+	interp->start.raw = 0;
+	interp->stop.raw = stop_pos;
+	if (wrapped) {
+		interp->start.raw = stop_pos;
+		interp->start.raw >>= ROW_SHIFT;
+		interp->start.raw++;
+		interp->start.raw <<= ROW_SHIFT;
+		interp->stop.raw = stop_pos;
+		interp->stop.raw >>= ROW_SHIFT;
+		interp->stop.raw--;
+		interp->stop.raw <<= ROW_SHIFT;
+	}
+	interp->trig.raw = trig_pos;
+	interp->iter.raw = 0;
+
+	/* Break down raw values to line, cluster, event fields. */
+	sigma_location_break_down(&interp->start);
+	sigma_location_break_down(&interp->stop);
+	sigma_location_break_down(&interp->trig);
+	sigma_location_break_down(&interp->iter);
+
+	/*
+	 * The hardware provided trigger location "is late" because of
+	 * latency in hardware pipelines. It points to after the trigger
+	 * condition match. Arrange for a software check of sample data
+	 * matches starting just a little before the hardware provided
+	 * location. The "4 clusters" distance is an arbitrary choice.
+	 */
+	rewind_trig_arm_pos(devc, 4 * EVENTS_PER_CLUSTER);
+	memset(&interp->trig_chk, 0, sizeof(interp->trig_chk));
+
+	/* Determine which DRAM lines to fetch from the device. */
+	memset(&interp->fetch, 0, sizeof(interp->fetch));
+	interp->fetch.lines_total = interp->stop.line + 1;
+	interp->fetch.lines_total -= interp->start.line;
+	interp->fetch.lines_total += ROW_COUNT;
+	interp->fetch.lines_total %= ROW_COUNT;
+	interp->fetch.lines_done = 0;
+
+	/* Arrange for chunked download, N lines per USB request. */
+	interp->fetch.lines_per_read = 32;
+	alloc_size = sizeof(devc->interp.fetch.rcvd_lines[0]);
+	alloc_size *= devc->interp.fetch.lines_per_read;
+	devc->interp.fetch.rcvd_lines = g_try_malloc0(alloc_size);
+	if (!devc->interp.fetch.rcvd_lines)
+		return SR_ERR_MALLOC;
+
+	return SR_OK;
+}
+
+static uint16_t sigma_deinterlace_data_4x4(uint16_t indata, int idx);
+static uint16_t sigma_deinterlace_data_2x8(uint16_t indata, int idx);
+
+static int fetch_sample_buffer(struct dev_context *devc)
+{
+	struct sigma_sample_interp *interp;
+	size_t count;
+	int ret;
+	const uint8_t *rdptr;
+	uint16_t ts, data;
+
+	interp = &devc->interp;
+
+	/* First invocation? Seed the iteration position. */
+	if (!interp->fetch.lines_done) {
+		interp->iter = interp->start;
+	}
+
+	/* Get another set of DRAM lines in one read call. */
+	count = interp->fetch.lines_total - interp->fetch.lines_done;
+	if (count > interp->fetch.lines_per_read)
+		count = interp->fetch.lines_per_read;
+	ret = sigma_read_dram(devc, interp->iter.line, count,
+		(uint8_t *)interp->fetch.rcvd_lines);
+	if (ret != SR_OK)
+		return ret;
+	interp->fetch.lines_rcvd = count;
+	interp->fetch.curr_line = &interp->fetch.rcvd_lines[0];
+
+	/* First invocation? Get initial timestamp and sample data. */
+	if (!interp->fetch.lines_done) {
+		rdptr = (void *)interp->fetch.curr_line;
+		ts = read_u16le_inc(&rdptr);
+		data = read_u16le_inc(&rdptr);
+		if (interp->samples_per_event == 4) {
+			data = sigma_deinterlace_data_4x4(data, 0);
+		} else if (interp->samples_per_event == 2) {
+			data = sigma_deinterlace_data_2x8(data, 0);
+		}
+		interp->last.ts = ts;
+		interp->last.sample = data;
+	}
+
+	return SR_OK;
+}
+
+static void free_sample_buffer(struct dev_context *devc)
+{
+	g_free(devc->interp.fetch.rcvd_lines);
+	devc->interp.fetch.rcvd_lines = NULL;
+	devc->interp.fetch.lines_per_read = 0;
+}
+
+/*
+ * Parse application provided trigger conditions to the driver's internal
+ * presentation. Yields a mask of pins of interest, and their expected
+ * pin levels or edges.
  *
- * The Sigma supports complex triggers using boolean expressions, but this
- * has not been implemented yet.
+ * In 100 and 200 MHz mode, only a single pin's rising/falling edge can be
+ * set as trigger. In 50- MHz modes, two rising/falling edges can be set,
+ * in addition to value/mask specs for any number of channels.
+ *
+ * Hardware implementation detail: When more than one edge is specified,
+ * then the condition is only considered a match when _all_ transitions
+ * are seen in the same 20ns check interval, regardless of the user's
+ * perceived samplerate which can be a fraction of 50MHz. Which reduces
+ * practical use to edges on a single pin in addition to data patterns.
+ * Which still covers a lot of users' typical scenarios. Not an issue,
+ * just something to remain aware of.
+ *
+ * The Sigma hardware also supports complex triggers which involve the
+ * logical combination of several patterns, pulse durations, counts of
+ * condition matches, A-then-B sequences, etc. But this has not been
+ * implemented yet here, and applications may lack means to express
+ * these conditions (present the complex conditions to users for entry
+ * and review, pass application specs to drivers covering the versatile
+ * combinations).
+ *
+ * Implementor's note: This routine currently exclusively accepts input
+ * in the form of sr_trigger stages, which results from "01rf-" choices
+ * on a multitude of individual GUI traces, or the CLI's --trigger spec
+ * which takes one list of <pin>=<value/edge> details.
+ *
+ * TODO Consider the addition of SR_CONF_TRIGGER_PATTERN support, which
+ * accepts a single free form string argument, and could describe a
+ * multi-bit pattern without the tedious trace name/index selection.
+ * Fortunately the number of channels is fixed for this device, we need
+ * not come up with variable length support and counts beyond 64. _When_
+ * --trigger as well as SR_CONF_TRIGGER_PATTERN are supported, then the
+ * implementation needs to come up with priorities for these sources of
+ * input specs, or enforce exclusive use of either form (at one time,
+ * per acquisition / invocation).
+ *
+ * Text forms that may be worth supporting:
+ * - Simple forms, mere numbers, optional base specs. These are easiest
+ *   to implement with existing common conversion helpers.
+ *     triggerpattern=<value>[/<mask>]
+ *     triggerpattern=255
+ *     triggerpattern=45054
+ *     triggerpattern=0xaffe
+ *     triggerpattern=0xa0f0/0xf0f0
+ *     triggerpattern=0b1010111111111110/0x7ffe
+ * - Alternative bit pattern form, including wildcards in a single value.
+ *   This cannot use common conversion support, needs special handling.
+ *     triggerpattern=0b1010xxxx1111xxx0
+ *   This is most similar to SR_CONF_TRIGGER_PATTERN as hameg-hmo uses
+ *   it. Passes the app's spec via SCPI to the device. See section 2.3.5
+ *   "Pattern trigger" and :TRIG:A:PATT:SOUR in the Hameg document.
+ * - Prefixed form to tell the above variants apart, and support both of
+ *   them at the same time. Additional optional separator for long digit
+ *   runs, and edge support in the form which lists individual bits (not
+ *   useful for dec/hex formats).
+ *     triggerpattern=value=45054
+ *     triggerpattern=value=0b1010111111111110
+ *     triggerpattern=value=0xa0f0,mask=0xf0f0
+ *     triggerpattern=bits=1010-xxxx-1111-xxxx
+ *     triggerpattern=bits=0010-r100
+ *
+ * TODO Check this set of processing rules for completeness/correctness.
+ * - Do implement the prefixed format which covers most use cases, _and_
+ *   should be usable from CLI and GUI environments.
+ * - Default to 'bits=' prefix if none was found (and only accept one
+ *   single key/value pair in that case with the default key).
+ * - Accept dash and space separators in the 'bits=' value. Stick with
+ *   mere unseparated values for value and mask, use common conversion.
+ *   This results in transparent dec/bin/oct/hex support. Underscores?
+ * - Accept 0/1 binary digits in 'bits=', as well as r/f/e edge specs.
+ * - Only use --trigger (struct sr_trigger) when SR_CONF_TRIGGER_PATTERN
+ *   is absent? Or always accept --trigger in addition to the data pattern
+ *   spec? Then only accept edge specs from --trigger, since data pattern
+ *   was most importantly motivated by address/data bus inspection?
+ * - TODO Consider edge=<pin><slope> as an optional additional spec in
+ *   the value= and mask= group? Does that help make exclusive support
+ *   for either --trigger or -c triggerpattern acceptable?
+ *     triggerpattern=value=0xa0f0,mask=0xb0f0,edge=15r
+ *     triggerpattern=bits=1r10-xxxx-1111-xxxx
+ *     triggerpattern=1r10-xxxx-1111-xxxx
+ * - *Any* input spec regardless of format and origin must end up in the
+ *   'struct sigma_trigger' internal presentation used by this driver.
+ *   It's desirable to have sigma_convert_trigger() do all the parsing,
+ *   and constraint checking in a central location.
  */
 SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 {
@@ -1240,15 +1607,19 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	const GSList *l, *m;
-	int channelbit, trigger_set;
+	uint16_t channelbit;
+	size_t edge_count;
 
 	devc = sdi->priv;
 	memset(&devc->trigger, 0, sizeof(devc->trigger));
+	devc->use_triggers = FALSE;
+
+	/* TODO Consider additional SR_CONF_TRIGGER_PATTERN support. */
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
 
-	trigger_set = 0;
+	edge_count = 0;
 	for (l = trigger->stages; l; l = l->next) {
 		stage = l->data;
 		for (m = stage->matches; m; m = m->next) {
@@ -1256,10 +1627,10 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 			/* Ignore disabled channels with a trigger. */
 			if (!match->channel->enabled)
 				continue;
-			channelbit = 1 << match->channel->index;
+			channelbit = BIT(match->channel->index);
 			if (devc->clock.samplerate >= SR_MHZ(100)) {
 				/* Fast trigger support. */
-				if (trigger_set) {
+				if (edge_count > 0) {
 					sr_err("100/200MHz modes limited to single trigger pin.");
 					return SR_ERR;
 				}
@@ -1272,7 +1643,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					return SR_ERR;
 				}
 
-				trigger_set++;
+				edge_count++;
 			} else {
 				/* Simple trigger support (event). */
 				if (match->match == SR_TRIGGER_ONE) {
@@ -1283,10 +1654,10 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 					devc->trigger.simplemask |= channelbit;
 				} else if (match->match == SR_TRIGGER_FALLING) {
 					devc->trigger.fallingmask |= channelbit;
-					trigger_set++;
+					edge_count++;
 				} else if (match->match == SR_TRIGGER_RISING) {
 					devc->trigger.risingmask |= channelbit;
-					trigger_set++;
+					edge_count++;
 				}
 
 				/*
@@ -1294,7 +1665,7 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 				 * but they are ORed and the current trigger syntax
 				 * does not permit ORed triggers.
 				 */
-				if (trigger_set > 1) {
+				if (edge_count > 1) {
 					sr_err("Limited to 1 edge trigger.");
 					return SR_ERR;
 				}
@@ -1302,78 +1673,76 @@ SR_PRIV int sigma_convert_trigger(const struct sr_dev_inst *sdi)
 		}
 	}
 
+	/* Keep track whether triggers are involved during acquisition. */
+	devc->use_triggers = TRUE;
+
 	return SR_OK;
-}
-
-/* Software trigger to determine exact trigger position. */
-static int get_trigger_offset(uint8_t *samples, uint16_t last_sample,
-	struct sigma_trigger *t)
-{
-	const uint8_t *rdptr;
-	int i;
-	uint16_t sample;
-
-	rdptr = samples;
-	sample = 0;
-	for (i = 0; i < 8; i++) {
-		if (i > 0)
-			last_sample = sample;
-		sample = read_u16le_inc(&rdptr);
-
-		/* Simple triggers. */
-		if ((sample & t->simplemask) != t->simplevalue)
-			continue;
-
-		/* Rising edge. */
-		if (((last_sample & t->risingmask) != 0) ||
-		    ((sample & t->risingmask) != t->risingmask))
-			continue;
-
-		/* Falling edge. */
-		if ((last_sample & t->fallingmask) != t->fallingmask ||
-		    (sample & t->fallingmask) != 0)
-			continue;
-
-		break;
-	}
-
-	/* If we did not match, return original trigger pos. */
-	return i & 0x7;
 }
 
 static gboolean sample_matches_trigger(struct dev_context *devc, uint16_t sample)
 {
-	/* TODO
-	 * Check whether the combination of this very sample and the
-	 * previous state match the configured trigger condition. This
-	 * improves the resolution of the trigger marker's position.
-	 * The hardware provided position is coarse, and may point to
-	 * a position before the actual match.
-	 *
-	 * See the previous get_trigger_offset() implementation. This
-	 * code needs to get re-used here.
-	 */
-	(void)devc;
-	(void)sample;
-	(void)get_trigger_offset;
+	struct sigma_sample_interp *interp;
+	uint16_t last_sample;
+	struct sigma_trigger *t;
+	gboolean simple_match, rising_match, falling_match;
+	gboolean matched;
 
-	return FALSE;
+	/*
+	 * This logic is about improving the precision of the hardware
+	 * provided trigger match position. Software checks are only
+	 * required for a short range of samples, and only when a user
+	 * specified trigger condition was involved during acquisition.
+	 */
+	if (!devc)
+		return FALSE;
+	if (!devc->use_triggers)
+		return FALSE;
+	interp = &devc->interp;
+	if (!interp->trig_chk.armed)
+		return FALSE;
+
+	/*
+	 * Check if the current sample and its most recent transition
+	 * match the initially provided trigger condition. The data
+	 * must not fail either of the individual checks. Unused
+	 * trigger features remain neutral in the summary expression.
+	 */
+	last_sample = interp->last.sample;
+	t = &devc->trigger;
+	simple_match = (sample & t->simplemask) == t->simplevalue;
+	rising_match = ((last_sample & t->risingmask) == 0) &&
+			((sample & t->risingmask) == t->risingmask);
+	falling_match = ((last_sample & t->fallingmask) == t->fallingmask) &&
+			((sample & t->fallingmask) == 0);
+	matched = simple_match && rising_match && falling_match;
+
+	return matched;
+}
+
+static int send_trigger_marker(struct dev_context *devc)
+{
+	int ret;
+
+	ret = flush_submit_buffer(devc);
+	if (ret != SR_OK)
+		return ret;
+	ret = std_session_send_df_trigger(devc->buffer->sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
 }
 
 static int check_and_submit_sample(struct dev_context *devc,
-	uint16_t sample, size_t count, gboolean check_trigger)
+	uint16_t sample, size_t count)
 {
 	gboolean triggered;
 	int ret;
 
-	triggered = check_trigger && sample_matches_trigger(devc, sample);
+	triggered = sample_matches_trigger(devc, sample);
 	if (triggered) {
-		ret = flush_submit_buffer(devc);
-		if (ret != SR_OK)
-			return ret;
-		ret = std_session_send_df_trigger(devc->buffer->sdi);
-		if (ret != SR_OK)
-			return ret;
+		send_trigger_marker(devc);
+		devc->interp.trig_chk.matched = TRUE;
 	}
 
 	ret = addto_submit_buffer(devc, sample, count);
@@ -1381,6 +1750,46 @@ static int check_and_submit_sample(struct dev_context *devc,
 		return ret;
 
 	return SR_OK;
+}
+
+static void sigma_location_check(struct dev_context *devc)
+{
+	struct sigma_sample_interp *interp;
+
+	if (!devc)
+		return;
+	interp = &devc->interp;
+
+	/*
+	 * Manage the period of trigger match checks in software.
+	 * Start supervision somewhere before the hardware provided
+	 * location. Stop supervision after an arbitrary amount of
+	 * event slots, or when a match was found.
+	 */
+	if (interp->trig_chk.armed) {
+		interp->trig_chk.evt_remain--;
+		if (!interp->trig_chk.evt_remain || interp->trig_chk.matched)
+			interp->trig_chk.armed = FALSE;
+	}
+	if (!interp->trig_chk.armed && !interp->trig_chk.matched) {
+		if (sigma_location_is_eq(&interp->iter, &interp->trig_arm, TRUE)) {
+			interp->trig_chk.armed = TRUE;
+			interp->trig_chk.matched = FALSE;
+			interp->trig_chk.evt_remain = 8 * EVENTS_PER_CLUSTER;
+		}
+	}
+
+	/*
+	 * Force a trigger marker when the software check found no match
+	 * yet while the hardware provided position was reached. This
+	 * very probably is a user initiated button press.
+	 */
+	if (interp->trig_chk.armed) {
+		if (sigma_location_is_eq(&interp->iter, &interp->trig, TRUE)) {
+			(void)send_trigger_marker(devc);
+			interp->trig_chk.matched = TRUE;
+		}
+	}
 }
 
 /*
@@ -1404,7 +1813,7 @@ static uint16_t sigma_dram_cluster_data(struct sigma_dram_cluster *cl, int idx)
  * One 16bit item contains two samples of 8bits each. The bits of
  * multiple samples are interleaved.
  */
-static uint16_t sigma_deinterlace_100mhz_data(uint16_t indata, int idx)
+static uint16_t sigma_deinterlace_data_2x8(uint16_t indata, int idx)
 {
 	uint16_t outdata;
 
@@ -1426,7 +1835,7 @@ static uint16_t sigma_deinterlace_100mhz_data(uint16_t indata, int idx)
  * One 16bit item contains four samples of 4bits each. The bits of
  * multiple samples are interleaved.
  */
-static uint16_t sigma_deinterlace_200mhz_data(uint16_t indata, int idx)
+static uint16_t sigma_deinterlace_data_4x4(uint16_t indata, int idx)
 {
 	uint16_t outdata;
 
@@ -1441,14 +1850,11 @@ static uint16_t sigma_deinterlace_200mhz_data(uint16_t indata, int idx)
 
 static void sigma_decode_dram_cluster(struct dev_context *devc,
 	struct sigma_dram_cluster *dram_cluster,
-	size_t events_in_cluster, gboolean triggered)
+	size_t events_in_cluster)
 {
-	struct sigma_state *ss;
 	uint16_t tsdiff, ts, sample, item16;
-	unsigned int i;
-
-	if (!devc->use_triggers || !ASIX_SIGMA_WITH_TRIGGER)
-		triggered = FALSE;
+	size_t count;
+	size_t evt;
 
 	/*
 	 * If this cluster is not adjacent to the previously received
@@ -1460,16 +1866,14 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	 * for simple level and edge triggers. It would not for timed or
 	 * counted conditions, which currently are not supported.)
 	 */
-	ss = &devc->state;
 	ts = sigma_dram_cluster_ts(dram_cluster);
-	tsdiff = ts - ss->lastts;
+	tsdiff = ts - devc->interp.last.ts;
 	if (tsdiff > 0) {
-		size_t count;
-		sample = ss->lastsample;
-		count = tsdiff * devc->samples_per_event;
-		(void)check_and_submit_sample(devc, sample, count, FALSE);
+		sample = devc->interp.last.sample;
+		count = tsdiff * devc->interp.samples_per_event;
+		(void)check_and_submit_sample(devc, sample, count);
 	}
-	ss->lastts = ts + EVENTS_PER_CLUSTER;
+	devc->interp.last.ts = ts + EVENTS_PER_CLUSTER;
 
 	/*
 	 * Grab sample data from the current cluster and prepare their
@@ -1479,28 +1883,36 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
 	 * buffer depth is neither assumed nor required here.
 	 */
 	sample = 0;
-	for (i = 0; i < events_in_cluster; i++) {
-		item16 = sigma_dram_cluster_data(dram_cluster, i);
-		if (devc->clock.samplerate == SR_MHZ(200)) {
-			sample = sigma_deinterlace_200mhz_data(item16, 0);
-			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 1);
-			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 2);
-			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_200mhz_data(item16, 3);
-			check_and_submit_sample(devc, sample, 1, triggered);
-		} else if (devc->clock.samplerate == SR_MHZ(100)) {
-			sample = sigma_deinterlace_100mhz_data(item16, 0);
-			check_and_submit_sample(devc, sample, 1, triggered);
-			sample = sigma_deinterlace_100mhz_data(item16, 1);
-			check_and_submit_sample(devc, sample, 1, triggered);
+	for (evt = 0; evt < events_in_cluster; evt++) {
+		item16 = sigma_dram_cluster_data(dram_cluster, evt);
+		if (devc->interp.samples_per_event == 4) {
+			sample = sigma_deinterlace_data_4x4(item16, 0);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
+			sample = sigma_deinterlace_data_4x4(item16, 1);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
+			sample = sigma_deinterlace_data_4x4(item16, 2);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
+			sample = sigma_deinterlace_data_4x4(item16, 3);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
+		} else if (devc->interp.samples_per_event == 2) {
+			sample = sigma_deinterlace_data_2x8(item16, 0);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
+			sample = sigma_deinterlace_data_2x8(item16, 1);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
 		} else {
 			sample = item16;
-			check_and_submit_sample(devc, sample, 1, triggered);
+			check_and_submit_sample(devc, sample, 1);
+			devc->interp.last.sample = sample;
 		}
+		sigma_location_increment(&devc->interp.iter);
+		sigma_location_check(devc);
 	}
-	ss->lastsample = sample;
 }
 
 /*
@@ -1514,36 +1926,23 @@ static void sigma_decode_dram_cluster(struct dev_context *devc,
  */
 static int decode_chunk_ts(struct dev_context *devc,
 	struct sigma_dram_line *dram_line,
-	size_t events_in_line, size_t trigger_event)
+	size_t events_in_line)
 {
 	struct sigma_dram_cluster *dram_cluster;
-	unsigned int clusters_in_line;
-	unsigned int events_in_cluster;
-	unsigned int i;
-	uint32_t trigger_cluster;
+	size_t clusters_in_line;
+	size_t events_in_cluster;
+	size_t cluster;
 
 	clusters_in_line = events_in_line;
 	clusters_in_line += EVENTS_PER_CLUSTER - 1;
 	clusters_in_line /= EVENTS_PER_CLUSTER;
-	trigger_cluster = ~0;
-
-	/* Check if trigger is in this chunk. */
-	if (trigger_event < EVENTS_PER_ROW) {
-		if (devc->clock.samplerate <= SR_MHZ(50)) {
-			trigger_event -= MIN(EVENTS_PER_CLUSTER - 1,
-					     trigger_event);
-		}
-
-		/* Find in which cluster the trigger occurred. */
-		trigger_cluster = trigger_event / EVENTS_PER_CLUSTER;
-	}
 
 	/* For each full DRAM cluster. */
-	for (i = 0; i < clusters_in_line; i++) {
-		dram_cluster = &dram_line->cluster[i];
+	for (cluster = 0; cluster < clusters_in_line; cluster++) {
+		dram_cluster = &dram_line->cluster[cluster];
 
 		/* The last cluster might not be full. */
-		if ((i == clusters_in_line - 1) &&
+		if ((cluster == clusters_in_line - 1) &&
 		    (events_in_line % EVENTS_PER_CLUSTER)) {
 			events_in_cluster = events_in_line % EVENTS_PER_CLUSTER;
 		} else {
@@ -1551,7 +1950,7 @@ static int decode_chunk_ts(struct dev_context *devc,
 		}
 
 		sigma_decode_dram_cluster(devc, dram_cluster,
-			events_in_cluster, i == trigger_cluster);
+			events_in_cluster);
 	}
 
 	return SR_OK;
@@ -1559,129 +1958,146 @@ static int decode_chunk_ts(struct dev_context *devc,
 
 static int download_capture(struct sr_dev_inst *sdi)
 {
-	const uint32_t chunks_per_read = 32;
-
 	struct dev_context *devc;
-	struct sigma_dram_line *dram_line;
+	struct sigma_sample_interp *interp;
 	uint32_t stoppos, triggerpos;
 	uint8_t modestatus;
-	uint32_t i;
-	uint32_t dl_lines_total, dl_lines_curr, dl_lines_done;
-	uint32_t dl_first_line, dl_line;
-	uint32_t dl_events_in_line, trigger_event;
-	uint32_t trg_line, trg_event;
 	int ret;
+	size_t chunks_per_receive_call;
 
 	devc = sdi->priv;
-
-	sr_info("Downloading sample data.");
-	devc->state.state = SIGMA_DOWNLOAD;
+	interp = &devc->interp;
 
 	/*
+	 * Check the mode register. Force stop the current acquisition
+	 * if it has not yet terminated before. Will block until the
+	 * acquisition stops, assuming that this won't take long. Should
+	 * execute exactly once, then keep finding its condition met.
+	 *
 	 * Ask the hardware to stop data acquisition. Reception of the
 	 * FORCESTOP request makes the hardware "disable RLE" (store
 	 * clusters to DRAM regardless of whether pin state changes) and
 	 * raise the POSTTRIGGERED flag.
 	 */
-	modestatus = WMR_FORCESTOP | WMR_SDRAMWRITEEN;
-	ret = sigma_set_register(devc, WRITE_MODE, modestatus);
-	if (ret != SR_OK)
-		return ret;
-	do {
-		ret = sigma_get_register(devc, READ_MODE, &modestatus);
-		if (ret != SR_OK) {
-			sr_err("Could not poll for post-trigger state.");
-			return FALSE;
-		}
-	} while (!(modestatus & RMR_POSTTRIGGERED));
-
-	/* Set SDRAM Read Enable. */
-	ret = sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
-	if (ret != SR_OK)
-		return ret;
-
-	/* Get the current position. Check if trigger has fired. */
-	ret = sigma_read_pos(devc, &stoppos, &triggerpos, &modestatus);
+	ret = sigma_get_register(devc, READ_MODE, &modestatus);
 	if (ret != SR_OK) {
-		sr_err("Could not query capture positions/state.");
+		sr_err("Could not determine current device state.");
 		return FALSE;
 	}
-	trg_line = ~0;
-	trg_event = ~0;
-	if (modestatus & RMR_TRIGGERED) {
-		trg_line = triggerpos >> ROW_SHIFT;
-		trg_event = triggerpos & ROW_MASK;
+	if (!(modestatus & RMR_POSTTRIGGERED)) {
+		sr_info("Downloading sample data.");
+		devc->state = SIGMA_DOWNLOAD;
+
+		modestatus = WMR_FORCESTOP | WMR_SDRAMWRITEEN;
+		ret = sigma_set_register(devc, WRITE_MODE, modestatus);
+		if (ret != SR_OK)
+			return FALSE;
+		do {
+			ret = sigma_get_register(devc, READ_MODE, &modestatus);
+			if (ret != SR_OK) {
+				sr_err("Could not poll for post-trigger state.");
+				return FALSE;
+			}
+		} while (!(modestatus & RMR_POSTTRIGGERED));
 	}
 
 	/*
-	 * Determine how many "DRAM lines" of 1024 bytes each we need to
-	 * retrieve from the Sigma hardware, so that we have a complete
-	 * set of samples. Note that the last line need not contain 64
-	 * clusters, it might be partially filled only.
+	 * Switch the hardware from DRAM write (data acquisition) to
+	 * DRAM read (sample memory download). Prepare resources for
+	 * sample memory content retrieval. Should execute exactly once,
+	 * then keep finding its condition met.
 	 *
-	 * When RMR_ROUND is set, the circular buffer in DRAM has wrapped
-	 * around. Since the status of the very next line is uncertain in
-	 * that case, we skip it and start reading from the next line.
+	 * Get the current positions (acquisition write pointer, and
+	 * trigger match location). With disabled triggers, use a value
+	 * for the location that will never match during interpretation.
+	 * Determine which area of the sample memory to retrieve,
+	 * allocate a receive buffer, and setup counters/pointers.
 	 */
-	dl_first_line = 0;
-	dl_lines_total = (stoppos >> ROW_SHIFT) + 1;
-	if (modestatus & RMR_ROUND) {
-		dl_first_line = dl_lines_total + 1;
-		dl_lines_total = ROW_COUNT - 2;
-	}
-	dram_line = g_try_malloc0(chunks_per_read * sizeof(*dram_line));
-	if (!dram_line)
-		return FALSE;
-	ret = alloc_submit_buffer(sdi);
-	if (ret != SR_OK)
-		return FALSE;
-	ret = setup_submit_limit(devc);
-	if (ret != SR_OK)
-		return FALSE;
-	dl_lines_done = 0;
-	while (dl_lines_total > dl_lines_done) {
-		/* We can download only up-to 32 DRAM lines in one go! */
-		dl_lines_curr = MIN(chunks_per_read, dl_lines_total - dl_lines_done);
-
-		dl_line = dl_first_line + dl_lines_done;
-		dl_line %= ROW_COUNT;
-		ret = sigma_read_dram(devc, dl_line, dl_lines_curr,
-			(uint8_t *)dram_line);
+	if (!interp->fetch.lines_per_read) {
+		ret = sigma_set_register(devc, WRITE_MODE, WMR_SDRAMREADEN);
 		if (ret != SR_OK)
 			return FALSE;
 
-		/* This is the first DRAM line, so find the initial timestamp. */
-		if (dl_lines_done == 0) {
-			devc->state.lastts =
-				sigma_dram_cluster_ts(&dram_line[0].cluster[0]);
-			devc->state.lastsample = 0;
+		ret = sigma_read_pos(devc, &stoppos, &triggerpos, &modestatus);
+		if (ret != SR_OK) {
+			sr_err("Could not query capture positions/state.");
+			return FALSE;
 		}
+		if (!devc->use_triggers)
+			triggerpos = ~0;
+		if (!(modestatus & RMR_TRIGGERED))
+			triggerpos = ~0;
 
-		for (i = 0; i < dl_lines_curr; i++) {
-			/* The last "DRAM line" need not span its full length. */
-			dl_events_in_line = EVENTS_PER_ROW;
-			if (dl_lines_done + i == dl_lines_total - 1)
-				dl_events_in_line = stoppos & ROW_MASK;
+		ret = alloc_sample_buffer(devc, stoppos, triggerpos, modestatus);
+		if (ret != SR_OK)
+			return FALSE;
 
-			/* Test if the trigger happened on this line. */
-			trigger_event = ~0;
-			if (dl_lines_done + i == trg_line)
-				trigger_event = trg_event;
-
-			decode_chunk_ts(devc, dram_line + i,
-				dl_events_in_line, trigger_event);
-		}
-
-		dl_lines_done += dl_lines_curr;
+		ret = alloc_submit_buffer(sdi);
+		if (ret != SR_OK)
+			return FALSE;
+		ret = setup_submit_limit(devc);
+		if (ret != SR_OK)
+			return FALSE;
 	}
-	flush_submit_buffer(devc);
-	free_submit_buffer(devc);
-	g_free(dram_line);
 
-	std_session_send_df_end(sdi);
+	/*
+	 * Get another set of sample memory rows, and interpret its
+	 * content. Will execute as many times as it takes to complete
+	 * the memory region that the recent acquisition spans.
+	 *
+	 * The size of a receive call's workload and the main loop's
+	 * receive call poll period determine the UI responsiveness and
+	 * the overall transfer time for the sample memory content.
+	 */
+	chunks_per_receive_call = 50;
+	while (interp->fetch.lines_done < interp->fetch.lines_total) {
+		size_t dl_events_in_line;
 
-	devc->state.state = SIGMA_IDLE;
-	sr_dev_acquisition_stop(sdi);
+		/* Read another chunk of sample memory (several lines). */
+		ret = fetch_sample_buffer(devc);
+		if (ret != SR_OK)
+			return FALSE;
+
+		/* Process lines of sample data. Last line may be short. */
+		while (interp->fetch.lines_rcvd--) {
+			dl_events_in_line = EVENTS_PER_ROW;
+			if (interp->iter.line == interp->stop.line) {
+				dl_events_in_line = interp->stop.raw & ROW_MASK;
+			}
+			decode_chunk_ts(devc, interp->fetch.curr_line,
+				dl_events_in_line);
+			interp->fetch.curr_line++;
+			interp->fetch.lines_done++;
+		}
+
+		/* Keep returning to application code for large data sets. */
+		if (!--chunks_per_receive_call) {
+			ret = flush_submit_buffer(devc);
+			if (ret != SR_OK)
+				return FALSE;
+			break;
+		}
+	}
+
+	/*
+	 * Release previously allocated resources, and adjust state when
+	 * all of the sample memory was retrieved, and interpretation has
+	 * completed. Should execute exactly once.
+	 */
+	if (interp->fetch.lines_done >= interp->fetch.lines_total) {
+		ret = flush_submit_buffer(devc);
+		if (ret != SR_OK)
+			return FALSE;
+		free_submit_buffer(devc);
+		free_sample_buffer(devc);
+
+		ret = std_session_send_df_end(sdi);
+		if (ret != SR_OK)
+			return FALSE;
+
+		devc->state = SIGMA_IDLE;
+		sr_dev_acquisition_stop(sdi);
+	}
 
 	return TRUE;
 }
@@ -1694,9 +2110,58 @@ static int download_capture(struct sr_dev_inst *sdi)
 static int sigma_capture_mode(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	int ret;
+	uint32_t stoppos, triggerpos;
+	uint8_t mode;
+	gboolean full, wrapped, triggered, complete;
 
 	devc = sdi->priv;
-	if (sr_sw_limits_check(&devc->acq_limits))
+
+	/*
+	 * Get and interpret current acquisition status. Some of these
+	 * thresholds are rather arbitrary.
+	 */
+	ret = sigma_read_pos(devc, &stoppos, &triggerpos, &mode);
+	if (ret != SR_OK)
+		return FALSE;
+	stoppos >>= ROW_SHIFT;
+	full = stoppos >= ROW_COUNT - 2;
+	wrapped = mode & RMR_ROUND;
+	triggered = mode & RMR_TRIGGERED;
+	complete = mode & RMR_POSTTRIGGERED;
+
+	/*
+	 * Acquisition completed in the hardware? Start or continue
+	 * sample memory content download.
+	 * (Can user initiated button presses result in auto stop?
+	 * Will they "trigger", and later result in expired time limit
+	 * of post trigger conditions?)
+	 */
+	if (complete)
+		return download_capture(sdi);
+
+	/*
+	 * Previously configured acquisition period exceeded? Start
+	 * sample download. Start the timeout period late when triggers
+	 * are used (unknown period from acquisition start to trigger
+	 * match).
+	 */
+	if (sr_sw_limits_check(&devc->limit.acquire))
+		return download_capture(sdi);
+	if (devc->late_trigger_timeout && triggered) {
+		sr_sw_limits_acquisition_start(&devc->limit.acquire);
+		devc->late_trigger_timeout = FALSE;
+	}
+
+	/*
+	 * No trigger specified, and sample memory exhausted? Start
+	 * download (may otherwise keep acquiring, even for infinite
+	 * amounts of time without a user specified time/count limit).
+	 * This handles situations when users specify limits which
+	 * exceed the device's capabilities.
+	 */
+	(void)full;
+	if (!devc->use_triggers && wrapped)
 		return download_capture(sdi);
 
 	return TRUE;
@@ -1713,18 +2178,21 @@ SR_PRIV int sigma_receive_data(int fd, int revents, void *cb_data)
 	sdi = cb_data;
 	devc = sdi->priv;
 
-	if (devc->state.state == SIGMA_IDLE)
+	if (devc->state == SIGMA_IDLE)
 		return TRUE;
 
 	/*
 	 * When the application has requested to stop the acquisition,
-	 * then immediately start downloading sample data. Otherwise
+	 * then immediately start downloading sample data. Continue a
+	 * previously initiated download until completion. Otherwise
 	 * keep checking configured limits which will terminate the
 	 * acquisition and initiate download.
 	 */
-	if (devc->state.state == SIGMA_STOPPING)
+	if (devc->state == SIGMA_STOPPING)
 		return download_capture(sdi);
-	if (devc->state.state == SIGMA_CAPTURE)
+	if (devc->state == SIGMA_DOWNLOAD)
+		return download_capture(sdi);
+	if (devc->state == SIGMA_CAPTURE)
 		return sigma_capture_mode(sdi);
 
 	return TRUE;
@@ -1750,7 +2218,7 @@ static void build_lut_entry(uint16_t *lut_entry,
 		lut_entry[quad] = ~0;
 		for (bitidx = 0; bitidx < 16; bitidx++) {
 			for (ch = 0; ch < 4; ch++) {
-				quadmask = 1 << ch;
+				quadmask = BIT(ch);
 				bitmask = quadmask << (quad * 4);
 				if (!(spec_mask & bitmask))
 					continue;
@@ -1766,7 +2234,7 @@ static void build_lut_entry(uint16_t *lut_entry,
 				bit_idx_low = !(bitidx & quadmask);
 				if (spec_value_low == bit_idx_low)
 					continue;
-				lut_entry[quad] &= ~(1 << bitidx);
+				lut_entry[quad] &= ~BIT(bitidx);
 			}
 		}
 	}
@@ -1774,14 +2242,19 @@ static void build_lut_entry(uint16_t *lut_entry,
 
 /* Add a logical function to LUT mask. */
 static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
-	int index, int neg, uint16_t *mask)
+	size_t index, gboolean neg, uint16_t *mask)
 {
-	int i, j;
-	int x[2][2], tmp, a, b, aset, bset, rset;
+	int x[2][2], a, b, aset, bset, rset;
+	size_t bitidx;
 
+	/*
+	 * Beware! The x, a, b, aset, bset, rset variables strictly
+	 * require the limited 0..1 range. They are not interpreted
+	 * as logically true, instead bit arith is done on them.
+	 */
+
+	/* Construct a pattern which detects the condition. */
 	memset(x, 0, sizeof(x));
-
-	/* Trigger detect condition. */
 	switch (oper) {
 	case OP_LEVEL:
 		x[0][1] = 1;
@@ -1817,8 +2290,11 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		break;
 	}
 
-	/* Transpose if neg is set. */
+	/* Transpose the pattern if the condition is negated. */
 	if (neg) {
+		size_t i, j;
+		int tmp;
+
 		for (i = 0; i < 2; i++) {
 			for (j = 0; j < 2; j++) {
 				tmp = x[i][j];
@@ -1828,29 +2304,30 @@ static void add_trigger_function(enum triggerop oper, enum triggerfunc func,
 		}
 	}
 
-	/* Update mask with function. */
-	for (i = 0; i < 16; i++) {
-		a = (i >> (2 * index + 0)) & 1;
-		b = (i >> (2 * index + 1)) & 1;
+	/* Update the LUT mask with the function's condition. */
+	for (bitidx = 0; bitidx < 16; bitidx++) {
+		a = (bitidx & BIT(2 * index + 0)) ? 1 : 0;
+		b = (bitidx & BIT(2 * index + 1)) ? 1 : 0;
 
-		aset = (*mask >> i) & 1;
+		aset = (*mask & BIT(bitidx)) ? 1 : 0;
 		bset = x[b][a];
 
-		rset = 0;
 		if (func == FUNC_AND || func == FUNC_NAND)
 			rset = aset & bset;
 		else if (func == FUNC_OR || func == FUNC_NOR)
 			rset = aset | bset;
 		else if (func == FUNC_XOR || func == FUNC_NXOR)
 			rset = aset ^ bset;
+		else
+			rset = 0;
 
 		if (func == FUNC_NAND || func == FUNC_NOR || func == FUNC_NXOR)
-			rset = !rset;
-
-		*mask &= ~(1 << i);
+			rset = 1 - rset;
 
 		if (rset)
-			*mask |= 1 << i;
+			*mask |= BIT(bitidx);
+		else
+			*mask &= ~BIT(bitidx);
 	}
 }
 
@@ -1863,11 +2340,15 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	struct triggerlut *lut)
 {
 	uint16_t masks[2];
-	int bitidx, condidx;
+	size_t bitidx, condidx;
 	uint16_t value, mask;
 
-	/* Start assuming simple triggers. */
+	/* Setup something that "won't match" in the absence of a spec. */
 	memset(lut, 0, sizeof(*lut));
+	if (!devc->use_triggers)
+		return SR_OK;
+
+	/* Start assuming simple triggers. Edges are handled below. */
 	lut->m4 = 0xa000;
 	lut->m3q = 0xffff;
 
@@ -1880,7 +2361,7 @@ SR_PRIV int sigma_build_basic_trigger(struct dev_context *devc,
 	memset(&masks, 0, sizeof(masks));
 	condidx = 0;
 	for (bitidx = 0; bitidx < 16; bitidx++) {
-		mask = 1 << bitidx;
+		mask = BIT(bitidx);
 		value = devc->trigger.risingmask | devc->trigger.fallingmask;
 		if (!(value & mask))
 			continue;

@@ -33,14 +33,6 @@
 
 #define LOG_PREFIX "asix-sigma"
 
-/*
- * Triggers are not working in this implementation. Stop claiming
- * support for the feature which effectively is not available, until
- * the implementation got fixed. Yet keep the code in place and allow
- * developers to turn on this switch during development.
- */
-#define ASIX_SIGMA_WITH_TRIGGER	0
-
 /* Experimental support for OMEGA (scan only, operation is ENOIMPL). */
 #define ASIX_WITH_OMEGA 0
 
@@ -54,6 +46,13 @@ enum asix_device_type {
 	ASIX_TYPE_OMEGA,
 };
 
+/* Mask to isolate one bit, mask to span a number of bits. */
+#define BIT(pos)		(1UL << (pos))
+#define BITS_MASK(count)	((1UL << (count)) - 1)
+
+#define HI4(b)			(((b) >> 4) & 0x0f)
+#define LO4(b)			(((b) >> 0) & 0x0f)
+
 /*
  * FPGA commands are 8bits wide. The upper nibble is a command opcode,
  * the lower nibble can carry operand values. 8bit register addresses
@@ -66,8 +65,8 @@ enum asix_device_type {
 #define REG_DATA_LOW		(0x2 << 4)
 #define REG_DATA_HIGH_WRITE	(0x3 << 4)
 #define REG_READ_ADDR		(0x4 << 4)
-#define REG_ADDR_ADJUST		(1 << 0) /* Auto adjust register address. */
-#define REG_ADDR_DOWN		(1 << 1) /* 1 decrement, 0 increment. */
+#define REG_ADDR_ADJUST		BIT(0) /* Auto adjust register address. */
+#define REG_ADDR_DOWN		BIT(1) /* 1 decrement, 0 increment. */
 #define REG_ADDR_INC		(REG_ADDR_ADJUST)
 #define REG_ADDR_DEC		(REG_ADDR_ADJUST | REG_ADDR_DOWN)
 
@@ -90,6 +89,12 @@ enum asix_device_type {
  * are available to applications and plugin features. Can libsigrok's
  * asix-sigma driver store configuration data there, to avoid expensive
  * operations (think: firmware re-load).
+ *
+ * Update: The documentation may be incorrect, or the FPGA netlist may
+ * be incomplete. Experiments show that registers beyond 0x0f can get
+ * accessed, USB communication passes, but data bytes are always 0xff.
+ * Are several firmware versions around, and the documentation does not
+ * match the one that ships with sigrok?
  */
 
 enum sigma_write_register {
@@ -103,6 +108,9 @@ enum sigma_write_register {
 	WRITE_PIN_VIEW		= 7,
 	/* Unassigned register locations. */
 	WRITE_TEST		= 15,
+	/* Reserved for plugin features. */
+	REG_PLUGIN_START	= 16,
+	REG_PLUGIN_STOP		= 256,
 };
 
 enum sigma_read_register {
@@ -122,29 +130,25 @@ enum sigma_read_register {
 	READ_PIN_VIEW		= 13,
 	/* Unassigned register location. */
 	READ_TEST		= 15,
+	/* Reserved for plugin features. See above. */
 };
 
-#define HI4(b)			(((b) >> 4) & 0x0f)
-#define LO4(b)			(((b) >> 0) & 0x0f)
+#define CLKSEL_CLKSEL8		BIT(0)
+#define CLKSEL_PINMASK		BITS_MASK(4)
+#define CLKSEL_RISING		BIT(4)
+#define CLKSEL_FALLING		BIT(5)
 
-#define BIT_MASK(l)	((1UL << (l)) - 1)
-
-#define CLKSEL_CLKSEL8		(1 << 0)
-#define CLKSEL_PINMASK		BIT_MASK(4)
-#define CLKSEL_RISING		(1 << 4)
-#define CLKSEL_FALLING		(1 << 5)
-
-#define TRGSEL_SELINC_MASK	BIT_MASK(2)
+#define TRGSEL_SELINC_MASK	BITS_MASK(2)
 #define TRGSEL_SELINC_SHIFT	0
-#define TRGSEL_SELRES_MASK	BIT_MASK(2)
+#define TRGSEL_SELRES_MASK	BITS_MASK(2)
 #define TRGSEL_SELRES_SHIFT	2
-#define TRGSEL_SELA_MASK	BIT_MASK(2)
+#define TRGSEL_SELA_MASK	BITS_MASK(2)
 #define TRGSEL_SELA_SHIFT	4
-#define TRGSEL_SELB_MASK	BIT_MASK(2)
+#define TRGSEL_SELB_MASK	BITS_MASK(2)
 #define TRGSEL_SELB_SHIFT	6
-#define TRGSEL_SELC_MASK	BIT_MASK(2)
+#define TRGSEL_SELC_MASK	BITS_MASK(2)
 #define TRGSEL_SELC_SHIFT	8
-#define TRGSEL_SELPRESC_MASK	BIT_MASK(4)
+#define TRGSEL_SELPRESC_MASK	BITS_MASK(4)
 #define TRGSEL_SELPRESC_SHIFT	12
 
 enum trgsel_selcode_t {
@@ -155,48 +159,48 @@ enum trgsel_selcode_t {
 	TRGSEL_SELCODE_NEVER = 3,
 };
 
-#define TRGSEL2_PINS_MASK	(0x07 << 0)
-#define TRGSEL2_PINPOL_RISE	(1 << 3)
-#define TRGSEL2_LUT_ADDR_MASK	(0x0f << 0)
-#define TRGSEL2_LUT_WRITE	(1 << 4)
-#define TRGSEL2_RESET		(1 << 5)
-#define TRGSEL2_LEDSEL0		(1 << 6)
-#define TRGSEL2_LEDSEL1		(1 << 7)
+#define TRGSEL2_PINS_MASK	BITS_MASK(3)
+#define TRGSEL2_PINPOL_RISE	BIT(3)
+#define TRGSEL2_LUT_ADDR_MASK	BITS_MASK(4)
+#define TRGSEL2_LUT_WRITE	BIT(4)
+#define TRGSEL2_RESET		BIT(5)
+#define TRGSEL2_LEDSEL0		BIT(6)
+#define TRGSEL2_LEDSEL1		BIT(7)
 
 /* WRITE_MODE register fields. */
-#define WMR_SDRAMWRITEEN	(1 << 0)
-#define WMR_SDRAMREADEN		(1 << 1)
-#define WMR_TRGRES		(1 << 2)
-#define WMR_TRGEN		(1 << 3)
-#define WMR_FORCESTOP		(1 << 4)
-#define WMR_TRGSW		(1 << 5)
+#define WMR_SDRAMWRITEEN	BIT(0)
+#define WMR_SDRAMREADEN		BIT(1)
+#define WMR_TRGRES		BIT(2)
+#define WMR_TRGEN		BIT(3)
+#define WMR_FORCESTOP		BIT(4)
+#define WMR_TRGSW		BIT(5)
 /* not used: bit position 6 */
-#define WMR_SDRAMINIT		(1 << 7)
+#define WMR_SDRAMINIT		BIT(7)
 
 /* READ_MODE register fields. */
-#define RMR_SDRAMWRITEEN	(1 << 0)
-#define RMR_SDRAMREADEN		(1 << 1)
+#define RMR_SDRAMWRITEEN	BIT(0)
+#define RMR_SDRAMREADEN		BIT(1)
 /* not used: bit position 2 */
-#define RMR_TRGEN		(1 << 3)
-#define RMR_ROUND		(1 << 4)
-#define RMR_TRIGGERED		(1 << 5)
-#define RMR_POSTTRIGGERED	(1 << 6)
+#define RMR_TRGEN		BIT(3)
+#define RMR_ROUND		BIT(4)
+#define RMR_TRIGGERED		BIT(5)
+#define RMR_POSTTRIGGERED	BIT(6)
 /* not used: bit position 7 */
 
 /*
  * Trigger options. First and second write are similar, but _some_
  * positions change their meaning.
  */
-#define TRGOPT_TRGIEN		(1 << 7)
-#define TRGOPT_TRGOEN		(1 << 6)
-#define TRGOPT_TRGOINEN		(1 << 5) /* 1st write */
+#define TRGOPT_TRGIEN		BIT(7)
+#define TRGOPT_TRGOEN		BIT(6)
+#define TRGOPT_TRGOINEN		BIT(5) /* 1st write */
 #define TRGOPT_TRGINEG		TRGOPT1_TRGOINEN /* 2nd write */
-#define TRGOPT_TRGOEVNTEN	(1 << 4) /* 1st write */
+#define TRGOPT_TRGOEVNTEN	BIT(4) /* 1st write */
 #define TRGOPT_TRGOPIN		TRGOPT1_TRGOEVNTEN /* 2nd write */
-#define TRGOPT_TRGOOUTEN	(1 << 3) /* 1st write */
+#define TRGOPT_TRGOOUTEN	BIT(3) /* 1st write */
 #define TRGOPT_TRGOLONG		TRGOPT1_TRGOOUTEN /* 2nd write */
-#define TRGOPT_TRGOUTR_OUT	(1 << 1)
-#define TRGOPT_TRGOUTR_EN	(1 << 0)
+#define TRGOPT_TRGOUTR_OUT	BIT(1)
+#define TRGOPT_TRGOUTR_EN	BIT(0)
 #define TRGOPT_CLEAR_MASK	(TRGOPT_TRGOINEN | TRGOPT_TRGOEVNTEN | TRGOPT_TRGOOUTEN)
 
 /*
@@ -235,7 +239,7 @@ enum trgsel_selcode_t {
 #define ROW_LENGTH_BYTES	1024
 #define ROW_LENGTH_U16		(ROW_LENGTH_BYTES / sizeof(uint16_t))
 #define ROW_SHIFT		9 /* log2 of u16 count */
-#define ROW_MASK		((1UL << ROW_SHIFT) - 1)
+#define ROW_MASK		BITS_MASK(ROW_SHIFT)
 #define EVENTS_PER_CLUSTER	7
 #define CLUSTERS_PER_ROW	(ROW_LENGTH_U16 / (1 + EVENTS_PER_CLUSTER))
 #define EVENTS_PER_ROW		(CLUSTERS_PER_ROW * EVENTS_PER_CLUSTER)
@@ -249,43 +253,21 @@ struct sigma_dram_line {
 
 /* The effect of all these are still a bit unclear. */
 struct triggerinout {
-	uint8_t trgout_resistor_enable : 1;
-	uint8_t trgout_resistor_pullup : 1;
-	uint8_t reserved1 : 1;
-	uint8_t trgout_bytrigger : 1;
-	uint8_t trgout_byevent : 1;
-	uint8_t trgout_bytriggerin : 1;
-	uint8_t reserved2 : 2;
-
-	/* Should be set same as the first two */
-	uint8_t trgout_resistor_enable2 : 1;
-	uint8_t trgout_resistor_pullup2 : 1;
-
-	uint8_t reserved3 : 1;
-	uint8_t trgout_long : 1;
-	uint8_t trgout_pin : 1; /* Use 1k resistor. Pullup? */
-	uint8_t trgin_negate : 1;
-	uint8_t trgout_enable : 1;
-	uint8_t trgin_enable : 1;
+	gboolean trgout_resistor_enable, trgout_resistor_pullup;
+	gboolean trgout_resistor_enable2, trgout_resistor_pullup2;
+	gboolean trgout_bytrigger, trgout_byevent, trgout_bytriggerin;
+	gboolean trgout_long, trgout_pin; /* 1ms pulse, 1k resistor */
+	gboolean trgin_negate, trgout_enable, trgin_enable;
 };
 
 struct triggerlut {
-	/* The actual LUTs. */
 	uint16_t m0d[4], m1d[4], m2d[4];
 	uint16_t m3q, m3s, m4;
-
-	/* Parameters should be sent as a single register write. */
 	struct {
-		uint8_t selc : 2;
-		uint8_t selpresc : 6;
-
-		uint8_t selinc : 2;
-		uint8_t selres : 2;
-		uint8_t sela : 2;
-		uint8_t selb : 2;
-
-		uint16_t cmpb;
-		uint16_t cmpa;
+		uint8_t selpresc;
+		uint8_t sela, selb, selc;
+		uint8_t selinc, selres;
+		uint16_t cmpa, cmpb;
 	} params;
 };
 
@@ -324,19 +306,6 @@ enum triggerfunc {
 	FUNC_NXOR,
 };
 
-struct sigma_state {
-	enum {
-		SIGMA_UNINITIALIZED = 0,
-		SIGMA_CONFIG,
-		SIGMA_IDLE,
-		SIGMA_CAPTURE,
-		SIGMA_STOPPING,
-		SIGMA_DOWNLOAD,
-	} state;
-	uint16_t lastts;
-	uint16_t lastsample;
-};
-
 enum sigma_firmware_idx {
 	SIGMA_FW_NONE,
 	SIGMA_FW_50MHZ,
@@ -371,16 +340,53 @@ struct dev_context {
 		size_t clock_pin;
 		enum ext_clock_edge_t clock_edge;
 	} clock;
-	struct sr_sw_limits cfg_limits; /* Configured limits (user specified). */
-	struct sr_sw_limits acq_limits; /* Acquisition limits (internal use). */
-	struct sr_sw_limits feed_limits; /* Datafeed limits (internal use). */
+	struct {
+		/*
+		 * User specified configuration values, in contrast to
+		 * internal arrangement of acquisition, and submission
+		 * to the session feed.
+		 */
+		struct sr_sw_limits config;
+		struct sr_sw_limits acquire;
+		struct sr_sw_limits submit;
+	} limit;
 	enum sigma_firmware_idx firmware_idx;
-	int num_channels;
-	int samples_per_event;
+	struct sigma_sample_interp {
+		/* Interpretation of sample memory. */
+		size_t num_channels;
+		size_t samples_per_event;
+		struct {
+			uint16_t ts;
+			uint16_t sample;
+		} last;
+		struct sigma_location {
+			size_t raw, line, cluster, event;
+		} start, stop, trig, iter, trig_arm;
+		struct {
+			size_t lines_total, lines_done;
+			size_t lines_per_read; /* USB transfer limit */
+			size_t lines_rcvd;
+			struct sigma_dram_line *rcvd_lines;
+			struct sigma_dram_line *curr_line;
+		} fetch;
+		struct {
+			gboolean armed;
+			gboolean matched;
+			size_t evt_remain;
+		} trig_chk;
+	} interp;
 	uint64_t capture_ratio;
 	struct sigma_trigger trigger;
-	int use_triggers;
-	struct sigma_state state;
+	gboolean use_triggers;
+	gboolean late_trigger_timeout;
+	enum {
+		SIGMA_UNINITIALIZED = 0,
+		SIGMA_CONFIG,
+		SIGMA_IDLE,
+		SIGMA_CAPTURE,
+		SIGMA_STOPPING,
+		SIGMA_DOWNLOAD,
+	} state;
 	struct submit_buffer *buffer;
 };
 
@@ -389,6 +395,10 @@ SR_PRIV int sigma_check_open(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_check_close(struct dev_context *devc);
 SR_PRIV int sigma_force_open(const struct sr_dev_inst *sdi);
 SR_PRIV int sigma_force_close(struct dev_context *devc);
+
+/* Save configuration across sessions, to reduce cost of continuation. */
+SR_PRIV int sigma_store_hw_config(const struct sr_dev_inst *sdi);
+SR_PRIV int sigma_fetch_hw_config(const struct sr_dev_inst *sdi);
 
 /* Send register content (simple and complex) to the hardware. */
 SR_PRIV int sigma_write_register(struct dev_context *devc,
@@ -400,7 +410,6 @@ SR_PRIV int sigma_write_trigger_lut(struct dev_context *devc,
 
 /* Samplerate constraints check, get/set/list helpers. */
 SR_PRIV int sigma_normalize_samplerate(uint64_t want_rate, uint64_t *have_rate);
-SR_PRIV uint64_t sigma_get_samplerate(const struct sr_dev_inst *sdi);
 SR_PRIV GVariant *sigma_get_samplerates_list(void);
 
 /* Preparation of data acquisition, spec conversion, hardware configuration. */

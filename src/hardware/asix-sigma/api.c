@@ -49,10 +49,9 @@ static const uint32_t devopts[] = {
 	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_EXTERNAL_CLOCK_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#if ASIX_SIGMA_WITH_TRIGGER
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-#endif
+	/* Consider SR_CONF_TRIGGER_PATTERN (SR_T_STRING, GET/SET) support. */
 };
 
 static const char *ext_clock_edges[] = {
@@ -61,14 +60,12 @@ static const char *ext_clock_edges[] = {
 	[SIGMA_CLOCK_EDGE_EITHER] = "either",
 };
 
-#if ASIX_SIGMA_WITH_TRIGGER
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 	SR_TRIGGER_RISING,
 	SR_TRIGGER_FALLING,
 };
-#endif
 
 static void clear_helper(struct dev_context *devc)
 {
@@ -248,13 +245,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->id.serno = serno_num;
 		devc->id.prefix = serno_pre;
 		devc->id.type = dev_type;
-		sr_sw_limits_init(&devc->cfg_limits);
+		sr_sw_limits_init(&devc->limit.config);
 		devc->capture_ratio = 50;
-		devc->use_triggers = 0;
+		devc->use_triggers = FALSE;
 
-		/* TODO Retrieve some of this state from hardware? */
-		devc->firmware_idx = SIGMA_FW_NONE;
-		devc->clock.samplerate = sigma_get_samplerate(sdi);
+		/* Get current hardware configuration (or use defaults). */
+		(void)sigma_fetch_hw_config(sdi);
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
@@ -317,12 +313,10 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
-		return sr_sw_limits_config_get(&devc->cfg_limits, key, data);
-#if ASIX_SIGMA_WITH_TRIGGER
+		return sr_sw_limits_config_get(&devc->limit.config, key, data);
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -376,12 +370,10 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
-		return sr_sw_limits_config_set(&devc->cfg_limits, key, data);
-#if ASIX_SIGMA_WITH_TRIGGER
+		return sr_sw_limits_config_set(&devc->limit.config, key, data);
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -408,11 +400,9 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_edges));
 		break;
-#if ASIX_SIGMA_WITH_TRIGGER
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
@@ -425,14 +415,21 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	uint16_t pindis_mask;
 	uint8_t async, div;
-	int triggerpin, ret;
+	int ret;
+	size_t triggerpin;
 	uint8_t trigsel2;
 	struct triggerinout triggerinout_conf;
 	struct triggerlut lut;
-	uint8_t regval, trgconf_bytes[2], clock_bytes[4], *wrptr;
-	size_t count;
+	uint8_t regval, cmd_bytes[4], *wrptr;
 
 	devc = sdi->priv;
+
+	/* Convert caller's trigger spec to driver's internal format. */
+	ret = sigma_convert_trigger(sdi);
+	if (ret != SR_OK) {
+		sr_err("Could not configure triggers.");
+		return ret;
+	}
 
 	/*
 	 * Setup the device's samplerate from the value which up to now
@@ -456,12 +453,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = sigma_convert_trigger(sdi);
-	if (ret != SR_OK) {
-		sr_err("Could not configure triggers.");
-		return ret;
-	}
-
 	/* Enter trigger programming mode. */
 	trigsel2 = TRGSEL2_RESET;
 	ret = sigma_set_register(devc, WRITE_TRIGGER_SELECT2, trigsel2);
@@ -478,9 +469,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 		/* Find which pin to trigger on from mask. */
 		for (triggerpin = 0; triggerpin < 8; triggerpin++) {
-			if (devc->trigger.risingmask & (1 << triggerpin))
+			if (devc->trigger.risingmask & BIT(triggerpin))
 				break;
-			if (devc->trigger.fallingmask & (1 << triggerpin))
+			if (devc->trigger.fallingmask & BIT(triggerpin))
 				break;
 		}
 
@@ -511,8 +502,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Setup trigger in and out pins to default values. */
 	memset(&triggerinout_conf, 0, sizeof(triggerinout_conf));
-	triggerinout_conf.trgout_bytrigger = 1;
-	triggerinout_conf.trgout_enable = 1;
+	triggerinout_conf.trgout_bytrigger = TRUE;
+	triggerinout_conf.trgout_enable = TRUE;
 	/* TODO
 	 * Verify the correctness of this implementation. The previous
 	 * version used to assign to a C language struct with bit fields
@@ -522,7 +513,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Which means that I could not verify "on paper" either. Let's
 	 * re-visit this code later during research for trigger support.
 	 */
-	wrptr = trgconf_bytes;
+	wrptr = cmd_bytes;
 	regval = 0;
 	if (triggerinout_conf.trgout_bytrigger)
 		regval |= TRGOPT_TRGOOUTEN;
@@ -531,9 +522,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (triggerinout_conf.trgout_enable)
 		regval |= TRGOPT_TRGOEN;
 	write_u8_inc(&wrptr, regval);
-	count = wrptr - trgconf_bytes;
 	ret = sigma_write_register(devc, WRITE_TRIGGER_OPTION,
-		trgconf_bytes, count);
+		cmd_bytes, wrptr - cmd_bytes);
 	if (ret != SR_OK)
 		return ret;
 
@@ -552,12 +542,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	 * Derive a mask where bits are set for unavailable channels.
 	 * Either send the single byte, or the full byte sequence.
 	 */
-	pindis_mask = ~((1UL << devc->num_channels) - 1);
+	pindis_mask = ~BITS_MASK(devc->interp.num_channels);
 	if (devc->clock.samplerate > SR_MHZ(50)) {
 		ret = sigma_set_register(devc, WRITE_CLOCK_SELECT,
 			pindis_mask & 0xff);
 	} else {
-		wrptr = clock_bytes;
+		wrptr = cmd_bytes;
 		/* Select 50MHz base clock, and divider. */
 		async = 0;
 		div = SR_MHZ(50) / devc->clock.samplerate - 1;
@@ -581,7 +571,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		write_u8_inc(&wrptr, div);
 		write_u16be_inc(&wrptr, pindis_mask);
 		ret = sigma_write_register(devc, WRITE_CLOCK_SELECT,
-			clock_bytes, wrptr - clock_bytes);
+			cmd_bytes, wrptr - cmd_bytes);
 	}
 	if (ret != SR_OK)
 		return ret;
@@ -594,9 +584,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Start acqusition. */
 	regval = WMR_TRGRES | WMR_SDRAMWRITEEN;
-#if ASIX_SIGMA_WITH_TRIGGER
-	regval |= WMR_TRGEN;
-#endif
+	if (devc->use_triggers)
+		regval |= WMR_TRGEN;
 	ret = sigma_set_register(devc, WRITE_MODE, regval);
 	if (ret != SR_OK)
 		return ret;
@@ -611,7 +600,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	devc->state.state = SIGMA_CAPTURE;
+	devc->state = SIGMA_CAPTURE;
 
 	return SR_OK;
 }
@@ -629,10 +618,10 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	 * already. The detour is required to have sample data retrieved
 	 * for forced acquisition stops.
 	 */
-	if (devc->state.state == SIGMA_CAPTURE) {
-		devc->state.state = SIGMA_STOPPING;
+	if (devc->state == SIGMA_CAPTURE) {
+		devc->state = SIGMA_STOPPING;
 	} else {
-		devc->state.state = SIGMA_IDLE;
+		devc->state = SIGMA_IDLE;
 		(void)sr_session_source_remove(sdi->session, -1);
 	}
 
