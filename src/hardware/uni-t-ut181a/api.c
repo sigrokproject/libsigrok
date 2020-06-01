@@ -37,7 +37,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_DATALOG | SR_CONF_GET,
+	SR_CONF_DATALOG | SR_CONF_GET | SR_CONF_SET,
+	/* TODO SR_CONF_DATALOG is bool only, how to setup interval/duration? */
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
@@ -335,6 +336,7 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	ssize_t idx;
+	gboolean on;
 	GVariant *tuple_child;
 	enum sr_mq mq;
 	enum sr_mqflag mqflags;
@@ -376,6 +378,22 @@ static int config_set(uint32_t key, GVariant *data,
 		if (rec_no > devc->record_count)
 			return SR_ERR_ARG;
 		devc->data_source = DATA_SOURCE_REC_FIRST + rec_no - 1;
+		break;
+	case SR_CONF_DATALOG:
+		if (!devc)
+			return SR_ERR_ARG;
+		on = g_variant_get_boolean(data);
+		sr_err("DIAG: record start/stop %d, currently ENOIMPL", on);
+		return SR_ERR_NA;
+		/*
+		 * TODO Send command 0x0a (start) or 0x0b (stop). Though
+		 * start needs a name (ymd timestamp?) and interval and
+		 * duration (arbitrary choice? 1s for 1d?). Or shall this
+		 * SET request control "save" items instead? Take one
+		 * sample each for every 'datalog=on' request? Combine
+		 * limit_samples and limit_msec with datalog to configure
+		 * a recording's parameters?
+		 */
 		break;
 	case SR_CONF_MEASURED_QUANTITY:
 		if (!devc)
