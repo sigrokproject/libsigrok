@@ -166,8 +166,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	response->data[17] = 0;
 	unit_serial = g_strdup((const char*)&response->data[7]);
 	sr_info("Model name: %s (v%x.%02x)", unit_model, fw_major, fw_minor);
-	sr_info("Serial number: %s", unit_serial);
 	sr_info("Address: %d", response->address);
+	sr_info("Serial number: %s", unit_serial);
+
+	cmd->command = CMD_GET_BARCODE_INFO;
+	if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
+		response->checksum = 0;
+		sr_info("Barcode: %s", response->data);
+	}
+
 
 	/*
 	 * query unit capabilities
