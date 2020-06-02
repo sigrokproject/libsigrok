@@ -1117,8 +1117,8 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	 */
 	tokens = g_strsplit(response, ",", 0);
 	num_tokens = g_strv_length(tokens);
-	if (num_tokens < 4) {
-		sr_dbg("IDN response not according to spec: %80.s.", response);
+	if (num_tokens < 3) {
+		sr_dbg("IDN response not according to spec: '%s'", response);
 		g_strfreev(tokens);
 		g_free(response);
 		return SR_ERR_DATA;
@@ -1134,8 +1134,13 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 		hw_info->manufacturer = g_strstrip(g_strdup(idn_substr + 4));
 
 	hw_info->model = g_strstrip(g_strdup(tokens[1]));
-	hw_info->serial_number = g_strstrip(g_strdup(tokens[2]));
-	hw_info->firmware_version = g_strstrip(g_strdup(tokens[3]));
+	if (num_tokens < 4) {
+		hw_info->serial_number = g_strdup("Unknown");
+		hw_info->firmware_version = g_strstrip(g_strdup(tokens[2]));
+	} else {
+		hw_info->serial_number = g_strstrip(g_strdup(tokens[2]));
+		hw_info->firmware_version = g_strstrip(g_strdup(tokens[3]));
+	}
 
 	g_strfreev(tokens);
 
