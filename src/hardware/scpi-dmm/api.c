@@ -77,6 +77,17 @@ static const struct scpi_command cmdset_hp[] = {
 	ALL_ZERO,
 };
 
+static const struct scpi_command cmdset_gwinstek[] = {
+	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
+	{ DMM_CMD_QUERY_FUNC, "CONF:STAT:FUNC?", },
+	{ DMM_CMD_START_ACQ, "*CLS;SYST:REM", },
+	{ DMM_CMD_STOP_ACQ, "SYST:LOC", },
+	{ DMM_CMD_QUERY_VALUE, "VAL1?", },
+	{ DMM_CMD_QUERY_PREC, "SENS:DET:RATE?", },
+	ALL_ZERO,
+};
+
 static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, },
@@ -103,6 +114,23 @@ static const struct mqopt_item mqopts_agilent_34401a[] = {
 	{ SR_MQ_TIME, 0, "PER", "PER ", NO_DFLT_PREC, },
 };
 
+static const struct mqopt_item mqopts_gwinstek_gdm8200a[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "01", NO_DFLT_PREC, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "02", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "03", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "04", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "05", NO_DFLT_PREC, }, /* mA */
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "06", NO_DFLT_PREC, }, /* mA */
+	{ SR_MQ_RESISTANCE, 0, "RES", "07", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "16", NO_DFLT_PREC, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "13", -1, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "17", -4, },
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "09", NO_DFLT_PREC, }, /* Celsius */
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "15", NO_DFLT_PREC, }, /* Fahrenheit */
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "08", NO_DFLT_PREC, },
+	{ SR_MQ_TIME, 0, "PER", "14", NO_DFLT_PREC, },
+};
+
 SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
@@ -125,6 +153,20 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
 		1000 * 1500,
+	},
+	{
+		"GW", "GDM8251A",
+		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
+		scpi_dmm_get_meas_gwinstek,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
+	},
+	{
+		"GW", "GDM8255A",
+		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
+		scpi_dmm_get_meas_gwinstek,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
 	},
 };
 
@@ -187,6 +229,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->num_channels = model->num_channels;
 	devc->cmdset = model->cmdset;
 	devc->model = model;
+	devc->precision = NULL;
 
 	for (i = 0; i < devc->num_channels; i++) {
 		channel_name = g_strdup_printf("P%zu", i + 1);
@@ -337,6 +380,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	int ret;
 	const struct mqopt_item *item;
 	const char *command;
+	char *response;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -345,6 +389,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		&devc->start_acq_mq.curr_mqflag, NULL, &item);
 	if (ret != SR_OK)
 		return ret;
+
+	/*
+	 * Query for current precision if DMM supports the command
+	 */
+	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_PREC);
+	if (command && *command) {
+		scpi_dmm_cmd_delay(scpi);
+		ret = sr_scpi_get_string(scpi, command, &response);
+		if (ret == SR_OK) {
+			g_strstrip(response);
+			if (devc->precision)
+				g_free(devc->precision);
+			devc->precision=g_strdup(response);
+			g_free(response);
+			sr_dbg("%s: Precision: '%s'", __func__, devc->precision);
+		} else {
+			sr_info("%s: Precision query ('%s') failed: %d",
+				__func__, command, ret);
+		}
+	}
 
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_START_ACQ);
 	if (command && *command) {
@@ -384,6 +448,11 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	sr_scpi_source_remove(sdi->session, scpi);
 
 	std_session_send_df_end(sdi);
+
+	if (devc->precision) {
+		g_free(devc->precision);
+		devc->precision = NULL;
+	}
 
 	return SR_OK;
 }
