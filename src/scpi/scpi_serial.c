@@ -190,7 +190,12 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 	if (ret > 0) {
 		if (buf[ret - 1] == '\n') {
 			sscpi->got_newline = TRUE;
-			sr_spew("Received terminator");
+			sr_spew("Received NL terminator");
+		} else if (ret > 1 &&
+			   buf[ret - 2] == '\n' && buf[ret - 1] == '\r') {
+			sscpi->got_newline = TRUE;
+			sr_spew("Received NL+CR terminator");
+			ret--;
 		} else {
 			sscpi->got_newline = FALSE;
 		}
