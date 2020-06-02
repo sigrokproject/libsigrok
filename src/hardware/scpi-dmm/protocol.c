@@ -492,6 +492,34 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 		return ret;
 
 	/*
+	 * Make sure we report "INFINITY" when meter displays "0L"
+	 */
+	switch (mmode) {
+	case 7:
+	case 16:
+		/* in resitance modes 0L reads as 1.20000E8 or 1.99999E8 */
+		sr_dbg("meter: '%s'",devc->model->model);
+		if (!strncmp(devc->model->model,"GDM8255A",8)) {
+			if (info->d_value >= 1.99999e8)
+				info->d_value = +INFINITY;
+		} else {
+			if (info->d_value >= 1.2e8)
+				info->d_value = +INFINITY;
+		}
+		break;
+	case 13:
+		/* In continuity mode 0L reads as 1.20000E3 */
+		if (info->d_value >= 1.2e3)
+			info->d_value = +INFINITY;
+		break;
+	case 17:
+		/* in diode mode 0L reads as 1.00000E0 */
+		if (info->d_value == 1.0e0)
+			info->d_value = +INFINITY;
+		break;
+	}
+
+	/*
 	 * Calculate 'digits' based on the precision reading result
 	 * done during start of acquisition.
 	 *
