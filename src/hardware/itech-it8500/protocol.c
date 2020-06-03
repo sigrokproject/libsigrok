@@ -160,17 +160,17 @@ SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
 		power = RL32(&resp->data[8]) / 1000.0;
 		operation_state = resp->data[12];
 		demand_state = RL16(&resp->data[13]);
-		if (demand_state & 0x0040)
+		if (demand_state & DS_CC_MODE_FLAG)
 			mode = CC;
-		else if (demand_state & 0x0080)
+		else if (demand_state & DS_CV_MODE_FLAG)
 			mode = CV;
-		else if (demand_state & 0x0100)
+		else if (demand_state & DS_CW_MODE_FLAG)
 			mode = CW;
-		else if (demand_state & 0x0200)
+		else if (demand_state & DS_CR_MODE_FLAG)
 			mode = CR;
 		else
 			mode = CC;
-		load_on = (operation_state & 0x08 ? TRUE : FALSE);
+		load_on = (operation_state & OS_OUT_FLAG ? TRUE : FALSE);
 
 		sr_dbg("Load status: V=%.4f, I=%.4f, P=%.3f, State=%s, Mode=%s"
 		       " (op=0x%02x, demand=0x%04x)",

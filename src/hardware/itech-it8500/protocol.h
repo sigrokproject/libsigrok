@@ -107,6 +107,33 @@ struct itech_it8500_cmd_packet {
 	uint8_t checksum;  /* checksum (modulo 256) */
 };
 
+
+/*
+ * "operation state" register flags
+ */
+#define OS_CAL_FLAG   0x01
+#define OS_WTG_FLAG   0x02
+#define OS_REM_FLAG   0x04
+#define OS_OUT_FLAG   0x08
+#define OS_LOCAL_FLAG 0x10
+#define OS_SENSE_FLAG 0x20
+#define OS_LOT_FLAG   0x40
+
+/*
+ * "demand state" register flags
+ */
+#define DS_RV_FLAG      0x0001
+#define DS_OV_FLAG      0x0002
+#define DS_OC_FLAG      0x0004
+#define DS_OP_FLAG      0x0008
+#define DS_OT_FLAG      0x0010
+#define DS_SV_FLAG      0x0020
+#define DS_CC_MODE_FLAG 0x0040
+#define DS_CV_MODE_FLAG 0x0080
+#define DS_CW_MODE_FLAG 0x0100
+#define DS_CR_MODE_FLAG 0x0200
+
+
 struct dev_context {
 	char model[ITECH_IT8500_MAX_MODEL_NAME_LEN + 1];
 	uint8_t fw_ver_major;

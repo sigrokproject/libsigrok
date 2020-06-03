@@ -351,7 +351,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
-						      & 0x0002);
+						      & DS_OV_FLAG);
 		}
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
@@ -368,7 +368,7 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
 		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
-						      & 0x0004);
+						      & DS_OC_FLAG);
 		}
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
@@ -385,7 +385,7 @@ static int config_get(uint32_t key, GVariant **data,
 		if ((ret = itech_it8500_get_status(serial, devc))
 		    == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
-						      & 0x0010);
+						      & DS_OT_FLAG);
 		}
 		break;
 
