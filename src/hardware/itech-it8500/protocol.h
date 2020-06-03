@@ -103,7 +103,7 @@ enum itech_it8500_command {
  * this is data structure sent to the load, must use only uint8_t to
  * keep code portable...
  */
-struct itech_it8500_cmd_packet {
+struct __attribute__((packed)) itech_it8500_cmd_packet {
 	uint8_t preamble;  /* must be 0xAA */
 	uint8_t address;   /* unit address: 0..254 [255 = broadcast] (optional) */
 	uint8_t command;   /* command number */
