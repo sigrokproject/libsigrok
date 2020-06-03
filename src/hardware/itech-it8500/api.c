@@ -45,7 +45,7 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_REGULATION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_REGULATION | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_CURRENT | SR_CONF_GET,
@@ -443,16 +443,16 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_REGULATION:
 		cmd->command = CMD_SET_MODE;
 		s = g_variant_get_string(data, NULL);
-		if (!strncmp(s, "CV", 2)) {
-			cmd->data[0] = 1;
-		} else if (!strncmp(s, "CC", 2)) {
-			cmd->data[0] = 0;
-		} else if (!strncmp(s, "CW", 2)) {
-			cmd->data[0] = 2;
-		} else if (!strncmp(s, "CR", 2)) {
-			cmd->data[0] = 3;
+		if (!strncmp(s, itech_it8500_mode_to_string(CC), 2)) {
+			cmd->data[0] = CC;
+		} else if (!strncmp(s, itech_it8500_mode_to_string(CV), 2)) {
+			cmd->data[0] = CV;
+		} else if (!strncmp(s, itech_it8500_mode_to_string(CW), 2)) {
+			cmd->data[0] = CW;
+		} else if (!strncmp(s, itech_it8500_mode_to_string(CR), 2)) {
+			cmd->data[0] = CR;
 		} else {
-			ret = SR_ERR_NA;
+			ret = SR_ERR_ARG;
 			break;
 		}
 		ret = itech_it8500_send_cmd(serial, cmd, &response);
@@ -498,6 +498,7 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	const struct dev_context *devc;
+	GVariantBuilder *b;
 
 
 	sr_dbg("%s(%u,%p,%p,%p): called", __func__, key, data, sdi, cg);
@@ -518,6 +519,15 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(samplerates, 1 +
 						   devc->max_sample_rate_idx);
+		break;
+	case SR_CONF_REGULATION:
+		b = g_variant_builder_new(G_VARIANT_TYPE("as"));
+		g_variant_builder_add(b, "s", itech_it8500_mode_to_string(CC));
+		g_variant_builder_add(b, "s", itech_it8500_mode_to_string(CV));
+		g_variant_builder_add(b, "s", itech_it8500_mode_to_string(CW));
+		g_variant_builder_add(b, "s", itech_it8500_mode_to_string(CR));
+		*data = g_variant_new("as", b);
+		g_variant_builder_unref(b);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		if (!devc)

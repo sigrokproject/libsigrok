@@ -29,6 +29,10 @@
 
 #define ITECH_IT8500_MAX_MODEL_NAME_LEN 5
 
+/*
+ * These map directly to mode numbers used by CMD_SET_MODE
+ * and CMD_GET_MODE commands.
+ */
 enum itech_it8500_modes {
 	CC = 0,
 	CV = 1,
