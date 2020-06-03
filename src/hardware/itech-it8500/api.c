@@ -143,6 +143,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->driver = &itech_it8500_driver_info;
 	sdi->priv = devc;
+	g_mutex_init(&devc->mutex);
+
 
 	/*
 	 * calculate maxium "safe" sample rate based on serial connection
@@ -209,6 +211,18 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	sr_info("Mode: %s", itech_it8500_mode_to_string(devc->mode));
 	sr_info("State: %s", (devc->load_on ? "ON" : "OFF"));
+	sr_info("Default sample rate: %lld Hz", devc->sample_rate);
+	sr_info("Maximum sample rate: %lld Hz",
+		samplerates[devc->max_sample_rate_idx]);
+
+
+	/*
+	 * put unit to remote control mode
+	 */
+	cmd->command = CMD_SET_REMOTE_MODE;
+	cmd->data[0] = 1;
+	if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK)
+		goto error;
 
 
 	/*
@@ -226,9 +240,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->min_resistance = min_r;
 	devc->max_resistance = max_r;
 	devc->sample_rate = DEFAULT_SAMPLE_RATE;
-	sr_info("Default sample rate: %lld Hz", devc->sample_rate);
-	sr_info("Maximum sample rate: %lld Hz",
-		samplerates[devc->max_sample_rate_idx]);
 
 	sdi->vendor = g_strdup("ITECH");
 	sdi->model = unit_model;
@@ -267,7 +278,7 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
+	const struct sr_key_info *kinfo;
 	int ret, ivalue;
 
 
@@ -277,8 +288,9 @@ static int config_get(uint32_t key, GVariant **data,
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
-	serial = sdi->conn;
 	ret = SR_OK;
+
+	kinfo = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -305,7 +317,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		if ((ret = itech_it8500_get_int(serial, CMD_GET_CV_VOLTAGE,
+		if ((ret = itech_it8500_get_int(sdi, CMD_GET_CV_VOLTAGE,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
 		}
@@ -316,7 +328,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		if ((ret = itech_it8500_get_int(serial, CMD_GET_CC_CURRENT,
+		if ((ret = itech_it8500_get_int(sdi, CMD_GET_CC_CURRENT,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 10000.0);
 		}
@@ -333,13 +345,13 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_POWER_LIMIT:
-		if ((ret = itech_it8500_get_int(serial, CMD_GET_CW_POWER,
+		if ((ret = itech_it8500_get_int(sdi, CMD_GET_CW_POWER,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
 		}
 		break;
 	case SR_CONF_RESISTANCE_TARGET:
-		if ((ret = itech_it8500_get_int(serial,
+		if ((ret = itech_it8500_get_int(sdi,
 						CMD_GET_CR_RESISTANCE,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
@@ -357,7 +369,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		if ((ret = itech_it8500_get_int(serial,
+		if ((ret = itech_it8500_get_int(sdi,
 						CMD_GET_MAX_VOLTAGE,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 1000.0);
@@ -374,7 +386,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		if ((ret = itech_it8500_get_int(serial, CMD_GET_MAX_CURRENT,
+		if ((ret = itech_it8500_get_int(sdi, CMD_GET_MAX_CURRENT,
 						&ivalue)) == SR_OK) {
 			*data = g_variant_new_double((double)ivalue / 10000.0);
 		}
@@ -391,7 +403,19 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 
+
+	/* hardware doesnt support under voltage reporting */
+	case SR_CONF_UNDER_VOLTAGE_CONDITION:
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_ACTIVE:
+		*data = g_variant_new_boolean(FALSE);
+		break;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		*data = g_variant_new_double(0.0);
+		break;
+
 	default:
+		sr_info("%s: Unsupported key: %d (%s)", __func__,
+			key, (kinfo ? kinfo->name : "unknown"));
 		ret = SR_ERR_NA;
 	}
 
@@ -404,6 +428,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct itech_it8500_cmd_packet *cmd, *response;
+	const struct sr_key_info *kinfo;
 	int ret, ivalue;
 	uint64_t new_sr;
 	const char *s;
@@ -420,27 +445,27 @@ static int config_set(uint32_t key, GVariant *data,
 	devc = sdi->priv;
 	serial = sdi->conn;
 	response = NULL;
-
 	ret = SR_OK;
+
+	kinfo = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	switch (key) {
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
 		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		break;
+		goto done;
 	case SR_CONF_SAMPLERATE:
 		new_sr = g_variant_get_uint64(data);
 		if (new_sr < MIN_SAMPLE_RATE ||
 		    new_sr > samplerates[devc->max_sample_rate_idx]) {
 			ret = SR_ERR_SAMPLERATE;
-			break;
+			goto done;
 		}
 		devc->sample_rate = new_sr;
-		break;
+		goto done;
 	case SR_CONF_ENABLED:
 		cmd->command = CMD_LOAD_ON_OFF;
 		cmd->data[0] = g_variant_get_boolean(data);
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_REGULATION:
 		cmd->command = CMD_SET_MODE;
@@ -455,40 +480,42 @@ static int config_set(uint32_t key, GVariant *data,
 			cmd->data[0] = CR;
 		} else {
 			ret = SR_ERR_ARG;
-			break;
+			goto done;
 		}
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		cmd->command = CMD_SET_CV_VOLTAGE;
 		ivalue = g_variant_get_double(data) * 1000.0;
 		WL32(&cmd->data[0], ivalue);
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		cmd->command = CMD_SET_CC_CURRENT;
 		ivalue = g_variant_get_double(data) * 10000.0;
 		WL32(&cmd->data[0], ivalue);
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		cmd->command = CMD_SET_MAX_VOLTAGE;
 		ivalue = g_variant_get_double(data) * 1000.0;
 		WL32(&cmd->data[0], ivalue);
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		cmd->command = CMD_SET_MAX_CURRENT;
 		ivalue = g_variant_get_double(data) * 10000.0;
 		WL32(&cmd->data[0], ivalue);
-		ret = itech_it8500_send_cmd(serial, cmd, &response);
 		break;
 
 	default:
+		sr_info("%s: Unsupported key: %d (%s)", __func__,
+			key, (kinfo ? kinfo->name : "unknown"));
 		ret = SR_ERR_NA;
+		goto done;
 	}
 
+	g_mutex_lock(&devc->mutex);
+	ret = itech_it8500_send_cmd(serial, cmd, &response);
+	g_mutex_unlock(&devc->mutex);
 
+done:	
 	g_free(cmd);
 	if (response)
 		g_free(response);
@@ -500,6 +527,7 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	const struct dev_context *devc;
+	const struct sr_key_info *kinfo;
 	GVariantBuilder *b;
 
 
@@ -513,6 +541,8 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts,
 				       drvopts, devopts);
 	}
+
+	kinfo = sr_key_info_get(SR_KEY_CONFIG, key);
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
@@ -547,6 +577,8 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 
 	default:
+		sr_info("%s: Unsupported key: %d (%s)", __func__,
+			key, (kinfo ? kinfo->name : "unknown"));
 		return SR_ERR_NA;
 	}
 
@@ -597,6 +629,59 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+	struct itech_it8500_cmd_packet *cmd, *response;
+	int ret;
+
+	sr_dbg("%s(%p): called", __func__, sdi);
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	serial = sdi->conn;
+	response = NULL;
+	cmd = g_malloc0(sizeof(*cmd));
+	if (!cmd)
+		return std_serial_dev_close(sdi);
+
+	/*
+	 * put unit back to local mode
+	 */
+	cmd->command = CMD_SET_REMOTE_MODE;
+	cmd->data[0] = 0;
+	if ((ret = itech_it8500_send_cmd(serial, cmd, &response)) != SR_OK) {
+		sr_err("Failed to set unit back to local mode: %d", ret);
+	}
+
+	g_free(cmd);
+	if (response)
+		g_free(response);
+
+	return std_serial_dev_close(sdi);
+}
+
+static void dev_clear_callback(void *priv)
+{
+	struct dev_context *devc;
+
+	sr_dbg("%s(%p): called", __func__, priv);
+
+	if (!priv)
+		return;
+
+	devc = priv;
+	g_mutex_clear(&devc->mutex);
+}
+
+static int dev_clear(const struct sr_dev_driver *di)
+{
+	sr_dbg("%s(%p): called", __func__, di);
+
+	return std_dev_clear_with_callback(di, dev_clear_callback);
+}
+
 static struct sr_dev_driver itech_it8500_driver_info = {
 	.name = "itech-it8500",
 	.longname = "ITECH IT8500 series",
@@ -605,12 +690,12 @@ static struct sr_dev_driver itech_it8500_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
-	.dev_close = std_serial_dev_close,
+	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,

@@ -37,7 +37,7 @@ enum itech_it8500_modes {
 	CC = 0,
 	CV = 1,
 	CW = 2,
-	CR = 3 ,
+	CR = 3,
 };
 
 enum itech_it8500_command {
@@ -149,6 +149,8 @@ struct dev_context {
 	double max_power;
 	double min_resistance;
 	double max_resistance;
+	uint32_t max_sample_rate_idx;
+
 	double voltage;
 	double current;
 	double power;
@@ -156,9 +158,11 @@ struct dev_context {
 	uint16_t demand_state;
 	enum itech_it8500_modes mode;
 	gboolean load_on;
-	uint32_t max_sample_rate_idx;
+
 	uint64_t sample_rate;
 	struct sr_sw_limits limits;
+
+	GMutex mutex;
 };
 
 
@@ -180,7 +184,7 @@ SR_PRIV void itech_it8500_status_change(const struct sr_dev_inst *sdi,
 					enum itech_it8500_modes old_m,
 					enum itech_it8500_modes new_m);
 SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi);
-SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
+SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 				 enum itech_it8500_command command,
 				 int *result);
 #endif

@@ -200,7 +200,9 @@ SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi)
 	cmd->command = CMD_GET_STATE;
 	resp = NULL;
 
+	g_mutex_lock(&devc->mutex);
 	ret = itech_it8500_send_cmd(serial, cmd, &resp);
+	g_mutex_unlock(&devc->mutex);
 	if (ret == SR_OK) {
 		voltage = RL32(&resp->data[0]) / 1000.0;
 		current = RL32(&resp->data[4]) / 10000.0;
@@ -251,13 +253,21 @@ SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi)
 	return ret;
 }
 
-SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
+SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 				 enum itech_it8500_command command,
 				 int *result)
 {
+	struct sr_serial_dev_inst *serial;
+	struct dev_context *devc;
 	struct itech_it8500_cmd_packet *cmd;
 	struct itech_it8500_cmd_packet *resp;
 	int ret;
+
+	if (!sdi || !result)
+		return SR_ERR_ARG;
+
+	serial = sdi->conn;
+	devc = sdi->priv;
 
 	cmd = g_malloc0(sizeof(*cmd));
 	if (!cmd)
@@ -265,7 +275,9 @@ SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
 	cmd->command = command;
 	resp = NULL;
 
+	g_mutex_lock(&devc->mutex);
 	ret = itech_it8500_send_cmd(serial, cmd, &resp);
+	g_mutex_unlock(&devc->mutex);
 	if (ret == SR_OK) {
 		*result = RL32(&resp->data[0]);
 	}
