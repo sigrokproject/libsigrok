@@ -174,8 +174,12 @@ SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 				  struct itech_it8500_cmd_packet *cmd,
 				  struct itech_it8500_cmd_packet **response);
-SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
-				    struct dev_context *devc);
+SR_PRIV void itech_it8500_status_change(const struct sr_dev_inst *sdi,
+					uint8_t old_op, uint8_t new_op,
+					uint16_t old_de, uint16_t new_de,
+					enum itech_it8500_modes old_m,
+					enum itech_it8500_modes new_m);
+SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi);
 SR_PRIV int itech_it8500_get_int(struct sr_serial_dev_inst *serial,
 				 enum itech_it8500_command command,
 				 int *result);

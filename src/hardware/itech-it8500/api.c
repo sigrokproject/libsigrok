@@ -102,7 +102,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	cmd = g_malloc0(sizeof(*cmd));
 	devc = g_malloc0(sizeof(*devc));
-	if (!cmd || !devc)
+	sdi = g_malloc0(sizeof(*sdi));
+	if (!cmd || !devc || !sdi)
 		return NULL;
 
 	conn = NULL;
@@ -136,6 +137,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto error;
 	serial_flush(serial);
+
+	sdi->status = SR_ST_INACTIVE;
+	sdi->conn = serial;
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->driver = &itech_it8500_driver_info;
+	sdi->priv = devc;
 
 	/*
 	 * calculate maxium "safe" sample rate based on serial connection
@@ -196,7 +203,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/*
 	 * get current status of the unit
 	 */
-	if ((ret = itech_it8500_get_status(serial, devc)) != SR_OK) {
+	if ((ret = itech_it8500_get_status(sdi)) != SR_OK) {
 		sr_err("Failed to get unit status: %d",  ret);
 		goto error;
 	}
@@ -223,16 +230,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Maximum sample rate: %lld Hz",
 		samplerates[devc->max_sample_rate_idx]);
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("ITECH");
 	sdi->model = unit_model;
 	sdi->version = g_strdup_printf("%x.%02x", fw_major, fw_minor);
 	sdi->serial_num = unit_serial;
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
-	sdi->driver = &itech_it8500_driver_info;
-	sdi->priv = devc;
 
 	cg = g_malloc0(sizeof(*cg));
 	cg->name = g_strdup("1");
@@ -252,6 +253,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 error:
 	g_free(cmd);
 	g_free(devc);
+	g_free(sdi);
 	if (response)
 		g_free(response);
 	if (unit_model)
@@ -287,18 +289,18 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->sample_rate);
 		break;
 	case SR_CONF_ENABLED:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_boolean(devc->load_on);
 		}
 		break;
 	case SR_CONF_REGULATION:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_string(
 				itech_it8500_mode_to_string(devc->mode));
 		}
 		break;
 	case SR_CONF_VOLTAGE:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_double(devc->voltage);
 		}
 		break;
@@ -309,7 +311,7 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_CURRENT:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_double(devc->current);
 		}
 		break;
@@ -326,7 +328,7 @@ static int config_get(uint32_t key, GVariant **data,
 	 * support...
 	 */
 	case SR_CONF_POWER:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_double(devc->power);
 		}
 		break;
@@ -349,7 +351,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
 						      & DS_OV_FLAG);
 		}
@@ -366,7 +368,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		if ((ret = itech_it8500_get_status(serial, devc)) == SR_OK) {
+		if ((ret = itech_it8500_get_status(sdi)) == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
 						      & DS_OC_FLAG);
 		}
@@ -382,7 +384,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
-		if ((ret = itech_it8500_get_status(serial, devc))
+		if ((ret = itech_it8500_get_status(sdi))
 		    == SR_OK) {
 			*data = g_variant_new_boolean(devc->demand_state
 						      & DS_OT_FLAG);

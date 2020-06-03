@@ -132,9 +132,51 @@ error:
 	return SR_ERR;
 }
 
-SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
-				    struct dev_context *devc)
+SR_PRIV void itech_it8500_status_change(const struct sr_dev_inst *sdi,
+					uint8_t old_os, uint8_t new_os,
+					uint16_t old_ds, uint16_t new_ds,
+					enum itech_it8500_modes old_m,
+					enum itech_it8500_modes new_m)
 {
+	gboolean b;
+
+	/*
+	 * check for status changes and send meta frames...
+	 */
+	if ((old_os & OS_OUT_FLAG) != (new_os & OS_OUT_FLAG)) {
+		b = new_os & OS_OUT_FLAG;
+		sr_session_send_meta(sdi, SR_CONF_ENABLED,
+		     g_variant_new_boolean(b));
+	}
+	if ((old_ds & DS_OV_FLAG) != (new_ds & DS_OV_FLAG)) {
+		b = new_ds & DS_OV_FLAG;
+		sr_session_send_meta(sdi,
+		     SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+		     g_variant_new_boolean(b));
+	}
+	if ((old_ds & DS_OC_FLAG) != (new_ds & DS_OC_FLAG)) {
+		b = new_ds & DS_OC_FLAG;
+		sr_session_send_meta(sdi,
+		     SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+		     g_variant_new_boolean(b));
+	}
+	if ((old_ds & DS_OT_FLAG) != (new_ds & DS_OT_FLAG)) {
+		b = new_ds & DS_OT_FLAG;
+		sr_session_send_meta(sdi,
+		     SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+		     g_variant_new_boolean(b));
+	}
+	if (old_m != new_m) {
+		sr_session_send_meta(sdi, SR_CONF_REGULATION,
+		     g_variant_new_string(itech_it8500_mode_to_string(new_m)));
+	}
+
+}
+
+SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_serial_dev_inst *serial;
+	struct dev_context *devc;
 	struct itech_it8500_cmd_packet *cmd;
 	struct itech_it8500_cmd_packet *resp;
 	double voltage, current, power;
@@ -144,8 +186,13 @@ SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
 	gboolean load_on;
 	int ret;
 
-	if (!serial)
+	if (!sdi)
 		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+	serial = sdi->conn;
+	if (!devc || !serial)
+		return SR_ERR_NA;
 
 	cmd = g_malloc0(sizeof(*cmd));
 	if (!cmd)
@@ -179,15 +226,22 @@ SR_PRIV int itech_it8500_get_status(struct sr_serial_dev_inst *serial,
 		       itech_it8500_mode_to_string(mode),
 		       operation_state, demand_state);
 
-		if (devc) {
-			devc->voltage = voltage;
-			devc->current = current;
-			devc->power = power;
-			devc->operation_state = operation_state;
-			devc->demand_state = demand_state;
-			devc->mode = mode;
-			devc->load_on = load_on;
+		/* check for status change only after scan() complete */
+		if (sdi->model) {
+			itech_it8500_status_change(sdi,
+						   devc->operation_state,
+						   operation_state,
+						   devc->demand_state,
+						   demand_state,
+						   devc->mode, mode);
 		}
+		devc->voltage = voltage;
+		devc->current = current;
+		devc->power = power;
+		devc->operation_state = operation_state;
+		devc->demand_state = demand_state;
+		devc->mode = mode;
+		devc->load_on = load_on;
 	}
 
 	g_free(cmd);
@@ -254,7 +308,6 @@ SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
 	GSList *l;
 	int ret;
 
@@ -270,9 +323,7 @@ SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	serial = sdi->conn;
-
-	ret = itech_it8500_get_status(serial, devc);
+	ret = itech_it8500_get_status(sdi);
 	if (ret == SR_OK) {
 		std_session_send_df_frame_begin(sdi);
 
