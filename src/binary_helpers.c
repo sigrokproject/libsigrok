@@ -85,10 +85,6 @@ SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi, struct sr_chan
 	meaning.unit = bac->unit;
 	meaning.mqflags = 0;
 	meaning.channels = g_slist_append(NULL, ch);
-	if (!meaning.channels) {
-		err = SR_ERR_MALLOC;
-		goto err_out;
-	}
 
 	spec.spec_digits = bac->digits;
 
