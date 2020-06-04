@@ -86,7 +86,7 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 
 	ret = serial_read_blocking(serial, resp, packet_size, 100);
 	if (ret < packet_size) {
-		sr_err("%s: timeout waiting response to command: %d",
+		sr_dbg("%s: timeout waiting response to command: %d",
 		       __func__, ret);
 		goto error;
 	}

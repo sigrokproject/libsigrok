@@ -20,8 +20,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define DEFAULT_SERIALCOMM "9600/8n1"
-
 #define MIN_SAMPLE_RATE SR_HZ(1)
 #define MAX_SAMPLE_RATE SR_HZ(60)
 #define DEFAULT_SAMPLE_RATE SR_HZ(10)
@@ -76,6 +74,14 @@ static const uint64_t samplerates[] = {
 	SR_HZ(60),
 };
 
+static const char* default_serial_parameters[] = {
+	"9600/8n1", /* factory default */
+	"38400/8n1",
+	"19200/8n1",
+	"4800/8n1",
+	NULL,
+};
+
 static struct sr_dev_driver itech_it8500_driver_info;
 
 
@@ -87,6 +93,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_channel_group *cg;
 	struct sr_channel *ch;
 	struct dev_context *devc;
+	const char* custom_serial_parameters[2];
+	const char** serial_parameters;
 	const char *conn, *serialcomm;
 	GSList *l;
 	struct itech_it8500_cmd_packet *cmd, *response;
@@ -95,7 +103,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	double max_i, max_v, min_v, max_p, max_r, min_r;
 	uint64_t max_samplerate;
 	uint32_t u;
-	int ret;
+	int ret, i;
 
 
 	sr_dbg("%s(%p,%p): called", __func__, di, options);
@@ -126,17 +134,52 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (!conn)
 		goto error;
-	if (!serialcomm)
-		serialcomm = DEFAULT_SERIALCOMM;
 
 	/*
-	 * open serial port
+	 * If serialcomm is specified use it, otherwise try out
+	 * known supported configurations.
+	 */
+	if (serialcomm) {
+		custom_serial_parameters[0] = serialcomm;
+		custom_serial_parameters[1] = NULL;
+		serial_parameters = custom_serial_parameters;
+	} else {
+		serial_parameters = default_serial_parameters;
+	}
+
+
+	/*
+	 * try different serial parameters in the list
+	 * until we get response (or not...)
 	 */
 	sr_info("Probing serial port: %s", conn);
-	serial = sr_serial_dev_inst_new(conn, serialcomm);
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+	i = 0;
+	while ((serialcomm = serial_parameters[i++])) {
+		serial = sr_serial_dev_inst_new(conn, serialcomm);
+		if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+			goto error;
+		serial_flush(serial);
+
+		cmd->command = CMD_GET_MODEL_INFO;
+		if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
+			break;
+		}
+
+		serial_close(serial);
+		sr_serial_dev_inst_free(serial);
+	}
+	if (!serialcomm)
 		goto error;
-	serial_flush(serial);
+
+	fw_major = response->data[6];
+	fw_minor = response->data[5];
+	response->data[5] = 0;
+	unit_model = g_strdup((const char*)&response->data[0]);
+	response->data[17] = 0;
+	unit_serial = g_strdup((const char*)&response->data[7]);
+	sr_info("Model name: %s (v%x.%02x)", unit_model, fw_major, fw_minor);
+	sr_info("Address: %d", response->address);
+	sr_info("Serial number: %s", unit_serial);
 
 	sdi->status = SR_ST_INACTIVE;
 	sdi->conn = serial;
@@ -144,7 +187,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->driver = &itech_it8500_driver_info;
 	sdi->priv = devc;
 	g_mutex_init(&devc->mutex);
-
 
 	/*
 	 * calculate maxium "safe" sample rate based on serial connection
@@ -163,27 +205,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	/*
-	 * get load model information
+	 * get full serial number (barcode)...
 	 */
-	cmd->command = CMD_GET_MODEL_INFO;
-	if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK)
-		goto error;
-	fw_major = response->data[6];
-	fw_minor = response->data[5];
-	response->data[5] = 0;
-	unit_model = g_strdup((const char*)&response->data[0]);
-	response->data[17] = 0;
-	unit_serial = g_strdup((const char*)&response->data[7]);
-	sr_info("Model name: %s (v%x.%02x)", unit_model, fw_major, fw_minor);
-	sr_info("Address: %d", response->address);
-	sr_info("Serial number: %s", unit_serial);
-
 	cmd->command = CMD_GET_BARCODE_INFO;
 	if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
 		response->checksum = 0;
 		sr_info("Barcode: %s", response->data);
 	}
-
 
 	/*
 	 * query unit capabilities
