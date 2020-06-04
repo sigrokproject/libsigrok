@@ -498,7 +498,6 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	case 7:
 	case 16:
 		/* in resitance modes 0L reads as 1.20000E8 or 1.99999E8 */
-		sr_dbg("meter: '%s'",devc->model->model);
 		if (!strncmp(devc->model->model,"GDM8255A",8)) {
 			if (info->d_value >= 1.99999e8)
 				info->d_value = +INFINITY;
