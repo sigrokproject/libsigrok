@@ -50,7 +50,9 @@ lib_LTLIBRARIES = libsigrok.la
 # Backend files
 libsigrok_la_SOURCES = \
 	src/backend.c \
+	src/binary_helpers.c \
 	src/conversion.c \
+	src/crc.c \
 	src/device.c \
 	src/session.c \
 	src/session_file.c \
@@ -518,6 +520,18 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/rdtech-dps/protocol.h \
 	src/hardware/rdtech-dps/protocol.c \
 	src/hardware/rdtech-dps/api.c
+endif
+if HW_RDTECH_UM
+src_libdrivers_la_SOURCES += \
+	src/hardware/rdtech-um/protocol.h \
+	src/hardware/rdtech-um/protocol.c \
+	src/hardware/rdtech-um/api.c
+endif
+if HW_RDTECH_TC
+src_libdrivers_la_SOURCES += \
+	src/hardware/rdtech-tc/protocol.h \
+	src/hardware/rdtech-tc/protocol.c \
+	src/hardware/rdtech-tc/api.c
 endif
 if HW_RIGOL_DS
 src_libdrivers_la_SOURCES += \

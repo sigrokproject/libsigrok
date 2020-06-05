@@ -107,6 +107,8 @@ SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 
 SR_ARG_OPT_PKG([libbluez], [LIBBLUEZ], , [bluez >= 4.0])
 
+SR_ARG_OPT_PKG([libnettle], [LIBNETTLE], , [nettle])
+
 # FreeBSD comes with an "integrated" libusb-1.0-style USB API.
 # This means libusb-1.0 is always available; no need to check for it.
 # On Windows, require the latest version we can get our hands on,
@@ -303,6 +305,8 @@ SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer], [serial_comm])
 SR_DRIVER([PCE PCE-322A], [pce-322a], [serial_comm])
 SR_DRIVER([Pipistrello-OLS], [pipistrello-ols], [libftdi])
 SR_DRIVER([RDTech DPSxxxx/DPHxxxx], [rdtech-dps], [serial_comm])
+SR_DRIVER([RDTech UMXX], [rdtech-um], [serial_comm])
+SR_DRIVER([RDTech TCXX], [rdtech-tc], [serial_comm libnettle])
 SR_DRIVER([Rigol DS], [rigol-ds])
 SR_DRIVER([Rohde&Schwarz SME-0x], [rohde-schwarz-sme-0x], [serial_comm])
 SR_DRIVER([Saleae Logic16], [saleae-logic16], [libusb])
