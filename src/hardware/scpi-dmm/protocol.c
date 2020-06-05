@@ -444,6 +444,7 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	/*
 	 * Get the current reading from the meter.
 	 */
+	scpi_dmm_cmd_delay(scpi);
 	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_VALUE);
 	if (!command || !*command)
 		return SR_ERR_NA;
