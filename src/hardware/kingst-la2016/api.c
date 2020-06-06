@@ -109,8 +109,6 @@ static const char *logic_threshold[] = {
 
 #define MAX_NUM_LOGIC_THRESHOLD_ENTRIES ARRAY_SIZE(logic_threshold)
 
-#define array_length(a) (sizeof(a) / sizeof((a)[0]))
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -550,7 +548,7 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 		transfer_packet_host(packets[i]);
 		packet = packets + i;
 		ptotal = 0;
-		for (k = 0; k < array_length(packet->packet); k++) {
+		for (k = 0; k < ARRAY_SIZE(packet->packet); k++) {
 			free_n_samples = max_samples - n_samples;
 			if (free_n_samples < 256 || do_signal_trigger) {
 				logic.length = n_samples * 2;
