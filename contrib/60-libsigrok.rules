@@ -164,6 +164,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8a98", ENV{ID_SIGROK}="1"
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", ENV{ID_SIGROK}="1"
 
+# Kingst LA2016
+ATTRS{idVendor}=="77a1", ATTRS{idProduct}=="01a2", ENV{ID_SIGROK}="1"
+
 # Lascar Electronics EL-USB-2
 # Lascar Electronics EL-USB-CO
 # This is actually the generic SiLabs (Cygnal) F32x USBXpress VID:PID.
