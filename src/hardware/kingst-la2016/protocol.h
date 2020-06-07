@@ -103,6 +103,8 @@ struct dev_context {
 	uint16_t cur_channels;
 	int num_channels;
 
+	uint32_t bitstream_size;
+
 	/* derived stuff */
 	uint64_t pre_trigger_size;
 
