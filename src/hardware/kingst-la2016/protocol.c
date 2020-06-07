@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
+#include <inttypes.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "protocol.h"
@@ -96,15 +97,19 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 
 static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_resource bitstream;
 	uint32_t cmd;
 	uint8_t cmd_resp;
 	uint8_t block[4096];
-	int pos, len, act_len;
+	int len, act_len;
+	unsigned int pos;
 	int ret;
+	unsigned int zero_pad_to = 0x2c000;
 
+	devc = sdi->priv;
 	drvc = sdi->driver->context;
 	usb = sdi->conn;
 
@@ -116,7 +121,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	WL32(&cmd, 0x2b602);
+	devc->bitstream_size = (uint32_t)bitstream.size;
+	WL32(&cmd, devc->bitstream_size);
 	if ((ret = ctrl_out(sdi, 80, 0x00, 0, &cmd, sizeof(cmd))) != SR_OK) {
 		sr_err("failed to give upload init command");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
@@ -125,11 +131,19 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 
 	pos = 0;
 	while (1) {
-		len = (int)sr_resource_read(drvc->sr_ctx, &bitstream, &block, sizeof(block));
-		if (len < 0) {
-			sr_err("failed to read from fpga bitstream!");
-			sr_resource_close(drvc->sr_ctx, &bitstream);
-			return SR_ERR;
+		if (pos < bitstream.size) {
+			len = (int)sr_resource_read(drvc->sr_ctx, &bitstream, &block, sizeof(block));
+			if (len < 0) {
+				sr_err("failed to read from fpga bitstream!");
+				sr_resource_close(drvc->sr_ctx, &bitstream);
+				return SR_ERR;
+			}
+		} else {
+			// fill with zero's until zero_pad_to
+			len = zero_pad_to - pos;
+			if ((unsigned)len > sizeof(block))
+				len = sizeof(block);
+			memset(&block, 0, len);
 		}
 		if (len == 0)
 			break;
@@ -150,20 +164,25 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 	sr_resource_close(drvc->sr_ctx, &bitstream);
 	if (ret != 0)
 		return ret;
-	sr_info("FPGA bitstream upload (%d bytes) done.", pos);
+	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.", bitstream.size);
 
 	if ((ret = ctrl_in(sdi, 80, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
 		sr_err("failed to read response after FPGA bitstream upload");
 		return ret;
 	}
-	if (cmd_resp != 0)
-		sr_warn("after fpga bitstream upload command response is 0x%02x, expect 0", cmd_resp);
+	if (cmd_resp != 0) {
+		sr_err("after fpga bitstream upload command response is 0x%02x, expect 0!", cmd_resp);
+		return SR_ERR;
+	}
+
+	g_usleep(30000);
 
 	if ((ret = ctrl_out(sdi, 16, 0x01, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed enable fpga");
 		return ret;
 	}
 
+	g_usleep(40000);
 	return SR_OK;
 }
 
@@ -607,18 +626,26 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
 	uint32_t i1;
 	uint32_t i2[2];
 	uint16_t state;
 
-	uint8_t unknown_cmd1[] = { 0xa3, 0x09, 0xc9, 0x8d, 0xe7, 0xad, 0x7a, 0x62, 0xb6, 0xd1, 0xbf };
-	uint8_t expected_unknown_resp1[] = { 0xa3, 0x10, 0xda, 0x66, 0x6b, 0x93, 0x5c, 0x55, 0x38, 0x50, 0x39, 0x51, 0x98, 0x86, 0x5d, 0x06, 0x7c, 0xea };
-	uint8_t unknown_resp1[sizeof(expected_unknown_resp1)];
+	/* this unknown_cmd1 seems to depend on the FPGA bitstream */
+	uint8_t unknown_cmd1_340[] = { 0xa3, 0x09, 0xc9, 0x8d, 0xe7, 0xad, 0x7a, 0x62, 0xb6, 0xd1, 0xbf };
+	uint8_t unknown_cmd1_342[] = { 0xa3, 0x09, 0xc9, 0xf4, 0x32, 0x4c, 0x4d, 0xee, 0xab, 0xa0, 0xdd };
+	uint8_t expected_unknown_resp1_340[] = { 0xa3, 0x10, 0xda, 0x66, 0x6b, 0x93, 0x5c, 0x55, 0x38, 0x50, 0x39, 0x51, 0x98, 0x86, 0x5d, 0x06, 0x7c, 0xea };
+	uint8_t expected_unknown_resp1_342[] = { 0xa3, 0x10, 0xb3, 0x92, 0x7b, 0xd8, 0x6b, 0xca, 0xa5, 0xab, 0x42, 0x6e, 0xda, 0xcd, 0x9d, 0xf1, 0x31, 0x2f };
+	uint8_t unknown_resp1[sizeof(expected_unknown_resp1_340)];
+	uint8_t *expected_unknown_resp1;
+	uint8_t *unknown_cmd1;
 
 	uint8_t unknown_cmd2[] = { 0xa3, 0x01, 0xca };
 	uint8_t expected_unknown_resp2[] = { 0xa3, 0x08, 0x06, 0x83, 0x96, 0x29, 0x15, 0xe1, 0x92, 0x74, 0x00, 0x00 };
 	uint8_t unknown_resp2[sizeof(expected_unknown_resp2)];
+
+	devc = sdi->priv;
 
 	if ((ret = ctrl_in(sdi, 162, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
 		sr_err("failed to read i1");
@@ -637,9 +664,23 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	run_state(sdi);
+	if (run_state(sdi) == 0xffff) {
+		sr_err("run_state after fpga bitstream upload is 0xffff!");
+		return SR_ERR;
+	}
 
-	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1))) != SR_OK) {
+	if (devc->bitstream_size == 0x2b602) {
+		// v3.4.0
+		unknown_cmd1 = unknown_cmd1_340;
+		expected_unknown_resp1 = expected_unknown_resp1_340;
+	} else {
+		// v3.4.2
+		if (devc->bitstream_size != 0x2b839)
+			sr_warn("the FPGA bitstream size %d is unknown. tested bistreams from vendor's version 3.4.0 and 3.4.2\n", devc->bitstream_size);
+		unknown_cmd1 = unknown_cmd1_342;
+		expected_unknown_resp1 = expected_unknown_resp1_342;
+	}
+	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1_340))) != SR_OK) {
 		sr_err("failed to send unknown_cmd1");
 		return ret;
 	}
@@ -649,7 +690,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 	if (memcmp(unknown_resp1, expected_unknown_resp1, sizeof(unknown_resp1)))
-		sr_dbg("unknown_cmd1 response is not as expected!");
+		sr_dbg("unknown_cmd1 response is not as expected, this is to be expected...");
 
 	state = run_state(sdi);
 	if (state != 0x85e9)
