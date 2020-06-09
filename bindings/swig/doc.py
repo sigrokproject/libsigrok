@@ -46,7 +46,7 @@ for compound in index.findall('compound'):
         if language == 'python':
             print('%%feature("docstring") %s "%s";' % (class_name, brief))
         elif language == 'ruby':
-            print('%%feature("docstring") %s "/* Document-class: %s\\n%s */\\n";' % (class_name, class_name.replace("sigrok", "Sigrok", 1), brief))
+            print('%%feature("docstring") %s "Document-class: %s\\n%s\\n";' % (class_name, class_name.replace("sigrok", "Sigrok", 1), brief))
         elif language == 'java':
             print('%%typemap(javaclassmodifiers) %s "/** %s */\npublic class"' % (
             class_name, brief))
@@ -77,10 +77,10 @@ for compound in index.findall('compound'):
                             for name, desc in parameters.items()]) + '";')
                 if language == 'ruby' and kind == 'public-func':
                     print(str.join('\n', [
-                        '%%feature("docstring") %s::%s "/* %s' % (
+                        '%%feature("docstring") %s::%s "%s' % (
                             class_name, member_name, brief)] + [
                         '@param %s %s' % (name, desc)
-                            for name, desc in parameters.items()]) + ' */\\n";')
+                            for name, desc in parameters.items()]) + '\\n";')
                 elif language == 'java' and kind == 'public-func':
                         print(str.join('\n', [
                             '%%javamethodmodifiers %s::%s "/** %s' % (
@@ -111,4 +111,4 @@ for compound in index.findall('compound'):
             print('%}')
     elif language == 'ruby' and constants:
         for member_name, brief in constants:
-            print('%%feature("docstring") %s::%s "/* %s */\\n";' % (class_name, member_name, brief))
+            print('%%feature("docstring") %s::%s "%s\\n";' % (class_name, member_name, brief))
