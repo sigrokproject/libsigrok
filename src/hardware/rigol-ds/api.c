@@ -526,7 +526,6 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	const char *tmp_str;
-	uint64_t samplerate;
 	int analog_channel = -1;
 	float smallest_diff = INFINITY;
 	int idx = -1;
@@ -570,14 +569,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string("Segmented");
 		break;
 	case SR_CONF_SAMPLERATE:
-		if (devc->data_source == DATA_SOURCE_LIVE) {
-			samplerate = analog_frame_size(sdi) /
-				(devc->timebase * devc->model->series->num_horizontal_divs);
-			*data = g_variant_new_uint64(samplerate);
-		} else {
-			sr_dbg("Unknown data source: %d.", devc->data_source);
-			return SR_ERR_NA;
-		}
+		*data = g_variant_new_uint64(devc->sample_rate);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!strcmp(devc->trigger_source, "ACL"))
@@ -989,6 +981,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	devc->channel_entry = devc->enabled_channels;
+
+	if (devc->data_source == DATA_SOURCE_LIVE)
+		devc->sample_rate = analog_frame_size(sdi) / 
+			(devc->timebase * devc->model->series->num_horizontal_divs);
+	else {
+		float xinc;
+		if (devc->model->series->protocol >= PROTOCOL_V3 && 
+				sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc) != SR_OK) {
+			sr_err("Couldn't get sampling rate");
+			return SR_ERR;
+		}
+		devc->sample_rate = 1. / xinc;
+	}
+
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;
