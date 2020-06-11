@@ -500,6 +500,7 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 	case DATA_SOURCE_LIVE:
 		return devc->model->series->live_samples;
 	case DATA_SOURCE_MEMORY:
+	case DATA_SOURCE_SEGMENTED:
 		return devc->model->series->buffer_samples / analog_channels;
 	default:
 		return 0;
@@ -514,6 +515,7 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 	case DATA_SOURCE_LIVE:
 		return devc->model->series->live_samples * 2;
 	case DATA_SOURCE_MEMORY:
+	case DATA_SOURCE_SEGMENTED:
 		return devc->model->series->buffer_samples * 2;
 	default:
 		return 0;
@@ -879,6 +881,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	devc->num_frames = 0;
+	devc->num_frames_segmented = 0;
 
 	some_digital = FALSE;
 	for (l = sdi->channels; l; l = l->next) {
@@ -943,8 +946,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
-		sr_err("Data source 'Segmented' not yet supported");
-		return SR_ERR;
+		if (devc->model->series->protocol == PROTOCOL_V4) {
+			int frames = 0;
+			/* PROTOCOL_V5 has RECORD:FRAMES?, but this seems to return the
+			 * maximum that should be captured, not the current amount. If
+			 * we can figure out how to get the current number of frames,
+			 * or when we've hit the last one, adding support for this will
+			 * be possible as well.
+			 */
+			sr_scpi_get_int(sdi->conn, "FUNC:WREP:FEND?", &frames);
+			if (frames <= 0) {
+				sr_err("No segmented data available");
+				return SR_ERR;
+			}
+			devc->num_frames_segmented = frames;
+		} else {
+			sr_err("Data source 'Segmented' not yet supported");
+			return SR_ERR;
+		}
 	}
 
 	devc->analog_frame_size = analog_frame_size(sdi);

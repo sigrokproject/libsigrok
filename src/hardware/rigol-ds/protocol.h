@@ -144,6 +144,8 @@ struct dev_context {
 
 	/* Number of frames received in total. */
 	uint64_t num_frames;
+	/* Number of frames available from the Segmented data source */
+	uint64_t num_frames_segmented;
 	/* GSList entry for the current channel. */
 	GSList *channel_entry;
 	/* Number of bytes received for current channel. */
