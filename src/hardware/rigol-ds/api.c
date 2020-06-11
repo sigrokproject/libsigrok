@@ -946,21 +946,25 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
-		if (devc->model->series->protocol == PROTOCOL_V4) {
+		switch (devc->model->series->protocol) {
+		case PROTOCOL_V4:
+		{
 			int frames = 0;
-			/* PROTOCOL_V5 has RECORD:FRAMES?, but this seems to return the
-			 * maximum that should be captured, not the current amount. If
-			 * we can figure out how to get the current number of frames,
-			 * or when we've hit the last one, adding support for this will
-			 * be possible as well.
-			 */
 			sr_scpi_get_int(sdi->conn, "FUNC:WREP:FEND?", &frames);
 			if (frames <= 0) {
 				sr_err("No segmented data available");
 				return SR_ERR;
 			}
 			devc->num_frames_segmented = frames;
-		} else {
+			break;
+		}
+		case PROTOCOL_V5:
+			/* The frame limit has to be read on the fly, just set up
+			 * reading of the first frame */
+			if (rigol_ds_config_set(sdi, "REC:CURR 1") != SR_OK)
+				return SR_ERR;
+			break;
+		default:
 			sr_err("Data source 'Segmented' not yet supported");
 			return SR_ERR;
 		}
