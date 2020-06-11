@@ -756,12 +756,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			if (devc->data_source != DATA_SOURCE_LIVE)
 				rigol_ds_set_wait_event(devc, WAIT_BLOCK);
 		}
-		/* End acquisition when data for all channels is acquired. */
 		if (!sr_scpi_read_complete(scpi) && !devc->channel_entry->next) {
 			sr_err("Read should have been completed");
-			std_session_send_df_frame_end(sdi);
-			sr_dev_acquisition_stop(sdi);
-			return TRUE;
 		}
 		devc->num_block_read = 0;
 	} else {
@@ -795,7 +791,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* Done with this frame. */
 		std_session_send_df_frame_end(sdi);
 
-		if (++devc->num_frames == devc->limit_frames) {
+		if (++devc->num_frames == devc->limit_frames || devc->data_source == DATA_SOURCE_MEMORY) {
 			/* Last frame, stop capture. */
 			sr_dev_acquisition_stop(sdi);
 		} else {
