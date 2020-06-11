@@ -338,12 +338,15 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	if (!(devc = sdi->priv))
 		return SR_ERR;
 
-	if (devc->limit_frames == 0)
+	uint64_t limit_frames = devc->limit_frames;
+	if (devc->num_frames_segmented != 0 && devc->num_frames_segmented < limit_frames)
+		limit_frames = devc->num_frames_segmented;
+	if (limit_frames == 0)
 		sr_dbg("Starting data capture for frameset %" PRIu64,
 		       devc->num_frames + 1);
 	else
 		sr_dbg("Starting data capture for frameset %" PRIu64 " of %"
-		       PRIu64, devc->num_frames + 1, devc->limit_frames);
+		       PRIu64, devc->num_frames + 1, limit_frames);
 
 	switch (devc->model->series->protocol) {
 	case PROTOCOL_V1:
@@ -428,6 +431,9 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 			if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
 				return SR_ERR;
 			rigol_ds_set_wait_event(devc, WAIT_STOP);
+			if (devc->data_source == DATA_SOURCE_SEGMENTED)
+				if (rigol_ds_config_set(sdi, "FUNC:WREP:FCUR %d", devc->num_frames + 1) != SR_OK)
+					return SR_ERR;
 		}
 		break;
 	}
@@ -799,7 +805,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* Done with this frame. */
 		std_session_send_df_frame_end(sdi);
 
-		if (++devc->num_frames == devc->limit_frames || devc->data_source == DATA_SOURCE_MEMORY) {
+		if (++devc->num_frames == devc->limit_frames || 
+				devc->num_frames == devc->num_frames_segmented ||
+				devc->data_source == DATA_SOURCE_MEMORY) {
 			/* Last frame, stop capture. */
 			sr_dev_acquisition_stop(sdi);
 		} else {
