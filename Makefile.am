@@ -79,6 +79,7 @@ libsigrok_la_SOURCES += \
 	src/input/csv.c \
 	src/input/logicport.c \
 	src/input/raw_analog.c \
+	src/input/saleae.c \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
 	src/input/wav.c \
