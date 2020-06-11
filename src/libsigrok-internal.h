@@ -312,7 +312,7 @@ static inline int64_t read_i64le(const uint8_t *p)
 #define RL64S(x) read_i64le((const uint8_t *)(x))
 
 /**
- * Read a 32 bits big endian float out of memory.
+ * Read a 32 bits big endian float out of memory (single precision).
  * @param x a pointer to the input memory
  * @return the corresponding float
  */
@@ -335,7 +335,7 @@ static inline float read_fltbe(const uint8_t *p)
 #define RBFL(x) read_fltbe((const uint8_t *)(x))
 
 /**
- * Read a 32 bits little endian float out of memory.
+ * Read a 32 bits little endian float out of memory (single precision).
  * @param x a pointer to the input memory
  * @return the corresponding float
  */
@@ -356,6 +356,29 @@ static inline float read_fltle(const uint8_t *p)
 	return f;
 }
 #define RLFL(x) read_fltle((const uint8_t *)(x))
+
+/**
+ * Read a 64 bits little endian float out of memory (double precision).
+ * @param x a pointer to the input memory
+ * @return the corresponding floating point value
+ */
+static inline double read_dblle(const uint8_t *p)
+{
+	/*
+	 * Implementor's note: Strictly speaking the "union" trick
+	 * is not portable. But this phrase was found to work on the
+	 * project's supported platforms, and serve well until a more
+	 * appropriate phrase is found.
+	 */
+	union { uint64_t u64; double flt; } u;
+	double f;
+
+	u.u64 = read_u64le(p);
+	f = u.flt;
+
+	return f;
+}
+#define RLDB(x) read_dblle((const uint8_t *)(x))
 
 /**
  * Write a 8 bits unsigned integer to memory.
@@ -421,6 +444,24 @@ static inline void write_u32le(uint8_t *p, uint32_t x)
 #define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
 
 /**
+ * Write a 64 bits unsigned integer to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u64le(uint8_t *p, uint64_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+	p[5] = x & 0xff; x >>= 8;
+	p[6] = x & 0xff; x >>= 8;
+	p[7] = x & 0xff; x >>= 8;
+}
+#define WL64(p, x) write_u64le((uint8_t *)(p), (uint64_t)(x))
+
+/**
  * Write a 32 bits float to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input float
@@ -445,6 +486,19 @@ static inline void write_fltle(uint8_t *p, float x)
 	write_u32le(p, u.u);
 }
 #define WLFL(p, x) write_fltle((uint8_t *)(p), float (x))
+
+/**
+ * Write a 64 bits float to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input floating point value
+ */
+static inline void write_dblle(uint8_t *p, double x)
+{
+	union { uint64_t u; double f; } u;
+	u.f = x;
+	write_u64le(p, u.u);
+}
+#define WLDB(p, x) write_dblle((uint8_t *)(p), float (x))
 
 /* Endianess conversion helpers with read/write position increment. */
 
@@ -585,6 +639,40 @@ static inline uint64_t read_u64le_inc(const uint8_t **p)
 }
 
 /**
+ * Read 32bit float from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline float read_fltle_inc(const uint8_t **p)
+{
+	float v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_fltle(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read 64bit float from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline double read_dblle_inc(const uint8_t **p)
+{
+	double v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_dblle(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Write unsigned 8bit integer to raw memory, increment write position.
  * @param[in, out] p Pointer into byte stream.
  * @param[in] x Value to write.
@@ -646,6 +734,45 @@ static inline void write_u32le_inc(uint8_t **p, uint32_t x)
 	if (!p || !*p)
 		return;
 	write_u32le(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 64bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u64le_inc(uint8_t **p, uint64_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u64le(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write single precision little endian float to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_fltle_inc(uint8_t **p, float x)
+{
+	if (!p || !*p)
+		return;
+	write_fltle(*p, x);
+	*p += sizeof(x);
+}
+
+/**
+ * Write double precision little endian float to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_dblle_inc(uint8_t **p, double x)
+{
+	if (!p || !*p)
+		return;
+	write_dblle(*p, x);
 	*p += sizeof(x);
 }
 
