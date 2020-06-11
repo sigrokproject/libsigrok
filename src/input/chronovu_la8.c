@@ -130,9 +130,7 @@ static int init(struct sr_input *in, GHashTable *options)
 static int process_buffer(struct sr_input *in)
 {
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
 	struct sr_datafeed_logic logic;
-	struct sr_config *src;
 	struct context *inc;
 	gsize chunk_size, i;
 	gsize chunk;
@@ -145,13 +143,8 @@ static int process_buffer(struct sr_input *in)
 		std_session_send_df_header(in->sdi);
 
 		if (inc->samplerate) {
-			packet.type = SR_DF_META;
-			packet.payload = &meta;
-			src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-			meta.config = g_slist_append(NULL, src);
-			sr_session_send(in->sdi, &packet);
-			g_slist_free(meta.config);
-			sr_config_free(src);
+			(void)sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE,
+				g_variant_new_uint64(inc->samplerate));
 		}
 
 		inc->samples_remain = CHRONOVU_LA8_DATASIZE;

@@ -407,21 +407,11 @@ static void create_channels(struct sr_input *in)
 
 static void send_metadata(struct sr_input *in)
 {
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
 	struct context *inc;
 
 	inc = in->priv;
-
-	packet.type = SR_DF_META;
-	packet.payload = &meta;
-	src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->samplerate));
-	meta.config = g_slist_append(NULL, src);
-	sr_session_send(in->sdi, &packet);
-	g_slist_free(meta.config);
-	sr_config_free(src);
-
+	(void)sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE,
+		g_variant_new_uint64(inc->samplerate));
 	inc->meta_sent = TRUE;
 }
 

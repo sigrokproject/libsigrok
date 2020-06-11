@@ -842,8 +842,6 @@ static int send_buffer(struct sr_input *in)
 {
 	struct context *inc;
 	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
 	struct sr_datafeed_logic logic;
 	int rc;
 
@@ -859,14 +857,8 @@ static int send_buffer(struct sr_input *in)
 	}
 
 	if (inc->sample_rate && !inc->rate_sent) {
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE,
+		rc = sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE,
 			g_variant_new_uint64(inc->sample_rate));
-		meta.config = g_slist_append(NULL, src);
-		rc = sr_session_send(in->sdi, &packet);
-		g_slist_free(meta.config);
-		sr_config_free(src);
 		if (rc)
 			return rc;
 		inc->rate_sent = TRUE;

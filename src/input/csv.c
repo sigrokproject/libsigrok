@@ -277,21 +277,13 @@ struct context {
 static int flush_samplerate(const struct sr_input *in)
 {
 	struct context *inc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_meta meta;
-	struct sr_config *src;
 
 	inc = in->priv;
 	if (!inc->calc_samplerate && inc->samplerate)
 		inc->calc_samplerate = inc->samplerate;
 	if (inc->calc_samplerate && !inc->samplerate_sent) {
-		packet.type = SR_DF_META;
-		packet.payload = &meta;
-		src = sr_config_new(SR_CONF_SAMPLERATE, g_variant_new_uint64(inc->calc_samplerate));
-		meta.config = g_slist_append(NULL, src);
-		sr_session_send(in->sdi, &packet);
-		g_slist_free(meta.config);
-		sr_config_free(src);
+		(void)sr_session_send_meta(in->sdi, SR_CONF_SAMPLERATE,
+			g_variant_new_uint64(inc->calc_samplerate));
 		inc->samplerate_sent = TRUE;
 	}
 
