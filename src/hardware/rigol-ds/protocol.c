@@ -431,7 +431,8 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 			if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
 				return SR_ERR;
 			rigol_ds_set_wait_event(devc, WAIT_STOP);
-			if (devc->data_source == DATA_SOURCE_SEGMENTED)
+			if (devc->data_source == DATA_SOURCE_SEGMENTED &&
+					devc->model->series->protocol == PROTOCOL_V4)
 				if (rigol_ds_config_set(sdi, "FUNC:WREP:FCUR %d", devc->num_frames + 1) != SR_OK)
 					return SR_ERR;
 		}
@@ -805,7 +806,22 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* Done with this frame. */
 		std_session_send_df_frame_end(sdi);
 
-		if (++devc->num_frames == devc->limit_frames || 
+		devc->num_frames++;
+
+		/* V5 has no way to read the number of recorded frames, so try to set the
+		 * next frame and read it back instead.
+		 */
+		if (devc->data_source == DATA_SOURCE_SEGMENTED &&
+				devc->model->series->protocol == PROTOCOL_V5) {
+			int frames = 0;
+			if (rigol_ds_config_set(sdi, "REC:CURR %d", devc->num_frames + 1) != SR_OK)
+				return SR_ERR;
+			if (sr_scpi_get_int(sdi->conn, "REC:CURR?", &frames) != SR_OK)
+				return SR_ERR;
+			devc->num_frames_segmented = frames;
+		}
+
+		if (devc->num_frames == devc->limit_frames ||
 				devc->num_frames == devc->num_frames_segmented ||
 				devc->data_source == DATA_SOURCE_MEMORY) {
 			/* Last frame, stop capture. */
