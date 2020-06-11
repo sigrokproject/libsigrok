@@ -493,6 +493,11 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 					devc->data_source == DATA_SOURCE_LIVE ?
 						":WAV:MODE NORM" :":WAV:MODE RAW") != SR_OK)
 			return SR_ERR;
+
+		if (devc->data_source != DATA_SOURCE_LIVE) {
+			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
+				return SR_ERR;
+		}
 		break;
 	}
 
@@ -651,9 +656,12 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				return TRUE;
 		}
 
-		if (devc->model->series->protocol >= PROTOCOL_V3)
+		if (devc->model->series->protocol >= PROTOCOL_V3) {
+			if (rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
+				return TRUE;
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 				return TRUE;
+		}
 
 		if (sr_scpi_read_begin(scpi) != SR_OK)
 			return TRUE;
