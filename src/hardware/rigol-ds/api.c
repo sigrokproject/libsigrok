@@ -876,9 +876,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gboolean some_digital;
 	GSList *l;
 	char *cmd;
+	int protocol;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
+	protocol = devc->model->series->protocol;
 
 	devc->num_frames = 0;
 	devc->num_frames_segmented = 0;
@@ -902,7 +904,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			/* Only one list entry for older protocols. All channels are
 			 * retrieved together when this entry is processed. */
 			if (ch->enabled && (
-						devc->model->series->protocol > PROTOCOL_V3 ||
+						protocol > PROTOCOL_V3 ||
 						!some_digital))
 				devc->enabled_channels = g_slist_append(
 						devc->enabled_channels, ch);
@@ -910,8 +912,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				some_digital = TRUE;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (rigol_ds_config_set(sdi,
-							devc->model->series->protocol >= PROTOCOL_V3 ?
+					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
 								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
@@ -919,9 +920,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (devc->model->series->protocol >= PROTOCOL_V5)
+				if (protocol >= PROTOCOL_V5)
 					cmd = ":LA:DISP D%d,%s";
-				else if (devc->model->series->protocol >= PROTOCOL_V3)
+				else if (protocol >= PROTOCOL_V3)
 					cmd = ":LA:DIG%d:DISP %s";
 				else
 					cmd = ":DIG%d:TURN %s";
@@ -946,11 +947,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
-		switch (devc->model->series->protocol) {
+		switch (protocol) {
+		case PROTOCOL_V1:
+		case PROTOCOL_V2:
+			/* V1 and V2 do not have segmented data */
+			sr_err("Data source 'Segmented' not supported on this model");
+			break;
+		case PROTOCOL_V3:
 		case PROTOCOL_V4:
 		{
 			int frames = 0;
-			sr_scpi_get_int(sdi->conn, "FUNC:WREP:FEND?", &frames);
+			if (sr_scpi_get_int(sdi->conn,
+						protocol == PROTOCOL_V4 ? "FUNC:WREP:FEND?" :
+						"FUNC:WREP:FMAX?", &frames) != SR_OK)
+				return SR_ERR;
 			if (frames <= 0) {
 				sr_err("No segmented data available");
 				return SR_ERR;
