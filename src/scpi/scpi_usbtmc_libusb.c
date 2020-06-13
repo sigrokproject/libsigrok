@@ -534,6 +534,11 @@ static int scpi_usbtmc_bulkin_start(struct scpi_usbtmc_libusb *uscpi,
 		return SR_ERR;
 	}
 
+	if (transferred < USBTMC_BULK_HEADER_SIZE) {
+		sr_err("USBTMC bulk in returned too little data: %d/%d bytes\n", transferred, size);
+		return SR_ERR;
+	}
+
 	if (usbtmc_bulk_in_header_read(data, msg_id, uscpi->bTag, &message_size,
 	                               transfer_attributes) != SR_OK) {
 		sr_err("USBTMC invalid bulk in header.");
