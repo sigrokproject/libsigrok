@@ -99,7 +99,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l;
 	struct itech_it8500_cmd_packet *cmd, *response;
 	uint8_t fw_major, fw_minor;
-	char *unit_model, *unit_serial;
+	char *unit_model, *unit_serial, *unit_barcode;
 	double max_i, max_v, min_v, max_p, max_r, min_r;
 	uint64_t max_samplerate;
 	uint32_t u;
@@ -209,8 +209,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 */
 	cmd->command = CMD_GET_BARCODE_INFO;
 	if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
-		response->checksum = 0;
+		unit_barcode = g_malloc0(23);
+		unit_barcode[22] = 0;
+		memcpy(unit_barcode, response->data, 22);
 		sr_info("Barcode: %s", response->data);
+		g_free(unit_barcode);
 	}
 
 	/*

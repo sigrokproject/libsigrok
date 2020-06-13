@@ -22,7 +22,7 @@
 #include "protocol.h"
 
 
-SR_PRIV uint8_t itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
+SR_PRIV uint8_t itech_it8500_checksum(const uint8_t *packet)
 {
 	uint8_t *p;
 	uint8_t checksum;
@@ -34,7 +34,7 @@ SR_PRIV uint8_t itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
 	checksum = 0;
 	p = (unsigned char*) packet;
 
-	for (i = 0; i < sizeof(*packet) - 1; i++) {
+	for (i = 0; i < IT8500_PACKET_LEN - 1; i++) {
 		checksum += *p++;
 	}
 
@@ -63,47 +63,57 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 	int ret;
 	unsigned char checksum;
 	struct itech_it8500_cmd_packet *resp;
-	const int packet_size = sizeof(struct itech_it8500_cmd_packet);
+	uint8_t *cmd_buf, *resp_buf;
+	int read_len;
 
 	if (!serial || !cmd || !response)
 		return SR_ERR_ARG;
 
-	resp = g_malloc0(packet_size);
-	if (!resp)
+	cmd_buf = g_malloc0(IT8500_PACKET_LEN);
+	resp_buf = g_malloc0(IT8500_PACKET_LEN);
+	resp = g_malloc0(sizeof(*resp));
+	if (!cmd_buf || !resp_buf || !resp)
 		return SR_ERR_MALLOC;
 
-	cmd->preamble = 0xaa;
-	checksum = itech_it8500_checksum(cmd);
-	cmd->checksum = checksum;
+	cmd_buf[0] = 0xaa;                             /* preamble */
+	cmd_buf[1] = 0;                                /* address (unused) */
+	cmd_buf[2] = cmd->command;                     /* command */
+	memcpy(&cmd_buf[3], cmd->data, 22);            /* data */
+	cmd_buf[25] = itech_it8500_checksum(cmd_buf);  /* checksum */
 
 	sr_spew("%s: sending command: %02x", __func__, cmd->command);
-	ret = serial_write_blocking(serial, cmd, packet_size,
-				    serial_timeout(serial, packet_size));
-	if (ret < 0) {
+	ret = serial_write_blocking(serial, cmd_buf, IT8500_PACKET_LEN,
+				    serial_timeout(serial, IT8500_PACKET_LEN));
+	if (ret < IT8500_PACKET_LEN) {
 		sr_err("%s: error sending command: %d", __func__, ret);
+		ret = SR_ERR;
 		goto error;
 	}
 
-	ret = serial_read_blocking(serial, resp, packet_size, 100);
-	if (ret < packet_size) {
+	ret = SR_ERR;
+	read_len = serial_read_blocking(serial, resp_buf, IT8500_PACKET_LEN, 100);
+	if (read_len < IT8500_PACKET_LEN) {
 		sr_dbg("%s: timeout waiting response to command: %d",
-		       __func__, ret);
+		       __func__, read_len);
 		goto error;
 	}
-	sr_spew("%s: response packet received: %02x", __func__, resp->command);
 
-	if (resp->preamble != 0xaa) {
+	if (resp_buf[0] != 0xaa) {
 		sr_err("%s: invalid packet received (first byte: %02x)",
-		       __func__, resp->preamble);
+		       __func__, resp_buf[0]);
 		goto error;
 	}
 
-	checksum = itech_it8500_checksum(resp);
-	if (resp->checksum != checksum) {
+	checksum = itech_it8500_checksum(resp_buf);
+	if (resp_buf[25] != checksum) {
 		sr_err("%s: invalid packet received: checksum mismatch",
 		       __func__);
 		goto error;
 	}
+
+	resp->command = resp_buf[2];
+	memcpy(resp->data, &resp_buf[3], 22);
+	sr_spew("%s: response packet received: cmd=%02x", __func__, resp->command);
 
 	if (resp->command == RESPONSE) {
 		if (resp->data[0] != 0x80) {
@@ -124,12 +134,16 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 	if (*response)
 		g_free(*response);
 	*response = resp;
-	return SR_OK;
+	resp = NULL;
+	ret = SR_OK;
 
 error:
+	g_free(cmd_buf);
+	g_free(resp_buf);
 	if (resp)
 		g_free(resp);
-	return SR_ERR;
+
+	return ret;
 }
 
 SR_PRIV void itech_it8500_status_change(const struct sr_dev_inst *sdi,

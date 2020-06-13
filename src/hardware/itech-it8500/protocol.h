@@ -27,7 +27,8 @@
 
 #define LOG_PREFIX "itech-it8500"
 
-#define ITECH_IT8500_MAX_MODEL_NAME_LEN 5
+#define IT8500_PACKET_LEN 26
+#define IT8500_MAX_MODEL_NAME_LEN 5
 
 /*
  * These map directly to mode numbers used by CMD_SET_MODE
@@ -100,15 +101,12 @@ enum itech_it8500_command {
 };
 
 /*
- * this is data structure sent to the load, must use only uint8_t to
- * keep code portable...
+ * data structure for holding information about commands and reponses
  */
-struct __attribute__((packed)) itech_it8500_cmd_packet {
-	uint8_t preamble;  /* must be 0xAA */
-	uint8_t address;   /* unit address: 0..254 [255 = broadcast] (optional) */
+struct itech_it8500_cmd_packet {
 	uint8_t command;   /* command number */
+	uint8_t address;   /* unit address: 0..254 [255 = broadcast] (optional) */
 	uint8_t data[22];  /* command/response data (0-22 bytes) */
-	uint8_t checksum;  /* checksum (modulo 256) */
 };
 
 
@@ -139,7 +137,7 @@ struct __attribute__((packed)) itech_it8500_cmd_packet {
 
 
 struct dev_context {
-	char model[ITECH_IT8500_MAX_MODEL_NAME_LEN + 1];
+	char model[IT8500_MAX_MODEL_NAME_LEN + 1];
 	uint8_t fw_ver_major;
 	uint8_t fw_ver_minor;
 	uint8_t address;
@@ -166,7 +164,7 @@ struct dev_context {
 };
 
 
-SR_PRIV uint8_t itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
+SR_PRIV uint8_t itech_it8500_checksum(const uint8_t *packet);
 SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode);
 SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 				  struct itech_it8500_cmd_packet *cmd,
