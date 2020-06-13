@@ -524,19 +524,36 @@ static int scpi_usbtmc_bulkin_start(struct scpi_usbtmc_libusb *uscpi,
                                     uint8_t *transfer_attributes)
 {
 	struct sr_usb_dev_inst *usb = uscpi->usb;
-	int ret, transferred, message_size;
+	int ret, transferred, message_size, tries;
 
-	ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data, size,
-	                           &transferred, TRANSFER_TIMEOUT);
-	if (ret < 0) {
-		sr_err("USBTMC bulk in transfer error: %s.",
-		       libusb_error_name(ret));
-		return SR_ERR;
-	}
+	for (tries = 0; ; tries++) {
+		ret = libusb_bulk_transfer(usb->devhdl, uscpi->bulk_in_ep, data,
+					   size, &transferred,
+					   TRANSFER_TIMEOUT);
+		if (ret < 0) {
+			sr_err("USBTMC bulk in transfer error: %s.",
+			       libusb_error_name(ret));
+			return SR_ERR;
+		}
 
-	if (transferred < USBTMC_BULK_HEADER_SIZE) {
-		sr_err("USBTMC bulk in returned too little data: %d/%d bytes\n", transferred, size);
-		return SR_ERR;
+		if (transferred == 0 && tries < 1) {
+			/*
+			 * The DEV_DEP_MSG_IN message is empty, and the TMC
+			 * spec says it should at least contain a header.
+			 * The Rigol DS1054Z seems to do this sometimes, and
+			 * it follows up with a valid message.  Give the device
+			 * one more chance to send a header.
+			 */
+			sr_warn("USBTMC bulk in start was empty; retrying\n");
+			continue;
+		}
+
+		if (transferred < USBTMC_BULK_HEADER_SIZE) {
+			sr_err("USBTMC bulk in returned too little data: %d/%d bytes\n", transferred, size);
+			return SR_ERR;
+		}
+
+		break;
 	}
 
 	if (usbtmc_bulk_in_header_read(data, msg_id, uscpi->bTag, &message_size,
