@@ -160,6 +160,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			goto error;
 		serial_flush(serial);
 
+		cmd->address = 0xff; /* use "broadcast" address */
 		cmd->command = CMD_GET_MODEL_INFO;
 		if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
 			break;
@@ -171,6 +172,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!serialcomm)
 		goto error;
 
+	devc->address = response->address;
 	fw_major = response->data[6];
 	fw_minor = response->data[5];
 	response->data[5] = 0;
@@ -178,7 +180,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	response->data[17] = 0;
 	unit_serial = g_strdup((const char*)&response->data[7]);
 	sr_info("Model name: %s (v%x.%02x)", unit_model, fw_major, fw_minor);
-	sr_info("Address: %d", response->address);
+	sr_info("Address: %d", devc->address);
 	sr_info("Serial number: %s", unit_serial);
 
 	sdi->status = SR_ST_INACTIVE;
@@ -208,6 +210,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/*
 	 * get full serial number (barcode)...
 	 */
+	cmd->address = devc->address;
 	cmd->command = CMD_GET_BARCODE_INFO;
 	if (itech_it8500_send_cmd(serial, cmd, &response) == SR_OK) {
 		unit_barcode = g_malloc0(23);
@@ -264,7 +267,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->fw_ver_major = fw_major;
 	devc->fw_ver_minor = fw_minor;
 	strncpy(devc->model, unit_model, sizeof(devc->model) - 1);
-	devc->address = response->address;
 	devc->max_current = max_i;
 	devc->min_voltage = min_v;
 	devc->max_voltage = max_v;
@@ -542,6 +544,7 @@ static int config_set(uint32_t key, GVariant *data,
 		goto done;
 	}
 
+	cmd->address = devc->address;
 	g_mutex_lock(&devc->mutex);
 	ret = itech_it8500_send_cmd(serial, cmd, &response);
 	g_mutex_unlock(&devc->mutex);
@@ -662,6 +665,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	struct itech_it8500_cmd_packet *cmd, *response;
 	int ret;
@@ -671,6 +675,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!sdi)
 		return SR_ERR_ARG;
 
+	devc = sdi->priv;
 	serial = sdi->conn;
 	response = NULL;
 	cmd = g_malloc0(sizeof(*cmd));
@@ -680,6 +685,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	/*
 	 * put unit back to local mode
 	 */
+	cmd->address = devc->address;
 	cmd->command = CMD_SET_REMOTE_MODE;
 	cmd->data[0] = 0;
 	if ((ret = itech_it8500_send_cmd(serial, cmd, &response)) != SR_OK) {

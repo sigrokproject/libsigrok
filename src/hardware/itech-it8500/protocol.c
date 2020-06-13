@@ -76,7 +76,7 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 		return SR_ERR_MALLOC;
 
 	cmd_buf[0] = 0xaa;                             /* preamble */
-	cmd_buf[1] = 0;                                /* address (unused) */
+	cmd_buf[1] = cmd->address;                     /* address */
 	cmd_buf[2] = cmd->command;                     /* command */
 	memcpy(&cmd_buf[3], cmd->data, 22);            /* data */
 	cmd_buf[25] = itech_it8500_checksum(cmd_buf);  /* checksum */
@@ -111,6 +111,7 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 		goto error;
 	}
 
+	resp->address = resp_buf[1];
 	resp->command = resp_buf[2];
 	memcpy(resp->data, &resp_buf[3], 22);
 	sr_spew("%s: response packet received: cmd=%02x", __func__, resp->command);
@@ -211,6 +212,7 @@ SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi)
 	cmd = g_malloc0(sizeof(*cmd));
 	if (!cmd)
 		return SR_ERR_MALLOC;
+	cmd->address = devc->address;
 	cmd->command = CMD_GET_STATE;
 	resp = NULL;
 
@@ -286,6 +288,7 @@ SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 	cmd = g_malloc0(sizeof(*cmd));
 	if (!cmd)
 		return SR_ERR_MALLOC;
+	cmd->address = devc->address;
 	cmd->command = command;
 	resp = NULL;
 
