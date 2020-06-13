@@ -670,16 +670,17 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				sr_dev_acquisition_stop(sdi);
 				return TRUE;
 			}
-			/* At slow timebases in live capture the DS2072
-			 * sometimes returns "short" data blocks, with
+			/* At slow timebases in live capture the DS2072 and
+			 * DS1054Z sometimes return "short" data blocks, with
 			 * apparently no way to get the rest of the data.
-			 * Discard these, the complete data block will
-			 * appear eventually.
+			 * Discard these, the complete data block will appear
+			 * eventually.
 			 */
 			if (devc->data_source == DATA_SOURCE_LIVE
 					&& (unsigned)len < expected_data_bytes) {
-				sr_dbg("Discarding short data block");
+				sr_dbg("Discarding short data block: got %d/%d bytes\n", len, (int)expected_data_bytes);
 				sr_scpi_read_data(scpi, (char *)devc->buffer, len + 1);
+				devc->num_header_bytes = 0;
 				return TRUE;
 			}
 			devc->num_block_bytes = len;
