@@ -203,6 +203,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		devc->max_sample_rate_idx = u;
 	}
+	devc->sample_rate = DEFAULT_SAMPLE_RATE;
 
 	/*
 	 * get full serial number (barcode)...
@@ -270,7 +271,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->max_power = max_p;
 	devc->min_resistance = min_r;
 	devc->max_resistance = max_r;
-	devc->sample_rate = DEFAULT_SAMPLE_RATE;
 
 	sdi->vendor = g_strdup("ITECH");
 	sdi->model = unit_model;
