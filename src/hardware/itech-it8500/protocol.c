@@ -22,11 +22,11 @@
 #include "protocol.h"
 
 
-SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
+SR_PRIV uint8_t itech_it8500_checksum(struct itech_it8500_cmd_packet *packet)
 {
-	unsigned char *p;
-	unsigned char checksum;
-	unsigned int i;
+	uint8_t *p;
+	uint8_t checksum;
+	uint8_t i;
 
 	if (!packet)
 		return 0xff;

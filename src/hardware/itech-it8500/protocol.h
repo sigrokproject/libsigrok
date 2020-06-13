@@ -166,15 +166,8 @@ struct dev_context {
 };
 
 
-SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
-
-SR_PRIV char itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
+SR_PRIV uint8_t itech_it8500_checksum(struct itech_it8500_cmd_packet *packet);
 SR_PRIV const char* itech_it8500_mode_to_string(enum itech_it8500_modes mode);
-SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
-					     struct sr_channel *ch, float value,
-					     enum sr_mq mq, enum sr_unit unit,
-					     int digits);
-
 SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 				  struct itech_it8500_cmd_packet *cmd,
 				  struct itech_it8500_cmd_packet **response);
@@ -187,4 +180,10 @@ SR_PRIV int itech_it8500_get_status(const struct sr_dev_inst *sdi);
 SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 				 enum itech_it8500_command command,
 				 int *result);
+SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
+					     struct sr_channel *ch, float value,
+					     enum sr_mq mq, enum sr_unit unit,
+					     int digits);
+SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
+
 #endif
