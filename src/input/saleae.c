@@ -883,10 +883,13 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 	static const char *zip_ext = ".sal";
 	static const char *bin_ext = ".bin";
 
+	gboolean matched;
 	const char *fn;
 	size_t fn_len, ext_len;
 	const char *ext_pos;
 	GString *buf;
+
+	matched = FALSE;
 
 	/* Weak match on the filename (when available). */
 	fn = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_FILENAME));
@@ -895,13 +898,16 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 		ext_len = strlen(zip_ext);
 		ext_pos = &fn[fn_len - ext_len];
 		if (fn_len >= ext_len && g_ascii_strcasecmp(ext_pos, zip_ext) == 0) {
-			if (SALEAE_WITH_SAL_SUPPORT)
+			if (SALEAE_WITH_SAL_SUPPORT) {
 				*confidence = 10;
+				matched = TRUE;
+			}
 		}
 		ext_len = strlen(bin_ext);
 		ext_pos = &fn[fn_len - ext_len];
 		if (fn_len >= ext_len && g_ascii_strcasecmp(ext_pos, bin_ext) == 0) {
 			*confidence = 50;
+			matched = TRUE;
 		}
 	}
 
@@ -913,13 +919,14 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 	case FMT_LOGIC2_DIGITAL:
 	case FMT_LOGIC2_ANALOG:
 		*confidence = 1;
+		matched = TRUE;
 		break;
 	default:
 		/* EMPTY */
 		break;
 	}
 
-	return SR_OK;
+	return matched ? SR_OK : SR_ERR_DATA;
 }
 
 static int init(struct sr_input *in, GHashTable *options)
