@@ -1054,13 +1054,13 @@ static const uint32_t siglent_spd3303_devopts_cg[] = {
 };
 
 static const struct channel_spec siglent_spd3303x_ch[] = {
-	{ "1", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 102.4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 102.4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_spec siglent_spd3303xe_ch[] = {
-	{ "1", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 102.4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 102.4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec siglent_spd3303_cg[] = {
@@ -1069,17 +1069,17 @@ static const struct channel_group_spec siglent_spd3303_cg[] = {
 };
 
 static const struct scpi_command siglent_spd3303_cmd[] = {
-	{ SCPI_CMD_SELECT_CHANNEL, "INST CH%s" },
-	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
-	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
-	{ SCPI_CMD_GET_MEAS_POWER, "MEAS:POWE?" },
-	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
-	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
-	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
-	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT? CH%s" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR? CH%s" },
+	{ SCPI_CMD_GET_MEAS_POWER, "MEAS:POWE? CH%s" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "CH%s:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "CH%s:VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CH%s:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CH%s:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_REGULATION, "SYST:STAT?" },
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "SYST:STAT?" },
-	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON" },
-	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON,CH%s" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF,CH%s" },
 	ALL_ZERO
 };
 
@@ -1397,7 +1397,17 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Siglent SPD3303 series */
-	{ "Siglent Technologies", "SPD3303X", SCPI_DIALECT_UNKNOWN, 0,
+	{ "Siglent Technologies", "SPD3303C", SCPI_DIALECT_SIGLENT, 0,
+		ARRAY_AND_SIZE(siglent_spd3303_devopts),
+		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
+		ARRAY_AND_SIZE(siglent_spd3303xe_ch),
+		ARRAY_AND_SIZE(siglent_spd3303_cg),
+		siglent_spd3303_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "Siglent Technologies", "SPD3303X", SCPI_DIALECT_SIGLENT, 0,
 		ARRAY_AND_SIZE(siglent_spd3303_devopts),
 		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
 		ARRAY_AND_SIZE(siglent_spd3303x_ch),
@@ -1407,7 +1417,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
-	{ "Siglent Technologies", "SPD3303X-E", SCPI_DIALECT_UNKNOWN, 0,
+	{ "Siglent Technologies", "SPD3303X-E", SCPI_DIALECT_SIGLENT, 0,
 		ARRAY_AND_SIZE(siglent_spd3303_devopts),
 		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
 		ARRAY_AND_SIZE(siglent_spd3303xe_ch),
