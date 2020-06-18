@@ -1037,6 +1037,52 @@ static const struct scpi_command rs_hmc8043_cmd[] = {
 	ALL_ZERO
 };
 
+/* Siglent SPD3303 series */
+static const uint32_t siglent_spd3303_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t siglent_spd3303_devopts_cg[] = {
+	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec siglent_spd3303x_ch[] = {
+	{ "1", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32, 0.001, 3, 3 }, { 0, 3.2, 0.001, 3, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_spec siglent_spd3303xe_ch[] = {
+	{ "1", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32, 0.01, 2, 3 }, { 0, 3.2, 0.01, 2, 3 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_group_spec siglent_spd3303_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+};
+
+static const struct scpi_command siglent_spd3303_cmd[] = {
+	{ SCPI_CMD_SELECT_CHANNEL, "INST CH%s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, "MEAS:POWE?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "SYST:STAT?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP OFF" },
+	ALL_ZERO
+};
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
 	{ "Agilent", "N5763A", SCPI_DIALECT_UNKNOWN, 0,
@@ -1345,6 +1391,28 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmc8043_ch),
 		ARRAY_AND_SIZE(rs_hmc8043_cg),
 		rs_hmc8043_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	/* Siglent SPD3303 series */
+	{ "Siglent Technologies", "SPD3303X", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(siglent_spd3303_devopts),
+		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
+		ARRAY_AND_SIZE(siglent_spd3303x_ch),
+		ARRAY_AND_SIZE(siglent_spd3303_cg),
+		siglent_spd3303_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "Siglent Technologies", "SPD3303X-E", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(siglent_spd3303_devopts),
+		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
+		ARRAY_AND_SIZE(siglent_spd3303xe_ch),
+		ARRAY_AND_SIZE(siglent_spd3303_cg),
+		siglent_spd3303_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
 		.update_status = NULL,
