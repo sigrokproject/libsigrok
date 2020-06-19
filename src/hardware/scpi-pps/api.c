@@ -480,7 +480,7 @@ static int config_get(uint32_t key, GVariant **data,
 				reg=1;
 			}
 			regl = (regl >> (reg+3));
-			*data = g_variant_new_boolean(reg & 0x01);
+			*data = g_variant_new_boolean(regl & 0x01);
 		}
 	}
 
