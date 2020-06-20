@@ -125,6 +125,7 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -491,6 +492,9 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR;
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limit_frames);
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
@@ -525,6 +529,9 @@ static int config_set(uint32_t key, GVariant *data,
 		if ((idx = std_u64_idx(data, devc->samplerates, devc->num_samplerates)) < 0)
 			return SR_ERR_ARG;
 		devc->cur_samplerate = devc->samplerates[idx];
+		break;
+	case SR_CONF_LIMIT_FRAMES:
+		devc->limit_frames = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
