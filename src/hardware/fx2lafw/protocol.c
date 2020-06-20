@@ -414,7 +414,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	struct dev_context *devc;
 	gboolean packet_has_error = FALSE;
 	unsigned int num_samples;
-	int trigger_offset, cur_sample_count, unitsize;
+	int trigger_offset, cur_sample_count, unitsize, processed_samples;
 	int pre_trigger_samples;
 
 	sdi = transfer->user_data;
@@ -435,6 +435,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	/* Save incoming transfer before reusing the transfer struct. */
 	unitsize = devc->sample_wide ? 2 : 1;
 	cur_sample_count = transfer->actual_length / unitsize;
+	processed_samples = 0;
 
 	switch (transfer->status) {
 	case LIBUSB_TRANSFER_NO_DEVICE:
@@ -465,38 +466,66 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	} else {
 		devc->empty_transfer_count = 0;
 	}
+
+check_trigger:
 	if (devc->trigger_fired) {
 		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
 			/* Send the incoming transfer to the session bus. */
-			if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
+			num_samples = cur_sample_count - processed_samples;
+			if (devc->limit_samples && devc->sent_samples + num_samples > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
-			else
-				num_samples = cur_sample_count;
 
-			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer,
+			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer + processed_samples * unitsize,
 				num_samples * unitsize, unitsize);
 			devc->sent_samples += num_samples;
+			processed_samples += num_samples;
 		}
 	} else {
 		trigger_offset = soft_trigger_logic_check(devc->stl,
-			transfer->buffer, transfer->actual_length, &pre_trigger_samples);
+			transfer->buffer + processed_samples * unitsize,
+			transfer->actual_length - processed_samples * unitsize,
+			&pre_trigger_samples);
 		if (trigger_offset > -1) {
+			std_session_send_df_frame_begin(sdi);
 			devc->sent_samples += pre_trigger_samples;
-			num_samples = cur_sample_count - trigger_offset;
+			num_samples = cur_sample_count - processed_samples - trigger_offset;
 			if (devc->limit_samples &&
-					num_samples > devc->limit_samples - devc->sent_samples)
+					devc->sent_samples + num_samples > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 
 			devc->send_data_proc(sdi, (uint8_t *)transfer->buffer
+					+ processed_samples * unitsize
 					+ trigger_offset * unitsize,
 					num_samples * unitsize, unitsize);
 			devc->sent_samples += num_samples;
+			processed_samples += trigger_offset + num_samples;
 
 			devc->trigger_fired = TRUE;
 		}
 	}
 
-	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+	const int frame_ended = devc->limit_samples && (devc->sent_samples >= devc->limit_samples);
+	const int final_frame = devc->limit_frames && (devc->num_frames >= (devc->limit_frames - 1));
+	if (frame_ended) {
+		devc->num_frames++;
+		devc->sent_samples = 0;
+		devc->trigger_fired = FALSE;
+		std_session_send_df_frame_end(sdi);
+
+		/* There may be another trigger in the remaining data, go back and check for it */
+		if (processed_samples < cur_sample_count) {
+			/* Reset the trigger stage */
+			if (devc->stl)
+				devc->stl->cur_stage = 0;
+			else {
+				std_session_send_df_frame_begin(sdi);
+				devc->trigger_fired = TRUE;
+			}
+			if (!final_frame)
+				goto check_trigger;
+		}
+	}
+	if (frame_ended && final_frame) {
 		fx2lafw_abort_acquisition(devc);
 		free_transfer(transfer);
 	} else
@@ -621,8 +650,10 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 		if (!devc->stl)
 			return SR_ERR_MALLOC;
 		devc->trigger_fired = FALSE;
-	} else
+	} else {
+		std_session_send_df_frame_begin(sdi);
 		devc->trigger_fired = TRUE;
+	}
 
 	num_transfers = get_number_of_transfers(devc);
 
