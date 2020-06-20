@@ -348,8 +348,8 @@ AC_ARG_ENABLE([python],
 	[], [enable_python=$enable_bindings])
 
 AC_ARG_ENABLE([ruby],
-	[AS_HELP_STRING([--enable-ruby], [build Ruby bindings [default=no]])],
-	[], [enable_ruby=no])
+	[AS_HELP_STRING([--enable-ruby], [build Ruby bindings [default=yes]])],
+	[], [enable_ruby=$enable_bindings])
 
 AC_ARG_ENABLE([java],
 	[AS_HELP_STRING([--enable-java], [build Java bindings [default=yes]])],
