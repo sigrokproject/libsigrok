@@ -1080,6 +1080,7 @@ static const struct scpi_command siglent_spd3303_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_ENABLED, "SYST:STAT?" },
 	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP CH%s,ON" },
 	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP CH%s,OFF" },
+	{ SCPI_CMD_GET_CHANNEL_CONFIG, "SYST:STAT?" },
 	ALL_ZERO
 };
 

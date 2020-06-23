@@ -448,6 +448,10 @@ static int config_get(uint32_t key, GVariant **data,
 		gvtype = G_VARIANT_TYPE_STRING;
 		cmd = SCPI_CMD_GET_OUTPUT_REGULATION;
 		break;
+	case SR_CONF_CHANNEL_CONFIG:
+		gvtype = G_VARIANT_TYPE_STRING;
+		cmd = SCPI_CMD_GET_CHANNEL_CONFIG;
+		break;
 	default:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
 	}
@@ -603,6 +607,23 @@ static int config_get(uint32_t key, GVariant **data,
 			sr_atoi(s, &reg);
 			g_variant_unref(*data);
 			*data = g_variant_new_boolean(reg & (1 << 4));
+		}
+	}
+
+	if (cmd == SCPI_CMD_GET_CHANNEL_CONFIG) {
+		if (devc->device->dialect == SCPI_DIALECT_SIGLENT) {
+			/* evaluate status register */
+			s = g_variant_get_string(*data, NULL);
+			sr_atol_base(s, &regl, NULL, 16);
+			g_variant_unref(*data);
+
+			regl = (regl >> 2) & 0x03;
+			if (regl == 0x02)
+				*data = g_variant_new_string("Parallel");
+			else if (regl == 0x03)
+				*data = g_variant_new_string("Series");
+			else
+				*data = g_variant_new_string("Independent");
 		}
 	}
 
