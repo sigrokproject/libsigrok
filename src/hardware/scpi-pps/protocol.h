@@ -164,6 +164,8 @@ struct dev_context {
 
 	struct sr_channel *cur_acquisition_channel;
 	struct sr_sw_limits limits;
+
+	uint32_t priv_status; /* device specific status data */
 };
 
 SR_PRIV extern unsigned int num_pps_profiles;

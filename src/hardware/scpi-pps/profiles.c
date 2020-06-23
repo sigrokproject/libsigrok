@@ -1083,6 +1083,59 @@ static const struct scpi_command siglent_spd3303_cmd[] = {
 	ALL_ZERO
 };
 
+static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
+	struct pps_channel *pch;
+	int ret;
+	char *response;
+	long int status_register;
+	uint32_t old, cur, reg, en, ch;
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
+
+	if (!sdi || !scpi || !devc)
+		return SR_ERR_ARG;
+
+	pch = devc->cur_acquisition_channel->priv;
+
+	/* read status register */
+	ret = sr_scpi_get_string(scpi, "SYST:STAT?", &response);
+	if (ret != SR_OK)
+		return ret;
+	if (!response)
+		return SR_ERR;
+	sr_atol_base(response, &status_register, NULL, 16);
+	g_free(response);
+
+	cur = status_register;
+	old = devc->priv_status >> 1;
+
+	sr_dbg("%s: cur=0x%x old=0x%x channel=%s", __func__, cur, old, pch->hwname);
+
+	if (devc->priv_status) {
+		/* check for status changes */
+		for (ch = 0; ch < 2; ch++) {
+			reg = (cur >> ch) & 0x01;
+			en = (cur >> (ch + 4)) & 0x01;
+
+			if (reg != ((old >> ch) & 0x01)) {
+				sr_err("regulation change: ch=%d, reg=%d", ch + 1, reg);
+			}
+			if (en != ((old >> (ch + 4)) & 0x01)) {
+				sr_err("mode change: ch=%d, enabled=%d", ch + 1, en);
+			}
+		}
+	}
+
+	/* save current status */
+	devc->priv_status = (cur << 1) | 1;
+
+	return SR_OK;
+}
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
 	{ "Agilent", "N5763A", SCPI_DIALECT_UNKNOWN, 0,
@@ -1397,7 +1450,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 	},
 
 	/* Siglent SPD3303 series */
-	{ "Siglent Technologies", "SPD3303C", SCPI_DIALECT_SIGLENT, 0,
+	{ "Siglent Technologies", "SPD3303C", SCPI_DIALECT_SIGLENT,
+	        PPS_INDEPENDENT | PPS_SERIES | PPS_PARALLEL,
 		ARRAY_AND_SIZE(siglent_spd3303_devopts),
 		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
 		ARRAY_AND_SIZE(siglent_spd3303xe_ch),
@@ -1405,9 +1459,10 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		siglent_spd3303_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
-		.update_status = NULL,
+		.update_status = siglent_spd3303_update_status,
 	},
-	{ "Siglent Technologies", "SPD3303X", SCPI_DIALECT_SIGLENT, 0,
+	{ "Siglent Technologies", "SPD3303X", SCPI_DIALECT_SIGLENT,
+	        PPS_INDEPENDENT | PPS_SERIES | PPS_PARALLEL,
 		ARRAY_AND_SIZE(siglent_spd3303_devopts),
 		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
 		ARRAY_AND_SIZE(siglent_spd3303x_ch),
@@ -1415,9 +1470,10 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		siglent_spd3303_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
-		.update_status = NULL,
+		.update_status = siglent_spd3303_update_status,
 	},
-	{ "Siglent Technologies", "SPD3303X-E", SCPI_DIALECT_SIGLENT, 0,
+	{ "Siglent Technologies", "SPD3303X-E", SCPI_DIALECT_SIGLENT,
+	        PPS_INDEPENDENT | PPS_SERIES | PPS_PARALLEL,
 		ARRAY_AND_SIZE(siglent_spd3303_devopts),
 		ARRAY_AND_SIZE(siglent_spd3303_devopts_cg),
 		ARRAY_AND_SIZE(siglent_spd3303xe_ch),
@@ -1425,7 +1481,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		siglent_spd3303_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
-		.update_status = NULL,
+		.update_status = siglent_spd3303_update_status,
 	},
 };
 
