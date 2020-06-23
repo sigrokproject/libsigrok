@@ -1091,7 +1091,8 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 	int ret;
 	char *response;
 	long int status_register;
-	uint32_t old, cur, reg, en, ch;
+	uint32_t old, cur, reg, en, ch, mode;
+	char *mode_str, *reg_str;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -1116,17 +1117,36 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 	sr_dbg("%s: cur=0x%x old=0x%x channel=%s", __func__, cur, old, pch->hwname);
 
 	if (devc->priv_status) {
-		/* check for status changes */
+		/* check for regulation/enable changes */
 		for (ch = 0; ch < 2; ch++) {
 			reg = (cur >> ch) & 0x01;
 			en = (cur >> (ch + 4)) & 0x01;
 
 			if (reg != ((old >> ch) & 0x01)) {
-				sr_err("regulation change: ch=%d, reg=%d", ch + 1, reg);
+				reg_str = (reg & 0x01 ? "CC" : "CV");
+				sr_info("regulation change: ch=%d, reg=%s", ch + 1, reg_str);
+				/* FIXME: need to send channel_group in the meta frame */
+				sr_session_send_meta(sdi, SR_CONF_REGULATION,
+						     g_variant_new_string(reg_str));
 			}
 			if (en != ((old >> (ch + 4)) & 0x01)) {
-				sr_err("mode change: ch=%d, enabled=%d", ch + 1, en);
+				sr_info("mode change: ch=%d, enabled=%d", ch + 1, en);
+				/* FIXME: need to send channel_group in the meta frame */
+				sr_session_send_meta(sdi, SR_CONF_ENABLED,
+						     g_variant_new_boolean(en));
 			}
+		}
+		/* check for channel mode change */
+		mode = (cur >> 2) & 0x03;
+		if (mode != ((old >> 2) & 0x03)) {
+			if (mode == 0x02)
+				mode_str = "Parallel";
+			else if (mode == 0x03)
+				mode_str = "Series";
+			else
+				mode_str = "Independent";
+			sr_session_send_meta(sdi, SR_CONF_CHANNEL_CONFIG,
+					     g_variant_new_string(mode_str));
 		}
 	}
 
