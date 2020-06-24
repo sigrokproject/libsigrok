@@ -246,9 +246,11 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
 
 # Siglent USBTMC devices.
+# 0483:7540: E.g. SPD3303X-E psu
 # f4ec:ee3a: E.g. SDS1052DL+ scope
 # f4ec:ee38: E.g. SDS1104X-E scope
 # f4ed:ee3a: E.g. SDS1202X-E scope or SDG1010 waveform generator
+ATTRS{idVendor}=="0483", ATTRS{idProduct}=="7540", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ed", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
 

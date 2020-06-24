@@ -79,6 +79,7 @@ enum scpi_quirks {
 	SCPI_QUIRK_CMD_OMIT_LF         = (1 << 0),
 	SCPI_QUIRK_OPC_UNSUPPORTED     = (1 << 1),
 	SCPI_QUIRK_SLOW_CHANNEL_SELECT = (1 << 2),
+	SCPI_QUIRK_DELAY_AFTER_CMD     = (1 << 3),
 };
 
 struct scpi_command {

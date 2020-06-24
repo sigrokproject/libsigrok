@@ -281,6 +281,8 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		if (scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 	}
+	if (scpi->quirks & SCPI_QUIRK_DELAY_AFTER_CMD)
+		g_usleep(100*1000);
 
 	/* Initiate SCPI read operation. */
 	if (sr_scpi_read_begin(scpi) != SR_OK)
