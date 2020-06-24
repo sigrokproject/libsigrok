@@ -639,6 +639,7 @@ static int config_set(uint32_t key, GVariant *data,
 	double d;
 	int channel_group_cmd;
 	char *channel_group_name;
+	const char *s;
 	int ret;
 
 	if (!sdi)
@@ -739,6 +740,20 @@ static int config_set(uint32_t key, GVariant *data,
 			ret = sr_scpi_cmd(sdi, devc->device->commands,
 					channel_group_cmd, channel_group_name,
 					SCPI_CMD_SET_OVER_TEMPERATURE_PROTECTION_DISABLE);
+		break;
+	case SR_CONF_CHANNEL_CONFIG:
+		s = g_variant_get_string(data, NULL);
+		if (devc->device->dialect == SCPI_DIALECT_SIGLENT) {
+			if (!strncmp(s, "Parallel", 8))
+				s = "2";
+			else if (!strncmp(s, "Series", 6))
+				s = "1";
+			else
+				s = "0";
+		}
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				  channel_group_cmd, channel_group_name,
+				  SCPI_CMD_SET_CHANNEL_CONFIG, s);
 		break;
 	default:
 		ret = sr_sw_limits_config_set(&devc->limits, key, data);
