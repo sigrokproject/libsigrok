@@ -1128,15 +1128,13 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 			if (reg != ((old >> ch) & 0x01)) {
 				reg_str = (reg & 0x01 ? "CC" : "CV");
 				sr_info("regulation change: ch=%d, reg=%s", ch + 1, reg_str);
-				/* FIXME: need to send channel_group in the meta frame */
-				sr_session_send_meta(sdi, SR_CONF_REGULATION,
-						     g_variant_new_string(reg_str));
+				/* FIXME: send SR_CONF_REGULATION meta frame 
+				   (when API gets support for channel_group) */
 			}
 			if (en != ((old >> (ch + 4)) & 0x01)) {
 				sr_info("mode change: ch=%d, enabled=%d", ch + 1, en);
-				/* FIXME: need to send channel_group in the meta frame */
-				sr_session_send_meta(sdi, SR_CONF_ENABLED,
-						     g_variant_new_boolean(en));
+				/* FIXME: send SR_CONF_ENABLED meta frame
+				   (when API gets support for channel_group) */
 			}
 		}
 		/* check for channel mode change */
