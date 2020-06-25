@@ -75,10 +75,19 @@ enum scpi_transport_layer {
 	SCPI_TRANSPORT_VXI,
 };
 
+/* Support for "quirks" in various devices that don't fully
+ * comply with the SCPI specification.
+ */
 enum scpi_quirks {
+	/* Device doesn't expect NL/LF character after a command.
+	 * (disable automatically adding NL when sending commands) */
 	SCPI_QUIRK_CMD_OMIT_LF         = (1 << 0),
+	/* Device doesn't support OPC? command. */
 	SCPI_QUIRK_OPC_UNSUPPORTED     = (1 << 1),
+	/* Device needs delay after a channel change. */
 	SCPI_QUIRK_SLOW_CHANNEL_SELECT = (1 << 2),
+	/* Device requires delay after sending command or it won't respond.
+	 * (seen on some Siglent PSUs when using USBTMC interface) */
 	SCPI_QUIRK_DELAY_AFTER_CMD     = (1 << 3),
 };
 
