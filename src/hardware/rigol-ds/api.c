@@ -293,6 +293,8 @@ static const struct rigol_ds_model supported_models[] = {
 
 static struct sr_dev_driver rigol_ds_driver_info;
 
+static int analog_frame_size(const struct sr_dev_inst *);
+
 static void clear_helper(struct dev_context *devc)
 {
 	unsigned int i;
@@ -500,6 +502,7 @@ static int analog_frame_size(const struct sr_dev_inst *sdi)
 	case DATA_SOURCE_LIVE:
 		return devc->model->series->live_samples;
 	case DATA_SOURCE_MEMORY:
+	case DATA_SOURCE_SEGMENTED:
 		return devc->model->series->buffer_samples / analog_channels;
 	default:
 		return 0;
@@ -514,6 +517,7 @@ static int digital_frame_size(const struct sr_dev_inst *sdi)
 	case DATA_SOURCE_LIVE:
 		return devc->model->series->live_samples * 2;
 	case DATA_SOURCE_MEMORY:
+	case DATA_SOURCE_SEGMENTED:
 		return devc->model->series->buffer_samples * 2;
 	default:
 		return 0;
@@ -526,7 +530,6 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	const char *tmp_str;
-	uint64_t samplerate;
 	int analog_channel = -1;
 	float smallest_diff = INFINITY;
 	int idx = -1;
@@ -570,14 +573,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string("Segmented");
 		break;
 	case SR_CONF_SAMPLERATE:
-		if (devc->data_source == DATA_SOURCE_LIVE) {
-			samplerate = analog_frame_size(sdi) /
-				(devc->timebase * devc->model->series->num_horizontal_divs);
-			*data = g_variant_new_uint64(samplerate);
-		} else {
-			sr_dbg("Unknown data source: %d.", devc->data_source);
-			return SR_ERR_NA;
-		}
+		*data = g_variant_new_uint64(devc->sample_rate);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!strcmp(devc->trigger_source, "ACL"))
@@ -882,11 +878,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gboolean some_digital;
 	GSList *l;
 	char *cmd;
+	int protocol;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
+	protocol = devc->model->series->protocol;
 
 	devc->num_frames = 0;
+	devc->num_frames_segmented = 0;
 
 	some_digital = FALSE;
 	for (l = sdi->channels; l; l = l->next) {
@@ -907,7 +906,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			/* Only one list entry for older protocols. All channels are
 			 * retrieved together when this entry is processed. */
 			if (ch->enabled && (
-						devc->model->series->protocol > PROTOCOL_V3 ||
+						protocol > PROTOCOL_V3 ||
 						!some_digital))
 				devc->enabled_channels = g_slist_append(
 						devc->enabled_channels, ch);
@@ -915,8 +914,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				some_digital = TRUE;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (rigol_ds_config_set(sdi,
-							devc->model->series->protocol >= PROTOCOL_V3 ?
+					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
 								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
@@ -924,9 +922,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (devc->model->series->protocol >= PROTOCOL_V5)
+				if (protocol >= PROTOCOL_V5)
 					cmd = ":LA:DISP D%d,%s";
-				else if (devc->model->series->protocol >= PROTOCOL_V3)
+				else if (protocol >= PROTOCOL_V3)
 					cmd = ":LA:DIG%d:DISP %s";
 				else
 					cmd = ":DIG%d:TURN %s";
@@ -951,8 +949,37 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
-		sr_err("Data source 'Segmented' not yet supported");
-		return SR_ERR;
+		switch (protocol) {
+		case PROTOCOL_V1:
+		case PROTOCOL_V2:
+			/* V1 and V2 do not have segmented data */
+			sr_err("Data source 'Segmented' not supported on this model");
+			break;
+		case PROTOCOL_V3:
+		case PROTOCOL_V4:
+		{
+			int frames = 0;
+			if (sr_scpi_get_int(sdi->conn,
+						protocol == PROTOCOL_V4 ? "FUNC:WREP:FEND?" :
+						"FUNC:WREP:FMAX?", &frames) != SR_OK)
+				return SR_ERR;
+			if (frames <= 0) {
+				sr_err("No segmented data available");
+				return SR_ERR;
+			}
+			devc->num_frames_segmented = frames;
+			break;
+		}
+		case PROTOCOL_V5:
+			/* The frame limit has to be read on the fly, just set up
+			 * reading of the first frame */
+			if (rigol_ds_config_set(sdi, "REC:CURR 1") != SR_OK)
+				return SR_ERR;
+			break;
+		default:
+			sr_err("Data source 'Segmented' not yet supported");
+			return SR_ERR;
+		}
 	}
 
 	devc->analog_frame_size = analog_frame_size(sdi);
@@ -989,6 +1016,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	devc->channel_entry = devc->enabled_channels;
+
+	if (devc->data_source == DATA_SOURCE_LIVE)
+		devc->sample_rate = analog_frame_size(sdi) / 
+			(devc->timebase * devc->model->series->num_horizontal_divs);
+	else {
+		float xinc;
+		if (devc->model->series->protocol >= PROTOCOL_V3 && 
+				sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc) != SR_OK) {
+			sr_err("Couldn't get sampling rate");
+			return SR_ERR;
+		}
+		devc->sample_rate = 1. / xinc;
+	}
+
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;
