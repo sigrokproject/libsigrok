@@ -1090,7 +1090,6 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-	struct pps_channel *pch;
 	int ret;
 	char *response;
 	long int status_register;
@@ -1103,8 +1102,6 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 	if (!sdi || !scpi || !devc)
 		return SR_ERR_ARG;
 
-	pch = devc->cur_acquisition_channel->priv;
-
 	/* read status register */
 	ret = sr_scpi_get_string(scpi, "SYST:STAT?", &response);
 	if (ret != SR_OK)
@@ -1116,8 +1113,6 @@ static int siglent_spd3303_update_status(const struct sr_dev_inst *sdi)
 
 	cur = status_register;
 	old = devc->priv_status >> 1;
-
-	sr_dbg("%s: cur=0x%x old=0x%x channel=%s", __func__, cur, old, pch->hwname);
 
 	if (devc->priv_status) {
 		/* check for regulation/enable changes */
