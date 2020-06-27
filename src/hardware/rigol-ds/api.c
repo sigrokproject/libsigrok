@@ -42,7 +42,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
@@ -571,6 +571,9 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string("Memory");
 		else
 			*data = g_variant_new_string("Segmented");
+		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limit_frames);
 		break;
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->sample_rate);
