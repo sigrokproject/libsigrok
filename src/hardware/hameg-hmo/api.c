@@ -259,6 +259,9 @@ static int config_get(uint32_t key, GVariant **data,
 		}
 		*data = g_variant_new_double(state->digital_pods[idx].user_threshold);
 		break;
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->frame_limit);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
