@@ -55,7 +55,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_CONN | SR_CONF_GET,
-	SR_CONF_LIMIT_FRAMES | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
@@ -476,6 +476,9 @@ static int config_get(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_CAPTURE_RATIO:
 			*data = g_variant_new_uint64(devc->capture_ratio);
+			break;
+		case SR_CONF_LIMIT_FRAMES:
+			*data = g_variant_new_uint64(devc->limit_frames);
 			break;
 		default:
 			return SR_ERR_NA;
