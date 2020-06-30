@@ -73,6 +73,7 @@ libsigrok_la_SOURCES = \
 # Input modules
 libsigrok_la_SOURCES += \
 	src/input/input.c \
+	src/input/feed_queue.c \
 	src/input/binary.c \
 	src/input/chronovu_la8.c \
 	src/input/csv.c \
