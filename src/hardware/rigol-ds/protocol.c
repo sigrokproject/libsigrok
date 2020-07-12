@@ -905,7 +905,21 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	/* Probe attenuation. */
 	for (i = 0; i < devc->model->analog_channels; i++) {
 		cmd = g_strdup_printf(":CHAN%d:PROB?", i + 1);
-		res = sr_scpi_get_float(sdi->conn, cmd, &devc->attenuation[i]);
+
+		/* DSO1000B series prints an X after the probe factor, so
+		 * we get a string and check for that instead of only handling
+		 * floats. */
+		char *response;
+		res = sr_scpi_get_string(sdi->conn, cmd, &response);
+		if (res != SR_OK)
+			return SR_ERR;
+
+		int len = strlen(response);
+		if (response[len-1] == 'X')
+			response[len-1] = 0;
+
+		res = sr_atof_ascii(response, &devc->attenuation[i]);
+		g_free(response);
 		g_free(cmd);
 		if (res != SR_OK)
 			return SR_ERR;
