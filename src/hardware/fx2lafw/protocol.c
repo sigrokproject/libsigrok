@@ -257,9 +257,11 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 	devc->profile = NULL;
 	devc->fw_updated = 0;
 	devc->cur_samplerate = 0;
+	devc->limit_frames = 1;
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
 	devc->sample_wide = FALSE;
+	devc->num_frames = 0;
 	devc->stl = NULL;
 
 	return devc;
@@ -506,6 +508,7 @@ check_trigger:
 
 	const int frame_ended = devc->limit_samples && (devc->sent_samples >= devc->limit_samples);
 	const int final_frame = devc->limit_frames && (devc->num_frames >= (devc->limit_frames - 1));
+
 	if (frame_ended) {
 		devc->num_frames++;
 		devc->sent_samples = 0;
@@ -718,6 +721,7 @@ SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	devc->ctx = drvc->sr_ctx;
+	devc->num_frames = 0;
 	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
