@@ -60,6 +60,16 @@ static const struct gpd_model models[] = {
 			{ { 0, 30, 0.001 }, { 0, 3, 0.001 } },
 		},
 	},
+	{ GPD_3303S, "GPD-3303S",
+		CHANMODE_INDEPENDENT,
+		2,
+		{
+			/* Channel 1 */
+			{ { 0, 32, 0.001 }, { 0, 3.2, 0.001 } },
+			/* Channel 2 */
+			{ { 0, 32, 0.001 }, { 0, 3.2, 0.001 } },
+		},
+	},
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)

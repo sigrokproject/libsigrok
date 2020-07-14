@@ -29,6 +29,7 @@
 
 enum {
 	GPD_2303S,
+	GPD_3303S,
 };
 
 /* Maximum number of output channels handled by this driver. */
