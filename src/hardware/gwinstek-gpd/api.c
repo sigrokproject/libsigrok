@@ -248,6 +248,9 @@ static int config_get(uint32_t key, GVariant **data,
 
 	if (!cg) {
 		switch (key) {
+		case SR_CONF_LIMIT_SAMPLES:
+		case SR_CONF_LIMIT_MSEC:
+			return sr_sw_limits_config_get(&devc->limits, key, data);
 		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(
 				channel_modes[devc->channel_mode]);

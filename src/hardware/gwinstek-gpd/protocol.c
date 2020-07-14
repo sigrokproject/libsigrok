@@ -175,6 +175,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 			}
 
 			devc->reply_pending = FALSE;
+			sr_sw_limits_update_samples_read(&devc->limits, 1);
 		}
 	} else {
 		if (!devc->reply_pending) {
