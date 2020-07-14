@@ -82,7 +82,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l;
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
-	char reply[50];
+	char reply[100];
 	unsigned int i;
 	struct dev_context *devc;
 	char channel[10];
@@ -179,8 +179,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (sscanf(reply, "%1u%1u%1u%1u%1u%1u%1u%1u", &cc_cv_ch1,
 			&cc_cv_ch2, &track1, &track2, &beep,
 			&devc->output_enabled, &baud1, &baud2) != 8) {
-		sr_err("Invalid reply to STATUS: '%s'.", reply);
-		goto error;
+		/* old firmware (< 2.00?) responds with different format */
+		if (sscanf(reply, "%1u %1u %1u %1u %1u X %1u X", &cc_cv_ch1,
+			   &cc_cv_ch2, &track1, &track2, &beep,
+			   &devc->output_enabled) != 6) {
+			sr_err("Invalid reply to STATUS: '%s'.", reply);
+			goto error;
+		}
+		/* ignore remaining two lines of status message */
+		gpd_receive_reply(serial, reply, sizeof(reply));
+		gpd_receive_reply(serial, reply, sizeof(reply));
 	}
 
 	for (i = 0; i < model->num_channels; ++i) {
