@@ -444,6 +444,7 @@ static int config_set(uint32_t key, GVariant *data,
 						devc->coupling_tab_size)) < 0)
 				return SR_ERR_ARG;
 			devc->coupling[ch_idx] = idx;
+			hantek_6xxx_update_coupling(sdi);
 			break;
 		default:
 			return SR_ERR_NA;
