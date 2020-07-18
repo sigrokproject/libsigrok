@@ -488,8 +488,8 @@ sr_rbminor=${sr_rbminor%%.*}
 
 # The Ruby bindings need Ruby development files.
 SR_PKG_CHECK([ruby_dev], [SR_PKGLIBS_RUBY],
-	[ruby],
-	[ruby-$sr_rbmajor.$sr_rbminor])
+	[ruby >= 2.5.0],
+	[ruby-$sr_rbmajor.$sr_rbminor >= 2.5.0])
 
 AS_IF([test "x$sr_have_ruby_dev" != xyes],
 	[SR_APPEND([sr_ruby_missing], [', '], [Headers])])

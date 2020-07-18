@@ -78,7 +78,7 @@ Requirements for the Python bindings:
 Requirements for the Ruby bindings:
 
  - libsigrokcxx >= 0.4.0 (the libsigrok C++ bindings, see above)
- - Ruby >= 1.9.3 (including development files!)
+ - Ruby >= 2.5.0 (including development files!)
  - SWIG >= 3.0.8
  - YARD (optional, only needed for the Ruby API docs)
 
