@@ -27,9 +27,40 @@
 
 #define LOG_PREFIX "tplink-hs"
 
-struct dev_context {
+struct channel_spec {
+	const char *name;
+	int type;
+	enum sr_mq mq;
+	enum sr_unit unit;
 };
 
+struct tplink_dev_info {
+	char *model;
+	char *sw_ver;
+	char *device_id;
+
+	const struct channel_spec *channels;
+};
+
+struct dev_context {
+	struct tplink_dev_info dev_info;
+	const struct tplink_hs_ops *ops;
+	struct sr_sw_limits limits;
+
+	char *address;
+	char *port;
+	int socket;
+	unsigned int read_timeout;
+
+	GPollFD pollfd;
+
+	float current;
+	float voltage;
+
+	int64_t cmd_sent_at;
+};
+
+SR_PRIV int tplink_hs_probe(struct dev_context  *devc);
 SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data);
 
 #endif

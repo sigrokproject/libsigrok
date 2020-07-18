@@ -19,130 +19,175 @@
 
 #include <config.h>
 #include "protocol.h"
+#include "tplink-hs.h"
 
-static struct sr_dev_driver tplink_hs_driver_info;
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_ENERGYMETER,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+};
+
+static GSList *tplink_hs_scan(struct sr_dev_driver *di, const char *conn)
+{
+	GSList *devices = NULL;
+	struct dev_context *devc = NULL;
+	struct sr_dev_inst *sdi = NULL;
+	gchar **params;
+	int i;
+
+	params = g_strsplit(conn, "/", 0);
+	if (!params || !params[1] || !params[2]) {
+		sr_err("Invalid Parameters.");
+		g_strfreev(params);
+		return NULL;
+	}
+	if (g_ascii_strncasecmp(params[0], "tcp", 3)) {
+		sr_err("Only TCP (tcp-raw) protocol is currently supported.");
+		g_strfreev(params);
+		return NULL;
+	}
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	sr_sw_limits_init(&devc->limits);
+	devc->read_timeout = 1000 * 1000;
+	devc->ops = &tplink_hs_dev_ops;
+	devc->address = g_strdup(params[1]);
+	devc->port = g_strdup(params[2]);
+	g_strfreev(params);
+
+	if (tplink_hs_probe(devc) != SR_OK) {
+		sr_err("Failed to find a supported TP-Link HS device.");
+		goto err;
+	}
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup("TP-Link");
+	sdi->model = g_strdup(devc->dev_info.model);
+	sdi->version = g_strdup(devc->dev_info.sw_ver);
+	sdi->serial_num = g_strdup(devc->dev_info.device_id);
+	sdi->priv = devc;
+
+	for (i = 0; devc->dev_info.channels[i].name; i++)
+		sr_channel_new(sdi, i, devc->dev_info.channels[i].type,
+				TRUE, devc->dev_info.channels[i].name);
+
+	devices = g_slist_append(devices, sdi);
+
+	return std_scan_complete(di, devices);
+
+err:
+	g_free(devc);
+	return NULL;
+}
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	GSList *devices;
+	struct sr_config *src;
+	const char *conn = NULL;
 
-	(void)options;
+	for (GSList *l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (!conn)
+		return NULL;
 
-	devices = NULL;
-	drvc = di->context;
-	drvc->instances = NULL;
-
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
-
-	return devices;
+	return tplink_hs_scan(di, conn);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
 
-	/* TODO: get handle from sdi->conn and open it. */
+	if (devc->ops->open(devc) != SR_OK)
+		return SR_ERR;
+
+	devc->pollfd.fd = devc->socket;
+	devc->pollfd.events = G_IO_IN;
+	devc->pollfd.revents = 0;
 
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	struct dev_context *devc = sdi->priv;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	if (devc->ops->close(devc) != SR_OK)
+		return SR_ERR;
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
-{
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
-
-	return ret;
-}
-
 static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
+	struct dev_context *devc;
 
-	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
-	}
+	devc = sdi->priv;
 
-	return ret;
+	return sr_sw_limits_config_set(&devc->limits, key, data);
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		       const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
-
-	return ret;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	struct dev_context *devc = sdi->priv;
 
-	(void)sdi;
+	sr_sw_limits_acquisition_start(&devc->limits);
+	std_session_send_df_header(sdi);
+
+	sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
+		250, tplink_hs_receive_data,
+		(void *)sdi);
+
+	devc->ops->start(devc);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
+	struct dev_context *devc = sdi->priv;
 
-	(void)sdi;
+	devc->ops->stop(devc);
+
+	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
+	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
 
 static struct sr_dev_driver tplink_hs_driver_info = {
 	.name = "tplink-hs",
-	.longname = "TPLink HS",
+	.longname = "TP-Link HS110 Wi-Fi Smart Plug with Energy Monitoring",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
-	.config_get = config_get,
+	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
