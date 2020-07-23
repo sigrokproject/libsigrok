@@ -103,6 +103,8 @@ static int process_buffer(struct sr_input *in)
 	for (i = 0; i < chunk_size; i += chunk) {
 		logic.data = in->buf->str + i;
 		chunk = MIN(CHUNK_SIZE, chunk_size - i);
+		chunk /= logic.unitsize;
+		chunk *= logic.unitsize;
 		logic.length = chunk;
 		sr_session_send(in->sdi, &packet);
 	}
