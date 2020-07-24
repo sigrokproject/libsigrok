@@ -1250,7 +1250,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 	char *curr_word, *next_word, curr_first;
 	gboolean is_timestamp, is_section, is_real, is_multibit, is_singlebit;
 	uint64_t timestamp;
-	char *identifier;
+	char *identifier, *endptr;
 	size_t count;
 
 	inc = in->priv;
@@ -1344,7 +1344,13 @@ static int parse_textline(const struct sr_input *in, char *lines)
 		 */
 		is_timestamp = curr_first == '#' && g_ascii_isdigit(curr_word[1]);
 		if (is_timestamp) {
-			timestamp = strtoull(&curr_word[1], NULL, 10);
+			endptr = NULL;
+			timestamp = strtoull(&curr_word[1], &endptr, 10);
+			if (!endptr || *endptr) {
+				sr_err("Invalid timestamp: %s.", curr_word);
+				ret = SR_ERR_DATA;
+				break;
+			}
 			sr_spew("Got timestamp: %" PRIu64, timestamp);
 			if (inc->options.downsample > 1) {
 				timestamp /= inc->options.downsample;
@@ -1357,11 +1363,13 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			 * Skip > 0 => skip until timestamp >= skip.
 			 */
 			if (inc->options.skip_specified && !inc->use_skip) {
-				sr_dbg("Seeding use of skip");
+				sr_dbg("Seeding skip from user spec %" PRIu64,
+					inc->options.skip_starttime);
+				inc->prev_timestamp = inc->options.skip_starttime;
 				inc->use_skip = TRUE;
 			}
 			if (!inc->use_skip) {
-				sr_dbg("First timestamp, and no skip used");
+				sr_dbg("Seeding skip from first timestamp");
 				inc->options.skip_starttime = timestamp;
 				inc->prev_timestamp = timestamp;
 				inc->use_skip = TRUE;
@@ -1400,8 +1408,8 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			}
 
 			/* Generate samples from prev_timestamp up to timestamp - 1. */
-			sr_spew("Got a new timestamp, feeding samples");
 			count = timestamp - inc->prev_timestamp;
+			sr_spew("Got a new timestamp, feeding %zu samples", count);
 			add_samples(in, count, FALSE);
 			inc->prev_timestamp = timestamp;
 			inc->data_after_timestamp = FALSE;
@@ -1711,6 +1719,10 @@ static int init(struct sr_input *in, GHashTable *options)
 	if (data) {
 		inc->options.skip_specified = TRUE;
 		inc->options.skip_starttime = g_variant_get_uint64(data);
+		if (inc->options.skip_starttime == ~UINT64_C(0)) {
+			inc->options.skip_specified = FALSE;
+			inc->options.skip_starttime = 0;
+		}
 		inc->options.skip_starttime /= inc->options.downsample;
 	}
 
@@ -1865,7 +1877,7 @@ static const struct sr_option *get_options(void)
 	if (!options[0].def) {
 		options[OPT_NUM_CHANS].def = g_variant_ref_sink(g_variant_new_uint32(0));
 		options[OPT_DOWN_SAMPLE].def = g_variant_ref_sink(g_variant_new_uint64(1));
-		options[OPT_SKIP_COUNT].def = g_variant_ref_sink(g_variant_new_uint64(0));
+		options[OPT_SKIP_COUNT].def = g_variant_ref_sink(g_variant_new_uint64(~UINT64_C(0)));
 		options[OPT_COMPRESS].def = g_variant_ref_sink(g_variant_new_uint64(0));
 	}
 
