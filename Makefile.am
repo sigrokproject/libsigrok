@@ -27,7 +27,7 @@ DISTCHECK_CONFIGURE_FLAGS = --disable-python
 
 FIRMWARE_DIR = $(datadir)/sigrok-firmware
 
-local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
+local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I. @RPC_CFLAGS@
 if BINDINGS_CXX
 local_includes += -Ibindings/cxx/include -I$(srcdir)/bindings/cxx/include -Ibindings/cxx
 endif
