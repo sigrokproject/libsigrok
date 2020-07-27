@@ -61,7 +61,7 @@ static int init(struct sr_output *o, GHashTable *options)
 		return SR_ERR_ARG;
 	}
 
-	outc = g_malloc0(sizeof(struct out_context));
+	outc = g_malloc0(sizeof(*outc));
 	outc->filename = g_strdup(o->filename);
 	o->priv = outc;
 
@@ -158,7 +158,7 @@ static int zip_create(const struct sr_output *o)
 	g_key_file_set_integer(meta, devgroup, "total analog", enabled_analog_channels);
 
 	outc->analog_ch_count = enabled_analog_channels;
-	alloc_size = sizeof(gint) * outc->analog_ch_count;
+	alloc_size = sizeof(gint) * outc->analog_ch_count + 1;
 	outc->analog_index_map = g_malloc0(alloc_size);
 
 	index = 0;
@@ -197,6 +197,11 @@ static int zip_create(const struct sr_output *o)
 	 * archive update calls, and decouple the srzip output module
 	 * from implementation details in other acquisition device
 	 * drivers and input modules.
+	 *
+	 * Avoid allocating zero bytes, to not depend on platform
+	 * specific malloc(0) return behaviour. Avoid division by zero,
+	 * holding a local buffer won't harm when no data is seen later
+	 * during execution. This simplifies other locations.
 	 */
 	alloc_size = CHUNK_SIZE;
 	outc->logic_buff.unit_size = logic_channels;
@@ -205,11 +210,12 @@ static int zip_create(const struct sr_output *o)
 	outc->logic_buff.samples = g_try_malloc0(alloc_size);
 	if (!outc->logic_buff.samples)
 		return SR_ERR_MALLOC;
-	alloc_size /= outc->logic_buff.unit_size;
+	if (outc->logic_buff.unit_size)
+		alloc_size /= outc->logic_buff.unit_size;
 	outc->logic_buff.alloc_size = alloc_size;
 	outc->logic_buff.fill_size = 0;
 
-	alloc_size = sizeof(outc->analog_buff[0]) * outc->analog_ch_count;
+	alloc_size = sizeof(outc->analog_buff[0]) * outc->analog_ch_count + 1;
 	outc->analog_buff = g_malloc0(alloc_size);
 	for (index = 0; index < outc->analog_ch_count; index++) {
 		alloc_size = CHUNK_SIZE;
@@ -400,15 +406,17 @@ static int zip_append_queue(const struct sr_output *o,
 
 	outc = o->priv;
 	buff = &outc->logic_buff;
-	if (length && unitsize != buff->unit_size)
+	if (length && unitsize != buff->unit_size) {
+		sr_warn("Unexpected unit size, discarding logic data.");
 		return SR_ERR_ARG;
+	}
 
 	/*
 	 * Queue most recently received samples to the local buffer.
 	 * Flush to the ZIP archive when the buffer space is exhausted.
 	 */
 	rdptr = buf;
-	send_size = length / buff->unit_size;
+	send_size = buff->unit_size ? length / buff->unit_size : 0;
 	while (send_size) {
 		remain = buff->alloc_size - buff->fill_size;
 		if (remain) {
