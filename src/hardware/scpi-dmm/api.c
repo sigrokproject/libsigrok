@@ -57,6 +57,9 @@ static const struct scpi_command cmdset_agilent[] = {
  * I'm surprised the same instruction sequence doesn't work and INIT may
  * work for both, but I don't have the others to re-test.
  *
+ * cmdset_hp also works well for the 34410A, using cmdset_agilent throws an
+ * error on 'MEAS' without a '?'.
+ *
  * On the 34401A,
  *  MEAS <optional parameters> ? configures, arms, triggers and waits
  *       for a reading
@@ -107,6 +110,13 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
+	},
+	{
+		"Agilent", "34410A",
+		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0,
