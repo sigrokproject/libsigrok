@@ -235,6 +235,8 @@ enum sr_mq {
 	SR_MQ_HARMONIC_RATIO,
 	/** Energy. */
 	SR_MQ_ENERGY,
+	/** Electric charge. */
+	SR_MQ_ELECTRIC_CHARGE,
 
 	/* Update sr_key_info_mq[] (hwdriver.c) upon changes! */
 };
