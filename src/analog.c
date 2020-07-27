@@ -88,6 +88,9 @@ static struct unit_mq_string unit_strings[] = {
 	{ SR_UNIT_MOMME, "momme" },
 	{ SR_UNIT_TOLA, "tola" },
 	{ SR_UNIT_PIECE, "pcs" },
+	{ SR_UNIT_JOULE, "J" },
+	{ SR_UNIT_COULOMB, "C" },
+	{ SR_UNIT_AMPERE_HOUR, "Ah" },
 	ALL_ZERO
 };
 

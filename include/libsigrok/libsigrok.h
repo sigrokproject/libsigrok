@@ -294,7 +294,7 @@ enum sr_unit {
 	SR_UNIT_VOLT_AMPERE,
 	/** Real power [W]. */
 	SR_UNIT_WATT,
-	/** Consumption [Wh]. */
+	/** Energy (consumption) in watt hour [Wh]. */
 	SR_UNIT_WATT_HOUR,
 	/** Wind speed in meters per second. */
 	SR_UNIT_METER_SECOND,
@@ -328,6 +328,12 @@ enum sr_unit {
 	SR_UNIT_TOLA,
 	/** Pieces (number of items). */
 	SR_UNIT_PIECE,
+	/** A relative unit of (power) measurement [dB]. */
+	SR_UNIT_JOULE,
+	/** Electric charge in coulomb. */
+	SR_UNIT_COULOMB,
+	/** Electric charge in ampere hour [Ah]. */
+	SR_UNIT_AMPERE_HOUR,
 
 	/*
 	 * Update unit_strings[] (analog.c) and fancyprint() (output/analog.c)
