@@ -72,6 +72,8 @@ static void ser_hid_mask_databits(struct sr_serial_dev_inst *serial,
 /* }}} */
 /* {{{ open/close/list/find HIDAPI connection, exchange HID requests and data */
 
+#define IOKIT_PATH_PREFIX	"IOService:"
+
 /*
  * Convert a HIDAPI path (which depends on the target platform, and may
  * depend on one of several available API variants on that platform) to
@@ -94,22 +96,49 @@ static char *get_hidapi_path_copy(const char *path)
 
 	int has_colon;
 	int is_hex_colon;
-	char *name;
+	const char *parse, *remain;
+	char *copy;
 
-	has_colon = strchr(path, ':') != NULL;
-	is_hex_colon = strspn(path, accept) == strlen(path);
-	if (has_colon && !is_hex_colon) {
-		sr_err("Unsupported HIDAPI path format: %s", path);
-		return NULL;
-	}
+	parse = path;
+	has_colon = strchr(parse, ':') != NULL;
+	is_hex_colon = strspn(parse, accept) == strlen(parse);
 	if (is_hex_colon) {
-		name = g_strdup_printf("%s%s", SER_HID_USB_PREFIX, path);
-		g_strcanon(name + strlen(SER_HID_USB_PREFIX), keep, '.');
-	} else {
-		name = g_strdup_printf("%s%s", SER_HID_RAW_PREFIX, path);
+		/* All hex digits and colon only. Simple substitution. */
+		copy = g_strdup_printf("%s%s", SER_HID_USB_PREFIX, parse);
+		g_strcanon(copy + strlen(SER_HID_USB_PREFIX), keep, '.');
+		return copy;
 	}
+	if (!has_colon) {
+		/* "Something raw" and no colon. Add raw= prefix. */
+		copy = g_strdup_printf("%s%s", SER_HID_RAW_PREFIX, parse);
+		return copy;
+	}
+	if (g_str_has_prefix(parse, IOKIT_PATH_PREFIX)) do {
+		/*
+		 * Path starts with Mac IOKit literal which contains the
+		 * colon. Drop that literal from the start of the path,
+		 * and check whether any colon remains which we cannot
+		 * deal with. Fall though to other approaches which could
+		 * be more generic, or to the error path.
+		 */
+		remain = &parse[strlen(IOKIT_PATH_PREFIX)];
+		if (strchr(remain, ':'))
+			break;
+		copy = g_strdup_printf("%s%s", SER_HID_IOKIT_PREFIX, remain);
+		return copy;
+	} while (0);
 
-	return name;
+	/* TODO
+	 * Consider adding support for more of the currently unhandled
+	 * cases. When we get here, the HIDAPI path could be arbitrarily
+	 * complex, none of the above "straight" approaches took effect.
+	 * Proper escaping or other transformations could get applied,
+	 * though they decrease usability the more they obfuscate the
+	 * resulting port name. Ideally users remain able to recognize
+	 * their device or cable or port after the manipulation.
+	 */
+	sr_err("Unsupported HIDAPI path format: %s", path);
+	return NULL;
 }
 
 /*
@@ -120,24 +149,32 @@ static char *get_hidapi_path_copy(const char *path)
  * Strip off the "raw" prefix, or undo colon substitution. See @ref
  * get_hidapi_path_copy() for details.
  */
-static const char *extract_hidapi_path(char *buffer)
+static char *extract_hidapi_path(const char *copy)
 {
 	static const char *keep = "0123456789abcdefABCDEF:";
 
 	const char *p;
+	char *path;
 
-	p = buffer;
+	p = copy;
 	if (!p || !*p)
 		return NULL;
 
-	if (strncmp(p, SER_HID_RAW_PREFIX, strlen(SER_HID_RAW_PREFIX)) == 0) {
-		p += strlen(SER_HID_RAW_PREFIX);
-		return p;
+	if (g_str_has_prefix(p, SER_HID_IOKIT_PREFIX)) {
+		p += strlen(SER_HID_IOKIT_PREFIX);
+		path = g_strdup_printf("%s%s", IOKIT_PATH_PREFIX, p);
+		return path;
 	}
-	if (strncmp(p, SER_HID_USB_PREFIX, strlen(SER_HID_USB_PREFIX)) == 0) {
+	if (g_str_has_prefix(p, SER_HID_RAW_PREFIX)) {
+		p += strlen(SER_HID_RAW_PREFIX);
+		path = g_strdup(p);
+		return path;
+	}
+	if (g_str_has_prefix(p, SER_HID_USB_PREFIX)) {
 		p += strlen(SER_HID_USB_PREFIX);
-		g_strcanon(buffer, keep, ':');
-		return p;
+		path = g_strdup(p);
+		g_strcanon(path, keep, ':');
+		return path;
 	}
 
 	return NULL;
@@ -236,18 +273,16 @@ static GSList *ser_hid_hidapi_find_usb(GSList *list, sr_ser_find_append_t append
 /* Get the serial number of a device specified by path. */
 static int ser_hid_hidapi_get_serno(const char *path, char *buf, size_t blen)
 {
-	char *usbpath;
-	const char *hidpath;
+	char *hidpath;
 	hid_device *dev;
 	wchar_t *serno_wch;
 	int rc;
 
 	if (!path || !*path)
 		return SR_ERR_ARG;
-	usbpath = g_strdup(path);
-	hidpath = extract_hidapi_path(usbpath);
+	hidpath = extract_hidapi_path(path);
 	dev = hidpath ? hid_open_path(hidpath) : NULL;
-	g_free(usbpath);
+	g_free(hidpath);
 	if (!dev)
 		return SR_ERR_IO;
 
@@ -301,17 +336,13 @@ static int ser_hid_hidapi_get_vid_pid(const char *path,
 	 * its meaning are said to be OS specific, which is why we may
 	 * not assume anything about it...
 	 */
-	char *usbpath;
-	const char *hidpath;
+	char *hidpath;
 	struct hid_device_info *devs, *dev;
 	int found;
 
-	usbpath = g_strdup(path);
-	hidpath = extract_hidapi_path(usbpath);
-	if (!hidpath) {
-		g_free(usbpath);
+	hidpath = extract_hidapi_path(path);
+	if (!hidpath)
 		return SR_ERR_NA;
-	}
 
 	devs = hid_enumerate(0x0000, 0x0000);
 	found = 0;
@@ -326,7 +357,7 @@ static int ser_hid_hidapi_get_vid_pid(const char *path,
 		break;
 	}
 	hid_free_enumeration(devs);
-	g_free(usbpath);
+	g_free(hidpath);
 
 	return found ? SR_OK : SR_ERR_NA;
 #endif
@@ -348,6 +379,7 @@ static int ser_hid_hidapi_open_dev(struct sr_serial_dev_inst *serial)
 		serial->hid_path = extract_hidapi_path(serial->usb_path);
 	hid_dev = hid_open_path(serial->hid_path);
 	if (!hid_dev) {
+		g_free((void *)serial->hid_path);
 		serial->hid_path = NULL;
 		return SR_ERR_IO;
 	}
@@ -363,6 +395,7 @@ static void ser_hid_hidapi_close_dev(struct sr_serial_dev_inst *serial)
 	if (serial->hid_dev) {
 		hid_close(serial->hid_dev);
 		serial->hid_dev = NULL;
+		g_free((void *)serial->hid_path);
 		serial->hid_path = NULL;
 	}
 	g_slist_free_full(serial->hid_source_args, g_free);
@@ -732,6 +765,12 @@ static int ser_hid_parse_conn_spec(
 				return rc;
 			path = g_strdup(p);
 			p += strlen(p);
+		} else if (g_str_has_prefix(p, SER_HID_IOKIT_PREFIX)) {
+			rc = try_open_path(serial, p);
+			if (rc != SR_OK)
+				return rc;
+			path = g_strdup(p);
+			p += strlen(p);
 		} else if (g_str_has_prefix(p, SER_HID_RAW_PREFIX)) {
 			rc = try_open_path(serial, p);
 			if (rc != SR_OK)
@@ -777,15 +816,13 @@ static int ser_hid_parse_conn_spec(
 /* Get and compare serial number. Boolean return value. */
 static int check_serno(const char *path, const char *serno_want)
 {
-	char *usb_path;
-	const char *hid_path;
+	char *hid_path;
 	char serno_got[128];
 	int rc;
 
-	usb_path = g_strdup(path);
-	hid_path = extract_hidapi_path(usb_path);
+	hid_path = extract_hidapi_path(path);
 	rc = ser_hid_hidapi_get_serno(hid_path, serno_got, sizeof(serno_got));
-	g_free(usb_path);
+	g_free(hid_path);
 	if (rc) {
 		sr_dbg("DBG: %s(), could not get serial number", __func__);
 		return 0;

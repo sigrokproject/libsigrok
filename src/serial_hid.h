@@ -24,6 +24,7 @@
 #define SER_HID_CONN_PREFIX	"hid"
 #define SER_HID_USB_PREFIX	"usb="
 #define SER_HID_RAW_PREFIX	"raw="
+#define SER_HID_IOKIT_PREFIX	"iokit="
 #define SER_HID_SNR_PREFIX	"sn="
 
 /*

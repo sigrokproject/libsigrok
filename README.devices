@@ -185,6 +185,7 @@ Formal syntax for serial communication:
    conn=hid[/<chip>]/usb=<bus>.<dev>[.<if>]
    conn=hid[/<chip>]/raw=<path>
    conn=hid[/<chip>]/sn=<serno>
+   conn=hid[/<chip>]/iokit=<path>
    chip can be: bu86x, ch9325, cp2110, victor
    path may contain slashes
    path and serno are "greedy" (span to the end of the spec)
