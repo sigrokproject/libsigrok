@@ -43,7 +43,7 @@ struct context {
 	int trigger;
 	uint64_t samplerate;
 	int *channel_index;
-	GString **channel_names;
+	char **aligned_names;
 	int max_namelen;
 	char **line_values;
 	uint8_t *prev_sample;
@@ -59,7 +59,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	unsigned int i, j, max_namelen;
+	unsigned int j, max_namelen, alloc_line_len;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -84,25 +84,26 @@ static int init(struct sr_output *o, GHashTable *options)
 			continue;
 		ctx->num_enabled_channels++;
 	}
-	ctx->channel_index = g_malloc(sizeof(int) * ctx->num_enabled_channels);
-	ctx->channel_names = g_malloc(sizeof(char *) * ctx->num_enabled_channels);
-	ctx->lines = g_malloc(sizeof(GString *) * ctx->num_enabled_channels);
-	ctx->prev_sample = g_malloc(g_slist_length(o->sdi->channels));
+	ctx->channel_index = g_malloc0(sizeof(ctx->channel_index[0]) * ctx->num_enabled_channels);
+	ctx->aligned_names = g_malloc0(sizeof(ctx->aligned_names[0]) * ctx->num_enabled_channels);
+	ctx->lines = g_malloc0(sizeof(ctx->lines[0]) * ctx->num_enabled_channels);
+	ctx->prev_sample = g_malloc0(g_slist_length(o->sdi->channels));
 
+	/* Get the maximum length across all active logic channels. */
 	max_namelen = 0;
-	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;
-
 		max_namelen = MAX(max_namelen, strlen(ch->name));
 	}
 	ctx->max_namelen = max_namelen;
 
+	alloc_line_len = ctx->max_namelen + 8 + ctx->spl;
 	j = 0;
-	for (i = 0, l = o->sdi->channels; l; l = l->next, i++) {
+	for (l = o->sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
@@ -110,11 +111,10 @@ static int init(struct sr_output *o, GHashTable *options)
 			continue;
 
 		ctx->channel_index[j] = ch->index;
-		ctx->channel_names[j] = g_string_sized_new(16);
-		g_string_printf(ctx->channel_names[j], "%*s%s", (int)(max_namelen - strlen(ch->name)), "", ch->name);
+		ctx->aligned_names[j] = g_strdup_printf("%*s", max_namelen, ch->name);
 
-		ctx->lines[j] = g_string_sized_new(80);
-		g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]->str);
+		ctx->lines[j] = g_string_sized_new(alloc_line_len);
+		g_string_printf(ctx->lines[j], "%s:", ctx->aligned_names[j]);
 
 		j++;
 	}
@@ -154,20 +154,23 @@ static GString *gen_header(const struct sr_output *o)
 	return header;
 }
 
-static void maybe_add_trigger(struct context *ctx, GString *out) {
+static void maybe_add_trigger(struct context *ctx, GString *out)
+{
+	int offset;
+
 	if (ctx->trigger <= -1)
 		return;
-
-	int offset = ctx->trigger;
+	offset = ctx->trigger;
+	ctx->trigger = -1;
 
 	/*
 	 * Sample data lines have one character per bit and
 	 * no separator between bytes. Align trigger marker
 	 * to this layout.
 	 */
-	g_string_append_printf(out, "%*sT:%*s^ %d\n", ctx->max_namelen - 1, "", offset, "", offset);
-
-	ctx->trigger = -1;
+	g_string_append_printf(out, "%*s:%*s %d\n",
+		ctx->max_namelen, "T",
+		offset + 1, "^", offset);
 }
 
 
@@ -207,8 +210,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		if (!ctx->header_done) {
 			*out = gen_header(o);
 			ctx->header_done = TRUE;
-		} else
+		} else {
 			*out = g_string_sized_new(512);
+		}
 
 		logic = packet->payload;
 		for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
@@ -233,7 +237,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					g_string_append_c(*out, '\n');
 					if (j == ctx->num_enabled_channels - 1)
 						maybe_add_trigger(ctx, *out);
-					g_string_printf(ctx->lines[j], "%s:", ctx->channel_names[j]->str);
+					g_string_printf(ctx->lines[j], "%s:", ctx->aligned_names[j]);
 				}
 			}
 			if (ctx->spl_cnt == ctx->spl)
@@ -272,10 +276,10 @@ static int cleanup(struct sr_output *o)
 	g_free(ctx->channel_index);
 	g_free(ctx->prev_sample);
 	for (i = 0; i < ctx->num_enabled_channels; i++) {
-		g_string_free(ctx->channel_names[i], TRUE);
+		g_free(ctx->aligned_names[i]);
 		g_string_free(ctx->lines[i], TRUE);
 	}
-	g_free(ctx->channel_names);
+	g_free(ctx->aligned_names);
 	g_free(ctx->lines);
 	g_free((gpointer)ctx->charset);
 	g_free(ctx);
