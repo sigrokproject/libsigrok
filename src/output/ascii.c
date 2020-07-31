@@ -37,19 +37,18 @@
 #define DEFAULT_ASCII_CHARS ".\"\\/"
 
 struct context {
-	unsigned int num_enabled_channels;
-	int spl;
-	int spl_cnt;
+	size_t num_enabled_channels;
+	size_t spl;
+	size_t spl_cnt;
 	int trigger;
 	uint64_t samplerate;
 	int *channel_index;
 	char **aligned_names;
-	int max_namelen;
+	size_t max_namelen;
 	char **line_values;
 	uint8_t *prev_sample;
 	gboolean header_done;
 	GString **lines;
-	GString *header;
 	const char *charset;
 	gboolean edges;
 };
@@ -59,7 +58,7 @@ static int init(struct sr_output *o, GHashTable *options)
 	struct context *ctx;
 	struct sr_channel *ch;
 	GSList *l;
-	unsigned int j, max_namelen, alloc_line_len;
+	size_t j, max_namelen, alloc_line_len;
 
 	if (!o || !o->sdi)
 		return SR_ERR_ARG;
@@ -111,7 +110,7 @@ static int init(struct sr_output *o, GHashTable *options)
 			continue;
 
 		ctx->channel_index[j] = ch->index;
-		ctx->aligned_names[j] = g_strdup_printf("%*s", max_namelen, ch->name);
+		ctx->aligned_names[j] = g_strdup_printf("%*s", (int)max_namelen, ch->name);
 
 		ctx->lines[j] = g_string_sized_new(alloc_line_len);
 		g_string_printf(ctx->lines[j], "%s:", ctx->aligned_names[j]);
@@ -127,7 +126,7 @@ static GString *gen_header(const struct sr_output *o)
 	struct context *ctx;
 	GVariant *gvar;
 	GString *header;
-	int num_channels;
+	size_t num_channels;
 	char *samplerate_s;
 
 	ctx = o->priv;
@@ -142,7 +141,7 @@ static GString *gen_header(const struct sr_output *o)
 	header = g_string_sized_new(512);
 	g_string_printf(header, "%s %s\n", PACKAGE_NAME, sr_package_version_string_get());
 	num_channels = g_slist_length(o->sdi->channels);
-	g_string_append_printf(header, "Acquisition with %d/%d channels",
+	g_string_append_printf(header, "Acquisition with %zu/%zu channels",
 			ctx->num_enabled_channels, num_channels);
 	if (ctx->samplerate != 0) {
 		samplerate_s = sr_samplerate_string(ctx->samplerate);
@@ -158,7 +157,7 @@ static void maybe_add_trigger(struct context *ctx, GString *out)
 {
 	int offset;
 
-	if (ctx->trigger <= -1)
+	if (ctx->trigger < 0)
 		return;
 	offset = ctx->trigger;
 	ctx->trigger = -1;
@@ -169,10 +168,9 @@ static void maybe_add_trigger(struct context *ctx, GString *out)
 	 * to this layout.
 	 */
 	g_string_append_printf(out, "%*s:%*s %d\n",
-		ctx->max_namelen, "T",
+		(int)ctx->max_namelen, "T",
 		offset + 1, "^", offset);
 }
-
 
 static int receive(const struct sr_output *o, const struct sr_datafeed_packet *packet,
 		GString **out)
@@ -182,9 +180,12 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 	const struct sr_config *src;
 	GSList *l;
 	struct context *ctx;
-	int idx, curbit, prevbit;
-	uint64_t i, j;
-	gchar *p, c;
+	size_t idx, i, j;
+	size_t num_samples;
+	const uint8_t *curr_sample;
+	size_t bytepos;
+	uint8_t bitmask, curbit, prevbit;
+	char c;
 	size_t charidx;
 
 	*out = NULL;
@@ -215,13 +216,16 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		}
 
 		logic = packet->payload;
-		for (i = 0; i <= logic->length - logic->unitsize; i += logic->unitsize) {
+		num_samples = logic->length / logic->unitsize;
+		curr_sample = logic->data;
+		while (num_samples--) {
 			ctx->spl_cnt++;
 			for (j = 0; j < ctx->num_enabled_channels; j++) {
 				idx = ctx->channel_index[j];
-				p = logic->data + i + idx / 8;
-				curbit = *p & (1 << (idx % 8));
-				prevbit = (ctx->prev_sample[idx / 8] & ((uint8_t) 1 << (idx % 8)));
+				bytepos = idx / 8;
+				bitmask = 1U << (idx % 8);
+				curbit = curr_sample[bytepos] & bitmask;
+				prevbit = ctx->prev_sample[bytepos] & bitmask;
 
 				charidx = curbit ? 1 : 0;
 				if (ctx->edges && ctx->spl_cnt > 1) {
@@ -235,7 +239,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 					/* Flush line buffers. */
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
 					g_string_append_c(*out, '\n');
-					if (j == ctx->num_enabled_channels - 1)
+					if (j + 1 == ctx->num_enabled_channels)
 						maybe_add_trigger(ctx, *out);
 					g_string_printf(ctx->lines[j], "%s:", ctx->aligned_names[j]);
 				}
@@ -243,7 +247,8 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			if (ctx->spl_cnt == ctx->spl)
 				/* Line buffers were already flushed. */
 				ctx->spl_cnt = 0;
-			memcpy(ctx->prev_sample, logic->data + i, logic->unitsize);
+			memcpy(ctx->prev_sample, curr_sample, logic->unitsize);
+			curr_sample += logic->unitsize;
 		}
 		break;
 	case SR_DF_END:
@@ -265,7 +270,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 static int cleanup(struct sr_output *o)
 {
 	struct context *ctx;
-	unsigned int i;
+	size_t i;
 
 	if (!o)
 		return SR_ERR_ARG;
