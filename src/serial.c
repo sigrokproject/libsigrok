@@ -128,7 +128,18 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 			return ret;
 	}
 
-	return serial_flush(serial);
+	/*
+	 * Flush potentially dangling RX data. Availability of the
+	 * flush primitive depends on the transport/cable, absense
+	 * is non-fatal.
+	 */
+	ret = serial_flush(serial);
+	if (ret == SR_ERR_NA)
+		ret = SR_OK;
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
 }
 
 /**

@@ -280,7 +280,7 @@ static int cp2110_flush(struct sr_serial_dev_inst *serial)
 	buffer[0] = CP2110_FIFO_PURGE;
 	buffer[1] = CP2110_FIFO_PURGE_TX | CP2110_FIFO_PURGE_RX;
 	rc = ser_hid_hidapi_set_data(serial, 0, buffer, sizeof(buffer), 0);
-	if (rc != 0)
+	if (rc != sizeof(buffer))
 		return SR_ERR;
 	return SR_OK;
 }
