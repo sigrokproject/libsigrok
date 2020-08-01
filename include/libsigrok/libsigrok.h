@@ -753,6 +753,16 @@ enum sr_configkey {
 	 */
 	SR_CONF_MODBUSADDR,
 
+	/**
+	 * User specified forced driver attachment to unknown devices.
+	 *
+	 * By design the interpretation of the string depends on the
+	 * specific driver. It typically would be either a replacement
+	 * '*IDN?' response value, or a sub-driver name. But could also
+	 * be anything else and totally arbitrary.
+	 */
+	SR_CONF_FORCE_DETECT,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Device (or channel group) configuration -----------------------*/
