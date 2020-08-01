@@ -24,6 +24,7 @@
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+	SR_CONF_FORCE_DETECT,
 };
 
 static const uint32_t drvopts[] = {
@@ -97,6 +98,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
 	const char *conn, *serialcomm;
+	const char *force_detect;
 	struct sr_serial_dev_inst *serial;
 	char reply[50];
 	int i, model_id;
@@ -104,6 +106,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	conn = NULL;
 	serialcomm = NULL;
+	force_detect = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -113,6 +116,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case SR_CONF_SERIALCOMM:
 			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_FORCE_DETECT:
+			force_detect = g_variant_get_string(src->data, NULL);
 			break;
 		default:
 			sr_err("Unknown option %d, skipping.", src->key);
@@ -124,6 +130,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	if (!serialcomm)
 		serialcomm = "9600/8n1";
+	if (force_detect && !*force_detect)
+		force_detect = NULL;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -161,6 +169,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; models[i].id; i++) {
 		if (!g_strcmp0(models[i].id, reply))
 			model_id = i;
+	}
+	if (model_id < 0 && force_detect) {
+		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
+			reply, force_detect);
+		for (i = 0; models[i].id; i++) {
+			if (strcmp(models[i].id, force_detect) != 0)
+				continue;
+			sr_info("Found replacement, using it instead.");
+			model_id = i;
+			break;
+		}
 	}
 	if (model_id < 0) {
 		sr_err("Unknown model ID '%s' detected, aborting.", reply);
