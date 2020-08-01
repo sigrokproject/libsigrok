@@ -85,7 +85,7 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 	ret = serial_write_blocking(serial, cmd_buf, IT8500_PACKET_LEN,
 				    serial_timeout(serial, IT8500_PACKET_LEN));
 	if (ret < IT8500_PACKET_LEN) {
-		sr_err("%s: error sending command: %d", __func__, ret);
+		sr_err("%s: error sending command 0x%02x: %d", __func__, cmd->command, ret);
 		ret = SR_ERR;
 		goto error;
 	}

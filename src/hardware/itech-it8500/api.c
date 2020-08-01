@@ -114,6 +114,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!cmd || !devc || !sdi)
 		return NULL;
 
+	serial = NULL;
 	conn = NULL;
 	serialcomm = NULL;
 	response = NULL;
@@ -168,6 +169,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		serial_close(serial);
 		sr_serial_dev_inst_free(serial);
+		serial = NULL;
 	}
 	if (!serialcomm)
 		goto error;
@@ -291,6 +293,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 
 	g_free(response);
+	serial_close(serial);
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
@@ -304,6 +307,11 @@ error:
 		g_free(unit_model);
 	if (unit_serial)
 		g_free(unit_serial);
+	if (serial) {
+		serial_close(serial);
+		sr_serial_dev_inst_free(serial);
+	}
+
 	return NULL;
 }
 
@@ -663,6 +671,23 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int dev_open(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	sr_dbg("%s(%p): called", __func__, sdi);
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	devc = sdi->priv;
+	ret = std_serial_dev_open(sdi);
+	devc->serial_open = (ret == SR_OK ? TRUE : FALSE);
+
+	return ret;
+}
+
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -679,22 +704,24 @@ static int dev_close(struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 	response = NULL;
 	cmd = g_malloc0(sizeof(*cmd));
-	if (!cmd)
-		return std_serial_dev_close(sdi);
 
-	/*
-	 * put unit back to local mode
-	 */
-	cmd->address = devc->address;
-	cmd->command = CMD_SET_REMOTE_MODE;
-	cmd->data[0] = 0;
-	if ((ret = itech_it8500_send_cmd(serial, cmd, &response)) != SR_OK) {
-		sr_err("Failed to set unit back to local mode: %d", ret);
+	if (cmd && devc->serial_open) {
+		/*
+		 * attempt to put unit back to local mode
+		 */
+		cmd->address = devc->address;
+		cmd->command = CMD_SET_REMOTE_MODE;
+		cmd->data[0] = 0;
+		if ((ret = itech_it8500_send_cmd(serial, cmd, &response)) != SR_OK) {
+			sr_err("Failed to set unit back to local mode: %d", ret);
+		}
 	}
 
-	g_free(cmd);
+	if (cmd)
+		g_free(cmd);
 	if (response)
 		g_free(response);
+	devc->serial_open = FALSE;
 
 	return std_serial_dev_close(sdi);
 }
@@ -731,7 +758,7 @@ static struct sr_dev_driver itech_it8500_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = std_serial_dev_open,
+	.dev_open = dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
