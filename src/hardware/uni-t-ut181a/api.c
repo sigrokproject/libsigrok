@@ -203,7 +203,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	ret = serial_open(serial, SERIAL_RDWR);
 	snprintf(conn_id, sizeof(conn_id), "%s", serial->port);
-	serial_flush(serial);
 	/*
 	 * We cannot identify the device at this point in time.
 	 * Successful open shall suffice for now. More activity
