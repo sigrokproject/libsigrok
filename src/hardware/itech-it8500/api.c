@@ -254,15 +254,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 
 	/*
-	 * put unit to remote control mode
-	 */
-	cmd->command = CMD_SET_REMOTE_MODE;
-	cmd->data[0] = 1;
-	if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK)
-		goto error;
-
-
-	/*
 	 * populate data structures
 	 */
 
@@ -674,6 +665,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
+	struct itech_it8500_cmd_packet *cmd, *response;
 	int ret;
 
 	sr_dbg("%s(%p): called", __func__, sdi);
@@ -682,8 +675,28 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	serial = sdi->conn;
 	ret = std_serial_dev_open(sdi);
 	devc->serial_open = (ret == SR_OK ? TRUE : FALSE);
+
+	if (devc->serial_open) {
+		/*
+		 * attempt to put unit to remote control mode
+		 */
+
+		response = NULL;
+		cmd = g_malloc0(sizeof(*cmd));
+		if (cmd) {
+			cmd->command = CMD_SET_REMOTE_MODE;
+			cmd->data[0] = 1;
+			if (itech_it8500_send_cmd(serial, cmd, &response) != SR_OK) {
+				sr_err("Failed to set unit to remote mode");
+			}
+			g_free(cmd);
+			if (response)
+				g_free(response);
+		}
+	}
 
 	return ret;
 }
