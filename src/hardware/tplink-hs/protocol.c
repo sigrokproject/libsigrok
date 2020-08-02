@@ -464,6 +464,7 @@ SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data)
 		sr_info("In callback G_IO_IN");
 		recv_poll_data(sdi);
 		tplink_hs_tcp_close(devc);
+		sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
 	}
 
 	if (sr_sw_limits_check(&devc->limits)) {
@@ -476,6 +477,11 @@ SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data)
 
 	if (elapsed > HS_POLL_PERIOD_MS) {
 		tplink_hs_tcp_open(devc);
+		devc->pollfd.fd = devc->socket;
+		sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
+			0, tplink_hs_receive_data,
+			(void *)sdi);
+
 		if (tplink_hs_tcp_send_cmd(devc, CMD_REALTIME_MSG) == SR_OK)
 			devc->cmd_sent_at = g_get_monotonic_time() / 1000;
 	}

@@ -157,8 +157,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
+	sr_session_source_add(sdi->session, -1, 0, 250,
+			tplink_hs_receive_data, (void *)sdi);
+
 	sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
-		250, tplink_hs_receive_data,
+		0, tplink_hs_receive_data,
 		(void *)sdi);
 
 	devc->ops->start(devc);
@@ -173,6 +176,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc->ops->stop(devc);
 
 	sr_session_source_remove_pollfd(sdi->session, &devc->pollfd);
+	sr_session_source_remove(sdi->session, -1);
 	std_session_send_df_end(sdi);
 
 	return SR_OK;
