@@ -624,6 +624,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/tondaj-sl-814/protocol.c \
 	src/hardware/tondaj-sl-814/api.c
 endif
+if HW_TPLINK_HS
+src_libdrivers_la_SOURCES += \
+	src/hardware/tplink-hs/protocol.h \
+	src/hardware/tplink-hs/protocol.c \
+	src/hardware/tplink-hs/api.c
+endif
 if HW_UNI_T_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-dmm/protocol.h \
