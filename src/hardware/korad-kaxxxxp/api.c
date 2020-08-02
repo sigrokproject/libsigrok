@@ -31,6 +31,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -174,6 +175,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->model = g_strdup(models[model_id].name);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
+	sdi->connection_id = g_strdup(conn);
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
 	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
@@ -222,6 +224,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
+	case SR_CONF_CONN:
+		*data = g_variant_new_string(sdi->connection_id);
+		break;
 	case SR_CONF_VOLTAGE:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE, devc);
 		*data = g_variant_new_double(devc->voltage);
