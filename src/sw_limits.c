@@ -57,7 +57,7 @@ SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits)
  * @param data config item data
  * @return SR_ERR_NA if @p key is not a supported limit, SR_OK otherwise
  */
-SR_PRIV int sr_sw_limits_config_get(struct sr_sw_limits *limits, uint32_t key,
+SR_PRIV int sr_sw_limits_config_get(const struct sr_sw_limits *limits, uint32_t key,
 	GVariant **data)
 {
 	switch (key) {

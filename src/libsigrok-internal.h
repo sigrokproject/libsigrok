@@ -2392,7 +2392,7 @@ struct sr_sw_limits {
 	uint64_t start_time;
 };
 
-SR_PRIV int sr_sw_limits_config_get(struct sr_sw_limits *limits, uint32_t key,
+SR_PRIV int sr_sw_limits_config_get(const struct sr_sw_limits *limits, uint32_t key,
 	GVariant **data);
 SR_PRIV int sr_sw_limits_config_set(struct sr_sw_limits *limits, uint32_t key,
 	GVariant *data);
