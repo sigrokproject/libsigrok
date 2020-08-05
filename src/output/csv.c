@@ -95,7 +95,7 @@ struct context {
 	uint32_t channels_seen;
 	uint64_t sample_rate;
 	uint64_t sample_scale;
-	uint64_t sample_time;
+	uint64_t out_sample_count;
 	uint8_t *previous_sample;
 	float *analog_samples;
 	uint8_t *logic_samples;
@@ -278,6 +278,10 @@ static GString *gen_header(const struct sr_output *o,
 		ctx->did_header = TRUE;
 	}
 
+	/* Time column requested but samplerate unknown. Emit a warning. */
+	if (ctx->time && !ctx->sample_rate)
+		sr_warn("Samplerate unknown, cannot provide timestamps.");
+
 	return header;
 }
 
@@ -399,6 +403,8 @@ static void process_logic(struct context *ctx,
 static void dump_saved_values(struct context *ctx, GString **out)
 {
 	unsigned int i, j, analog_size, num_channels;
+	double sample_time_dbl;
+	uint64_t sample_time_u64;
 	float *analog_sample, value;
 	uint8_t *logic_sample;
 
@@ -416,8 +422,8 @@ static void dump_saved_values(struct context *ctx, GString **out)
 		if (ctx->label_do) {
 			if (ctx->time)
 				g_string_append_printf(*out, "%s%s",
-					ctx->label_names ? "Time" :
-					ctx->xlabel, ctx->value);
+					ctx->label_names ? "Time" : ctx->xlabel,
+					ctx->value);
 			for (i = 0; i < num_channels; i++) {
 				g_string_append_printf(*out, "%s%s",
 					ctx->channels[i].label, ctx->value);
@@ -440,7 +446,6 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			ctx->previous_sample = g_malloc0(analog_size + ctx->num_logic_channels);
 
 		for (i = 0; i < ctx->num_samples; i++) {
-			ctx->sample_time = (ctx->sample_scale * i) / ctx->sample_rate;
 			analog_sample =
 			    &ctx->analog_samples[i * ctx->num_analog_channels];
 			logic_sample =
@@ -462,9 +467,16 @@ static void dump_saved_values(struct context *ctx, GString **out)
 				       analog_sample, analog_size);
 			}
 
-			if (ctx->time)
+			if (ctx->time && !ctx->sample_rate) {
+				g_string_append_printf(*out, "0%s", ctx->value);
+			} else if (ctx->time) {
+				sample_time_dbl = ctx->out_sample_count++;
+				sample_time_dbl /= ctx->sample_rate;
+				sample_time_dbl *= ctx->sample_scale;
+				sample_time_u64 = sample_time_dbl;
 				g_string_append_printf(*out, "%" PRIu64 "%s",
-					ctx->sample_time, ctx->value);
+					sample_time_u64, ctx->value);
+			}
 
 			for (j = 0; j < num_channels; j++) {
 				if (ctx->channels[j].ch->type == SR_CHANNEL_ANALOG) {
