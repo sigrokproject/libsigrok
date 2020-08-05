@@ -175,14 +175,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-
-	if (devc->ops->open(devc) != SR_OK)
-		return SR_ERR;
-
-	devc->pollfd.fd = devc->socket;
-	devc->pollfd.events = G_IO_IN;
-	devc->pollfd.revents = 0;
+	(void)sdi;
 
 	return SR_OK;
 }
@@ -203,6 +196,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	sr_session_source_add(sdi->session, -1, 0, 250,
 			tplink_hs_receive_data, (void *)sdi);
+
+	if (devc->ops->open(devc) != SR_OK)
+		return SR_ERR;
+
+	devc->pollfd.fd = devc->socket;
+	devc->pollfd.events = G_IO_IN;
+	devc->pollfd.revents = 0;
 
 	sr_session_source_add_pollfd(sdi->session, &devc->pollfd,
 		0, tplink_hs_receive_data,
