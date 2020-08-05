@@ -50,6 +50,7 @@ struct dev_context {
 	char *address;
 	char *port;
 	int socket;
+	gboolean socket_open;
 	unsigned int read_timeout;
 
 	GPollFD pollfd;

@@ -129,14 +129,20 @@ static int tplink_hs_tcp_open(struct dev_context *devc)
 		return SR_ERR;
 	}
 
+	devc->socket_open = TRUE;
+
 	return SR_OK;
 }
 
 static int tplink_hs_tcp_close(struct dev_context *devc)
 {
+	if (!devc->socket_open)
+		return SR_OK;
+
 	if (close(devc->socket) < 0)
 		return SR_ERR;
 
+	devc->socket_open = FALSE;
 	return SR_OK;
 }
 
