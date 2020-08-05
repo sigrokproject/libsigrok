@@ -108,30 +108,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return tplink_hs_scan(di, conn);
 }
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc = sdi->priv;
-
-	if (devc->ops->open(devc) != SR_OK)
-		return SR_ERR;
-
-	devc->pollfd.fd = devc->socket;
-	devc->pollfd.events = G_IO_IN;
-	devc->pollfd.revents = 0;
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc = sdi->priv;
-
-	if (devc->ops->close(devc) != SR_OK)
-		return SR_ERR;
-
-	return SR_OK;
-}
-
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -195,6 +171,27 @@ static int config_list(uint32_t key, GVariant **data,
 	}
 
 	return ret;
+}
+
+static int dev_open(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	if (devc->ops->open(devc) != SR_OK)
+		return SR_ERR;
+
+	devc->pollfd.fd = devc->socket;
+	devc->pollfd.events = G_IO_IN;
+	devc->pollfd.revents = 0;
+
+	return SR_OK;
+}
+
+static int dev_close(struct sr_dev_inst *sdi)
+{
+	(void)sdi;
+
+	return SR_OK;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

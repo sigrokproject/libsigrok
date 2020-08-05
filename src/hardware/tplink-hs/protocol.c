@@ -287,7 +287,8 @@ static int tplink_hs_start(struct dev_context *devc)
 
 static int tplink_hs_stop(struct dev_context *devc)
 {
-	(void)devc;
+	if (tplink_hs_tcp_close(devc) != SR_OK)
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -460,7 +461,6 @@ SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data)
 
 SR_PRIV const struct tplink_hs_ops tplink_hs_dev_ops = {
 	.open = tplink_hs_tcp_open,
-	.close = tplink_hs_tcp_close,
 	.start = tplink_hs_start,
 	.stop = tplink_hs_stop,
 };
