@@ -132,22 +132,69 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	int ret;
+	struct dev_context *devc;
+
+	(void)sdi;
+	(void)cg;
+
+	devc = sdi->priv;
+
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+        case SR_CONF_LIMIT_MSEC:
+                ret = sr_sw_limits_config_get(&devc->limits, key, data);
+                break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return ret;
+}
+
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	int ret;
 	struct dev_context *devc;
 
 	(void)cg;
 
 	devc = sdi->priv;
 
-	return sr_sw_limits_config_set(&devc->limits, key, data);
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_MSEC:
+		ret = sr_sw_limits_config_set(&devc->limits, key, data);
+		break;
+	default:
+		ret = SR_ERR_NA;
+	}
+
+	return ret;
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	int ret;
+
+	ret = SR_OK;
+	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		ret = STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return ret;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -191,7 +238,7 @@ static struct sr_dev_driver tplink_hs_driver_info = {
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
