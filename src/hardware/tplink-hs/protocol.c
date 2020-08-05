@@ -176,6 +176,7 @@ static int tplink_hs_tcp_send_cmd(struct dev_context *devc,
 	sr_spew("Sent command: '%s'.", buf + MESSAGE_PADDING_SIZE);
 	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
 
+	shutdown(devc->socket, SHUT_WR);
 	g_free(buf);
 
 	return SR_OK;
