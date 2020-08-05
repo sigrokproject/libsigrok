@@ -339,6 +339,7 @@ err:
 	g_free(devc->dev_info.sw_ver);
 	g_free(devc->dev_info.device_id);
 	g_free(resp);
+	tplink_hs_tcp_close(devc);
 
 	return SR_ERR;
 }
