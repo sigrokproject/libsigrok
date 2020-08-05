@@ -61,6 +61,15 @@ struct dev_context {
 	int64_t cmd_sent_at;
 };
 
+struct tplink_hs_ops {
+	int (*open)(struct dev_context *devc);
+	int (*close)(struct dev_context *devc);
+	int (*start)(struct dev_context *devc);
+	int (*stop)(struct dev_context *devc);
+};
+
+SR_PRIV extern const struct tplink_hs_ops tplink_hs_dev_ops;
+
 SR_PRIV int tplink_hs_probe(struct dev_context  *devc);
 SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data);
 

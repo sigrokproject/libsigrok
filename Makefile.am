@@ -626,7 +626,6 @@ src_libdrivers_la_SOURCES += \
 endif
 if HW_TPLINK_HS
 src_libdrivers_la_SOURCES += \
-	src/hardware/tplink-hs/tplink-hs.h \
 	src/hardware/tplink-hs/protocol.h \
 	src/hardware/tplink-hs/protocol.c \
 	src/hardware/tplink-hs/api.c

@@ -44,7 +44,6 @@
 #include <stdlib.h>
 
 #include "protocol.h"
-#include "tplink-hs.h"
 
 #define MESSAGE_PADDING_SIZE 4
 #define MESSAGE_SIZE_OFFSET 3
@@ -467,6 +466,7 @@ SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data)
 
 SR_PRIV const struct tplink_hs_ops tplink_hs_dev_ops = {
 	.open = tplink_hs_tcp_open,
+	.close = NULL,
 	.start = tplink_hs_start,
 	.stop = tplink_hs_stop,
 };

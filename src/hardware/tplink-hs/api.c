@@ -19,7 +19,6 @@
 
 #include <config.h>
 #include "protocol.h"
-#include "tplink-hs.h"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
