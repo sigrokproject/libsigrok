@@ -169,6 +169,7 @@ static int tplink_hs_tcp_send_cmd(struct dev_context *devc,
 	}
 
 	sr_spew("Sent command: '%s'.", buf + MESSAGE_PADDING_SIZE);
+	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
 
 	g_free(buf);
 
@@ -309,8 +310,6 @@ static int tplink_hs_start(struct dev_context *devc)
 
 	if (tplink_hs_tcp_send_cmd(devc, CMD_REALTIME_MSG) != SR_OK)
 		return SR_ERR;
-
-	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
 
 	return SR_OK;
 }
@@ -482,8 +481,7 @@ SR_PRIV int tplink_hs_receive_data(int fd, int revents, void *cb_data)
 			0, tplink_hs_receive_data,
 			(void *)sdi);
 
-		if (tplink_hs_tcp_send_cmd(devc, CMD_REALTIME_MSG) == SR_OK)
-			devc->cmd_sent_at = g_get_monotonic_time() / 1000;
+		tplink_hs_tcp_send_cmd(devc, CMD_REALTIME_MSG);
 	}
 
 	return TRUE;
