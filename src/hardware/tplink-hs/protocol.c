@@ -200,33 +200,6 @@ static int tplink_hs_tcp_read_data(struct dev_context *devc, char *buf,
 	return len;
 }
 
-static int tplink_hs_tcp_drain(struct dev_context *devc)
-{
-	char *buf = g_malloc(1024);
-	fd_set rset;
-	int ret, len = 0;
-	struct timeval tv;
-
-	FD_ZERO(&rset);
-	FD_SET(devc->socket, &rset);
-
-	/* 25ms timeout */
-	tv.tv_sec = 0;
-	tv.tv_usec = 25 * 1000;
-
-	do {
-		ret = select(devc->socket + 1, &rset, NULL, NULL, &tv);
-		if (ret > 0)
-			len += tplink_hs_tcp_read_data(devc, buf, 1024);
-	} while (ret > 0);
-
-	sr_spew("Drained %d bytes of data.", len);
-
-	g_free(buf);
-
-	return SR_OK;
-}
-
 static int tplink_hs_tcp_get_json(struct dev_context *devc, const char *cmd,
 				      char **tcp_resp)
 {
@@ -306,8 +279,6 @@ static int tplink_hs_get_node_value(char *string, char *node_name,
 
 static int tplink_hs_start(struct dev_context *devc)
 {
-	tplink_hs_tcp_drain(devc);
-
 	if (tplink_hs_tcp_send_cmd(devc, CMD_REALTIME_MSG) != SR_OK)
 		return SR_ERR;
 
@@ -316,7 +287,7 @@ static int tplink_hs_start(struct dev_context *devc)
 
 static int tplink_hs_stop(struct dev_context *devc)
 {
-	tplink_hs_tcp_drain(devc);
+	(void)devc;
 
 	return SR_OK;
 }
