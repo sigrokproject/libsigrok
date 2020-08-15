@@ -88,6 +88,17 @@ static const struct scpi_command cmdset_gwinstek[] = {
 	ALL_ZERO,
 };
 
+static const struct scpi_command cmdset_gwinstek_906x[] = {
+	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
+	{ DMM_CMD_QUERY_FUNC, "CONF?", },
+	{ DMM_CMD_START_ACQ, "*CLS;SYST:REM", },
+	{ DMM_CMD_STOP_ACQ, "SYST:LOC", },
+	{ DMM_CMD_QUERY_VALUE, "VAL1?", },
+	{ DMM_CMD_QUERY_PREC, "SENS:DET:RATE?", },
+	ALL_ZERO,
+};
+
 static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, },
@@ -131,6 +142,21 @@ static const struct mqopt_item mqopts_gwinstek_gdm8200a[] = {
 	{ SR_MQ_TIME, 0, "PER", "14", NO_DFLT_PREC, },
 };
 
+static const struct mqopt_item mqopts_gwinstek_gdm906x[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR ", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR:AC", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, 0, "RES", "RES", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES", NO_DFLT_PREC, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, },
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "TEMP", NO_DFLT_PREC, },
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ", NO_DFLT_PREC, },
+	{ SR_MQ_TIME, 0, "PER", "PER", NO_DFLT_PREC, },
+	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, },
+};
+
 SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
@@ -167,6 +193,20 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		1000 * 2500,
+	},
+	{
+		"GWInstek", "GDM9060",
+		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
+	},
+	{
+		"GWInstek", "GDM9061",
+		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
 	},
 };
 
