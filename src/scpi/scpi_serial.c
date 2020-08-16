@@ -46,6 +46,7 @@ static const struct {
 	{ 0x0aad, 0x0117, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 	{ 0x0aad, 0x0119, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x2184, 0x0058, "115200/8n1" },        /* GW-Instek GDM-9061 (USBCDC mode) */
 };
 
 static GSList *scpi_serial_scan(struct drv_context *drvc)
