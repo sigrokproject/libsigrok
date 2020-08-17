@@ -279,7 +279,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->num_channels = model->num_channels;
 	devc->cmdset = model->cmdset;
 	devc->model = model;
-	devc->precision = NULL;
 
 	for (i = 0; i < devc->num_channels; i++) {
 		channel_name = g_strdup_printf("P%zu", i + 1);
@@ -449,14 +448,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		ret = sr_scpi_get_string(scpi, command, &response);
 		if (ret == SR_OK) {
 			g_strstrip(response);
-			if (devc->precision)
-				g_free(devc->precision);
-			devc->precision=g_strdup(response);
+			g_free(devc->precision);
+			devc->precision = g_strdup(response);
 			g_free(response);
 			sr_dbg("%s: Precision: '%s'", __func__, devc->precision);
 		} else {
-			sr_info("%s: Precision query ('%s') failed: %d",
-				__func__, command, ret);
+			sr_info("Precision query ('%s') failed: %d",
+				command, ret);
 		}
 	}
 
@@ -499,10 +497,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	std_session_send_df_end(sdi);
 
-	if (devc->precision) {
-		g_free(devc->precision);
-		devc->precision = NULL;
-	}
+	g_free(devc->precision);
+	devc->precision = NULL;
 
 	return SR_OK;
 }

@@ -357,12 +357,6 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 		analog->data = &info->f_value;
 		analog->encoding->unitsize = sizeof(info->f_value);
 	}
-	analog->encoding->is_float = TRUE;
-#ifdef WORDS_BIGENDIAN
-	analog->encoding->is_bigendian = TRUE;
-#else
-	analog->encoding->is_bigendian = FALSE;
-#endif
 	analog->encoding->digits = digits;
 	analog->meaning->mq = mq;
 	analog->meaning->mqflags = mqflag;
@@ -413,6 +407,7 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	const char *command;
 	char *response;
 	gboolean use_double;
+	double limit;
 	int sig_digits, val_exp;
 	int digits;
 	enum sr_unit unit;
@@ -493,57 +488,53 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 		return ret;
 
 	/*
-	 * Make sure we report "INFINITY" when meter displays "0L"
+	 * Make sure we report "INFINITY" when meter displays "0L".
 	 */
 	switch (mmode) {
 	case 7:
 	case 16:
-		/* in resitance modes 0L reads as 1.20000E8 or 1.99999E8 */
-		if (!strncmp(devc->model->model,"GDM8255A",8)) {
-			if (info->d_value >= 1.99999e8)
-				info->d_value = +INFINITY;
-		} else {
-			if (info->d_value >= 1.2e8)
-				info->d_value = +INFINITY;
-		}
+		/* In resitance modes 0L reads as 1.20000E8 or 1.99999E8. */
+		if (strcmp(devc->model->model, "GDM8255A") == 0)
+			limit = 1.99999e8;
+		else
+			limit = 1.2e8;
+		if (info->d_value >= limit)
+			info->d_value = +INFINITY;
 		break;
 	case 13:
-		/* In continuity mode 0L reads as 1.20000E3 */
+		/* In continuity mode 0L reads as 1.20000E3. */
 		if (info->d_value >= 1.2e3)
 			info->d_value = +INFINITY;
 		break;
 	case 17:
-		/* in diode mode 0L reads as 1.00000E0 */
+		/* In diode mode 0L reads as 1.00000E0. */
 		if (info->d_value == 1.0e0)
 			info->d_value = +INFINITY;
 		break;
 	}
 
 	/*
-	 * Calculate 'digits' based on the precision reading result
-	 * done during start of acquisition.
+	 * Calculate 'digits' based on the result of the optional
+	 * precision reading which was done at acquisition start.
+	 * The GW-Instek manual gives the following information
+	 * regarding the resolution:
 	 *
-	 * GW-Instek manual gives following info regarding resolution:
-	 *
-	 * Type                  Digit
-	 * --------------------  ------------
-	 * Slow                  5 1/2
-	 * Medium                4 1/2
-	 * Fast                  3 1/2
-	 *
+	 * Type      Digit
+	 * --------  ------
+	 * Slow      5 1/2
+	 * Medium    4 1/2
+	 * Fast      3 1/2
 	 */
-
 	digits = devc->model->digits;
 	if (devc->precision && *devc->precision) {
-		if (!strncmp(devc->precision, "Slow", 4))
+		if (g_str_has_prefix(devc->precision, "Slow"))
 			digits = 6;
-		else if (!strncmp(devc->precision, "Mid", 3))
+		else if (g_str_has_prefix(devc->precision, "Mid"))
 			digits = 5;
-		else if (!strncmp(devc->precision, "Fast", 4))
+		else if (g_str_has_prefix(devc->precision, "Fast"))
 			digits = 4;
 		else
-			sr_info("%s: Unknown precision: '%s'",
-				__func__, devc->precision);
+			sr_info("Unknown precision: '%s'", devc->precision);
 	}
 
 	/*
@@ -559,12 +550,6 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 		analog->data = &info->f_value;
 		analog->encoding->unitsize = sizeof(info->f_value);
 	}
-	analog->encoding->is_float = TRUE;
-#ifdef WORDS_BIGENDIAN
-	analog->encoding->is_bigendian = TRUE;
-#else
-	analog->encoding->is_bigendian = FALSE;
-#endif
 	analog->encoding->digits = digits;
 	analog->meaning->mq = mq;
 	analog->meaning->mqflags = mqflag;
