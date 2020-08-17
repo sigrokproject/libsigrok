@@ -176,21 +176,6 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		0,
 	},
 	{
-		"Keysight", "34465A",
-		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
-		scpi_dmm_get_meas_agilent,
-		ARRAY_AND_SIZE(devopts_generic),
-		0,
-	},
-	{
-		"HP", "34401A",
-		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34401a),
-		scpi_dmm_get_meas_agilent,
-		ARRAY_AND_SIZE(devopts_generic),
-		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
-		1000 * 1500,
-	},
-	{
 		"GW", "GDM8251A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
@@ -214,6 +199,21 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"GWInstek", "GDM9061",
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0,
+	},
+	{
+		"HP", "34401A",
+		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34401a),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
+		1000 * 1500,
+	},
+	{
+		"Keysight", "34465A",
+		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0,
