@@ -181,22 +181,22 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 
 	/* Try to read new data into the buffer. */
 	ret = serial_read_nonblocking(sscpi->serial, buf, maxlen);
-
 	if (ret < 0)
 		return ret;
 
-	if (ret > 0) {
-		if (buf[ret - 1] == '\n') {
-			sscpi->got_newline = TRUE;
-			sr_spew("Received NL terminator");
-		} else if (ret > 1 &&
-			   buf[ret - 2] == '\n' && buf[ret - 1] == '\r') {
-			sscpi->got_newline = TRUE;
-			sr_spew("Received NL+CR terminator");
-			ret--;
-		} else {
-			sscpi->got_newline = FALSE;
-		}
+	/*
+	 * Check for line termination at the end of the receive data.
+	 * Handle the usual case of NL, as well as the unusual NL+CR
+	 * combination (some GWInstek DMMs were found to do this).
+	 */
+	sscpi->got_newline = FALSE;
+	if (ret >= 1 && buf[ret - 1] == '\n') {
+		sscpi->got_newline = TRUE;
+		sr_spew("Received NL terminator");
+	} else if (ret >= 2 && buf[ret - 2] == '\n' && buf[ret - 1] == '\r') {
+		ret--;
+		sscpi->got_newline = TRUE;
+		sr_spew("Received NL+CR terminator");
 	}
 
 	return ret;
