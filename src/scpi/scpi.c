@@ -1114,6 +1114,12 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	 * The response to a '*IDN?' is specified by the SCPI spec. It contains
 	 * a comma-separated list containing the manufacturer name, instrument
 	 * model, serial number of the instrument and the firmware version.
+	 *
+	 * BEWARE! Although strictly speaking a smaller field count is invalid,
+	 * this implementation also accepts IDN responses with one field less,
+	 * and assumes that the serial number is missing. Some GWInstek DMMs
+	 * were found to do this. Keep warning about this condition, which may
+	 * need more consideration later.
 	 */
 	tokens = g_strsplit(response, ",", 0);
 	num_tokens = g_strv_length(tokens);
@@ -1122,6 +1128,9 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 		g_strfreev(tokens);
 		g_free(response);
 		return SR_ERR_DATA;
+	}
+	if (num_tokens < 4) {
+		sr_warn("Short IDN response, assume missing serial number.");
 	}
 	g_free(response);
 
