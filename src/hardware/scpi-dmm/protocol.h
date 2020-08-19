@@ -40,6 +40,7 @@ enum scpi_dmm_cmdcode {
 	DMM_CMD_STOP_ACQ,
 	DMM_CMD_QUERY_VALUE,
 	DMM_CMD_QUERY_PREC,
+	DMM_CMD_SETUP_LOCAL,
 };
 
 struct mqopt_item {

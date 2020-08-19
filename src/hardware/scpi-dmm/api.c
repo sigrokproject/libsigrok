@@ -82,6 +82,7 @@ static const struct scpi_command cmdset_hp[] = {
 
 static const struct scpi_command cmdset_gwinstek[] = {
 	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_LOCAL, "SYST:LOC", },
 	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
 	{ DMM_CMD_QUERY_FUNC, "CONF:STAT:FUNC?", },
 	{ DMM_CMD_START_ACQ, "*CLS;SYST:REM", },
@@ -93,6 +94,7 @@ static const struct scpi_command cmdset_gwinstek[] = {
 
 static const struct scpi_command cmdset_gwinstek_906x[] = {
 	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_LOCAL, "SYST:LOC", },
 	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
 	{ DMM_CMD_QUERY_FUNC, "CONF?", },
 	{ DMM_CMD_START_ACQ, "*CLS;SYST:REM", },
@@ -249,6 +251,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct dev_context *devc;
 	size_t i;
 	gchar *channel_name;
+	const char *command;
 
 	scpi_dmm_cmd_delay(scpi);
 	ret = sr_scpi_get_hw_id(scpi, &hw_info);
@@ -285,6 +288,16 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, channel_name);
 	}
 
+	/*
+	 * If device has DMM_CMD_SETUP_LOCAL command, send it now. To avoid
+	 * leaving device in remote mode (if only a "scan" is run).
+	 */
+	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_SETUP_LOCAL);
+	if (command && *command) {
+		scpi_dmm_cmd_delay(scpi);
+		sr_scpi_send(scpi, command);
+	}
+
 	return sdi;
 }
 
@@ -310,8 +323,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	const char *command;
 
+	devc = sdi->priv;
 	scpi = sdi->conn;
 	if (!scpi)
 		return SR_ERR_BUG;
@@ -319,6 +335,16 @@ static int dev_close(struct sr_dev_inst *sdi)
 	sr_dbg("DIAG: sdi->status %d.", sdi->status - SR_ST_NOT_FOUND);
 	if (sdi->status <= SR_ST_INACTIVE)
 		return SR_OK;
+
+	/*
+	 * If device has DMM_CMD_SETUP_LOCAL command, send it now
+	 * to avoid leaving device in remote mode.
+	 */
+	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_SETUP_LOCAL);
+	if (command && *command) {
+		scpi_dmm_cmd_delay(scpi);
+		sr_scpi_send(scpi, command);
+	}
 
 	return sr_scpi_close(scpi);
 }
