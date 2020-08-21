@@ -170,6 +170,7 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	int sig_digits, val_exp;
 	int digits;
 	enum sr_unit unit;
+	double limit;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -282,9 +283,10 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	}
 	if (!response)
 		return SR_ERR;
-	if (info->d_value > +9e37) {
+	limit = 9e37;
+	if (info->d_value > +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -9e37) {
+	} else if (info->d_value < -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;
@@ -456,9 +458,10 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	}
 	if (!response)
 		return SR_ERR;
-	if (info->d_value > +9e37) {
+	limit = 9e37;
+	if (info->d_value > +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -9e37) {
+	} else if (info->d_value < -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;
@@ -494,10 +497,9 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	case 7:
 	case 16:
 		/* In resitance modes 0L reads as 1.20000E8 or 1.99999E8. */
+		limit = 1.2e8;
 		if (strcmp(devc->model->model, "GDM8255A") == 0)
 			limit = 1.99999e8;
-		else
-			limit = 1.2e8;
 		if (info->d_value >= limit)
 			info->d_value = +INFINITY;
 		break;
