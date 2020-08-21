@@ -275,6 +275,20 @@ rules shipped by the system will be broken.
 Please consult the udev docs for details.
 
 
+Non-default drivers for commodity chips
+---------------------------------------
+
+Some vendors include common USB chips in their products yet assign device
+specific VID:PID pairs. Which results in the necessity for extra steps
+before the serial port can be used:
+
+- GW Instek VCP, found in GDM-8000 and probably other meters: Install the
+  vendors Windows driver to get access to a COM port. Or force the driver
+  assignment on Linux:
+    # modprobe cp210x
+    # echo 2184 0030 > /sys/bus/usb-serial/drivers/cp210x/new_id
+
+
 Cypress FX2 based devices
 -------------------------
 
@@ -391,6 +405,8 @@ a short list for convenience:
       be configured to the same baud rate as the host (default 9600).
       Multimeter and interface must be configured to the same address.
  - GW Instek GDM-397: Press the "REL/RS232C (USB)" button for roughly 1 second.
+ - GW Instek VCP: See the discussion on manual driver assignment to common
+   USB to UART chips with non-default USB identification.
  - MASTECH MS6514: Press the "Setup/PC-Link" button for roughly 3 seconds.
  - Metrix MX56C: Press the PRINT button to have the meter send acquisition
    data via IR. Hold the PRINT button to adjust the meter's transmission
