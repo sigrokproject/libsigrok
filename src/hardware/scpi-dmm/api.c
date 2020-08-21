@@ -33,6 +33,7 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts_generic[] = {
 	SR_CONF_CONTINUOUS,
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -273,6 +274,11 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->conn = scpi;
 	sdi->driver = &scpi_dmm_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
+	ret = sr_scpi_connection_id(scpi, &sdi->connection_id);
+	if (ret != SR_OK) {
+		g_free(sdi->connection_id);
+		sdi->connection_id = NULL;
+	}
 	sr_scpi_hw_info_free(hw_info);
 	if (model->read_timeout_us)  /* non-default read timeout */
 		scpi->read_timeout_us = model->read_timeout_us;
@@ -362,6 +368,11 @@ static int config_get(uint32_t key, GVariant **data,
 	devc = sdi->priv;
 
 	switch (key) {
+	case SR_CONF_CONN:
+		if (!sdi || !sdi->connection_id)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(sdi->connection_id);
+		return SR_OK;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
