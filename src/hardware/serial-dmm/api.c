@@ -419,6 +419,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* }}} */
 	/* fs9922 based meters {{{ */
 	DMM(
+		"gwinstek-gdm-397", fs9922,
+		"GW Instek", "GDM-397", "2400/8n1/rts=0/dtr=1",
+		FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
 		"sparkfun-70c", fs9922,
 		"SparkFun", "70C", "2400/8n1/rts=0/dtr=1",
 		FS9922_PACKET_SIZE, 0, 0, NULL,
