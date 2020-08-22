@@ -390,6 +390,7 @@ a short list for convenience:
       'SI232 online' (28-29S) or 'SI232 store' (22-26x). The interface must
       be configured to the same baud rate as the host (default 9600).
       Multimeter and interface must be configured to the same address.
+ - GW Instek GDM-397: Press the "REL/RS232C (USB)" button for roughly 1 second.
  - MASTECH MS6514: Press the "Setup/PC-Link" button for roughly 3 seconds.
  - Metrix MX56C: Press the PRINT button to have the meter send acquisition
    data via IR. Hold the PRINT button to adjust the meter's transmission
