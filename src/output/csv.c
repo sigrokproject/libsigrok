@@ -420,7 +420,8 @@ static void dump_saved_values(struct context *ctx, GString **out)
 	} else {
 		sr_info("Dumping %u samples", ctx->num_samples);
 
-		*out = g_string_sized_new(512);
+		if (!*out)
+			*out = g_string_sized_new(512);
 		num_channels =
 		    ctx->num_logic_channels + ctx->num_analog_channels;
 
@@ -678,6 +679,7 @@ static int receive(const struct sr_output *o,
 		ctx->trigger = TRUE;
 		break;
 	case SR_DF_LOGIC:
+		*out = g_string_sized_new(512);
 		logic = packet->payload;
 		ctx->pkt_snums = logic->length;
 		ctx->pkt_snums /= logic->length;
@@ -685,6 +687,7 @@ static int receive(const struct sr_output *o,
 		process_logic(ctx, logic);
 		break;
 	case SR_DF_ANALOG:
+		*out = g_string_sized_new(512);
 		analog = packet->payload;
 		ctx->pkt_snums = analog->num_samples;
 		ctx->pkt_snums /= g_slist_length(analog->meaning->channels);
