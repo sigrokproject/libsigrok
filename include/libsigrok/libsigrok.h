@@ -328,7 +328,7 @@ enum sr_unit {
 	SR_UNIT_TOLA,
 	/** Pieces (number of items). */
 	SR_UNIT_PIECE,
-	/** A relative unit of (power) measurement [dB]. */
+	/** Energy in joule. */
 	SR_UNIT_JOULE,
 	/** Electric charge in coulomb. */
 	SR_UNIT_COULOMB,
