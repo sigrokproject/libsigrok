@@ -724,6 +724,7 @@ SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
 			    const char *command, int *scpi_response)
 {
 	int ret;
+	struct sr_rational ret_rational;
 	char *response;
 
 	response = NULL;
@@ -732,10 +733,14 @@ SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
 	if (ret != SR_OK && !response)
 		return ret;
 
-	if (sr_atoi(response, scpi_response) == SR_OK)
-		ret = SR_OK;
-	else
+	ret = sr_parse_rational(response, &ret_rational);
+	if (ret == SR_OK && (ret_rational.p % ret_rational.q) == 0) {
+		*scpi_response = ret_rational.p / ret_rational.q;
+	} else {
+		sr_dbg("get_int: non-integer rational=%" PRId64 "/%" PRIu64,
+			ret_rational.p, ret_rational.q);
 		ret = SR_ERR_DATA;
+	}
 
 	g_free(response);
 
