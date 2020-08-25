@@ -1083,6 +1083,8 @@ static const struct channel_group_spec rs_hmp4040_cg[] = {
  *   SYST:BEEP:IMM
  */
 static const struct scpi_command rs_hmp4040_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REM" },
+	{ SCPI_CMD_LOCAL, "SYST:LOC" },
 	{ SCPI_CMD_SELECT_CHANNEL, "INST:NSEL %s" },
 	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
 	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
@@ -1100,24 +1102,6 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	{ SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE, "STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
 };
-
-static int rs_hmp_init_acquisition(const struct sr_dev_inst *sdi)
-{
-	struct sr_scpi_dev_inst *scpi;
-	int ret;
-
-	scpi = sdi->conn;
-
-	/*
-	 * Sets the system to remote state. The front panel and remote
-	 * control are possible simultaneously (mixed mode).
-	 */
-	ret = sr_scpi_send(scpi, "SYST:MIX");
-	if (ret != SR_OK)
-		return ret;
-
-	return SR_OK;
-}
 
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
@@ -1441,7 +1425,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = rs_hmp_init_acquisition,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "HAMEG", "HMP4040", SCPI_DIALECT_HMP, 0,
@@ -1451,7 +1435,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = rs_hmp_init_acquisition,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "ROHDE&SCHWARZ", "HMP4030", SCPI_DIALECT_HMP, 0,
@@ -1461,7 +1445,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = rs_hmp_init_acquisition,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 	{ "ROHDE&SCHWARZ", "HMP4040", SCPI_DIALECT_HMP, 0,
@@ -1471,7 +1455,7 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = rs_hmp_init_acquisition,
+		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
 };
