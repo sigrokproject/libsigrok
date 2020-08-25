@@ -120,6 +120,12 @@ static struct usbtmc_blacklist whitelist_usb_reset[] = {
 	ALL_ZERO
 };
 
+/* Devices that require (long) delay after sending a command. */
+static struct usbtmc_blacklist blacklist_slow[] = {
+	{ 0x0483, 0x7540 }, /* All Siglent SPD3303 devices */
+	ALL_ZERO
+};
+
 static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 {
 	struct libusb_device **devlist;
@@ -411,6 +417,11 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	       uscpi->usb488_dev_cap & USB488_DEV_CAP_DT1         ? "DT1"  : "DT0");
 
 	scpi_usbtmc_remote(uscpi);
+
+	/* Check for "broken" devices needing delay after issuing a command... */
+	if (check_usbtmc_blacklist(blacklist_slow, des.idVendor, des.idProduct)) {
+		scpi->quirks |= SCPI_QUIRK_DELAY_AFTER_CMD;
+	}
 
 	return SR_OK;
 }

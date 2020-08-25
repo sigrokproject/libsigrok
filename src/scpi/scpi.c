@@ -157,8 +157,10 @@ static int scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
 	/* Allocate buffer and write out command. */
 	buf = g_malloc0(len + 2);
 	sr_vsprintf_ascii(buf, format, args);
-	if (buf[len - 1] != '\n')
-		buf[len] = '\n';
+	if (!(scpi->quirks & SCPI_QUIRK_CMD_OMIT_LF)) {
+		if (buf[len - 1] != '\n')
+			buf[len] = '\n';
+	}
 
 	/* Send command. */
 	ret = scpi->send(scpi->priv, buf);
@@ -279,6 +281,8 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		if (scpi_send(scpi, command) != SR_OK)
 			return SR_ERR;
 	}
+	if (scpi->quirks & SCPI_QUIRK_DELAY_AFTER_CMD)
+		g_usleep(100*1000);
 
 	/* Initiate SCPI read operation. */
 	if (sr_scpi_read_begin(scpi) != SR_OK)
@@ -819,6 +823,11 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 	unsigned int i;
 	gboolean opc;
 
+	if (scpi->quirks & SCPI_QUIRK_OPC_UNSUPPORTED) {
+		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
+		return SR_OK;
+	}
+
 	for (i = 0; i < SCPI_READ_RETRIES; i++) {
 		opc = FALSE;
 		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
@@ -1280,6 +1289,8 @@ SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
 		ret = scpi_send(scpi, channel_cmd, channel_name);
 		if (ret != SR_OK)
 			return ret;
+		if (scpi->quirks & SCPI_QUIRK_SLOW_CHANNEL_SELECT)
+			g_usleep(100 * 1000);
 	}
 
 	va_start(args, command);
@@ -1325,6 +1336,8 @@ SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 		ret = scpi_send(scpi, channel_cmd, channel_name);
 		if (ret != SR_OK)
 			return ret;
+		if (scpi->quirks & SCPI_QUIRK_SLOW_CHANNEL_SELECT)
+			g_usleep(100*1000);
 	}
 
 	va_start(args, command);
