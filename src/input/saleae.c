@@ -1067,6 +1067,7 @@ static void cleanup(struct sr_input *in)
 {
 	struct context *inc;
 	struct context_options save_opts;
+	GSList *save_channels;
 
 	if (!in)
 		return;
@@ -1084,8 +1085,10 @@ static void cleanup(struct sr_input *in)
 
 	/* Clear internal state, but keep what .init() has provided. */
 	save_opts = inc->options;
+	save_channels = inc->module_state.prev_channels;
 	memset(inc, 0, sizeof(*inc));
 	inc->options = save_opts;
+	inc->module_state.prev_channels = save_channels;
 }
 
 static int reset(struct sr_input *in)
@@ -1104,6 +1107,7 @@ static int reset(struct sr_input *in)
 	 */
 	cleanup(in);
 	in->sdi->channels = inc->module_state.prev_channels;
+	inc->module_state.prev_channels = NULL;
 
 	inc->module_state.got_header = FALSE;
 	inc->module_state.header_sent = FALSE;
