@@ -93,6 +93,8 @@ static const struct korad_kaxxxxp_model models[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	static const char *serno_prefix = " SN:";
+
 	struct dev_context *devc;
 	GSList *l;
 	struct sr_dev_inst *sdi;
@@ -101,8 +103,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *force_detect;
 	struct sr_serial_dev_inst *serial;
 	char reply[50];
-	int i, model_id;
-	unsigned int len;
+	int ret, i, model_id;
+	size_t len;
+	char *serno;
 
 	conn = NULL;
 	serialcomm = NULL;
@@ -137,38 +140,47 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	/* Get the device model. */
+	/*
+	 * Prepare a receive buffer for the identification response that
+	 * is large enough to hold the longest known model name, and an
+	 * optional serial number. Communicate the identification request.
+	 */
 	len = 0;
 	for (i = 0; models[i].id; i++) {
-		if (strlen(models[i].id) > len)
+		if (len < strlen(models[i].id))
 			len = strlen(models[i].id);
 	}
+	len += strlen(serno_prefix) + 12;
+	if (len > sizeof(reply) - 1)
+		len = sizeof(reply) - 1;
+	sr_dbg("Want max %zu bytes.", len);
 
-	/*
-	 * Some models also include the serial number:
-	 * RND 320-KD3005P V4.2 SN:59834414
-	 */
-	len += 12;
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	if (ret < 0)
+		return NULL;
 
 	memset(&reply, 0, sizeof(reply));
-	sr_dbg("Want max %d bytes.", len);
-	if ((korad_kaxxxxp_send_cmd(serial, "*IDN?") < 0))
+	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	if (ret < 0)
 		return NULL;
+	sr_dbg("Received: %d, %s", ret, reply);
 
-	/* i is used here for debug purposes only. */
-	if ((i = korad_kaxxxxp_read_chars(serial, len, reply)) < 0)
-		return NULL;
-	sr_dbg("Received: %d, %s", i, reply);
+	/*
+	 * Isolate the optional serial number at the response's end.
+	 * Lookup the response's model ID in the list of known models.
+	 */
+	serno = g_strrstr(reply, serno_prefix);
+	if (serno) {
+		*serno = '\0';
+		serno += strlen(serno_prefix);
+	}
+
 	model_id = -1;
-
-	/* Truncate before serial number. */
-	char *sn = g_strrstr(reply, " SN:");
-	if (sn)
-		*sn = '\0';
-
 	for (i = 0; models[i].id; i++) {
-		if (!g_strcmp0(models[i].id, reply))
-			model_id = i;
+		if (g_strcmp0(models[i].id, reply) != 0)
+			continue;
+		model_id = i;
+		break;
 	}
 	if (model_id < 0 && force_detect) {
 		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
@@ -192,6 +204,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(models[model_id].vendor);
 	sdi->model = g_strdup(models[model_id].name);
+	if (serno)
+		sdi->serial_num = g_strdup(serno);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->connection_id = g_strdup(conn);
