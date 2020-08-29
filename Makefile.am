@@ -536,6 +536,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/rdtech-tc/protocol.c \
 	src/hardware/rdtech-tc/api.c
 endif
+if HW_RIGOL_DG
+src_libdrivers_la_SOURCES += \
+	src/hardware/rigol-dg/protocol.h \
+	src/hardware/rigol-dg/protocol.c \
+	src/hardware/rigol-dg/api.c
+endif
 if HW_RIGOL_DS
 src_libdrivers_la_SOURCES += \
 	src/hardware/rigol-ds/protocol.h \
