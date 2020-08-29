@@ -1041,6 +1041,12 @@ enum sr_configkey {
 	/** The number of digits (e.g. for a DMM). */
 	SR_CONF_DIGITS,
 
+	/** Phase of a source signal. */
+	SR_CONF_PHASE,
+
+	/** Duty cycle of a source signal. */
+	SR_CONF_DUTY_CYCLE,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
