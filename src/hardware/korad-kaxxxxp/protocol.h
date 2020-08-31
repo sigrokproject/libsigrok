@@ -118,7 +118,7 @@ struct dev_context {
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
 					const char *cmd);
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
-					int count, char *buf);
+					size_t count, char *buf);
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 					int target, struct dev_context *devc);
 SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
