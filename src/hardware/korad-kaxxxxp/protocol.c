@@ -21,7 +21,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define REQ_TIMEOUT_MS 500
 #define DEVICE_PROCESSING_TIME_MS 80
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
@@ -308,8 +307,6 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		g_mutex_unlock(&devc->rw_mutex);
 		return ret;
 	}
-
-	reply[count] = 0;
 
 	if (value) {
 		sr_atof_ascii((const char *)&reply, value);

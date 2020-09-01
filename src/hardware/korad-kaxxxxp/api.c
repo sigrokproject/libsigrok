@@ -159,7 +159,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (ret < 0)
 		return NULL;
 
-	memset(&reply, 0, sizeof(reply));
 	ret = korad_kaxxxxp_read_chars(serial, len, reply);
 	if (ret < 0)
 		return NULL;
