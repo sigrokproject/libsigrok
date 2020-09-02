@@ -813,11 +813,13 @@ static int parse_next_item(struct sr_input *in,
 		diff_time /= inc->logic_state.l2d.sample_period;
 		diff_time += 0.5;
 		count = (uint64_t)diff_time;
-		digital = inc->feed.last.digital;
-		rc = addto_feed_buffer_logic(in, digital, count);
-		if (rc)
-			return rc;
-		inc->feed.last.time = next_time;
+		if (count) {
+			digital = inc->feed.last.digital;
+			rc = addto_feed_buffer_logic(in, digital, count);
+			if (rc)
+				return rc;
+			inc->feed.last.time = next_time;
+		}
 		inc->feed.last.digital = 1 - inc->feed.last.digital;
 		return SR_OK;
 	case STAGE_L2A_FIRST_VALUE:
