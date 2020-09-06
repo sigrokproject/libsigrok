@@ -136,6 +136,7 @@ The following drivers/devices do not need any firmware upload:
  - pce-322a
  - pipistrello-ols
  - rdtech-dps
+ - rigol-dg
  - rigol-ds
  - rohde-schwarz-sme-0x
  - scpi-dmm
