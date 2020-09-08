@@ -24,6 +24,36 @@
 #include <libsigrok/libsigrok.h>
 #include "lib.h"
 
+/*
+ * This test sequence cannot use internal helpers, since it's limited
+ * to the library's public API (by design). That is why there are local
+ * helper routines for endianess handling.
+ */
+
+static int host_be;
+
+static void get_host_endianess(void)
+{
+	int x;
+	uint8_t *p;
+
+	p = (void *)&x;
+	x = 1;
+	host_be = *p ? 0 : 1;
+}
+
+static void swap_bytes(uint8_t *buff, size_t blen)
+{
+	size_t idx;
+	uint8_t tmp;
+
+	for (idx = 0; idx < blen / 2; idx++) {
+		tmp = buff[blen - 1 - idx];
+		buff[blen - 1 - idx] = buff[idx];
+		buff[idx] = tmp;
+	}
+}
+
 static int sr_analog_init_(struct sr_datafeed_analog *analog,
 		struct sr_analog_encoding *encoding,
 		struct sr_analog_meaning *meaning,
@@ -120,6 +150,281 @@ START_TEST(test_analog_to_float_null)
 	ret = sr_analog_to_float(&analog, &fout);
 	fail_unless(ret == SR_ERR_ARG);
 	analog.encoding = &encoding;
+}
+END_TEST
+
+START_TEST(test_analog_to_float_conv)
+{
+	static const int with_diag = 0;
+
+	struct {
+		const char *desc;
+		void *bytes;
+		size_t nums, unit;
+		int is_fp, is_sign, is_be;
+		int scale, offset;
+		float *want;
+	} *item, items[] = {
+		/* Test to cover multiple values in an array, odd numbers. */
+		{
+			.desc = "float single input, native, value array",
+			.bytes = (float[]){ -12.9, -333.999, 0, 3.14, 29.7, 9898.12, },
+			.nums = 6, .unit = sizeof(float),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ -12.9, -333.999, 0, 3.14, 29.7, 9898.12, },
+		},
+		/* Tests to cover floating point input data conversion. */
+		{
+			.desc = "float single input, native",
+			.bytes = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+			.nums = 4, .unit = sizeof(float),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "float single input, big endian",
+			.bytes = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+			.nums = 4, .unit = sizeof(float),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = TRUE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "float single input, little endian",
+			.bytes = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+			.nums = 4, .unit = sizeof(float),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = FALSE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "float double input, native",
+			.bytes = (double[]){ 1.0, 2.0, 3.0, 4.0, },
+			.nums = 4, .unit = sizeof(double),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "float half input, unsupported, fake bytes",
+			.bytes = (uint16_t[]){ 0x1234, 0x5678, },
+			.nums = 2, .unit = sizeof(uint16_t),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.want = NULL,
+		},
+		{
+			.desc = "float quad input, unsupported, fake bytes",
+			.bytes = (uint64_t[]){ 0x0, 0x0, },
+			.nums = 1, .unit = 2 * sizeof(uint64_t),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.want = NULL,
+		},
+		/* Tests to cover integer input data conversion. */
+		{
+			.desc = "int u8 input",
+			.bytes = (uint8_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint8_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = host_be,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "int i8 input",
+			.bytes = (int8_t[]){ -1, 2, -3, 4, },
+			.nums = 4, .unit = sizeof(int8_t),
+			.is_fp = FALSE, .is_sign = TRUE, .is_be = host_be,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ -1.0, 2.0, -3.0, 4.0, },
+		},
+		{
+			.desc = "int u16 input, big endian",
+			.bytes = (uint16_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint16_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = TRUE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "int u16 input, little endian",
+			.bytes = (uint16_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint16_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = FALSE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "int i16 input, big endian",
+			.bytes = (int16_t[]){ 1, -2, 3, -4, },
+			.nums = 4, .unit = sizeof(int16_t),
+			.is_fp = FALSE, .is_sign = TRUE, .is_be = TRUE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, -2.0, 3.0, -4.0, },
+		},
+		{
+			.desc = "int i16 input, little endian",
+			.bytes = (int16_t[]){ 1, -2, 3, -4, },
+			.nums = 4, .unit = sizeof(int16_t),
+			.is_fp = FALSE, .is_sign = TRUE, .is_be = FALSE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, -2.0, 3.0, -4.0, },
+		},
+		{
+			.desc = "int u32 input, big endian",
+			.bytes = (uint32_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint32_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = TRUE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "int u32 input, little endian",
+			.bytes = (uint32_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint32_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = FALSE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+		},
+		{
+			.desc = "int i32 input, big endian",
+			.bytes = (int32_t[]){ 1, 2, -3, -4, },
+			.nums = 4, .unit = sizeof(int32_t),
+			.is_fp = FALSE, .is_sign = TRUE, .is_be = TRUE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, -3.0, -4.0, },
+		},
+		{
+			.desc = "int i32 input, little endian",
+			.bytes = (int32_t[]){ 1, 2, -3, -4, },
+			.nums = 4, .unit = sizeof(int32_t),
+			.is_fp = FALSE, .is_sign = TRUE, .is_be = FALSE,
+			.scale = 1, .offset = 0,
+			.want = (float[]){ 1.0, 2.0, -3.0, -4.0, },
+		},
+		{
+			.desc = "int u64 input, unsupported",
+			.bytes = (uint64_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint64_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = TRUE,
+			.want = NULL,
+		},
+		/* Tests to cover scale/offset calculation. */
+		{
+			.desc = "float single input, scale + offset",
+			.bytes = (float[]){ 1.0, 2.0, 3.0, 4.0, },
+			.nums = 4, .unit = sizeof(float),
+			.is_fp = TRUE, .is_sign = FALSE, .is_be = host_be,
+			.scale = 3, .offset = 2,
+			.want = (float[]){ 5.0, 8.0, 11.0, 14.0, },
+		},
+		{
+			.desc = "int u8 input, scale + offset",
+			.bytes = (uint8_t[]){ 1, 2, 3, 4, },
+			.nums = 4, .unit = sizeof(uint8_t),
+			.is_fp = FALSE, .is_sign = FALSE, .is_be = TRUE,
+			.scale = 3, .offset = 2,
+			.want = (float[]){ 5.0, 8.0, 11.0, 14.0, },
+		},
+	};
+	const size_t max_floats = 6;
+	struct sr_channel ch = {
+		.index = 0,
+		.enabled = TRUE,
+		.type = SR_CHANNEL_LOGIC,
+		.name = "input",
+	};
+
+	size_t item_idx;
+	char item_text[32];
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+	size_t byte_count, value_idx;
+	uint8_t f_in[max_floats * sizeof(double)], *byte_ptr;
+	float f_out[max_floats];
+	int ret;
+	float want, have;
+
+	for (item_idx = 0; item_idx < ARRAY_SIZE(items); item_idx++) {
+		item = &items[item_idx];
+
+		/* Construct "4x u32le" style test item identification. */
+		snprintf(item_text, sizeof(item_text), "%zu: %zux %c%zu%s",
+			item_idx, item->nums,
+			item->is_fp ? 'f' : item->is_sign ? 'i' : 'u',
+			item->unit * 8, item->is_be ? "be" : "le");
+		if (with_diag) {
+			fprintf(stderr, "%s -- %s", item_text, item->desc);
+			fflush(stderr);
+		}
+
+		/* Copy input data bytes, optionally adjust endianess. */
+		byte_count = item->nums * item->unit;
+		memcpy(f_in, item->bytes, byte_count);
+		if (item->is_be != host_be) {
+			byte_ptr = &f_in[0];
+			for (value_idx = 0; value_idx < item->nums; value_idx++) {
+				swap_bytes(byte_ptr, item->unit);
+				byte_ptr += item->unit;
+			}
+		}
+		if (with_diag) {
+			fprintf(stderr, " -- bytes:");
+			for (value_idx = 0; value_idx < byte_count; value_idx++)
+				fprintf(stderr, " %02x", f_in[value_idx]);
+			fflush(stderr);
+		}
+
+		/* Setup the analog feed description. */
+		sr_analog_init_(&analog, &encoding, &meaning, &spec, 3);
+		analog.num_samples = item->nums;
+		analog.data = &f_in[0];
+		encoding.unitsize = item->unit;
+		encoding.is_float = item->is_fp;
+		encoding.is_signed = item->is_sign;
+		encoding.is_bigendian = item->is_be;
+		encoding.scale.p = item->scale ? item->scale : 1;
+		encoding.offset.p = item->offset;
+		meaning.channels = g_slist_append(NULL, &ch);
+
+		/* Convert to an array of single precision float values. */
+		ret = sr_analog_to_float(&analog, &f_out[0]);
+		if (!item->want) {
+			fail_if(ret == SR_OK,
+				"%s: sr_analog_to_float() passed", item_text);
+			if (with_diag) {
+				fprintf(stderr, " -- expected fail, OK\n");
+				fflush(stderr);
+			}
+			continue;
+		}
+		fail_unless(ret == SR_OK,
+			"%s: sr_analog_to_float() failed: %d", item_text, ret);
+		if (with_diag) {
+			fprintf(stderr, " -- float:");
+			for (value_idx = 0; value_idx < item->nums; value_idx++)
+				fprintf(stderr, " %f", f_out[value_idx]);
+			fprintf(stderr, "\n");
+			fflush(stderr);
+		}
+
+		/*
+		 * Compare result data to the expectation. No tolerance
+		 * is required here due to the input set's values. This
+		 * test concentrates on endianess / data type / bit count
+		 * conversion and simple scale/offset calculation, neither
+		 * on precision nor rounding nor truncation.
+		 */
+		for (value_idx = 0; value_idx < item->nums; value_idx++) {
+			want = item->want[value_idx];
+			have = f_out[value_idx];
+			fail_unless(want == have,
+				"%s: input %f != output %f",
+				item_text, want, have);
+		}
+	}
 }
 END_TEST
 
@@ -381,15 +686,24 @@ Suite *suite_analog(void)
 	Suite *s;
 	TCase *tc;
 
+	get_host_endianess();
+
 	s = suite_create("analog");
 
 	tc = tcase_create("analog_to_float");
 	tcase_add_test(tc, test_analog_to_float);
 	tcase_add_test(tc, test_analog_to_float_null);
+	tcase_add_test(tc, test_analog_to_float_conv);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("analog_si_unit");
 	tcase_add_test(tc, test_analog_si_prefix);
 	tcase_add_test(tc, test_analog_si_prefix_null);
 	tcase_add_test(tc, test_analog_unit_to_string);
 	tcase_add_test(tc, test_analog_unit_to_string_null);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("analog_rational");
 	tcase_add_test(tc, test_set_rational);
 	tcase_add_test(tc, test_set_rational_null);
 	tcase_add_test(tc, test_cmp_rational);
