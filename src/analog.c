@@ -179,6 +179,9 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 {
 	unsigned int b, count;
 	gboolean bigendian;
+	uint8_t conv_buf[sizeof(double)];
+	float *conv_f = (float*)conv_buf;
+	double *conv_d = (double*)conv_buf;
 
 	if (!analog || !(analog->data) || !(analog->meaning)
 			|| !(analog->encoding) || !outbuf)
@@ -277,20 +280,39 @@ SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		/* The data is already in the right format. */
 		memcpy(outbuf, analog->data, count * sizeof(float));
 	} else {
-		for (unsigned int i = 0; i < count; i += analog->encoding->unitsize) {
+		for (unsigned int i = 0; i < count; i++) {
 			for (b = 0; b < analog->encoding->unitsize; b++) {
 				if (analog->encoding->is_bigendian == bigendian)
-					((uint8_t *)outbuf)[i + b] =
+					conv_buf[b] =
 						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
 				else
-					((uint8_t *)outbuf)[i + (analog->encoding->unitsize - b)] =
+					conv_buf[analog->encoding->unitsize - b - 1] =
 						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
 			}
-			if (analog->encoding->scale.p != 1
-					|| analog->encoding->scale.q != 1)
-				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
-			float offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
-			outbuf[i] += offset;
+
+			if (analog->encoding->unitsize == sizeof(float)) {
+				if (analog->encoding->scale.p != 1
+				    || analog->encoding->scale.q != 1)
+					*conv_f = (*conv_f * analog->encoding->scale.p) / analog->encoding->scale.q;
+				float offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
+				*conv_f += offset;
+
+				outbuf[i] = *conv_f;
+			}
+			else if (analog->encoding->unitsize == sizeof(double)) {
+				if (analog->encoding->scale.p != 1
+				    || analog->encoding->scale.q != 1)
+					*conv_d = (*conv_d * analog->encoding->scale.p) / analog->encoding->scale.q;
+				double offset = ((double)analog->encoding->offset.p / (double)analog->encoding->offset.q);
+				*conv_d += offset;
+
+				outbuf[i] = *conv_d;
+			}
+			else {
+				sr_err("Unsupported floating-point unit size '%d' for analog-to-float"
+				       " conversion.", analog->encoding->unitsize);
+				return SR_ERR;
+			}
 		}
 	}
 
