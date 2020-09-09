@@ -76,6 +76,13 @@ swig = open(os.path.join(outdirname, 'swig/enums.i'), 'w')
 for file in (header, code):
     print("/* Generated file - edit enums.py instead! */", file=file)
 
+print("/* Fix for Windows cross-compile error due to Windows headers")
+print(" * defining DIFFERENCE and RELATIVE */")
+print("#ifdef WIN32")
+print("#undef DIFFERENCE")
+print("#undef RELATIVE")
+print("#endif"
+
 print("namespace sigrok {", file=header)
 
 # Template for beginning of class declaration and public members.
