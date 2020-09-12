@@ -75,6 +75,16 @@ static inline uint8_t read_u8(const uint8_t *p)
 #define R8(x)	read_u8((const uint8_t *)(x))
 
 /**
+ * Read an 8 bits signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding signed integer
+ */
+static inline int8_t read_i8(const uint8_t *p)
+{
+	return (int8_t)p[0];
+}
+
+/**
  * Read a 16 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
@@ -358,6 +368,28 @@ static inline float read_fltle(const uint8_t *p)
 #define RLFL(x) read_fltle((const uint8_t *)(x))
 
 /**
+ * Read a 64 bits big endian float out of memory (double precision).
+ * @param x a pointer to the input memory
+ * @return the corresponding floating point value
+ */
+static inline double read_dblbe(const uint8_t *p)
+{
+	/*
+	 * Implementor's note: Strictly speaking the "union" trick
+	 * is not portable. But this phrase was found to work on the
+	 * project's supported platforms, and serve well until a more
+	 * appropriate phrase is found.
+	 */
+	union { uint64_t u64; double flt; } u;
+	double f;
+
+	u.u64 = read_u64be(p);
+	f = u.flt;
+
+	return f;
+}
+
+/**
  * Read a 64 bits little endian float out of memory (double precision).
  * @param x a pointer to the input memory
  * @return the corresponding floating point value
@@ -520,6 +552,23 @@ static inline uint8_t read_u8_inc(const uint8_t **p)
 }
 
 /**
+ * Read signed 8bit integer from raw memory, increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int8_t read_i8_inc(const uint8_t **p)
+{
+	int8_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i8(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read unsigned 16bit integer from raw memory (big endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, unsigned.
@@ -554,17 +603,34 @@ static inline uint16_t read_u16le_inc(const uint8_t **p)
 }
 
 /**
- * Read unsigned 32bit integer from raw memory (big endian format), increment read position.
+ * Read signed 16bit integer from raw memory (big endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
- * @return Retrieved integer value, unsigned.
+ * @return Retrieved integer value, signed.
  */
-static inline uint32_t read_u32be_inc(const uint8_t **p)
+static inline int16_t read_i16be_inc(const uint8_t **p)
 {
-	uint32_t v;
+	int16_t v;
 
 	if (!p || !*p)
 		return 0;
-	v = read_u32be(*p);
+	v = read_i16be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 16bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int16_t read_i16le_inc(const uint8_t **p)
+{
+	int16_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i16le(*p);
 	*p += sizeof(v);
 
 	return v;
@@ -588,6 +654,23 @@ static inline uint32_t read_u24le_inc(const uint8_t **p)
 }
 
 /**
+ * Read unsigned 32bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint32_t read_u32be_inc(const uint8_t **p)
+{
+	uint32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u32be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read unsigned 32bit integer from raw memory (little endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, unsigned.
@@ -599,6 +682,40 @@ static inline uint32_t read_u32le_inc(const uint8_t **p)
 	if (!p || !*p)
 		return 0;
 	v = read_u32le(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 32bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int32_t read_i32be_inc(const uint8_t **p)
+{
+	int32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i32be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 32bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int32_t read_i32le_inc(const uint8_t **p)
+{
+	int32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i32le(*p);
 	*p += sizeof(v);
 
 	return v;
@@ -639,6 +756,23 @@ static inline uint64_t read_u64le_inc(const uint8_t **p)
 }
 
 /**
+ * Read 32bit float from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline float read_fltbe_inc(const uint8_t **p)
+{
+	float v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_fltbe(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read 32bit float from raw memory (little endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved float value.
@@ -650,6 +784,23 @@ static inline float read_fltle_inc(const uint8_t **p)
 	if (!p || !*p)
 		return 0;
 	v = read_fltle(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read 64bit float from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline double read_dblbe_inc(const uint8_t **p)
+{
+	double v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_dblbe(*p);
 	*p += sizeof(v);
 
 	return v;
