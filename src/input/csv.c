@@ -136,9 +136,6 @@
 /*
  * TODO
  *
- * - Unbreak analog data when submitted in the 'double' data type. This
- *   was observed with sigrok-cli screen output. Is analog.encoding->unitsize
- *   not handled appropriately? Is it a sigrok-cli or libsigrok issue?
  * - Add a test suite for input modules in general, and CSV in specific?
  *   Becomes more important with the multitude of options and their
  *   interaction. Could cover edge cases (BOM presence, line termination
@@ -146,7 +143,7 @@
  *   samplerates, etc).
  */
 
-typedef float csv_analog_t;	/* 'double' currently is flawed. */
+typedef double csv_analog_t;
 
 /* Single column formats. */
 enum single_col_format {
