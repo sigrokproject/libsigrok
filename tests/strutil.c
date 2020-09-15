@@ -154,7 +154,7 @@ START_TEST(test_locale)
 	fprintf(stderr, "Old locale = %s\n", old_locale);
 	/* Copy the name so it won’t be clobbered by setlocale. */
 	saved_locale = g_strdup(old_locale);
-	ck_assert_msg(saved_locale != NULL);
+	ck_assert(saved_locale != NULL);
 
 #ifdef _WIN32
 	/*
