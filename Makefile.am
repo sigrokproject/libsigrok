@@ -165,6 +165,7 @@ endif
 libsigrok_la_SOURCES += \
 	src/dmm/asycii.c \
 	src/dmm/bm25x.c \
+	src/dmm/bm52x.c \
 	src/dmm/bm86x.c \
 	src/dmm/dtm0660.c \
 	src/dmm/eev121gw.c \

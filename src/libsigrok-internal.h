@@ -2326,6 +2326,20 @@ SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/bm52x.c -----------------------------------------------------------*/
+
+#define BRYMEN_BM52X_PACKET_SIZE 24
+#define BRYMEN_BM52X_DISPLAY_COUNT 2
+
+struct brymen_bm52x_info { size_t ch_idx; };
+
+#ifdef HAVE_SERIAL_COMM
+SR_PRIV int sr_brymen_bm52x_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean sr_brymen_bm52x_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_brymen_bm52x_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- dmm/bm86x.c -----------------------------------------------------------*/
 
 #define BRYMEN_BM86X_PACKET_SIZE 24
