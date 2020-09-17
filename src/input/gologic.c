@@ -64,6 +64,7 @@
 struct context {
 	int projIsOpen;		// 1 if project is currently open, 0 otherwise.
 	uint32_t unitsize;	// number of bytes per "sample". 1, 2, 4 or 8 depending on the number of channels.
+	GSList *prev_sr_channels;	// saved copy of channels to get around the "reset() bug" #1215
 	gl_project_t proj;	// info for the currently open project file.
 };
 
@@ -224,6 +225,17 @@ static int receive(struct sr_input *in, GString *buf)
 	else
 		inc->unitsize = 64 / 8;
 	
+	if (inc->prev_sr_channels) {
+		if (sr_channel_lists_differ(inc->prev_sr_channels, in->sdi->channels)) {
+			sr_err("Channel list change not supported for file re-read.");
+			return SR_ERR;
+		}
+
+		g_slist_free_full(in->sdi->channels, sr_channel_free_cb);
+		in->sdi->channels = inc->prev_sr_channels;
+		inc->prev_sr_channels = NULL;
+	}
+	
 	// done initial setup
 	in->sdi_ready = TRUE;
 	
@@ -383,6 +395,11 @@ static void cleanup(struct sr_input *in)
 		inc->projIsOpen = 0;
 	}
 	
+	if(inc->prev_sr_channels) {
+		g_slist_free_full(inc->prev_sr_channels, sr_channel_free_cb);
+		inc->prev_sr_channels = NULL;
+	}
+	
 	// Release potentially allocated resources. Void all references
 	// and scalars, so that re-runs start out fresh again.
 	memset(inc, 0, sizeof(*inc));
@@ -391,11 +408,11 @@ static void cleanup(struct sr_input *in)
 // Reset the input module's input handling structures.
 static int reset(struct sr_input *in)
 {
-//	struct context *inc;
-//	GSList *channels;
+	struct context *inc;
+	GSList *channels;
 
 	sr_info( "reset()");
-//	inc = in->priv;
+	inc = in->priv;
 	g_string_truncate(in->buf, 0);
 	
 	/*
@@ -407,10 +424,10 @@ static int reset(struct sr_input *in)
 	 */
 	 // TODO: should this reset inc->proj ?
 	 // Or should we leave the proj open across calls to reset()?
-//	channels = inc->channels;
-//	inc->channels = NULL;
+	channels = in->sdi->channels;
+	in->sdi->channels = NULL;
 	cleanup(in);
-//	inc->channels = channels;
+	inc->prev_sr_channels = channels;
 
 	return SR_OK;
 }
