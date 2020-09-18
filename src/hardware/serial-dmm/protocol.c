@@ -31,6 +31,9 @@ static void log_dmm_packet(const uint8_t *buf, size_t len)
 {
 	GString *text;
 
+	if (sr_log_loglevel_get() < SR_LOG_DBG)
+		return;
+
 	text = sr_hexdump_new(buf, len);
 	sr_dbg("DMM packet: %s", text->str);
 	sr_hexdump_free(text);
