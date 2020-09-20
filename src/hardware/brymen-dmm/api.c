@@ -41,6 +41,7 @@ static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	int rts_toggle_delay_us;
 	GSList *devices;
 	int ret;
 	uint8_t buf[128];
@@ -50,6 +51,21 @@ static GSList *brymen_scan(struct sr_dev_driver *di, const char *conn,
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
+	/*
+	 * The device requires an RTS *pulse* before communication.
+	 * The vendor's documentation recommends the following sequence:
+	 * Open the COM port, wait for 100ms, set RTS=1, wait for 100ms,
+	 * set RTS=0, wait for 100ms, set RTS=1, configure bitrate and
+	 * frame format, transmit request data, receive response data.
+	 */
+	rts_toggle_delay_us = 100 * 1000; /* 100ms */
+	g_usleep(rts_toggle_delay_us);
+	serial_set_handshake(serial, 1, -1);
+	g_usleep(rts_toggle_delay_us);
+	serial_set_handshake(serial, 0, -1);
+	g_usleep(rts_toggle_delay_us);
+	serial_set_handshake(serial, 1, -1);
+	g_usleep(rts_toggle_delay_us);
 
 	sr_info("Probing port %s.", conn);
 
