@@ -40,7 +40,6 @@ enum packet_len_status {
 
 struct dev_context {
 	struct sr_sw_limits sw_limits;
-
 	uint8_t buf[DMM_BUFSIZE];
 	int bufoffset;
 	int buflen;
@@ -66,9 +65,9 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
 SR_PRIV int brymen_stream_detect(struct sr_serial_dev_inst *serial,
-				 uint8_t *buf, size_t *buflen,
-				 packet_length_t get_packet_size,
-				 packet_valid_callback is_valid,
-				 uint64_t timeout_ms, int baudrate);
+		uint8_t *buf, size_t *buflen,
+		packet_length_t get_packet_size,
+		packet_valid_callback is_valid,
+		uint64_t timeout_ms, int baudrate);
 
 #endif

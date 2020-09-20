@@ -111,7 +111,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devices = NULL;
 
-	conn = serialcomm = NULL;
+	/*
+	 * BEWARE! Default 'conn' is not desirable when the device cannot
+	 * reliably get detected. Insist that users specify the port.
+	 */
+	conn = NULL;
+	serialcomm = "9600/8n1/dtr=1/rts=1";
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -126,10 +131,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!conn)
 		return NULL;
 
-	if (serialcomm)
-		devices = brymen_scan(di, conn, serialcomm);
-	else
-		devices = brymen_scan(di, conn, "9600/8n1/dtr=1/rts=1");
+	devices = brymen_scan(di, conn, serialcomm);
 
 	return devices;
 }

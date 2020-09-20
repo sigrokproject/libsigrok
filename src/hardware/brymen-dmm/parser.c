@@ -284,7 +284,7 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_DC;
 
 	if (flags.is_low_batt)
-		sr_info("Low battery!");
+		sr_warn("Low battery!");
 
 	return SR_OK;
 }
