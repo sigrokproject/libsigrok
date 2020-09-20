@@ -678,13 +678,14 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 	sr_spew("Got params: rate %d, frame %d/%d/%d, flow %d, rts %d, dtr %d.",
 		speed, databits, parity, stopbits, flow, rts, dtr);
 
-	if (speed) {
-		return serial_set_params(serial, speed, databits, parity,
-					 stopbits, flow, rts, dtr);
-	} else {
+	if (!speed) {
 		sr_dbg("Could not infer speed from parameter string.");
 		return SR_ERR_ARG;
 	}
+
+	return serial_set_params(serial, speed,
+			databits, parity, stopbits,
+			flow, rts, dtr);
 }
 
 /**
