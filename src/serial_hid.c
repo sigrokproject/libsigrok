@@ -1340,6 +1340,7 @@ static struct ser_lib_functions serlib_hid = {
 	.write = ser_hid_write,
 	.read = ser_hid_read,
 	.set_params = ser_hid_set_params,
+	.set_handshake = std_dummy_set_handshake,
 	.setup_source_add = ser_hid_setup_source_add,
 	.setup_source_remove = ser_hid_setup_source_remove,
 	.list = ser_hid_list,

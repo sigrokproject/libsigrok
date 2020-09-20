@@ -562,6 +562,37 @@ SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial,
 }
 
 /**
+ * Manipulate handshake state for the specified serial port.
+ *
+ * @param serial Previously initialized serial port structure.
+ * @param[in] rts Status of RTS line (0 or 1; or -1 to ignore).
+ * @param[in] dtr Status of DTR line (0 or 1; or -1 to ignore).
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR Failure.
+ *
+ * @private
+ */
+SR_PRIV int serial_set_handshake(struct sr_serial_dev_inst *serial,
+	int rts, int dtr)
+{
+	int ret;
+
+	if (!serial) {
+		sr_dbg("Invalid serial port.");
+		return SR_ERR;
+	}
+
+	sr_spew("Modifying serial parameters on port %s.", serial->port);
+
+	if (!serial->lib_funcs || !serial->lib_funcs->set_handshake)
+		return SR_ERR_NA;
+	ret = serial->lib_funcs->set_handshake(serial, rts, dtr);
+
+	return ret;
+}
+
+/**
  * Set serial parameters for the specified serial port from parameter string.
  *
  * @param serial Previously initialized serial port structure.

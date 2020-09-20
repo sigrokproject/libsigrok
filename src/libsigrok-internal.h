@@ -1759,6 +1759,8 @@ SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_grou
 SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
 	int baudrate, int bits, int parity, int stopbits,
 	int flowcontrol, int rts, int dtr);
+SR_PRIV int std_dummy_set_handshake(struct sr_serial_dev_inst *serial,
+	int rts, int dtr);
 
 /*--- resource.c ------------------------------------------------------------*/
 
@@ -1843,6 +1845,8 @@ SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
 		serial_rx_chunk_callback cb, void *cb_data);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
+SR_PRIV int serial_set_handshake(struct sr_serial_dev_inst *serial,
+		int rts, int dtr);
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr);
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
@@ -1883,6 +1887,8 @@ struct ser_lib_functions {
 	int (*set_params)(struct sr_serial_dev_inst *serial,
 			int baudrate, int bits, int parity, int stopbits,
 			int flowcontrol, int rts, int dtr);
+	int (*set_handshake)(struct sr_serial_dev_inst *serial,
+			int rts, int dtr);
 	int (*setup_source_add)(struct sr_session *session,
 			struct sr_serial_dev_inst *serial,
 			int events, int timeout,

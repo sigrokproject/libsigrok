@@ -928,3 +928,12 @@ SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
 	return SR_OK;
 }
 
+SR_PRIV int std_dummy_set_handshake(struct sr_serial_dev_inst *serial,
+	int rts, int dtr)
+{
+	(void)serial;
+	(void)rts;
+	(void)dtr;
+
+	return SR_OK;
+}
