@@ -223,6 +223,7 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	uint8_t *bfunc;
 	const char *txt;
 	int txtlen;
+	char *unit;
 	int ret;
 
 	(void)info;
@@ -236,6 +237,18 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 
 	memset(&flags, 0, sizeof(flags));
 	parse_flags(bfunc, &flags);
+	if (flags.is_fahrenheit || flags.is_celsius) {
+		/*
+		 * The value text in temperature mode includes the C/F
+		 * suffix between the mantissa and the exponent, which
+		 * breaks the text to number conversion. Example data:
+		 * " 0.0217CE+3". Remove the C/F unit identifier.
+		 */
+		unit = strchr(txt, flags.is_fahrenheit ? 'F' : 'C');
+		if (!unit)
+			return SR_ERR;
+		*unit = ' ';
+	}
 	ret = parse_value(txt, txtlen, floatval);
 	sr_dbg("floatval: %f, ret %d", *floatval, ret);
 	if (ret != SR_OK)
