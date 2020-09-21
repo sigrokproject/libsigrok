@@ -195,24 +195,24 @@ static int parse_value(const char *txt, size_t len, float *floatval)
 	return SR_OK;
 }
 
-static void parse_flags(const uint8_t *buf, struct brymen_flags *info)
+static void parse_flags(const uint8_t *bfunc, struct brymen_flags *info)
 {
-	info->is_low_batt	= (buf[4 + 3] & (1 << 7)) != 0;
+	info->is_low_batt	= (bfunc[3] & (1 << 7)) != 0;
 
-	info->is_decibel	= (buf[4 + 1] & (1 << 5)) != 0;
-	info->is_duty_cycle	= (buf[4 + 1] & (1 << 3)) != 0;
-	info->is_hertz		= (buf[4 + 1] & (1 << 2)) != 0;
-	info->is_amp		= (buf[4 + 1] & (1 << 1)) != 0;
-	info->is_beep		= (buf[4 + 1] & (1 << 0)) != 0;
+	info->is_decibel	= (bfunc[1] & (1 << 5)) != 0;
+	info->is_duty_cycle	= (bfunc[1] & (1 << 3)) != 0;
+	info->is_hertz		= (bfunc[1] & (1 << 2)) != 0;
+	info->is_amp		= (bfunc[1] & (1 << 1)) != 0;
+	info->is_beep		= (bfunc[1] & (1 << 0)) != 0;
 
-	info->is_ohm		= (buf[4 + 0] & (1 << 7)) != 0;
-	info->is_fahrenheit	= (buf[4 + 0] & (1 << 6)) != 0;
-	info->is_celsius	= (buf[4 + 0] & (1 << 5)) != 0;
-	info->is_diode		= (buf[4 + 0] & (1 << 4)) != 0;
-	info->is_capacitance	= (buf[4 + 0] & (1 << 3)) != 0;
-	info->is_volt		= (buf[4 + 0] & (1 << 2)) != 0;
-	info->is_dc		= (buf[4 + 0] & (1 << 1)) != 0;
-	info->is_ac		= (buf[4 + 0] & (1 << 0)) != 0;
+	info->is_ohm		= (bfunc[0] & (1 << 7)) != 0;
+	info->is_fahrenheit	= (bfunc[0] & (1 << 6)) != 0;
+	info->is_celsius	= (bfunc[0] & (1 << 5)) != 0;
+	info->is_diode		= (bfunc[0] & (1 << 4)) != 0;
+	info->is_capacitance	= (bfunc[0] & (1 << 3)) != 0;
+	info->is_volt		= (bfunc[0] & (1 << 2)) != 0;
+	info->is_dc		= (bfunc[0] & (1 << 1)) != 0;
+	info->is_ac		= (bfunc[0] & (1 << 0)) != 0;
 }
 
 SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
@@ -221,26 +221,27 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	struct brymen_flags flags;
 	struct brymen_header *hdr;
 	uint8_t *bfunc;
-	int asciilen;
+	const char *txt;
+	int txtlen;
+	int ret;
 
 	(void)info;
 
 	hdr = (void *)buf;
 	bfunc = (uint8_t *)(buf + sizeof(struct brymen_header));
+	txt = (const char *)&bfunc[4];
+	txtlen = hdr->len - 4;
+	sr_dbg("DMM bfunc: %02x %02x %02x %02x, text '%.*s'",
+		bfunc[3], bfunc[2], bfunc[1], bfunc[0], txtlen, txt);
 
-	analog->meaning->mqflags = 0;
-
-	/* Give some debug info about the package. */
-	asciilen = hdr->len - 4;
-	sr_dbg("DMM flags: %.2x %.2x %.2x %.2x",
-	       bfunc[3], bfunc[2], bfunc[1], bfunc[0]);
-	/* Value is an ASCII string. */
-	sr_dbg("DMM packet: \"%.*s\"", asciilen, bfunc + 4);
-
-	parse_flags(buf, &flags);
-	if (parse_value((const char *)(bfunc + 4), asciilen, floatval) != SR_OK)
+	memset(&flags, 0, sizeof(flags));
+	parse_flags(bfunc, &flags);
+	ret = parse_value(txt, txtlen, floatval);
+	sr_dbg("floatval: %f, ret %d", *floatval, ret);
+	if (ret != SR_OK)
 		return SR_ERR;
 
+	analog->meaning->mqflags = 0;
 	if (flags.is_volt) {
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		analog->meaning->unit = SR_UNIT_VOLT;
