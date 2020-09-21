@@ -148,25 +148,49 @@ SR_PRIV gboolean brymen_packet_is_valid(const uint8_t *buf)
 	return TRUE;
 }
 
-static int parse_value(const char *strbuf, int len, float *floatval)
+static int parse_value(const char *txt, size_t len, float *floatval)
 {
-	int s, d;
-	char str[32];
+	const char *txt_end;
+	char c, buf[32], *dst;
+	int ret;
 
-	if (strstr(strbuf, "OL")) {
-		sr_dbg("Overlimit.");
+	/*
+	 * The input text is not NUL terminated, the checksum follows
+	 * the value text field. Spaces may interfere with the text to
+	 * number conversion, especially with exponent parsing. Copy the
+	 * input data to a terminated text buffer and strip spaces in the
+	 * process, before running ASCIIZ string operations.
+	 */
+	if (len >= sizeof(buf)) {
+		sr_err("Insufficient text conversion buffer size.");
+		return SR_ERR_BUG;
+	}
+	txt_end = txt + len;
+	dst = &buf[0];
+	while (txt < txt_end && *txt) {
+		c = *txt++;
+		if (c == ' ')
+			continue;
+		*dst++ = c;
+	}
+	*dst = '\0';
+
+	/* Check for overflow, or get the number value. */
+	if (strstr(buf, "+OL")) {
+		*floatval = +INFINITY;
+		return SR_OK;
+	}
+	if (strstr(buf, "-OL")) {
+		*floatval = -INFINITY;
+		return SR_OK;
+	}
+	if (strstr(buf, "OL")) {
 		*floatval = INFINITY;
 		return SR_OK;
 	}
-
-	memset(str, 0, sizeof(str));
-	/* Spaces may interfere with parsing the exponent. Strip them. */
-	for (s = 0, d = 0; s < len; s++) {
-		if (strbuf[s] != ' ')
-			str[d++] = strbuf[s];
-	}
-	if (sr_atof_ascii(str, floatval) != SR_OK)
-		return SR_ERR;
+	ret = sr_atof_ascii(buf, floatval);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
