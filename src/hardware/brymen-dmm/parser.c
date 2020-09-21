@@ -223,6 +223,7 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	uint8_t *bfunc;
 	const char *txt;
 	int txtlen;
+	char *p;
 	char *unit;
 	int ret;
 
@@ -237,6 +238,22 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 
 	memset(&flags, 0, sizeof(flags));
 	parse_flags(bfunc, &flags);
+	if (flags.is_decibel && flags.is_ohm) {
+		/*
+		 * The reference impedance for the dBm function is in an
+		 * unexpected format. Naive conversion of non-space chars
+		 * gives incorrect results. Isolate the 4..1200 Ohms value
+		 * instead, ignore the "0." and exponent parts of the
+		 * response text.
+		 */
+		if (strncmp(txt, " 0.", strlen(" 0.")) == 0 && strstr(txt, " E")) {
+			txt = &txt[strlen(" 0.")];
+			txtlen -= strlen(" 0.");
+			p = strchr(txt, 'E');
+			if (p)
+				*p = '\0';
+		}
+	}
 	if (flags.is_fahrenheit || flags.is_celsius) {
 		/*
 		 * The value text in temperature mode includes the C/F
@@ -264,7 +281,9 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_AMPERE;
 	}
 	if (flags.is_ohm) {
-		if (flags.is_beep)
+		if (flags.is_decibel)
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+		else if (flags.is_beep)
 			analog->meaning->mq = SR_MQ_CONTINUITY;
 		else
 			analog->meaning->mq = SR_MQ_RESISTANCE;
@@ -296,20 +315,25 @@ SR_PRIV int brymen_parse(const uint8_t *buf, float *floatval,
 	}
 
 	/*
-	 * The high-end Brymen models have a configurable reference impedance.
-	 * When the reference impedance is changed, the DMM sends one packet
-	 * with the value of the new reference impedance. Both decibel and ohm
-	 * flags are set in this case, so we must be careful to correctly
-	 * identify the value as ohm, not dBmW.
+	 * The high-end Brymen models have a configurable reference
+	 * impedance for dBm measurements. When the meter's function
+	 * is entered, or when the reference impedance is changed, the
+	 * meter sends one packet with the value of the new reference.
+	 * Both decibel and ohm flags are set in this case, so we must
+	 * be careful to not clobber the resistance value from above,
+	 * and only provide dBm when the measurement is shown and not
+	 * its reference.
+	 *
+	 * The meter's response values also use an unexpected scale
+	 * (always off by factor 1000, as if it was Watts not mW).
+	 *
+	 * Example responses:
+	 * bfunc: 00 00 20 80, text ' 0. 800 E+1' (reference)
+	 * bfunc: 00 00 20 00, text '-0.3702 E-1' (measurement)
 	 */
 	if (flags.is_decibel && !flags.is_ohm) {
 		analog->meaning->mq = SR_MQ_POWER;
 		analog->meaning->unit = SR_UNIT_DECIBEL_MW;
-		/*
-		 * For some reason, dBm measurements are sent by the multimeter
-		 * with a value three orders of magnitude smaller than the
-		 * displayed value.
-		 */
 		*floatval *= 1000;
 	}
 
