@@ -1823,6 +1823,8 @@ enum {
 };
 
 typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
+typedef int (*packet_valid_len_callback)(void *st,
+	const uint8_t *p, size_t l, size_t *pl);
 
 typedef GSList *(*sr_ser_list_append_t)(GSList *devs, const char *name,
 		const char *desc);
@@ -1852,10 +1854,10 @@ SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms);
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
-				 uint8_t *buf, size_t *buflen,
-				 size_t packet_size,
-				 packet_valid_callback is_valid,
-				 uint64_t timeout_ms);
+		uint8_t *buf, size_t *buflen,
+		size_t packet_size, packet_valid_callback is_valid,
+		packet_valid_len_callback is_valid_len, size_t *return_size,
+		uint64_t timeout_ms);
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_session *session,

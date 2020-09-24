@@ -787,13 +787,23 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
 /**
  * Try to find a valid packet in a serial data stream.
  *
- * @param serial Previously initialized serial port structure.
- * @param buf Buffer containing the bytes to write.
- * @param buflen Size of the buffer.
+ * @param[in] serial Previously initialized serial port structure.
+ * @param[in] buf Buffer containing the bytes to write.
+ * @param[in] buflen Size of the buffer.
  * @param[in] packet_size Size, in bytes, of a valid packet.
- * @param is_valid Callback that assesses whether the packet is valid or not.
+ * @param[in] is_valid Callback that assesses whether the packet is valid or not.
+ * @param[in] is_valid_len Callback which checks a variable length packet.
+ * @param[out] return_size Detected packet size in case of successful match.
  * @param[in] timeout_ms The timeout after which, if no packet is detected, to
  *                       abort scanning.
+ *
+ * Data is received from the serial port and into the caller provided
+ * buffer, until the buffer is exhausted, or the timeout has expired,
+ * or a valid packet was found. Receive data is passed to the caller
+ * provided validity check routine, assuming either fixed size packets
+ * (#is_valid parameter, exact match to the #packet_size length) or
+ * packets of variable length (#is_valid_len parameter, minimum length
+ * #packet_size required for first invocation).
  *
  * @retval SR_OK Valid packet was found within the given timeout.
  * @retval SR_ERR Failure.
@@ -802,72 +812,115 @@ SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial,
  */
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 	uint8_t *buf, size_t *buflen,
-	size_t packet_size,
-	packet_valid_callback is_valid,
+	size_t packet_size, packet_valid_callback is_valid,
+	packet_valid_len_callback is_valid_len, size_t *return_size,
 	uint64_t timeout_ms)
 {
-	uint64_t start, time, byte_delay_us;
-	size_t ibuf, i, maxlen;
-	ssize_t len;
-
-	maxlen = *buflen;
+	uint64_t start_us, elapsed_ms, byte_delay_us;
+	size_t fill_idx, check_idx, max_fill_idx;
+	ssize_t recv_len;
+	const uint8_t *check_ptr;
+	size_t check_len, pkt_len;
+	gboolean do_dump;
+	int ret;
 
 	sr_dbg("Detecting packets on %s (timeout = %" PRIu64 "ms).",
 		serial->port, timeout_ms);
 
-	if (maxlen < (packet_size * 2) ) {
-		sr_err("Buffer size must be at least twice the packet size.");
-		return SR_ERR;
+	max_fill_idx = *buflen;
+	if (max_fill_idx < 2 * packet_size) {
+		/*
+		 * The heuristics in this check is only useful for fixed
+		 * packet length scenarios, but for variable length setups
+		 * we don't know the packets' sizes up front.
+		 */
+		sr_err("Small stream detect RX buffer, want 2x packet size.");
+		return SR_ERR_ARG;
 	}
 
-	/* Assume 8n1 transmission. That is 10 bits for every byte. */
 	byte_delay_us = serial_timeout(serial, 1) * 1000;
-	start = g_get_monotonic_time();
+	start_us = g_get_monotonic_time();
 
-	i = ibuf = len = 0;
-	while (ibuf < maxlen) {
-		len = serial_read_nonblocking(serial, &buf[ibuf], 1);
-		if (len > 0) {
-			ibuf += len;
-		} else if (len == 0) {
-			/* No logging, already done in serial_read(). */
-		} else {
-			/* Error reading byte, but continuing anyway. */
+	check_idx = fill_idx = 0;
+	while (fill_idx < max_fill_idx) {
+		/*
+		 * Read bytes individually. Lets callers continue to
+		 * successfully process next RX data after first match.
+		 * Run full loop bodies for empty or failed reception
+		 * in an iteration, to have timeouts checked.
+		 */
+		recv_len = serial_read_nonblocking(serial, &buf[fill_idx], 1);
+		if (recv_len > 0)
+			fill_idx += recv_len;
+
+		/* Dump receive data when (a minimum) size is reached. */
+		check_ptr = &buf[check_idx];
+		check_len = fill_idx - check_idx;
+		do_dump = check_len >= packet_size;
+		do_dump &= sr_log_loglevel_get() >= SR_LOG_SPEW;
+		if (do_dump) {
+			GString *text;
+
+			text = sr_hexdump_new(check_ptr, check_len);
+			sr_spew("Trying packet: len %zu, bytes %s",
+				check_len, text->str);
+			sr_hexdump_free(text);
 		}
 
-		time = g_get_monotonic_time() - start;
-		time /= 1000;
-
-		if ((ibuf - i) >= packet_size) {
-			GString *text;
-			/* We have at least a packet's worth of data. */
-			text = sr_hexdump_new(&buf[i], packet_size);
-			sr_spew("Trying packet: %s", text->str);
-			sr_hexdump_free(text);
-			if (is_valid(&buf[i])) {
-				sr_spew("Found valid %zu-byte packet after "
-					"%" PRIu64 "ms.", (ibuf - i), time);
-				*buflen = ibuf;
+		/* A packet's (minimum) length was received, check its data. */
+		elapsed_ms = g_get_monotonic_time() - start_us;
+		elapsed_ms /= 1000;
+		if (is_valid_len && check_len >= packet_size) {
+			pkt_len = packet_size;
+			ret = is_valid_len(NULL, check_ptr, check_len, &pkt_len);
+			if (ret == SR_PACKET_VALID) {
+				/* Exact match. Terminate with success. */
+				sr_spew("Valid packet after %" PRIu64 "ms.",
+					elapsed_ms);
+				sr_spew("RX count %zu, packet len %zu.",
+					fill_idx, pkt_len);
+				*buflen = fill_idx;
+				if (return_size)
+					*return_size = pkt_len;
 				return SR_OK;
+			}
+			if (ret == SR_PACKET_NEED_RX) {
+				/* Incomplete, keep accumulating RX data. */
+				sr_spew("Checker needs more RX data.");
 			} else {
-				sr_spew("Got %zu bytes, but not a valid "
-					"packet.", (ibuf - i));
+				/* Not a valid packet. Continue searching. */
+				sr_spew("Invalid packet, advancing read pos.");
+				check_idx++;
+			}
+		}
+		if (is_valid && check_len >= packet_size) {
+			if (is_valid(check_ptr)) {
+				/* Exact match. Terminate with success. */
+				sr_spew("Valid packet after %" PRIu64 "ms.",
+					elapsed_ms);
+				sr_spew("RX count %zu, packet len %zu.",
+					fill_idx, packet_size);
+				*buflen = fill_idx;
+				if (return_size)
+					*return_size = packet_size;
+				return SR_OK;
 			}
 			/* Not a valid packet. Continue searching. */
-			i++;
+			sr_spew("Invalid packet, advancing read pointer.");
+			check_idx++;
 		}
-		if (time >= timeout_ms) {
-			/* Timeout */
-			sr_dbg("Detection timed out after %" PRIu64 "ms.", time);
+
+		/* Check for packet search timeout. */
+		if (elapsed_ms >= timeout_ms) {
+			sr_dbg("Detection timed out after %" PRIu64 "ms.",
+				elapsed_ms);
 			break;
 		}
-		if (len < 1)
+		if (recv_len < 1)
 			g_usleep(byte_delay_us);
 	}
-
-	*buflen = ibuf;
-
-	sr_info("Didn't find a valid packet (read %zu bytes).", *buflen);
+	sr_info("Didn't find a valid packet (read %zu bytes).", fill_idx);
+	*buflen = fill_idx;
 
 	return SR_ERR;
 }

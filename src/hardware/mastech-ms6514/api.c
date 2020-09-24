@@ -82,8 +82,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sr_info("Probing serial port %s.", conn);
 
 	/* Let's get a bit of data and see if we can find a packet. */
-	if (serial_stream_detect(serial, buf, &len, (2 * MASTECH_MS6514_FRAME_SIZE),
-			mastech_ms6514_packet_valid, 500) != SR_OK)
+	if (serial_stream_detect(serial, buf, &len, 2 * MASTECH_MS6514_FRAME_SIZE,
+			mastech_ms6514_packet_valid, NULL, NULL, 500) != SR_OK)
 		goto scan_cleanup;
 
 	sr_info("Found device on port %s.", conn);

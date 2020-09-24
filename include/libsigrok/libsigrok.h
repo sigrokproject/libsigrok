@@ -80,6 +80,13 @@ enum sr_error_code {
 	/* Update sr_strerror()/sr_strerror_name() (error.c) upon changes! */
 };
 
+/** Ternary return type for DMM/LCR/etc packet parser validity checks. */
+enum sr_valid_code {
+	SR_PACKET_INVALID = -1,	/**< Certainly invalid. */
+	SR_PACKET_VALID = 0,	/**< Certainly valid. */
+	SR_PACKET_NEED_RX = +1,	/**< Need more RX data. */
+};
+
 #define SR_MAX_CHANNELNAME_LEN 32
 
 /* Handy little macros */
