@@ -1786,6 +1786,7 @@ SR_PRIV int sr_atoi(const char *str, int *ret);
 SR_PRIV int sr_atod(const char *str, double *ret);
 SR_PRIV int sr_atof(const char *str, float *ret);
 SR_PRIV int sr_atod_ascii(const char *str, double *ret);
+SR_PRIV int sr_atod_ascii_digits(const char *str, double *ret, int *digits);
 SR_PRIV int sr_atof_ascii(const char *str, float *ret);
 
 SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len);
