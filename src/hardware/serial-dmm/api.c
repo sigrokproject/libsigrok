@@ -372,6 +372,17 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
+	/* bm85x based meters {{{ */
+	DMM_LEN(
+		"brymen-bm85x", brymen_bm85x, "Brymen", "BM85x",
+		NULL, "9600/8n1/dtr=1/rts=1",
+		BRYMEN_BM85x_PACKET_SIZE_MIN, 2000, 400,
+		NULL, NULL, /* INIT/FREE for DMM state */
+		brymen_bm85x_after_open, brymen_bm85x_packet_request,
+		brymen_bm85x_packet_valid, brymen_bm85x_parse,
+		NULL
+	),
+	/* }}} */
 	/* bm86x based meters {{{ */
 	DMM_CONN(
 		"brymen-bm86x", brymen_bm86x, "Brymen", "BM86x",
