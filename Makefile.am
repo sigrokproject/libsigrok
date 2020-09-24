@@ -260,13 +260,6 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/beaglelogic/beaglelogic_native.c \
 	src/hardware/beaglelogic/beaglelogic_tcp.c
 endif
-if HW_BRYMEN_DMM
-src_libdrivers_la_SOURCES += \
-	src/hardware/brymen-dmm/parser.c \
-	src/hardware/brymen-dmm/protocol.h \
-	src/hardware/brymen-dmm/protocol.c \
-	src/hardware/brymen-dmm/api.c
-endif
 if HW_CEM_DT_885X
 src_libdrivers_la_SOURCES += \
 	src/hardware/cem-dt-885x/protocol.h \

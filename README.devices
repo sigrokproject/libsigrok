@@ -98,7 +98,6 @@ The following drivers/devices do not need any firmware upload:
  - atten-pps3xxx
  - baylibre-acme
  - beaglelogic
- - brymen-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
  - chronovu-la
