@@ -2349,6 +2349,20 @@ SR_PRIV gboolean sr_brymen_bm52x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm52x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+struct brymen_bm52x_state;
+
+SR_PRIV void *brymen_bm52x_state_init(void);
+SR_PRIV void brymen_bm52x_state_free(void *state);
+SR_PRIV int brymen_bm52x_config_get(void *state, uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_config_set(void *state, uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_config_list(void *state, uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_acquire_start(void *state,
+	const struct sr_dev_inst *sdi,
+	sr_receive_data_callback *cb, void **cb_data);
+
 /*--- dmm/bm85x.c -----------------------------------------------------------*/
 
 #define BRYMEN_BM85x_PACKET_SIZE_MIN 4

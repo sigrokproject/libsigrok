@@ -127,6 +127,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 * happen to provide them. (This is a compromise to do it here,
 	 * and not extend the DMM_CONN() et al set of macros.)
 	 */
+	if (dmm->packet_parse == sr_brymen_bm52x_parse) {
+		dmm->dmm_state_init = brymen_bm52x_state_init;
+		dmm->dmm_state_free = brymen_bm52x_state_free;
+		dmm->config_get = brymen_bm52x_config_get;
+		dmm->config_set = brymen_bm52x_config_set;
+		dmm->config_list = brymen_bm52x_config_list;
+		dmm->acquire_start = brymen_bm52x_acquire_start;
+	}
 	if (dmm->dmm_state_init)
 		dmm->dmm_state = dmm->dmm_state_init();
 
