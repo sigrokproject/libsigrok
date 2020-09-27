@@ -181,7 +181,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	if (!device)
 		goto error;
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi = g_malloc0(sizeof(*sdi));
 	sdi->vendor = g_strdup(hw_info->manufacturer);
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
@@ -190,11 +190,11 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->driver = &rigol_dg_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 
-	devc = g_malloc0(sizeof(struct dev_context));
+	devc = g_malloc0(sizeof(*devc));
 	devc->cmdset = cmdset;
 	devc->device = device;
-	devc->ch_status = g_malloc0(sizeof(struct channel_status) *
-			(device->num_channels + 1));
+	devc->ch_status = g_malloc0((device->num_channels + 1) *
+			sizeof(devc->ch_status[0]));
 	sr_sw_limits_init(&devc->limits);
 	sdi->priv = devc;
 
@@ -203,7 +203,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	for (i = 0; i < device->num_channels; i++) {
 		ch = sr_channel_new(sdi, ch_idx++, SR_CHANNEL_ANALOG, TRUE,
 				device->channels[i].name);
-		cg = g_malloc0(sizeof(struct sr_channel_group));
+		cg = g_malloc0(sizeof(*cg));
 		snprintf(tmp, sizeof(tmp), "%u", i + 1);
 		cg->name = g_strdup(tmp);
 		cg->channels = g_slist_append(cg->channels, ch);
