@@ -867,7 +867,7 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 
 	*buflen = ibuf;
 
-	sr_err("Didn't find a valid packet (read %zu bytes).", *buflen);
+	sr_info("Didn't find a valid packet (read %zu bytes).", *buflen);
 
 	return SR_ERR;
 }
