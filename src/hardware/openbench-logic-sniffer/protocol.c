@@ -346,7 +346,7 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 
 	serial = sdi->conn;
-	send_shortcommand(serial, CMD_RESET);
+	ols_send_reset(serial);
 
 	serial_source_remove(sdi->session, serial);
 
