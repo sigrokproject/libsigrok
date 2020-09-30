@@ -2344,8 +2344,11 @@ struct brymen_bm52x_info { size_t ch_idx; };
 
 #ifdef HAVE_SERIAL_COMM
 SR_PRIV int sr_brymen_bm52x_packet_request(struct sr_serial_dev_inst *serial);
+SR_PRIV int sr_brymen_bm82x_packet_request(struct sr_serial_dev_inst *serial);
 #endif
 SR_PRIV gboolean sr_brymen_bm52x_packet_valid(const uint8_t *buf);
+SR_PRIV gboolean sr_brymen_bm82x_packet_valid(const uint8_t *buf);
+/* BM520s and BM820s protocols are similar, the parse routine is shared. */
 SR_PRIV int sr_brymen_bm52x_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 

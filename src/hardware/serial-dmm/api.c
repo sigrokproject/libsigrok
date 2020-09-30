@@ -127,7 +127,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 * happen to provide them. (This is a compromise to do it here,
 	 * and not extend the DMM_CONN() et al set of macros.)
 	 */
-	if (dmm->packet_parse == sr_brymen_bm52x_parse) {
+	if (strcmp(dmm->di.name, "brymen-bm52x") == 0) {
+		/* Applicable to BM520s but not to BM820s. */
 		dmm->dmm_state_init = brymen_bm52x_state_init;
 		dmm->dmm_state_free = brymen_bm52x_state_free;
 		dmm->config_get = brymen_bm52x_config_get;
@@ -377,6 +378,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"hid/bu86x", NULL, BRYMEN_BM52X_PACKET_SIZE, 4000, 500,
 		sr_brymen_bm52x_packet_request,
 		sr_brymen_bm52x_packet_valid, sr_brymen_bm52x_parse,
+		NULL
+	),
+	DMM_CONN(
+		"brymen-bm82x", brymen_bm52x, "Brymen", "BM82x",
+		"hid/bu86x", NULL, BRYMEN_BM52X_PACKET_SIZE, 4000, 500,
+		sr_brymen_bm82x_packet_request,
+		sr_brymen_bm82x_packet_valid, sr_brymen_bm52x_parse,
 		NULL
 	),
 	/* }}} */

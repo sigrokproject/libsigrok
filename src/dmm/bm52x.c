@@ -27,6 +27,16 @@
  * http://brymen.com/product-html/PD02BM520s_protocolDL.html
  * http://brymen.com/product-html/images/DownloadList/ProtocolList/BM520-BM520s_List/BM520-BM520s-10000-count-professional-dual-display-mobile-logging-DMMs-protocol.zip
  *
+ * This parser was initially created for BM520s devices and tested with
+ * BM525s. The Brymen BM820s family of devices uses the same protocol,
+ * with just 0x82 instead of 0x52 in request packets and in the fixed
+ * fields of the responses. Which means that the packet parser can get
+ * shared among the BM520s and BM820s devices, but validity check needs
+ * to be individual, and the "wrong" packet request will end up without
+ * a response. Compared to BM520s the BM820s has dBm (in the protocol)
+ * and NCV (not seen in the protocol) and is non-logging (live only).
+ * BM820s support was tested with BM829s.
+ *
  * The parser implementation was tested with a Brymen BM525s meter. Some
  * of the responses differ from the vendor's documentation:
  * - Recording session total byte counts don't start after the byte count
@@ -45,7 +55,6 @@
  *   - AVG is not available in BM525s and BM521s.
  *   - LoZ, eliminating ghost voltages.
  *   - LPF, low pass filter.
- *   - dBm is a BM829s feature only, not available in BM525s.
  *   - low battery, emits sr_warn() but isn't seen in the feed.
  *   - @, 4-20mA loop, % (main display, left hand side), Hi/Lo. Some of
  *     these are in the vendor's documentation for the DMM packet but not
@@ -64,8 +73,6 @@
  *   the full byte stream is necessary on one hand since random access
  *   is not available, and useful on the other hand for consistency
  *   checks.
- * - The vendor's shipping box and user manual suggests a similarity of
- *   BM520s and BM820s meters. Can this DMM packet parser support both?
  */
 
 #include <config.h>
@@ -102,7 +109,8 @@ struct brymen_bm52x_state {
 };
 
 enum bm52x_reqtype {
-	REQ_LIVE_READ,
+	REQ_LIVE_READ_520,
+	REQ_LIVE_READ_820,
 	REQ_REC_HEAD,
 	REQ_REC_NEXT,
 	REQ_REC_CURR,
@@ -111,17 +119,19 @@ enum bm52x_reqtype {
 #ifdef HAVE_SERIAL_COMM
 static int bm52x_send_req(struct sr_serial_dev_inst *serial, enum bm52x_reqtype t)
 {
-	static const uint8_t req_live[] = { 0x00, 0x00, 0x52, 0x66, };
+	static const uint8_t req_live_520[] = { 0x00, 0x00, 0x52, 0x66, };
+	static const uint8_t req_live_820[] = { 0x00, 0x00, 0x82, 0x66, };
 	static const uint8_t req_head[] = { 0x00, 0x00, 0x52, 0x88, };
 	static const uint8_t req_next[] = { 0x00, 0x00, 0x52, 0x89, };
 	static const uint8_t req_curr[] = { 0x00, 0x00, 0x52, 0x8a, };
 	static const uint8_t *req_bytes[] = {
-		[REQ_LIVE_READ] = req_live,
+		[REQ_LIVE_READ_520] = req_live_520,
+		[REQ_LIVE_READ_820] = req_live_820,
 		[REQ_REC_HEAD] = req_head,
 		[REQ_REC_NEXT] = req_next,
 		[REQ_REC_CURR] = req_curr,
 	};
-	static const size_t req_len = ARRAY_SIZE(req_live);
+	static const size_t req_len = ARRAY_SIZE(req_live_520);
 
 	const uint8_t *p;
 	size_t l;
@@ -142,7 +152,12 @@ static int bm52x_send_req(struct sr_serial_dev_inst *serial, enum bm52x_reqtype 
 
 SR_PRIV int sr_brymen_bm52x_packet_request(struct sr_serial_dev_inst *serial)
 {
-	return bm52x_send_req(serial, REQ_LIVE_READ);
+	return bm52x_send_req(serial, REQ_LIVE_READ_520);
+}
+
+SR_PRIV int sr_brymen_bm82x_packet_request(struct sr_serial_dev_inst *serial)
+{
+	return bm52x_send_req(serial, REQ_LIVE_READ_820);
 }
 #endif
 
@@ -162,6 +177,20 @@ SR_PRIV gboolean sr_brymen_bm52x_packet_valid(const uint8_t *buf)
 	if (buf[18] != 0x52)
 		return FALSE;
 	if (buf[19] != 0x52)
+		return FALSE;
+
+	return TRUE;
+}
+
+SR_PRIV gboolean sr_brymen_bm82x_packet_valid(const uint8_t *buf)
+{
+	if (buf[16] != 0x82)
+		return FALSE;
+	if (buf[17] != 0x82)
+		return FALSE;
+	if (buf[18] != 0x82)
+		return FALSE;
+	if (buf[19] != 0x82)
 		return FALSE;
 
 	return TRUE;
@@ -628,7 +657,7 @@ static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
 	int ret;
 
 	/* Seed internal state when sending the HEAD request. */
-	if (req == REQ_REC_HEAD || req == REQ_LIVE_READ)
+	if (req == REQ_REC_HEAD || req == REQ_LIVE_READ_520)
 		memset(&state->rsp, 0, sizeof(state->rsp));
 
 	/* Move unprocessed content to the front. */
@@ -647,7 +676,7 @@ static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
 
 	/* Add another response chunk to the read buffer. */
 	b = &state->rsp.buff[state->rsp.fill_pos];
-	l = req == REQ_LIVE_READ ? 24 : 32;
+	l = req == REQ_LIVE_READ_520 ? 24 : 32;
 	if (sizeof(state->rsp.buff) - state->rsp.fill_pos < l)
 		return SR_ERR_BUG;
 	ret = bm52x_send_req(serial, req);
@@ -665,7 +694,7 @@ static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
 		GString *text;
 		const char *req_text;
 
-		req_text = (req == REQ_LIVE_READ) ? "LIVE" :
+		req_text = (req == REQ_LIVE_READ_520) ? "LIVE" :
 			(req == REQ_REC_HEAD) ? "MEM HEAD" :
 			(req == REQ_REC_NEXT) ? "MEM NEXT" :
 			(req == REQ_REC_CURR) ? "MEM CURR" :
