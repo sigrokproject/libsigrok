@@ -222,6 +222,9 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0641", ENV{ID_SIGROK}="1"
 # Rigol DG1000z series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0642", ENV{ID_SIGROK}="1"
 
+# Rigol DG800 and DG900 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0643", ENV{ID_SIGROK}="1"
+
 # Rigol DP800 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0e11", ENV{ID_SIGROK}="1"
 
