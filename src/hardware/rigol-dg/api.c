@@ -490,6 +490,8 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new_double(ch_status->phase);
 			break;
 		case SR_CONF_DUTY_CYCLE:
+			if ((ret = rigol_dg_get_channel_state(sdi, cg)) != SR_OK)
+				break;
 			if (ch_status->wf == WF_SQUARE) {
 				cmd = PSG_CMD_GET_DCYCL_SQUARE;
 			} else if (ch_status->wf == WF_PULSE) {
