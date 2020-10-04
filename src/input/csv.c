@@ -756,7 +756,20 @@ static void strip_comment(char *buf, const GString *prefix)
  */
 static char **split_line(char *buf, struct context *inc)
 {
-	return g_strsplit(buf, inc->delimiter->str, 0);
+	char **fields, *f;
+	size_t l;
+
+	fields = g_strsplit(buf, inc->delimiter->str, 0);
+	if (!fields)
+		return NULL;
+
+	l = g_strv_length(fields);
+	while (l--) {
+		f = fields[l];
+		g_strchomp(f);
+	}
+
+	return fields;
 }
 
 /**
