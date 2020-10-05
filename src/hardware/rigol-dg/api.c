@@ -302,6 +302,27 @@ static const struct device_spec device_models[] = {
 	},
 };
 
+static void check_device_quirks(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	gboolean is_8xx, is_9xx;
+
+	devc = sdi->priv;
+
+	/*
+	 * Check for counter issue in DG800/DG900 units...
+	 *
+	 * TODO: Add firmware version check if Rigol fixes this issue
+	 *       in future firmware versions.
+	 */
+	is_8xx = g_ascii_strncasecmp(sdi->model, "DG8", strlen("DG8")) == 0;
+	is_9xx = g_ascii_strncasecmp(sdi->model, "DG9", strlen("DG9")) == 0;
+	if (is_8xx || is_9xx) {
+		devc->quirks |= RIGOL_DG_COUNTER_BUG;
+		devc->quirks |= RIGOL_DG_COUNTER_CH2_CONFLICT;
+	}
+}
+
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
@@ -381,6 +402,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	sr_scpi_hw_info_free(hw_info);
+
+	/* Check for device/firmware specific issues. */
+	check_device_quirks(sdi);
 
 	return sdi;
 
@@ -729,6 +753,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	const char *cmd;
 	char *response;
+	GVariant *data;
+	gboolean need_quirk;
+	gboolean ch_active;
 	int ret;
 
 	if (!sdi)
@@ -737,6 +764,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	scpi = sdi->conn;
 	response = NULL;
+	data = NULL;
 	ret = SR_OK;
 
 	if (!scpi)
@@ -754,13 +782,45 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->counter_enabled = FALSE;
 
 		if (!devc->counter_enabled) {
-			/* Enable counter if it was not already running. */
+			/*
+			 * Enable counter if it was not already running.
+			 * Some devices cannot use channel 2 and the counter
+			 * at the same time. Some cannot respond right after
+			 * enabling the counter and need a delay.
+			 */
+
+			need_quirk = devc->quirks & RIGOL_DG_COUNTER_CH2_CONFLICT;
+			need_quirk &= devc->device->num_channels > 1;
+			if (need_quirk) {
+				sr_scpi_get_opc(scpi);
+				ret = sr_scpi_cmd_resp(sdi, devc->cmdset,
+					PSG_CMD_SELECT_CHANNEL, "2",
+					&data, G_VARIANT_TYPE_BOOLEAN,
+					PSG_CMD_GET_ENABLED, "2");
+				if (ret != SR_OK)
+					return SR_ERR_NA;
+				ch_active = g_variant_get_boolean(data);
+				g_variant_unref(data);
+				if (ch_active) {
+					sr_scpi_get_opc(scpi);
+					ret = sr_scpi_cmd(sdi, devc->cmdset,
+						PSG_CMD_SELECT_CHANNEL, "2",
+						PSG_CMD_SET_DISABLE, "2");
+					if (ret != SR_OK)
+						return SR_ERR_NA;
+				}
+			}
+
 			cmd = sr_scpi_cmd_get(devc->cmdset,
 					PSG_CMD_COUNTER_SET_ENABLE);
 			if (!cmd)
 				return SR_ERR_BUG;
 			sr_scpi_get_opc(scpi);
 			ret = sr_scpi_send(scpi, cmd);
+
+			need_quirk = devc->quirks & RIGOL_DG_COUNTER_BUG;
+			if (need_quirk)
+				g_usleep(RIGOL_DG_COUNTER_BUG_DELAY);
 		}
 	}
 
@@ -797,10 +857,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	if (cmd && *cmd && !devc->counter_enabled) {
 		/*
 		 * If counter was not running when acquisiton started,
-		 * turn it off now...
+		 * turn it off now. Some devices need a delay after
+		 * disabling the counter.
 		 */
 		sr_scpi_get_opc(scpi);
 		ret = sr_scpi_send(scpi, cmd);
+		if (devc->quirks & RIGOL_DG_COUNTER_BUG)
+			g_usleep(RIGOL_DG_COUNTER_BUG_DELAY);
 	}
 
 	sr_scpi_source_remove(sdi->session, scpi);

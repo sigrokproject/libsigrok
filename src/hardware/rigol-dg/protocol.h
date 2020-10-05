@@ -27,6 +27,12 @@
 
 #define LOG_PREFIX "rigol-dg"
 
+/* Device/firmware specific quirks. */
+#define RIGOL_DG_COUNTER_BUG           (1UL << 0)
+#define RIGOL_DG_COUNTER_CH2_CONFLICT  (1UL << 1)
+
+#define RIGOL_DG_COUNTER_BUG_DELAY (1000 * 1000)
+
 enum psg_commands {
 	PSG_CMD_SETUP_REMOTE,
 	PSG_CMD_SETUP_LOCAL,
@@ -115,6 +121,7 @@ struct dev_context {
 	struct channel_status *ch_status;
 	struct sr_sw_limits limits;
 	gboolean counter_enabled;
+	uint32_t quirks;
 };
 
 SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type);
