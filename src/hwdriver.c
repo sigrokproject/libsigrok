@@ -205,6 +205,12 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Phase", NULL},
 	{SR_CONF_DUTY_CYCLE, SR_T_FLOAT, "output_duty_cycle",
 		"Duty Cycle", NULL},
+	{SR_CONF_POWER, SR_T_FLOAT, "power",
+		"Power", NULL},
+	{SR_CONF_POWER_TARGET, SR_T_FLOAT, "power_target",
+		"Power Target", NULL},
+	{SR_CONF_RESISTANCE_TARGET, SR_T_FLOAT, "resistance_target",
+		"Resistance Target", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
