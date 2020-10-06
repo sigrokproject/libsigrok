@@ -472,6 +472,16 @@ Example:
  $ sigrok-cli --driver ols:conn=/dev/ttyACM0 ...
 
 
+JTAGulator
+----------
+
+The Grand Idea Studio JTAGulator also implements the SUMP protocol and
+thus is covered by the OLS driver. See the vendor's wiki on details how
+to enable the Logic Analyzer mode of operation.
+
+  https://github.com/grandideastudio/jtagulator/wiki/Logic-Analyzer
+
+
 Mooshimeter
 -----------
 
