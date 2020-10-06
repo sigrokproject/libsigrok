@@ -192,40 +192,40 @@ SR_PRIV void itech_it8500_status_change(const struct sr_dev_inst *sdi,
 		uint16_t old_ds, uint16_t new_ds,
 		enum itech_it8500_modes old_m, enum itech_it8500_modes new_m)
 {
+	gboolean old_bit, new_bit;
 	const char *mode;
-	gboolean old, new;
 
 	/* Check it output status has changed. */
-	old = old_os & OS_OUT_FLAG;
-	new = new_os & OS_OUT_FLAG;
-	if (old != new)
+	old_bit = old_os & OS_OUT_FLAG;
+	new_bit = new_os & OS_OUT_FLAG;
+	if (old_bit != new_bit)
 		sr_session_send_meta(sdi,
 			SR_CONF_ENABLED,
-			g_variant_new_boolean(new));
+			g_variant_new_boolean(new_bit));
 
 	/* Check if OVP status has changed. */
-	old = old_ds & DS_OV_FLAG;
-	new = new_ds & DS_OV_FLAG;
-	if (old != new)
+	old_bit = old_ds & DS_OV_FLAG;
+	new_bit = new_ds & DS_OV_FLAG;
+	if (old_bit != new_bit)
 		sr_session_send_meta(sdi,
 			SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
-			g_variant_new_boolean(new));
+			g_variant_new_boolean(new_bit));
 
 	/* Check if OCP status has changed. */
-	old = old_ds & DS_OC_FLAG;
-	new = new_ds & DS_OC_FLAG;
-	if (old != new)
+	old_bit = old_ds & DS_OC_FLAG;
+	new_bit = new_ds & DS_OC_FLAG;
+	if (old_bit != new_bit)
 		sr_session_send_meta(sdi,
 			SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
-			g_variant_new_boolean(new));
+			g_variant_new_boolean(new_bit));
 
 	/* Check if OTP status has changed. */
-	old = old_ds & DS_OT_FLAG;
-	new = new_ds & DS_OT_FLAG;
-	if (old != new)
+	old_bit = old_ds & DS_OT_FLAG;
+	new_bit = new_ds & DS_OT_FLAG;
+	if (old_bit != new_bit)
 		sr_session_send_meta(sdi,
 			SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
-			g_variant_new_boolean(new));
+			g_variant_new_boolean(new_bit));
 
 	/* Check if operating mode has changed. */
 	if (old_m != new_m) {
