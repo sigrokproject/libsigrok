@@ -627,8 +627,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	ret = serial_source_add(sdi->session, serial, G_IO_IN,
-			(1000.0 / devc->sample_rate),
+	ret = serial_source_add(sdi->session, serial,
+			G_IO_IN, (1000.0 / devc->sample_rate),
 			itech_it8500_receive_data, (void *)sdi);
 	if (ret == SR_OK) {
 		sr_sw_limits_acquisition_start(&devc->limits);

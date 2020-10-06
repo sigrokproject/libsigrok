@@ -137,7 +137,7 @@ SR_PRIV int itech_it8500_send_cmd(struct sr_serial_dev_inst *serial,
 		resp->command);
 
 	if (resp->command == CMD_RESPONSE) {
-		if (resp->data[0] != IT8500_COMMAND_SUCCESSFUL) {
+		if (resp->data[0] != STS_COMMAND_SUCCESSFUL) {
 			sr_dbg("%s: Command (%02x) failed: status=%02x",
 				__func__, cmd->command, resp->data[0]);
 			goto error;

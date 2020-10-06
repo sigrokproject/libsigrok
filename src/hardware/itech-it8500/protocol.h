@@ -43,15 +43,16 @@
 #define IT8500_DATA_LEN 22
 #define IT8500_PACKET_LEN (IT8500_HEADER_LEN + IT8500_DATA_LEN + 1)
 
-#define IT8500_PREAMBLE 0xaa
-#define IT8500_MAX_MODEL_NAME_LEN 5
+/*
+ * Data structure to track commands and reponses.
+ */
+struct itech_it8500_cmd_packet {
+	uint8_t command; /* Command number. */
+	uint8_t address; /* Unit address: 0..254 (255 = broadcast). */
+	uint8_t data[IT8500_DATA_LEN]; /* Command/Response data. */
+};
 
-/* Status packet status byte values. */
-#define IT8500_COMMAND_SUCCESSFUL 0x80
-#define IT8500_INVALID_CHECKSUM   0x90
-#define IT8500_INVALID_PARAMETER  0xa0
-#define IT8500_UNKNOWN_COMMAND    0xb0
-#define IT8500_INVALID_COMMAND    0xc0
+#define IT8500_PREAMBLE 0xaa
 
 /*
  * Operating modes.
@@ -125,39 +126,41 @@ enum itech_it8500_command {
 	CMD_GET_OPP_DELAY = 0x89,
 };
 
-/*
- * Data structure to track commands and reponses.
- */
-struct itech_it8500_cmd_packet {
-	uint8_t command; /* Command number. */
-	uint8_t address; /* Unit address: 0..254 (255 = broadcast). */
-	uint8_t data[IT8500_DATA_LEN]; /* Command/Response data. */
+/* Status packet status byte values. */
+enum itech_it8500_status_code {
+	STS_COMMAND_SUCCESSFUL = 0x80,
+	STS_INVALID_CHECKSUM = 0x90,
+	STS_INVALID_PARAMETER = 0xa0,
+	STS_UNKNOWN_COMMAND = 0xb0,
+	STS_INVALID_COMMAND = 0xc0,
 };
 
 /*
  * "Operation state" register flags.
  */
-#define OS_CAL_FLAG   0x01
-#define OS_WTG_FLAG   0x02
-#define OS_REM_FLAG   0x04
-#define OS_OUT_FLAG   0x08
-#define OS_LOCAL_FLAG 0x10
-#define OS_SENSE_FLAG 0x20
-#define OS_LOT_FLAG   0x40
+#define OS_CAL_FLAG   (1UL << 0)
+#define OS_WTG_FLAG   (1UL << 1)
+#define OS_REM_FLAG   (1UL << 2)
+#define OS_OUT_FLAG   (1UL << 3)
+#define OS_LOCAL_FLAG (1UL << 4)
+#define OS_SENSE_FLAG (1UL << 5)
+#define OS_LOT_FLAG   (1UL << 6)
 
 /*
  * "Demand state" register flags.
  */
-#define DS_RV_FLAG      0x0001
-#define DS_OV_FLAG      0x0002
-#define DS_OC_FLAG      0x0004
-#define DS_OP_FLAG      0x0008
-#define DS_OT_FLAG      0x0010
-#define DS_SV_FLAG      0x0020
-#define DS_CC_MODE_FLAG 0x0040
-#define DS_CV_MODE_FLAG 0x0080
-#define DS_CW_MODE_FLAG 0x0100
-#define DS_CR_MODE_FLAG 0x0200
+#define DS_RV_FLAG      (1UL << 0)
+#define DS_OV_FLAG      (1UL << 1)
+#define DS_OC_FLAG      (1UL << 2)
+#define DS_OP_FLAG      (1UL << 3)
+#define DS_OT_FLAG      (1UL << 4)
+#define DS_SV_FLAG      (1UL << 5)
+#define DS_CC_MODE_FLAG (1UL << 6)
+#define DS_CV_MODE_FLAG (1UL << 7)
+#define DS_CW_MODE_FLAG (1UL << 8)
+#define DS_CR_MODE_FLAG (1UL << 9)
+
+#define IT8500_MAX_MODEL_NAME_LEN 5
 
 struct dev_context {
 	char model[IT8500_MAX_MODEL_NAME_LEN + 1];
