@@ -332,10 +332,19 @@ static gboolean flags_valid(const struct metex14_info *info)
 SR_PRIV int sr_metex14_packet_request(struct sr_serial_dev_inst *serial)
 {
 	const uint8_t wbuf = 'D';
+	size_t wrlen;
+	int ret;
 
 	sr_spew("Requesting DMM packet.");
 
-	return serial_write_blocking(serial, &wbuf, 1, 0);
+	wrlen = sizeof(wbuf);
+	ret = serial_write_blocking(serial, &wbuf, wrlen, 0);
+	if (ret < 0)
+		return ret;
+	if ((size_t)ret != wrlen)
+		return SR_ERR_IO;
+
+	return SR_OK;
 }
 #endif
 
