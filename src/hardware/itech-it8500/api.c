@@ -330,90 +330,100 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_ENABLED:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK)
-			*data = g_variant_new_boolean(devc->load_on);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_boolean(devc->load_on);
 		break;
 	case SR_CONF_REGULATION:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK) {
-			mode = itech_it8500_mode_to_string(devc->mode);
-			*data = g_variant_new_string(mode);
-		}
+		if (ret != SR_OK)
+			break;
+		mode = itech_it8500_mode_to_string(devc->mode);
+		*data = g_variant_new_string(mode);
 		break;
 	case SR_CONF_VOLTAGE:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK)
-			*data = g_variant_new_double(devc->voltage);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double(devc->voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
 		ret = itech_it8500_get_int(sdi, CMD_GET_CV_VOLTAGE, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 1000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 1000.0);
 		break;
 	case SR_CONF_CURRENT:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK)
-			*data = g_variant_new_double(devc->current);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double(devc->current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
 		ret = itech_it8500_get_int(sdi, CMD_GET_CC_CURRENT, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 10000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 10000.0);
 		break;
 	case SR_CONF_POWER:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK)
-			*data = g_variant_new_double(devc->power);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double(devc->power);
 		break;
 	case SR_CONF_POWER_TARGET:
 		ret = itech_it8500_get_int(sdi, CMD_GET_CW_POWER, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 1000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 1000.0);
 		break;
 	case SR_CONF_RESISTANCE_TARGET:
 		ret = itech_it8500_get_int(sdi, CMD_GET_CR_RESISTANCE, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 1000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 1000.0);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK) {
-			bval = devc->demand_state & DS_OV_FLAG;
-			*data = g_variant_new_boolean(bval);
-		}
+		if (ret != SR_OK)
+			break;
+		bval = devc->demand_state & DS_OV_FLAG;
+		*data = g_variant_new_boolean(bval);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
 		ret = itech_it8500_get_int(sdi, CMD_GET_MAX_VOLTAGE, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 1000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 1000.0);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK) {
-			bval = devc->demand_state & DS_OC_FLAG;
-			*data = g_variant_new_boolean(bval);
-		}
+		if (ret != SR_OK)
+			break;
+		bval = devc->demand_state & DS_OC_FLAG;
+		*data = g_variant_new_boolean(bval);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 		ret = itech_it8500_get_int(sdi, CMD_GET_MAX_CURRENT, &ival);
-		if (ret == SR_OK)
-			*data = g_variant_new_double((double)ival / 10000.0);
+		if (ret != SR_OK)
+			break;
+		*data = g_variant_new_double((double)ival / 10000.0);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		*data = g_variant_new_boolean(TRUE);
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
 		ret = itech_it8500_get_status(sdi);
-		if (ret == SR_OK) {
-			bval = devc->demand_state & DS_OT_FLAG;
-			*data = g_variant_new_boolean(bval);
-		}
+		if (ret != SR_OK)
+			break;
+		bval = devc->demand_state & DS_OT_FLAG;
+		*data = g_variant_new_boolean(bval);
 		break;
 	/* Hardware doesn't support under voltage reporting. */
 	case SR_CONF_UNDER_VOLTAGE_CONDITION:
@@ -427,6 +437,7 @@ static int config_get(uint32_t key, GVariant **data,
 		sr_dbg("%s: Unsupported key: %u (%s)", __func__, key,
 			kinfo ? kinfo->name : "unknown");
 		ret = SR_ERR_NA;
+		break;
 	}
 
 	return ret;
@@ -463,27 +474,30 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 	case SR_CONF_LIMIT_SAMPLES:
 		ret = sr_sw_limits_config_set(&devc->limits, key, data);
-		goto done;
+		break;
 	case SR_CONF_SAMPLERATE:
 		new_sr = g_variant_get_uint64(data);
-		if (new_sr < MIN_SAMPLE_RATE ||
-		    new_sr > samplerates[devc->max_sample_rate_idx]) {
+		if (new_sr < MIN_SAMPLE_RATE) {
 			ret = SR_ERR_SAMPLERATE;
-			goto done;
+			break;
+		}
+		if (new_sr > samplerates[devc->max_sample_rate_idx]) {
+			ret = SR_ERR_SAMPLERATE;
+			break;
 		}
 		devc->sample_rate = new_sr;
-		goto done;
+		break;
 	case SR_CONF_ENABLED:
 		cmd->command = CMD_LOAD_ON_OFF;
 		cmd->data[0] = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_REGULATION:
-		cmd->command = CMD_SET_MODE;
 		s = g_variant_get_string(data, NULL);
 		if (itech_it8500_string_to_mode(s, &mode) != SR_OK) {
 			ret = SR_ERR_ARG;
-			goto done;
+			break;
 		}
+		cmd->command = CMD_SET_MODE;
 		cmd->data[0] = mode;
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
@@ -516,18 +530,18 @@ static int config_set(uint32_t key, GVariant *data,
 		ivalue = g_variant_get_double(data) * 10000.0;
 		WL32(&cmd->data[0], ivalue);
 		break;
-
 	default:
 		sr_dbg("%s: Unsupported key: %u (%s)", __func__, key,
 			kinfo ? kinfo->name : "unknown");
 		ret = SR_ERR_NA;
-		goto done;
+		break;
 	}
 
-	cmd->address = devc->address;
-	ret = itech_it8500_cmd(sdi, cmd, &response);
+	if (ret == SR_OK && cmd->command) {
+		cmd->address = devc->address;
+		ret = itech_it8500_cmd(sdi, cmd, &response);
+	}
 
-done:
 	g_free(cmd);
 	g_free(response);
 
