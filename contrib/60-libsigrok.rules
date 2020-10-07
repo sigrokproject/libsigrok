@@ -49,7 +49,9 @@ ATTRS{idVendor}=="0957", ATTRS{idProduct}=="1735", ENV{ID_SIGROK}="1"
 
 # ASIX SIGMA
 # ASIX SIGMA2
+# ASIX OMEGA
 ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a000", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="a600", ATTRS{idProduct}=="a004", ENV{ID_SIGROK}="1"
 
 # Braintechnology USB-LPS
 ATTRS{idVendor}=="16d0", ATTRS{idProduct}=="0498", ENV{ID_SIGROK}="1"
