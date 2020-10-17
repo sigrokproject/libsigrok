@@ -1235,6 +1235,8 @@ static uint8_t vcd_char_to_value(char bit_char, int *warn)
 		return 0;
 	if (bit_char == 'u')
 		return 0;
+	if (bit_char == '-')
+		return 0;
 
 	/* Unhandled input text. */
 	return ~0;
@@ -1449,7 +1451,9 @@ static int parse_textline(const struct sr_input *in, char *lines)
 		is_real = curr_first == 'r' && curr_word[1];
 		is_multibit = curr_first == 'b' && curr_word[1];
 		is_singlebit = curr_first == '0' || curr_first == '1';
+		is_singlebit |= curr_first == 'l' || curr_first == 'h';
 		is_singlebit |= curr_first == 'x' || curr_first == 'z';
+		is_singlebit |= curr_first == 'u' || curr_first == '-';
 		if (is_real) {
 			char *real_text;
 			float real_val;
