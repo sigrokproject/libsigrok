@@ -421,7 +421,8 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 					 * can be chosen from the menu and also varies with number
 					 * of active channels. Retrieve the actual number with the
 					 * ACQ:MDEP command. */
-					sr_scpi_get_int(sdi->conn, "ACQ:MDEP?", &buffer_samples);
+					if (sr_scpi_get_int(sdi->conn, ":ACQ:MDEP?", &buffer_samples) != SR_OK)
+						return SR_ERR;
 					devc->analog_frame_size = devc->digital_frame_size =
 							buffer_samples;
 				}
@@ -458,6 +459,8 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_channel *ch;
+	int buffer_samples;
+	int buffer_samples_digital;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -537,6 +540,24 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 	} else if (ch->type == SR_CHANNEL_ANALOG) {
 		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25.6;
+	}
+
+	if (first_frame && devc->model->series->protocol == PROTOCOL_V5 &&
+			devc->data_source != DATA_SOURCE_LIVE)
+	{
+		/* The MSO5000 series does not have a fixed memory depth, it
+		 * can be chosen from the menu and also varies with number
+		 * of active channels. Values are only reliable after acquiring data.
+		 * Retrieve the actual number with the ACQ:MDEP and ACQ:LA:MDEP commands. */
+		if (sr_scpi_get_int(sdi->conn, ":ACQ:MDEP?", &buffer_samples) != SR_OK)
+			return SR_ERR;
+		sr_spew(":ACQ:MDEP? buffer_samples=%d", buffer_samples);
+		devc->analog_frame_size = devc->digital_frame_size =
+				buffer_samples;
+
+		if (sr_scpi_get_int(sdi->conn, ":ACQ:LA:MDEP?", &buffer_samples_digital) == SR_OK)
+			devc->digital_frame_size = buffer_samples_digital;
+		sr_spew(":ACQ:LA:MDEP? buffer_samples_digital=%d", buffer_samples_digital);
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_BLOCK);
