@@ -302,6 +302,7 @@ static void clear_helper(struct dev_context *devc)
 {
 	unsigned int i;
 
+	g_free(devc->data_logic);
 	g_free(devc->data);
 	g_free(devc->buffer);
 	for (i = 0; i < ARRAY_SIZE(devc->coupling); i++)
@@ -430,6 +431,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	devc->buffer = g_malloc(ACQ_BUFFER_SIZE);
 	devc->data = g_malloc(ACQ_BUFFER_SIZE * sizeof(float));
+	devc->data_logic = (devc->model->series->protocol == PROTOCOL_V5)  ?
+			g_malloc(25*1000*1000 * (MAX_DIGITAL_CHANNELS / 8)) : NULL; // 25M gets removed in a later commit
 
 	devc->data_source = DATA_SOURCE_LIVE;
 
