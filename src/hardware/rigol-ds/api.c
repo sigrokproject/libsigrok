@@ -941,11 +941,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Turn off LA module if on and no digital channels selected. */
-	if (devc->la_enabled && !some_digital)
+	if (devc->la_enabled && !some_digital) {
 		if (rigol_ds_config_set(sdi,
 				devc->model->series->protocol >= PROTOCOL_V3 ?
 					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
+		devc->la_enabled = false;
+	}
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
