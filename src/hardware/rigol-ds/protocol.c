@@ -522,7 +522,9 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 						":WAV:MODE NORM" :":WAV:MODE RAW") != SR_OK)
 			return SR_ERR;
 
-		if (devc->data_source != DATA_SOURCE_LIVE) {
+		/* MSO5000 does not (officially) support WAV:RES command */
+		if (devc->model->series->protocol == PROTOCOL_V4 &&
+				devc->data_source != DATA_SOURCE_LIVE) {
 			if (rigol_ds_config_set(sdi, ":WAV:RES") != SR_OK)
 				return SR_ERR;
 		}
@@ -742,7 +744,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (devc->model->series->protocol >= PROTOCOL_V3) {
-			if (rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
+			/* MSO5000 does not (officially) support WAV:BEG command */
+			if (devc->model->series->protocol != PROTOCOL_V5 &&
+				rigol_ds_config_set(sdi, ":WAV:BEG") != SR_OK)
 				return TRUE;
 			if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
 				return TRUE;
