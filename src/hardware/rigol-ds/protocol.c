@@ -546,6 +546,16 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25.6;
 	}
 
+	if (devc->model->series->protocol == PROTOCOL_V5 &&
+			devc->sample_rate == 0.0) {
+		// TODO: Check, if this is also valid for V3, V4
+		float xinc;
+		if (sr_scpi_get_float(sdi->conn, ":WAV:XINC?", &xinc) != SR_OK) {
+			sr_err("Couldn't get sampling rate");
+			return SR_ERR;
+		}
+		devc->sample_rate = 1. / xinc;
+	}
 	if (first_frame && devc->model->series->protocol == PROTOCOL_V5 &&
 			devc->data_source != DATA_SOURCE_LIVE)
 	{
@@ -699,7 +709,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				return TRUE;
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d",
 					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
-						devc->analog_frame_size)) != SR_OK)
+							expected_data_bytes)) != SR_OK)
 				return TRUE;
 		}
 
