@@ -779,6 +779,8 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_err("Unknown data source: '%s'.", tmp_str);
 			return SR_ERR;
 		}
+		if (devc->model->series->protocol == PROTOCOL_V5) /* TODO: Check for other versions */
+			devc->sample_rate = 0.0; /* sample rate changes with data source */
 		break;
 	default:
 		return SR_ERR_NA;
@@ -1020,7 +1022,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->channel_entry = devc->enabled_channels;
 
 	if (devc->data_source == DATA_SOURCE_LIVE) {
-		devc->sample_rate = analog_frame_size(sdi) /
+		/* sample rate is the same for analog and logic channels */
+		devc->sample_rate = devc->model->series->live_samples /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
@@ -1028,16 +1031,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
 		}
-		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
-		if (ret != SR_OK) {
-			sr_err("Cannot get samplerate (WAV:XINC? failed).");
-			return SR_ERR;
+		if (protocol >= PROTOCOL_V3 && protocol <= PROTOCOL_V4) {
+			ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
+			if (ret != SR_OK) {
+				sr_err("Cannot get samplerate (WAV:XINC? failed).");
+				return SR_ERR;
+			}
+			if (!xinc) {
+				sr_err("Cannot get samplerate (zero XINC value).");
+				return SR_ERR;
+			}
+			devc->sample_rate = 1. / xinc;
+		} else {
+			/* MSO5000 (PROTOCOL_V5):
+			 * You only know the exact sample rate, after capturing data */
+			devc->sample_rate = 0.0;
 		}
-		if (!xinc) {
-			sr_err("Cannot get samplerate (zero XINC value).");
-			return SR_ERR;
-		}
-		devc->sample_rate = 1. / xinc;
 	}
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
@@ -1062,6 +1071,14 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
 	sr_scpi_source_remove(sdi->session, scpi);
+
+	if (devc->model->series->protocol == PROTOCOL_V5) {
+		/* For MSO5000 the sample rate may change between sessions,
+		   when changing data source, en-/disabling of analog channels or
+		   switching from mixed mode to digital only */
+		/* TODO: Check, if this is also valid for V3, V4 */
+		devc->sample_rate = 0.0;
+	}
 
 	return SR_OK;
 }
