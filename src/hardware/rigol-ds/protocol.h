@@ -35,7 +35,7 @@
 #define ACQ_BLOCK_SIZE (30 * 1000)
 
 #define MAX_ANALOG_CHANNELS 4
-#define MAX_DIGITAL_CHANNELS 16
+#define MAX_DIGITAL_CHANNELS 16	/* Must be multiple of 8 */
 
 enum protocol_version {
 	PROTOCOL_V1, /* VS5000 */
@@ -156,6 +156,12 @@ struct dev_context {
 	uint64_t num_block_bytes;
 	/* Number of data block bytes already read */
 	uint64_t num_block_read;
+
+	/* start offset within data block for current iteration over all channels */
+	uint64_t block_start_offset_current_iteration;
+	/* Is another iteration required to complete this frame ? */
+	gboolean frame_needs_another_iteration;
+
 	/* What to wait for in *_receive */
 	enum wait_events wait_event;
 	/* Trigger/block copying/stop waiting status */
@@ -164,6 +170,9 @@ struct dev_context {
 	unsigned char *buffer;
 	float *data;
 	unsigned char *data_logic;
+	int last_enabled_digital_channel_index;
+	GSList *last_enabled_digital_channel;
+	GSList *first_enabled_digital_channel;
 };
 
 SR_PRIV int rigol_ds_config_set(const struct sr_dev_inst *sdi, const char *format, ...);

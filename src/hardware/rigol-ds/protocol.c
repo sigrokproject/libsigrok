@@ -347,8 +347,8 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 
 	const gboolean first_frame = (devc->num_frames == 0);
 
-	if (devc->data_logic)
-		memset(devc->data_logic, 0, 25*1000*1000 * (MAX_DIGITAL_CHANNELS / 8));
+	if (devc->channel_entry == devc->first_enabled_digital_channel && devc->data_logic)
+		memset(devc->data_logic, 0, ACQ_BUFFER_SIZE * (MAX_DIGITAL_CHANNELS / 8));
 
 	uint64_t limit_frames = devc->limit_frames;
 	if (devc->num_frames_segmented != 0 && devc->num_frames_segmented < limit_frames)
@@ -473,6 +473,8 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	sr_dbg("Starting reading data from channel %d", ch->index + 1);
 
 	const gboolean first_frame = (devc->num_frames == 0);
+	const gboolean first_iteration = (devc->block_start_offset_current_iteration == 0);
+	const gboolean initial_start = first_frame && first_iteration;
 
 	switch (devc->model->series->protocol) {
 	case PROTOCOL_V1:
@@ -515,7 +517,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 		}
 
-		if (first_frame && rigol_ds_config_set(sdi,
+		if (initial_start && rigol_ds_config_set(sdi,
 					devc->data_source == DATA_SOURCE_LIVE ?
 						":WAV:MODE NORM" :":WAV:MODE RAW") != SR_OK)
 			return SR_ERR;
@@ -530,15 +532,15 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	if (devc->model->series->protocol >= PROTOCOL_V3 &&
 			ch->type == SR_CHANNEL_ANALOG) {
 		/* Vertical increment. */
-		if (first_frame && sr_scpi_get_float(sdi->conn, ":WAV:YINC?",
+		if (initial_start && sr_scpi_get_float(sdi->conn, ":WAV:YINC?",
 				&devc->vert_inc[ch->index]) != SR_OK)
 			return SR_ERR;
 		/* Vertical origin. */
-		if (first_frame && sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
+		if (initial_start && sr_scpi_get_float(sdi->conn, ":WAV:YOR?",
 			&devc->vert_origin[ch->index]) != SR_OK)
 			return SR_ERR;
 		/* Vertical reference. */
-		if (first_frame && sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
+		if (initial_start && sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
 				&devc->vert_reference[ch->index]) != SR_OK)
 			return SR_ERR;
 	} else if (ch->type == SR_CHANNEL_ANALOG) {
@@ -555,7 +557,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		}
 		devc->sample_rate = 1. / xinc;
 	}
-	if (first_frame && devc->model->series->protocol == PROTOCOL_V5 &&
+	if (initial_start && devc->model->series->protocol == PROTOCOL_V5 &&
 			devc->data_source != DATA_SOURCE_LIVE)
 	{
 		/* The MSO5000 series does not have a fixed memory depth, it
@@ -656,6 +658,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
 	double vdiv, offset, origin;
+	uint64_t offset_start;
+	uint64_t offset_stop;
 	int len, i, j, vref;
 	unsigned int ui;
 	unsigned int cur_sample;
@@ -705,17 +709,35 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	ch = devc->channel_entry->data;
 
-	expected_data_bytes = ch->type == SR_CHANNEL_ANALOG ?
-			devc->analog_frame_size : devc->digital_frame_size;
+	if (ch->type == SR_CHANNEL_ANALOG) {
+		expected_data_bytes = devc->analog_frame_size;
+		offset_start = devc->num_channel_bytes + 1;
+		offset_stop = MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE, expected_data_bytes);
+	} else {
+		expected_data_bytes = devc->digital_frame_size;
 
-	if (devc->num_block_bytes == 0) {
+		if (expected_data_bytes < devc->block_start_offset_current_iteration) {
+			expected_data_bytes = 0;
+		} else {
+			expected_data_bytes -= devc->block_start_offset_current_iteration;
+			if (expected_data_bytes > ACQ_BLOCK_SIZE) {
+				expected_data_bytes = ACQ_BLOCK_SIZE;
+				devc->frame_needs_another_iteration = TRUE;
+			}
+		}
+		offset_start = devc->num_channel_bytes +
+				devc->block_start_offset_current_iteration + 1;
+		offset_stop = offset_start + expected_data_bytes - 1;
+	}
+
+	if (expected_data_bytes == 0) {
+		devc->num_block_bytes = 0;
+		devc->num_block_read = 0;
+	} else if (devc->num_block_bytes == 0) {
 		if (devc->model->series->protocol >= PROTOCOL_V4) {
-			if (first_frame && rigol_ds_config_set(sdi, ":WAV:START %d",
-					devc->num_channel_bytes + 1) != SR_OK)
+			if (first_frame && rigol_ds_config_set(sdi, ":WAV:START %d",offset_start) != SR_OK)
 				return TRUE;
-			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d",
-					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
-						expected_data_bytes)) != SR_OK)
+			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d", offset_stop) != SR_OK)
 				return TRUE;
 		}
 
@@ -766,7 +788,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		len = ACQ_BUFFER_SIZE;
 	sr_dbg("Requesting read of %d bytes", len);
 
-	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
+	if (len > 0)
+		len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
 	if (len == -1) {
 		sr_err("Error while reading block data, aborting capture.");
@@ -779,7 +802,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 
 	devc->num_block_read += len;
 
-	if (ch->type == SR_CHANNEL_ANALOG) {
+	if (len == 0) {
+		/* There is no data to send to application. */
+		/* Looks better then indenting the whole block below */
+	} else if (ch->type == SR_CHANNEL_ANALOG) {
 		vref = devc->vert_reference[ch->index];
 		vdiv = devc->vert_inc[ch->index];
 		origin = devc->vert_origin[ch->index];
@@ -816,7 +842,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		sr_session_send(sdi, &packet);
 	} else {
 		/* merge la data before sending data of all channels in one packet */
-		logic.unitsize = 2;
+		logic.unitsize = (devc->last_enabled_digital_channel_index < 8) ? 1 : 2;
 		logic.data = devc->buffer;
 		packet.type = SR_DF_LOGIC;
 		packet.payload = &logic;
@@ -826,7 +852,8 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			devc->data_logic[logic.unitsize * (i + devc->num_channel_bytes) + ch->index / 8] |=
 					(devc->buffer[i] & 1) << (ch->index % 8);
 
-		if (devc->num_channel_bytes + len == expected_data_bytes) {
+		if (devc->num_channel_bytes + len == expected_data_bytes &&
+				devc->channel_entry == devc->last_enabled_digital_channel) {
 			sr_spew("Sending merged la data expanded to analog (%" PRIu64 " -> %" PRIu64 ")",
 					devc->digital_frame_size, devc->analog_frame_size);
 			cur_sample = 0;
@@ -854,7 +881,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (devc->num_block_read == devc->num_block_bytes) {
+	if (devc->num_block_read == 0) {
+		/* No data was read */
+	} else if (devc->num_block_read == devc->num_block_bytes) {
 		sr_dbg("Block has been completed");
 		if (devc->model->series->protocol >= PROTOCOL_V3) {
 			/* Discard the terminating linefeed */
@@ -898,11 +927,20 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		/* We got the frame for this channel, now get the next channel. */
 		devc->channel_entry = devc->channel_entry->next;
 		rigol_ds_channel_start(sdi);
+	} else if (devc->frame_needs_another_iteration) {
+		/* Done with this iteration, but logic channels need
+		 * more iterations to complete frame */
+		devc->channel_entry = devc->first_enabled_digital_channel;
+		devc->block_start_offset_current_iteration += ACQ_BLOCK_SIZE;
+		devc->frame_needs_another_iteration = FALSE;
+		rigol_ds_channel_start(sdi);
 	} else {
 		/* Done with this frame. */
 		std_session_send_df_frame_end(sdi);
 
 		devc->num_frames++;
+		devc->block_start_offset_current_iteration = 0;
+		devc->frame_needs_another_iteration = FALSE;
 
 		/* V5 has no way to read the number of recorded frames, so try to set the
 		 * next frame and read it back instead.

@@ -432,7 +432,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->buffer = g_malloc(ACQ_BUFFER_SIZE);
 	devc->data = g_malloc(ACQ_BUFFER_SIZE * sizeof(float));
 	devc->data_logic = (devc->model->series->protocol == PROTOCOL_V5)  ?
-			g_malloc(25*1000*1000 * (MAX_DIGITAL_CHANNELS / 8)) : NULL; // 25M gets removed in a later commit
+			g_malloc(ACQ_BUFFER_SIZE * (MAX_DIGITAL_CHANNELS / 8)) : NULL;
 
 	devc->data_source = DATA_SOURCE_LIVE;
 
@@ -892,7 +892,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->num_frames = 0;
 	devc->num_frames_segmented = 0;
 
+	devc->block_start_offset_current_iteration = 0;
+	devc->frame_needs_another_iteration = FALSE;
+
 	some_digital = FALSE;
+	devc->first_enabled_digital_channel = NULL;
+	devc->last_enabled_digital_channel = NULL;
+	devc->last_enabled_digital_channel_index = -1;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("handling channel %s", ch->name);
@@ -917,6 +923,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 						devc->enabled_channels, ch);
 			if (ch->enabled) {
 				some_digital = TRUE;
+				if (devc->first_enabled_digital_channel == NULL)
+					devc->first_enabled_digital_channel =
+							g_slist_last(devc->enabled_channels);
+				devc->last_enabled_digital_channel =
+						g_slist_last(devc->enabled_channels);
+				if (ch->index > devc->last_enabled_digital_channel_index)
+					devc->last_enabled_digital_channel_index = ch->index;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
 					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
