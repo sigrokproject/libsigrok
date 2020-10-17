@@ -958,13 +958,16 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		}
 
 		if (devc->num_frames == devc->limit_frames ||
-				devc->num_frames == devc->num_frames_segmented ||
-				devc->data_source == DATA_SOURCE_MEMORY) {
+				devc->num_frames == devc->num_frames_segmented) {
 			/* Last frame, stop capture. */
 			sr_dev_acquisition_stop(sdi);
 		} else {
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;
+
+			if (devc->data_source == DATA_SOURCE_LIVE &&
+					rigol_ds_config_set(sdi, ":SING") != SR_OK)
+				return SR_ERR;
 
 			rigol_ds_capture_start(sdi);
 
