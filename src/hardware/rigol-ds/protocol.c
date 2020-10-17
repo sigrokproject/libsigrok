@@ -107,6 +107,7 @@ static void rigol_ds_set_wait_event(struct dev_context *devc, enum wait_events e
 static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char status2)
 {
 	char *buf;
+	char c;
 	struct dev_context *devc;
 	time_t start;
 
@@ -133,7 +134,9 @@ static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char
 
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == status1 || buf[0] == status2);
+			c = buf[0];
+			g_free(buf);
+		} while (c == status1 || c == status2);
 
 		devc->wait_status = 2;
 	}
@@ -146,7 +149,9 @@ static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char
 
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] != status1 && buf[0] != status2);
+			c = buf[0];
+			g_free(buf);
+		} while (c != status1 && c != status2);
 
 		rigol_ds_set_wait_event(devc, WAIT_NONE);
 	}
@@ -264,6 +269,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 {
 	char *buf;
+	char c;
 	struct dev_context *devc;
 	time_t start;
 	int len;
@@ -293,9 +299,13 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
 				return SR_ERR;
 
-			if (parse_int(buf + 5, &len) != SR_OK)
+			if (parse_int(buf + 5, &len) != SR_OK) {
+				g_free(buf);
 				return SR_ERR;
-		} while (buf[0] == 'R' && len < (1000 * 1000));
+			}
+			c = buf[0];
+			g_free(buf);
+		} while (c == 'R' && len < (1000 * 1000));
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_NONE);
@@ -366,8 +376,11 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:MODE?", &trig_mode) != SR_OK)
 				return SR_ERR;
-			if (rigol_ds_config_set(sdi, ":TRIG:%s:SWE SING", trig_mode) != SR_OK)
+			if (rigol_ds_config_set(sdi, ":TRIG:%s:SWE SING", trig_mode) != SR_OK) {
+				g_free(trig_mode);
 				return SR_ERR;
+			}
+			g_free(trig_mode);
 			if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 				return SR_ERR;
 			rigol_ds_set_wait_event(devc, WAIT_STOP);
