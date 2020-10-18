@@ -903,6 +903,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->first_enabled_digital_channel = NULL;
 	devc->last_enabled_digital_channel = NULL;
 	devc->last_enabled_digital_channel_index = -1;
+	devc->channel_config_changed_analog = FALSE;
+	devc->channel_config_changed_logic = FALSE;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("handling channel %s", ch->name);
@@ -912,6 +914,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 						devc->enabled_channels, ch);
 			if (ch->enabled != devc->analog_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
+				devc->channel_config_changed_analog = TRUE;
 				if (rigol_ds_config_set(sdi, ":CHAN%d:DISP %s", ch->index + 1,
 						ch->enabled ? "ON" : "OFF") != SR_OK)
 					return SR_ERR;
@@ -944,6 +947,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
+				devc->channel_config_changed_logic = TRUE;
 				if (protocol >= PROTOCOL_V5)
 					cmd = ":LA:DISP D%d,%s";
 				else if (protocol >= PROTOCOL_V3)
@@ -1030,8 +1034,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	if (devc->data_source == DATA_SOURCE_LIVE)
-		if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
+	if (devc->data_source == DATA_SOURCE_LIVE && protocol != PROTOCOL_V5)
+		if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 			return SR_ERR;
 
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
