@@ -395,12 +395,14 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 			devc->analog_frame_size = devc->model->series->live_samples;
 			devc->digital_frame_size = devc->model->series->live_samples;
-			rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
+			rigol_ds_set_wait_event(devc,
+					devc->model->series->protocol == PROTOCOL_V5 ?
+							WAIT_STOP : WAIT_TRIGGER);
 		} else {
 			if (devc->model->series->protocol == PROTOCOL_V3) {
 				if (first_frame && rigol_ds_config_set(sdi, ":WAV:MODE RAW") != SR_OK)
 					return SR_ERR;
-			} else if (devc->model->series->protocol >= PROTOCOL_V4) {
+			} else if (devc->model->series->protocol == PROTOCOL_V4) {
 				num_channels = 0;
 
 				/* Channels 3 and 4 are multiplexed with D0-7 and D8-15 */
@@ -443,8 +445,11 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				}
 			}
 
-			if (devc->data_source == DATA_SOURCE_LIVE && rigol_ds_config_set(sdi, ":SINGL") != SR_OK)
-				return SR_ERR;
+			if (devc->data_source == DATA_SOURCE_LIVE ||
+				devc->data_source == DATA_SOURCE_MEMORY) {
+				if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
+					return SR_ERR;
+			}
 			rigol_ds_set_wait_event(devc, WAIT_STOP);
 			if (devc->data_source == DATA_SOURCE_SEGMENTED &&
 					devc->model->series->protocol <= PROTOCOL_V4)
