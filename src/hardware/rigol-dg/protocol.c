@@ -122,8 +122,11 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 			wf = WF_ARB;
 		else if (g_ascii_strncasecmp(s, "DC", strlen("DC")) == 0)
 			wf = WF_DC;
-		else
+		else {
+			sr_warn("Unknown waveform: %s\n", s);
+			ret = SR_ERR;
 			goto done;
+		}
 		ch_status->wf = wf;
 		ch_status->wf_spec = rigol_dg_get_waveform_spec(
 				&devc->device->channels[ch->index], wf);
