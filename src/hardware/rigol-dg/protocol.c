@@ -114,9 +114,9 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 			wf = WF_SQUARE;
 		else if (g_ascii_strncasecmp(s, "RAMP", strlen("RAMP")) == 0)
 			wf = WF_RAMP;
-		else if (g_ascii_strncasecmp(s, "PULSE", strlen("PULSE")) == 0)
+		else if (g_ascii_strncasecmp(s, "PULS", strlen("PULS")) == 0)
 			wf = WF_PULSE;
-		else if (g_ascii_strncasecmp(s, "NOISE", strlen("NOISE")) == 0)
+		else if (g_ascii_strncasecmp(s, "NOIS", strlen("NOIS")) == 0)
 			wf = WF_NOISE;
 		else if (g_ascii_strncasecmp(s, "USER", strlen("USER")) == 0)
 			wf = WF_ARB;
