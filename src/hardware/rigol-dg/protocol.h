@@ -92,6 +92,7 @@ struct channel_spec {
 	const char *name;
 	const struct waveform_spec *waveforms;
 	uint32_t num_waveforms;
+	const double *phase_min_max_step;
 };
 
 struct channel_status {

@@ -48,7 +48,7 @@ static const uint32_t dg1000z_devopts_cg[] = {
 	SR_CONF_DUTY_CYCLE | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const double phase_min_max_step[] = { 0.0, 360.0, 0.001 };
+static const double dg1000z_phase_min_max_step[] = { 0.0, 360.0, 0.001 };
 
 #define WAVEFORM_DEFAULT WFO_FREQUENCY | WFO_AMPLITUDE | WFO_OFFSET | WFO_PHASE
 
@@ -63,12 +63,12 @@ static const struct waveform_spec dg810_waveforms[] = {
 };
 
 static const struct channel_spec dg811_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg810_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg810_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct channel_spec dg812_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg810_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg810_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg810_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg810_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg820_waveforms[] = {
@@ -82,12 +82,12 @@ static const struct waveform_spec dg820_waveforms[] = {
 };
 
 static const struct channel_spec dg821_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg820_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg820_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct channel_spec dg822_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg820_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg820_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg820_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg820_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg830_waveforms[] = {
@@ -101,12 +101,12 @@ static const struct waveform_spec dg830_waveforms[] = {
 };
 
 static const struct channel_spec dg831_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg830_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg830_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct channel_spec dg832_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg830_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg830_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg830_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg830_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg952_waveforms[] = {
@@ -120,8 +120,8 @@ static const struct waveform_spec dg952_waveforms[] = {
 };
 
 static const struct channel_spec dg952_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg952_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg952_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg952_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg952_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg972_waveforms[] = {
@@ -135,8 +135,8 @@ static const struct waveform_spec dg972_waveforms[] = {
 };
 
 static const struct channel_spec dg972_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg972_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg972_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg972_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg972_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg992_waveforms[] = {
@@ -150,8 +150,8 @@ static const struct waveform_spec dg992_waveforms[] = {
 };
 
 static const struct channel_spec dg992_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg992_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg992_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg992_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg992_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg1022z_waveforms[] = {
@@ -165,8 +165,8 @@ static const struct waveform_spec dg1022z_waveforms[] = {
 };
 
 static const struct channel_spec dg1022z_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg1022z_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg1022z_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg1022z_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg1022z_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg1032z_waveforms[] = {
@@ -180,8 +180,8 @@ static const struct waveform_spec dg1032z_waveforms[] = {
 };
 
 static const struct channel_spec dg1032z_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg1032z_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg1032z_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg1032z_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg1032z_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct waveform_spec dg1062z_waveforms[] = {
@@ -195,8 +195,8 @@ static const struct waveform_spec dg1062z_waveforms[] = {
 };
 
 static const struct channel_spec dg1062z_channels[] = {
-	{ "CH1",  ARRAY_AND_SIZE(dg1062z_waveforms) },
-	{ "CH2",  ARRAY_AND_SIZE(dg1062z_waveforms) },
+	{ "CH1",  ARRAY_AND_SIZE(dg1062z_waveforms), dg1000z_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(dg1062z_waveforms), dg1000z_phase_min_max_step },
 };
 
 static const struct scpi_command cmdset_dg1000z[] = {
@@ -224,6 +224,55 @@ static const struct scpi_command cmdset_dg1000z[] = {
 	{ PSG_CMD_COUNTER_SET_ENABLE, "COUN:STAT ON", },
 	{ PSG_CMD_COUNTER_SET_DISABLE, "COUN:STAT OFF", },
 	{ PSG_CMD_COUNTER_MEASURE, "COUN:MEAS?", },
+	ALL_ZERO
+};
+
+static const uint32_t mso5000_devopts[] = {
+};
+
+static const uint32_t mso5000_devopts_cg[] = {
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_AMPLITUDE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_PHASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DUTY_CYCLE | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const double mso5000_phase_min_max_step[] = { 0.0, 360.0, 0.1 };
+
+static const struct waveform_spec mso5000_waveforms[] = {
+	{ "SIN",  WF_SINE,      100.0E-3, 25.0E+6, 100.0E-3, WAVEFORM_DEFAULT },
+	{ "SQU",  WF_SQUARE,    100.0E-3, 15.0E+6, 100.0E-3, WAVEFORM_DEFAULT },
+	{ "RAMP", WF_RAMP,      100.0E-3,100.0E+3, 100.0E-3, WAVEFORM_DEFAULT },
+	{ "PULS", WF_PULSE,     100.0E-3,  1.0E+6, 100.0E-3, WAVEFORM_DEFAULT | WFO_DUTY_CYCLE },
+	{ "USER", WF_ARB,       100.0E-3, 10.0E+6, 100.0E-3, WAVEFORM_DEFAULT },
+	{ "NOIS", WF_NOISE,      60.0E+6, 60.0E+6,   0.0E-0, WFO_AMPLITUDE | WFO_OFFSET },
+	{ "DC",   WF_DC,          0.0E-0,  0.0E+0,   0.0E-0, WFO_OFFSET },
+};
+
+static const struct channel_spec mso5000_channels[] = {
+	{ "CH1",  ARRAY_AND_SIZE(mso5000_waveforms), mso5000_phase_min_max_step },
+	{ "CH2",  ARRAY_AND_SIZE(mso5000_waveforms), mso5000_phase_min_max_step },
+};
+
+static const struct scpi_command cmdset_mso5000[] = {
+	{ PSG_CMD_GET_ENABLED, "SOUR%s:OUTPUT:STATE?", },
+	{ PSG_CMD_SET_ENABLE, "SOUR%s:OUTPUT:STATE ON", },
+	{ PSG_CMD_SET_DISABLE, "SOUR%s:OUTPUT:STATE OFF", },
+	{ PSG_CMD_GET_SOURCE, "SOUR%s:APPL?", },
+	{ PSG_CMD_SET_SOURCE, "SOUR%s:APPL:%s", },
+	{ PSG_CMD_GET_FREQUENCY, "SOUR%s:FREQ?", },
+	{ PSG_CMD_SET_FREQUENCY, "SOUR%s:FREQ %f", },
+	{ PSG_CMD_GET_AMPLITUDE, "SOUR%s:VOLT?", },
+	{ PSG_CMD_SET_AMPLITUDE, "SOUR%s:VOLT %f", },
+	{ PSG_CMD_GET_OFFSET, "SOUR%s:VOLT:OFFS?", },
+	{ PSG_CMD_SET_OFFSET, "SOUR%s:VOLT:OFFS %f", },
+	{ PSG_CMD_GET_PHASE, "SOUR%s:PHAS?", },
+	{ PSG_CMD_SET_PHASE, "SOUR%s:PHAS %f", },
+	{ PSG_CMD_GET_DCYCL_PULSE, "SOUR%s:PULS:DCYC?", },
+	{ PSG_CMD_SET_DCYCL_PULSE, "SOUR%s:PULS:DCYC %f", },
 	ALL_ZERO
 };
 
@@ -299,6 +348,43 @@ static const struct device_spec device_models[] = {
 		ARRAY_AND_SIZE(dg1000z_devopts_cg),
 		ARRAY_AND_SIZE(dg1062z_channels),
 		cmdset_dg1000z,
+	},
+	/* MSO5000 devices*/
+	{ "Rigol Technologies", "MSO5354",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
+	},
+	{ "Rigol Technologies", "MSO5204",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
+	},
+	{ "Rigol Technologies", "MSO5104",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
+	},
+	{ "Rigol Technologies", "MSO5102",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
+	},
+	{ "Rigol Technologies", "MSO5074",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
+	},
+	{ "Rigol Technologies", "MSO5072",
+		ARRAY_AND_SIZE(mso5000_devopts),
+		ARRAY_AND_SIZE(mso5000_devopts_cg),
+		ARRAY_AND_SIZE(mso5000_channels),
+		cmdset_mso5000,
 	},
 };
 
@@ -734,7 +820,7 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_min_max_step_array(fspec);
 			break;
 		case SR_CONF_PHASE:
-			*data = std_gvar_min_max_step_array(phase_min_max_step);
+			*data = std_gvar_min_max_step_array(ch_spec->phase_min_max_step);
 			break;
 		default:
 			return SR_ERR_NA;
