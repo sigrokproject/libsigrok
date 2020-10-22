@@ -69,6 +69,13 @@ enum waveform_type {
 	WF_PULSE,
 	WF_NOISE,
 	WF_ARB,
+	WF_SINC,
+	WF_EXPRISE,
+	WF_EXPFALL,
+	WF_ECG,
+	WF_GAUSS,
+	WF_LORENTZ,
+	WF_HAVERSINE,
 };
 
 enum waveform_options {

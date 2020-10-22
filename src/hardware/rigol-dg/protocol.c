@@ -39,6 +39,20 @@ SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type)
 		return "Noise";
 	case WF_ARB:
 		return "Arb";
+	case WF_SINC:
+		return "Sinc";
+	case WF_EXPRISE:
+		return "ExpRise";
+	case WF_EXPFALL:
+		return "ExpFall";
+	case WF_ECG:
+		return "ECG";
+	case WF_GAUSS:
+		return "Gauss";
+	case WF_LORENTZ:
+		return "Lorentz";
+	case WF_HAVERSINE:
+		return "Haversine";
 	}
 
 	return "Unknown";
@@ -60,6 +74,20 @@ SR_PRIV int rigol_dg_string_to_waveform(const char *s, enum waveform_type *wf)
 		*wf = WF_ARB;
 	else if (g_ascii_strncasecmp(s, "DC", strlen("DC")) == 0)
 		*wf = WF_DC;
+	else if (g_ascii_strncasecmp(s, "SINC", strlen("SINC")) == 0)
+		*wf = WF_SINC;
+	else if (g_ascii_strncasecmp(s, "EXPR", strlen("EXPR")) == 0)
+		*wf = WF_EXPRISE;
+	else if (g_ascii_strncasecmp(s, "EXPF", strlen("EXPF")) == 0)
+		*wf = WF_EXPFALL;
+	else if (g_ascii_strncasecmp(s, "ECG", strlen("ECG")) == 0)
+		*wf = WF_ECG;
+	else if (g_ascii_strncasecmp(s, "GAUS", strlen("GAUS")) == 0)
+		*wf = WF_GAUSS;
+	else if (g_ascii_strncasecmp(s, "LOR", strlen("LOR")) == 0)
+		*wf = WF_LORENTZ;
+	else if (g_ascii_strncasecmp(s, "HAV", strlen("HAV")) == 0)
+		*wf = WF_HAVERSINE;
 	else {
 		sr_warn("Unknown waveform: %s\n", s);
 		return SR_ERR;
