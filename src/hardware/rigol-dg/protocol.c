@@ -44,6 +44,30 @@ SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type)
 	return "Unknown";
 }
 
+SR_PRIV int rigol_dg_string_to_waveform(const char *s, enum waveform_type *wf)
+{
+	if (g_ascii_strncasecmp(s, "SIN", strlen("SIN")) == 0)
+		*wf = WF_SINE;
+	else if (g_ascii_strncasecmp(s, "SQU", strlen("SQU")) == 0)
+		*wf = WF_SQUARE;
+	else if (g_ascii_strncasecmp(s, "RAMP", strlen("RAMP")) == 0)
+		*wf = WF_RAMP;
+	else if (g_ascii_strncasecmp(s, "PULS", strlen("PULS")) == 0)
+		*wf = WF_PULSE;
+	else if (g_ascii_strncasecmp(s, "NOIS", strlen("NOIS")) == 0)
+		*wf = WF_NOISE;
+	else if (g_ascii_strncasecmp(s, "USER", strlen("USER")) == 0)
+		*wf = WF_ARB;
+	else if (g_ascii_strncasecmp(s, "DC", strlen("DC")) == 0)
+		*wf = WF_DC;
+	else {
+		sr_warn("Unknown waveform: %s\n", s);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 	const struct channel_spec *ch, enum waveform_type wf)
 {
@@ -108,25 +132,9 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 		/* First parameter is the waveform type */
 		if (!(s = params[0]))
 			goto done;
-		if (g_ascii_strncasecmp(s, "SIN", strlen("SIN")) == 0)
-			wf = WF_SINE;
-		else if (g_ascii_strncasecmp(s, "SQU", strlen("SQU")) == 0)
-			wf = WF_SQUARE;
-		else if (g_ascii_strncasecmp(s, "RAMP", strlen("RAMP")) == 0)
-			wf = WF_RAMP;
-		else if (g_ascii_strncasecmp(s, "PULS", strlen("PULS")) == 0)
-			wf = WF_PULSE;
-		else if (g_ascii_strncasecmp(s, "NOIS", strlen("NOIS")) == 0)
-			wf = WF_NOISE;
-		else if (g_ascii_strncasecmp(s, "USER", strlen("USER")) == 0)
-			wf = WF_ARB;
-		else if (g_ascii_strncasecmp(s, "DC", strlen("DC")) == 0)
-			wf = WF_DC;
-		else {
-			sr_warn("Unknown waveform: %s\n", s);
-			ret = SR_ERR;
+		if ((ret = rigol_dg_string_to_waveform(s, &wf)) != SR_OK)
 			goto done;
-		}
+
 		ch_status->wf = wf;
 		ch_status->wf_spec = rigol_dg_get_waveform_spec(
 				&devc->device->channels[ch->index], wf);
