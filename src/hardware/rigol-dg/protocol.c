@@ -56,6 +56,46 @@ SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 	return spec;
 }
 
+SR_PRIV int rigol_dg_get_double_param(const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg, int psg_cmd, double *value)
+{
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
+	const char *command;
+	GVariant *data;
+	gchar *response, **params;
+	const gchar *s;
+	int ret;
+
+	devc = sdi->priv;
+	scpi = sdi->conn;
+	data = NULL;
+	params = NULL;
+	response = NULL;
+	ret = SR_ERR_NA;
+
+	command = sr_scpi_cmd_get(devc->cmdset, psg_cmd);
+	if (command && *command) {
+		sr_scpi_get_opc(scpi);
+		ret = sr_scpi_cmd_resp(sdi, devc->cmdset,
+			PSG_CMD_SELECT_CHANNEL, cg->name, &data,
+			G_VARIANT_TYPE_STRING, psg_cmd, cg->name);
+		if (ret == SR_OK) {
+			response = g_variant_dup_string(data, NULL);
+			g_strstrip(response);
+			s = sr_scpi_unquote_string(response);
+			sr_spew("Double value is: '%s'", s);
+
+			*value = g_ascii_strtod(s, NULL);
+		}
+	}
+
+	g_variant_unref(data);
+	g_free(response);
+	g_strfreev(params);
+	return ret;
+}
+
 SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg)
 {
@@ -83,6 +123,34 @@ SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 
 	ch = cg->channels->data;
 	ch_status = &devc->ch_status[ch->index];
+
+	command = sr_scpi_cmd_get(devc->cmdset, PSG_CMD_GET_SOURCE_NO_PARAM);
+	if (command && *command) {
+		sr_scpi_get_opc(scpi);
+		ret = sr_scpi_cmd_resp(sdi, devc->cmdset,
+			PSG_CMD_SELECT_CHANNEL, cg->name, &data,
+			G_VARIANT_TYPE_STRING, PSG_CMD_GET_SOURCE_NO_PARAM, cg->name);
+		if (ret != SR_OK)
+			goto done;
+		response = g_variant_dup_string(data, NULL);
+		g_strstrip(response);
+		s = sr_scpi_unquote_string(response);
+		sr_spew("Channel state: '%s'", s);
+
+		if ((ret = rigol_dg_string_to_waveform(
+				&devc->device->channels[ch->index], s, &wf)) != SR_OK)
+			goto done;
+
+		ch_status->wf = wf;
+		ch_status->wf_spec = rigol_dg_get_waveform_spec(
+				&devc->device->channels[ch->index], wf);
+
+		/* Ignore errors on read, keep default value */
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_FREQUENCY, &ch_status->freq);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_AMPLITUDE, &ch_status->ampl);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_OFFSET, &ch_status->offset);
+		rigol_dg_get_double_param(sdi, cg, PSG_CMD_GET_PHASE, &ch_status->phase);
+	}
 
 	command = sr_scpi_cmd_get(devc->cmdset, PSG_CMD_GET_SOURCE);
 	if (command && *command) {

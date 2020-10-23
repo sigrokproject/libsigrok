@@ -43,6 +43,8 @@ enum psg_commands {
 	PSG_CMD_SET_DISABLE,
 	PSG_CMD_GET_SOURCE,
 	PSG_CMD_SET_SOURCE,
+	PSG_CMD_GET_SOURCE_NO_PARAM,
+	PSG_CMD_SET_SOURCE_NO_PARAM,
 	PSG_CMD_SET_FREQUENCY,
 	PSG_CMD_GET_FREQUENCY,
 	PSG_CMD_SET_AMPLITUDE,
@@ -137,6 +139,8 @@ SR_PRIV int rigol_dg_string_to_waveform(
 		const struct channel_spec *ch, const char *s, enum waveform_type *wf);
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 		const struct channel_spec *ch, enum waveform_type wf);
+SR_PRIV int rigol_dg_get_double_param(const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg, int psg_cmd, double *value);
 SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg);
 SR_PRIV int rigol_dg_receive_data(int fd, int revents, void *cb_data);
