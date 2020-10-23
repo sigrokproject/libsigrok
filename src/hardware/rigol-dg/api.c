@@ -268,8 +268,9 @@ static const struct scpi_command cmdset_mso5000[] = {
 	{ PSG_CMD_GET_ENABLED, "SOUR%s:OUTPUT:STATE?", },
 	{ PSG_CMD_SET_ENABLE, "SOUR%s:OUTPUT:STATE ON", },
 	{ PSG_CMD_SET_DISABLE, "SOUR%s:OUTPUT:STATE OFF", },
-	{ PSG_CMD_GET_SOURCE, "SOUR%s:FUNC?", },
-	{ PSG_CMD_SET_SOURCE, "SOUR%s:FUNC %s", },
+	{ PSG_CMD_SET_SOURCE, "SOUR%s:FUNC %s", }, /* Hack to avoid if in set pattern */
+	{ PSG_CMD_GET_SOURCE_NO_PARAM, "SOUR%s:FUNC?", },
+	{ PSG_CMD_SET_SOURCE_NO_PARAM, "SOUR%s:FUNC %s", },
 	{ PSG_CMD_GET_FREQUENCY, "SOUR%s:FREQ?", },
 	{ PSG_CMD_SET_FREQUENCY, "SOUR%s:FREQ %f", },
 	{ PSG_CMD_GET_AMPLITUDE, "SOUR%s:VOLT?", },
