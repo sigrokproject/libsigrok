@@ -124,6 +124,7 @@ struct device_spec {
 	const struct channel_spec *channels;
 	const uint32_t num_channels;
 	const struct scpi_command *cmdset;
+	const gboolean has_counter;
 };
 
 struct dev_context {
