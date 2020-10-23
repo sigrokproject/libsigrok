@@ -133,8 +133,6 @@ struct dev_context {
 	uint32_t quirks;
 };
 
-SR_PRIV const char *rigol_dg_waveform_to_string(const struct channel_spec *ch,
-		enum waveform_type type);
 SR_PRIV int rigol_dg_string_to_waveform(
 		const struct channel_spec *ch, const char *s, enum waveform_type *wf);
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(

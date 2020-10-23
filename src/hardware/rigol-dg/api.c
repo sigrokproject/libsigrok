@@ -583,9 +583,7 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_PATTERN_MODE:
 			if ((ret = rigol_dg_get_channel_state(sdi, cg)) == SR_OK) {
 				*data = g_variant_new_string(
-					 rigol_dg_waveform_to_string(
-						 &devc->device->channels[ch->index],
-						 ch_status->wf));
+					ch_status->wf_spec->user_name);
 			}
 			break;
 		case SR_CONF_OUTPUT_FREQUENCY:
@@ -642,7 +640,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_key_info *kinfo;
 	int ret;
 	uint32_t cmd;
-	const char *mode, *mode_name, *new_mode;
+	const char *mode, *new_mode;
 	unsigned int i;
 
 	if (!data || !sdi)
@@ -689,12 +687,11 @@ static int config_set(uint32_t key, GVariant *data,
 			new_mode = NULL;
 			mode = g_variant_get_string(data, NULL);
 			for (i = 0; i < ch_spec->num_waveforms; i++) {
-				mode_name = rigol_dg_waveform_to_string(
-						&devc->device->channels[ch->index],
-						ch_spec->waveforms[i].waveform);
-				if (g_ascii_strncasecmp(mode, mode_name,
-						strlen(mode_name)) == 0)
+				if (g_ascii_strcasecmp(mode,
+						ch_spec->waveforms[i].user_name) == 0) {
 					new_mode = ch_spec->waveforms[i].scpi_name;
+					break;
+				}
 			}
 			if (new_mode)
 				ret = sr_scpi_cmd(sdi, devc->cmdset,
@@ -806,9 +803,7 @@ static int config_list(uint32_t key, GVariant **data,
 			b = g_variant_builder_new(G_VARIANT_TYPE("as"));
 			for (i = 0; i < ch_spec->num_waveforms; i++) {
 				g_variant_builder_add(b, "s",
-					rigol_dg_waveform_to_string(
-						&devc->device->channels[ch->index],
-						ch_spec->waveforms[i].waveform));
+					ch_spec->waveforms[i].user_name);
 			}
 			*data = g_variant_new("as", b);
 			g_variant_builder_unref(b);

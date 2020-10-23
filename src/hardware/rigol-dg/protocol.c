@@ -22,20 +22,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV const char *rigol_dg_waveform_to_string(const struct channel_spec *ch,
-		enum waveform_type type)
-{
-	unsigned int i;
-
-	for (i = 0; i < ch->num_waveforms; i++) {
-		if (ch->waveforms[i].waveform == type) {
-			return ch->waveforms[i].user_name;
-		}
-	}
-
-	return "Unknown";
-}
-
 SR_PRIV int rigol_dg_string_to_waveform(
 		const struct channel_spec *ch, const char *s, enum waveform_type *wf)
 {
