@@ -22,37 +22,15 @@
 #include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type)
+SR_PRIV const char *rigol_dg_waveform_to_string(const struct channel_spec *ch,
+		enum waveform_type type)
 {
-	switch (type) {
-	case WF_DC:
-		return "DC";
-	case WF_SINE:
-		return "Sine";
-	case WF_SQUARE:
-		return "Square";
-	case WF_RAMP:
-		return "Ramp";
-	case WF_PULSE:
-		return "Pulse";
-	case WF_NOISE:
-		return "Noise";
-	case WF_ARB:
-		return "Arb";
-	case WF_SINC:
-		return "Sinc";
-	case WF_EXPRISE:
-		return "ExpRise";
-	case WF_EXPFALL:
-		return "ExpFall";
-	case WF_ECG:
-		return "ECG";
-	case WF_GAUSS:
-		return "Gauss";
-	case WF_LORENTZ:
-		return "Lorentz";
-	case WF_HAVERSINE:
-		return "Haversine";
+	unsigned int i;
+
+	for (i = 0; i < ch->num_waveforms; i++) {
+		if (ch->waveforms[i].waveform == type) {
+			return ch->waveforms[i].user_name;
+		}
 	}
 
 	return "Unknown";
