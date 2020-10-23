@@ -587,6 +587,7 @@ static int config_get(uint32_t key, GVariant **data,
 			if ((ret = rigol_dg_get_channel_state(sdi, cg)) == SR_OK) {
 				*data = g_variant_new_string(
 					 rigol_dg_waveform_to_string(
+						 &devc->device->channels[ch->index],
 						 ch_status->wf));
 			}
 			break;
@@ -692,6 +693,7 @@ static int config_set(uint32_t key, GVariant *data,
 			mode = g_variant_get_string(data, NULL);
 			for (i = 0; i < ch_spec->num_waveforms; i++) {
 				mode_name = rigol_dg_waveform_to_string(
+						&devc->device->channels[ch->index],
 						ch_spec->waveforms[i].waveform);
 				if (g_ascii_strncasecmp(mode, mode_name,
 						strlen(mode_name)) == 0)
@@ -808,6 +810,7 @@ static int config_list(uint32_t key, GVariant **data,
 			for (i = 0; i < ch_spec->num_waveforms; i++) {
 				g_variant_builder_add(b, "s",
 					rigol_dg_waveform_to_string(
+						&devc->device->channels[ch->index],
 						ch_spec->waveforms[i].waveform));
 			}
 			*data = g_variant_new("as", b);
