@@ -87,7 +87,8 @@ enum waveform_options {
 };
 
 struct waveform_spec {
-	const char *name;
+	const char *scpi_name;
+	const char *user_name;
 	enum waveform_type waveform;
 	double freq_min;
 	double freq_max;
@@ -133,7 +134,8 @@ struct dev_context {
 };
 
 SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type);
-SR_PRIV int rigol_dg_string_to_waveform(const char *s, enum waveform_type *wf);
+SR_PRIV int rigol_dg_string_to_waveform(
+		const struct channel_spec *ch, const char *s, enum waveform_type *wf);
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 		const struct channel_spec *ch, enum waveform_type wf);
 SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
