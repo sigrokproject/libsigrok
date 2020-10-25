@@ -101,6 +101,8 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
+SR_ARG_OPT_PKG([libm2k], [LIBM2K], , [libm2k >= 1.0])
+
 # pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
 SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
@@ -257,6 +259,7 @@ m4_define([_SR_DRIVER], [
 m4_define([SR_DRIVER],
 	[_SR_DRIVER([$1], [$2], m4_expand([AS_TR_CPP([HW_$2])]), [$3])])
 
+SR_DRIVER([ADALM 2000], [adalm-2000], [libm2k])
 SR_DRIVER([Agilent DMM], [agilent-dmm], [serial_comm])
 SR_DRIVER([Appa 55II], [appa-55ii], [serial_comm])
 SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [serial_comm])
