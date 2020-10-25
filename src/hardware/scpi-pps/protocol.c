@@ -97,7 +97,13 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	if (ret != SR_OK)
 		return ret;
 
-	ch_spec = &devc->device->channels[pch->hw_output_idx];
+	if (devc->channels) {
+		/* Dynamically-probed devices. */
+		ch_spec = &devc->channels[pch->hw_output_idx];
+	} else {
+		/* Statically-configured devices. */
+		ch_spec = &devc->device->channels[pch->hw_output_idx];
+	}
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	/* Note: digits/spec_digits will be overridden later. */
