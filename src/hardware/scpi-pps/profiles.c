@@ -274,6 +274,177 @@ static int chroma_62000p_probe_channels(struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/* Envox EEZ PSU Series */
+static const uint32_t eez_psu_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t eez_psu_devopts_cg[] = {
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_REGULATION | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET,
+};
+
+static const struct scpi_command eez_psu_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REMOTE" },
+	{ SCPI_CMD_LOCAL, "SYST:LOCAL" },
+	{ SCPI_CMD_SELECT_CHANNEL, ":INST:NSEL %s" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, ":MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, ":MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, ":MEAS:POWER?" },
+	{ SCPI_CMD_GET_OUTPUT_REGULATION, ":OUTP:MODE?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, ":SOUR:VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, ":SOUR:VOLT %.2f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, ":SOUR:CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, ":SOUR:CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, ":OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, ":OUTP ON" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, ":OUTP OFF" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, ":SOUR:CURR:PROT?" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, ":SOUR:VOLT:PROT?" },
+	ALL_ZERO
+};
+
+/*
+ * The EEZ BB3 protocol currently specifies up to six channels. The older
+ * EEZ PSU design only has room for two in its enclosure design.
+ *
+ * If a future model's SCPI spec allows more than six models then we can
+ * extend this to support more.
+ */
+static const char *eez_psu_channel_names[] = { "1", "2", "3", "4", "5", "6", };
+
+static int eez_psu_probe_channels(struct sr_dev_inst *sdi,
+		struct sr_scpi_hw_info *hw_info,
+		struct channel_spec **channels, unsigned int *num_channels,
+		struct channel_group_spec **channel_groups,
+		unsigned int *num_channel_groups)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret, intval;
+	size_t i, channel_count;
+	double limit_val;
+	const char *channel_name;
+
+	/*
+	 * The EEZ PSU family is intended by the designer to be end-user
+	 * customizable, so this is intentionally a little more dynamic
+	 * than strictly necessary for the "stock" models, to make it
+	 * more likely to automatically support end-user upgrades of the
+	 * various ranges.
+	 *
+	 * The BB3 in particular supports various different modular
+	 * power supply frontends that offer different voltage/current
+	 * limits and different numbers of independent channels, such as
+	 * three PSU modules that have two channels each for a total of
+	 * six controllable channels.
+	 *
+	 * This currently supports both the original EEZ PSU design
+	 * (H24005, when in its stock build configuration) and the
+	 * successor EEZ BB3 design.
+	 */
+
+	scpi = sdi->conn;
+	ret = sr_scpi_get_int(scpi, ":SYST:CHAN:COUN?", &intval);
+	if (ret != SR_OK) {
+		sr_err("Failed to probe EEZ PSU channel count.");
+		return ret;
+	}
+	if (intval < 0) {
+		sr_err("Suspicious channel count %d, ignoring.", intval);
+		return SR_ERR_DATA;
+	}
+	channel_count = intval;
+	if (channel_count > ARRAY_SIZE(eez_psu_channel_names)) {
+		/*
+		 * No known EEZ PSU specifies more than six channels at
+		 * the time of writing, so it would be weird to get here
+		 * but we'll allow it to be robust.
+		 */
+		sr_warn("Only using first %zu of %zu EEZ PSU channels.",
+			channel_count, ARRAY_SIZE(eez_psu_channel_names));
+		channel_count = ARRAY_SIZE(eez_psu_channel_names);
+	}
+
+	sr_spew("EEZ PSU (%s) has channel count %zu.",
+		hw_info->model, channel_count);
+
+	*channels = g_malloc0(sizeof(**channels) * channel_count);
+	*channel_groups = g_malloc0(sizeof(**channel_groups) * channel_count);
+	for (i = 0; i < channel_count; i++) {
+		channel_name = eez_psu_channel_names[i];
+
+		/*
+		 * Select the channel to prepare for our various "get"
+		 * calls below.
+		 */
+		ret = sr_scpi_send(scpi, ":INST:NSEL %s", channel_name);
+		if (ret != SR_OK) {
+			sr_err("Failed to select %s to retrieve its limits.",
+				channel_name);
+			return ret;
+		}
+
+		(*channel_groups)[i].name = channel_name;
+		(*channel_groups)[i].channel_index_mask = CH_IDX(i);
+		(*channel_groups)[i].features = PPS_OVP | PPS_OCP;
+		(*channel_groups)[i].mqflags = SR_MQFLAG_DC;
+
+		(*channels)[i].name = channel_name;
+
+		ret = sr_scpi_get_double(scpi,
+			":SYST:CHAN:INFO:CURR?", &limit_val);
+		if (ret != SR_OK) {
+			sr_err("Failed to read the current limit for %s.",
+				channel_name);
+			return ret;
+		}
+		(*channels)[i].current[0] = 0.0;
+		(*channels)[i].current[1] = limit_val;
+		(*channels)[i].current[2] = 0.01; /* Programming resolution. */
+		(*channels)[i].current[3] = 2; /* Spec digits. */
+		(*channels)[i].current[4] = 2; /* Encoding digits. */
+
+		ret = sr_scpi_get_double(scpi,
+			":SYST:CHAN:INFO:VOLT?", &limit_val);
+		if (ret != SR_OK) {
+			sr_err("Failed to read the voltage limit for %s.",
+				channel_name);
+			return ret;
+		}
+		(*channels)[i].voltage[0] = 0.0;
+		(*channels)[i].voltage[1] = limit_val;
+		(*channels)[i].voltage[2] = 0.01; /* Programming resolution. */
+		(*channels)[i].voltage[3] = 2; /* Spec digits. */
+		(*channels)[i].voltage[4] = 2; /* Encoding digits. */
+
+		ret = sr_scpi_get_double(scpi,
+			":SYST:CHAN:INFO:POW?", &limit_val);
+		if (ret != SR_OK) {
+			sr_err("Failed to read the power limit for %s.",
+				channel_name);
+			return ret;
+		}
+		(*channels)[i].power[0] = 0.0;
+		(*channels)[i].power[1] = limit_val;
+		(*channels)[i].power[2] = 0.01; /* Programming resolution. */
+		(*channels)[i].power[3] = 2; /* Spec digits. */
+		(*channels)[i].power[4] = 2; /* Encoding digits. */
+	}
+	*num_channels = *num_channel_groups = channel_count;
+
+	return SR_OK;
+}
+
 /* Rigol DP700 series */
 static const uint32_t rigol_dp700_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -1218,6 +1389,46 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		NULL, 0,
 		chroma_62000_cmd,
 		.probe_channels = chroma_62000p_probe_channels,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	/*
+	 * Envox EEZ PSU Series
+	 * The documented identification strings disagree with the behavior
+	 * of at least some real units (returning "EEZ"). The first of these
+	 * is the documented one, while the second seems to be returned by
+	 * firmware v1.02 and earlier.
+	 */
+	{ "Envox", "^EEZ H24005 ", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(eez_psu_devopts),
+		ARRAY_AND_SIZE(eez_psu_devopts_cg),
+		NULL, 0,
+		NULL, 0,
+		eez_psu_cmd,
+		.probe_channels = eez_psu_probe_channels,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "EEZ", "^PSU ", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(eez_psu_devopts),
+		ARRAY_AND_SIZE(eez_psu_devopts_cg),
+		NULL, 0,
+		NULL, 0,
+		eez_psu_cmd,
+		.probe_channels = eez_psu_probe_channels,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	/* Envox EEZ BB3 Series */
+	{ "Envox", "^BB3 ", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(eez_psu_devopts),
+		ARRAY_AND_SIZE(eez_psu_devopts_cg),
+		NULL, 0,
+		NULL, 0,
+		eez_psu_cmd,
+		.probe_channels = eez_psu_probe_channels,
 		.init_acquisition = NULL,
 		.update_status = NULL,
 	},
