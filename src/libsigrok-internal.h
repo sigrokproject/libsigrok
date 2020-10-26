@@ -476,6 +476,23 @@ static inline void write_u32le(uint8_t *p, uint32_t x)
 #define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
 
 /**
+ * Write a 64 bits unsigned integer to memory stored as big endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u64be(uint8_t *p, uint64_t x)
+{
+	p[7] = x & 0xff; x >>= 8;
+	p[6] = x & 0xff; x >>= 8;
+	p[5] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[0] = x & 0xff; x >>= 8;
+}
+
+/**
  * Write a 64 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
