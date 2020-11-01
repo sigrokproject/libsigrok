@@ -24,7 +24,6 @@
  *
  * For most of the documentation, please see the appa_b.h file!
  *
- *
  */
 
 #include "config.h"
@@ -260,7 +259,7 @@ static int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot)
 	return 0;
 }
 
-static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int argSize)
+static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int arg_size)
 {
 	u_int8_t checksum;
 
@@ -268,12 +267,12 @@ static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int argSize)
 		return 0;
 
 	checksum = 0;
-	while (argSize-- > 0)
-		checksum += arg_data[argSize];
+	while (arg_size-- > 0)
+		checksum += arg_data[arg_size];
 	return checksum;
 }
 
-SR_PRIV int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len)
+static int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len)
 {
 	if (arg_buf == NULL)
 		return SR_ERR_ARG;
@@ -291,7 +290,7 @@ SR_PRIV int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_le
 
 }
 
-SR_PRIV int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
+static int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
 {
 
 	if (arg_buf == NULL)
@@ -309,7 +308,7 @@ SR_PRIV int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
 	return SR_OK;
 }
 
-SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data)
+static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data)
 {
 	if (arg_buf == NULL
 		|| arg_display_response_data == NULL)
@@ -370,7 +369,7 @@ SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct a
  * @param serial Serial data
  * @return @sr_error_code Status code
  */
-SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial)
+SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial)
 {
 	u_int8_t buf[5];
 
@@ -388,6 +387,7 @@ SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial)
 
 	return SR_OK;
 }
+
 #endif/*HAVE_SERIAL_COMM*/
 
 /**

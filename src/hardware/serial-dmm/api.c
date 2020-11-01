@@ -364,35 +364,35 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	DMM(
 		"appa-208", appa_b,
 		"APPA", "208(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,
+		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"appa-506", appa_b,
 		"APPA", "506(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,
+		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"appa-b", appa_b,
 		"APPA", "150/208/506-Series", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,
+		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"benning-mm12", appa_b,
 		"BENNING", "MM 12", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,
+		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"sefram-7352", appa_b,
 		"Sefram", "7352(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,
+		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),

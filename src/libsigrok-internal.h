@@ -2614,8 +2614,8 @@ struct appa_b_info {
 extern SR_PRIV const char *sr_appa_b_channel_formats[];
 
 #ifdef HAVE_SERIAL_COMM
-SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial);
-#endif
+SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial);
+#endif/*HAVE_SERIAL_COMM*/
 SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
