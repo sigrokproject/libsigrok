@@ -224,7 +224,7 @@ static int ser_bt_parse_conn_spec(
 		if (cccd_hdl)
 			*cccd_hdl = 0x4a;
 		if (cccd_val)
-			*cccd_val = 0x0100;
+			*cccd_val = 0x0001;
 		break;
 	case SER_BT_CONN_NRF51:
 		/* TODO
