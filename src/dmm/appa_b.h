@@ -1,3 +1,47 @@
+/*
+ * This file is part of the libsigrok project.
+ *
+ * Copyright (C) 2020 Martin Eitzenberger <x@cymaphore.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/**
+ * @file
+ *
+ * APPA B Interface (Models 150/208/506)
+ * 
+ * Brands include:
+ * 
+ *   - APPA 155B
+ *   - APPA 156B
+ *   - APPA 157B
+ *   - APPA 158B
+ *   - APPA 506(B)
+ *   - APPA 208(B)
+ *   - Benning MM 12
+ *   - Benning CM 12
+ *   - Sefram 7352(B)
+ * 
+ * Bluetooth-only models will require the BTLE-connector to be finished first
+ * to actually work.
+ * 
+ * @TODO Implement calibration
+ * @TODO Implement log download
+ * 
+ */
+
 #ifndef APPA_B__H
 #define APPA_B__H
 
@@ -13,32 +57,42 @@ extern "C" {
   #define APPA_B_GCC_PACKED
 #endif/*def __GNUC__*/
   
-typedef char appaChar_t;
-typedef u_int8_t appaByte_t;
-typedef u_int16_t appaWord_t;
-typedef u_int32_t appaDWord_t;
-typedef int appaInt_t;
-typedef double appaDouble_t;
+typedef char appaChar_t; /**< 8-bit char type */
+typedef u_int8_t appaByte_t; /**< 8-bit Byte */
+typedef u_int16_t appaWord_t; /**< 16-bit Word */
+typedef u_int32_t appaDWord_t; /**< 32-bit DWord */
+typedef int appaInt_t; /**< Generic integer */
+typedef double appaDouble_t; /**< Double-precision float */
 
-static const appaChar_t appaStringNa[] = "N/A";
+static const appaChar_t appaStringNa[] = "N/A"; /**< Used for unavailable strings and labels */
 
+/**
+ * Possible commands.
+ * Calibration and configuration commands not included yet.
+ */
 typedef enum
 {
-    APPA_B_COMMAND_READ_INFORMATION = 0x00,
-    APPA_B_COMMAND_READ_DISPLAY = 0x01,
+    APPA_B_COMMAND_READ_INFORMATION = 0x00, /**< Get information about Model and Brand */
+    APPA_B_COMMAND_READ_DISPLAY = 0x01, /**< Get all display readings */
 } appaBCommand_t;
 
+/**
+ * Currently supported models
+ */
 typedef enum
 {
-    APPA_B_MODEL_ID_INVALID = 0x00,
-    APPA_B_MODEL_ID_150 = 0x01,
-    APPA_B_MODEL_ID_150B = 0x02,
-    APPA_B_MODEL_ID_208 = 0x03,
-    APPA_B_MODEL_ID_208B = 0x04,
-    APPA_B_MODEL_ID_506 = 0x05,
-    APPA_B_MODEL_ID_506B = 0x06,
+    APPA_B_MODEL_ID_INVALID = 0x00, /**< Invalid */
+    APPA_B_MODEL_ID_150 = 0x01, /**< APPA 150 with usb/serial only, probably invalid */
+    APPA_B_MODEL_ID_150B = 0x02, /**< APPA 155B/156B/157B/158B, BENNING CM 12 with btle */
+    APPA_B_MODEL_ID_208 = 0x03, /**< APPA 208 bench-type with usb/serial only */
+    APPA_B_MODEL_ID_208B = 0x04, /**< APPA 208B bench-type with usb/serial and btle */
+    APPA_B_MODEL_ID_506 = 0x05, /**< APPA 506, CMT 506 with usb/serial only */
+    APPA_B_MODEL_ID_506B = 0x06, /**< APPA 506B, BENNING MM 12, Sefram 7352B with usb/serial and btle */
 } appaBModelId_t;
 
+/**
+ * Model String translation table
+ */
 static const appaChar_t* appaBModelTable[] =
 {
   "N/A",
@@ -53,6 +107,12 @@ static const appaChar_t* appaBModelTable[] =
 #define APPA_B_MODEL_TABLE_MAX 6
 #define APPA_B_MODEL_ID_TO_STRING(argModelId) (argModelId<APPA_B_MODEL_TABLE_MIN||argModelId>APPA_B_MODEL_TABLE_MAX?appaStringNa:appaBModelTable[argModelId])
 
+/**
+ * Wordcodes
+ * 
+ * Multimeter will send these codes to indicate a string visible on the
+ * display. Works for main and sub.
+ */
 typedef enum
 {
     APPA_B_WORDCODE_SPACE = 0x700000,
@@ -113,6 +173,9 @@ typedef enum
     APPA_B_WORDCODE_TEMP = 0x700037,
 } appaBWordcode_t;
 
+/**
+ * Wordcode String-translation table
+ */
 static const appaChar_t* appaBWordcodeTable[] =
 {
   "", /*< 0x00000 */
@@ -178,38 +241,44 @@ static const appaChar_t* appaBWordcodeTable[] =
 #define APPA_B_IS_WORDCODE(argWordcode) (argWordcode>=APPA_B_WORDCODE_TABLE_MIN)
 #define APPA_B_IS_WORDCODE_VALID(argWordcode) (argWordcode>=APPA_B_WORDCODE_TABLE_MIN&&argWordcode<=APPA_B_WORDCODE_TABLE_MAX)
 
+/**
+ * Data units
+ */
 typedef enum
 {
-    APPA_B_UNIT_NONE = 0x00,
-    APPA_B_UNIT_V = 0x01,
-    APPA_B_UNIT_MV = 0x02,
-    APPA_B_UNIT_A = 0x03,
-    APPA_B_UNIT_MA = 0x04,
-    APPA_B_UNIT_DB = 0x05,
-    APPA_B_UNIT_DBM = 0x06,
-    APPA_B_UNIT_MF = 0x07,
-    APPA_B_UNIT_UF = 0x08,
-    APPA_B_UNIT_NF = 0x09,
-    APPA_B_UNIT_GOHM = 0x0a,
-    APPA_B_UNIT_MOHM = 0x0b,
-    APPA_B_UNIT_KOHM = 0x0c,
-    APPA_B_UNIT_OHM = 0x0d,
-    APPA_B_UNIT_PERCENT = 0x0e,
-    APPA_B_UNIT_MHZ = 0x0f,
-    APPA_B_UNIT_KHZ = 0x10,
-    APPA_B_UNIT_HZ = 0x11,
-    APPA_B_UNIT_DEGC = 0x12,
-    APPA_B_UNIT_DEGF = 0x13,
-    APPA_B_UNIT_SEC = 0x14,
-    APPA_B_UNIT_MS = 0x15,
-    APPA_B_UNIT_US = 0x16,
-    APPA_B_UNIT_NS = 0x17,
-    APPA_B_UNIT_UA = 0x18,
-    APPA_B_UNIT_MIN = 0x19,
-    APPA_B_UNIT_KW = 0x1a,
-    APPA_B_UNIT_PF = 0x1b,
+    APPA_B_UNIT_NONE = 0x00, /**< None */
+    APPA_B_UNIT_V = 0x01, /**< V */
+    APPA_B_UNIT_MV = 0x02, /**< mV */
+    APPA_B_UNIT_A = 0x03, /**< A */
+    APPA_B_UNIT_MA = 0x04, /**< mA */
+    APPA_B_UNIT_DB = 0x05, /**< dB */
+    APPA_B_UNIT_DBM = 0x06, /**< dBm */
+    APPA_B_UNIT_MF = 0x07, /**< mF */
+    APPA_B_UNIT_UF = 0x08, /**< µF */
+    APPA_B_UNIT_NF = 0x09, /**< nF */
+    APPA_B_UNIT_GOHM = 0x0a, /**< GΩ */
+    APPA_B_UNIT_MOHM = 0x0b, /**< MΩ */
+    APPA_B_UNIT_KOHM = 0x0c, /**< kΩ */
+    APPA_B_UNIT_OHM = 0x0d, /**< Ω */
+    APPA_B_UNIT_PERCENT = 0x0e, /**< Relative percentage value */
+    APPA_B_UNIT_MHZ = 0x0f, /**< MHz */
+    APPA_B_UNIT_KHZ = 0x10, /**< kHz */
+    APPA_B_UNIT_HZ = 0x11, /**< Hz */
+    APPA_B_UNIT_DEGC = 0x12, /**< °C */
+    APPA_B_UNIT_DEGF = 0x13, /**< °F */
+    APPA_B_UNIT_SEC = 0x14, /**< seconds */
+    APPA_B_UNIT_MS = 0x15, /**< ms */
+    APPA_B_UNIT_US = 0x16, /**< µs */
+    APPA_B_UNIT_NS = 0x17, /**< ns */
+    APPA_B_UNIT_UA = 0x18, /**< µA */
+    APPA_B_UNIT_MIN = 0x19, /**< minutes */
+    APPA_B_UNIT_KW = 0x1a, /**< kW */
+    APPA_B_UNIT_PF = 0x1b, /**< Power Factor (@TODO maybe pico-farat?) */
 } appaBUnit_t;
 
+/**
+ * Unit String-translation table
+ */
 static const appaChar_t* appaBUnitTable[] =
 {
   "", /**< 0x00 */
@@ -246,6 +315,9 @@ static const appaChar_t* appaBUnitTable[] =
 #define APPA_B_UNIT_TABLE_MAX 0x1b
 #define APPA_B_UNIT_TO_STRING(argUnit) (argUnit<APPA_B_UNIT_TABLE_MIN||argUnit>APPA_B_UNIT_TABLE_MAX?appaStringNa:appaBUnitTable[argUnit])
 
+/**
+ * Display range / dot positions
+ */
 typedef enum
 {
     APPA_B_DOT_NONE = 0x00,
@@ -255,6 +327,9 @@ typedef enum
     APPA_B_DOT_9_9999 = 0x04,
 } appaBDot_t;
 
+/**
+ * Base factors for display ranges
+ */
 static const double appaBDotFactor[] =
 {
   1.0,
@@ -264,6 +339,9 @@ static const double appaBDotFactor[] =
   0.0001,
 };
 
+/**
+ * Display range precisions before dot
+ */
 static const int appaBDotPrecisionAfterDot[] =
 {
   0,
@@ -273,6 +351,9 @@ static const int appaBDotPrecisionAfterDot[] =
   4,
 };
 
+/**
+ * Display range precisions after dot
+ */
 static const int appaBDotPrecisionBeforeDot[] =
 {
   5,
@@ -282,14 +363,23 @@ static const int appaBDotPrecisionBeforeDot[] =
   1,
 };
 
+/**
+ * OL-Indication values
+ */
 typedef enum
 {
-    APPA_B_NOT_OVERLOAD = 0x00,
-    APPA_B_OVERLOAD = 0x01,
+    APPA_B_NOT_OVERLOAD = 0x00, /**< non-OL value */
+    APPA_B_OVERLOAD = 0x01, /**< OL */
 } appaBOverload_t;
 
+/**
+ * String representation of OL on display
+ */
 #define APPA_B_READING_TEXT_OL "OL"
 
+/**
+ * Data content - Menu, Min/Max/Avg, etc. selection
+ */
 typedef enum
 {
     APPA_B_DATA_CONTENT_MEASURING_DATA = 0x00,
@@ -324,6 +414,11 @@ typedef enum
     APPA_B_DATA_CONTENT_CUR_OUT_4_20MA_PERCENT = 0x1d,
 } appaBDataContent_t;
 
+/**
+ * Function codes
+ * 
+ * Basically indicate the rotary position and the secondary function selected
+ */
 typedef enum
 {
     APPA_B_FUNCTIONCODE_NONE = 0x00,
@@ -391,6 +486,9 @@ typedef enum
     APPA_B_FUNCTIONCODE_PEAK_HOLD_UA = 0x3e,
 } appaBFunctioncode_t;
 
+/**
+ * Function code string translation table
+ */
 static const appaChar_t* appaBFunctioncodeTable[] =
 {
   "", /**< 0x00 */
@@ -461,74 +559,113 @@ static const appaChar_t* appaBFunctioncodeTable[] =
 #define APPA_B_FUNCTIONCODE_TABLE_MAX 0x3e
 #define APPA_B_FUNCTIONCODE_TO_STRING(argFunctioncode) (argFunctioncode<APPA_B_FUNCTIONCODE_TABLE_MIN||argFunctioncode>APPA_B_FUNCTIONCODE_TABLE_MAX?appaStringNa:appaBFunctioncodeTable[argFunctioncode])
 
+/**
+ * Manual / Auto test field values
+ */
 typedef enum
 {
-    APPA_B_MANUAL_TEST = 0x00,
-    APPA_B_AUTO_TEST = 0x01,
+    APPA_B_MANUAL_TEST = 0x00, /**< Manual Test */
+    APPA_B_AUTO_TEST = 0x01, /**< Auto Test */
 } appaBAutotest_t;
 
+/**
+ * Manual / Auto range field values
+ */
 typedef enum
 {
-    APPA_B_MANUAL_RANGE = 0x00,
-    APPA_B_AUTO_RANGE = 0x01,
+    APPA_B_MANUAL_RANGE = 0x00, /**< Manual ranging */
+    APPA_B_AUTO_RANGE = 0x01, /**< Auto range active */
 } appaBAutorange_t;
 
+/** Length of Read Information Request */
 #define APPA_B_DATA_LENGTH_REQUEST_READ_INFORMATION 0
+/** Length of Read Information Response */
 #define APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION 52
+/** Length of Read Display Request */
 #define APPA_B_DATA_LENGTH_REQUEST_READ_DISPLAY 0
+/** Length of Read Display response */
 #define APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY 12
 
+/** Helper to calculate frame length */
 #define APPA_B_GET_FRAMELEN(argFrame) (APPA_B_DATA_LENGTH_##argFrame+4)
 
+/** Start code of valid frame */
 #define APPA_B_START 0x5555
 
+/**
+ * Frame: Empty request
+ */
 typedef struct {} APPA_B_GCC_PACKED appaBFrame_EmptyRequest_t;
 
+/**
+ * Frame: Empty response
+ */
 typedef struct {} APPA_B_GCC_PACKED appaBFrame_EmptyResponse_t;
 
+/**
+ * Frame: Device information request
+ */
 typedef appaBFrame_EmptyRequest_t appaBFrame_ReadInformationRequest_t;
 
+/**
+ * Frame: Device information response
+ */
 typedef struct
 {
-    appaChar_t modelName[32]; /**< String 0x20 terminated */
-    appaChar_t serialNumber[16]; /**< String 0x20 terminated */
-    appaWord_t modelId; /*< appaModelId_t */
-    appaWord_t firmwareVersion; /*< Version */
+    appaChar_t modelName[32]; /**< String 0x20 terminated model name of device (branded) */
+    appaChar_t serialNumber[16]; /**< String 0x20 terminated serial number of device */
+    appaWord_t modelId; /*< @appaBModelId_t */
+    appaWord_t firmwareVersion; /*< Firmware version */
 } APPA_B_GCC_PACKED appaBFrame_ReadInformationResponse_t;
 
+/**
+ * Frame: Display request
+ */
 typedef appaBFrame_EmptyRequest_t appaBFrame_ReadDisplayRequest_t;
 
+/**
+ * Structure - reading of main and sub display
+ */
 typedef struct
 {
 
-    appaByte_t readingB0; /**< int24 Byte 0 */
-    appaByte_t readingB1; /**< int24 Byte 1 */
-    appaByte_t readingB2; /**< int24 Byte 2 */
-    appaByte_t dot:3; /**< @appaDot_t */
-    appaByte_t unit:5; /**< @appaUnit_t */
-    appaByte_t dataContent:7; /**< @appaDataContent_t */
-    appaByte_t overload:1; /**< @appaOverload_t */
+    appaByte_t readingB0; /**< int24 Byte 0 - measured value */
+    appaByte_t readingB1; /**< int24 Byte 1 - measured value */
+    appaByte_t readingB2; /**< int24 Byte 2 - measured value */
+    appaByte_t dot:3; /**< @appaBDot_t */
+    appaByte_t unit:5; /**< @appaBUnit_t */
+    appaByte_t dataContent:7; /**< @appaBDataContent_t */
+    appaByte_t overload:1; /**< @appaBOverload_t */
 
 } APPA_B_GCC_PACKED appaBFrame_ReadDisplayResponse_DisplayData_t;
 
+/** Measurement value / reading decoding helper */
 #define APPA_B_DECODE_READING(argDisplayData) ((appaInt_t)(argDisplayData.readingB0|argDisplayData.readingB1<<8|argDisplayData.readingB2<<16 | ((argDisplayData.readingB2>>7==1)?0xff:0)<<24 ))
 
+/**
+ * Frame: Display response
+ */
 typedef struct
 {
-    appaByte_t functionCode:7; /**< @appaFunctioncode_t */
-    appaByte_t autoTest:1; /**< @appaAutotest_t */
-    appaByte_t rangeCode:7; /**< @TODO Table 7.1 if required */
+    appaByte_t functionCode:7; /**< @appaBFunctioncode_t */
+    appaByte_t autoTest:1; /**< @appaBAutotest_t */
+    appaByte_t rangeCode:7; /**< @TODO Implement Table 7.1 of protocol spec, only required for calibration */
     appaByte_t autoRange:1; /**< @appaAutorange_t */
-    appaBFrame_ReadDisplayResponse_DisplayData_t mainDisplayData;
-    appaBFrame_ReadDisplayResponse_DisplayData_t subDisplayData;
+    appaBFrame_ReadDisplayResponse_DisplayData_t mainDisplayData; /**< Reading of main (lower) display value */
+    appaBFrame_ReadDisplayResponse_DisplayData_t subDisplayData; /**< Reading of sub (upper) display value */
 } APPA_B_GCC_PACKED appaBFrame_ReadDisplayResponse_t;
 
+/**
+ * General APPA communication frame
+ * 
+ * Used for Serial and BTLE-Communication in a wide variety of devices.
+ */
 typedef union
 {
     
     struct
     {
-        appaWord_t start; /**< 0x5555 */
+        appaWord_t start; /**< 0x5555 start code */
         appaByte_t command; /**< @appaCommand_t */
         appaByte_t dataLength; /**< Length of Data */
         
@@ -552,6 +689,15 @@ typedef union
     appaByte_t raw[0];    
     
 } APPA_B_GCC_PACKED appaBFrame_t;
+
+/**
+ * APPA checksum calculation
+ * 
+ * @param argData Data to calculate the checksum for
+ * @param argSize Size of data
+ * @return Checksum
+ */
+appaByte_t appa_b_checksum(appaByte_t* argData, appaInt_t argSize);
 
 appaByte_t appa_b_checksum(appaByte_t* argData, appaInt_t argSize)
 {

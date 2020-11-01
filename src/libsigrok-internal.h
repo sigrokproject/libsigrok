@@ -2591,6 +2591,35 @@ SR_PRIV gboolean sr_eev121gw_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
 		struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/appa_b.c APPA B (Model 150/208/506 so far) --------------------------------------------------------*/
+
+/**
+ * Packet size for display reading.
+ * @WARNING Change once calibration and other frames are in!
+ */
+#define APPA_B_PACKET_SIZE 17
+
+/**
+ * Number of visible displays supported by the interface (main/sub)
+ */
+#define APPA_B_DISPLAY_COUNT 2
+
+/**
+ * Information structure
+ */
+struct appa_b_info {
+  size_t ch_idx; /**< Channel ID (0 == main, 1 == sub) */
+};
+
+extern SR_PRIV const char *sr_appa_b_channel_formats[];
+
+#ifdef HAVE_SERIAL_COMM
+SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
 /*--- scale/kern.c ----------------------------------------------------------*/
 
 struct kern_info {

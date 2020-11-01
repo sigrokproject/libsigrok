@@ -160,6 +160,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
 		dmm->channel_formats = eev121gw_channel_formats;
 	}
+	if (dmm->packet_parse == sr_appa_b_parse) {
+		dmm->channel_count = APPA_B_DISPLAY_COUNT;
+		dmm->channel_formats = sr_appa_b_channel_formats;
+	}
 	if (dmm->packet_parse == sr_metex14_4packets_parse)
 		dmm->channel_count = 4;
 	if (dmm->packet_parse == sr_ms2115b_parse) {
@@ -342,6 +346,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
 		OPEN, REQUEST, NULL, NULL, DETAILS, \
 		INIT, FREE, VALID, PARSE, NULL, NULL, NULL, NULL)
+
+/**
+ * Helper macro for the APPA B series of DMMs (allow brand names as driver names)
+ */
+#define DMM_APPA_B_ALIAS(ID, VENDOR, MODEL)	DMM(\
+		ID, appa_b,\
+     VENDOR, MODEL, "9600/8n1",\
+     APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_packet_request,\
+		sr_appa_b_packet_valid, sr_appa_b_parse,\
+     NULL\
+	)
 
 SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/*
@@ -843,6 +858,13 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_vc96_packet_valid, sr_vc96_parse,
 		NULL
 	),
+	/* }}} */
+	/* APPA B (150/208/506) based meters {{{ */
+  DMM_APPA_B_ALIAS("appa-b", "APPA", "150/208/506-Series"),
+  DMM_APPA_B_ALIAS("benning-mm12", "BENNING", "MM 12"),
+  DMM_APPA_B_ALIAS("sefram-7352", "Sefram", "7352(B)"),
+  DMM_APPA_B_ALIAS("appa-506", "APPA", "506(B)"),
+  DMM_APPA_B_ALIAS("appa-208", "APPA", "208(B)"),
 	/* }}} */
 	/*
 	 * The list is sorted. Add new items in the respective chip's group.
