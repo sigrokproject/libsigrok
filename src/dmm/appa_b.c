@@ -19,12 +19,12 @@
 
 /**
  * @file
- * 
+ *
  * Interface to APPA B (150/208/506) Series based Multimeters and Clamps
  *
  * For most of the documentation, please see the appa_b.h file!
- * 
- * 
+ *
+ *
  */
 
 #include "config.h"
@@ -48,9 +48,24 @@
 
 /* API FUNCTIONS */
 
-SR_PRIV const char* appa_b_model_id_name(const enum appa_b_model_id_e arg_model_id)
+static gboolean appa_b_is_wordcode(const int arg_wordcode)
 {
+	return arg_wordcode >= APPA_B_WORDCODE_TABLE_MIN;
+}
 
+static int appa_b_decode_reading(const struct appa_b_frame_display_reading_s *arg_display_reading)
+{
+	return
+	arg_display_reading->reading_b0
+		| arg_display_reading->reading_b1 << 8
+		| arg_display_reading->reading_b2 << 16
+
+		/* Fill Signed/Unsigned */
+		| ((arg_display_reading->reading_b2 >> 7 == 1) ? 0xff : 0) << 24;
+}
+
+static const char *appa_b_model_id_name(const enum appa_b_model_id_e arg_model_id)
+{
 	switch (arg_model_id) {
 	case APPA_B_MODEL_ID_INVALID:
 		return APPA_B_STRING_NA;
@@ -69,12 +84,10 @@ SR_PRIV const char* appa_b_model_id_name(const enum appa_b_model_id_e arg_model_
 	}
 
 	return APPA_B_STRING_NA;
-
 }
 
-SR_PRIV const char* appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcode)
+static const char *appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcode)
 {
-
 	switch (arg_wordcode) {
 	case APPA_B_WORDCODE_SPACE:
 		return "";
@@ -191,12 +204,10 @@ SR_PRIV const char* appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordco
 	}
 
 	return APPA_B_STRING_NA;
-
 }
 
-SR_PRIV double appa_b_dot_factor(const enum appa_b_dot_e arg_dot)
+static double appa_b_dot_factor(const enum appa_b_dot_e arg_dot)
 {
-
 	switch (arg_dot) {
 	case APPA_B_DOT_NONE:
 		return 1.0;
@@ -211,12 +222,10 @@ SR_PRIV double appa_b_dot_factor(const enum appa_b_dot_e arg_dot)
 	}
 
 	return 1.0;
-
 }
 
-SR_PRIV int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot)
+static int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot)
 {
-
 	switch (arg_dot) {
 	case APPA_B_DOT_NONE:
 		return 0;
@@ -231,12 +240,10 @@ SR_PRIV int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot)
 	}
 
 	return 0;
-
 }
 
-SR_PRIV int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot)
+static int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot)
 {
-
 	switch (arg_dot) {
 	case APPA_B_DOT_NONE:
 		return 5;
@@ -251,12 +258,10 @@ SR_PRIV int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot)
 	}
 
 	return 0;
-
 }
 
-SR_PRIV u_int8_t appa_b_checksum(const u_int8_t* arg_data, int argSize)
+static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int argSize)
 {
-
 	u_int8_t checksum;
 
 	if (arg_data == NULL)
@@ -266,21 +271,19 @@ SR_PRIV u_int8_t appa_b_checksum(const u_int8_t* arg_data, int argSize)
 	while (argSize-- > 0)
 		checksum += arg_data[argSize];
 	return checksum;
-
 }
 
 SR_PRIV int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len)
 {
-
 	if (arg_buf == NULL)
 		return SR_ERR_ARG;
 
 	if (arg_len < 5)
 		return SR_ERR_ARG;
 
-	arg_buf[0] = (u_int8_t) APPA_B_FRAME_START_VALUE;
-	arg_buf[1] = (u_int8_t) APPA_B_FRAME_START_VALUE;
-	arg_buf[2] = (u_int8_t) APPA_B_COMMAND_READ_INFORMATION;
+	arg_buf[0] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[1] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[2] = APPA_B_COMMAND_READ_INFORMATION;
 	arg_buf[3] = 0;
 	arg_buf[4] = appa_b_checksum(arg_buf, 4);
 
@@ -299,17 +302,15 @@ SR_PRIV int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
 
 	arg_buf[0] = APPA_B_FRAME_START_VALUE_BYTE;
 	arg_buf[1] = APPA_B_FRAME_START_VALUE_BYTE;
-	arg_buf[2] = (u_int8_t) APPA_B_COMMAND_READ_DISPLAY;
+	arg_buf[2] = APPA_B_COMMAND_READ_DISPLAY;
 	arg_buf[3] = 0;
 	arg_buf[4] = appa_b_checksum(arg_buf, 4);
 
 	return SR_OK;
-
 }
 
 SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data)
 {
-
 	if (arg_buf == NULL
 		|| arg_display_response_data == NULL)
 		return SR_ERR;
@@ -351,8 +352,6 @@ SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct a
 	arg_display_response_data->sub_display_data.overload = arg_buf[15] >> 7;
 
 	return SR_OK;
-
-
 }
 
 /* ********************************************************************** */
@@ -365,15 +364,14 @@ SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct a
 
 /**
  * Request frame from device
- * 
+ *
  * Response will contain both display readings
- * 
+ *
  * @param serial Serial data
  * @return @sr_error_code Status code
  */
 SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial)
 {
-
 	u_int8_t buf[5];
 
 	if (serial == NULL)
@@ -389,14 +387,13 @@ SR_PRIV int sr_appa_b_packet_request(struct sr_serial_dev_inst *serial)
 		return SR_ERR_IO;
 
 	return SR_OK;
-
 }
 #endif/*HAVE_SERIAL_COMM*/
 
 /**
  * Validate APPA-Frame
  * @TODO validate other aspects / start code / etc.
- * 
+ *
  * @param buf
  * @return TRUE if checksum is fine
  */
@@ -408,8 +405,8 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 	if (buf == NULL)
 		return FALSE;
 
-	frame_length = APPA_B_GET_FRAME_LENGTH(RESPONSE_READ_DISPLAY);
-	checksum = appa_b_checksum((const u_int8_t*) buf, frame_length);
+	frame_length = APPA_B_PAYLOAD_LENGTH(APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY);
+	checksum = appa_b_checksum(buf, frame_length);
 
 	return
 	checksum == buf[frame_length]
@@ -419,9 +416,9 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 
 /**
  * Parse APPA-Frame and assign values to virtual channels
- * 
+ *
  * @TODO include display reading as debug output
- * 
+ *
  * @param buf Buffer from Serial or BTLE
  * @param floatval Return display reading
  * @param analog Metadata of the reading
@@ -431,10 +428,9 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	struct sr_datafeed_analog *analog, void *info)
 {
-
-	struct appa_b_info* info_local;
+	struct appa_b_info *info_local;
 	struct appa_b_frame_display_response_data_s display_response_data;
-	struct appa_b_frame_display_reading_s* display_reading;
+	struct appa_b_frame_display_reading_s *display_reading;
 
 	gboolean is_sub;
 
@@ -448,7 +444,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		|| info == NULL)
 		return SR_ERR_ARG;
 
-	info_local = (struct appa_b_info*) info;
+	info_local = info;
 
 	is_sub = (info_local->ch_idx == 1);
 
@@ -462,7 +458,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 	unit_factor = 1;
 
-	display_reading_value_raw = APPA_B_DECODE_READING((*display_reading));
+	display_reading_value_raw = appa_b_decode_reading(display_reading);
 	display_rading_value = (double) display_reading_value_raw;
 
 	switch (display_reading->dot) {
@@ -956,7 +952,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	}
 
 	if (display_reading->overload == APPA_B_OVERLOAD
-		|| APPA_B_IS_WORDCODE(display_reading_value_raw))
+		|| appa_b_is_wordcode(display_reading_value_raw))
 		*floatval = INFINITY;
 	else
 		*floatval = display_rading_value;
@@ -964,7 +960,6 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	info_local->ch_idx++;
 
 	return SR_OK;
-
 }
 
 SR_PRIV const char *sr_appa_b_channel_formats[APPA_B_DISPLAY_COUNT] = {

@@ -21,14 +21,14 @@
  * @file
  *
  * APPA B Interface (Models 150/208/506)
- * 
+ *
  * Driver for modern APPA meters (handheld, bench, clamp). Communication is
  * done over a serial interface using the known APPA-Frames, see below. The
  * base protocol is always the same and deviates only where the models have
  * differences in ablities, range and features.
- * 
+ *
  * Supported models:
- * 
+ *
  *   - APPA 155B ... B
  *   - APPA 156B ... B
  *   - APPA 157B ... B
@@ -41,27 +41,27 @@
  *   - Benning CM 12 ... B
  *   - Sefram 7352 ... S
  *   - Sefram 7352B ... S, B
- * 
+ *
  * B: Bluetooth interface, S: Optical serial interface
- * 
+ *
  * Bluetooth-only models will require the BTLE-connector to be finished first
  * to actually work.
- * 
+ *
  * How does it work:
- * 
+ *
  * A request frame is sent to the meter, the meter will send a response frame.
  * The response frame contains all the information. The API driver provides
  * enums and string resolution functions to resolve the information and map
  * it to the according sigrok fields.
- * 
+ *
  * Overall TODOs:
- * 
+ *
  * @TODO Implement calibration
  * @TODO Implement log download
  * @TODO implement BLTE-Communication (same interface as serial)
  * @TODO Implement after_open function to read device information in appa_b.c
  * @TODO integrate further brand information to provide support for more devices
- * 
+ *
  */
 
 #ifndef APPA_B__H
@@ -86,6 +86,16 @@
  * String representation of OL on display
  */
 #define APPA_B_READING_TEXT_OL "OL"
+
+/**
+ * Size of frame headers
+ */
+#define APPA_B_FRAME_HEADER_SIZE 4
+
+/**
+ * Size of checksum
+ */
+#define APPA_B_FRAME_CHECKSUM_SIZE 1
 
 /**
  * Length of Read Information Request
@@ -130,7 +140,6 @@
 enum appa_b_command_e {
 	APPA_B_COMMAND_READ_INFORMATION = 0x00, /**< Get information about Model and Brand */
 	APPA_B_COMMAND_READ_DISPLAY = 0x01, /**< Get all display readings */
-
 };
 
 /**
@@ -144,12 +153,11 @@ enum appa_b_model_id_e {
 	APPA_B_MODEL_ID_208B = 0x04, /**< APPA 208B bench-type with usb/serial and btle */
 	APPA_B_MODEL_ID_506 = 0x05, /**< APPA 506, CMT 506 with usb/serial only */
 	APPA_B_MODEL_ID_506B = 0x06, /**< APPA 506B, BENNING MM 12, Sefram 7352B with usb/serial and btle */
-
 };
 
 /**
  * Wordcodes
- * 
+ *
  * Multimeter will send these codes to indicate a string visible on the
  * display. Works for main and sub.
  */
@@ -210,7 +218,6 @@ enum appa_b_wordcode_e {
 	APPA_B_WORDCODE_OLVA = 0x700035, /**< OLVA */
 	APPA_B_WORDCODE_BAD = 0x700036, /**< BAD */
 	APPA_B_WORDCODE_TEMP = 0x700037, /**< TEMP */
-
 };
 
 /**
@@ -245,7 +252,6 @@ enum appa_b_unit_e {
 	APPA_B_UNIT_MIN = 0x19, /**< minutes */
 	APPA_B_UNIT_KW = 0x1a, /**< kW */
 	APPA_B_UNIT_PF = 0x1b, /**< Power Factor (@TODO maybe pico-farat?) */
-
 };
 
 /**
@@ -266,7 +272,6 @@ enum appa_b_dot_e {
 enum appa_b_overload_e {
 	APPA_B_NOT_OVERLOAD = 0x00, /**< non-OL value */
 	APPA_B_OVERLOAD = 0x01, /**< OL */
-
 };
 
 /**
@@ -303,12 +308,11 @@ enum appa_b_data_content_e {
 	APPA_B_DATA_CONTENT_CURRENT_OUTPUT = 0x1b,
 	APPA_B_DATA_CONTENT_CUR_OUT_0_20MA_PERCENT = 0x1c,
 	APPA_B_DATA_CONTENT_CUR_OUT_4_20MA_PERCENT = 0x1d,
-
 };
 
 /**
  * Function codes
- * 
+ *
  * Basically indicate the rotary position and the secondary function selected
  */
 enum appa_b_functioncode_e {
@@ -375,7 +379,6 @@ enum appa_b_functioncode_e {
 	APPA_B_FUNCTIONCODE_FLEX_INRUSH = 0x3c,
 	APPA_B_FUNCTIONCODE_FLEX_A_HARM = 0x3d,
 	APPA_B_FUNCTIONCODE_PEAK_HOLD_UA = 0x3e,
-
 };
 
 /**
@@ -384,7 +387,6 @@ enum appa_b_functioncode_e {
 enum appa_b_autotest_e {
 	APPA_B_MANUAL_TEST = 0x00, /**< Manual Test */
 	APPA_B_AUTO_TEST = 0x01, /**< Auto Test */
-
 };
 
 /**
@@ -393,7 +395,6 @@ enum appa_b_autotest_e {
 enum appa_b_autorange_e {
 	APPA_B_MANUAL_RANGE = 0x00, /**< Manual ranging */
 	APPA_B_AUTO_RANGE = 0x01, /**< Auto range active */
-
 };
 
 /**
@@ -403,7 +404,6 @@ struct appa_b_frame_header_s {
 	u_int16_t start; /**< 0x5555 start code */
 	u_int8_t command; /**< @appaCommand_t */
 	u_int8_t dataLength; /**< Length of Data */
-
 };
 
 /**
@@ -414,7 +414,6 @@ struct appa_b_frame_information_response_data_s {
 	char serial_number[16]; /**< String 0x20 terminated serial number of device */
 	u_int16_t model_id; /*< @appaBModelId_t */
 	u_int16_t firmware_version; /*< Firmware version */
-
 };
 
 /**
@@ -425,137 +424,137 @@ struct appa_b_frame_display_reading_s {
 	u_int8_t reading_b1; /**< int24 Byte 1 - measured value */
 	u_int8_t reading_b2; /**< int24 Byte 2 - measured value */
 
-	u_int8_t dot : 3; /**< @appa_b_dot_e */
-	u_int8_t unit : 5; /**< @appa_b_unit_e */
+	u_int8_t dot; /**< @appa_b_dot_e */
+	u_int8_t unit; /**< @appa_b_unit_e */
 
-	u_int8_t data_content : 7; /**< @appa_b_data_content_e */
-	u_int8_t overload : 1; /**< @appa_b_overload_e */
-
+	u_int8_t data_content; /**< @appa_b_data_content_e */
+	u_int8_t overload; /**< @appa_b_overload_e */
 };
 
 /**
  * Frame: Display response
  */
 struct appa_b_frame_display_response_data_s {
-	u_int8_t function_code : 7; /**< @appa_b_function_code_e */
-	u_int8_t auto_test : 1; /**< @appa_b_auto_test_e */
-	u_int8_t range_code : 7; /**< @TODO Implement Table 7.1 of protocol spec, only required for calibration */
-	u_int8_t auto_range : 1; /**< @appa_b_auto_range_e */
+	u_int8_t function_code; /**< @appa_b_function_code_e */
+	u_int8_t auto_test; /**< @appa_b_auto_test_e */
+	u_int8_t range_code; /**< @TODO Implement Table 7.1 of protocol spec, only required for calibration */
+	u_int8_t auto_range; /**< @appa_b_auto_range_e */
 
 	struct appa_b_frame_display_reading_s main_display_data; /**< Reading of main (lower) display value */
 
 	struct appa_b_frame_display_reading_s sub_display_data; /**< Reading of sub (upper) display value */
-
 };
 
+/**
+ * Helper to calculate frame payload length without checksum
+ *
+ * @param arg_data_length Data length of Frame
+ * @return Length of payload in bytes without checksum
+ */
+#define APPA_B_PAYLOAD_LENGTH(arg_data_length) \
+	(arg_data_length + APPA_B_FRAME_HEADER_SIZE)
 
 /**
- * Helper to calculate frame length without checksum
- * 
- * @param arg_frame_name Name of Frame, to be resolved as macro
- * @return Length of frame in bytes without checksum
+ * Helper to calculate frame frame length with checksum
+ *
+ * @param arg_data_length Data length of Frame
+ * @return Length of frame in bytes with checksum
  */
-#define APPA_B_GET_FRAME_LENGTH(arg_frame_name) \
-	(APPA_B_DATA_LENGTH_##arg_frame_name+4)
-
+#define APPA_B_FRAME_LENGTH(arg_data_length) \
+	(arg_data_length + APPA_B_FRAME_HEADER_SIZE + APPA_B_FRAME_CHECKSUM_SIZE)
 
 /**
  * Check if reading is wordcode
- * 
+ *
  * @param arg_wordcode Wordcode value
  * @return TRUE if reading value is a wordcode
  */
-#define APPA_B_IS_WORDCODE(arg_wordcode) \
-	(arg_wordcode>=APPA_B_WORDCODE_TABLE_MIN)
-
+static gboolean appa_b_is_wordcode(const int arg_wordcode);
 
 /**
  * Measurement value / reading decoding helper
- * 
+ *
  * Take a display structure and decode the 24 bit reading into a standard int
- * 
+ *
  * @param arg_display_data
- * @return int value of reading in correct byte order 
+ * @return int value of reading in correct byte order
  */
-#define APPA_B_DECODE_READING(arg_display_data) \
-	((int)(arg_display_data.reading_b0|arg_display_data.reading_b1<<8|arg_display_data.reading_b2<<16 | ((arg_display_data.reading_b2 >> 7 == 1) ? 0xff : 0) << 24 ))
-
+static int appa_b_decode_reading(const struct appa_b_frame_display_reading_s *arg_display_reading);
 
 /**
  * Model id code to string
- * 
+ *
  * @param arg_model_id
  * @return String name
  */
-SR_PRIV const char* appa_b_model_id_name(const enum appa_b_model_id_e arg_model_id);
+static const char *appa_b_model_id_name(const enum appa_b_model_id_e arg_model_id);
 
 /**
  * Model id code to string
- * 
+ *
  * @param arg_model_id
  * @return String name
  */
-SR_PRIV const char* appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcode);
+static const char *appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcode);
 
 /**
  * Calculate base conversion factor for @appa_b_dot_e
- * 
+ *
  * @param arg_dot dot value
  * @return conversion factor to get base unit
  */
-SR_PRIV double appa_b_dot_factor(const enum appa_b_dot_e arg_dot);
+static double appa_b_dot_factor(const enum appa_b_dot_e arg_dot);
 
 /**
  * APPA checksum calculation
- * 
+ *
  * @param argData Data to calculate the checksum for
  * @param argSize Size of data
  * @return Checksum
  */
-SR_PRIV u_int8_t appa_b_checksum(const u_int8_t* arg_data, int arg_size);
+static u_int8_t appa_b_checksum(const u_int8_t *arg_data, int arg_size);
 
 /**
  * Displace range precision - digits after dot based on dot value
- * 
+ *
  * @param arg_dot dot value
  * @return number of digits after dot
  */
-SR_PRIV int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot);
+static int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot);
 
 /**
  * Displace range precision - digits before dot based on dot value
- * 
+ *
  * @param arg_dot dot value
  * @return number of digits before dot
  */
-SR_PRIV int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot);
+static int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot);
 
 /**
  * Request Information data from meter
- * 
+ *
  * @param arg_buf Buffer to write the request to, min size 5
  * @param arg_len Length of buffer
  * @return SR_OK, SR_ERR, etc.
  */
-SR_PRIV int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len);
+static int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len);
 
 /**
  * Request Display data from meter
- * 
+ *
  * @param arg_buf Buffer to write the request to, min size 5
  * @param arg_len Length of buffer
  * @return SR_OK, SR_ERR, etc.
  */
-SR_PRIV int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len);
+static int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len);
 
 /**
  * Request Display data from meter
- * 
+ *
  * @param arg_buf Buffer to read  the frame from
  * @param arg_display_reading Output structure to write the result to
  * @return SR_OK, SR_ERR, etc.
  */
-SR_PRIV int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data);
+static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s *arg_display_response_data);
 
 #endif/*def APPA_B__H*/
-
