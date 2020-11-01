@@ -56,6 +56,7 @@ static const struct scan_supported_item {
 	{ "121GW", SER_BT_CONN_BLE122, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
 	{ "HC-05", SER_BT_CONN_RFCOMM, },
+	{ "BENNING MM12", SER_BT_CONN_APPAB, },
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
 
@@ -65,6 +66,7 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_BLE122] = "ble122",
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
+	[SER_BT_CONN_APPAB] = "appa-b",
 };
 
 static enum ser_bt_conn_t lookup_conn_name(const char *name)
@@ -214,6 +216,16 @@ static int ser_bt_parse_conn_spec(
 		if (cccd_val)
 			*cccd_val = 0x0003;
 		break;
+	case SER_BT_CONN_APPAB:
+		if (read_hdl)
+			*read_hdl = 0x49;
+		if (write_hdl)
+			*write_hdl = 0x4c;
+		if (cccd_hdl)
+			*cccd_hdl = 0x4a;
+		if (cccd_val)
+			*cccd_val = 0x0100;
+		break;
 	case SER_BT_CONN_NRF51:
 		/* TODO
 		 * Are these values appropriate? Check the learn article at
@@ -348,6 +360,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 		serial->bt_rfcomm_channel = rfcomm_channel;
 		break;
 	case SER_BT_CONN_BLE122:
+	case SER_BT_CONN_APPAB:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 		rc = sr_bt_config_notify(desc,
@@ -379,6 +392,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 		if (rc < 0)
 			return SR_ERR;
 		break;
+	case SER_BT_CONN_APPAB:
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
@@ -455,6 +469,7 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 		if (wrlen < 0)
 			return SR_ERR_IO;
 		return wrlen;
+	case SER_BT_CONN_APPAB:
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
@@ -521,6 +536,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 			if (rc < 0)
 				rdlen = -1;
 			break;
+		case SER_BT_CONN_APPAB:
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
@@ -618,6 +634,7 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 			if (rc < 0)
 				rdlen = -1;
 			break;
+		case SER_BT_CONN_APPAB:
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
