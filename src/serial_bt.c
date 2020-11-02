@@ -55,10 +55,19 @@ static const struct scan_supported_item {
 	/* Guess connection types from device names (useful for scans). */
 	{ "121GW", SER_BT_CONN_BLE122, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
+	/* APPA-B based identifiers {{{ */
 	{ "HC-05", SER_BT_CONN_RFCOMM, },
-	{ "BENNING MM12", SER_BT_CONN_APPAB, },
-	{ "APPA 506B", SER_BT_CONN_APPAB, },
+	{ "APPA 155B", SER_BT_CONN_APPAB, },
+	{ "APPA 156B", SER_BT_CONN_APPAB, },
+	{ "APPA 157B", SER_BT_CONN_APPAB, },
+	{ "APPA 158B", SER_BT_CONN_APPAB, },
 	{ "BENNING CM12", SER_BT_CONN_APPAB, },
+	{ "APPA 208B", SER_BT_CONN_APPAB, },
+	{ "APPA 506B", SER_BT_CONN_APPAB, },
+	{ "BENNING MM12", SER_BT_CONN_APPAB, },
+	{ "Sefram 7352B", SER_BT_CONN_APPAB, },
+	{ "SEFRAM 7352B", SER_BT_CONN_APPAB, },
+	/* }}} */
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
 

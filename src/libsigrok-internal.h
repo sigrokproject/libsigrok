@@ -2610,19 +2610,19 @@ SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
  * @TODO Get hands on a CM 12 or other 150 and check if that actually is the case
  * @TODO fix delay to meet 10 Hz rate of device
  */
-#define APPA_B_DELAY_MODEL_150 333
+#define APPA_B_DELAY_MODEL_150 75
 
 /**
  * Model 208: 10 readings/s
  * @TODO fix delay to meet 10 Hz rate of device
  */
-#define APPA_B_DELAY_MODEL_208 100
+#define APPA_B_DELAY_MODEL_208 75
 
 /**
  * Model 506: 10 readings/s
  * @TODO fix delay to meet 10 Hz rate of device
  */
-#define APPA_B_DELAY_MODEL_506 100
+#define APPA_B_DELAY_MODEL_506 75
 
 /**
  * Number of visible displays supported by the interface (main/sub)
