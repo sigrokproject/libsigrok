@@ -544,246 +544,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
 
 	}
-
-	switch (display_response_data.function_code) {
-
-	case APPA_B_FUNCTIONCODE_AC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_MV:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_MV:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_CONTINUITY:
-		analog->meaning->mq = SR_MQ_CONTINUITY;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DIODE:
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_CAP:
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_A:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_MA:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_MA:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FREQUENCY:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DUTY:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_HZ_V:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_HZ_MV:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_HZ_A:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_HZ_MA:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_DC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_DC_MV:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_DC_A:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_DC_MA:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LPF_V:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LPF_MV:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LPF_A:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LPF_MA:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_UA:
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_UA:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A_OUT:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_LINEAR:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_LINEAR:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_STEP:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_STEP:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOOP_POWER:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_250OHM_HART:
-		break;
-
-	case APPA_B_FUNCTIONCODE_VOLT_SENSE:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOZ_AC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOZ_DC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOZ_LPF_V:
-		break;
-
-	case APPA_B_FUNCTIONCODE_LOZ_HZ_V:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_AC_W:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_DC_W:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
-
-	case APPA_B_FUNCTIONCODE_PF:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_AC_A:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_LPF_A:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_PEAK_HOLD_A:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_HZ_A:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_V_HARM:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_INRUSH:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_A_HARM:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
-		break;
-
-	}
-
+	
 	switch (display_reading->unit) {
 
 	default: case APPA_B_UNIT_NONE:
@@ -947,6 +708,71 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	case APPA_B_UNIT_PF:
 		analog->meaning->unit = SR_UNIT_UNITLESS;
 		analog->meaning->mq = SR_MQ_POWER_FACTOR;
+		break;
+
+	}
+
+	switch (display_response_data.function_code) {
+
+	case APPA_B_FUNCTIONCODE_AC_V:
+	case APPA_B_FUNCTIONCODE_AC_MV:
+	case APPA_B_FUNCTIONCODE_AC_A:
+	case APPA_B_FUNCTIONCODE_AC_MA:
+	case APPA_B_FUNCTIONCODE_AC_UA:
+	case APPA_B_FUNCTIONCODE_LPF_V:
+	case APPA_B_FUNCTIONCODE_LPF_MV:
+	case APPA_B_FUNCTIONCODE_LPF_A:
+	case APPA_B_FUNCTIONCODE_LPF_MA:
+	case APPA_B_FUNCTIONCODE_LOZ_AC_V:
+	case APPA_B_FUNCTIONCODE_AC_W:
+	case APPA_B_FUNCTIONCODE_LOZ_LPF_V:
+	case APPA_B_FUNCTIONCODE_V_HARM:
+	case APPA_B_FUNCTIONCODE_INRUSH:
+	case APPA_B_FUNCTIONCODE_A_HARM:
+	case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
+	case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
+	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_RMS;
+		break;
+
+	case APPA_B_FUNCTIONCODE_DC_V:
+	case APPA_B_FUNCTIONCODE_DC_MV:
+	case APPA_B_FUNCTIONCODE_DC_A:
+	case APPA_B_FUNCTIONCODE_DC_MA:
+	case APPA_B_FUNCTIONCODE_DC_UA:
+	case APPA_B_FUNCTIONCODE_DC_A_OUT:
+	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_LINEAR:
+	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_LINEAR:
+	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_STEP:
+	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_STEP:
+	case APPA_B_FUNCTIONCODE_LOOP_POWER:
+	case APPA_B_FUNCTIONCODE_LOZ_DC_V:
+	case APPA_B_FUNCTIONCODE_DC_W:
+	case APPA_B_FUNCTIONCODE_FLEX_AC_A:
+	case APPA_B_FUNCTIONCODE_FLEX_LPF_A:
+	case APPA_B_FUNCTIONCODE_FLEX_PEAK_HOLD_A:
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
+		break;
+
+	case APPA_B_FUNCTIONCODE_CONTINUITY:
+		analog->meaning->mq = SR_MQ_CONTINUITY;
+		break;
+
+	case APPA_B_FUNCTIONCODE_DIODE:
+		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
+		break;
+
+	case APPA_B_FUNCTIONCODE_AC_DC_V:
+	case APPA_B_FUNCTIONCODE_AC_DC_MV:
+	case APPA_B_FUNCTIONCODE_AC_DC_A:
+	case APPA_B_FUNCTIONCODE_AC_DC_MA:
+	case APPA_B_FUNCTIONCODE_VOLT_SENSE:
+	case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
+		analog->meaning->mqflags |= SR_MQFLAG_AC;
+		analog->meaning->mqflags |= SR_MQFLAG_DC;
+		analog->meaning->mqflags |= SR_MQFLAG_RMS;
 		break;
 
 	}
