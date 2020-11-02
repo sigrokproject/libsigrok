@@ -87,6 +87,12 @@ void sr_libm2k_context_adc_calibrate(struct M2k *m2k);
 
 int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info);
 
+int sr_libm2k_has_mixed_signal(struct M2k *m2k);
+
+void sr_libm2k_mixed_signal_acquisition_start(struct M2k *m2k, unsigned int nb_samples);
+
+void sr_libm2k_mixed_signal_acquisition_stop(struct M2k *m2k);
+
 
 /* Analog */
 double sr_libm2k_analog_samplerate_get(struct M2k *m2k);

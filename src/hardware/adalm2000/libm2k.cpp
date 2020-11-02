@@ -95,6 +95,24 @@ int sr_libm2k_context_get_all(struct CONTEXT_INFO ***info)
 	return ctxs.size();
 }
 
+int sr_libm2k_has_mixed_signal(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	return ctx->hasMixedSignal();
+}
+
+void sr_libm2k_mixed_signal_acquisition_start(struct M2k *m2k, unsigned int nb_samples)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	ctx->startMixedSignalAcquisition(nb_samples);
+}
+
+void sr_libm2k_mixed_signal_acquisition_stop(struct M2k *m2k)
+{
+	libm2k::context::M2k *ctx = (libm2k::context::M2k *) m2k;
+	ctx->stopMixedSignalAcquisition();
+}
+
 /* Analog */
 double sr_libm2k_analog_samplerate_get(struct M2k *m2k)
 {
