@@ -669,33 +669,28 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 	case APPA_B_UNIT_NS:
 		analog->meaning->unit = SR_UNIT_SECOND;
-		analog->meaning->mq = SR_MQ_TIME;
 		unit_factor /= 1000000000;
 		analog->encoding->digits += 9;
 		break;
 
 	case APPA_B_UNIT_US:
 		analog->meaning->unit = SR_UNIT_SECOND;
-		analog->meaning->mq = SR_MQ_TIME;
 		unit_factor /= 1000000;
 		analog->encoding->digits += 6;
 		break;
 
 	case APPA_B_UNIT_MS:
 		analog->meaning->unit = SR_UNIT_SECOND;
-		analog->meaning->mq = SR_MQ_TIME;
 		unit_factor /= 1000;
 		analog->encoding->digits += 3;
 		break;
 
 	case APPA_B_UNIT_SEC:
 		analog->meaning->unit = SR_UNIT_SECOND;
-		analog->meaning->mq = SR_MQ_TIME;
 		break;
 
 	case APPA_B_UNIT_MIN:
 		analog->meaning->unit = SR_UNIT_SECOND;
-		analog->meaning->mq = SR_MQ_TIME;
 		unit_factor *= 60;
 		break;
 
@@ -732,8 +727,12 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
 	case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
 	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
+		if(analog->meaning->unit == SR_UNIT_AMPERE
+			|| analog->meaning->unit == SR_UNIT_VOLT
+			|| analog->meaning->unit == SR_UNIT_WATT) {
+			analog->meaning->mqflags |= SR_MQFLAG_AC;
+			analog->meaning->mqflags |= SR_MQFLAG_RMS;
+		}
 		break;
 
 	case APPA_B_FUNCTIONCODE_DC_V:
@@ -770,9 +769,13 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	case APPA_B_FUNCTIONCODE_AC_DC_MA:
 	case APPA_B_FUNCTIONCODE_VOLT_SENSE:
 	case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
-		analog->meaning->mqflags |= SR_MQFLAG_AC;
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		analog->meaning->mqflags |= SR_MQFLAG_RMS;
+		if(analog->meaning->unit == SR_UNIT_AMPERE
+			|| analog->meaning->unit == SR_UNIT_VOLT
+			|| analog->meaning->unit == SR_UNIT_WATT) {
+			analog->meaning->mqflags |= SR_MQFLAG_AC;
+			analog->meaning->mqflags |= SR_MQFLAG_DC;
+			analog->meaning->mqflags |= SR_MQFLAG_RMS;
+		}
 		break;
 
 	}
