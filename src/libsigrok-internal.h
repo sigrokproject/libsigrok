@@ -2601,6 +2601,26 @@ SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
 #define APPA_B_PACKET_SIZE 17
 
 /**
+ * General comm timeout
+ */
+#define APPPA_B_GENERAL_TIMEOUT 5000
+
+/**
+ * Model 150: 3 readings/s
+ */
+#define APPA_B_DELAY_MODEL_150 333
+
+/**
+ * Model 208: 10 readings/s
+ */
+#define APPA_B_DELAY_MODEL_208 100
+
+/**
+ * Model 506: 10 readings/s
+ */
+#define APPA_B_DELAY_MODEL_506 100
+
+/**
  * Number of visible displays supported by the interface (main/sub)
  */
 #define APPA_B_DISPLAY_COUNT 2

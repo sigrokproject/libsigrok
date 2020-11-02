@@ -360,42 +360,48 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * Fold marks {{{ }}} with matching braces were added, to further
 	 * speed up navigation in the long list.
 	 */
-	/* appa-b based meters {{{ */
-	DMM(
-		"appa-208", appa_b,
-		"APPA", "208(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
-	),
-	DMM(
-		"appa-506", appa_b,
-		"APPA", "506(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
-	),
+	/* appa-b based meters (sorted by model id number) {{{ */
+	/* appa-b model 150 {{{ */
 	DMM(
 		"appa-b", appa_b,
 		"APPA", "150/208/506-Series", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_DELAY_MODEL_150, sr_appa_b_serial_packet_request,
+		sr_appa_b_packet_valid, sr_appa_b_parse,
+		NULL
+	),
+	/* }}} */
+	/* appa-b model 208 {{{ */
+	DMM(
+		"appa-208", appa_b,
+		"APPA", "208(B)", "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_DELAY_MODEL_208, sr_appa_b_serial_packet_request,
+		sr_appa_b_packet_valid, sr_appa_b_parse,
+		NULL
+	),
+	/* }}} */
+	/* appa-b model 506 {{{ */
+	DMM(
+		"appa-506", appa_b,
+		"APPA", "506(B)", "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_DELAY_MODEL_506, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"benning-mm12", appa_b,
 		"BENNING", "MM 12", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_DELAY_MODEL_506, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
 	DMM(
 		"sefram-7352", appa_b,
 		"Sefram", "7352(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, 0, 0, sr_appa_b_serial_packet_request,
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_DELAY_MODEL_506, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL
 	),
+	/* }}} */
 	/* }}} */
 	/* asycii based meters {{{ */
 	DMM(
