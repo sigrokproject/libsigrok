@@ -27,25 +27,24 @@
  * base protocol is always the same and deviates only where the models have
  * differences in ablities, range and features.
  *
- * Supported models:
+ * Model Table
  *
- *   - APPA 155B ... B
- *   - APPA 156B ... B
- *   - APPA 157B ... B
- *   - APPA 158B ... B
- *   - APPA 506B ... S
- *   - APPA 506B ... S, B
- *   - APPA 208 ... S
- *   - APPA 208B ... S, B
- *   - Benning MM 12 ... S, B
- *   - Benning CM 12 ... B
- *   - Sefram 7352 ... S
- *   - Sefram 7352B ... S, B
+ *   Model ID | Brand Name            | OPT | BLE | State
+ *   ---------|-----------------------|:---:|:---:|---------------
+ *   150B     | APPA 155B             |     |  X  | untested
+ *   150B     | APPA 156B             |     |  X  | untested
+ *   150B     | APPA 157B             |     |  X  | untested
+ *   150B     | APPA 158B             |     |  X  | untested
+ *   208      | APPA 208              |  X  |     | untested
+ *   208B     | APPA 208B             |  X  |  X  | untested
+ *   506      | APPA 506              |  X  |     | ok
+ *   506B     | APPA 506B             |  X  |  X  | ok
+ *   506B     | BENNING MM 12         |  X  |  X  | ok
+ *   150B     | BENNING CM 12         |     |  X  | untested
+ *   506      | Sefram 7352           |  X  |     | untested
+ *   506B     | Sefram 7352B          |  X  |  X  | ok
  *
- * B: Bluetooth interface, S: Optical serial interface
- *
- * Bluetooth-only models will require the BTLE-connector to be finished first
- * to actually work.
+ * BLE: Bluetooth LE, OPT: Optical serial interface
  *
  * How does it work:
  *
@@ -56,11 +55,11 @@
  *
  * Overall TODOs:
  *
- * @TODO Implement calibration
+ * @TODO Fix BLE-Communication (implemented, but doesn't work)
  * @TODO Implement log download
- * @TODO implement BLTE-Communication (same interface as serial)
  * @TODO Implement after_open function to read device information in appa_b.c
  * @TODO integrate further brand information to provide support for more devices
+ * @TODO Implement calibration
  *
  */
 
