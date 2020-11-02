@@ -399,7 +399,6 @@ SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial)
 
 /**
  * Validate APPA-Frame
- * @TODO validate other aspects / start code / etc.
  *
  * @param buf
  * @return TRUE if checksum is fine
@@ -415,7 +414,6 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 	frame_length = APPA_B_PAYLOAD_LENGTH(APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY);
 	checksum = appa_b_checksum(buf, frame_length);
 
-
 	return
 	checksum == buf[frame_length]
 		&& buf[0] == APPA_B_FRAME_START_VALUE_BYTE
@@ -425,7 +423,7 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 /**
  * Parse APPA-Frame and assign values to virtual channels
  *
- * @TODO include display reading as debug output
+ * @TODO include display reading as debug output?
  *
  * @param buf Buffer from Serial or BTLE
  * @param floatval Return display reading

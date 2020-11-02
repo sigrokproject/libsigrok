@@ -2607,6 +2607,7 @@ SR_PRIV int sr_eev121gw_3displays_parse(const uint8_t *buf, float *floatval,
 
 /**
  * Model 150: 3 readings/s
+ * @TODO Get hands on a CM 12 or other 150 and check if that actually is the case
  */
 #define APPA_B_DELAY_MODEL_150 333
 

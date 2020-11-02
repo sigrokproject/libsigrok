@@ -55,7 +55,6 @@
  *
  * Overall TODOs:
  *
- * @TODO Fix BLE-Communication (implemented, but doesn't work)
  * @TODO Implement log download
  * @TODO Implement after_open function to read device information in appa_b.c
  * @TODO integrate further brand information to provide support for more devices
