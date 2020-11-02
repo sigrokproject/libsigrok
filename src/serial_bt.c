@@ -57,6 +57,8 @@ static const struct scan_supported_item {
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
 	{ "HC-05", SER_BT_CONN_RFCOMM, },
 	{ "BENNING MM12", SER_BT_CONN_APPAB, },
+	{ "APPA 506B", SER_BT_CONN_APPAB, },
+	{ "BENNING CM12", SER_BT_CONN_APPAB, },
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
 
@@ -500,7 +502,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 	ssize_t rdlen;
 	int rc;
 	size_t dlen;
-
+	
 	/*
 	 * Immediately satisfy the caller's request from the RX buffer
 	 * if the requested amount of data is available already.
