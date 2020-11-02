@@ -376,14 +376,21 @@ SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial)
 	if (serial == NULL)
 		return SR_ERR_ARG;
 
+#ifdef APPA_B_ENABLE_FLUSH
 	if (serial_flush(serial) != SR_OK)
 		return SR_ERR_IO;
+#endif/*APPA_B_ENABLE_FLUSH*/
 
 	if (appa_b_write_frame_display_request(buf, sizeof(buf)) != SR_OK)
 		return SR_ERR;
 
+#ifdef APPA_B_ENABLE_NON_BLOCKING
 	if (serial_write_nonblocking(serial, &buf, sizeof(buf)) != sizeof(buf))
 		return SR_ERR_IO;
+#else/*APPA_B_ENABLE_NON_BLOCKING*/
+	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+		return SR_ERR_IO;
+#endif/*APPA_B_ENABLE_NON_BLOCKING*/
 
 	return SR_OK;
 }
@@ -407,6 +414,7 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
 
 	frame_length = APPA_B_PAYLOAD_LENGTH(APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY);
 	checksum = appa_b_checksum(buf, frame_length);
+
 
 	return
 	checksum == buf[frame_length]

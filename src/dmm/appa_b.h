@@ -78,6 +78,21 @@
 #include <strings.h>
 
 /**
+ * Enable flushing before writing
+ */
+#define APPA_B_ENABLE_FLUSH 1
+
+/**
+ * Enable non blocking writing
+ */
+#define APPA_B_ENABLE_NON_BLOCKING 1
+
+/**
+ * Timeout for blocking write operations (10Hz device means max 100ms delay)
+ */
+#define APPA_B_WRITE_BLOCKING_TIMEOUT 100
+
+/**
  * Used for unavailable strings and labels
  */
 #define APPA_B_STRING_NA "N/A"
