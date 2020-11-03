@@ -443,6 +443,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	double unit_factor;
 	int display_reading_value_raw;
 	double display_rading_value;
+	int8_t digits;
 
 	if (buf == NULL
 		|| floatval == NULL
@@ -463,6 +464,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		display_reading = &display_response_data.sub_display_data;
 
 	unit_factor = 1;
+	digits = 0;
 
 	display_reading_value_raw = appa_b_decode_reading(display_reading);
 	display_rading_value = (double) display_reading_value_raw;
@@ -470,32 +472,27 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	switch (display_reading->dot) {
 
 	default: case APPA_B_DOT_NONE:
-		analog->spec->spec_digits = 0;
-		analog->encoding->digits = 0;
+		digits = 0;
 		unit_factor /= 1;
 		break;
 
 	case APPA_B_DOT_9999_9:
-		analog->spec->spec_digits = 1;
-		analog->encoding->digits = 1;
+		digits = 1;
 		unit_factor /= 10;
 		break;
 
 	case APPA_B_DOT_999_99:
-		analog->spec->spec_digits = 2;
-		analog->encoding->digits = 2;
+		digits = 2;
 		unit_factor /= 100;
 		break;
 
 	case APPA_B_DOT_99_999:
-		analog->spec->spec_digits = 3;
-		analog->encoding->digits = 3;
+		digits = 3;
 		unit_factor /= 1000;
 		break;
 
 	case APPA_B_DOT_9_9999:
-		analog->spec->spec_digits = 4;
-		analog->encoding->digits = 4;
+		digits = 4;
 		unit_factor /= 10000;
 		break;
 
@@ -555,7 +552,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_VOLT;
 		analog->meaning->mq = SR_MQ_VOLTAGE;
 		unit_factor /= 1000;
-		analog->encoding->digits += 3;
+		digits += 3;
 		break;
 
 	case APPA_B_UNIT_V:
@@ -567,13 +564,13 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_AMPERE;
 		analog->meaning->mq = SR_MQ_CURRENT;
 		unit_factor /= 1000000;
-		analog->encoding->digits += 6;
+		digits += 6;
 		break;
 	case APPA_B_UNIT_MA:
 		analog->meaning->unit = SR_UNIT_AMPERE;
 		analog->meaning->mq = SR_MQ_CURRENT;
 		unit_factor /= 1000;
-		analog->encoding->digits += 3;
+		digits += 3;
 		break;
 
 	case APPA_B_UNIT_A:
@@ -595,39 +592,42 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_FARAD;
 		analog->meaning->mq = SR_MQ_CAPACITANCE;
 		unit_factor /= 1000000000;
-		analog->encoding->digits += 9;
+		digits += 9;
 		break;
 
 	case APPA_B_UNIT_UF:
 		analog->meaning->unit = SR_UNIT_FARAD;
 		analog->meaning->mq = SR_MQ_CAPACITANCE;
 		unit_factor /= 1000000;
-		analog->encoding->digits += 6;
+		digits += 6;
 		break;
 
 	case APPA_B_UNIT_MF:
 		analog->meaning->unit = SR_UNIT_FARAD;
 		analog->meaning->mq = SR_MQ_CAPACITANCE;
 		unit_factor /= 1000;
-		analog->encoding->digits += 3;
+		digits += 3;
 		break;
 
 	case APPA_B_UNIT_GOHM:
 		analog->meaning->unit = SR_UNIT_OHM;
 		analog->meaning->mq = SR_MQ_RESISTANCE;
 		unit_factor *= 1000000000;
+		digits -= 9;
 		break;
 
 	case APPA_B_UNIT_MOHM:
 		analog->meaning->unit = SR_UNIT_OHM;
 		analog->meaning->mq = SR_MQ_RESISTANCE;
 		unit_factor *= 1000000;
+		digits -= 6;
 		break;
 
 	case APPA_B_UNIT_KOHM:
 		analog->meaning->unit = SR_UNIT_OHM;
 		analog->meaning->mq = SR_MQ_RESISTANCE;
 		unit_factor *= 1000;
+		digits -= 3;
 		break;
 
 	case APPA_B_UNIT_OHM:
@@ -644,12 +644,14 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_HERTZ;
 		analog->meaning->mq = SR_MQ_FREQUENCY;
 		unit_factor *= 1000000;
+		digits -= 6;
 		break;
 
 	case APPA_B_UNIT_KHZ:
 		analog->meaning->unit = SR_UNIT_HERTZ;
 		analog->meaning->mq = SR_MQ_FREQUENCY;
 		unit_factor *= 1000;
+		digits -= 3;
 		break;
 
 	case APPA_B_UNIT_HZ:
@@ -670,19 +672,19 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	case APPA_B_UNIT_NS:
 		analog->meaning->unit = SR_UNIT_SECOND;
 		unit_factor /= 1000000000;
-		analog->encoding->digits += 9;
+		digits += 9;
 		break;
 
 	case APPA_B_UNIT_US:
 		analog->meaning->unit = SR_UNIT_SECOND;
 		unit_factor /= 1000000;
-		analog->encoding->digits += 6;
+		digits += 6;
 		break;
 
 	case APPA_B_UNIT_MS:
 		analog->meaning->unit = SR_UNIT_SECOND;
 		unit_factor /= 1000;
-		analog->encoding->digits += 3;
+		digits += 3;
 		break;
 
 	case APPA_B_UNIT_SEC:
@@ -698,6 +700,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->unit = SR_UNIT_WATT;
 		analog->meaning->mq = SR_MQ_POWER;
 		unit_factor *= 1000;
+		digits -= 3;
 		break;
 
 	case APPA_B_UNIT_PF:
@@ -709,15 +712,16 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 	switch (display_response_data.function_code) {
 
-	case APPA_B_FUNCTIONCODE_AC_V:
-	case APPA_B_FUNCTIONCODE_AC_MV:
-	case APPA_B_FUNCTIONCODE_AC_A:
-	case APPA_B_FUNCTIONCODE_AC_MA:
+	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
 	case APPA_B_FUNCTIONCODE_AC_UA:
-	case APPA_B_FUNCTIONCODE_LPF_V:
+	case APPA_B_FUNCTIONCODE_AC_MV:
+	case APPA_B_FUNCTIONCODE_AC_MA:
 	case APPA_B_FUNCTIONCODE_LPF_MV:
-	case APPA_B_FUNCTIONCODE_LPF_A:
 	case APPA_B_FUNCTIONCODE_LPF_MA:
+	case APPA_B_FUNCTIONCODE_AC_V:
+	case APPA_B_FUNCTIONCODE_AC_A:
+	case APPA_B_FUNCTIONCODE_LPF_V:
+	case APPA_B_FUNCTIONCODE_LPF_A:
 	case APPA_B_FUNCTIONCODE_LOZ_AC_V:
 	case APPA_B_FUNCTIONCODE_AC_W:
 	case APPA_B_FUNCTIONCODE_LOZ_LPF_V:
@@ -726,7 +730,6 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	case APPA_B_FUNCTIONCODE_A_HARM:
 	case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
 	case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
-	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
 		if(analog->meaning->unit == SR_UNIT_AMPERE
 			|| analog->meaning->unit == SR_UNIT_VOLT
 			|| analog->meaning->unit == SR_UNIT_WATT) {
@@ -735,11 +738,11 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		}
 		break;
 
-	case APPA_B_FUNCTIONCODE_DC_V:
-	case APPA_B_FUNCTIONCODE_DC_MV:
-	case APPA_B_FUNCTIONCODE_DC_A:
-	case APPA_B_FUNCTIONCODE_DC_MA:
 	case APPA_B_FUNCTIONCODE_DC_UA:
+	case APPA_B_FUNCTIONCODE_DC_MV:
+	case APPA_B_FUNCTIONCODE_DC_MA:
+	case APPA_B_FUNCTIONCODE_DC_V:
+	case APPA_B_FUNCTIONCODE_DC_A:
 	case APPA_B_FUNCTIONCODE_DC_A_OUT:
 	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_LINEAR:
 	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_LINEAR:
@@ -763,10 +766,10 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		analog->meaning->mqflags |= SR_MQFLAG_DC;
 		break;
 
-	case APPA_B_FUNCTIONCODE_AC_DC_V:
 	case APPA_B_FUNCTIONCODE_AC_DC_MV:
-	case APPA_B_FUNCTIONCODE_AC_DC_A:
 	case APPA_B_FUNCTIONCODE_AC_DC_MA:
+	case APPA_B_FUNCTIONCODE_AC_DC_V:
+	case APPA_B_FUNCTIONCODE_AC_DC_A:
 	case APPA_B_FUNCTIONCODE_VOLT_SENSE:
 	case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
 		if(analog->meaning->unit == SR_UNIT_AMPERE
@@ -779,6 +782,9 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		break;
 
 	}
+
+	analog->spec->spec_digits = digits;
+	analog->encoding->digits = digits;
 
 	display_rading_value *= unit_factor;
 

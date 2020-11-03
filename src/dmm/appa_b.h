@@ -55,7 +55,6 @@
  *
  * TODOs:
  *
- * @TODO Test and fix unit conversion / digits after dot
  * @TODO Implement after_open function to read device information in appa_b.c
  * @TODO Integrate further brand information to provide support for more devices
  * @TODO Integrate display text as output
