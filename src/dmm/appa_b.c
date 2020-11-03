@@ -316,6 +316,67 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 #ifdef HAVE_SERIAL_COMM
 
 /**
+ * Request device information after login
+ * 
+ * @WARNING Test before inclusion!
+ *
+ * @TODO do something more usefull with it, not (yet) used!
+ *
+ * @param serial Serial data
+ * @return @sr_error_code Status code
+ */
+SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
+{
+	u_int8_t buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION];
+	struct appa_b_frame_information_response_data_s information_response_data;
+
+	if (serial == NULL)
+		return SR_ERR_ARG;
+
+#ifdef APPA_B_ENABLE_FLUSH
+	if (serial_flush(serial) != SR_OK)
+		return SR_ERR_IO;
+#endif/*APPA_B_ENABLE_FLUSH*/
+
+	if (appa_b_write_frame_information_request(buf, sizeof(buf)) != SR_OK)
+		return SR_ERR;
+
+	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+		return SR_ERR_IO;
+	
+	/** @TODO add sleep here? */
+	
+	if (serial_read_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+		return SR_ERR_IO;
+	
+	if (buf[0] != APPA_B_FRAME_START_VALUE_BYTE
+		|| buf[1] != APPA_B_FRAME_START_VALUE_BYTE)
+		return SR_ERR_IO;
+
+	if (buf[2] != APPA_B_COMMAND_READ_DISPLAY)
+		return SR_ERR_IO;
+
+	if (buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY)
+		return SR_ERR_IO;
+	
+	memcpy(information_response_data.model_name, &buf[4], 32);
+	memcpy(information_response_data.serial_number, &buf[36], 16);
+	information_response_data.model_id = buf[53] | buf[52] << 8;
+	information_response_data.firmware_version = buf[55] | buf[54] << 8;
+
+	information_response_data.model_name[sizeof(information_response_data.model_name)] = 0;
+	information_response_data.model_name[sizeof(information_response_data.serial_number)] = 0;
+	
+	sr_warn("Model Name: %s", information_response_data.model_name);
+	sr_warn("Serial Number: %s", information_response_data.serial_number);
+	sr_warn("Model ID: %i", information_response_data.model_id);
+	sr_warn("Firmware Version: %i", information_response_data.firmware_version);
+
+	return SR_OK;
+	
+}
+
+/**
  * Request frame from device
  *
  * Response will contain both display readings
