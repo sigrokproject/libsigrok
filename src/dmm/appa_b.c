@@ -52,6 +52,14 @@ static gboolean appa_b_is_wordcode(const int arg_wordcode)
 	return arg_wordcode >= APPA_B_WORDCODE_TABLE_MIN;
 }
 
+static gboolean appa_b_is_wordcode_dash(const int arg_wordcode)
+{
+	return
+		arg_wordcode == APPA_B_WORDCODE_DASH
+		|| arg_wordcode == APPA_B_WORDCODE_DASH1
+		|| arg_wordcode == APPA_B_WORDCODE_DASH2;
+}
+
 static int appa_b_decode_reading(const struct appa_b_frame_display_reading_s *arg_display_reading)
 {
 	return
@@ -385,6 +393,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	struct appa_b_frame_display_reading_s *display_reading;
 
 	gboolean is_sub;
+	gboolean is_dash;
 
 	double unit_factor;
 	int display_reading_value_raw;
@@ -415,7 +424,10 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	display_reading_value_raw = appa_b_decode_reading(display_reading);
 	display_reading_value = (double) display_reading_value_raw;
 
-	if (!appa_b_is_wordcode(display_reading_value_raw)) {
+	is_dash = appa_b_is_wordcode_dash(display_reading_value_raw);
+	
+	if (!appa_b_is_wordcode(display_reading_value_raw)
+		|| is_dash) {
 
 		switch (display_reading->dot) {
 
@@ -480,6 +492,14 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		case APPA_B_DATA_CONTENT_HOLD:
 			if (is_sub)
 				analog->meaning->mqflags |= SR_MQFLAG_HOLD;
+			break;
+
+		case APPA_B_DATA_CONTENT_REL_DELTA:
+		case APPA_B_DATA_CONTENT_REL_PERCENT:
+			if (!is_sub)
+				analog->meaning->mqflags |= SR_MQFLAG_RELATIVE;
+			else
+				analog->meaning->mqflags |= SR_MQFLAG_REFERENCE;
 			break;
 
 		}
@@ -741,7 +761,8 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 		display_reading_value *= unit_factor;
 
-		if (display_reading->overload == APPA_B_OVERLOAD)
+		if (display_reading->overload == APPA_B_OVERLOAD
+			|| is_dash)
 			*floatval = INFINITY;
 		else
 			*floatval = display_reading_value;
@@ -754,7 +775,16 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 		switch(display_reading_value_raw) {
 
 		case APPA_B_WORDCODE_BATT:
-			sr_err("ERROR: BATTERY LOW!");
+		case APPA_B_WORDCODE_HAZ:
+		case APPA_B_WORDCODE_FUSE:
+		case APPA_B_WORDCODE_PROBE:
+		case APPA_B_WORDCODE_ER:
+		case APPA_B_WORDCODE_ER1:
+		case APPA_B_WORDCODE_ER2:
+		case APPA_B_WORDCODE_ER3:
+			sr_err("ERROR [%s]: %s",
+				sr_appa_b_channel_formats[info_local->ch_idx],
+				appa_b_wordcode_name(display_reading_value_raw));
 			break;
 
 		case APPA_B_WORDCODE_SPACE:
@@ -768,6 +798,24 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 			sr_warn("MESSAGE [%s]: %s",
 				sr_appa_b_channel_formats[info_local->ch_idx],
 				appa_b_wordcode_name(display_reading_value_raw));
+			break;
+			
+		case APPA_B_WORDCODE_DEF:
+			/* Not beautiful but functional */
+			if(display_reading->unit == APPA_B_UNIT_DEGC)
+				sr_warn("MESSAGE [%s]: %s °C",
+					sr_appa_b_channel_formats[info_local->ch_idx],
+					appa_b_wordcode_name(display_reading_value_raw));
+
+			else if(display_reading->unit == APPA_B_UNIT_DEGF)
+				sr_warn("MESSAGE [%s]: %s °F",
+					sr_appa_b_channel_formats[info_local->ch_idx],
+					appa_b_wordcode_name(display_reading_value_raw));
+
+			else
+				sr_warn("MESSAGE [%s]: %s",
+					sr_appa_b_channel_formats[info_local->ch_idx],
+					appa_b_wordcode_name(display_reading_value_raw));
 			break;
 
 		}

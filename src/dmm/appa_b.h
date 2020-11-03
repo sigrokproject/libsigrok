@@ -486,6 +486,14 @@ struct appa_b_frame_display_response_data_s {
 static gboolean appa_b_is_wordcode(const int arg_wordcode);
 
 /**
+ * Check if reading is dash-wordcode
+ *
+ * @param arg_wordcode Wordcode value
+ * @return TRUE if reading value is a dash-wordcode
+ */
+static gboolean appa_b_is_wordcode_dash(const int arg_wordcode);
+
+/**
  * Measurement value / reading decoding helper
  *
  * Take a display structure and decode the 24 bit reading into a standard int
