@@ -967,6 +967,15 @@ static inline void write_dblle_inc(uint8_t **p, double x)
 #define SR_DRIVER_LIST_SECTION "__sr_driver_list"
 #endif
 
+#if !defined SR_DRIVER_LIST_NOREORDER && defined __has_attribute
+#if __has_attribute(no_reorder)
+#define SR_DRIVER_LIST_NOREORDER __attribute__((no_reorder))
+#endif
+#endif
+#if !defined SR_DRIVER_LIST_NOREORDER
+#define SR_DRIVER_LIST_NOREORDER /* EMPTY */
+#endif
+
 /**
  * Register a list of hardware drivers.
  *
@@ -996,6 +1005,7 @@ static inline void write_dblle_inc(uint8_t **p, double x)
  */
 #define SR_REGISTER_DEV_DRIVER_LIST(name, ...) \
 	static const struct sr_dev_driver *name[] \
+		SR_DRIVER_LIST_NOREORDER \
 		__attribute__((section (SR_DRIVER_LIST_SECTION), used, \
 			aligned(sizeof(struct sr_dev_driver *)))) \
 		= { \

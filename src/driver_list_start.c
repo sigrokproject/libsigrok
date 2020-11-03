@@ -28,6 +28,7 @@
  */
 
 SR_PRIV const struct sr_dev_driver *sr_driver_list__start[]
+	SR_DRIVER_LIST_NOREORDER
 	__attribute__((section (SR_DRIVER_LIST_SECTION),
 		       used, aligned(sizeof(struct sr_dev_driver *))))
   = { NULL /* Dummy item, as zero length arrays are not allowed by C99 */ };
