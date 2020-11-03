@@ -318,60 +318,111 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 /**
  * Request device information after login
  * 
- * @WARNING Test before inclusion!
- *
- * @TODO do something more usefull with it, not (yet) used!
- *
  * @param serial Serial data
  * @return @sr_error_code Status code
  */
 SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 {
-	u_int8_t buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION];
+
+#ifdef APPA_B_ENABLE_OPEN_REQUEST_INFORMATION
+
+	u_int8_t buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE + APPA_B_FRAME_CHECKSUM_SIZE];
+	u_int8_t read_pos;
+	u_int8_t off_pos;
 	struct appa_b_frame_information_response_data_s information_response_data;
 
-	if (serial == NULL)
+	if (serial == NULL) {
+		sr_err("sr_appa_b_serial_open(): serial error");
 		return SR_ERR_ARG;
+	}
 
 #ifdef APPA_B_ENABLE_FLUSH
-	if (serial_flush(serial) != SR_OK)
+	if (serial_flush(serial) != SR_OK) {
+		sr_err("sr_appa_b_serial_open(): flush error");
 		return SR_ERR_IO;
+	}
 #endif/*APPA_B_ENABLE_FLUSH*/
 
-	if (appa_b_write_frame_information_request(buf, sizeof(buf)) != SR_OK)
+	if (appa_b_write_frame_information_request(buf, sizeof(buf)) != SR_OK) {
+		sr_err("sr_appa_b_serial_open(): information_request generation error - is it the correct device and properly connected?");
 		return SR_ERR;
+	}
 
-	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf)) {
+		sr_err("sr_appa_b_serial_open(): information_request write error");
 		return SR_ERR_IO;
-	
-	/** @TODO add sleep here? */
-	
-	if (serial_read_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+	}
+
+	/* ugly, but unfortunately nessasary */
+	g_usleep(5000);
+
+	if (serial_read_blocking(serial, &buf, sizeof(buf)) != sizeof(buf)) {
+		sr_err("sr_appa_b_serial_open(): information_request read error");
 		return SR_ERR_IO;
-	
+	}
+
 	if (buf[0] != APPA_B_FRAME_START_VALUE_BYTE
-		|| buf[1] != APPA_B_FRAME_START_VALUE_BYTE)
+		|| buf[1] != APPA_B_FRAME_START_VALUE_BYTE) {
+		sr_err("sr_appa_b_serial_open(): invalid start code - wrong device?");
 		return SR_ERR_IO;
-
-	if (buf[2] != APPA_B_COMMAND_READ_DISPLAY)
-		return SR_ERR_IO;
-
-	if (buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY)
-		return SR_ERR_IO;
+	}
 	
-	memcpy(information_response_data.model_name, &buf[4], 32);
-	memcpy(information_response_data.serial_number, &buf[36], 16);
-	information_response_data.model_id = buf[53] | buf[52] << 8;
-	information_response_data.firmware_version = buf[55] | buf[54] << 8;
+	if (appa_b_checksum(buf, APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE)
+		!= buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE]) {
+		sr_err("sr_appa_b_serial_open(): checksum error");
+		return SR_ERR_IO;
+	}
+
+	if (buf[2] != APPA_B_COMMAND_READ_INFORMATION) {
+		sr_err("sr_appa_b_serial_open(): invalid command - wrong device?");
+		return SR_ERR_IO;
+	}
+
+	if (buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION) {
+		sr_err("sr_appa_b_serial_open(): invalid frame length");
+		return SR_ERR_IO;
+	}
+
+	read_pos = 4;
+	
+	information_response_data.model_name[0] = 0;
+	information_response_data.serial_number[0] = 0;
+	
+	memcpy(information_response_data.model_name, &buf[read_pos], 32);
+	read_pos+=32;
+	memcpy(information_response_data.serial_number, &buf[read_pos], 16);
+	read_pos+=16;
+	information_response_data.model_id = buf[read_pos] | buf[read_pos+1] << 8;
+	read_pos+=2;
+	information_response_data.firmware_version = buf[read_pos] | buf[read_pos+1] << 8;
+	read_pos+=2;
 
 	information_response_data.model_name[sizeof(information_response_data.model_name)] = 0;
-	information_response_data.model_name[sizeof(information_response_data.serial_number)] = 0;
-	
-	sr_warn("Model Name: %s", information_response_data.model_name);
-	sr_warn("Serial Number: %s", information_response_data.serial_number);
-	sr_warn("Model ID: %i", information_response_data.model_id);
-	sr_warn("Firmware Version: %i", information_response_data.firmware_version);
 
+	off_pos = 0;
+	for (read_pos = 0; read_pos < 16; read_pos++) {
+		if (information_response_data.serial_number[read_pos] == 0x20
+			|| information_response_data.serial_number[read_pos] == 0x0)
+			continue;
+		information_response_data.serial_number[off_pos] = information_response_data.serial_number[read_pos];
+		off_pos++;
+	}
+	information_response_data.serial_number[off_pos] = 0;
+
+	sr_info("Model Name: %s", information_response_data.model_name);
+	sr_info("Serial Number: %s", information_response_data.serial_number);
+	sr_info("Model ID: %i", information_response_data.model_id);
+	sr_info("Model Name: %s", appa_b_model_id_name(information_response_data.model_id));
+	sr_info("Firmware Version: %i", information_response_data.firmware_version);
+
+#else/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
+	
+	(void)serial;
+	
+	sr_info("APPA_B_ENABLE_OPEN_REQUEST_INFORMATION disabled due to BLE issues.");
+	
+#endif/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
+	
 	return SR_OK;
 	
 }
@@ -388,23 +439,33 @@ SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial)
 {
 	u_int8_t buf[5];
 
-	if (serial == NULL)
+	if (serial == NULL) {
+		sr_err("sr_appa_b_serial_packet_request(): serial error");
 		return SR_ERR_ARG;
+	}
 
 #ifdef APPA_B_ENABLE_FLUSH
-	if (serial_flush(serial) != SR_OK)
+	if (serial_flush(serial) != SR_OK) {
+		sr_err("sr_appa_b_serial_packet_request(): flush error");
 		return SR_ERR_IO;
+	}
 #endif/*APPA_B_ENABLE_FLUSH*/
 
-	if (appa_b_write_frame_display_request(buf, sizeof(buf)) != SR_OK)
+	if (appa_b_write_frame_display_request(buf, sizeof(buf)) != SR_OK) {
+		sr_err("sr_appa_b_serial_packet_request(): display_request generation error");
 		return SR_ERR;
+	}
 
 #ifdef APPA_B_ENABLE_NON_BLOCKING
-	if (serial_write_nonblocking(serial, &buf, sizeof(buf)) != sizeof(buf))
+	if (serial_write_nonblocking(serial, &buf, sizeof(buf)) != sizeof(buf)) {
+		sr_err("sr_appa_b_serial_packet_request(): display_request write error");
 		return SR_ERR_IO;
+	}
 #else/*APPA_B_ENABLE_NON_BLOCKING*/
-	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf))
+	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf)) {
+		sr_err("sr_appa_b_serial_packet_request(): display_request write error");
 		return SR_ERR_IO;
+	}
 #endif/*APPA_B_ENABLE_NON_BLOCKING*/
 
 	return SR_OK;
@@ -415,24 +476,39 @@ SR_PRIV int sr_appa_b_serial_packet_request(struct sr_serial_dev_inst *serial)
 /**
  * Validate APPA-Frame
  *
- * @param buf
+ * @param state session state
+ * @param data data recieved
+ * @param dlen reported length
+ * @param pkt_len return length
  * @return TRUE if checksum is fine
  */
-SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
+SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *data)
 {
 	int frame_length;
 	u_int8_t checksum;
-
-	if (buf == NULL)
+	
+	if (data == NULL) {
+		sr_err("sr_appa_b_packet_valid(): data error");
 		return FALSE;
+	}
 
 	frame_length = APPA_B_PAYLOAD_LENGTH(APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY);
-	checksum = appa_b_checksum(buf, frame_length);
+	checksum = appa_b_checksum(data, frame_length);
 
-	return
-	checksum == buf[frame_length]
-		&& buf[0] == APPA_B_FRAME_START_VALUE_BYTE
-		&& buf[1] == APPA_B_FRAME_START_VALUE_BYTE;
+	if (checksum != data[frame_length]) {
+		/** @TODO once BLE doesn't deliver incorrect data any longer unmute */
+		/* sr_err("sr_appa_b_packet_valid(): checksum error"); */
+		return FALSE;
+	}
+	
+	if (data[0] != APPA_B_FRAME_START_VALUE_BYTE
+		|| data[1] != APPA_B_FRAME_START_VALUE_BYTE) {
+		/** @TODO once BLE doesn't deliver incorrect data any longer unmute */
+		/* sr_err("sr_appa_b_packet_valid(): frame start code error"); */
+		return FALSE;
+	}
+	
+	return TRUE;
 }
 
 /**
@@ -446,8 +522,8 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *buf)
  * @param info Channel information and other things
  * @return @sr_error_code Status
  */
-SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
-	struct sr_datafeed_analog *analog, void *info)
+SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
+			    struct sr_datafeed_analog *analog, void *info)
 {
 	struct appa_b_info *info_local;
 	struct appa_b_frame_display_response_data_s display_response_data;
@@ -461,18 +537,22 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	double display_reading_value;
 	int8_t digits;
 
-	if (buf == NULL
-		|| floatval == NULL
+	if (data == NULL
+		|| val == NULL
 		|| analog == NULL
-		|| info == NULL)
+		|| info == NULL) {
+		sr_err("sr_appa_b_parse(): missing arguments");
 		return SR_ERR_ARG;
+	}
 
 	info_local = info;
 
 	is_sub = (info_local->ch_idx == 1);
 
-	if (appa_b_read_frame_display_response(buf, &display_response_data) != SR_OK)
+	if (appa_b_read_frame_display_response(data, &display_response_data) != SR_OK) {
+		sr_err("sr_appa_b_parse(): frame decode error");
 		return SR_ERR_DATA;
+	}
 
 	if (!is_sub)
 		display_reading = &display_response_data.main_display_data;
@@ -824,14 +904,14 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 		if (display_reading->overload == APPA_B_OVERLOAD
 			|| is_dash)
-			*floatval = INFINITY;
+			*val = INFINITY;
 		else
-			*floatval = display_reading_value;
+			*val = display_reading_value;
 
 
 	} else {
 
-		*floatval = INFINITY;
+		*val = INFINITY;
 		
 		switch(display_reading_value_raw) {
 

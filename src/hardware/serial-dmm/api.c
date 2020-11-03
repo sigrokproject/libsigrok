@@ -368,45 +368,54 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * speed up navigation in the long list.
 	 */
 	/* appa-b based meters (sorted by model id number) {{{ */
-	/* appa-b model 150 {{{ */
-	DMM(
-		"appa-b", appa_b,
-		"APPA", "150/208/506-Series", "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY, sr_appa_b_serial_packet_request,
+	/* appa-b generic {{{ */
+	DMM_ENTRY(
+		"appa-b", appa_b, "APPA", "150/208/506-Series (Generic)", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+	),
+	/* }}} */
+	/* appa-b model 150 {{{ */
+	DMM_ENTRY(
+		"appa-150", appa_b, "APPA", "15x(B)", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		sr_appa_b_packet_valid, sr_appa_b_parse,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	/* }}} */
 	/* appa-b model 208 {{{ */
-	DMM(
-		"appa-208", appa_b,
-		"APPA", "208(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY, sr_appa_b_serial_packet_request,
+	DMM_ENTRY(
+		"appa-208", appa_b, "APPA", "208(B)", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	/* }}} */
 	/* appa-b model 506 {{{ */
-	DMM(
-		"appa-506", appa_b,
-		"APPA", "506(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY, sr_appa_b_serial_packet_request,
+	DMM_ENTRY(
+		"appa-506", appa_b, "APPA", "506(B)", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
-	DMM(
-		"benning-mm12", appa_b,
-		"BENNING", "MM 12", "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY, sr_appa_b_serial_packet_request,
+	DMM_ENTRY(
+		"benning-mm12", appa_b, "BENNING", "MM 12", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
-	DMM(
-		"sefram-7352", appa_b,
-		"Sefram", "7352(B)", "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY, sr_appa_b_serial_packet_request,
+	DMM_ENTRY(
+		"sefram-7352", appa_b, "Sefram", "7352(B)", NULL, "9600/8n1",
+		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
+		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	/* }}} */
 	/* }}} */

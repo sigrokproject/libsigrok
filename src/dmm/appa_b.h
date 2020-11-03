@@ -55,11 +55,9 @@
  *
  * TODOs:
  *
- * @TODO Integrate further brand information to provide support for more devices
- * @TODO Better channel naming?
  * @TODO Implement log download
  * @TODO Implement calibration
- * @TODO Include sr_appa_b_serial_open()
+ * @TODO Check, why sometimes invalid BLE traffic pops up (currently silently ignored)
  *
  */
 
@@ -85,6 +83,12 @@
  * Enable non blocking writing
  */
 #define APPA_B_ENABLE_NON_BLOCKING 1
+
+/**
+ * Enable handshake information
+ * @TODO fix it for BLE
+ */
+/* #define APPA_B_ENABLE_OPEN_REQUEST_INFORMATION 1 */
 
 /**
  * Timeout for blocking write operations (10Hz device means max 100ms delay)
