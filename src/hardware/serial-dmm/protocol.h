@@ -26,9 +26,9 @@ struct dmm_info {
 	/** libsigrok driver info struct. */
 	struct sr_dev_driver di;
 	/** Manufacturer/brand. */
-	const char *vendor;
+	char *vendor;
 	/** Model. */
-	const char *device;
+	char *model;
 	/** conn string. */
 	const char *conn;
 	/** serialcomm string. */

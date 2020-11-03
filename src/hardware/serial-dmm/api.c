@@ -143,7 +143,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(dmm->vendor);
-	sdi->model = g_strdup(dmm->device);
+	sdi->model = g_strdup(dmm->model);
 	devc = g_malloc0(sizeof(*devc));
 	sr_sw_limits_init(&devc->limits);
 	sdi->inst_type = SR_INST_SERIAL;
