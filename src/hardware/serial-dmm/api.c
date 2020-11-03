@@ -152,24 +152,31 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Create (optionally device dependent) channel(s). */
 	dmm->channel_count = 1;
-	if (dmm->packet_parse == sr_brymen_bm52x_parse)
-		dmm->channel_count = BRYMEN_BM52X_DISPLAY_COUNT;
-	if (dmm->packet_parse == sr_brymen_bm86x_parse)
-		dmm->channel_count = BRYMEN_BM86X_DISPLAY_COUNT;
-	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
-		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
-		dmm->channel_formats = eev121gw_channel_formats;
-	}
+
 	if (dmm->packet_parse == sr_appa_b_parse) {
 		dmm->channel_count = APPA_B_DISPLAY_COUNT;
 		dmm->channel_formats = sr_appa_b_channel_formats;
 	}
+
+	if (dmm->packet_parse == sr_brymen_bm52x_parse)
+		dmm->channel_count = BRYMEN_BM52X_DISPLAY_COUNT;
+
+	if (dmm->packet_parse == sr_brymen_bm86x_parse)
+		dmm->channel_count = BRYMEN_BM86X_DISPLAY_COUNT;
+
+	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
+		dmm->channel_count = EEV121GW_DISPLAY_COUNT;
+		dmm->channel_formats = eev121gw_channel_formats;
+	}
+
 	if (dmm->packet_parse == sr_metex14_4packets_parse)
 		dmm->channel_count = 4;
+
 	if (dmm->packet_parse == sr_ms2115b_parse) {
 		dmm->channel_count = MS2115B_DISPLAY_COUNT;
 		dmm->channel_formats = ms2115b_channel_formats;
 	}
+
 	for (ch_idx = 0; ch_idx < dmm->channel_count; ch_idx++) {
 		size_t ch_num;
 		const char *fmt;

@@ -35,13 +35,13 @@
  *   150B     | APPA 156B             |     |  X  | untested
  *   150B     | APPA 157B             |     |  X  | untested
  *   150B     | APPA 158B             |     |  X  | untested
+ *   150B     | BENNING CM 12         |     |  X  | untested
  *   208      | APPA 208              |  X  |     | untested
  *   208B     | APPA 208B             |  X  |  X  | untested
  *   506      | APPA 506              |  X  |     | ok
+ *   506      | Sefram 7352           |  X  |     | ok
  *   506B     | APPA 506B             |  X  |  X  | ok
  *   506B     | BENNING MM 12         |  X  |  X  | ok
- *   150B     | BENNING CM 12         |     |  X  | untested
- *   506      | Sefram 7352           |  X  |     | untested
  *   506B     | Sefram 7352B          |  X  |  X  | ok
  *
  * BLE: Bluetooth LE, OPT: Optical serial interface
@@ -53,11 +53,14 @@
  * enums and string resolution functions to resolve the information and map
  * it to the according sigrok fields.
  *
- * Overall TODOs:
+ * TODOs:
  *
- * @TODO Implement log download
+ * @TODO Test and fix unit conversion / digits after dot
  * @TODO Implement after_open function to read device information in appa_b.c
- * @TODO integrate further brand information to provide support for more devices
+ * @TODO Integrate further brand information to provide support for more devices
+ * @TODO Integrate display text as output
+ * @TODO Better channel naming
+ * @TODO Implement log download
  * @TODO Implement calibration
  *
  */
