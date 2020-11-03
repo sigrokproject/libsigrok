@@ -217,8 +217,10 @@ static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int arg_size)
 {
 	u_int8_t checksum;
 
-	if (arg_data == NULL)
+	if (arg_data == NULL) {
+		sr_err("appa_b_checksum(): checksum data error, NULL provided. returning 0");
 		return 0;
+	}
 
 	checksum = 0;
 	while (arg_size-- > 0)
@@ -228,81 +230,99 @@ static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int arg_size)
 
 static int appa_b_write_frame_information_request(u_int8_t *arg_buf, int arg_len)
 {
-	if (arg_buf == NULL)
-		return SR_ERR_ARG;
+	u_int8_t write_pos;
 
-	if (arg_len < 5)
+	if (arg_buf == NULL) {
+		sr_err("appa_b_write_frame_information_request(): buffer error");
 		return SR_ERR_ARG;
+	}
 
-	arg_buf[0] = APPA_B_FRAME_START_VALUE_BYTE;
-	arg_buf[1] = APPA_B_FRAME_START_VALUE_BYTE;
-	arg_buf[2] = APPA_B_COMMAND_READ_INFORMATION;
-	arg_buf[3] = 0;
-	arg_buf[4] = appa_b_checksum(arg_buf, 4);
+	if (arg_len < 5) {
+		sr_err("appa_b_write_frame_information_request(): argument error");
+		return SR_ERR_ARG;
+	}
+
+	write_pos = 0;
+
+	arg_buf[write_pos++] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[write_pos++] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[write_pos++] = APPA_B_COMMAND_READ_INFORMATION;
+	arg_buf[write_pos++] = 0;
+	arg_buf[write_pos++] = appa_b_checksum(arg_buf, APPA_B_FRAME_HEADER_SIZE);
 
 	return SR_OK;
-
 }
 
 static int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
 {
+	u_int8_t write_pos;
 
-	if (arg_buf == NULL)
+	if (arg_buf == NULL) {
+		sr_err("appa_b_write_frame_display_request(): buffer error");
 		return SR_ERR_ARG;
+	}
 
-	if (arg_len < 5)
+	if (arg_len < 5) {
+		sr_err("appa_b_write_frame_display_request(): argument error");
 		return SR_ERR_ARG;
+	}
 
-	arg_buf[0] = APPA_B_FRAME_START_VALUE_BYTE;
-	arg_buf[1] = APPA_B_FRAME_START_VALUE_BYTE;
-	arg_buf[2] = APPA_B_COMMAND_READ_DISPLAY;
-	arg_buf[3] = 0;
-	arg_buf[4] = appa_b_checksum(arg_buf, 4);
+	write_pos = 0;
+
+	arg_buf[write_pos++] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[write_pos++] = APPA_B_FRAME_START_VALUE_BYTE;
+	arg_buf[write_pos++] = APPA_B_COMMAND_READ_DISPLAY;
+	arg_buf[write_pos++] = 0;
+	arg_buf[write_pos++] = appa_b_checksum(arg_buf, APPA_B_FRAME_HEADER_SIZE);
 
 	return SR_OK;
 }
 
 static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data)
 {
+	u_int8_t read_pos;
+
 	if (arg_buf == NULL
 		|| arg_display_response_data == NULL)
 		return SR_ERR;
 
-	if (arg_buf[0] != APPA_B_FRAME_START_VALUE_BYTE
-		|| arg_buf[1] != APPA_B_FRAME_START_VALUE_BYTE)
+	read_pos = 0;
+
+	if (arg_buf[read_pos++] != APPA_B_FRAME_START_VALUE_BYTE
+		|| arg_buf[read_pos++] != APPA_B_FRAME_START_VALUE_BYTE)
 		return SR_ERR_IO;
 
-	if (arg_buf[2] != APPA_B_COMMAND_READ_DISPLAY)
+	if (arg_buf[read_pos++] != APPA_B_COMMAND_READ_DISPLAY)
 		return SR_ERR_IO;
 
-	if (arg_buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY)
+	if (arg_buf[read_pos++] != APPA_B_DATA_LENGTH_RESPONSE_READ_DISPLAY)
 		return SR_ERR_IO;
 
-	arg_display_response_data->function_code = arg_buf[4] & 0x7f;
-	arg_display_response_data->auto_test = arg_buf[4] >> 7;
+	arg_display_response_data->function_code = arg_buf[read_pos] & 0x7f;
+	arg_display_response_data->auto_test = arg_buf[read_pos++] >> 7;
 
-	arg_display_response_data->range_code = arg_buf[5] & 0x7f;
-	arg_display_response_data->auto_range = arg_buf[5] >> 7;
+	arg_display_response_data->range_code = arg_buf[read_pos] & 0x7f;
+	arg_display_response_data->auto_range = arg_buf[read_pos++] >> 7;
 
-	arg_display_response_data->main_display_data.reading_b0 = arg_buf[6];
-	arg_display_response_data->main_display_data.reading_b1 = arg_buf[7];
-	arg_display_response_data->main_display_data.reading_b2 = arg_buf[8];
+	arg_display_response_data->main_display_data.reading_b0 = arg_buf[read_pos++];
+	arg_display_response_data->main_display_data.reading_b1 = arg_buf[read_pos++];
+	arg_display_response_data->main_display_data.reading_b2 = arg_buf[read_pos++];
 
-	arg_display_response_data->main_display_data.dot = arg_buf[9] & 0x7;
-	arg_display_response_data->main_display_data.unit = arg_buf[9] >> 3;
+	arg_display_response_data->main_display_data.dot = arg_buf[read_pos] & 0x7;
+	arg_display_response_data->main_display_data.unit = arg_buf[read_pos++] >> 3;
 
-	arg_display_response_data->main_display_data.data_content = arg_buf[10] & 0x7f;
-	arg_display_response_data->main_display_data.overload = arg_buf[10] >> 7;
+	arg_display_response_data->main_display_data.data_content = arg_buf[read_pos] & 0x7f;
+	arg_display_response_data->main_display_data.overload = arg_buf[read_pos++] >> 7;
 
-	arg_display_response_data->sub_display_data.reading_b0 = arg_buf[11];
-	arg_display_response_data->sub_display_data.reading_b1 = arg_buf[12];
-	arg_display_response_data->sub_display_data.reading_b2 = arg_buf[13];
+	arg_display_response_data->sub_display_data.reading_b0 = arg_buf[read_pos++];
+	arg_display_response_data->sub_display_data.reading_b1 = arg_buf[read_pos++];
+	arg_display_response_data->sub_display_data.reading_b2 = arg_buf[read_pos++];
 
-	arg_display_response_data->sub_display_data.dot = arg_buf[14] & 0x7;
-	arg_display_response_data->sub_display_data.unit = arg_buf[14] >> 3;
+	arg_display_response_data->sub_display_data.dot = arg_buf[read_pos] & 0x7;
+	arg_display_response_data->sub_display_data.unit = arg_buf[read_pos++] >> 3;
 
-	arg_display_response_data->sub_display_data.data_content = arg_buf[15] & 0x7f;
-	arg_display_response_data->sub_display_data.overload = arg_buf[15] >> 7;
+	arg_display_response_data->sub_display_data.data_content = arg_buf[read_pos] & 0x7f;
+	arg_display_response_data->sub_display_data.overload = arg_buf[read_pos++] >> 7;
 
 	return SR_OK;
 }
@@ -384,7 +404,7 @@ SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 	}
 
 	read_pos = 4;
-	
+
 	information_response_data.model_name[0] = 0;
 	information_response_data.serial_number[0] = 0;
 	
@@ -844,7 +864,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_A_HARM:
 		case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
 		case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
-			if(analog->meaning->unit == SR_UNIT_AMPERE
+			if (analog->meaning->unit == SR_UNIT_AMPERE
 				|| analog->meaning->unit == SR_UNIT_VOLT
 				|| analog->meaning->unit == SR_UNIT_WATT) {
 				analog->meaning->mqflags |= SR_MQFLAG_AC;
@@ -886,7 +906,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_AC_DC_A:
 		case APPA_B_FUNCTIONCODE_VOLT_SENSE:
 		case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
-			if(analog->meaning->unit == SR_UNIT_AMPERE
+			if (analog->meaning->unit == SR_UNIT_AMPERE
 				|| analog->meaning->unit == SR_UNIT_VOLT
 				|| analog->meaning->unit == SR_UNIT_WATT) {
 				analog->meaning->mqflags |= SR_MQFLAG_AC;
@@ -913,7 +933,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 
 		*val = INFINITY;
 		
-		switch(display_reading_value_raw) {
+		switch (display_reading_value_raw) {
 
 		case APPA_B_WORDCODE_BATT:
 		case APPA_B_WORDCODE_HAZ:
@@ -943,12 +963,12 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 			
 		case APPA_B_WORDCODE_DEF:
 			/* Not beautiful but functional */
-			if(display_reading->unit == APPA_B_UNIT_DEGC)
+			if (display_reading->unit == APPA_B_UNIT_DEGC)
 				sr_warn("MESSAGE [%s]: %s °C",
 					sr_appa_b_channel_formats[info_local->ch_idx],
 					appa_b_wordcode_name(display_reading_value_raw));
 
-			else if(display_reading->unit == APPA_B_UNIT_DEGF)
+			else if (display_reading->unit == APPA_B_UNIT_DEGF)
 				sr_warn("MESSAGE [%s]: %s °F",
 					sr_appa_b_channel_formats[info_local->ch_idx],
 					appa_b_wordcode_name(display_reading_value_raw));
