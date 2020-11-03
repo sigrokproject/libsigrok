@@ -93,7 +93,7 @@ static const char *appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcod
 	case APPA_B_WORDCODE_FULL:
 		return "Full";
 	case APPA_B_WORDCODE_BEEP:
-		return "Beeo";
+		return "Beep";
 	case APPA_B_WORDCODE_APO:
 		return "Auto Power-Off";
 	case APPA_B_WORDCODE_B_LIT:
@@ -203,60 +203,6 @@ static const char *appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcod
 	}
 
 	return APPA_B_STRING_NA;
-}
-
-static double appa_b_dot_factor(const enum appa_b_dot_e arg_dot)
-{
-	switch (arg_dot) {
-	case APPA_B_DOT_NONE:
-		return 1.0;
-	case APPA_B_DOT_9999_9:
-		return 0.1;
-	case APPA_B_DOT_999_99:
-		return 0.01;
-	case APPA_B_DOT_99_999:
-		return 0.001;
-	case APPA_B_DOT_9_9999:
-		return 0.0001;
-	}
-
-	return 1.0;
-}
-
-static int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot)
-{
-	switch (arg_dot) {
-	case APPA_B_DOT_NONE:
-		return 0;
-	case APPA_B_DOT_9999_9:
-		return 1;
-	case APPA_B_DOT_999_99:
-		return 2;
-	case APPA_B_DOT_99_999:
-		return 3;
-	case APPA_B_DOT_9_9999:
-		return 4;
-	}
-
-	return 0;
-}
-
-static int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot)
-{
-	switch (arg_dot) {
-	case APPA_B_DOT_NONE:
-		return 5;
-	case APPA_B_DOT_9999_9:
-		return 4;
-	case APPA_B_DOT_999_99:
-		return 3;
-	case APPA_B_DOT_99_999:
-		return 2;
-	case APPA_B_DOT_9_9999:
-		return 1;
-	}
-
-	return 0;
 }
 
 static u_int8_t appa_b_checksum(const u_int8_t* arg_data, int arg_size)
@@ -442,7 +388,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 
 	double unit_factor;
 	int display_reading_value_raw;
-	double display_rading_value;
+	double display_reading_value;
 	int8_t digits;
 
 	if (buf == NULL
@@ -467,336 +413,365 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *buf, float *floatval,
 	digits = 0;
 
 	display_reading_value_raw = appa_b_decode_reading(display_reading);
-	display_rading_value = (double) display_reading_value_raw;
+	display_reading_value = (double) display_reading_value_raw;
 
-	switch (display_reading->dot) {
+	if (!appa_b_is_wordcode(display_reading_value_raw)) {
 
-	default: case APPA_B_DOT_NONE:
-		digits = 0;
-		unit_factor /= 1;
-		break;
+		switch (display_reading->dot) {
 
-	case APPA_B_DOT_9999_9:
-		digits = 1;
-		unit_factor /= 10;
-		break;
+		default: case APPA_B_DOT_NONE:
+			digits = 0;
+			unit_factor /= 1;
+			break;
 
-	case APPA_B_DOT_999_99:
-		digits = 2;
-		unit_factor /= 100;
-		break;
+		case APPA_B_DOT_9999_9:
+			digits = 1;
+			unit_factor /= 10;
+			break;
 
-	case APPA_B_DOT_99_999:
-		digits = 3;
-		unit_factor /= 1000;
-		break;
+		case APPA_B_DOT_999_99:
+			digits = 2;
+			unit_factor /= 100;
+			break;
 
-	case APPA_B_DOT_9_9999:
-		digits = 4;
-		unit_factor /= 10000;
-		break;
+		case APPA_B_DOT_99_999:
+			digits = 3;
+			unit_factor /= 1000;
+			break;
 
-	}
+		case APPA_B_DOT_9_9999:
+			digits = 4;
+			unit_factor /= 10000;
+			break;
 
-	switch (display_reading->data_content) {
-
-	case APPA_B_DATA_CONTENT_MAXIMUM:
-		analog->meaning->mqflags |= SR_MQFLAG_MAX;
-		break;
-
-	case APPA_B_DATA_CONTENT_MINIMUM:
-		analog->meaning->mqflags |= SR_MQFLAG_MIN;
-		break;
-
-	case APPA_B_DATA_CONTENT_AVERAGE:
-		analog->meaning->mqflags |= SR_MQFLAG_AVG;
-		break;
-
-	case APPA_B_DATA_CONTENT_PEAK_HOLD_MAX:
-		analog->meaning->mqflags |= SR_MQFLAG_MAX;
-		if (is_sub)
-			analog->meaning->mqflags |= SR_MQFLAG_HOLD;
-		break;
-
-	case APPA_B_DATA_CONTENT_PEAK_HOLD_MIN:
-		analog->meaning->mqflags |= SR_MQFLAG_MIN;
-		if (is_sub)
-			analog->meaning->mqflags |= SR_MQFLAG_HOLD;
-		break;
-
-	case APPA_B_DATA_CONTENT_AUTO_HOLD:
-		if (is_sub)
-			analog->meaning->mqflags |= SR_MQFLAG_HOLD;
-		break;
-
-	case APPA_B_DATA_CONTENT_HOLD:
-		if (is_sub)
-			analog->meaning->mqflags |= SR_MQFLAG_HOLD;
-		break;
-
-	}
-
-	if (display_response_data.auto_range == APPA_B_AUTO_RANGE) {
-
-		analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
-
-	}
-	
-	switch (display_reading->unit) {
-
-	default: case APPA_B_UNIT_NONE:
-		analog->meaning->unit = SR_UNIT_UNITLESS;
-		break;
-
-	case APPA_B_UNIT_MV:
-		analog->meaning->unit = SR_UNIT_VOLT;
-		analog->meaning->mq = SR_MQ_VOLTAGE;
-		unit_factor /= 1000;
-		digits += 3;
-		break;
-
-	case APPA_B_UNIT_V:
-		analog->meaning->unit = SR_UNIT_VOLT;
-		analog->meaning->mq = SR_MQ_VOLTAGE;
-		break;
-
-	case APPA_B_UNIT_UA:
-		analog->meaning->unit = SR_UNIT_AMPERE;
-		analog->meaning->mq = SR_MQ_CURRENT;
-		unit_factor /= 1000000;
-		digits += 6;
-		break;
-	case APPA_B_UNIT_MA:
-		analog->meaning->unit = SR_UNIT_AMPERE;
-		analog->meaning->mq = SR_MQ_CURRENT;
-		unit_factor /= 1000;
-		digits += 3;
-		break;
-
-	case APPA_B_UNIT_A:
-		analog->meaning->unit = SR_UNIT_AMPERE;
-		analog->meaning->mq = SR_MQ_CURRENT;
-		break;
-
-	case APPA_B_UNIT_DB:
-		analog->meaning->unit = SR_UNIT_DECIBEL_VOLT;
-		analog->meaning->mq = SR_MQ_POWER;
-		break;
-
-	case APPA_B_UNIT_DBM:
-		analog->meaning->unit = SR_UNIT_DECIBEL_MW;
-		analog->meaning->mq = SR_MQ_POWER;
-		break;
-
-	case APPA_B_UNIT_NF:
-		analog->meaning->unit = SR_UNIT_FARAD;
-		analog->meaning->mq = SR_MQ_CAPACITANCE;
-		unit_factor /= 1000000000;
-		digits += 9;
-		break;
-
-	case APPA_B_UNIT_UF:
-		analog->meaning->unit = SR_UNIT_FARAD;
-		analog->meaning->mq = SR_MQ_CAPACITANCE;
-		unit_factor /= 1000000;
-		digits += 6;
-		break;
-
-	case APPA_B_UNIT_MF:
-		analog->meaning->unit = SR_UNIT_FARAD;
-		analog->meaning->mq = SR_MQ_CAPACITANCE;
-		unit_factor /= 1000;
-		digits += 3;
-		break;
-
-	case APPA_B_UNIT_GOHM:
-		analog->meaning->unit = SR_UNIT_OHM;
-		analog->meaning->mq = SR_MQ_RESISTANCE;
-		unit_factor *= 1000000000;
-		digits -= 9;
-		break;
-
-	case APPA_B_UNIT_MOHM:
-		analog->meaning->unit = SR_UNIT_OHM;
-		analog->meaning->mq = SR_MQ_RESISTANCE;
-		unit_factor *= 1000000;
-		digits -= 6;
-		break;
-
-	case APPA_B_UNIT_KOHM:
-		analog->meaning->unit = SR_UNIT_OHM;
-		analog->meaning->mq = SR_MQ_RESISTANCE;
-		unit_factor *= 1000;
-		digits -= 3;
-		break;
-
-	case APPA_B_UNIT_OHM:
-		analog->meaning->unit = SR_UNIT_OHM;
-		analog->meaning->mq = SR_MQ_RESISTANCE;
-		break;
-
-	case APPA_B_UNIT_PERCENT:
-		analog->meaning->unit = SR_UNIT_PERCENTAGE;
-		analog->meaning->mq = SR_MQ_DIFFERENCE;
-		break;
-
-	case APPA_B_UNIT_MHZ:
-		analog->meaning->unit = SR_UNIT_HERTZ;
-		analog->meaning->mq = SR_MQ_FREQUENCY;
-		unit_factor *= 1000000;
-		digits -= 6;
-		break;
-
-	case APPA_B_UNIT_KHZ:
-		analog->meaning->unit = SR_UNIT_HERTZ;
-		analog->meaning->mq = SR_MQ_FREQUENCY;
-		unit_factor *= 1000;
-		digits -= 3;
-		break;
-
-	case APPA_B_UNIT_HZ:
-		analog->meaning->unit = SR_UNIT_HERTZ;
-		analog->meaning->mq = SR_MQ_FREQUENCY;
-		break;
-
-	case APPA_B_UNIT_DEGC:
-		analog->meaning->unit = SR_UNIT_CELSIUS;
-		analog->meaning->mq = SR_MQ_TEMPERATURE;
-		break;
-
-	case APPA_B_UNIT_DEGF:
-		analog->meaning->unit = SR_UNIT_FAHRENHEIT;
-		analog->meaning->mq = SR_MQ_TEMPERATURE;
-		break;
-
-	case APPA_B_UNIT_NS:
-		analog->meaning->unit = SR_UNIT_SECOND;
-		unit_factor /= 1000000000;
-		digits += 9;
-		break;
-
-	case APPA_B_UNIT_US:
-		analog->meaning->unit = SR_UNIT_SECOND;
-		unit_factor /= 1000000;
-		digits += 6;
-		break;
-
-	case APPA_B_UNIT_MS:
-		analog->meaning->unit = SR_UNIT_SECOND;
-		unit_factor /= 1000;
-		digits += 3;
-		break;
-
-	case APPA_B_UNIT_SEC:
-		analog->meaning->unit = SR_UNIT_SECOND;
-		break;
-
-	case APPA_B_UNIT_MIN:
-		analog->meaning->unit = SR_UNIT_SECOND;
-		unit_factor *= 60;
-		break;
-
-	case APPA_B_UNIT_KW:
-		analog->meaning->unit = SR_UNIT_WATT;
-		analog->meaning->mq = SR_MQ_POWER;
-		unit_factor *= 1000;
-		digits -= 3;
-		break;
-
-	case APPA_B_UNIT_PF:
-		analog->meaning->unit = SR_UNIT_UNITLESS;
-		analog->meaning->mq = SR_MQ_POWER_FACTOR;
-		break;
-
-	}
-
-	switch (display_response_data.function_code) {
-
-	case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
-	case APPA_B_FUNCTIONCODE_AC_UA:
-	case APPA_B_FUNCTIONCODE_AC_MV:
-	case APPA_B_FUNCTIONCODE_AC_MA:
-	case APPA_B_FUNCTIONCODE_LPF_MV:
-	case APPA_B_FUNCTIONCODE_LPF_MA:
-	case APPA_B_FUNCTIONCODE_AC_V:
-	case APPA_B_FUNCTIONCODE_AC_A:
-	case APPA_B_FUNCTIONCODE_LPF_V:
-	case APPA_B_FUNCTIONCODE_LPF_A:
-	case APPA_B_FUNCTIONCODE_LOZ_AC_V:
-	case APPA_B_FUNCTIONCODE_AC_W:
-	case APPA_B_FUNCTIONCODE_LOZ_LPF_V:
-	case APPA_B_FUNCTIONCODE_V_HARM:
-	case APPA_B_FUNCTIONCODE_INRUSH:
-	case APPA_B_FUNCTIONCODE_A_HARM:
-	case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
-	case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
-		if(analog->meaning->unit == SR_UNIT_AMPERE
-			|| analog->meaning->unit == SR_UNIT_VOLT
-			|| analog->meaning->unit == SR_UNIT_WATT) {
-			analog->meaning->mqflags |= SR_MQFLAG_AC;
-			analog->meaning->mqflags |= SR_MQFLAG_RMS;
 		}
-		break;
 
-	case APPA_B_FUNCTIONCODE_DC_UA:
-	case APPA_B_FUNCTIONCODE_DC_MV:
-	case APPA_B_FUNCTIONCODE_DC_MA:
-	case APPA_B_FUNCTIONCODE_DC_V:
-	case APPA_B_FUNCTIONCODE_DC_A:
-	case APPA_B_FUNCTIONCODE_DC_A_OUT:
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_LINEAR:
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_LINEAR:
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_STEP:
-	case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_STEP:
-	case APPA_B_FUNCTIONCODE_LOOP_POWER:
-	case APPA_B_FUNCTIONCODE_LOZ_DC_V:
-	case APPA_B_FUNCTIONCODE_DC_W:
-	case APPA_B_FUNCTIONCODE_FLEX_AC_A:
-	case APPA_B_FUNCTIONCODE_FLEX_LPF_A:
-	case APPA_B_FUNCTIONCODE_FLEX_PEAK_HOLD_A:
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
+		switch (display_reading->data_content) {
 
-	case APPA_B_FUNCTIONCODE_CONTINUITY:
-		analog->meaning->mq = SR_MQ_CONTINUITY;
-		break;
+		case APPA_B_DATA_CONTENT_MAXIMUM:
+			analog->meaning->mqflags |= SR_MQFLAG_MAX;
+			break;
 
-	case APPA_B_FUNCTIONCODE_DIODE:
-		analog->meaning->mqflags |= SR_MQFLAG_DIODE;
-		analog->meaning->mqflags |= SR_MQFLAG_DC;
-		break;
+		case APPA_B_DATA_CONTENT_MINIMUM:
+			analog->meaning->mqflags |= SR_MQFLAG_MIN;
+			break;
 
-	case APPA_B_FUNCTIONCODE_AC_DC_MV:
-	case APPA_B_FUNCTIONCODE_AC_DC_MA:
-	case APPA_B_FUNCTIONCODE_AC_DC_V:
-	case APPA_B_FUNCTIONCODE_AC_DC_A:
-	case APPA_B_FUNCTIONCODE_VOLT_SENSE:
-	case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
-		if(analog->meaning->unit == SR_UNIT_AMPERE
-			|| analog->meaning->unit == SR_UNIT_VOLT
-			|| analog->meaning->unit == SR_UNIT_WATT) {
-			analog->meaning->mqflags |= SR_MQFLAG_AC;
+		case APPA_B_DATA_CONTENT_AVERAGE:
+			analog->meaning->mqflags |= SR_MQFLAG_AVG;
+			break;
+
+		case APPA_B_DATA_CONTENT_PEAK_HOLD_MAX:
+			analog->meaning->mqflags |= SR_MQFLAG_MAX;
+			if (is_sub)
+				analog->meaning->mqflags |= SR_MQFLAG_HOLD;
+			break;
+
+		case APPA_B_DATA_CONTENT_PEAK_HOLD_MIN:
+			analog->meaning->mqflags |= SR_MQFLAG_MIN;
+			if (is_sub)
+				analog->meaning->mqflags |= SR_MQFLAG_HOLD;
+			break;
+
+		case APPA_B_DATA_CONTENT_AUTO_HOLD:
+			if (is_sub)
+				analog->meaning->mqflags |= SR_MQFLAG_HOLD;
+			break;
+
+		case APPA_B_DATA_CONTENT_HOLD:
+			if (is_sub)
+				analog->meaning->mqflags |= SR_MQFLAG_HOLD;
+			break;
+
+		}
+
+		if (display_response_data.auto_range == APPA_B_AUTO_RANGE) {
+
+			analog->meaning->mqflags |= SR_MQFLAG_AUTORANGE;
+
+		}
+
+		switch (display_reading->unit) {
+
+		default: case APPA_B_UNIT_NONE:
+			analog->meaning->unit = SR_UNIT_UNITLESS;
+			break;
+
+		case APPA_B_UNIT_MV:
+			analog->meaning->unit = SR_UNIT_VOLT;
+			analog->meaning->mq = SR_MQ_VOLTAGE;
+			unit_factor /= 1000;
+			digits += 3;
+			break;
+
+		case APPA_B_UNIT_V:
+			analog->meaning->unit = SR_UNIT_VOLT;
+			analog->meaning->mq = SR_MQ_VOLTAGE;
+			break;
+
+		case APPA_B_UNIT_UA:
+			analog->meaning->unit = SR_UNIT_AMPERE;
+			analog->meaning->mq = SR_MQ_CURRENT;
+			unit_factor /= 1000000;
+			digits += 6;
+			break;
+		case APPA_B_UNIT_MA:
+			analog->meaning->unit = SR_UNIT_AMPERE;
+			analog->meaning->mq = SR_MQ_CURRENT;
+			unit_factor /= 1000;
+			digits += 3;
+			break;
+
+		case APPA_B_UNIT_A:
+			analog->meaning->unit = SR_UNIT_AMPERE;
+			analog->meaning->mq = SR_MQ_CURRENT;
+			break;
+
+		case APPA_B_UNIT_DB:
+			analog->meaning->unit = SR_UNIT_DECIBEL_VOLT;
+			analog->meaning->mq = SR_MQ_POWER;
+			break;
+
+		case APPA_B_UNIT_DBM:
+			analog->meaning->unit = SR_UNIT_DECIBEL_MW;
+			analog->meaning->mq = SR_MQ_POWER;
+			break;
+
+		case APPA_B_UNIT_NF:
+			analog->meaning->unit = SR_UNIT_FARAD;
+			analog->meaning->mq = SR_MQ_CAPACITANCE;
+			unit_factor /= 1000000000;
+			digits += 9;
+			break;
+
+		case APPA_B_UNIT_UF:
+			analog->meaning->unit = SR_UNIT_FARAD;
+			analog->meaning->mq = SR_MQ_CAPACITANCE;
+			unit_factor /= 1000000;
+			digits += 6;
+			break;
+
+		case APPA_B_UNIT_MF:
+			analog->meaning->unit = SR_UNIT_FARAD;
+			analog->meaning->mq = SR_MQ_CAPACITANCE;
+			unit_factor /= 1000;
+			digits += 3;
+			break;
+
+		case APPA_B_UNIT_GOHM:
+			analog->meaning->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+			unit_factor *= 1000000000;
+			digits -= 9;
+			break;
+
+		case APPA_B_UNIT_MOHM:
+			analog->meaning->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+			unit_factor *= 1000000;
+			digits -= 6;
+			break;
+
+		case APPA_B_UNIT_KOHM:
+			analog->meaning->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+			unit_factor *= 1000;
+			digits -= 3;
+			break;
+
+		case APPA_B_UNIT_OHM:
+			analog->meaning->unit = SR_UNIT_OHM;
+			analog->meaning->mq = SR_MQ_RESISTANCE;
+			break;
+
+		case APPA_B_UNIT_PERCENT:
+			analog->meaning->unit = SR_UNIT_PERCENTAGE;
+			analog->meaning->mq = SR_MQ_DIFFERENCE;
+			break;
+
+		case APPA_B_UNIT_MHZ:
+			analog->meaning->unit = SR_UNIT_HERTZ;
+			analog->meaning->mq = SR_MQ_FREQUENCY;
+			unit_factor *= 1000000;
+			digits -= 6;
+			break;
+
+		case APPA_B_UNIT_KHZ:
+			analog->meaning->unit = SR_UNIT_HERTZ;
+			analog->meaning->mq = SR_MQ_FREQUENCY;
+			unit_factor *= 1000;
+			digits -= 3;
+			break;
+
+		case APPA_B_UNIT_HZ:
+			analog->meaning->unit = SR_UNIT_HERTZ;
+			analog->meaning->mq = SR_MQ_FREQUENCY;
+			break;
+
+		case APPA_B_UNIT_DEGC:
+			analog->meaning->unit = SR_UNIT_CELSIUS;
+			analog->meaning->mq = SR_MQ_TEMPERATURE;
+			break;
+
+		case APPA_B_UNIT_DEGF:
+			analog->meaning->unit = SR_UNIT_FAHRENHEIT;
+			analog->meaning->mq = SR_MQ_TEMPERATURE;
+			break;
+
+		case APPA_B_UNIT_NS:
+			analog->meaning->unit = SR_UNIT_SECOND;
+			analog->meaning->mq = SR_MQ_TIME;
+			unit_factor /= 1000000000;
+			digits += 9;
+			break;
+
+		case APPA_B_UNIT_US:
+			analog->meaning->unit = SR_UNIT_SECOND;
+			analog->meaning->mq = SR_MQ_TIME;
+			unit_factor /= 1000000;
+			digits += 6;
+			break;
+
+		case APPA_B_UNIT_MS:
+			analog->meaning->unit = SR_UNIT_SECOND;
+			analog->meaning->mq = SR_MQ_TIME;
+			unit_factor /= 1000;
+			digits += 3;
+			break;
+
+		case APPA_B_UNIT_SEC:
+			analog->meaning->unit = SR_UNIT_SECOND;
+			analog->meaning->mq = SR_MQ_TIME;
+			break;
+
+		case APPA_B_UNIT_MIN:
+			analog->meaning->unit = SR_UNIT_SECOND;
+			analog->meaning->mq = SR_MQ_TIME;
+			unit_factor *= 60;
+			break;
+
+		case APPA_B_UNIT_KW:
+			analog->meaning->unit = SR_UNIT_WATT;
+			analog->meaning->mq = SR_MQ_POWER;
+			unit_factor *= 1000;
+			digits -= 3;
+			break;
+
+		case APPA_B_UNIT_PF:
+			analog->meaning->unit = SR_UNIT_UNITLESS;
+			analog->meaning->mq = SR_MQ_POWER_FACTOR;
+			break;
+
+		}
+
+		switch (display_response_data.function_code) {
+
+		case APPA_B_FUNCTIONCODE_PEAK_HOLD_UA:
+		case APPA_B_FUNCTIONCODE_AC_UA:
+		case APPA_B_FUNCTIONCODE_AC_MV:
+		case APPA_B_FUNCTIONCODE_AC_MA:
+		case APPA_B_FUNCTIONCODE_LPF_MV:
+		case APPA_B_FUNCTIONCODE_LPF_MA:
+		case APPA_B_FUNCTIONCODE_AC_V:
+		case APPA_B_FUNCTIONCODE_AC_A:
+		case APPA_B_FUNCTIONCODE_LPF_V:
+		case APPA_B_FUNCTIONCODE_LPF_A:
+		case APPA_B_FUNCTIONCODE_LOZ_AC_V:
+		case APPA_B_FUNCTIONCODE_AC_W:
+		case APPA_B_FUNCTIONCODE_LOZ_LPF_V:
+		case APPA_B_FUNCTIONCODE_V_HARM:
+		case APPA_B_FUNCTIONCODE_INRUSH:
+		case APPA_B_FUNCTIONCODE_A_HARM:
+		case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
+		case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
+			if(analog->meaning->unit == SR_UNIT_AMPERE
+				|| analog->meaning->unit == SR_UNIT_VOLT
+				|| analog->meaning->unit == SR_UNIT_WATT) {
+				analog->meaning->mqflags |= SR_MQFLAG_AC;
+				analog->meaning->mqflags |= SR_MQFLAG_RMS;
+			}
+			break;
+
+		case APPA_B_FUNCTIONCODE_DC_UA:
+		case APPA_B_FUNCTIONCODE_DC_MV:
+		case APPA_B_FUNCTIONCODE_DC_MA:
+		case APPA_B_FUNCTIONCODE_DC_V:
+		case APPA_B_FUNCTIONCODE_DC_A:
+		case APPA_B_FUNCTIONCODE_DC_A_OUT:
+		case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_LINEAR:
+		case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_LINEAR:
+		case APPA_B_FUNCTIONCODE_DC_A_OUT_SLOW_STEP:
+		case APPA_B_FUNCTIONCODE_DC_A_OUT_FAST_STEP:
+		case APPA_B_FUNCTIONCODE_LOOP_POWER:
+		case APPA_B_FUNCTIONCODE_LOZ_DC_V:
+		case APPA_B_FUNCTIONCODE_DC_W:
+		case APPA_B_FUNCTIONCODE_FLEX_AC_A:
+		case APPA_B_FUNCTIONCODE_FLEX_LPF_A:
+		case APPA_B_FUNCTIONCODE_FLEX_PEAK_HOLD_A:
 			analog->meaning->mqflags |= SR_MQFLAG_DC;
-			analog->meaning->mqflags |= SR_MQFLAG_RMS;
+			break;
+
+		case APPA_B_FUNCTIONCODE_CONTINUITY:
+			analog->meaning->mq = SR_MQ_CONTINUITY;
+			break;
+
+		case APPA_B_FUNCTIONCODE_DIODE:
+			analog->meaning->mqflags |= SR_MQFLAG_DIODE;
+			analog->meaning->mqflags |= SR_MQFLAG_DC;
+			break;
+
+		case APPA_B_FUNCTIONCODE_AC_DC_MV:
+		case APPA_B_FUNCTIONCODE_AC_DC_MA:
+		case APPA_B_FUNCTIONCODE_AC_DC_V:
+		case APPA_B_FUNCTIONCODE_AC_DC_A:
+		case APPA_B_FUNCTIONCODE_VOLT_SENSE:
+		case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
+			if(analog->meaning->unit == SR_UNIT_AMPERE
+				|| analog->meaning->unit == SR_UNIT_VOLT
+				|| analog->meaning->unit == SR_UNIT_WATT) {
+				analog->meaning->mqflags |= SR_MQFLAG_AC;
+				analog->meaning->mqflags |= SR_MQFLAG_DC;
+				analog->meaning->mqflags |= SR_MQFLAG_RMS;
+			}
+			break;
+
 		}
-		break;
 
-	}
+		analog->spec->spec_digits = digits;
+		analog->encoding->digits = digits;
 
-	analog->spec->spec_digits = digits;
-	analog->encoding->digits = digits;
+		display_reading_value *= unit_factor;
 
-	display_rading_value *= unit_factor;
+		if (display_reading->overload == APPA_B_OVERLOAD)
+			*floatval = INFINITY;
+		else
+			*floatval = display_reading_value;
 
-	if (display_reading_value_raw == APPA_B_WORDCODE_BATT) {
-		sr_err("Battery low");
-	}
 
-	if (display_reading->overload == APPA_B_OVERLOAD
-		|| appa_b_is_wordcode(display_reading_value_raw))
+	} else {
+
 		*floatval = INFINITY;
-	else
-		*floatval = display_rading_value;
+		
+		switch(display_reading_value_raw) {
+
+		case APPA_B_WORDCODE_BATT:
+			sr_err("ERROR: BATTERY LOW!");
+			break;
+
+		case APPA_B_WORDCODE_SPACE:
+		case APPA_B_WORDCODE_DASH:
+		case APPA_B_WORDCODE_DASH1:
+		case APPA_B_WORDCODE_DASH2:
+			/* No need for a message upon dash, space & co. */
+			break;
+
+		default:
+			sr_warn("MESSAGE [%s]: %s",
+				sr_appa_b_channel_formats[info_local->ch_idx],
+				appa_b_wordcode_name(display_reading_value_raw));
+			break;
+
+		}
+	}
 
 	info_local->ch_idx++;
 

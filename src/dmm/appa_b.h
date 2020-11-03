@@ -57,8 +57,7 @@
  *
  * @TODO Implement after_open function to read device information in appa_b.c
  * @TODO Integrate further brand information to provide support for more devices
- * @TODO Integrate display text as output
- * @TODO Better channel naming
+ * @TODO Better channel naming?
  * @TODO Implement log download
  * @TODO Implement calibration
  *
@@ -513,14 +512,6 @@ static const char *appa_b_model_id_name(const enum appa_b_model_id_e arg_model_i
 static const char *appa_b_wordcode_name(const enum appa_b_wordcode_e arg_wordcode);
 
 /**
- * Calculate base conversion factor for @appa_b_dot_e
- *
- * @param arg_dot dot value
- * @return conversion factor to get base unit
- */
-static double appa_b_dot_factor(const enum appa_b_dot_e arg_dot);
-
-/**
  * APPA checksum calculation
  *
  * @param argData Data to calculate the checksum for
@@ -528,22 +519,6 @@ static double appa_b_dot_factor(const enum appa_b_dot_e arg_dot);
  * @return Checksum
  */
 static u_int8_t appa_b_checksum(const u_int8_t *arg_data, int arg_size);
-
-/**
- * Displace range precision - digits after dot based on dot value
- *
- * @param arg_dot dot value
- * @return number of digits after dot
- */
-static int appa_b_dot_precision_after_dot(const enum appa_b_dot_e arg_dot);
-
-/**
- * Displace range precision - digits before dot based on dot value
- *
- * @param arg_dot dot value
- * @return number of digits before dot
- */
-static int appa_b_dot_precision_before_dot(const enum appa_b_dot_e arg_dot);
 
 /**
  * Request Information data from meter
