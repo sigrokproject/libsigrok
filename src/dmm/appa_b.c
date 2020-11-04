@@ -377,91 +377,113 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
  */
 SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 {
-
-#ifdef APPA_B_ENABLE_OPEN_REQUEST_INFORMATION
+	struct appa_b_frame_information_response_data_s information_response_data;
 
 	u_int8_t buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE + APPA_B_FRAME_CHECKSUM_SIZE];
 	u_int8_t read_pos;
 	u_int8_t off_pos;
-	struct appa_b_frame_information_response_data_s information_response_data;
-
-	if (serial == NULL) {
-		sr_err("sr_appa_b_serial_open(): serial error");
-		return SR_ERR_ARG;
-	}
-
-#ifdef APPA_B_ENABLE_FLUSH
-	if (serial_flush(serial) != SR_OK) {
-		sr_err("sr_appa_b_serial_open(): flush error");
-		return SR_ERR_IO;
-	}
-#endif/*APPA_B_ENABLE_FLUSH*/
-
-	if (appa_b_write_frame_information_request(buf, sizeof(buf)) != SR_OK) {
-		sr_err("sr_appa_b_serial_open(): information_request generation error - is it the correct device and properly connected?");
-		return SR_ERR;
-	}
-
-	if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf)) {
-		sr_err("sr_appa_b_serial_open(): information_request write error");
-		return SR_ERR_IO;
-	}
-
-	/* ugly, but unfortunately nessasary */
-	g_usleep(5000);
-
-	if (serial_read_blocking(serial, &buf, sizeof(buf)) != sizeof(buf)) {
-		sr_err("sr_appa_b_serial_open(): information_request read error");
-		return SR_ERR_IO;
-	}
-
-	if (buf[0] != APPA_B_FRAME_START_VALUE_BYTE
-		|| buf[1] != APPA_B_FRAME_START_VALUE_BYTE) {
-		sr_err("sr_appa_b_serial_open(): invalid start code - wrong device?");
-		return SR_ERR_IO;
-	}
-	
-	if (appa_b_checksum(buf, APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE)
-		!= buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE]) {
-		sr_err("sr_appa_b_serial_open(): checksum error");
-		return SR_ERR_IO;
-	}
-
-	if (buf[2] != APPA_B_COMMAND_READ_INFORMATION) {
-		sr_err("sr_appa_b_serial_open(): invalid command - wrong device?");
-		return SR_ERR_IO;
-	}
-
-	if (buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION) {
-		sr_err("sr_appa_b_serial_open(): invalid frame length");
-		return SR_ERR_IO;
-	}
-
-	read_pos = 4;
 
 	information_response_data.model_name[0] = 0;
 	information_response_data.serial_number[0] = 0;
-	
-	memcpy(information_response_data.model_name, &buf[read_pos], 32);
-	read_pos+=32;
-	memcpy(information_response_data.serial_number, &buf[read_pos], 16);
-	read_pos+=16;
-	information_response_data.model_id = buf[read_pos] | buf[read_pos+1] << 8;
-	read_pos+=2;
-	information_response_data.firmware_version = buf[read_pos] | buf[read_pos+1] << 8;
-	read_pos+=2;
+	information_response_data.firmware_version = 0;
+	information_response_data.model_id = 0;
 
-	information_response_data.model_name[sizeof(information_response_data.model_name)] = 0;
+	if (serial->port[0] == 'b'
+		&& serial->port[1] == 't'
+		&& serial->port[2] == '/') {
 
-	off_pos = 0;
-	for (read_pos = 0; read_pos < 16; read_pos++) {
-		if (information_response_data.serial_number[read_pos] == 0x20
-			|| information_response_data.serial_number[read_pos] == 0x0)
-			continue;
-		information_response_data.serial_number[off_pos] = information_response_data.serial_number[read_pos];
-		off_pos++;
+		/** @todo read from btle infos / name */
+		sr_info("Meta fetching from BLE not yet implemented");
+
+	}	else {
+
+#ifdef APPA_B_ENABLE_OPEN_REQUEST_INFORMATION
+
+		if (serial == NULL) {
+			sr_err("sr_appa_b_serial_open(): serial error");
+			return SR_ERR_ARG;
+		}
+
+#ifdef APPA_B_ENABLE_FLUSH
+		if (serial_flush(serial) != SR_OK) {
+			sr_err("sr_appa_b_serial_open(): flush error");
+			return SR_ERR_IO;
+		}
+#endif/*APPA_B_ENABLE_FLUSH*/
+
+		if (appa_b_write_frame_information_request(buf, sizeof(buf)) != SR_OK) {
+			sr_err("sr_appa_b_serial_open(): information_request generation error - is it the correct device and properly connected?");
+			return SR_ERR;
+		}
+
+		if (serial_write_blocking(serial, &buf, sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) != sizeof(buf)) {
+			sr_err("sr_appa_b_serial_open(): information_request write error");
+			return SR_ERR_IO;
+		}
+
+		/* ugly, but unfortunately nessasary */
+		g_usleep(5000);
+
+		if (serial_read_blocking(serial, &buf, sizeof(buf)) != sizeof(buf), APPA_B_WRITE_BLOCKING_TIMEOUT) {
+			sr_err("sr_appa_b_serial_open(): information_request read error");
+			return SR_ERR_IO;
+		}
+
+		if (buf[0] != APPA_B_FRAME_START_VALUE_BYTE
+			|| buf[1] != APPA_B_FRAME_START_VALUE_BYTE) {
+			sr_err("sr_appa_b_serial_open(): invalid start code - wrong device?");
+			return SR_ERR_IO;
+		}
+
+		if (appa_b_checksum(buf, APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE)
+			!= buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE]) {
+			sr_err("sr_appa_b_serial_open(): checksum error");
+			return SR_ERR_IO;
+		}
+
+		if (buf[2] != APPA_B_COMMAND_READ_INFORMATION) {
+			sr_err("sr_appa_b_serial_open(): invalid command - wrong device?");
+			return SR_ERR_IO;
+		}
+
+		if (buf[3] != APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION) {
+			sr_err("sr_appa_b_serial_open(): invalid frame length");
+			return SR_ERR_IO;
+		}
+
+		read_pos = 4;
+
+		information_response_data.model_name[0] = 0;
+		information_response_data.serial_number[0] = 0;
+
+		memcpy(information_response_data.model_name, &buf[read_pos], 32);
+		read_pos+=32;
+		memcpy(information_response_data.serial_number, &buf[read_pos], 16);
+		read_pos+=16;
+		information_response_data.model_id = buf[read_pos] | buf[read_pos+1] << 8;
+		read_pos+=2;
+		information_response_data.firmware_version = buf[read_pos] | buf[read_pos+1] << 8;
+		read_pos+=2;
+
+		information_response_data.model_name[sizeof(information_response_data.model_name)] = 0;
+
+		off_pos = 0;
+		for (read_pos = 0; read_pos < 16; read_pos++) {
+			if (information_response_data.serial_number[read_pos] == 0x20
+				|| information_response_data.serial_number[read_pos] == 0x0)
+				continue;
+			information_response_data.serial_number[off_pos] = information_response_data.serial_number[read_pos];
+			off_pos++;
+		}
+		information_response_data.serial_number[off_pos] = 0;
+
+#else/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
+
+		sr_info("APPA_B_ENABLE_OPEN_REQUEST_INFORMATION disabled");
+
+#endif/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
+
 	}
-	information_response_data.serial_number[off_pos] = 0;
 
 	sr_info("Model Name: %s", information_response_data.model_name);
 	sr_info("Serial Number: %s", information_response_data.serial_number);
@@ -469,14 +491,6 @@ SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 	sr_info("Model Name: %s", appa_b_model_id_name(information_response_data.model_id));
 	sr_info("Firmware Version: %i", information_response_data.firmware_version);
 
-#else/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
-	
-	(void)serial;
-	
-	sr_info("APPA_B_ENABLE_OPEN_REQUEST_INFORMATION disabled due to BLE issues.");
-	
-#endif/*APPA_B_ENABLE_OPEN_REQUEST_INFORMATION*/
-	
 	return SR_OK;
 	
 }

@@ -20,7 +20,7 @@
 /**
  * @file
  *
- * APPA B Interface (Models 150/208/506)
+ * APPA B Interface
  *
  * Driver for modern APPA meters (handheld, bench, clamp). Communication is
  * done over a serial interface using the known APPA-Frames, see below. The
@@ -118,8 +118,7 @@
 #define APPA_B_ENABLE_NON_BLOCKING 1
 
 /**
- * Enable handshake information
- * @TODO fix it for BLE
+ * Enable handshake information from serial
  */
 /* #define APPA_B_ENABLE_OPEN_REQUEST_INFORMATION 1 */
 
