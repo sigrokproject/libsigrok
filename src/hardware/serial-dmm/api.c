@@ -367,8 +367,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	 * Fold marks {{{ }}} with matching braces were added, to further
 	 * speed up navigation in the long list.
 	 */
-	/* appa-b based meters (sorted by model id number) {{{ */
-	/* appa-b generic {{{ */
+	/* appa-b based meters (sorted by oem brand) {{{ */
 	DMM_ENTRY(
 		"appa-b", appa_b, "APPA", "Generic - Most models", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
@@ -376,185 +375,69 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
-	/* }}} */
-	/* appa-b model 150 {{{ */
 	DMM_ENTRY(
-		"appa-15x", appa_b, "APPA", "15x(B)", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 170 {{{ */
-	DMM_ENTRY(
-		"appa-17x", appa_b, "APPA", "17x(B)", NULL, "9600/8n1",
+		"appa-dmm", appa_b, "APPA", "15x(B), 17x(B), 208(B), 50x(B), A17N, Sx, sFlex-1xA", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"benning-cm10", appa_b, "BENNING", "CM 10(-PV)", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 208 {{{ */
-	DMM_ENTRY(
-		"appa-208", appa_b, "APPA", "208(B)", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 501 {{{ */
-	DMM_ENTRY(
-		"appa-501", appa_b, "APPA", "501", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 502 {{{ */
-	DMM_ENTRY(
-		"appa-502", appa_b, "APPA", "502", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 503 {{{ */
-	DMM_ENTRY(
-		"appa-503", appa_b, "APPA", "503", NULL, "9600/8n1",
+		"benning-dmm", appa_b, "BENNING", "MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"cmt-3503", appa_b, "CMT", "3503", NULL, "9600/8n1",
+		"cmt-350x", appa_b, "CMT", "3503", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"iso-tech-idm503", appa_b, "ISO-TECH", "IDM503", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 505 {{{ */
-	DMM_ENTRY(
-		"appa-505", appa_b, "APPA", "505", NULL, "9600/8n1",
+		"ht-8100", appa_b, "HT Instruments", "HT8100", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"rspro-idm505", appa_b, "RS PRO", "IDM505", NULL, "9600/8n1",
+		"iso-tech-idm50x", appa_b, "ISO-TECH", "IDM50x", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"sefram-7355", appa_b, "Sefram", "7355", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 506 {{{ */
-	DMM_ENTRY(
-		"appa-506", appa_b, "APPA", "506(B)", NULL, "9600/8n1",
+		"rspro-dmm", appa_b, "RS PRO", "IDM50x, S1, S2, S3", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"benning-mm12", appa_b, "BENNING", "MM 12", NULL, "9600/8n1",
+		"sefram-7xxx", appa_b, "Sefram", "7xxx", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"sefram-7352", appa_b, "Sefram", "7352(B)", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model 507 {{{ */
-	DMM_ENTRY(
-		"appa-507", appa_b, "APPA", "507 (Experimental)", NULL, "9600/8n1",
+		"voltcraft-vc930", appa_b, "Voltcraft", "VC-930 (EXPERIMENTAL)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"ht-8100", appa_b, "HT Instruments", "HT8100 (Experimental)", NULL, "9600/8n1",
+		"voltcraft-vc950", appa_b, "Voltcraft", "VC-950 (EXPERIMENTAL)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
-	/* }}} */
-	/* appa-b model a17n {{{ */
-	DMM_ENTRY(
-		"appa-a17n", appa_b, "APPA", "A17N", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model s {{{ */
-	DMM_ENTRY(
-		"appa-s", appa_b, "APPA", "S0/S1/S2/S3", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	DMM_ENTRY(
-		"benning-mm10", appa_b, "BENNING", "MM 10(-PV)", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	DMM_ENTRY(
-		"rspro-s", appa_b, "RS PRO", "S0/S1/S2/S3", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
-	/* appa-b model sflex {{{ */
-	DMM_ENTRY(
-		"appa-s-flex", appa_b, "APPA", "sFlex-10A/-18A", NULL, "9600/8n1",
-		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
-		sr_appa_b_packet_valid, sr_appa_b_parse,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-	),
-	/* }}} */
 	/* }}} */
 	/* asycii based meters {{{ */
 	DMM(

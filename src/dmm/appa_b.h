@@ -37,8 +37,9 @@
  *   0x01  | 150B      | APPA 158B             |     |  X  | untested
  *   0x01  | 150B      | BENNING CM 12         |     |  X  | untested
  *   0x0c  | 172       | APPA 172B             |     |  X  | untested
+ *   0x0d  | 172       | BENNING CM 9-2        |     |  X  | untested
  *   0x0d  | 173       | APPA 173B             |     |  X  | untested
- *   0x0d  | 173       | BENNING CM 10         |     |  X  | untested
+ *   0x0d  | 173       | BENNING CM 10-1       |     |  X  | untested
  *   0x0e  | 175       | APPA 175B             |     |  X  | untested
  *   0x0f  | 177       | APPA 177B             |     |  X  | untested
  *   0x0f  | 177       | BENNING CM 10-PV      |     |  X  | untested
