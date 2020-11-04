@@ -59,7 +59,7 @@
  *   0x16  | 505       | Sefram 7355           |  X  |     | untested
  *   0x16  | 505       | Voltcraft VC-950      |  X  |     | experimental
  *   0x05  | 506       | APPA 506              |  X  |     | ok
- *   0x05  | 506       | Sefram 7352           |  X  |     | ok
+ *   0x05  | 506       | Sefram 7351           |  X  |     | ok
  *   0x06  | 506B      | APPA 506B             |  X  |  X  | ok
  *   0x06  | 506B      | BENNING MM 12         |  X  |  X  | ok
  *   0x06  | 506B      | Sefram 7352B          |  X  |  X  | ok
