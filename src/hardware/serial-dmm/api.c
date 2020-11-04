@@ -500,14 +500,14 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* }}} */
 	/* appa-b model 507 {{{ */
 	DMM_ENTRY(
-		"appa-507", appa_b, "APPA", "507", NULL, "9600/8n1",
+		"appa-507", appa_b, "APPA", "507 (Experimental)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"ht-8100", appa_b, "HT Instruments", "HT8100", NULL, "9600/8n1",
+		"ht-8100", appa_b, "HT Instruments", "HT8100 (Experimental)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
