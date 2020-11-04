@@ -372,6 +372,8 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 /**
  * Request device information after login
  * 
+ * @TODO disabled for now, will be added once I know the right place for device ident
+ *
  * @param serial Serial data
  * @return @sr_error_code Status code
  */

@@ -371,70 +371,70 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	DMM_ENTRY(
 		"appa-b", appa_b, "APPA", "Generic - Most models", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"appa-dmm", appa_b, "APPA", "15x(B), 17x(B), 208(B), 50x(B), A17N, Sx, sFlex-1xA", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"benning-dmm", appa_b, "BENNING", "MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"cmt-350x", appa_b, "CMT", "3503", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"ht-8100", appa_b, "HT Instruments", "HT8100", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"iso-tech-idm50x", appa_b, "ISO-TECH", "IDM50x", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"rspro-dmm", appa_b, "RS PRO", "IDM50x, S1, S2, S3", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"sefram-7xxx", appa_b, "Sefram", "7xxx", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"voltcraft-vc930", appa_b, "Voltcraft", "VC-930 (EXPERIMENTAL)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
 		"voltcraft-vc950", appa_b, "Voltcraft", "VC-950 (EXPERIMENTAL)", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
-		sr_appa_b_serial_open, sr_appa_b_serial_packet_request,
+		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
