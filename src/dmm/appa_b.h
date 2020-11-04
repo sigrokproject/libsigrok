@@ -29,20 +29,49 @@
  *
  * Model Table
  *
- *   Model ID | Brand Name            | OPT | BLE | State
- *   ---------|-----------------------|:---:|:---:|---------------
- *   150B     | APPA 155B             |     |  X  | untested
- *   150B     | APPA 156B             |     |  X  | untested
- *   150B     | APPA 157B             |     |  X  | untested
- *   150B     | APPA 158B             |     |  X  | untested
- *   150B     | BENNING CM 12         |     |  X  | untested
- *   208      | APPA 208              |  X  |     | untested
- *   208B     | APPA 208B             |  X  |  X  | untested
- *   506      | APPA 506              |  X  |     | ok
- *   506      | Sefram 7352           |  X  |     | ok
- *   506B     | APPA 506B             |  X  |  X  | ok
- *   506B     | BENNING MM 12         |  X  |  X  | ok
- *   506B     | Sefram 7352B          |  X  |  X  | ok
+ *   ID    | Model     | Brand Name            | OPT | BLE | State
+ *   ------|-----------|-----------------------|:---:|:---:|---------------
+ *   0x01  | 150B      | APPA 155B             |     |  X  | untested
+ *   0x01  | 150B      | APPA 156B             |     |  X  | untested
+ *   0x01  | 150B      | APPA 157B             |     |  X  | untested
+ *   0x01  | 150B      | APPA 158B             |     |  X  | untested
+ *   0x01  | 150B      | BENNING CM 12         |     |  X  | untested
+ *   0x0c  | 172       | APPA 172B             |     |  X  | untested
+ *   0x0d  | 173       | APPA 173B             |     |  X  | untested
+ *   0x0d  | 173       | BENNING CM 10         |     |  X  | untested
+ *   0x0e  | 175       | APPA 175B             |     |  X  | untested
+ *   0x0f  | 177       | APPA 177B             |     |  X  | untested
+ *   0x0f  | 177       | BENNING CM 10-PV      |     |  X  | untested
+ *   0x14  | 179       | APPA 179B             |     |  X  | untested
+ *   0x03  | 208       | APPA 208              |  X  |     | untested
+ *   0x04  | 208B      | APPA 208B             |  X  |  X  | untested
+ *   0x07  | 501       | APPA 501              |  X  |     | untested
+ *   0x08  | 502       | APPA 502              |  X  |     | untested
+ *   0x15  | 503       | APPA 503              |  X  |     | untested
+ *   0x15  | 503       | CMT 3503              |  X  |     | untested
+ *   0x15  | 503       | ISO-TECH IDM503       |  X  |     | untested
+ *   0x16  | 505       | APPA 505              |  X  |     | untested
+ *   0x16  | 505       | RS PRO IDM505         |  X  |     | untested
+ *   0x16  | 505       | Sefram 7355           |  X  |     | untested
+ *   0x05  | 506       | APPA 506              |  X  |     | ok
+ *   0x05  | 506       | Sefram 7352           |  X  |     | ok
+ *   0x06  | 506B      | APPA 506B             |  X  |  X  | ok
+ *   0x06  | 506B      | BENNING MM 12         |  X  |  X  | ok
+ *   0x06  | 506B      | Sefram 7352B          |  X  |  X  | ok
+ *   N/A   | 507       | APPA 507              |  X  |     | experimental
+ *   N/A   | 507       | HT Instruments HT8100 |  X  |     | experimental
+ *   0x12  | A17N      | APPA A17N             |     |  X  | untested
+ *   0x13  | S0        | APPA S0               |     |  X  | untested
+ *   0x09  | S1        | APPA S1               |     |  X  | untested
+ *   0x09  | S1        | RS PRO S1             |     |  X  | untested
+ *   0x0a  | S2        | APPA S2               |     |  X  | untested
+ *   0x0a  | S2        | BENNING MM 10         |     |  X  | untested
+ *   0x0a  | S2        | RS PRO S2             |     |  X  | untested
+ *   0x0b  | S3        | APPA S3               |     |  X  | untested
+ *   0x0b  | S3        | BENNING MM 10-PV      |     |  X  | untested
+ *   0x0b  | S3        | RS PRO S3             |     |  X  | untested
+ *   0x10  | SFLEX_10A | APPA sFlex-10A        |     |  X  | untested
+ *   0x11  | SFLEX_18A | APPA sFlex-18A        |     |  X  | untested
  *
  * BLE: Bluetooth LE, OPT: Optical serial interface
  *
@@ -154,12 +183,19 @@
 /**
  * Possible commands.
  * Calibration and configuration commands not included yet.
+ * 
+ * @TODO Add Calibration, Settings, OTA, Config, Harmonics
  */
 enum appa_b_command_e {
 	APPA_B_COMMAND_READ_INFORMATION = 0x00, /**< Get information about Model and Brand */
 	APPA_B_COMMAND_READ_DISPLAY = 0x01, /**< Get all display readings */
+	APPA_B_COMMAND_READ_PROTOCOL_VERSION = 0x03, /**< Read protocol version */
+	APPA_B_COMMAND_READ_BATTERY_LIFE = 0x04, /**< Read battery life */
 };
 
+/**
+ * Currently supported models
+ */
 /**
  * Currently supported models
  */
@@ -171,6 +207,23 @@ enum appa_b_model_id_e {
 	APPA_B_MODEL_ID_208B = 0x04, /**< APPA 208B bench-type with usb/serial and btle */
 	APPA_B_MODEL_ID_506 = 0x05, /**< APPA 506, CMT 506 with usb/serial only */
 	APPA_B_MODEL_ID_506B = 0x06, /**< APPA 506B, BENNING MM 12, Sefram 7352B with usb/serial and btle */
+	APPA_B_MODEL_ID_506B_2 = 0x600, /**< APPA 506B Quirks Code */
+	APPA_B_MODEL_ID_501 = 0x07, /**< APPA 501 */
+	APPA_B_MODEL_ID_502 = 0x08, /**< APPA 502 */
+	APPA_B_MODEL_ID_S1 = 0x09, /**< APPA S1 / Sefram 7221 */
+	APPA_B_MODEL_ID_S2 = 0x0a, /**< APPA S2 / BENNING CM 10 / Sefram 7222 */
+	APPA_B_MODEL_ID_S3 = 0x0b, /**< APPA S3 / BENNING CM 10-PV / Sefram 7223 */
+	APPA_B_MODEL_ID_172 = 0x0c, /**< APPA 172B */
+	APPA_B_MODEL_ID_173 = 0x0d, /**< APPA 173B */
+	APPA_B_MODEL_ID_175 = 0x0e, /**< APPA 175B */
+	APPA_B_MODEL_ID_177 = 0x0f, /**< APPA 177B */
+	APPA_B_MODEL_ID_SFLEX_10A = 0x10, /**< APPA sFlex-10A */
+	APPA_B_MODEL_ID_SFLEX_18A = 0x11, /**< APPA sFlex-18A */
+	APPA_B_MODEL_ID_A17N = 0x12, /**< APPA A17N */
+	APPA_B_MODEL_ID_S0 = 0x13, /**< APPA S0 / Sefram 7220 */
+	APPA_B_MODEL_ID_179 = 0x14, /**< APPA 179 */
+	APPA_B_MODEL_ID_503 = 0x15, /**< APPA 503 */
+	APPA_B_MODEL_ID_505 = 0x16, /**< APPA 505 */
 };
 
 /**
@@ -397,6 +450,16 @@ enum appa_b_functioncode_e {
 	APPA_B_FUNCTIONCODE_FLEX_INRUSH = 0x3c,
 	APPA_B_FUNCTIONCODE_FLEX_A_HARM = 0x3d,
 	APPA_B_FUNCTIONCODE_PEAK_HOLD_UA = 0x3e,
+	APPA_B_FUNCTIONCODE_AC_UA_HFR = 0x3F,
+	APPA_B_FUNCTIONCODE_AC_V_HFR = 0x40,
+	APPA_B_FUNCTIONCODE_AC_MV_HFR = 0x41,
+	APPA_B_FUNCTIONCODE_AC_A_HFR = 0x42,
+	APPA_B_FUNCTIONCODE_AC_MA_HFR = 0x43,
+	APPA_B_FUNCTIONCODE_AC_UA_HFR2 = 0x44,
+	APPA_B_FUNCTIONCODE_DC_V_PV = 0x45,
+	APPA_B_FUNCTIONCODE_AC_V_PV = 0x46,
+	APPA_B_FUNCTIONCODE_AC_V_PV_HFR = 0x47,
+	APPA_B_FUNCTIONCODE_AC_DC_V_PV = 0x48,
 };
 
 /**

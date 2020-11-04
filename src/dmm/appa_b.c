@@ -20,7 +20,7 @@
 /**
  * @file
  *
- * Interface to APPA B (150/208/506) Series based Multimeters and Clamps
+ * Interface to almost all APPA Multimeters and Clamps
  *
  * For most of the documentation, please see the appa_b.h file!
  *
@@ -88,6 +88,40 @@ static const char *appa_b_model_id_name(const enum appa_b_model_id_e arg_model_i
 		return "APPA 506";
 	case APPA_B_MODEL_ID_506B:
 		return "APPA 506B";
+	case APPA_B_MODEL_ID_506B_2:
+		return "APPA 506B";
+	case APPA_B_MODEL_ID_501:
+		return "APPA 501";
+	case APPA_B_MODEL_ID_502:
+		return "APPA 502";
+	case APPA_B_MODEL_ID_S1:
+		return "APPA S1";
+	case APPA_B_MODEL_ID_S2:
+		return "APPA S2";
+	case APPA_B_MODEL_ID_S3:
+		return "APPA S3";
+	case APPA_B_MODEL_ID_172:
+		return "APPA 172";
+	case APPA_B_MODEL_ID_173:
+		return "APPA 173";
+	case APPA_B_MODEL_ID_175:
+		return "APPA 175";
+	case APPA_B_MODEL_ID_177:
+		return "APPA 177";
+	case APPA_B_MODEL_ID_SFLEX_10A:
+		return "APPA sFlex-10A";
+	case APPA_B_MODEL_ID_SFLEX_18A:
+		return "APPA sFlex-18A";
+	case APPA_B_MODEL_ID_A17N:
+		return "APPA A17N";
+	case APPA_B_MODEL_ID_S0:
+		return "APPA S0";
+	case APPA_B_MODEL_ID_179:
+		return "APPA 179";
+	case APPA_B_MODEL_ID_503:
+		return "APPA 503";
+	case APPA_B_MODEL_ID_505:
+		return "APPA 505";
 	}
 
 	return APPA_B_STRING_NA;
@@ -864,6 +898,10 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_A_HARM:
 		case APPA_B_FUNCTIONCODE_FLEX_INRUSH:
 		case APPA_B_FUNCTIONCODE_FLEX_A_HARM:
+		case APPA_B_FUNCTIONCODE_AC_UA_HFR:
+		case APPA_B_FUNCTIONCODE_AC_A_HFR:
+		case APPA_B_FUNCTIONCODE_AC_MA_HFR:
+		case APPA_B_FUNCTIONCODE_AC_UA_HFR2:
 			if (analog->meaning->unit == SR_UNIT_AMPERE
 				|| analog->meaning->unit == SR_UNIT_VOLT
 				|| analog->meaning->unit == SR_UNIT_WATT) {
@@ -888,6 +926,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_FLEX_AC_A:
 		case APPA_B_FUNCTIONCODE_FLEX_LPF_A:
 		case APPA_B_FUNCTIONCODE_FLEX_PEAK_HOLD_A:
+		case APPA_B_FUNCTIONCODE_DC_V_PV:
 			analog->meaning->mqflags |= SR_MQFLAG_DC;
 			break;
 
@@ -906,6 +945,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_AC_DC_A:
 		case APPA_B_FUNCTIONCODE_VOLT_SENSE:
 		case APPA_B_FUNCTIONCODE_LOZ_AC_DC_V:
+		case APPA_B_FUNCTIONCODE_AC_DC_V_PV:
 			if (analog->meaning->unit == SR_UNIT_AMPERE
 				|| analog->meaning->unit == SR_UNIT_VOLT
 				|| analog->meaning->unit == SR_UNIT_WATT) {
