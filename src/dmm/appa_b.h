@@ -49,10 +49,12 @@
  *   0x08  | 502       | APPA 502              |  X  |     | untested
  *   0x15  | 503       | APPA 503              |  X  |     | untested
  *   0x15  | 503       | CMT 3503              |  X  |     | untested
+ *   0x15  | 503       | Voltcraft VC-930      |  X  |     | experimental
  *   0x15  | 503       | ISO-TECH IDM503       |  X  |     | untested
  *   0x16  | 505       | APPA 505              |  X  |     | untested
  *   0x16  | 505       | RS PRO IDM505         |  X  |     | untested
  *   0x16  | 505       | Sefram 7355           |  X  |     | untested
+ *   0x16  | 505       | Voltcraft VC-950      |  X  |     | experimental
  *   0x05  | 506       | APPA 506              |  X  |     | ok
  *   0x05  | 506       | Sefram 7352           |  X  |     | ok
  *   0x06  | 506B      | APPA 506B             |  X  |  X  | ok
