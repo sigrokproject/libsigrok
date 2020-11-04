@@ -390,7 +390,7 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 	),
 	DMM_ENTRY(
-		"cmt-350x", appa_b, "CMT", "3503", NULL, "9600/8n1",
+		"cmt-35xx", appa_b, "CMT", "35xx", NULL, "9600/8n1",
 		APPA_B_PACKET_SIZE, APPPA_B_GENERAL_TIMEOUT, APPA_B_GENERAL_DELAY,
 		NULL, sr_appa_b_serial_packet_request,
 		sr_appa_b_packet_valid, sr_appa_b_parse,

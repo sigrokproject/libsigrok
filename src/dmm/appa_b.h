@@ -22,6 +22,8 @@
  *
  * APPA B Interface
  *
+ * Based on APPA Communication Protocol v2.8
+ *
  * Driver for modern APPA meters (handheld, bench, clamp). Communication is
  * done over a serial interface using the known APPA-Frames, see below. The
  * base protocol is always the same and deviates only where the models have
@@ -62,6 +64,7 @@
  *   0x06  | 506B      | BENNING MM 12         |  X  |  X  | ok
  *   0x06  | 506B      | Sefram 7352B          |  X  |  X  | ok
  *   N/A   | 507       | APPA 507              |  X  |     | experimental
+ *   N/A   | 507       | CMT 3507              |  X  |     | experimental
  *   N/A   | 507       | HT Instruments HT8100 |  X  |     | experimental
  *   0x12  | A17N      | APPA A17N             |     |  X  | untested
  *   0x13  | S0        | APPA S0               |     |  X  | untested
