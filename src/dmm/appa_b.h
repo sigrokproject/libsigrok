@@ -186,7 +186,7 @@
 /**
  * Possible commands.
  * Calibration and configuration commands not included yet.
- * 
+ *
  * @TODO Add Calibration, Settings, OTA, Config, Harmonics
  */
 enum appa_b_command_e {

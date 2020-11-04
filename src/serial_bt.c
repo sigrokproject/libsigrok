@@ -531,7 +531,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 	ssize_t rdlen;
 	int rc;
 	size_t dlen;
-	
+
 	/*
 	 * Immediately satisfy the caller's request from the RX buffer
 	 * if the requested amount of data is available already.

@@ -371,7 +371,7 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 
 /**
  * Request device information after login
- * 
+ *
  * @TODO disabled for now, will be added once I know the right place for device ident
  *
  * @param serial Serial data
@@ -494,7 +494,7 @@ SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 	sr_info("Firmware Version: %i", information_response_data.firmware_version);
 
 	return SR_OK;
-	
+
 }
 
 /**
@@ -556,7 +556,7 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *data)
 {
 	int frame_length;
 	u_int8_t checksum;
-	
+
 	if (data == NULL) {
 		sr_err("sr_appa_b_packet_valid(): data error");
 		return FALSE;
@@ -570,14 +570,14 @@ SR_PRIV gboolean sr_appa_b_packet_valid(const uint8_t *data)
 		/* sr_err("sr_appa_b_packet_valid(): checksum error"); */
 		return FALSE;
 	}
-	
+
 	if (data[0] != APPA_B_FRAME_START_VALUE_BYTE
 		|| data[1] != APPA_B_FRAME_START_VALUE_BYTE) {
 		/** @TODO once BLE doesn't deliver incorrect data any longer unmute */
 		/* sr_err("sr_appa_b_packet_valid(): frame start code error"); */
 		return FALSE;
 	}
-	
+
 	return TRUE;
 }
 
@@ -636,7 +636,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 	display_reading_value = (double) display_reading_value_raw;
 
 	is_dash = appa_b_is_wordcode_dash(display_reading_value_raw);
-	
+
 	if (!appa_b_is_wordcode(display_reading_value_raw)
 		|| is_dash) {
 
@@ -988,7 +988,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 	} else {
 
 		*val = INFINITY;
-		
+
 		switch (display_reading_value_raw) {
 
 		case APPA_B_WORDCODE_BATT:
@@ -1016,7 +1016,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 				sr_appa_b_channel_formats[info_local->ch_idx],
 				appa_b_wordcode_name(display_reading_value_raw));
 			break;
-			
+
 		case APPA_B_WORDCODE_DEF:
 			/* Not beautiful but functional */
 			if (display_reading->unit == APPA_B_UNIT_DEGC)
