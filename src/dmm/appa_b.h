@@ -87,6 +87,7 @@
  *
  * TODOs:
  *
+ * @TODO Use device name read from device
  * @TODO Implement log download
  * @TODO Implement calibration
  * @TODO Check, why sometimes invalid BLE traffic pops up (currently silently ignored)
