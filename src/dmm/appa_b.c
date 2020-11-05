@@ -60,17 +60,6 @@ static gboolean appa_b_is_wordcode_dash(const int arg_wordcode)
 		|| arg_wordcode == APPA_B_WORDCODE_DASH2;
 }
 
-static int appa_b_decode_reading(const struct appa_b_frame_display_reading_s *arg_display_reading)
-{
-	return
-	arg_display_reading->reading_b0
-		| arg_display_reading->reading_b1 << 8
-		| arg_display_reading->reading_b2 << 16
-
-		/* Fill Signed/Unsigned */
-		| ((arg_display_reading->reading_b2 >> 7 == 1) ? 0xff : 0) << 24;
-}
-
 static const char *appa_b_model_id_name(const enum appa_b_model_id_e arg_model_id)
 {
 	switch (arg_model_id) {
@@ -315,6 +304,7 @@ static int appa_b_write_frame_display_request(u_int8_t *arg_buf, int arg_len)
 static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct appa_b_frame_display_response_data_s* arg_display_response_data)
 {
 	u_int8_t read_pos;
+	u_int8_t rading[3];
 
 	if (arg_buf == NULL
 		|| arg_display_response_data == NULL)
@@ -338,9 +328,15 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 	arg_display_response_data->range_code = arg_buf[read_pos] & 0x7f;
 	arg_display_response_data->auto_range = arg_buf[read_pos++] >> 7;
 
-	arg_display_response_data->main_display_data.reading_b0 = arg_buf[read_pos++];
-	arg_display_response_data->main_display_data.reading_b1 = arg_buf[read_pos++];
-	arg_display_response_data->main_display_data.reading_b2 = arg_buf[read_pos++];
+	rading[0] = arg_buf[read_pos++];
+	rading[1] = arg_buf[read_pos++];
+	rading[2] = arg_buf[read_pos++];
+
+	arg_display_response_data->main_display_data.reading =
+		rading[0]
+		| rading[1] << 8
+		| rading[2] << 16
+		| ((rading[2] >> 7 == 1) ? 0xff : 0) << 24;
 
 	arg_display_response_data->main_display_data.dot = arg_buf[read_pos] & 0x7;
 	arg_display_response_data->main_display_data.unit = arg_buf[read_pos++] >> 3;
@@ -348,9 +344,15 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
 	arg_display_response_data->main_display_data.data_content = arg_buf[read_pos] & 0x7f;
 	arg_display_response_data->main_display_data.overload = arg_buf[read_pos++] >> 7;
 
-	arg_display_response_data->sub_display_data.reading_b0 = arg_buf[read_pos++];
-	arg_display_response_data->sub_display_data.reading_b1 = arg_buf[read_pos++];
-	arg_display_response_data->sub_display_data.reading_b2 = arg_buf[read_pos++];
+	rading[0] = arg_buf[read_pos++];
+	rading[1] = arg_buf[read_pos++];
+	rading[2] = arg_buf[read_pos++];
+
+	arg_display_response_data->sub_display_data.reading =
+		rading[0]
+		| rading[1] << 8
+		| rading[2] << 16
+		| ((rading[2] >> 7 == 1) ? 0xff : 0) << 24;
 
 	arg_display_response_data->sub_display_data.dot = arg_buf[read_pos] & 0x7;
 	arg_display_response_data->sub_display_data.unit = arg_buf[read_pos++] >> 3;
@@ -379,6 +381,8 @@ static int appa_b_read_frame_display_response(const u_int8_t *arg_buf, struct ap
  */
 SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 {
+	(void)serial;
+#if 0 /* Disabled for future use */
 	struct appa_b_frame_information_response_data_s information_response_data;
 
 	u_int8_t buf[APPA_B_DATA_LENGTH_RESPONSE_READ_INFORMATION + APPA_B_FRAME_HEADER_SIZE + APPA_B_FRAME_CHECKSUM_SIZE];
@@ -492,6 +496,7 @@ SR_PRIV int sr_appa_b_serial_open(struct sr_serial_dev_inst *serial)
 	sr_info("Model ID: %i", information_response_data.model_id);
 	sr_info("Model Name: %s", appa_b_model_id_name(information_response_data.model_id));
 	sr_info("Firmware Version: %i", information_response_data.firmware_version);
+#endif /* 1|0 Disabled for future use */
 
 	return SR_OK;
 
@@ -597,13 +602,12 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 {
 	struct appa_b_info *info_local;
 	struct appa_b_frame_display_response_data_s display_response_data;
-	struct appa_b_frame_display_reading_s *display_reading;
+	struct appa_b_frame_display_reading_s *display_data;
 
 	gboolean is_sub;
 	gboolean is_dash;
 
 	double unit_factor;
-	int display_reading_value_raw;
 	double display_reading_value;
 	int8_t digits;
 
@@ -625,24 +629,24 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 	}
 
 	if (!is_sub)
-		display_reading = &display_response_data.main_display_data;
+		display_data = &display_response_data.main_display_data;
 	else
-		display_reading = &display_response_data.sub_display_data;
+		display_data = &display_response_data.sub_display_data;
 
 	unit_factor = 1;
 	digits = 0;
 
-	display_reading_value_raw = appa_b_decode_reading(display_reading);
-	display_reading_value = (double) display_reading_value_raw;
+	display_reading_value = (double) display_data->reading;
 
-	is_dash = appa_b_is_wordcode_dash(display_reading_value_raw);
+	is_dash = appa_b_is_wordcode_dash(display_data->reading);
 
-	if (!appa_b_is_wordcode(display_reading_value_raw)
+	if (!appa_b_is_wordcode(display_data->reading)
 		|| is_dash) {
 
-		switch (display_reading->dot) {
+		switch (display_data->dot) {
 
-		default: case APPA_B_DOT_NONE:
+		default:
+		case APPA_B_DOT_NONE:
 			digits = 0;
 			unit_factor /= 1;
 			break;
@@ -669,7 +673,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 
 		}
 
-		switch (display_reading->data_content) {
+		switch (display_data->data_content) {
 
 		case APPA_B_DATA_CONTENT_MAXIMUM:
 			analog->meaning->mqflags |= SR_MQFLAG_MAX;
@@ -713,6 +717,29 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 				analog->meaning->mqflags |= SR_MQFLAG_REFERENCE;
 			break;
 
+		default:
+		case APPA_B_DATA_CONTENT_FREQUENCY:
+		case APPA_B_DATA_CONTENT_CYCLE:
+		case APPA_B_DATA_CONTENT_DUTY:
+		case APPA_B_DATA_CONTENT_MEMORY_STAMP:
+		case APPA_B_DATA_CONTENT_MEMORY_SAVE:
+		case APPA_B_DATA_CONTENT_MEMORY_LOAD:
+		case APPA_B_DATA_CONTENT_LOG_SAVE:
+		case APPA_B_DATA_CONTENT_LOG_LOAD:
+		case APPA_B_DATA_CONTENT_LOG_RATE:
+		case APPA_B_DATA_CONTENT_REL_REFERENCE:
+		case APPA_B_DATA_CONTENT_DBM:
+		case APPA_B_DATA_CONTENT_DB:
+		case APPA_B_DATA_CONTENT_SETUP:
+		case APPA_B_DATA_CONTENT_LOG_STAMP:
+		case APPA_B_DATA_CONTENT_LOG_MAX:
+		case APPA_B_DATA_CONTENT_LOG_MIN:
+		case APPA_B_DATA_CONTENT_LOG_TP:
+		case APPA_B_DATA_CONTENT_CURRENT_OUTPUT:
+		case APPA_B_DATA_CONTENT_CUR_OUT_0_20MA_PERCENT:
+		case APPA_B_DATA_CONTENT_CUR_OUT_4_20MA_PERCENT:
+			break;
+
 		}
 
 		if (display_response_data.auto_range == APPA_B_AUTO_RANGE) {
@@ -721,7 +748,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 
 		}
 
-		switch (display_reading->unit) {
+		switch (display_data->unit) {
 
 		default: case APPA_B_UNIT_NONE:
 			analog->meaning->unit = SR_UNIT_UNITLESS;
@@ -918,6 +945,10 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_FUNCTIONCODE_AC_A_HFR:
 		case APPA_B_FUNCTIONCODE_AC_MA_HFR:
 		case APPA_B_FUNCTIONCODE_AC_UA_HFR2:
+		case APPA_B_FUNCTIONCODE_AC_V_HFR:
+		case APPA_B_FUNCTIONCODE_AC_MV_HFR:
+		case APPA_B_FUNCTIONCODE_AC_V_PV:
+		case APPA_B_FUNCTIONCODE_AC_V_PV_HFR:
 			if (analog->meaning->unit == SR_UNIT_AMPERE
 				|| analog->meaning->unit == SR_UNIT_VOLT
 				|| analog->meaning->unit == SR_UNIT_WATT) {
@@ -971,6 +1002,30 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 			}
 			break;
 
+		/* Currently unused (usually implicitly handled with the unit */
+		default:
+		case APPA_B_FUNCTIONCODE_NONE:
+		case APPA_B_FUNCTIONCODE_OHM:
+		case APPA_B_FUNCTIONCODE_CAP:
+		case APPA_B_FUNCTIONCODE_DEGC:
+		case APPA_B_FUNCTIONCODE_DEGF:
+		case APPA_B_FUNCTIONCODE_FREQUENCY:
+		case APPA_B_FUNCTIONCODE_DUTY:
+		case APPA_B_FUNCTIONCODE_HZ_V:
+		case APPA_B_FUNCTIONCODE_HZ_MV:
+		case APPA_B_FUNCTIONCODE_HZ_A:
+		case APPA_B_FUNCTIONCODE_HZ_MA:
+		case APPA_B_FUNCTIONCODE_250OHM_HART:
+		case APPA_B_FUNCTIONCODE_LOZ_HZ_V:
+		case APPA_B_FUNCTIONCODE_BATTERY:
+		case APPA_B_FUNCTIONCODE_PF:
+		case APPA_B_FUNCTIONCODE_FLEX_HZ_A:
+		case APPA_B_FUNCTIONCODE_PEAK_HOLD_V:
+		case APPA_B_FUNCTIONCODE_PEAK_HOLD_MV:
+		case APPA_B_FUNCTIONCODE_PEAK_HOLD_A:
+		case APPA_B_FUNCTIONCODE_PEAK_HOLD_MA:
+		case APPA_B_FUNCTIONCODE_LOZ_PEAK_HOLD_V:
+			break;
 		}
 
 		analog->spec->spec_digits = digits;
@@ -978,7 +1033,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 
 		display_reading_value *= unit_factor;
 
-		if (display_reading->overload == APPA_B_OVERLOAD
+		if (display_data->overload == APPA_B_OVERLOAD
 			|| is_dash)
 			*val = INFINITY;
 		else
@@ -989,7 +1044,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 
 		*val = INFINITY;
 
-		switch (display_reading_value_raw) {
+		switch (display_data->reading) {
 
 		case APPA_B_WORDCODE_BATT:
 		case APPA_B_WORDCODE_HAZ:
@@ -1001,7 +1056,7 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		case APPA_B_WORDCODE_ER3:
 			sr_err("ERROR [%s]: %s",
 				sr_appa_b_channel_formats[info_local->ch_idx],
-				appa_b_wordcode_name(display_reading_value_raw));
+				appa_b_wordcode_name(display_data->reading));
 			break;
 
 		case APPA_B_WORDCODE_SPACE:
@@ -1014,25 +1069,25 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 		default:
 			sr_warn("MESSAGE [%s]: %s",
 				sr_appa_b_channel_formats[info_local->ch_idx],
-				appa_b_wordcode_name(display_reading_value_raw));
+				appa_b_wordcode_name(display_data->reading));
 			break;
 
 		case APPA_B_WORDCODE_DEF:
 			/* Not beautiful but functional */
-			if (display_reading->unit == APPA_B_UNIT_DEGC)
+			if (display_data->unit == APPA_B_UNIT_DEGC)
 				sr_warn("MESSAGE [%s]: %s °C",
 					sr_appa_b_channel_formats[info_local->ch_idx],
-					appa_b_wordcode_name(display_reading_value_raw));
+					appa_b_wordcode_name(display_data->reading));
 
-			else if (display_reading->unit == APPA_B_UNIT_DEGF)
+			else if (display_data->unit == APPA_B_UNIT_DEGF)
 				sr_warn("MESSAGE [%s]: %s °F",
 					sr_appa_b_channel_formats[info_local->ch_idx],
-					appa_b_wordcode_name(display_reading_value_raw));
+					appa_b_wordcode_name(display_data->reading));
 
 			else
 				sr_warn("MESSAGE [%s]: %s",
 					sr_appa_b_channel_formats[info_local->ch_idx],
-					appa_b_wordcode_name(display_reading_value_raw));
+					appa_b_wordcode_name(display_data->reading));
 			break;
 
 		}
@@ -1044,6 +1099,6 @@ SR_PRIV int sr_appa_b_parse(const uint8_t *data, float *val,
 }
 
 SR_PRIV const char *sr_appa_b_channel_formats[APPA_B_DISPLAY_COUNT] = {
-	"main",
-	"sub",
+	APPA_B_CHANNEL_NAME_DISPLAY_MAIN,
+	APPA_B_CHANNEL_NAME_DISPLAY_SUB,
 };

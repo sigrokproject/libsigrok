@@ -141,6 +141,16 @@
 #define APPA_B_READING_TEXT_OL "OL"
 
 /**
+ * String name of main display as channel
+ */
+#define APPA_B_CHANNEL_NAME_DISPLAY_MAIN "main"
+
+/**
+ * String name of sub display as channel
+ */
+#define APPA_B_CHANNEL_NAME_DISPLAY_SUB "sub"
+
+/**
  * Size of frame headers
  */
 #define APPA_B_FRAME_HEADER_SIZE 4
@@ -364,7 +374,7 @@ enum appa_b_data_content_e {
 	APPA_B_DATA_CONTENT_MEMORY_LOAD = 0x06,
 	APPA_B_DATA_CONTENT_LOG_SAVE = 0x07,
 	APPA_B_DATA_CONTENT_LOG_LOAD = 0x08,
-	APPA_B_DATA_CONTENT_LOAG_RATE = 0x09,
+	APPA_B_DATA_CONTENT_LOG_RATE = 0x09,
 	APPA_B_DATA_CONTENT_REL_DELTA = 0x0a,
 	APPA_B_DATA_CONTENT_REL_PERCENT = 0x0b,
 	APPA_B_DATA_CONTENT_REL_REFERENCE = 0x0c,
@@ -488,8 +498,8 @@ enum appa_b_autorange_e {
  * Frame Header
  */
 struct appa_b_frame_header_s {
-	u_int16_t start; /**< 0x5555 start code */
-	u_int8_t command; /**< @appaCommand_t */
+	u_int16_t start; /**< Start code (0x5555) */
+	enum appa_b_command_e command; /**< Command */
 	u_int8_t dataLength; /**< Length of Data */
 };
 
@@ -497,9 +507,9 @@ struct appa_b_frame_header_s {
  * Frame Data: Device information response
  */
 struct appa_b_frame_information_response_data_s {
-	char model_name[32]; /**< String 0x20 terminated model name of device (branded) */
-	char serial_number[16]; /**< String 0x20 terminated serial number of device */
-	u_int16_t model_id; /*< @appaBModelId_t */
+	char model_name[32]; /**< String 0x20 filled model name of device (branded) */
+	char serial_number[16]; /**< String 0x20 filled serial number of device */
+	enum appa_b_model_id_e model_id; /*< Model ID Number @appa_b_model_id_e */
 	u_int16_t firmware_version; /*< Firmware version */
 };
 
@@ -507,25 +517,23 @@ struct appa_b_frame_information_response_data_s {
  * Frame Data: Display data within display response
  */
 struct appa_b_frame_display_reading_s {
-	u_int8_t reading_b0; /**< int24 Byte 0 - measured value */
-	u_int8_t reading_b1; /**< int24 Byte 1 - measured value */
-	u_int8_t reading_b2; /**< int24 Byte 2 - measured value */
+  int32_t reading; /**< Measured value or wordcode in raw */
 
-	u_int8_t dot; /**< @appa_b_dot_e */
-	u_int8_t unit; /**< @appa_b_unit_e */
+	enum appa_b_dot_e dot; /**< Dot position */
+	enum appa_b_unit_e unit; /**< Unit of reading */
 
-	u_int8_t data_content; /**< @appa_b_data_content_e */
-	u_int8_t overload; /**< @appa_b_overload_e */
+	enum appa_b_data_content_e data_content; /**< Specification of data content */
+	enum appa_b_overload_e overload; /**< O.L or not */
 };
 
 /**
  * Frame: Display response
  */
 struct appa_b_frame_display_response_data_s {
-	u_int8_t function_code; /**< @appa_b_function_code_e */
-	u_int8_t auto_test; /**< @appa_b_auto_test_e */
+	enum appa_b_functioncode_e function_code; /**< Function Code */
+	enum appa_b_autotest_e auto_test; /**< Auto or manual Test */
 	u_int8_t range_code; /**< @TODO Implement Table 7.1 of protocol spec, only required for calibration */
-	u_int8_t auto_range; /**< @appa_b_auto_range_e */
+	enum appa_b_autorange_e auto_range; /**< Automatic or manual range */
 
 	struct appa_b_frame_display_reading_s main_display_data; /**< Reading of main (lower) display value */
 
@@ -565,16 +573,6 @@ static gboolean appa_b_is_wordcode(const int arg_wordcode);
  * @return TRUE if reading value is a dash-wordcode
  */
 static gboolean appa_b_is_wordcode_dash(const int arg_wordcode);
-
-/**
- * Measurement value / reading decoding helper
- *
- * Take a display structure and decode the 24 bit reading into a standard int
- *
- * @param arg_display_data
- * @return int value of reading in correct byte order
- */
-static int appa_b_decode_reading(const struct appa_b_frame_display_reading_s *arg_display_reading);
 
 /**
  * Model id code to string
