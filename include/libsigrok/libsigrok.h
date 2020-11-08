@@ -1113,6 +1113,9 @@ enum sr_configkey {
 	/** Number of powerline cycles for ADC integration time. */
 	SR_CONF_ADC_POWERLINE_CYCLES,
 
+	/** Specify which channel group following meta packages should be assigned to. */
+	SR_CONF_CHANNEL_GROUP,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Acquisition modes, sample limiting ----------------------------*/

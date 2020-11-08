@@ -1103,6 +1103,136 @@ static const struct scpi_command rs_hmp4040_cmd[] = {
 	ALL_ZERO
 };
 
+static int rs_hmp_init_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Sets the system to remote state. The front panel and remote
+	 * control are possible simultaneously (mixed mode).
+	 */
+	ret = sr_scpi_send(scpi, "SYST:MIX");
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
+
+static int rs_hmp_update_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+	struct sr_channel *ch = NULL;
+	struct sr_channel *first_ch = NULL;
+	struct pps_channel *pch;
+	unsigned int hw_idx;
+	unsigned int hw_idx_mask;
+	unsigned int hw_idx_seen = 0;
+	const struct channel_spec *ch_spec;
+	struct pps_hw_channel_state *ch_state;
+	char fmt[] = "STAT:QUES:INST:ISUM%s:COND?";
+	char cmd[sizeof(fmt) - 2 + 8]; /* allow for max 8-char channel name */
+	int status;
+	int ret;
+	struct pps_hw_channel_state cur_state = {};
+	GVariant *data;
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
+
+	/*
+	  setting for each enabled channel
+  	    STAT:QUES:INST:ISUMx:ENABLE <- (1 << 0) | (1 << 1) | (1 << 4) | (1 << 9) -> 531
+	  then reading from STAT:QUES:INST:EVENT? should report when one of the channels
+	  produced an CC/CV, OTP,OVP event (rising edge).
+
+	  interessting bits of these registers:
+	    STAT:QUES:INST: 1 - summary of inst1, 2 - summary of inst2, ...
+	    STAT:QUES:INST:ISUMx: 0 - CC, 1 - CV, 4 - OTP, 9 - OVP, 10 - FUSE
+
+	  BUT: STAT:QUES:INST:ISUMx:EVENT? always reports continuously either CC or CV
+	  not only on change, and reading the event register does not clear it.
+	  -> so reading STAT:QUES:INST also always reports all channels that are enabled!
+
+	  when setting STAT:QUES:INST:ISUM1:ENABLE without the CC/CV bits, and testing
+	  OVP reporting -> all works as expected!
+	  but to also get CC/CV state we need to read per instrument COND? anyways...
+	  saw this behaviour for firmware versions 2.30 and 2.62
+	 */
+
+	while(TRUE) {
+		/* for each enabled channel */
+		ch = sr_next_enabled_channel(sdi, ch);
+		if (first_ch == NULL)
+			first_ch = ch;
+		else if (ch == first_ch)
+			break;
+		
+		/* but only once per hardware-/pps-channel */
+		pch = ch->priv;
+		hw_idx = pch->hw_output_idx;
+		hw_idx_mask = 1 << hw_idx;
+		if (hw_idx_seen & hw_idx_mask)
+			continue;
+		hw_idx_seen |= hw_idx_mask;
+
+		ch_spec = &devc->device->channels[hw_idx];
+		ch_state = &devc->hw_channel_state[hw_idx];
+		
+		snprintf(cmd, sizeof(cmd), fmt, ch_spec->name);
+		ret = sr_scpi_get_int(scpi, cmd, &status);
+		if (ret != SR_OK)
+			return ret;
+
+		cur_state.ovp = (status & (1 << 9));
+		cur_state.otp = (status & (1 << 4));
+		cur_state.regulation = status & 3;
+		/* there is also a Fuse state in bit 10 */
+
+		if (memcmp(&cur_state, ch_state, sizeof(cur_state)) == 0)
+			continue;
+		
+		if (devc->cur_meta_data_source != hw_idx) {
+			devc->cur_meta_data_source = hw_idx;
+			sr_session_send_meta(sdi, SR_CONF_CHANNEL_GROUP,
+					     g_variant_new_string(ch_spec->name));
+		}
+
+		if (cur_state.ovp != ch_state->ovp)
+			sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+					     g_variant_new_boolean(cur_state.ovp ? TRUE : FALSE));
+
+		if (cur_state.otp != ch_state->otp)
+			sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+					     g_variant_new_boolean(cur_state.otp ? TRUE : FALSE));
+
+		if (cur_state.regulation != ch_state->regulation) {
+			if (cur_state.regulation & (1 << 0))
+				data = g_variant_new_string("CC");
+			else if (cur_state.regulation & (1 << 1))
+				data = g_variant_new_string("CV");
+			else {
+				data = g_variant_new_string("");
+			}
+			
+			sr_session_send_meta(sdi, SR_CONF_REGULATION, data);
+		}
+
+		if (cur_state.regulation != 0 && ch_state->regulation == 0)
+			sr_session_send_meta(sdi, SR_CONF_ENABLED, g_variant_new_boolean(TRUE));
+		else if (cur_state.regulation == 0 && ch_state->regulation != 0)
+			sr_session_send_meta(sdi, SR_CONF_ENABLED, g_variant_new_boolean(FALSE));
+		
+		memcpy(ch_state, &cur_state, sizeof(cur_state));
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV const struct scpi_pps pps_profiles[] = {
 	/* Agilent N5763A */
 	{ "Agilent", "N5763A", SCPI_DIALECT_UNKNOWN, 0,
@@ -1425,8 +1555,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = NULL,
-		.update_status = NULL,
+		.init_acquisition = rs_hmp_init_acquisition,
+		.update_status = rs_hmp_update_status,
 	},
 	{ "HAMEG", "HMP4040", SCPI_DIALECT_HMP, 0,
 		ARRAY_AND_SIZE(rs_hmp4040_devopts),
@@ -1435,8 +1565,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = NULL,
-		.update_status = NULL,
+		.init_acquisition = rs_hmp_init_acquisition,
+		.update_status = rs_hmp_update_status,
 	},
 	{ "ROHDE&SCHWARZ", "HMP4030", SCPI_DIALECT_HMP, 0,
 		ARRAY_AND_SIZE(rs_hmp4040_devopts),
@@ -1445,8 +1575,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = NULL,
-		.update_status = NULL,
+		.init_acquisition = rs_hmp_init_acquisition,
+		.update_status = rs_hmp_update_status,
 	},
 	{ "ROHDE&SCHWARZ", "HMP4040", SCPI_DIALECT_HMP, 0,
 		ARRAY_AND_SIZE(rs_hmp4040_devopts),
@@ -1455,8 +1585,8 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
-		.init_acquisition = NULL,
-		.update_status = NULL,
+		.init_acquisition = rs_hmp_init_acquisition,
+		.update_status = rs_hmp_update_status,
 	},
 };
 

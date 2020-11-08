@@ -101,6 +101,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->device = device;
 	sr_sw_limits_init(&devc->limits);
+	devc->cur_meta_data_source = device->num_channels; /* seting this deliberately to an invalid index */
+	if (device->dialect == SCPI_DIALECT_HMP)
+		devc->hw_channel_state = g_malloc0(device->num_channels * sizeof(struct pps_hw_channel_state));
 	sdi->priv = devc;
 
 	if (device->num_channels) {
@@ -315,6 +318,8 @@ static void clear_helper(struct dev_context *devc)
 {
 	g_free(devc->channels);
 	g_free(devc->channel_groups);
+	if (devc->hw_channel_state)
+		g_free(devc->hw_channel_state);
 }
 
 static int dev_clear(const struct sr_dev_driver *di)
