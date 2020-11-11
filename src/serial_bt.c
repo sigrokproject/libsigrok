@@ -56,6 +56,41 @@ static const struct scan_supported_item {
 	{ "121GW", SER_BT_CONN_BLE122, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
 	{ "HC-05", SER_BT_CONN_RFCOMM, },
+	/* appa-dmm identifiers {{{ */
+	{ "APPA 155B", SER_BT_CONN_APPADMM, },
+	{ "APPA 156B", SER_BT_CONN_APPADMM, },
+	{ "APPA 157B", SER_BT_CONN_APPADMM, },
+	{ "APPA 158B", SER_BT_CONN_APPADMM, },
+	{ "APPA 172B", SER_BT_CONN_APPADMM, },
+	{ "APPA 173B", SER_BT_CONN_APPADMM, },
+	{ "APPA 175B", SER_BT_CONN_APPADMM, },
+	{ "APPA 177B", SER_BT_CONN_APPADMM, },
+	{ "APPA 179B", SER_BT_CONN_APPADMM, },
+	{ "APPA 208B", SER_BT_CONN_APPADMM, },
+	{ "APPA 506B", SER_BT_CONN_APPADMM, },
+	{ "APPA A17N", SER_BT_CONN_APPADMM, },
+	{ "APPA S0", SER_BT_CONN_APPADMM, },
+	{ "APPA S1", SER_BT_CONN_APPADMM, },
+	{ "APPA S2", SER_BT_CONN_APPADMM, },
+	{ "APPA S3", SER_BT_CONN_APPADMM, },
+	{ "APPA sFlex-10A", SER_BT_CONN_APPADMM, },
+	{ "APPA sFlex-18A", SER_BT_CONN_APPADMM, },
+	{ "BENNING CM9-2", SER_BT_CONN_APPADMM, },
+	{ "BENNING CM10-1", SER_BT_CONN_APPADMM, },
+	{ "BENNING CM10-PV", SER_BT_CONN_APPADMM, },
+	{ "BENNING CM12", SER_BT_CONN_APPADMM, },
+	{ "BENNING MM10-1", SER_BT_CONN_APPADMM, },
+	{ "BENNING MM10-PV", SER_BT_CONN_APPADMM, },
+	{ "BENNING MM12", SER_BT_CONN_APPADMM, },
+	{ "RSPRO S1", SER_BT_CONN_APPADMM, },
+	{ "RSPRO S2", SER_BT_CONN_APPADMM, },
+	{ "RSPRO S3", SER_BT_CONN_APPADMM, },
+	{ "Sefram 7220", SER_BT_CONN_APPADMM, },
+	{ "Sefram 7221", SER_BT_CONN_APPADMM, },
+	{ "Sefram 7222", SER_BT_CONN_APPADMM, },
+	{ "Sefram 7223", SER_BT_CONN_APPADMM, },
+	{ "Sefram 7352B", SER_BT_CONN_APPADMM, },
+	/* }}} */
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
 
@@ -65,6 +100,7 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_BLE122] = "ble122",
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
+	[SER_BT_CONN_APPADMM] = "appa-dmm",
 };
 
 static enum ser_bt_conn_t lookup_conn_name(const char *name)
@@ -114,7 +150,7 @@ static const char *conn_name_text(enum ser_bt_conn_t type)
  * - Insist on the "bt" prefix. Accept "bt" alone without any other
  *   additional field.
  * - The first field that follows is the connection type. Supported
- *   types are 'rfcomm', 'ble122', 'cc254x', and potentially others
+ *   types are 'rfcomm', 'ble122', 'cc254x', 'appa-dmm', and potentially others
  *   in a future implementation.
  * - The next field is the remote device's address, either separated
  *   by colons or dashes or spaces, or not separated at all.
@@ -129,6 +165,7 @@ static const char *conn_name_text(enum ser_bt_conn_t type)
  *   bt/rfcomm/11-22-33-44-55-66
  *   bt/ble122/88:6b:12:34:56:78
  *   bt/cc254x/0123456789ab
+ *   bt/appa-dmm/18-7a-12-34-56-78
  *
  * It's assumed that users easily can create those conn= specs from
  * available information, or that scan routines will create such specs
@@ -213,6 +250,33 @@ static int ser_bt_parse_conn_spec(
 			*cccd_hdl = 9;
 		if (cccd_val)
 			*cccd_val = 0x0003;
+		break;
+	case SER_BT_CONN_APPADMM:
+
+		/**
+		 * handle: 0x0049, uuid: 0000fff1-0000-1000-8000-00805f9b34fb
+		 */
+		if (read_hdl)
+			*read_hdl = 0x0049;
+
+		/**
+		 * handle: 0x004c, uuid: 0000fff2-0000-1000-8000-00805f9b34fb
+		 */
+		if (write_hdl)
+			*write_hdl = 0x004c;
+
+		/**
+		 * handle: 0x004a, uuid: 00002902-0000-1000-8000-00805f9b34fb
+		 */
+		if (cccd_hdl)
+			*cccd_hdl = 0x004a;
+
+		/**
+		 * Enable notifications
+		 */
+		if (cccd_val)
+			*cccd_val = 0x0001;
+
 		break;
 	case SER_BT_CONN_NRF51:
 		/* TODO
@@ -348,6 +412,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 		serial->bt_rfcomm_channel = rfcomm_channel;
 		break;
 	case SER_BT_CONN_BLE122:
+	case SER_BT_CONN_APPADMM:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 		rc = sr_bt_config_notify(desc,
@@ -379,6 +444,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 		if (rc < 0)
 			return SR_ERR;
 		break;
+	case SER_BT_CONN_APPADMM:
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
@@ -455,6 +521,7 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 		if (wrlen < 0)
 			return SR_ERR_IO;
 		return wrlen;
+	case SER_BT_CONN_APPADMM:
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
@@ -521,6 +588,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 			if (rc < 0)
 				rdlen = -1;
 			break;
+		case SER_BT_CONN_APPADMM:
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
@@ -618,6 +686,7 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 			if (rc < 0)
 				rdlen = -1;
 			break;
+		case SER_BT_CONN_APPADMM:
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
