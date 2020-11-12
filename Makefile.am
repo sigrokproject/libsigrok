@@ -114,6 +114,10 @@ libsigrok_la_SOURCES += \
 	src/scpi.h \
 	src/scpi/scpi.c \
 	src/scpi/scpi_tcp.c
+# TP support
+libsigrok_la_SOURCES += \
+	src/tp/appa.h \
+	src/tp/appa.c
 if NEED_RPC
 libsigrok_la_SOURCES += \
 	src/scpi/scpi_vxi.c \
