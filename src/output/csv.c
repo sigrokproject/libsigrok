@@ -69,6 +69,14 @@ struct ctx_channel {
 	float min, max;
 };
 
+enum time_value_e {
+	TIME_VALUE_FALSE = 0x00,
+	TIME_VALUE_TRUE = 0x01, /**< Compatibilits, resolves to sample_rate */
+	TIME_VALUE_SAMPLE_RATE = 0x02, /**< Sample-Rate of device */
+	TIME_VALUE_NOW_REL = 0x03, /**< Relative current timestamp */
+	TIME_VALUE_NOW_ABS = 0x04, /**< Absolute current timestamp */
+};
+
 struct context {
 	/* Options */
 	const char *gnuplot;
@@ -79,7 +87,7 @@ struct context {
 	const char *comment;
 	gboolean header, did_header;
 	gboolean label_do, label_did, label_names;
-	gboolean time;
+	enum time_value_e time;
 	gboolean do_trigger;
 	gboolean dedup;
 
@@ -95,6 +103,7 @@ struct context {
 	uint32_t channels_seen;
 	uint64_t sample_rate;
 	uint64_t sample_scale;
+	int64_t start_time;
 	uint64_t out_sample_count;
 	uint8_t *previous_sample;
 	float *analog_samples;
@@ -107,6 +116,21 @@ struct context {
 	gboolean have_frames;
 	uint64_t pkt_snums;
 };
+
+static enum time_value_e get_str2time_value(const char *arg_str)
+{
+	if (g_strcmp0("false", arg_str) == 0)
+		return TIME_VALUE_FALSE;
+	if (g_strcmp0("true", arg_str) == 0)
+		return TIME_VALUE_TRUE;
+	if (g_strcmp0("sample_rate", arg_str) == 0)
+		return TIME_VALUE_SAMPLE_RATE;
+	if (g_strcmp0("now_rel", arg_str) == 0)
+		return TIME_VALUE_NOW_REL;
+	if (g_strcmp0("now_abs", arg_str) == 0)
+		return TIME_VALUE_NOW_ABS;
+	return TIME_VALUE_FALSE;
+}
 
 /*
  * TODO:
@@ -141,12 +165,13 @@ static int init(struct sr_output *o, GHashTable *options)
 	ctx->comment = g_strdup(g_variant_get_string(
 		g_hash_table_lookup(options, "comment"), NULL));
 	ctx->header = g_variant_get_boolean(g_hash_table_lookup(options, "header"));
-	ctx->time = g_variant_get_boolean(g_hash_table_lookup(options, "time"));
+	ctx->time = get_str2time_value(
+		g_variant_get_string(g_hash_table_lookup(options, "time"), NULL));
 	ctx->do_trigger = g_variant_get_boolean(g_hash_table_lookup(options, "trigger"));
 	label_string = g_variant_get_string(
 		g_hash_table_lookup(options, "label"), NULL);
 	ctx->dedup = g_variant_get_boolean(g_hash_table_lookup(options, "dedup"));
-	ctx->dedup &= ctx->time;
+	ctx->dedup &= (ctx->time > TIME_VALUE_FALSE);
 
 	if (*ctx->gnuplot && g_strcmp0(ctx->record, "\n"))
 		sr_warn("gnuplot record separator must be newline.");
@@ -156,6 +181,12 @@ static int init(struct sr_output *o, GHashTable *options)
 
 	if ((ctx->label_did = ctx->label_do = g_strcmp0(label_string, "off") != 0))
 		ctx->label_names = g_strcmp0(label_string, "units") != 0;
+
+	/* Default method for time value */
+	if (ctx->time == TIME_VALUE_TRUE)
+		ctx->time = TIME_VALUE_SAMPLE_RATE;
+
+	ctx->start_time = 0;
 
 	sr_dbg("gnuplot = '%s', scale = %d", ctx->gnuplot, ctx->scale);
 	sr_dbg("value = '%s', record = '%s', frame = '%s', comment = '%s'",
@@ -283,9 +314,22 @@ static GString *gen_header(const struct sr_output *o,
 		ctx->did_header = TRUE;
 	}
 
-	/* Time column requested but samplerate unknown. Emit a warning. */
-	if (ctx->time && !ctx->sample_rate)
-		sr_warn("Samplerate unknown, cannot provide timestamps.");
+	switch (ctx->time) {
+	default:
+		/* do nothing */
+		break;
+	case TIME_VALUE_SAMPLE_RATE:
+		/* Time column requested but samplerate unknown. Emit a warning. */
+		if (!ctx->sample_rate)
+			sr_warn("Samplerate unknown, cannot provide timestamps.");
+		break;
+	case TIME_VALUE_NOW_REL:
+		ctx->start_time = g_get_real_time();
+		break;
+	case TIME_VALUE_NOW_ABS:
+		ctx->start_time = 0;
+		break;
+	}
 
 	return header;
 }
@@ -413,6 +457,7 @@ static void dump_saved_values(struct context *ctx, GString **out)
 	float *analog_sample, value;
 	uint8_t *logic_sample;
 
+
 	/* If we haven't seen samples we're expecting, skip them. */
 	if ((ctx->num_analog_channels && !ctx->analog_samples) ||
 	    (ctx->num_logic_channels && !ctx->logic_samples)) {
@@ -426,10 +471,26 @@ static void dump_saved_values(struct context *ctx, GString **out)
 		    ctx->num_logic_channels + ctx->num_analog_channels;
 
 		if (ctx->label_do) {
-			if (ctx->time)
+			switch (ctx->time) {
+			default:
+				/* do nothing */
+				break;
+			case TIME_VALUE_SAMPLE_RATE:
 				g_string_append_printf(*out, "%s%s",
-					ctx->label_names ? "Time" : ctx->xlabel,
+					ctx->label_names ? "Time (sample_rate)" : ctx->xlabel,
 					ctx->value);
+				break;
+			case TIME_VALUE_NOW_ABS:
+				g_string_append_printf(*out, "%s%s",
+					ctx->label_names ? "Time (now_abs)" : ctx->xlabel,
+					ctx->value);
+				break;
+			case TIME_VALUE_NOW_REL:
+				g_string_append_printf(*out, "%s%s",
+					ctx->label_names ? "Time (now_rel)" : ctx->xlabel,
+					ctx->value);
+				break;
+			}
 			for (i = 0; i < num_channels; i++) {
 				g_string_append_printf(*out, "%s%s",
 					ctx->channels[i].label, ctx->value);
@@ -473,15 +534,29 @@ static void dump_saved_values(struct context *ctx, GString **out)
 				       analog_sample, analog_size);
 			}
 
-			if (ctx->time && !ctx->sample_rate) {
-				g_string_append_printf(*out, "0%s", ctx->value);
-			} else if (ctx->time) {
-				sample_time_dbl = ctx->out_sample_count++;
-				sample_time_dbl /= ctx->sample_rate;
-				sample_time_dbl *= ctx->sample_scale;
-				sample_time_u64 = sample_time_dbl;
-				g_string_append_printf(*out, "%" PRIu64 "%s",
-					sample_time_u64, ctx->value);
+			switch (ctx->time) {
+			default:
+				/* do nothing */
+				break;
+			case TIME_VALUE_SAMPLE_RATE:
+				if (!ctx->sample_rate) {
+					g_string_append_printf(*out, "0%s", ctx->value);
+				} else if (ctx->time) {
+					sample_time_dbl = ctx->out_sample_count++;
+					sample_time_dbl /= ctx->sample_rate;
+					sample_time_dbl *= ctx->sample_scale;
+					sample_time_u64 = sample_time_dbl;
+					g_string_append_printf(*out, "%" PRIu64 "%s",
+						sample_time_u64, ctx->value);
+				}				break;
+			case TIME_VALUE_NOW_ABS:
+			case TIME_VALUE_NOW_REL:
+				sample_time_dbl = g_get_real_time()
+					- ctx->start_time;
+				sample_time_dbl /= 1000000;
+				g_string_append_printf(*out, "%f%s",
+					sample_time_dbl, ctx->value);
+				break;
 			}
 
 			for (j = 0; j < num_channels; j++) {
@@ -534,7 +609,7 @@ static void save_gnuplot(struct context *ctx)
 			       ctx->value);
 	if (ctx->label_did)
 		g_string_append(script, "set key autotitle columnhead\n");
-	if (ctx->xlabel && ctx->time)
+	if (ctx->xlabel && ctx->time > TIME_VALUE_FALSE)
 		g_string_append_printf(script, "set xlabel '%s'\n",
 				       ctx->xlabel);
 
@@ -566,7 +641,7 @@ static void save_gnuplot(struct context *ctx)
 		if (ctx->did_header)
 			g_string_append(script, "skip 4 ");
 		g_string_append_printf(script, "using %u:($%u * %g + %g), ",
-			ctx->time, i + 1 + ctx->time, ctx->scale ?
+			(ctx->time > TIME_VALUE_FALSE), i + 1 + (ctx->time > TIME_VALUE_FALSE), ctx->scale ?
 			max / ctx->channels[i].max : 1, ctx->channels[i].min);
 		offset += 1.1 * (ctx->channels[i].max - ctx->channels[i].min);
 	}
@@ -695,8 +770,8 @@ static int receive(const struct sr_output *o,
 		process_analog(ctx, analog);
 		break;
 	case SR_DF_FRAME_BEGIN:
+		*out = g_string_sized_new(0);
 		ctx->have_frames = TRUE;
-		*out = g_string_new(ctx->frame);
 		/* Fallthrough */
 	case SR_DF_END:
 		/* Got to end of frame/session with part of the data. */
@@ -704,6 +779,9 @@ static int receive(const struct sr_output *o,
 			ctx->channels_seen = ctx->channel_count;
 		if (*ctx->gnuplot)
 			save_gnuplot(ctx);
+		break;
+	case SR_DF_FRAME_END:
+		*out = g_string_sized_new(0);
 		break;
 	}
 
@@ -746,7 +824,7 @@ static struct sr_option options[] = {
 	{"comment", "Comment start string", "String used at start of comment lines", NULL, NULL},
 	{"header", "Output header", "Output header comment with capture metdata", NULL, NULL},
 	{"label", "Label values", "Type of column labels", NULL, NULL},
-	{"time", "Time column", "Output sample time as column 1", NULL, NULL},
+	{"time", "Time column", "Output time as column 1", NULL, NULL},
 	{"trigger", "Trigger column", "Output trigger indicator as last column ", NULL, NULL},
 	{"dedup", "Dedup rows", "Set to false to output duplicate rows", NULL, NULL},
 	ALL_ZERO
@@ -754,7 +832,7 @@ static struct sr_option options[] = {
 
 static const struct sr_option *get_options(void)
 {
-	GSList *l = NULL;
+	GSList *l;
 
 	if (!options[0].def) {
 		options[0].def = g_variant_ref_sink(g_variant_new_string(""));
@@ -765,11 +843,19 @@ static const struct sr_option *get_options(void)
 		options[5].def = g_variant_ref_sink(g_variant_new_string(";"));
 		options[6].def = g_variant_ref_sink(g_variant_new_boolean(TRUE));
 		options[7].def = g_variant_ref_sink(g_variant_new_string("units"));
+		l = NULL;
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("units")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("channel")));
 		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("off")));
 		options[7].values = l;
-		options[8].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
+		options[8].def = g_variant_ref_sink(g_variant_new_string("false"));
+		l = NULL;
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("false")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("true")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("sample_rate")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("now_abs")));
+		l = g_slist_append(l, g_variant_ref_sink(g_variant_new_string("now_rel")));
+		options[8].values = l;
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[10].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 	}
