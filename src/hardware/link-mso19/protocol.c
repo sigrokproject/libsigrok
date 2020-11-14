@@ -39,9 +39,6 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 
 	ret = SR_ERR;
 
-	if (serial->fd < 0)
-		goto ret;
-
 	buf = g_malloc(s);
 
 	p = buf;
@@ -56,7 +53,7 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 
 	w = 0;
 	while (w < s) {
-		ret = serial_write(serial, buf + w, s - w);
+		ret = serial_write_blocking(serial, buf + w, s - w, 10);
 		if (ret < 0) {
 			ret = SR_ERR;
 			goto free;
@@ -66,7 +63,6 @@ SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	ret = SR_OK;
 free:
 	g_free(buf);
-ret:
 	return ret;
 }
 
@@ -337,7 +333,7 @@ SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
 		return ret;
 
 	uint8_t buf = 0;
-	if (serial_read(serial, &buf, 1) != 1)	/* FIXME: Need timeout */
+	if (serial_read_blocking(serial, &buf, 1, 10) != 1)
 		ret = SR_ERR;
 	if (!info)
 		*info = buf;
@@ -368,7 +364,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	if (!devc)
 		return TRUE;
 
-	s = serial_read(devc->serial, in, sizeof(in));
+	s = serial_read_blocking(devc->serial, in, sizeof(in), 10);
 	if (s <= 0)
 		return FALSE;
 
@@ -439,6 +435,7 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 	devc->trigger_chan = 3;	//LA combination trigger
 	devc->use_trigger = FALSE;
 
+	/*
 	for (l = sdi->channels; l; l = l->next) {
 		ch = (struct sr_channel *)l->data;
 		if (ch->enabled == FALSE)
@@ -456,6 +453,7 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 				devc->la_trigger |= channel_bit;
 		}
 	}
+	*/
 
 	return SR_OK;
 }
