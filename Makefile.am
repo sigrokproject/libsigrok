@@ -229,6 +229,14 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/appa-55ii/protocol.c \
 	src/hardware/appa-55ii/api.c
 endif
+if HW_APPA_DMM
+src_libdrivers_la_SOURCES += \
+	src/hardware/appa-dmm/protocol_packet.h \
+	src/hardware/appa-dmm/protocol_tables.h \
+	src/hardware/appa-dmm/protocol.h \
+	src/hardware/appa-dmm/protocol.c \
+	src/hardware/appa-dmm/api.c
+endif
 if HW_ARACHNID_LABS_RE_LOAD_PRO
 src_libdrivers_la_SOURCES += \
 	src/hardware/arachnid-labs-re-load-pro/protocol.h \

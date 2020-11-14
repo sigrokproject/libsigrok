@@ -259,6 +259,7 @@ m4_define([SR_DRIVER],
 
 SR_DRIVER([Agilent DMM], [agilent-dmm], [serial_comm])
 SR_DRIVER([Appa 55II], [appa-55ii], [serial_comm])
+SR_DRIVER([APPA DMM], [appa-dmm])
 SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [serial_comm])
 SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma], [libftdi])
 SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx], [serial_comm])
