@@ -4,6 +4,7 @@
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>
  * Copyright (C) 2013 Lior Elazary <lelazary@yahoo.com>
+ * Copyright (C) 2022 Paul Kasemir <paul.kasemir@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -349,15 +350,25 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	struct sr_dev_inst *sdi = cb_data;
-	struct dev_context *devc = sdi->priv;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
 	int i;
 
+	uint8_t in[1024];
+	size_t s;
+
+	(void)fd;
 	(void)revents;
 
-	uint8_t in[1024];
-	size_t s = serial_read(devc->serial, in, sizeof(in));
+	sdi = cb_data;
+	if (!sdi)
+		return TRUE;
 
+	devc = sdi->priv;
+	if (!devc)
+		return TRUE;
+
+	s = serial_read(devc->serial, in, sizeof(in));
 	if (s <= 0)
 		return FALSE;
 

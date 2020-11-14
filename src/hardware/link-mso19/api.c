@@ -4,6 +4,7 @@
  * Copyright (C) 2011 Daniel Ribeiro <drwyrm@gmail.com>
  * Copyright (C) 2012 Renato Caldas <rmsc@fe.up.pt>
  * Copyright (C) 2013 Lior Elazary <lelazary@yahoo.com>
+ * Copyright (C) 2022 Paul Kasemir <paul.kasemir@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -206,7 +207,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(int key, GVariant **data,
+static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -229,7 +230,7 @@ static int config_get(int key, GVariant **data,
 	return SR_OK;
 }
 
-static int config_set(int key, GVariant *data,
+static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
@@ -279,7 +280,7 @@ static int config_set(int key, GVariant *data,
 	return SR_OK;
 }
 
-static int config_list(int key, GVariant **data,
+static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
