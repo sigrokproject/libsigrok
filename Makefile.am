@@ -532,6 +532,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/lecroy-xstream/protocol.c \
 	src/hardware/lecroy-xstream/api.c
 endif
+if HW_LINK_MSO19
+src_libdrivers_la_SOURCES += \
+	src/hardware/link-mso19/protocol.h \
+	src/hardware/link-mso19/protocol.c \
+	src/hardware/link-mso19/api.c
+endif
 if HW_MANSON_HCS_3XXX
 src_libdrivers_la_SOURCES += \
 	src/hardware/manson-hcs-3xxx/protocol.h \
