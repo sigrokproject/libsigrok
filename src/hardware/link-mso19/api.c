@@ -31,7 +31,6 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_TYPE | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_SET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_SET,
@@ -66,7 +65,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *serialcomm = NULL;
 	GSList *l;
 	struct sr_config *src;
-	struct udev *udev;
 	int chtype;
 
 	for (l = options; l; l = l->next) {
@@ -85,6 +83,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!serialcomm)
 		serialcomm = SERIALCOMM;
 
+	/*
 	udev = udev_new();
 	if (!udev) {
 		sr_err("Failed to initialize udev.");
@@ -174,6 +173,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
 		}
 	}
+	*/
 
 	return std_scan_complete(di, devices);
 }
@@ -238,6 +238,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const char *slope;
 	int trigger_pos;
 	double pos;
+	int idx;
 
 	(void)cg;
 
@@ -288,9 +289,6 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
-		break;
-	case SR_CONF_TRIGGER_TYPE:
-		*data = g_variant_new_string(TRIGGER_TYPE);
 		break;
 	default:
 		return SR_ERR_NA;

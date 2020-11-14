@@ -26,7 +26,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <glib.h>
-#include <libudev.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -36,7 +35,6 @@
 #define USB_PRODUCT		"f190"
 
 #define NUM_TRIGGER_STAGES	4
-#define TRIGGER_TYPE 		"01"	//the first r/f is used for the whole group
 #define SERIALCOMM		"460800/8n1/flow=2"
 #define SERIALCONN		"/dev/ttyUSB0"
 #define CLOCK_RATE		SR_MHZ(100)
