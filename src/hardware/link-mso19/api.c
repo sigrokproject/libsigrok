@@ -23,6 +23,10 @@
 #include <config.h>
 #include "protocol.h"
 
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
 static const uint32_t drvopts[] = {
 	SR_CONF_OSCILLOSCOPE,
 	SR_CONF_LOGIC_ANALYZER,
@@ -57,15 +61,81 @@ static const char *trigger_slopes[2] = {
 	"r", "f",
 };
 
+static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
+{
+	int usb_vid, usb_pid;
+	char *port_name;
+	char *vendor, *product, *serial_num;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	int chtype;
+	unsigned int i;
+	char hwrev[32];
+
+	if (sp_get_port_transport(port) != SP_TRANSPORT_USB) {
+		return devices;
+	}
+	if (sp_get_port_usb_vid_pid(port, &usb_vid, &usb_pid) != SP_OK) {
+		return devices;
+	}
+	if (USB_VENDOR != usb_vid || USB_PRODUCT != usb_pid) {
+		return devices;
+	}
+
+	//Create the device context and set its params
+	devc = g_malloc0(sizeof(*devc));
+
+	port_name = sp_get_port_name(port);
+	vendor = sp_get_port_usb_manufacturer(port);
+	product = sp_get_port_usb_product(port);
+
+	// MSO-19 stores device specific parameters in the usb serial number
+	// We depend on libserialport to collect the serial number.
+	serial_num = sp_get_port_usb_serial(port);
+	if (mso_parse_serial(serial_num, product, devc) != SR_OK) {
+		sr_err("Invalid serial: %s.", serial_num);
+		g_free(devc);
+		return devices;
+	}
+	sprintf(hwrev, "r%d", devc->hwrev);
+	devc->ctlbase1 = 0;
+	devc->cur_rate = SR_KHZ(10);
+	devc->dso_probe_attn = 10;
+
+	devc->protocol_trigger.spimode = 0;
+	for (i = 0; i < ARRAY_SIZE(devc->protocol_trigger.word); i++) {
+		devc->protocol_trigger.word[i] = 0;
+		devc->protocol_trigger.mask[i] = 0xff;
+	}
+
+	devc->serial = sr_serial_dev_inst_new(port_name, SERIALCOMM);
+
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->vendor = g_strdup(vendor);
+	sdi->model = g_strdup(product);
+	sdi->version = g_strdup(hwrev);
+	sdi->serial_num = g_strdup(serial_num);
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = devc->serial;
+	sdi->priv = devc;
+
+	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
+		chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
+		sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
+	}
+
+	devices = g_slist_append(devices, sdi);
+
+	return devices;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	int i;
 	GSList *devices = NULL;
 	const char *conn = NULL;
-	const char *serialcomm = NULL;
 	GSList *l;
 	struct sr_config *src;
-	int chtype;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -73,107 +143,25 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
 			break;
-		case SR_CONF_SERIALCOMM:
-			serialcomm = g_variant_get_string(src->data, NULL);
-			break;
 		}
 	}
-	if (!conn)
-		conn = SERIALCONN;
-	if (!serialcomm)
-		serialcomm = SERIALCOMM;
 
-	/*
-	udev = udev_new();
-	if (!udev) {
-		sr_err("Failed to initialize udev.");
-	}
-
-	struct udev_enumerate *enumerate = udev_enumerate_new(udev);
-	udev_enumerate_add_match_subsystem(enumerate, "usb-serial");
-	udev_enumerate_scan_devices(enumerate);
-	struct udev_list_entry *devs = udev_enumerate_get_list_entry(enumerate);
-	struct udev_list_entry *dev_list_entry;
-	for (dev_list_entry = devs;
-	     dev_list_entry != NULL;
-	     dev_list_entry = udev_list_entry_get_next(dev_list_entry)) {
-		const char *syspath = udev_list_entry_get_name(dev_list_entry);
-		struct udev_device *dev =
-		    udev_device_new_from_syspath(udev, syspath);
-		const char *sysname = udev_device_get_sysname(dev);
-		struct udev_device *parent =
-		    udev_device_get_parent_with_subsystem_devtype(dev, "usb",
-								  "usb_device");
-
-		if (!parent) {
-			sr_err("Unable to find parent usb device for %s",
-			       sysname);
-			continue;
+	if (conn) {
+		struct sp_port *port;
+		if (sp_get_port_by_name(conn, &port) == SP_OK) {
+			devices = scan_handle_port(devices, port);
+			sp_free_port(port);
 		}
-
-		const char *idVendor =
-		    udev_device_get_sysattr_value(parent, "idVendor");
-		const char *idProduct =
-		    udev_device_get_sysattr_value(parent, "idProduct");
-		if (strcmp(USB_VENDOR, idVendor)
-		    || strcmp(USB_PRODUCT, idProduct))
-			continue;
-
-		const char *iSerial =
-		    udev_device_get_sysattr_value(parent, "serial");
-		const char *iProduct =
-		    udev_device_get_sysattr_value(parent, "product");
-
-		char path[32];
-		snprintf(path, sizeof(path), "/dev/%s", sysname);
-		conn = path;
-
-		size_t s = strcspn(iProduct, " ");
-		char product[32];
-		char manufacturer[32];
-		if (s > sizeof(product) ||
-		    strlen(iProduct) - s > sizeof(manufacturer)) {
-			sr_err("Could not parse iProduct: %s.", iProduct);
-			continue;
-		}
-		strncpy(product, iProduct, s);
-		product[s] = 0;
-		strcpy(manufacturer, iProduct + s + 1);
-
-		//Create the device context and set its params
-		struct dev_context *devc;
-		devc = g_malloc0(sizeof(struct dev_context));
-
-		if (mso_parse_serial(iSerial, iProduct, devc) != SR_OK) {
-			sr_err("Invalid iSerial: %s.", iSerial);
-			g_free(devc);
-			return devices;
-		}
-
-		char hwrev[32];
-		sprintf(hwrev, "r%d", devc->hwrev);
-		devc->ctlbase1 = 0;
-		devc->protocol_trigger.spimode = 0;
-		for (i = 0; i < 4; i++) {
-			devc->protocol_trigger.word[i] = 0;
-			devc->protocol_trigger.mask[i] = 0xff;
-		}
-
-		devc->serial = sr_serial_dev_inst_new(conn, serialcomm);
-
-		struct sr_dev_inst *sdi = g_malloc0(sizeof(struct sr_dev_inst));
-		sdi->status = SR_ST_INACTIVE;
-		sdi->vendor = g_strdup(manufacturer);
-		sdi->model = g_strdup(product);
-		sdi->version = g_strdup(hwrev);
-		sdi->priv = devc;
-
-		for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
-			chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
-			sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
+	} else {
+		struct sp_port **port_list;
+		struct sp_port **port_p;
+		if (sp_list_ports(&port_list) == SP_OK) {
+			for (port_p = port_list; *port_p; port_p++) {
+				devices = scan_handle_port(devices, *port_p);
+			}
+			sp_free_port_list(port_list);
 		}
 	}
-	*/
 
 	return std_scan_complete(di, devices);
 }
@@ -285,8 +273,9 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
+	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, NO_OPTS, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;

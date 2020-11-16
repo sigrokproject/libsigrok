@@ -31,8 +31,8 @@
 
 #define LOG_PREFIX "link-mso19"
 
-#define USB_VENDOR		"3195"
-#define USB_PRODUCT		"f190"
+#define USB_VENDOR		0x3195
+#define USB_PRODUCT		0xf190
 
 #define NUM_TRIGGER_STAGES	4
 #define SERIALCOMM		"460800/8n1/flow=2"
