@@ -187,6 +187,23 @@ static inline int32_t read_i24le(const uint8_t *p)
 }
 
 /**
+ * Read a 24 bits big endian signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+static inline int32_t read_i24be(const uint8_t *p)
+{
+	uint32_t u;
+
+	u = p[0] >> 7 == 1 ? 0xff : 0;
+	u <<= 8; u |= p[0];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[2];
+
+	return u;
+}
+
+/**
  * Read a 32 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
@@ -699,6 +716,23 @@ static inline int32_t read_i24le_inc(const uint8_t **p)
 	if (!p || !*p)
 		return 0;
 	v = read_i24le(*p);
+	*p += 3 * sizeof(uint8_t);
+
+	return v;
+}
+
+/**
+ * Read signed 24bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline int32_t read_i24be_inc(const uint8_t **p)
+{
+	int32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i24be(*p);
 	*p += 3 * sizeof(uint8_t);
 
 	return v;
