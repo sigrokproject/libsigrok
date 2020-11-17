@@ -64,7 +64,18 @@ static const char *appadmm_data_sources[] = {
 	"LOG", /**< APPADMM_DATA_SOURCE_LOG */
 };
 
-static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options)
+/**
+ * Scanning function
+ * Invoked by the Protocol-specific scan functions
+ *
+ * @param di Driver instance
+ * @param options Options
+ * @param arg_protocol APPA-Protocol variant to use
+ * @retval Device on success
+ * @retval NULL on error
+ */
+static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
+	enum appadmm_protocol_e arg_protocol)
 {
 	struct drv_context *drvc;
 	struct appadmm_context *devc;
@@ -89,6 +100,8 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options)
 	/* Device context is used instead of another ..._info struct here */
 	devc = g_malloc0(sizeof(struct appadmm_context));
 	appadmm_clear_context(devc);
+
+	devc->protocol = arg_protocol;
 
 	serialcomm = APPADMM_CONF_SERIAL;
 	conn = NULL;
@@ -128,7 +141,16 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options)
 
 	sr_tp_appa_init(&devc->appa_inst, serial);
 
-	appadmm_op_identify(sdi);
+	switch (devc->protocol) {
+	case APPADMM_PROTOCOL_GENERIC:
+		appadmm_op_identify(sdi);
+		break;
+	case APPADMM_PROTOCOL_500:
+		appadmm_500_op_identify(sdi);
+		break;
+	default:
+		break;
+	}
 
 	/* If received model is invalid or nothing received, abort */
 	if (devc->model_id == APPADMM_MODEL_ID_INVALID
@@ -138,22 +160,29 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options)
 			"to read_information request.");
 		sr_serial_dev_inst_free(serial);
 		serial_close(serial);
+		g_free(sdi);
+		g_free(devc);
 		return NULL;
 	}
 
-	/* Older models with the AMICCOM A8105 have troubles with higher rates
-	 * over BLE, let them run without time windows
-	 */
-	if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM
+	if (devc->protocol == APPADMM_PROTOCOL_500)
+		devc->rate_interval = APPADMM_RATE_INTERVAL_500;
+
+	else if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM
 		&& (devc->model_id == APPADMM_MODEL_ID_208B
 		|| devc->model_id == APPADMM_MODEL_ID_506B
 		|| devc->model_id == APPADMM_MODEL_ID_506B_2
 		|| devc->model_id == APPADMM_MODEL_ID_150B))
+		/* Older models with the AMICCOM A8105 have troubles with
+		 * higher rates over BLE, let them run without time windows
+		 */
 		devc->rate_interval = APPADMM_RATE_INTERVAL_DISABLE;
+
 	else
 		devc->rate_interval = APPADMM_RATE_INTERVAL_DEFAULT;
 
-	sr_info("APPA-Device DETECTED; Vendor: %s, Model: %s, OEM-Model: %s, Version: %s, Serial number: %s, Model ID: %i",
+	sr_info("APPA-Device DETECTED; Vendor: %s, Model: %s, "
+		"OEM-Model: %s, Version: %s, Serial number: %s, Model ID: %i",
 		sdi->vendor,
 		sdi->model,
 		appadmm_model_id_name(devc->model_id),
@@ -188,6 +217,16 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	return std_scan_complete(di, devices);
+}
+
+static GSList *appadmm_generic_scan(struct sr_dev_driver *di, GSList *options)
+{
+	return appadmm_scan(di, options, APPADMM_PROTOCOL_GENERIC);
+}
+
+static GSList *appadmm_500_scan(struct sr_dev_driver *di, GSList *options)
+{
+	return appadmm_scan(di, options, APPADMM_PROTOCOL_500);
 }
 
 static int appadmm_config_get(uint32_t key, GVariant **data,
@@ -240,7 +279,8 @@ static int appadmm_config_set(uint32_t key, GVariant *data,
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_set(&devc->limits, key, data);
 	case SR_CONF_DATA_SOURCE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(appadmm_data_sources))) < 0)
+		if ((idx = std_str_idx(data,
+			ARRAY_AND_SIZE(appadmm_data_sources))) < 0)
 			return SR_ERR_ARG;
 		devc->data_source = idx;
 		break;
@@ -259,14 +299,17 @@ static int appadmm_config_list(uint32_t key, GVariant **data,
 	retr = SR_OK;
 
 	if (!sdi)
-		return STD_CONFIG_LIST(key, data, sdi, cg, appadmm_scanopts, appadmm_drvopts, appadmm_devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg,
+		appadmm_scanopts, appadmm_drvopts, appadmm_devopts);
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, appadmm_scanopts, appadmm_drvopts, appadmm_devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg,
+			appadmm_scanopts, appadmm_drvopts, appadmm_devopts);
 	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(appadmm_data_sources));
+		*data =
+			g_variant_new_strv(ARRAY_AND_SIZE(appadmm_data_sources));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -297,7 +340,7 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	retr = SR_OK;
+	retr = SR_ERR_NA;
 
 	switch (devc->data_source) {
 	case APPADMM_DATA_SOURCE_LIVE:
@@ -305,14 +348,38 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 		if ((retr = std_session_send_df_header(sdi)) < SR_OK)
 			return retr;
 
-		retr = serial_source_add(sdi->session, serial, G_IO_IN, 10,
-			appadmm_acquire_live, (void *) sdi);
+		switch (devc->protocol) {
+		case APPADMM_PROTOCOL_GENERIC:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_acquire_live, (void *) sdi);
+			break;
+		case APPADMM_PROTOCOL_500:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_500_acquire_live, (void *) sdi);
+			break;
+		default:
+			retr = SR_ERR_NA;
+			break;
+		}
 		break;
 
 	case APPADMM_DATA_SOURCE_MEM:
 	case APPADMM_DATA_SOURCE_LOG:
-		if ((retr = appadmm_op_storage_info(sdi)) < SR_OK)
-			return retr;
+		switch (devc->protocol) {
+		case APPADMM_PROTOCOL_GENERIC:
+			if ((retr = appadmm_op_storage_info(sdi)) < SR_OK)
+				return retr;
+			break;
+		case APPADMM_PROTOCOL_500:
+			if ((retr = appadmm_500_op_storage_info(sdi)) < SR_OK)
+				return retr;
+			break;
+		default:
+			retr = SR_ERR_NA;
+			break;
+		}
 
 		switch (devc->data_source) {
 		case APPADMM_DATA_SOURCE_MEM:
@@ -331,33 +398,49 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 		 * from the device. Thhis way the user can reduce the amount
 		 * of data downloaded from the device. */
 		if (devc->limits.limit_frames < 1
-			|| devc->limits.limit_frames > (uint64_t) devc->storage_info[storage].amount)
-			devc->limits.limit_frames = devc->storage_info[storage].amount;
+			|| devc->limits.limit_frames >
+			(uint64_t) devc->storage_info[storage].amount)
+			devc->limits.limit_frames =
+			devc->storage_info[storage].amount;
 
 		sr_sw_limits_acquisition_start(&devc->limits);
 		if ((retr = std_session_send_df_header(sdi)) < SR_OK)
 			return retr;
 
 		if (devc->storage_info[storage].rate > 0) {
-			sr_session_send_meta(sdi, SR_CONF_SAMPLE_INTERVAL, g_variant_new_uint64(devc->storage_info[storage].rate * 1000));
+			sr_session_send_meta(sdi, SR_CONF_SAMPLE_INTERVAL,
+				g_variant_new_uint64(devc->storage_info[storage].rate * 1000));
 		}
 
-		retr = serial_source_add(sdi->session, serial, G_IO_IN, 10,
-			appadmm_acquire_storage, (void *) sdi);
+		switch (devc->protocol) {
+		case APPADMM_PROTOCOL_GENERIC:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_acquire_storage, (void *) sdi);
+			break;
+		case APPADMM_PROTOCOL_500:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_500_acquire_storage, (void *) sdi);
+			break;
+		default:
+			retr = SR_ERR_NA;
+			break;
+		}
 		break;
 	}
 
 	return retr;
 }
 
-#define APPADMM_DRIVER_ENTRY(ARG_NAME, ARG_LONGNAME) \
+#define APPADMM_DRIVER_ENTRY(ARG_NAME, ARG_LONGNAME, ARG_PROTOCOL_SCAN) \
 &((struct sr_dev_driver){ \
 	.name = ARG_NAME, \
 	.longname = ARG_LONGNAME, \
 	.api_version = 1, \
 	.init = std_init, \
 	.cleanup = std_cleanup, \
-	.scan = appadmm_scan, \
+	.scan = ARG_PROTOCOL_SCAN, \
 	.dev_list = std_dev_list, \
 	.dev_clear = std_dev_clear, \
 	.config_get = appadmm_config_get, \
@@ -374,13 +457,37 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
  * List of assigned driver names
  */
 SR_REGISTER_DEV_DRIVER_LIST(appadmm_drivers,
-	APPADMM_DRIVER_ENTRY("appa-dmm", "APPA 150, 170, 200, 500, A, S and sFlex-Series"),
-	APPADMM_DRIVER_ENTRY("benning-dmm", "BENNING MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV"),
-	APPADMM_DRIVER_ENTRY("cmt-35xx", "CMT 35xx Series"),
-	APPADMM_DRIVER_ENTRY("ht-8100", "HT Instruments HT8100"),
-	APPADMM_DRIVER_ENTRY("iso-tech-idm50x", "ISO-TECH IDM50x Series"),
-	APPADMM_DRIVER_ENTRY("rspro-dmm", "RS PRO IDM50x and S Series"),
-	APPADMM_DRIVER_ENTRY("sefram-7xxx", "Sefram 7xxx Series"),
-	APPADMM_DRIVER_ENTRY("voltcraft-vc930", "Voltcraft VC-930"),
-	APPADMM_DRIVER_ENTRY("voltcraft-vc950", "Voltcraft VC-950"),
+	APPADMM_DRIVER_ENTRY("appa-dmm",
+		"APPA 150, 170, 200, 500, A, S and sFlex-Series (modern)",
+		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("appa-500-legacy",
+		"APPA 500 Series (legacy)",
+		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("benning-dmm",
+		"BENNING MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV",
+		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("cmt-35xx",
+		"CMT 35xx Series",
+		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("ht-8100",
+		"HT Instruments HT8100",
+		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("iso-tech-idm50x",
+		"ISO-TECH IDM50x Series",
+		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("rspro-idm50x",
+		"RS PRO IDM50x",
+		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("rspro-s",
+		"S Series",
+		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("sefram-7xxx",
+		"Sefram 7xxx Series",
+		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("voltcraft-vc930",
+		"Voltcraft VC-930",
+		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("voltcraft-vc950",
+		"Voltcraft VC-950",
+		appadmm_500_scan),
 	);

@@ -92,6 +92,7 @@ SR_PRIV const char *appadmm_channel_name(const enum appadmm_channel_e arg_channe
 SR_PRIV const char *appadmm_model_id_name(const enum appadmm_model_id_e arg_model_id)
 {
 	switch (arg_model_id) {
+	default:
 	case APPADMM_MODEL_ID_OVERFLOW:
 	case APPADMM_MODEL_ID_INVALID:
 		return APPADMM_STRING_NA;
@@ -140,6 +141,14 @@ SR_PRIV const char *appadmm_model_id_name(const enum appadmm_model_id_e arg_mode
 	case APPADMM_MODEL_ID_503:
 		return "APPA 503";
 	case APPADMM_MODEL_ID_505:
+		return "APPA 505";
+	case APPADMM_MODEL_ID_LEGACY_501:
+		return "APPA 501";
+	case APPADMM_MODEL_ID_LEGACY_502:
+		return "APPA 502";
+	case APPADMM_MODEL_ID_LEGACY_503:
+		return "APPA 503";
+	case APPADMM_MODEL_ID_LEGACY_505:
 		return "APPA 505";
 	}
 

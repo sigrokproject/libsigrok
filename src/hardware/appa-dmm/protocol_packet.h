@@ -141,6 +141,76 @@ static int appadmm_get_response_size(enum appadmm_command_e arg_command)
 }
 
 /**
+ * Map functioncodes from Legacy 500 to current
+ * to allow usage of the same value parser for all devices
+ *
+ * @param arg_functioncode APPA 500 Legacy function code
+ * @param arg_lpf LPF enabled or not
+ * @return Modern APPA functioncode
+ */
+static enum appadmm_functioncode_e appadmm_500_map_functioncode(enum appadmm_500_functioncode_e arg_functioncode,
+	gboolean arg_lpf)
+{
+	switch (arg_functioncode) {
+	case APPADMM_500_FUNCTIONCODE_DEGC:
+		return APPADMM_FUNCTIONCODE_DEGC;
+	case APPADMM_500_FUNCTIONCODE_DEGF:
+		return APPADMM_FUNCTIONCODE_DEGF;
+	case APPADMM_500_FUNCTIONCODE_AC_V:
+		if (arg_lpf)
+			return APPADMM_FUNCTIONCODE_LPF_V;
+		else
+			return APPADMM_FUNCTIONCODE_AC_V;
+	case APPADMM_500_FUNCTIONCODE_DC_V:
+		return APPADMM_FUNCTIONCODE_DC_V;
+	case APPADMM_500_FUNCTIONCODE_AC_DC_V:
+		return APPADMM_FUNCTIONCODE_AC_DC_V;
+	case APPADMM_500_FUNCTIONCODE_AC_MV:
+		if (arg_lpf)
+			return APPADMM_FUNCTIONCODE_LPF_MV;
+		else
+			return APPADMM_FUNCTIONCODE_AC_MV;
+	case APPADMM_500_FUNCTIONCODE_DC_MV:
+		return APPADMM_FUNCTIONCODE_DC_MV;
+	case APPADMM_500_FUNCTIONCODE_AC_DC_MV:
+		return APPADMM_FUNCTIONCODE_AC_DC_MV;
+	case APPADMM_500_FUNCTIONCODE_OHM:
+		return APPADMM_FUNCTIONCODE_OHM;
+	case APPADMM_500_FUNCTIONCODE_CONTINUITY:
+		return APPADMM_FUNCTIONCODE_CONTINUITY;
+	case APPADMM_500_FUNCTIONCODE_CAP:
+		return APPADMM_FUNCTIONCODE_CAP;
+	case APPADMM_500_FUNCTIONCODE_DIODE:
+		return APPADMM_FUNCTIONCODE_DIODE;
+	case APPADMM_500_FUNCTIONCODE_AC_MA:
+		if (arg_lpf)
+			return APPADMM_FUNCTIONCODE_LPF_MA;
+		else
+			return APPADMM_FUNCTIONCODE_AC_MA;
+	case APPADMM_500_FUNCTIONCODE_DC_MA:
+		return APPADMM_FUNCTIONCODE_DC_MA;
+	case APPADMM_500_FUNCTIONCODE_AC_DC_MA:
+		return APPADMM_FUNCTIONCODE_AC_DC_MA;
+	case APPADMM_500_FUNCTIONCODE_AC_A:
+		if (arg_lpf)
+			return APPADMM_FUNCTIONCODE_LPF_A;
+		else
+			return APPADMM_FUNCTIONCODE_AC_A;
+	case APPADMM_500_FUNCTIONCODE_DC_A:
+		return APPADMM_FUNCTIONCODE_DC_A;
+	case APPADMM_500_FUNCTIONCODE_AC_DC_A:
+		return APPADMM_FUNCTIONCODE_AC_DC_A;
+	case APPADMM_500_FUNCTIONCODE_FREQUENCY:
+		return APPADMM_FUNCTIONCODE_FREQUENCY;
+	case APPADMM_500_FUNCTIONCODE_DUTY:
+		return APPADMM_FUNCTIONCODE_DUTY;
+	default:
+		break;
+	}
+	return APPADMM_FUNCTIONCODE_NONE;
+}
+
+/**
  * Check, if response size is valid
  *
  * @param arg_command Command
@@ -804,5 +874,297 @@ static int appadmm_dec_read_storage(const struct appadmm_response_data_read_memo
 
 	return SR_OK;
 }
+
+/* **************************************** */
+/* ****** Series 500 Legacy Protocol ****** */
+/* **************************************** */
+
+/**
+ * Encode raw data of Information / APPADMM_500_COMMAND_READ_ALL_DATA
+ *
+ * @param arg_read_information Read Information structure
+ * @param arg_packet APPA Packet
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_enc_read_information(const struct
+	appadmm_request_data_read_information_s *arg_read_information,
+	struct sr_tp_appa_packet *arg_packet)
+{
+	if (arg_packet == NULL
+		|| arg_read_information == NULL)
+		return SR_ERR_ARG;
+
+	arg_packet->command = APPADMM_500_COMMAND_READ_ALL_DATA;
+	arg_packet->length = APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_ALL_DATA;
+
+	return SR_OK;
+}
+
+/**
+ * Decode raw data of Information / APPADMM_500_COMMAND_READ_ALL_DATA
+ *
+ * @param arg_packet APPA Packet
+ * @param arg_read_information Device information structure
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_dec_read_information(const struct
+	sr_tp_appa_packet *arg_packet,
+	struct appadmm_response_data_read_information_s *arg_read_information)
+{
+	int xloop;
+	char *ltr;
+	const uint8_t *rdptr;
+
+	if (arg_packet == NULL
+		|| arg_read_information == NULL)
+		return SR_ERR_ARG;
+
+	if (sizeof(arg_read_information->model_name) == 0
+		|| sizeof(arg_read_information->serial_number) == 0)
+		return SR_ERR_BUG;
+
+	if (arg_packet->command != APPADMM_500_COMMAND_READ_ALL_DATA)
+		return SR_ERR_DATA;
+
+	if (arg_packet->length !=
+		APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA)
+		return SR_ERR_DATA;
+
+	rdptr = &arg_packet->data[0];
+
+	arg_read_information->model_name[0] = 0;
+	arg_read_information->serial_number[0] = 0;
+	arg_read_information->firmware_version = 0;
+	arg_read_information->model_id = 0;
+
+	ltr = &arg_read_information->model_name[0];
+	for (xloop = 0; xloop < 32; xloop++) {
+		if (xloop < 10)
+			*ltr = read_u8_inc(&rdptr);
+		else
+			*ltr = 0;
+		ltr++;
+	}
+	arg_read_information->model_name[sizeof(arg_read_information->model_name) - 1] = 0;
+
+	ltr = &arg_read_information->serial_number[0];
+	for (xloop = 0; xloop < 16; xloop++) {
+		if (xloop < 8)
+			*ltr = read_u8_inc(&rdptr);
+		else
+			*ltr = 0;
+		ltr++;
+	}
+	arg_read_information->serial_number[sizeof(arg_read_information->serial_number) - 1] = 0;
+	arg_read_information->model_id = 0x5050;
+	arg_read_information->firmware_version = read_u8_inc(&rdptr) * 100;
+	arg_read_information->firmware_version += read_u8_inc(&rdptr) + 1;
+
+	g_strstrip(arg_read_information->model_name);
+	g_strstrip(arg_read_information->serial_number);
+
+	return SR_OK;
+}
+
+/**
+ * Request Device information and return response if available
+ *
+ * Fill with safe defaults on error (allows easy device detection)
+ *
+ * @param arg_tpai APPA instance
+ * @param arg_request Request structure
+ * @param arg_response Response structure
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_rere_read_information(struct sr_tp_appa_inst *arg_tpai,
+	const struct appadmm_request_data_read_information_s *arg_request,
+	struct appadmm_response_data_read_information_s *arg_response)
+{
+	struct sr_tp_appa_packet packet_request;
+	struct sr_tp_appa_packet packet_response;
+
+	int retr;
+
+	if (arg_tpai == NULL
+		|| arg_request == NULL
+		|| arg_response == NULL)
+		return SR_ERR_ARG;
+
+	if ((retr
+		= appadmm_500_enc_read_information(arg_request, &packet_request))
+		< SR_OK)
+		return retr;
+	if ((retr = sr_tp_appa_send_receive(arg_tpai, &packet_request,
+		&packet_response)) < TRUE)
+		return retr;
+	if ((retr
+		= appadmm_500_dec_read_information(&packet_response, arg_response))
+		< SR_OK)
+		return retr;
+
+	return TRUE;
+}
+
+/**
+ * Encode raw data of Display / APPADMM_500_COMMAND_READ_ALL_DATA
+ *
+ * @param arg_read_display Read display request structure
+ * @param arg_packet APPA packet
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_enc_read_display(const struct
+	appadmm_request_data_read_display_s *arg_read_display,
+	struct sr_tp_appa_packet *arg_packet)
+{
+	if (arg_packet == NULL
+		|| arg_read_display == NULL)
+		return SR_ERR_ARG;
+
+	arg_packet->command = APPADMM_500_COMMAND_READ_ALL_DATA;
+	arg_packet->length = APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_ALL_DATA;
+
+	return SR_OK;
+}
+
+/**
+ * Decode raw data of Display / APPADMM_500_COMMAND_READ_ALL_DATA
+ *
+ * @param arg_rdptr Pointer to read from
+ * @param arg_data Data structure to decode into
+ * @return SR_OK if successfull, otherweise SR_ERR_...
+ */
+static int appadmm_500_dec_read_display(const struct sr_tp_appa_packet *arg_packet,
+	struct appadmm_response_data_read_display_s *arg_read_display)
+{
+	if (arg_packet == NULL
+		|| arg_read_display == NULL)
+		return SR_ERR_ARG;
+
+	if (arg_packet->command != APPADMM_500_COMMAND_READ_ALL_DATA)
+		return SR_ERR_DATA;
+
+	if (arg_packet->length != APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA)
+		return SR_ERR_DATA;
+
+	arg_read_display->range_code = arg_packet->data[23];
+	arg_read_display->auto_range = ((arg_packet->data[24]) & 1) == 0;
+	arg_read_display->auto_test = 0;
+	arg_read_display->auto_test = ((arg_packet->data[24] >> 1) & 1)
+		| ((arg_packet->data[24] >> 5) & 1);
+	arg_read_display->function_code =
+		appadmm_500_map_functioncode(read_u16le(&arg_packet->data[20]),
+		(arg_packet->data[24] >> 4) & 1);
+
+	arg_read_display->primary_display_data.reading =
+		read_i24be(&arg_packet->data[37]);
+	arg_read_display->primary_display_data.dot =
+		arg_packet->data[40] & 0x7;
+	arg_read_display->primary_display_data.unit =
+		arg_packet->data[40] >> 3;
+	arg_read_display->primary_display_data.data_content =
+		arg_packet->data[41] & 0x1f;
+	arg_read_display->primary_display_data.overload =
+		(arg_packet->data[41] >> 5) & 1;
+	if (((arg_packet->data[41] >> 7) & 1) == 1)
+		arg_read_display->primary_display_data.reading =
+		APPADMM_WORDCODE_SPACE;
+	else if ((arg_packet->data[41] >> 6) & 1) {
+		arg_read_display->primary_display_data.reading +=
+			APPADMM_WORDCODE_SPACE;
+		if (arg_read_display->primary_display_data.reading
+			== APPADMM_WORDCODE_SPACE)
+			arg_read_display->primary_display_data.reading =
+			APPADMM_WORDCODE_ER;
+	}
+
+	arg_read_display->secondary_display_data.reading =
+		read_i24be(&arg_packet->data[42]);
+	arg_read_display->secondary_display_data.dot =
+		arg_packet->data[45] & 0x7;
+	arg_read_display->secondary_display_data.unit =
+		arg_packet->data[45] >> 3;
+	arg_read_display->secondary_display_data.data_content =
+		arg_packet->data[46] & 0x1f;
+	arg_read_display->secondary_display_data.overload =
+		(arg_packet->data[46] >> 5) & 1;
+	if (((arg_packet->data[46] >> 7) & 1) == 1)
+		arg_read_display->secondary_display_data.reading =
+		APPADMM_WORDCODE_SPACE;
+	else if ((arg_packet->data[46] >> 6) & 1) {
+		arg_read_display->secondary_display_data.reading +=
+			APPADMM_WORDCODE_SPACE;
+		if (arg_read_display->secondary_display_data.reading
+			== APPADMM_WORDCODE_SPACE)
+			arg_read_display->secondary_display_data.reading =
+			APPADMM_WORDCODE_ER;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Send out COMMAND_READ_DISPLAY to APPA device to request live
+ * display readings
+ *
+ * @param arg_tpai APPA instance
+ * @param arg_request Request structure
+ * @retval TRUE on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_request_read_display(struct sr_tp_appa_inst *arg_tpai,
+	const struct appadmm_request_data_read_display_s *arg_request)
+{
+	struct sr_tp_appa_packet packet_request;
+
+	int retr;
+
+	if (arg_tpai == NULL
+		|| arg_request == NULL)
+		return SR_ERR_ARG;
+
+	if ((retr = appadmm_500_enc_read_display(arg_request, &packet_request))
+		< SR_OK)
+		return retr;
+	if ((retr = sr_tp_appa_send(arg_tpai, &packet_request, FALSE)) < SR_OK)
+		return retr;
+
+	return retr;
+}
+
+/**
+ * Try to receive COMMAND_READ_DISPLAY resonse
+ *
+ * @param arg_tpai APPA device instance
+ * @param arg_response Response structure
+ * @retval TRUE if packet was received and arg_response is valid
+ * @retval FALSE if no data was available
+ * @ratval SR_ERR on error
+ */
+static int appadmm_500_response_read_display(struct sr_tp_appa_inst *arg_tpai,
+	struct appadmm_response_data_read_display_s *arg_response)
+{
+	struct sr_tp_appa_packet packet_response;
+
+	int retr;
+
+	if (arg_tpai == NULL
+		|| arg_response == NULL)
+		return SR_ERR_ARG;
+
+	if ((retr = sr_tp_appa_receive(arg_tpai, &packet_response, FALSE))
+		< TRUE)
+		return retr;
+
+	if ((retr = appadmm_500_dec_read_display(&packet_response, arg_response))
+		< SR_OK)
+		return retr;
+
+	return TRUE;
+}
+
 
 #endif/*LIBSIGROK_HARDWARE_APPA_DMM_PROTOCOL_PACKET_H*/

@@ -21,9 +21,12 @@
  * @file
  * @version 1
  *
- * APPA B Interface
+ * APPA DMM Interface
  *
- * Based on APPA Communication Protocol v2.8
+ * Based on:
+ *
+ *  - APPA Communication Protocol v2.8
+ *  - APPA 500 Communication Protocol v1.2
  *
  * Driver for modern APPA meters (handheld, bench, clamp). Communication is
  * done over a serial interface using the known APPA-Frames, see below. The
@@ -78,6 +81,11 @@
  * Default internal poll rate
  */
 #define APPADMM_RATE_INTERVAL_DEFAULT 100000
+
+/**
+ * Default internal poll rate
+ */
+#define APPADMM_RATE_INTERVAL_500 100000
 
 /**
  * Poll rate if rate adjustment is disabled
@@ -168,6 +176,29 @@
 #define APPADMM_FRAME_DATA_SIZE_RESPONSE_FAILURE 1
 #define APPADMM_FRAME_DATA_SIZE_RESPONSE_SUCCESS 0
 
+
+/* Size of request frame data per command */
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_ALL_DATA 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_DATALOG_INFO 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_PAUSE_PERIOD_DATA 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_STORE_DATA 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_DOWNLOAD_ENTER 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_DOWNLOAD_EXIT 0
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_MEMORY 4
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_WRITE_MODEL_NAME 10
+#define APPADMM_500_FRAME_DATA_SIZE_REQUEST_WRITE_SERIAL_NUMBER 8
+
+/* Size of response frame data per command */
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA 54
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_DATALOG_INFO 3
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_PAUSE_PERIOD_DATA 2
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_STORE_DATA 2
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_DOWNLOAD_ENTER 0
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_DOWNLOAD_EXIT 0
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_READ_MEMORY 64 /* max 64 bytes */
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_WRITE_MODEL_NAME 1
+#define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_WRITE_SERIAL_NUMBER 1
+
 /**
  * Begin of word codes (minimum value)
  * All readings on a display higher than that are some sort of wordcode,
@@ -178,6 +209,16 @@
 /* **************************************** */
 /* ****** State machine enumerations ****** */
 /* **************************************** */
+
+/**
+ * Fundamental protocol selection
+ * For support of legacy models that cannot properly be autodetected
+ */
+enum appadmm_protocol_e {
+	APPADMM_PROTOCOL_INVALID = 0x00,
+	APPADMM_PROTOCOL_GENERIC = 0x01, /**< Modern APPA-Series */
+	APPADMM_PROTOCOL_500 = 0x02, /**< Legacy APPA 500 Series */
+};
 
 /**
  * Data sources
@@ -239,6 +280,25 @@ enum appadmm_command_e {
 };
 
 /**
+ * Possible commands.
+ * APPA 500 Series Protocol
+ * Calibration and configuration commands not included yet.
+ */
+enum appadmm_500_command_e {
+	APPADMM_500_COMMAND_READ_ALL_DATA = 0x00, /**< Read all data of meter */
+	APPADMM_500_COMMAND_READ_DATALOG_INFO = 0x11, /**< Read Datalog amount & type */
+	APPADMM_500_COMMAND_READ_PAUSE_PERIOD_DATA = 0x12, /**< Read pause & period data amount */
+	APPADMM_500_COMMAND_READ_STORE_DATA = 0x13, /**< Read store data amount */
+	APPADMM_500_COMMAND_DOWNLOAD_ENTER = 0x18, /**< Enter download mode */
+	APPADMM_500_COMMAND_DOWNLOAD_EXIT = 0x19, /**< Exit download mode */
+	APPADMM_500_COMMAND_READ_MEMORY = 0x1A, /**< Read memory */
+	APPADMM_500_COMMAND_WRITE_MODEL_NAME = 0x81, /**< Write model name to EEPROM */
+	APPADMM_500_COMMAND_WRITE_SERIAL_NUMBER = 0x82, /**< Write serial number to EEPROM */
+
+	APPADMM_500_COMMAND_INVALID = -1, /**< Invalid command, internal */
+};
+
+/**
  * Currently supported models
  */
 enum appadmm_model_id_e {
@@ -250,7 +310,7 @@ enum appadmm_model_id_e {
 	/**
 	 * Invalid
 	 */
-	APPADMM_MODEL_ID_OVERFLOW = 0xff,
+	APPADMM_MODEL_ID_OVERFLOW = 0xffff,
 
 	/**
 	 * APPA 150 Series
@@ -405,7 +465,6 @@ enum appadmm_model_id_e {
 	 * APPA 505
 	 * RS PRO IDM505
 	 * Sefram 7355
-	 * Voltcraft VC-950
 	 */
 	APPADMM_MODEL_ID_505 = 0x16,
 
@@ -418,6 +477,34 @@ enum appadmm_model_id_e {
 	 * HT Instruments HT8100
 	 * (possibly identifies itself as another 500)
 	 */
+
+	/* Extended codes: Devices with legacy communication protocols
+	 * 0xABCD
+	 * ABC: Series (505 = 505)
+	 * D: Model, if needed
+	 */
+
+	/**
+	 * APPA 501
+	 */
+	APPADMM_MODEL_ID_LEGACY_501 = 0x5010,
+
+	/**
+	 * APPA 502
+	 */
+	APPADMM_MODEL_ID_LEGACY_502 = 0x5020,
+
+	/**
+	 * APPA 503
+	 * Voltcraft VC-930
+	 */
+	APPADMM_MODEL_ID_LEGACY_503 = 0x5030,
+
+	/**
+	 * APPA 505
+	 * Voltcraft VC-950
+	 */
+	APPADMM_MODEL_ID_LEGACY_505 = 0x5050,
 };
 
 /**
@@ -672,6 +759,36 @@ enum appadmm_functioncode_e {
 };
 
 /**
+ * Function codes
+ * APPA 500 Series Protocol
+ *
+ * Basically indicate the rotary position and the secondary function selected
+ * Encoded from Rotary code and Function code
+ */
+enum appadmm_500_functioncode_e {
+	APPADMM_500_FUNCTIONCODE_DEGC = 0x0000,
+	APPADMM_500_FUNCTIONCODE_DEGF = 0x0001,
+	APPADMM_500_FUNCTIONCODE_AC_V = 0x0100,
+	APPADMM_500_FUNCTIONCODE_DC_V = 0x0101,
+	APPADMM_500_FUNCTIONCODE_AC_DC_V = 0x0102,
+	APPADMM_500_FUNCTIONCODE_AC_MV = 0x0200,
+	APPADMM_500_FUNCTIONCODE_DC_MV = 0x0201,
+	APPADMM_500_FUNCTIONCODE_AC_DC_MV = 0x0202,
+	APPADMM_500_FUNCTIONCODE_OHM = 0x0300,
+	APPADMM_500_FUNCTIONCODE_CONTINUITY = 0x0301,
+	APPADMM_500_FUNCTIONCODE_CAP = 0x0302,
+	APPADMM_500_FUNCTIONCODE_DIODE = 0x0303,
+	APPADMM_500_FUNCTIONCODE_AC_MA = 0x0400,
+	APPADMM_500_FUNCTIONCODE_DC_MA = 0x0401,
+	APPADMM_500_FUNCTIONCODE_AC_DC_MA = 0x0402,
+	APPADMM_500_FUNCTIONCODE_AC_A = 0x0500,
+	APPADMM_500_FUNCTIONCODE_DC_A = 0x0501,
+	APPADMM_500_FUNCTIONCODE_AC_DC_A = 0x0502,
+	APPADMM_500_FUNCTIONCODE_FREQUENCY = 0x0600,
+	APPADMM_500_FUNCTIONCODE_DUTY = 0x0601,
+};
+
+/**
  * Rotary code
  * APPA 500 Series
  */
@@ -854,6 +971,7 @@ struct appadmm_response_data_read_calibration_s {
  */
 struct appadmm_context {
 	struct sr_tp_appa_inst appa_inst; /**< APPA transport protocol instance */
+	enum appadmm_protocol_e protocol; /**< APPA API to use */
 	gboolean request_pending; /**< Active request state */
 	guint64 rate_interval; /**< Internal sample rate interval */
 
@@ -874,14 +992,20 @@ struct appadmm_context {
 /* ****** Declaration export to api.c ****** */
 /* ***************************************** */
 
-/* ****** Operations ****** */
+/* ****** Generic Protocol ****** */
 SR_PRIV int appadmm_op_identify(const struct sr_dev_inst *arg_sdi);
 SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi);
-
-/* ****** Data acquisition callbacks ****** */
 SR_PRIV int appadmm_acquire_live(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
+	void *arg_cb_data);
+
+/* ****** Legacy 500 Protocol ****** */
+SR_PRIV int appadmm_500_op_identify(const struct sr_dev_inst *arg_sdi);
+SR_PRIV int appadmm_500_op_storage_info(const struct sr_dev_inst *arg_sdi);
+SR_PRIV int appadmm_500_acquire_live(int arg_fd, int arg_revents,
+	void *arg_cb_data);
+SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 
 /* ****** Resolvers / Tables ****** */
