@@ -77,6 +77,16 @@ enum time_value_e {
 	TIME_VALUE_NOW_ABS = 0x04, /**< Absolute current timestamp */
 };
 
+static const char *xlabels[] = {
+	"samples",
+	"milliseconds",
+	"microseconds",
+	"nanoseconds",
+	"picoseconds",
+	"femtoseconds",
+	"attoseconds",
+};
+
 struct context {
 	/* Options */
 	const char *gnuplot;
@@ -241,10 +251,56 @@ static int init(struct sr_output *o, GHashTable *options)
 	return SR_OK;
 }
 
-static const char *xlabels[] = {
-	"samples", "milliseconds", "microseconds", "nanoseconds", "picoseconds",
-	"femtoseconds", "attoseconds",
-};
+static int apply_meta(const struct sr_output *o,
+	const struct sr_datafeed_meta *meta)
+{
+	int retr;
+	struct context *ctx;
+	struct sr_config *config;
+	GList *it;
+	unsigned int i;
+
+	retr = SR_OK;
+	ctx = o->priv;
+
+	if (o == NULL
+		|| meta == NULL)
+		return SR_ERR_BUG;
+
+	if (meta->config == NULL)
+		return SR_ERR_NA;
+
+	for (it = (GList *)meta->config; it; it = it->next) {
+		config = it->data;
+		if (config->data == NULL)
+			continue;
+		switch (config->key) {
+		case SR_CONF_SAMPLE_INTERVAL:
+			if(g_variant_is_of_type(config->data,
+				G_VARIANT_TYPE_UINT64)) {
+				ctx->sample_interval = g_variant_get_uint64(config->data);
+			}
+			break;
+		case SR_CONF_SAMPLERATE:
+			if(g_variant_is_of_type(config->data,
+				G_VARIANT_TYPE_UINT64)) {
+				ctx->sample_rate = g_variant_get_uint64(config->data);
+
+				i = 0;
+				ctx->sample_scale = 1;
+				while (ctx->sample_scale < ctx->sample_rate) {
+					i++;
+					ctx->sample_scale *= 1000;
+				}
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	return retr;
+}
 
 static GString *gen_header(const struct sr_output *o,
 			   const struct sr_datafeed_header *hdr)
@@ -301,9 +357,7 @@ static GString *gen_header(const struct sr_output *o,
 		}
 
 		if (!ctx->sample_rate && !ctx->sample_interval) {
-			sr_warn("Samplerate or sample interval unknown, "
-				"cannot provide timestamps.");
-			ctx->time = TIME_VALUE_FALSE;
+			ctx->xlabel = "N/A";
 		}
 		break;
 	case TIME_VALUE_NOW_REL:
@@ -854,6 +908,10 @@ static int receive(const struct sr_output *o,
 		ctx->have_frames = FALSE;
 		ctx->pkt_snums = FALSE;
 		*out = gen_header(o, packet->payload);
+		break;
+	case SR_DF_META:
+		apply_meta(o, packet->payload);
+		*out = g_string_sized_new(0);
 		break;
 	case SR_DF_TRIGGER:
 		ctx->trigger = TRUE;
