@@ -151,7 +151,7 @@ static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
 	devc->max_channels = num_chan;
 }
 
-static void metadata_quirks(struct sr_dev_inst *sdi)
+static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	gboolean is_shrimp;
@@ -302,7 +302,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	g_string_free(version, FALSE);
 
 	/* Optionally amend received metadata, model specific quirks. */
-	metadata_quirks(sdi);
+	ols_metadata_quirks(sdi);
 
 	return sdi;
 }
