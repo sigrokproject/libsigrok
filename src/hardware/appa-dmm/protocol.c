@@ -730,9 +730,18 @@ static int appadmm_process_storage(const struct sr_dev_inst *arg_sdi,
 		return SR_ERR_BUG;
 	}
 
-	if ((retr = appadmm_dec_read_storage(arg_data, &devc->storage_info[storage], display_data))
-		< SR_OK)
-		return retr;
+	switch (devc->protocol) {
+	default:
+		if ((retr = appadmm_dec_read_storage(arg_data, &devc->storage_info[storage], display_data))
+			< SR_OK)
+			return retr;
+		break;
+	case APPADMM_PROTOCOL_500:
+		if ((retr = appadmm_500_dec_read_storage(arg_data, &devc->storage_info[storage], display_data))
+			< SR_OK)
+			return retr;
+		break;
+	}
 
 	for (xloop = 0;
 		xloop < arg_data->data_length /
@@ -1260,8 +1269,19 @@ SR_PRIV int appadmm_500_op_storage_info(const struct sr_dev_inst *arg_sdi)
 	struct appadmm_context *devc;
 
 	int retr;
+	uint16_t log_amount;
+	uint16_t mem_amount;
+	int64_t log_rate;
+
+	struct appadmm_request_data_read_memory_s request;
+	struct appadmm_response_data_read_memory_s response;
+	struct appadmm_500_request_data_read_amount_s requestAmount;
+	struct appadmm_500_response_data_read_amount_s responseAmount;
 
 	retr = SR_OK;
+	log_amount = 0;
+	mem_amount = 0;
+	log_rate = 0;
 
 	if (arg_sdi == NULL)
 		return SR_ERR_ARG;
@@ -1269,6 +1289,51 @@ SR_PRIV int appadmm_500_op_storage_info(const struct sr_dev_inst *arg_sdi)
 	devc = arg_sdi->priv;
 
 	appadmm_clear_storage_info(devc->storage_info);
+
+	/* Select Model ID capabilities
+	 * Memory layout of the model differs a lot, try to read as much
+	 * as possible from the device, fill in the rest from static
+	 * datasheet values
+	 */
+	switch (devc->model_id) {
+	default:
+		sr_err("Your Device doesn't support MEM/LOG or invalid information!");
+		break;
+	case APPADMM_MODEL_ID_LEGACY_505:
+		if ((retr = appadmm_500_rere_read_amount(&devc->appa_inst,
+			&requestAmount, &responseAmount,
+			APPADMM_500_COMMAND_READ_DATALOG_INFO)) < SR_OK)
+			return retr;
+
+		log_amount = responseAmount.amount;
+		if (log_amount > 20000)
+			log_amount = 0;
+
+		if ((retr = appadmm_500_rere_read_amount(&devc->appa_inst,
+			&requestAmount, &responseAmount,
+			APPADMM_500_COMMAND_READ_STORE_DATA)) < SR_OK)
+			return retr;
+
+		mem_amount = responseAmount.amount;
+		if (mem_amount > 1000)
+			mem_amount = 0;
+
+		/* log rate location */
+		request.data_length = 4;
+		request.device_number = 0;
+		request.memory_address = 0x0018; /*be*/
+
+		if ((retr = appadmm_rere_read_memory(&devc->appa_inst,
+			&request, &response)) < SR_OK)
+			return retr;
+
+		log_rate = appadmm_500_map_log_rate(response.data[2] >> 4);
+
+		if ((retr = appadmm_500_dec_storage_info(log_amount,
+			mem_amount, log_rate, devc)) < SR_OK)
+			return retr;
+		break;
+	}
 
 	return retr;
 }
@@ -1378,14 +1443,16 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 {
 	struct sr_dev_inst *sdi;
 	struct appadmm_context *devc;
+	struct appadmm_request_data_read_memory_s request;
+	struct appadmm_response_data_read_memory_s response;
 	enum appadmm_storage_e storage;
 
 	gboolean abort;
+	int retr;
 
 	(void) arg_fd;
-	(void) arg_revents;
 
-	abort = TRUE;
+	abort = FALSE;
 
 	if (!(sdi = arg_cb_data))
 		return FALSE;
@@ -1402,8 +1469,45 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 	default:
 		return SR_ERR_BUG;
 	}
-	
-	(void) storage;
+
+	if (arg_revents == G_IO_IN) {
+		/* Read (portion of) response from the device */
+		if ((retr = appadmm_response_read_memory(&devc->appa_inst,
+			&response)) < SR_OK) {
+			if (devc->error_counter++ > 10) {
+				sr_warn("Aborted in appadmm_response_read_memory, result %d", retr);
+				abort = TRUE;
+			} else {
+				devc->request_pending = FALSE;
+			}
+		} else if (retr > FALSE) {
+			/* Slowly decrease error counter */
+			if (devc->error_counter > 0)
+				devc->error_counter--;
+			if (appadmm_process_storage(sdi, &response)
+				< SR_OK) {
+				sr_warn("Aborted in appadmm_process_storage, result %d",
+					retr);
+				abort = TRUE;
+			}
+			devc->request_pending = FALSE;
+		}
+	}
+
+	if (!devc->request_pending && !abort) {
+		if ((retr = appadmm_enc_read_storage(&request,
+			&devc->storage_info[storage],
+			devc->limits.frames_read, 0xff)) < SR_OK) {
+			sr_warn("Aborted in appadmm_enc_read_storage");
+			abort = TRUE;
+		} else if ((retr = appadmm_request_read_memory(&devc->appa_inst,
+			&request)) < TRUE) {
+			sr_warn("Aborted in appadmm_request_read_memory");
+			abort = TRUE;
+		} else {
+			devc->request_pending = TRUE;
+		}
+	}
 
 	if (sr_sw_limits_check(&devc->limits)
 		|| abort == TRUE) {
@@ -1478,6 +1582,7 @@ SR_PRIV int appadmm_clear_storage_info(struct appadmm_storage_info_s *arg_storag
 		arg_storage_info[xloop].mem_count = 0;
 		arg_storage_info[xloop].mem_offset = 0;
 		arg_storage_info[xloop].mem_start = 0;
+		arg_storage_info[xloop].endian = APPADMM_MEMENDIAN_LE;
 	}
 
 	return SR_OK;

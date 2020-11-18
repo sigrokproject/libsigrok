@@ -392,6 +392,9 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR_BUG;
 		}
 
+		if (devc->storage_info[storage].amount < 1)
+			return SR_ERR_NA;
+
 		devc->error_counter = 0;
 
 		/* Frame limit is used for selecting the amount of data read
@@ -409,7 +412,7 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 
 		if (devc->storage_info[storage].rate > 0) {
 			sr_session_send_meta(sdi, SR_CONF_SAMPLE_INTERVAL,
-				g_variant_new_uint64(devc->storage_info[storage].rate * 1000));
+				g_variant_new_uint64(devc->storage_info[storage].rate));
 		}
 
 		switch (devc->protocol) {

@@ -148,7 +148,7 @@ static int appadmm_get_response_size(enum appadmm_command_e arg_command)
  * @param arg_lpf LPF enabled or not
  * @return Modern APPA functioncode
  */
-static enum appadmm_functioncode_e appadmm_500_map_functioncode(enum appadmm_500_functioncode_e arg_functioncode,
+static enum appadmm_functioncode_e appadmm_500_map_functioncode(const uint16_t arg_functioncode,
 	gboolean arg_lpf)
 {
 	switch (arg_functioncode) {
@@ -208,6 +208,46 @@ static enum appadmm_functioncode_e appadmm_500_map_functioncode(enum appadmm_500
 		break;
 	}
 	return APPADMM_FUNCTIONCODE_NONE;
+}
+
+/**
+ * Map log rates from Legacy 500 to current
+ * to allow usage of the same value parser for all devices
+ *
+ * @param arg_ratecode APPA 500 Legacy rate code
+ * @return log rate in ms
+ */
+static int64_t appadmm_500_map_log_rate(uint8_t arg_ratecode)
+{
+	switch (arg_ratecode) {
+	case 0x00:
+		return 500;
+	case 0x01:
+		return 1000;
+	case 0x02:
+		return 10000;
+	case 0x03:
+		return 30000;
+	case 0x04:
+		return 60000;
+	case 0x05:
+		return 120000;
+	case 0x06:
+		return 180000;
+	case 0x07:
+		return 240000;
+	case 0x08:
+		return 300000;
+	case 0x09:
+		return 360000;
+	case 0x0a:
+		return 480000;
+	case 0x0b:
+		return 600000;
+	default:
+		return 0;
+	}
+	return 0;
 }
 
 /**
@@ -704,7 +744,7 @@ static int appadmm_dec_storage_info(const struct appadmm_response_data_read_memo
 	case APPADMM_MODEL_ID_150B:
 		arg_devc->storage_info[APPADMM_STORAGE_MEM].amount = read_u16be_inc(&rdptr);
 		arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = read_u16be_inc(&rdptr);
-		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = read_u16be_inc(&rdptr);
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = ((int64_t)read_u16be_inc(&rdptr)) * 1000;
 
 		arg_devc->storage_info[APPADMM_STORAGE_MEM].entry_size = APPADMM_STORAGE_150_ENTRY_SIZE;
 		arg_devc->storage_info[APPADMM_STORAGE_MEM].entry_count = APPADMM_STORAGE_150_MEM_ENTRY_COUNT;
@@ -725,7 +765,7 @@ static int appadmm_dec_storage_info(const struct appadmm_response_data_read_memo
 	case APPADMM_MODEL_ID_506:
 	case APPADMM_MODEL_ID_506B:
 	case APPADMM_MODEL_ID_506B_2:
-		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = read_u16be_inc(&rdptr);
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = ((int64_t)read_u16be_inc(&rdptr)) * 1000;
 		arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = read_u16be_inc(&rdptr);
 		arg_devc->storage_info[APPADMM_STORAGE_MEM].amount = read_u16be_inc(&rdptr);
 
@@ -748,10 +788,10 @@ static int appadmm_dec_storage_info(const struct appadmm_response_data_read_memo
 	case APPADMM_MODEL_ID_177:
 	case APPADMM_MODEL_ID_179:
 		for (xloop = 0; xloop < 4; xloop++) {
-			arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = read_u16be_inc(&rdptr);
+			arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = ((int64_t)read_u16be_inc(&rdptr)) * 1000;
 			arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = read_u16be_inc(&rdptr);
 			/* rotating metadata to assumably avoid EEPROM write cycles */
-			if (arg_devc->storage_info[APPADMM_STORAGE_LOG].rate != 0xff
+			if (arg_devc->storage_info[APPADMM_STORAGE_LOG].rate != (0xff * 1000)
 				&& arg_devc->storage_info[APPADMM_STORAGE_LOG].amount != 0xff) {
 				arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_size = APPADMM_STORAGE_170_S_ENTRY_SIZE;
 				arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_count = APPADMM_STORAGE_170_S_LOG_ENTRY_COUNT;
@@ -818,6 +858,12 @@ static int appadmm_enc_read_storage(struct appadmm_request_data_read_memory_s *a
 	arg_read_memory->memory_address = arg_storage_info->mem_offset
 		+ address_position * arg_storage_info->entry_size;
 
+	if (arg_storage_info->endian == APPADMM_MEMENDIAN_BE) {
+		arg_read_memory->memory_address = (uint16_t)
+			(arg_read_memory->memory_address << 8)
+			+ (arg_read_memory->memory_address >> 8);
+	}
+
 	if (arg_read_memory->data_length > SR_TP_APPA_MAX_DATA_SIZE)
 		arg_read_memory->data_length = SR_TP_APPA_MAX_DATA_SIZE;
 
@@ -856,6 +902,7 @@ static int appadmm_dec_read_storage(const struct appadmm_response_data_read_memo
 
 	for (xloop = 0; xloop < arg_read_memory->data_length /
 		arg_storage_info->entry_size; xloop++) {
+
 		arg_display_data[xloop].reading = read_i24le_inc(&rdptr);
 
 		u8 = read_u8_inc(&rdptr);
@@ -1056,8 +1103,8 @@ static int appadmm_500_dec_read_display(const struct sr_tp_appa_packet *arg_pack
 	arg_read_display->auto_test = ((arg_packet->data[24] >> 1) & 1)
 		| ((arg_packet->data[24] >> 5) & 1);
 	arg_read_display->function_code =
-		appadmm_500_map_functioncode(read_u16le(&arg_packet->data[20]),
-		(arg_packet->data[24] >> 4) & 1);
+		appadmm_500_map_functioncode(read_u16be(&arg_packet->data[20]),
+		((arg_packet->data[24] >> 4) & 1));
 
 	arg_read_display->primary_display_data.reading =
 		read_i24be(&arg_packet->data[37]);
@@ -1067,6 +1114,10 @@ static int appadmm_500_dec_read_display(const struct sr_tp_appa_packet *arg_pack
 		arg_packet->data[40] >> 3;
 	arg_read_display->primary_display_data.data_content =
 		arg_packet->data[41] & 0x1f;
+	if (arg_read_display->primary_display_data.data_content < 2)
+		arg_read_display->primary_display_data.data_content = 0;
+	else
+		arg_read_display->primary_display_data.data_content--;
 	arg_read_display->primary_display_data.overload =
 		(arg_packet->data[41] >> 5) & 1;
 	if (((arg_packet->data[41] >> 7) & 1) == 1)
@@ -1089,6 +1140,10 @@ static int appadmm_500_dec_read_display(const struct sr_tp_appa_packet *arg_pack
 		arg_packet->data[45] >> 3;
 	arg_read_display->secondary_display_data.data_content =
 		arg_packet->data[46] & 0x1f;
+	if (arg_read_display->secondary_display_data.data_content < 2)
+		arg_read_display->secondary_display_data.data_content = 0;
+	else
+		arg_read_display->secondary_display_data.data_content--;
 	arg_read_display->secondary_display_data.overload =
 		(arg_packet->data[46] >> 5) & 1;
 	if (((arg_packet->data[46] >> 7) & 1) == 1)
@@ -1166,5 +1221,200 @@ static int appadmm_500_response_read_display(struct sr_tp_appa_inst *arg_tpai,
 	return TRUE;
 }
 
+/**
+ * Encode raw data of COMMAND_READ_MEMORY
+ *
+ * @param arg_wrptr Pointer to write to
+ * @param arg_data Data structure to encode from
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_enc_read_amount(const struct appadmm_500_request_data_read_amount_s *arg_read_amount,
+	struct sr_tp_appa_packet *arg_packet,
+	enum appadmm_500_command_e arg_amount_command)
+{
+	if (arg_packet == NULL
+		|| arg_read_amount == NULL)
+		return SR_ERR_ARG;
+
+	arg_packet->command = arg_amount_command;
+	arg_packet->length = APPADMM_500_FRAME_DATA_SIZE_REQUEST_READ_DATALOG_INFO;
+
+	return SR_OK;
+}
+
+/**
+ * Decode raw data of COMMAND_READ_MEMORY
+ *
+ * @param arg_rdptr Pointer to read from
+ * @param arg_data Data structure to decode into
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_dec_read_amount(const struct sr_tp_appa_packet *arg_packet,
+	struct appadmm_500_response_data_read_amount_s *arg_read_amount,
+	enum appadmm_500_command_e arg_amount_command)
+{
+	if (arg_packet == NULL
+		|| arg_read_amount == NULL)
+		return SR_ERR_ARG;
+
+	if (arg_packet->command != arg_amount_command)
+		return SR_ERR_DATA;
+
+	arg_read_amount->amount = read_u16be(&arg_packet->data[0]);
+
+	return SR_OK;
+}
+
+/**
+ * Request memory block of device and return result immediatly.
+ *
+ * Can read any accessible EEPROM address of the device.
+ *
+ * @param arg_tpai APPA instance
+ * @param arg_request Request structure
+ * @param arg_response Response structure
+ * @retval TRUE if successfull, arg_response is holding the data
+ * @retval FALSE if unsuccessfull
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_rere_read_amount(struct sr_tp_appa_inst *arg_tpai,
+	const struct appadmm_500_request_data_read_amount_s *arg_request,
+	struct appadmm_500_response_data_read_amount_s *arg_response,
+	enum appadmm_500_command_e arg_amount_command)
+{
+	struct sr_tp_appa_packet packet_request;
+	struct sr_tp_appa_packet packet_response;
+
+	int retr;
+
+	if (arg_tpai == NULL
+		|| arg_request == NULL
+		|| arg_response == NULL)
+		return SR_ERR_ARG;
+
+	if ((retr = appadmm_500_enc_read_amount(arg_request, &packet_request,
+		arg_amount_command))
+		< SR_OK)
+		return retr;
+
+	if ((retr = sr_tp_appa_send_receive(arg_tpai, &packet_request,
+		&packet_response)) < TRUE)
+		return retr;
+
+	if ((retr = appadmm_500_dec_read_amount(&packet_response, arg_response,
+		arg_amount_command))
+		< SR_OK)
+		return retr;
+
+	return TRUE;
+}
+
+/**
+ * Decode storage information data from log/stor
+ *
+ * Based on the model decode metadata from device EEPROM to get the amount of
+ * samples and sample rate in MEM and LOG memory.
+ *
+ * @param arg_read_memory Read memory response to decode
+ * @param arg_devc Context where the storage_info structure is located
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_dec_storage_info(uint16_t arg_amount_log,
+	uint16_t arg_amount_mem,
+	int64_t arg_rate,
+	struct appadmm_context *arg_devc)
+{
+	if (arg_devc == NULL)
+		return SR_ERR_ARG;
+
+	switch (arg_devc->model_id) {
+	default:
+		sr_err("Your Device doesn't support MEM/LOG or invalid information!");
+		break;
+	case APPADMM_MODEL_ID_LEGACY_505:
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = arg_rate;
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = arg_amount_log;
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].endian = APPADMM_MEMENDIAN_BE;
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].amount = arg_amount_mem;
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].endian = APPADMM_MEMENDIAN_BE;
+
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].entry_size = APPADMM_STORAGE_500_LEGACY_ENTRY_SIZE;
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].entry_count = APPADMM_STORAGE_500_LEGACY_MEM_ENTRY_COUNT;
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].mem_offset = APPADMM_STORAGE_500_LEGACY_MEM_ADDRESS;
+		arg_devc->storage_info[APPADMM_STORAGE_MEM].mem_count = APPADMM_STORAGE_500_LEGACY_MEM_MEM_COUNT;
+
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_size = APPADMM_STORAGE_500_LEGACY_ENTRY_SIZE;
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_count = APPADMM_STORAGE_500_LEGACY_LOG_ENTRY_COUNT;
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].mem_offset = APPADMM_STORAGE_500_LEGACY_LOG_ADDRESS;
+		arg_devc->storage_info[APPADMM_STORAGE_LOG].mem_count = APPADMM_STORAGE_500_LEGACY_LOG_MEM_COUNT;
+		break;
+	}
+
+	return SR_OK;
+}
+
+/**
+ * Decode response with LOG/MEM samples
+ *
+ * Response packet is parsed and all entries are decoded into proper display
+ * data. Fill-bytes of certain models are dumped.
+ *
+ * @param arg_read_memory Response structure
+ * @param arg_storage_info Storage information structure
+ * @param arg_display_data Resulting display data, up to 12 entries
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+static int appadmm_500_dec_read_storage(const struct appadmm_response_data_read_memory_s
+	*arg_read_memory, struct appadmm_storage_info_s *arg_storage_info,
+	struct appadmm_display_data_s *arg_display_data)
+{
+	const uint8_t *rdptr;
+	uint8_t u8;
+	int xloop;
+	int yloop;
+
+	if (arg_read_memory == NULL
+		|| arg_storage_info == NULL)
+		return SR_ERR_ARG;
+
+	rdptr = &arg_read_memory->data[0];
+
+	for (xloop = 0; xloop < arg_read_memory->data_length /
+		arg_storage_info->entry_size; xloop++) {
+
+		arg_display_data[xloop].reading = read_i24be_inc(&rdptr);
+
+		u8 = read_u8_inc(&rdptr);
+		arg_display_data[xloop].dot = u8 & 0x7;
+		arg_display_data[xloop].unit = u8 >> 3;
+
+		u8 = read_u8_inc(&rdptr);
+		arg_display_data[xloop].log_function_code = u8 & 0x31;
+		arg_display_data[xloop].overload = (u8 >> 5);
+
+		if (((u8 >> 7) & 1) == 1)
+			arg_display_data[xloop].reading =
+			APPADMM_WORDCODE_SPACE;
+		else if ((u8 >> 6) & 1) {
+			arg_display_data[xloop].reading +=
+				APPADMM_WORDCODE_SPACE;
+			if (arg_display_data[xloop].reading
+				== APPADMM_WORDCODE_SPACE)
+				arg_display_data[xloop].reading =
+				APPADMM_WORDCODE_ER;
+		}
+
+		/* Ignore fill bytes on devices that provide them */
+		for (yloop = 0; yloop < arg_storage_info->entry_size - 5;
+			yloop++)
+			read_u8_inc(&rdptr);
+	}
+
+	return SR_OK;
+}
 
 #endif/*LIBSIGROK_HARDWARE_APPA_DMM_PROTOCOL_PACKET_H*/

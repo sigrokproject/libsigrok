@@ -110,6 +110,7 @@
 
 /**
  * APPA 200/500 Storage (MEM/LOG)
+ * APPA 500 New protocol
  */
 #define APPADMM_STORAGE_200_500_ENTRY_SIZE 5
 #define APPADMM_STORAGE_200_500_MEM_ENTRY_COUNT 500
@@ -118,6 +119,18 @@
 #define APPADMM_STORAGE_200_500_LOG_ENTRY_COUNT 10000
 #define APPADMM_STORAGE_200_500_LOG_ADDRESS 0x1000
 #define APPADMM_STORAGE_200_500_LOG_MEM_COUNT 4
+
+/**
+ * APPA 500 Storage (MEM/LOG)
+ * APPA 500 legacy protocol
+ */
+#define APPADMM_STORAGE_500_LEGACY_ENTRY_SIZE 5
+#define APPADMM_STORAGE_500_LEGACY_MEM_ENTRY_COUNT 1000
+#define APPADMM_STORAGE_500_LEGACY_MEM_ADDRESS 0x400
+#define APPADMM_STORAGE_500_LEGACY_MEM_MEM_COUNT 1
+#define APPADMM_STORAGE_500_LEGACY_LOG_ENTRY_COUNT 10000
+#define APPADMM_STORAGE_500_LEGACY_LOG_ADDRESS 0x2800
+#define APPADMM_STORAGE_500_LEGACY_LOG_MEM_COUNT 2
 
 /**
  * APPA 170/S Storage (LOG)
@@ -236,6 +249,14 @@ enum appadmm_data_source_e {
 enum appadmm_storage_e {
 	APPADMM_STORAGE_MEM = 0x00, /**< Single saved values (hold, etc.) */
 	APPADMM_STORAGE_LOG = 0x01, /**< Saved log data in device with samplerate */
+};
+
+/**
+ * Storage address endianess
+ */
+enum appadmm_memendian_e {
+	APPADMM_MEMENDIAN_LE = 0x00,
+	APPADMM_MEMENDIAN_BE = 0x01,
 };
 
 /**
@@ -838,6 +859,7 @@ enum appadmm_rotarycode_150_e {
 	APPADMM_ROTARYCODE_150_INVALID_08 = 0x08,
 	APPADMM_ROTARYCODE_150_INVALID_09 = 0x09,
 };
+
 /* ************************************************************ */
 /* ****** Structures representing payload of data frames ****** */
 /* ************************************************************ */
@@ -870,12 +892,13 @@ struct appadmm_display_data_s {
  */
 struct appadmm_storage_info_s {
 	int amount; /**< Amount of samples stored */
-	int rate; /**< Sample rate (s) or 0 if not applicable */
+	int64_t rate; /**< Sample rate (ms) or 0 if not applicable */
 	int entry_size; /**< Block size of entry in bytes */
 	int entry_count; /**< Amount of entries per memory device */
 	int mem_offset; /**< Memory device address offset (start address) */
 	int mem_count; /**< Number of memory devices */
 	int mem_start; /**< Memory device offset / start position */
+	enum appadmm_memendian_e endian; /**< Storage adress endianess */
 
 };
 
@@ -958,6 +981,24 @@ struct appadmm_response_data_read_calibration_s {
 	float original_adc_data_2; /**< Original ADC Data 2 */
 	float offset_data; /**< Offset (debug value) */
 	float gain_data; /**< Gain (debug value) */
+};
+
+/**
+ * Request Data for APPADMM_500_COMMAND_READ_DATALOG_INFO
+ * and APPADMM_500_COMMAND_READ_STORE_DATA
+ * APPA 500 legacy
+ */
+struct appadmm_500_request_data_read_amount_s {
+	/* No rquest data for this command */
+};
+
+/**
+ * Response Data for APPADMM_500_COMMAND_READ_DATALOG_INFO
+ * and APPADMM_500_COMMAND_READ_STORE_DATA
+ * APPA 500 legacy
+ */
+struct appadmm_500_response_data_read_amount_s {
+	uint16_t amount; /**< Amount of data */
 };
 
 /* ************************************** */
