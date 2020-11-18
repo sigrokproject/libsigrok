@@ -1122,6 +1122,12 @@ SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
 		return SR_ERR_BUG;
 	}
 
+	if (devc->storage_info[storage].amount < 1) {
+		sr_err("Memory empty or function not available.");
+		sr_dev_acquisition_stop(sdi);
+		return FALSE;
+	}
+
 	if (arg_revents == G_IO_IN) {
 		/* Read (portion of) response from the device */
 		if ((retr = appadmm_response_read_memory(&devc->appa_inst,
@@ -1146,7 +1152,8 @@ SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
 		}
 	}
 
-	if (!devc->request_pending && !abort) {
+	if ((!devc->request_pending && !abort)
+		|| g_get_monotonic_time() - devc->rate_timer > 1000000) {
 		if ((retr = appadmm_enc_read_storage(&request,
 			&devc->storage_info[storage],
 			devc->limits.frames_read, 0xff)) < SR_OK) {
@@ -1157,6 +1164,7 @@ SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
 			sr_warn("Aborted in appadmm_request_read_memory");
 			abort = TRUE;
 		} else {
+			devc->rate_timer = g_get_monotonic_time();
 			devc->request_pending = TRUE;
 		}
 	}
@@ -1458,7 +1466,6 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 		return FALSE;
 	if (!(devc = sdi->priv))
 		return FALSE;
-
 	switch (devc->data_source) {
 	case APPADMM_DATA_SOURCE_MEM:
 		storage = APPADMM_STORAGE_MEM;
@@ -1468,6 +1475,12 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 		break;
 	default:
 		return SR_ERR_BUG;
+	}
+
+	if (devc->storage_info[storage].amount < 1) {
+		sr_err("Memory empty or function not available.");
+		sr_dev_acquisition_stop(sdi);
+		return FALSE;
 	}
 
 	if (arg_revents == G_IO_IN) {
@@ -1494,7 +1507,8 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 		}
 	}
 
-	if (!devc->request_pending && !abort) {
+	if ((!devc->request_pending && !abort)
+		|| g_get_monotonic_time() - devc->rate_timer > 1000000) {
 		if ((retr = appadmm_enc_read_storage(&request,
 			&devc->storage_info[storage],
 			devc->limits.frames_read, 0xff)) < SR_OK) {
@@ -1505,6 +1519,7 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 			sr_warn("Aborted in appadmm_request_read_memory");
 			abort = TRUE;
 		} else {
+			devc->rate_timer = g_get_monotonic_time();
 			devc->request_pending = TRUE;
 		}
 	}

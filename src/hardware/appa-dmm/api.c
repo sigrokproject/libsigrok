@@ -392,9 +392,6 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR_BUG;
 		}
 
-		if (devc->storage_info[storage].amount < 1)
-			return SR_ERR_NA;
-
 		devc->error_counter = 0;
 
 		/* Frame limit is used for selecting the amount of data read
