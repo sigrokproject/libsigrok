@@ -87,9 +87,11 @@ static const struct scan_supported_item {
 	{ "RSPRO S3", SER_BT_CONN_APPADMM, },
 	{ "Sefram 7220", SER_BT_CONN_APPADMM, },
 	{ "Sefram 7221", SER_BT_CONN_APPADMM, },
-	{ "Sefram 7222", SER_BT_CONN_APPADMM, },
 	{ "Sefram 7223", SER_BT_CONN_APPADMM, },
 	{ "Sefram 7352B", SER_BT_CONN_APPADMM, },
+	{ "Sefram MW3516BF", SER_BT_CONN_APPADMM, },
+	{ "Sefram MW3526BF", SER_BT_CONN_APPADMM, },
+	{ "Sefram MW3536BF", SER_BT_CONN_APPADMM, },
 	/* }}} */
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
