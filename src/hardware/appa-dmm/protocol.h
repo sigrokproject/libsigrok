@@ -83,6 +83,11 @@
 #define APPADMM_RATE_INTERVAL_DEFAULT 100000
 
 /**
+ * Default internal for series 100
+ */
+#define APPADMM_RATE_INTERVAL_100 500000
+
+/**
  * Default internal for series 300
  */
 #define APPADMM_RATE_INTERVAL_300 500000
@@ -223,6 +228,12 @@
 /* Size of response frame data per command */
 #define APPADMM_300_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA 54
 
+/* Size of request frame data per command */
+#define APPADMM_100_FRAME_DATA_SIZE_REQUEST_READ_ALL_DATA 0
+
+/* Size of response frame data per command */
+#define APPADMM_100_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA 41
+
 /**
  * Begin of word codes (minimum value)
  * All readings on a display higher than that are some sort of wordcode,
@@ -239,11 +250,11 @@
  * For support of legacy models that cannot properly be autodetected
  */
 enum appadmm_protocol_e {
-	APPADMM_PROTOCOL_INVALID = 0x00,
-	APPADMM_PROTOCOL_GENERIC = 0x01, /**< Modern APPA-Series */
-	APPADMM_PROTOCOL_100 = 0x02, /**< Legacy APPA 100 Series */
-	APPADMM_PROTOCOL_300 = 0x03, /**< Legacy APPA 300 Series */
-	APPADMM_PROTOCOL_500 = 0x04, /**< Legacy APPA 500 Series */
+	APPADMM_PROTOCOL_INVALID = 0x000,
+	APPADMM_PROTOCOL_GENERIC = 0x001, /**< Modern APPA-Series */
+	APPADMM_PROTOCOL_100 = 0x100, /**< Legacy APPA 100 Series */
+	APPADMM_PROTOCOL_300 = 0x300, /**< Legacy APPA 300 Series */
+	APPADMM_PROTOCOL_500 = 0x500, /**< Legacy APPA 500 Series */
 };
 
 /**
@@ -311,6 +322,17 @@ enum appadmm_command_e {
 	APPADMM_COMMAND_OTA_START_UPGRADE_PROCEDURE = 0xa3, /**< Start Upgrade-Procedure */
 
 	APPADMM_COMMAND_INVALID = -1, /**< Invalid command, internal */
+};
+
+/**
+ * Possible commands.
+ * APPA 100 Series Protocol
+ * Calibration and configuration commands not included yet.
+ */
+enum appadmm_100_command_e {
+	APPADMM_100_COMMAND_READ_ALL_DATA = 0x00, /**< Read all data of meter */
+
+	APPADMM_100_COMMAND_INVALID = -1, /**< Invalid command, internal */
 };
 
 /**
@@ -530,41 +552,39 @@ enum appadmm_model_id_e {
 	 */
 
 	/**
-	 * APPA 300 Series (if unable to detect a specific model)
+	 * APPA 100(N) Series
+	 *
+	 * Support of the Appa Protocol depends on the individual model
+	 *
+	 * - APPA 10x(N)
+	 * - ISO-TECH IDM10x(N)
 	 */
-	APPADMM_MODEL_ID_300 = 0x3000,
+	APPADMM_MODEL_ID_100 = 0xe100,
 
 	/**
-	 * APPA 301
+	 * APPA 300 Series
+	 *
+	 * - APPA 207 (assumed)
+	 *   - ISO-TECH IDM207 (assumed)
+	 * - APPA 30x
+	 * - ISO-TECH IDM30x
 	 */
-	APPADMM_MODEL_ID_301 = 0x3010,
+	APPADMM_MODEL_ID_300 = 0xe300,
 
 	/**
-	 * APPA 303
+	 * APPA 500 Series (legacy)
+	 *
+	 * - APPA 503
+	 *   - Voltcraft VC-930
+	 *   - ISO-TECH IDM503
+	 *   - RS PRO IDM503
+	 * - APPA 505
+	 *   - Voltcraft VC-950
+	 *   - Sefram 7355?
+	 *   - ISO-TECH IDM503
+	 *   - RS PRO IDM503
 	 */
-	APPADMM_MODEL_ID_303 = 0x3030,
-
-	/**
-	 * APPA 305
-	 */
-	APPADMM_MODEL_ID_305 = 0x3050,
-
-	/**
-	 * APPA 503
-	 * Voltcraft VC-930
-	 * ISO-TECH IDM503
-	 * RS PRO IDM503
-	 */
-	APPADMM_MODEL_ID_LEGACY_503 = 0x5030,
-
-	/**
-	 * APPA 505
-	 * Voltcraft VC-950
-	 * Sefram 7355?
-	 * ISO-TECH IDM503
-	 * RS PRO IDM503
-	 */
-	APPADMM_MODEL_ID_LEGACY_505 = 0x5050,
+	APPADMM_MODEL_ID_LEGACY_500 = 0xe505,
 };
 
 /**
@@ -680,6 +700,67 @@ enum appadmm_unit_e {
 	APPADMM_UNIT_MIN = 0x19, /**< minutes */
 	APPADMM_UNIT_KW = 0x1a, /**< kW */
 	APPADMM_UNIT_PF = 0x1b, /**< Power Factor (@TODO maybe pico-farat?) */
+};
+
+/**
+ * Data units
+ * APPA 100 Series
+ */
+enum appadmm_100_unit_e {
+	APPADMM_100_UNIT_NONE = 0x00, /**< None */
+	APPADMM_100_UNIT_V = 0x01, /**< V */
+	APPADMM_100_UNIT_MV = 0x02, /**< mV */
+	APPADMM_100_UNIT_A = 0x03, /**< A */
+	APPADMM_100_UNIT_MA = 0x04, /**< mA */
+	APPADMM_100_UNIT_DB = 0x05, /**< dB */
+	APPADMM_100_UNIT_DBM = 0x06, /**< dBm */
+	APPADMM_100_UNIT_NF = 0x07, /**< nF */
+	APPADMM_100_UNIT_UF = 0x08, /**< µF */
+	APPADMM_100_UNIT_MF = 0x09, /**< mF */
+	APPADMM_100_UNIT_OHM = 0x0a, /**< Ω */
+	APPADMM_100_UNIT_KOHM = 0x0b, /**< kΩ */
+	APPADMM_100_UNIT_MOHM = 0x0c, /**< MΩ */
+	APPADMM_100_UNIT_GOHM = 0x0d, /**< GΩ */
+	APPADMM_100_UNIT_PERCENT = 0x0e, /**< Relative percentage value */
+	APPADMM_100_UNIT_HZ = 0x0f, /**< Hz */
+	APPADMM_100_UNIT_KHZ = 0x10, /**< kHz */
+	APPADMM_100_UNIT_MHZ = 0x11, /**< MHz */
+	APPADMM_100_UNIT_DEGC = 0x12, /**< °C */
+	APPADMM_100_UNIT_DEGF = 0x13, /**< °F */
+	APPADMM_100_UNIT_SEC = 0x14, /**< seconds */
+	APPADMM_100_UNIT_MS = 0x15, /**< ms */
+	APPADMM_100_UNIT_NS = 0x16, /**< ns */
+};
+
+/**
+ * Data units
+ * APPA 300 Series
+ */
+enum appadmm_300_unit_e {
+	APPADMM_300_UNIT_NONE = 0x00, /**< None */
+	APPADMM_300_UNIT_V = 0x01, /**< V */
+	APPADMM_300_UNIT_MV = 0x02, /**< mV */
+	APPADMM_300_UNIT_A = 0x03, /**< A */
+	APPADMM_300_UNIT_MA = 0x04, /**< mA */
+	APPADMM_300_UNIT_DB = 0x05, /**< dB */
+	APPADMM_300_UNIT_DBM = 0x06, /**< dBm */
+	APPADMM_300_UNIT_NF = 0x07, /**< nF */
+	APPADMM_300_UNIT_UF = 0x08, /**< µF */
+	APPADMM_300_UNIT_MF = 0x09, /**< mF */
+	APPADMM_300_UNIT_OHM = 0x0a, /**< Ω */
+	APPADMM_300_UNIT_KOHM = 0x0b, /**< kΩ */
+	APPADMM_300_UNIT_MOHM = 0x0c, /**< MΩ */
+	APPADMM_300_UNIT_PERCENT = 0x0d, /**< Relative percentage value */
+	APPADMM_300_UNIT_DELTA = 0x0e, /**< Delta */
+	APPADMM_300_UNIT_HZ = 0x0f, /**< Hz */
+	APPADMM_300_UNIT_KHZ = 0x10, /**< kHz */
+	APPADMM_300_UNIT_MHZ = 0x11, /**< MHz */
+	APPADMM_300_UNIT_DEGC = 0x12, /**< °C */
+	APPADMM_300_UNIT_DEGF = 0x13, /**< °F */
+	APPADMM_300_UNIT_SEC = 0x14, /**< seconds */
+	APPADMM_300_UNIT_NS = 0x15, /**< ns */
+	APPADMM_300_UNIT_US = 0x16, /**< µs */
+	APPADMM_300_UNIT_MS = 0x17, /**< ms */
 };
 
 /**
@@ -863,29 +944,29 @@ enum appadmm_functioncode_e {
  * Basically indicate the rotary position and the secondary function selected
  * Encoded from Rotary code and Function code
  */
-enum appadmm_300_functioncode_e {
-	APPADMM_300_FUNCTIONCODE_OFF = 0x0000,
-	APPADMM_300_FUNCTIONCODE_DC_V = 0x0100,
-	APPADMM_300_FUNCTIONCODE_AC_V = 0x0101,
-	APPADMM_300_FUNCTIONCODE_AC_DC_V = 0x0102,
-	APPADMM_300_FUNCTIONCODE_DC_MV = 0x0200,
-	APPADMM_300_FUNCTIONCODE_AC_MV = 0x0201,
-	APPADMM_300_FUNCTIONCODE_AC_DC_MV = 0x0202,
-	APPADMM_300_FUNCTIONCODE_OHM = 0x0300,
-	APPADMM_300_FUNCTIONCODE_LOW_OHM = 0x0301,
-	APPADMM_300_FUNCTIONCODE_DIODE = 0x0400,
-	APPADMM_300_FUNCTIONCODE_CONTINUITY = 0x0401,
-	APPADMM_300_FUNCTIONCODE_DC_MA = 0x0500,
-	APPADMM_300_FUNCTIONCODE_AC_MA = 0x0501,
-	APPADMM_300_FUNCTIONCODE_AC_DC_MA = 0x0502,
-	APPADMM_300_FUNCTIONCODE_DC_A = 0x0600,
-	APPADMM_300_FUNCTIONCODE_AC_A = 0x0601,
-	APPADMM_300_FUNCTIONCODE_AC_DC_A = 0x0602,
-	APPADMM_300_FUNCTIONCODE_CAP = 0x0700,
-	APPADMM_300_FUNCTIONCODE_FREQUENCY = 0x0800,
-	APPADMM_300_FUNCTIONCODE_DUTY = 0x0801,
-	APPADMM_300_FUNCTIONCODE_DEGC = 0x0900,
-	APPADMM_300_FUNCTIONCODE_DEGF = 0x0901,
+enum appadmm_100_300_functioncode_e {
+	APPADMM_100_300_FUNCTIONCODE_OFF = 0x0000,
+	APPADMM_100_300_FUNCTIONCODE_DC_V = 0x0100,
+	APPADMM_100_300_FUNCTIONCODE_AC_V = 0x0101,
+	APPADMM_100_300_FUNCTIONCODE_AC_DC_V = 0x0102,
+	APPADMM_100_300_FUNCTIONCODE_DC_MV = 0x0200,
+	APPADMM_100_300_FUNCTIONCODE_AC_MV = 0x0201,
+	APPADMM_100_300_FUNCTIONCODE_AC_DC_MV = 0x0202,
+	APPADMM_100_300_FUNCTIONCODE_OHM = 0x0300,
+	APPADMM_100_300_FUNCTIONCODE_LOW_OHM = 0x0301,
+	APPADMM_100_300_FUNCTIONCODE_DIODE = 0x0400,
+	APPADMM_100_300_FUNCTIONCODE_CONTINUITY = 0x0401,
+	APPADMM_100_300_FUNCTIONCODE_DC_MA = 0x0500,
+	APPADMM_100_300_FUNCTIONCODE_AC_MA = 0x0501,
+	APPADMM_100_300_FUNCTIONCODE_AC_DC_MA = 0x0502,
+	APPADMM_100_300_FUNCTIONCODE_DC_A = 0x0600,
+	APPADMM_100_300_FUNCTIONCODE_AC_A = 0x0601,
+	APPADMM_100_300_FUNCTIONCODE_AC_DC_A = 0x0602,
+	APPADMM_100_300_FUNCTIONCODE_CAP = 0x0700,
+	APPADMM_100_300_FUNCTIONCODE_FREQUENCY = 0x0800,
+	APPADMM_100_300_FUNCTIONCODE_DUTY = 0x0801,
+	APPADMM_100_300_FUNCTIONCODE_DEGC = 0x0900,
+	APPADMM_100_300_FUNCTIONCODE_DEGF = 0x0901,
 };
 
 /**
@@ -1148,6 +1229,11 @@ SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi);
 SR_PRIV int appadmm_acquire_live(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
+	void *arg_cb_data);
+
+/* ****** APPA 100 Protocol ****** */
+SR_PRIV int appadmm_100_op_identify(const struct sr_dev_inst *arg_sdi);
+SR_PRIV int appadmm_100_acquire_live(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 
 /* ****** APPA 300 Protocol ****** */

@@ -145,11 +145,14 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 	case APPADMM_PROTOCOL_GENERIC:
 		appadmm_op_identify(sdi);
 		break;
-	case APPADMM_PROTOCOL_500:
-		appadmm_500_op_identify(sdi);
+	case APPADMM_PROTOCOL_100:
+		appadmm_300_op_identify(sdi);
 		break;
 	case APPADMM_PROTOCOL_300:
 		appadmm_300_op_identify(sdi);
+		break;
+	case APPADMM_PROTOCOL_500:
+		appadmm_500_op_identify(sdi);
 		break;
 	default:
 		break;
@@ -168,10 +171,18 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 		return NULL;
 	}
 
-	if (devc->protocol == APPADMM_PROTOCOL_300) {
+	if (devc->protocol == APPADMM_PROTOCOL_100) {
+		devc->rate_interval = APPADMM_RATE_INTERVAL_100;
+		sr_err("WARNING! EXPERIMENTAL!");
+		sr_err("Support for APPA 10x(N) has only been implemented by");
+		sr_err("spec and never been tested. Expect problems. Please");
+		sr_err("report your success or failure in using it.");
+	}
+
+	else if (devc->protocol == APPADMM_PROTOCOL_300) {
 		devc->rate_interval = APPADMM_RATE_INTERVAL_300;
 		sr_err("WARNING! EXPERIMENTAL!");
-		sr_err("Support for APPA 300 has only been implemented by");
+		sr_err("Support for APPA 30x has only been implemented by");
 		sr_err("spec and never been tested. Expect problems. Please");
 		sr_err("report your success or failure in using it.");
 	}
@@ -233,6 +244,11 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 static GSList *appadmm_generic_scan(struct sr_dev_driver *di, GSList *options)
 {
 	return appadmm_scan(di, options, APPADMM_PROTOCOL_GENERIC);
+}
+
+static GSList *appadmm_100_scan(struct sr_dev_driver *di, GSList *options)
+{
+	return appadmm_scan(di, options, APPADMM_PROTOCOL_100);
 }
 
 static GSList *appadmm_300_scan(struct sr_dev_driver *di, GSList *options)
@@ -370,6 +386,11 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 				G_IO_IN, 10,
 				appadmm_acquire_live, (void *) sdi);
 			break;
+		case APPADMM_PROTOCOL_100:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_100_acquire_live, (void *) sdi);
+			break;
 		case APPADMM_PROTOCOL_300:
 			retr = serial_source_add(sdi->session, serial,
 				G_IO_IN, 10,
@@ -481,6 +502,9 @@ SR_REGISTER_DEV_DRIVER_LIST(appadmm_drivers,
 	APPADMM_DRIVER_ENTRY("appa-dmm",
 		"APPA 150, 170, 208, 500, A, S and sFlex-Series",
 		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("appa-10xn",
+		"APPA 10x(N) Series (EXPERIMENTAL)",
+		appadmm_100_scan),
 	APPADMM_DRIVER_ENTRY("appa-300",
 		"APPA 207 and 300 Series (EXPERIMENTAL)",
 		appadmm_300_scan),
@@ -490,15 +514,27 @@ SR_REGISTER_DEV_DRIVER_LIST(appadmm_drivers,
 	APPADMM_DRIVER_ENTRY("benning-dmm",
 		"BENNING MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV",
 		appadmm_generic_scan),
+	APPADMM_DRIVER_ENTRY("benning-mm11",
+		"BENNING MM 11 (EXPERIMENTAL)",
+		appadmm_100_scan),
 	APPADMM_DRIVER_ENTRY("cmt-35xx",
 		"CMT 35xx Series",
 		appadmm_generic_scan),
 	APPADMM_DRIVER_ENTRY("ht-8100",
 		"HT Instruments HT8100",
 		appadmm_generic_scan),
-	APPADMM_DRIVER_ENTRY("ideal-490",
-		"IDEAL 490 Series (61-49x)",
+	APPADMM_DRIVER_ENTRY("ideal-492-495",
+		"IDEAL 61-492 and 61-495 (EXPERIMENTAL)",
+		appadmm_100_scan),
+	APPADMM_DRIVER_ENTRY("ideal-497-498",
+		"IDEAL 61-497 and 61-498",
 		appadmm_500_scan),
+	APPADMM_DRIVER_ENTRY("iso-tech-idm10xn",
+		"ISO-TECH IDM10x(N) (EXPERIMENTAL)",
+		appadmm_100_scan),
+	APPADMM_DRIVER_ENTRY("iso-tech-idm30x",
+		"ISO-TECH IDM207 and IDM30x Series (EXPERIMENTAL)",
+		appadmm_300_scan),
 	APPADMM_DRIVER_ENTRY("iso-tech-idm50x",
 		"ISO-TECH IDM50x Series",
 		appadmm_500_scan),
@@ -506,7 +542,7 @@ SR_REGISTER_DEV_DRIVER_LIST(appadmm_drivers,
 		"RS PRO IDM50x",
 		appadmm_500_scan),
 	APPADMM_DRIVER_ENTRY("rspro-s",
-		"RS PRO 150 and S Series",
+		"RS PRO S and 150 Series",
 		appadmm_generic_scan),
 	APPADMM_DRIVER_ENTRY("sefram-dmm",
 		"Sefram 7xxx and MW35x6BF Series",
