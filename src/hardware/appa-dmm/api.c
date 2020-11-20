@@ -146,7 +146,7 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 		appadmm_op_identify(sdi);
 		break;
 	case APPADMM_PROTOCOL_100:
-		appadmm_300_op_identify(sdi);
+		appadmm_100_op_identify(sdi);
 		break;
 	case APPADMM_PROTOCOL_300:
 		appadmm_300_op_identify(sdi);
