@@ -1334,6 +1334,7 @@ static int appadmm_500_dec_storage_info(uint16_t arg_amount_log,
 	default:
 		sr_err("Your Device doesn't support MEM/LOG or invalid information!");
 		break;
+	case APPADMM_MODEL_ID_LEGACY_503:
 	case APPADMM_MODEL_ID_LEGACY_505:
 		arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = arg_rate;
 		arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = arg_amount_log;

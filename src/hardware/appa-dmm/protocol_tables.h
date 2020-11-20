@@ -142,10 +142,6 @@ SR_PRIV const char *appadmm_model_id_name(const enum appadmm_model_id_e arg_mode
 		return "APPA 503";
 	case APPADMM_MODEL_ID_505:
 		return "APPA 505";
-	case APPADMM_MODEL_ID_LEGACY_501:
-		return "APPA 501";
-	case APPADMM_MODEL_ID_LEGACY_502:
-		return "APPA 502";
 	case APPADMM_MODEL_ID_LEGACY_503:
 		return "APPA 503";
 	case APPADMM_MODEL_ID_LEGACY_505:

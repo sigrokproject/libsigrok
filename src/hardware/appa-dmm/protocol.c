@@ -1230,10 +1230,17 @@ SR_PRIV int appadmm_500_op_identify(const struct sr_dev_inst *arg_sdi)
 
 	devc->model_id = response.model_id;
 
+	/* Start from the 505 and try to auto-guess the model from there */
 	switch (response.model_id) {
 	case APPADMM_MODEL_ID_LEGACY_505:
-		if (g_strcmp0(response.model_name, "0008_") == 0)
+		if (g_strcmp0(response.model_name, "0008_") == 0) {
 			model_name = "Voltcraft VC-950";
+			devc->model_id = APPADMM_MODEL_ID_LEGACY_505;
+		}
+		else if (g_strcmp0(response.model_name, "0007_") == 0) {
+			model_name = "Voltcraft VC-930";
+			devc->model_id = APPADMM_MODEL_ID_LEGACY_503;
+		}
 		break;
 	default:
 		break;
@@ -1307,6 +1314,7 @@ SR_PRIV int appadmm_500_op_storage_info(const struct sr_dev_inst *arg_sdi)
 	default:
 		sr_err("Your Device doesn't support MEM/LOG or invalid information!");
 		break;
+	case APPADMM_MODEL_ID_LEGACY_503:
 	case APPADMM_MODEL_ID_LEGACY_505:
 		if ((retr = appadmm_500_rere_read_amount(&devc->appa_inst,
 			&requestAmount, &responseAmount,

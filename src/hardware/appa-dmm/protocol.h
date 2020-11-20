@@ -506,24 +506,19 @@ enum appadmm_model_id_e {
 	 */
 
 	/**
-	 * APPA 501
-	 */
-	APPADMM_MODEL_ID_LEGACY_501 = 0x5010,
-
-	/**
-	 * APPA 502
-	 */
-	APPADMM_MODEL_ID_LEGACY_502 = 0x5020,
-
-	/**
 	 * APPA 503
 	 * Voltcraft VC-930
+	 * ISO-TECH IDM503
+	 * RS PRO IDM503
 	 */
 	APPADMM_MODEL_ID_LEGACY_503 = 0x5030,
 
 	/**
 	 * APPA 505
 	 * Voltcraft VC-950
+	 * Sefram 7355?
+	 * ISO-TECH IDM503
+	 * RS PRO IDM503
 	 */
 	APPADMM_MODEL_ID_LEGACY_505 = 0x5050,
 };
