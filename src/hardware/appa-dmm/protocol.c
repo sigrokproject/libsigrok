@@ -741,6 +741,9 @@ static int appadmm_process_storage(const struct sr_dev_inst *arg_sdi,
 			< SR_OK)
 			return retr;
 		break;
+	case APPADMM_PROTOCOL_300:
+		sr_err("This device doesn't support MEM/LOG download");
+		break;
 	}
 
 	for (xloop = 0;
@@ -1529,6 +1532,148 @@ SR_PRIV int appadmm_500_acquire_storage(int arg_fd, int arg_revents,
 		} else {
 			devc->rate_timer = g_get_monotonic_time();
 			devc->request_pending = TRUE;
+		}
+	}
+
+	if (sr_sw_limits_check(&devc->limits)
+		|| abort == TRUE) {
+		sr_info("Stopping acquisition");
+		sr_dev_acquisition_stop(sdi);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+/* ********************************* */
+/* ****** Series 300 Protocol ****** */
+/* ********************************* */
+
+/**
+ * Request device identification
+ * 300 Legacy Protocol
+ *
+ * Ask device for Model ID, Serial number, Vendor name and Device name.
+ * Resolve it based on device capabilities. Fallback: Use APPA internal
+ * device designations.
+ *
+ * Will return error if device is not applicable by this driver.
+ *
+ * @param arg_sdi Serial Device instance
+ * @retval SR_OK on success
+ * @retval SR_ERR_... on error
+ */
+SR_PRIV int appadmm_300_op_identify(const struct sr_dev_inst *arg_sdi)
+{
+	char *model_name;
+	struct sr_dev_inst *sdi_w;
+	struct appadmm_context *devc;
+
+	int retr;
+
+	struct appadmm_request_data_read_information_s request;
+	struct appadmm_response_data_read_information_s response;
+
+	retr = SR_OK;
+
+	if (arg_sdi == NULL)
+		return SR_ERR_ARG;
+
+	devc = arg_sdi->priv;
+	sdi_w = (struct sr_dev_inst*) arg_sdi;
+
+	if ((retr = appadmm_300_rere_read_information(&devc->appa_inst,
+		&request, &response)) < SR_OK)
+		return retr;
+
+	model_name = NULL;
+
+	sdi_w->version = g_strdup_printf("%01d.%02d",
+		response.firmware_version / 100,
+		response.firmware_version % 100);
+
+	devc->model_id = response.model_id;
+
+	sdi_w->vendor = g_strdup("APPA");
+	sdi_w->model = g_strdup(model_name);
+	sdi_w->serial_num = g_strdup(response.serial_number);
+
+	return retr;
+}
+
+/**
+ * Acquisition of live display readings
+ * 300 Legacy Protocol
+ *
+ * Based on model and communication (optical serial or BLE) polling is done
+ * either once a response was received and no request is pending or within
+ * desired time windows. This reduces the drift in sample rate and allows
+ * to be tolerant about issues with some of the models A8105 chip.
+ *
+ * @param arg_fd File desriptor (unused)
+ * @param arg_revents Event indicator
+ * @param arg_cb_data Serial Device instance
+ * @retval TRUE on success
+ * @retval FALSE on error
+ */
+SR_PRIV int appadmm_300_acquire_live(int arg_fd, int arg_revents,
+	void *arg_cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct appadmm_context *devc;
+	struct appadmm_request_data_read_display_s request;
+	struct appadmm_response_data_read_display_s response;
+
+	int retr;
+	gboolean abort;
+	guint64 rate_window_time;
+
+	(void) arg_fd;
+
+	abort = FALSE;
+
+	if (!(sdi = arg_cb_data))
+		return FALSE;
+	if (!(devc = sdi->priv))
+		return FALSE;
+
+	if (arg_revents == G_IO_IN) {
+		/* process (a portion of the) received data */
+		if ((retr = appadmm_300_response_read_display(&devc->appa_inst,
+			&response)) < SR_OK) {
+			sr_warn("Aborted in appadmm_receive, result %d", retr);
+			abort = TRUE;
+		} else if (retr > FALSE) {
+			if (appadmm_process_read_display(sdi, &response)
+				< SR_OK) {
+				abort = TRUE;
+			}
+			devc->request_pending = FALSE;
+		}
+	}
+
+	if (!devc->request_pending) {
+		rate_window_time = g_get_monotonic_time() / devc->rate_interval;
+		/* align requests to the time window */
+		if (rate_window_time != devc->rate_timer
+			&& !devc->rate_sent) {
+			devc->rate_sent = TRUE;
+			devc->rate_timer = rate_window_time;
+			if (appadmm_300_request_read_display(&devc->appa_inst, &request)
+				< TRUE) {
+				sr_warn("Aborted in appadmm_send");
+				abort = TRUE;
+			} else {
+				devc->request_pending = TRUE;
+			}
+		} else {
+			devc->rate_sent = FALSE;
+		}
+	} else {
+		if (devc->rate_interval > APPADMM_RATE_INTERVAL_DISABLE
+			&& g_get_monotonic_time() - devc->rate_timer
+			> devc->rate_interval * 2) {
+			devc->request_pending = FALSE;
 		}
 	}
 

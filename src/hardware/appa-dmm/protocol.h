@@ -83,7 +83,12 @@
 #define APPADMM_RATE_INTERVAL_DEFAULT 100000
 
 /**
- * Default internal poll rate
+ * Default internal for series 300
+ */
+#define APPADMM_RATE_INTERVAL_300 500000
+
+/**
+ * Default poll rate for legacy 500
  */
 #define APPADMM_RATE_INTERVAL_500 100000
 
@@ -212,6 +217,12 @@
 #define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_WRITE_MODEL_NAME 1
 #define APPADMM_500_FRAME_DATA_SIZE_RESPONSE_WRITE_SERIAL_NUMBER 1
 
+/* Size of request frame data per command */
+#define APPADMM_300_FRAME_DATA_SIZE_REQUEST_READ_ALL_DATA 0
+
+/* Size of response frame data per command */
+#define APPADMM_300_FRAME_DATA_SIZE_RESPONSE_READ_ALL_DATA 54
+
 /**
  * Begin of word codes (minimum value)
  * All readings on a display higher than that are some sort of wordcode,
@@ -230,7 +241,9 @@
 enum appadmm_protocol_e {
 	APPADMM_PROTOCOL_INVALID = 0x00,
 	APPADMM_PROTOCOL_GENERIC = 0x01, /**< Modern APPA-Series */
-	APPADMM_PROTOCOL_500 = 0x02, /**< Legacy APPA 500 Series */
+	APPADMM_PROTOCOL_100 = 0x02, /**< Legacy APPA 100 Series */
+	APPADMM_PROTOCOL_300 = 0x03, /**< Legacy APPA 300 Series */
+	APPADMM_PROTOCOL_500 = 0x04, /**< Legacy APPA 500 Series */
 };
 
 /**
@@ -298,6 +311,17 @@ enum appadmm_command_e {
 	APPADMM_COMMAND_OTA_START_UPGRADE_PROCEDURE = 0xa3, /**< Start Upgrade-Procedure */
 
 	APPADMM_COMMAND_INVALID = -1, /**< Invalid command, internal */
+};
+
+/**
+ * Possible commands.
+ * APPA 300 Series Protocol
+ * Calibration and configuration commands not included yet.
+ */
+enum appadmm_300_command_e {
+	APPADMM_300_COMMAND_READ_ALL_DATA = 0x00, /**< Read all data of meter */
+
+	APPADMM_300_COMMAND_INVALID = -1, /**< Invalid command, internal */
 };
 
 /**
@@ -499,11 +523,31 @@ enum appadmm_model_id_e {
 	 * (possibly identifies itself as another 500)
 	 */
 
-	/* Extended codes: Devices with legacy communication protocols
+	/* Extended codes: Devices with old and legacy communication protocols
 	 * 0xABCD
 	 * ABC: Series (505 = 505)
 	 * D: Model, if needed
 	 */
+
+	/**
+	 * APPA 300 Series (if unable to detect a specific model)
+	 */
+	APPADMM_MODEL_ID_300 = 0x3000,
+
+	/**
+	 * APPA 301
+	 */
+	APPADMM_MODEL_ID_301 = 0x3010,
+
+	/**
+	 * APPA 303
+	 */
+	APPADMM_MODEL_ID_303 = 0x3030,
+
+	/**
+	 * APPA 305
+	 */
+	APPADMM_MODEL_ID_305 = 0x3050,
 
 	/**
 	 * APPA 503
@@ -694,6 +738,44 @@ enum appadmm_data_content_e {
 };
 
 /**
+ * Data content - Menu, Min/Max/Avg, etc. selection
+ * APPA 300 Series Protocol
+ */
+enum appadmm_300_data_content_e {
+	APPADMM_300_DATA_CONTENT_NONE = 0x00,
+	APPADMM_300_DATA_CONTENT_MEASURING_DATA = 0x01,
+	APPADMM_300_DATA_CONTENT_FREQUENCY = 0x02,
+	APPADMM_300_DATA_CONTENT_CYCLE = 0x03,
+	APPADMM_300_DATA_CONTENT_DUTY = 0x04,
+	APPADMM_300_DATA_CONTENT_AMBIENT_TEMPERATURE = 0x05,
+	APPADMM_300_DATA_CONTENT_TIME_STAMP = 0x06,
+	APPADMM_300_DATA_CONTENT_LOAD = 0x07,
+	APPADMM_300_DATA_CONTENT_NUMBER = 0x08,
+	APPADMM_300_DATA_CONTENT_STORE = 0x09,
+	APPADMM_300_DATA_CONTENT_RECALL = 0x0a,
+	APPADMM_300_DATA_CONTENT_RESET = 0x0b,
+	APPADMM_300_DATA_CONTENT_AUTO_HOLD = 0x0c,
+	APPADMM_300_DATA_CONTENT_MAXIMUM = 0x0d,
+	APPADMM_300_DATA_CONTENT_MINIMUM = 0x0e,
+	APPADMM_300_DATA_CONTENT_MAXIMUM_MINIMUM = 0x0f,
+	APPADMM_300_DATA_CONTENT_PEAK_HOLD_MAX = 0x10,
+	APPADMM_300_DATA_CONTENT_PEAK_HOLD_MIN = 0x11,
+	APPADMM_300_DATA_CONTENT_PEAK_HOLD_MAX_MIN = 0x12,
+	APPADMM_300_DATA_CONTENT_SET_HIGH = 0x13,
+	APPADMM_300_DATA_CONTENT_SET_LOW = 0x14,
+	APPADMM_300_DATA_CONTENT_HIGH = 0x15,
+	APPADMM_300_DATA_CONTENT_LOW = 0x16,
+	APPADMM_300_DATA_CONTENT_REL_DELTA = 0x17,
+	APPADMM_300_DATA_CONTENT_REL_PERCENT = 0x18,
+	APPADMM_300_DATA_CONTENT_REL_REFERENCE = 0x19,
+	APPADMM_300_DATA_CONTENT_DBM = 0x1a,
+	APPADMM_300_DATA_CONTENT_DB = 0x1b,
+	APPADMM_300_DATA_CONTENT_SEND = 0x1c,
+	APPADMM_300_DATA_CONTENT_SETUP = 0x1d,
+	APPADMM_300_DATA_CONTENT_SET_BEEPER = 0x1e,
+};
+
+/**
  * Function codes
  *
  * Basically indicate the rotary position and the secondary function selected
@@ -772,6 +854,38 @@ enum appadmm_functioncode_e {
 	APPADMM_FUNCTIONCODE_AC_V_PV = 0x46,
 	APPADMM_FUNCTIONCODE_AC_V_PV_HFR = 0x47,
 	APPADMM_FUNCTIONCODE_AC_DC_V_PV = 0x48,
+};
+
+/**
+ * Function codes
+ * APPA 300 Series Protocol
+ *
+ * Basically indicate the rotary position and the secondary function selected
+ * Encoded from Rotary code and Function code
+ */
+enum appadmm_300_functioncode_e {
+	APPADMM_300_FUNCTIONCODE_OFF = 0x0000,
+	APPADMM_300_FUNCTIONCODE_DC_V = 0x0100,
+	APPADMM_300_FUNCTIONCODE_AC_V = 0x0101,
+	APPADMM_300_FUNCTIONCODE_AC_DC_V = 0x0102,
+	APPADMM_300_FUNCTIONCODE_DC_MV = 0x0200,
+	APPADMM_300_FUNCTIONCODE_AC_MV = 0x0201,
+	APPADMM_300_FUNCTIONCODE_AC_DC_MV = 0x0202,
+	APPADMM_300_FUNCTIONCODE_OHM = 0x0300,
+	APPADMM_300_FUNCTIONCODE_LOW_OHM = 0x0301,
+	APPADMM_300_FUNCTIONCODE_DIODE = 0x0400,
+	APPADMM_300_FUNCTIONCODE_CONTINUITY = 0x0401,
+	APPADMM_300_FUNCTIONCODE_DC_MA = 0x0500,
+	APPADMM_300_FUNCTIONCODE_AC_MA = 0x0501,
+	APPADMM_300_FUNCTIONCODE_AC_DC_MA = 0x0502,
+	APPADMM_300_FUNCTIONCODE_DC_A = 0x0600,
+	APPADMM_300_FUNCTIONCODE_AC_A = 0x0601,
+	APPADMM_300_FUNCTIONCODE_AC_DC_A = 0x0602,
+	APPADMM_300_FUNCTIONCODE_CAP = 0x0700,
+	APPADMM_300_FUNCTIONCODE_FREQUENCY = 0x0800,
+	APPADMM_300_FUNCTIONCODE_DUTY = 0x0801,
+	APPADMM_300_FUNCTIONCODE_DEGC = 0x0900,
+	APPADMM_300_FUNCTIONCODE_DEGF = 0x0901,
 };
 
 /**
@@ -1034,6 +1148,11 @@ SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi);
 SR_PRIV int appadmm_acquire_live(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 SR_PRIV int appadmm_acquire_storage(int arg_fd, int arg_revents,
+	void *arg_cb_data);
+
+/* ****** APPA 300 Protocol ****** */
+SR_PRIV int appadmm_300_op_identify(const struct sr_dev_inst *arg_sdi);
+SR_PRIV int appadmm_300_acquire_live(int arg_fd, int arg_revents,
 	void *arg_cb_data);
 
 /* ****** Legacy 500 Protocol ****** */

@@ -148,6 +148,9 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 	case APPADMM_PROTOCOL_500:
 		appadmm_500_op_identify(sdi);
 		break;
+	case APPADMM_PROTOCOL_300:
+		appadmm_300_op_identify(sdi);
+		break;
 	default:
 		break;
 	}
@@ -165,7 +168,15 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 		return NULL;
 	}
 
-	if (devc->protocol == APPADMM_PROTOCOL_500)
+	if (devc->protocol == APPADMM_PROTOCOL_300) {
+		devc->rate_interval = APPADMM_RATE_INTERVAL_300;
+		sr_err("WARNING! EXPERIMENTAL!");
+		sr_err("Support for APPA 300 has only been implemented by");
+		sr_err("spec and never been tested. Expect problems. Please");
+		sr_err("report your success or failure in using it.");
+	}
+
+	else if (devc->protocol == APPADMM_PROTOCOL_500)
 		devc->rate_interval = APPADMM_RATE_INTERVAL_500;
 
 	else if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM
@@ -222,6 +233,11 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 static GSList *appadmm_generic_scan(struct sr_dev_driver *di, GSList *options)
 {
 	return appadmm_scan(di, options, APPADMM_PROTOCOL_GENERIC);
+}
+
+static GSList *appadmm_300_scan(struct sr_dev_driver *di, GSList *options)
+{
+	return appadmm_scan(di, options, APPADMM_PROTOCOL_300);
 }
 
 static GSList *appadmm_500_scan(struct sr_dev_driver *di, GSList *options)
@@ -354,6 +370,11 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 				G_IO_IN, 10,
 				appadmm_acquire_live, (void *) sdi);
 			break;
+		case APPADMM_PROTOCOL_300:
+			retr = serial_source_add(sdi->session, serial,
+				G_IO_IN, 10,
+				appadmm_300_acquire_live, (void *) sdi);
+			break;
 		case APPADMM_PROTOCOL_500:
 			retr = serial_source_add(sdi->session, serial,
 				G_IO_IN, 10,
@@ -458,10 +479,13 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
  */
 SR_REGISTER_DEV_DRIVER_LIST(appadmm_drivers,
 	APPADMM_DRIVER_ENTRY("appa-dmm",
-		"APPA 150, 170, 200, 500, A, S and sFlex-Series (modern)",
+		"APPA 150, 170, 208, 500, A, S and sFlex-Series",
 		appadmm_generic_scan),
-	APPADMM_DRIVER_ENTRY("appa-500-legacy",
-		"APPA 500 Series (legacy)",
+	APPADMM_DRIVER_ENTRY("appa-300",
+		"APPA 207 and 300 Series (EXPERIMENTAL)",
+		appadmm_300_scan),
+	APPADMM_DRIVER_ENTRY("appa-503-505",
+		"APPA 503 and 505",
 		appadmm_500_scan),
 	APPADMM_DRIVER_ENTRY("benning-dmm",
 		"BENNING MM 10-1, MM 12, CM 9-2, CM 10-1, CM 12, -PV",
