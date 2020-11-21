@@ -190,6 +190,7 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 	else if (devc->protocol == APPADMM_PROTOCOL_500)
 		devc->rate_interval = APPADMM_RATE_INTERVAL_500;
 
+#ifdef HAVE_BLUETOOTH
 	else if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM
 		&& (devc->model_id == APPADMM_MODEL_ID_208B
 		|| devc->model_id == APPADMM_MODEL_ID_506B
@@ -199,6 +200,7 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 		 * higher rates over BLE, let them run without time windows
 		 */
 		devc->rate_interval = APPADMM_RATE_INTERVAL_DISABLE;
+#endif/*#ifdef HAVE_BLUETOOTH*/
 
 	else
 		devc->rate_interval = APPADMM_RATE_INTERVAL_DEFAULT;
