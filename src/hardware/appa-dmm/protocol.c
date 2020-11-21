@@ -862,11 +862,13 @@ SR_PRIV int appadmm_op_identify(const struct sr_dev_inst *arg_sdi)
 	case APPADMM_MODEL_ID_175:
 	case APPADMM_MODEL_ID_177:
 	case APPADMM_MODEL_ID_179:
+#ifdef HAVE_BLUETOOTH
 		if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM) {
 			/* TODO for future: figure out how to get the BLE Name
 			 * properly and put it here
 			 */
 		}
+#endif/*#ifdef HAVE_BLUETOOTH*/
 		break;
 	}
 
