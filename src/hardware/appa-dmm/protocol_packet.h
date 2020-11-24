@@ -974,16 +974,19 @@ static int appadmm_response_read_memory(struct sr_tp_appa_inst *arg_tpai,
  * @retval SR_ERR_... on error
  */
 static int appadmm_dec_storage_info(const struct appadmm_response_data_read_memory_s
-	*arg_read_memory, struct appadmm_context *arg_devc)
+	*arg_read_memory, struct appadmm_context *arg_devc, int arg_info_size)
 {
 	const uint8_t *rdptr;
 	int xloop;
+	enum appadmm_storage_e storage;
+	int64_t val;
 
 	if (arg_read_memory == NULL
 		|| arg_devc == NULL)
 		return SR_ERR_ARG;
 
-	if (arg_read_memory->data_length != 6)
+	sr_err("yy2 %d", arg_read_memory->data_length);
+	if (arg_read_memory->data_length != arg_info_size)
 		return SR_ERR_DATA;
 
 	rdptr = &arg_read_memory->data[0];
@@ -1046,16 +1049,27 @@ static int appadmm_dec_storage_info(const struct appadmm_response_data_read_memo
 	case APPADMM_MODEL_ID_177:
 	case APPADMM_MODEL_ID_179:
 		for (xloop = 0; xloop < 4; xloop++) {
-			arg_devc->storage_info[APPADMM_STORAGE_LOG].rate = ((int64_t)read_u16be_inc(&rdptr)) * 1000;
-			arg_devc->storage_info[APPADMM_STORAGE_LOG].amount = read_u16be_inc(&rdptr);
-			/* rotating metadata to assumably avoid EEPROM write cycles */
-			if (arg_devc->storage_info[APPADMM_STORAGE_LOG].rate != (0xff * 1000)
-				&& arg_devc->storage_info[APPADMM_STORAGE_LOG].amount != 0xff) {
-				arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_size = APPADMM_STORAGE_170_S_ENTRY_SIZE;
-				arg_devc->storage_info[APPADMM_STORAGE_LOG].entry_count = APPADMM_STORAGE_170_S_LOG_ENTRY_COUNT;
-				arg_devc->storage_info[APPADMM_STORAGE_LOG].mem_offset = APPADMM_STORAGE_170_S_LOG_ADDRESS;
-				arg_devc->storage_info[APPADMM_STORAGE_LOG].mem_count = APPADMM_STORAGE_170_S_LOG_MEM_COUNT;
-				arg_devc->storage_info[APPADMM_STORAGE_LOG].mem_start = APPADMM_STORAGE_170_S_LOG_MEM_START;
+			val = read_u16le_inc(&rdptr);
+			if (val == 0xfe) {
+				storage = APPADMM_STORAGE_MEM;
+			} else {
+				storage = APPADMM_STORAGE_LOG;
+				arg_devc->storage_info[storage].rate = val * 1000;
+			}
+			arg_devc->storage_info[storage].amount = read_u16le_inc(&rdptr);
+			/* rotating metadata to avoid flash write cycles, empty ones are ffff */
+			if	(arg_devc->storage_info[storage].amount == 0xffff) {
+				arg_devc->storage_info[storage].amount = 0;
+				arg_devc->storage_info[storage].rate = 0;
+				continue;
+			}
+			if (arg_devc->storage_info[storage].rate != (0xff * 1000)
+				&& arg_devc->storage_info[storage].amount != 0xffff) {
+				arg_devc->storage_info[storage].entry_size = APPADMM_STORAGE_170_S_ENTRY_SIZE;
+				arg_devc->storage_info[storage].entry_count = APPADMM_STORAGE_170_S_LOG_ENTRY_COUNT;
+				arg_devc->storage_info[storage].mem_offset = APPADMM_STORAGE_170_S_LOG_ADDRESS;
+				arg_devc->storage_info[storage].mem_count = APPADMM_STORAGE_170_S_LOG_MEM_COUNT;
+				arg_devc->storage_info[storage].mem_start = APPADMM_STORAGE_170_S_LOG_MEM_START;
 				break;
 			}
 		}

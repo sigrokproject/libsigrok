@@ -191,12 +191,8 @@ static GSList *appadmm_scan(struct sr_dev_driver *di, GSList *options,
 		devc->rate_interval = APPADMM_RATE_INTERVAL_500;
 
 #ifdef HAVE_BLUETOOTH
-	else if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM
-		&& (devc->model_id == APPADMM_MODEL_ID_208B
-		|| devc->model_id == APPADMM_MODEL_ID_506B
-		|| devc->model_id == APPADMM_MODEL_ID_506B_2
-		|| devc->model_id == APPADMM_MODEL_ID_150B))
-		/* Older models with the AMICCOM A8105 have troubles with
+	else if (devc->appa_inst.serial->bt_conn_type == SER_BT_CONN_APPADMM)
+		/* Models with the AMICCOM A8105 have troubles with
 		 * higher rates over BLE, let them run without time windows
 		 */
 		devc->rate_interval = APPADMM_RATE_INTERVAL_DISABLE;
@@ -415,6 +411,7 @@ static int appadmm_acquisition_start(const struct sr_dev_inst *sdi)
 		case APPADMM_PROTOCOL_GENERIC:
 			if ((retr = appadmm_op_storage_info(sdi)) < SR_OK)
 				return retr;
+
 			break;
 		case APPADMM_PROTOCOL_500:
 			if ((retr = appadmm_500_op_storage_info(sdi)) < SR_OK)

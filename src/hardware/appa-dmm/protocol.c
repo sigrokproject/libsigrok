@@ -948,7 +948,7 @@ SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi)
 			&request, &response)) < SR_OK)
 			return retr;
 
-		if ((retr = appadmm_dec_storage_info(&response, devc)) < SR_OK)
+		if ((retr = appadmm_dec_storage_info(&response, devc, request.data_length)) < SR_OK)
 			return retr;
 		break;
 	case APPADMM_MODEL_ID_208:
@@ -968,7 +968,7 @@ SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi)
 			&request, &response)) < SR_OK)
 			return retr;
 
-		if ((retr = appadmm_dec_storage_info(&response, devc)) < SR_OK)
+		if ((retr = appadmm_dec_storage_info(&response, devc, request.data_length)) < SR_OK)
 			return retr;
 		break;
 	case APPADMM_MODEL_ID_S1:
@@ -987,7 +987,7 @@ SR_PRIV int appadmm_op_storage_info(const struct sr_dev_inst *arg_sdi)
 			&request, &response)) < SR_OK)
 			return retr;
 
-		if ((retr = appadmm_dec_storage_info(&response, devc)) < SR_OK)
+		if ((retr = appadmm_dec_storage_info(&response, devc, request.data_length)) < SR_OK)
 			return retr;
 		break;
 	}
