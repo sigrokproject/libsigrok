@@ -329,9 +329,9 @@ SR_PRIV int sr_atod_ascii_digits(const char *str, double *ret, int *digits)
 		/* Need not warn, conversion will fail. */
 		break;
 	}
-	sr_spew("atod digits: txt \"%s\" -> m %d, e %d -> digits %d",
-		str, m_dig, exp, m_dig + -exp);
 	m_dig += -exp;
+	sr_spew("atod digits: txt \"%s\" -> m %d, e %d -> digits %d",
+		str, m_dig, exp, m_dig);
 
 	if (sr_atod_ascii(str, &f) != SR_OK)
 		return SR_ERR;
@@ -371,7 +371,7 @@ SR_PRIV int sr_atof_ascii(const char *str, float *ret)
 		return SR_ERR;
 	}
 
-	/* FIXME This fails unexpectedly. Some other method to safel downcast
+	/* FIXME This fails unexpectedly. Some other method to safely downcast
 	 * needs to be found. Checking against FLT_MAX doesn't work as well. */
 	/*
 	if ((float) tmp != tmp) {
