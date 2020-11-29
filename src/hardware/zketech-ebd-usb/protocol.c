@@ -99,6 +99,9 @@ SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial, struct dev_context 
 	int ret;
 
 	ret = send_cmd(serial, start, 10);
+	if (ret)
+		return ret;
+
 	sr_dbg("Current limit: %f.", devc->current_limit);
 	if (ebd_current_is0(devc))
 		return SR_OK;
