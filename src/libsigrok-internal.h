@@ -1878,6 +1878,7 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx, int type,
 
 SR_PRIV int sr_atol(const char *str, long *ret);
 SR_PRIV int sr_atol_base(const char *str, long *ret, char **end, int base);
+SR_PRIV int sr_atoul_base(const char *str, unsigned long *ret, char **end, int base);
 SR_PRIV int sr_atoi(const char *str, int *ret);
 SR_PRIV int sr_atod(const char *str, double *ret);
 SR_PRIV int sr_atof(const char *str, float *ret);

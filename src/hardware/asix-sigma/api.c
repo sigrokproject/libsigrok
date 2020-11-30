@@ -120,7 +120,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char conn_id[20];
 	char serno_txt[16];
 	char *end;
-	long serno_num, serno_pre;
+	unsigned long serno_num, serno_pre;
 	enum asix_device_type dev_type;
 	const char *dev_text;
 	struct sr_dev_inst *sdi;
@@ -192,7 +192,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		 * All ASIX logic analyzers have a serial number, which
 		 * reads as a hex number, and tells the device type.
 		 */
-		ret = sr_atol_base(serno_txt, &serno_num, &end, 16);
+		ret = sr_atoul_base(serno_txt, &serno_num, &end, 16);
 		if (ret != SR_OK || !end || *end) {
 			sr_warn("Cannot interpret serial number %s.", serno_txt);
 			continue;
