@@ -260,6 +260,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/beaglelogic/beaglelogic_native.c \
 	src/hardware/beaglelogic/beaglelogic_tcp.c
 endif
+if HW_BK_1856D
+src_libdrivers_la_SOURCES += \
+	src/hardware/bk-1856d/protocol.h \
+	src/hardware/bk-1856d/protocol.c \
+	src/hardware/bk-1856d/api.c
+endif
 if HW_CEM_DT_885X
 src_libdrivers_la_SOURCES += \
 	src/hardware/cem-dt-885x/protocol.h \
