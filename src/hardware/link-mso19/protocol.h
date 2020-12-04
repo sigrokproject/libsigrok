@@ -134,7 +134,6 @@ SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
 SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val);
 SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc);
 SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi);
-SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state);
 
 SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);

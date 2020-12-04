@@ -265,20 +265,6 @@ SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_toggle_led(struct sr_dev_inst *sdi, int state)
-{
-	struct dev_context *devc = sdi->priv;
-	uint16_t ops[1];
-
-	devc->ctlbase1 &= ~BIT_CTL1_LED;
-	if (state)
-		devc->ctlbase1 |= BIT_CTL1_LED;
-	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1);
-
-	sr_dbg("Requesting LED toggle.");
-	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
-}
-
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
