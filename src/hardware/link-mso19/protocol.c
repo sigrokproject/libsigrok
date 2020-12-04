@@ -31,8 +31,8 @@
 static const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
 static const char mso_foot[] = { 0x7e };
 
-SR_PRIV int mso_send_control_message(struct sr_serial_dev_inst *serial,
-				     uint16_t payload[], int n)
+static int mso_send_control_message(struct sr_serial_dev_inst *serial,
+				    uint16_t payload[], int n)
 {
 	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
 	char *p, *buf;
@@ -66,12 +66,21 @@ free:
 	return ret;
 }
 
+static uint16_t mso_bank_select(const struct dev_context *devc, int bank)
+{
+	if (bank > 2) {
+		sr_err("Unsupported bank %d", bank);
+	}
+	return mso_trans(REG_CTL2, devc->ctlbase2 | BITS_CTL2_BANK(bank));
+}
+
 SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t threshold_value = mso_calc_raw_from_mv(devc);
 
-	threshold_value = 0x153C;
+	// Use 0x200 temporary value till we can properly calculate it.
+	threshold_value = 0x200;
 	uint8_t trigger_config = 0;
 
 	if (devc->trigger_slope)
@@ -123,7 +132,7 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 			   SR_HZ_TO_NS(devc->cur_rate));
 
 	/* Select the SPI/I2C trigger config bank */
-	ops[7] = mso_trans(REG_CTL2, (devc->ctlbase2 | BITS_CTL2_BANK(2)));
+	ops[7] = mso_bank_select(devc, 2);
 	/* Configure the SPI/I2C protocol trigger */
 	ops[8] = mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]);
 	ops[9] = mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]);
@@ -135,7 +144,7 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 	ops[15] = mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]);
 	ops[16] = mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode);
 	/* Select the default config bank */
-	ops[17] = mso_trans(REG_CTL2, devc->ctlbase2);
+	ops[17] = mso_bank_select(devc, 0);
 
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
@@ -187,7 +196,7 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 	uint16_t ops[] = {
 		mso_trans(REG_DAC1, (val >> 8) & 0xff),
 		mso_trans(REG_DAC2, val & 0xff),
-		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETADC),
+		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_LOAD_DAC),
 	};
 
 	sr_dbg("Setting dac word to 0x%x.", val);
@@ -219,17 +228,17 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 	if (iSerial[0] != '4' || sscanf(iSerial, "%5u%3u%3u%1u%1u%6u",
 					&u1, &u2, &u3, &u4, &u5, &u6) != 6)
 		return SR_ERR;
+	if (u1 == 0)
+		u1 = 42874;
+	if (u2 == 0)
+		u2 = 343;
+	if (u3 == 0)
+		u3 = 500;
+	devc->vbit = ((double)u1) / 10000.0 / 1000.0;
+	devc->dac_offset = u2;
+	devc->offset_range = u3;
 	devc->hwmodel = u4;
 	devc->hwrev = u5;
-	devc->vbit = u1 / 10000;
-	if (devc->vbit == 0)
-		devc->vbit = 4.19195;
-	devc->dac_offset = u2;
-	if (devc->dac_offset == 0)
-		devc->dac_offset = 0x1ff;
-	devc->offset_range = u3;
-	if (devc->offset_range == 0)
-		devc->offset_range = 0x17d;
 
 	/*
 	 * FIXME: There is more code on the original software to handle
@@ -240,28 +249,27 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 	return SR_OK;
 }
 
-SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi)
+SR_PRIV int mso_reset_adc(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint16_t ops[2];
+	uint16_t ops[3];
 
-	ops[0] = mso_trans(REG_CTL1, (devc->ctlbase1 | BIT_CTL1_RESETADC));
-	ops[1] = mso_trans(REG_CTL1, devc->ctlbase1);
-	devc->ctlbase1 |= BIT_CTL1_ADC_UNKNOWN4;
+	ops[0] = mso_bank_select(devc, 0);
+	ops[1] = mso_trans(REG_CTL1, BIT_CTL1_RESETADC);
+	ops[2] = mso_trans(REG_CTL1, 0);
 
 	sr_dbg("Requesting ADC reset.");
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi)
+SR_PRIV int mso_reset_fsm(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t ops[1];
 
-	devc->ctlbase1 |= BIT_CTL1_RESETFSM;
-	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1);
+	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETFSM);
 
-	sr_dbg("Requesting ADC reset.");
+	sr_dbg("Requesting FSM reset.");
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
@@ -308,23 +316,39 @@ SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate)
 	return ret;
 }
 
-SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial, uint8_t *info)
+static int mso_validate_status(uint8_t val) {
+	uint8_t action = BITS_STATUS_ACTION(val);
+	if (action == 0 || action > STATUS_DATA_READY
+			|| val & 0xC0) {
+		sr_err("Invalid status byte %.2x", val);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int mso_read_status(struct sr_serial_dev_inst *serial, uint8_t *status)
 {
-	uint16_t ops[] = { mso_trans(REG_TRIGGER, 0) };
+	uint16_t ops[] = { mso_trans(REG_STATUS, 0) };
+	uint8_t buf = 0;
 	int ret;
 
-	sr_dbg("Requesting trigger state.");
+	sr_dbg("Requesting status.");
 	ret = mso_send_control_message(serial, ARRAY_AND_SIZE(ops));
-	if (!info || ret != SR_OK)
+	if (!status || ret != SR_OK) {
 		return ret;
+	}
 
-	uint8_t buf = 0;
-	if (serial_read_blocking(serial, &buf, 1, 10) != 1)
-		ret = SR_ERR;
-	if (!info)
-		*info = buf;
+	if (serial_read_blocking(serial, &buf, 1, 10) != 1) {
+		sr_err("Reading status failed");
+		return SR_ERR;
+	}
+	ret = mso_validate_status(buf);
+	if (ret == SR_OK) {
+		*status = buf;
+		sr_dbg("Status is: 0x%x.", *status);
+	}
 
-	sr_dbg("Trigger state is: 0x%x.", *info);
 	return ret;
 }
 
@@ -332,11 +356,16 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int i;
 
-	uint8_t in[1024];
+	uint8_t in[MSO_NUM_SAMPLES];
 	size_t s;
 
 	(void)fd;
@@ -356,45 +385,61 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 
 	/* Check if we triggered, then send a command that we are ready
 	 * to read the data */
-	if (devc->trigger_state != MSO_TRIGGER_DATAREADY) {
-		devc->trigger_state = in[0];
-		if (devc->trigger_state == MSO_TRIGGER_DATAREADY) {
+	if (BITS_STATUS_ACTION(devc->status) != STATUS_DATA_READY) {
+		if (mso_validate_status(in[0]) != SR_OK) {
+			return FALSE;
+		}
+		devc->status = in[0];
+		if (BITS_STATUS_ACTION(devc->status) == STATUS_DATA_READY) {
 			mso_read_buffer(sdi);
 			devc->buffer_n = 0;
 		} else {
-			mso_check_trigger(devc->serial, NULL);
+			mso_read_status(devc->serial, NULL);
 		}
 		return TRUE;
 	}
 
 	/* the hardware always dumps 1024 samples, 24bits each */
-	if (devc->buffer_n < 3072) {
+	if (devc->buffer_n < (MSO_NUM_SAMPLES * 3)) {
 		memcpy(devc->buffer + devc->buffer_n, in, s);
 		devc->buffer_n += s;
 	}
-	if (devc->buffer_n < 3072)
+	if (devc->buffer_n < (MSO_NUM_SAMPLES * 3))
 		return TRUE;
 
 	/* do the conversion */
-	uint8_t logic_out[1024];
-	double analog_out[1024];
-	for (i = 0; i < 1024; i++) {
-		/* FIXME: Need to do conversion to mV */
+	uint8_t logic_out[MSO_NUM_SAMPLES];
+	float analog_out[MSO_NUM_SAMPLES];
+	for (i = 0; i < MSO_NUM_SAMPLES; i++) {
 		analog_out[i] = (devc->buffer[i * 3] & 0x3f) |
 		    ((devc->buffer[i * 3 + 1] & 0xf) << 6);
-		(void)analog_out;
+		analog_out[i] = (512.0 - analog_out[i]) * devc->vbit
+			* devc->dso_probe_attn;
 		logic_out[i] = ((devc->buffer[i * 3 + 1] & 0x30) >> 4) |
 		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
 
 	packet.type = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.length = 1024;
+	logic.length = MSO_NUM_SAMPLES;
 	logic.unitsize = 1;
 	logic.data = logic_out;
 	sr_session_send(sdi, &packet);
 
-	devc->num_samples += 1024;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
+	analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
+	analog.num_samples = MSO_NUM_SAMPLES;
+	analog.data = analog_out;
+	analog.meaning->mq = SR_MQ_VOLTAGE;
+	analog.meaning->unit = SR_UNIT_VOLT;
+	analog.meaning->mqflags = SR_MQFLAG_DC;
+
+	packet.type = SR_DF_ANALOG;
+	packet.payload = &analog;
+	sr_session_send(sdi, &packet);
+	g_slist_free(analog.meaning->channels);
+
+	devc->num_samples += MSO_NUM_SAMPLES;
 
 	if (devc->limit_samples && devc->num_samples >= devc->limit_samples) {
 		sr_info("Requested number of samples reached.");
@@ -418,7 +463,8 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 	devc->dso_trigger_voltage = 3;
 	devc->dso_probe_attn = 1;
 	devc->trigger_outsrc = 0;
-	devc->trigger_chan = 3;	//LA combination trigger
+	//devc->trigger_chan = 3;	//LA combination trigger
+	devc->trigger_chan = 0;	// DSO trigger
 	devc->use_trigger = FALSE;
 
 	/*

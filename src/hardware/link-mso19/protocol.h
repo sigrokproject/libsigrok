@@ -34,19 +34,9 @@
 #define USB_VENDOR		0x3195
 #define USB_PRODUCT		0xf190
 
-#define NUM_TRIGGER_STAGES	4
 #define SERIALCOMM		"460800/8n1/flow=2"
-#define SERIALCONN		"/dev/ttyUSB0"
-#define CLOCK_RATE		SR_MHZ(100)
-#define MIN_NUM_SAMPLES		4
-
-#define MSO_TRIGGER_UNKNOWN	'!'
-#define MSO_TRIGGER_UNKNOWN1	'1'
-#define MSO_TRIGGER_UNKNOWN2	'2'
-#define MSO_TRIGGER_UNKNOWN3	'3'
-#define MSO_TRIGGER_WAIT	'4'
-#define MSO_TRIGGER_FIRED	'5'
-#define MSO_TRIGGER_DATAREADY	'6'
+#define MSO_NUM_SAMPLES		1024
+#define MSO_NUM_LOGIC_CHANNELS	8
 
 enum trigger_slopes {
 	SLOPE_POSITIVE = 0,
@@ -64,9 +54,9 @@ struct mso_patgen {
 	/* Pattern generator config */
 	uint8_t config;
 	/* Samples buffer */
-	uint8_t buffer[1024];
+	uint8_t buffer[MSO_NUM_SAMPLES];
 	/* Input/output configuration for the samples buffer (?) */
-	uint8_t io[1024];
+	uint8_t io[MSO_NUM_SAMPLES];
 	/* Number of loops for the pattern generator */
 	uint8_t loops;
 	/* Bit enable mask for the I/O lines */
@@ -99,6 +89,7 @@ struct dev_context {
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
+	uint8_t status;
 
 	uint8_t la_threshold;
 	uint64_t cur_rate;
@@ -107,7 +98,6 @@ struct dev_context {
 	uint8_t trigger_chan;
 	uint8_t trigger_slope;
 	uint8_t trigger_outsrc;
-	uint8_t trigger_state;
 	uint8_t trigger_holdoff[2];
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
@@ -120,9 +110,9 @@ struct dev_context {
 
 SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 			     struct dev_context *ctx);
-SR_PRIV int mso_check_trigger(struct sr_serial_dev_inst *serial,
-			      uint8_t * info);
-SR_PRIV int mso_reset_adc(struct sr_dev_inst *sdi);
+SR_PRIV int mso_read_status(struct sr_serial_dev_inst *serial,
+			    uint8_t *status);
+SR_PRIV int mso_reset_adc(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val);
 SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate);
 SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data);
@@ -133,7 +123,7 @@ SR_PRIV int mso_arm(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
 SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val);
 SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc);
-SR_PRIV int mso_reset_fsm(struct sr_dev_inst *sdi);
+SR_PRIV int mso_reset_fsm(const struct sr_dev_inst *sdi);
 
 SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi);
 SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
@@ -143,7 +133,7 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 
 /* bank 0 registers */
 #define REG_BUFFER		1
-#define REG_TRIGGER		2
+#define REG_STATUS		2
 #define REG_CLKRATE1		9
 #define REG_CLKRATE2		10
 #define REG_DAC1		12
@@ -156,12 +146,27 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 #define REG_PT_MASK(x)		(x + 4)
 #define REG_PT_SPIMODE		8
 
+/* bits - REG_STATUS */
+#define BITS_STATUS_ACTION(x)		(x & STATUS_MASK)
+enum {
+	STATUS_MASK =			0x7,
+	STATUS_NOT_RUNNING =		1,
+	STATUS_TRIGGER_PRE_FILL =	3,
+	STATUS_TRIGGER_WAIT =		4,
+	STATUS_TRIGGER_POST_FILL =	5,
+	STATUS_DATA_READY =		6,
+	BIT_STATUS_ARMED =		1 << 4,
+	BIT_STATUS_OK =			1 << 5,
+};
+
 /* bits - REG_CTL1 */
-#define BIT_CTL1_RESETFSM	(1 << 0)
-#define BIT_CTL1_ARM		(1 << 1)
-#define BIT_CTL1_ADC_UNKNOWN4	(1 << 4)	/* adc enable? */
-#define BIT_CTL1_RESETADC	(1 << 6)
-#define BIT_CTL1_LED		(1 << 7)
+#define BIT_CTL1_RESETFSM		(1 << 0)
+#define BIT_CTL1_ARM		    	(1 << 1)
+#define BIT_CTL1_FORCE_TRIGGER	    	(1 << 3)
+#define BIT_CTL1_ADC_ENABLE	    	(1 << 4)
+#define BIT_CTL1_LOAD_DAC		(1 << 5)
+#define BIT_CTL1_RESETADC		(1 << 6)
+#define BIT_CTL1_DC_COUPLING		(1 << 7)
 
 /* bits - REG_CTL2 */
 #define BITS_CTL2_BANK(x)	(x & 0x3)

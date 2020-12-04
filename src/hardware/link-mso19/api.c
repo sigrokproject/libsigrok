@@ -33,22 +33,12 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_SET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_SET,
 	SR_CONF_RLE | SR_CONF_SET,
-};
-
-/*
- * Channels are numbered 0 to 7.
- *
- * See also: http://www.linkinstruments.com/images/mso19_1113.gif
- */
-static const char *channel_names[] = {
-	/* Note: DSO needs to be first. */
-	"DSO", "0", "1", "2", "3", "4", "5", "6", "7",
 };
 
 static const uint64_t samplerates[] = {
@@ -71,6 +61,7 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	int chtype;
 	unsigned int i;
 	char hwrev[32];
+	struct sr_channel_group *cg;
 
 	if (sp_get_port_transport(port) != SP_TRANSPORT_USB) {
 		return devices;
@@ -98,9 +89,10 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 		return devices;
 	}
 	sprintf(hwrev, "r%d", devc->hwrev);
-	devc->ctlbase1 = 0;
+	devc->ctlbase1 = BIT_CTL1_ADC_ENABLE | BIT_CTL1_DC_COUPLING;
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_attn = 10;
+	devc->limit_samples = MSO_NUM_SAMPLES;
 
 	devc->protocol_trigger.spimode = 0;
 	for (i = 0; i < ARRAY_SIZE(devc->protocol_trigger.word); i++) {
@@ -120,10 +112,20 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	sdi->conn = devc->serial;
 	sdi->priv = devc;
 
-	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
-		chtype = (i == 0) ? SR_CHANNEL_ANALOG : SR_CHANNEL_LOGIC;
-		sr_channel_new(sdi, i, chtype, TRUE, channel_names[i]);
+	cg = g_malloc0(sizeof(struct sr_channel_group));
+	cg->name = g_strdup("DSO");
+	cg->channels = g_slist_append(cg->channels,
+			sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, "DSO"));
+	sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+
+	cg = g_malloc0(sizeof(struct sr_channel_group));
+	cg->name = g_strdup("LA");
+	for (i = 0; i < MSO_NUM_LOGIC_CHANNELS; i++) {
+		char channel_name[2] = {'0' + i, '\0'};
+		cg->channels = g_slist_append(cg->channels,
+				sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name));
 	}
+	sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
 	devices = g_slist_append(devices, sdi);
 
@@ -173,26 +175,31 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (serial_open(devc->serial, SERIAL_RDWR) != SR_OK)
+	if (std_serial_dev_open(sdi) != SR_OK)
 		return SR_ERR;
 
-	/* FIXME: discard serial buffer */
-	mso_check_trigger(devc->serial, &devc->trigger_state);
-	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);
+	serial_flush(devc->serial);
 
 	ret = mso_reset_adc(sdi);
 	if (ret != SR_OK)
-		return ret;
+		goto error_close;
 
-	mso_check_trigger(devc->serial, &devc->trigger_state);
-	sr_dbg("Trigger state: 0x%x.", devc->trigger_state);
+	serial_flush(devc->serial);
 
-	//    ret = mso_reset_fsm(sdi);
-	//    if (ret != SR_OK)
-	//            return ret;
-	//    return SR_ERR;
+	ret = mso_read_status(devc->serial, &devc->status);
+	if (ret != SR_OK) {
+		goto error_close;
+	}
+
+	ret = mso_reset_fsm(sdi);
+	if (ret != SR_OK) {
+		goto error_close;
+	}
 
 	return SR_OK;
+error_close:
+	serial_close(devc->serial);
+	return ret;
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -210,6 +217,9 @@ static int config_get(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_rate);
+		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -238,8 +248,8 @@ static int config_set(uint32_t key, GVariant *data,
 		return mso_configure_rate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
 		num_samples = g_variant_get_uint64(data);
-		if (num_samples != 1024) {
-			sr_err("Only 1024 samples are supported.");
+		if (num_samples != MSO_NUM_SAMPLES) {
+			sr_err("Only %d samples are supported.", MSO_NUM_SAMPLES);
 			return SR_ERR_ARG;
 		}
 		devc->limit_samples = num_samples;
@@ -298,13 +308,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	/* FIXME: No need to do full reconfigure every time */
-//      ret = mso_reset_fsm(sdi);
-//      if (ret != SR_OK)
-//              return ret;
+	ret = mso_reset_fsm(sdi);
+	if (ret != SR_OK) {
+		return ret;
+	}
 
 	/* FIXME: ACDC Mode */
-	devc->ctlbase1 &= 0x7f;
 //      devc->ctlbase1 |= devc->acdcmode;
 
 	ret = mso_configure_rate(sdi, devc->cur_rate);
@@ -330,13 +339,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* Start acquisition on the device. */
-	mso_check_trigger(devc->serial, &devc->trigger_state);
-	ret = mso_check_trigger(devc->serial, NULL);
+	ret = mso_read_status(devc->serial, &devc->status);
 	if (ret != SR_OK)
 		return ret;
-
-	/* Reset trigger state. */
-	devc->trigger_state = 0x00;
+	ret = mso_read_status(devc->serial, NULL);
+	if (ret != SR_OK)
+		return ret;
 
 	std_session_send_df_header(sdi);
 
@@ -344,7 +352,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* TODO. */
 
 	serial_source_add(sdi->session, devc->serial, G_IO_IN, -1,
-			mso_receive_data, sdi);
+			mso_receive_data, (void *)sdi);
 
 	return SR_OK;
 }
