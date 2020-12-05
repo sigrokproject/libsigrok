@@ -25,7 +25,7 @@
 
 /* serial protocol */
 #define mso_trans(a, v) \
-	(((v) & 0x3f) | (((v) & 0xc0) << 6) | (((a) & 0xf) << 8) | \
+	g_htons(((v) & 0x3f) | (((v) & 0xc0) << 6) | (((a) & 0xf) << 8) | \
 	((~(v) & 0x20) << 1) | ((~(v) & 0x80) << 7))
 
 static const char mso_head[] = { 0x40, 0x4c, 0x44, 0x53, 0x7e };
@@ -34,7 +34,9 @@ static const char mso_foot[] = { 0x7e };
 static int mso_send_control_message(struct sr_serial_dev_inst *serial,
 				    uint16_t payload[], int n)
 {
-	int i, w, ret, s = n * 2 + sizeof(mso_head) + sizeof(mso_foot);
+	int w, ret;
+	int payload_s = n * sizeof(*payload);
+	int s = payload_s + sizeof(mso_head) + sizeof(mso_foot);
 	char *p, *buf;
 
 	ret = SR_ERR;
@@ -44,11 +46,8 @@ static int mso_send_control_message(struct sr_serial_dev_inst *serial,
 	p = buf;
 	memcpy(p, mso_head, sizeof(mso_head));
 	p += sizeof(mso_head);
-
-	for (i = 0; i < n; i++) {
-		WB16(p, payload[i]);
-		p += sizeof(uint16_t);
-	}
+	memcpy(p, payload, payload_s);
+	p += payload_s;
 	memcpy(p, mso_foot, sizeof(mso_foot));
 
 	w = 0;
@@ -118,33 +117,34 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 	if (devc->use_trigger)
 		trigger_config |= 0x80;
 
-	uint16_t ops[18];
-	ops[0] = mso_trans(3, threshold_value & 0xff);
-	//The trigger_config also holds the 2 MSB bits from the threshold value
-	ops[1] = mso_trans(4, trigger_config | ((threshold_value >> 8) & 0x03));
-	ops[2] = mso_trans(5, devc->la_trigger);
-	ops[3] = mso_trans(6, devc->la_trigger_mask);
-	ops[4] = mso_trans(7, devc->trigger_holdoff[0]);
-	ops[5] = mso_trans(8, devc->trigger_holdoff[1]);
+	uint16_t ops[] = {
+		mso_trans(3, threshold_value & 0xff),
+		//The trigger_config also holds the 2 MSB bits from the threshold value
+		mso_trans(4, trigger_config | ((threshold_value >> 8) & 0x03)),
+		mso_trans(5, devc->la_trigger),
+		mso_trans(6, devc->la_trigger_mask),
+		mso_trans(7, devc->trigger_holdoff[0]),
+		mso_trans(8, devc->trigger_holdoff[1]),
 
-	ops[6] = mso_trans(11,
-			   devc->dso_trigger_width /
-			   SR_HZ_TO_NS(devc->cur_rate));
+		mso_trans(11,
+			  devc->dso_trigger_width /
+			  SR_HZ_TO_NS(devc->cur_rate)),
 
-	/* Select the SPI/I2C trigger config bank */
-	ops[7] = mso_bank_select(devc, 2);
-	/* Configure the SPI/I2C protocol trigger */
-	ops[8] = mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]);
-	ops[9] = mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]);
-	ops[10] = mso_trans(REG_PT_WORD(2), devc->protocol_trigger.word[2]);
-	ops[11] = mso_trans(REG_PT_WORD(3), devc->protocol_trigger.word[3]);
-	ops[12] = mso_trans(REG_PT_MASK(0), devc->protocol_trigger.mask[0]);
-	ops[13] = mso_trans(REG_PT_MASK(1), devc->protocol_trigger.mask[1]);
-	ops[14] = mso_trans(REG_PT_MASK(2), devc->protocol_trigger.mask[2]);
-	ops[15] = mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]);
-	ops[16] = mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode);
-	/* Select the default config bank */
-	ops[17] = mso_bank_select(devc, 0);
+		/* Select the SPI/I2C trigger config bank */
+		mso_bank_select(devc, 2),
+		/* Configure the SPI/I2C protocol trigger */
+		mso_trans(REG_PT_WORD(0), devc->protocol_trigger.word[0]),
+		mso_trans(REG_PT_WORD(1), devc->protocol_trigger.word[1]),
+		mso_trans(REG_PT_WORD(2), devc->protocol_trigger.word[2]),
+		mso_trans(REG_PT_WORD(3), devc->protocol_trigger.word[3]),
+		mso_trans(REG_PT_MASK(0), devc->protocol_trigger.mask[0]),
+		mso_trans(REG_PT_MASK(1), devc->protocol_trigger.mask[1]),
+		mso_trans(REG_PT_MASK(2), devc->protocol_trigger.mask[2]),
+		mso_trans(REG_PT_MASK(3), devc->protocol_trigger.mask[3]),
+		mso_trans(REG_PT_SPIMODE, devc->protocol_trigger.spimode),
+		/* Select the default config bank */
+		mso_bank_select(devc, 0),
+	};
 
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
@@ -252,11 +252,11 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 SR_PRIV int mso_reset_adc(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint16_t ops[3];
-
-	ops[0] = mso_bank_select(devc, 0);
-	ops[1] = mso_trans(REG_CTL1, BIT_CTL1_RESETADC);
-	ops[2] = mso_trans(REG_CTL1, 0);
+	uint16_t ops[] = {
+		mso_bank_select(devc, 0),
+		mso_trans(REG_CTL1, BIT_CTL1_RESETADC),
+		mso_trans(REG_CTL1, 0),
+	};
 
 	sr_dbg("Requesting ADC reset.");
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
@@ -265,9 +265,9 @@ SR_PRIV int mso_reset_adc(const struct sr_dev_inst *sdi)
 SR_PRIV int mso_reset_fsm(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint16_t ops[1];
-
-	ops[0] = mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETFSM);
+	uint16_t ops[] = {
+		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_RESETFSM),
+	};
 
 	sr_dbg("Requesting FSM reset.");
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
