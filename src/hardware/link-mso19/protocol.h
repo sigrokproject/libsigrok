@@ -38,6 +38,9 @@
 #define MSO_NUM_SAMPLES		1024
 #define MSO_NUM_LOGIC_CHANNELS	8
 
+#define cg_is_digital(cg) (cg && cg->name[0] == 'L')
+#define cg_is_analog(cg) (cg && cg->name[0] == 'D')
+
 enum trigger_slopes {
 	SLOPE_POSITIVE = 0,
 	SLOPE_NEGATIVE,
@@ -93,6 +96,7 @@ struct dev_context {
 
 	uint8_t la_threshold;
 	uint64_t cur_rate;
+	const char *coupling;
 	uint8_t dso_probe_attn;
 	int8_t use_trigger;
 	uint8_t trigger_chan;
