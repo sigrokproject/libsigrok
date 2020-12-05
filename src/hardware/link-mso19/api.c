@@ -38,7 +38,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_SET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_SET,
-	SR_CONF_RLE | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg_analog[] = {
+	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const char *coupling[] = {
+	"DC", "AC",
 };
 
 static const uint64_t samplerates[] = {
@@ -89,7 +96,8 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 		return devices;
 	}
 	sprintf(hwrev, "r%d", devc->hwrev);
-	devc->ctlbase1 = BIT_CTL1_ADC_ENABLE | BIT_CTL1_DC_COUPLING;
+	devc->ctlbase1 = BIT_CTL1_ADC_ENABLE;
+	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_attn = 10;
 	devc->limit_samples = MSO_NUM_SAMPLES;
@@ -207,8 +215,6 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 
-	(void)cg;
-
 	if (!sdi)
 		return SR_ERR_ARG;
 
@@ -220,6 +226,11 @@ static int config_get(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
+		break;
+	case SR_CONF_COUPLING:
+		if (!cg_is_analog(cg))
+			return SR_ERR_NA;
+		*data = g_variant_new_string(devc->coupling);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -237,8 +248,6 @@ static int config_set(uint32_t key, GVariant *data,
 	int trigger_pos;
 	double pos;
 	int idx;
-
-	(void)cg;
 
 	devc = sdi->priv;
 
@@ -270,7 +279,13 @@ static int config_set(uint32_t key, GVariant *data,
 		trigger_pos = (int)pos;
 		devc->trigger_holdoff[0] = trigger_pos & 0xff;
 		break;
-	case SR_CONF_RLE:
+	case SR_CONF_COUPLING:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		idx = std_str_idx(data, ARRAY_AND_SIZE(coupling));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->coupling = coupling[idx];
 		break;
 	default:
 		return SR_ERR_NA;
@@ -285,9 +300,22 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		if (!cg)
+			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		else if (cg_is_analog(cg))
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
+		else if (cg_is_digital(cg))
+			*data = std_gvar_array_u32(NULL, 0);
+		else
+			return SR_ERR_NA;
+		break;
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		break;
+	case SR_CONF_COUPLING:
+		if (!cg_is_analog(cg))
+			return SR_ERR_NA;
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
 	default:
 		return SR_ERR_NA;
@@ -313,8 +341,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	/* FIXME: ACDC Mode */
-//      devc->ctlbase1 |= devc->acdcmode;
+	if (devc->coupling[0] == 'D') {
+		devc->ctlbase1 |= BIT_CTL1_DC_COUPLING;
+	} else {
+		devc->ctlbase1 &= ~BIT_CTL1_DC_COUPLING;
+	}
 
 	ret = mso_configure_rate(sdi, devc->cur_rate);
 	if (ret != SR_OK)
