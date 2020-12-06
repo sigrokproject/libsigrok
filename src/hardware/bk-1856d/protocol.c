@@ -151,7 +151,7 @@ SR_PRIV void bk_1856d_init(const struct sr_dev_inst *sdi)
 		return;
 
 	devc->buffer_level = 0;
-	devc->samples_read = 0;
+	sr_sw_limits_acquisition_start(&(devc->sw_limits));
 	serial_flush(serial);
 
 	bk_1856d_select_input(sdi);
@@ -270,10 +270,9 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 
 	bk_1856d_send_packet(sdi, freq_value, digits);
 
-	if(!(devc->continuous))
-		devc->samples_read += 1;
+	sr_sw_limits_update_samples_read(&(devc->sw_limits), 1);
 
-	if(devc->continuous || devc->samples_read < devc->limit_samples)
+	if(!sr_sw_limits_check(&(devc->sw_limits)))
 	{
 		devc->buffer_level = 0;
 		bk_1856d_chk_select_input(sdi);

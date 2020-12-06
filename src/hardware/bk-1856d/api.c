@@ -76,7 +76,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->vendor = g_strdup("BK Precision");
 	sdi->model = g_strdup("bk-1856d");
 	devc = g_malloc0(sizeof(struct dev_context));
-	devc->limit_samples = 1;
+	sr_sw_limits_init(&(devc->sw_limits));
 	sdi->conn = sr_serial_dev_inst_new(conn, SERIALCOMM);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->priv = devc;
@@ -85,7 +85,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->curr_sel_input = InputC;
 	devc->gate_time = 0;
 	devc->hold = Off;
-	devc->continuous = 1;
 
 	g_usleep(150 * 1000); /* Wait a little to allow serial port to settle. */
 
@@ -106,7 +105,7 @@ static int config_get(uint32_t key, GVariant **data,
 				timebases[devc->gate_time][1]);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
+		sr_sw_limits_config_get(&(devc->sw_limits), key, data);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if (devc->sel_input == InputA)
@@ -143,8 +142,7 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		devc->continuous = 0;
+	    sr_sw_limits_config_set(&(devc->sw_limits),key, data);
 		break;
 	case SR_CONF_DATA_SOURCE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)

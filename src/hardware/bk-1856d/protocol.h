@@ -42,13 +42,11 @@ enum {
 };
 
 struct dev_context {
-	uint64_t limit_samples;
-	uint64_t samples_read;
+	struct sr_sw_limits sw_limits;
 	int sel_input;
 	int curr_sel_input;
 	int gate_time;
 	int hold;
-	int continuous;
 
 	char buffer[BK1856D_MSG_SIZE];
 	unsigned int buffer_level;
