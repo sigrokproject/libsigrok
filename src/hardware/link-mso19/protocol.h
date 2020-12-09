@@ -41,11 +41,6 @@
 #define cg_is_digital(cg) (cg && cg->name[0] == 'L')
 #define cg_is_analog(cg) (cg && cg->name[0] == 'D')
 
-enum trigger_slopes {
-	SLOPE_POSITIVE = 0,
-	SLOPE_NEGATIVE,
-};
-
 /* Structure for the pattern generator state */
 struct mso_patgen {
 	/* Pattern generator clock config */
@@ -92,17 +87,18 @@ struct dev_context {
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
+	uint8_t ctltrig;
 	uint8_t status;
 
 	uint8_t la_threshold;
 	uint64_t cur_rate;
 	const char *coupling;
 	uint8_t dso_probe_attn;
-	int8_t use_trigger;
-	uint8_t trigger_chan;
-	uint8_t trigger_slope;
+	uint8_t trigger_source;
+	uint8_t dso_trigger_slope;
 	uint8_t trigger_outsrc;
 	uint8_t trigger_holdoff[2];
+	uint8_t la_trigger_slope;
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
 	double dso_trigger_voltage;
@@ -138,6 +134,10 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 /* bank 0 registers */
 #define REG_BUFFER		1
 #define REG_STATUS		2
+#define REG_TRIG_THRESH		3
+#define REG_TRIG		4
+#define REG_TRIG_LA_VAL		5
+#define REG_TRIG_LA_MASK	6
 #define REG_CLKRATE1		9
 #define REG_CLKRATE2		10
 #define REG_DAC1		12
@@ -162,6 +162,35 @@ enum {
 	BIT_STATUS_ARMED =		1 << 4,
 	BIT_STATUS_OK =			1 << 5,
 };
+
+/* bits - REG_TRIG */
+enum {
+	TRIG_THRESH_MSB_MASK =	3 << 0,
+
+	TRIG_EDGE_RISING =	0 << 2,
+	TRIG_EDGE_FALLING =	1 << 2,
+	TRIG_EDGE_T_F =		0 << 2,
+	TRIG_EDGE_F_T =		1 << 2,
+	TRIG_EDGE_MASK =	1 << 2,
+
+	TRIG_OUT_TRIGGER =	0 << 3,
+	TRIG_OUT_PG =		1 << 3,
+	TRIG_OUT_NOISE =	3 << 3,
+	TRIG_OUT_MASK =		3 << 3,
+
+	TRIG_SRC_DSO =		0 << 5,
+	TRIG_SRC_DSO_PULSE_GE =	1 << 5,
+	TRIG_SRC_DSO_PULSE_LT =	2 << 5,
+	TRIG_SRC_SPI =		4 << 5,
+	TRIG_SRC_I2C =		5 << 5,
+	TRIG_SRC_LA =		7 << 5,
+	TRIG_SRC_MASK =		7 << 5,
+};
+#define TRIG_UPDATE_MASK(reg, val, mask) reg = (((reg) & ~(mask)) | ((val) & (mask)))
+#define TRIG_UPDATE_THRESH_MSB(reg, val) TRIG_UPDATE_MASK((reg), (val) >> 8, TRIG_THRESH_MSB_MASK)
+#define TRIG_UPDATE_EDGE(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_EDGE_MASK)
+#define TRIG_UPDATE_OUT(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_OUT_MASK)
+#define TRIG_UPDATE_SRC(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_SRC_MASK)
 
 /* bits - REG_CTL1 */
 #define BIT_CTL1_RESETFSM		(1 << 0)
