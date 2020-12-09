@@ -35,13 +35,19 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_SLOPE | SR_CONF_SET,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_cg_digital[] = {
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *coupling[] = {
@@ -54,9 +60,62 @@ static const uint64_t samplerates[] = {
 	SR_HZ(100),
 };
 
-static const char *trigger_slopes[2] = {
-	"r", "f",
+static const char *trigger_sources[] = {
+	"DSO", "LA", // "SPI", "I2C",
 };
+
+enum {
+	TRIGGER_SOURCE_DSO = 0,
+	TRIGGER_SOURCE_LA,
+	// TRIGGER_SOURCE_SPI,
+	// TRIGGER_SOURCE_I2C,
+};
+
+static const char *dso_trigger_slopes[] = {
+	"Rising", "Falling",
+};
+
+static const char *la_trigger_slopes[] = {
+	"F->T", "T->F",
+};
+
+enum {
+	TRIGGER_SLOPE_RISING = 0,
+	TRIGGER_SLOPE_FALLING,
+	TRIGGER_SLOPE_F_T = 0,
+	TRIGGER_SLOPE_T_F,
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+};
+
+static void mso_update_trigger_slope(struct dev_context *devc)
+{
+	switch (devc->trigger_source) {
+	case TRIGGER_SOURCE_DSO:
+		switch (devc->dso_trigger_slope) {
+		case TRIGGER_SLOPE_RISING:
+			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_RISING);
+			break;
+		case TRIGGER_SLOPE_FALLING:
+			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_FALLING);
+			break;
+		}
+		break;
+	case TRIGGER_SOURCE_LA:
+		switch (devc->la_trigger_slope) {
+		case TRIGGER_SLOPE_F_T:
+			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_F_T);
+			break;
+		case TRIGGER_SLOPE_T_F:
+			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_T_F);
+			break;
+		}
+		break;
+	}
+}
 
 static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 {
@@ -65,7 +124,6 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	char *vendor, *product, *serial_num;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	int chtype;
 	unsigned int i;
 	char hwrev[32];
 	struct sr_channel_group *cg;
@@ -97,6 +155,9 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	}
 	sprintf(hwrev, "r%d", devc->hwrev);
 	devc->ctlbase1 = BIT_CTL1_ADC_ENABLE;
+	TRIG_UPDATE_OUT(devc->ctltrig, TRIG_OUT_TRIGGER);
+	TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
+	mso_update_trigger_slope(devc);
 	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_attn = 10;
@@ -232,6 +293,17 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string(devc->coupling);
 		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		*data = g_variant_new_string(trigger_sources[devc->trigger_source]);
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		if (cg_is_analog(cg))
+			*data = g_variant_new_string(dso_trigger_slopes[devc->dso_trigger_slope]);
+		else if (cg_is_digital(cg))
+			*data = g_variant_new_string(la_trigger_slopes[devc->la_trigger_slope]);
+		else
+			return SR_ERR_NA;
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -244,7 +316,6 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	uint64_t num_samples;
-	const char *slope;
 	int trigger_pos;
 	double pos;
 	int idx;
@@ -265,10 +336,36 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		break;
-	case SR_CONF_TRIGGER_SLOPE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_slopes))) < 0)
+	case SR_CONF_TRIGGER_SOURCE:
+		idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources));
+		if (idx < 0)
 			return SR_ERR_ARG;
-		devc->trigger_slope = idx;
+		devc->trigger_source = idx;
+		switch (idx) {
+		case TRIGGER_SOURCE_DSO:
+			TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
+			break;
+		case TRIGGER_SOURCE_LA:
+			TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_LA);
+			break;
+		}
+		mso_update_trigger_slope(devc);
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		if (cg_is_analog(cg)) {
+			idx = std_str_idx(data, ARRAY_AND_SIZE(dso_trigger_slopes));
+			if (idx < 0)
+				return SR_ERR_ARG;
+			devc->dso_trigger_slope = idx;
+		} else if (cg_is_digital(cg)) {
+			idx = std_str_idx(data, ARRAY_AND_SIZE(la_trigger_slopes));
+			if (idx < 0)
+				return SR_ERR_ARG;
+			devc->la_trigger_slope = idx;
+		} else {
+			return SR_ERR_NA;
+		}
+		mso_update_trigger_slope(devc);
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
@@ -305,7 +402,7 @@ static int config_list(uint32_t key, GVariant **data,
 		else if (cg_is_analog(cg))
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
 		else if (cg_is_digital(cg))
-			*data = std_gvar_array_u32(NULL, 0);
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_digital));
 		else
 			return SR_ERR_NA;
 		break;
@@ -316,6 +413,20 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!cg_is_analog(cg))
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
+		break;
+	case SR_CONF_TRIGGER_SOURCE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
+		break;
+	case SR_CONF_TRIGGER_SLOPE:
+		if (cg_is_analog(cg))
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(dso_trigger_slopes));
+		else if (cg_is_digital(cg))
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(la_trigger_slopes));
+		else
+			return SR_ERR_NA;
+		break;
+	case SR_CONF_TRIGGER_MATCH:
+		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	default:
 		return SR_ERR_NA;

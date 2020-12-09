@@ -80,49 +80,14 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 
 	// Use 0x200 temporary value till we can properly calculate it.
 	threshold_value = 0x200;
-	uint8_t trigger_config = 0;
-
-	if (devc->trigger_slope)
-		trigger_config |= 0x04;	//Trigger on falling edge
-
-	switch (devc->trigger_outsrc) {
-	case 1:
-		trigger_config |= 0x00;	//Trigger pulse output
-		break;
-	case 2:
-		trigger_config |= 0x08;	//PWM DAC from the pattern generator buffer
-		break;
-	case 3:
-		trigger_config |= 0x18;	//White noise
-		break;
-	}
-
-	switch (devc->trigger_chan) {
-	case 0:
-		trigger_config |= 0x00;	//DSO level trigger //b00000000
-		break;
-	case 1:
-		trigger_config |= 0x20;	//DSO level trigger & width < trigger_width
-		break;
-	case 2:
-		trigger_config |= 0x40;	//DSO level trigger & width >= trigger_width
-		break;
-	case 3:
-		trigger_config |= 0x60;	//LA combination trigger
-		break;
-	}
-
-	//Last bit of trigger config reg 4 needs to be 1 for trigger enable,
-	//otherwise the trigger is not enabled
-	if (devc->use_trigger)
-		trigger_config |= 0x80;
+	TRIG_UPDATE_THRESH_MSB(devc->ctltrig, threshold_value);
 
 	uint16_t ops[] = {
-		mso_trans(3, threshold_value & 0xff),
+		mso_trans(REG_TRIG_THRESH, threshold_value & 0xff),
 		//The trigger_config also holds the 2 MSB bits from the threshold value
-		mso_trans(4, trigger_config | ((threshold_value >> 8) & 0x03)),
-		mso_trans(5, devc->la_trigger),
-		mso_trans(6, devc->la_trigger_mask),
+		mso_trans(REG_TRIG, devc->ctltrig),
+		mso_trans(REG_TRIG_LA_VAL, devc->la_trigger),
+		mso_trans(REG_TRIG_LA_MASK, devc->la_trigger_mask),
 		mso_trans(7, devc->trigger_holdoff[0]),
 		mso_trans(8, devc->trigger_holdoff[1]),
 
@@ -452,9 +417,11 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_channel *ch;
-	GSList *l;
-	char *tc;
+	struct sr_trigger *trigger;
+	struct sr_trigger_stage *stage;
+	struct sr_trigger_match *match;
+	uint8_t channel_bit;
+	GSList *l, *m;
 
 	devc = sdi->priv;
 
@@ -462,30 +429,22 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 	devc->la_trigger = 0x00;	//The value of the LA byte that generates a trigger event (in that mode).
 	devc->dso_trigger_voltage = 3;
 	devc->dso_probe_attn = 1;
-	devc->trigger_outsrc = 0;
-	//devc->trigger_chan = 3;	//LA combination trigger
-	devc->trigger_chan = 0;	// DSO trigger
-	devc->use_trigger = FALSE;
-
-	/*
-	for (l = sdi->channels; l; l = l->next) {
-		ch = (struct sr_channel *)l->data;
-		if (ch->enabled == FALSE)
-			continue;
-
-		int channel_bit = 1 << (ch->index);
-		if (!(ch->trigger))
-			continue;
-
-		devc->use_trigger = TRUE;
-		//Configure trigger mask and value.
-		for (tc = ch->trigger; *tc; tc++) {
+	trigger = sr_session_trigger_get(sdi->session);
+	if (!trigger)
+		return SR_OK;
+	for (l = trigger->stages; l; l = l->next) {
+		stage = l->data;
+		for (m = stage->matches; m; m = m->next) {
+			match = m->data;
+			if (!match->channel->enabled)
+				/* Ignore disabled channels with a trigger. */
+				continue;
+			channel_bit = 1 << match->channel->index;
 			devc->la_trigger_mask &= ~channel_bit;
-			if (*tc == '1')
+			if (match->match == SR_TRIGGER_ONE)
 				devc->la_trigger |= channel_bit;
 		}
 	}
-	*/
 
 	return SR_OK;
 }
