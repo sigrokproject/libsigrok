@@ -93,7 +93,7 @@ struct dev_context {
 	uint8_t la_threshold;
 	uint64_t cur_rate;
 	const char *coupling;
-	uint8_t dso_probe_attn;
+	uint16_t dso_probe_factor;
 	uint8_t trigger_source;
 	uint8_t dso_trigger_slope;
 	uint8_t trigger_outsrc;

@@ -44,6 +44,7 @@ static const uint32_t devopts[] = {
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_digital[] = {
@@ -160,7 +161,7 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	mso_update_trigger_slope(devc);
 	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
-	devc->dso_probe_attn = 10;
+	devc->dso_probe_factor = 10;
 	devc->limit_samples = MSO_NUM_SAMPLES;
 
 	devc->protocol_trigger.spimode = 0;
@@ -293,6 +294,11 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_NA;
 		*data = g_variant_new_string(devc->coupling);
 		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg_is_analog(cg))
+			return SR_ERR_NA;
+		*data = g_variant_new_uint64(devc->dso_probe_factor);
+		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		*data = g_variant_new_string(trigger_sources[devc->trigger_source]);
 		break;
@@ -315,7 +321,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	uint64_t num_samples;
+	uint64_t tmp_u64;
 	int trigger_pos;
 	double pos;
 	int idx;
@@ -327,12 +333,12 @@ static int config_set(uint32_t key, GVariant *data,
 		// FIXME
 		return mso_configure_rate(sdi, g_variant_get_uint64(data));
 	case SR_CONF_LIMIT_SAMPLES:
-		num_samples = g_variant_get_uint64(data);
-		if (num_samples != MSO_NUM_SAMPLES) {
+		tmp_u64 = g_variant_get_uint64(data);
+		if (tmp_u64 != MSO_NUM_SAMPLES) {
 			sr_err("Only %d samples are supported.", MSO_NUM_SAMPLES);
 			return SR_ERR_ARG;
 		}
-		devc->limit_samples = num_samples;
+		devc->limit_samples = tmp_u64;
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		break;
@@ -383,6 +389,14 @@ static int config_set(uint32_t key, GVariant *data,
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->coupling = coupling[idx];
+		break;
+	case SR_CONF_PROBE_FACTOR:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		tmp_u64 = g_variant_get_uint64(data);
+		if (!tmp_u64)
+			return SR_ERR_ARG;
+		devc->dso_probe_factor = tmp_u64;
 		break;
 	default:
 		return SR_ERR_NA;
