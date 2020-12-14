@@ -171,7 +171,7 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc)
 {
 	return (uint16_t) (0x200 -
-			   ((devc->dso_trigger_voltage / devc->dso_probe_attn) /
+			   ((devc->dso_trigger_voltage / devc->dso_probe_factor) /
 			    devc->vbit));
 }
 
@@ -379,7 +379,7 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 		analog_out[i] = (devc->buffer[i * 3] & 0x3f) |
 		    ((devc->buffer[i * 3 + 1] & 0xf) << 6);
 		analog_out[i] = (512.0 - analog_out[i]) * devc->vbit
-			* devc->dso_probe_attn;
+			* devc->dso_probe_factor;
 		logic_out[i] = ((devc->buffer[i * 3 + 1] & 0x30) >> 4) |
 		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
@@ -428,7 +428,6 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 	devc->la_trigger_mask = 0xFF;	//the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
 	devc->la_trigger = 0x00;	//The value of the LA byte that generates a trigger event (in that mode).
 	devc->dso_trigger_voltage = 3;
-	devc->dso_probe_attn = 1;
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
