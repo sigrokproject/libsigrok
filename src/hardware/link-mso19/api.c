@@ -44,6 +44,7 @@ static const uint32_t devopts[] = {
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -116,6 +117,21 @@ static void mso_update_trigger_slope(struct dev_context *devc)
 		}
 		break;
 	}
+}
+
+static void mso_limit_trigger_level(struct dev_context *devc)
+{
+	double max_level = 2.0 * devc->dso_probe_factor;
+	if (devc->dso_trigger_level < -max_level) {
+		devc->dso_trigger_adjusted = -max_level;
+	} else if (devc->dso_trigger_level > max_level) {
+		devc->dso_trigger_adjusted = max_level;
+	} else if (devc->dso_trigger_level != devc->dso_trigger_adjusted){
+		devc->dso_trigger_adjusted = devc->dso_trigger_level;
+	} else {
+		return;
+	}
+	sr_info("Adjusted dso trigger level to %f", devc->dso_trigger_adjusted);
 }
 
 static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
@@ -310,6 +326,11 @@ static int config_get(uint32_t key, GVariant **data,
 		else
 			return SR_ERR_NA;
 		break;
+	case SR_CONF_TRIGGER_LEVEL:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		*data = g_variant_new_double(devc->dso_trigger_level);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -373,6 +394,12 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		mso_update_trigger_slope(devc);
 		break;
+	case SR_CONF_TRIGGER_LEVEL:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		devc->dso_trigger_level = g_variant_get_double(data);
+		mso_limit_trigger_level(devc);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
 		if (pos < 0 || pos > 255) {
@@ -397,6 +424,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (!tmp_u64)
 			return SR_ERR_ARG;
 		devc->dso_probe_factor = tmp_u64;
+		mso_limit_trigger_level(devc);
 		break;
 	default:
 		return SR_ERR_NA;

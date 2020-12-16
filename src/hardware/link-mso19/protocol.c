@@ -76,10 +76,8 @@ static uint16_t mso_bank_select(const struct dev_context *devc, int bank)
 SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
-	uint16_t threshold_value = mso_calc_raw_from_mv(devc);
+	uint16_t threshold_value = mso_calc_trigger_threshold(devc);
 
-	// Use 0x200 temporary value till we can properly calculate it.
-	threshold_value = 0x200;
 	TRIG_UPDATE_THRESH_MSB(devc->ctltrig, threshold_value);
 
 	uint16_t ops[] = {
@@ -168,10 +166,10 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
 }
 
-SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc)
+SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
 {
 	return (uint16_t) (0x200 -
-			   ((devc->dso_trigger_voltage / devc->dso_probe_factor) /
+			   ((devc->dso_trigger_adjusted / devc->dso_probe_factor) /
 			    devc->vbit));
 }
 
@@ -427,7 +425,6 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 
 	devc->la_trigger_mask = 0xFF;	//the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
 	devc->la_trigger = 0x00;	//The value of the LA byte that generates a trigger event (in that mode).
-	devc->dso_trigger_voltage = 3;
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
