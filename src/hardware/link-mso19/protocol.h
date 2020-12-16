@@ -101,7 +101,8 @@ struct dev_context {
 	uint8_t la_trigger_slope;
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
-	double dso_trigger_voltage;
+	double dso_trigger_level;
+	double dso_trigger_adjusted;
 	uint16_t dso_trigger_width;
 	struct mso_prototrig protocol_trigger;
 	uint16_t buffer_n;
@@ -122,7 +123,7 @@ SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi);
 SR_PRIV int mso_arm(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
 SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val);
-SR_PRIV uint16_t mso_calc_raw_from_mv(struct dev_context *devc);
+SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc);
 SR_PRIV int mso_reset_fsm(const struct sr_dev_inst *sdi);
 
 SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi);
