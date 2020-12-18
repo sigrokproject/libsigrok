@@ -37,8 +37,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
-	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_SET,
-	SR_CONF_CAPTURE_RATIO | SR_CONF_SET,
+	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_analog[] = {
@@ -134,6 +133,30 @@ static void mso_limit_trigger_level(struct dev_context *devc)
 	sr_info("Adjusted dso trigger level to %f", devc->dso_trigger_adjusted);
 }
 
+static void mso_update_trigger_pos(struct dev_context *devc)
+{
+	int pos = (devc->horiz_triggerpos * MSO_NUM_SAMPLES) + 0.5;
+	uint16_t sign_bit = TRIG_POS_IS_POSITIVE;
+	if (pos < 0) {
+		pos = -pos;
+		sign_bit = TRIG_POS_IS_NEGATIVE;
+		if (pos < (MSO_NUM_SAMPLES + 10)) {
+			// Program doesn't allow these holdoff values, but they
+			// sometimes work, so just warn about stability.
+			sr_warn("Trigger holdoff > -1.011 may be unstable %f", devc->horiz_triggerpos);
+		}
+	} else if (pos >= MSO_NUM_SAMPLES) {
+		pos = MSO_NUM_SAMPLES - 1;
+	} else if (pos < 10) {
+		// Program never runs trigger less than 10. It sometimes fails
+		// to trigger properly if less than 10.
+		sr_warn("Trigger position < .01 may be unstable %f", devc->horiz_triggerpos);
+	}
+	devc->ctltrig_pos = pos & TRIG_POS_VALUE_MASK;
+	if (devc->ctltrig_pos)
+		devc->ctltrig_pos |= sign_bit;
+}
+
 static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 {
 	int usb_vid, usb_pid;
@@ -175,6 +198,8 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	TRIG_UPDATE_OUT(devc->ctltrig, TRIG_OUT_TRIGGER);
 	TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
 	mso_update_trigger_slope(devc);
+	devc->horiz_triggerpos = 0.5;
+	mso_update_trigger_pos(devc);
 	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_factor = 10;
@@ -331,6 +356,9 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = g_variant_new_double(devc->dso_trigger_level);
 		break;
+	case SR_CONF_HORIZ_TRIGGERPOS:
+		*data = g_variant_new_double(devc->horiz_triggerpos);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -343,7 +371,6 @@ static int config_set(uint32_t key, GVariant *data,
 {
 	struct dev_context *devc;
 	uint64_t tmp_u64;
-	int trigger_pos;
 	double pos;
 	int idx;
 
@@ -360,8 +387,6 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		}
 		devc->limit_samples = tmp_u64;
-		break;
-	case SR_CONF_CAPTURE_RATIO:
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
 		idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources));
@@ -402,12 +427,13 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
-		if (pos < 0 || pos > 255) {
-			sr_err("Trigger position (%f) should be between 0 and 255.", pos);
+		// Negative position equates to trigger holdoff in the program
+		if (pos < -10.0 || pos > 1.0) {
+			sr_err("Trigger position (%f) should be between -10.0 and 1.0", pos);
 			return SR_ERR_ARG;
 		}
-		trigger_pos = (int)pos;
-		devc->trigger_holdoff[0] = trigger_pos & 0xff;
+		devc->horiz_triggerpos = pos;
+		mso_update_trigger_pos(devc);
 		break;
 	case SR_CONF_COUPLING:
 		if (!cg_is_analog(cg))

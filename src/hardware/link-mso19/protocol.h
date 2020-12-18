@@ -88,6 +88,7 @@ struct dev_context {
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
 	uint8_t ctltrig;
+	uint16_t ctltrig_pos;
 	uint8_t status;
 
 	uint8_t la_threshold;
@@ -97,10 +98,10 @@ struct dev_context {
 	uint8_t trigger_source;
 	uint8_t dso_trigger_slope;
 	uint8_t trigger_outsrc;
-	uint8_t trigger_holdoff[2];
 	uint8_t la_trigger_slope;
 	uint8_t la_trigger;
 	uint8_t la_trigger_mask;
+	double horiz_triggerpos;
 	double dso_trigger_level;
 	double dso_trigger_adjusted;
 	uint16_t dso_trigger_width;
@@ -139,8 +140,11 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 #define REG_TRIG		4
 #define REG_TRIG_LA_VAL		5
 #define REG_TRIG_LA_MASK	6
+#define REG_TRIG_POS_LSB	7
+#define REG_TRIG_POS_MSB	8
 #define REG_CLKRATE1		9
 #define REG_CLKRATE2		10
+#define REG_TRIG_WIDTH		11
 #define REG_DAC1		12
 #define REG_DAC2		13
 /* possibly bank agnostic: */
@@ -192,6 +196,13 @@ enum {
 #define TRIG_UPDATE_EDGE(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_EDGE_MASK)
 #define TRIG_UPDATE_OUT(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_OUT_MASK)
 #define TRIG_UPDATE_SRC(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_SRC_MASK)
+
+/* bits - REG_TRIG_POS_MSB */
+enum {
+	TRIG_POS_VALUE_MASK =	0x7fff,
+	TRIG_POS_IS_POSITIVE =	0 << 15,
+	TRIG_POS_IS_NEGATIVE =	1 << 15,
+};
 
 /* bits - REG_CTL1 */
 #define BIT_CTL1_RESETFSM		(1 << 0)

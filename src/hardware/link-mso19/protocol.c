@@ -86,10 +86,10 @@ SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 		mso_trans(REG_TRIG, devc->ctltrig),
 		mso_trans(REG_TRIG_LA_VAL, devc->la_trigger),
 		mso_trans(REG_TRIG_LA_MASK, devc->la_trigger_mask),
-		mso_trans(7, devc->trigger_holdoff[0]),
-		mso_trans(8, devc->trigger_holdoff[1]),
+		mso_trans(REG_TRIG_POS_LSB, devc->ctltrig_pos & 0xff),
+		mso_trans(REG_TRIG_POS_MSB, (devc->ctltrig_pos >> 8) & 0xff),
 
-		mso_trans(11,
+		mso_trans(REG_TRIG_WIDTH,
 			  devc->dso_trigger_width /
 			  SR_HZ_TO_NS(devc->cur_rate)),
 
@@ -327,6 +327,8 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int i;
+	int trigger_sample;
+	int pre_samples, post_samples;
 
 	uint8_t in[MSO_NUM_SAMPLES];
 	size_t s;
@@ -382,24 +384,55 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
 
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.length = MSO_NUM_SAMPLES;
-	logic.unitsize = 1;
-	logic.data = logic_out;
-	sr_session_send(sdi, &packet);
+	if (devc->ctltrig_pos & TRIG_POS_IS_NEGATIVE) {
+		trigger_sample = -1;
+		pre_samples = MSO_NUM_SAMPLES;
+	} else {
+		trigger_sample = devc->ctltrig_pos & TRIG_POS_VALUE_MASK;
+		pre_samples = MIN(trigger_sample, MSO_NUM_SAMPLES);
+	}
+
+	logic.unitsize = sizeof(*logic_out);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
 	analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
-	analog.num_samples = MSO_NUM_SAMPLES;
-	analog.data = analog_out;
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = SR_MQFLAG_DC;
 
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-	sr_session_send(sdi, &packet);
+	if (pre_samples > 0) {
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = pre_samples * sizeof(*logic_out);
+		logic.data = logic_out;
+		sr_session_send(sdi, &packet);
+
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.num_samples = pre_samples;
+		analog.data = analog_out;
+		sr_session_send(sdi, &packet);
+	}
+
+	if (pre_samples == trigger_sample) {
+		std_session_send_df_trigger(sdi);
+	}
+
+	post_samples = MSO_NUM_SAMPLES - pre_samples;
+
+	if (post_samples > 0) {
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		logic.length = post_samples * sizeof(*logic_out);
+		logic.data = logic_out + pre_samples;
+		sr_session_send(sdi, &packet);
+
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.num_samples = post_samples;
+		analog.data = analog_out + pre_samples;
+		sr_session_send(sdi, &packet);
+	}
 	g_slist_free(analog.meaning->channels);
 
 	devc->num_samples += MSO_NUM_SAMPLES;
