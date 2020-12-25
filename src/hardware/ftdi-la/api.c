@@ -111,6 +111,8 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 static void scan_device(struct ftdi_context *ftdic,
 	struct libusb_device *dev, GSList **devices)
 {
+	static const int usb_str_maxlen = 32;
+
 	struct libusb_device_descriptor usb_desc;
 	const struct ftdi_chip_desc *desc;
 	struct dev_context *devc;
@@ -143,14 +145,42 @@ static void scan_device(struct ftdi_context *ftdic,
 
 	devc->desc = desc;
 
-	vendor = g_malloc(32);
-	model = g_malloc(32);
-	serial_num = g_malloc(32);
-	rv = ftdi_usb_get_strings(ftdic, dev, vendor, 32,
-			model, 32, serial_num, 32);
+	vendor = g_malloc(usb_str_maxlen);
+	model = g_malloc(usb_str_maxlen);
+	serial_num = g_malloc(usb_str_maxlen);
+	rv = ftdi_usb_get_strings(ftdic, dev, vendor, usb_str_maxlen,
+			model, usb_str_maxlen, serial_num, usb_str_maxlen);
 	switch (rv) {
 	case 0:
 		break;
+	/* ftdi_usb_get_strings() fails on first miss, hence fall through. */
+	case -7:
+		sr_dbg("The device lacks a manufacturer descriptor.");
+		g_snprintf(vendor, usb_str_maxlen, "Generic");
+		/* FALLTHROUGH */
+	case -8:
+		sr_dbg("The device lacks a product descriptor.");
+		switch (usb_desc.idProduct) {
+		case 0x6001:
+			g_snprintf(model, usb_str_maxlen, "FT232R");
+			break;
+		case 0x6010:
+			g_snprintf(model, usb_str_maxlen, "FT2232H");
+			break;
+		case 0x6011:
+			g_snprintf(model, usb_str_maxlen, "FT4232H");
+			break;
+		case 0x6014:
+			g_snprintf(model, usb_str_maxlen, "FT232H");
+			break;
+		case 0x8a98:
+			g_snprintf(model, usb_str_maxlen, "FT2232H-TUMPA");
+			break;
+		default:
+			g_snprintf(model, usb_str_maxlen, "Unknown");
+			break;
+		}
+		/* FALLTHROUGH */
 	case -9:
 		sr_dbg("The device lacks a serial number.");
 		g_free(serial_num);
