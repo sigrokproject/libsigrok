@@ -116,7 +116,7 @@ SR_PRIV int mso_configure_threshold_level(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 
-	return mso_dac_out(sdi, la_threshold_map[devc->la_threshold]);
+	return mso_dac_out(sdi, DAC_SELECT_LA | devc->logic_threshold_value);
 }
 
 SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi)
@@ -157,8 +157,8 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 {
 	struct dev_context *devc = sdi->priv;
 	uint16_t ops[] = {
-		mso_trans(REG_DAC1, (val >> 8) & 0xff),
-		mso_trans(REG_DAC2, val & 0xff),
+		mso_trans(REG_DAC_MSB, (val >> 8) & 0xff),
+		mso_trans(REG_DAC_LSB, val & 0xff),
 		mso_trans(REG_CTL1, devc->ctlbase1 | BIT_CTL1_LOAD_DAC),
 	};
 

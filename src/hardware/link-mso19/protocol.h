@@ -91,7 +91,8 @@ struct dev_context {
 	uint16_t ctltrig_pos;
 	uint8_t status;
 
-	uint8_t la_threshold;
+	uint8_t logic_threshold;
+	uint16_t logic_threshold_value;
 	uint64_t cur_rate;
 	const char *coupling;
 	uint16_t dso_probe_factor;
@@ -145,8 +146,8 @@ SR_PRIV void stop_acquisition(const struct sr_dev_inst *sdi);
 #define REG_CLKRATE1		9
 #define REG_CLKRATE2		10
 #define REG_TRIG_WIDTH		11
-#define REG_DAC1		12
-#define REG_DAC2		13
+#define REG_DAC_MSB		12
+#define REG_DAC_LSB		13
 /* possibly bank agnostic: */
 #define REG_CTL1		14
 
@@ -204,6 +205,12 @@ enum {
 	TRIG_POS_IS_NEGATIVE =	1 << 15,
 };
 
+/* bits - REG_DAC */
+enum {
+	DAC_SELECT_DSO =	0 << 15,
+	DAC_SELECT_LA =		1 << 15,
+};
+
 /* bits - REG_CTL1 */
 #define BIT_CTL1_RESETFSM		(1 << 0)
 #define BIT_CTL1_ARM		    	(1 << 1)
@@ -244,11 +251,6 @@ static const struct rate_map rate_map[] = {
 	{ SR_HZ(500),  0x1fcf, 0x20 },
 	{ SR_HZ(200),  0x4f87, 0x20 },
 	{ SR_HZ(100),  0x9f0f, 0x20 },
-};
-
-/* FIXME: Determine corresponding voltages */
-static const uint16_t la_threshold_map[] = {
-	0x8600, 0x8770, 0x88ff, 0x8c70, 0x8eff, 0x8fff,
 };
 
 #endif
