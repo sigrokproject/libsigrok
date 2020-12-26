@@ -49,6 +49,7 @@ static const uint32_t devopts_cg_analog[] = {
 
 static const uint32_t devopts_cg_digital[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *coupling[] = {
@@ -90,6 +91,25 @@ enum {
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
+};
+
+static const char *logic_thresholds[] = {
+	"1.2V Logic",
+	"1.5V Logic",
+	"1.8V Logic",
+	"2.5V Logic",
+	"3.0V Logic",
+	"3.3V/5.0V Logic",
+};
+
+/* Values taken from USB wireshark capture */
+static const uint16_t logic_threshold_values[] = {
+	0x600,
+	0x770,
+	0x8ff,
+	0xc70,
+	0xeff,
+	0xfff,
 };
 
 static void mso_update_trigger_slope(struct dev_context *devc)
@@ -157,6 +177,11 @@ static void mso_update_trigger_pos(struct dev_context *devc)
 		devc->ctltrig_pos |= sign_bit;
 }
 
+static void mso_update_logic_threshold_value(struct dev_context *devc)
+{
+	devc->logic_threshold_value = logic_threshold_values[devc->logic_threshold];
+}
+
 static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 {
 	int usb_vid, usb_pid;
@@ -204,6 +229,8 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_factor = 10;
 	devc->limit_samples = MSO_NUM_SAMPLES;
+	devc->logic_threshold = ARRAY_SIZE(logic_thresholds) - 1; // 3.3V/5V
+	mso_update_logic_threshold_value(devc);
 
 	devc->protocol_trigger.spimode = 0;
 	for (i = 0; i < ARRAY_SIZE(devc->protocol_trigger.word); i++) {
@@ -359,6 +386,11 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(devc->horiz_triggerpos);
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg_is_digital(cg))
+			return SR_ERR_ARG;
+		*data = g_variant_new_string(logic_thresholds[devc->logic_threshold]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -452,6 +484,15 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->dso_probe_factor = tmp_u64;
 		mso_limit_trigger_level(devc);
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg_is_digital(cg))
+			return SR_ERR_ARG;
+		idx = std_str_idx(data, ARRAY_AND_SIZE(logic_thresholds));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->logic_threshold = idx;
+		mso_update_logic_threshold_value(devc);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -496,6 +537,11 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		if (!cg_is_digital(cg))
+			return SR_ERR_ARG;
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_thresholds));
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -531,7 +577,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* set dac offset */
-	ret = mso_dac_out(sdi, devc->dac_offset);
+	ret = mso_dac_out(sdi, DAC_SELECT_DSO | devc->dac_offset);
 	if (ret != SR_OK)
 		return ret;
 
