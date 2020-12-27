@@ -45,6 +45,7 @@ static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_PROBE_FACTOR | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OFFSET | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_digital[] = {
@@ -141,8 +142,12 @@ static void mso_update_trigger_slope(struct dev_context *devc)
 static void mso_limit_trigger_level(struct dev_context *devc)
 {
 	double max_level = 2.0 * devc->dso_probe_factor;
-	if (devc->dso_trigger_level < -max_level) {
-		devc->dso_trigger_adjusted = -max_level;
+	double min_level = -max_level;
+	max_level -= devc->dso_offset_adjusted;
+	min_level -= devc->dso_offset_adjusted;
+
+	if (devc->dso_trigger_level < min_level) {
+		devc->dso_trigger_adjusted = min_level;
 	} else if (devc->dso_trigger_level > max_level) {
 		devc->dso_trigger_adjusted = max_level;
 	} else if (devc->dso_trigger_level != devc->dso_trigger_adjusted){
@@ -180,6 +185,22 @@ static void mso_update_trigger_pos(struct dev_context *devc)
 static void mso_update_logic_threshold_value(struct dev_context *devc)
 {
 	devc->logic_threshold_value = logic_threshold_values[devc->logic_threshold];
+}
+
+static void mso_update_offset_value(struct dev_context *devc)
+{
+	double scaled_value = devc->dso_offset / devc->dso_probe_factor;
+	double limited_value = MIN(2.0, MAX(-2.0, scaled_value));
+	int value = devc->dac_offset - (limited_value / devc->offset_vbit);
+	value = MIN(DAC_DSO_VALUE_MASK, MAX(0, value));
+	devc->dso_offset_value = value;
+	devc->dso_offset_adjusted = (devc->dac_offset - value) *
+		devc->dso_probe_factor * devc->offset_vbit;
+	if (limited_value != scaled_value) {
+		sr_info("Adjusted dso offset to %f", devc->dso_offset_adjusted);
+	}
+	mso_limit_trigger_level(devc);
+
 }
 
 static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
@@ -231,6 +252,7 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	devc->limit_samples = MSO_NUM_SAMPLES;
 	devc->logic_threshold = ARRAY_SIZE(logic_thresholds) - 1; // 3.3V/5V
 	mso_update_logic_threshold_value(devc);
+	mso_update_offset_value(devc);
 
 	devc->protocol_trigger.spimode = 0;
 	for (i = 0; i < ARRAY_SIZE(devc->protocol_trigger.word); i++) {
@@ -383,6 +405,11 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		*data = g_variant_new_double(devc->dso_trigger_level);
 		break;
+	case SR_CONF_OFFSET:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		*data = g_variant_new_double(devc->dso_offset);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		*data = g_variant_new_double(devc->horiz_triggerpos);
 		break;
@@ -457,6 +484,12 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->dso_trigger_level = g_variant_get_double(data);
 		mso_limit_trigger_level(devc);
 		break;
+	case SR_CONF_OFFSET:
+		if (!cg_is_analog(cg))
+			return SR_ERR_ARG;
+		devc->dso_offset = g_variant_get_double(data);
+		mso_update_offset_value(devc);
+		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
 		// Negative position equates to trigger holdoff in the program
@@ -482,7 +515,7 @@ static int config_set(uint32_t key, GVariant *data,
 		if (!tmp_u64)
 			return SR_ERR_ARG;
 		devc->dso_probe_factor = tmp_u64;
-		mso_limit_trigger_level(devc);
+		mso_update_offset_value(devc);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!cg_is_digital(cg))
@@ -577,7 +610,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* set dac offset */
-	ret = mso_dac_out(sdi, DAC_SELECT_DSO | devc->dac_offset);
+	ret = mso_dac_out(sdi, DAC_SELECT_DSO | devc->dso_offset_value);
 	if (ret != SR_OK)
 		return ret;
 
