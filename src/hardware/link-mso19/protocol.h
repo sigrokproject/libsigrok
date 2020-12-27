@@ -80,7 +80,7 @@ struct dev_context {
 	/* calibration */
 	double vbit;
 	uint16_t dac_offset;
-	uint16_t offset_range;
+	double offset_vbit;
 	uint64_t limit_samples;
 	uint64_t num_samples;
 
@@ -105,6 +105,9 @@ struct dev_context {
 	double horiz_triggerpos;
 	double dso_trigger_level;
 	double dso_trigger_adjusted;
+	double dso_offset;
+	double dso_offset_adjusted;
+	uint16_t dso_offset_value;
 	uint16_t dso_trigger_width;
 	struct mso_prototrig protocol_trigger;
 	uint16_t buffer_n;
@@ -207,6 +210,7 @@ enum {
 
 /* bits - REG_DAC */
 enum {
+	DAC_DSO_VALUE_MASK =	0xfff,
 	DAC_SELECT_DSO =	0 << 15,
 	DAC_SELECT_LA =		1 << 15,
 };

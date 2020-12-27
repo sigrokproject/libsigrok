@@ -169,7 +169,7 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
 {
 	return (uint16_t) (0x200 -
-			   ((devc->dso_trigger_adjusted / devc->dso_probe_factor) /
+			   (((devc->dso_trigger_adjusted + devc->dso_offset_adjusted) / devc->dso_probe_factor) /
 			    devc->vbit));
 }
 
@@ -199,7 +199,7 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 		u3 = 500;
 	devc->vbit = ((double)u1) / 10000.0 / 1000.0;
 	devc->dac_offset = u2;
-	devc->offset_range = u3;
+	devc->offset_vbit = 3.0 / u3;
 	devc->hwmodel = u4;
 	devc->hwrev = u5;
 
@@ -379,7 +379,8 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 		analog_out[i] = (devc->buffer[i * 3] & 0x3f) |
 		    ((devc->buffer[i * 3 + 1] & 0xf) << 6);
 		analog_out[i] = (512.0 - analog_out[i]) * devc->vbit
-			* devc->dso_probe_factor;
+			* devc->dso_probe_factor
+			- devc->dso_offset_adjusted;
 		logic_out[i] = ((devc->buffer[i * 3 + 1] & 0x30) >> 4) |
 		    ((devc->buffer[i * 3 + 2] & 0x3f) << 2);
 	}
