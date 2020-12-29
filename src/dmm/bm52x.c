@@ -649,6 +649,7 @@ static uint16_t bm52x_rec_checksum(const uint8_t *b, size_t l)
  * Retrieve the first/next chunk of recording information.
  * Support for live readings is theoretical, and unused/untested.
  */
+#ifdef HAVE_SERIAL_COMM
 static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
 	enum bm52x_reqtype req, struct brymen_bm52x_state *state)
 {
@@ -726,6 +727,17 @@ static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
 
 	return SR_OK;
 }
+#else /* have serial comm */
+static int bm52x_rec_next_rsp(struct sr_serial_dev_inst *serial,
+	enum bm52x_reqtype req, struct brymen_bm52x_state *state)
+{
+	(void)serial;
+	(void)req;
+	(void)state;
+	(void)bm52x_rec_checksum;
+	return SR_ERR_NA;
+}
+#endif /* have serial comm */
 
 /** Make sure a minimum amount of response data is available. */
 static const uint8_t *bm52x_rec_ensure(struct sr_serial_dev_inst *serial,
