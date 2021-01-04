@@ -2251,6 +2251,16 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/mm38xr.c ---------------------------------------------------------*/
+
+#define METERMAN_38XR_PACKET_SIZE 15
+
+struct meterman_38xr_info { int dummy; };
+
+SR_PRIV gboolean meterman_38xr_packet_valid(const uint8_t *buf);
+SR_PRIV int meterman_38xr_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
 /*--- dmm/ms2115b.c ---------------------------------------------------------*/
 
 #define MS2115B_PACKET_SIZE 9
