@@ -619,24 +619,6 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* ms2115b based meters {{{ */
-	DMM(
-		"mastech-ms2115b", ms2115b,
-		"MASTECH", "MS2115B", "1200/8n1",
-		MS2115B_PACKET_SIZE, 0, 0, NULL,
-		sr_ms2115b_packet_valid, sr_ms2115b_parse,
-		NULL
-	),
-	/* }}} */
-	/* ms8250d based meters {{{ */
-	DMM(
-		"mastech-ms8250d", ms8250d,
-		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
-		MS8250D_PACKET_SIZE, 0, 0, NULL,
-		sr_ms8250d_packet_valid, sr_ms8250d_parse,
-		NULL
-	),
-	/* }}} */
 	/* metex14 based meters {{{ */
 	DMM(
 		"mastech-mas345", metex14,
@@ -741,6 +723,24 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "ME-42", "600/7n2/rts=0/dtr=1",
 		METEX14_PACKET_SIZE, 250, 60, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms2115b based meters {{{ */
+	DMM(
+		"mastech-ms2115b", ms2115b,
+		"MASTECH", "MS2115B", "1200/8n1",
+		MS2115B_PACKET_SIZE, 0, 0, NULL,
+		sr_ms2115b_packet_valid, sr_ms2115b_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms8250d based meters {{{ */
+	DMM(
+		"mastech-ms8250d", ms8250d,
+		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
+		MS8250D_PACKET_SIZE, 0, 0, NULL,
+		sr_ms8250d_packet_valid, sr_ms8250d_parse,
 		NULL
 	),
 	/* }}} */
