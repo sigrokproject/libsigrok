@@ -974,8 +974,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 			/* Get the next frame, starting with the first channel. */
 			devc->channel_entry = devc->enabled_channels;
 
-			if ((devc->data_source == DATA_SOURCE_LIVE ||
-					devc->data_source == DATA_SOURCE_MEMORY ) &&
+			if (devc->data_source == DATA_SOURCE_LIVE &&
 					rigol_ds_config_set(sdi, ":SING") != SR_OK)
 				return SR_ERR;
 
