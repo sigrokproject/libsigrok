@@ -787,8 +787,8 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_err("Unknown data source: '%s'.", tmp_str);
 			return SR_ERR;
 		}
-		if (devc->model->series->protocol == PROTOCOL_V5) // TODO: Check for other versions
-			devc->sample_rate = 0.0; // sample rate changes with data source
+		if (devc->model->series->protocol == PROTOCOL_V5) /* TODO: Check for other versions */
+			devc->sample_rate = 0.0; /* sample rate changes with data source */
 		break;
 	default:
 		return SR_ERR_NA;

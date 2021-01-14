@@ -560,7 +560,7 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 
 	if (devc->model->series->protocol == PROTOCOL_V5 &&
 			devc->sample_rate == 0.0) {
-		// TODO: Check, if this is also valid for V3, V4
+		/* TODO: Check, if this is also valid for V3, V4 */
 		float xinc;
 		if (sr_scpi_get_float(sdi->conn, ":WAV:XINC?", &xinc) != SR_OK) {
 			sr_err("Couldn't get sampling rate");
@@ -585,8 +585,8 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 			devc->digital_frame_size = buffer_samples_digital;
 		sr_spew(":ACQ:LA:MDEP? buffer_samples_digital=%d", buffer_samples_digital);
 		ch = devc->enabled_channels->data;
-		// Only digital channels, i.e. there is no need to adjust
-		// logic channel sample rate to match analog channel
+		/* Only digital channels, i.e. there is no need to adjust
+		 * logic channel sample rate to match analog channel */
 		if (ch->type == SR_CHANNEL_LOGIC)
 			devc->analog_frame_size = devc->digital_frame_size;
 	}
@@ -845,7 +845,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		// TODO: For the MSO1000Z series, we need a way to express that
 		// this data is in fact just for a single channel, with the valid
 		// data for that channel in the LSB of each byte.
-		// TODO: Check if else path (devc->data_logic != NULL) is suitable for V3 and V4
+		/* TODO: Check if else path (devc->data_logic != NULL) is suitable for V3 and V4 */
 		logic.unitsize = devc->model->series->protocol >= PROTOCOL_V4 ? 1 : 2;
 		logic.data = devc->buffer;
 		packet.type = SR_DF_LOGIC;

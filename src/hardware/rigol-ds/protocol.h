@@ -35,7 +35,7 @@
 #define ACQ_BLOCK_SIZE (30 * 1000)
 
 #define MAX_ANALOG_CHANNELS 4
-#define MAX_DIGITAL_CHANNELS 16	// Must be multiple of 8
+#define MAX_DIGITAL_CHANNELS 16	/* Must be multiple of 8 */
 
 enum protocol_version {
 	PROTOCOL_V1, /* VS5000 */
