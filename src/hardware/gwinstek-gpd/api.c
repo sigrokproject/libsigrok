@@ -21,6 +21,8 @@
 #include <string.h>
 #include "protocol.h"
 
+#define IDN_RETRIES 3 /* at least 2 */
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -117,12 +119,32 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	gpd_send_cmd(serial, "*IDN?\n");
-	if (gpd_receive_reply(serial, reply, sizeof(reply)) != SR_OK) {
-		sr_err("Device did not reply.");
+	/*
+	 * Problem: we need to clear the GPD receive buffer before we
+	 * can expect it to process commands correctly.
+	 *
+	 * Do not just send a newline, since that may cause it to
+	 * execute a currently buffered command.
+	 *
+	 * Solution: Send identification request a few times.
+	 * The first should corrupt any previous buffered command if present
+	 * and respond with "Invalid Character." or respond directly with
+	 * an identification string starting with "GW INSTEK"
+	 */
+	for (i = 0; i<IDN_RETRIES; ++i) {
+		/* Request the GPD to identify itself */
+		gpd_send_cmd(serial, "*IDN?\n");
+		if (gpd_receive_reply(serial, reply, sizeof(reply)) == SR_OK) {
+			if (0 == strncmp(reply, "GW INSTEK", 9 )) {
+				break;
+			}
+		}
+	}
+	if (i == IDN_RETRIES) {
+		sr_err("Device did not reply to identification request.");
+		serial_flush(serial);
 		goto error;
 	}
-	serial_flush(serial);
 
 	/*
 	 * Returned identification string is for example:
