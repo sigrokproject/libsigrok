@@ -131,8 +131,8 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 
 				reply[0] = '\0';
 				gpd_receive_reply(serial, reply, sizeof(reply));
-				if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1) {
-					sr_err("Invalid reply to VOUT1?: '%s'.",
+				if (sscanf(reply, "%f", &devc->config[i].output_current_last) != 1) {
+					sr_err("Invalid reply to IOUT1?: '%s'.",
 						reply);
 					return TRUE;
 				}
@@ -148,12 +148,12 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 				analog.meaning->mqflags = 0;
 				analog.encoding->digits = 3;
 				analog.spec->spec_digits = 3;
-				analog.data = &devc->config[i].output_current_max;
+				analog.data = &devc->config[i].output_current_last;
 				sr_session_send(sdi, &packet);
 
 				reply[0] = '\0';
 				gpd_receive_reply(serial, reply, sizeof(reply));
-				if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1) {
+				if (sscanf(reply, "%f", &devc->config[i].output_voltage_last) != 1) {
 					sr_err("Invalid reply to VOUT1?: '%s'.",
 						reply);
 					return TRUE;
@@ -170,7 +170,7 @@ SR_PRIV int gpd_receive_data(int fd, int revents, void *cb_data)
 				analog.meaning->mqflags = SR_MQFLAG_DC;
 				analog.encoding->digits = 3;
 				analog.spec->spec_digits = 3;
-				analog.data = &devc->config[i].output_voltage_max;
+				analog.data = &devc->config[i].output_voltage_last;
 				sr_session_send(sdi, &packet);
 			}
 
