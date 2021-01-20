@@ -366,7 +366,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
 					USB_CONFIGURATION, prof->firmware,
-					FALSE) == SR_OK) {
+					(prof->dev_caps & DEV_CAPS_FX3) != 0) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
 			} else {
