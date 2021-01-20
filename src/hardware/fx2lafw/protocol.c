@@ -190,9 +190,19 @@ SR_PRIV int fx2lafw_dev_open(struct sr_dev_inst *sdi, struct sr_dev_driver *di)
 			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
 				continue;
 
-			if (strcmp(sdi->connection_id, connection_id))
+			char const * _sdi_connection_id = sdi->connection_id;
+			char const * _connection_id = connection_id;
+
+			if (devc->profile->dev_caps & DEV_CAPS_FX3) {
+				_sdi_connection_id = strchr(_sdi_connection_id, '-');
+				_connection_id = strchr(connection_id, '-');
+			}
+
+			if (strcmp(_sdi_connection_id, _connection_id)) {
 				/* This is not the one. */
+				sr_info("Connection mismatch: %s vs. %s", sdi->connection_id, connection_id);
 				continue;
+			}
 		}
 
 		if (!(ret = libusb_open(devlist[i], &usb->devhdl))) {
