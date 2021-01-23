@@ -216,7 +216,8 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 			/* NULL-terminated string */
 			tmp_str = g_string_new("");
 			delay_ms = serial_timeout(serial, 1);
-			while (serial_read_blocking(serial, &tmp_c, 1, delay_ms) == 1 && tmp_c != '\0')
+			while (serial_read_blocking(serial, &tmp_c, 1, delay_ms) == 1
+					&& tmp_c != '\0')
 				g_string_append_c(tmp_str, tmp_c);
 			sr_dbg("Got metadata token 0x%.2x value '%s'.", key, tmp_str->str);
 			switch (key) {
@@ -537,7 +538,10 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-static int ols_set_basic_trigger_stage(const struct ols_basic_trigger_desc *trigger_desc, struct sr_serial_dev_inst *serial, int stage)
+static int ols_set_basic_trigger_stage(
+	const struct ols_basic_trigger_desc *trigger_desc,
+	struct sr_serial_dev_inst *serial,
+	int stage)
 {
 	uint8_t cmd, arg[4];
 
@@ -639,15 +643,19 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi) {
 	}
 
 	/* Flag register. */
-	sr_dbg("Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s, %s clock%s",
+	sr_dbg(
+			"Setting intpat %s, extpat %s, RLE %s, noise_filter %s, demux %s, "
+			"%s clock%s",
 			devc->capture_flags & CAPTURE_FLAG_INTERNAL_TEST_MODE ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_EXTERNAL_TEST_MODE ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_RLE ? "on" : "off",
 			devc->capture_flags & CAPTURE_FLAG_NOISE_FILTER ? "on": "off",
 			devc->capture_flags & CAPTURE_FLAG_DEMUX ? "on" : "off",
 			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? "external" : "internal",
-			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? (devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK
-				? " on falling edge" : "on rising edge") : "");
+			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL
+				? (devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK
+						? " on falling edge" : "on rising edge")
+				: "");
 
 	/*
 	 * Enable/disable OLS channel groups in the flag register according

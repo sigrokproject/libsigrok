@@ -49,8 +49,8 @@ static const int32_t trigger_matches[] = {
 };
 
 static const char* external_clock_edges[] = {
-	"rising", // positive edge
-	"falling" // negative edge
+	"rising", /* positive edge */
+	"falling" /* negative edge */
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -227,7 +227,8 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string(STR_PATTERN_NONE);
 		break;
 	case SR_CONF_RLE:
-		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
+		*data = g_variant_new_boolean(
+			devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(
