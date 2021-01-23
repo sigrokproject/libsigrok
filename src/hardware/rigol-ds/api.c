@@ -275,6 +275,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000Z), "DS1104Z-S", {5, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(DS1000Z), "DS1074Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(DS1000Z), "DS1104Z Plus", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DS1000Z), "DS1102Z-E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DS1000Z), "DS1202Z-E", {2, 1000000000}, CH_INFO(2, false), std_cmd},
 	{SERIES(DS1000Z), "MSO1074Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
