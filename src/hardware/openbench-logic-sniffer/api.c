@@ -43,14 +43,22 @@ static const uint32_t devopts[] = {
 	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const int32_t trigger_matches[] = {
+static const int32_t basic_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
 };
 
+static const int32_t advanced_trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
+};
+
 static const char* external_clock_edges[] = {
-	"rising", // positive edge
-	"falling" // negative edge
+	"rising", /* positive edge */
+	"falling" /* negative edge */
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -227,7 +235,8 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string(STR_PATTERN_NONE);
 		break;
 	case SR_CONF_RLE:
-		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
+		*data = g_variant_new_boolean(
+			devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(
@@ -336,7 +345,7 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = sdi ? sdi->priv : NULL;
 	int num_ols_changrp, i;
 
 	switch (key) {
@@ -347,7 +356,12 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		if (!devc)
+			return SR_ERR_ARG;
+		/* Advanced Triggering is only available on the Demon Core. */
+		*data = devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE
+			? std_gvar_array_i32(ARRAY_AND_SIZE(advanced_trigger_matches))
+			: std_gvar_array_i32(ARRAY_AND_SIZE(basic_trigger_matches));
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = std_gvar_array_str(ARRAY_AND_SIZE(external_clock_edges));
@@ -356,11 +370,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (!sdi)
+		if (!devc)
 			return SR_ERR_ARG;
-		devc = sdi->priv;
-		if (devc->capture_flags & CAPTURE_FLAG_RLE)
-			return SR_ERR_NA;
 		if (devc->max_samples == 0)
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
@@ -399,24 +410,25 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(serial, CMD_ARM_BASIC_TRIGGER) != SR_OK)
+	if (send_shortcommand(serial, devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE
+			? CMD_ARM_ADVANCED_TRIGGER : CMD_ARM_BASIC_TRIGGER) != SR_OK)
 		return SR_ERR;
 
 	/* Reset all operational states. */
-	devc->rle_count = devc->num_transfers = 0;
-	devc->num_samples = devc->num_bytes = 0;
-	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
-	memset(devc->sample, 0, 4);
+	devc->rle_count = 0;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
+	devc->cnt_samples = devc->raw_sample_size = 0;
+	devc->cnt_rx_bytes = devc->cnt_rx_raw_samples = 0;
+	memset(devc->raw_sample, 0, 4);
 
 	std_session_send_df_header(sdi);
 
 	/* If the device stops sending for longer than it takes to send a byte,
-	 * that means it's finished. But wait at least 100 ms to be safe.
+	 * that means it's finished. Since the device can be used over a slow
+	 * network link, give it 10 seconds to reply.
 	 */
-	serial_source_add(sdi->session, serial, G_IO_IN, 100,
+	return serial_source_add(sdi->session, serial, G_IO_IN, 10*1000,
 			ols_receive_data, (struct sr_dev_inst *)sdi);
-
-	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)

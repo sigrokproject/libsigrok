@@ -63,6 +63,15 @@ struct zip_stat;
 #define SR_RECEIVE_DATA_CALLBACK(f) \
 	((sr_receive_data_callback) (void (*)(void)) (f))
 
+
+/* Shorthand to bail out early if an error occurs. Does no clean-up. */
+#define RETURN_ON_ERROR(statement) \
+	do{ \
+		int retval; \
+		if ((retval=(statement)) != SR_OK)\
+			return retval; \
+	} while(0)
+
 /**
  * Read a 8 bits unsigned integer out of memory.
  * @param x a pointer to the input memory

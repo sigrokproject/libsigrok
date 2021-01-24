@@ -28,10 +28,13 @@
 
 #define LOG_PREFIX "openbench-logic-sniffer"
 
-#define NUM_BASIC_TRIGGER_STAGES   4
-#define CLOCK_RATE                 SR_MHZ(100)
-#define MIN_NUM_SAMPLES            4
-#define DEFAULT_SAMPLERATE         SR_KHZ(200)
+#define NUM_BASIC_TRIGGER_STAGES     4
+#define NUM_ADVANCED_TRIGGER_STAGES  15
+#define NUM_ADVANCED_EDGE_TRIGGERS   2
+#define NUM_ADVANCED_LEVEL_TRIGGERS  10
+#define CLOCK_RATE                   SR_MHZ(100)
+#define MIN_NUM_SAMPLES              4
+#define DEFAULT_SAMPLERATE           SR_KHZ(200)
 
 /* Command opcodes */
 #define CMD_RESET                     0x00
@@ -112,19 +115,18 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 	int trigger_at_smpl;
+	int trigger_rle_at_smpl_from_end;
 	uint16_t capture_flags;
 
-	unsigned int num_transfers;
-	unsigned int num_samples;
-	int num_bytes;
-	int cnt_bytes;
-	int cnt_samples;
-	int cnt_samples_rle;
+	unsigned int cnt_rx_bytes; /* number of bytes received */
+	unsigned int raw_sample_size; /* valid bytes in sample[4] */
+	unsigned char raw_sample[4]; /* raw sample, assembled from received bytes */
+	unsigned int cnt_rx_raw_samples; /* number of raw samples received */
 
-	unsigned int rle_count;
-	unsigned char sample[4];
-	unsigned char tmp_sample[4];
-	unsigned char *raw_sample_buf;
+	uint64_t rle_count;
+	unsigned char *sample_buf;
+	unsigned int sample_buf_size;
+	uint64_t cnt_samples; /* number of final samples in sample_buf */
 };
 
 SR_PRIV extern const char *ols_channel_names[];
