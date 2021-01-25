@@ -1,6 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
+ * Copyright (C) 2021 Richard Allen <rsaxvc@rsaxvc.net>
  * Copyright (C) 2015 Martin Lederhilger <martin.lederhilger@gmx.at>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,8 +36,9 @@ static const uint32_t devopts[] = {
 };
 
 static struct sr_dev_driver gwinstek_gds_800_driver_info;
+static struct sr_dev_driver gwinstek_gds_2000_driver_info;
 
-static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi, struct sr_dev_driver *driver_info)
 {
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
@@ -49,7 +51,8 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	if (strcmp(hw_info->manufacturer, "GW") != 0 ||
-	    strncmp(hw_info->model, "GDS-8", 5) != 0) {
+		!(strncmp(hw_info->model, "GDS-8", 5) == 0 ||
+		  strncmp(hw_info->model, "GDS-2", 5) == 0 )) {
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
@@ -59,7 +62,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->model = g_strdup(hw_info->model);
 	sdi->version = g_strdup(hw_info->firmware_version);
 	sdi->conn = scpi;
-	sdi->driver = &gwinstek_gds_800_driver_info;
+	sdi->driver = driver_info;
 	sdi->inst_type = SR_INST_SCPI;
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 	sdi->channels = NULL;
@@ -71,24 +74,54 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc->frame_limit = 1;
 	devc->sample_rate = 0.0;
 	devc->df_started = FALSE;
+	if ((strncmp(sdi->model, "GDS-2", 5) == 0) &&
+		(strlen(sdi->model) == 8) &&
+		(sdi->model[7] == '4')) {
+		devc->num_acq_channel = 4;
+	} else {
+		devc->num_acq_channel = 2;
+	}
 	sdi->priv = devc;
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "CH2");
+	if( devc->num_acq_channel == 4 ) {
+		sr_channel_new(sdi, 2, SR_CHANNEL_ANALOG, TRUE, "CH3");
+		sr_channel_new(sdi, 3, SR_CHANNEL_ANALOG, TRUE, "CH4");
+	}
 
 	cg = g_malloc0(sizeof(struct sr_channel_group));
 	cg->name = g_strdup("");
 	cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 0));
 	cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 1));
+	if( devc->num_acq_channel == 4 ) {
+		cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 2));
+		cg->channels = g_slist_append(cg->channels, g_slist_nth_data(sdi->channels, 3));
+	}
 	cg->priv = NULL;
 	sdi->channel_groups = g_slist_append(NULL, cg);
 
 	return sdi;
 }
 
-static GSList *scan(struct sr_dev_driver *di, GSList *options)
+static struct sr_dev_inst *probe_device800(struct sr_scpi_dev_inst *scpi)
 {
-	return sr_scpi_scan(di->context, options, probe_device);
+	return probe_device(scpi, &gwinstek_gds_800_driver_info);
+}
+
+static struct sr_dev_inst *probe_device2000(struct sr_scpi_dev_inst *scpi)
+{
+	return probe_device(scpi, &gwinstek_gds_2000_driver_info);
+}
+
+static GSList *scan800(struct sr_dev_driver *di, GSList *options)
+{
+	return sr_scpi_scan(di->context, options, probe_device800);
+}
+
+static GSList *scan2000(struct sr_dev_driver *di, GSList *options)
+{
+	return sr_scpi_scan(di->context, options, probe_device2000);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -213,7 +246,7 @@ static struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
-	.scan = scan,
+	.scan = scan800,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
 	.config_get = config_get,
@@ -226,3 +259,23 @@ static struct sr_dev_driver gwinstek_gds_800_driver_info = {
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(gwinstek_gds_800_driver_info);
+
+static struct sr_dev_driver gwinstek_gds_2000_driver_info = {
+	.name = "gwinstek-gds-2000",
+	.longname = "GW Instek GDS-2000 series",
+	.api_version = 1,
+	.init = std_init,
+	.cleanup = std_cleanup,
+	.scan = scan2000,
+	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
+	.config_get = config_get,
+	.config_set = config_set,
+	.config_list = config_list,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.context = NULL,
+};
+SR_REGISTER_DEV_DRIVER(gwinstek_gds_2000_driver_info);

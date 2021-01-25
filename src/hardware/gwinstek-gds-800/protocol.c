@@ -1,6 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
+ * Copyright (C) 2021 Richard Allen <rsaxvc@rsaxvc.net>
  * Copyright (C) 2015 Martin Lederhilger <martin.lederhilger@gmx.at>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,7 +22,6 @@
 #include <math.h>
 #include <string.h>
 
-#define ANALOG_CHANNELS 2
 #define VERTICAL_DIVISIONS 10
 
 static int read_data(struct sr_dev_inst *sdi,
@@ -129,7 +129,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			devc->cur_rcv_buffer_position = 0;
 		} else {
 			/* All channels acquired. */
-			if (devc->cur_acq_channel == ANALOG_CHANNELS - 1) {
+			if (devc->cur_acq_channel == devc->num_acq_channel - 1) {
 				sr_spew("All channels acquired.");
 
 				if (devc->cur_acq_frame == devc->frame_limit - 1) {
@@ -254,7 +254,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 		g_slist_free(analog.meaning->channels);
 
 		/* All channels acquired. */
-		if (devc->cur_acq_channel == ANALOG_CHANNELS - 1) {
+		if (devc->cur_acq_channel == devc->num_acq_channel - 1) {
 			sr_spew("All channels acquired.");
 
 			if (devc->cur_acq_frame == devc->frame_limit - 1) {

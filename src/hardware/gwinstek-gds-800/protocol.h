@@ -1,6 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
+ * Copyright (C) 2021 Richard Allen <rsaxvc@rsaxvc.net>
  * Copyright (C) 2015 Martin Lederhilger <martin.lederhilger@gmx.at>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,9 +27,10 @@
 #include "libsigrok-internal.h"
 #include "scpi.h"
 
-#define LOG_PREFIX "gwinstek-gds-800"
+#define LOG_PREFIX "gwinstek-gds"
 
 #define MAX_SAMPLES 125000
+#define MAX_CHANNELS 4
 #define MAX_RCV_BUFFER_SIZE (MAX_SAMPLES * 2)
 
 enum gds_state
@@ -49,6 +51,7 @@ struct dev_context {
 	uint64_t cur_acq_frame;
 	uint64_t frame_limit;
 	int cur_acq_channel;
+	int num_acq_channel;
 	int cur_rcv_buffer_position;
 	char rcv_buffer[MAX_RCV_BUFFER_SIZE];
 	int data_size_digits;
