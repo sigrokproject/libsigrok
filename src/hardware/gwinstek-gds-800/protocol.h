@@ -29,6 +29,7 @@
 
 #define LOG_PREFIX "gwinstek-gds"
 
+#define VERTICAL_DIVISIONS 10
 #define MAX_SAMPLES 125000
 #define MAX_CHANNELS 4
 #define MAX_RCV_BUFFER_SIZE (MAX_SAMPLES * 2)
@@ -52,14 +53,17 @@ struct dev_context {
 	uint64_t frame_limit;
 	int cur_acq_channel;
 	int num_acq_channel;
+	struct sr_channel_group **analog_groups;
 	int cur_rcv_buffer_position;
 	char rcv_buffer[MAX_RCV_BUFFER_SIZE];
 	int data_size_digits;
 	int data_size;
 	float sample_rate;
 	gboolean df_started;
+	float vdivs[MAX_CHANNELS];
 };
 
 SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int gwinstek_gds_800_fetch_volts_per_div(struct sr_scpi_dev_inst *scpi, int channel, float * output);
 
 #endif
