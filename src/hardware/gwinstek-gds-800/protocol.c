@@ -22,8 +22,6 @@
 #include <math.h>
 #include <string.h>
 
-#define VERTICAL_DIVISIONS 10
-
 static int read_data(struct sr_dev_inst *sdi,
 		struct sr_scpi_dev_inst *scpi, struct dev_context *devc,
 		int data_size)
@@ -68,6 +66,26 @@ static int read_data(struct sr_dev_inst *sdi,
 	}
 }
 
+SR_PRIV int gwinstek_gds_800_fetch_volts_per_div(struct sr_scpi_dev_inst *scpi, int channel, float * output)
+{
+	char command[32];
+	char *response;
+	char *end_ptr;
+
+	/* Fetch data needed for conversion from device. */
+	snprintf(command, sizeof(command), ":CHAN%d:SCAL?", channel + 1);
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK) {
+		sr_err("Failed to get volts per division.");
+		return SR_ERR;
+	}
+	*output = g_ascii_strtod(response, &end_ptr);
+	if (!strcmp(end_ptr, "mV"))
+		*output *= 1.e-3;
+	g_free(response);
+	return SR_OK;
+}
+
+
 SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -78,13 +96,10 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	char command[32];
-	char *response;
 	float volts_per_division;
 	int num_samples, i;
 	float samples[MAX_SAMPLES];
 	uint32_t sample_rate;
-	char *end_ptr;
 
 	(void)fd;
 
@@ -174,7 +189,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			devc->rcv_buffer[0] != '5' &&
 			devc->rcv_buffer[0] != '6') {
 			sr_err("Data size digits is not 4, 5 or 6 but "
-			       "'%c'.", devc->rcv_buffer[0]);
+			   "'%c'.", devc->rcv_buffer[0]);
 			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		} else {
@@ -223,17 +238,11 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			break;
 
 		/* Fetch data needed for conversion from device. */
-		snprintf(command, sizeof(command), ":CHAN%d:SCAL?",
-				devc->cur_acq_channel + 1);
-		if (sr_scpi_get_string(scpi, command, &response) != SR_OK) {
+		if (gwinstek_gds_800_fetch_volts_per_div(sdi->conn, devc->cur_acq_channel, &volts_per_division) != SR_OK) {
 			sr_err("Failed to get volts per division.");
 			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		}
-		volts_per_division = g_ascii_strtod(response, &end_ptr);
-		if (!strcmp(end_ptr, "mV"))
-			volts_per_division *= 1.e-3;
-		g_free(response);
 
 		num_samples = (devc->data_size - 8) / 2;
 		sr_spew("Received %d number of samples from channel "
