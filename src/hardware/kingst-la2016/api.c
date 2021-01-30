@@ -534,14 +534,8 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 	do_signal_trigger = 0;
 
 	if (devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
-		sr_packet.type = SR_DF_TRIGGER;
-		sr_packet.payload = NULL;
-		sr_session_send(sdi, &sr_packet);
+		std_session_send_df_trigger(sdi);
 		devc->reading_behind_trigger = 1;
-
-		do_signal_trigger = 0;
-		sr_packet.type = SR_DF_LOGIC;
-		sr_packet.payload = &logic;
 	}
 
 	for (i = 0; i < num_tfers; i++) {
@@ -556,13 +550,8 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 				n_samples = 0;
 				wp = (uint16_t*)devc->convbuffer;
 				if (do_signal_trigger) {
-					sr_packet.type = SR_DF_TRIGGER;
-					sr_packet.payload = NULL;
-					sr_session_send(sdi, &sr_packet);
-					
+					std_session_send_df_trigger(sdi);
 					do_signal_trigger = 0;
-					sr_packet.type = SR_DF_LOGIC;
-					sr_packet.payload = &logic;
 				}
 			}
 			p = packet->packet + k;
@@ -588,9 +577,7 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 		logic.length = n_samples * 2;
 		sr_session_send(sdi, &sr_packet);
 		if (do_signal_trigger) {
-			sr_packet.type = SR_DF_TRIGGER;
-			sr_packet.payload = NULL;
-			sr_session_send(sdi, &sr_packet);
+			std_session_send_df_trigger(sdi);
 		}
 	}
 	sr_dbg("send_chunk done after %d samples", total_samples);
@@ -641,7 +628,6 @@ static int handle_event(int fd, int revents, void *cb_data)
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct drv_context *drvc;
-	struct sr_datafeed_packet packet;
 	struct timeval tv;
 
 	(void)fd;
@@ -666,8 +652,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 			return FALSE;
 		}
 		sr_dbg("retrieval is started...");
-		packet.type = SR_DF_FRAME_BEGIN;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_begin(sdi);
 
 		return TRUE;
 	}
@@ -677,8 +662,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 	if (devc->transfer_finished) {
 		sr_dbg("transfer is finished!");
-		packet.type = SR_DF_FRAME_END;
-		sr_session_send(sdi, &packet);
+		std_session_send_df_frame_end(sdi);
 
 		usb_source_remove(sdi->session, drvc->sr_ctx);
 		std_session_send_df_end(sdi);
