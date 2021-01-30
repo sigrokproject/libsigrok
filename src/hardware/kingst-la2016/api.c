@@ -507,17 +507,18 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsigned int num_tfers)
+static void send_chunk(struct sr_dev_inst *sdi, const uint8_t *packets, unsigned int num_tfers)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_packet sr_packet;
-	transfer_packet_t *packet;
-	acq_packet_t *p;
-	unsigned int max_samples, n_samples, total_samples, free_n_samples, ptotal;
+	unsigned int max_samples, n_samples, total_samples, free_n_samples;
 	unsigned int i, j, k;
 	int do_signal_trigger;
 	uint16_t *wp;
+	const uint8_t *rp;
+	uint16_t state;
+	uint8_t repetitions;
 
 	devc = sdi->priv;
 
@@ -538,11 +539,9 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 		devc->reading_behind_trigger = 1;
 	}
 
+	rp = packets;
 	for (i = 0; i < num_tfers; i++) {
-		transfer_packet_host(packets[i]);
-		packet = packets + i;
-		ptotal = 0;
-		for (k = 0; k < ARRAY_SIZE(packet->packet); k++) {
+		for (k = 0; k < NUM_PACKETS_IN_CHUNK; k++) {
 			free_n_samples = max_samples - n_samples;
 			if (free_n_samples < 256 || do_signal_trigger) {
 				logic.length = n_samples * 2;
@@ -554,13 +553,15 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 					do_signal_trigger = 0;
 				}
 			}
-			p = packet->packet + k;
-			for (j = 0; j < p->repetitions; j++)
-				*(wp++) = p->state;
-			n_samples += p->repetitions;
-			total_samples += p->repetitions;
-			ptotal += p->repetitions;
-			devc->total_samples += p->repetitions;
+
+			state = read_u16le_inc(&rp);
+			repetitions = read_u8_inc(&rp);
+			for (j = 0; j < repetitions; j++)
+				*(wp++) = state;
+
+			n_samples += repetitions;
+			total_samples += repetitions;
+			devc->total_samples += repetitions;
 			if (!devc->reading_behind_trigger) {
 				devc->n_reps_until_trigger --;
 				if (devc->n_reps_until_trigger == 0) {
@@ -572,6 +573,7 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 				}
 			}
 		}
+		(void)read_u8_inc(&rp); /* Skip sequence number. */
 	}
 	if (n_samples) {
 		logic.length = n_samples * 2;
@@ -601,7 +603,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		sr_err("bulk transfer timeout!");
 		devc->transfer_finished = 1;
 	}
-	send_chunk(sdi, (transfer_packet_t*)transfer->buffer, transfer->actual_length / sizeof(transfer_packet_t));
+	send_chunk(sdi, transfer->buffer, transfer->actual_length / TRANSFER_PACKET_LENGTH);
 
 	devc->n_bytes_to_read -= transfer->actual_length;
 	if (devc->n_bytes_to_read) {
