@@ -511,7 +511,7 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 {
 	struct dev_context *devc;
 	struct sr_datafeed_logic logic;
-	struct sr_datafeed_packet sr_packet;
+	struct sr_datafeed_packet sr_packet, sr_trigger;
 	transfer_packet_t *packet;
 	acq_packet_t *p;
 	unsigned int max_samples, n_samples, total_samples, free_n_samples, ptotal;
@@ -526,6 +526,8 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 
 	sr_packet.type = SR_DF_LOGIC;
 	sr_packet.payload = &logic;
+	sr_trigger.type = SR_DF_TRIGGER;
+	sr_trigger.payload = NULL;
 
 	max_samples = devc->convbuffer_size / 2;
 	n_samples = 0;
@@ -534,14 +536,8 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 	do_signal_trigger = 0;
 
 	if (devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
-		sr_packet.type = SR_DF_TRIGGER;
-		sr_packet.payload = NULL;
-		sr_session_send(sdi, &sr_packet);
+		sr_session_send(sdi, &sr_trigger);
 		devc->reading_behind_trigger = 1;
-
-		do_signal_trigger = 0;
-		sr_packet.type = SR_DF_LOGIC;
-		sr_packet.payload = &logic;
 	}
 
 	for (i = 0; i < num_tfers; i++) {
@@ -556,13 +552,8 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 				n_samples = 0;
 				wp = (uint16_t*)devc->convbuffer;
 				if (do_signal_trigger) {
-					sr_packet.type = SR_DF_TRIGGER;
-					sr_packet.payload = NULL;
-					sr_session_send(sdi, &sr_packet);
-					
+					sr_session_send(sdi, &sr_trigger);					
 					do_signal_trigger = 0;
-					sr_packet.type = SR_DF_LOGIC;
-					sr_packet.payload = &logic;
 				}
 			}
 			p = packet->packet + k;
@@ -588,9 +579,7 @@ static void send_chunk(struct sr_dev_inst *sdi, transfer_packet_t *packets, unsi
 		logic.length = n_samples * 2;
 		sr_session_send(sdi, &sr_packet);
 		if (do_signal_trigger) {
-			sr_packet.type = SR_DF_TRIGGER;
-			sr_packet.payload = NULL;
-			sr_session_send(sdi, &sr_packet);
+			sr_session_send(sdi, &sr_trigger);
 		}
 	}
 	sr_dbg("send_chunk done after %d samples", total_samples);
