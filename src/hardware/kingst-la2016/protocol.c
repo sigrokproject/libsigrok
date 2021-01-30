@@ -241,6 +241,8 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	pwm_setting_dev_t cfg;
 	pwm_setting_t *setting;
 	int ret;
+	uint8_t buf[8];
+	uint8_t *wrptr = buf;
 
 	devc = sdi->priv;
 
@@ -261,8 +263,9 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	cfg.duty = (uint32_t)(0.5f + (cfg.period * duty / 100.));
 	sr_dbg("set pwm%d period %d, duty %d", which, cfg.period, cfg.duty);
 
-	pwm_setting_dev_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, &cfg, sizeof(cfg));
+	write_u32le_inc(&wrptr, cfg.period);
+	write_u32le_inc(&wrptr, cfg.duty);
+	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, buf, sizeof(buf));
 	if (ret != SR_OK) {
 		sr_err("error setting new pwm%d config %d %d", which, cfg.period, cfg.duty);
 		return ret;
@@ -270,7 +273,6 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	setting = &devc->pwm_setting[which - 1];
 	setting->freq = freq;
 	setting->duty = duty;
-	setting->dev = cfg;
 
 	return SR_OK;
 }
@@ -321,6 +323,8 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	struct sr_trigger_match *match;
 	uint16_t ch_mask;
 	int ret;
+	uint8_t buf[16];
+	uint8_t *wrptr = buf;
 
 	devc = sdi->priv;
 	trigger = sr_session_trigger_get(sdi->session);
@@ -381,8 +385,11 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 
 	devc->had_triggers_configured = cfg.enabled != 0;
 
-	trigger_cfg_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, &cfg, sizeof(cfg));
+	write_u32le_inc(&wrptr, cfg.channels);
+	write_u32le_inc(&wrptr, cfg.enabled);
+	write_u32le_inc(&wrptr, cfg.level);
+	write_u32le_inc(&wrptr, cfg.high_or_falling);
+	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, buf, sizeof(buf));
 	if (ret != SR_OK) {
 		sr_err("error setting trigger config!");
 		return ret;
@@ -394,11 +401,13 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	sample_config_t cfg;
 	double clock_divisor;
 	uint64_t psa;
 	uint64_t total;
 	int ret;
+	uint16_t divisor;
+	uint8_t buf[16];
+	uint8_t *wrptr = buf;
 
 	devc = sdi->priv;
 	total = 128 * 1024 * 1024;
@@ -411,27 +420,27 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	clock_divisor = MAX_SAMPLE_RATE / (double)devc->cur_samplerate;
 	if (clock_divisor > 0xffff)
 		clock_divisor = 0xffff;
-	cfg.clock_divisor = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = MAX_SAMPLE_RATE / cfg.clock_divisor;
+	divisor = (uint16_t)(clock_divisor + 0.5);
+	devc->cur_samplerate = MAX_SAMPLE_RATE / divisor;
 
 	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
 		sr_err("too high sample depth: %" PRIu64, devc->limit_samples);
 		return SR_ERR;
 	}
-	cfg.sample_depth = devc->limit_samples;
 
 	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
 
-	psa = devc->pre_trigger_size * 256;
-	cfg.psa = (uint32_t)(psa & 0xffffffff);
-	cfg.u1  = (uint16_t)((psa >> 32) & 0xffff);
-	cfg.u2 = (uint32_t)((total * devc->capture_ratio) / 100);
-
 	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
-	       devc->cur_samplerate/1e3, (unsigned int)cfg.sample_depth, (unsigned int)devc->capture_ratio);
+	       devc->cur_samplerate/1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
 
-	sample_config_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, &cfg, sizeof(cfg));
+	psa = devc->pre_trigger_size * 256;
+	write_u32le_inc(&wrptr, devc->limit_samples);
+	write_u32le_inc(&wrptr, psa & 0xffffffff);
+	write_u16le_inc(&wrptr, (psa >> 32) & 0xffff);
+	write_u32le_inc(&wrptr, (total * devc->capture_ratio) / 100);
+	write_u16le_inc(&wrptr, clock_divisor);
+
+	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, buf, sizeof(buf));
 	if (ret != SR_OK) {
 		sr_err("error setting sample config!");
 		return ret;
@@ -478,14 +487,19 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
+	uint8_t buf[12];
+	const uint8_t *rdptr = buf;
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, 32, CTRL_BULK, 0, &devc->info, sizeof(devc->info))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 32, CTRL_BULK, 0, buf, sizeof(buf))) != SR_OK) {
 		sr_err("failed to read capture info!");
 		return ret;
 	}
-	capture_info_host(devc->info);
+
+	devc->info.n_rep_packets = read_u32le_inc(&rdptr);
+	devc->info.n_rep_packets_before_trigger = read_u32le_inc(&rdptr);
+	devc->info.write_pos = read_u32le_inc(&rdptr);
 
 	sr_dbg("capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d",
 	       devc->info.n_rep_packets, devc->info.n_rep_packets,
@@ -573,8 +587,8 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	if ((ret = get_capture_info(sdi)) != SR_OK)
 		return ret;
 
-	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / 5;
-	devc->n_bytes_to_read = devc->n_transfer_packets_to_read * sizeof(transfer_packet_t);
+	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / NUM_PACKETS_IN_CHUNK;
+	devc->n_bytes_to_read = devc->n_transfer_packets_to_read * TRANSFER_PACKET_LENGTH;
 	devc->read_pos = devc->info.write_pos - devc->n_bytes_to_read;
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
