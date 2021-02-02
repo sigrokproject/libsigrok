@@ -1057,10 +1057,10 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 };
 
 static const struct channel_spec rs_hmp4040_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec rs_hmp4040_cg[] = {
