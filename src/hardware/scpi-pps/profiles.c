@@ -1056,6 +1056,17 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
+static const struct channel_spec rs_hmp2020_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_spec rs_hmp2030_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
 static const struct channel_spec rs_hmp4040_ch[] = {
 	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
@@ -1433,6 +1444,26 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
 		ARRAY_AND_SIZE(rs_hmp4040_ch),
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
+		rs_hmp4040_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "ROHDE&SCHWARZ", "HMP2020", SCPI_DIALECT_HMP, 0,
+		ARRAY_AND_SIZE(rs_hmp4040_devopts),
+		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
+		rs_hmp2020_ch, 2,
+		rs_hmp4040_cg, 2,
+		rs_hmp4040_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "ROHDE&SCHWARZ", "HMP2030", SCPI_DIALECT_HMP, 0,
+		ARRAY_AND_SIZE(rs_hmp4040_devopts),
+		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
+		rs_hmp2030_ch, 3,
+		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
