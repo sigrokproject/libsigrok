@@ -155,7 +155,7 @@ static const uint64_t averages[] = {
 
 /* Do not change the order of entries. */
 static const char *data_sources[] = {
-	"Display",
+	"Screen",
 	"History",
 };
 
@@ -677,7 +677,7 @@ static int config_set(uint32_t key, GVariant *data,
 		return ret;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Display"))
+		if (!strcmp(tmp_str, "Screen"))
 			devc->data_source = DATA_SOURCE_SCREEN;
 		else if (devc->model->series->protocol >= SPO_MODEL
 			&& !strcmp(tmp_str, "History"))
