@@ -36,6 +36,15 @@
 #include "scpi.h"
 #include "protocol.h"
 
+/* Siglent USBTMC notes
+ *
+ * USBTMC packet size is 64 bytes. In other words, a read will never return more
+ * than 64 bytes. In addition, Siglent has an internal USBTMC buffer,
+ * show_send_buffer_size, which is set to 61440 bytes (source: some uboot logs from eevblog).
+ * This means that every 61440 bytes the read will fail (returns -1) while the buffer is being
+ * refilled.
+*/
+
 /* Set the next event to wait for in siglent_sds_receive(). */
 static void siglent_sds_set_wait_event(struct dev_context *devc, enum wait_events event)
 {
@@ -314,18 +323,37 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 	char *buf = (char *)devc->buffer;
-	int ret, desc_length;
+	int desc_length;
 	int block_offset = 15; /* Offset for descriptor block. */
 	long data_length = 0;
+	int header_bytes_read_total = 0;
+	int header_bytes_read;
 
-	/* Read header from device. */
-	ret = sr_scpi_read_data(scpi, buf, SIGLENT_HEADER_SIZE);
-	if (ret < SIGLENT_HEADER_SIZE) {
-		sr_err("Read error while reading data header.");
-		return SR_ERR;
-	}
-	sr_dbg("Device returned %i bytes.", ret);
-	devc->num_header_bytes += ret;
+	/* Read header from device.
+	* USBTMC packet is limited to 64 bytes (52 bytes per packet), so we read it with a loop
+	*/
+	do {
+		sr_dbg("Reading header..");
+		header_bytes_read = sr_scpi_read_data(
+			scpi,
+			buf + header_bytes_read_total,
+			SIGLENT_HEADER_SIZE - header_bytes_read_total
+		);
+		if (header_bytes_read == -1) {
+			sr_err("Read error");
+			return SR_ERR;
+		} else if (header_bytes_read == 0) {
+			sr_err("No data");
+			return SR_ERR;
+		}
+		sr_dbg("Got %d bytes", header_bytes_read);
+		header_bytes_read_total += header_bytes_read;
+
+	} while (header_bytes_read_total < SIGLENT_HEADER_SIZE);
+
+	sr_dbg("Device returned %i bytes.", header_bytes_read_total);
+
+	devc->num_header_bytes += (unsigned long) header_bytes_read_total;
 	buf += block_offset; /* Skip to start descriptor block. */
 
 	/* Parse WaveDescriptor header. */
@@ -335,9 +363,9 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 	devc->block_header_size = desc_length + 15;
 	devc->num_samples = data_length;
 
-	sr_dbg("Received data block header: '%s' -> block length %d.", buf, ret);
+	sr_dbg("Received data block header: '%s' -> block length %d.", buf, header_bytes_read_total);
 
-	return ret;
+	return header_bytes_read_total;
 }
 
 static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_channel *ch)
@@ -470,6 +498,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	struct sr_channel *ch;
 	int len, i;
+	int retry_count;
 	float wait;
 	gboolean read_complete = FALSE;
 
@@ -566,13 +595,22 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 					len = devc->num_samples;
 				} else {
 					sr_dbg("Requesting: %" PRIu64 " bytes.", devc->num_samples - devc->num_block_bytes);
-					len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples-devc->num_block_bytes);
-					if (len == -1) {
-						sr_err("Read error, aborting capture.");
-						std_session_send_df_frame_end(sdi);
-						sdi->driver->dev_acquisition_stop(sdi);
-						return TRUE;
-					}
+					/* Retry because USBTMC will return -1 every 61440 bytes while it fills the send buffer */
+					retry_count = 0;
+					do {
+						len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples-devc->num_block_bytes);
+						if (len == -1) {
+							if (retry_count > 5) {
+								sr_err("Read error, aborting capture.");
+								std_session_send_df_frame_end(sdi);
+								sdi->driver->dev_acquisition_stop(sdi);
+								return TRUE;
+							}
+							retry_count++;
+							g_usleep(200000);
+
+						}
+					} while (len == -1);
 					devc->num_block_read++;
 					devc->num_block_bytes += len;
 				}
