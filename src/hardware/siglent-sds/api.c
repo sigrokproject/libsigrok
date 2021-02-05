@@ -54,6 +54,14 @@ static const uint32_t devopts[] = {
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint32_t eseries_devopts[] = {
+	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_NUM_HDIV | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
 static const uint32_t devopts_cg_analog[] = {
 	SR_CONF_NUM_VDIV | SR_CONF_GET,
 	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -157,6 +165,13 @@ static const uint64_t averages[] = {
 static const char *data_sources[] = {
 	"Display",
 	"History",
+};
+
+/* Do not change the order of entries. */
+static const char *eseries_data_sources[] = {
+	"Single",
+	"History",
+	"Read-only",
 };
 
 enum vendor {
@@ -304,6 +319,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->limit_frames = 1;
 	devc->model = model;
+	devc->acq_error = FALSE;
 
 	sr_scpi_hw_info_free(hw_info);
 
@@ -352,7 +368,14 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sr_dbg("Setting device context buffer size: %i.", devc->model->series->buffer_samples);
 	devc->data = g_malloc(devc->model->series->buffer_samples * sizeof(float));
 
-	devc->data_source = DATA_SOURCE_SCREEN;
+	switch (devc->model->series->protocol) {
+	case ESERIES:
+		devc->data_source = DATA_SOURCE_SINGLE;
+		break;
+	default:
+		devc->data_source = DATA_SOURCE_SCREEN;
+		break;
+	}
 
 	sdi->priv = devc;
 
@@ -432,16 +455,27 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->limit_frames);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		if (devc->data_source == DATA_SOURCE_SCREEN)
+		switch (devc->data_source) {
+		case DATA_SOURCE_SCREEN:
 			*data = g_variant_new_string("Screen");
-		else if (devc->data_source == DATA_SOURCE_HISTORY)
+			break;
+		case DATA_SOURCE_HISTORY:
 			*data = g_variant_new_string("History");
+			break;
+		case DATA_SOURCE_SINGLE:
+			*data = g_variant_new_string("Single");
+			break;
+		case DATA_SOURCE_READ_ONLY:
+			*data = g_variant_new_string("Read-only");
+			break;
+		}
 		break;
 	case SR_CONF_SAMPLERATE:
 		siglent_sds_get_dev_cfg_horizontal(sdi);
 		*data = g_variant_new_uint64(devc->samplerate);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		// TODO support CH3, CH4?
 		if (!strcmp(devc->trigger_source, "ACL"))
 			tmp_str = "AC Line";
 		else if (!strcmp(devc->trigger_source, "CHAN1"))
@@ -608,6 +642,7 @@ static int config_set(uint32_t key, GVariant *data,
 		g_free(cmd);
 		return ret;
 	case SR_CONF_TRIGGER_SOURCE:
+		// TODO should only set channels that are enabled?
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(trigger_sources))) < 0)
 			return SR_ERR_ARG;
 		g_free(devc->trigger_source);
@@ -679,14 +714,31 @@ static int config_set(uint32_t key, GVariant *data,
 		return ret;
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
-		if (!strcmp(tmp_str, "Display"))
-			devc->data_source = DATA_SOURCE_SCREEN;
-		else if (devc->model->series->protocol >= SPO_MODEL
-			&& !strcmp(tmp_str, "History"))
-			devc->data_source = DATA_SOURCE_HISTORY;
-		else {
-			sr_err("Unknown data source: '%s'.", tmp_str);
-			return SR_ERR;
+		switch (devc->model->series->protocol) {
+		case ESERIES:
+			if (!strcmp(tmp_str, "Single"))
+				devc->data_source = DATA_SOURCE_SINGLE;
+			else if (!strcmp(tmp_str, "History"))
+				devc->data_source = DATA_SOURCE_HISTORY;
+			else if (!strcmp(tmp_str, "Read-only"))
+				devc->data_source = DATA_SOURCE_READ_ONLY;
+			else {
+				sr_err("Unknown data source: '%s'.", tmp_str);
+				return SR_ERR;
+			}
+			break;
+
+		default:
+			if (!strcmp(tmp_str, "Display"))
+				devc->data_source = DATA_SOURCE_SCREEN;
+			else if (devc->model->series->protocol >= SPO_MODEL
+				&& !strcmp(tmp_str, "History"))
+				devc->data_source = DATA_SOURCE_HISTORY;
+			else {
+				sr_err("Unknown data source: '%s'.", tmp_str);
+				return SR_ERR;
+			}
+			break;
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -718,10 +770,16 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		if (!cg)
+		if (!cg) {
+			if (devc && devc->model->series->protocol == ESERIES) {
+				return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, eseries_devopts);
+			}
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		}
+
 		if (!devc)
 			return SR_ERR_ARG;
+
 		if (cg == devc->digital_group) {
 			*data = std_gvar_array_u32(NULL, 0);
 			return SR_OK;
@@ -759,6 +817,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_array(devc->timebases, devc->num_timebases);
 		break;
 	case SR_CONF_TRIGGER_SOURCE:
+		// TODO ESERIES list only channels that are enabled
 		if (!devc)
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
@@ -778,8 +837,10 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		case SPO_MODEL:
-		case ESERIES:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
+			break;
+		case ESERIES:
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(eseries_data_sources));
 			break;
 		}
 		break;
@@ -865,7 +926,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	// devc->analog_frame_size = devc->model->series->buffer_samples;
 	// devc->digital_frame_size = devc->model->series->buffer_samples;
-
 	siglent_sds_get_dev_cfg_horizontal(sdi);
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
@@ -889,16 +949,30 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	default:
 		break;
 	}
+	switch (devc->model->series->protocol) {
+	case ESERIES:
+		devc->acq_state = ACQ_SETUP;
+		devc->retry_count = 0;
+		sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 10,
+			siglent_sds_eseries_receive, (void *) sdi);
+		break;
+	default:
+		sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
+			siglent_sds_receive, (void *) sdi);
+		break;
+	}
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
-		siglent_sds_receive, (void *) sdi);
 
 	std_session_send_df_header(sdi);
-
 	devc->channel_entry = devc->enabled_channels;
 
-	if (siglent_sds_capture_start(sdi) != SR_OK)
-		return SR_ERR;
+	switch (devc->model->series->protocol) {
+	case ESERIES:
+		break;
+	default:
+		if (siglent_sds_capture_start(sdi) != SR_OK)
+			return SR_ERR;
+	}
 
 	/* Start of first frame. */
 	std_session_send_df_frame_begin(sdi);
