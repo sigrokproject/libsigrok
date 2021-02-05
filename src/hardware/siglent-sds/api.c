@@ -170,7 +170,9 @@ enum series {
 	SDS1000X,
 	SDS1000XP,
 	SDS1000XE,
+	SDS1000XU,
 	SDS2000X,
+	SDS2000XE,
 };
 
 /* short name, full name */
@@ -194,8 +196,12 @@ static const struct siglent_sds_series supported_series[] = {
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS1000XU] = {VENDOR(SIGLENT), "SDS1000XU", ESERIES,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
 		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+	[SDS2000XE] = {VENDOR(SIGLENT), "SDS2000XE", ESERIES,
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 28000363},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -219,6 +225,7 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS1000XE), "SDS1202X-E", { 1, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS1000XE), "SDS1104X-E", { 1, 1000000000 }, 4, TRUE, 16 },
 	{ SERIES(SDS1000XE), "SDS1204X-E", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS1000XU), "SDS1104X-U", { 1, 1000000000 }, 4, FALSE, 0},
 	{ SERIES(SDS2000X), "SDS2072X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2074X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2102X", { 2, 1000000000 }, 2, FALSE, 0 },
@@ -227,6 +234,8 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
+	{ SERIES(SDS2000XE), "SDS2202X-E", { 2, 1000000000 }, 2, FALSE, 0 },
+	{ SERIES(SDS2000XE), "SDS2352X-E", { 2, 1000000000 }, 2, FALSE, 0 },
 };
 
 static struct sr_dev_driver siglent_sds_driver_info;
