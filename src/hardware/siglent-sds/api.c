@@ -294,6 +294,12 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->serial_num = g_strdup(hw_info->serial_number);
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->limit_frames = 1;
+
+	// Set some pointers to null so they can be safely g_free'd later
+	for (i = 0; i < MAX_ANALOG_CHANNELS; i++) {
+		devc->coupling[i] = NULL;
+	}
+	devc->trigger_slope = NULL;
 	devc->model = model;
 
 	sr_scpi_hw_info_free(hw_info);
