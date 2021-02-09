@@ -42,11 +42,18 @@ static int read_data(struct sr_dev_inst *sdi,
 
 	devc->cur_rcv_buffer_position += len;
 
+#if defined(HAVE_LIBSERIALPORT) && \
+	SP_PACKAGE_VERSION_MAJOR == 0 && \
+	SP_PACKAGE_VERSION_MINOR == 0
+	/* Very old Linux versions of libserial port use cooked termios */
 	/* Handle the case where sr_scpi_read_data stopped at the newline. */
 	if (len < data_size && sr_scpi_read_complete(scpi)) {
 		devc->rcv_buffer[devc->cur_rcv_buffer_position] = '\n';
 		devc->cur_rcv_buffer_position++;
 	}
+#else
+	/* 0.1.0 and above use raw termios, no reprocessing needed */
+#endif
 
 	if (devc->cur_rcv_buffer_position < data_size)
 		return SR_ERR; /* Not finished yet. */
