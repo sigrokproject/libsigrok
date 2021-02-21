@@ -168,7 +168,7 @@ AM_CONDITIONAL([HAVE_CHECK], [test "x$sr_have_check" = xyes])
 # Enable the C99 standard if possible, and enforce the use
 # of SR_API to explicitly mark all public API functions.
 SR_EXTRA_CFLAGS=
-SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [C99], [-std=c99 -c99 -AC99 -qlanglvl=extc99])
+SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [C11], [-std=c11 -c11 -AC11 -qlanglvl=extc11 -stdlib=c++17])
 SR_CHECK_COMPILE_FLAGS([SR_EXTRA_CFLAGS], [visibility], [-fvisibility=hidden])
 
 SR_ARG_ENABLE_WARNINGS([SR_WFLAGS], [-Wall], [-Wall -Wextra -Wmissing-prototypes])
@@ -365,10 +365,10 @@ AC_ARG_ENABLE([java],
 
 sr_cxx_missing=
 
-# Check if the C++ compiler supports the C++11 standard.
-AX_CXX_COMPILE_STDCXX([11], [noext], [optional])
-AS_IF([test "x$HAVE_CXX11" != x1],
-	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
+# Check if the C++ compiler supports the C++17 standard.
+AX_CXX_COMPILE_STDCXX([17], [noext], [optional])
+AS_IF([test "x$HAVE_CXX17" != x1],
+	[SR_APPEND([sr_cxx_missing], [', '], ['C++17'])])
 
 # The C++ bindings need glibmm.
 SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])
