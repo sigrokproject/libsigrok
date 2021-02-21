@@ -71,6 +71,7 @@ SR_PKG_VERSION_SET([SR_PACKAGE_VERSION], [AC_PACKAGE_VERSION])
 SR_LIB_VERSION_SET([SR_LIB_VERSION], [4:0:0])
 
 AM_CONDITIONAL([WIN32], [test -z "${host_os##mingw*}" || test -z "${host_os##cygwin*}"])
+AM_CONDITIONAL([MACOS], [test -z "${host_os##darwin*}"])
 
 #############################
 ##  Optional dependencies  ##
@@ -371,7 +372,9 @@ AS_IF([test "x$HAVE_CXX11" != x1],
 	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
 # The C++ bindings need glibmm.
-SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])
+AM_COND_IF([MACOS],
+	[SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.68 >= 2.32.0])],
+	[SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])])
 AS_IF([test "x$sr_have_glibmm" != xyes],
 	[SR_APPEND([sr_cxx_missing], [', '], [glibmm])])
 
