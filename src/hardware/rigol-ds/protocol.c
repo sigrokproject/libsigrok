@@ -344,8 +344,6 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	gchar *trig_mode;
 	unsigned int num_channels, i, j;
 	int buffer_samples;
-	char *buf;
-	char c;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -399,17 +397,6 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 		if (devc->data_source == DATA_SOURCE_LIVE) {
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:MODE NORM") != SR_OK)
 				return SR_ERR;
-			// If trigger state is stopped, read data first, before re-arming
-			if (first_frame && devc->model->series->protocol == PROTOCOL_V5) {
-				if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
-					return SR_ERR;
-				c = buf[0];
-				g_free(buf);
-				if ((c != 'S' || devc->channel_config_changed_analog ||
-						devc->channel_config_changed_logic) &&
-						rigol_ds_config_set(sdi, ":SING") != SR_OK)
-					return SR_ERR;
-			}
 			devc->analog_frame_size = devc->model->series->live_samples;
 			devc->digital_frame_size = devc->model->series->live_samples;
 			rigol_ds_set_wait_event(devc,
@@ -463,22 +450,9 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 			}
 
 			if (devc->data_source == DATA_SOURCE_LIVE ||
-					devc->data_source == DATA_SOURCE_MEMORY) {
-				if (devc->model->series->protocol != PROTOCOL_V5 ||
-						!first_frame ||
-						devc->channel_config_changed_analog ||
-						devc->channel_config_changed_logic) {
-					if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
-						return SR_ERR;
-				} else {
-					// If initial trigger state is stopped, read data first, before re-arming
-					if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
-						return SR_ERR;
-					c = buf[0];
-					g_free(buf);
-					if ((c != 'S') && rigol_ds_config_set(sdi, ":SING") != SR_OK)
-						return SR_ERR;
-				}
+				devc->data_source == DATA_SOURCE_MEMORY) {
+				if (rigol_ds_config_set(sdi, ":SING") != SR_OK)
+					return SR_ERR;
 			}
 			rigol_ds_set_wait_event(devc, WAIT_STOP);
 			if (devc->data_source == DATA_SOURCE_SEGMENTED &&
