@@ -220,6 +220,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/agilent-dmm/protocol.c \
 	src/hardware/agilent-dmm/api.c
 endif
+if HW_AIM_TTI_DPS
+src_libdrivers_la_SOURCES += \
+	src/hardware/aim-tti-dps/protocol.h \
+	src/hardware/aim-tti-dps/protocol.c \
+	src/hardware/aim-tti-dps/api.c
+endif
 if HW_APPA_55II
 src_libdrivers_la_SOURCES += \
 	src/hardware/appa-55ii/protocol.h \

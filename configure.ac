@@ -258,6 +258,7 @@ m4_define([SR_DRIVER],
 	[_SR_DRIVER([$1], [$2], m4_expand([AS_TR_CPP([HW_$2])]), [$3])])
 
 SR_DRIVER([Agilent DMM], [agilent-dmm], [serial_comm])
+SR_DRIVER([Aim-TTi DC PS], [aim-tti-dps])
 SR_DRIVER([Appa 55II], [appa-55ii], [serial_comm])
 SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [serial_comm])
 SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma], [libftdi])
