@@ -376,8 +376,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 	uint32_t sample;
+	int num_bytes_read, bytes_left_to_read;
 	unsigned int i, j, num_changroups;
-	unsigned char byte;
 	gboolean received_a_byte;
 
 	(void)fd;
@@ -399,13 +399,21 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	received_a_byte = FALSE;
-	while (revents == G_IO_IN &&
-	       serial_read_nonblocking(serial, &byte, 1) == 1) {
+	bytes_left_to_read = 64 * 1024; /* in this function call; give event loop a chance to run, too */
+	while (revents == G_IO_IN && bytes_left_to_read >= 0 &&
+	       (num_bytes_read = serial_read_nonblocking(
+			serial, devc->raw_sample + devc->raw_sample_size,
+			num_changroups - devc->raw_sample_size)) > 0) {
 		received_a_byte = TRUE;
-		devc->cnt_rx_bytes++;
+		devc->cnt_rx_bytes += num_bytes_read;
+		devc->raw_sample_size += num_bytes_read;
+		bytes_left_to_read -= num_bytes_read;
 
-		devc->raw_sample[devc->raw_sample_size++] = byte;
-		sr_spew("Received byte 0x%.2x.", byte);
+		sr_spew("Received data. Current sample: %.2x%.2x%.2x%.2x (%u bytes)",
+			devc->raw_sample[0], devc->raw_sample[1],
+			devc->raw_sample[2], devc->raw_sample[3],
+			devc->raw_sample_size);
+
 		if (devc->raw_sample_size == num_changroups) {
 			unsigned int samples_to_write, new_sample_buf_size;
 
