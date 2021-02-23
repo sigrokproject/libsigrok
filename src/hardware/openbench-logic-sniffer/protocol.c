@@ -378,6 +378,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	uint32_t sample;
 	unsigned int i, j, num_changroups;
 	unsigned char byte;
+	gboolean received_a_byte;
 
 	(void)fd;
 
@@ -397,9 +398,10 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (revents == G_IO_IN) {
-		if (serial_read_nonblocking(serial, &byte, 1) != 1)
-			return FALSE;
+	received_a_byte = FALSE;
+	while (revents == G_IO_IN &&
+	       serial_read_nonblocking(serial, &byte, 1) == 1) {
+		received_a_byte = TRUE;
 		devc->cnt_rx_bytes++;
 
 		devc->raw_sample[devc->raw_sample_size++] = byte;
@@ -510,6 +512,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			devc->rle_count = 0;
 		}
 	}
+	if (revents == G_IO_IN && !received_a_byte)
+		return FALSE;
 
 process_and_forward:
 	if (revents != G_IO_IN ||
