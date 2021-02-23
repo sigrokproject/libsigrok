@@ -121,10 +121,10 @@ struct dev_context {
 		raw_sample[4]; /* raw sample, assembled from received bytes */
 	unsigned int cnt_rx_raw_samples; /* number of raw samples received */
 
-	unsigned int rle_count;
+	uint64_t rle_count;
 	unsigned char *sample_buf;
 	unsigned int sample_buf_size;
-	unsigned int cnt_samples; /* number of final samples in sample_buf */
+	uint64_t cnt_samples; /* number of final samples in sample_buf */
 };
 
 SR_PRIV extern const char *ols_channel_names[];
