@@ -457,10 +457,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Reset all operational states. */
-	devc->rle_count = devc->raw_sample_buf_size = 0;
-	devc->num_samples = devc->num_bytes = 0;
-	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
-	memset(devc->sample, 0, 4);
+	devc->rle_count = devc->sample_buf_size = 0;
+	devc->cnt_samples = devc->raw_sample_size = 0;
+	devc->cnt_rx_bytes = devc->cnt_rx_raw_samples = 0;
+	memset(devc->raw_sample, 0, 4);
 
 	std_session_send_df_header(sdi);
 
