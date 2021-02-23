@@ -633,8 +633,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		devc->trigger_at_smpl = (readcount - delaycount) * 4 -
-					basic_trigger_desc.num_stages;
+		devc->trigger_at_smpl = (readcount - delaycount) * 4 - 1;
 		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
 			sr_dbg("Setting OLS stage %d trigger.", i);
 			if ((ret = ols_set_basic_trigger_stage(
