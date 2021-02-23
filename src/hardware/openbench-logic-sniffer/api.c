@@ -43,9 +43,17 @@ static const uint32_t devopts[] = {
 	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
 };
 
-static const int32_t trigger_matches[] = {
+static const int32_t basic_trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
+};
+
+static const int32_t advanced_trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
 };
 
 static const char *external_clock_edges[] = {
@@ -343,7 +351,7 @@ static int config_list(uint32_t key, GVariant **data,
 		       const struct sr_dev_inst *sdi,
 		       const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = sdi ? sdi->priv : NULL;
 	int num_ols_changrp, i;
 
 	switch (key) {
@@ -355,7 +363,12 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
-		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		if (!devc)
+			return SR_ERR_ARG;
+		/* Advanced Triggering is only available on the Demon Core. */
+		*data = devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE
+			? std_gvar_array_i32(ARRAY_AND_SIZE(advanced_trigger_matches))
+			: std_gvar_array_i32(ARRAY_AND_SIZE(basic_trigger_matches));
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = std_gvar_array_str(ARRAY_AND_SIZE(external_clock_edges));
@@ -364,9 +377,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(patterns));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		if (!sdi)
+		if (!devc)
 			return SR_ERR_ARG;
-		devc = sdi->priv;
 		if (devc->max_samples == 0)
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
@@ -405,7 +417,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/* Start acquisition on the device. */
-	if (send_shortcommand(serial, CMD_ARM_BASIC_TRIGGER) != SR_OK)
+	if (send_shortcommand(serial,
+			      devc->device_flags & DEVICE_FLAG_IS_DEMON_CORE ?
+					    CMD_ARM_ADVANCED_TRIGGER :
+					    CMD_ARM_BASIC_TRIGGER) != SR_OK)
 		return SR_ERR;
 
 	/* Reset all operational states. */
