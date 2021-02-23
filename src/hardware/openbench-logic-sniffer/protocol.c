@@ -393,19 +393,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 	serial = sdi->conn;
 	devc = sdi->priv;
 
-	if (devc->num_transfers == 0 && revents == 0) {
+	if (devc->cnt_bytes == 0 && revents == 0) {
 		/* Ignore timeouts as long as we haven't received anything */
 		return TRUE;
-	}
-
-	if (devc->num_transfers++ == 0) {
-		devc->raw_sample_buf = g_try_malloc(devc->limit_samples * 4);
-		if (!devc->raw_sample_buf) {
-			sr_err("Sample buffer malloc failed.");
-			return FALSE;
-		}
-		/* fill with 1010... for debugging */
-		memset(devc->raw_sample_buf, 0x82, devc->limit_samples * 4);
 	}
 
 	num_changroups = 0;
@@ -415,19 +405,15 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
-	if (revents == G_IO_IN && devc->num_samples < devc->limit_samples) {
+	if (revents == G_IO_IN) {
 		if (serial_read_nonblocking(serial, &byte, 1) != 1)
 			return FALSE;
 		devc->cnt_bytes++;
 
-		/* Ignore it if we've read enough. */
-		if (devc->num_samples >= devc->limit_samples)
-			return TRUE;
-
 		devc->sample[devc->num_bytes++] = byte;
 		sr_spew("Received byte 0x%.2x.", byte);
 		if (devc->num_bytes == num_changroups) {
-			unsigned int samples_to_write;
+			unsigned int samples_to_write, new_sample_buf_size;
 
 			devc->cnt_samples++;
 			devc->cnt_samples_rle++;
@@ -491,6 +477,28 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			}
 
 			samples_to_write = devc->rle_count + 1;
+			new_sample_buf_size =
+				4 * MAX(devc->limit_samples,
+					devc->num_samples + samples_to_write);
+
+			if (devc->raw_sample_buf_size < new_sample_buf_size) {
+				unsigned int old_size =
+					devc->raw_sample_buf_size;
+				new_sample_buf_size *= 2;
+				devc->raw_sample_buf =
+					g_try_realloc(devc->raw_sample_buf,
+						      new_sample_buf_size);
+				devc->raw_sample_buf_size = new_sample_buf_size;
+
+				if (!devc->raw_sample_buf) {
+					sr_err("Sample buffer malloc failed.");
+					return FALSE;
+				}
+				/* fill with 1010... for debugging */
+				memset(devc->raw_sample_buf + old_size, 0x82,
+				       new_sample_buf_size - old_size);
+			}
+
 			for (i = 0; i < samples_to_write; i++)
 				memcpy(devc->raw_sample_buf +
 					       (devc->num_samples + i) * 4,
@@ -539,10 +547,7 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				packet.payload = &logic;
 				logic.length = devc->trigger_at_smpl * 4;
 				logic.unitsize = 4;
-				logic.data = devc->raw_sample_buf +
-					     (devc->limit_samples -
-					      devc->num_samples) *
-						     4;
+				logic.data = devc->raw_sample_buf;
 				sr_session_send(sdi, &packet);
 			}
 
@@ -560,13 +565,11 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 		logic.length =
 			(devc->num_samples - num_pre_trigger_samples) * 4;
 		logic.unitsize = 4;
-		logic.data = devc->raw_sample_buf +
-			     (num_pre_trigger_samples + devc->limit_samples -
-			      devc->num_samples) *
-				     4;
+		logic.data = devc->raw_sample_buf + num_pre_trigger_samples * 4;
 		sr_session_send(sdi, &packet);
 
 		g_free(devc->raw_sample_buf);
+		devc->raw_sample_buf = 0;
 
 		serial_flush(serial);
 		abort_acquisition(sdi);
