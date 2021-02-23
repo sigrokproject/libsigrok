@@ -410,6 +410,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Reset all operational states. */
 	devc->rle_count = 0;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
 	devc->cnt_samples = devc->raw_sample_size = 0;
 	devc->cnt_rx_bytes = devc->cnt_rx_raw_samples = 0;
 	memset(devc->raw_sample, 0, 4);
