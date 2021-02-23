@@ -457,7 +457,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Reset all operational states. */
-	devc->rle_count = devc->num_transfers = 0;
+	devc->rle_count = devc->raw_sample_buf_size = 0;
 	devc->num_samples = devc->num_bytes = 0;
 	devc->cnt_bytes = devc->cnt_samples = devc->cnt_samples_rle = 0;
 	memset(devc->sample, 0, 4);
