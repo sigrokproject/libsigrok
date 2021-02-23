@@ -453,7 +453,12 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					sr_dbg("RLE count: %u.",
 					       devc->rle_count);
 					devc->raw_sample_size = 0;
-					return TRUE;
+
+					/*
+					 * Even on the rare occasion that the sampling ends with an RLE message,
+					 * the acquisition should end immediately, without any timeout.
+					 */
+					goto process_and_forward;
 				}
 			}
 
@@ -521,8 +526,15 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 			devc->raw_sample_size = 0;
 			devc->rle_count = 0;
 		}
-	} else {
+	}
+
+process_and_forward:
+	if (revents != G_IO_IN ||
+	    devc->cnt_rx_raw_samples == devc->limit_samples) {
 		unsigned int num_pre_trigger_samples;
+
+		if (devc->cnt_rx_raw_samples != devc->limit_samples)
+			sr_warn("Finished with unexpected sample count. Timeout?");
 
 		/*
 		 * This is the main loop telling us a timeout was reached, or
