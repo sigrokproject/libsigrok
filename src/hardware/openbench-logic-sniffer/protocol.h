@@ -114,6 +114,7 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 	int trigger_at_smpl;
+	int trigger_rle_at_smpl_from_end;
 	uint16_t capture_flags;
 
 	unsigned int cnt_rx_bytes; /* number of bytes received */
@@ -143,6 +144,7 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi);
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 			       uint64_t samplerate);
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV void set_rle_trigger_point_if_unset(struct dev_context *devc);
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data);
 
 #endif

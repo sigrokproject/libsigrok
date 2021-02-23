@@ -368,6 +368,14 @@ SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi)
 	std_session_send_df_end(sdi);
 }
 
+SR_PRIV void set_rle_trigger_point_if_unset(struct dev_context *devc)
+{
+	if (devc->trigger_at_smpl != OLS_NO_TRIGGER &&
+			devc->trigger_rle_at_smpl_from_end == OLS_NO_TRIGGER &&
+			(unsigned int)devc->trigger_at_smpl == devc->cnt_rx_raw_samples)
+		devc->trigger_rle_at_smpl_from_end = devc->cnt_samples;
+}
+
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 {
 	struct dev_context *devc;
@@ -445,6 +453,8 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 					       devc->rle_count);
 					devc->raw_sample_size = 0;
 
+					set_rle_trigger_point_if_unset(devc);
+
 					/*
 					 * Even on the rare occasion that the sampling ends with an RLE message,
 					 * the acquisition should end immediately, without any timeout.
@@ -508,6 +518,9 @@ SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data)
 				       new_sample_buf_size - old_size);
 			}
 
+			if (devc->capture_flags & CAPTURE_FLAG_RLE)
+				set_rle_trigger_point_if_unset(devc);
+
 			for (i = 0; i < samples_to_write; i++)
 				memcpy(devc->sample_buf +
 					       (devc->cnt_samples + i) * devc->unitsize,
@@ -539,6 +552,19 @@ process_and_forward:
 		sr_dbg("Received %d bytes, %d raw samples, %d decompressed samples.",
 		       devc->cnt_rx_bytes, devc->cnt_rx_raw_samples,
 		       devc->cnt_samples);
+
+		if (devc->capture_flags & CAPTURE_FLAG_RLE) {
+			if (devc->trigger_rle_at_smpl_from_end !=
+			    OLS_NO_TRIGGER)
+				devc->trigger_at_smpl =
+					devc->cnt_samples -
+					devc->trigger_rle_at_smpl_from_end;
+			else {
+				if (devc->trigger_at_smpl != OLS_NO_TRIGGER)
+					sr_warn("No trigger point found. Short read?");
+				devc->trigger_at_smpl = OLS_NO_TRIGGER;
+			}
+		}
 
 		/*
 		 * The OLS sends its sample buffer backwards.
@@ -632,7 +658,7 @@ ols_set_basic_trigger_stage(const struct ols_basic_trigger_desc *trigger_desc,
 
 SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 {
-	int ret;
+	int ret, trigger_point;
 	uint32_t readcount, delaycount;
 
 	struct dev_context *devc = sdi->priv;
@@ -655,6 +681,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 	uint32_t exact_samplecount = MIN(devc->max_samples / num_changroups, devc->limit_samples);
 	devc->limit_samples = (exact_samplecount + 3) / 4 * 4;
 	readcount = devc->limit_samples / 4;
+	trigger_point = OLS_NO_TRIGGER;
 
 	/* Basic triggers. */
 	struct ols_basic_trigger_desc basic_trigger_desc;
@@ -672,7 +699,7 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 
 		delaycount = readcount * (1 - devc->capture_ratio / 100.0);
-		devc->trigger_at_smpl = (readcount - delaycount) * 4 - 1;
+		trigger_point = (readcount - delaycount) * 4 - 1;
 		for (int i = 0; i < basic_trigger_desc.num_stages; i++) {
 			sr_dbg("Setting OLS stage %d trigger.", i);
 			if ((ret = ols_set_basic_trigger_stage(
@@ -688,6 +715,18 @@ SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi)
 			return ret;
 		delaycount = readcount;
 	}
+
+	/*
+	 * To determine the proper trigger sample position in RLE mode, a reverse
+	 * lookup is needed while reading the samples. Set up the right trigger
+	 * point in that case or the normal trigger point for non-RLE acquisitions.
+	 */
+	devc->trigger_at_smpl =
+		trigger_point == OLS_NO_TRIGGER ?
+			      OLS_NO_TRIGGER :
+		devc->capture_flags & CAPTURE_FLAG_RLE ?
+			      (int)devc->limit_samples - trigger_point :
+			      trigger_point;
 
 	/* Samplerate. */
 	sr_dbg("Setting samplerate to %" PRIu64 "Hz (divider %u)",

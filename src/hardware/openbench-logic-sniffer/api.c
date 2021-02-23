@@ -191,6 +191,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	devc->trigger_at_smpl = OLS_NO_TRIGGER;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
 	devc->channel_names = sr_parse_probe_names(probe_names,
 		ols_channel_names, ARRAY_SIZE(ols_channel_names),
 		ARRAY_SIZE(ols_channel_names), &ch_max);
@@ -458,6 +459,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	/* Reset all operational states. */
 	devc->rle_count = 0;
+	devc->trigger_rle_at_smpl_from_end = OLS_NO_TRIGGER;
 	devc->cnt_samples = devc->raw_sample_size = 0;
 	devc->cnt_rx_bytes = devc->cnt_rx_raw_samples = 0;
 	memset(devc->raw_sample, 0, 4);
