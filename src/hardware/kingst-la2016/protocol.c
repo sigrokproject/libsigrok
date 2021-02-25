@@ -441,7 +441,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
 
 	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
-	       devc->cur_samplerate/1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
+	       devc->cur_samplerate / 1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
 
 	psa = devc->pre_trigger_size * 256;
 	wrptr = buf;

@@ -60,8 +60,8 @@ static const int32_t trigger_matches[] = {
 };
 
 static const char *channel_names[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7", "8",
-	"9", "10", "11", "12", "13", "14", "15",
+	"0", "1", "2", "3", "4", "5", "6", "7",
+	"8", "9", "10", "11", "12", "13", "14", "15",
 };
 
 static const uint64_t samplerates[] = {
@@ -151,14 +151,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			usb = NULL;
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
-				if (usb->bus == libusb_get_bus_number(devlist[i])
-				    && usb->address == libusb_get_device_address(devlist[i]))
+				if (usb->bus == libusb_get_bus_number(devlist[i]) &&
+				    usb->address == libusb_get_device_address(devlist[i]))
 					break;
 			}
-			if (!l)
+			if (!l) {
 				/* This device matched none of the ones that
 				 * matched the conn specification. */
 				continue;
+			}
 		}
 
 		libusb_get_device_descriptor(devlist[i], &des);
@@ -340,7 +341,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 			timediff_us = g_get_monotonic_time() - devc->fw_updated;
 			timediff_ms = timediff_us / 1000;
-			
+
 			if ((ret = la2016_dev_open(sdi)) == SR_OK)
 				break;
 			sr_spew("Waited %" PRIi64 "ms.", timediff_ms);
@@ -350,8 +351,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 		sr_info("Device came back after %" PRIi64 "ms.", timediff_ms);
-	} else
+	} else {
 		ret = la2016_dev_open(sdi);
+	}
 
 	if (ret != SR_OK) {
 		sr_err("Unable to open device.");
@@ -381,7 +383,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -398,10 +401,11 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 		if (!sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		if (usb->address == 255)
+		if (usb->address == 255) {
 			/* Device still needs to re-enumerate after firmware
 			 * upload, so we don't know its (future) address. */
 			return SR_ERR;
+		}
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -423,7 +427,7 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
 		*data = g_variant_new_double(devc->threshold_voltage);
 		break;
-		
+
 	default:
 		return SR_ERR_NA;
 	}
@@ -431,7 +435,8 @@ static int config_get(uint32_t key, GVariant **data, const struct sr_dev_inst *s
 	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+static int config_set(uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	double low, high;
@@ -477,7 +482,8 @@ static int config_set(uint32_t key, GVariant *data, const struct sr_dev_inst *sd
 	return SR_OK;
 }
 
-static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+static int config_list(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
@@ -507,7 +513,8 @@ static int config_list(uint32_t key, GVariant **data, const struct sr_dev_inst *
 	return SR_OK;
 }
 
-static void send_chunk(struct sr_dev_inst *sdi, const uint8_t *packets, unsigned int num_tfers)
+static void send_chunk(struct sr_dev_inst *sdi,
+	const uint8_t *packets, unsigned int num_tfers)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_logic logic;
@@ -530,7 +537,7 @@ static void send_chunk(struct sr_dev_inst *sdi, const uint8_t *packets, unsigned
 
 	max_samples = devc->convbuffer_size / 2;
 	n_samples = 0;
-	wp = (uint16_t*)devc->convbuffer;
+	wp = (uint16_t *)devc->convbuffer;
 	total_samples = 0;
 	do_signal_trigger = 0;
 
@@ -547,7 +554,7 @@ static void send_chunk(struct sr_dev_inst *sdi, const uint8_t *packets, unsigned
 				logic.length = n_samples * 2;
 				sr_session_send(sdi, &sr_packet);
 				n_samples = 0;
-				wp = (uint16_t*)devc->convbuffer;
+				wp = (uint16_t *)devc->convbuffer;
 				if (do_signal_trigger) {
 					std_session_send_df_trigger(sdi);
 					do_signal_trigger = 0;
@@ -557,13 +564,13 @@ static void send_chunk(struct sr_dev_inst *sdi, const uint8_t *packets, unsigned
 			state = read_u16le_inc(&rp);
 			repetitions = read_u8_inc(&rp);
 			for (j = 0; j < repetitions; j++)
-				*(wp++) = state;
+				*wp++ = state;
 
 			n_samples += repetitions;
 			total_samples += repetitions;
 			devc->total_samples += repetitions;
 			if (!devc->reading_behind_trigger) {
-				devc->n_reps_until_trigger --;
+				devc->n_reps_until_trigger--;
 				if (devc->n_reps_until_trigger == 0) {
 					devc->reading_behind_trigger = 1;
 					do_signal_trigger = 1;
@@ -613,7 +620,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		libusb_fill_bulk_transfer(
 			transfer, usb->devhdl,
 			0x86, transfer->buffer, to_read,
-			receive_transfer, (void*)sdi, DEFAULT_TIMEOUT_MS);
+			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
 		if ((ret = libusb_submit_transfer(transfer)) == 0)
 			return;
@@ -698,7 +705,7 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 		struct sr_channel *ch = (struct sr_channel*)l->data;
 		if (ch->enabled == FALSE)
 			continue;
-		devc->cur_channels |= 1 << (ch->index);
+		devc->cur_channels |= 1 << ch->index;
 		devc->num_channels++;
 	}
 
@@ -741,7 +748,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	devc->have_trigger = 0;
-	usb_source_add(sdi->session, drvc->sr_ctx, 50, handle_event, (void*)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, 50, handle_event, (void *)sdi);
 
 	std_session_send_df_header(sdi);
 
