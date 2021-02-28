@@ -28,7 +28,9 @@ SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi)
 {
 	if (WITH_CMD_DELAY)
 		g_usleep(WITH_CMD_DELAY * 1000);
-	sr_scpi_get_opc(scpi);
+
+	if (!scpi->no_opc_command)
+		sr_scpi_get_opc(scpi);
 }
 
 SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_number(

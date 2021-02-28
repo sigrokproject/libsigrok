@@ -241,6 +241,24 @@ static const struct scpi_dmm_model *is_compatible(const char *vendor, const char
 	return NULL;
 }
 
+/*
+ * Some devices (such as Owon XDM2041) do not support the standard
+ * OPeration Complete? command. This function tests the command with
+ * a short timeout, and returns TRUE if any reply (busy or not) is received.
+ */
+static gboolean probe_opc_support(struct sr_scpi_dev_inst *scpi)
+{
+	gboolean result = TRUE;
+	GString *response;
+	response = g_string_sized_new(128);
+
+	if (sr_scpi_get_data(scpi, SCPI_CMD_OPC, &response) != SR_OK)
+		result = FALSE;
+
+	g_string_free(response, TRUE);
+	return result;
+}
+
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_scpi_hw_info *hw_info;
@@ -252,6 +270,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	size_t i;
 	gchar *channel_name;
 	const char *command;
+
+	if (!probe_opc_support(scpi))
+		scpi->no_opc_command = TRUE;
 
 	scpi_dmm_cmd_delay(scpi);
 	ret = sr_scpi_get_hw_id(scpi, &hw_info);
