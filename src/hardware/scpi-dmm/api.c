@@ -104,6 +104,15 @@ static const struct scpi_command cmdset_gwinstek_906x[] = {
 	ALL_ZERO,
 };
 
+static const struct scpi_command cmdset_owon[] = {
+	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_LOCAL, "SYST:LOC", },
+	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
+	{ DMM_CMD_QUERY_FUNC, "FUNC?", },
+	{ DMM_CMD_QUERY_VALUE, "MEAS1?", },
+	ALL_ZERO,
+};
+
 static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, },
@@ -159,6 +168,20 @@ static const struct mqopt_item mqopts_gwinstek_gdm906x[] = {
 	{ SR_MQ_TEMPERATURE, 0, "TEMP", "TEMP", NO_DFLT_PREC, },
 	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ", NO_DFLT_PREC, },
 	{ SR_MQ_TIME, 0, "PER", "PER", NO_DFLT_PREC, },
+	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, },
+};
+
+static const struct mqopt_item mqopts_owon_xdm2041[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT AC", NO_DFLT_PREC, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR AC", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, 0, "RES", "RES", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES", NO_DFLT_PREC, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, },
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "TEMP", NO_DFLT_PREC, },
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ", NO_DFLT_PREC, },
 	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, },
 };
 
@@ -219,6 +242,13 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0,
+	},
+	{
+		"OWON", "XDM2041",
+		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
+		scpi_dmm_get_meas_gwinstek,
+		ARRAY_AND_SIZE(devopts_generic),
+		0, 1e9,
 	},
 };
 
