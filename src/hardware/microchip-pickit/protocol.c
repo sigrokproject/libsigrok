@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2018 Gerhard Sittig <gerhard.sittig@gmx.net>
+ * Copyright (C) 2021 Eric Neulight
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,43 +22,45 @@
 #include <string.h>
 #include "protocol.h"
 
-#define PICKIT2_PACKET_LENGTH	64
-#define PICKIT2_USB_ENDPOINT	1
-#define PICKIT2_USB_TIMEOUT	250
+#define PICKIT_PACKET_LENGTH	64
+#define PICKIT_USB_ENDPOINT		1
+#define PICKIT_USB_TIMEOUT		250
 
-#define PICKIT2_CMD_CHKSTAT	0xa2
-#define PICKIT2_CMD_CHKVOLT	0xa3
-#define PICKIT2_CMD_READ	0xac
-#define PICKIT2_CMD_PADCHAR	0xad
-#define PICKIT2_CMD_SETUP	0xb8
-#define PICKIT2_CMD_SETPOS	0xb9
+#define PICKIT_CMD_CHKSTAT	0xa2
+#define PICKIT_CMD_CHKVOLT	0xa3
+#define PICKIT_CMD_READ		0xac
+#define PICKIT_CMD_PADCHAR	0xad
+#define PICKIT_CMD_SETUP	0xb8
+#define PICKIT_CMD_SETPOS	0xb9
 
-#define PICKIT2_SEL_BANK0	0x06
-#define PICKIT2_SEL_BANK1	0x07
+#define PICKIT2_RAM_BANK	0x06
+#define PICKIT3_RAM_BANK	0x40
 
-struct pickit2_cmd {
+#define PICKIT_TRIG_SWAP	0x8000
+
+struct pickit_cmd {
 	size_t length;
-	uint8_t raw[PICKIT2_PACKET_LENGTH];
+	uint8_t raw[PICKIT_PACKET_LENGTH];
 };
 
-static void pickit2_cmd_clear(struct pickit2_cmd *cmd)
+static void pickit_cmd_clear(struct pickit_cmd *cmd)
 {
 	if (!cmd)
 		return;
-	memset(&cmd->raw[0], PICKIT2_CMD_PADCHAR, PICKIT2_PACKET_LENGTH);
+	memset(&cmd->raw[0], PICKIT_CMD_PADCHAR, PICKIT_PACKET_LENGTH);
 	cmd->length = 0;
 }
 
-static void pickit2_cmd_append(struct pickit2_cmd *cmd, uint8_t b)
+static void pickit_cmd_append(struct pickit_cmd *cmd, uint8_t b)
 {
 	if (!cmd)
 		return;
-	if (cmd->length == PICKIT2_PACKET_LENGTH)
+	if (cmd->length == PICKIT_PACKET_LENGTH)
 		return;
 	cmd->raw[cmd->length++] = b;
 }
 
-static int pickit2_usb_send(const struct sr_dev_inst *sdi, struct pickit2_cmd *cmd)
+static int pickit_usb_send(const struct sr_dev_inst *sdi, struct pickit_cmd *cmd)
 {
 	struct sr_usb_dev_inst *usb;
 	int ret, sent;
@@ -74,23 +77,23 @@ static int pickit2_usb_send(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 	sr_hexdump_free(text);
 
 	ret = libusb_interrupt_transfer(usb->devhdl,
-		LIBUSB_ENDPOINT_OUT | PICKIT2_USB_ENDPOINT,
-		&cmd->raw[0], PICKIT2_PACKET_LENGTH,
-		&sent, PICKIT2_USB_TIMEOUT);
+		LIBUSB_ENDPOINT_OUT | PICKIT_USB_ENDPOINT,
+		&cmd->raw[0], PICKIT_PACKET_LENGTH,
+		&sent, PICKIT_USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("USB transmit error: %s.", libusb_error_name(ret));
 		return SR_ERR_IO;
 	}
-	if (sent != PICKIT2_PACKET_LENGTH) {
+	if (sent != PICKIT_PACKET_LENGTH) {
 		sr_err("USB short send: %d/%d bytes.",
-			sent, PICKIT2_PACKET_LENGTH);
+			sent, PICKIT_PACKET_LENGTH);
 		return SR_ERR_IO;
 	}
 
 	return SR_OK;
 }
 
-static int pickit2_usb_recv(const struct sr_dev_inst *sdi, struct pickit2_cmd *cmd)
+static int pickit_usb_recv(const struct sr_dev_inst *sdi, struct pickit_cmd *cmd)
 {
 	struct sr_usb_dev_inst *usb;
 	int ret, rcvd;
@@ -103,9 +106,9 @@ static int pickit2_usb_recv(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 		return SR_ERR_ARG;
 
 	ret = libusb_interrupt_transfer(usb->devhdl,
-		LIBUSB_ENDPOINT_IN | PICKIT2_USB_ENDPOINT,
-		&cmd->raw[0], PICKIT2_PACKET_LENGTH,
-		&rcvd, PICKIT2_USB_TIMEOUT);
+		LIBUSB_ENDPOINT_IN | PICKIT_USB_ENDPOINT,
+		&cmd->raw[0], PICKIT_PACKET_LENGTH,
+		&rcvd, PICKIT_USB_TIMEOUT);
 	if (ret < 0) {
 		if (ret == LIBUSB_ERROR_TIMEOUT)
 			sr_dbg("USB receive error: %s.", libusb_error_name(ret));
@@ -119,9 +122,9 @@ static int pickit2_usb_recv(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 	sr_hexdump_free(text);
 
 	cmd->length = rcvd;
-	if (rcvd != PICKIT2_PACKET_LENGTH) {
+	if (rcvd != PICKIT_PACKET_LENGTH) {
 		sr_err("USB short recv: %d/%d bytes.",
-			rcvd, PICKIT2_PACKET_LENGTH);
+			rcvd, PICKIT_PACKET_LENGTH);
 		return SR_ERR_IO;
 	}
 
@@ -129,14 +132,14 @@ static int pickit2_usb_recv(const struct sr_dev_inst *sdi, struct pickit2_cmd *c
 }
 
 /* Send a request, (optionally) keep reading until response became available. */
-static int pickit2_usb_send_recv(const struct sr_dev_inst *sdi,
-	struct pickit2_cmd *send_cmd, struct pickit2_cmd *recv_cmd, int do_wait)
+static int pickit_usb_send_recv(const struct sr_dev_inst *sdi,
+	struct pickit_cmd *send_cmd, struct pickit_cmd *recv_cmd, int do_wait)
 {
 	int ret;
 
 	/* Send the command when one got specified. Ignore errors. */
 	if (send_cmd)
-		(void)pickit2_usb_send(sdi, send_cmd);
+		(void)pickit_usb_send(sdi, send_cmd);
 
 	/*
 	 * Try receiving data, always ignore errors. When requested by
@@ -146,7 +149,7 @@ static int pickit2_usb_send_recv(const struct sr_dev_inst *sdi,
 	if (!recv_cmd)
 		return SR_OK;
 	do {
-		ret = pickit2_usb_recv(sdi, recv_cmd);
+		ret = pickit_usb_recv(sdi, recv_cmd);
 		if (ret == SR_OK)
 			return SR_OK;
 		if (!do_wait)
@@ -155,38 +158,26 @@ static int pickit2_usb_send_recv(const struct sr_dev_inst *sdi,
 	/* UNREACH */
 }
 
-SR_PRIV int microchip_pickit2_setup_trigger(const struct sr_dev_inst *sdi)
+SR_PRIV int microchip_pickit_setup_trigger(const struct sr_dev_inst *sdi)
 {
-	static const uint8_t trigger_channel_masks[PICKIT2_CHANNEL_COUNT] = {
+	static const uint8_t trigger_channel_masks[PICKIT_CHANNEL_COUNT] = {
 		/* Bit positions for channels in trigger registers. */
 		0x04, 0x08, 0x10,
 	};
-	static const uint16_t captureratio_magics[] = {
-		/* TODO
-		 * How to exactly calculate these magic 16bit values?
-		 * They seem to neither match a percentage value nor a
-		 * sample count (assuming 1 window holds 1K samples).
-		 * As long as the formula is unknown, we are stuck with
-		 * looking up magic values from a table of few pre-sets.
-		 */
-		0x0000,			/* unspecified ratio value */
-		0x03cc, 0x000a, 0x0248,	/* 10%/50%/90% in the first window */
-		0x07b4, 0x0b9c, 0x0f84,	/* 10% "plus 1/2/3 window widths" */
-	};
 
 	struct dev_context *devc;
-	uint8_t trig_en, trig_lvl, trig_edge, trig_rep, trig_div;
-	uint16_t trig_pos;
-	uint64_t rate;
-	size_t trig_pos_idx, ch_idx;
+	uint8_t trig_en, trig_lvl, trig_edge, trig_rise;
+	uint16_t trig_div;
+	size_t ch_idx;
 	uint8_t ch_mask, ch_cond;
-	struct pickit2_cmd cmd;
+	struct pickit_cmd cmd;
 
 	devc = sdi->priv;
 
 	/* Translate user specs to internal setup values. */
 	trig_en = trig_lvl = trig_edge = 0;
-	for (ch_idx = 0; ch_idx < PICKIT2_CHANNEL_COUNT; ch_idx++) {
+	trig_rise = 1;
+	for (ch_idx = 0; ch_idx < PICKIT_CHANNEL_COUNT; ch_idx++) {
 		if (!devc->triggers[ch_idx])
 			continue;
 		ch_mask = trigger_channel_masks[ch_idx];
@@ -200,35 +191,53 @@ SR_PRIV int microchip_pickit2_setup_trigger(const struct sr_dev_inst *sdi)
 		}
 		switch (ch_cond) {
 		case SR_TRIGGER_FALLING:
+			trig_rise=0;	/* Falls through - this comment avoids the new (dumb) gcc warning. */
 		case SR_TRIGGER_RISING:
 			trig_edge |= ch_mask;
 			break;
 		}
 	}
-	trig_rep = 1;
-	trig_rep = MIN(trig_rep, 255);
-	trig_rep = MAX(trig_rep, 1);
-	if (!trig_en)
-		trig_rep = 0;
-	rate = devc->samplerates[devc->curr_samplerate_idx];
-	rate = SR_MHZ(1) / rate - 1;
-	trig_div = rate & 0xff;
-	trig_pos_idx = devc->trigpos;
-	if (trig_pos_idx >= ARRAY_SIZE(captureratio_magics))
-		trig_pos_idx = 0;
-	trig_pos = captureratio_magics[trig_pos_idx];
+
+	/*
+	 * PICkit trig_postsamp is given as number of samples to take post-trigger, minus 1.
+	 * Range is 1 - 65536 (0=65536).
+	 * A value of 1 is equivalent to (nearly) 100% pre-trigger capture ratio:
+	 *     a full buffer of pre-samples are captured, plus the trigger will be captured, plus one initial sample, plus the "1" specified.
+	 * A value of 1022 is euivalent to 0% pre-trigger capture ratio:
+	 *     the trigger is captured, plus one initial sample, plus the "1022" samples, which fills the PICkit 1024 sample buffer completely.
+	 * A value in between 1 and 1022 places the trigger somewhere within the sample buffer, proportionally between 100%-0% capture ratio, respectively.
+	 * A value greater than 1022 essentially continues to overwrite the circular FIFO buffer until the total number of samples have been taken,
+	 *     leaving the last 1024 samples in the buffer.  This allows sampling further into a digital stream, while only capturing the last 1024 samples.
+	 * The PICkit always takes 1024 (pre)samples before the trigger.
+	 * If sw_limits.limit_samples is less than or equal to 1024, the PICkit will (inherently) capture 1024 samples (fill its buffer).
+	 * If sw_limits.limit_samples is greater than 1024, and capture ratio is 0%, we take that to mean trig_postsamp should be limit_samples.
+	 * Unfortunately, PulseView does not yet allow for input of arbitrary nor limited selection of limit_samples, but if/when it does, this will work perfectly (in the meantime it can be used crudely).
+	 */
+	devc->trig_postsamp = (1021*(100-devc->captureratio)+150)/100;  /* Integer math to round to the nearest integer of 1021*(1-captureratio)+1 */
+	if (!devc->captureratio && (devc->sw_limits.limit_samples > 1024))
+		devc->trig_postsamp = devc->sw_limits.limit_samples;
+	
+	/* Calculate samplerate delay count. */	
+	trig_div = SR_MHZ(1) / devc->samplerates[devc->curr_samplerate_idx] - 1;
 
 	/* Construct the SETUP packet. */
-	pickit2_cmd_clear(&cmd);
-	pickit2_cmd_append(&cmd, PICKIT2_CMD_SETUP);
-	pickit2_cmd_append(&cmd, 0x01);
-	pickit2_cmd_append(&cmd, trig_en);
-	pickit2_cmd_append(&cmd, trig_lvl);
-	pickit2_cmd_append(&cmd, trig_edge);
-	pickit2_cmd_append(&cmd, trig_rep);
-	pickit2_cmd_append(&cmd, trig_pos % 256);
-	pickit2_cmd_append(&cmd, trig_pos / 256);
-	pickit2_cmd_append(&cmd, trig_div);
+	pickit_cmd_clear(&cmd);
+	pickit_cmd_append(&cmd, PICKIT_CMD_SETUP);
+	pickit_cmd_append(&cmd, trig_rise);
+	pickit_cmd_append(&cmd, trig_en);
+	pickit_cmd_append(&cmd, trig_lvl);
+	pickit_cmd_append(&cmd, trig_edge);
+	pickit_cmd_append(&cmd, trig_en ? devc->trig_count & 0xFF : 1);
+	pickit_cmd_append(&cmd, devc->trig_postsamp & 0xFF);
+	pickit_cmd_append(&cmd, devc->trig_postsamp >> 8);
+	if (devc->isPk3) {
+		/* Pk3 uses a 12-bit (Pk2 x16) divisor */
+		pickit_cmd_append(&cmd, (trig_div << 4) & 0xFF);
+		pickit_cmd_append(&cmd, (trig_div >> 4) & 0xFF);
+	} else {
+		/* Pk2 uses an 8-bit divisor */
+		pickit_cmd_append(&cmd, trig_div & 0xFF);
+	}
 
 	/*
 	 * Transmit the SETUP packet. Only send it out, poll for the
@@ -236,38 +245,38 @@ SR_PRIV int microchip_pickit2_setup_trigger(const struct sr_dev_inst *sdi)
 	 * take considerable amounts of time to arrive. We want apps
 	 * to remain responsive during that period of time.
 	 */
-	(void)pickit2_usb_send_recv(sdi, &cmd, NULL, FALSE);
+	(void)pickit_usb_send_recv(sdi, &cmd, NULL, FALSE);
 
 	return SR_OK;
 }
 
 /* Read specified bank data at given offset into caller provided buffer. */
-static int pickit2_retrieve_bank(struct sr_dev_inst *sdi,
+static int pickit_retrieve_bank(struct sr_dev_inst *sdi,
 	size_t bank_idx, size_t offset, uint8_t **buf, size_t *len)
 {
-	struct pickit2_cmd send_cmd, recv_cmd;
+	struct pickit_cmd send_cmd, recv_cmd;
 	int ret;
 	size_t copy_iter, copy_len;
 
 	/* Construct and send the SETPOS packet. No response expected. */
-	pickit2_cmd_clear(&send_cmd);
-	pickit2_cmd_append(&send_cmd, PICKIT2_CMD_SETPOS);
-	pickit2_cmd_append(&send_cmd, offset & 0xff);
-	pickit2_cmd_append(&send_cmd, PICKIT2_SEL_BANK0 + bank_idx);
-	ret = pickit2_usb_send_recv(sdi, &send_cmd, NULL, FALSE);
+	pickit_cmd_clear(&send_cmd);
+	pickit_cmd_append(&send_cmd, PICKIT_CMD_SETPOS);
+	pickit_cmd_append(&send_cmd, offset & 0xff);
+	pickit_cmd_append(&send_cmd, (((struct dev_context*)sdi->priv)->isPk3 ? PICKIT3_RAM_BANK : PICKIT2_RAM_BANK) + bank_idx);
+	ret = pickit_usb_send_recv(sdi, &send_cmd, NULL, FALSE);
 	if (ret != SR_OK)
 		return ret;
-	sr_dbg("read bank: pos set");
+	sr_dbg("retrieve bank: RAM copied to upload buffer");
 
 	/* Run two READ cycles, get 2x 64 bytes => 128 bytes raw data. */
-	pickit2_cmd_clear(&send_cmd);
-	pickit2_cmd_append(&send_cmd, PICKIT2_CMD_READ);
+	pickit_cmd_clear(&send_cmd);
+	pickit_cmd_append(&send_cmd, PICKIT_CMD_READ);
 	copy_iter = 2;
 	while (copy_iter-- > 0) {
-		ret = pickit2_usb_send_recv(sdi, &send_cmd, &recv_cmd, TRUE);
+		ret = pickit_usb_send_recv(sdi, &send_cmd, &recv_cmd, TRUE);
 		if (ret != SR_OK)
 			return ret;
-		copy_len = MIN(PICKIT2_PACKET_LENGTH, *len);
+		copy_len = MIN(PICKIT_PACKET_LENGTH, *len);
 		memcpy(*buf, &recv_cmd.raw[0], copy_len);
 		*buf += copy_len;
 		*len -= copy_len;
@@ -277,7 +286,7 @@ static int pickit2_retrieve_bank(struct sr_dev_inst *sdi,
 }
 
 /* Read all of the (banked, raw) sample data after acquisition completed. */
-static int pickit2_retrieve_sample_data(struct sr_dev_inst *sdi)
+static int pickit_retrieve_sample_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint8_t *rdpos;
@@ -285,19 +294,19 @@ static int pickit2_retrieve_sample_data(struct sr_dev_inst *sdi)
 	int ret;
 
 	devc = sdi->priv;
-	rdpos = &devc->samples_raw[0];
-	rdlen = sizeof(devc->samples_raw);
+	rdpos = &devc->samples_pic[0];
+	rdlen = sizeof(devc->samples_pic);
 
-	ret = pickit2_retrieve_bank(sdi, 0, 0x00, &rdpos, &rdlen);
+	ret = pickit_retrieve_bank(sdi, 0, 0x00, &rdpos, &rdlen);
 	if (ret)
 		return ret;
-	ret = pickit2_retrieve_bank(sdi, 0, 0x80, &rdpos, &rdlen);
+	ret = pickit_retrieve_bank(sdi, 0, 0x80, &rdpos, &rdlen);
 	if (ret)
 		return ret;
-	ret = pickit2_retrieve_bank(sdi, 1, 0x00, &rdpos, &rdlen);
+	ret = pickit_retrieve_bank(sdi, 1, 0x00, &rdpos, &rdlen);
 	if (ret)
 		return ret;
-	ret = pickit2_retrieve_bank(sdi, 1, 0x80, &rdpos, &rdlen);
+	ret = pickit_retrieve_bank(sdi, 1, 0x80, &rdpos, &rdlen);
 	if (ret)
 		return ret;
 
@@ -305,93 +314,86 @@ static int pickit2_retrieve_sample_data(struct sr_dev_inst *sdi)
 }
 
 /* Send converted sample data to the sigrok session. */
-static int pickit2_submit_logic_data(struct sr_dev_inst *sdi)
+static int pickit_submit_logic_data(struct sr_dev_inst *sdi, uint16_t trig_loc)
 {
 	struct dev_context *devc;
-	struct {
-		uint8_t raw_mask, conv_mask;
-	} ch_map[PICKIT2_CHANNEL_COUNT] = {
-		{ 0x04, 0x01, },
-		{ 0x08, 0x02, },
-		{ 0x01, 0x04, },
-	};
-	uint8_t *raw_buf, raw_byte, *conv_buf;
-	size_t raw_len, conv_len;
-	uint64_t limit;
+	uint8_t b;
+	uint16_t pic_idx, sr_idx;
+	bool swappedsamp;
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
 
 	devc = sdi->priv;
 
 	/*
-	 * TODO Manipulate (or create) the above channel mapping table.
-	 * Remove disabled channels, create dense output format.
-	 * Could:
-	 * - Loop over the index, check the corresponding channel's
-	 *   state, clear out the conv_mask part and shift down all
-	 *   subsequent conv_mask parts.
+	 * Unwind legacy PICkit2 packing of samples.  PICkit3 emulates this to be somewhat compatible, so both return the same packed buffer.
+	 * 1024 samples are returned in a 512 byte buffer, arranged in reverse time, with increasing time in descending buffer locations.
+	 * The samples are packed, 2 samples per byte, in a somewhat convoluted way that was convenient and quick for the PICkit2.
+	 * Packed bits: [ 7:pin5odd 6:pin4odd 5:N/A 4:pin6even 3:pin5even 2:pin4even 1:N/A 0:pin6odd ]
 	 */
+	/* Remember whether trigger happened in the swapped sample part of the packed byte. */
+	/* (Swapped sample is equivalent to the odd samples in a 1024 sample space.) */
+	swappedsamp = (trig_loc & PICKIT_TRIG_SWAP);
+	trig_loc &= 0x1FF;
 
-	/*
-	 * Convert raw dump (two samples per byte, at odd positions) to
-	 * internal sigrok format (one sample per byte, at increasing
-	 * offsets which start at 0).
-	 */
-#define handle_nibble(n) do { \
-	uint8_t conv_byte; \
-	size_t ch_idx; \
-	conv_byte = 0x00; \
-	for (ch_idx = 0; ch_idx < PICKIT2_CHANNEL_COUNT; ch_idx++) { \
-		if ((n) & ch_map[ch_idx].raw_mask) \
-			conv_byte |= ch_map[ch_idx].conv_mask; \
-	} \
-	*conv_buf++ = conv_byte; \
-	conv_len++; \
-} while (0)
+	/* Calculate equivalent PICkit 1024 RAM buffer location of trigger sample. */
+	trig_loc = 1021 - 2 * trig_loc;
+	if (swappedsamp) trig_loc++;
+	trig_loc &= 0x3FF;	/* Circular buffer modulo 1024 */
 
-	raw_len = sizeof(devc->samples_raw);
-	raw_buf = &devc->samples_raw[raw_len];
-	conv_buf = &devc->samples_conv[0];
-	conv_len = 0;
-	while (raw_len-- > 0) {
-		raw_byte = *(--raw_buf);
-		handle_nibble((raw_byte >> 0) & 0x0f);
-		handle_nibble((raw_byte >> 4) & 0x0f);
-	}
+	/* Calulate index of "first" sample within the packed reverse time 512 byte buffer. */
+	/* The "first" (oldest) sample will be one past the last sample written to the circular FIFO. */
+	pic_idx = ((1021 - trig_loc - devc->trig_postsamp) >> 1) & 0x1FF;
 
-	/* Submit a logic packet to the sigrok session. */
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
+	/* The first (oldest) sample is in the swapped (odd) position if the trigger position and devc->trig_postsamp are in opposite odd-even positions. */
+	swappedsamp = (trig_loc ^ devc->trig_postsamp) & 1;
+	
+	/* Calculate sigrok 1024-byte buffer trigger location. */
+	trig_loc = (devc->trig_postsamp <= 1022) ? 1022 - devc->trig_postsamp : 0xFFFF;
+
 	logic.unitsize = sizeof(uint8_t);
-	logic.data = &devc->samples_conv[0];
-	logic.length = conv_len;
-	limit = devc->sw_limits.limit_samples;
-	if (limit && limit < logic.length)
-		logic.length = limit;
-	sr_session_send(sdi, &packet);
+	logic.length = 0;
+
+	/* Write PICkit's packed reverse-time circular buffer sequentially into sigrok 1024 byte buffer. */
+	for (sr_idx=0; sr_idx<sizeof(devc->samples_sr); sr_idx++) {
+		b = devc->samples_pic[pic_idx];
+		if (swappedsamp) {
+			b = (b << 4) | (b >> 4);
+			pic_idx--;
+			pic_idx &= 0x1FF;
+		}
+		swappedsamp = !swappedsamp;
+		devc->samples_sr[sr_idx] = (b >> 2) & 0x7;
+		
+		if ((sr_idx == trig_loc) || (sr_idx == (PICKIT_SAMPLE_COUNT - 1))) {
+			if (sr_idx) {
+				/* Send logic packet. */
+				packet.type = SR_DF_LOGIC;
+				packet.payload = &logic;
+				logic.data = &devc->samples_sr[logic.length];
+				logic.length = (sr_idx == trig_loc) ? (uint64_t)sr_idx : (uint64_t)sr_idx - logic.length + 1;
+				sr_session_send(sdi, &packet);
+			}
+			if (sr_idx == trig_loc) {
+				/* Indicate trigger occurred at this sample. */
+				packet.type = SR_DF_TRIGGER;
+				packet.payload = NULL;
+				sr_session_send(sdi, &packet);
+			}
+		}
+	}
 
 	return SR_OK;
 }
 
-static gboolean pickit2_status_is_cancel(uint16_t status)
-{
-	/* "Button press" and "transfer timeout" translate to "cancelled". */
-	static const uint16_t status_cancel_mask = 0x4004;
-
-	sr_dbg("recv: status 0x%04x", status);
-	if ((status & status_cancel_mask) == status_cancel_mask)
-		return TRUE;
-	return FALSE;
-}
-
 /* Periodically invoked poll routine, checking for incoming receive data. */
-SR_PRIV int microchip_pickit2_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int microchip_pickit_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct pickit2_cmd cmd;
+	struct pickit_cmd cmd;
 	int ret;
-	uint16_t status;
+	uint16_t trig_loc;
 
 	(void)fd;
 	(void)revents;
@@ -403,33 +405,38 @@ SR_PRIV int microchip_pickit2_receive_data(int fd, int revents, void *cb_data)
 	if (!devc)
 		return TRUE;
 
-	/* Waiting for the trigger condition? */
-	if (devc->state == STATE_WAIT) {
-		/* Keep waiting until status becomes available. */
-		ret = pickit2_usb_send_recv(sdi, NULL, &cmd, FALSE);
-		if (ret != SR_OK)
-			return TRUE;
-		/* Check status flags for cancel requests. */
-		devc->state = STATE_DATA;
-		status = RL16(&cmd.raw[0]);
-		if (pickit2_status_is_cancel(status)) {
-			sr_info("User cancelled acquisition.");
-			sr_dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-		sr_dbg("recv: Data has become available.");
-		/* FALLTHROUGH */
+	/* Should never get here unless waiting for the trigger condition and response from PICkit */
+	if (devc->state != STATE_WAIT)
+		return SR_ERR_BUG;
+		
+	/* Keep waiting until status becomes available. */
+	ret = pickit_usb_send_recv(sdi, NULL, &cmd, FALSE);
+	if (ret != SR_OK)
+		return TRUE;
+
+	/* Got a response.  Bump to next state. */
+	devc->state = STATE_DATA;
+
+	/* Read response. */
+	trig_loc = RL16(&cmd.raw[0]);
+	sr_dbg("recv: trig_loc 0x%04X", trig_loc);
+
+	/* Check status flags for cancel requests. "Button press" translates to "cancelled". */
+	if (devc->isPk3 ? (trig_loc == 0xFFFF) : (trig_loc & 0x4000)) {
+		sr_info("User cancelled acquisition.");
+		sr_dev_acquisition_stop(sdi);
+		return TRUE;
 	}
+	sr_dbg("recv: Data has become available.");
 
 	/*
-	 * Retrieve acquired sample data (blocking, acquisition has
-	 * completed and samples are few), and stop acquisition (have
-	 * the poll routine unregistered).
+	 * Retrieve acquired sample data and stop acquisition
+	 * (have the poll routine unregistered).
 	 */
-	ret = pickit2_retrieve_sample_data(sdi);
+	ret = pickit_retrieve_sample_data(sdi);
 	if (ret != SR_OK)
 		return ret;
-	ret = pickit2_submit_logic_data(sdi);
+	ret = pickit_submit_logic_data(sdi, trig_loc);
 	if (ret != SR_OK)
 		return ret;
 	sr_dev_acquisition_stop(sdi);
