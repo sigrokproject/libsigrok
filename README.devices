@@ -127,7 +127,7 @@ The following drivers/devices do not need any firmware upload:
  - manson-hcs-3xxx
  - maynuo-m97
  - mic-985xx (including all subdrivers)
- - microchip-pickit2
+ - microchip-pickit
  - mooshimeter-dmm
  - motech-lps-30x
  - norma-dmm
