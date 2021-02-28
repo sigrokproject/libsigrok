@@ -459,9 +459,11 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	if (!response)
 		return SR_ERR;
 	limit = 9e37;
-	if (info->d_value > +limit) {
+	if (devc->model->infinity_limit != 0.0)
+		limit = devc->model->infinity_limit;
+	if (info->d_value >= +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -limit) {
+	} else if (info->d_value <= -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;
