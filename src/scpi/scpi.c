@@ -38,6 +38,7 @@ static const char *scpi_vendors[][2] = {
 	{ "Keysight Technologies", "Keysight" },
 	{ "PHILIPS", "Philips" },
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
+	{ "Siglent Technologies", "Siglent" },
 };
 
 /**
