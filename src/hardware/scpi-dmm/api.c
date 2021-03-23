@@ -199,6 +199,20 @@ static const struct mqopt_item mqopts_owon_xdm2041[] = {
 	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, FLAGS_NONE, },
 };
 
+static const struct mqopt_item mqopts_siglent_sdm3055[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR:AC ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_RESISTANCE, 0, "RES", "RES ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, FLAGS_NONE, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, FLAGS_NONE, },
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_TIME, 0, "PER", "PER ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, FLAGS_NONE, },
+};
+
 SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
@@ -279,6 +293,14 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0, 0, 1e9, TRUE,
+		NULL, NULL, NULL,
+	},
+	{
+		"Siglent", "SDM3055",
+		1, 5, cmdset_hp, ARRAY_AND_SIZE(mqopts_siglent_sdm3055),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0, 0, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 };
