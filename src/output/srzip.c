@@ -706,6 +706,8 @@ static int zip_append_analog_queue(const struct sr_output *o,
 	return SR_OK;
 }
 
+#include "miniz/miniz.c"
+
 // zip up our directory to a standard "sr" file.
 static gboolean zip_to_srfile(gchar *filename)
 {
@@ -713,76 +715,96 @@ static gboolean zip_to_srfile(gchar *filename)
 
 	// "example.sr" --> "example.sr.dir"
 	gchar *dirname = g_strdup_printf("%s.dir", filename);
+
+	/* Quietly delete it first. */
+	rm_rf_unlink(dirname);
+
 	int res = g_rename(filename, dirname);
 	if (res) {
 		sr_err("Failed to rename %s to %s",
 		       filename,
 		       dirname);
 		ret = 0;
-		goto fail_dir_rename;
+		goto cleanup_dir_rename;
 	}
 
-	// "/foo/bar/example.sr" --> "../example.sr"
-	gchar *basename = g_path_get_basename(filename);
-	gchar *zipname = g_build_filename("..",
-	                                  basename,
-	                                  NULL);
+	uint8_t compression_level = MZ_BEST_SPEED;
 
-	const gchar *compression = g_getenv("SR_COMPRESSION_FLAG");
-	if (!compression) {
-		compression = "-2"; // fastest in my tests.
+	const gchar *compression = g_getenv("SR_COMPRESSION_LEVEL");
+	if (compression) {
+		errno = 0;
+		long int comp_level = strtol(compression, NULL, 0);
+		if ((errno == 0) && (comp_level >= 0) && (comp_level <= 10)) {
+			compression_level = comp_level;
+		}
 	}
 
-	gchar *argv[] = { "/usr/bin/zip",
-	                  (gchar *)compression,
-	                  "-r", // all files in dir
-	                  "-m", // remove after added
-	                  zipname,
-	                  ".",
-	                  NULL };
+	GDir *d = g_dir_open(dirname, 0, NULL);
 
-	GError *err = NULL;
-	gint exit_status;
-
-	g_spawn_sync(dirname,
-	             argv,
-	             NULL, // envp
-	             G_SPAWN_DEFAULT,
-	             NULL, // setup function
-	             NULL, // user data
-	             NULL, // stdout
-	             NULL, // stderr
-	             &exit_status,
-	             &err);
-
-	if (err) {
-		sr_err("Failed to zip %s: %s",
-		       zipname,
-		       err->message);
-		g_error_free(err);
+	if (!d) {
 		ret = 0;
-		goto fail_zip;
+		goto cleanup_dir_open;
 	}
 
-	if (exit_status) {
-		sr_err("Zipping %s returned %d",
-		       zipname,
-		       exit_status);
-		ret = 0;
-		goto fail_zip;
+	const gchar *entry_name = NULL;
+
+	while (ret) {
+
+		entry_name = g_dir_read_name(d);
+		if (entry_name == NULL)
+			break;
+
+		gchar *file_in_dirname = g_build_filename(dirname,
+		                                          entry_name,
+		                                          NULL);
+
+		gchar *buf;
+		gsize len;
+		GError *err = NULL;
+		g_file_get_contents(file_in_dirname,
+		                    &buf,
+		                    &len,
+		                    &err);
+
+		if (err) {
+			sr_err("Failed to read %s: %s",
+			       file_in_dirname,
+			       err->message);
+			ret = 0;
+			goto cleanup_read_file;
+		}
+
+		mz_zip_error zip_err = 0;
+		mz_bool status = \
+			mz_zip_add_mem_to_archive_file_in_place_v2(filename,
+			                                           entry_name,
+			                                           buf,
+			                                           len,
+			                                           NULL, 0,
+			                                           MZ_ZIP_FLAG_WRITE_ZIP64 | compression_level,
+			                                           &zip_err);
+		if (!status) {
+			sr_err("Failed to compress %s: %d (%s)",
+			       entry_name, zip_err, mz_zip_get_error_string(zip_err));
+			ret = 0;
+		}
+
+		g_free(buf);
+	cleanup_read_file:
+		g_free(file_in_dirname);
 	}
 
-	ret = g_rmdir(dirname);
+ cleanup_dir_open:
+	g_dir_close(d);
+
 	if (ret) {
-		sr_err("Failed to remove %s",
-		       dirname);
-		ret = 0;
+		if (!rm_rf_unlink(dirname)) {
+			sr_err("Failed to remove directory %s",
+			       dirname);
+		}
 	}
 
- fail_zip:
-	g_free(zipname);
-	g_free(basename);
- fail_dir_rename:
+ cleanup_dir_rename:
 	g_free(dirname);
 
 	return ret;
