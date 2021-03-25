@@ -65,7 +65,6 @@ static int init(struct sr_output *o, GHashTable *options)
 	outc->filename = g_strdup(o->filename);
 	o->priv = outc;
 
-
 	return SR_OK;
 }
 
@@ -144,7 +143,7 @@ static gboolean write_to_file(const char *dirpath,
 	// in newer glib could just use g_file_set_contents()
 
 	errno = 0;
-	FILE *fd = fopen(path, "w");
+	FILE *fd = fopen(path, "wb");
 
 	if (!fd) {
 		sr_err("Failed to open file %s: %s",
@@ -154,7 +153,7 @@ static gboolean write_to_file(const char *dirpath,
 	}
 
 	if ((1 != fwrite(data, len, 1, fd)) || errno) {
-		sr_err("Failed to open file %s: %s",
+		sr_err("Failed to write to file %s: %s",
 		       path, strerror(errno));
 		g_free(path);
 		return 0;
@@ -711,7 +710,7 @@ static int zip_append_analog_queue(const struct sr_output *o,
 // zip up our directory to a standard "sr" file.
 static gboolean zip_to_srfile(gchar *filename)
 {
-	gboolean ret = 1;
+	gboolean ret = TRUE;
 
 	// "example.sr" --> "example.sr.dir"
 	gchar *dirname = g_strdup_printf("%s.dir", filename);
@@ -724,7 +723,7 @@ static gboolean zip_to_srfile(gchar *filename)
 		sr_err("Failed to rename %s to %s",
 		       filename,
 		       dirname);
-		ret = 0;
+		ret = FALSE;
 		goto cleanup_dir_rename;
 	}
 
@@ -739,18 +738,29 @@ static gboolean zip_to_srfile(gchar *filename)
 		}
 	}
 
+	mz_zip_error zip_err = 0;
+	mz_zip_archive zip_archive;
+	mz_zip_zero_struct(&zip_archive);
+	mz_uint level_and_flags = compression_level | MZ_ZIP_FLAG_WRITE_ZIP64;
+
+	if (!mz_zip_writer_init_file_v2(&zip_archive, filename, 0, level_and_flags)) {
+		zip_err = zip_archive.m_last_error;
+		sr_err("Failed to create zip %s: %d (%s)",
+		       filename, zip_err, mz_zip_get_error_string(zip_err));
+		ret = FALSE;
+		goto cleanup_dir_rename;
+	}
+
 	GDir *d = g_dir_open(dirname, 0, NULL);
 
 	if (!d) {
-		ret = 0;
+		ret = FALSE;
 		goto cleanup_dir_open;
 	}
 
-	const gchar *entry_name = NULL;
-
 	while (ret) {
 
-		entry_name = g_dir_read_name(d);
+		const gchar *entry_name = g_dir_read_name(d);
 		if (entry_name == NULL)
 			break;
 
@@ -758,50 +768,49 @@ static gboolean zip_to_srfile(gchar *filename)
 		                                          entry_name,
 		                                          NULL);
 
-		gchar *buf;
-		gsize len;
-		GError *err = NULL;
-		g_file_get_contents(file_in_dirname,
-		                    &buf,
-		                    &len,
-		                    &err);
+		mz_bool status = mz_zip_writer_add_file(&zip_archive,
+		                                        entry_name,
+		                                        file_in_dirname,
+		                                        NULL, 0,
+		                                        level_and_flags);
 
-		if (err) {
-			sr_err("Failed to read %s: %s",
-			       file_in_dirname,
-			       err->message);
-			ret = 0;
-			goto cleanup_read_file;
-		}
-
-		mz_zip_error zip_err = 0;
-		mz_bool status = \
-			mz_zip_add_mem_to_archive_file_in_place_v2(filename,
-			                                           entry_name,
-			                                           buf,
-			                                           len,
-			                                           NULL, 0,
-			                                           MZ_ZIP_FLAG_WRITE_ZIP64 | compression_level,
-			                                           &zip_err);
 		if (!status) {
+			zip_err = zip_archive.m_last_error;
 			sr_err("Failed to compress %s: %d (%s)",
 			       entry_name, zip_err, mz_zip_get_error_string(zip_err));
-			ret = 0;
+			ret = FALSE;
 		}
 
-		g_free(buf);
-	cleanup_read_file:
 		g_free(file_in_dirname);
 	}
 
  cleanup_dir_open:
 	g_dir_close(d);
 
+    if (!mz_zip_writer_finalize_archive(&zip_archive))
+    {
+	    zip_err = zip_archive.m_last_error;
+	    sr_err("Failed to finalize %s: %d (%s)",
+	           filename, zip_err, mz_zip_get_error_string(zip_err));
+	    ret = FALSE;
+    }
+
+    if (!mz_zip_writer_end_internal(&zip_archive, ret))
+    {
+	    zip_err = zip_archive.m_last_error;
+	    sr_err("Failed to end %s: %d (%s)",
+	           filename, zip_err, mz_zip_get_error_string(zip_err));
+	    ret = FALSE;
+    }
+
 	if (ret) {
 		if (!rm_rf_unlink(dirname)) {
 			sr_err("Failed to remove directory %s",
 			       dirname);
 		}
+	} else {
+		/* Something went wrong, so just delete our zip. */
+		(void)MZ_DELETE_FILE(filename);
 	}
 
  cleanup_dir_rename:
