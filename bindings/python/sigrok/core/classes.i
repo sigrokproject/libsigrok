@@ -344,8 +344,8 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         PyObject *numObj = PyTuple_GetItem(input, 0);
         PyObject *denomObj = PyTuple_GetItem(input, 1);
         if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
-          std::tuple<guint64, guint64> tpl = {PyInt_AsLong(numObj), PyInt_AsLong(denomObj)};
-          return Glib::Variant< std::tuple<guint64,guint64> >::Variant::create(tpl);
+          const std::vector<guint64> v = {(guint64)PyInt_AsLong(numObj), (guint64)PyInt_AsLong(denomObj)};
+          return Glib::Variant< std::vector<guint64> >::create(v);
         }
     }
     throw sigrok::Error(SR_ERR_ARG);
