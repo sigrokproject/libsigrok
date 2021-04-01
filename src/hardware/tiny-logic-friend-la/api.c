@@ -20,14 +20,26 @@
 #include <config.h>
 #include "protocol.h"
 
-static struct sr_dev_driver tiny_logic_friend_la_driver_info;
+//static struct sr_dev_driver tiny_logic_friend_la_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
-	GSList *devices;
+	GSList *l, *devices, *conn_devices;
+	struct sr_config *src;
+	struct sr_usb_dev_inst *usb;
+	const char *conn;
+	struct libusb_device_handle *hdl;
+	int ret, i;
+	char manufacturer[64], product[64], serial_num[64];
+	struct libusb_device_descriptor des;
+	libusb_device **devlist;
 
-	(void)options;
+	// set the logging level of message
+	int log_level;
+	log_level=5;
+
+	// (void)options;
 
 	devices = NULL;
 	drvc = di->context;
@@ -36,7 +48,104 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* TODO: scan for devices, either based on a SR_CONF_CONN option
 	 * or on a USB scan. */
 
-	return devices;
+	sr_log(log_level, "TinyLogicFriend: Starting scan! *****");
+
+	conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_CONN:
+			conn = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
+	if (conn)
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	else
+		conn_devices = NULL;
+
+	// Read and print the VID/PID
+	devices = NULL;
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if (conn) {
+			usb = NULL;
+			for (l = conn_devices; l; l = l->next) {
+				usb = l->data;
+				if (usb->bus == libusb_get_bus_number(devlist[i])
+					&& usb->address == libusb_get_device_address(devlist[i]))
+					break;
+			}
+			if (!l)
+				/* This device matched none of the ones that
+				 * matched the conn specification. */
+				continue;
+		}
+
+		libusb_get_device_descriptor(devlist[i], &des);
+
+		if ((ret = libusb_open(devlist[i], &hdl)) < 0) {
+			sr_warn("Failed to open potential device with "
+				"VID:PID %04x:%04x: %s.", des.idVendor,
+				des.idProduct, libusb_error_name(ret));
+			continue;
+		}
+
+		// print the VID and PID of the found device
+		sr_log(log_level, "Succesfully opened device with "
+					"VID:PID %04x:%04x.", des.idVendor, des.idProduct);
+
+
+		if (des.iManufacturer == 0) {
+			manufacturer[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iManufacturer, (unsigned char *) manufacturer,
+				sizeof(manufacturer))) < 0) {
+			sr_warn("Failed to get manufacturer string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		// print the manufacturer string
+		sr_log(log_level, "Found manufacturer string descriptor: %s.", manufacturer);
+
+		if (des.iProduct == 0) {
+			product[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iProduct, (unsigned char *) product,
+				sizeof(product))) < 0) {
+			sr_warn("Failed to get product string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		// print the product string descriptor
+		sr_log(log_level, "Found product string descriptor: %s.", product);
+
+
+		if (des.iSerialNumber == 0) {
+			serial_num[0] = '\0';
+		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iSerialNumber, (unsigned char *) serial_num,
+				sizeof(serial_num))) < 0) {
+			sr_warn("Failed to get serial number string descriptor: %s.",
+				libusb_error_name(ret));
+			continue;
+		}
+
+		// print the serial number descriptor
+		sr_log(log_level, "Found serial number string descriptor: %s.", serial_num);
+
+		// if got this far, close this device handle (opened by `libusb_open`)
+		libusb_close(hdl);
+	}
+
+	// free items
+	libusb_free_device_list(devlist, 1);
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
+
+	sr_log(log_level, "TinyLogicFriend: Ending scan! *****");
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
