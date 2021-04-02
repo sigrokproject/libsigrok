@@ -194,6 +194,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				sizeof(serial_num))) < 0) {
 			sr_warn("Failed to get serial number string descriptor: %s.",
 				libusb_error_name(ret));
+			libusb_close(hdl);
 			continue;
 		}
 
