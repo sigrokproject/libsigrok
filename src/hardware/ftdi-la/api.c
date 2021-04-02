@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Sergey Alirzaev <zl29ah@gmail.com>
+ * Copyright (C) 2021 Thomas Hebb <tommyhebb@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -108,15 +109,13 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	NULL,
 };
 
-static void scan_device(struct ftdi_context *ftdic,
-	struct libusb_device *dev, GSList **devices)
+static void scan_device(struct libusb_device *dev, GSList **devices)
 {
-	static const int usb_str_maxlen = 32;
-
 	struct libusb_device_descriptor usb_desc;
+	struct libusb_device_handle *hdl;
 	const struct ftdi_chip_desc *desc;
 	struct dev_context *devc;
-	char *vendor, *model, *serial_num;
+	char vendor[127], model[127], serial_num[127];
 	struct sr_dev_inst *sdi;
 	int rv;
 
@@ -132,11 +131,66 @@ static void scan_device(struct ftdi_context *ftdic,
 			break;
 	}
 
-	if (!desc) {
-		sr_spew("Unsupported FTDI device 0x%04x:0x%04x.",
-			usb_desc.idVendor, usb_desc.idProduct);
+	if (!desc)
+		return;
+
+	if ((rv = libusb_open(dev, &hdl)) != 0) {
+		sr_warn("Failed to open potential device with "
+			"VID:PID %04x:%04x: %s.", usb_desc.idVendor,
+			usb_desc.idProduct, libusb_error_name(rv));
 		return;
 	}
+
+	if (usb_desc.iManufacturer != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iManufacturer,
+				(unsigned char *)vendor, sizeof(vendor)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
+		sr_dbg("The device lacks a manufacturer descriptor.");
+		g_snprintf(vendor, sizeof(vendor), "Generic");
+	}
+
+	if (usb_desc.iProduct != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iProduct,
+				(unsigned char *)model, sizeof(model)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
+		sr_dbg("The device lacks a product descriptor.");
+		switch (usb_desc.idProduct) {
+		case 0x6001:
+			g_snprintf(model, sizeof(model), "FT232R");
+			break;
+		case 0x6010:
+			g_snprintf(model, sizeof(model), "FT2232H");
+			break;
+		case 0x6011:
+			g_snprintf(model, sizeof(model), "FT4232H");
+			break;
+		case 0x6014:
+			g_snprintf(model, sizeof(model), "FT232H");
+			break;
+		case 0x8a98:
+			g_snprintf(model, sizeof(model), "FT2232H-TUMPA");
+			break;
+		default:
+			g_snprintf(model, sizeof(model), "Unknown");
+			break;
+		}
+	}
+
+	if (usb_desc.iSerialNumber != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iSerialNumber,
+				(unsigned char *)serial_num, sizeof(serial_num)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
+		sr_dbg("The device lacks a serial number.");
+		serial_num[0] = '\0';
+	}
+
+	sr_dbg("Found an FTDI device: %s.", model);
 
 	devc = g_malloc0(sizeof(struct dev_context));
 
@@ -145,58 +199,11 @@ static void scan_device(struct ftdi_context *ftdic,
 
 	devc->desc = desc;
 
-	vendor = g_malloc(usb_str_maxlen);
-	model = g_malloc(usb_str_maxlen);
-	serial_num = g_malloc(usb_str_maxlen);
-	rv = ftdi_usb_get_strings(ftdic, dev, vendor, usb_str_maxlen,
-			model, usb_str_maxlen, serial_num, usb_str_maxlen);
-	switch (rv) {
-	case 0:
-		break;
-	/* ftdi_usb_get_strings() fails on first miss, hence fall through. */
-	case -7:
-		sr_dbg("The device lacks a manufacturer descriptor.");
-		g_snprintf(vendor, usb_str_maxlen, "Generic");
-		/* FALLTHROUGH */
-	case -8:
-		sr_dbg("The device lacks a product descriptor.");
-		switch (usb_desc.idProduct) {
-		case 0x6001:
-			g_snprintf(model, usb_str_maxlen, "FT232R");
-			break;
-		case 0x6010:
-			g_snprintf(model, usb_str_maxlen, "FT2232H");
-			break;
-		case 0x6011:
-			g_snprintf(model, usb_str_maxlen, "FT4232H");
-			break;
-		case 0x6014:
-			g_snprintf(model, usb_str_maxlen, "FT232H");
-			break;
-		case 0x8a98:
-			g_snprintf(model, usb_str_maxlen, "FT2232H-TUMPA");
-			break;
-		default:
-			g_snprintf(model, usb_str_maxlen, "Unknown");
-			break;
-		}
-		/* FALLTHROUGH */
-	case -9:
-		sr_dbg("The device lacks a serial number.");
-		g_free(serial_num);
-		serial_num = NULL;
-		break;
-	default:
-		sr_err("Failed to get the FTDI strings: %d", rv);
-		goto err_free_strings;
-	}
-	sr_dbg("Found an FTDI device: %s.", model);
-
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = vendor;
-	sdi->model = model;
-	sdi->serial_num = serial_num;
+	sdi->vendor = g_strdup(vendor);
+	sdi->model = g_strdup(model);
+	sdi->serial_num = g_strdup(serial_num);
 	sdi->priv = devc;
 	sdi->connection_id = g_strdup_printf("d:%u/%u",
 		libusb_get_bus_number(dev), libusb_get_device_address(dev));
@@ -206,48 +213,13 @@ static void scan_device(struct ftdi_context *ftdic,
 				SR_CHANNEL_LOGIC, TRUE, *chan);
 
 	*devices = g_slist_append(*devices, sdi);
-	return;
 
-err_free_strings:
-	g_free(vendor);
-	g_free(model);
-	g_free(serial_num);
-	g_free(devc->data_buf);
-	g_free(devc);
-}
-
-static GSList *scan_all(struct ftdi_context *ftdic, GSList *options)
-{
-	GSList *devices;
-	struct ftdi_device_list *devlist = 0;
-	struct ftdi_device_list *curdev;
-	int ret;
-
-	(void)options;
-
-	devices = NULL;
-
-	ret = ftdi_usb_find_all(ftdic, &devlist, 0, 0);
-	if (ret < 0) {
-		sr_err("Failed to list devices (%d): %s", ret,
-		       ftdi_get_error_string(ftdic));
-		return NULL;
-	}
-
-	curdev = devlist;
-	while (curdev) {
-		scan_device(ftdic, curdev->dev, &devices);
-		curdev = curdev->next;
-	}
-
-	ftdi_list_free(&devlist);
-
-	return devices;
+out_close_hdl:
+	libusb_close(hdl);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct ftdi_context *ftdic;
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
 	const char *conn;
@@ -267,30 +239,31 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	ftdic = ftdi_new();
-	if (!ftdic) {
-		sr_err("Failed to initialize libftdi.");
-		return NULL;
-	}
+	if (conn)
+		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	else
+		conn_devices = NULL;
 
-	if (conn) {
-		devices = NULL;
-		libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	devices = NULL;
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if (conn) {
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
 				if (usb->bus == libusb_get_bus_number(devlist[i])
-					&& usb->address == libusb_get_device_address(devlist[i])) {
-					scan_device(ftdic, devlist[i], &devices);
-				}
+				    && usb->address == libusb_get_device_address(devlist[i]))
+					break;
 			}
+			if (!l)
+				/* This device is not one that matched the conn
+				 * specification. */
+				continue;
 		}
-		libusb_free_device_list(devlist, 1);
-	} else
-		devices = scan_all(ftdic, options);
 
-	ftdi_free(ftdic);
+		scan_device(devlist[i], &devices);
+	}
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
+	libusb_free_device_list(devlist, 1);
 
 	return std_scan_complete(di, devices);
 }
