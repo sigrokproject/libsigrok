@@ -472,7 +472,6 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	double clock_divisor;
-	uint64_t psa;
 	uint64_t total;
 	int ret;
 	uint16_t divisor;
@@ -503,12 +502,13 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
 	       devc->cur_samplerate / 1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
 
-	psa = devc->pre_trigger_size * 256;
 	wrptr = buf;
 	write_u32le_inc(&wrptr, devc->limit_samples);
-	write_u48le_inc(&wrptr, psa);
-	write_u32le_inc(&wrptr, (total * devc->capture_ratio) / 100);
-	write_u16le_inc(&wrptr, clock_divisor);
+	write_u8_inc(&wrptr, 0);
+	write_u32le_inc(&wrptr, devc->pre_trigger_size);
+	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xFFFFFF00 );
+	write_u16le_inc(&wrptr, divisor);
+	write_u8_inc(&wrptr, 0);
 
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
