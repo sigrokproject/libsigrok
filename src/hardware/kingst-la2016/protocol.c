@@ -209,26 +209,68 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
 	struct dev_context *devc;
-	float o1, o2, v1, v2, f;
-	uint32_t cfgval;
-	uint8_t buffer[sizeof(uint32_t)];
-	uint8_t *wrptr;
 	int ret;
 
 	devc = sdi->priv;
-	o1 = 15859969; v1 = 0.45;
-	o2 = 15860333; v2 = 1.65;
-	f = (o2 - o1) / (v2 - v1);
-	cfgval = (uint32_t)(o1 + (voltage - v1) * f);
-	sr_dbg("set threshold voltage %.2fV, raw value 0x%lx",
-		voltage, (unsigned long)cfgval);
 
-	wrptr = buffer;
-	write_u32le_inc(&wrptr, cfgval);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_THRESHOLD, 0, buffer, wrptr - buffer);
+	uint16_t duty_R79,duty_R56;
+	uint8_t buf[2 * sizeof(uint16_t)];
+	uint8_t *wrptr;
+
+	/* clamp threshold setting within valid range for LA2016 */
+	if (voltage > 4.0) {
+		voltage = 4.0;
+	}
+	else if (voltage < -4.0) {
+		voltage = -4.0;
+	}
+
+	/*
+	 * The fpga has two programmable pwm outputs which feed a dac that
+	 * is used to adjust input offset. The dac changes the input
+	 * swing around the fixed fpga input threshold.
+	 * The two pwm outputs can be seen on R79 and R56 respectvely.
+	 * Frequency is fixed at 100kHz and duty is varied.
+	 * The R79 pwm uses just three settings.
+	 * The R56 pwm varies with required threshold and its behaviour
+	 * also changes depending on the setting of R79 PWM.
+	 */
+
+	/*
+	 * calculate required pwm duty register values from requested threshold voltage
+	 * see last page of schematic (on wiki) for an explanation of these numbers
+	 */
+	if (voltage >= 2.9) {
+		duty_R79 = 0;		/* this pwm is off (0V)*/
+		duty_R56 = (uint16_t)(302 * voltage - 363);
+	}
+	else if (voltage <= -0.4) {
+		duty_R79 = 0x02D7;	/* 72% duty */
+		duty_R56 = (uint16_t)(302 * voltage + 1090);
+	}
+	else {
+		duty_R79 = 0x00f2;	/* 25% duty */
+		duty_R56 = (uint16_t)(302 * voltage + 121);
+	}
+
+	/* clamp duty register values at sensible limits */
+	if (duty_R56 < 10) {
+		duty_R56 = 10;
+	}
+	else if (duty_R56 > 1100) {
+		duty_R56 = 1100;
+	}
+
+	sr_dbg("set threshold voltage %.2fV", voltage);
+	sr_dbg("duty_R56=0x%04x, duty_R79=0x%04x", duty_R56, duty_R79);
+
+	wrptr = buf;
+	write_u16le_inc(&wrptr, duty_R56);
+	write_u16le_inc(&wrptr, duty_R79);
+
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_THRESHOLD, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
-		sr_err("Error setting %.2fV threshold voltage (%d)",
-			voltage, ret);
+		sr_err("error setting new threshold voltage of %.2fV", voltage);
 		return ret;
 	}
 	devc->threshold_voltage = voltage;
