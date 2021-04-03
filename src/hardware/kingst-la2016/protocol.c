@@ -50,15 +50,24 @@
 #define	CMD_BULK_START	0x30	/* begin transfer of capture data via usb endpoint 6 IN */
 #define	CMD_KAUTH	0x60	/* communicate with authentication ic U10, not used */
 
-/* registers for control request 32: */
-#define CTRL_RUN         0x00
-#define CTRL_PWM_EN      0x02
-#define CTRL_BULK        0x10 /* can be read to get 12 byte sampling_info (III) */
-#define CTRL_SAMPLING    0x20
-#define CTRL_TRIGGER     0x30
-#define CTRL_THRESHOLD   0x48
-#define CTRL_PWM1        0x70
-#define CTRL_PWM2        0x78
+/*
+ * fpga spi register addresses for control request CMD_FPGA_SPI:
+ * There are around 60 byte-wide registers within the fpga and
+ * these are the base addresses used for accessing them.
+ * On the spi bus, the msb of the address byte is set for read
+ * and cleared for write, but that is handled by the fx2 mcu
+ * as appropriate. In this driver code just use IN transactions
+ * to read, OUT to write.
+ */
+#define	REG_RUN		0x00	/* read capture status, write capture start */
+#define	REG_PWM_EN	0x02	/* user pwm channels on/off */
+#define	REG_CAPT_MODE	0x03	/* set to 0x00 for capture to sdram, 0x01 bypass sdram for streaming */
+#define	REG_BULK	0x08	/* write start address and number of bytes for capture data bulk upload */
+#define	REG_SAMPLING	0x10	/* write capture config, read capture data location in sdram */
+#define	REG_TRIGGER	0x20	/* write level and edge trigger config */
+#define	REG_THRESHOLD	0x68	/* write two pwm configs to control input threshold dac */
+#define	REG_PWM1	0x70	/* write config for user pwm1 */
+#define	REG_PWM2	0x78	/* write config for user pwm2 */
 
 static int ctrl_in(const struct sr_dev_inst *sdi,
 		   uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
@@ -216,7 +225,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 
 	wrptr = buffer;
 	write_u32le_inc(&wrptr, cfgval);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_THRESHOLD, 0, buffer, wrptr - buffer);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_THRESHOLD, 0, buffer, wrptr - buffer);
 	if (ret != SR_OK) {
 		sr_err("Error setting %.2fV threshold voltage (%d)",
 			voltage, ret);
@@ -240,7 +249,7 @@ static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 	if (p2) cfg |= 1 << 1;
 
 	sr_dbg("set pwm enable %d %d", p1, p2);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_PWM_EN, 0, &cfg, sizeof(cfg));
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0, &cfg, sizeof(cfg));
 	if (ret != SR_OK) {
 		sr_err("error setting new pwm enable 0x%02x", cfg);
 		return ret;
@@ -253,7 +262,7 @@ static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 
 static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, float duty)
 {
-	int CTRL_PWM[] = { CTRL_PWM1, CTRL_PWM2 };
+	int CTRL_PWM[] = { REG_PWM1, REG_PWM2 };
 	struct dev_context *devc;
 	pwm_setting_dev_t cfg;
 	pwm_setting_t *setting;
@@ -408,7 +417,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, cfg.enabled);
 	write_u32le_inc(&wrptr, cfg.level);
 	write_u32le_inc(&wrptr, cfg.high_or_falling);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_TRIGGER, 16, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_TRIGGER, 16, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting trigger config!");
 		return ret;
@@ -459,7 +468,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, (total * devc->capture_ratio) / 100);
 	write_u16le_inc(&wrptr, clock_divisor);
 
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_SAMPLING, 0, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting sample config!");
 		return ret;
@@ -481,7 +490,7 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	uint16_t state;
 	int ret;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, CTRL_RUN, 0, &state, sizeof(state))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, &state, sizeof(state))) != SR_OK) {
 		sr_err("failed to read run state!");
 		return ret;
 	}
@@ -494,7 +503,7 @@ static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t fast_blinking)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
 		sr_err("failed to send set-run-mode command %d", fast_blinking);
 		return ret;
 	}
@@ -511,7 +520,7 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, CTRL_BULK, 0, buf, sizeof(buf))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, sizeof(buf))) != SR_OK) {
 		sr_err("failed to read capture info!");
 		return ret;
 	}
@@ -552,7 +561,7 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 
 	cmd = 0;
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, 0x03, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd))) != SR_OK) {
 		sr_err("failed to send stop sampling command");
 		return ret;
 	}
@@ -624,7 +633,7 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	wrptr = wrbuf;
 	write_u32le_inc(&wrptr, devc->read_pos);
 	write_u32le_inc(&wrptr, devc->n_bytes_to_read);
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
 		sr_err("failed to send bulk config");
 		return ret;
 	}
