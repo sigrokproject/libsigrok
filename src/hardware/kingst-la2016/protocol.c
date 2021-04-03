@@ -41,6 +41,15 @@
 #define MAX_PWM_FREQ     SR_MHZ(20)
 #define PWM_CLOCK        SR_MHZ(200)
 
+/* usb vendor class control requests to the cypress FX2 microcontroller */
+#define	CMD_EEPROM	0xa2	/* ctrl_in reads, ctrl_out writes */
+#define	CMD_FPGA_INIT	0x50	/* used before and after FPGA bitstream loading */
+#define	CMD_FPGA_SPI	0x20	/* access registers in the FPGA over SPI bus, ctrl_in reads, ctrl_out writes */
+#define	CMD_FPGA_ENABLE	0x10
+#define	CMD_BULK_RESET	0x38	/* flush FX2 usb endpoint 6 IN fifos */
+#define	CMD_BULK_START	0x30	/* begin transfer of capture data via usb endpoint 6 IN */
+#define	CMD_KAUTH	0x60	/* communicate with authentication ic U10, not used */
+
 /* registers for control request 32: */
 #define CTRL_RUN         0x00
 #define CTRL_PWM_EN      0x02
@@ -125,7 +134,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 	devc->bitstream_size = (uint32_t)bitstream.size;
 	wrptr = buffer;
 	write_u32le_inc(&wrptr, devc->bitstream_size);
-	if ((ret = ctrl_out(sdi, 80, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_INIT, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
 		sr_err("failed to give upload init command");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
@@ -168,7 +177,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 		return ret;
 	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.", bitstream.size);
 
-	if ((ret = ctrl_in(sdi, 80, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
 		sr_err("failed to read response after FPGA bitstream upload");
 		return ret;
 	}
@@ -179,7 +188,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 
 	g_usleep(30000);
 
-	if ((ret = ctrl_out(sdi, 16, 0x01, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed enable fpga");
 		return ret;
 	}
@@ -207,7 +216,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 
 	wrptr = buffer;
 	write_u32le_inc(&wrptr, cfgval);
-	ret = ctrl_out(sdi, 32, CTRL_THRESHOLD, 0, buffer, wrptr - buffer);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_THRESHOLD, 0, buffer, wrptr - buffer);
 	if (ret != SR_OK) {
 		sr_err("Error setting %.2fV threshold voltage (%d)",
 			voltage, ret);
@@ -231,7 +240,7 @@ static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 	if (p2) cfg |= 1 << 1;
 
 	sr_dbg("set pwm enable %d %d", p1, p2);
-	ret = ctrl_out(sdi, 32, CTRL_PWM_EN, 0, &cfg, sizeof(cfg));
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_PWM_EN, 0, &cfg, sizeof(cfg));
 	if (ret != SR_OK) {
 		sr_err("error setting new pwm enable 0x%02x", cfg);
 		return ret;
@@ -274,7 +283,7 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	wrptr = buf;
 	write_u32le_inc(&wrptr, cfg.period);
 	write_u32le_inc(&wrptr, cfg.duty);
-	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_PWM[which - 1], 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting new pwm%d config %d %d", which, cfg.period, cfg.duty);
 		return ret;
@@ -399,7 +408,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, cfg.enabled);
 	write_u32le_inc(&wrptr, cfg.level);
 	write_u32le_inc(&wrptr, cfg.high_or_falling);
-	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_TRIGGER, 16, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting trigger config!");
 		return ret;
@@ -450,7 +459,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, (total * devc->capture_ratio) / 100);
 	write_u16le_inc(&wrptr, clock_divisor);
 
-	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting sample config!");
 		return ret;
@@ -472,7 +481,7 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	uint16_t state;
 	int ret;
 
-	if ((ret = ctrl_in(sdi, 32, CTRL_RUN, 0, &state, sizeof(state))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, CTRL_RUN, 0, &state, sizeof(state))) != SR_OK) {
 		sr_err("failed to read run state!");
 		return ret;
 	}
@@ -485,7 +494,7 @@ static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t fast_blinking)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, 32, CTRL_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
 		sr_err("failed to send set-run-mode command %d", fast_blinking);
 		return ret;
 	}
@@ -502,7 +511,7 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, 32, CTRL_BULK, 0, buf, sizeof(buf))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, CTRL_BULK, 0, buf, sizeof(buf))) != SR_OK) {
 		sr_err("failed to read capture info!");
 		return ret;
 	}
@@ -543,7 +552,7 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 
 	cmd = 0;
-	if ((ret = ctrl_out(sdi, 32, 0x03, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, 0x03, 0, &cmd, sizeof(cmd))) != SR_OK) {
 		sr_err("failed to send stop sampling command");
 		return ret;
 	}
@@ -607,7 +616,7 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	sr_dbg("want to read %d tfer-packets starting from pos %d",
 	       devc->n_transfer_packets_to_read, devc->read_pos);
 
-	if ((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to reset bulk state");
 		return ret;
 	}
@@ -615,11 +624,11 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	wrptr = wrbuf;
 	write_u32le_inc(&wrptr, devc->read_pos);
 	write_u32le_inc(&wrptr, devc->n_bytes_to_read);
-	if ((ret = ctrl_out(sdi, 32, CTRL_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
 		sr_err("failed to send bulk config");
 		return ret;
 	}
-	if ((ret = ctrl_out(sdi, 48, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to unblock bulk transfers");
 		return ret;
 	}
@@ -674,13 +683,13 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, 162, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
 		sr_err("failed to read i1");
 		return ret;
 	}
 	sr_dbg("i1: 0x%08x", i1);
 
-	if ((ret = ctrl_in(sdi, 162, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
 		sr_err("failed to read i2");
 		return ret;
 	}
@@ -707,12 +716,12 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		unknown_cmd1 = unknown_cmd1_342;
 		expected_unknown_resp1 = expected_unknown_resp1_342;
 	}
-	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1_340))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_KAUTH, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1_340))) != SR_OK) {
 		sr_err("failed to send unknown_cmd1");
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if ((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_KAUTH, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
 		sr_err("failed to read unknown_resp1");
 		return ret;
 	}
@@ -723,19 +732,19 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	if (state != 0x85e9)
 		sr_warn("expect run state to be 0x85e9, but it reads 0x%04x", state);
 
-	if ((ret = ctrl_out(sdi, 96, 0x00, 0, unknown_cmd2, sizeof(unknown_cmd2))) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_KAUTH, 0x00, 0, unknown_cmd2, sizeof(unknown_cmd2))) != SR_OK) {
 		sr_err("failed to send unknown_cmd2");
 		return ret;
 	}
 	g_usleep(80 * 1000);
-	if ((ret = ctrl_in(sdi, 96, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, CMD_KAUTH, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
 		sr_err("failed to read unknown_resp2");
 		return ret;
 	}
 	if (memcmp(unknown_resp2, expected_unknown_resp2, sizeof(unknown_resp2)))
 		sr_dbg("unknown_cmd2 response is not as expected!");
 
-	if ((ret = ctrl_out(sdi, 56, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to send unknown_cmd3");
 		return ret;
 	}
@@ -748,7 +757,7 @@ SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, 16, 0x00, 0, NULL, 0)) != SR_OK) {
+	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to send deinit command");
 		return ret;
 	}
