@@ -681,6 +681,8 @@ static int handle_event(int fd, int revents, void *cb_data)
 		g_free(devc->convbuffer);
 		devc->convbuffer = NULL;
 
+		devc->transfer = NULL;
+
 		sr_dbg("transfer is now finished");
 	}
 
