@@ -713,38 +713,22 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
 	int ret;
 	uint32_t i1;
 	uint32_t i2[2];
 	uint16_t state;
 
-	/* this unknown_cmd1 seems to depend on the FPGA bitstream */
-	uint8_t unknown_cmd1_340[] = { 0xa3, 0x09, 0xc9, 0x8d, 0xe7, 0xad, 0x7a, 0x62, 0xb6, 0xd1, 0xbf };
-	uint8_t unknown_cmd1_342[] = { 0xa3, 0x09, 0xc9, 0xf4, 0x32, 0x4c, 0x4d, 0xee, 0xab, 0xa0, 0xdd };
-	uint8_t expected_unknown_resp1_340[] = { 0xa3, 0x10, 0xda, 0x66, 0x6b, 0x93, 0x5c, 0x55, 0x38, 0x50, 0x39, 0x51, 0x98, 0x86, 0x5d, 0x06, 0x7c, 0xea };
-	uint8_t expected_unknown_resp1_342[] = { 0xa3, 0x10, 0xb3, 0x92, 0x7b, 0xd8, 0x6b, 0xca, 0xa5, 0xab, 0x42, 0x6e, 0xda, 0xcd, 0x9d, 0xf1, 0x31, 0x2f };
-	uint8_t unknown_resp1[sizeof(expected_unknown_resp1_340)];
-	uint8_t *expected_unknown_resp1;
-	uint8_t *unknown_cmd1;
-
-	uint8_t unknown_cmd2[] = { 0xa3, 0x01, 0xca };
-	uint8_t expected_unknown_resp2[] = { 0xa3, 0x08, 0x06, 0x83, 0x96, 0x29, 0x15, 0xe1, 0x92, 0x74, 0x00, 0x00 };
-	uint8_t unknown_resp2[sizeof(expected_unknown_resp2)];
-
-	devc = sdi->priv;
-
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
-		sr_err("failed to read i1");
+		sr_err("failed to read eeprom bytes from address 0x20");
 		return ret;
 	}
-	sr_dbg("i1: 0x%08x", i1);
+	sr_dbg("eeprom bytes from address 0x20: 0x%08x", i1);
 
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
-		sr_err("failed to read i2");
+		sr_err("failed to read eeprom bytes from address 0x08");
 		return ret;
 	}
-	sr_dbg("i2: 0x%08x, 0x%08x", i2[0], i2[1]);
+	sr_dbg("eeprom bytes from address 0x08: 0x%08x, 0x%08x", i2[0], i2[1]);
 
 	if ((ret = upload_fpga_bitstream(sdi)) != SR_OK) {
 		sr_err("failed to upload fpga bitstream");
@@ -756,47 +740,12 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	if (devc->bitstream_size == 0x2b602) {
-		// v3.4.0
-		unknown_cmd1 = unknown_cmd1_340;
-		expected_unknown_resp1 = expected_unknown_resp1_340;
-	} else {
-		// v3.4.2
-		if (devc->bitstream_size != 0x2b839)
-			sr_warn("the FPGA bitstream size %d is unknown. tested bistreams from vendor's version 3.4.0 and 3.4.2\n", devc->bitstream_size);
-		unknown_cmd1 = unknown_cmd1_342;
-		expected_unknown_resp1 = expected_unknown_resp1_342;
-	}
-	if ((ret = ctrl_out(sdi, CMD_KAUTH, 0x00, 0, unknown_cmd1, sizeof(unknown_cmd1_340))) != SR_OK) {
-		sr_err("failed to send unknown_cmd1");
-		return ret;
-	}
-	g_usleep(80 * 1000);
-	if ((ret = ctrl_in(sdi, CMD_KAUTH, 0x00, 0, unknown_resp1, sizeof(unknown_resp1))) != SR_OK) {
-		sr_err("failed to read unknown_resp1");
-		return ret;
-	}
-	if (memcmp(unknown_resp1, expected_unknown_resp1, sizeof(unknown_resp1)))
-		sr_dbg("unknown_cmd1 response is not as expected, this is to be expected...");
-
 	state = run_state(sdi);
 	if (state != 0x85e9)
 		sr_warn("expect run state to be 0x85e9, but it reads 0x%04x", state);
 
-	if ((ret = ctrl_out(sdi, CMD_KAUTH, 0x00, 0, unknown_cmd2, sizeof(unknown_cmd2))) != SR_OK) {
-		sr_err("failed to send unknown_cmd2");
-		return ret;
-	}
-	g_usleep(80 * 1000);
-	if ((ret = ctrl_in(sdi, CMD_KAUTH, 0x00, 0, unknown_resp2, sizeof(unknown_resp2))) != SR_OK) {
-		sr_err("failed to read unknown_resp2");
-		return ret;
-	}
-	if (memcmp(unknown_resp2, expected_unknown_resp2, sizeof(unknown_resp2)))
-		sr_dbg("unknown_cmd2 response is not as expected!");
-
 	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed to send unknown_cmd3");
+		sr_err("failed to send CMD_BULK_RESET");
 		return ret;
 	}
 	sr_dbg("device should be initialized");
