@@ -64,7 +64,7 @@ static const char *channel_names[] = {
 	"8", "9", "10", "11", "12", "13", "14", "15",
 };
 
-static const uint64_t samplerates[] = {
+static const uint64_t samplerates_la2016[] = {
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -80,6 +80,23 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(50),
 	SR_MHZ(100),
 	SR_MHZ(200),
+};
+
+static const uint64_t samplerates_la1016[] = {
+	SR_KHZ(20),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(4),
+	SR_MHZ(5),
+	SR_MHZ(8),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(50),
+	SR_MHZ(100),
 };
 
 static const float logic_threshold_value[] = {
@@ -485,12 +502,21 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
+		if (devc->max_samplerate == SR_MHZ(200)) {
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la2016));
+		}
+		else {
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la1016));
+		}
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(LA2016_NUM_SAMPLES_MIN, LA2016_NUM_SAMPLES_MAX);
