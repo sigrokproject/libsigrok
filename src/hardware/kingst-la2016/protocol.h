@@ -80,6 +80,7 @@ struct dev_context {
 	pwm_setting_t pwm_setting[2];
 	unsigned int threshold_voltage_idx;
 	float threshold_voltage;
+	uint64_t max_samplerate;
 	uint64_t cur_samplerate;
 	uint64_t limit_samples;
 	uint64_t capture_ratio;

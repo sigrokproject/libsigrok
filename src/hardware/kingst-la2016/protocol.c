@@ -36,11 +36,14 @@
 #define UC_FIRMWARE	"kingst-la-%04x.fw"
 #define FPGA_FW_LA2016	"kingst-la2016-fpga.bitstream"
 #define FPGA_FW_LA2016A	"kingst-la2016a1-fpga.bitstream"
+#define FPGA_FW_LA1016	"kingst-la1016-fpga.bitstream"
+#define FPGA_FW_LA1016A	"kingst-la1016a1-fpga.bitstream"
 
-#define MAX_SAMPLE_RATE  SR_MHZ(200)
+#define MAX_SAMPLE_RATE_LA2016	SR_MHZ(200)
+#define MAX_SAMPLE_RATE_LA1016	SR_MHZ(100)
 #define MAX_SAMPLE_DEPTH 10e9
 #define MAX_PWM_FREQ     SR_MHZ(20)
-#define PWM_CLOCK        SR_MHZ(200)
+#define PWM_CLOCK        SR_MHZ(200)	/* this is 200MHz for both the LA2016 and LA1016 */
 
 /* usb vendor class control requests to the cypress FX2 microcontroller */
 #define	CMD_EEPROM	0xa2	/* ctrl_in reads, ctrl_out writes */
@@ -357,7 +360,7 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 	devc->capture_ratio = 5; /* percent */
 	devc->cur_channels = 0xffff;
 	devc->limit_samples = 5000000;
-	devc->cur_samplerate = 200000000;
+	devc->cur_samplerate = SR_MHZ(100);
 
 	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
 	if (ret)
@@ -482,16 +485,16 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 	total = 128 * 1024 * 1024;
 
-	if (devc->cur_samplerate > MAX_SAMPLE_RATE) {
+	if (devc->cur_samplerate > devc->max_samplerate) {
 		sr_err("too high sample rate: %" PRIu64, devc->cur_samplerate);
 		return SR_ERR;
 	}
 
-	clock_divisor = MAX_SAMPLE_RATE / (double)devc->cur_samplerate;
+	clock_divisor = devc->max_samplerate / (double)devc->cur_samplerate;
 	if (clock_divisor > 0xffff)
 		clock_divisor = 0xffff;
 	divisor = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = MAX_SAMPLE_RATE / divisor;
+	devc->cur_samplerate = devc->max_samplerate / divisor;
 
 	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
 		sr_err("too high sample depth: %" PRIu64, devc->limit_samples);
@@ -748,11 +751,14 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	uint16_t state;
 	uint8_t buf[8];
 	int16_t purchase_date_bcd[2];
 	uint8_t magic;
 	int ret;
+
+	devc = sdi->priv;
 
 	/* Four bytes of eeprom at 0x20 are purchase year & month in BCD format, with 16bit
 	 * complemented checksum; e.g. 2004DFFB = 2020-April.
@@ -823,12 +829,22 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	switch (magic) {
 	case 2:
 		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016);
+		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
+		break;
+	case 3:
+		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA1016);
+		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
 		break;
 	case 8:
 		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016A);
+		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
+		break;
+	case 9:
+		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA1016A);
+		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
 		break;
 	default:
-		sr_err("device_type: device not supported; magic number indicates this is not an LA2016");
+		sr_err("device_type: device not supported; magic number indicates this is not a LA2016 or LA1016");
 		return SR_ERR;
 	}
 
