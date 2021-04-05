@@ -520,24 +520,58 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/**
- * lowest 2 bit are probably:
- * 2: recording
- * 1: finished
- * next 2 bit indicate whether we are still waiting for triggering
- * 0: waiting
- * 3: triggered
+/* The run state is read from FPGA registers 1[hi-byte] and 0[lo-byte]
+ * and the bits are interpreted as follows:
+ *
+ * register 0:
+ *	bit0 1=	idle
+ *	bit1 1=	writing to sdram
+ *	bit2 0=	waiting_for_trigger 1=been_triggered
+ *	bit3 0=	pretrigger_sampling 1=posttrigger_sampling
+ * 	...unknown...
+ * register 1:
+ *	meaning of bits unknown (but vendor software reads this, so just do the same)
+ *
+ * The run state values occur in this order:
+ * 0x85E2: pre-sampling (for samples before trigger position, capture ratio > 0%)
+ * 0x85EA: pre-sampling complete, now waiting for trigger (whilst sampling continuously)
+ * 0x85EE: running
+ * 0x85ED: idle
  */
 static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
+	static uint16_t previous_state=0;
 	int ret;
 
 	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, &state, sizeof(state))) != SR_OK) {
 		sr_err("failed to read run state!");
 		return ret;
 	}
-	sr_dbg("run_state: 0x%04x", state);
+
+	/* This function is called about every 50ms.
+	 * To avoid filling the log file with redundant information during long captures,
+	 * just print a log message if status has changed.
+	 */
+
+	if(state != previous_state) {
+		previous_state = state;
+		if((state & 0x0003)==1) {
+			sr_dbg("run_state: 0x%04x (%s)", state, "idle");
+		}
+		else if((state & 0x000f)==2) {
+			sr_dbg("run_state: 0x%04x (%s)", state, "pre-trigger sampling");
+		}
+		else if((state & 0x000f)==0x0a) {
+			sr_dbg("run_state: 0x%04x (%s)", state, "sampling, waiting for trigger");
+		}
+		else if((state & 0x000f)==0x0e) {
+			sr_dbg("run_state: 0x%04x (%s)", state, "post-trigger sampling");
+		}
+		else {
+			sr_dbg("run_state: 0x%04x", state);
+		}
+	}
 
 	return state;
 }
