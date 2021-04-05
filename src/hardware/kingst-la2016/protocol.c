@@ -33,8 +33,9 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define FPGA_FIRMWARE	"kingst-la2016a-fpga.bitstream"
 #define UC_FIRMWARE	"kingst-la-%04x.fw"
+#define FPGA_FW_LA2016	"kingst-la2016-fpga.bitstream"
+#define FPGA_FW_LA2016A	"kingst-la2016a1-fpga.bitstream"
 
 #define MAX_SAMPLE_RATE  SR_MHZ(200)
 #define MAX_SAMPLE_DEPTH 10e9
@@ -113,7 +114,7 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
+static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bitstream_fname)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
@@ -132,11 +133,11 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 	drvc = sdi->driver->context;
 	usb = sdi->conn;
 
-	sr_info("Uploading FPGA bitstream '%s'.", FPGA_FIRMWARE);
+	sr_info("Uploading FPGA bitstream '%s'.", bitstream_fname);
 
-	ret = sr_resource_open(drvc->sr_ctx, &bitstream, SR_RESOURCE_FIRMWARE, FPGA_FIRMWARE);
+	ret = sr_resource_open(drvc->sr_ctx, &bitstream, SR_RESOURCE_FIRMWARE, bitstream_fname);
 	if (ret != SR_OK) {
-		sr_err("could not find la2016 firmware %s!", FPGA_FIRMWARE);
+		sr_err("could not find fpga firmware %s!", bitstream_fname);
 		return ret;
 	}
 
@@ -713,41 +714,105 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
-	int ret;
-	uint32_t i1;
-	uint32_t i2[2];
 	uint16_t state;
+	uint8_t buf[8];
+	int16_t purchase_date_bcd[2];
+	uint8_t magic;
+	int ret;
 
-	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, &i1, sizeof(i1))) != SR_OK) {
-		sr_err("failed to read eeprom bytes from address 0x20");
+	/* Four bytes of eeprom at 0x20 are purchase year & month in BCD format, with 16bit
+	 * complemented checksum; e.g. 2004DFFB = 2020-April.
+	 * This helps to identify the age of devices if unknown magic numbers occur.
+	 */
+	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, purchase_date_bcd, sizeof(purchase_date_bcd))) != SR_OK) {
+		sr_err("failed to read eeprom purchase_date_bcd");
+	}
+	else {
+		sr_dbg("purchase date: 20%02hx-%02hx", (purchase_date_bcd[0]) & 0x00ff, (purchase_date_bcd[0] >> 8) & 0x00ff);
+		if( purchase_date_bcd[0] != (0x0ffff & ~purchase_date_bcd[1]) ) {
+			sr_err("purchase date: checksum failure");
+		}
+	}
+
+	/*
+	 * There are four known kingst logic analyser devices which use this same usb vid and pid:
+	 * LA2016, LA1016 and the older revision of each of these. They all use the same hardware
+	 * and the same FX2 mcu firmware but each requires a different fpga bitstream. They are
+	 * differentiated by a 'magic' byte within the 8 bytes of EEPROM from address 0x08.
+	 * For example;
+	 *
+	 * magic=0x08
+	 *  | ~magic=0xf7
+	 *  | |
+	 * 08F7000008F710EF
+	 *          | |
+	 *          | ~magic-backup
+	 *          magic-backup
+	 *
+	 * It seems that only these magic bytes are used, other bytes shown above are 'don't care'.
+	 * Changing the magic byte on newer device to older magic causes OEM software to load
+	 * the older fpga bitstream. The device then functions but has channels out of order.
+	 * It's likely the bitstreams were changed to move input channel pins due to PCB changes.
+	 *
+	 * magic 9 == LA1016a using "kingst-la1016a1-fpga.bitstream" (latest v1.3.0 PCB, perhaps others)
+	 * magic 8 == LA2016a using "kingst-la2016a1-fpga.bitstream" (latest v1.3.0 PCB, perhaps others)
+	 * magic 3 == LA1016 using "kingst-la1016-fpga.bitstream"
+	 * magic 2 == LA2016 using "kingst-la2016-fpga.bitstream"
+	 *
+	 * This was all determined by altering the eeprom contents of an LA2016 and LA1016 and observing
+	 * the vendor software actions, either raising errors or loading specific bitstreams.
+	 *
+	 * Note:
+	 * An LA1016 cannot be converted to an LA2016 by changing the magic number - the bitstream
+	 * will not authenticate with ic U10, which has different security coding for each device type.
+	 */
+
+	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &buf, sizeof(buf))) != SR_OK) {
+		sr_err("failed to read eeprom device identifier bytes");
 		return ret;
 	}
-	sr_dbg("eeprom bytes from address 0x20: 0x%08x", i1);
 
-	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &i2, sizeof(i2))) != SR_OK) {
-		sr_err("failed to read eeprom bytes from address 0x08");
-		return ret;
+	magic = 0;
+	if (buf[0] == (0x0ff & ~buf[1])) {
+		/* primary copy of magic passes complement check */
+		magic = buf[0];
 	}
-	sr_dbg("eeprom bytes from address 0x08: 0x%08x, 0x%08x", i2[0], i2[1]);
+	else if (buf[4] == (0x0ff & ~buf[5])) {
+		/* backup copy of magic passes complement check */
+		sr_dbg("device_type: using backup copy of magic number");
+		magic = buf[4];
+	}
 
-	if ((ret = upload_fpga_bitstream(sdi)) != SR_OK) {
+	sr_dbg("device_type: magic number is %hhu", magic);
+
+	/* select the correct fpga bitstream for this device */
+	switch (magic) {
+	case 2:
+		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016);
+		break;
+	case 8:
+		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016A);
+		break;
+	default:
+		sr_err("device_type: device not supported; magic number indicates this is not an LA2016");
+		return SR_ERR;
+	}
+
+	if (ret != SR_OK) {
 		sr_err("failed to upload fpga bitstream");
 		return ret;
 	}
 
-	if (run_state(sdi) == 0xffff) {
-		sr_err("run_state after fpga bitstream upload is 0xffff!");
-		return SR_ERR;
-	}
-
 	state = run_state(sdi);
-	if (state != 0x85e9)
+	if (state != 0x85e9) {
 		sr_warn("expect run state to be 0x85e9, but it reads 0x%04x", state);
+	}
 
 	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("failed to send CMD_BULK_RESET");
 		return ret;
 	}
+
 	sr_dbg("device should be initialized");
 
 	return set_defaults(sdi);
