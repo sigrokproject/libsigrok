@@ -58,7 +58,7 @@ static const struct rs_device_model device_models[] = {
 	},
 	{
 		.model_str = "SME06",
-		.freq_max = SR_GHZ(1.5),
+		.freq_max = SR_GHZ(6),
 		.freq_min = SR_KHZ(5),
 		.power_max = 16,
 		.power_min = -144,
