@@ -18,209 +18,198 @@
  */
 
 #include <config.h>
+#include <scpi.h>
+#include <string.h>
+
 #include "protocol.h"
 
-//static struct sr_dev_driver tiny_logic_friend_la_driver_info;
+static struct sr_dev_driver tiny_logic_friend_la_driver_info;
+
+//static const char *manufacturer = "TinyLogicFriend";
+
+static const uint32_t scanopts[] = { // setup the communication options, USB
+	SR_CONF_CONN,
+//	SR_CONF_SERIALCOMM,
+};
+
+static const uint32_t drvopts[] = { // This driver is for a logic analyzer
+	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
+	// These are the options on the tinyLogicFriend that can be set
+	// These need to be verified and testing ***
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET, // confirm this
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST, // confirm this
+//	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+//	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+//	SR_CONF_SWAP | SR_CONF_SET,
+	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+// Starting point is from rohde_schwarz_sme_0x driver, which uses
+// USB TMC (Test and Measurement Class) communication
+
+// *** needs to be updated, rs_init_device is called in function: probe_device
+static int tlf_init_device(struct sr_dev_inst *sdi)
+{
+
+	// This may not be necessary, could probably do this in probe_devices
+	//struct dev_context *devc;
+	uint8_t model_found;
+
+	//devc = sdi->priv;
+	model_found = 0;
+
+	if (g_ascii_strcasecmp(sdi->model, "tiny")  &&   // check that model includes
+		g_ascii_strcasecmp(sdi->model, "Logic") &&   // tiny, logic and friend, any order or case
+		g_ascii_strcasecmp(sdi->model, "Friend") ) {
+		model_found = 1;
+		//strcpy(devc->model_config, sdi->model); // is this necessary ***
+	}
+
+	if (!model_found) {
+		sr_dbg("Device %s is not supported by this driver.",
+			sdi->model);
+		return SR_ERR_NA;
+	}
+
+	// perform any other initialization here, get channel list, etc.
+	if (!(tlf_collect_channels(sdi) == SR_OK)) {
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
+// *** needs to be updated
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_scpi_hw_info *hw_info;
+
+	sdi = NULL;
+	devc = NULL;
+	hw_info = NULL;
+
+	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK)
+		goto fail;
+
+	// store the information from the hardware ID (sr_scpi_get_hw_id)
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi->vendor = g_strdup(hw_info->manufacturer);
+	sdi->model = g_strdup(hw_info->model);
+	sdi->version = g_strdup(hw_info->firmware_version);
+	sdi->serial_num = g_strdup(hw_info->serial_number);
+	sdi->driver = &tiny_logic_friend_la_driver_info;
+	sdi->inst_type = SR_INST_SCPI;
+	sdi->conn = scpi;
+
+	sr_spew("Vendor: %s\n", sdi->vendor);
+	sr_spew("Model: %s\n", sdi->model);
+	sr_spew("Version: %s\n", sdi->version);
+	sr_spew("Serial number: %s\n", sdi->serial_num);
+
+	sr_scpi_hw_info_free(hw_info);
+	hw_info = NULL;
+
+	devc = g_malloc0(sizeof(struct dev_context)); // header in protocol.h
+	sdi->priv = devc;
+
+	if (tlf_init_device(sdi) != SR_OK) // verify this device is a tinyLogicFriend
+		goto fail;
+
+	return sdi;
+
+fail:
+	sr_scpi_hw_info_free(hw_info);
+	sr_dev_inst_free(sdi);
+	g_free(devc);
+	return NULL;
+}
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	GSList *l, *devices, *conn_devices;
-	struct sr_config *src;
-	struct sr_usb_dev_inst *usb;
-	const char *conn;
-	struct libusb_device_handle *hdl;
-	int ret, i;
-	char manufacturer[64], product[64], serial_num[64];
-	struct libusb_device_descriptor des;
-	libusb_device **devlist;
-
-	// set the logging level of message
-	int log_level;
-	log_level=5;
-
-	// (void)options;
-
-	devices = NULL;
-	drvc = di->context;
-	drvc->instances = NULL;
-
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
-
-	sr_log(log_level, "TinyLogicFriend: Starting scan! *****");
-
-	conn = NULL;
-	for (l = options; l; l = l->next) {
-		src = l->data;
-		switch (src->key) {
-		case SR_CONF_CONN:
-			conn = g_variant_get_string(src->data, NULL);
-			break;
-		}
-	}
-	if (conn)
-		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
-	else
-		conn_devices = NULL;
-
-	// Read and print the VID/PID
-	devices = NULL;
-	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-	for (i = 0; devlist[i]; i++) {
-		if (conn) {
-			usb = NULL;
-			for (l = conn_devices; l; l = l->next) {
-				usb = l->data;
-				if (usb->bus == libusb_get_bus_number(devlist[i])
-					&& usb->address == libusb_get_device_address(devlist[i]))
-					break;
-			}
-			if (!l)
-				/* This device matched none of the ones that
-				 * matched the conn specification. */
-				continue;
-		}
-
-		libusb_get_device_descriptor(devlist[i], &des);
-
-		if ((ret = libusb_open(devlist[i], &hdl)) < 0) {
-			sr_warn("Failed to open potential device with "
-				"VID:PID %04x:%04x: %s.", des.idVendor,
-				des.idProduct, libusb_error_name(ret));
-			continue;
-		}
-
-		// print the VID and PID of the found device
-		sr_log(log_level, "Succesfully opened device with "
-					"VID:PID %04x:%04x.", des.idVendor, des.idProduct);
-
-
-		if (des.iManufacturer == 0) {
-			manufacturer[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iManufacturer, (unsigned char *) manufacturer,
-				sizeof(manufacturer))) < 0) {
-			sr_warn("Failed to get manufacturer string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
-
-		// print the manufacturer string
-		sr_log(log_level, "Found manufacturer string descriptor: %s.", manufacturer);
-
-		if (des.iProduct == 0) {
-			product[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iProduct, (unsigned char *) product,
-				sizeof(product))) < 0) {
-			sr_warn("Failed to get product string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
-
-		// print the product string descriptor
-		sr_log(log_level, "Found product string descriptor: %s.", product);
-
-
-		if (des.iSerialNumber == 0) {
-			serial_num[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iSerialNumber, (unsigned char *) serial_num,
-				sizeof(serial_num))) < 0) {
-			sr_warn("Failed to get serial number string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
-
-		// print the serial number descriptor
-		sr_log(log_level, "Found serial number string descriptor: %s.", serial_num);
-
-		// if got this far, close this device handle (opened by `libusb_open`)
-		libusb_close(hdl);
-	}
-
-	// free items
-	libusb_free_device_list(devlist, 1);
-	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
-
-	sr_log(log_level, "TinyLogicFriend: Ending scan! *****");
-	return std_scan_complete(di, devices);
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	return SR_OK;
+	return sr_scpi_open(sdi->conn);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	return sr_scpi_close(sdi->conn);
+}
 
-	/* TODO: get handle from sdi->conn and close it. */
+// *** needs a bunch of configuration parameters added
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	double value_f;
+	value_f = 0; // delete this **
+
+	(void) cg;
+	(void) sdi; // delete this ****
+
+	switch (key) {
+	case SR_CONF_OUTPUT_FREQUENCY:
+		// rs_sme0x_get_freq(sdi, &value_f);
+		*data = g_variant_new_double(value_f);
+		break;
+	case SR_CONF_AMPLITUDE:
+		// rs_sme0x_get_power(sdi, &value_f);
+		*data = g_variant_new_double(value_f);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
 
 	return SR_OK;
 }
 
-static int config_get(uint32_t key, GVariant **data,
+// *** needs a bunch of configuration parameters added
+static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
+	double value_f;
 
-	(void)sdi;
-	(void)data;
 	(void)cg;
 
-	ret = SR_OK;
+	if (!sdi)
+		return SR_ERR_ARG;
+
 	switch (key) {
-	/* TODO */
+	case SR_CONF_OUTPUT_FREQUENCY:
+		value_f = g_variant_get_double(data);
+		// rs_sme0x_set_freq(sdi, value_f);
+		break;
+	case SR_CONF_AMPLITUDE:
+		value_f = g_variant_get_double(data);
+		// rs_sme0x_set_power(sdi, value_f);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
 
-	return ret;
+	return SR_OK;
 }
 
-static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
-{
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
-	}
-
-	return ret;
-}
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
-
-	return ret;
+	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

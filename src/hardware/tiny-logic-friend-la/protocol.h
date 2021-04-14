@@ -25,11 +25,27 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-#define LOG_PREFIX "tiny-logic-friend-la"
+// struct rs_sme0x_info {
+// 	struct sr_dev_driver di;
+// 	char *vendor;
+// 	char *device;
+// };
+
+// struct rs_device_model {
+// 	const char *model_str;
+// 	double freq_max;
+// 	double freq_min;
+// 	double power_max;
+// 	double power_min;
+// };
 
 struct dev_context {
+	const struct tlf_device_model *model_config;
 };
 
+#define LOG_PREFIX "tiny-logic-friend-la"
+
+SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi); // gets channel names from device
 SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data);
 
 #endif
