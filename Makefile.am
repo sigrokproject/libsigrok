@@ -525,6 +525,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/pipistrello-ols/protocol.c \
 	src/hardware/pipistrello-ols/api.c
 endif
+if HW_PSLAB
+src_libdrivers_la_SOURCES += \
+	src/hardware/pslab/protocol.h \
+	src/hardware/pslab/protocol.c \
+	src/hardware/pslab/api.c
+endif
 if HW_RDTECH_DPS
 src_libdrivers_la_SOURCES += \
 	src/hardware/rdtech-dps/protocol.h \
