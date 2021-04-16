@@ -45,7 +45,18 @@ struct dev_context {
 
 #define LOG_PREFIX "tiny-logic-friend-la"
 
-SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi); // gets channel names from device
+SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi); // gets channel names from device
+SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi); // gets sample rates
+SR_PRIV int tlf_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sample_rate); // set sample rate
+SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean enabled); // set channel status
 SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data);
+
+extern uint64_t samplerates[3];
+
+
+// extern uint64_t *samplerates; // sample rate storage: min, max, step size (all in Hz)
+// extern char *channel_names[];  // channel names, start with default
+// extern const int channel_count_max; // maximum number of channels
+// extern int32_t channel_count; // initialize to 0
 
 #endif

@@ -27,9 +27,8 @@ static struct sr_dev_driver tiny_logic_friend_la_driver_info;
 
 //static const char *manufacturer = "TinyLogicFriend";
 
-static const uint32_t scanopts[] = { // setup the communication options, USB
+static const uint32_t scanopts[] = { // setup the communication options, use USB TMC
 	SR_CONF_CONN,
-//	SR_CONF_SERIALCOMM,
 };
 
 static const uint32_t drvopts[] = { // This driver is for a logic analyzer
@@ -39,16 +38,11 @@ static const uint32_t drvopts[] = { // This driver is for a logic analyzer
 static const uint32_t devopts[] = {
 	// These are the options on the tinyLogicFriend that can be set
 	// These need to be verified and testing ***
+//	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET, // confirm this
-	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST, // confirm this
-//	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_EXTERNAL_CLOCK | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_CLOCK_EDGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-//	SR_CONF_PATTERN_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-//	SR_CONF_SWAP | SR_CONF_SET,
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
@@ -84,6 +78,9 @@ static int tlf_init_device(struct sr_dev_inst *sdi)
 
 	// perform any other initialization here, get channel list, etc.
 	if (!(tlf_collect_channels(sdi) == SR_OK)) {
+		return SR_ERR_NA;
+	}
+	if (!(tlf_collect_samplerates(sdi) == SR_OK)) {
 		return SR_ERR_NA;
 	}
 
@@ -178,25 +175,39 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+static int config_channel_set(const struct sr_dev_inst *sdi,
+	struct sr_channel *ch, unsigned int changes)
+{
+	/* Currently we only handle SR_CHANNEL_SET_ENABLED. */ // todo - update to disabled
+	if (changes != SR_CHANNEL_SET_ENABLED)
+		return SR_ERR_NA;
+
+	return tlf_channel_state_set(sdi, ch->index, ch->enabled);
+}
+
 // *** needs a bunch of configuration parameters added
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	double value_f;
+	struct dev_context *devc;
+	uint64_t value;
 
 	(void)cg;
+
+	devc = sdi->priv;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	switch (key) {
-	case SR_CONF_OUTPUT_FREQUENCY:
-		value_f = g_variant_get_double(data);
-		// rs_sme0x_set_freq(sdi, value_f);
-		break;
-	case SR_CONF_AMPLITUDE:
-		value_f = g_variant_get_double(data);
-		// rs_sme0x_set_power(sdi, value_f);
+	case SR_CONF_SAMPLERATE:
+		value = g_variant_get_uint64(data);
+		if ( (value < samplerates[0]) ||
+			 (value > samplerates[1]) ) {
+			return SR_ERR_SAMPLERATE;
+		}
+		//devc->cur_samplerate = value;
+		return tlf_set_samplerate(sdi, value);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -209,7 +220,20 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	switch(key) {
+
+	case SR_CONF_DEVICE_OPTIONS:
+		// todo **** get all these options before returning
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+	case SR_CONF_SAMPLERATE:
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
@@ -242,6 +266,7 @@ static struct sr_dev_driver tiny_logic_friend_la_driver_info = {
 	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
+	.config_channel_set = config_channel_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,

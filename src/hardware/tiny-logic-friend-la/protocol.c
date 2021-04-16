@@ -22,13 +22,92 @@
 
 #include "protocol.h"
 
-SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi) // gets channel names from device
+uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
+const int channel_count_max = 16; // maximum number of channels
+const int channel_char_max=6;
+char chan_names[16][7] = { // channel names, start with default
+	"000001", "000002", "000003", "000004", "000005", "000006", "000007", "000008",
+	"000009", "000010", "000011", "000012", "000013", "000014", "000015", "000016",
+};
+
+int32_t channel_count = 0; // initialize to 0
+
+SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi) // gets sample rates from device
+{
+
+	int32_t sample_rate_min, sample_rate_max, sample_rate_step;
+
+	if (sr_scpi_get_int(sdi->conn, "RATE:MIN?", &sample_rate_min) != SR_OK) {
+		sr_spew("Sent \"RATE:MIN?\", ERROR on response\n");
+		return SR_ERR;
+	}
+
+	if (sr_scpi_get_int(sdi->conn, "RATE:MAX?", &sample_rate_max) != SR_OK) {
+		sr_spew("Sent \"RATE:MAX?\", ERROR on response\n");
+		return SR_ERR;
+	}
+
+	if (sr_scpi_get_int(sdi->conn, "RATE:STEP?", &sample_rate_step) != SR_OK) {
+		sr_spew("Sent \"RATE:STEP?\", ERROR on response\n");
+		return SR_ERR;
+	}
+
+	// store the sample rate range and step size
+	samplerates[0] = (uint64_t) sample_rate_min;
+	samplerates[1] = (uint64_t) sample_rate_max;
+	samplerates[2] = (uint64_t) sample_rate_step;
+
+	sr_spew("Sample rate MIN: %d Hz, MAX: %d Hz, STEP: %d Hz\n",
+				sample_rate_min, sample_rate_max, sample_rate_step);
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sample_rate)
+{
+	if (sr_scpi_send(sdi->conn, "SAMPles %ld", sample_rate) != SR_OK) {
+		sr_spew("Sent \"SAMPLes %llu\", ERROR on response\n", sample_rate);
+		return SR_ERR;
+	}
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean enabled) // gets channel status
+{
+	char command[64];
+
+	// channel count and names should be collected before setting any channels
+	if ( (channel_index < 0) ||
+		 (channel_index >= channel_count) ) {
+		return SR_ERR;
+	}
+
+	if (enabled == TRUE) {
+		sprintf(command, "CHANnel%d:STATus %s", channel_index+1, "ON"); // define channel to get name
+	} else if (enabled == FALSE) {
+		sprintf(command, "CHANnel%d:STATus %s", channel_index+1, "OFF"); // define channel to get name
+	} else {
+		return SR_ERR;
+	}
+
+	if (sr_scpi_send(sdi->conn, command) != SR_OK) {
+		return SR_ERR;
+	}
+
+	sr_spew("tlf_channel_state_set Channel: %d set ON", channel_index+1);
+	return SR_OK;
+}
+
+SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi) // gets channel names from device
 {
 
 	char *buf;
 	char command[25];
-	int samples;
-	int chan_count;
+	int32_t samples;
+	int32_t int_buffer;
+	int32_t j;
+
 	// // request the SYSTem:VERSion?
 	// if (sr_scpi_get_string(sdi->conn, "SYSTem:VERSion?", &buf) != SR_OK) {
 	// 	sr_spew("Sent \"SYSTem:VERSion?\", ERROR on response\n");
@@ -38,10 +117,29 @@ SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi) // gets channel 
 	// sr_spew("Sent \"SYSTem:VERSion?\", received: %s\n", buf);
 
 
-	if (sr_scpi_get_string(sdi->conn, "*TST?", &buf) != SR_OK) {
-		sr_spew("Sent \"TEST:TEXT trial\", ERROR on response\n");
+	// if (sr_scpi_get_string(sdi->conn, "*TST?", &buf) != SR_OK) {
+	// 	sr_spew("Sent \"TEST:TEXT trial\", ERROR on response\n");
+	// 	//return SR_ERR;
+	// }
+
+
+	if (sr_scpi_get_int(sdi->conn, "RATE?", &int_buffer) != SR_OK) {
+		sr_spew("Sent \"RATE?\", ERROR on response\n");
 		//return SR_ERR;
 	}
+
+	if (sr_scpi_send(sdi->conn, "RATE 2e6") != SR_OK) {
+		sr_spew("Sent \"RATE 2e6\", ERROR on response\n");
+		//return SR_ERR;
+	}
+
+	if (sr_scpi_get_int(sdi->conn, "RATE?", &int_buffer) != SR_OK) {
+		sr_spew("Sent \"RATE?\", ERROR on response\n");
+		//return SR_ERR;
+	}
+
+
+	// ****** TRIGGER options
 
 	sprintf(command, "TRIGger:OPTions?"); // get trigger options
 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
@@ -51,21 +149,41 @@ SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi) // gets channel 
 
 
 	// // request the CHANnel count
-	if (sr_scpi_get_int(sdi->conn, "CHANnel:COUNT?", &chan_count) != SR_OK) {
+	if (sr_scpi_get_int(sdi->conn, "CHANnel:COUNT?", &channel_count) != SR_OK) {
 		sr_spew("Sent \"CHANnel:COUNT?\", ERROR on response\n");
 		//return SR_ERR;
 	}
 
-	sr_spew("chan_count = %d", chan_count);
+	sr_spew("channel_count = %d", channel_count);
 
-	// for (int i=0; i < chan_count; i++) {
 
-	// 	sprintf(command, "CHANnel%d:NAME?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, channel name: %s", command, i+1, buf);
-	// }
+	for (int i=0; i < channel_count; i++) {
+		sr_spew("chan name: %s", chan_names[i]);
+	}
+
+	for (int i=0; i < channel_count; i++) {
+
+		sprintf(command, "CHANnel%d:NAME?", i+1); // define channel to get name
+		if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+			return SR_ERR;
+		}
+		sr_spew("send: %s, chan #: %d, channel name: %s", command, i+1, buf);
+		if ( strlen(buf) > channel_char_max ) {
+			buf[channel_char_max] = '\0';
+		}
+		strcpy(chan_names[i], buf);
+
+	}
+	// set remaining channel names to NULL
+	if (channel_count < channel_count_max) {
+		for (int i=channel_count; i < channel_count_max; i++) {
+			strcpy(chan_names[i], "");
+		}
+	}
+
+	for (int i=0; i < channel_count; i++) {
+		sr_spew("chan name: %s", chan_names[i]);
+	}
 
 	// **** CHANNEL test ************************
 
@@ -118,36 +236,36 @@ SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi) // gets channel 
 
 	// ***** end Channel setting test
 
-	// **** TRIGGER test
+	// // **** TRIGGER test
 
-	for (int i=0; i < chan_count; i++) {
+	// for (int32_t i=0; i < channel_count; i++) {
 
-		sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
-		if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-			return SR_ERR;
-		}
-		sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	}
+	// 	sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
+	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+	// 		return SR_ERR;
+	// 	}
+	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
+	// }
 
-	// Set trigger
-	for (int i=0; i < chan_count; i++) {
+	// // Set trigger
+	// for (int32_t i=0; i < channel_count; i++) {
 
-		sprintf(command, "CHANnel%d:TRIGger R", i+1); // define channel to get name
-		if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-			return SR_ERR;
-		}
-		sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	}
+	// 	sprintf(command, "CHANnel%d:TRIGger R", i+1); // define channel to get name
+	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+	// 		return SR_ERR;
+	// 	}
+	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
+	// }
 
 
-	for (int i=0; i < chan_count; i++) {
+	// for (int32_t i=0; i < channel_count; i++) {
 
-		sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
-		if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-			return SR_ERR;
-		}
-		sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	}
+	// 	sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
+	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+	// 		return SR_ERR;
+	// 	}
+	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
+	// }
 
 
 	// ***  SAMPLE test *********************
@@ -172,22 +290,24 @@ SR_PRIV int tlf_collect_channels(const struct sr_dev_inst *sdi) // gets channel 
 	}
 	sr_spew("Samples = %d", samples);
 
+	// if (sr_scpi_get_string(sdi->conn, "LUVU", &buf) != SR_OK) {
+	// 	sr_spew("Sent \"LUVU\", ERROR on response\n");
+	// 	//return SR_ERR;
+	// }
 
-	if (sr_scpi_get_string(sdi->conn, "LUVU", &buf) != SR_OK) {
-		sr_spew("Sent \"LUVU\", ERROR on response\n");
-		//return SR_ERR;
+	// sr_spew("Sent \"LUVU\", received: %s\n", buf);
+
+	sr_dbg("Setting all channels on, configuring channels");
+
+	for (j = 0; j < channel_count; j++) {
+		if ( tlf_channel_state_set(sdi, j, TRUE) != SR_OK ) {
+			return SR_ERR;
+		}
+		sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
+			       chan_names[j]);
 	}
 
-	sr_spew("Sent \"LUVU\", received: %s\n", buf);
-
 	return SR_OK;
-
-// // parse the returned string and load sdi->channels using
-// 	for (size_t i = 0; i < ARRAY_SIZE(channel_list); i++) {
-
-// 	}
-// 	sr_dev_inst_channel_add(sdi, index, SR_)
-
 
 }
 
