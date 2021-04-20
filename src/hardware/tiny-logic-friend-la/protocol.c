@@ -22,18 +22,21 @@
 
 #include "protocol.h"
 
-uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
-const int channel_count_max = 16; // maximum number of channels
-const int channel_char_max=6;
-char chan_names[16][7] = { // channel names, start with default
-	"000001", "000002", "000003", "000004", "000005", "000006", "000007", "000008",
-	"000009", "000010", "000011", "000012", "000013", "000014", "000015", "000016",
-};
+// uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
+// const int channel_count_max = 16; // maximum number of channels
+// const int channel_char_max=6;
+// char chan_names[16][7] = { // channel names, start with default
+// 	"000001", "000002", "000003", "000004", "000005", "000006", "000007", "000008",
+// 	"000009", "000010", "000011", "000012", "000013", "000014", "000015", "000016",
+// };
 
-int32_t channel_count = 0; // initialize to 0
+// int32_t channel_count = 0; // initialize to 0
 
-SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi) // gets sample rates from device
+SR_PRIV int tlf_samplerates_list(const struct sr_dev_inst *sdi) // gets sample rates from device
 {
+
+	struct dev_context *devc;
+	devc = sdi->priv;
 
 	int32_t sample_rate_min, sample_rate_max, sample_rate_step;
 
@@ -53,9 +56,9 @@ SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi) // gets sample rate
 	}
 
 	// store the sample rate range and step size
-	samplerates[0] = (uint64_t) sample_rate_min;
-	samplerates[1] = (uint64_t) sample_rate_max;
-	samplerates[2] = (uint64_t) sample_rate_step;
+	devc->samplerate_range[0] = (uint64_t) sample_rate_min;
+	devc->samplerate_range[1] = (uint64_t) sample_rate_max;
+	devc->samplerate_range[2] = (uint64_t) sample_rate_step;
 
 	sr_spew("Sample rate MIN: %d Hz, MAX: %d Hz, STEP: %d Hz\n",
 				sample_rate_min, sample_rate_max, sample_rate_step);
@@ -63,12 +66,66 @@ SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi) // gets sample rate
 	return SR_OK;
 }
 
-SR_PRIV int tlf_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sample_rate)
+SR_PRIV int tlf_samplerate_set(const struct sr_dev_inst *sdi, uint64_t sample_rate)
 {
+	struct dev_context *devc;
+	devc = sdi->priv;
+
 	if (sr_scpi_send(sdi->conn, "SAMPles %ld", sample_rate) != SR_OK) {
 		sr_spew("Sent \"SAMPLes %llu\", ERROR on response\n", sample_rate);
 		return SR_ERR;
 	}
+
+	devc->cur_samplerate = sample_rate;
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_samplerate_get(const struct sr_dev_inst *sdi, uint64_t *sample_rate)
+{
+	struct dev_context *devc;
+	int return_buf;
+
+	devc = sdi->priv;
+
+	if (sr_scpi_get_int(sdi->conn, "SAMPles?", &return_buf) != SR_OK) {
+		sr_spew("Sent \"SAMPLes?\", ERROR on response\n");
+		return SR_ERR;
+	}
+	devc->cur_samplerate = (uint64_t) return_buf; // update private device context
+	*sample_rate = (uint64_t) return_buf;         // send back the sample_rate value
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_samples_set(const struct sr_dev_inst *sdi, int32_t samples) // set samples count
+{
+	struct dev_context *devc;
+	devc = sdi->priv;
+
+	if (sr_scpi_send(sdi->conn, "SAMPles %ld", samples) != SR_OK) {
+		sr_dbg("tlf_samples_set Sent \"SAMPLes %d\", ERROR on response\n", samples);
+		return SR_ERR;
+	}
+	sr_spew("tlf_samples_set sent \"SAMPLes %d\"", samples);
+
+	devc->cur_samples = samples;
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_samples_get(const struct sr_dev_inst *sdi, int32_t *samples) // get samples count
+{
+	struct dev_context *devc;
+	devc = sdi->priv;
+
+	if (sr_scpi_get_int(sdi->conn, "SAMPles?", samples) != SR_OK) {
+		sr_dbg("tlf_samples_get Sent \"SAMPLes?\", ERROR on response\n");
+		return SR_ERR;
+	}
+	sr_spew("tlf_samples_get Samples = %d", *samples);
+
+	devc->cur_samples = *samples;
 
 	return SR_OK;
 }
@@ -76,10 +133,13 @@ SR_PRIV int tlf_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sample_ra
 SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean enabled) // gets channel status
 {
 	char command[64];
+	struct dev_context *devc;
+
+	devc = sdi->priv;
 
 	// channel count and names should be collected before setting any channels
 	if ( (channel_index < 0) ||
-		 (channel_index >= channel_count) ) {
+		 (channel_index >= devc->channels) ) {
 		return SR_ERR;
 	}
 
@@ -95,94 +155,86 @@ SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel
 		return SR_ERR;
 	}
 
+	devc->channel_state[channel_index] = enabled; // sets to gboolean value of enabled
+
 	sr_spew("tlf_channel_state_set Channel: %d set ON", channel_index+1);
 	return SR_OK;
 }
 
-SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi) // gets channel names from device
+SR_PRIV int tlf_channel_state_get(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean *enabled) // sets channel status
 {
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	// channel count and names should be collected before setting any channels
+	if ( (channel_index < 0) ||
+		 (channel_index >= devc->channels) ) {
+		return SR_ERR;
+	}
+
+	*enabled = devc->channel_state[channel_index];
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi) // gets channel names from device
+{
+	sr_spew("tlf_channels_list 0");
 
 	char *buf;
 	char command[25];
-	int32_t samples;
-	int32_t int_buffer;
 	int32_t j;
+	int32_t channel_count;
+	struct dev_context *devc;
 
-	// // request the SYSTem:VERSion?
-	// if (sr_scpi_get_string(sdi->conn, "SYSTem:VERSion?", &buf) != SR_OK) {
-	// 	sr_spew("Sent \"SYSTem:VERSion?\", ERROR on response\n");
-	// 	//return SR_ERR;
-	// }
+	devc = sdi->priv;
 
-	// sr_spew("Sent \"SYSTem:VERSion?\", received: %s\n", buf);
+	sr_spew("tlf_channels_list 1");
 
-
-	// if (sr_scpi_get_string(sdi->conn, "*TST?", &buf) != SR_OK) {
-	// 	sr_spew("Sent \"TEST:TEXT trial\", ERROR on response\n");
-	// 	//return SR_ERR;
-	// }
-
-
-	if (sr_scpi_get_int(sdi->conn, "RATE?", &int_buffer) != SR_OK) {
-		sr_spew("Sent \"RATE?\", ERROR on response\n");
-		//return SR_ERR;
-	}
-
-	if (sr_scpi_send(sdi->conn, "RATE 2e6") != SR_OK) {
-		sr_spew("Sent \"RATE 2e6\", ERROR on response\n");
-		//return SR_ERR;
-	}
-
-	if (sr_scpi_get_int(sdi->conn, "RATE?", &int_buffer) != SR_OK) {
-		sr_spew("Sent \"RATE?\", ERROR on response\n");
-		//return SR_ERR;
-	}
-
-
-	// ****** TRIGGER options
-
-	sprintf(command, "TRIGger:OPTions?"); // get trigger options
-	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+	// request the CHANnel count
+	if (sr_scpi_get_int(sdi->conn, "CHANnel:COUNT?", &channel_count) != SR_OK) {
+		sr_dbg("Sent \"CHANnel:COUNT?\", ERROR on response\n");
 		return SR_ERR;
 	}
-	sr_spew("send: %s, TRIGGER options: %s", command, buf);
 
+	sr_spew("tlf_channels_list 2");
 
-	// // request the CHANnel count
-	if (sr_scpi_get_int(sdi->conn, "CHANnel:COUNT?", &channel_count) != SR_OK) {
-		sr_spew("Sent \"CHANnel:COUNT?\", ERROR on response\n");
-		//return SR_ERR;
+	if ( (channel_count < 0) ||
+		 (channel_count > TLF_CHANNEL_COUNT_MAX) ) {
+		sr_spew("Sent \"CHANnel:COUNT?\", received %d", channel_count);
+		sr_dbg("ERROR: Out of channel range \
+			   between 0 and %d (TLF_CHANNEL_COUNT_MAX)", TLF_CHANNEL_COUNT_MAX);
+		return SR_ERR;
 	}
 
 	sr_spew("channel_count = %d", channel_count);
+	devc->channels = channel_count; // update the device context channels value
 
-
-	for (int i=0; i < channel_count; i++) {
-		sr_spew("chan name: %s", chan_names[i]);
-	}
+	sr_spew("tlf_channels_list 3");
 
 	for (int i=0; i < channel_count; i++) {
-
 		sprintf(command, "CHANnel%d:NAME?", i+1); // define channel to get name
 		if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+			sr_dbg("Sent \"%s\", ERROR on response\n", command);
 			return SR_ERR;
 		}
 		sr_spew("send: %s, chan #: %d, channel name: %s", command, i+1, buf);
-		if ( strlen(buf) > channel_char_max ) {
-			buf[channel_char_max] = '\0';
+		if ( strlen(buf) > TLF_CHANNEL_CHAR_MAX ) { // ensure string is shorter than max length
+			buf[TLF_CHANNEL_CHAR_MAX] = '\0'; // if so, put a null at max length
 		}
-		strcpy(chan_names[i], buf);
-
+		strcpy(devc->chan_names[i], buf); // copy into the device context's channel names
 	}
+
 	// set remaining channel names to NULL
-	if (channel_count < channel_count_max) {
-		for (int i=channel_count; i < channel_count_max; i++) {
-			strcpy(chan_names[i], "");
+	if (channel_count < TLF_CHANNEL_COUNT_MAX) {
+		for (int i=channel_count; i < TLF_CHANNEL_COUNT_MAX; i++) {
+			strcpy(devc->chan_names[i], "");
 		}
 	}
 
-	for (int i=0; i < channel_count; i++) {
-		sr_spew("chan name: %s", chan_names[i]);
+	for (int i=0; i < TLF_CHANNEL_COUNT_MAX; i++) {
+		sr_spew("Channel index: %d Channel name: %s", i, devc->chan_names[i]);
 	}
 
 	// **** CHANNEL test ************************
@@ -268,35 +320,6 @@ SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi) // gets channel names 
 	// }
 
 
-	// ***  SAMPLE test *********************
-
-	// // request the sample count
-	if (sr_scpi_get_int(sdi->conn, "SAMPles?", &samples) != SR_OK) {
-		sr_spew("Sent \"SAMPLes?\", ERROR on response\n");
-		//return SR_ERR;
-	}
-	sr_spew("Samples = %d", samples);
-
-	// set the sample count
-	if (sr_scpi_send(sdi->conn, "SAMPles 50e3") != SR_OK) {
-		sr_spew("Sent \"SAMPLes 50000\", ERROR on response\n");
-		//return SR_ERR;
-	}
-
-	// request the sample count
-	if (sr_scpi_get_int(sdi->conn, "SAMPles?", &samples) != SR_OK) {
-		sr_spew("Sent \"SAMPLes?\", ERROR on response\n");
-		//return SR_ERR;
-	}
-	sr_spew("Samples = %d", samples);
-
-	// if (sr_scpi_get_string(sdi->conn, "LUVU", &buf) != SR_OK) {
-	// 	sr_spew("Sent \"LUVU\", ERROR on response\n");
-	// 	//return SR_ERR;
-	// }
-
-	// sr_spew("Sent \"LUVU\", received: %s\n", buf);
-
 	sr_dbg("Setting all channels on, configuring channels");
 
 	for (j = 0; j < channel_count; j++) {
@@ -304,13 +327,63 @@ SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi) // gets channel names 
 			return SR_ERR;
 		}
 		sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
-			       chan_names[j]);
+			       devc->chan_names[j]);
 	}
 
 	return SR_OK;
 
 }
 
+SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger options
+{
+	char *buf;
+	char command[25];
+	char *token;
+	int32_t trigger_option_count;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	sprintf(command, "TRIGger:OPTions?"); // get trigger options
+	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+		return SR_ERR;
+	}
+	sr_spew("send: %s, TRIGGER options: %s", command, buf);
+
+	// parse the trigger options string (CSV format)
+	trigger_option_count=0;
+	token = strtok(buf, ","); // initialize the pointer location to beginning of the buffer
+
+	while (token!=NULL) {
+		// set the trigger_matches to the token's trigger type
+		if        ( !g_ascii_strcasecmp(token, "0") ) {
+			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_ZERO;
+			sr_spew("Trigger token: %s, Accept ZERO trigger", token);
+		} else if ( !g_ascii_strcasecmp(token, "1") ) {
+			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_ONE;
+			sr_spew("Trigger token: %s, Accept ONE trigger", token);
+		} else if ( !g_ascii_strcasecmp(token, "R") ) {
+			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_RISING;
+			sr_spew("Trigger token: %s, Accept RISING trigger", token);
+		} else if ( !g_ascii_strcasecmp(token, "F") ) {
+			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_FALLING;
+			sr_spew("Trigger token: %s, Accept FALLING trigger", token);
+		} else if ( !g_ascii_strcasecmp(token, "E") ) {
+			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_EDGE;
+			sr_spew("Trigger token: %s, Accept EDGE trigger", token);
+		} else if ( !g_ascii_strcasecmp(token, "X") ) {
+			// ignore 'X' that means OFF
+		} else {
+			sr_spew("Error on token: %s", token);
+			return SR_ERR;
+		}
+		trigger_option_count += 1; // increment the number of trigger options
+
+		token = strtok(NULL, ","); // set to the next token
+	}
+
+	return SR_OK;
+}
 
 SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data)
 {

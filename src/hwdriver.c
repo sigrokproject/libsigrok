@@ -547,6 +547,8 @@ SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 {
 	GSList *l;
 
+	sr_spew("->sr_driver_scan");
+
 	if (!driver) {
 		sr_err("Invalid driver, can't scan for devices.");
 		return NULL;

@@ -20,43 +20,59 @@
 #ifndef LIBSIGROK_HARDWARE_TINY_LOGIC_FRIEND_LA_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_TINY_LOGIC_FRIEND_LA_PROTOCOL_H
 
+
+#define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
+#define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
+
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-// struct rs_sme0x_info {
-// 	struct sr_dev_driver di;
-// 	char *vendor;
-// 	char *device;
-// };
+/** Private, per-device-instance driver context. */
 
-// struct rs_device_model {
-// 	const char *model_str;
-// 	double freq_max;
-// 	double freq_min;
-// 	double power_max;
-// 	double power_min;
-// };
-
+// dev_context is where all the device specific variables should go that are private
+// should hold state variables for all the settings
+//
 struct dev_context {
-	const struct tlf_device_model *model_config;
+	//const struct tlf_device_model *model_config; // what is this? *** todo
+
+	int channels; // actual number of channels
+	char chan_names[TLF_CHANNEL_COUNT_MAX][TLF_CHANNEL_COUNT_MAX + 1];// = { // channel names, initialize with default value
+
+	uint64_t samplerate_range[3]; // sample rate storage: min, max, step size (all in Hz)
+	uint64_t cur_samplerate; // currently set sample rate
+
+	uint32_t cur_samples; // currently set samples to measure
+
+	int32_t trigger_matches[6];
+									// See the list of trigger option constants, used in tlf_trigger_list
+									// SR_TRIGGER_ZERO,      "0"
+									// SR_TRIGGER_ONE,       "1"
+									// SR_TRIGGER_RISING,    "R"
+									// SR_TRIGGER_FALLING,   "F"
+									// SR_TRIGGER_EDGE,      "E"
+	gboolean channel_state[TLF_CHANNEL_COUNT_MAX]; // set TRUE for enable, FALSE for disable
+
 };
 
 #define LOG_PREFIX "tiny-logic-friend-la"
 
-SR_PRIV int tlf_collect_channels(struct sr_dev_inst *sdi); // gets channel names from device
-SR_PRIV int tlf_collect_samplerates(struct sr_dev_inst *sdi); // gets sample rates
-SR_PRIV int tlf_set_samplerate(const struct sr_dev_inst *sdi, uint64_t sample_rate); // set sample rate
+SR_PRIV int tlf_samplerates_list(const struct sr_dev_inst *sdi); // gets sample rates
+SR_PRIV int tlf_samplerate_set(const struct sr_dev_inst *sdi, uint64_t sample_rate); // set sample rate
+SR_PRIV int tlf_samplerate_get(const struct sr_dev_inst *sdi, uint64_t *sample_rate); // get sample rate
+
+SR_PRIV int tlf_samples_set(const struct sr_dev_inst *sdi, int32_t samples); // set samples count
+SR_PRIV int tlf_samples_get(const struct sr_dev_inst *sdi, int32_t *samples); // get samples count
+
 SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean enabled); // set channel status
+SR_PRIV int tlf_channel_state_get(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean *enabled); // get channel status
+SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi); // gets channel names from device
+
+SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi); // get list of trigger options
+SR_PRIV int tlf_trigger_set(const struct sr_dev_inst *sdi, int32_t channel_index, char * trigger); // set trigger
+
 SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data);
 
-extern uint64_t samplerates[3];
-
-
-// extern uint64_t *samplerates; // sample rate storage: min, max, step size (all in Hz)
-// extern char *channel_names[];  // channel names, start with default
-// extern const int channel_count_max; // maximum number of channels
-// extern int32_t channel_count; // initialize to 0
 
 #endif

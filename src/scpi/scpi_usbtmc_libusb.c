@@ -410,25 +410,25 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		uscpi->usb488_dev_cap = capabilities[15];
 	}
 
-	/////// Trial added for tiny-logic-friend
-	char *response;
-	sr_log(4, "*** Looking for a TinyLogicFriend, Sending command: LUVU ***");
-	ret = sr_scpi_get_string(scpi, "LUVU", &response);
-	if (ret < 0) {
-		sr_log(4, "____    No response :(     ____");
-	} else {
-		sr_log(4, "******Response received: %s ******", response);
-		sr_log(4, "");
-		sr_log(4, "_______¶¶¶_¶¶¶");
-		sr_log(4, "______¶¶__¶__¶¶");
-		sr_log(4, "______¶¶_____¶¶");
-		sr_log(4, "_______¶¶___¶¶");
-		sr_log(4, "________¶¶¶¶¶");
-		sr_log(4, "_________¶¶¶");
-		sr_log(4, "__________¶");
-		sr_log(4, "");
+	// /////// Trial added for tiny-logic-friend
+	// char *response;
+	// sr_log(4, "*** Looking for a TinyLogicFriend, Sending command: LUVU ***");
+	// ret = sr_scpi_get_string(scpi, "LUVU", &response);
+	// if (ret < 0) {
+	// 	sr_log(4, "____    No response :(     ____");
+	// } else {
+	// 	sr_log(4, "******Response received: %s ******", response);
+	// 	sr_log(4, "");
+	// 	sr_log(4, "_______¶¶¶_¶¶¶");
+	// 	sr_log(4, "______¶¶__¶__¶¶");
+	// 	sr_log(4, "______¶¶_____¶¶");
+	// 	sr_log(4, "_______¶¶___¶¶");
+	// 	sr_log(4, "________¶¶¶¶¶");
+	// 	sr_log(4, "_________¶¶¶");
+	// 	sr_log(4, "__________¶");
+	// 	sr_log(4, "");
 
-	}
+	// }
 	/////// Trial added for tiny-logic-friend
 
 	sr_dbg("Device capabilities: %s%s%s%s%s, %s, %s",
