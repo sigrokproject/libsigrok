@@ -195,6 +195,7 @@ static int config_get(uint32_t key, GVariant **data,
 {
 	struct sr_channel *ch;
 	uint64_t buf_int;
+	int32_t buf_32;
 	gboolean enable_status;
 	enable_status = FALSE;
 
@@ -212,13 +213,21 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_SAMPLERATE:
 			sr_spew("  -> SR_CONF_SAMPLERATE");
 			if (tlf_samplerate_get(sdi, &buf_int) != SR_OK) {
-				return SR_ERR_NA;
+				return SR_ERR;
 			}
 			*data = g_variant_new_uint64(buf_int);
 			break;
 		case SR_CONF_NUM_LOGIC_CHANNELS: // see Beaglelogic
 			sr_spew("  -> SR_CONF_NUM_LOGIC_CHANNELS");
 			*data = g_variant_new_uint32(g_slist_length(sdi->channels));
+			break;
+
+		case SR_CONF_LIMIT_SAMPLES:
+			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
+			if (tlf_samples_get(sdi, &buf_32) != SR_OK) {
+				return SR_ERR;
+			}
+			*data = g_variant_new_int32(buf_32);
 			break;
 		default:
 			sr_dbg("(1) Unsupported key: %d ", key);
@@ -256,9 +265,6 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 			sr_spew("  -> SR_CHANNEL_SET_ENABLED");
 			return tlf_channel_state_set(sdi, ch->index, ch->enabled);
 			break;
-		// case SR_CHANNEL_SET_TRIGGER:
-		// 	return tlf_set_trigger(sdi, ch->index, ch->trigger);
-		// 	break;
 		default:
 			return SR_ERR_NA;
 	}
@@ -274,8 +280,8 @@ static int config_set(uint32_t key, GVariant *data,
 	uint64_t value;
 
 	if (!sdi) {
-		sr_dbg("Must call `scan` prior to calling `config_list`.");
-		return SR_ERR;
+		sr_dbg("Must call `scan` prior to calling `config_set`.");
+		return SR_ERR_NA;
 	}
 
 	sr_spew("-> Enter config_set");
@@ -283,7 +289,7 @@ static int config_set(uint32_t key, GVariant *data,
 	devc = sdi->priv;
 
 	if (!sdi)
-		return SR_ERR_ARG;
+		return SR_ERR_NA;
 
 	if (!cg) {
 		switch (key) {
@@ -295,6 +301,12 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_SAMPLERATE;
 			}
 			return tlf_samplerate_set(sdi, value);
+			break;
+		case SR_CONF_LIMIT_SAMPLES:
+			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
+			if (tlf_samples_set(sdi, g_variant_get_uint64(data)) != SR_OK) {
+				return SR_ERR;
+			}
 			break;
 		default:
 			sr_dbg("Unsupported key: %d ", key);
@@ -325,7 +337,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 	if (!sdi) {
 		sr_dbg("Must call `scan` prior to calling `config_list`.");
-		return SR_ERR;
+		return SR_ERR_NA;
 	}
 
 	sr_spew("-> Enter config_list");
@@ -364,12 +376,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	/* TODO: configure hardware, reset acquisition state, set up
 	 * callbacks and send header packet. */
+	char buffer[555];
+	int len;
 
-	(void)sdi;
 
 	sr_spew("-> Enter dev_acquisition_start");
+	tlf_exec_run(sdi);
 
 	// todo setup triggers here
+
+	// read measurements
+
+	sr_spew("   -> read_begin");
+	if (sr_scpi_read_begin(sdi->conn) != SR_OK) {
+		return SR_ERR;
+	}
+
+	len = sr_scpi_read_data(sdi->conn, (char *)buffer, 555);
+	if (len == -1) {
+		return SR_ERR;
+	}
+
+	sr_spew("data received:");
+	sr_spew("%s", buffer);
 
 	return SR_OK;
 }
@@ -378,18 +407,18 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	/* TODO: stop acquisition. */
 
-	(void)sdi;
-
 	sr_spew("-> Enter dev_acquisition_stop");
+	tlf_exec_stop(sdi);
 	// todo clear triggers
 
 	return SR_OK;
 }
 
-// static int tlf_init(const struct sr_dev_inst *sdi)
+// static int tlf_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
 // {
-//  	(void) sdi;
 //  	sr_spew("-> Enter tlf_init");
+//  	std_init(di, sr_ctx);
+//  	sr_spew("-> Leave tlf_init");
 //  	return SR_OK;
 // }
 
@@ -412,7 +441,7 @@ static struct sr_dev_driver tiny_logic_friend_la_driver_info = {
 	.name = "tiny-logic-friend-la",
 	.longname = "Tiny Logic Friend-la",
 	.api_version = 1,
-	.init = std_init, // trial  /// #1. this is Run first
+	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,

@@ -385,7 +385,23 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 	return SR_OK;
 }
 
-SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
+{
+	sr_scpi_send(sdi->conn, "RUN");
+	// todo add measurements here
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi) // stop measurement
+{
+	sr_scpi_send(sdi->conn, "STOP");
+	// todo add cleanup here
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -404,5 +420,142 @@ SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data
 
 	return TRUE;
 }
+
+
+// // from Yokogawa-dlm
+// /**
+//  * Attempts to query sample data from the oscilloscope in order to send it
+//  * to the session bus for further processing.
+//  *
+//  * @param fd The file descriptor used as the event source.
+//  * @param revents The received events.
+//  * @param cb_data Callback data, in this case our device instance.
+//  *
+//  * @return TRUE in case of success or a recoverable error,
+//  *         FALSE when a fatal error was encountered.
+//  */
+// SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
+// {
+// 	struct sr_dev_inst *sdi;
+// 	struct scope_state *model_state;
+// 	struct dev_context *devc;
+// 	struct sr_channel *ch;
+// 	int chunk_len, num_bytes;
+// 	static GArray *data = NULL;
+
+// 	(void)fd;
+// 	(void)revents;
+
+// 	if (!(sdi = cb_data))
+// 		return FALSE;
+
+// 	if (!(devc = sdi->priv))
+// 		return FALSE;
+
+// 	if (!(model_state = (struct scope_state*)devc->model_state))
+// 		return FALSE;
+
+// 	/* Are we waiting for a response from the device? */
+// 	if (!devc->data_pending)
+// 		return TRUE;
+
+// 	/* Check if a new query response is coming our way. */
+// 	if (!data) {
+// 		if (sr_scpi_read_begin(sdi->conn) == SR_OK)
+// 			/* The 16 here accounts for the header and EOL. */
+// 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
+// 					16 + model_state->samples_per_frame);
+// 		else
+// 			return TRUE;
+// 	}
+
+// 	/* Store incoming data. */
+// 	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
+// 			RECEIVE_BUFFER_SIZE);
+// 	if (chunk_len < 0) {
+// 		sr_err("Error while reading data: %d", chunk_len);
+// 		goto fail;
+// 	}
+// 	g_array_append_vals(data, devc->receive_buffer, chunk_len);
+
+// 	/* Read the entire query response before processing. */
+// 	if (!sr_scpi_read_complete(sdi->conn))
+// 		return TRUE;
+
+// 	/* We finished reading and are no longer waiting for data. */
+// 	devc->data_pending = FALSE;
+
+// 	 Signal the beginning of a new frame if this is the first channel.
+// 	if (devc->current_channel == devc->enabled_channels)
+// 		std_session_send_df_frame_begin(sdi);
+
+// 	if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
+// 		sr_err("Encountered malformed block data header.");
+// 		goto fail;
+// 	}
+
+// 	if (num_bytes == 0) {
+// 		sr_warn("Zero-length waveform data packet received. " \
+// 				"Live mode not supported yet, stopping " \
+// 				"acquisition and retrying.");
+// 		/* Don't care about return value here. */
+// 		dlm_acquisition_stop(sdi->conn);
+// 		g_array_free(data, TRUE);
+// 		dlm_channel_data_request(sdi);
+// 		return TRUE;
+// 	}
+
+// 	ch = devc->current_channel->data;
+// 	switch (ch->type) {
+// 	case SR_CHANNEL_ANALOG:
+// 		if (dlm_analog_samples_send(data,
+// 				&model_state->analog_states[ch->index],
+// 				sdi) != SR_OK)
+// 			goto fail;
+// 		break;
+// 	case SR_CHANNEL_LOGIC:
+// 		if (dlm_digital_samples_send(data, sdi) != SR_OK)
+// 			goto fail;
+// 		break;
+// 	default:
+// 		sr_err("Invalid channel type encountered.");
+// 		break;
+// 	}
+
+// 	g_array_free(data, TRUE);
+// 	data = NULL;
+
+// 	/*
+// 	 * Signal the end of this frame if this was the last enabled channel
+// 	 * and set the next enabled channel. Then, request its data.
+// 	 */
+// 	if (!devc->current_channel->next) {
+// 		std_session_send_df_frame_end(sdi);
+// 		devc->current_channel = devc->enabled_channels;
+
+// 		/*
+// 		 * As of now we only support importing the current acquisition
+// 		 * data so we're going to stop at this point.
+// 		 */
+// 		sr_dev_acquisition_stop(sdi);
+// 		return TRUE;
+// 	} else
+// 		devc->current_channel = devc->current_channel->next;
+
+// 	if (dlm_channel_data_request(sdi) != SR_OK) {
+// 		sr_err("Failed to request acquisition data.");
+// 		goto fail;
+// 	}
+
+// 	return TRUE;
+
+// fail:
+// 	if (data) {
+// 		g_array_free(data, TRUE);
+// 		data = NULL;
+// 	}
+
+// 	return FALSE;
+// }
 
 
