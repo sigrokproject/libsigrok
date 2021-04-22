@@ -20,14 +20,15 @@
 #ifndef LIBSIGROK_HARDWARE_TINY_LOGIC_FRIEND_LA_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_TINY_LOGIC_FRIEND_LA_PROTOCOL_H
 
-
-#define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
-#define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
-
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+
+#define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
+#define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
+
+#define RECEIVE_BUFFER_SIZE 4096
 
 /** Private, per-device-instance driver context. */
 
@@ -54,6 +55,9 @@ struct dev_context {
 									// SR_TRIGGER_EDGE,      "E"
 	gboolean channel_state[TLF_CHANNEL_COUNT_MAX]; // set TRUE for enable, FALSE for disable
 
+	char receive_buffer[RECEIVE_BUFFER_SIZE];
+	gboolean data_pending;
+
 };
 
 #define LOG_PREFIX "tiny-logic-friend-la"
@@ -75,7 +79,7 @@ SR_PRIV int tlf_trigger_set(const struct sr_dev_inst *sdi, int32_t channel_index
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi); // start measurement
 SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi); // stop measurement
 
-SR_PRIV int tiny_logic_friend_la_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data);
 
 
 #endif

@@ -372,36 +372,98 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
+	// modified from yokogawa-dlm
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
-	char buffer[555];
-	int len;
+	// GSList *l;
+	// gboolean digital_added;
+	// struct sr_channel *ch;
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
 
+	scpi = sdi->conn;
+	devc = sdi->priv;
+	// digital_added = FALSE;
 
-	sr_spew("-> Enter dev_acquisition_start");
-	tlf_exec_run(sdi);
+	// g_slist_free(devc->enabled_channels);
+	// devc->enabled_channels = NULL;
 
-	// todo setup triggers here
+	// for (l = sdi->channels; l; l = l->next) {
+	// 	ch = l->data;
+	// 	if (!ch->enabled)
+	// 		continue;
+	// 	/* Only add a single digital channel. */
+	// 	if (ch->type != SR_CHANNEL_LOGIC || !digital_added) {
+	// 		devc->enabled_channels = g_slist_append(
+	// 			devc->enabled_channels, ch);
+	// 		if (ch->type == SR_CHANNEL_LOGIC)
+	// 			digital_added = TRUE;
+	// 	}
+	// }
 
-	// read measurements
+	// if (!devc->enabled_channels)
+	// 	return SR_ERR;
 
-	sr_spew("   -> read_begin");
-	if (sr_scpi_read_begin(sdi->conn) != SR_OK) {
-		return SR_ERR;
-	}
+	// if (dlm_check_channels(devc->enabled_channels) != SR_OK) {
+	// 	sr_err("Invalid channel configuration specified!");
+	// 	return SR_ERR_NA;
+	// }
 
-	len = sr_scpi_read_data(sdi->conn, (char *)buffer, 555);
-	if (len == -1) {
-		return SR_ERR;
-	}
+	//  Request data for the first enabled channel.
+	// devc->current_channel = devc->enabled_channels;
+	// dlm_channel_data_request(sdi);
 
-	sr_spew("data received:");
-	sr_spew("%s", buffer);
+	devc->data_pending = TRUE;
 
-	return SR_OK;
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
+			tlf_receive_data, (void *)sdi);
+
+	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
+
+	sr_spew("Go RUN");
+	return tlf_exec_run(sdi);
 }
+
+
+
+
+// static int dev_acquisition_start(const struct sr_dev_inst *sdi)
+// {
+// 	/* TODO: configure hardware, reset acquisition state, set up
+// 	 * callbacks and send header packet. */
+// 	char buffer[555];
+// 	int len;
+
+
+// 	sr_spew("-> Enter dev_acquisition_start");
+// 	tlf_exec_run(sdi);
+
+// 	// todo setup triggers here
+
+// 	// read measurements
+
+// 	// /*
+// 	//  * Start acquisition on the first enabled channel. The
+// 	//  * receive routine will continue driving the acquisition.
+// 	//  */
+// 	// sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
+// 	// 		lecroy_xstream_receive_data, (void *)sdi);
+
+// 	// std_session_send_df_header(sdi);
+
+// 	// devc->current_channel = devc->enabled_channels;
+
+// 	// return lecroy_xstream_request_data(sdi);
+
+
+// 	sr_scpi_source_add(sdi->session, sdi->conn, G_IO_IN, 50,
+// 		tlf_receive_data, (void *)sdi);
+
+
+// 	sr_spew("Go RUN");
+// 	return tlf_exec_run(sdi);
+// }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {

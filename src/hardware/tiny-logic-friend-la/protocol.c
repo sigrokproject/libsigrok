@@ -387,38 +387,14 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
 {
-	sr_scpi_send(sdi->conn, "RUN");
-	// todo add measurements here
+	return sr_scpi_send(sdi->conn, "RUN");
 
-	return SR_OK;
 }
 
 SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi) // stop measurement
 {
-	sr_scpi_send(sdi->conn, "STOP");
-	// todo add cleanup here
+	return sr_scpi_send(sdi->conn, "STOP");
 
-	return SR_OK;
-}
-
-SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
-{
-	const struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-
-	(void)fd;
-
-	if (!(sdi = cb_data))
-		return TRUE;
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* TODO */
-	}
-
-	return TRUE;
 }
 
 
@@ -557,5 +533,95 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 // 	return FALSE;
 // }
+
+SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
+{
+	const struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	int chunk_len;
+	static GArray *data = NULL;
+	char print_buffer[1024];
+	char tmp_buffer[32];
+
+	(void) revents;
+
+	(void)fd;
+
+	sr_spew("---> Entering tlf_receive_data");
+	if (!(sdi = cb_data))
+		return TRUE;
+
+	if (!(devc = sdi->priv))
+		return TRUE;
+
+	// if (revents == G_IO_IN) {
+	// 	/* TODO */
+	// }
+
+	/* Are we waiting for a response from the device? */
+	if (!devc->data_pending)
+		return TRUE;
+
+	/* Check if a new query response is coming our way. */
+	if (!data) {
+		if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
+			/* The 16 here accounts for the header and EOL. */
+			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
+					32);
+					//16 + model_state->samples_per_frame);
+		sr_spew("read_begin");
+		}
+		else
+			return TRUE;
+	}
+
+	/* Store incoming data. */
+	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
+			RECEIVE_BUFFER_SIZE);
+	if (chunk_len < 0) {
+		sr_dbg("Finished reading data, chunk_len: %d", chunk_len);
+		goto fail;
+	}
+
+	sr_spew("appending data, chunk_len: %d", chunk_len);
+	g_array_append_vals(data, devc->receive_buffer, chunk_len);
+
+	print_buffer[0] = '\0';
+	for (int i=0; i < chunk_len; i=i+4) {
+		sprintf(tmp_buffer, "[%hu %hu] ", devc->receive_buffer[i], devc->receive_buffer[i+2]); //16 bit timestamp
+		//sprintf(tmp_buffer, "[%lu %hu] ", devc->receive_buffer[i], devc->receive_buffer[i+4]); //32 bit timestamp
+		strcat(print_buffer, tmp_buffer);
+	}
+	sr_spew("Data: %s", print_buffer);
+
+	return TRUE;
+
+	// /* Read the entire query response before processing. */
+	// if (!sr_scpi_read_complete(sdi->conn)){
+	// 	sr_spew("read is incomplete, loop back");
+	// 	return TRUE;
+	// }
+
+	sr_spew("read is complete");
+
+	sr_spew("Data: %d, %d, %d, %d", devc->receive_buffer[0], devc->receive_buffer[1], devc->receive_buffer[2], devc->receive_buffer[3]);
+
+	/* We finished reading and are no longer waiting for data. */
+	devc->data_pending = FALSE;
+
+	sr_spew("freeing data");
+	g_array_free(data, TRUE);
+	data = NULL;
+	return TRUE;
+
+	fail:
+	if (data) {
+		g_array_free(data, TRUE);
+		data = NULL;
+	}
+
+	return FALSE;
+
+}
 
 
