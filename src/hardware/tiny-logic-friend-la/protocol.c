@@ -540,8 +540,8 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	int chunk_len;
 	static GArray *data = NULL;
-	char print_buffer[1024];
-	char tmp_buffer[32];
+	char print_buffer[2048];
+	char tmp_buffer[500];
 
 	(void) revents;
 
@@ -587,10 +587,47 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	g_array_append_vals(data, devc->receive_buffer, chunk_len);
 
 	print_buffer[0] = '\0';
-	for (int i=0; i < chunk_len; i=i+4) {
-		sprintf(tmp_buffer, "[%hu %hu] ", devc->receive_buffer[i], devc->receive_buffer[i+2]); //16 bit timestamp
-		//sprintf(tmp_buffer, "[%lu %hu] ", devc->receive_buffer[i], devc->receive_buffer[i+4]); //32 bit timestamp
+	for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
+		// uint32_t timestamp = ((char) devc->receive_buffer[i+1] << 8) | ((char) devc->receive_buffer[i]);
+		// uint16_t value = ((char) devc->receive_buffer[i+3] << 8) | ((char) devc->receive_buffer[i+2]);
+
+		// uint32_t timestamp = ((uint16_t) devc->receive_buffer[i+1] << 8) | devc->receive_buffer[i];
+
+		uint32_t timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+		// uint32_t timestamp = (uint8_t) devc->receive_buffer[i+1];
+		// sprintf(tmp_buffer, "[1: %u]", timestamp); //32 bit timestamp
+		// strcat(print_buffer, tmp_buffer);
+		// timestamp = timestamp << 8;
+		// sprintf(tmp_buffer, "[2: %u]", timestamp); //32 bit timestamp
+		// strcat(print_buffer, tmp_buffer);
+		// timestamp = timestamp | (uint8_t) devc->receive_buffer[i];
+		// sprintf(tmp_buffer, "[3: %u]", timestamp); //32 bit timestamp
+		// strcat(print_buffer, tmp_buffer);
+
+		// uint16_t value = ((uint16_t) devc->receive_buffer[i+3] << 8) | devc->receive_buffer[i+2];
+
+		uint16_t value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
+		// sprintf(tmp_buffer, "[1v: %u]", value); //32 bit timestamp
+		// strcat(print_buffer, tmp_buffer);
+		// value = value << 8;
+		// // sprintf(tmp_buffer, "[2v: %u]", value); //32 bit timestamp
+		// // strcat(print_buffer, tmp_buffer);
+		// value = value | (uint8_t) devc->receive_buffer[i+2];
+		// // sprintf(tmp_buffer, "[3v: %u]", value); //32 bit timestamp
+		// // strcat(print_buffer, tmp_buffer);
+
+
+		sprintf(tmp_buffer, "[%u %u]", timestamp, value); //32 bit timestamp
 		strcat(print_buffer, tmp_buffer);
+
+		//sprintf(tmp_buffer, "[old %u %hu] ", (uint32_t) devc->receive_buffer[i], (uint16_t) devc->receive_buffer[i+4]); //32 bit timestamp
+	// for (int i=0; i < chunk_len; i=i+4) {
+	// 	sprintf(tmp_buffer, "[%hu %hu]:", devc->receive_buffer[i], devc->receive_buffer[i+2]); //16 bit timestamp
+		//strcat(print_buffer, tmp_buffer);
+		// sprintf(tmp_buffer, "[%d %d %d %d]--", devc->receive_buffer[i], devc->receive_buffer[i+1], devc->receive_buffer[i+2], devc->receive_buffer[i+3]);
+
+		// sprintf(tmp_buffer, "[%d %d %d %d]--", (uint8_t) devc->receive_buffer[i], (uint8_t) devc->receive_buffer[i+1], (uint8_t) devc->receive_buffer[i+2], (uint8_t) devc->receive_buffer[i+3]);
+		// strcat(print_buffer, tmp_buffer);
 	}
 	sr_spew("Data: %s", print_buffer);
 
