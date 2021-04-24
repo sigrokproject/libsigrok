@@ -558,14 +558,14 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	// 	/* TODO */
 	// }
 
-	/* Are we waiting for a response from the device? */
-	if (!devc->data_pending)
-		return TRUE;
+	//  //Are we waiting for a response from the device?
+	// if (!devc->data_pending)
+	// 	return TRUE;
 
-	/* Check if a new query response is coming our way. */
+	// /* Check if a new query response is coming our way. */
 	if (!data) {
 		if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
-			/* The 16 here accounts for the header and EOL. */
+			// /* The 16 here accounts for the header and EOL. */
 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
 					32);
 					//16 + model_state->samples_per_frame);

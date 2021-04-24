@@ -28,7 +28,7 @@
 #define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
 #define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
 
-#define RECEIVE_BUFFER_SIZE 4096
+#define RECEIVE_BUFFER_SIZE 50000
 
 /** Private, per-device-instance driver context. */
 
