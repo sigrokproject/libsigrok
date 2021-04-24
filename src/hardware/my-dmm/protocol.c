@@ -41,32 +41,27 @@ SR_PRIV int my_dmm_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	serial = sdi->conn;
 
-	if (revents == G_IO_IN) {
+	if (revents != G_IO_IN) {
 		return TRUE;
 	}
 	len = BUFSIZE - devc->buflen;
 	buf = devc->buf;
-	g_mutex_lock(&devc->acquisition_mutex);
 	if (serial_readline(serial, &buf, &len, 100) != SR_OK) {
-		g_mutex_unlock(&devc->acquisition_mutex);
 		return TRUE;
 	}
-	if (len <= 12)
+	if (len <= 0)
 	{
-		g_mutex_unlock(&devc->acquisition_mutex);
 		return TRUE;
 	}
 
 	devc->buflen += len;
-	/*printf("%s\n", buf);
-	fflush(stdout);*/
 	if (!g_str_has_prefix((const char *)devc->buf, "meas ")) {
 		sr_dbg("Unknown packet: '%s'.", devc->buf);
 		return TRUE;
 	}
 	tokens = g_strsplit((const char *)devc->buf, " ", 3);
-		devc->voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
-		devc->current = g_ascii_strtod(tokens[1], NULL) / 1000;
+		devc->voltage = strtod(tokens[2], NULL) / 1000;
+		devc->current = strtod(tokens[1], NULL) / 1000;
 		g_strfreev(tokens);
 	
 	/* Begin frame. */
@@ -105,9 +100,8 @@ SR_PRIV int my_dmm_receive_data(int fd, int revents, void *cb_data)
 	/* End frame. */
 	std_session_send_df_frame_end(sdi);
 
-	sr_sw_limits_update_samples_read(&devc->limits, 1);
-	sr_sw_limits_update_frames_read(&devc->limits, 1);
-	g_mutex_unlock(&devc->acquisition_mutex);
+	//sr_sw_limits_update_samples_read(&devc->limits, 1);
+	//sr_sw_limits_update_frames_read(&devc->limits, 1);
 	memset(devc->buf, 0, BUFSIZE);
 	devc->buflen = 0;
 

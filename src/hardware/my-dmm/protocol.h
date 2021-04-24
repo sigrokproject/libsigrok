@@ -36,18 +36,17 @@
 
 struct dev_context {
     struct sr_sw_limits limits;
-    int data_source;
     uint64_t cur_samplerate;
     int cur_mq[MAX_CHANNELS];
 
     char buf[BUFSIZE];
 	int buflen;
 
-    GMutex acquisition_mutex;
-
-	float current_limit;
 	float voltage;
 	float current;
+
+    int quantity;
+    int quantity_flag;
 };
 
 SR_PRIV int my_dmm_receive_data(int fd, int revents, void *cb_data);

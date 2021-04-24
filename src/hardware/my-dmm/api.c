@@ -43,15 +43,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
-
-/*static const uint32_t devopts_cg[] = {
-	SR_CONF_ENABLED | SR_CONF_SET,
-	SR_CONF_REGULATION | SR_CONF_GET | SR_CONF_LIST,
-	SR_CONF_VOLTAGE | SR_CONF_GET,
-	SR_CONF_CURRENT | SR_CONF_GET
-}*/
 
 static struct sr_dev_driver example_driver_info;
 
@@ -63,8 +55,29 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static const char *data_sources[] = {
-	"Live", "Log-Hand", "Log-Trig", "Log-Auto", "Log-Export",
+
+/*static struct char *voltage_ranges[] = {
+	
+};
+
+static struct char *current_ranges[] = {
+	
+};
+
+static struct char *resistance_ranges[] = {
+	
+};*/
+
+static const char *quantities[] = {
+	"Voltage",
+	"Current",
+	"Resistance"
+};
+
+static const char *quantity_flags[] = {
+	"AC",
+	"DC",
+	"Diode"
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -141,9 +154,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
-		devc->cur_mq[0] = SR_MQ_VOLTAGE;
-		devc->cur_mq[1] = SR_MQ_CURRENT;
-		devc->data_source = 0;
+		//devc->cur_mq[0] = SR_MQ_VOLTAGE;
+		//devc->cur_mq[1] = SR_MQ_CURRENT;
+		devc->quantity = SR_MQ_VOLTAGE;
+		devc->quantity_flag = SR_MQFLAG_DC;
 		devc->cur_samplerate = 1;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
@@ -183,6 +197,7 @@ static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	GVariant *mq_arr[2];
 
 	(void)cg;
 
@@ -194,9 +209,10 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
-	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_string(data_sources[devc->data_source]);
-		break;
+	case SR_CONF_MEASURED_QUANTITY:
+		mq_arr[0] = g_variant_new_uint32(quantities[devc->quantity]);
+		mq_arr[1] = g_variant_new_uint64(quantity_flags[devc->quantity_flag]);
+		*data = g_variant_new_tuple(mq_arr, 2);
 	default:
 		return SR_ERR_NA;
 	}
@@ -240,9 +256,6 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
-	case SR_CONF_DATA_SOURCE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
-		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -267,20 +280,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		
 		return NULL;
 	}
-	//sr_dev_acquisition_stop(sdi);
 	sr_sw_limits_acquisition_start(&devc->limits);
-	devc->limits.limit_samples = 5000;
-	devc->limits.limit_frames = 5000;
-	//devc->limits.limit_msec = 100000;
 	std_session_send_df_header(sdi);
 
 	memset(devc->buf, 0, BUFSIZE);
 	devc->buflen = 0;
 	
-	g_mutex_init(&devc->acquisition_mutex);
-
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-			my_dmm_receive_data, (void *)sdi);
+			my_dmm_receive_data, (struct sr_dev_inst *)sdi);
 
 	return SR_OK;
 }
@@ -288,13 +295,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	/* TODO: stop acquisition. */
+	struct sr_serial_dev_inst *serial;
+	//sr_session_source_remove(sdi->session, -1);
+	serial = sdi->conn;
+	serial_source_remove(sdi->session, serial);
 	struct dev_context *devc;
 	int ret;
 
 	devc = sdi->priv;
 
 	ret = std_serial_dev_acquisition_stop(sdi);
-	g_mutex_clear(&devc->acquisition_mutex);
 
 	return ret;
 }
