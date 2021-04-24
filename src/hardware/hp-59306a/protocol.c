@@ -18,24 +18,23 @@
  */
 
 #include <config.h>
+#include "scpi.h"
 #include "protocol.h"
 
-SR_PRIV int hp_59306a_receive_data(int fd, int revents, void *cb_data)
+SR_PRIV int hp_59306a_switch_cg(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean enabled)
 {
-	const struct sr_dev_inst *sdi;
-	struct dev_context *devc;
+	int ret;
+	struct sr_scpi_dev_inst *scpi;
+	struct channel_group_context *cgc;
 
-	(void)fd;
+	scpi = sdi->conn;
+	cgc = cg->priv;
 
-	if (!(sdi = cb_data))
-		return TRUE;
+	if (enabled)
+		ret = sr_scpi_send(scpi, "A%zu", cgc->number);
+	else
+		ret = sr_scpi_send(scpi, "B%zu", cgc->number);
 
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* TODO */
-	}
-
-	return TRUE;
+	return ret;
 }

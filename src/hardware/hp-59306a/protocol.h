@@ -28,8 +28,15 @@
 #define LOG_PREFIX "hp-59306a"
 
 struct dev_context {
+	size_t channel_count;
 };
 
-SR_PRIV int hp_59306a_receive_data(int fd, int revents, void *cb_data);
+struct channel_group_context {
+	/** The number of the channel group, as labled on the device. */
+	size_t number;
+};
+
+SR_PRIV int hp_59306a_switch_cg(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean enabled);
 
 #endif

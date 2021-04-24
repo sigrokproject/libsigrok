@@ -18,117 +18,126 @@
  */
 
 #include <config.h>
+#include "scpi.h"
 #include "protocol.h"
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_MULTIPLEXER,
+};
+
+static const uint32_t devopts[] = {
+	/*
+	 * TODO Enable/disable multiple channel groups at once.
+	 * SR_CONF_ENABLED | SR_CONF_SET,
+	 */
+};
+
+static const uint32_t devopts_cg[] = {
+	SR_CONF_ENABLED | SR_CONF_SET,
+};
 
 static struct sr_dev_driver hp_59306a_driver_info;
 
+static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct channel_group_context *cgc;
+	size_t idx, nr;
+	struct sr_channel_group *cg;
+
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->vendor = g_strdup("Hewlett-Packard");
+	sdi->model = g_strdup("59306A");
+	sdi->conn = scpi;
+	sdi->driver = &hp_59306a_driver_info;
+	sdi->inst_type = SR_INST_SCPI;
+
+	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
+
+	devc->channel_count = 6;
+	for (idx = 0; idx < devc->channel_count; idx++) {
+		nr = idx + 1;
+
+		cg = g_malloc0(sizeof(*cg));
+		cg->name = g_strdup_printf("CH%zu", nr);
+
+		cgc = g_malloc0(sizeof(*cgc));
+		cgc->number = nr;
+		cg->priv = cgc;
+
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+	}
+
+	return sdi;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct drv_context *drvc;
-	GSList *devices;
-
-	(void)options;
-
-	devices = NULL;
-	drvc = di->context;
-	drvc->instances = NULL;
-
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
-
-	return devices;
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	return SR_OK;
+	return sr_scpi_open(sdi->conn);
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and close it. */
-
-	return SR_OK;
-}
-
-static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
-{
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
-
-	return ret;
+	return sr_scpi_close(sdi->conn);
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
+	gboolean on;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
+	if (!cg) {
+		switch (key) {
+		/* TODO: Enable/disbale multiple channel groups at once. */
+		case SR_CONF_ENABLED:
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		switch (key) {
+		case SR_CONF_ENABLED:
+			on = g_variant_get_boolean(data);
+			return hp_59306a_switch_cg(sdi, cg, on);
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
-	return ret;
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
-
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
+		case SR_CONF_DEVICE_OPTIONS:
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+				scanopts, drvopts, devopts);
+		default:
+			return SR_ERR_NA;
+		}
+	} else {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg));
+			break;
+		default:
+			return SR_ERR_NA;
+		}
 	}
-
-	return ret;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
-
-	(void)sdi;
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	/* TODO: stop acquisition. */
-
-	(void)sdi;
 
 	return SR_OK;
 }
@@ -142,13 +151,13 @@ static struct sr_dev_driver hp_59306a_driver_info = {
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
-	.config_get = config_get,
+	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
+	.dev_acquisition_stop = std_dummy_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(hp_59306a_driver_info);
