@@ -24,7 +24,7 @@
 /* Max time in ms before we want to check on USB events */
 #define TICK 200
 
-#define RANGE(ch) (((float)vdivs[devc->voltage[ch]][0] / vdivs[devc->voltage[ch]][1]) * VDIV_MULTIPLIER)
+#define RANGE(ch) (((float)devc->vdivs[devc->voltage[ch]][0] / devc->vdivs[devc->voltage[ch]][1]) * VDIV_MULTIPLIER)
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -43,8 +43,8 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg[] = {
-	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_COUPLING | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_VDIV | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *channel_names[] = {
@@ -59,51 +59,69 @@ static const char *acdc_coupling[] = {
 	"AC", "DC",
 };
 
-static const struct hantek_6xxx_profile dev_profiles[] = {
-	{
-		/* Windows: "Hantek6022BE DRIVER 1": 04b4:6022 */
-		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
-		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
-		ARRAY_AND_SIZE(dc_coupling), FALSE,
-	},
-	{
-		/* Windows: "Hantek6022BE DRIVER 2": 04b5:6022 */
-		0x04b5, 0x6022, 0x1d50, 0x608e, 0x0001,
-		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
-		ARRAY_AND_SIZE(dc_coupling), FALSE,
-	},
-	{
-		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
-		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
-		ARRAY_AND_SIZE(acdc_coupling), TRUE,
-	},
-	{
-		/* Windows: "Hantek6022BL DRIVER 1": 04b4:602a */
-		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
-		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
-		ARRAY_AND_SIZE(dc_coupling), FALSE,
-	},
-	{
-		/* Windows: "Hantek6022BL DRIVER 2": 04b5:602a */
-		0x04b5, 0x602a, 0x1d50, 0x608e, 0x0003,
-		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
-		ARRAY_AND_SIZE(dc_coupling), FALSE,
-	},
-	{
-		0xd4a2, 0x5660, 0x1d50, 0x608e, 0x0004,
-		"YiXingDianZi", "MDSO", "fx2lafw-yixingdianzi-mdso.fw",
-		ARRAY_AND_SIZE(dc_coupling), FALSE,
-	},
-	ALL_ZERO
+static const uint64_t vdivs[][2] = {
+	VDIV_VALUES
+};
+
+static const uint64_t vdivs_instrustar[][2] = {
+	VDIV_VALUES_INSTRUSTAR
 };
 
 static const uint64_t samplerates[] = {
 	SAMPLERATE_VALUES
 };
 
-static const uint64_t vdivs[][2] = {
-	VDIV_VALUES
+static const struct hantek_6xxx_profile dev_profiles[] = {
+	{
+		/* Windows: "Hantek6022BE DRIVER 1": 04b4:6022 */
+		0x04b4, 0x6022, 0x1d50, 0x608e, 0x0001,
+		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		/* Windows: "Hantek6022BE DRIVER 2": 04b5:6022 */
+		0x04b5, 0x6022, 0x1d50, 0x608e, 0x0001,
+		"Hantek", "6022BE", "fx2lafw-hantek-6022be.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
+		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
+		ARRAY_AND_SIZE(acdc_coupling), TRUE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		/* Windows: "Hantek6022BL DRIVER 1": 04b4:602a */
+		0x04b4, 0x602a, 0x1d50, 0x608e, 0x0003,
+		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		/* Windows: "Hantek6022BL DRIVER 2": 04b5:602a */
+		0x04b5, 0x602a, 0x1d50, 0x608e, 0x0003,
+		"Hantek", "6022BL", "fx2lafw-hantek-6022bl.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		0xd4a2, 0x5660, 0x1d50, 0x608e, 0x0004,
+		"YiXingDianZi", "MDSO", "fx2lafw-yixingdianzi-mdso.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
+		/*"InstrustarISDS205": d4a2:5661 */
+		0xd4a2, 0x5661, 0x1d50, 0x608e, 0x0005,
+		"Instrustar", "ISDS205B", "fx2lafw-instrustar-isds205b.fw",
+		ARRAY_AND_SIZE(acdc_coupling), TRUE,
+		ARRAY_AND_SIZE(vdivs_instrustar),
+	},
+	ALL_ZERO
 };
+
 
 static int read_channel(const struct sr_dev_inst *sdi, uint32_t amount);
 
@@ -138,6 +156,8 @@ static struct sr_dev_inst *hantek_6xxx_dev_new(const struct hantek_6xxx_profile 
 	devc->coupling_vals = prof->coupling_vals;
 	devc->coupling_tab_size = prof->coupling_tab_size;
 	devc->has_coupling = prof->has_coupling;
+	devc->vdivs = prof->vdivs;
+	devc->vdivs_size = prof->vdivs_size;
 
 	devc->profile = prof;
 	devc->dev_state = IDLE;
@@ -347,16 +367,17 @@ static int config_get(uint32_t key, GVariant **data,
 	const uint64_t *vdiv;
 	int ch_idx;
 
-	switch (key) {
-	case SR_CONF_NUM_VDIV:
-		*data = g_variant_new_int32(ARRAY_SIZE(vdivs));
-		break;
-	}
-
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+
+	switch (key) {
+	case SR_CONF_NUM_VDIV:
+		*data = g_variant_new_int32(devc->vdivs_size);
+		break;
+	}
+
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_SAMPLERATE:
@@ -390,7 +411,7 @@ static int config_get(uint32_t key, GVariant **data,
 			return SR_ERR_ARG;
 		switch (key) {
 		case SR_CONF_VDIV:
-			vdiv = vdivs[devc->voltage[ch_idx]];
+			vdiv = devc->vdivs[devc->voltage[ch_idx]];
 			*data = g_variant_new("(tt)", vdiv[0], vdiv[1]);
 			break;
 		case SR_CONF_COUPLING:
@@ -434,7 +455,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		switch (key) {
 		case SR_CONF_VDIV:
-			if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
+			if ((idx = std_u64_tuple_idx(data, devc->vdivs, devc->vdivs_size)) < 0)
 				return SR_ERR_ARG;
 			devc->voltage[ch_idx] = idx;
 			hantek_6xxx_update_vdiv(sdi);
@@ -444,6 +465,7 @@ static int config_set(uint32_t key, GVariant *data,
 						devc->coupling_tab_size)) < 0)
 				return SR_ERR_ARG;
 			devc->coupling[ch_idx] = idx;
+			hantek_6xxx_update_coupling(sdi);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -482,7 +504,9 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = g_variant_new_strv(devc->coupling_vals, devc->coupling_tab_size);
 			break;
 		case SR_CONF_VDIV:
-			*data = std_gvar_tuple_array(ARRAY_AND_SIZE(vdivs));
+			if (!devc)
+				return SR_ERR_ARG;
+			*data = std_gvar_tuple_array(devc->vdivs,devc->vdivs_size);
 			break;
 		default:
 			return SR_ERR_NA;

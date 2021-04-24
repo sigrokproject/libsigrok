@@ -495,6 +495,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/motech-lps-30x/protocol.c \
 	src/hardware/motech-lps-30x/api.c
 endif
+if HW_MY_DMM
+src_libdrivers_la_SOURCES += \
+	src/hardware/my-dmm/protocol.h \
+	src/hardware/my-dmm/protocol.c \
+	src/hardware/my-dmm/api.c
+endif
 if HW_NORMA_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/norma-dmm/protocol.h \

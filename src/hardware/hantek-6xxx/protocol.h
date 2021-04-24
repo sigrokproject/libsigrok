@@ -46,13 +46,21 @@
 	48, 30, 24, 16, 8, 4, 1, 50, 20, 10,
 
 #define VDIV_VALUES \
-	{ 100, 1000 }, \
-	{ 250, 1000 }, \
+	{ 1, 1 }, \
 	{ 500, 1000 }, \
-	{ 1, 1 },
+	{ 250, 1000 }, \
+	{ 100, 1000 },
+
+#define VDIV_VALUES_INSTRUSTAR \
+	{ 128, 100 }, \
+	{ 705, 1000 }, \
+	{ 288, 1000 }, \
+	{ 140, 1000 }, \
+	{ 576, 10000 }, \
+	{ 176, 10000 },
 
 #define VDIV_REG \
-	10, 5, 2, 1,
+	1, 2, 5, 10, 11, 12, 13,
 
 #define VDIV_MULTIPLIER		10
 
@@ -105,6 +113,8 @@ struct hantek_6xxx_profile {
 	const char **coupling_vals;
 	uint8_t coupling_tab_size;
 	gboolean has_coupling;
+	const uint64_t (*vdivs)[2];
+	const uint32_t vdivs_size;
 };
 
 struct dev_context {
@@ -130,6 +140,8 @@ struct dev_context {
 	uint8_t coupling_tab_size;
 	gboolean has_coupling;
 	uint64_t samplerate;
+	const uint64_t (*vdivs)[2];
+	uint8_t vdivs_size;
 
 	uint64_t limit_msec;
 	uint64_t limit_samples;

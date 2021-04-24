@@ -1,0 +1,296 @@
+From a4e50aa7c22b81d993f1838f7dec7c2b3f7ce5a1 Mon Sep 17 00:00:00 2001
+From: AlexEagleC <orlovaleksandr7922@gmail.com>
+Date: Sun, 21 Mar 2021 16:34:00 +0300
+Subject: [PATCH] my-dmm: Initial driver skeleton.
+
+---
+ Makefile.am                    |   6 ++
+ configure.ac                   |   1 +
+ src/hardware/my-dmm/api.c      | 154 +++++++++++++++++++++++++++++++++
+ src/hardware/my-dmm/protocol.c |  41 +++++++++
+ src/hardware/my-dmm/protocol.h |  35 ++++++++
+ 5 files changed, 237 insertions(+)
+ create mode 100644 src/hardware/my-dmm/api.c
+ create mode 100644 src/hardware/my-dmm/protocol.c
+ create mode 100644 src/hardware/my-dmm/protocol.h
+
+diff --git a/Makefile.am b/Makefile.am
+index 1f51684..b4fcb1e 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -495,6 +495,12 @@ src_libdrivers_la_SOURCES += \
+ 	src/hardware/motech-lps-30x/protocol.c \
+ 	src/hardware/motech-lps-30x/api.c
+ endif
++if HW_MY_DMM
++src_libdrivers_la_SOURCES += \
++	src/hardware/my-dmm/protocol.h \
++	src/hardware/my-dmm/protocol.c \
++	src/hardware/my-dmm/api.c
++endif
+ if HW_NORMA_DMM
+ src_libdrivers_la_SOURCES += \
+ 	src/hardware/norma-dmm/protocol.h \
+diff --git a/configure.ac b/configure.ac
+index 26621fd..cb5f838 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -303,6 +303,7 @@ SR_DRIVER([MIC 985xx], [mic-985xx], [serial_comm])
+ SR_DRIVER([Microchip PICkit2], [microchip-pickit2], [libusb])
+ SR_DRIVER([Mooshimeter DMM], [mooshimeter-dmm], [bluetooth_comm libgio])
+ SR_DRIVER([Motech LPS 30x], [motech-lps-30x], [serial_comm])
++SR_DRIVER([My_dmm], [my-dmm])
+ SR_DRIVER([Norma DMM], [norma-dmm], [serial_comm])
+ SR_DRIVER([OpenBench Logic Sniffer], [openbench-logic-sniffer], [serial_comm])
+ SR_DRIVER([PCE PCE-322A], [pce-322a], [serial_comm])
+diff --git a/src/hardware/my-dmm/api.c b/src/hardware/my-dmm/api.c
+new file mode 100644
+index 0000000..cf88eff
+--- /dev/null
++++ b/src/hardware/my-dmm/api.c
+@@ -0,0 +1,154 @@
++/*
++ * This file is part of the libsigrok project.
++ *
++ * Copyright (C) 2021 AlexEagleC <orlovaleksandr7922@gmail.com>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <config.h>
++#include "protocol.h"
++
++static struct sr_dev_driver my_dmm_driver_info;
++
++static GSList *scan(struct sr_dev_driver *di, GSList *options)
++{
++	struct drv_context *drvc;
++	GSList *devices;
++
++	(void)options;
++
++	devices = NULL;
++	drvc = di->context;
++	drvc->instances = NULL;
++
++	/* TODO: scan for devices, either based on a SR_CONF_CONN option
++	 * or on a USB scan. */
++
++	return devices;
++}
++
++static int dev_open(struct sr_dev_inst *sdi)
++{
++	(void)sdi;
++
++	/* TODO: get handle from sdi->conn and open it. */
++
++	return SR_OK;
++}
++
++static int dev_close(struct sr_dev_inst *sdi)
++{
++	(void)sdi;
++
++	/* TODO: get handle from sdi->conn and close it. */
++
++	return SR_OK;
++}
++
++static int config_get(uint32_t key, GVariant **data,
++	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
++{
++	int ret;
++
++	(void)sdi;
++	(void)data;
++	(void)cg;
++
++	ret = SR_OK;
++	switch (key) {
++	/* TODO */
++	default:
++		return SR_ERR_NA;
++	}
++
++	return ret;
++}
++
++static int config_set(uint32_t key, GVariant *data,
++	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
++{
++	int ret;
++
++	(void)sdi;
++	(void)data;
++	(void)cg;
++
++	ret = SR_OK;
++	switch (key) {
++	/* TODO */
++	default:
++		ret = SR_ERR_NA;
++	}
++
++	return ret;
++}
++
++static int config_list(uint32_t key, GVariant **data,
++	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
++{
++	int ret;
++
++	(void)sdi;
++	(void)data;
++	(void)cg;
++
++	ret = SR_OK;
++	switch (key) {
++	/* TODO */
++	default:
++		return SR_ERR_NA;
++	}
++
++	return ret;
++}
++
++static int dev_acquisition_start(const struct sr_dev_inst *sdi)
++{
++	/* TODO: configure hardware, reset acquisition state, set up
++	 * callbacks and send header packet. */
++
++	(void)sdi;
++
++	return SR_OK;
++}
++
++static int dev_acquisition_stop(struct sr_dev_inst *sdi)
++{
++	/* TODO: stop acquisition. */
++
++	(void)sdi;
++
++	return SR_OK;
++}
++
++static struct sr_dev_driver my_dmm_driver_info = {
++	.name = "my-dmm",
++	.longname = "My_dmm",
++	.api_version = 1,
++	.init = std_init,
++	.cleanup = std_cleanup,
++	.scan = scan,
++	.dev_list = std_dev_list,
++	.dev_clear = std_dev_clear,
++	.config_get = config_get,
++	.config_set = config_set,
++	.config_list = config_list,
++	.dev_open = dev_open,
++	.dev_close = dev_close,
++	.dev_acquisition_start = dev_acquisition_start,
++	.dev_acquisition_stop = dev_acquisition_stop,
++	.context = NULL,
++};
++SR_REGISTER_DEV_DRIVER(my_dmm_driver_info);
+diff --git a/src/hardware/my-dmm/protocol.c b/src/hardware/my-dmm/protocol.c
+new file mode 100644
+index 0000000..e48b7f8
+--- /dev/null
++++ b/src/hardware/my-dmm/protocol.c
+@@ -0,0 +1,41 @@
++/*
++ * This file is part of the libsigrok project.
++ *
++ * Copyright (C) 2021 AlexEagleC <orlovaleksandr7922@gmail.com>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <config.h>
++#include "protocol.h"
++
++SR_PRIV int my_dmm_receive_data(int fd, int revents, void *cb_data)
++{
++	const struct sr_dev_inst *sdi;
++	struct dev_context *devc;
++
++	(void)fd;
++
++	if (!(sdi = cb_data))
++		return TRUE;
++
++	if (!(devc = sdi->priv))
++		return TRUE;
++
++	if (revents == G_IO_IN) {
++		/* TODO */
++	}
++
++	return TRUE;
++}
+diff --git a/src/hardware/my-dmm/protocol.h b/src/hardware/my-dmm/protocol.h
+new file mode 100644
+index 0000000..e06074c
+--- /dev/null
++++ b/src/hardware/my-dmm/protocol.h
+@@ -0,0 +1,35 @@
++/*
++ * This file is part of the libsigrok project.
++ *
++ * Copyright (C) 2021 AlexEagleC <orlovaleksandr7922@gmail.com>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef LIBSIGROK_HARDWARE_MY_DMM_PROTOCOL_H
++#define LIBSIGROK_HARDWARE_MY_DMM_PROTOCOL_H
++
++#include <stdint.h>
++#include <glib.h>
++#include <libsigrok/libsigrok.h>
++#include "libsigrok-internal.h"
++
++#define LOG_PREFIX "my-dmm"
++
++struct dev_context {
++};
++
++SR_PRIV int my_dmm_receive_data(int fd, int revents, void *cb_data);
++
++#endif
+-- 
+2.25.1
+

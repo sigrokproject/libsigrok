@@ -88,10 +88,12 @@ static int beaglelogic_get_lasterror(struct dev_context *devc)
 	if ((fd = open(BEAGLELOGIC_SYSFS_ATTR(lasterror), O_RDONLY)) == -1)
 		return SR_ERR;
 
-	if ((ret = read(fd, buf, 16)) < 0)
+	ret = read(fd, buf, 16);
+	close(fd);
+
+	if (ret)
 		return SR_ERR;
 
-	close(fd);
 	devc->last_error = strtoul(buf, NULL, 10);
 
 	return SR_OK;
