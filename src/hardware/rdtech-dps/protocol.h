@@ -86,8 +86,14 @@ struct rdtech_dps_state {
 	float voltage, current, power;
 };
 
+enum rdtech_dps_state_context {
+	ST_CTX_NONE,
+	ST_CTX_CONFIG,
+	ST_CTX_PRE_ACQ,
+	ST_CTX_IN_ACQ,
+};
 SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
-	struct rdtech_dps_state *state);
+	struct rdtech_dps_state *state, enum rdtech_dps_state_context reason);
 SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 	struct rdtech_dps_state *state);
 

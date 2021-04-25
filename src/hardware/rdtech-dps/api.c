@@ -279,7 +279,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = sr_sw_limits_config_get(&devc->limits, key, data);
 		break;
 	case SR_CONF_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OUTPUT_ENABLED))
@@ -287,7 +287,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.output_enabled);
 		break;
 	case SR_CONF_REGULATION:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_REGULATION_CC))
@@ -296,7 +296,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(cc_text);
 		break;
 	case SR_CONF_VOLTAGE:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_VOLTAGE))
@@ -304,7 +304,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.voltage);
 		break;
 	case SR_CONF_VOLTAGE_TARGET:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_VOLTAGE_TARGET))
@@ -312,7 +312,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.voltage_target);
 		break;
 	case SR_CONF_CURRENT:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_CURRENT))
@@ -320,7 +320,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.current);
 		break;
 	case SR_CONF_CURRENT_LIMIT:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_CURRENT_LIMIT))
@@ -328,7 +328,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.current_limit);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_ENABLED))
@@ -336,7 +336,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_enabled);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_OVP))
@@ -344,7 +344,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_ovp);
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OUTPUT_ENABLED))
@@ -352,7 +352,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(state.ovp_threshold);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_ENABLED))
@@ -360,7 +360,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_enabled);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_PROTECT_OCP))
@@ -368,7 +368,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(state.protect_ocp);
 		break;
 	case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
-		ret = rdtech_dps_get_state(sdi, &state);
+		ret = rdtech_dps_get_state(sdi, &state, ST_CTX_CONFIG);
 		if (ret != SR_OK)
 			return ret;
 		if (!(state.mask & STATE_OCP_THRESHOLD))

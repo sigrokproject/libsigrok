@@ -254,10 +254,11 @@ static int send_value(const struct sr_dev_inst *sdi,
  * when the UART bitrate is only 9600bps?
  */
 SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
-	struct rdtech_dps_state *state)
+	struct rdtech_dps_state *state, enum rdtech_dps_state_context reason)
 {
 	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
+	gboolean get_config, get_init_state, get_curr_meas;
 	uint16_t registers[12];
 	int ret;
 	const uint8_t *rdptr;
@@ -276,6 +277,37 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	if (!state)
 		return SR_ERR_ARG;
 
+	/* Determine the requested level of response detail. */
+	get_config = FALSE;
+	get_init_state = FALSE;
+	get_curr_meas = FALSE;
+	switch (reason) {
+	case ST_CTX_CONFIG:
+		get_config = TRUE;
+		get_init_state = TRUE;
+		get_curr_meas = TRUE;
+		break;
+	case ST_CTX_PRE_ACQ:
+		get_init_state = TRUE;
+		get_curr_meas = TRUE;
+		break;
+	case ST_CTX_IN_ACQ:
+		get_curr_meas = TRUE;
+		break;
+	default:
+		/* EMPTY */
+		break;
+	}
+	/*
+	 * TODO Make use of this information to reduce the transfer
+	 * volume, especially on low bitrate serial connections. Though
+	 * the device firmware's samplerate is probably more limiting
+	 * than communication bandwidth is.
+	 */
+	(void)get_config;
+	(void)get_init_state;
+	(void)get_curr_meas;
+
 	switch (devc->model->model_type) {
 	case MODEL_DPS:
 		/*
@@ -285,9 +317,6 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		 * and the sequence of the registers and how to interpret
 		 * their bit fields. But then this is not too unusual for
 		 * a hardware specific device driver ...
-		 *
-		 * TODO Optionally reduce the transfer volume depending
-		 * on the caller specified state query context.
 		 */
 		g_mutex_lock(&devc->rw_mutex);
 		ret = rdtech_dps_read_holding_registers(modbus,
@@ -393,7 +422,13 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		return SR_ERR_ARG;
 	}
 
-	/* Store gathered details in the high level container. */
+	/*
+	 * Store gathered details in the high level container.
+	 *
+	 * TODO Make use of the caller's context. The register access
+	 * code path above need not have gathered every detail in every
+	 * invocation.
+	 */
 	memset(state, 0, sizeof(*state));
 	state->lock = is_lock;
 	state->mask |= STATE_LOCK;
@@ -551,7 +586,7 @@ SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi)
 	struct rdtech_dps_state state;
 	int ret;
 
-	ret = rdtech_dps_get_state(sdi, &state);
+	ret = rdtech_dps_get_state(sdi, &state, ST_CTX_PRE_ACQ);
 	if (ret != SR_OK)
 		return ret;
 
@@ -586,7 +621,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 
 	/* Get the device's current state. */
-	ret = rdtech_dps_get_state(sdi, &state);
+	ret = rdtech_dps_get_state(sdi, &state, ST_CTX_IN_ACQ);
 	if (ret != SR_OK)
 		return ret;
 
