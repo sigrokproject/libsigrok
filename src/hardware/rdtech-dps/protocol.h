@@ -32,7 +32,14 @@
 
 #define LOG_PREFIX "rdtech-dps"
 
+enum rdtech_dps_model_type {
+	MODEL_NONE,
+	MODEL_DPS,
+	MODEL_RD,
+};
+
 struct rdtech_dps_model {
+	enum rdtech_dps_model_type model_type;
 	unsigned int id;
 	const char *name;
 	unsigned int max_current;
@@ -85,7 +92,8 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 	struct rdtech_dps_state *state);
 
 SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
-	uint16_t *model, uint16_t *version);
+	enum rdtech_dps_model_type model_type,
+	uint16_t *model, uint16_t *version, uint32_t *serno);
 SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data);
 

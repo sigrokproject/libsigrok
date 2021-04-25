@@ -54,47 +54,82 @@ static const uint32_t devopts[] = {
 
 /* Model ID, model name, max current/voltage/power, current/voltage digits. */
 static const struct rdtech_dps_model supported_models[] = {
-	{ 3005, "DPS3005",  5, 30,  160, 3, 2 },
-	{ 5005, "DPS5005",  5, 50,  250, 3, 2 },
-	{ 5205, "DPH5005",  5, 50,  250, 3, 2 },
-	{ 5015, "DPS5015", 15, 50,  750, 2, 2 },
-	{ 5020, "DPS5020", 20, 50, 1000, 2, 2 },
-	{ 8005, "DPS8005",  5, 80,  408, 3, 2 },
+	{ MODEL_DPS, 3005, "DPS3005",  5, 30,  160, 3, 2 },
+	{ MODEL_DPS, 5005, "DPS5005",  5, 50,  250, 3, 2 },
+	{ MODEL_DPS, 5205, "DPH5005",  5, 50,  250, 3, 2 },
+	{ MODEL_DPS, 5015, "DPS5015", 15, 50,  750, 2, 2 },
+	{ MODEL_DPS, 5020, "DPS5020", 20, 50, 1000, 2, 2 },
+	{ MODEL_DPS, 8005, "DPS8005",  5, 80,  408, 3, 2 },
+	/* All RD specs taken from the 2020.12.2 instruction manual. */
+	{ MODEL_RD , 6006, "RD6006" ,  6, 60,  360, 3, 2 },
+	{ MODEL_RD , 6012, "RD6012" , 12, 60,  720, 2, 2 },
+	{ MODEL_RD , 6018, "RD6018" , 18, 60, 1080, 2, 2 },
 };
 
 static struct sr_dev_driver rdtech_dps_driver_info;
+static struct sr_dev_driver rdtech_rd_driver_info;
 
-static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
+static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus,
+	enum rdtech_dps_model_type model_type)
 {
+	static const char *type_prefix[] = {
+		[MODEL_DPS] = "DPS",
+		[MODEL_RD]  = "RD",
+	};
+
 	uint16_t id, version;
+	uint32_t serno;
 	int ret;
-	const struct rdtech_dps_model *model;
+	const struct rdtech_dps_model *model, *supported;
 	size_t i;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 
-	ret = rdtech_dps_get_model_version(modbus, &id, &version);
+	ret = rdtech_dps_get_model_version(modbus,
+		model_type, &id, &version, &serno);
+	sr_dbg("probe: ret %d, type %s, model %u, vers %u, snr %u.",
+		ret, type_prefix[model_type], id, version, serno);
 	if (ret != SR_OK)
 		return NULL;
 	model = NULL;
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
-		if (id == supported_models[i].id) {
-			model = &supported_models[i];
-			break;
-		}
+		supported = &supported_models[i];
+		if (model_type != supported->model_type)
+			continue;
+		if (id != supported->id)
+			continue;
+		model = supported;
+		break;
 	}
 	if (!model) {
-		sr_err("Unknown model: %u.", id);
+		sr_err("Unknown model: %s%u.", type_prefix[model_type], id);
 		return NULL;
 	}
 
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("RDTech");
-	sdi->model = g_strdup(model->name);
-	sdi->version = g_strdup_printf("v%u", version);
+	switch (model_type) {
+	case MODEL_DPS:
+		sdi->model = g_strdup(model->name);
+		sdi->version = g_strdup_printf("v%u", version);
+		sdi->driver = &rdtech_dps_driver_info;
+		break;
+	case MODEL_RD:
+		sdi->model = g_strdup(model->name);
+		sdi->version = g_strdup_printf("v%u.%u",
+			version / 100, version % 100);
+		if (serno)
+			sdi->serial_num = g_strdup_printf("%u", serno);
+		sdi->driver = &rdtech_rd_driver_info;
+		break;
+	default:
+		sr_err("Programming error, unhandled DPS/DPH/RD device type.");
+		g_free(sdi->vendor);
+		g_free(sdi);
+		return NULL;
+	}
 	sdi->conn = modbus;
-	sdi->driver = &rdtech_dps_driver_info;
 	sdi->inst_type = SR_INST_MODBUS;
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
@@ -112,23 +147,55 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus)
 	return sdi;
 }
 
+static struct sr_dev_inst *probe_device_dps(struct sr_modbus_dev_inst *modbus)
+{
+	return probe_device(modbus, MODEL_DPS);
+}
+
+static struct sr_dev_inst *probe_device_rd(struct sr_modbus_dev_inst *modbus)
+{
+	return probe_device(modbus, MODEL_RD);
+}
+
 static int config_compare(gconstpointer a, gconstpointer b)
 {
 	const struct sr_config *ac = a, *bc = b;
 	return ac->key != bc->key;
 }
 
-static GSList *scan(struct sr_dev_driver *di, GSList *options)
+static GSList *scan(struct sr_dev_driver *di, GSList *options,
+	enum rdtech_dps_model_type model_type)
 {
+	static const char *default_serialcomm_dps = "9600/8n1";
+	static const char *default_serialcomm_rd = "115200/8n1";
+
 	struct sr_config default_serialcomm = {
 		.key = SR_CONF_SERIALCOMM,
-		.data = g_variant_new_string("9600/8n1"),
+		.data = NULL,
 	};
 	struct sr_config default_modbusaddr = {
 		.key = SR_CONF_MODBUSADDR,
 		.data = g_variant_new_uint64(1),
 	};
 	GSList *opts, *devices;
+	const char *serialcomm;
+	struct sr_dev_inst *(*probe_func)(struct sr_modbus_dev_inst *modbus);
+
+	/* TODO See why di->context isn't available yet at this time. */
+	serialcomm = NULL;
+	probe_func = NULL;
+	if (di->context == &rdtech_dps_driver_info || model_type == MODEL_DPS) {
+		serialcomm = default_serialcomm_dps;
+		probe_func = probe_device_dps;
+	}
+	if (di->context == &rdtech_rd_driver_info || model_type == MODEL_RD) {
+		serialcomm = default_serialcomm_rd;
+		probe_func = probe_device_rd;
+	}
+	if (!probe_func)
+		return NULL;
+	if (serialcomm && *serialcomm)
+		default_serialcomm.data = g_variant_new_string(serialcomm);
 
 	opts = options;
 	if (!g_slist_find_custom(options, &default_serialcomm, config_compare))
@@ -136,7 +203,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!g_slist_find_custom(options, &default_modbusaddr, config_compare))
 		opts = g_slist_prepend(opts, &default_modbusaddr);
 
-	devices = sr_modbus_scan(di->context, opts, probe_device);
+	devices = sr_modbus_scan(di->context, opts, probe_func);
 
 	while (opts != options)
 		opts = g_slist_delete_link(opts, opts);
@@ -144,6 +211,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_variant_unref(default_modbusaddr.data);
 
 	return devices;
+}
+
+static GSList *scan_dps(struct sr_dev_driver *di, GSList *options)
+{
+	return scan(di, options, MODEL_DPS);
+}
+
+static GSList *scan_rd(struct sr_dev_driver *di, GSList *options)
+{
+	return scan(di, options, MODEL_RD);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -417,7 +494,7 @@ static struct sr_dev_driver rdtech_dps_driver_info = {
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
-	.scan = scan,
+	.scan = scan_dps,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
 	.config_get = config_get,
@@ -430,3 +507,23 @@ static struct sr_dev_driver rdtech_dps_driver_info = {
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(rdtech_dps_driver_info);
+
+static struct sr_dev_driver rdtech_rd_driver_info = {
+	.name = "rdtech-rd",
+	.longname = "RDTech RD series power supply",
+	.api_version = 1,
+	.init = std_init,
+	.cleanup = std_cleanup,
+	.scan = scan_rd,
+	.dev_list = std_dev_list,
+	.dev_clear = std_dev_clear,
+	.config_get = config_get,
+	.config_set = config_set,
+	.config_list = config_list,
+	.dev_open = dev_open,
+	.dev_close = dev_close,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
+	.context = NULL,
+};
+SR_REGISTER_DEV_DRIVER(rdtech_rd_driver_info);
