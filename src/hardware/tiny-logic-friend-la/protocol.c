@@ -540,12 +540,14 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	int chunk_len;
 	static GArray *data = NULL;
-	char print_buffer[2048];
-	char tmp_buffer[500];
+	char print_buffer[6000];
+	char tmp_buffer[6000];
+
+	int ret;
 
 	(void) revents;
 
-	(void)fd;
+	(void) fd;
 
 	sr_spew("---> Entering tlf_receive_data");
 	if (!(sdi = cb_data))
@@ -562,7 +564,37 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	// if (!devc->data_pending)
 	// 	return TRUE;
 
+
+	if ( sr_scpi_send(sdi->conn, "DATA?") != SR_OK ) {
+			goto fail;
+		}
+
+	// sr_spew("sent DATA?");
+
+
+	// ret = sr_scpi_get_string(sdi->conn, "DATA?", tmp_buffer);
+	// //ret = sr_scpi_get_data(sdi->conn, "DATA?", devc->receive_buffer);
+
+	// sr_spew("get data, ret= %d, %s", ret, tmp_buffer);
+
 	// /* Check if a new query response is coming our way. */
+	// if (!data) { // initial query
+
+	// 	ret = sr_scpi_read_begin(sdi->conn);
+	// 	sr_spew("read_begin = %d", ret);
+
+	// 	// if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
+	// 	// 	// /* The 16 here accounts for the header and EOL. */
+	// 	// 	data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
+	// 	// 			32);
+	// 	// 			//16 + model_state->samples_per_frame);
+	// 	// 	sr_spew("created new data array");
+	// 	// }
+	// 	// else
+	// 	// 	sr_spew("else?");
+	// 	// 	return TRUE;
+	// }
+
 	if (!data) {
 		if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
 			// /* The 16 here accounts for the header and EOL. */
@@ -576,6 +608,12 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Store incoming data. */
+
+	// request data
+
+	sr_spew("get a chunk");
+
+	// read data
 	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
 			RECEIVE_BUFFER_SIZE);
 	if (chunk_len < 0) {
@@ -583,8 +621,8 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		goto fail;
 	}
 
-	sr_spew("appending data, chunk_len: %d", chunk_len);
-	g_array_append_vals(data, devc->receive_buffer, chunk_len);
+	sr_spew("Received data, chunk_len: %d", chunk_len);
+	// g_array_append_vals(data, devc->receive_buffer, chunk_len);
 
 	print_buffer[0] = '\0';
 	for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
@@ -655,6 +693,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	if (data) {
 		g_array_free(data, TRUE);
 		data = NULL;
+		sr_spew("tlf_receive_data -> fail");
 	}
 
 	return FALSE;

@@ -416,10 +416,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->data_pending = TRUE;
 
+	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
+
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
 			tlf_receive_data, (void *)sdi);
-
-	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
 
 	sr_spew("Go RUN");
 	return tlf_exec_run(sdi);
