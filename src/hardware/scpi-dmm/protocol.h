@@ -64,6 +64,7 @@ struct scpi_dmm_model {
 	const uint32_t *devopts;
 	size_t devopts_size;
 	unsigned int read_timeout_us; /* If zero, use default from src/scpi/scpi.c. */
+	float infinity_limit; /* If zero, use default from protocol.c */
 };
 
 struct dev_context {

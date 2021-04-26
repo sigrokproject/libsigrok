@@ -175,6 +175,7 @@ libsigrok_la_SOURCES += \
 	src/dmm/fs9922.c \
 	src/dmm/m2110.c \
 	src/dmm/metex14.c \
+	src/dmm/mm38xr.c \
 	src/dmm/ms2115b.c \
 	src/dmm/ms8250d.c \
 	src/dmm/rs9lcd.c \
@@ -385,6 +386,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hp-3478a/protocol.h \
 	src/hardware/hp-3478a/protocol.c \
 	src/hardware/hp-3478a/api.c
+endif
+if HW_HP_59306A
+src_libdrivers_la_SOURCES += \
+	src/hardware/hp-59306a/protocol.h \
+	src/hardware/hp-59306a/protocol.c \
+	src/hardware/hp-59306a/api.c
 endif
 if HW_HUNG_CHANG_DSO_2100
 src_libdrivers_la_SOURCES += \

@@ -113,6 +113,7 @@ struct sr_scpi_dev_inst {
 	uint64_t firmware_version;
 	GMutex scpi_mutex;
 	char *actual_channel_name;
+	gboolean no_opc_command;
 };
 
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,

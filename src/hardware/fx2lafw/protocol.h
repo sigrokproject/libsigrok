@@ -112,7 +112,7 @@ struct dev_context {
 	struct soft_trigger_logic *stl;
 
 	uint64_t num_frames;
-	unsigned int sent_samples;
+	uint64_t sent_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
 

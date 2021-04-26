@@ -30,11 +30,10 @@
 
 #define LOG_PREFIX "kingst-la2016"
 
-/* device is little endian */
-
 #define LA2016_VID		0x77a1
 #define LA2016_PID		0x01a2
 #define USB_INTERFACE		0
+#define USB_CONFIGURATION	1
 
 #define LA2016_BULK_MAX         8388608
 
@@ -50,44 +49,28 @@
 typedef struct pwm_setting_dev {
 	uint32_t period;
 	uint32_t duty;
-} __attribute__((__packed__)) pwm_setting_dev_t;
+} pwm_setting_dev_t;
 
 typedef struct trigger_cfg {
 	uint32_t channels;
 	uint32_t enabled;
 	uint32_t level;
 	uint32_t high_or_falling;
-} __attribute__((__packed__)) trigger_cfg_t;
-
-typedef struct sample_config {
-	uint32_t sample_depth;
-	uint32_t psa;
-	uint16_t u1;
-	uint32_t u2;
-	uint16_t clock_divisor;
-} __attribute__((__packed__)) sample_config_t;
+} trigger_cfg_t;
 
 typedef struct capture_info {
 	uint32_t n_rep_packets;
 	uint32_t n_rep_packets_before_trigger;
 	uint32_t write_pos;
-} __attribute__((__packed__)) capture_info_t;
+} capture_info_t;
 
-typedef struct acq_packet {
-	uint16_t state;
-	uint8_t repetitions;
-} __attribute__((__packed__)) acq_packet_t;
-
-typedef struct transfer_packet {
-	acq_packet_t packet[5];
-	uint8_t seq;
-} __attribute__((__packed__)) transfer_packet_t;
+#define NUM_PACKETS_IN_CHUNK 5
+#define TRANSFER_PACKET_LENGTH 16
 
 typedef struct pwm_setting {
 	uint8_t enabled;
 	float freq;
 	float duty;
-	pwm_setting_dev_t dev;
 } pwm_setting_t;
 
 struct dev_context {
@@ -134,56 +117,5 @@ SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb);
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi);
-
-#ifndef WORDS_BIGENDIAN
-/* this host is big-endian, need to swap from/to device inplace */
-#define inplace_WL32(obj) do { uint32_t tmp = obj; WL32(&(obj), tmp); } while (0)
-#define inplace_RL32(obj) obj = RL32(&(obj))
-#define inplace_WL16(obj) do { uint16_t tmp = obj; WL16(&(obj), tmp); } while (0)
-#define inplace_RL16(obj) obj = RL16(&(obj))
-
-#define pwm_setting_dev_le(obj) do {		\
-		inplace_WL32((obj).period);	\
-		inplace_WL32((obj).duty);	\
-	} while (0)
-#define trigger_cfg_le(obj) do {			\
-		inplace_WL32((obj).channels);		\
-		inplace_WL32((obj).enabled);		\
-		inplace_WL32((obj).level);		\
-		inplace_WL32((obj).high_or_falling);	\
-	} while (0)
-#define sample_config_le(obj) do {			\
-		inplace_WL32((obj).sample_depth);	\
-		inplace_WL32((obj).psa);		\
-		inplace_WL16((obj).u1);			\
-		inplace_WL32((obj).u2);			\
-		inplace_WL16((obj).clock_divisor);	\
-	} while (0)
-
-#define capture_info_host(obj) do {					\
-		inplace_RL32((obj).n_rep_packets);			\
-		inplace_RL32((obj).n_rep_packets_before_trigger);	\
-		inplace_RL32((obj).write_pos);				\
-	} while (0)
-#define acq_packet_host(obj)			\
-	inplace_RL16((obj).state)
-#define transfer_packet_host(obj) do {			\
-		acq_packet_host((obj).packet[0]);	\
-		acq_packet_host((obj).packet[1]);	\
-		acq_packet_host((obj).packet[2]);	\
-		acq_packet_host((obj).packet[3]);	\
-		acq_packet_host((obj).packet[4]);	\
-	} while (0)
-
-#else
-/* this host is little-endian, same as device */
-#define pwm_setting_dev_le(obj)   (void)obj
-#define trigger_cfg_le(obj)       (void)obj
-#define sample_config_le(obj)     (void)obj
-
-#define capture_info_host(obj)    (void)obj
-#define acq_packet_host(obj)      (void)obj
-#define transfer_packet_host(obj) (void)obj
-#endif
 
 #endif

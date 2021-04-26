@@ -476,6 +476,22 @@ static inline void write_u32le(uint8_t *p, uint32_t x)
 #define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
 
 /**
+ * Write a 48 bits unsigned integer to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u48le(uint8_t *p, uint64_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+	p[5] = x & 0xff; x >>= 8;
+}
+#define WL48(p, x) write_u48le((uint8_t *)(p), (uint64_t)(x))
+
+/**
  * Write a 64 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
@@ -903,6 +919,19 @@ static inline void write_u32le_inc(uint8_t **p, uint32_t x)
 		return;
 	write_u32le(*p, x);
 	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 48bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u48le_inc(uint8_t **p, uint64_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u48le(*p, x);
+	*p += 48 / 8 * sizeof(uint8_t);
 }
 
 /**
@@ -2250,6 +2279,16 @@ SR_PRIV void sr_fs9721_01_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
+
+/*--- dmm/mm38xr.c ---------------------------------------------------------*/
+
+#define METERMAN_38XR_PACKET_SIZE 15
+
+struct meterman_38xr_info { int dummy; };
+
+SR_PRIV gboolean meterman_38xr_packet_valid(const uint8_t *buf);
+SR_PRIV int meterman_38xr_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
 
 /*--- dmm/ms2115b.c ---------------------------------------------------------*/
 

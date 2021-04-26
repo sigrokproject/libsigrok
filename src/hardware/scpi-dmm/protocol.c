@@ -28,7 +28,9 @@ SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi)
 {
 	if (WITH_CMD_DELAY)
 		g_usleep(WITH_CMD_DELAY * 1000);
-	sr_scpi_get_opc(scpi);
+
+	if (!scpi->no_opc_command)
+		sr_scpi_get_opc(scpi);
 }
 
 SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_number(
@@ -114,6 +116,8 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 		if (mqitem)
 			*mqitem = item;
 		ret = SR_OK;
+	} else {
+		sr_warn("Unknown measurement quantity: %s", have);
 	}
 
 	if (rsp) {
@@ -459,9 +463,11 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	if (!response)
 		return SR_ERR;
 	limit = 9e37;
-	if (info->d_value > +limit) {
+	if (devc->model->infinity_limit != 0.0)
+		limit = devc->model->infinity_limit;
+	if (info->d_value >= +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -limit) {
+	} else if (info->d_value <= -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;

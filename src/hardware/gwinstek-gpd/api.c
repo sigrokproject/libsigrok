@@ -21,6 +21,8 @@
 #include <string.h>
 #include "protocol.h"
 
+#define IDN_RETRIES 3 /* at least 2 */
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -49,6 +51,12 @@ static const char *channel_modes[] = {
 	"Independent",
 };
 
+static const char *gpd_serialcomms[] = {
+	"9600/8n1",
+	"57600/8n1",
+	"115200/8n1"
+};
+
 static const struct gpd_model models[] = {
 	{ GPD_2303S, "GPD-2303S",
 		CHANMODE_INDEPENDENT,
@@ -74,7 +82,7 @@ static const struct gpd_model models[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	const char *conn, *serialcomm;
+	const char *conn, *serialcomm, **serialcomms;
 	const struct gpd_model *model;
 	const struct sr_config *src;
 	struct sr_channel *ch;
@@ -83,7 +91,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_serial_dev_inst *serial;
 	struct sr_dev_inst *sdi;
 	char reply[100];
-	unsigned int i;
+	unsigned int i, b, serialcomms_count;
 	struct dev_context *devc;
 	char channel[10];
 	GRegex *regex;
@@ -110,126 +118,153 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (!conn)
 		return NULL;
-	if (!serialcomm)
-		serialcomm = "115200/8n1";
-	sr_info("Probing serial port %s.", conn);
-	serial = sr_serial_dev_inst_new(conn, serialcomm);
-	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
-		return NULL;
-
-	gpd_send_cmd(serial, "*IDN?\n");
-	if (gpd_receive_reply(serial, reply, sizeof(reply)) != SR_OK) {
-		sr_err("Device did not reply.");
-		goto error;
-	}
-	serial_flush(serial);
-
-	/*
-	 * Returned identification string is for example:
-	 * "GW INSTEK,GPD-2303S,SN:ER915277,V2.10"
-	 */
-	regex = g_regex_new("GW INSTEK,(.+),SN:(.+),(V.+)", 0, 0, NULL);
-	if (!g_regex_match(regex, reply, 0, &match_info)) {
-		sr_err("Unsupported model '%s'.", reply);
-		goto error;
+	if (serialcomm) {
+		serialcomms = &serialcomm;
+		serialcomms_count = 1;
+	} else {
+		serialcomms = gpd_serialcomms;
+		serialcomms_count = sizeof(gpd_serialcomms) / sizeof(gpd_serialcomms[0]);
 	}
 
-	model = NULL;
-	for (i = 0; i < ARRAY_SIZE(models); i++) {
-		if (!strcmp(g_match_info_fetch(match_info, 1), models[i].name)) {
-			model = &models[i];
-			break;
+	for( b = 0; b < serialcomms_count; b++) {
+		serialcomm = serialcomms[b];
+		sr_info("Probing serial port %s @ %s", conn, serialcomm);
+		serial = sr_serial_dev_inst_new(conn, serialcomm);
+		if (serial_open(serial, SERIAL_RDWR) != SR_OK)
+			continue;
+
+		/*
+		 * Problem: we need to clear the GPD receive buffer before we
+		 * can expect it to process commands correctly.
+		 *
+		 * Do not just send a newline, since that may cause it to
+		 * execute a currently buffered command.
+		 *
+		 * Solution: Send identification request a few times.
+		 * The first should corrupt any previous buffered command if present
+		 * and respond with "Invalid Character." or respond directly with
+		 * an identification string.
+		 */
+		for (i = 0; i < IDN_RETRIES; i++) {
+			/* Request the GPD to identify itself */
+			gpd_send_cmd(serial, "*IDN?\n");
+			if (gpd_receive_reply(serial, reply, sizeof(reply)) == SR_OK) {
+				if (0 == strncmp(reply, "GW INSTEK", 9)) {
+					break;
+				}
+			}
 		}
-	}
-	if (!model) {
-		sr_err("Unsupported model '%s'.", reply);
-		goto error;
-	}
-
-	sr_info("Detected model '%s'.", model->name);
-
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup("GW Instek");
-	sdi->model = g_strdup(model->name);
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
-
-	for (i = 0; i < model->num_channels; i++) {
-		snprintf(channel, sizeof(channel), "CH%d", i + 1);
-		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel);
-		cg = g_malloc(sizeof(struct sr_channel_group));
-		cg->name = g_strdup(channel);
-		cg->channels = g_slist_append(NULL, ch);
-		cg->priv = NULL;
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
-	}
-
-	devc = g_malloc0(sizeof(struct dev_context));
-	sr_sw_limits_init(&devc->limits);
-	devc->model = model;
-	devc->config = g_malloc0(sizeof(struct per_channel_config)
-				 * model->num_channels);
-	sdi->priv = devc;
-
-	serial_flush(serial);
-	gpd_send_cmd(serial, "STATUS?\n");
-	gpd_receive_reply(serial, reply, sizeof(reply));
-
-	if (sscanf(reply, "%1u%1u%1u%1u%1u%1u%1u%1u", &cc_cv_ch1,
-			&cc_cv_ch2, &track1, &track2, &beep,
-			&devc->output_enabled, &baud1, &baud2) != 8) {
-		/* old firmware (< 2.00?) responds with different format */
-		if (sscanf(reply, "%1u %1u %1u %1u %1u X %1u X", &cc_cv_ch1,
-			   &cc_cv_ch2, &track1, &track2, &beep,
-			   &devc->output_enabled) != 6) {
-			sr_err("Invalid reply to STATUS: '%s'.", reply);
-			goto error;
-		}
-		/* ignore remaining two lines of status message */
-		gpd_receive_reply(serial, reply, sizeof(reply));
-		gpd_receive_reply(serial, reply, sizeof(reply));
-	}
-
-	for (i = 0; i < model->num_channels; ++i) {
-		gpd_send_cmd(serial, "ISET%d?\n", i + 1);
-		gpd_receive_reply(serial, reply, sizeof(reply));
-		if (sscanf(reply, "%f", &devc->config[i].output_current_max) != 1) {
-			sr_err("Invalid reply to ISETn?: '%s'.", reply);
+		if (i == IDN_RETRIES) {
+			sr_err("Device did not reply to identification request.");
+			serial_flush(serial);
 			goto error;
 		}
 
-		gpd_send_cmd(serial, "VSET%d?\n", i + 1);
-		gpd_receive_reply(serial, reply, sizeof(reply));
-		if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1) {
-			sr_err("Invalid reply to VSETn?: '%s'.", reply);
+		/*
+		 * Returned identification string is for example:
+		 * "GW INSTEK,GPD-2303S,SN:ER915277,V2.10"
+		 */
+		regex = g_regex_new("GW INSTEK,(.+),SN:(.+),(V.+)", 0, 0, NULL);
+		if (!g_regex_match(regex, reply, 0, &match_info)) {
+			sr_err("Unsupported model '%s'.", reply);
 			goto error;
 		}
-		gpd_send_cmd(serial, "IOUT%d?\n", i + 1);
-		gpd_receive_reply(serial, reply, sizeof(reply));
-		if (sscanf(reply, "%f", &devc->config[i].output_current_last) != 1) {
-			sr_err("Invalid reply to IOUTn?: '%s'.", reply);
+
+		model = NULL;
+		for (i = 0; i < ARRAY_SIZE(models); i++) {
+			if (!strcmp(g_match_info_fetch(match_info, 1), models[i].name)) {
+				model = &models[i];
+				break;
+			}
+		}
+		if (!model) {
+			sr_err("Unsupported model '%s'.", reply);
 			goto error;
 		}
-		gpd_send_cmd(serial, "VOUT%d?\n", i + 1);
-		gpd_receive_reply(serial, reply, sizeof(reply));
-		if (sscanf(reply, "%f", &devc->config[i].output_voltage_last) != 1) {
-			sr_err("Invalid reply to VOUTn?: '%s'.", reply);
-			goto error;
+
+		sr_info("Detected model '%s'.", model->name);
+
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup("GW Instek");
+		sdi->model = g_strdup(model->name);
+		sdi->inst_type = SR_INST_SERIAL;
+		sdi->conn = serial;
+
+		for (i = 0; i < model->num_channels; i++) {
+			snprintf(channel, sizeof(channel), "CH%d", i + 1);
+			ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel);
+			cg = g_malloc(sizeof(struct sr_channel_group));
+			cg->name = g_strdup(channel);
+			cg->channels = g_slist_append(NULL, ch);
+			cg->priv = NULL;
+			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		}
+
+		devc = g_malloc0(sizeof(struct dev_context));
+		sr_sw_limits_init(&devc->limits);
+		devc->model = model;
+		devc->config = g_malloc0(sizeof(struct per_channel_config)
+					 * model->num_channels);
+		sdi->priv = devc;
+
+		serial_flush(serial);
+		gpd_send_cmd(serial, "STATUS?\n");
+		gpd_receive_reply(serial, reply, sizeof(reply));
+
+		if (sscanf(reply, "%1u%1u%1u%1u%1u%1u%1u%1u", &cc_cv_ch1,
+				&cc_cv_ch2, &track1, &track2, &beep,
+				&devc->output_enabled, &baud1, &baud2) != 8) {
+			/* old firmware (< 2.00?) responds with different format */
+			if (sscanf(reply, "%1u %1u %1u %1u %1u X %1u X", &cc_cv_ch1,
+				   &cc_cv_ch2, &track1, &track2, &beep,
+				   &devc->output_enabled) != 6) {
+				sr_err("Invalid reply to STATUS: '%s'.", reply);
+				goto error;
+			}
+			/* ignore remaining two lines of status message */
+			gpd_receive_reply(serial, reply, sizeof(reply));
+			gpd_receive_reply(serial, reply, sizeof(reply));
+		}
+
+		for (i = 0; i < model->num_channels; i++) {
+			gpd_send_cmd(serial, "ISET%d?\n", i + 1);
+			gpd_receive_reply(serial, reply, sizeof(reply));
+			if (sscanf(reply, "%f", &devc->config[i].output_current_max) != 1) {
+				sr_err("Invalid reply to ISETn?: '%s'.", reply);
+				goto error;
+			}
+
+			gpd_send_cmd(serial, "VSET%d?\n", i + 1);
+			gpd_receive_reply(serial, reply, sizeof(reply));
+			if (sscanf(reply, "%f", &devc->config[i].output_voltage_max) != 1) {
+				sr_err("Invalid reply to VSETn?: '%s'.", reply);
+				goto error;
+			}
+			gpd_send_cmd(serial, "IOUT%d?\n", i + 1);
+			gpd_receive_reply(serial, reply, sizeof(reply));
+			if (sscanf(reply, "%f", &devc->config[i].output_current_last) != 1) {
+				sr_err("Invalid reply to IOUTn?: '%s'.", reply);
+				goto error;
+			}
+			gpd_send_cmd(serial, "VOUT%d?\n", i + 1);
+			gpd_receive_reply(serial, reply, sizeof(reply));
+			if (sscanf(reply, "%f", &devc->config[i].output_voltage_last) != 1) {
+				sr_err("Invalid reply to VOUTn?: '%s'.", reply);
+				goto error;
+			}
+		}
+
+		return std_scan_complete(di, g_slist_append(NULL, sdi));
+
+	error:
+		if (match_info)
+			g_match_info_free(match_info);
+		if (regex)
+			g_regex_unref(regex);
+		if (serial)
+			serial_close(serial);
 	}
-
-	serial_close(serial);
-
-	return std_scan_complete(di, g_slist_append(NULL, sdi));
-
-error:
-	if (match_info)
-		g_match_info_free(match_info);
-	if (regex)
-		g_regex_unref(regex);
-	if (serial)
-		serial_close(serial);
 
 	return NULL;
 }

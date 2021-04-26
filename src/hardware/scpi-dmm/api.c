@@ -104,6 +104,15 @@ static const struct scpi_command cmdset_gwinstek_906x[] = {
 	ALL_ZERO,
 };
 
+static const struct scpi_command cmdset_owon[] = {
+	{ DMM_CMD_SETUP_REMOTE, "SYST:REM", },
+	{ DMM_CMD_SETUP_LOCAL, "SYST:LOC", },
+	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
+	{ DMM_CMD_QUERY_FUNC, "FUNC?", },
+	{ DMM_CMD_QUERY_VALUE, "MEAS1?", },
+	ALL_ZERO,
+};
+
 static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, },
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, },
@@ -162,48 +171,62 @@ static const struct mqopt_item mqopts_gwinstek_gdm906x[] = {
 	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, },
 };
 
+static const struct mqopt_item mqopts_owon_xdm2041[] = {
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT AC", NO_DFLT_PREC, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR AC", NO_DFLT_PREC, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, 0, "RES", "RES", NO_DFLT_PREC, },
+	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES", NO_DFLT_PREC, },
+	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC | SR_MQFLAG_DIODE, "DIOD", "DIOD", -4, },
+	{ SR_MQ_TEMPERATURE, 0, "TEMP", "TEMP", NO_DFLT_PREC, },
+	{ SR_MQ_FREQUENCY, 0, "FREQ", "FREQ", NO_DFLT_PREC, },
+	{ SR_MQ_CAPACITANCE, 0, "CAP", "CAP", NO_DFLT_PREC, },
+};
+
 SR_PRIV const struct scpi_dmm_model models[] = {
 	{
 		"Agilent", "34405A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0,
+		0, 0,
 	},
 	{
 		"Agilent", "34410A",
 		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0,
+		0, 0,
 	},
 	{
 		"GW", "GDM8251A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500,
+		1000 * 2500, 0,
 	},
 	{
 		"GW", "GDM8255A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500,
+		1000 * 2500, 0,
 	},
 	{
 		"GWInstek", "GDM9060",
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0,
+		0, 0,
 	},
 	{
 		"GWInstek", "GDM9061",
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0,
+		0, 0,
 	},
 	{
 		"HP", "34401A",
@@ -211,14 +234,21 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
-		1000 * 1500,
+		1000 * 1500, 0,
 	},
 	{
 		"Keysight", "34465A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0,
+		0, 0,
+	},
+	{
+		"OWON", "XDM2041",
+		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
+		scpi_dmm_get_meas_gwinstek,
+		ARRAY_AND_SIZE(devopts_generic),
+		0, 1e9,
 	},
 };
 
@@ -241,6 +271,25 @@ static const struct scpi_dmm_model *is_compatible(const char *vendor, const char
 	return NULL;
 }
 
+/*
+ * Some devices (such as Owon XDM2041) do not support the standard
+ * OPeration Complete? command. This function tests the command with
+ * a short timeout, and returns TRUE if any reply (busy or not) is received.
+ */
+static gboolean probe_opc_support(struct sr_scpi_dev_inst *scpi)
+{
+	gboolean result;
+	GString *response;
+
+	response = g_string_sized_new(128);
+	result = TRUE;
+	if (sr_scpi_get_data(scpi, SCPI_CMD_OPC, &response) != SR_OK)
+		result = FALSE;
+	g_string_free(response, TRUE);
+
+	return result;
+}
+
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_scpi_hw_info *hw_info;
@@ -252,6 +301,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	size_t i;
 	gchar *channel_name;
 	const char *command;
+
+	if (!probe_opc_support(scpi))
+		scpi->no_opc_command = TRUE;
 
 	scpi_dmm_cmd_delay(scpi);
 	ret = sr_scpi_get_hw_id(scpi, &hw_info);
