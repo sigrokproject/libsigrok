@@ -414,7 +414,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	// devc->current_channel = devc->enabled_channels;
 	// dlm_channel_data_request(sdi);
 
-	devc->data_pending = TRUE;
+	devc->data_pending = TRUE; // initialize all the variables before reading data.
+	devc->measured_samples == 0;
+	devc->last_sample = 0;
+	devc->last_timestamp = 0;
+
 
 	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
 

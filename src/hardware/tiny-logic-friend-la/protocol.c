@@ -543,7 +543,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	char print_buffer[6000];
 	char tmp_buffer[6000];
 
-	int ret;
+	// int ret;
 
 	(void) revents;
 
@@ -624,6 +624,9 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	sr_spew("Received data, chunk_len: %d", chunk_len);
 	// g_array_append_vals(data, devc->receive_buffer, chunk_len);
 
+	uint32_t timestamp;
+	uint16_t value;
+
 	print_buffer[0] = '\0';
 	for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
 		// uint32_t timestamp = ((char) devc->receive_buffer[i+1] << 8) | ((char) devc->receive_buffer[i]);
@@ -631,7 +634,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 		// uint32_t timestamp = ((uint16_t) devc->receive_buffer[i+1] << 8) | devc->receive_buffer[i];
 
-		uint32_t timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
 		// uint32_t timestamp = (uint8_t) devc->receive_buffer[i+1];
 		// sprintf(tmp_buffer, "[1: %u]", timestamp); //32 bit timestamp
 		// strcat(print_buffer, tmp_buffer);
@@ -644,7 +647,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 		// uint16_t value = ((uint16_t) devc->receive_buffer[i+3] << 8) | devc->receive_buffer[i+2];
 
-		uint16_t value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
+		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
 		// sprintf(tmp_buffer, "[1v: %u]", value); //32 bit timestamp
 		// strcat(print_buffer, tmp_buffer);
 		// value = value << 8;
@@ -668,6 +671,72 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		// strcat(print_buffer, tmp_buffer);
 	}
 	sr_spew("Data: %s", print_buffer);
+
+	// Perform Run-Length Encoded extraction into samples at each tick
+	//
+
+	// should initialize prior to starting first read
+	//		- devc->last_sample
+	//		- devc->last_timestamp
+	//		- devc->num_samples
+
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+	unsigned int buffer_size = 256;
+
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = 2;
+	logic.data = devc->raw_sample_buf;
+
+
+	if (devc->measured_samples == 0) { // this is the first time reading, so allocate the buffer
+							  // todo *** after the last read, free the malloc'ed buffer.
+		devc->raw_sample_buf = g_try_malloc(buffer_size * 2);
+		if (!devc->raw_sample_buf) {
+			sr_err("Sample buffer malloc failed.");
+			return FALSE;
+		}
+
+		// Do we need to initialize the last_timestamp, last_sample for the first sample?
+	}
+
+	for (int i=0; i < chunk_len; i=i+4) {
+		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
+
+		// todo * can we do math with int32_t and uint16_t unsigned??  WARNING
+		for (int32_t tick=devc->last_timestamp; tick < timestamp; tick++) {
+			// run from the previous time_stamp to the current one, fill with last_sample data
+			((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
+			sr_spew("measured_samples: %ld, storing: %u, last: [%u %u], data: [%u %u]", devc->measured_samples, devc->last_sample, devc->last_timestamp, devc->last_sample, timestamp, value);
+			//sr_spew("measured_samples: %ld, data: [%u %u]", devc->measured_samples, timestamp, value);
+			devc->measured_samples++;
+			devc->pending_samples++; // number of samples currently stored in the buffer
+
+			if (devc->pending_samples == buffer_size) {
+				logic.length = devc->pending_samples * 2;
+				sr_session_send(sdi, &packet);
+				devc->pending_samples = 0;
+			}
+		}
+
+		// finished processing the previous sample and timestamp, save next sample
+		devc->last_sample = value;
+		if (timestamp == 65535) {
+			devc->last_timestamp = -1; // wrapped around the 16 bit counter,
+									   // so reset to -1 for next sample
+		} else {
+			devc->last_timestamp = timestamp;
+		}
+	}
+
+	// flush any remaining data in the buffer wit sr_session_send
+	if (devc->pending_samples > 0) {
+		logic.length = devc->pending_samples * 2;
+		sr_session_send(sdi, &packet);
+	}
+
 
 	return TRUE;
 

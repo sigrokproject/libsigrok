@@ -58,6 +58,16 @@ struct dev_context {
 	char receive_buffer[RECEIVE_BUFFER_SIZE];
 	gboolean data_pending;
 
+	size_t measured_samples;
+
+	size_t pending_samples;
+	size_t num_samples;
+
+	uint16_t last_sample;
+	uint32_t last_timestamp;
+
+	uint16_t * raw_sample_buf;
+
 };
 
 #define LOG_PREFIX "tiny-logic-friend-la"
