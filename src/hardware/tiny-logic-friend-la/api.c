@@ -161,6 +161,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 									   // and initialize all device options and get current settings
 		goto fail;
 
+	// DEBUG ** todo
+
+	GSList *l;
+	for (l = sdi->channels; l; l = l->next) {
+		sr_spew("** probe_device channel found");
+	}
+
 	return sdi;
 
 fail:
@@ -172,9 +179,14 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	//struct sr_dev_inst *sdi;
 	sr_spew("-> Enter scan");
-	return sr_scpi_scan(di->context, options, probe_device);
+	sr_scpi_scan(di->context, options, probe_device);
+
+	// return std_scan_complete(di, g_slist_append(NULL, sdi));
 	// set all important setup parameters into the probe_device function
+
+	return sr_scpi_scan(di->context, options, probe_device);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -216,6 +228,7 @@ static int config_get(uint32_t key, GVariant **data,
 				return SR_ERR;
 			}
 			*data = g_variant_new_uint64(buf_int);
+			sr_spew("config_get: returning samplerate");
 			break;
 		case SR_CONF_NUM_LOGIC_CHANNELS: // see Beaglelogic
 			sr_spew("  -> SR_CONF_NUM_LOGIC_CHANNELS");
@@ -415,17 +428,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	// dlm_channel_data_request(sdi);
 
 	devc->data_pending = TRUE; // initialize all the variables before reading data.
-	devc->measured_samples == 0;
+	devc->measured_samples = 0;
 	devc->last_sample = 0;
 	devc->last_timestamp = 0;
 
 
-	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
+
 
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
 			tlf_receive_data, (void *)sdi);
 
+	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
+
 	sr_spew("Go RUN");
+
+	std_session_send_df_frame_begin(sdi);
+
 	return tlf_exec_run(sdi);
 }
 
@@ -469,11 +487,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 // 	return tlf_exec_run(sdi);
 // }
 
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
+static int dev_acquisition_stop(const struct sr_dev_inst *sdi)
 {
 	/* TODO: stop acquisition. */
 
+
 	sr_spew("-> Enter dev_acquisition_stop");
+	std_session_send_df_frame_end(sdi);
+	sr_session_source_remove(sdi->session, -1);
 	tlf_exec_stop(sdi);
 	// todo clear triggers
 

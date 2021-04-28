@@ -21,6 +21,9 @@
 #include <scpi.h>
 
 #include "protocol.h"
+#include <libsigrok/libsigrok.h>
+#include "libsigrok-internal.h"
+
 
 // uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
 // const int channel_count_max = 16; // maximum number of channels
@@ -71,8 +74,8 @@ SR_PRIV int tlf_samplerate_set(const struct sr_dev_inst *sdi, uint64_t sample_ra
 	struct dev_context *devc;
 	devc = sdi->priv;
 
-	if (sr_scpi_send(sdi->conn, "SAMPles %ld", sample_rate) != SR_OK) {
-		sr_spew("Sent \"SAMPLes %llu\", ERROR on response\n", sample_rate);
+	if (sr_scpi_send(sdi->conn, "RATE %ld", sample_rate) != SR_OK) {
+		sr_spew("Sent \"RATE %llu\", ERROR on response\n", sample_rate);
 		return SR_ERR;
 	}
 
@@ -88,8 +91,8 @@ SR_PRIV int tlf_samplerate_get(const struct sr_dev_inst *sdi, uint64_t *sample_r
 
 	devc = sdi->priv;
 
-	if (sr_scpi_get_int(sdi->conn, "SAMPles?", &return_buf) != SR_OK) {
-		sr_spew("Sent \"SAMPLes?\", ERROR on response\n");
+	if (sr_scpi_get_int(sdi->conn, "RATE?", &return_buf) != SR_OK) {
+		sr_spew("Sent \"RATE?\", ERROR on response\n");
 		return SR_ERR;
 	}
 	devc->cur_samplerate = (uint64_t) return_buf; // update private device context
@@ -187,6 +190,8 @@ SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi) // gets channel names fro
 	int32_t j;
 	int32_t channel_count;
 	struct dev_context *devc;
+	struct sr_channel_group *cg;
+	struct sr_channel *ch;
 
 	devc = sdi->priv;
 
@@ -322,13 +327,21 @@ SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi) // gets channel names fro
 
 	sr_dbg("Setting all channels on, configuring channels");
 
+	/* Logic channels, all in one channel group. */
+	cg = g_malloc0(sizeof(struct sr_channel_group));
+	cg->name = g_strdup("Logic");
+
 	for (j = 0; j < channel_count; j++) {
 		if ( tlf_channel_state_set(sdi, j, TRUE) != SR_OK ) {
 			return SR_ERR;
 		}
-		sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
+		sr_spew("Adding channel %d: %s", j, devc->chan_names[j]);
+		ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 			       devc->chan_names[j]);
+		cg->channels = g_slist_append(cg->channels, ch);
 	}
+
+	sdi->channel_groups = g_slist_append(NULL, cg);
 
 	return SR_OK;
 
@@ -566,7 +579,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 
 	if ( sr_scpi_send(sdi->conn, "DATA?") != SR_OK ) {
-			goto fail;
+			goto close;
 		}
 
 	// sr_spew("sent DATA?");
@@ -595,6 +608,8 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	// 	// 	return TRUE;
 	// }
 
+	//std_session_send_df_frame_end(sdi);
+
 	if (!data) {
 		if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
 			// /* The 16 here accounts for the header and EOL. */
@@ -618,7 +633,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 			RECEIVE_BUFFER_SIZE);
 	if (chunk_len < 0) {
 		sr_dbg("Finished reading data, chunk_len: %d", chunk_len);
-		goto fail;
+		goto close;
 	}
 
 	sr_spew("Received data, chunk_len: %d", chunk_len);
@@ -670,7 +685,9 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		// sprintf(tmp_buffer, "[%d %d %d %d]--", (uint8_t) devc->receive_buffer[i], (uint8_t) devc->receive_buffer[i+1], (uint8_t) devc->receive_buffer[i+2], (uint8_t) devc->receive_buffer[i+3]);
 		// strcat(print_buffer, tmp_buffer);
 	}
-	sr_spew("Data: %s", print_buffer);
+	sr_warn("Data: %s", print_buffer);
+
+	//return TRUE;
 
 	// Perform Run-Length Encoded extraction into samples at each tick
 	//
@@ -682,12 +699,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_logic logic;
-	unsigned int buffer_size = 256;
-
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = 2;
-	logic.data = devc->raw_sample_buf;
+	unsigned int buffer_size = 12;
 
 
 	if (devc->measured_samples == 0) { // this is the first time reading, so allocate the buffer
@@ -701,22 +713,40 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		// Do we need to initialize the last_timestamp, last_sample for the first sample?
 	}
 
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+	logic.unitsize = 2;
+	logic.data = devc->raw_sample_buf;
+
+	size_t samples_sent=0;
+
+
 	for (int i=0; i < chunk_len; i=i+4) {
 		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
 		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
+		samples_sent++;
 
 		// todo * can we do math with int32_t and uint16_t unsigned??  WARNING
 		for (int32_t tick=devc->last_timestamp; tick < timestamp; tick++) {
 			// run from the previous time_stamp to the current one, fill with last_sample data
 			((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
-			sr_spew("measured_samples: %ld, storing: %u, last: [%u %u], data: [%u %u]", devc->measured_samples, devc->last_sample, devc->last_timestamp, devc->last_sample, timestamp, value);
+			//sr_spew("measured_samples: %ld, storing: %u, last: [%u %u], data: [%u %u]", devc->measured_samples, devc->last_sample, devc->last_timestamp, devc->last_sample, timestamp, value);
 			//sr_spew("measured_samples: %ld, data: [%u %u]", devc->measured_samples, timestamp, value);
 			devc->measured_samples++;
 			devc->pending_samples++; // number of samples currently stored in the buffer
 
-			if (devc->pending_samples == buffer_size) {
+			if (devc->pending_samples == buffer_size) { //buffer_size) {
 				logic.length = devc->pending_samples * 2;
+				if (logic.data == NULL) {
+					sr_spew("tlf_receive_data: payload is NULL");
+				}
 				sr_session_send(sdi, &packet);
+
+
+				// DEBUG
+
+
+				//sr_spew("Packet sent, proceeding.");
 				devc->pending_samples = 0;
 			}
 		}
@@ -731,12 +761,26 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		}
 	}
 
+	sr_spew("About to flush...");
 	// flush any remaining data in the buffer wit sr_session_send
 	if (devc->pending_samples > 0) {
 		logic.length = devc->pending_samples * 2;
 		sr_session_send(sdi, &packet);
 	}
 
+
+	sr_warn("Data: %s", print_buffer);
+
+	sr_spew("Finished flush.");
+	sr_dbg("Sent samples %d", samples_sent);
+
+
+	std_session_send_df_frame_end(sdi);
+	std_session_send_df_frame_begin(sdi);
+
+	sr_spew("<- returning from tlf_receive_data");
+
+	// Need to determine when samples are completed.
 
 	return TRUE;
 
@@ -746,23 +790,28 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	// 	return TRUE;
 	// }
 
-	sr_spew("read is complete");
 
-	sr_spew("Data: %d, %d, %d, %d", devc->receive_buffer[0], devc->receive_buffer[1], devc->receive_buffer[2], devc->receive_buffer[3]);
+
+	//sr_dev_acquisition_stop(sdi); //   ***** this is just a trial
 
 	/* We finished reading and are no longer waiting for data. */
-	devc->data_pending = FALSE;
+
 
 	sr_spew("freeing data");
 	g_array_free(data, TRUE);
 	data = NULL;
 	return TRUE;
 
-	fail:
+	close:
 	if (data) {
+		std_session_send_df_frame_end(sdi);
+		std_session_send_df_end(sdi);
+		sr_dbg("read is complete");
+		devc->data_pending = FALSE;
+
 		g_array_free(data, TRUE);
 		data = NULL;
-		sr_spew("tlf_receive_data -> fail");
+		sr_dev_acquisition_stop(sdi);
 	}
 
 	return FALSE;
