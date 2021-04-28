@@ -25,6 +25,9 @@
 #include "libsigrok-internal.h"
 
 
+size_t samples_sent=0; // DEBUG
+
+
 // uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
 // const int channel_count_max = 16; // maximum number of channels
 // const int channel_char_max=6;
@@ -569,14 +572,9 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	// if (revents == G_IO_IN) {
-	// 	/* TODO */
-	// }
-
-	//  //Are we waiting for a response from the device?
-	// if (!devc->data_pending)
-	// 	return TRUE;
-
+	 //Are we waiting for a response from the device?
+	if (!devc->data_pending)
+		return TRUE;
 
 	if ( sr_scpi_send(sdi->conn, "DATA?") != SR_OK ) {
 			goto close;
@@ -616,10 +614,12 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
 					32);
 					//16 + model_state->samples_per_frame);
-		sr_spew("read_begin");
+			sr_spew("read_begin");
 		}
 		else
 			return TRUE;
+	} else {
+		sr_scpi_read_begin(sdi->conn);
 	}
 
 	/* Store incoming data. */
@@ -629,6 +629,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	sr_spew("get a chunk");
 
 	// read data
+
 	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
 			RECEIVE_BUFFER_SIZE);
 	if (chunk_len < 0) {
@@ -718,8 +719,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	logic.unitsize = 2;
 	logic.data = devc->raw_sample_buf;
 
-	size_t samples_sent=0;
-
 
 	for (int i=0; i < chunk_len; i=i+4) {
 		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
@@ -772,11 +771,16 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	sr_warn("Data: %s", print_buffer);
 
 	sr_spew("Finished flush.");
-	sr_dbg("Sent samples %d", samples_sent);
+
+	sr_warn("Sent samples %d", samples_sent);
+
+	if (samples_sent >= devc->cur_samples) {
+		goto close;
+	}
 
 
-	std_session_send_df_frame_end(sdi);
-	std_session_send_df_frame_begin(sdi);
+	// std_session_send_df_frame_end(sdi);
+	// std_session_send_df_frame_begin(sdi);
 
 	sr_spew("<- returning from tlf_receive_data");
 
