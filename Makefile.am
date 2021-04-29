@@ -501,6 +501,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/my-dmm/protocol.c \
 	src/hardware/my-dmm/api.c
 endif
+if HW_MY_FUNCGEN
+src_libdrivers_la_SOURCES += \
+	src/hardware/my-funcgen/protocol.h \
+	src/hardware/my-funcgen/protocol.c \
+	src/hardware/my-funcgen/api.c
+endif
 if HW_MY_OSC
 src_libdrivers_la_SOURCES += \
 	src/hardware/my-osc/protocol.h \
