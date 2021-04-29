@@ -505,6 +505,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	uint8_t mask;
 	struct sr_trigger *trigger;
 
+	sr_spew("->dev_acquisition_start");
+
 	devc = sdi->priv;
 	devc->sent_samples = 0;
 	devc->sent_frame_samples = 0;

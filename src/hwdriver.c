@@ -418,6 +418,7 @@ SR_API struct sr_dev_driver **sr_driver_list(const struct sr_context *ctx)
 SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
 	int ret;
+	sr_spew("->sr_driver_init: %s", driver->name);
 
 	if (!ctx) {
 		sr_err("Invalid libsigrok context, can't initialize.");

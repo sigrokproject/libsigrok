@@ -165,7 +165,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 	GSList *l;
 	for (l = sdi->channels; l; l = l->next) {
-		sr_spew("** probe_device channel found");
+		sr_err("** probe_device channel found");
 	}
 
 	return sdi;
@@ -181,7 +181,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	//struct sr_dev_inst *sdi;
 	sr_spew("-> Enter scan");
-	sr_scpi_scan(di->context, options, probe_device);
+	// sr_scpi_scan(di->context, options, probe_device);
 
 	// return std_scan_complete(di, g_slist_append(NULL, sdi));
 	// set all important setup parameters into the probe_device function
@@ -191,8 +191,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	int ret;
+
 	sr_spew("-> Enter dev_open");
-	return sr_scpi_open(sdi->conn);
+	// return sr_scpi_open(sdi->conn);
+
+	if ((ret = sr_scpi_open(sdi->conn)) < 0) {
+		sr_err("Failed to open SCPI device: %s.", sr_strerror(ret));
+		return SR_ERR;
+	}
+
+	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
@@ -214,7 +223,7 @@ static int config_get(uint32_t key, GVariant **data,
 	sr_spew("-> Enter config_get");
 
 	if (!sdi) {
-		sr_dbg("Must call `scan` prior to calling `config_list`.");
+		sr_err("Must call `scan` prior to calling `config_list`.");
 		return SR_ERR_ARG;
 	}
 
@@ -293,7 +302,7 @@ static int config_set(uint32_t key, GVariant *data,
 	uint64_t value;
 
 	if (!sdi) {
-		sr_dbg("Must call `scan` prior to calling `config_set`.");
+		sr_err("Must call `scan` prior to calling `config_set`.");
 		return SR_ERR_NA;
 	}
 
@@ -349,7 +358,7 @@ static int config_list(uint32_t key, GVariant **data,
 	sr_spew("-> config_list");
 
 	if (!sdi) {
-		sr_dbg("Must call `scan` prior to calling `config_list`.");
+		sr_err("Must call `scan` prior to calling `config_list`.");
 		return SR_ERR_NA;
 	}
 
@@ -395,6 +404,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
+	sr_spew("->dev_acquisition_start");
+
 	scpi = sdi->conn;
 	devc = sdi->priv;
 	// digital_added = FALSE;
@@ -434,11 +445,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 
 
-
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
 			tlf_receive_data, (void *)sdi);
 
+	sr_spew("->dev_acquisition_start 2");
+
+	// sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
+			// tlf_receive_data, (void *)sdi);
+
 	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
+
+	sr_spew("->dev_acquisition_start 3");
 
 	sr_spew("Go RUN");
 
@@ -494,7 +511,7 @@ static int dev_acquisition_stop(const struct sr_dev_inst *sdi)
 
 	sr_spew("-> Enter dev_acquisition_stop");
 	std_session_send_df_frame_end(sdi);
-	sr_session_source_remove(sdi->session, -1);
+	sr_scpi_source_remove(sdi->session, sdi->conn);
 	tlf_exec_stop(sdi);
 	// todo clear triggers
 

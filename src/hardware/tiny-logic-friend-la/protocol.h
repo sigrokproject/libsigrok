@@ -64,7 +64,7 @@ struct dev_context {
 	size_t num_samples;
 
 	uint16_t last_sample;
-	uint32_t last_timestamp;
+	int32_t last_timestamp; // must store -1 for handling the 16-bit timer
 
 	uint16_t * raw_sample_buf;
 

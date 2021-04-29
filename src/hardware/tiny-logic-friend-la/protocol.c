@@ -725,8 +725,10 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
 		samples_sent++;
 
+		sr_spew("devc->measured_samples: %zu", devc->measured_samples);
+
 		// todo * can we do math with int32_t and uint16_t unsigned??  WARNING
-		for (int32_t tick=devc->last_timestamp; tick < timestamp; tick++) {
+		for (int32_t tick=devc->last_timestamp; tick < (int32_t) timestamp; tick++) {
 			// run from the previous time_stamp to the current one, fill with last_sample data
 			((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
 			//sr_spew("measured_samples: %ld, storing: %u, last: [%u %u], data: [%u %u]", devc->measured_samples, devc->last_sample, devc->last_timestamp, devc->last_sample, timestamp, value);
@@ -772,7 +774,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 	sr_spew("Finished flush.");
 
-	sr_warn("Sent samples %d", samples_sent);
+	sr_warn("Sent samples %zu", samples_sent);
 
 	if (samples_sent >= devc->cur_samples) {
 		goto close;
