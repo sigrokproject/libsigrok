@@ -213,6 +213,7 @@ static int config_get(uint32_t key, GVariant **data,
 		mq_arr[0] = g_variant_new_uint32(quantities[devc->quantity]);
 		mq_arr[1] = g_variant_new_uint64(quantity_flags[devc->quantity_flag]);
 		*data = g_variant_new_tuple(mq_arr, 2);
+		break;
 	default:
 		return SR_ERR_NA;
 	}

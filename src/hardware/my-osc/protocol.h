@@ -27,6 +27,20 @@
 
 #define LOG_PREFIX "my-osc"
 
+//Commands
+#define CMD_CONF 0x00
+#define CMD_SCAN 0x01
+#define CMD_START 0x02
+
+//Limit sample range
+#define MIN_NUM_SAMPLES 10
+#define MAX_NUM_SAMPLES 1'000'000
+
+struct dev_context {
+    struct sr_sw_limits limits;
+    uint64_t cur_samplerate;
+};
+
 struct dev_context {
 };
 
