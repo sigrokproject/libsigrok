@@ -266,11 +266,6 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
-
-	(void)sdi;
-
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial;
 	char *buf = g_malloc0(sizeof(uint8_t));

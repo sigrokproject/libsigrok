@@ -27,6 +27,8 @@
 
 #define LOG_PREFIX "my-osc"
 
+#define BUFSIZE 100
+
 //Commands
 #define CMD_CONF 0x00
 #define CMD_SCAN 0x01
@@ -34,14 +36,18 @@
 
 //Limit sample range
 #define MIN_NUM_SAMPLES 10
-#define MAX_NUM_SAMPLES 1'000'000
+#define MAX_NUM_SAMPLES 1000000
 
 struct dev_context {
     struct sr_sw_limits limits;
     uint64_t cur_samplerate;
-};
 
-struct dev_context {
+    char buf[BUFSIZE];
+	int buflen;
+
+	float voltage;
+	float current;
+
 };
 
 SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data);

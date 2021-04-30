@@ -36,8 +36,6 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_ENABLED | SR_CONF_SET,
-	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
@@ -47,8 +45,6 @@ static const uint64_t samplerates[] = {
 	SR_KHZ(500),
 	SR_HZ(1),
 };
-
-static const uint64_t 
 
 static struct sr_dev_driver my_osc_driver_info;
 
@@ -61,7 +57,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_channel_group *cg;
 	struct sr_channel *ch;
 	GSList *l, *devices;
-	int num_read;
 	int len;
 	const char *conn, *serialcomm;
 	char *buf, **tokens;
@@ -126,6 +121,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
 		devc->cur_samplerate = SR_KHZ(200);
+		devc->limits.limit_samples = MIN_NUM_SAMPLES;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
 		sdi->priv = devc;
@@ -136,28 +132,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_free(buf);
 
 	serial_close(serial);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
 
 	return std_scan_complete(di, devices);
-}
-
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and close it. */
-
-	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -172,7 +148,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
+		*data = g_variant_new_uint64(devc->limits.limit_samples);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -192,7 +168,11 @@ static int config_set(uint32_t key, GVariant *data,
 		return SR_ERR_ARG;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		set_samplerate();
+		//set_samplerate();
+		tmp_u64 = g_variant_get_uint64(data);
+		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
+			return SR_ERR_SAMPLERATE;
+		devc->cur_samplerate = tmp_u64;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
@@ -201,7 +181,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->limits.limit_samples = tmp_u64;
 		break;
 	default:
-		ret = SR_ERR_NA;
+		return SR_ERR_NA;
 	}
 
 	return SR_OK;
@@ -210,13 +190,10 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
-	(void)cg;
-	devc = sdi->priv;
-
 	switch (key) {
-	case SR_CONF_LIMIT_SAMPLES:
-		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES, MAX_NUM_SAMPLES);
+	case SR_CONF_SCAN_OPTIONS:
+	case SR_CONF_DEVICE_OPTIONS:
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
@@ -229,21 +206,43 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	struct dev_context *devc = sdi->priv;
+	struct sr_serial_dev_inst *serial;
+	char *buf = g_malloc0(sizeof(uint8_t));
+	*buf = CMD_START;
+	serial = sdi->conn;
+	int send_code = 0;
+	send_code = serial_write_blocking(serial, buf, 1, serial_timeout(serial, 1));
+	if (send_code != 1) {
+		sr_err("Unable to send identification string. Code:%d", send_code);
+		
+		return NULL;
+	}
+	sr_sw_limits_acquisition_start(&devc->limits);
+	std_session_send_df_header(sdi);
 
-	(void)sdi;
+	memset(devc->buf, 0, BUFSIZE);
+	devc->buflen = 0;
+	
+	serial_source_add(sdi->session, serial, G_IO_IN, 100,
+			my_osc_receive_data, (struct sr_dev_inst *)sdi);
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
+	struct sr_serial_dev_inst *serial;
+	serial = sdi->conn;
+	serial_source_remove(sdi->session, serial);
+	struct dev_context *devc;
+	int ret;
 
-	(void)sdi;
+	devc = sdi->priv;
 
-	return SR_OK;
+	ret = std_serial_dev_acquisition_stop(sdi);
+
+	return ret;
 }
 
 static struct sr_dev_driver my_osc_driver_info = {
@@ -258,8 +257,8 @@ static struct sr_dev_driver my_osc_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
