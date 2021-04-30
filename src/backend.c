@@ -299,7 +299,7 @@ static int sanity_check_all_drivers(const struct sr_context *ctx)
 	if (!ctx)
 		return SR_ERR_ARG;
 
-	sr_spew("Sanity-checking all drivers.");
+	sr_spew("Sanity-checking all drivers.  Yeet.");
 
 	drivers = sr_driver_list(ctx);
 	for (i = 0; drivers[i]; i++) {
@@ -311,10 +311,14 @@ static int sanity_check_all_drivers(const struct sr_context *ctx)
 			sr_err("No name in driver %d ('%s').", i, d);
 			errors++;
 		}
+		sr_err("drivers->name: %s", drivers[i]->name);
+
 		if (!drivers[i]->longname) {
 			sr_err("No longname in driver %d ('%s').", i, d);
 			errors++;
 		}
+		sr_err("drivers->longname: %s", drivers[i]->longname);
+
 		if (drivers[i]->api_version < 1) {
 			sr_err("API version in driver %d ('%s') < 1.", i, d);
 			errors++;
@@ -377,6 +381,7 @@ static int sanity_check_all_drivers(const struct sr_context *ctx)
 		ret = SR_ERR;
 	}
 
+	sr_spew("Sanity-checking all drivers.  Done!");
 	return ret;
 }
 

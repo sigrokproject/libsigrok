@@ -28,12 +28,15 @@ static struct sr_dev_driver tiny_logic_friend_la_driver_info;
 //static const char *manufacturer = "TinyLogicFriend";
 
 static const uint32_t scanopts[] = { // setup the communication options, use USB TMC
-	SR_CONF_CONN,
-	//SR_CONF_NUM_LOGIC_CHANNELS, // todo - double check this (taken from beaglelogic)
+	// SR_CONF_CONN,
+	// SR_CONF_NUM_LOGIC_CHANNELS, // todo - double check this (taken from beaglelogic)
 };
 
 static const uint32_t drvopts[] = { // This driver is for a logic analyzer
+	// SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_DEMO_DEV,
 	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
 };
 
 static const uint32_t devopts[] = {
@@ -186,7 +189,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	// return std_scan_complete(di, g_slist_append(NULL, sdi));
 	// set all important setup parameters into the probe_device function
 
+
 	return sr_scpi_scan(di->context, options, probe_device);
+
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -223,7 +228,7 @@ static int config_get(uint32_t key, GVariant **data,
 	sr_spew("-> Enter config_get");
 
 	if (!sdi) {
-		sr_err("Must call `scan` prior to calling `config_list`.");
+		sr_err("Must call `scan` prior to calling `config_get`.");
 		return SR_ERR_ARG;
 	}
 
@@ -357,19 +362,15 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	sr_spew("-> config_list");
 
-	if (!sdi) {
-		sr_err("Must call `scan` prior to calling `config_list`.");
-		return SR_ERR_NA;
-	}
+	// if (!sdi) {
+	// 	sr_err("Must call `scan` prior to calling `config_list`.");
+	// return SR_ERR_NA;
+	// }
 
 	sr_spew("-> Enter config_list");
 
 	struct dev_context *devc;
 	sr_spew("-> Enter config_list XX");
-
-	devc = sdi->priv;
-
-	sr_spew("-> Enter config_list 2");
 
 	// modified from "demo/api.c"
 	switch(key) {
@@ -379,10 +380,20 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		sr_spew("  -> SR_CONF_SAMPLERATE");
+		if (!sdi) {
+			sr_err("Must call `scan` prior to calling `config_list`.");
+		return SR_ERR_NA;
+		}
+		devc = sdi->priv;
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(devc->samplerate_range));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		sr_spew("  -> SR_CONF_TRIGGER_MATCH");
+		if (!sdi) {
+			sr_err("Must call `scan` prior to calling `config_list`.");
+		return SR_ERR_NA;
+		}
+		devc = sdi->priv;
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(devc->trigger_matches));
 		break;
 	default:
