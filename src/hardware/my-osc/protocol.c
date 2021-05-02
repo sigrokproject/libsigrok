@@ -63,9 +63,6 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 		devc->voltage = strtod(tokens[2], NULL) / 1000;
 		devc->current = strtod(tokens[1], NULL) / 1000;
 		g_strfreev(tokens);
-	
-	/* Begin frame. */
-	std_session_send_df_frame_begin(sdi);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
 
@@ -97,16 +94,26 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 	sr_session_send(sdi, &packet);
 	g_slist_free(l);
 
-	/* End frame. */
-	std_session_send_df_frame_end(sdi);
-
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
-	//sr_sw_limits_update_frames_read(&devc->limits, 1);
 	memset(devc->buf, 0, BUFSIZE);
 	devc->buflen = 0;
 
-	if (sr_sw_limits_check(&devc->limits))
+	if (sr_sw_limits_check(&devc->limits)){
 		sr_dev_acquisition_stop(sdi);
+	}/*
+	else{
+		std_session_send_df_frame_begin(sdi);
+	}
+
+	if (devc->limits.limit_frames && devc->limits.samples_read >= SAMPLES_PER_FRAME) {
+		std_session_send_df_frame_end(sdi);
+		devc->limits.samples_read = 0;
+		sr_sw_limits_update_frames_read(&devc->limits, 1);
+		if (sr_sw_limits_check(&devc->limits)){
+			sr_info("Requested number of frames reached.");
+			sr_dev_acquisition_stop(sdi);
+		}
+	}*/
 
 	return TRUE;
 }

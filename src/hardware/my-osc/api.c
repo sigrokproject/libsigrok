@@ -120,7 +120,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
-		devc->cur_samplerate = SR_KHZ(200);
+		devc->cur_samplerate = SR_HZ(1);
 		devc->limits.limit_samples = MIN_NUM_SAMPLES;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
