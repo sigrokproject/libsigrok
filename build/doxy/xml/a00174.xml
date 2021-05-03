@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00174" kind="struct" language="C++" prot="public">
+    <compoundname>sr_key_info</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00174_1a279e22888cc8ef8d5b0d42091c72d80b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t sr_key_info::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <briefdescription>
+<para>Config key like SR_CONF_CONN, MQ value like SR_MQ_VOLTAGE, etc. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="656" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="656" bodyend="-1"/>
+        <referencedby refid="a00073_1gaac72c02a32f953728715973412be0bc6" compoundref="a00023" startline="940" endline="994">sr_config_list</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00174_1a85d734b7a6b270209f47912a4f1ee578" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int sr_key_info::datatype</definition>
+        <argsstring></argsstring>
+        <name>datatype</name>
+        <briefdescription>
+<para>Data type like SR_T_STRING, etc if applicable. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="658" column="5" bodyfile="include/libsigrok/libsigrok.h" bodystart="658" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00174_1a392623659b6829a5ae3cd044d0f015ca" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* sr_key_info::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <briefdescription>
+<para>Short, lowercase ID string, e.g. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>&quot;serialcomm&quot;, &quot;voltage&quot;. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="660" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="660" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00174_1a918d24e6aa55b06367013bcbb6d663ee" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* sr_key_info::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+<para>Full capitalized name, e.g. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>&quot;Serial communication&quot;. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="662" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="662" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00174_1a37c239517636bcba4c8668f474dba29d" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* sr_key_info::description</definition>
+        <argsstring></argsstring>
+        <name>description</name>
+        <briefdescription>
+<para>Verbose description (unused currently). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="664" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="664" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Information about a key. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>int</label>
+      </node>
+      <node id="1">
+        <label>sr_key_info</label>
+        <link refid="a00174"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>key</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>datatype</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>description</edgelabel>
+          <edgelabel>id</edgelabel>
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>uint32_t</label>
+      </node>
+      <node id="4">
+        <label>const char *</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="654" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="654" bodyend="665"/>
+    <listofallmembers>
+      <member refid="a00174_1a85d734b7a6b270209f47912a4f1ee578" prot="public" virt="non-virtual"><scope>sr_key_info</scope><name>datatype</name></member>
+      <member refid="a00174_1a37c239517636bcba4c8668f474dba29d" prot="public" virt="non-virtual"><scope>sr_key_info</scope><name>description</name></member>
+      <member refid="a00174_1a392623659b6829a5ae3cd044d0f015ca" prot="public" virt="non-virtual"><scope>sr_key_info</scope><name>id</name></member>
+      <member refid="a00174_1a279e22888cc8ef8d5b0d42091c72d80b" prot="public" virt="non-virtual"><scope>sr_key_info</scope><name>key</name></member>
+      <member refid="a00174_1a918d24e6aa55b06367013bcbb6d663ee" prot="public" virt="non-virtual"><scope>sr_key_info</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

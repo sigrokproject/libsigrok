@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00146" kind="struct" language="C++" prot="public">
+    <compoundname>sr_analog_meaning</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00146_1a15762a1eab6759c181a55686d57e9c1a" prot="public" static="no" mutable="no">
+        <type>enum <ref refid="a00050_1adf37c9e14dd24aa6fff92e0550c09eb7" kindref="member">sr_mq</ref></type>
+        <definition>enum sr_mq sr_analog_meaning::mq</definition>
+        <argsstring></argsstring>
+        <name>mq</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="536" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="542" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00146_1a60bdb2f643e5cd2fe5f42e917d768e9b" prot="public" static="no" mutable="no">
+        <type>enum <ref refid="a00050_1af13f9a5c3de811f4e120314aa8eb964c" kindref="member">sr_unit</ref></type>
+        <definition>enum sr_unit sr_analog_meaning::unit</definition>
+        <argsstring></argsstring>
+        <name>unit</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="536" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="543" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00146_1a181abe3d5421cb960a0bf03135ede1d0" prot="public" static="no" mutable="no">
+        <type>enum <ref refid="a00050_1a31c9af7f081f614bac17fafd2245b670" kindref="member">sr_mqflag</ref></type>
+        <definition>enum sr_mqflag sr_analog_meaning::mqflags</definition>
+        <argsstring></argsstring>
+        <name>mqflags</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="536" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="544" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00146_1aa94e9989cfd57941a7867daa98076498" prot="public" static="no" mutable="no">
+        <type>GSList *</type>
+        <definition>GSList* sr_analog_meaning::channels</definition>
+        <argsstring></argsstring>
+        <name>channels</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="545" column="8" bodyfile="include/libsigrok/libsigrok.h" bodystart="545" bodyend="-1"/>
+        <referencedby refid="a00069_1ga7c692bc1d32dc9b126cd0d6bbf21f2bd" compoundref="a00002" startline="177" endline="379">sr_analog_to_float</referencedby>
+        <referencedby refid="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" compoundref="a00035" startline="1561" endline="1606">sr_packet_free</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>GSList *</label>
+      </node>
+      <node id="4">
+        <label>enum sr_unit</label>
+      </node>
+      <node id="1">
+        <label>sr_analog_meaning</label>
+        <link refid="a00146"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>mqflags</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>channels</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>unit</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>mq</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>enum sr_mq</label>
+      </node>
+      <node id="2">
+        <label>enum sr_mqflag</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="541" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="541" bodyend="546"/>
+    <listofallmembers>
+      <member refid="a00146_1aa94e9989cfd57941a7867daa98076498" prot="public" virt="non-virtual"><scope>sr_analog_meaning</scope><name>channels</name></member>
+      <member refid="a00146_1a15762a1eab6759c181a55686d57e9c1a" prot="public" virt="non-virtual"><scope>sr_analog_meaning</scope><name>mq</name></member>
+      <member refid="a00146_1a181abe3d5421cb960a0bf03135ede1d0" prot="public" virt="non-virtual"><scope>sr_analog_meaning</scope><name>mqflags</name></member>
+      <member refid="a00146_1a60bdb2f643e5cd2fe5f42e917d768e9b" prot="public" virt="non-virtual"><scope>sr_analog_meaning</scope><name>unit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

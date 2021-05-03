@@ -28,7 +28,9 @@
 #define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
 #define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
 
-#define RECEIVE_BUFFER_SIZE 50000
+#define TRIGGER_MATCHES_COUNT 5 // maximum number of trigger matches
+
+#define RECEIVE_BUFFER_SIZE 1024
 
 /** Private, per-device-instance driver context. */
 
@@ -44,22 +46,23 @@ struct dev_context {
 	uint64_t samplerate_range[3]; // sample rate storage: min, max, step size (all in Hz)
 	uint64_t cur_samplerate; // currently set sample rate
 
+	uint32_t max_samples; // maximum number of samples the device will measure
 	uint32_t cur_samples; // currently set samples to measure
 
-	int32_t trigger_matches[6];
+	int32_t trigger_matches[TRIGGER_MATCHES_COUNT];
 									// See the list of trigger option constants, used in tlf_trigger_list
 									// SR_TRIGGER_ZERO,      "0"
 									// SR_TRIGGER_ONE,       "1"
 									// SR_TRIGGER_RISING,    "R"
 									// SR_TRIGGER_FALLING,   "F"
 									// SR_TRIGGER_EDGE,      "E"
+	size_t trigger_matches_count;
 	gboolean channel_state[TLF_CHANNEL_COUNT_MAX]; // set TRUE for enable, FALSE for disable
 
 	char receive_buffer[RECEIVE_BUFFER_SIZE];
 	gboolean data_pending;
 
 	size_t measured_samples;
-
 	size_t pending_samples;
 	size_t num_samples;
 
@@ -78,6 +81,7 @@ SR_PRIV int tlf_samplerate_get(const struct sr_dev_inst *sdi, uint64_t *sample_r
 
 SR_PRIV int tlf_samples_set(const struct sr_dev_inst *sdi, int32_t samples); // set samples count
 SR_PRIV int tlf_samples_get(const struct sr_dev_inst *sdi, int32_t *samples); // get samples count
+SR_PRIV int tlf_maxsamples_get(const struct sr_dev_inst *sdi); // get max samples, store in device context
 
 SR_PRIV int tlf_channel_state_set(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean enabled); // set channel status
 SR_PRIV int tlf_channel_state_get(const struct sr_dev_inst *sdi, int32_t channel_index, gboolean *enabled); // get channel status

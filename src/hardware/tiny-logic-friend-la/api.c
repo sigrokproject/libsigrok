@@ -33,26 +33,20 @@ static const uint32_t scanopts[] = { // setup the communication options, use USB
 };
 
 static const uint32_t drvopts[] = { // This driver is for a logic analyzer
-	// SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_DEMO_DEV,
 	SR_CONF_LOGIC_ANALYZER,
-	SR_CONF_OSCILLOSCOPE,
 };
 
 static const uint32_t devopts[] = {
 	// These are the options on the tinyLogicFriend that can be set
 	// These need to be verified and testing ***
 //	SR_CONF_CONTINUOUS,
-//  SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET,
+//  SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET, // for example, see pipistrello-ols
 //  SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET, // * may need to limit samples and use -> | SR_CONF_LIST,
+//  SR_CONF_ENABLED | SR_CONF_SET,
+//  SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-
-
-	//SR_CONF_ENABLED | SR_CONF_GET, // gives Unsupported key: 30033, doesn't send a channel when checking
-	SR_CONF_ENABLED | SR_CONF_SET,
-	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
-	SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
+    SR_CONF_TRIGGER_MATCH | SR_CONF_LIST, // Need to update and verify this.
 };
 
 
@@ -159,6 +153,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	// allocate the device context
 	devc = g_malloc0(sizeof(struct dev_context)); // header in protocol.h
 	sdi->priv = devc;
+	devc->trigger_matches_count = TRIGGER_MATCHES_COUNT;
 
 	if (tlf_get_lists(sdi) != SR_OK) // verify this device is a tinyLogicFriend
 									   // and initialize all device options and get current settings
@@ -249,12 +244,12 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_uint32(g_slist_length(sdi->channels));
 			break;
 
-		case SR_CONF_LIMIT_SAMPLES:
+		case SR_CONF_LIMIT_SAMPLES:  // * todo cleanup switch statement
 			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
 			if (tlf_samples_get(sdi, &buf_32) != SR_OK) {
 				return SR_ERR;
 			}
-			*data = g_variant_new_int32(buf_32);
+			*data = g_variant_new_uint64(buf_32);
 			break;
 		default:
 			sr_dbg("(1) Unsupported key: %d ", key);
@@ -270,6 +265,17 @@ static int config_get(uint32_t key, GVariant **data,
 				return SR_ERR;
 			}
 			*data = g_variant_new_boolean(enable_status);
+			break;
+		case SR_CONF_NUM_LOGIC_CHANNELS: // see Beaglelogic
+			sr_spew("  -> SR_CONF_NUM_LOGIC_CHANNELS");
+			*data = g_variant_new_uint32(g_slist_length(sdi->channels));
+			break;
+		case SR_CONF_LIMIT_SAMPLES: // * todo cleanup switch statement
+			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
+			if (tlf_samples_get(sdi, &buf_32) != SR_OK) {
+				return SR_ERR;
+			}
+			*data = g_variant_new_uint64(buf_32);
 			break;
 		default:
 			sr_dbg("(2) Unsupported key: %d ", key);
@@ -329,7 +335,7 @@ static int config_set(uint32_t key, GVariant *data,
 			}
 			return tlf_samplerate_set(sdi, value);
 			break;
-		case SR_CONF_LIMIT_SAMPLES:
+		case SR_CONF_LIMIT_SAMPLES: // * todo cleanup switch statement
 			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
 			if (tlf_samples_set(sdi, g_variant_get_uint64(data)) != SR_OK) {
 				return SR_ERR;
@@ -348,6 +354,12 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR;
 			}
 			break;
+		case SR_CONF_LIMIT_SAMPLES: // * todo cleanup switch statement
+			sr_spew("  -> SR_CONF_LIMIT_SAMPLES");
+			if (tlf_samples_set(sdi, g_variant_get_uint64(data)) != SR_OK) {
+				return SR_ERR;
+			}
+			break;
 		default:
 			sr_dbg("Unsupported key: %d ", key);
 			return SR_ERR_NA;
@@ -361,6 +373,8 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	sr_spew("-> config_list");
+	struct dev_context *devc;
+	// uint32_t buf_32;
 
 	// if (!sdi) {
 	// 	sr_err("Must call `scan` prior to calling `config_list`.");
@@ -369,14 +383,12 @@ static int config_list(uint32_t key, GVariant **data,
 
 	sr_spew("-> Enter config_list");
 
-	struct dev_context *devc;
-	sr_spew("-> Enter config_list XX");
-
-	// modified from "demo/api.c"
 	switch(key) {
 	case SR_CONF_SCAN_OPTIONS:
+		sr_spew("  -> SR_CONF_SCAN_OPTIONS");
+		// return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NO_OPTS, NO_OPTS);
 	case SR_CONF_DEVICE_OPTIONS:
-		sr_spew("  -> SR_CONF_SCAN_OPTIONS, _DEVICE_OPTIONS");
+		sr_spew("  -> SR_CONF_DEVICE_OPTIONS");
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		sr_spew("  -> SR_CONF_SAMPLERATE");
@@ -394,8 +406,21 @@ static int config_list(uint32_t key, GVariant **data,
 		return SR_ERR_NA;
 		}
 		devc = sdi->priv;
+		tlf_trigger_list(sdi);
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(devc->trigger_matches));
 		break;
+	case SR_CONF_LIMIT_SAMPLES:
+		if (!sdi)
+			return SR_ERR_ARG;
+		else {
+			devc=sdi->priv;
+			if (tlf_maxsamples_get(sdi) != SR_OK) {
+				return SR_ERR;
+			}
+			*data = std_gvar_tuple_u64(100, devc->max_samples);
+			sr_dbg("max_samples: %llu", devc->max_samples);
+			break;
+		}
 	default:
 		sr_dbg("Unsupported key: %d ", key);
 		return SR_ERR_NA;

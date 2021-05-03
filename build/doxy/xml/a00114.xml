@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00114" kind="struct" language="C++" prot="public">
+    <compoundname>sr_trigger_match</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00114_1a790ba7979de67e022ac7d3d471ce3577" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+        <definition>struct sr_channel* sr_trigger_match::channel</definition>
+        <argsstring></argsstring>
+        <name>channel</name>
+        <briefdescription>
+<para>The channel to trigger on. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="443" column="17" bodyfile="include/libsigrok/libsigrok.h" bodystart="443" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00114_1a29b9a3c4717d54c86b85bc851fb5d4a7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int sr_trigger_match::match</definition>
+        <argsstring></argsstring>
+        <name>match</name>
+        <briefdescription>
+<para>The trigger match to use. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>For logic channels, only the following matches may be used: SR_TRIGGER_ZERO SR_TRIGGER_ONE SR_TRIGGER_RISING SR_TRIGGER_FALLING SR_TRIGGER_EDGE</para>
+<para>For analog channels, only these matches may be used: SR_TRIGGER_RISING SR_TRIGGER_FALLING SR_TRIGGER_OVER SR_TRIGGER_UNDER </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="459" column="5" bodyfile="include/libsigrok/libsigrok.h" bodystart="459" bodyend="-1"/>
+        <referencedby refid="a00078_1ga55eeefded4138be23a6989ead396174a" compoundref="a00044" startline="141" endline="179">sr_trigger_match_add</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00114_1a3d7ab6efba1234081400e62088876e1e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float sr_trigger_match::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <briefdescription>
+<para>If the trigger match is one of SR_TRIGGER_OVER or SR_TRIGGER_UNDER, this contains the value to compare against. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="462" column="7" bodyfile="include/libsigrok/libsigrok.h" bodystart="462" bodyend="-1"/>
+        <referencedby refid="a00078_1ga55eeefded4138be23a6989ead396174a" compoundref="a00044" startline="141" endline="179">sr_trigger_match_add</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A channel to match and what to match it on. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="7">
+        <label>void *</label>
+      </node>
+      <node id="8">
+        <label>char *</label>
+      </node>
+      <node id="2">
+        <label>float</label>
+      </node>
+      <node id="3">
+        <label>sr_channel</label>
+        <link refid="a00162"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>sdi</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>enabled</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>index</edgelabel>
+          <edgelabel>type</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>priv</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>struct sr_dev_inst *</label>
+      </node>
+      <node id="6">
+        <label>int</label>
+      </node>
+      <node id="1">
+        <label>sr_trigger_match</label>
+        <link refid="a00114"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>value</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>channel</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>match</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>gboolean</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="441" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="441" bodyend="463"/>
+    <listofallmembers>
+      <member refid="a00114_1a790ba7979de67e022ac7d3d471ce3577" prot="public" virt="non-virtual"><scope>sr_trigger_match</scope><name>channel</name></member>
+      <member refid="a00114_1a29b9a3c4717d54c86b85bc851fb5d4a7" prot="public" virt="non-virtual"><scope>sr_trigger_match</scope><name>match</name></member>
+      <member refid="a00114_1a3d7ab6efba1234081400e62088876e1e" prot="public" virt="non-virtual"><scope>sr_trigger_match</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

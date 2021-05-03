@@ -25,8 +25,7 @@
 #include "libsigrok-internal.h"
 
 
-size_t samples_sent=0; // DEBUG
-
+size_t samples_sent = 0; // DEBUG
 
 // uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
 // const int channel_count_max = 16; // maximum number of channels
@@ -116,6 +115,23 @@ SR_PRIV int tlf_samples_set(const struct sr_dev_inst *sdi, int32_t samples) // s
 	sr_spew("tlf_samples_set sent \"SAMPLes %d\"", samples);
 
 	devc->cur_samples = samples;
+
+	return SR_OK;
+}
+
+SR_PRIV int tlf_maxsamples_get(const struct sr_dev_inst *sdi) // get samples count
+{
+	struct dev_context *devc;
+	uint32_t max_samples_buf;
+	devc = sdi->priv;
+
+	if (sr_scpi_get_int(sdi->conn, "SAMPles:MAX?", &max_samples_buf) != SR_OK) {
+		sr_dbg("tlf_samples_get Sent \"SAMPLes?\", ERROR on response\n");
+		return SR_ERR;
+	}
+	sr_spew("tlf_samples_get Samples = %d", &max_samples_buf);
+
+	devc->max_samples = max_samples_buf;
 
 	return SR_OK;
 }
@@ -355,7 +371,7 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 	char *buf;
 	char command[25];
 	char *token;
-	int32_t trigger_option_count;
+	int32_t trigger_option_count, array_count;
 	struct dev_context *devc;
 
 	devc = sdi->priv;
@@ -367,25 +383,36 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 	sr_spew("send: %s, TRIGGER options: %s", command, buf);
 
 	// parse the trigger options string (CSV format)
-	trigger_option_count=0;
+	trigger_option_count = 0;
+	array_count = 0;
 	token = strtok(buf, ","); // initialize the pointer location to beginning of the buffer
+
+	for(size_t i=0;i < devc->trigger_matches_count; i++){
+		devc->trigger_matches[i] = NULL;
+	}
+
 
 	while (token!=NULL) {
 		// set the trigger_matches to the token's trigger type
-		if        ( !g_ascii_strcasecmp(token, "0") ) {
+		if  ( !g_ascii_strcasecmp(token, "0") ) {
 			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_ZERO;
+			trigger_option_count++;
 			sr_spew("Trigger token: %s, Accept ZERO trigger", token);
 		} else if ( !g_ascii_strcasecmp(token, "1") ) {
 			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_ONE;
+			trigger_option_count++;
 			sr_spew("Trigger token: %s, Accept ONE trigger", token);
 		} else if ( !g_ascii_strcasecmp(token, "R") ) {
 			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_RISING;
+			trigger_option_count++;
 			sr_spew("Trigger token: %s, Accept RISING trigger", token);
 		} else if ( !g_ascii_strcasecmp(token, "F") ) {
 			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_FALLING;
+			trigger_option_count++;
 			sr_spew("Trigger token: %s, Accept FALLING trigger", token);
 		} else if ( !g_ascii_strcasecmp(token, "E") ) {
 			devc->trigger_matches[trigger_option_count]=SR_TRIGGER_EDGE;
+			trigger_option_count++;
 			sr_spew("Trigger token: %s, Accept EDGE trigger", token);
 		} else if ( !g_ascii_strcasecmp(token, "X") ) {
 			// ignore 'X' that means OFF
@@ -393,7 +420,6 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 			sr_spew("Error on token: %s", token);
 			return SR_ERR;
 		}
-		trigger_option_count += 1; // increment the number of trigger options
 
 		token = strtok(NULL, ","); // set to the next token
 	}

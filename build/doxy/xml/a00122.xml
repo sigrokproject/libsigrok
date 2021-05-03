@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00122" kind="struct" language="C++" prot="public">
+    <compoundname>sr_datafeed_packet</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00122_1a1ad7f2dacc022262d942eeccf5d602f8" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t sr_datafeed_packet::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="494" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="494" bodyend="-1"/>
+        <referencedby refid="a00008_1ac235f13896da2fabd8bc61978a5f0968" compoundref="a00008" startline="62" endline="105">bv_send_analog_channel</referencedby>
+        <referencedby refid="a00076_1gaf484c0abf0aed79a5de4dfb985246680" compoundref="a00035" startline="1490" endline="1559">sr_packet_copy</referencedby>
+        <referencedby refid="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" compoundref="a00035" startline="1561" endline="1606">sr_packet_free</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00122_1a71e93b70f24a5856205569cba463623c" prot="public" static="no" mutable="no">
+        <type>const void *</type>
+        <definition>const void* sr_datafeed_packet::payload</definition>
+        <argsstring></argsstring>
+        <name>payload</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="495" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="495" bodyend="-1"/>
+        <referencedby refid="a00076_1gaf484c0abf0aed79a5de4dfb985246680" compoundref="a00035" startline="1490" endline="1559">sr_packet_copy</referencedby>
+        <referencedby refid="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" compoundref="a00035" startline="1561" endline="1606">sr_packet_free</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Packet in a sigrok data feed. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>sr_datafeed_packet</label>
+        <link refid="a00122"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>payload</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>type</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>uint16_t</label>
+      </node>
+      <node id="2">
+        <label>const void *</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="493" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="493" bodyend="496"/>
+    <listofallmembers>
+      <member refid="a00122_1a71e93b70f24a5856205569cba463623c" prot="public" virt="non-virtual"><scope>sr_datafeed_packet</scope><name>payload</name></member>
+      <member refid="a00122_1a1ad7f2dacc022262d942eeccf5d602f8" prot="public" virt="non-virtual"><scope>sr_datafeed_packet</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

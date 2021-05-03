@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00170" kind="struct" language="C++" prot="public">
+    <compoundname>sr_config</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00170_1ab768a09c9850c150e6ba7464b8460fcf" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t sr_config::key</definition>
+        <argsstring></argsstring>
+        <name>key</name>
+        <briefdescription>
+<para>Config key like SR_CONF_CONN, etc. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="642" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="642" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00170_1a3cc5d7e7c4929f066af7817943c4f367" prot="public" static="no" mutable="no">
+        <type>GVariant *</type>
+        <definition>GVariant* sr_config::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <briefdescription>
+<para>Key-specific data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="644" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="644" bodyend="-1"/>
+        <referencedby refid="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" compoundref="a00035" startline="1561" endline="1606">sr_packet_free</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Used for setting or getting value of a config item. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>uint32_t</label>
+      </node>
+      <node id="1">
+        <label>sr_config</label>
+        <link refid="a00170"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>key</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>GVariant *</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="640" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="640" bodyend="645"/>
+    <listofallmembers>
+      <member refid="a00170_1a3cc5d7e7c4929f066af7817943c4f367" prot="public" virt="non-virtual"><scope>sr_config</scope><name>data</name></member>
+      <member refid="a00170_1ab768a09c9850c150e6ba7464b8460fcf" prot="public" virt="non-virtual"><scope>sr_config</scope><name>key</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

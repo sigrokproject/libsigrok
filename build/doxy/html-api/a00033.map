@@ -1,0 +1,16 @@
+<map id="src/serial.c" name="src/serial.c">
+<area shape="rect" id="node1" title="Serial port handling." alt="" coords="245,5,332,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,80,73,107"/>
+<area shape="rect" id="node3" title=" " alt="" coords="97,80,163,107"/>
+<area shape="rect" id="node4" title=" " alt="" coords="187,80,251,107"/>
+<area shape="rect" id="node5" title=" " alt="" coords="234,155,287,181"/>
+<area shape="rect" id="node6" title=" " alt="" coords="327,80,419,107"/>
+<area shape="rect" id="node7" href="$a00050.html" title="The public libsigrok header file to be used by frontends." alt="" coords="443,80,577,107"/>
+<area shape="rect" id="node14" title=" " alt="" coords="601,80,728,107"/>
+<area shape="rect" id="node8" title=" " alt="" coords="311,155,373,181"/>
+<area shape="rect" id="node9" title=" " alt="" coords="397,155,479,181"/>
+<area shape="rect" id="node10" title=" " alt="" coords="504,155,569,181"/>
+<area shape="rect" id="node11" title=" " alt="" coords="593,155,672,181"/>
+<area shape="rect" id="node12" href="$a00053.html" title="Header file containing API function prototypes." alt="" coords="697,155,811,181"/>
+<area shape="rect" id="node13" href="$a00056.html" title="Version number definitions and macros." alt="" coords="836,155,963,181"/>
+</map>

@@ -1,0 +1,299 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00079" kind="group">
+    <compoundname>grp_versions</compoundname>
+    <title>Versions</title>
+      <sectiondef kind="user-defined">
+      <memberdef kind="define" id="a00079_1ga633ff27d380bdccce157c919eb618e4b" prot="public" static="no">
+        <name>SR_PACKAGE_VERSION_MAJOR</name>
+        <initializer>0</initializer>
+        <briefdescription>
+<para>The libsigrok package &apos;major&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="41" column="9" bodyfile="include/libsigrok/version.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1ga0e70e791f3927bb1738d1ae17102a916" prot="public" static="no">
+        <name>SR_PACKAGE_VERSION_MINOR</name>
+        <initializer>6</initializer>
+        <briefdescription>
+<para>The libsigrok package &apos;minor&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="44" column="9" bodyfile="include/libsigrok/version.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1ga90febc04ea263a6365972bb7026420ff" prot="public" static="no">
+        <name>SR_PACKAGE_VERSION_MICRO</name>
+        <initializer>0</initializer>
+        <briefdescription>
+<para>The libsigrok package &apos;micro&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="47" column="9" bodyfile="include/libsigrok/version.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1ga1b5c2ca3b262c82cb4be77611b54e92f" prot="public" static="no">
+        <name>SR_PACKAGE_VERSION_STRING</name>
+        <initializer>&quot;0.6.0-git-a7b7810d&quot;</initializer>
+        <briefdescription>
+<para>The libsigrok package version (&quot;major.minor.micro&quot;) as string. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="50" column="9" bodyfile="include/libsigrok/version.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1gaa454733b673a6e5198cf729b2722947f" prot="public" static="no">
+        <name>SR_LIB_VERSION_CURRENT</name>
+        <initializer>4</initializer>
+        <briefdescription>
+<para>The libsigrok libtool &apos;current&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="57" column="9" bodyfile="include/libsigrok/version.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1ga26733bd26a726e8948f2a975202d9bcf" prot="public" static="no">
+        <name>SR_LIB_VERSION_REVISION</name>
+        <initializer>0</initializer>
+        <briefdescription>
+<para>The libsigrok libtool &apos;revision&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="60" column="9" bodyfile="include/libsigrok/version.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1gabd0c6bd9b797c4b737f970561a23399b" prot="public" static="no">
+        <name>SR_LIB_VERSION_AGE</name>
+        <initializer>0</initializer>
+        <briefdescription>
+<para>The libsigrok libtool &apos;age&apos; version number. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="63" column="9" bodyfile="include/libsigrok/version.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="a00079_1gae2be8ab4f93877b1bc49cd487d08ba77" prot="public" static="no">
+        <name>SR_LIB_VERSION_STRING</name>
+        <initializer>&quot;4:0:0&quot;</initializer>
+        <briefdescription>
+<para>The libsigrok libtool version (&quot;current:revision:age&quot;) as string. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/version.h" line="66" column="9" bodyfile="include/libsigrok/version.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00079_1gaa578d2cf576270655de7bdc3d84031a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_package_version_major_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_package_version_major_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the major libsigrok package version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The major package version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="56" column="6" bodyfile="src/version.c" bodystart="56" bodyend="59"/>
+        <references refid="a00079_1ga633ff27d380bdccce157c919eb618e4b" compoundref="a00056" startline="41">SR_PACKAGE_VERSION_MAJOR</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1ga8655c30cfab2f1be18cf10dad181d057" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_package_version_minor_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_package_version_minor_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the minor libsigrok package version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The minor package version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="68" column="6" bodyfile="src/version.c" bodystart="68" bodyend="71"/>
+        <references refid="a00079_1ga0e70e791f3927bb1738d1ae17102a916" compoundref="a00056" startline="44">SR_PACKAGE_VERSION_MINOR</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1ga1f79f39844f62898869bcae94e8eb60c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_package_version_micro_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_package_version_micro_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the micro libsigrok package version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The micro package version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="80" column="6" bodyfile="src/version.c" bodystart="80" bodyend="83"/>
+        <references refid="a00079_1ga90febc04ea263a6365972bb7026420ff" compoundref="a00056" startline="47">SR_PACKAGE_VERSION_MICRO</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1gab69dee3c84c594faf1b7a20587ebec5d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_package_version_string_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_package_version_string_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the libsigrok package version number as a string. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The package version number string. The returned string is static and thus should NOT be free&apos;d by the caller.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="93" column="13" bodyfile="src/version.c" bodystart="93" bodyend="96"/>
+        <references refid="a00079_1ga1b5c2ca3b262c82cb4be77611b54e92f" compoundref="a00056" startline="50">SR_PACKAGE_VERSION_STRING</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1ga5cffad288a578de133a3859f7e4e39d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_lib_version_current_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_lib_version_current_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;current&quot; part of the libsigrok library version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The &quot;current&quot; library version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="105" column="6" bodyfile="src/version.c" bodystart="105" bodyend="108"/>
+        <references refid="a00079_1gaa454733b673a6e5198cf729b2722947f" compoundref="a00056" startline="57">SR_LIB_VERSION_CURRENT</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1ga2d128fd0fff141ef16bcddd3cf1e6fe9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_lib_version_revision_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_lib_version_revision_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;revision&quot; part of the libsigrok library version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The &quot;revision&quot; library version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="117" column="6" bodyfile="src/version.c" bodystart="117" bodyend="120"/>
+        <references refid="a00079_1ga26733bd26a726e8948f2a975202d9bcf" compoundref="a00056" startline="60">SR_LIB_VERSION_REVISION</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1gaf969bd6aef6f09cf2301e26b160891df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_lib_version_age_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_lib_version_age_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the &quot;age&quot; part of the libsigrok library version number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The &quot;age&quot; library version number.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="129" column="6" bodyfile="src/version.c" bodystart="129" bodyend="132"/>
+        <references refid="a00079_1gabd0c6bd9b797c4b737f970561a23399b" compoundref="a00056" startline="63">SR_LIB_VERSION_AGE</references>
+      </memberdef>
+      <memberdef kind="function" id="a00079_1gab62c0a995dcf873504edbd7c6f610b25" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_lib_version_string_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_lib_version_string_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Get the libsigrok library version number as a string. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The library version number string. The returned string is static and thus should NOT be free&apos;d by the caller.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/version.c" line="142" column="13" bodyfile="src/version.c" bodystart="142" bodyend="145"/>
+        <references refid="a00079_1gae2be8ab4f93877b1bc49cd487d08ba77" compoundref="a00056" startline="66">SR_LIB_VERSION_STRING</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Version number querying functions, definitions, and macros. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>This set of API calls returns two different version numbers related to libsigrok. The &quot;package version&quot; is the release version number of the libsigrok tarball in the usual &quot;major.minor.micro&quot; format, e.g. &quot;0.1.0&quot;.</para>
+<para>The &quot;library version&quot; is independent of that; it is the libtool version number in the &quot;current:revision:age&quot; format, e.g. &quot;2:0:0&quot;. See <ulink url="http://www.gnu.org/software/libtool/manual/libtool.html#Libtool-versioning">http://www.gnu.org/software/libtool/manual/libtool.html#Libtool-versioning</ulink> for details.</para>
+<para>Both version numbers (and/or individual components of them) can be retrieved via the API calls at runtime, and/or they can be checked at compile/preprocessor time using the respective macros. </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

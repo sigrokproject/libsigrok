@@ -1,0 +1,17 @@
+<map id="src/hwdriver.c" name="src/hwdriver.c">
+<area shape="rect" id="node1" title="Hardware driver handling in libsigrok." alt="" coords="303,5,405,32"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,80,73,107"/>
+<area shape="rect" id="node3" title=" " alt="" coords="98,80,162,107"/>
+<area shape="rect" id="node4" title=" " alt="" coords="138,155,199,181"/>
+<area shape="rect" id="node5" title=" " alt="" coords="445,80,535,107"/>
+<area shape="rect" id="node6" title=" " alt="" coords="560,80,625,107"/>
+<area shape="rect" id="node7" title=" " alt="" coords="649,80,715,107"/>
+<area shape="rect" id="node8" title=" " alt="" coords="223,155,277,181"/>
+<area shape="rect" id="node9" href="$a00050.html" title="The public libsigrok header file to be used by frontends." alt="" coords="287,80,421,107"/>
+<area shape="rect" id="node15" title=" " alt="" coords="739,80,865,107"/>
+<area shape="rect" id="node10" title=" " alt="" coords="785,155,867,181"/>
+<area shape="rect" id="node11" title=" " alt="" coords="301,155,367,181"/>
+<area shape="rect" id="node12" title=" " alt="" coords="391,155,469,181"/>
+<area shape="rect" id="node13" href="$a00053.html" title="Header file containing API function prototypes." alt="" coords="494,155,609,181"/>
+<area shape="rect" id="node14" href="$a00056.html" title="Version number definitions and macros." alt="" coords="633,155,760,181"/>
+</map>

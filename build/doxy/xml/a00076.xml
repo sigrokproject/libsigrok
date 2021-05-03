@@ -1,0 +1,2370 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00076" kind="group">
+    <compoundname>grp_session</compoundname>
+    <title>Session handling</title>
+    <innerclass refid="a00098" prot="public">datafeed_callback</innerclass>
+    <innerclass refid="a00102" prot="public">fd_source</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="a00076_1gaf5e2d9f11beb98058687a96f006ec9f7" prot="public" static="yes" mutable="no">
+        <type>int</type>
+        <definition>int session_driver_initialized</definition>
+        <argsstring></argsstring>
+        <name>session_driver_initialized</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="49" column="12" bodyfile="src/session_file.c" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00076_1ga0279cca3e26028d24f6bb190e4acd255" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean fd_source_prepare</definition>
+        <argsstring>(GSource *source, int *timeout)</argsstring>
+        <name>fd_source_prepare</name>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>timeout</declname>
+        </param>
+        <briefdescription>
+<para>FD event source prepare() method. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is called immediately before poll(). </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="73" column="17" bodyfile="src/session.c" bodystart="73" bodyend="95"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga107d25a43ac686a20ce949da0c215570" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean fd_source_check</definition>
+        <argsstring>(GSource *source)</argsstring>
+        <name>fd_source_check</name>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+<para>FD event source check() method. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is called after poll() returns to check whether an event fired. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="100" column="17" bodyfile="src/session.c" bodystart="100" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga8a5009f46f021118659906ae8a0441cf" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean fd_source_dispatch</definition>
+        <argsstring>(GSource *source, GSourceFunc callback, void *user_data)</argsstring>
+        <name>fd_source_dispatch</name>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <param>
+          <type>GSourceFunc</type>
+          <declname>callback</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>user_data</declname>
+        </param>
+        <briefdescription>
+<para>FD event source dispatch() method. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is called if either prepare() or check() returned TRUE. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="115" column="17" bodyfile="src/session.c" bodystart="115" bodyend="137"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gad504d321c0235d26f5c5aaf07f8fa106" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void fd_source_finalize</definition>
+        <argsstring>(GSource *source)</argsstring>
+        <name>fd_source_finalize</name>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+<para>FD event source finalize() method. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="141" column="13" bodyfile="src/session.c" bodystart="141" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga53257331f69dffaf69d788aeadf577e7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GSource *</type>
+        <definition>static GSource* fd_source_new</definition>
+        <argsstring>(struct sr_session *session, void *key, gintptr fd, int events, int timeout_ms)</argsstring>
+        <name>fd_source_new</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>gintptr</type>
+          <declname>fd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>events</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout_ms</declname>
+        </param>
+        <briefdescription>
+<para>Create an event source for I/O on a file descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>In order to maintain API compatibility, this event source also doubles as a timer event source.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session the event source belongs to. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The key used to identify this source. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The file descriptor or HANDLE. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>events</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Events. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>timeout_ms</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The timeout interval in ms, or -1 to wait indefinitely.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new event source object, or NULL on failure. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="165" column="16" bodyfile="src/session.c" bodystart="165" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga83de7a88c9e1a41be0a421669369dbd0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_new</definition>
+        <argsstring>(struct sr_context *ctx, struct sr_session **new_session)</argsstring>
+        <name>sr_session_new</name>
+        <param>
+          <type>struct <ref refid="a00186" kindref="compound">sr_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> **</type>
+          <declname>new_session</declname>
+        </param>
+        <briefdescription>
+<para>Create a new session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The context in which to create the new session. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>new_session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>This will contain a pointer to the newly created session if the return value is SR_OK, otherwise the value is undefined and should not be used. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="215" column="6" bodyfile="src/session.c" bodystart="215" bodyend="237"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaf1b7200161c362ee2fc5c0fe88586462" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_destroy</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_destroy</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Destroy a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This frees up all memory used by the session.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to destroy. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="250" column="6" bodyfile="src/session.c" bodystart="250" bodyend="269"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00076_1gad77b8c141a6e158fa474d6e9281ca77c" compoundref="a00035" startline="284" endline="303">sr_session_dev_remove_all</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gad77b8c141a6e158fa474d6e9281ca77c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_dev_remove_all</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_dev_remove_all</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Remove all the devices from a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The session itself (i.e., the struct <ref refid="a00190" kindref="compound">sr_session</ref>) is not free&apos;d and still exists after this function returns.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="284" column="6" bodyfile="src/session.c" bodystart="284" bodyend="303"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+        <referencedby refid="a00076_1gaf1b7200161c362ee2fc5c0fe88586462" compoundref="a00035" startline="250" endline="269">sr_session_destroy</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gac037d037baecc2b3679044d2b7c3bad3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_dev_add</definition>
+        <argsstring>(struct sr_session *session, struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_session_dev_add</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Add a device instance to a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to add to. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The device instance to add to a session. Must not be NULL. Also, sdi-&gt;driver and sdi-&gt;driver-&gt;dev_open must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="318" column="6" bodyfile="src/session.c" bodystart="318" bodyend="377"/>
+        <references refid="a00073_1ga392e481fc872786f871b5c7ce3934087" compoundref="a00023" startline="893" endline="909">sr_config_commit</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a73d02d78044acbb231b3c2db09ac9073" compoundref="a00050" startline="71">SR_ERR_BUG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+        <references refid="a00072_1ga7aacfdde4d4f0b3a64d50797f3c10103" compoundref="a00020" startline="53" endline="88">sr_strerror</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga0753ea59f6f7f2f99bf6de35fab72400" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_dev_list</definition>
+        <argsstring>(struct sr_session *session, GSList **devlist)</argsstring>
+        <name>sr_session_dev_list</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GSList **</type>
+          <declname>devlist</declname>
+        </param>
+        <briefdescription>
+<para>List all device instances attached to a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>devlist</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A pointer where the device instance list will be stored on return. If no devices are in the session, this will be NULL. Each element in the list points to a struct sr_dev_inst *. The list must be freed by the caller, but not the elements pointed to.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="395" column="6" bodyfile="src/session.c" bodystart="395" bodyend="406"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gad08ce13c738a985321596778bfc22273" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_dev_remove</definition>
+        <argsstring>(struct sr_session *session, struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_session_dev_remove</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Remove a device instance from a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to remove from. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The device instance to remove from a session. Must not be NULL. Also, sdi-&gt;driver and sdi-&gt;driver-&gt;dev_open must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="421" column="6" bodyfile="src/session.c" bodystart="421" bodyend="445"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga184a47240fd2a77038df65e85b7cd356" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_datafeed_callback_remove_all</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_datafeed_callback_remove_all</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Remove all datafeed callbacks in a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="457" column="6" bodyfile="src/session.c" bodystart="457" bodyend="468"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga8675ef7da27e7dd4a54a2c09371272a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_datafeed_callback_add</definition>
+        <argsstring>(struct sr_session *session, sr_datafeed_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_datafeed_callback_add</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type><ref refid="a00053_1abe3dfadc282fa9e0cc1479a27feec66b" kindref="member">sr_datafeed_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+<para>Add a datafeed callback to a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Function to call when a chunk of data is received. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb_data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Opaque pointer passed in by the caller.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>No session exists.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="483" column="6" bodyfile="src/session.c" bodystart="483" bodyend="506"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a73d02d78044acbb231b3c2db09ac9073" compoundref="a00050" startline="71">SR_ERR_BUG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga9b2382d16a6b005f7d22e77b78cc32ec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct <ref refid="a00106" kindref="compound">sr_trigger</ref> *</type>
+        <definition>struct sr_trigger* sr_session_trigger_get</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_trigger_get</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Get the trigger assigned to this session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>NULL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid (NULL) session was passed to the function. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The trigger assigned to this session (can be NULL).</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="518" column="18" bodyfile="src/session.c" bodystart="518" bodyend="524"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga0a72faea3441cb5e9e42079ecb2f4651" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_trigger_set</definition>
+        <argsstring>(struct sr_session *session, struct sr_trigger *trig)</argsstring>
+        <name>sr_session_trigger_set</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00106" kindref="compound">sr_trigger</ref> *</type>
+          <declname>trig</declname>
+        </param>
+        <briefdescription>
+<para>Set the trigger of this session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>trig</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The trigger to assign to this session. Can be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="537" column="6" bodyfile="src/session.c" bodystart="537" bodyend="545"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga3fcfb422c7a7d7ddde0684dfd3522156" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int verify_trigger</definition>
+        <argsstring>(struct sr_trigger *trigger)</argsstring>
+        <name>verify_trigger</name>
+        <param>
+          <type>struct <ref refid="a00106" kindref="compound">sr_trigger</ref> *</type>
+          <declname>trigger</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="547" column="12" bodyfile="src/session.c" bodystart="547" bodyend="581"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga7b07a0f4124644f7b5c9560ef9c4e065" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int set_main_context</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>set_main_context</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Set up the main context the session will be executing in. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Must be called just before the session starts, by the thread which will execute the session main loop. Once acquired, the main context pointer is immutable for the duration of the session run. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="589" column="12" bodyfile="src/session.c" bodystart="589" bodyend="626"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gab1869f1bf7fb38c7c89891c80d7387e6" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int unset_main_context</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>unset_main_context</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Unset the main context used for the current session run. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Must be called right after stopping the session. Note that if the session is stopped asynchronously, the main loop may still be running after the main context has been unset. This is OK as long as no new event sources are created <ndash/> the main loop holds its own reference to the main context. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="636" column="12" bodyfile="src/session.c" bodystart="636" bodyend="655"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga576bf66a4b9a8cff2737c5a7dc8f10c8" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>unsigned int</type>
+        <definition>static unsigned int session_source_attach</definition>
+        <argsstring>(struct sr_session *session, GSource *source)</argsstring>
+        <name>session_source_attach</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="657" column="21" bodyfile="src/session.c" bodystart="657" bodyend="672"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga02596d2753c846e2f6cc1b57510ebc9a" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean delayed_stop_check</definition>
+        <argsstring>(void *data)</argsstring>
+        <name>delayed_stop_check</name>
+        <param>
+          <type>void *</type>
+          <declname>data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="677" column="17" bodyfile="src/session.c" bodystart="677" bodyend="711"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaf9f79e3c616e7d9b5ee7baffddf9995f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int stop_check_later</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>stop_check_later</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="713" column="12" bodyfile="src/session.c" bodystart="713" bodyend="730"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaac6e5af8f883193213a60b21f9f16432" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_start</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_start</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Start a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When this function returns with a status code indicating success, the session is running. Use <ref refid="a00076_1gaba31aafc42478ea8991f16361586a96e" kindref="member">sr_session_stopped_callback_set()</ref> to receive notification upon completion, or call <ref refid="a00076_1ga183fd38711238188c9cd798684a867dd" kindref="member">sr_session_run()</ref> to block until the session stops.</para>
+<para>Session events will be processed in the context of the current thread. If a thread-default GLib main context has been set, and is not owned by any other thread, it will be used. Otherwise, libsigrok will create its own main context for the current thread.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other error.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="753" column="6" bodyfile="src/session.c" bodystart="753" bodyend="848"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga183fd38711238188c9cd798684a867dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_run</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_run</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Block until the running session stops. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is a convenience function which creates a GLib main loop and runs it to process session events until the session stops.</para>
+<para>Instead of using this function, applications may run their own GLib main loop, and use <ref refid="a00076_1gaba31aafc42478ea8991f16361586a96e" kindref="member">sr_session_stopped_callback_set()</ref> to receive notification when the session finished running.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other error.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="868" column="6" bodyfile="src/session.c" bodystart="868" bodyend="900"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaf5fa309278f5d1436dc1f974b82d7f5c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean session_stop_sync</definition>
+        <argsstring>(void *user_data)</argsstring>
+        <name>session_stop_sync</name>
+        <param>
+          <type>void *</type>
+          <declname>user_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="902" column="17" bodyfile="src/session.c" bodystart="902" bodyend="921"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga5d7668d5dc7dce074cc427d847283d93" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_stop</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_stop</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Stop a session. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This requests the drivers of each device participating in the session to abort the acquisition as soon as possible. Even after this function returns, event processing still continues until all devices have actually stopped.</para>
+<para>Use <ref refid="a00076_1gaba31aafc42478ea8991f16361586a96e" kindref="member">sr_session_stopped_callback_set()</ref> to receive notification when the event processing finished.</para>
+<para>This function is reentrant. That is, it may be called from a different thread than the one executing the session, as long as it can be ensured that the session object is valid.</para>
+<para>If the session is not running, <ref refid="a00076_1ga5d7668d5dc7dce074cc427d847283d93" kindref="member">sr_session_stop()</ref> silently does nothing.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="946" column="6" bodyfile="src/session.c" bodystart="946" bodyend="972"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga030b75ad7e5736f34ff1961fe48c7a7e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_is_running</definition>
+        <argsstring>(struct sr_session *session)</argsstring>
+        <name>sr_session_is_running</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Return whether the session is currently running. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Note that this function should be called from the same thread the session was started in.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>TRUE</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Session is running. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>FALSE</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Session is not running. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="988" column="6" bodyfile="src/session.c" bodystart="988" bodyend="995"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaba31aafc42478ea8991f16361586a96e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_stopped_callback_set</definition>
+        <argsstring>(struct sr_session *session, sr_session_stopped_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_stopped_callback_set</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type><ref refid="a00053_1a5a47dcc64d187d380133c1986fce7bfd" kindref="member">sr_session_stopped_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+<para>Set the callback to be invoked after a session stopped running. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Install a callback to receive notification when a session run stopped. This can be used to integrate session execution with an existing main loop, without having to block in <ref refid="a00076_1ga183fd38711238188c9cd798684a867dd" kindref="member">sr_session_run()</ref>.</para>
+<para>Note that the callback will be invoked in the context of the thread that calls <ref refid="a00076_1gaac6e5af8f883193213a60b21f9f16432" kindref="member">sr_session_start()</ref>.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The callback to invoke on session stop. May be NULL to unset. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb_data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>User data pointer to be passed to the callback.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid session passed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1016" column="6" bodyfile="src/session.c" bodystart="1016" bodyend="1027"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga5caabc08cc27df355b497ce4ff0e8829" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void datafeed_dump</definition>
+        <argsstring>(const struct sr_datafeed_packet *packet)</argsstring>
+        <name>datafeed_dump</name>
+        <param>
+          <type>const struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> *</type>
+          <declname>packet</declname>
+        </param>
+        <briefdescription>
+<para>Debug helper. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>packet</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The packet to show debugging information for. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1034" column="13" bodyfile="src/session.c" bodystart="1034" bodyend="1073"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga99b7d62c4873d950de824ce9b8a10cb2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_send_meta</definition>
+        <argsstring>(const struct sr_dev_inst *sdi, uint32_t key, GVariant *var)</argsstring>
+        <name>sr_session_send_meta</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>GVariant *</type>
+          <declname>var</declname>
+        </param>
+        <briefdescription>
+<para>Helper to send a meta datafeed package (SR_DF_META) to the session bus. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The device instance to send the package from. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The config key to send to the session bus. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>var</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value to send to the session bus.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1087" column="13" bodyfile="src/session.c" bodystart="1087" bodyend="1109"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gae32e2b31014354a110e76969a227b2a1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_send</definition>
+        <argsstring>(const struct sr_dev_inst *sdi, const struct sr_datafeed_packet *packet)</argsstring>
+        <name>sr_session_send</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> *</type>
+          <declname>packet</declname>
+        </param>
+        <briefdescription>
+<para>Send a packet to whatever is listening on the datafeed bus. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Hardware drivers use this to send a data packet to the frontend.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>TODO. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>packet</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The datafeed packet to send to the session bus.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1124" column="13" bodyfile="src/session.c" bodystart="1124" bodyend="1191"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga8ced1f9b939bcf9946fce38156cb5a21" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_add_internal</definition>
+        <argsstring>(struct sr_session *session, void *key, GSource *source)</argsstring>
+        <name>sr_session_source_add_internal</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+<para>Add an event source for a file descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The key which identifies the event source. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>source</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>An event source object. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Event source with <emphasis>key</emphasis> already installed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other error. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1207" column="13" bodyfile="src/session.c" bodystart="1207" bodyend="1226"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga23c894f06e24c8117a89e8f61675b03c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_fd_source_add</definition>
+        <argsstring>(struct sr_session *session, void *key, gintptr fd, int events, int timeout, sr_receive_data_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_fd_source_add</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>gintptr</type>
+          <declname>fd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>events</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout</declname>
+        </param>
+        <param>
+          <type><ref refid="a00050_1a432819131a35ea488b386755eae5eb83" kindref="member">sr_receive_data_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1229" column="13" bodyfile="src/session.c" bodystart="1229" bodyend="1246"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga3ac8ce17475dde15b83a2caf64e96e57" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_add</definition>
+        <argsstring>(struct sr_session *session, int fd, int events, int timeout, sr_receive_data_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_source_add</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>events</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout</declname>
+        </param>
+        <param>
+          <type><ref refid="a00050_1a432819131a35ea488b386755eae5eb83" kindref="member">sr_receive_data_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+<para>Add an event source for a file descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The file descriptor, or a negative value to create a timer source. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>events</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Events to check for. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>timeout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Max time in ms to wait before the callback is called, or -1 to wait indefinitely. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Callback function to add. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb_data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data for the callback function. Can be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1265" column="13" bodyfile="src/session.c" bodystart="1265" bodyend="1274"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaf0fd525e6353c757e02958be0d1d821c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_add_pollfd</definition>
+        <argsstring>(struct sr_session *session, GPollFD *pollfd, int timeout, sr_receive_data_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_source_add_pollfd</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GPollFD *</type>
+          <declname>pollfd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout</declname>
+        </param>
+        <param>
+          <type><ref refid="a00050_1a432819131a35ea488b386755eae5eb83" kindref="member">sr_receive_data_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+<para>Add an event source for a GPollFD. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pollfd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GPollFD. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>timeout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Max time in ms to wait before the callback is called, or -1 to wait indefinitely. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Callback function to add. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb_data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data for the callback function. Can be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1292" column="13" bodyfile="src/session.c" bodystart="1292" bodyend="1302"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga8b0c56df9331372f2ed35989e0800b7b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_add_channel</definition>
+        <argsstring>(struct sr_session *session, GIOChannel *channel, int events, int timeout, sr_receive_data_callback cb, void *cb_data)</argsstring>
+        <name>sr_session_source_add_channel</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GIOChannel *</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>events</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>timeout</declname>
+        </param>
+        <param>
+          <type><ref refid="a00050_1a432819131a35ea488b386755eae5eb83" kindref="member">sr_receive_data_callback</ref></type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>cb_data</declname>
+        </param>
+        <briefdescription>
+<para>Add an event source for a GIOChannel. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The GIOChannel. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>events</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Events to poll on. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>timeout</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Max time in ms to wait before the callback is called, or -1 to wait indefinitely. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Callback function to add. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cb_data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Data for the callback function. Can be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1321" column="13" bodyfile="src/session.c" bodystart="1321" bodyend="1342"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga7ce596e15d5e94f45a33b43678ec721a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_remove_internal</definition>
+        <argsstring>(struct sr_session *session, void *key)</argsstring>
+        <name>sr_session_source_remove_internal</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+<para>Remove the source identified by the specified poll object. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The key by which the source is identified.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>No event source for poll_object found. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1355" column="13" bodyfile="src/session.c" bodystart="1355" bodyend="1372"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga9a1930d5255fe361e675366e957e999c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_remove</definition>
+        <argsstring>(struct sr_session *session, int fd)</argsstring>
+        <name>sr_session_source_remove</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fd</declname>
+        </param>
+        <briefdescription>
+<para>Remove the source belonging to the specified file descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>fd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The file descriptor for which the source should be removed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Internal error.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1387" column="13" bodyfile="src/session.c" bodystart="1387" bodyend="1390"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gacddc72f5b005205b277467a76c9aeeef" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_remove_pollfd</definition>
+        <argsstring>(struct sr_session *session, GPollFD *pollfd)</argsstring>
+        <name>sr_session_source_remove_pollfd</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GPollFD *</type>
+          <declname>pollfd</declname>
+        </param>
+        <briefdescription>
+<para>Remove the source belonging to the specified poll descriptor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>pollfd</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The poll descriptor for which the source should be removed. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK upon success, SR_ERR_ARG upon invalid arguments, or SR_ERR_MALLOC upon memory allocation errors, SR_ERR_BUG upon internal errors.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1405" column="13" bodyfile="src/session.c" bodystart="1405" bodyend="1413"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gabc109dc299615af3f111825b0e9d6c04" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_remove_channel</definition>
+        <argsstring>(struct sr_session *session, GIOChannel *channel)</argsstring>
+        <name>sr_session_source_remove_channel</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>GIOChannel *</type>
+          <declname>channel</declname>
+        </param>
+        <briefdescription>
+<para>Remove the source belonging to the specified channel. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The channel for which the source should be removed. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_ERR_BUG Internal error.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1428" column="13" bodyfile="src/session.c" bodystart="1428" bodyend="1436"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaed769fb25ae70d05350ce94c787d39f0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_session_source_destroyed</definition>
+        <argsstring>(struct sr_session *session, void *key, GSource *source)</argsstring>
+        <name>sr_session_source_destroyed</name>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> *</type>
+          <declname>session</declname>
+        </param>
+        <param>
+          <type>void *</type>
+          <declname>key</declname>
+        </param>
+        <param>
+          <type>GSource *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+<para>Unregister an event source that has been destroyed. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This is intended to be called from a source&apos;s finalize() method.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The key used to identify <emphasis>source</emphasis>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>source</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The source object that was destroyed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_BUG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Event source for <emphasis>key</emphasis> does not match <emphasis>source</emphasis>. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other error. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1452" column="13" bodyfile="src/session.c" bodystart="1452" bodyend="1481"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga5f641d186d8db85b870b394882637c31" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void copy_src</definition>
+        <argsstring>(struct sr_config *src, struct sr_datafeed_meta *meta_copy)</argsstring>
+        <name>copy_src</name>
+        <param>
+          <type>struct <ref refid="a00170" kindref="compound">sr_config</ref> *</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00130" kindref="compound">sr_datafeed_meta</ref> *</type>
+          <declname>meta_copy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1483" column="13" bodyfile="src/session.c" bodystart="1483" bodyend="1488"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gaf484c0abf0aed79a5de4dfb985246680" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_packet_copy</definition>
+        <argsstring>(const struct sr_datafeed_packet *packet, struct sr_datafeed_packet **copy)</argsstring>
+        <name>sr_packet_copy</name>
+        <param>
+          <type>const struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> *</type>
+          <declname>packet</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> **</type>
+          <declname>copy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1490" column="6" bodyfile="src/session.c" bodystart="1490" bodyend="1559"/>
+        <references refid="a00130_1affa2de59760870fb0def08a0708206bc" compoundref="a00050" startline="506">sr_datafeed_meta::config</references>
+        <references refid="a00122_1a71e93b70f24a5856205569cba463623c" compoundref="a00050" startline="495">sr_datafeed_packet::payload</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a8f1233d22d019a41c6eade61a6716f3c" compoundref="a00050" startline="165">SR_DF_END</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a86dc970c65e25bccfb8932a3a3afbdcd" compoundref="a00050" startline="163">SR_DF_HEADER</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a7a7b1d8c7d1cc99a3b7ef36d32dc855c" compoundref="a00050" startline="167">SR_DF_META</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0aa24f5acec3f4da3abb93a76c85efa53e" compoundref="a00050" startline="169">SR_DF_TRIGGER</references>
+        <references refid="a00122_1a1ad7f2dacc022262d942eeccf5d602f8" compoundref="a00050" startline="494">sr_datafeed_packet::type</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sr_packet_free</definition>
+        <argsstring>(struct sr_datafeed_packet *packet)</argsstring>
+        <name>sr_packet_free</name>
+        <param>
+          <type>struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> *</type>
+          <declname>packet</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="1561" column="7" bodyfile="src/session.c" bodystart="1561" bodyend="1606"/>
+        <references refid="a00146_1aa94e9989cfd57941a7867daa98076498" compoundref="a00050" startline="545">sr_analog_meaning::channels</references>
+        <references refid="a00130_1affa2de59760870fb0def08a0708206bc" compoundref="a00050" startline="506">sr_datafeed_meta::config</references>
+        <references refid="a00134_1a66994faadfe017216bb900939349cfba" compoundref="a00050" startline="513">sr_datafeed_logic::data</references>
+        <references refid="a00138_1a5c4aca13deba4509ec718b04f825fe10" compoundref="a00050" startline="518">sr_datafeed_analog::data</references>
+        <references refid="a00170_1a3cc5d7e7c4929f066af7817943c4f367" compoundref="a00050" startline="644">sr_config::data</references>
+        <references refid="a00138_1ad570779bcec5a0800815112655031fd5" compoundref="a00050" startline="520">sr_datafeed_analog::encoding</references>
+        <references refid="a00138_1a9e97bc2f38a677065f11d7ec4ade7644" compoundref="a00050" startline="521">sr_datafeed_analog::meaning</references>
+        <references refid="a00122_1a71e93b70f24a5856205569cba463623c" compoundref="a00050" startline="495">sr_datafeed_packet::payload</references>
+        <references refid="a00138_1affc68d81d02c38c1528ab666a4a7cb1a" compoundref="a00050" startline="522">sr_datafeed_analog::spec</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0ac2ee6953a14f91d2980418d781d4d066" compoundref="a00050" startline="177">SR_DF_ANALOG</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a8f1233d22d019a41c6eade61a6716f3c" compoundref="a00050" startline="165">SR_DF_END</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a86dc970c65e25bccfb8932a3a3afbdcd" compoundref="a00050" startline="163">SR_DF_HEADER</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a2a1bd93aafd5d494c0f8af89ab4f392c" compoundref="a00050" startline="171">SR_DF_LOGIC</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0a7a7b1d8c7d1cc99a3b7ef36d32dc855c" compoundref="a00050" startline="167">SR_DF_META</references>
+        <references refid="a00050_1acb492d2b26747a2155cb1c8f251727b0aa24f5acec3f4da3abb93a76c85efa53e" compoundref="a00050" startline="169">SR_DF_TRIGGER</references>
+        <references refid="a00122_1a1ad7f2dacc022262d942eeccf5d602f8" compoundref="a00050" startline="494">sr_datafeed_packet::type</references>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga6b2344c76ca99373a04b83e54e83959c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_zip_discard</definition>
+        <argsstring>(struct zip *archive)</argsstring>
+        <name>sr_zip_discard</name>
+        <param>
+          <type>struct zip *</type>
+          <declname>archive</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="54" column="14" bodyfile="src/session_file.c" bodystart="54" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1gac735f23bdbdb70572ba950aed720eeb8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> GKeyFile *</type>
+        <definition>SR_PRIV GKeyFile* sr_sessionfile_read_metadata</definition>
+        <argsstring>(struct zip *archive, const struct zip_stat *entry)</argsstring>
+        <name>sr_sessionfile_read_metadata</name>
+        <param>
+          <type>struct zip *</type>
+          <declname>archive</declname>
+        </param>
+        <param>
+          <type>const struct zip_stat *</type>
+          <declname>entry</declname>
+        </param>
+        <briefdescription>
+<para>Read metadata entries from a session archive. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">archive</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>An open ZIP archive. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">entry</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Stat buffer filled in for the metadata archive member.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new key/value store containing the session metadata. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="71" column="18" bodyfile="src/session_file.c" bodystart="71" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga7417d34e5800a8b16703e8bfb0e5676f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_sessionfile_check</definition>
+        <argsstring>(const char *filename)</argsstring>
+        <name>sr_sessionfile_check</name>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="115" column="13" bodyfile="src/session_file.c" bodystart="115" bodyend="171"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga6983017a831bd4f9bd0793df61137a46" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> struct sr_dev_inst *</type>
+        <definition>SR_PRIV struct sr_dev_inst* sr_session_prepare_sdi</definition>
+        <argsstring>(const char *filename, struct sr_session **session)</argsstring>
+        <name>sr_session_prepare_sdi</name>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> **</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="174" column="26" bodyfile="src/session_file.c" bodystart="174" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="a00076_1ga2c71ff4871df5448ae3c6a6f2e1a7bfd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_session_load</definition>
+        <argsstring>(struct sr_context *ctx, const char *filename, struct sr_session **session)</argsstring>
+        <name>sr_session_load</name>
+        <param>
+          <type>struct <ref refid="a00186" kindref="compound">sr_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00190" kindref="compound">sr_session</ref> **</type>
+          <declname>session</declname>
+        </param>
+        <briefdescription>
+<para>Load the session from the specified filename. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The context in which to load the session. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>filename</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The name of the session file to load. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>session</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The session to load the file into.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_MALLOC</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Memory allocation error </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_DATA</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Malformed session file </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>This is not a session file </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session_file.c" line="207" column="6" bodyfile="src/session_file.c" bodystart="207" bodyend="394"/>
+        <references refid="a00050_1af48ebab90ddc869a235404107fbecf2c" compoundref="a00050" startline="90">SR_MAX_CHANNELNAME_LEN</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Creating, using, or destroying libsigrok sessions. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00182" kind="struct" language="C++" prot="public">
+    <compoundname>sr_serial_port</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00182_1ae4aa770ba1ab042be67c26dac907b90b" prot="public" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* sr_serial_port::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+<para>The OS dependent name of the serial port. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1264" column="6" bodyfile="include/libsigrok/libsigrok.h" bodystart="1264" bodyend="-1"/>
+        <referencedby refid="a00075_1ga1c53acd13d3ff7895d4bc9d1f1fc3df8" compoundref="a00032" startline="1038" endline="1045">sr_serial_free</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00182_1a8fe5ff6c0b75442717673e3ae40bfd6e" prot="public" static="no" mutable="no">
+        <type>char *</type>
+        <definition>char* sr_serial_port::description</definition>
+        <argsstring></argsstring>
+        <name>description</name>
+        <briefdescription>
+<para>An end user friendly description for the serial port. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1266" column="6" bodyfile="include/libsigrok/libsigrok.h" bodystart="1266" bodyend="-1"/>
+        <referencedby refid="a00075_1ga1c53acd13d3ff7895d4bc9d1f1fc3df8" compoundref="a00032" startline="1038" endline="1045">sr_serial_free</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Serial port descriptor. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>sr_serial_port</label>
+        <link refid="a00182"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>description</edgelabel>
+          <edgelabel>name</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>char *</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="1262" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1262" bodyend="1267"/>
+    <listofallmembers>
+      <member refid="a00182_1a8fe5ff6c0b75442717673e3ae40bfd6e" prot="public" virt="non-virtual"><scope>sr_serial_port</scope><name>description</name></member>
+      <member refid="a00182_1ae4aa770ba1ab042be67c26dac907b90b" prot="public" virt="non-virtual"><scope>sr_serial_port</scope><name>name</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

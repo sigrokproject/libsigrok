@@ -1,0 +1,554 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00059" kind="file" language="C++">
+    <compoundname>input.c</compoundname>
+    <includes local="no">config.h</includes>
+    <includes local="no">string.h</includes>
+    <includes local="no">errno.h</includes>
+    <includes local="no">glib.h</includes>
+    <includes local="no">glib/gstdio.h</includes>
+    <includes refid="a00050" local="no">libsigrok/libsigrok.h</includes>
+    <includes local="yes">libsigrok-internal.h</includes>
+    <incdepgraph>
+      <node id="14">
+        <label>libsigrok-internal.h</label>
+      </node>
+      <node id="10">
+        <label>stdint.h</label>
+      </node>
+      <node id="13">
+        <label>libsigrok/version.h</label>
+        <link refid="a00056"/>
+      </node>
+      <node id="4">
+        <label>errno.h</label>
+      </node>
+      <node id="3">
+        <label>string.h</label>
+      </node>
+      <node id="5">
+        <label>glib.h</label>
+      </node>
+      <node id="9">
+        <label>sys/time.h</label>
+      </node>
+      <node id="1">
+        <label>src/input/input.c</label>
+        <link refid="a00059"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>libsigrok/libsigrok.h</label>
+        <link refid="a00050"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>config.h</label>
+      </node>
+      <node id="6">
+        <label>glib/gstdio.h</label>
+      </node>
+      <node id="8">
+        <label>stdio.h</label>
+      </node>
+      <node id="12">
+        <label>libsigrok/proto.h</label>
+        <link refid="a00053"/>
+      </node>
+      <node id="11">
+        <label>inttypes.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="a00080_1gabe3855bc10af0bc178114fdcbada772e" prot="public" static="yes" mutable="no">
+        <type>const struct sr_input_module *</type>
+        <definition>const struct sr_input_module* input_module_list[]</definition>
+        <argsstring>[]</argsstring>
+        <name>input_module_list</name>
+        <initializer>= {
+	&amp;input_binary,
+	&amp;input_chronovu_la8,
+	&amp;input_csv,
+	&amp;input_trace32_ad,
+	&amp;input_vcd,
+	&amp;input_wav,
+	&amp;input_raw_analog,
+	&amp;input_logicport,
+	&amp;input_saleae,
+	&amp;input_null,
+	NULL,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="78" column="35" bodyfile="src/input/input.c" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00080_1ga8741998692209adfd4e352e56a57b114" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_input_module **</type>
+        <definition>const struct sr_input_module** sr_input_list</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_input_list</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Returns a NULL-terminated list of all available input modules. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="97" column="29" bodyfile="src/input/input.c" bodystart="97" bodyend="100"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga072925b562704cb510449f2fee55f899" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_input_id_get</definition>
+        <argsstring>(const struct sr_input_module *imod)</argsstring>
+        <name>sr_input_id_get</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified input module&apos;s ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="107" column="13" bodyfile="src/input/input.c" bodystart="107" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga3d106248a419623aa9a1fd5e37b2e8c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_input_name_get</definition>
+        <argsstring>(const struct sr_input_module *imod)</argsstring>
+        <name>sr_input_name_get</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified input module&apos;s name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="122" column="13" bodyfile="src/input/input.c" bodystart="122" bodyend="130"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga622935496493c2023a4563345a4c5c24" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_input_description_get</definition>
+        <argsstring>(const struct sr_input_module *imod)</argsstring>
+        <name>sr_input_description_get</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified input module&apos;s description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="137" column="13" bodyfile="src/input/input.c" bodystart="137" bodyend="145"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gadd755e2266d3c19536add2bda2cdb2cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *const  *</type>
+        <definition>const char* const* sr_input_extensions_get</definition>
+        <argsstring>(const struct sr_input_module *imod)</argsstring>
+        <name>sr_input_extensions_get</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified input module&apos;s file extensions typical for the file format, as a NULL terminated array, or returns a NULL pointer if there is no preferred extension. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>these are a suggestions only.</para>
+</simplesect>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="155" column="19" bodyfile="src/input/input.c" bodystart="155" bodyend="164"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gab57b823af6c177edf93dab2d96299f8d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_input_module *</type>
+        <definition>const struct sr_input_module* sr_input_find</definition>
+        <argsstring>(char *id)</argsstring>
+        <name>sr_input_find</name>
+        <param>
+          <type>char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Return the input module with the specified ID, or NULL if no module with that id is found. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="172" column="29" bodyfile="src/input/input.c" bodystart="172" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga947b91ce69fc64cef5b4e72b3ddf4c5b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct <ref refid="a00154" kindref="compound">sr_option</ref> **</type>
+        <definition>const struct sr_option** sr_input_options_get</definition>
+        <argsstring>(const struct sr_input_module *imod)</argsstring>
+        <name>sr_input_options_get</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <briefdescription>
+<para>Returns a NULL-terminated array of struct <ref refid="a00154" kindref="compound">sr_option</ref>, or NULL if the module takes no options. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Each call to this function must be followed by a call to <ref refid="a00080_1gae7bccebee91a6991a65018a68b68c264" kindref="member">sr_input_options_free()</ref>.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="193" column="23" bodyfile="src/input/input.c" bodystart="193" bodyend="212"/>
+        <references refid="a00154_1afada45d978757a68c202595ce6ceb8b7" compoundref="a00050" startline="561">sr_option::id</references>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gae7bccebee91a6991a65018a68b68c264" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sr_input_options_free</definition>
+        <argsstring>(const struct sr_option **options)</argsstring>
+        <name>sr_input_options_free</name>
+        <param>
+          <type>const struct <ref refid="a00154" kindref="compound">sr_option</ref> **</type>
+          <declname>options</declname>
+        </param>
+        <briefdescription>
+<para>After a call to <ref refid="a00080_1ga947b91ce69fc64cef5b4e72b3ddf4c5b" kindref="member">sr_input_options_get()</ref>, this function cleans up all resources returned by that call. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="220" column="7" bodyfile="src/input/input.c" bodystart="220" bodyend="239"/>
+        <references refid="a00154_1a9cd94aff6f0b88deb90de546009ec62d" compoundref="a00050" startline="567">sr_option::def</references>
+        <references refid="a00154_1a08fc98c220b8e4230c13ca58e85402c2" compoundref="a00050" startline="569">sr_option::values</references>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga555801748623b935b60be3e662f9ea36" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct sr_input *</type>
+        <definition>struct sr_input* sr_input_new</definition>
+        <argsstring>(const struct sr_input_module *imod, GHashTable *options)</argsstring>
+        <name>sr_input_new</name>
+        <param>
+          <type>const struct sr_input_module *</type>
+          <declname>imod</declname>
+        </param>
+        <param>
+          <type>GHashTable *</type>
+          <declname>options</declname>
+        </param>
+        <briefdescription>
+<para>Create a new input instance using the specified input module. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function is used when a client wants to use a specific input module to parse a stream. No effort is made to identify the format.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>imod</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The input module to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>options</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>GHashTable consisting of keys corresponding with the module options <computeroutput>id</computeroutput> field. The values should be GVariant pointers with sunk references, of the same GVariantType as the option&apos;s default value.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="255" column="16" bodyfile="src/input/input.c" bodystart="255" bodyend="319"/>
+        <references refid="a00154_1a9cd94aff6f0b88deb90de546009ec62d" compoundref="a00050" startline="567">sr_option::def</references>
+        <references refid="a00154_1afada45d978757a68c202595ce6ceb8b7" compoundref="a00050" startline="561">sr_option::id</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gacd684743491959aae4176bffc309b326" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>static gboolean check_required_metadata</definition>
+        <argsstring>(const uint8_t *metadata, uint8_t *avail)</argsstring>
+        <name>check_required_metadata</name>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>metadata</declname>
+        </param>
+        <param>
+          <type>uint8_t *</type>
+          <declname>avail</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="322" column="17" bodyfile="src/input/input.c" bodystart="322" bodyend="341"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga3d226bd14eb70973129c736e24ec905a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_input_scan_buffer</definition>
+        <argsstring>(GString *buf, const struct sr_input **in)</argsstring>
+        <name>sr_input_scan_buffer</name>
+        <param>
+          <type>GString *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const struct sr_input **</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Try to find an input module that can parse the given buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The buffer must contain enough of the beginning of the file for the input modules to find a match. This is format-dependent. When magic strings get checked, 128 bytes normally could be enough. Note that some formats try to parse larger header sections, and benefit from seeing a larger scope.</para>
+<para>If an input module is found, an instance is created into *in. Otherwise, *in contains NULL. When multiple input moduless claim support for the format, the one with highest confidence takes precedence. Applications will see at most one input module spec.</para>
+<para>If an instance is created, it has the given buffer used for scanning already submitted to it, to be processed before more data is sent. This allows a frontend to submit an initial chunk of a non-seekable stream, such as stdin, without having to keep it around and submit it again later. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="364" column="6" bodyfile="src/input/input.c" bodystart="364" bodyend="431"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga57905453bc7b85d23e80862afb75e4d4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_input_scan_file</definition>
+        <argsstring>(const char *filename, const struct sr_input **in)</argsstring>
+        <name>sr_input_scan_file</name>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type>const struct sr_input **</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Try to find an input module that can parse the given file. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If an input module is found, an instance is created into *in. Otherwise, *in contains NULL. When multiple input moduless claim support for the format, the one with highest confidence takes precedence. Applications will see at most one input module spec. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="442" column="6" bodyfile="src/input/input.c" bodystart="442" bodyend="537"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1ga267353360cd2dfd9d4783a192de2ee09" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_input_module *</type>
+        <definition>const struct sr_input_module* sr_input_module_get</definition>
+        <argsstring>(const struct sr_input *in)</argsstring>
+        <name>sr_input_module_get</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Return the input instance&apos;s module &quot;class&quot;. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This can be used to find out which input module handles a specific input file. This is especially useful when an application did not create the input stream by specifying an input module, but instead some shortcut or convenience wrapper did.</para>
+<para><simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="547" column="29" bodyfile="src/input/input.c" bodystart="547" bodyend="553"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gad6021700cdb73e4c843c16f88f75beed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct sr_dev_inst *</type>
+        <definition>struct sr_dev_inst* sr_input_dev_inst_get</definition>
+        <argsstring>(const struct sr_input *in)</argsstring>
+        <name>sr_input_dev_inst_get</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Return the input instance&apos;s (virtual) device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This can be used to find out the number of channels and other information.</para>
+<para>If the device instance has not yet been fully populated by the input module, NULL is returned. This indicates the module needs more data to identify the number of channels and so on.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="565" column="19" bodyfile="src/input/input.c" bodystart="565" bodyend="571"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gada8138722494a8b7665749f5b3297805" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_input_send</definition>
+        <argsstring>(const struct sr_input *in, GString *buf)</argsstring>
+        <name>sr_input_send</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in</declname>
+        </param>
+        <param>
+          <type>GString *</type>
+          <declname>buf</declname>
+        </param>
+        <briefdescription>
+<para>Send data to the specified input instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>When an input module instance is created with <ref refid="a00080_1ga555801748623b935b60be3e662f9ea36" kindref="member">sr_input_new()</ref>, this function is used to feed data to the instance.</para>
+<para>As enough data gets fed into this function to completely populate the device instance associated with this input instance, this is guaranteed to return the moment it&apos;s ready. This gives the caller the chance to examine the device instance, attach session callbacks and so on.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="587" column="6" bodyfile="src/input/input.c" bodystart="587" bodyend="594"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gaaa887145d0ff9ce8aea3b9d9c4b5c0ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_input_end</definition>
+        <argsstring>(const struct sr_input *in)</argsstring>
+        <name>sr_input_end</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Signal the input module no more data will come. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This will cause the module to process any data it may have buffered. The SR_DF_END packet will also typically be sent at this time.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="604" column="6" bodyfile="src/input/input.c" bodystart="604" bodyend="608"/>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gaedab9768c2587f4f14e456c25f55193d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_input_reset</definition>
+        <argsstring>(const struct sr_input *in_ro)</argsstring>
+        <name>sr_input_reset</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in_ro</declname>
+        </param>
+        <briefdescription>
+<para>Reset the input module&apos;s input handling structures. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Causes the input module to reset its internal state so that we can re-send the input data from the beginning without having to re-create the entire input module.</para>
+<para><simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="619" column="6" bodyfile="src/input/input.c" bodystart="619" bodyend="662"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00080_1gaa1d7eb09c7366fe32cc90191d08292eb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sr_input_free</definition>
+        <argsstring>(const struct sr_input *in)</argsstring>
+        <name>sr_input_free</name>
+        <param>
+          <type>const struct sr_input *</type>
+          <declname>in</declname>
+        </param>
+        <briefdescription>
+<para>Free the specified input instance and all associated resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/input/input.c" line="669" column="7" bodyfile="src/input/input.c" bodystart="669" bodyend="696"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Input module handling. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="src/input/input.c"/>
+  </compounddef>
+</doxygen>

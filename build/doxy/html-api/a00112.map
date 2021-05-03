@@ -1,0 +1,10 @@
+<map id="sr_trigger_match" name="sr_trigger_match">
+<area shape="rect" id="node1" title="A channel to match and what to match it on." alt="" coords="259,199,378,225"/>
+<area shape="rect" id="node2" title=" " alt="" coords="205,109,251,136"/>
+<area shape="rect" id="node3" href="$a00162.html" title="Information on single channel." alt="" coords="276,109,361,136"/>
+<area shape="rect" id="node4" title=" " alt="" coords="105,5,239,32"/>
+<area shape="rect" id="node5" title=" " alt="" coords="5,5,80,32"/>
+<area shape="rect" id="node6" title=" " alt="" coords="438,5,477,32"/>
+<area shape="rect" id="node7" title=" " alt="" coords="263,5,318,32"/>
+<area shape="rect" id="node8" title=" " alt="" coords="343,5,399,32"/>
+</map>

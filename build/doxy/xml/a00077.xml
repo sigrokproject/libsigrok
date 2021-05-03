@@ -1,0 +1,1326 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00077" kind="group">
+    <compoundname>grp_strutil</compoundname>
+    <title>String utilities</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00077_1gae88f63d1da1128d2cc33c2888cdcb069" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atol</definition>
+        <argsstring>(const char *str, long *ret)</argsstring>
+        <name>sr_atol</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>long *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value (base 10) to a long integer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid long integer. The function sets errno according to the details of the failure.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to long where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="73" column="13" bodyfile="src/strutil.c" bodystart="73" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga92f37cbc42ec3aed450fa105e62d13f8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atol_base</definition>
+        <argsstring>(const char *str, long *ret, char **end, int base)</argsstring>
+        <name>sr_atol_base</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>long *</type>
+          <declname>ret</declname>
+        </param>
+        <param>
+          <type>char **</type>
+          <declname>end</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base</declname>
+        </param>
+        <briefdescription>
+<para>Convert a text to a number including support for non-decimal bases. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Also optionally returns the position after the number, where callers can either error out, or support application specific suffixes.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The input text to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The conversion result. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">end</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The position after the number. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">base</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number format&apos;s base, can be 0.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion failed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+This routine is more general than sr_atol(), which strictly expects the input text to contain just a decimal number, and nothing else in addition. The sr_atol_base() routine accepts trailing text after the number, and supports non-decimal numbers (bin, hex), including automatic detection from prefix text. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="115" column="13" bodyfile="src/strutil.c" bodystart="115" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga1f5057a2101f19c1c1e55a438f23cba1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atoul_base</definition>
+        <argsstring>(const char *str, unsigned long *ret, char **end, int base)</argsstring>
+        <name>sr_atoul_base</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>unsigned long *</type>
+          <declname>ret</declname>
+        </param>
+        <param>
+          <type>char **</type>
+          <declname>end</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>base</declname>
+        </param>
+        <briefdescription>
+<para>Convert a text to a number including support for non-decimal bases. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Also optionally returns the position after the number, where callers can either error out, or support application specific suffixes.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The input text to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The conversion result. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">end</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The position after the number. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">base</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number format&apos;s base, can be 0.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion failed.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+This routine is more general than sr_atol(), which strictly expects the input text to contain just a decimal number, and nothing else in addition. The sr_atoul_base() routine accepts trailing text after the number, and supports non-decimal numbers (bin, hex), including automatic detection from prefix text. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="169" column="13" bodyfile="src/strutil.c" bodystart="169" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga176bea9604a1e9414792e679f754f9c3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atoi</definition>
+        <argsstring>(const char *str, int *ret)</argsstring>
+        <name>sr_atoi</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value (base 10) to an integer. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid integer. The function sets errno according to the details of the failure.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to int where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="216" column="13" bodyfile="src/strutil.c" bodystart="216" bodyend="230"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga0d4643f49d67d09a57b93b39b303290d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atod</definition>
+        <argsstring>(const char *str, double *ret)</argsstring>
+        <name>sr_atod</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value to a double. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid double. The function sets errno according to the details of the failure.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to double where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="246" column="13" bodyfile="src/strutil.c" bodystart="246" bodyend="265"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gaa2f9024d2faa3f2cf457a2c7053bb385" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atof</definition>
+        <argsstring>(const char *str, float *ret)</argsstring>
+        <name>sr_atof</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value to a float. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid float. The function sets errno according to the details of the failure.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to float where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="281" column="13" bodyfile="src/strutil.c" bodystart="281" bodyend="295"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga2b3c04ce996dbba6678b16e9ffd07cdd" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atod_ascii</definition>
+        <argsstring>(const char *str, double *ret)</argsstring>
+        <name>sr_atod_ascii</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value to a double. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid double. The function sets errno according to the details of the failure. This version ignores the locale.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to double where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="311" column="13" bodyfile="src/strutil.c" bodystart="311" bodyend="327"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga3eeefbd5cce0b28255c4bc1e9a15b5cb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atod_ascii_digits</definition>
+        <argsstring>(const char *str, double *ret, int *digits)</argsstring>
+        <name>sr_atod_ascii_digits</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>double *</type>
+          <declname>ret</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>digits</declname>
+        </param>
+        <briefdescription>
+<para>Convert text to a floating point value, and get its precision. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The input text to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The conversion result, a double precision float number. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">digits</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of significant decimals.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK in case of successful text to number conversion. </para>
+</simplesect>
+<simplesect kind="return"><para>SR_ERR when conversion fails.</para>
+</simplesect>
+<simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="341" column="13" bodyfile="src/strutil.c" bodystart="341" bodyend="398"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gad458b13ff7a415a8305c5cd485bdd934" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_atof_ascii</definition>
+        <argsstring>(const char *str, float *ret)</argsstring>
+        <name>sr_atof_ascii</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value to a float. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid float. The function sets errno according to the details of the failure. This version ignores the locale.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to float where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="414" column="13" bodyfile="src/strutil.c" bodystart="414" bodyend="440"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga99e7a0edbcad0e8f48b402aaab07b135" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_sprintf_ascii</definition>
+        <argsstring>(char *buf, const char *format,...)</argsstring>
+        <name>sr_sprintf_ascii</name>
+        <param>
+          <type>char *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+<para>Compose a string with a format string in the buffer pointed to by buf. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is up to the caller to ensure that the allocated buffer is large enough to hold the formatted result.</para>
+<para>A terminating NUL character is automatically appended after the content written.</para>
+<para>After the format parameter, the function expects at least as many additional arguments as needed for format.</para>
+<para>This version ignores the current locale and uses the locale &quot;C&quot; for Linux, FreeBSD, OSX and Android.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a buffer where the resulting C string is stored. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>C string that contains a format string (see printf). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>...</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A sequence of additional arguments, each containing a value to be used to replace a format specifier in the format string.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>On success, the number of characters that would have been written, not counting the terminating NUL character.</para>
+</simplesect>
+<simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="467" column="6" bodyfile="src/strutil.c" bodystart="467" bodyend="477"/>
+        <references refid="a00077_1gadc3b0e400d218f8f3ffbef7867b96dc3" compoundref="a00041" startline="506" endline="599">sr_vsprintf_ascii</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gadc3b0e400d218f8f3ffbef7867b96dc3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_vsprintf_ascii</definition>
+        <argsstring>(char *buf, const char *format, va_list args)</argsstring>
+        <name>sr_vsprintf_ascii</name>
+        <param>
+          <type>char *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>va_list</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+<para>Compose a string with a format string in the buffer pointed to by buf. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is up to the caller to ensure that the allocated buffer is large enough to hold the formatted result.</para>
+<para>Internally, the function retrieves arguments from the list identified by args as if va_arg was used on it, and thus the state of args is likely to be altered by the call.</para>
+<para>In any case, args should have been initialized by va_start at some point before the call, and it is expected to be released by va_end at some point after the call.</para>
+<para>This version ignores the current locale and uses the locale &quot;C&quot; for Linux, FreeBSD, OSX and Android.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a buffer where the resulting C string is stored. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>C string that contains a format string (see printf). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>args</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A value identifying a variable arguments list initialized with va_start.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>On success, the number of characters that would have been written, not counting the terminating NUL character.</para>
+</simplesect>
+<simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="506" column="6" bodyfile="src/strutil.c" bodystart="506" bodyend="599"/>
+        <referencedby refid="a00077_1ga99e7a0edbcad0e8f48b402aaab07b135" compoundref="a00041" startline="467" endline="477">sr_sprintf_ascii</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gad79390f49111f423ba58d98f539b10c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_snprintf_ascii</definition>
+        <argsstring>(char *buf, size_t buf_size, const char *format,...)</argsstring>
+        <name>sr_snprintf_ascii</name>
+        <param>
+          <type>char *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>buf_size</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>...</type>
+        </param>
+        <briefdescription>
+<para>Composes a string with a format string (like printf) in the buffer pointed by buf (taking buf_size as the maximum buffer capacity to fill). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If the resulting string would be longer than n - 1 characters, the remaining characters are discarded and not stored, but counted for the value returned by the function. A terminating NUL character is automatically appended after the content written. After the format parameter, the function expects at least as many additional arguments as needed for format.</para>
+<para>This version ignores the current locale and uses the locale &quot;C&quot; for Linux, FreeBSD, OSX and Android.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a buffer where the resulting C string is stored. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buf_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Maximum number of bytes to be used in the buffer. The generated string has a length of at most buf_size - 1, leaving space for the additional terminating NUL character. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>C string that contains a format string (see printf). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>...</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A sequence of additional arguments, each containing a value to be used to replace a format specifier in the format string.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>On success, the number of characters that would have been written if buf_size had been sufficiently large, not counting the terminating NUL character. On failure, a negative number is returned. Notice that only when this returned value is non-negative and less than buf_size, the string has been completely written.</para>
+</simplesect>
+<simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="631" column="6" bodyfile="src/strutil.c" bodystart="631" bodyend="642"/>
+        <references refid="a00077_1ga3021c6a73fddd6a4ce43ad8058d231cc" compoundref="a00041" startline="678" endline="772">sr_vsnprintf_ascii</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga3021c6a73fddd6a4ce43ad8058d231cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_vsnprintf_ascii</definition>
+        <argsstring>(char *buf, size_t buf_size, const char *format, va_list args)</argsstring>
+        <name>sr_vsnprintf_ascii</name>
+        <param>
+          <type>char *</type>
+          <declname>buf</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>buf_size</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>format</declname>
+        </param>
+        <param>
+          <type>va_list</type>
+          <declname>args</declname>
+        </param>
+        <briefdescription>
+<para>Composes a string with a format string (like printf) in the buffer pointed by buf (taking buf_size as the maximum buffer capacity to fill). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If the resulting string would be longer than n - 1 characters, the remaining characters are discarded and not stored, but counted for the value returned by the function. A terminating NUL character is automatically appended after the content written. Internally, the function retrieves arguments from the list identified by args as if va_arg was used on it, and thus the state of args is likely to be altered by the call. In any case, arg should have been initialized by va_start at some point before the call, and it is expected to be released by va_end at some point after the call.</para>
+<para>This version ignores the current locale and uses the locale &quot;C&quot; for Linux, FreeBSD, OSX and Android.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>buf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a buffer where the resulting C string is stored. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>buf_size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Maximum number of bytes to be used in the buffer. The generated string has a length of at most buf_size - 1, leaving space for the additional terminating NUL character. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>format</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>C string that contains a format string (see printf). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>args</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A value identifying a variable arguments list initialized with va_start.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>On success, the number of characters that would have been written if buf_size had been sufficiently large, not counting the terminating NUL character. On failure, a negative number is returned. Notice that only when this returned value is non-negative and less than buf_size, the string has been completely written.</para>
+</simplesect>
+<simplesect kind="since"><para>0.6.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="678" column="6" bodyfile="src/strutil.c" bodystart="678" bodyend="772"/>
+        <referencedby refid="a00077_1gad79390f49111f423ba58d98f539b10c9" compoundref="a00041" startline="631" endline="642">sr_snprintf_ascii</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga80ff495fc9bd779082efd02b8397c957" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> GString *</type>
+        <definition>SR_PRIV GString* sr_hexdump_new</definition>
+        <argsstring>(const uint8_t *data, const size_t len)</argsstring>
+        <name>sr_hexdump_new</name>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>const size_t</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+<para>Convert a sequence of bytes to its textual representation (&quot;hex dump&quot;). </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Callers should free the allocated GString. See sr_hexdump_free().</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">data</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the byte sequence to print. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">len</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bytes to print.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>NULL upon error, newly allocated GString pointer otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="786" column="17" bodyfile="src/strutil.c" bodystart="786" bodyend="799"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga8c50ead32c92786c2bbabb69873e8038" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_hexdump_free</definition>
+        <argsstring>(GString *s)</argsstring>
+        <name>sr_hexdump_free</name>
+        <param>
+          <type>GString *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+<para>Free a hex dump text that was created by sr_hexdump_new(). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">s</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the GString to release. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="808" column="14" bodyfile="src/strutil.c" bodystart="808" bodyend="812"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga5fb4eb4552fd16a31f0aadffcad8d096" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_parse_rational</definition>
+        <argsstring>(const char *str, struct sr_rational *ret)</argsstring>
+        <name>sr_parse_rational</name>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>ret</declname>
+        </param>
+        <briefdescription>
+<para>Convert a string representation of a numeric value to a <ref refid="a00118" kindref="compound">sr_rational</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The conversion is strict and will fail if the complete string does not represent a valid number. The function sets errno according to the details of the failure. This version ignores the locale.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>str</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The string representation to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>ret</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to <ref refid="a00118" kindref="compound">sr_rational</ref> where the result of the conversion will be stored.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Conversion successful. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Failure.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="829" column="6" bodyfile="src/strutil.c" bodystart="829" bodyend="912"/>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga7126aced4c86bf82f91b4fb0a2713e68" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_si_string_u64</definition>
+        <argsstring>(uint64_t x, const char *unit)</argsstring>
+        <name>sr_si_string_u64</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>unit</declname>
+        </param>
+        <briefdescription>
+<para>Convert a numeric value value to its &quot;natural&quot; string representation in SI units. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. a value of 3000000, with units set to &quot;W&quot;, would be converted to &quot;3 MW&quot;, 20000 to &quot;20 kW&quot;, 31500 would become &quot;31.5 kW&quot;.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>x</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The value to convert. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>unit</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unit to append to the string, or NULL if the string has no units.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A newly allocated string representation of the samplerate value, or NULL upon errors. The caller is responsible to g_free() the memory.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="931" column="7" bodyfile="src/strutil.c" bodystart="931" bodyend="957"/>
+        <references refid="a00050_1ab12bd9a979a0943b8b4e43814daf81dc" compoundref="a00050" startline="96">SR_GHZ</references>
+        <references refid="a00050_1a5481ff3ca66afbea7fcae97751d60a5e" compoundref="a00050" startline="93">SR_HZ</references>
+        <references refid="a00050_1a10c908619204f2f26b2a9a4fff1cdb95" compoundref="a00050" startline="94">SR_KHZ</references>
+        <references refid="a00050_1a41578a5e5730fec84fb3efcfa9f29e68" compoundref="a00050" startline="95">SR_MHZ</references>
+        <referencedby refid="a00077_1gab4e6df219e62795b510a932f567598ad" compoundref="a00041" startline="973" endline="976">sr_samplerate_string</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gab4e6df219e62795b510a932f567598ad" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_samplerate_string</definition>
+        <argsstring>(uint64_t samplerate)</argsstring>
+        <name>sr_samplerate_string</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>samplerate</declname>
+        </param>
+        <briefdescription>
+<para>Convert a numeric samplerate value to its &quot;natural&quot; string representation. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. a value of 3000000 would be converted to &quot;3 MHz&quot;, 20000 to &quot;20 kHz&quot;, 31500 would become &quot;31.5 kHz&quot;.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>samplerate</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The samplerate in Hz.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A newly allocated string representation of the samplerate value, or NULL upon errors. The caller is responsible to g_free() the memory.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="973" column="7" bodyfile="src/strutil.c" bodystart="973" bodyend="976"/>
+        <references refid="a00077_1ga7126aced4c86bf82f91b4fb0a2713e68" compoundref="a00041" startline="931" endline="957">sr_si_string_u64</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga3bee5618e4ddfa4bd90e3fc46c5ad8f1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_period_string</definition>
+        <argsstring>(uint64_t v_p, uint64_t v_q)</argsstring>
+        <name>sr_period_string</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>v_p</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>v_q</declname>
+        </param>
+        <briefdescription>
+<para>Convert a numeric period value to the &quot;natural&quot; string representation of its period value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The period is specified as a rational number&apos;s numerator and denominator.</para>
+<para>E.g. a pair of (1, 5) would be converted to &quot;200 ms&quot;, (10, 100) to &quot;100 ms&quot;.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v_p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The period numerator. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v_q</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The period denominator.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A newly allocated string representation of the period value, or NULL upon errors. The caller is responsible to g_free() the memory.</para>
+</simplesect>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="995" column="7" bodyfile="src/strutil.c" bodystart="995" bodyend="1023"/>
+        <references refid="a00050_1ab12bd9a979a0943b8b4e43814daf81dc" compoundref="a00050" startline="96">SR_GHZ</references>
+        <references refid="a00050_1a10c908619204f2f26b2a9a4fff1cdb95" compoundref="a00050" startline="94">SR_KHZ</references>
+        <references refid="a00050_1a41578a5e5730fec84fb3efcfa9f29e68" compoundref="a00050" startline="95">SR_MHZ</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga547339234122efc4e3162d4a514a6216" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_voltage_string</definition>
+        <argsstring>(uint64_t v_p, uint64_t v_q)</argsstring>
+        <name>sr_voltage_string</name>
+        <param>
+          <type>uint64_t</type>
+          <declname>v_p</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>v_q</declname>
+        </param>
+        <briefdescription>
+<para>Convert a numeric voltage value to the &quot;natural&quot; string representation of its voltage value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The voltage is specified as a rational number&apos;s numerator and denominator.</para>
+<para>E.g. a value of 300000 would be converted to &quot;300mV&quot;, 2 to &quot;2V&quot;.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>v_p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The voltage numerator. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>v_q</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The voltage denominator.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A newly allocated string representation of the voltage value, or NULL upon errors. The caller is responsible to g_free() the memory.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1041" column="7" bodyfile="src/strutil.c" bodystart="1041" bodyend="1049"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gaadc9a8f474d285002395ce5e34ae2ee2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_parse_sizestring</definition>
+        <argsstring>(const char *sizestring, uint64_t *size)</argsstring>
+        <name>sr_parse_sizestring</name>
+        <param>
+          <type>const char *</type>
+          <declname>sizestring</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+<para>Convert a &quot;natural&quot; string representation of a size value to uint64_t. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. a value of &quot;3k&quot; or &quot;3 K&quot; would be converted to 3000, a value of &quot;15M&quot; would be converted to 15000000.</para>
+<para>Value representations other than decimal (such as hex or octal) are not supported. Only &apos;k&apos; (kilo), &apos;m&apos; (mega), &apos;g&apos; (giga) suffixes are supported. Spaces (but not other whitespace) between value and suffix are allowed.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sizestring</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A string containing a (decimal) size value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>size</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to uint64_t which will contain the string&apos;s size value.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK upon success, SR_ERR upon errors.</para>
+</simplesect>
+<simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1068" column="6" bodyfile="src/strutil.c" bodystart="1068" bodyend="1127"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1ab12bd9a979a0943b8b4e43814daf81dc" compoundref="a00050" startline="96">SR_GHZ</references>
+        <references refid="a00050_1a10c908619204f2f26b2a9a4fff1cdb95" compoundref="a00050" startline="94">SR_KHZ</references>
+        <references refid="a00050_1a41578a5e5730fec84fb3efcfa9f29e68" compoundref="a00050" startline="95">SR_MHZ</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1ga32b3f8287c1be88d88273d5e233b8d8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint64_t</type>
+        <definition>uint64_t sr_parse_timestring</definition>
+        <argsstring>(const char *timestring)</argsstring>
+        <name>sr_parse_timestring</name>
+        <param>
+          <type>const char *</type>
+          <declname>timestring</declname>
+        </param>
+        <briefdescription>
+<para>Convert a &quot;natural&quot; string representation of a time value to an uint64_t value in milliseconds. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. a value of &quot;3s&quot; or &quot;3 s&quot; would be converted to 3000, a value of &quot;15ms&quot; would be converted to 15.</para>
+<para>Value representations other than decimal (such as hex or octal) are not supported. Only lower-case &quot;s&quot; and &quot;ms&quot; time suffixes are supported. Spaces (but not other whitespace) between value and suffix are allowed.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>timestring</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A string containing a (decimal) time value. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The string&apos;s time value as uint64_t, in milliseconds.</para>
+</simplesect>
+</para>
+<para><simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1149" column="11" bodyfile="src/strutil.c" bodystart="1149" bodyend="1172"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gac5de1c92b1a833f4a9d31b8bbd02df2e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>gboolean sr_parse_boolstring</definition>
+        <argsstring>(const char *boolstr)</argsstring>
+        <name>sr_parse_boolstring</name>
+        <param>
+          <type>const char *</type>
+          <declname>boolstr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.1.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1175" column="11" bodyfile="src/strutil.c" bodystart="1175" bodyend="1192"/>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gafba460c1d435fe35501ac0e8a4ec4283" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_parse_period</definition>
+        <argsstring>(const char *periodstr, uint64_t *p, uint64_t *q)</argsstring>
+        <name>sr_parse_period</name>
+        <param>
+          <type>const char *</type>
+          <declname>periodstr</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>q</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1195" column="6" bodyfile="src/strutil.c" bodystart="1195" bodyend="1225"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00077_1gad4dd6b1a65ca06339639a9a0933dc7d9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_parse_voltage</definition>
+        <argsstring>(const char *voltstr, uint64_t *p, uint64_t *q)</argsstring>
+        <name>sr_parse_voltage</name>
+        <param>
+          <type>const char *</type>
+          <declname>voltstr</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>uint64_t *</type>
+          <declname>q</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/strutil.c" line="1228" column="6" bodyfile="src/strutil.c" bodystart="1228" bodyend="1250"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Helper functions for handling or converting libsigrok-related strings. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

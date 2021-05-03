@@ -1,0 +1,362 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00070" kind="group">
+    <compoundname>grp_init</compoundname>
+    <title>Initialization</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00070_1ga6e5a750e64152a317a65dc4ced212ca3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GSList *</type>
+        <definition>GSList* sr_buildinfo_libs_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_buildinfo_libs_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="125" column="9" bodyfile="src/backend.c" bodystart="125" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1ga503329dffe42e5646c0441d8199ebcb4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_buildinfo_host_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_buildinfo_host_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="196" column="7" bodyfile="src/backend.c" bodystart="196" bodyend="205"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1gadb7312d59de7a1467c0c7195e3012af4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char *</type>
+        <definition>char* sr_buildinfo_scpi_backends_get</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_buildinfo_scpi_backends_get</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="207" column="7" bodyfile="src/backend.c" bodystart="207" bodyend="236"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1gaf2242488d82c6de683e36827f0ca309e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void print_versions</definition>
+        <argsstring>(void)</argsstring>
+        <name>print_versions</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="238" column="13" bodyfile="src/backend.c" bodystart="238" bodyend="271"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1gab08ecd28ba72906f50f8ed261bd93496" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void print_resourcepaths</definition>
+        <argsstring>(void)</argsstring>
+        <name>print_resourcepaths</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="273" column="13" bodyfile="src/backend.c" bodystart="273" bodyend="282"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1gadfd842671e4d6f19bb0f8ffe80d92ead" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int sanity_check_all_drivers</definition>
+        <argsstring>(const struct sr_context *ctx)</argsstring>
+        <name>sanity_check_all_drivers</name>
+        <param>
+          <type>const struct <ref refid="a00186" kindref="compound">sr_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+<para>Sanity-check all libsigrok drivers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a libsigrok context struct. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>All drivers are OK </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>One or more drivers have issues. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="293" column="12" bodyfile="src/backend.c" bodystart="293" bodyend="381"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1gab2b1e9e54ee6499d1e95b65207f9bb2d" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int sanity_check_all_input_modules</definition>
+        <argsstring>(void)</argsstring>
+        <name>sanity_check_all_input_modules</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Sanity-check all libsigrok input modules. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>All modules are OK </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>One or more modules have issues. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="389" column="12" bodyfile="src/backend.c" bodystart="389" bodyend="435"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1ga849915355a9ca6f089bb500a047d43cb" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int sanity_check_all_output_modules</definition>
+        <argsstring>(void)</argsstring>
+        <name>sanity_check_all_output_modules</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Sanity-check all libsigrok output modules. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>All modules are OK </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>One or more modules have issues. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="443" column="12" bodyfile="src/backend.c" bodystart="443" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1ga6931a1fadf190e1f85c5bf2b880dd951" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>static int sanity_check_all_transform_modules</definition>
+        <argsstring>(void)</argsstring>
+        <name>sanity_check_all_transform_modules</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Sanity-check all libsigrok transform modules. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>All modules are OK </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>One or more modules have issues. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="489" column="12" bodyfile="src/backend.c" bodystart="489" bodyend="530"/>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1ga6210982b018100246093873faf07a667" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_init</definition>
+        <argsstring>(struct sr_context **ctx)</argsstring>
+        <name>sr_init</name>
+        <param>
+          <type>struct <ref refid="a00186" kindref="compound">sr_context</ref> **</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+<para>Initialize libsigrok. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>This function must be called before any other libsigrok function.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a libsigrok context struct pointer. Must not be NULL. This will be a pointer to a newly allocated libsigrok context object upon success, and is undefined upon errors.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK upon success, a (negative) error code otherwise. Upon errors the &apos;ctx&apos; pointer is undefined and should not be used. Upon success, the context will be free&apos;d by <ref refid="a00070_1ga94b41cf5bc8ccafad9fe4c1bd6d2cc41" kindref="member">sr_exit()</ref> as part of the libsigrok shutdown.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="548" column="6" bodyfile="src/backend.c" bodystart="548" bodyend="628"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+      </memberdef>
+      <memberdef kind="function" id="a00070_1ga94b41cf5bc8ccafad9fe4c1bd6d2cc41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_exit</definition>
+        <argsstring>(struct sr_context *ctx)</argsstring>
+        <name>sr_exit</name>
+        <param>
+          <type>struct <ref refid="a00186" kindref="compound">sr_context</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+<para>Shutdown libsigrok. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>ctx</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a libsigrok context struct. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Error code SR_ERR, ...</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/backend.c" line="640" column="6" bodyfile="src/backend.c" bodystart="640" bodyend="664"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Initializing and shutting down libsigrok. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Before using any of the libsigrok functionality (except for <ref refid="a00074_1ga2eff466cec6a339d9a147eac65b74a97" kindref="member">sr_log_loglevel_set()</ref>), <ref refid="a00070_1ga6210982b018100246093873faf07a667" kindref="member">sr_init()</ref> must be called to initialize the library, which will return a struct <ref refid="a00186" kindref="compound">sr_context</ref> when the initialization was successful.</para>
+<para>When libsigrok functionality is no longer needed, <ref refid="a00070_1ga94b41cf5bc8ccafad9fe4c1bd6d2cc41" kindref="member">sr_exit()</ref> should be called, which will (among other things) free the struct <ref refid="a00186" kindref="compound">sr_context</ref>.</para>
+<para>Example for a minimal program using libsigrok:</para>
+<para><programlisting filename=".c"><codeline><highlight class="preprocessor">#include<sp/>&lt;stdio.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="a00050" kindref="compound">libsigrok/libsigrok.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>main(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>argc,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>**argv)</highlight></codeline>
+<codeline><highlight class="normal">{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>ret;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="a00186" kindref="compound">sr_context</ref><sp/>*sr_ctx;</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((ret<sp/>=<sp/><ref refid="a00070_1ga6210982b018100246093873faf07a667" kindref="member">sr_init</ref>(&amp;sr_ctx))<sp/>!=<sp/><ref refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" kindref="member">SR_OK</ref>)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>printf(</highlight><highlight class="stringliteral">&quot;Error<sp/>initializing<sp/>libsigrok<sp/>(%s):<sp/>%s.\n&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="a00072_1ga7b17e89928756a8282c4a085762dcf37" kindref="member">sr_strerror_name</ref>(ret),<sp/><ref refid="a00072_1ga7aacfdde4d4f0b3a64d50797f3c10103" kindref="member">sr_strerror</ref>(ret));</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Use<sp/>libsigrok<sp/>functions<sp/>here...</highlight><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>((ret<sp/>=<sp/><ref refid="a00070_1ga94b41cf5bc8ccafad9fe4c1bd6d2cc41" kindref="member">sr_exit</ref>(sr_ctx))<sp/>!=<sp/><ref refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" kindref="member">SR_OK</ref>)<sp/>{</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>printf(</highlight><highlight class="stringliteral">&quot;Error<sp/>shutting<sp/>down<sp/>libsigrok<sp/>(%s):<sp/>%s.\n&quot;</highlight><highlight class="normal">,</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="a00072_1ga7b17e89928756a8282c4a085762dcf37" kindref="member">sr_strerror_name</ref>(ret),<sp/><ref refid="a00072_1ga7aacfdde4d4f0b3a64d50797f3c10103" kindref="member">sr_strerror</ref>(ret));</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>1;</highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline><highlight class="normal"></highlight></codeline>
+<codeline><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline><highlight class="normal">}</highlight></codeline>
+</programlisting> </para>
+    </detaileddescription>
+  </compounddef>
+</doxygen>
