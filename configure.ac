@@ -586,15 +586,9 @@ sr_save_cflags=$CFLAGS
 sr_save_libs=$LIBS
 CFLAGS="$LIBSIGROK_CFLAGS $CFLAGS"
 LIBS="$LIBSIGROK_LIBS $LIBS"
-AC_CHECK_TYPES([libusb_os_handle],
-	[sr_have_libusb_os_handle=yes], [sr_have_libusb_os_handle=no],
-	[[#include <libusb.h>]])
 AC_CHECK_FUNCS([zip_discard])
 LIBS=$sr_save_libs
 CFLAGS=$sr_save_cflags
-
-AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*],
-	[AC_MSG_ERROR([Windows builds require the event-abstraction branch of libusb])])])
 
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
