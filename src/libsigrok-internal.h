@@ -75,6 +75,16 @@ static inline uint8_t read_u8(const uint8_t *p)
 #define R8(x)	read_u8((const uint8_t *)(x))
 
 /**
+ * Read an 8 bits signed integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding signed integer
+ */
+static inline int8_t read_i8(const uint8_t *p)
+{
+	return (int8_t)p[0];
+}
+
+/**
  * Read a 16 bits big endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
@@ -358,6 +368,28 @@ static inline float read_fltle(const uint8_t *p)
 #define RLFL(x) read_fltle((const uint8_t *)(x))
 
 /**
+ * Read a 64 bits big endian float out of memory (double precision).
+ * @param x a pointer to the input memory
+ * @return the corresponding floating point value
+ */
+static inline double read_dblbe(const uint8_t *p)
+{
+	/*
+	 * Implementor's note: Strictly speaking the "union" trick
+	 * is not portable. But this phrase was found to work on the
+	 * project's supported platforms, and serve well until a more
+	 * appropriate phrase is found.
+	 */
+	union { uint64_t u64; double flt; } u;
+	double f;
+
+	u.u64 = read_u64be(p);
+	f = u.flt;
+
+	return f;
+}
+
+/**
  * Read a 64 bits little endian float out of memory (double precision).
  * @param x a pointer to the input memory
  * @return the corresponding floating point value
@@ -444,6 +476,39 @@ static inline void write_u32le(uint8_t *p, uint32_t x)
 #define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
 
 /**
+ * Write a 48 bits unsigned integer to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u48le(uint8_t *p, uint64_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+	p[5] = x & 0xff; x >>= 8;
+}
+#define WL48(p, x) write_u48le((uint8_t *)(p), (uint64_t)(x))
+
+/**
+ * Write a 64 bits unsigned integer to memory stored as big endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u64be(uint8_t *p, uint64_t x)
+{
+	p[7] = x & 0xff; x >>= 8;
+	p[6] = x & 0xff; x >>= 8;
+	p[5] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[0] = x & 0xff; x >>= 8;
+}
+
+/**
  * Write a 64 bits unsigned integer to memory stored as little endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
@@ -520,6 +585,23 @@ static inline uint8_t read_u8_inc(const uint8_t **p)
 }
 
 /**
+ * Read signed 8bit integer from raw memory, increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int8_t read_i8_inc(const uint8_t **p)
+{
+	int8_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i8(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read unsigned 16bit integer from raw memory (big endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, unsigned.
@@ -554,17 +636,34 @@ static inline uint16_t read_u16le_inc(const uint8_t **p)
 }
 
 /**
- * Read unsigned 32bit integer from raw memory (big endian format), increment read position.
+ * Read signed 16bit integer from raw memory (big endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
- * @return Retrieved integer value, unsigned.
+ * @return Retrieved integer value, signed.
  */
-static inline uint32_t read_u32be_inc(const uint8_t **p)
+static inline int16_t read_i16be_inc(const uint8_t **p)
 {
-	uint32_t v;
+	int16_t v;
 
 	if (!p || !*p)
 		return 0;
-	v = read_u32be(*p);
+	v = read_i16be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 16bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int16_t read_i16le_inc(const uint8_t **p)
+{
+	int16_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i16le(*p);
 	*p += sizeof(v);
 
 	return v;
@@ -588,6 +687,23 @@ static inline uint32_t read_u24le_inc(const uint8_t **p)
 }
 
 /**
+ * Read unsigned 32bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint32_t read_u32be_inc(const uint8_t **p)
+{
+	uint32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_u32be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read unsigned 32bit integer from raw memory (little endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, unsigned.
@@ -599,6 +715,40 @@ static inline uint32_t read_u32le_inc(const uint8_t **p)
 	if (!p || !*p)
 		return 0;
 	v = read_u32le(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 32bit integer from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int32_t read_i32be_inc(const uint8_t **p)
+{
+	int32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i32be(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read signed 32bit integer from raw memory (little endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved integer value, signed.
+ */
+static inline int32_t read_i32le_inc(const uint8_t **p)
+{
+	int32_t v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_i32le(*p);
 	*p += sizeof(v);
 
 	return v;
@@ -639,6 +789,23 @@ static inline uint64_t read_u64le_inc(const uint8_t **p)
 }
 
 /**
+ * Read 32bit float from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline float read_fltbe_inc(const uint8_t **p)
+{
+	float v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_fltbe(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
  * Read 32bit float from raw memory (little endian format), increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved float value.
@@ -650,6 +817,23 @@ static inline float read_fltle_inc(const uint8_t **p)
 	if (!p || !*p)
 		return 0;
 	v = read_fltle(*p);
+	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read 64bit float from raw memory (big endian format), increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @return Retrieved float value.
+ */
+static inline double read_dblbe_inc(const uint8_t **p)
+{
+	double v;
+
+	if (!p || !*p)
+		return 0;
+	v = read_dblbe(*p);
 	*p += sizeof(v);
 
 	return v;
@@ -738,6 +922,19 @@ static inline void write_u32le_inc(uint8_t **p, uint32_t x)
 }
 
 /**
+ * Write unsigned 48bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u48le_inc(uint8_t **p, uint64_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u48le(*p, x);
+	*p += 48 / 8 * sizeof(uint8_t);
+}
+
+/**
  * Write unsigned 64bit little endian integer to raw memory, increment write position.
  * @param[in, out] p Pointer into byte stream.
  * @param[in] x Value to write.
@@ -799,6 +996,15 @@ static inline void write_dblle_inc(uint8_t **p, double x)
 #define SR_DRIVER_LIST_SECTION "__sr_driver_list"
 #endif
 
+#if !defined SR_DRIVER_LIST_NOREORDER && defined __has_attribute
+#if __has_attribute(no_reorder)
+#define SR_DRIVER_LIST_NOREORDER __attribute__((no_reorder))
+#endif
+#endif
+#if !defined SR_DRIVER_LIST_NOREORDER
+#define SR_DRIVER_LIST_NOREORDER /* EMPTY */
+#endif
+
 /**
  * Register a list of hardware drivers.
  *
@@ -828,6 +1034,7 @@ static inline void write_dblle_inc(uint8_t **p, double x)
  */
 #define SR_REGISTER_DEV_DRIVER_LIST(name, ...) \
 	static const struct sr_dev_driver *name[] \
+		SR_DRIVER_LIST_NOREORDER \
 		__attribute__((section (SR_DRIVER_LIST_SECTION), used, \
 			aligned(sizeof(struct sr_dev_driver *)))) \
 		= { \
@@ -1608,6 +1815,8 @@ SR_PRIV int std_cg_idx(const struct sr_channel_group *cg, struct sr_channel_grou
 SR_PRIV int std_dummy_set_params(struct sr_serial_dev_inst *serial,
 	int baudrate, int bits, int parity, int stopbits,
 	int flowcontrol, int rts, int dtr);
+SR_PRIV int std_dummy_set_handshake(struct sr_serial_dev_inst *serial,
+	int rts, int dtr);
 
 /*--- resource.c ------------------------------------------------------------*/
 
@@ -1629,10 +1838,12 @@ SR_PRIV void *sr_resource_load(struct sr_context *ctx, int type,
 
 SR_PRIV int sr_atol(const char *str, long *ret);
 SR_PRIV int sr_atol_base(const char *str, long *ret, char **end, int base);
+SR_PRIV int sr_atoul_base(const char *str, unsigned long *ret, char **end, int base);
 SR_PRIV int sr_atoi(const char *str, int *ret);
 SR_PRIV int sr_atod(const char *str, double *ret);
 SR_PRIV int sr_atof(const char *str, float *ret);
 SR_PRIV int sr_atod_ascii(const char *str, double *ret);
+SR_PRIV int sr_atod_ascii_digits(const char *str, double *ret, int *digits);
 SR_PRIV int sr_atof_ascii(const char *str, float *ret);
 
 SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len);
@@ -1670,6 +1881,8 @@ enum {
 };
 
 typedef gboolean (*packet_valid_callback)(const uint8_t *buf);
+typedef int (*packet_valid_len_callback)(void *st,
+	const uint8_t *p, size_t l, size_t *pl);
 
 typedef GSList *(*sr_ser_list_append_t)(GSList *devs, const char *name,
 		const char *desc);
@@ -1692,15 +1905,17 @@ SR_PRIV int serial_set_read_chunk_cb(struct sr_serial_dev_inst *serial,
 		serial_rx_chunk_callback cb, void *cb_data);
 SR_PRIV int serial_set_params(struct sr_serial_dev_inst *serial, int baudrate,
 		int bits, int parity, int stopbits, int flowcontrol, int rts, int dtr);
+SR_PRIV int serial_set_handshake(struct sr_serial_dev_inst *serial,
+		int rts, int dtr);
 SR_PRIV int serial_set_paramstr(struct sr_serial_dev_inst *serial,
 		const char *paramstr);
 SR_PRIV int serial_readline(struct sr_serial_dev_inst *serial, char **buf,
 		int *buflen, gint64 timeout_ms);
 SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
-				 uint8_t *buf, size_t *buflen,
-				 size_t packet_size,
-				 packet_valid_callback is_valid,
-				 uint64_t timeout_ms);
+		uint8_t *buf, size_t *buflen,
+		size_t packet_size, packet_valid_callback is_valid,
+		packet_valid_len_callback is_valid_len, size_t *return_size,
+		uint64_t timeout_ms);
 SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
 				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_session *session,
@@ -1732,6 +1947,8 @@ struct ser_lib_functions {
 	int (*set_params)(struct sr_serial_dev_inst *serial,
 			int baudrate, int bits, int parity, int stopbits,
 			int flowcontrol, int rts, int dtr);
+	int (*set_handshake)(struct sr_serial_dev_inst *serial,
+			int rts, int dtr);
 	int (*setup_source_add)(struct sr_session *session,
 			struct sr_serial_dev_inst *serial,
 			int events, int timeout,
@@ -2063,6 +2280,16 @@ SR_PRIV void sr_fs9721_10_temp_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_01_10_temp_f_c(struct sr_datafeed_analog *analog, void *info);
 SR_PRIV void sr_fs9721_max_c_min(struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/mm38xr.c ---------------------------------------------------------*/
+
+#define METERMAN_38XR_PACKET_SIZE 15
+
+struct meterman_38xr_info { int dummy; };
+
+SR_PRIV gboolean meterman_38xr_packet_valid(const uint8_t *buf);
+SR_PRIV int meterman_38xr_parse(const uint8_t *buf, float *floatval,
+	struct sr_datafeed_analog *analog, void *info);
+
 /*--- dmm/ms2115b.c ---------------------------------------------------------*/
 
 #define MS2115B_PACKET_SIZE 9
@@ -2174,6 +2401,52 @@ struct bm25x_info { int dummy; };
 SR_PRIV gboolean sr_brymen_bm25x_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_brymen_bm25x_parse(const uint8_t *buf, float *floatval,
 			     struct sr_datafeed_analog *analog, void *info);
+
+/*--- dmm/bm52x.c -----------------------------------------------------------*/
+
+#define BRYMEN_BM52X_PACKET_SIZE 24
+#define BRYMEN_BM52X_DISPLAY_COUNT 2
+
+struct brymen_bm52x_info { size_t ch_idx; };
+
+#ifdef HAVE_SERIAL_COMM
+SR_PRIV int sr_brymen_bm52x_packet_request(struct sr_serial_dev_inst *serial);
+SR_PRIV int sr_brymen_bm82x_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean sr_brymen_bm52x_packet_valid(const uint8_t *buf);
+SR_PRIV gboolean sr_brymen_bm82x_packet_valid(const uint8_t *buf);
+/* BM520s and BM820s protocols are similar, the parse routine is shared. */
+SR_PRIV int sr_brymen_bm52x_parse(const uint8_t *buf, float *floatval,
+		struct sr_datafeed_analog *analog, void *info);
+
+struct brymen_bm52x_state;
+
+SR_PRIV void *brymen_bm52x_state_init(void);
+SR_PRIV void brymen_bm52x_state_free(void *state);
+SR_PRIV int brymen_bm52x_config_get(void *state, uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_config_set(void *state, uint32_t key, GVariant *data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_config_list(void *state, uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg);
+SR_PRIV int brymen_bm52x_acquire_start(void *state,
+	const struct sr_dev_inst *sdi,
+	sr_receive_data_callback *cb, void **cb_data);
+
+/*--- dmm/bm85x.c -----------------------------------------------------------*/
+
+#define BRYMEN_BM85x_PACKET_SIZE_MIN 4
+
+struct brymen_bm85x_info { int dummy; };
+
+#ifdef HAVE_SERIAL_COMM
+SR_PRIV int brymen_bm85x_after_open(struct sr_serial_dev_inst *serial);
+SR_PRIV int brymen_bm85x_packet_request(struct sr_serial_dev_inst *serial);
+#endif
+SR_PRIV gboolean brymen_bm85x_packet_valid(void *state,
+	const uint8_t *buf, size_t len, size_t *pkt_len);
+SR_PRIV int brymen_bm85x_parse(void *state, const uint8_t *buf, size_t len,
+	double *floatval, struct sr_datafeed_analog *analog, void *info);
 
 /*--- dmm/bm86x.c -----------------------------------------------------------*/
 

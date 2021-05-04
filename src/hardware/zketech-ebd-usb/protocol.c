@@ -107,6 +107,9 @@ SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial, struct dev_context 
 
 	sr_info("Activating load");
 	ret = send_cmd(serial, start, 10);
+	if (ret)
+		return ret;
+
 	sr_dbg("current limit: %.03f", devc->current_limit);
 	sr_dbg("under-voltage threshold: %.02f", devc->voltage_limit);
 	if (ebd_current_is0(devc))

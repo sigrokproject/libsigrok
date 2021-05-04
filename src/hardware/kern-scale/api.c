@@ -88,7 +88,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* Let's get a bit of data and see if we can find a packet. */
 	len = sizeof(buf);
 	ret = serial_stream_detect(serial, buf, &len, scale->packet_size,
-				   scale->packet_valid, 3000);
+		scale->packet_valid, NULL, NULL, 3000);
 	if (ret != SR_OK)
 		goto scan_cleanup;
 

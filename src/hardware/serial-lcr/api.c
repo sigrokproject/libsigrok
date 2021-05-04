@@ -114,7 +114,7 @@ static int scan_lcr_port(const struct lcr_info *lcr,
 	}
 	len = sizeof(buf);
 	ret = serial_stream_detect(serial, buf, &len,
-		lcr->packet_size, lcr->packet_valid, 3000);
+		lcr->packet_size, lcr->packet_valid, NULL, NULL, 3000);
 	if (ret != SR_OK)
 		goto scan_port_cleanup;
 
@@ -198,7 +198,7 @@ static int read_lcr_port(struct sr_dev_inst *sdi,
 	len = sizeof(buf);
 	scan_packet_check_setup(sdi);
 	ret = serial_stream_detect(serial, buf, &len,
-		lcr->packet_size, scan_packet_check_func, 1500);
+		lcr->packet_size, scan_packet_check_func, NULL, NULL, 1500);
 	scan_packet_check_setup(NULL);
 
 	return ret;

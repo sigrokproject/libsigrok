@@ -340,8 +340,15 @@ Glib::VariantBase python_to_variant_by_key(PyObject *input, const sigrok::Config
         return Glib::Variant<double>::create(PyFloat_AsDouble(input));
     else if (type == SR_T_INT32 && PyInt_Check(input))
         return Glib::Variant<gint32>::create(PyInt_AsLong(input));
-    else
-        throw sigrok::Error(SR_ERR_ARG);
+    else if ((type == SR_T_RATIONAL_VOLT) && PyTuple_Check(input) && (PyTuple_Size(input) == 2)) {
+        PyObject *numObj = PyTuple_GetItem(input, 0);
+        PyObject *denomObj = PyTuple_GetItem(input, 1);
+        if ((PyInt_Check(numObj) || PyLong_Check(numObj)) && (PyInt_Check(denomObj) || PyLong_Check(denomObj))) {
+          const std::vector<guint64> v = {(guint64)PyInt_AsLong(numObj), (guint64)PyInt_AsLong(denomObj)};
+          return Glib::Variant< std::vector<guint64> >::create(v);
+        }
+    }
+    throw sigrok::Error(SR_ERR_ARG);
 }
 
 /* Convert from a Python type to Glib::Variant, according to Option data type. */

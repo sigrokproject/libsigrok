@@ -336,6 +336,7 @@ static void handle_packet(const struct sr_dev_inst *sdi)
 	devc->voltage = g_ascii_strtod(tokens[2], NULL) / 1000;
 	devc->current = g_ascii_strtod(tokens[1], NULL) / 1000;
 	g_strfreev(tokens);
+	g_cond_signal(&devc->voltage_cond);
 
 	/* Begin frame. */
 	std_session_send_df_frame_begin(sdi);

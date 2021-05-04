@@ -326,7 +326,8 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	}
 
 	tmp = base / devc->samplerate;
-	if (tmp) {
+	/* Downsample only if really necessary */
+	if (tmp > 1) {
 		/* Downsampling on */
 		cmdstring[2] |= 2;
 		/* Downsampler = 1comp((Base / Samplerate) - 2)

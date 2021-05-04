@@ -40,8 +40,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
-	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 };
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -53,8 +53,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int dropped, ret;
-	size_t len;
+	int ret;
+	size_t dropped, len, packet_len;
 	uint8_t buf[128];
 	size_t ch_idx;
 	char ch_name[12];
@@ -81,8 +81,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
-
 	sr_info("Probing serial port %s.", conn);
+
+	if (dmm->after_open) {
+		ret = dmm->after_open(serial);
+		if (ret != SR_OK) {
+			sr_err("Activity after port open failed: %d.", ret);
+			return NULL;
+		}
+	}
 
 	devices = NULL;
 
@@ -90,7 +97,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (dmm->packet_request) {
 		if ((ret = dmm->packet_request(serial)) < 0) {
 			sr_err("Failed to request packet: %d.", ret);
-			return FALSE;
+			return NULL;
 		}
 	}
 
@@ -98,38 +105,55 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 * There's no way to get an ID from the multimeter. It just sends data
 	 * periodically (or upon request), so the best we can do is check if
 	 * the packets match the expected format.
-	 */
-
-	/* Let's get a bit of data and see if we can find a packet. */
-	len = sizeof(buf);
-	ret = serial_stream_detect(serial, buf, &len, dmm->packet_size,
-				   dmm->packet_valid, 3000);
-	if (ret != SR_OK)
-		goto scan_cleanup;
-
-	/*
+	 *
 	 * If we dropped more than two packets worth of data, something is
 	 * wrong. We shouldn't quit however, since the dropped bytes might be
 	 * just zeroes at the beginning of the stream. Those can occur as a
 	 * combination of the nonstandard cable that ships with some devices
 	 * and the serial port or USB to serial adapter.
 	 */
+	len = sizeof(buf);
+	ret = serial_stream_detect(serial, buf, &len, dmm->packet_size,
+		dmm->packet_valid, dmm->packet_valid_len, &packet_len, 3000);
+	if (ret != SR_OK)
+		goto scan_cleanup;
 	dropped = len - dmm->packet_size;
-	if (dropped > 2 * dmm->packet_size)
-		sr_warn("Had to drop too much data.");
-
+	if (dropped > 2 * packet_len)
+		sr_warn("Packet search dropped a lot of data.");
 	sr_info("Found device on port %s.", conn);
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	/*
+	 * Setup optional additional callbacks when sub device drivers
+	 * happen to provide them. (This is a compromise to do it here,
+	 * and not extend the DMM_CONN() et al set of macros.)
+	 */
+	if (strcmp(dmm->di.name, "brymen-bm52x") == 0) {
+		/* Applicable to BM520s but not to BM820s. */
+		dmm->dmm_state_init = brymen_bm52x_state_init;
+		dmm->dmm_state_free = brymen_bm52x_state_free;
+		dmm->config_get = brymen_bm52x_config_get;
+		dmm->config_set = brymen_bm52x_config_set;
+		dmm->config_list = brymen_bm52x_config_list;
+		dmm->acquire_start = brymen_bm52x_acquire_start;
+	}
+	if (dmm->dmm_state_init)
+		dmm->dmm_state = dmm->dmm_state_init();
+
+	/* Setup the device instance. */
+	sdi = g_malloc0(sizeof(*sdi));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(dmm->vendor);
 	sdi->model = g_strdup(dmm->device);
-	devc = g_malloc0(sizeof(struct dev_context));
+	devc = g_malloc0(sizeof(*devc));
 	sr_sw_limits_init(&devc->limits);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;
+
+	/* Create (optionally device dependent) channel(s). */
 	dmm->channel_count = 1;
+	if (dmm->packet_parse == sr_brymen_bm52x_parse)
+		dmm->channel_count = BRYMEN_BM52X_DISPLAY_COUNT;
 	if (dmm->packet_parse == sr_brymen_bm86x_parse)
 		dmm->channel_count = BRYMEN_BM86X_DISPLAY_COUNT;
 	if (dmm->packet_parse == sr_eev121gw_3displays_parse) {
@@ -152,6 +176,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		snprintf(ch_name, sizeof(ch_name), fmt, ch_num);
 		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, ch_name);
 	}
+
+	/* Add found device to result set. */
 	devices = g_slist_append(devices, sdi);
 
 scan_cleanup:
@@ -160,27 +186,85 @@ scan_cleanup:
 	return std_scan_complete(di, devices);
 }
 
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	struct dev_context *devc;
+	struct dmm_info *dmm;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_FRAMES:
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_get(&devc->limits, key, data);
+	default:
+		dmm = (struct dmm_info *)sdi->driver;
+		if (!dmm || !dmm->config_get)
+			return SR_ERR_NA;
+		return dmm->config_get(dmm->dmm_state, key, data, sdi, cg);
+	}
+	/* UNREACH */
+}
+
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	struct dmm_info *dmm;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
 	(void)cg;
 
-	devc = sdi->priv;
-
-	return sr_sw_limits_config_set(&devc->limits, key, data);
+	switch (key) {
+	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_FRAMES:
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_set(&devc->limits, key, data);
+	default:
+		dmm = (struct dmm_info *)sdi->driver;
+		if (!dmm || !dmm->config_set)
+			return SR_ERR_NA;
+		return dmm->config_set(dmm->dmm_state, key, data, sdi, cg);
+	}
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	struct dmm_info *dmm;
+	int ret;
+
+	/* Use common logic for standard keys. */
+	if (!sdi)
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+
+	/*
+	 * Check for device specific config_list handler. ERR N/A from
+	 * that handler is non-fatal, just falls back to common logic.
+	 */
+	dmm = (struct dmm_info *)sdi->driver;
+	if (dmm && dmm->config_list) {
+		ret = dmm->config_list(dmm->dmm_state, key, data, sdi, cg);
+		if (ret != SR_ERR_NA)
+			return ret;
+	}
+
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	struct dmm_info *dmm;
+	sr_receive_data_callback cb_func;
+	void *cb_data;
+	int ret;
 	struct sr_serial_dev_inst *serial;
 
 	devc = sdi->priv;
@@ -188,16 +272,28 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
+	cb_func = receive_data;
+	cb_data = (void *)sdi;
+	dmm = (struct dmm_info *)sdi->driver;
+	if (dmm && dmm->acquire_start) {
+		ret = dmm->acquire_start(dmm->dmm_state, sdi,
+			&cb_func, &cb_data);
+		if (ret < 0)
+			return ret;
+	}
+
 	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
-		      receive_data, (void *)sdi);
+		cb_func, cb_data);
 
 	return SR_OK;
 }
 
-#define DMM_CONN(ID, CHIPSET, VENDOR, MODEL, \
+#define DMM_ENTRY(ID, CHIPSET, VENDOR, MODEL, \
 		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
-		REQUEST, VALID, PARSE, DETAILS) \
+		OPEN, REQUEST, VALID, PARSE, DETAILS, \
+		INIT_STATE, FREE_STATE, VALID_LEN, PARSE_LEN, \
+		CFG_GET, CFG_SET, CFG_LIST, ACQ_START) \
 	&((struct dmm_info) { \
 		{ \
 			.name = ID, \
@@ -208,7 +304,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.scan = scan, \
 			.dev_list = std_dev_list, \
 			.dev_clear = std_dev_clear, \
-			.config_get = NULL, \
+			.config_get = config_get, \
 			.config_set = config_set, \
 			.config_list = config_list, \
 			.dev_open = std_serial_dev_open, \
@@ -218,13 +314,34 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			.context = NULL, \
 		}, \
 		VENDOR, MODEL, CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
-		REQUEST, 1, NULL, VALID, PARSE, DETAILS, sizeof(struct CHIPSET##_info) \
+		REQUEST, 1, NULL, VALID, PARSE, DETAILS, \
+		sizeof(struct CHIPSET##_info), \
+		NULL, INIT_STATE, FREE_STATE, \
+		OPEN, VALID_LEN, PARSE_LEN, \
+		CFG_GET, CFG_SET, CFG_LIST, ACQ_START, \
 	}).di
+
+#define DMM_CONN(ID, CHIPSET, VENDOR, MODEL, \
+		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		REQUEST, VALID, PARSE, DETAILS) \
+	DMM_ENTRY(ID, CHIPSET, VENDOR, MODEL, \
+		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		NULL, REQUEST, VALID, PARSE, DETAILS, \
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)
 
 #define DMM(ID, CHIPSET, VENDOR, MODEL, SERIALCOMM, PACKETSIZE, TIMEOUT, \
 		DELAY, REQUEST, VALID, PARSE, DETAILS) \
-	DMM_CONN(ID, CHIPSET, VENDOR, MODEL, NULL, SERIALCOMM, PACKETSIZE, \
-		TIMEOUT, DELAY, REQUEST, VALID, PARSE, DETAILS)
+	DMM_CONN(ID, CHIPSET, VENDOR, MODEL, \
+		NULL, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		REQUEST, VALID, PARSE, DETAILS)
+
+#define DMM_LEN(ID, CHIPSET, VENDOR, MODEL, \
+		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		INIT, FREE, OPEN, REQUEST, VALID, PARSE, DETAILS) \
+	DMM_ENTRY(ID, CHIPSET, VENDOR, MODEL, \
+		CONN, SERIALCOMM, PACKETSIZE, TIMEOUT, DELAY, \
+		OPEN, REQUEST, NULL, NULL, DETAILS, \
+		INIT, FREE, VALID, PARSE, NULL, NULL, NULL, NULL)
 
 SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/*
@@ -252,6 +369,33 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Brymen", "BM25x", "9600/8n1/rts=1/dtr=1",
 		BRYMEN_BM25X_PACKET_SIZE, 0, 0, NULL,
 		sr_brymen_bm25x_packet_valid, sr_brymen_bm25x_parse,
+		NULL
+	),
+	/* }}} */
+	/* bm52x based meters {{{ */
+	DMM_CONN(
+		"brymen-bm52x", brymen_bm52x, "Brymen", "BM52x",
+		"hid/bu86x", NULL, BRYMEN_BM52X_PACKET_SIZE, 4000, 500,
+		sr_brymen_bm52x_packet_request,
+		sr_brymen_bm52x_packet_valid, sr_brymen_bm52x_parse,
+		NULL
+	),
+	DMM_CONN(
+		"brymen-bm82x", brymen_bm52x, "Brymen", "BM82x",
+		"hid/bu86x", NULL, BRYMEN_BM52X_PACKET_SIZE, 4000, 500,
+		sr_brymen_bm82x_packet_request,
+		sr_brymen_bm82x_packet_valid, sr_brymen_bm52x_parse,
+		NULL
+	),
+	/* }}} */
+	/* bm85x based meters {{{ */
+	DMM_LEN(
+		"brymen-bm85x", brymen_bm85x, "Brymen", "BM85x",
+		NULL, "9600/8n1/dtr=1/rts=1",
+		BRYMEN_BM85x_PACKET_SIZE_MIN, 2000, 400,
+		NULL, NULL, /* INIT/FREE for DMM state */
+		brymen_bm85x_after_open, brymen_bm85x_packet_request,
+		brymen_bm85x_packet_valid, brymen_bm85x_parse,
 		NULL
 	),
 	/* }}} */
@@ -419,6 +563,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 	/* }}} */
 	/* fs9922 based meters {{{ */
 	DMM(
+		"gwinstek-gdm-397", fs9922,
+		"GW Instek", "GDM-397", "2400/8n1/rts=0/dtr=1",
+		FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
 		"sparkfun-70c", fs9922,
 		"SparkFun", "70C", "2400/8n1/rts=0/dtr=1",
 		FS9922_PACKET_SIZE, 0, 0, NULL,
@@ -469,21 +619,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* ms2115b based meters {{{ */
+	/* meterman_38xr based meters {{{ */
 	DMM(
-		"mastech-ms2115b", ms2115b,
-		"MASTECH", "MS2115B", "1200/8n1",
-		MS2115B_PACKET_SIZE, 0, 0, NULL,
-		sr_ms2115b_packet_valid, sr_ms2115b_parse,
-		NULL
-	),
-	/* }}} */
-	/* ms8250d based meters {{{ */
-	DMM(
-		"mastech-ms8250d", ms8250d,
-		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
-		MS8250D_PACKET_SIZE, 0, 0, NULL,
-		sr_ms8250d_packet_valid, sr_ms8250d_parse,
+		"meterman-38xr", meterman_38xr,
+		"Meterman", "38XR", "9600/8n1/rts=0/dtr=1",
+		METERMAN_38XR_PACKET_SIZE, 0, 0, NULL,
+		meterman_38xr_packet_valid, meterman_38xr_parse,
 		NULL
 	),
 	/* }}} */
@@ -591,6 +732,24 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "ME-42", "600/7n2/rts=0/dtr=1",
 		METEX14_PACKET_SIZE, 250, 60, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms2115b based meters {{{ */
+	DMM(
+		"mastech-ms2115b", ms2115b,
+		"MASTECH", "MS2115B", "1200/8n1",
+		MS2115B_PACKET_SIZE, 0, 0, NULL,
+		sr_ms2115b_packet_valid, sr_ms2115b_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms8250d based meters {{{ */
+	DMM(
+		"mastech-ms8250d", ms8250d,
+		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
+		MS8250D_PACKET_SIZE, 0, 0, NULL,
+		sr_ms8250d_packet_valid, sr_ms8250d_parse,
 		NULL
 	),
 	/* }}} */

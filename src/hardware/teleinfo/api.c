@@ -77,7 +77,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Let's get a bit of data and see if we can find a packet. */
 	if (serial_stream_detect(serial, buf, &len, len,
-	                         teleinfo_packet_valid, 3000) != SR_OK)
+			teleinfo_packet_valid, NULL, NULL, 3000) != SR_OK)
 		goto scan_cleanup;
 
 	sr_info("Found device on port %s.", conn);

@@ -75,6 +75,17 @@
  * - Check VCD input to VCD output behaviour. Verify that export and
  *   re-import results in identical data (well, VCD's constraints on
  *   timescale values is known to result in differences).
+ * - Check the minimum timestamp delta in the input data set, suggest
+ *   the downsample=N option to users for reduced resource consumption.
+ *   Popular VCD file creation utilities love to specify insanely tiny
+ *   timescale values in the pico or even femto seconds range. Which
+ *   results in huge sample counts after import, and potentially even
+ *   terminates the application due to resource exhaustion. This issue
+ *   only will vanish when common libsigrok infrastructure no longer
+ *   depends on constant rate streams of samples at discrete points
+ *   in time. The current input module implementation has code in place
+ *   to gather timestamp statistics, but the most appropriate condition
+ *   when to notify users is yet to be found.
  * - Cleanup the implementation.
  *   - Consistent use of the glib API (where appropriate).
  *   - More appropriate variable/function identifiers.
@@ -146,6 +157,18 @@ struct context {
 		char **words;
 		gboolean in_use;
 	} split;
+	struct ts_stats {
+		size_t total_ts_seen;
+		uint64_t last_ts_value;
+		uint64_t last_ts_delta;
+		size_t min_count;
+		struct {
+			uint64_t delta;
+			size_t count;
+		} min_items[2];
+		uint32_t early_check_shift;
+		size_t early_last_emitted;
+	} ts_stats;
 	struct vcd_prev {
 		GSList *sr_channels;
 		GSList *sr_groups;
@@ -189,6 +212,244 @@ void sr_channel_group_free(struct sr_channel_group *cg);
 static void cg_free(void *p)
 {
 	sr_channel_group_free(p);
+}
+
+/*
+ * Another timestamp delta was observed, update statistics: Update the
+ * sorted list of minimum values, and increment the occurance counter.
+ * Returns the position of the item's statistics slot, or returns a huge
+ * invalid index when the current delta is larger than previously found
+ * values.
+ */
+static size_t ts_stats_update_min(struct ts_stats *stats, uint64_t delta)
+{
+	size_t idx, copy_idx;
+
+	/* Advance over previously recorded values which are smaller. */
+	idx = 0;
+	while (idx < stats->min_count && stats->min_items[idx].delta < delta)
+		idx++;
+	if (idx == ARRAY_SIZE(stats->min_items))
+		return idx;
+
+	/* Found the exact value that previously was registered? */
+	if (stats->min_items[idx].delta == delta) {
+		stats->min_items[idx].count++;
+		return idx;
+	}
+
+	/* Allocate another slot, bubble up larger values as needed. */
+	if (stats->min_count < ARRAY_SIZE(stats->min_items))
+		stats->min_count++;
+	for (copy_idx = stats->min_count - 1; copy_idx > idx; copy_idx--)
+		stats->min_items[copy_idx] = stats->min_items[copy_idx - 1];
+
+	/* Start tracking this value in the found or freed slot. */
+	memset(&stats->min_items[idx], 0, sizeof(stats->min_items[idx]));
+	stats->min_items[idx].delta = delta;
+	stats->min_items[idx].count++;
+
+	return idx;
+}
+
+/*
+ * Intermediate check for extreme oversampling in the input data. Rate
+ * limited emission of warnings to avoid noise, "late" emission of the
+ * first potential message to avoid false positives, yet need to  emit
+ * the messages early (*way* before EOF) to raise awareness.
+ *
+ * TODO
+ * Tune the limits, improve perception and usefulness of these checks.
+ * Need to start emitting messages soon enough to be seen by users. Yet
+ * avoid unnecessary messages for valid input's idle/quiet phases. Slow
+ * input transitions are perfectly legal before bursty phases are seen
+ * in the input data. Needs the check become an option, on by default,
+ * but suppressable by users?
+ */
+static void ts_stats_check_early(struct ts_stats *stats)
+{
+	static const struct {
+		uint64_t delta;
+		size_t count;
+	} *cp, check_points[] = {
+		{     100, 1000000, }, /* Still x100 after 1mio transitions. */
+		{    1000,  100000, }, /* Still x1k after 100k transitions. */
+		{   10000,   10000, }, /* Still x10k after 10k transitions. */
+		{ 1000000,    2500, }, /* Still x1m after 2.5k transitions. */
+	};
+
+	size_t cp_idx;
+	uint64_t seen_delta, check_delta;
+	size_t seen_count;
+
+	/* Get the current minimum's value and count. */
+	if (!stats->min_count)
+		return;
+	seen_delta = stats->min_items[0].delta;
+	seen_count = stats->min_items[0].count;
+
+	/* Emit at most one weak message per import. */
+	if (stats->early_last_emitted)
+		return;
+
+	/* Check arbitrary marks, emit rate limited warnings. */
+	(void)seen_count;
+	check_delta = seen_delta >> stats->early_check_shift;
+	for (cp_idx = 0; cp_idx < ARRAY_SIZE(check_points); cp_idx++) {
+		cp = &check_points[cp_idx];
+		/* No other match can happen below. Done iterating. */
+		if (stats->total_ts_seen > cp->count)
+			return;
+		/* Advance to the next checkpoint description. */
+		if (stats->total_ts_seen != cp->count)
+			continue;
+		/* First occurance of that timestamp count. Check the value. */
+		sr_dbg("TS early chk: total %" PRIu64 ", min delta %zu / %zu.",
+			cp->count, seen_delta, check_delta);
+		if (check_delta < cp->delta)
+			return;
+		sr_warn("Low change rate? (weak estimate, min TS delta %" PRIu64 " after %zu timestamps)",
+			seen_delta, stats->total_ts_seen);
+		sr_warn("Consider using the downsample=N option, or increasing its value.");
+		stats->early_last_emitted = stats->total_ts_seen;
+		return;
+	}
+}
+
+/* Reset the internal state of the timestamp tracker. */
+static int ts_stats_prep(struct context *inc)
+{
+	struct ts_stats *stats;
+	uint64_t down_sample_value;
+	uint32_t down_sample_shift;
+
+	stats = &inc->ts_stats;
+	memset(stats, 0, sizeof(*stats));
+
+	down_sample_value = inc->options.downsample;
+	down_sample_shift = 0;
+	while (down_sample_value >= 2) {
+		down_sample_shift++;
+		down_sample_value /= 2;
+	}
+	stats->early_check_shift = down_sample_shift;
+
+	return SR_OK;
+}
+
+/* Inspect another timestamp that was received. */
+static int ts_stats_check(struct ts_stats *stats, uint64_t curr_ts)
+{
+	uint64_t last_ts, delta;
+
+	last_ts = stats->last_ts_value;
+	stats->last_ts_value = curr_ts;
+	stats->total_ts_seen++;
+	if (stats->total_ts_seen < 2)
+		return SR_OK;
+
+	delta = curr_ts - last_ts;
+	stats->last_ts_delta = delta;
+	(void)ts_stats_update_min(stats, delta);
+
+	ts_stats_check_early(stats);
+
+	return SR_OK;
+}
+
+/* Postprocess internal timestamp tracker state. */
+static int ts_stats_post(struct context *inc, gboolean ignore_terminal)
+{
+	struct ts_stats *stats;
+	size_t min_idx;
+	uint64_t delta, over_sample, over_sample_scaled, suggest_factor;
+	enum sr_loglevel log_level;
+	gboolean is_suspicious, has_downsample;
+
+	stats = &inc->ts_stats;
+
+	/*
+	 * Lookup the smallest timestamp delta which was found during
+	 * data import. Ignore the last delta if its timestamp was never
+	 * followed by data, and this was the only occurance. Absence of
+	 * result data is non-fatal here -- this code exclusively serves
+	 * to raise users' awareness of potential pitfalls, but does not
+	 * change behaviour of data processing.
+	 *
+	 * TODO Also filter by occurance count? To not emit warnings when
+	 * captured signals only change slowly by design. Only warn when
+	 * the sample rate and samples count product exceeds a threshold?
+	 * See below for the necessity (and potential) to adjust the log
+	 * message's severity and content.
+	 */
+	min_idx = 0;
+	if (ignore_terminal) do {
+		if (min_idx >= stats->min_count)
+			break;
+		delta = stats->last_ts_delta;
+		if (stats->min_items[min_idx].delta != delta)
+			break;
+		if (stats->min_items[min_idx].count != 1)
+			break;
+		min_idx++;
+	} while (0);
+	if (min_idx >= stats->min_count)
+		return SR_OK;
+
+	/*
+	 * TODO Refine the condition whether to notify the user, and
+	 * which severity to use after having inspected all input data.
+	 * Any detail could get involved which previously was gathered
+	 * during data processing: total sample count, channel count
+	 * including their data type and bits width, the oversampling
+	 * factor (minimum observed "change rate"), or any combination
+	 * thereof. The current check is rather simple (unconditional
+	 * warning for ratios starting at 100, regardless of sample or
+	 * channel count).
+	 */
+	over_sample = stats->min_items[min_idx].delta;
+	over_sample_scaled = over_sample / inc->options.downsample;
+	sr_dbg("TS post stats: oversample unscaled %" PRIu64 ", scaled %" PRIu64,
+		over_sample, over_sample_scaled);
+	if (over_sample_scaled < 10) {
+		sr_dbg("TS post stats: Low oversampling ratio, good.");
+		return SR_OK;
+	}
+
+	/*
+	 * Avoid constructing the message from several tiny pieces by
+	 * design, because this would be hard on translators. Stick with
+	 * complete sentences instead, and accept the redundancy in the
+	 * user's interest.
+	 */
+	log_level = (over_sample_scaled > 20) ? SR_LOG_WARN : SR_LOG_INFO;
+	is_suspicious = over_sample_scaled > 20;
+	if (is_suspicious) {
+		sr_log(log_level, LOG_PREFIX ": "
+			"Suspiciously low overall change rate (total min TS delta %" PRIu64 ").",
+			over_sample_scaled);
+	} else {
+		sr_log(log_level, LOG_PREFIX ": "
+			"Low overall change rate (total min TS delta %" PRIu64 ").",
+			over_sample_scaled);
+	}
+	has_downsample = inc->options.downsample > 1;
+	suggest_factor = inc->options.downsample;
+	while (over_sample_scaled >= 10) {
+		suggest_factor *= 10;
+		over_sample_scaled /= 10;
+	}
+	if (has_downsample) {
+		sr_log(log_level, LOG_PREFIX ": "
+			"Suggest higher downsample value, like %" PRIu64 ".",
+			suggest_factor);
+	} else {
+		sr_log(log_level, LOG_PREFIX ": "
+			"Suggest to downsample, value like %" PRIu64 ".",
+			suggest_factor);
+	}
+
+	return SR_OK;
 }
 
 static void check_remove_bom(GString *buf)
@@ -835,9 +1096,11 @@ static void create_feeds(const struct sr_input *in)
 	inc = in->priv;
 
 	/* Create one feed for logic data. */
-	inc->unit_size = (inc->logic_count + 7) / 8;
-	inc->feed_logic = feed_queue_logic_alloc(in->sdi,
-		CHUNK_SIZE / inc->unit_size, inc->unit_size);
+	if (inc->logic_count) {
+		inc->unit_size = (inc->logic_count + 7) / 8;
+		inc->feed_logic = feed_queue_logic_alloc(in->sdi,
+			CHUNK_SIZE / inc->unit_size, inc->unit_size);
+	}
 
 	/* Create one feed per analog channel. */
 	for (l = inc->channels; l; l = l->next) {
@@ -920,6 +1183,7 @@ static int parse_header(const struct sr_input *in, GString *buf)
 	gboolean status;
 	char *name, *contents;
 	size_t size;
+	int ret;
 
 	inc = in->priv;
 
@@ -1007,6 +1271,10 @@ done_section:
 		return SR_ERR_MALLOC;
 	for (size = 0; size < inc->analog_count; size++)
 		inc->current_floats[size] = 0.;
+
+	ret = ts_stats_prep(inc);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
@@ -1235,6 +1503,8 @@ static uint8_t vcd_char_to_value(char bit_char, int *warn)
 		return 0;
 	if (bit_char == 'u')
 		return 0;
+	if (bit_char == '-')
+		return 0;
 
 	/* Unhandled input text. */
 	return ~0;
@@ -1352,6 +1622,9 @@ static int parse_textline(const struct sr_input *in, char *lines)
 				break;
 			}
 			sr_spew("Got timestamp: %" PRIu64, timestamp);
+			ret = ts_stats_check(&inc->ts_stats, timestamp);
+			if (ret != SR_OK)
+				break;
 			if (inc->options.downsample > 1) {
 				timestamp /= inc->options.downsample;
 				sr_spew("Downsampled timestamp: %" PRIu64, timestamp);
@@ -1449,7 +1722,9 @@ static int parse_textline(const struct sr_input *in, char *lines)
 		is_real = curr_first == 'r' && curr_word[1];
 		is_multibit = curr_first == 'b' && curr_word[1];
 		is_singlebit = curr_first == '0' || curr_first == '1';
+		is_singlebit |= curr_first == 'l' || curr_first == 'h';
 		is_singlebit |= curr_first == 'x' || curr_first == 'z';
+		is_singlebit |= curr_first == 'u' || curr_first == '-';
 		if (is_real) {
 			char *real_text;
 			float real_val;
@@ -1781,6 +2056,9 @@ static int end(struct sr_input *in)
 	/* Flush most recently queued sample data when EOF is seen. */
 	count = inc->data_after_timestamp ? 1 : 0;
 	add_samples(in, count, TRUE);
+
+	/* Optionally suggest downsampling after all input data was seen. */
+	(void)ts_stats_post(inc, !inc->data_after_timestamp);
 
 	/* Must send DF_END when DF_HEADER was sent before. */
 	if (inc->started)

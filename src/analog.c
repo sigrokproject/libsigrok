@@ -88,6 +88,9 @@ static struct unit_mq_string unit_strings[] = {
 	{ SR_UNIT_MOMME, "momme" },
 	{ SR_UNIT_TOLA, "tola" },
 	{ SR_UNIT_PIECE, "pcs" },
+	{ SR_UNIT_JOULE, "J" },
+	{ SR_UNIT_COULOMB, "C" },
+	{ SR_UNIT_AMPERE_HOUR, "Ah" },
 	ALL_ZERO
 };
 
@@ -157,8 +160,8 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 /**
  * Convert an analog datafeed payload to an array of floats.
  *
- * Sufficient memory for outbuf must have been pre-allocated by the caller,
- * who is also responsible for freeing it when no longer needed.
+ * The caller must provide the #outbuf space for the conversion result,
+ * and is expected to free allocated space after use.
  *
  * @param[in] analog The analog payload to convert. Must not be NULL.
  *                   analog->data, analog->meaning, and analog->encoding
@@ -174,124 +177,205 @@ SR_PRIV int sr_analog_init(struct sr_datafeed_analog *analog,
 SR_API int sr_analog_to_float(const struct sr_datafeed_analog *analog,
 		float *outbuf)
 {
-	unsigned int b, count;
-	gboolean bigendian;
+	size_t count;
+	gboolean host_bigendian;
+	gboolean input_float, input_signed, input_bigendian;
+	size_t input_unitsize;
+	double scale, offset, value;
+	const uint8_t *data8;
+	gboolean input_is_native;
+	char type_text[10];
 
-	if (!analog || !(analog->data) || !(analog->meaning)
-			|| !(analog->encoding) || !outbuf)
+	if (!analog || !analog->data || !analog->meaning || !analog->encoding)
+		return SR_ERR_ARG;
+	if (!outbuf)
 		return SR_ERR_ARG;
 
 	count = analog->num_samples * g_slist_length(analog->meaning->channels);
 
+	/*
+	 * Determine properties of the input data's and the host's
+	 * native formats, to simplify test conditions below.
+	 * Error messages for unsupported input property combinations
+	 * will only be seen by developers and maintainers of input
+	 * formats or acquisition device drivers. Terse output is
+	 * acceptable there, users shall never see them.
+	 */
 #ifdef WORDS_BIGENDIAN
-	bigendian = TRUE;
+	host_bigendian = TRUE;
 #else
-	bigendian = FALSE;
+	host_bigendian = FALSE;
 #endif
+	input_float = analog->encoding->is_float;
+	input_signed = analog->encoding->is_signed;
+	input_bigendian = analog->encoding->is_bigendian;
+	input_unitsize = analog->encoding->unitsize;
 
-	if (!analog->encoding->is_float) {
-		float offset = analog->encoding->offset.p / (float)analog->encoding->offset.q;
-		float scale = analog->encoding->scale.p / (float)analog->encoding->scale.q;
-		gboolean is_signed = analog->encoding->is_signed;
-		gboolean is_bigendian = analog->encoding->is_bigendian;
-		int8_t *data8 = (int8_t *)(analog->data);
-		int16_t *data16 = (int16_t *)(analog->data);
-		int32_t *data32 = (int32_t *)(analog->data);
+	/*
+	 * Prepare the iteration over the sample data: Get the common
+	 * scale/offset factors which apply to all individual values.
+	 * Position the read pointer on the first byte of input data.
+	 */
+	offset = analog->encoding->offset.p;
+	offset /= analog->encoding->offset.q;
+	scale = analog->encoding->scale.p;
+	scale /= analog->encoding->scale.q;
+	data8 = analog->data;
 
-		switch (analog->encoding->unitsize) {
-		case 1:
-			if (is_signed) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * data8[i];
-					outbuf[i] += offset;
-				}
-			} else {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * R8(data8 + i);
-					outbuf[i] += offset;
-				}
+	/*
+	 * Immediately handle the special case where input data needs
+	 * no conversion because it already is in the application's
+	 * native format. Do apply scale/offset though when applicable
+	 * on our way out.
+	 */
+	input_is_native = input_float &&
+		input_unitsize == sizeof(outbuf[0]) &&
+		input_bigendian == host_bigendian;
+	if (input_is_native) {
+		memcpy(outbuf, data8, count * sizeof(outbuf[0]));
+		if (scale != 1.0 || offset != 0.0) {
+			while (count--) {
+				*outbuf *= scale;
+				*outbuf += offset;
+				outbuf++;
 			}
-			break;
-		case 2:
-			if (is_signed && is_bigendian) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RB16S(&data16[i]);
-					outbuf[i] += offset;
-				}
-			} else if (is_bigendian) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RB16(&data16[i]);
-					outbuf[i] += offset;
-				}
-			} else if (is_signed) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RL16S(&data16[i]);
-					outbuf[i] += offset;
-				}
-			} else {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RL16(&data16[i]);
-					outbuf[i] += offset;
-				}
-			}
-			break;
-		case 4:
-			if (is_signed && is_bigendian) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RB32S(&data32[i]);
-					outbuf[i] += offset;
-				}
-			} else if (is_bigendian) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RB32(&data32[i]);
-					outbuf[i] += offset;
-				}
-			} else if (is_signed) {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RL32S(&data32[i]);
-					outbuf[i] += offset;
-				}
-			} else {
-				for (unsigned int i = 0; i < count; i++) {
-					outbuf[i] = scale * RL32(&data32[i]);
-					outbuf[i] += offset;
-				}
-			}
-			break;
-		default:
-			sr_err("Unsupported unit size '%d' for analog-to-float"
-			       " conversion.", analog->encoding->unitsize);
-			return SR_ERR;
 		}
 		return SR_OK;
 	}
 
-	if (analog->encoding->unitsize == sizeof(float)
-			&& analog->encoding->is_bigendian == bigendian
-			&& analog->encoding->scale.p == 1
-			&& analog->encoding->scale.q == 1
-			&& analog->encoding->offset.p / (float)analog->encoding->offset.q == 0) {
-		/* The data is already in the right format. */
-		memcpy(outbuf, analog->data, count * sizeof(float));
-	} else {
-		for (unsigned int i = 0; i < count; i += analog->encoding->unitsize) {
-			for (b = 0; b < analog->encoding->unitsize; b++) {
-				if (analog->encoding->is_bigendian == bigendian)
-					((uint8_t *)outbuf)[i + b] =
-						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
-				else
-					((uint8_t *)outbuf)[i + (analog->encoding->unitsize - b)] =
-						((uint8_t *)analog->data)[i * analog->encoding->unitsize + b];
-			}
-			if (analog->encoding->scale.p != 1
-					|| analog->encoding->scale.q != 1)
-				outbuf[i] = (outbuf[i] * analog->encoding->scale.p) / analog->encoding->scale.q;
-			float offset = ((float)analog->encoding->offset.p / (float)analog->encoding->offset.q);
-			outbuf[i] += offset;
+	/*
+	 * Accept sample values in different widths and data types and
+	 * endianess formats (floating point or signed or unsigned
+	 * integer, in either endianess, for a set of supported widths).
+	 * Common scale/offset factors apply to all sample values.
+	 *
+	 * Do most internal calculations on double precision values.
+	 * Only trim the result data to single precision, since that's
+	 * the routine's result data type in its public API which needs
+	 * to be kept for compatibility. It remains an option for later
+	 * to add another public routine which returns double precision
+	 * result data, call sites could migrate at their own pace.
+	 */
+	if (input_float && input_unitsize == sizeof(float)) {
+		float (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_fltbe_inc;
+		else
+			reader = read_fltle_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
 		}
+		return SR_OK;
+	}
+	if (input_float && input_unitsize == sizeof(double)) {
+		double (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_dblbe_inc;
+		else
+			reader = read_dblle_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_float) {
+		snprintf(type_text, sizeof(type_text), "%c%zu%s",
+			'f', input_unitsize * 8, input_bigendian ? "be" : "le");
+		sr_err("Unsupported type for analog-to-float conversion: %s.",
+			type_text);
+		return SR_ERR;
 	}
 
-	return SR_OK;
+	if (input_unitsize == sizeof(uint8_t) && input_signed) {
+		int8_t (*reader)(const uint8_t **p);
+		reader = read_i8_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_unitsize == sizeof(uint8_t)) {
+		uint8_t (*reader)(const uint8_t **p);
+		reader = read_u8_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_unitsize == sizeof(uint16_t) && input_signed) {
+		int16_t (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_i16be_inc;
+		else
+			reader = read_i16le_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_unitsize == sizeof(uint16_t)) {
+		uint16_t (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_u16be_inc;
+		else
+			reader = read_u16le_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_unitsize == sizeof(uint32_t) && input_signed) {
+		int32_t (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_i32be_inc;
+		else
+			reader = read_i32le_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	if (input_unitsize == sizeof(uint32_t)) {
+		uint32_t (*reader)(const uint8_t **p);
+		if (input_bigendian)
+			reader = read_u32be_inc;
+		else
+			reader = read_u32le_inc;
+		while (count--) {
+			value = reader(&data8);
+			value *= scale;
+			value += offset;
+			*outbuf++ = value;
+		}
+		return SR_OK;
+	}
+	snprintf(type_text, sizeof(type_text), "%c%zu%s",
+		input_float ? 'f' : input_signed ? 'i' : 'u',
+		input_unitsize * 8, input_bigendian ? "be" : "le");
+	sr_err("Unsupported type for analog-to-float conversion: %s.",
+		type_text);
+	return SR_ERR;
 }
 
 /**

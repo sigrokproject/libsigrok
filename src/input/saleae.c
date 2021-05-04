@@ -813,11 +813,13 @@ static int parse_next_item(struct sr_input *in,
 		diff_time /= inc->logic_state.l2d.sample_period;
 		diff_time += 0.5;
 		count = (uint64_t)diff_time;
-		digital = inc->feed.last.digital;
-		rc = addto_feed_buffer_logic(in, digital, count);
-		if (rc)
-			return rc;
-		inc->feed.last.time = next_time;
+		if (count) {
+			digital = inc->feed.last.digital;
+			rc = addto_feed_buffer_logic(in, digital, count);
+			if (rc)
+				return rc;
+			inc->feed.last.time = next_time;
+		}
 		inc->feed.last.digital = 1 - inc->feed.last.digital;
 		return SR_OK;
 	case STAGE_L2A_FIRST_VALUE:
@@ -1067,6 +1069,7 @@ static void cleanup(struct sr_input *in)
 {
 	struct context *inc;
 	struct context_options save_opts;
+	GSList *save_channels;
 
 	if (!in)
 		return;
@@ -1084,8 +1087,10 @@ static void cleanup(struct sr_input *in)
 
 	/* Clear internal state, but keep what .init() has provided. */
 	save_opts = inc->options;
+	save_channels = inc->module_state.prev_channels;
 	memset(inc, 0, sizeof(*inc));
 	inc->options = save_opts;
+	inc->module_state.prev_channels = save_channels;
 }
 
 static int reset(struct sr_input *in)
@@ -1104,6 +1109,7 @@ static int reset(struct sr_input *in)
 	 */
 	cleanup(in);
 	in->sdi->channels = inc->module_state.prev_channels;
+	inc->module_state.prev_channels = NULL;
 
 	inc->module_state.got_header = FALSE;
 	inc->module_state.header_sent = FALSE;

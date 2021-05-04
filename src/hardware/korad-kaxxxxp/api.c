@@ -24,6 +24,7 @@
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+	SR_CONF_FORCE_DETECT,
 };
 
 static const uint32_t drvopts[] = {
@@ -31,6 +32,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
+	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_CONTINUOUS,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
@@ -66,6 +68,8 @@ static const struct korad_kaxxxxp_model models[] = {
 		"KORAD KD3005P V2.0", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
 	{KORAD_KD3005P_V20_NOSP, "Korad", "KD3005P",
 		"KORADKD3005PV2.0", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
+	{KORAD_KD3005P_V21_NOSP, "Korad", "KD3005P",
+		"KORADKD3005PV2.1", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
 	{RND_320_KD3005P, "RND", "KD3005P",
 		"RND 320-KD3005P V4.2", 1, {0, 31, 0.01}, {0, 5.1, 0.001}},
 	{RND_320_KA3005P, "RND", "KA3005P",
@@ -91,18 +95,23 @@ static const struct korad_kaxxxxp_model models[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	static const char *serno_prefix = " SN:";
+
 	struct dev_context *devc;
 	GSList *l;
 	struct sr_dev_inst *sdi;
 	struct sr_config *src;
 	const char *conn, *serialcomm;
+	const char *force_detect;
 	struct sr_serial_dev_inst *serial;
 	char reply[50];
-	int i, model_id;
-	unsigned int len;
+	int ret, i, model_id;
+	size_t len;
+	char *serno;
 
 	conn = NULL;
 	serialcomm = NULL;
+	force_detect = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -112,6 +121,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case SR_CONF_SERIALCOMM:
 			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_FORCE_DETECT:
+			force_detect = g_variant_get_string(src->data, NULL);
 			break;
 		default:
 			sr_err("Unknown option %d, skipping.", src->key);
@@ -123,43 +135,64 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	if (!serialcomm)
 		serialcomm = "9600/8n1";
+	if (force_detect && !*force_detect)
+		force_detect = NULL;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	/* Get the device model. */
+	/*
+	 * Prepare a receive buffer for the identification response that
+	 * is large enough to hold the longest known model name, and an
+	 * optional serial number. Communicate the identification request.
+	 */
 	len = 0;
 	for (i = 0; models[i].id; i++) {
-		if (strlen(models[i].id) > len)
+		if (len < strlen(models[i].id))
 			len = strlen(models[i].id);
 	}
+	len += strlen(serno_prefix) + 12;
+	if (len > sizeof(reply) - 1)
+		len = sizeof(reply) - 1;
+	sr_dbg("Want max %zu bytes.", len);
+
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	if (ret < 0)
+		return NULL;
+
+	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	if (ret < 0)
+		return NULL;
+	sr_dbg("Received: %d, %s", ret, reply);
 
 	/*
-	 * Some models also include the serial number:
-	 * RND 320-KD3005P V4.2 SN:59834414
+	 * Isolate the optional serial number at the response's end.
+	 * Lookup the response's model ID in the list of known models.
 	 */
-	len += 12;
+	serno = g_strrstr(reply, serno_prefix);
+	if (serno) {
+		*serno = '\0';
+		serno += strlen(serno_prefix);
+	}
 
-	memset(&reply, 0, sizeof(reply));
-	sr_dbg("Want max %d bytes.", len);
-	if ((korad_kaxxxxp_send_cmd(serial, "*IDN?") < 0))
-		return NULL;
-
-	/* i is used here for debug purposes only. */
-	if ((i = korad_kaxxxxp_read_chars(serial, len, reply)) < 0)
-		return NULL;
-	sr_dbg("Received: %d, %s", i, reply);
 	model_id = -1;
-
-	/* Truncate before serial number. */
-	char *sn = g_strrstr(reply, " SN:");
-	if (sn)
-		*sn = '\0';
-
 	for (i = 0; models[i].id; i++) {
-		if (!g_strcmp0(models[i].id, reply))
+		if (g_strcmp0(models[i].id, reply) != 0)
+			continue;
+		model_id = i;
+		break;
+	}
+	if (model_id < 0 && force_detect) {
+		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
+			reply, force_detect);
+		for (i = 0; models[i].id; i++) {
+			if (strcmp(models[i].id, force_detect) != 0)
+				continue;
+			sr_info("Found replacement, using it instead.");
 			model_id = i;
+			break;
+		}
 	}
 	if (model_id < 0) {
 		sr_err("Unknown model ID '%s' detected, aborting.", reply);
@@ -172,8 +205,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup(models[model_id].vendor);
 	sdi->model = g_strdup(models[model_id].name);
+	if (serno)
+		sdi->serial_num = g_strdup(serno);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
+	sdi->connection_id = g_strdup(conn);
 
 	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
 	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
@@ -222,6 +258,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
 		return sr_sw_limits_config_get(&devc->limits, key, data);
+	case SR_CONF_CONN:
+		*data = g_variant_new_string(sdi->connection_id);
+		break;
 	case SR_CONF_VOLTAGE:
 		korad_kaxxxxp_get_value(sdi->conn, KAXXXXP_VOLTAGE, devc);
 		*data = g_variant_new_double(devc->voltage);

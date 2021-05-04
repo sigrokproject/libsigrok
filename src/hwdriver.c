@@ -63,6 +63,7 @@ static struct sr_key_info sr_key_info_config[] = {
 	{SR_CONF_SCALE, SR_T_STRING, NULL, "Scale", NULL},
 	{SR_CONF_SIGNAL_GENERATOR, SR_T_STRING, NULL, "Signal generator", NULL},
 	{SR_CONF_POWERMETER, SR_T_STRING, NULL, "Power meter", NULL},
+	{SR_CONF_MULTIPLEXER, SR_T_STRING, NULL, "Multiplexer", NULL},
 
 	/* Driver scan options */
 	{SR_CONF_CONN, SR_T_STRING, "conn",
@@ -71,6 +72,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Serial communication", NULL},
 	{SR_CONF_MODBUSADDR, SR_T_UINT64, "modbusaddr",
 		"Modbus slave address", NULL},
+	{SR_CONF_FORCE_DETECT, SR_T_STRING, "force_detect",
+		"Forced detection", NULL},
 
 	/* Device (or channel group) configuration */
 	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",
@@ -199,6 +202,16 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Range", NULL},
 	{SR_CONF_DIGITS, SR_T_STRING, "digits",
 		"Digits", NULL},
+	{SR_CONF_PHASE, SR_T_FLOAT, "phase",
+		"Phase", NULL},
+	{SR_CONF_DUTY_CYCLE, SR_T_FLOAT, "output_duty_cycle",
+		"Duty Cycle", NULL},
+	{SR_CONF_POWER, SR_T_FLOAT, "power",
+		"Power", NULL},
+	{SR_CONF_POWER_TARGET, SR_T_FLOAT, "power_target",
+		"Power Target", NULL},
+	{SR_CONF_RESISTANCE_TARGET, SR_T_FLOAT, "resistance_target",
+		"Resistance Target", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",
@@ -271,6 +284,7 @@ static struct sr_key_info sr_key_info_mq[] = {
 	{SR_MQ_MASS, 0, "mass", "Mass", NULL},
 	{SR_MQ_HARMONIC_RATIO, 0, "harmonic_ratio", "Harmonic ratio", NULL},
 	{SR_MQ_ENERGY, 0, "energy", "Energy", NULL},
+	{SR_MQ_ELECTRIC_CHARGE, 0, "electric_charge", "Electric charge", NULL},
 	ALL_ZERO
 };
 

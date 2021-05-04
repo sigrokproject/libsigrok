@@ -146,6 +146,60 @@ SR_PRIV int sr_atol_base(const char *str, long *ret, char **end, int base)
 }
 
 /**
+ * Convert a text to a number including support for non-decimal bases.
+ * Also optionally returns the position after the number, where callers
+ * can either error out, or support application specific suffixes.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] ret The conversion result.
+ * @param[out] end The position after the number.
+ * @param[in] base The number format's base, can be 0.
+ *
+ * @retval SR_OK Conversion successful.
+ * @retval SR_ERR Conversion failed.
+ *
+ * @private
+ *
+ * This routine is more general than @ref sr_atol(), which strictly
+ * expects the input text to contain just a decimal number, and nothing
+ * else in addition. The @ref sr_atoul_base() routine accepts trailing
+ * text after the number, and supports non-decimal numbers (bin, hex),
+ * including automatic detection from prefix text.
+ */
+SR_PRIV int sr_atoul_base(const char *str, unsigned long *ret, char **end, int base)
+{
+	unsigned long num;
+	char *endptr;
+
+	/* Add "0b" prefix support which strtol(3) may be missing. */
+	while (str && isspace(*str))
+		str++;
+	if (!base && strncmp(str, "0b", strlen("0b")) == 0) {
+		str += strlen("0b");
+		base = 2;
+	}
+
+	/* Run the number conversion. Quick bail out if that fails. */
+	errno = 0;
+	endptr = NULL;
+	num = strtoul(str, &endptr, base);
+	if (!endptr || errno) {
+		if (!errno)
+			errno = EINVAL;
+		return SR_ERR;
+	}
+	*ret = num;
+
+	/* Advance to optional non-space trailing suffix. */
+	while (endptr && isspace(*endptr))
+		endptr++;
+	if (end)
+		*end = endptr;
+
+	return SR_OK;
+}
+
+/**
  * Convert a string representation of a numeric value (base 10) to an integer. The
  * conversion is strict and will fail if the complete string does not represent
  * a valid integer. The function sets errno according to the details of the
@@ -269,6 +323,77 @@ SR_PRIV int sr_atod_ascii(const char *str, double *ret)
 	}
 
 	*ret = tmp;
+	return SR_OK;
+}
+
+/**
+ * Convert text to a floating point value, and get its precision.
+ *
+ * @param[in] str The input text to convert.
+ * @param[out] ret The conversion result, a double precision float number.
+ * @param[out] digits The number of significant decimals.
+ *
+ * @returns SR_OK in case of successful text to number conversion.
+ * @returns SR_ERR when conversion fails.
+ *
+ * @since 0.6.0
+ */
+SR_PRIV int sr_atod_ascii_digits(const char *str, double *ret, int *digits)
+{
+	const char *p;
+	int *dig_ref, m_dig, exp;
+	char c;
+	double f;
+
+	/*
+	 * Convert floating point text to the number value, _and_ get
+	 * the value's precision in the process. Steps taken to do it:
+	 * - Skip leading whitespace.
+	 * - Count the number of decimals after the mantissa's period.
+	 * - Get the exponent's signed value.
+	 *
+	 * This implementation still uses common code for the actual
+	 * conversion, but "violates API layers" by duplicating the
+	 * text scan, to get the number of significant digits.
+	 */
+	p = str;
+	while (*p && isspace(*p))
+		p++;
+	if (*p == '-' || *p == '+')
+		p++;
+	m_dig = 0;
+	exp = 0;
+	dig_ref = NULL;
+	while (*p) {
+		c = *p++;
+		if (toupper(c) == 'E') {
+			exp = strtol(p, NULL, 10);
+			break;
+		}
+		if (c == '.') {
+			m_dig = 0;
+			dig_ref = &m_dig;
+			continue;
+		}
+		if (isdigit(c)) {
+			if (dig_ref)
+				(*dig_ref)++;
+			continue;
+		}
+		/* Need not warn, conversion will fail. */
+		break;
+	}
+	sr_spew("atod digits: txt \"%s\" -> m %d, e %d -> digits %d",
+		str, m_dig, exp, m_dig + -exp);
+	m_dig += -exp;
+
+	if (sr_atod_ascii(str, &f) != SR_OK)
+		return SR_ERR;
+	if (ret)
+		*ret = f;
+	if (digits)
+		*digits = m_dig;
+
 	return SR_OK;
 }
 

@@ -81,7 +81,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Let's get a bit of data and see if we can find a packet. */
 	if (serial_stream_detect(serial, buf, &len, 25,
-			appa_55ii_packet_valid, 500) != SR_OK)
+			appa_55ii_packet_valid, NULL, NULL, 500) != SR_OK)
 		goto scan_cleanup;
 
 	sr_info("Found device on port %s.", conn);

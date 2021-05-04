@@ -21,7 +21,6 @@
 #include <config.h>
 #include "protocol.h"
 
-#define REQ_TIMEOUT_MS 500
 #define DEVICE_PROCESSING_TIME_MS 80
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
@@ -38,31 +37,118 @@ SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
 	return ret;
 }
 
+/**
+ * Read a variable length non-terminated string (caller specified maximum size).
+ *
+ * @param[in] serial The serial port to read from.
+ * @param[in] count The maximum amount of data to read.
+ * @param[out] buf The buffer to read data into. Must be larger than @a count.
+ *
+ * @return The amount of received data, or negative in case of error.
+ *     See @ref SR_ERR and other error codes.
+ *
+ * @internal
+ *
+ * The protocol has no concept of request/response termination. The only
+ * terminating conditions are either the caller's expected maxmimum byte
+ * count, or a period of time without receive data. It's essential to
+ * accept a longer initial period of time before the first receive data
+ * is seen. The supported devices can be very slow to respond.
+ *
+ * The protocol is text based. That's why the 'count' parameter specifies
+ * the expected number of text characters, and does not include the NUL
+ * termination which is not part of the wire protocol but gets added by
+ * the receive routine. The caller provided buffer is expected to have
+ * enough space for the text data and the NUL termination.
+ *
+ * Implementation detail: It's assumed that once receive data was seen,
+ * remaining response data will follow at wire speed. No further delays
+ * are expected beyond bitrate expectations. All normal commands in the
+ * acquisition phase are of fixed length which is known to the caller.
+ * Identification during device scan needs to deal with variable length
+ * data. Quick termination after reception is important there, as is the
+ * larger initial timeout period before receive data is seen.
+ */
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
-				int count, char *buf)
+	size_t count, char *buf)
 {
-	int ret, received, turns;
+	int timeout_first, timeout_later, timeout;
+	size_t retries_first, retries_later, retries;
+	size_t received;
+	int ret;
 
+	/* Clear the buffer early, to simplify the receive code path. */
+	memset(buf, 0, count + 1);
+
+	/*
+	 * This calculation is aiming for backwards compatibility with
+	 * an earlier implementation. An initial timeout is used which
+	 * depends on the expected response byte count, and a maximum
+	 * iteration count is used for read attempts.
+	 *
+	 * TODO Consider an absolute initial timeout instead, to reduce
+	 * accumulated rounding errors for serial timeout results. The
+	 * iteration with a short period is still required for variable
+	 * length responses, because otherwise the serial communication
+	 * layer would spend the total amount of time waiting for the
+	 * remaining bytes, while the device probe code path by design
+	 * passes a larger acceptable count than the typical and legal
+	 * response would occupy.
+	 *
+	 * After initial receive data was seen, a shorter timeout is
+	 * used which corresponds to a few bytes at wire speed. Idle
+	 * periods without receive data longer than this threshold are
+	 * taken as the end of the response. This is not compatible to
+	 * the previous implementation, but was found to work as well.
+	 * And severely reduces the time spent scanning for devices.
+	 */
+	timeout_first = serial_timeout(serial, count);
+	retries_first = 100;
+	timeout_later = serial_timeout(serial, 3);
+	retries_later = 1;
+
+	sr_spew("want %zu bytes, timeout/retry: init %d/%zu, later %d/%zu.",
+		count, timeout_first, retries_first,
+		timeout_later, retries_later);
+
+	/*
+	 * Run a sequence of read attempts. Try with the larger timeout
+	 * and a high retry count until the first receive data became
+	 * available. Then continue with a short timeout and small retry
+	 * count.
+	 *
+	 * Failed read is fatal, immediately terminates the read sequence.
+	 * A timeout in the initial phase just keeps repeating. A timeout
+	 * after receive data was seen regularly terminates the sequence.
+	 * Successful reads of non-empty responses keep extending the
+	 * read sequence until no more receive data is available.
+	 */
 	received = 0;
-	turns = 0;
-
-	do {
-		if ((ret = serial_read_blocking(serial, buf + received,
-				count - received,
-				serial_timeout(serial, count))) < 0) {
-			sr_err("Error %d reading %d bytes from device.",
+	timeout = timeout_first;
+	retries = retries_first;
+	while (received < count && retries--) {
+		ret = serial_read_blocking(serial,
+			&buf[received], count - received, timeout);
+		if (ret < 0) {
+			sr_err("Error %d reading %zu bytes from device.",
 			       ret, count);
 			return ret;
 		}
+		if (ret == 0 && !received)
+			continue;
+		if (ret == 0 && received) {
+			sr_spew("receive timed out, want %zu, received %zu.",
+				count, received);
+			break;
+		}
 		received += ret;
-		turns++;
-	} while ((received < count) && (turns < 100));
+		timeout = timeout_later;
+		retries = retries_later;
+	}
+	/* TODO Escape non-printables? Seen those with status queries. */
+	sr_dbg("got %zu bytes, received: '%s'.", received, buf);
 
-	buf[count] = 0;
-
-	sr_spew("Received: '%s'.", buf);
-
-	return ret;
+	return received;
 }
 
 static void give_device_time_to_process(struct dev_context *devc)
@@ -221,8 +307,6 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		g_mutex_unlock(&devc->rw_mutex);
 		return ret;
 	}
-
-	reply[count] = 0;
 
 	if (value) {
 		sr_atof_ascii((const char *)&reply, value);

@@ -27,7 +27,7 @@ DISTCHECK_CONFIGURE_FLAGS = --disable-python
 
 FIRMWARE_DIR = $(datadir)/sigrok-firmware
 
-local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I.
+local_includes = -Iinclude -I$(srcdir)/include -I$(srcdir)/src -I. @RPC_CFLAGS@
 if BINDINGS_CXX
 local_includes += -Ibindings/cxx/include -I$(srcdir)/bindings/cxx/include -Ibindings/cxx
 endif
@@ -165,6 +165,8 @@ endif
 libsigrok_la_SOURCES += \
 	src/dmm/asycii.c \
 	src/dmm/bm25x.c \
+	src/dmm/bm52x.c \
+	src/dmm/bm85x.c \
 	src/dmm/bm86x.c \
 	src/dmm/dtm0660.c \
 	src/dmm/eev121gw.c \
@@ -173,6 +175,7 @@ libsigrok_la_SOURCES += \
 	src/dmm/fs9922.c \
 	src/dmm/m2110.c \
 	src/dmm/metex14.c \
+	src/dmm/mm38xr.c \
 	src/dmm/ms2115b.c \
 	src/dmm/ms8250d.c \
 	src/dmm/rs9lcd.c \
@@ -257,13 +260,6 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/beaglelogic/api.c \
 	src/hardware/beaglelogic/beaglelogic_native.c \
 	src/hardware/beaglelogic/beaglelogic_tcp.c
-endif
-if HW_BRYMEN_DMM
-src_libdrivers_la_SOURCES += \
-	src/hardware/brymen-dmm/parser.c \
-	src/hardware/brymen-dmm/protocol.h \
-	src/hardware/brymen-dmm/protocol.c \
-	src/hardware/brymen-dmm/api.c
 endif
 if HW_CEM_DT_885X
 src_libdrivers_la_SOURCES += \
@@ -385,6 +381,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hp-3478a/protocol.c \
 	src/hardware/hp-3478a/api.c
 endif
+if HW_HP_59306A
+src_libdrivers_la_SOURCES += \
+	src/hardware/hp-59306a/protocol.h \
+	src/hardware/hp-59306a/protocol.c \
+	src/hardware/hp-59306a/api.c
+endif
 if HW_HUNG_CHANG_DSO_2100
 src_libdrivers_la_SOURCES += \
 	src/hardware/hung-chang-dso-2100/protocol.h \
@@ -408,6 +410,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ipdbg-la/protocol.h \
 	src/hardware/ipdbg-la/protocol.c \
 	src/hardware/ipdbg-la/api.c
+endif
+if HW_ITECH_IT8500
+src_libdrivers_la_SOURCES += \
+	src/hardware/itech-it8500/protocol.h \
+	src/hardware/itech-it8500/protocol.c \
+	src/hardware/itech-it8500/api.c
 endif
 if HW_KECHENG_KC_330B
 src_libdrivers_la_SOURCES += \
@@ -534,6 +542,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/rdtech-tc/protocol.h \
 	src/hardware/rdtech-tc/protocol.c \
 	src/hardware/rdtech-tc/api.c
+endif
+if HW_RIGOL_DG
+src_libdrivers_la_SOURCES += \
+	src/hardware/rigol-dg/protocol.h \
+	src/hardware/rigol-dg/protocol.c \
+	src/hardware/rigol-dg/api.c
 endif
 if HW_RIGOL_DS
 src_libdrivers_la_SOURCES += \

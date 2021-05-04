@@ -28,7 +28,9 @@ SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi)
 {
 	if (WITH_CMD_DELAY)
 		g_usleep(WITH_CMD_DELAY * 1000);
-	sr_scpi_get_opc(scpi);
+
+	if (!scpi->no_opc_command)
+		sr_scpi_get_opc(scpi);
 }
 
 SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_number(
@@ -114,6 +116,8 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 		if (mqitem)
 			*mqitem = item;
 		ret = SR_OK;
+	} else {
+		sr_warn("Unknown measurement quantity: %s", have);
 	}
 
 	if (rsp) {
@@ -170,6 +174,7 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	int sig_digits, val_exp;
 	int digits;
 	enum sr_unit unit;
+	double limit;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -282,9 +287,10 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 	}
 	if (!response)
 		return SR_ERR;
-	if (info->d_value > +9e37) {
+	limit = 9e37;
+	if (info->d_value > +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -9e37) {
+	} else if (info->d_value < -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;
@@ -357,12 +363,6 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 		analog->data = &info->f_value;
 		analog->encoding->unitsize = sizeof(info->f_value);
 	}
-	analog->encoding->is_float = TRUE;
-#ifdef WORDS_BIGENDIAN
-	analog->encoding->is_bigendian = TRUE;
-#else
-	analog->encoding->is_bigendian = FALSE;
-#endif
 	analog->encoding->digits = digits;
 	analog->meaning->mq = mq;
 	analog->meaning->mqflags = mqflag;
@@ -382,6 +382,208 @@ SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
 		break;
 	case SR_MQ_TEMPERATURE:
 		unit = SR_UNIT_CELSIUS;
+		break;
+	case SR_MQ_FREQUENCY:
+		unit = SR_UNIT_HERTZ;
+		break;
+	case SR_MQ_TIME:
+		unit = SR_UNIT_SECOND;
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+	analog->meaning->unit = unit;
+	analog->spec->spec_digits = digits;
+
+	return SR_OK;
+}
+
+SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
+{
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+	struct scpi_dmm_acq_info *info;
+	struct sr_datafeed_analog *analog;
+	int ret;
+	enum sr_mq mq;
+	enum sr_mqflag mqflag;
+	char *mode_response;
+	const char *p;
+	const struct mqopt_item *item;
+	const char *command;
+	char *response;
+	gboolean use_double;
+	double limit;
+	int sig_digits, val_exp;
+	int digits;
+	enum sr_unit unit;
+	int mmode;
+
+	scpi = sdi->conn;
+	devc = sdi->priv;
+	info = &devc->run_acq_info;
+	analog = &info->analog[ch];
+
+	/*
+	 * Get the meter's current mode, keep the response around.
+	 * Skip the measurement if the mode is uncertain.
+	 */
+	ret = scpi_dmm_get_mq(sdi, &mq, &mqflag, &mode_response, &item);
+	if (ret != SR_OK) {
+		g_free(mode_response);
+		return ret;
+	}
+	if (!mode_response)
+		return SR_ERR;
+	if (!mq) {
+		g_free(mode_response);
+		return +1;
+	}
+	mmode = atoi(mode_response);
+	g_free(mode_response);
+
+	/*
+	 * Get the current reading from the meter.
+	 */
+	scpi_dmm_cmd_delay(scpi);
+	command = sr_scpi_cmd_get(devc->cmdset, DMM_CMD_QUERY_VALUE);
+	if (!command || !*command)
+		return SR_ERR_NA;
+	scpi_dmm_cmd_delay(scpi);
+	ret = sr_scpi_get_string(scpi, command, &response);
+	if (ret != SR_OK)
+		return ret;
+	g_strstrip(response);
+	use_double = devc->model->digits > 6;
+	ret = sr_atod_ascii(response, &info->d_value);
+	if (ret != SR_OK) {
+		g_free(response);
+		return ret;
+	}
+	if (!response)
+		return SR_ERR;
+	limit = 9e37;
+	if (devc->model->infinity_limit != 0.0)
+		limit = devc->model->infinity_limit;
+	if (info->d_value >= +limit) {
+		info->d_value = +INFINITY;
+	} else if (info->d_value <= -limit) {
+		info->d_value = -INFINITY;
+	} else {
+		p = response;
+		while (p && *p && g_ascii_isspace(*p))
+			p++;
+		if (p && *p && (*p == '-' || *p == '+'))
+			p++;
+		sig_digits = 0;
+		while (p && *p && g_ascii_isdigit(*p)) {
+			sig_digits++;
+			p++;
+		}
+		if (p && *p && *p == '.')
+			p++;
+		while (p && *p && g_ascii_isdigit(*p))
+			p++;
+		ret = SR_OK;
+		if (!p || !*p)
+			val_exp = 0;
+		else if (*p != 'e' && *p != 'E')
+			ret = SR_ERR_DATA;
+		else
+			ret = sr_atoi(++p, &val_exp);
+	}
+	g_free(response);
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Make sure we report "INFINITY" when meter displays "0L".
+	 */
+	switch (mmode) {
+	case 7:
+	case 16:
+		/* In resitance modes 0L reads as 1.20000E8 or 1.99999E8. */
+		limit = 1.2e8;
+		if (strcmp(devc->model->model, "GDM8255A") == 0)
+			limit = 1.99999e8;
+		if (info->d_value >= limit)
+			info->d_value = +INFINITY;
+		break;
+	case 13:
+		/* In continuity mode 0L reads as 1.20000E3. */
+		if (info->d_value >= 1.2e3)
+			info->d_value = +INFINITY;
+		break;
+	case 17:
+		/* In diode mode 0L reads as 1.00000E0. */
+		if (info->d_value == 1.0e0)
+			info->d_value = +INFINITY;
+		break;
+	}
+
+	/*
+	 * Calculate 'digits' based on the result of the optional
+	 * precision reading which was done at acquisition start.
+	 * The GW-Instek manual gives the following information
+	 * regarding the resolution:
+	 *
+	 * Type      Digit
+	 * --------  ------
+	 * Slow      5 1/2
+	 * Medium    4 1/2
+	 * Fast      3 1/2
+	 */
+	digits = devc->model->digits;
+	if (devc->precision && *devc->precision) {
+		if (g_str_has_prefix(devc->precision, "Slow"))
+			digits = 6;
+		else if (g_str_has_prefix(devc->precision, "Mid"))
+			digits = 5;
+		else if (g_str_has_prefix(devc->precision, "Fast"))
+			digits = 4;
+		else
+			sr_info("Unknown precision: '%s'", devc->precision);
+	}
+
+	/*
+	 * Fill in the 'analog' description: value, encoding, meaning.
+	 * Callers will fill in the sample count, and channel name,
+	 * and will send out the packet.
+	 */
+	if (use_double) {
+		analog->data = &info->d_value;
+		analog->encoding->unitsize = sizeof(info->d_value);
+	} else {
+		info->f_value = info->d_value;
+		analog->data = &info->f_value;
+		analog->encoding->unitsize = sizeof(info->f_value);
+	}
+	analog->encoding->digits = digits;
+	analog->meaning->mq = mq;
+	analog->meaning->mqflags = mqflag;
+	switch (mq) {
+	case SR_MQ_VOLTAGE:
+		unit = SR_UNIT_VOLT;
+		break;
+	case SR_MQ_CURRENT:
+		unit = SR_UNIT_AMPERE;
+		break;
+	case SR_MQ_RESISTANCE:
+	case SR_MQ_CONTINUITY:
+		unit = SR_UNIT_OHM;
+		break;
+	case SR_MQ_CAPACITANCE:
+		unit = SR_UNIT_FARAD;
+		break;
+	case SR_MQ_TEMPERATURE:
+		switch (mmode) {
+		case 15:
+			unit = SR_UNIT_FAHRENHEIT;
+			break;
+		case 9:
+		default:
+			unit = SR_UNIT_CELSIUS;
+		}
 		break;
 	case SR_MQ_FREQUENCY:
 		unit = SR_UNIT_HERTZ;

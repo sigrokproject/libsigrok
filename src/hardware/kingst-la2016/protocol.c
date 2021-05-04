@@ -101,7 +101,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_resource bitstream;
-	uint32_t cmd;
+	uint8_t buffer[sizeof(uint32_t)];
+	uint8_t *wrptr;
 	uint8_t cmd_resp;
 	uint8_t block[4096];
 	int len, act_len;
@@ -122,8 +123,9 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi)
 	}
 
 	devc->bitstream_size = (uint32_t)bitstream.size;
-	WL32(&cmd, devc->bitstream_size);
-	if ((ret = ctrl_out(sdi, 80, 0x00, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	wrptr = buffer;
+	write_u32le_inc(&wrptr, devc->bitstream_size);
+	if ((ret = ctrl_out(sdi, 80, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
 		sr_err("failed to give upload init command");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
@@ -190,19 +192,25 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
 	struct dev_context *devc;
 	float o1, o2, v1, v2, f;
-	uint32_t cfg;
+	uint32_t cfgval;
+	uint8_t buffer[sizeof(uint32_t)];
+	uint8_t *wrptr;
 	int ret;
 
 	devc = sdi->priv;
 	o1 = 15859969; v1 = 0.45;
 	o2 = 15860333; v2 = 1.65;
 	f = (o2 - o1) / (v2 - v1);
-	WL32(&cfg, (uint32_t)(o1 + (voltage - v1) * f));
+	cfgval = (uint32_t)(o1 + (voltage - v1) * f);
+	sr_dbg("set threshold voltage %.2fV, raw value 0x%lx",
+		voltage, (unsigned long)cfgval);
 
-	sr_dbg("set threshold voltage %.2fV", voltage);
-	ret = ctrl_out(sdi, 32, CTRL_THRESHOLD, 0, &cfg, sizeof(cfg));
+	wrptr = buffer;
+	write_u32le_inc(&wrptr, cfgval);
+	ret = ctrl_out(sdi, 32, CTRL_THRESHOLD, 0, buffer, wrptr - buffer);
 	if (ret != SR_OK) {
-		sr_err("error setting new threshold voltage of %.2fV (%d)", voltage, RL16(&cfg));
+		sr_err("Error setting %.2fV threshold voltage (%d)",
+			voltage, ret);
 		return ret;
 	}
 	devc->threshold_voltage = voltage;
@@ -241,6 +249,8 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	pwm_setting_dev_t cfg;
 	pwm_setting_t *setting;
 	int ret;
+	uint8_t buf[2 * sizeof(uint32_t)];
+	uint8_t *wrptr;
 
 	devc = sdi->priv;
 
@@ -261,8 +271,10 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	cfg.duty = (uint32_t)(0.5f + (cfg.period * duty / 100.));
 	sr_dbg("set pwm%d period %d, duty %d", which, cfg.period, cfg.duty);
 
-	pwm_setting_dev_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, &cfg, sizeof(cfg));
+	wrptr = buf;
+	write_u32le_inc(&wrptr, cfg.period);
+	write_u32le_inc(&wrptr, cfg.duty);
+	ret = ctrl_out(sdi, 32, CTRL_PWM[which - 1], 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting new pwm%d config %d %d", which, cfg.period, cfg.duty);
 		return ret;
@@ -270,7 +282,6 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	setting = &devc->pwm_setting[which - 1];
 	setting->freq = freq;
 	setting->duty = duty;
-	setting->dev = cfg;
 
 	return SR_OK;
 }
@@ -321,6 +332,8 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	struct sr_trigger_match *match;
 	uint16_t ch_mask;
 	int ret;
+	uint8_t buf[4 * sizeof(uint32_t)];
+	uint8_t *wrptr;
 
 	devc = sdi->priv;
 	trigger = sr_session_trigger_get(sdi->session);
@@ -381,8 +394,12 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 
 	devc->had_triggers_configured = cfg.enabled != 0;
 
-	trigger_cfg_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, &cfg, sizeof(cfg));
+	wrptr = buf;
+	write_u32le_inc(&wrptr, cfg.channels);
+	write_u32le_inc(&wrptr, cfg.enabled);
+	write_u32le_inc(&wrptr, cfg.level);
+	write_u32le_inc(&wrptr, cfg.high_or_falling);
+	ret = ctrl_out(sdi, 32, CTRL_TRIGGER, 16, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting trigger config!");
 		return ret;
@@ -394,11 +411,13 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	sample_config_t cfg;
 	double clock_divisor;
 	uint64_t psa;
 	uint64_t total;
 	int ret;
+	uint16_t divisor;
+	uint8_t buf[2 * sizeof(uint32_t) + 48 / 8 + sizeof(uint16_t)];
+	uint8_t *wrptr;
 
 	devc = sdi->priv;
 	total = 128 * 1024 * 1024;
@@ -411,27 +430,27 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	clock_divisor = MAX_SAMPLE_RATE / (double)devc->cur_samplerate;
 	if (clock_divisor > 0xffff)
 		clock_divisor = 0xffff;
-	cfg.clock_divisor = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = MAX_SAMPLE_RATE / cfg.clock_divisor;
+	divisor = (uint16_t)(clock_divisor + 0.5);
+	devc->cur_samplerate = MAX_SAMPLE_RATE / divisor;
 
 	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
 		sr_err("too high sample depth: %" PRIu64, devc->limit_samples);
 		return SR_ERR;
 	}
-	cfg.sample_depth = devc->limit_samples;
 
 	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
 
-	psa = devc->pre_trigger_size * 256;
-	cfg.psa = (uint32_t)(psa & 0xffffffff);
-	cfg.u1  = (uint16_t)((psa >> 32) & 0xffff);
-	cfg.u2 = (uint32_t)((total * devc->capture_ratio) / 100);
-
 	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
-	       devc->cur_samplerate/1e3, (unsigned int)cfg.sample_depth, (unsigned int)devc->capture_ratio);
+	       devc->cur_samplerate / 1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
 
-	sample_config_le(cfg);
-	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, &cfg, sizeof(cfg));
+	psa = devc->pre_trigger_size * 256;
+	wrptr = buf;
+	write_u32le_inc(&wrptr, devc->limit_samples);
+	write_u48le_inc(&wrptr, psa);
+	write_u32le_inc(&wrptr, (total * devc->capture_ratio) / 100);
+	write_u16le_inc(&wrptr, clock_divisor);
+
+	ret = ctrl_out(sdi, 32, CTRL_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("error setting sample config!");
 		return ret;
@@ -478,14 +497,20 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
+	uint8_t buf[3 * sizeof(uint32_t)];
+	const uint8_t *rdptr;
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, 32, CTRL_BULK, 0, &devc->info, sizeof(devc->info))) != SR_OK) {
+	if ((ret = ctrl_in(sdi, 32, CTRL_BULK, 0, buf, sizeof(buf))) != SR_OK) {
 		sr_err("failed to read capture info!");
 		return ret;
 	}
-	capture_info_host(devc->info);
+
+	rdptr = buf;
+	devc->info.n_rep_packets = read_u32le_inc(&rdptr);
+	devc->info.n_rep_packets_before_trigger = read_u32le_inc(&rdptr);
+	devc->info.write_pos = read_u32le_inc(&rdptr);
 
 	sr_dbg("capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d",
 	       devc->info.n_rep_packets, devc->info.n_rep_packets,
@@ -502,7 +527,7 @@ SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev
 {
 	char fw_file[1024];
 	snprintf(fw_file, sizeof(fw_file) - 1, UC_FIRMWARE, product_id);
-	return ezusb_upload_firmware(sr_ctx, dev, 0, fw_file);
+	return ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
 }
 
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
@@ -563,7 +588,8 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
-	uint32_t bulk_cfg[2];
+	uint8_t wrbuf[2 * sizeof(uint32_t)];
+	uint8_t *wrptr;
 	uint32_t to_read;
 	uint8_t *buffer;
 
@@ -573,8 +599,8 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	if ((ret = get_capture_info(sdi)) != SR_OK)
 		return ret;
 
-	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / 5;
-	devc->n_bytes_to_read = devc->n_transfer_packets_to_read * sizeof(transfer_packet_t);
+	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / NUM_PACKETS_IN_CHUNK;
+	devc->n_bytes_to_read = devc->n_transfer_packets_to_read * TRANSFER_PACKET_LENGTH;
 	devc->read_pos = devc->info.write_pos - devc->n_bytes_to_read;
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
@@ -585,10 +611,11 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 		sr_err("failed to reset bulk state");
 		return ret;
 	}
-	WL32(&bulk_cfg[0], devc->read_pos);
-	WL32(&bulk_cfg[1], devc->n_bytes_to_read);
 	sr_dbg("will read from 0x%08x, 0x%08x bytes", devc->read_pos, devc->n_bytes_to_read);
-	if ((ret = ctrl_out(sdi, 32, CTRL_BULK, 0, &bulk_cfg, sizeof(bulk_cfg))) != SR_OK) {
+	wrptr = wrbuf;
+	write_u32le_inc(&wrptr, devc->read_pos);
+	write_u32le_inc(&wrptr, devc->n_bytes_to_read);
+	if ((ret = ctrl_out(sdi, 32, CTRL_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
 		sr_err("failed to send bulk config");
 		return ret;
 	}

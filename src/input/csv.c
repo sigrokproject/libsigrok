@@ -136,9 +136,6 @@
 /*
  * TODO
  *
- * - Unbreak analog data when submitted in the 'double' data type. This
- *   was observed with sigrok-cli screen output. Is analog.encoding->unitsize
- *   not handled appropriately? Is it a sigrok-cli or libsigrok issue?
  * - Add a test suite for input modules in general, and CSV in specific?
  *   Becomes more important with the multitude of options and their
  *   interaction. Could cover edge cases (BOM presence, line termination
@@ -146,7 +143,7 @@
  *   samplerates, etc).
  */
 
-typedef float csv_analog_t;	/* 'double' currently is flawed. */
+typedef double csv_analog_t;
 
 /* Single column formats. */
 enum single_col_format {
@@ -660,10 +657,12 @@ static int make_column_details_from_format(const struct sr_input *in,
 			 * line won't get processed another time.
 			 */
 			column = column_texts[detail->col_nr - 1];
-			if (inc->use_header && column && *column)
+			if (inc->use_header && column && *column) {
+				column = g_strstrip(column);
 				caption = sr_scpi_unquote_string(column);
-			else
+			} else {
 				caption = NULL;
+			}
 			if (!caption || !*caption)
 				caption = NULL;
 			/*
@@ -759,7 +758,20 @@ static void strip_comment(char *buf, const GString *prefix)
  */
 static char **split_line(char *buf, struct context *inc)
 {
-	return g_strsplit(buf, inc->delimiter->str, 0);
+	char **fields, *f;
+	size_t l;
+
+	fields = g_strsplit(buf, inc->delimiter->str, 0);
+	if (!fields)
+		return NULL;
+
+	l = g_strv_length(fields);
+	while (l--) {
+		f = fields[l];
+		g_strchomp(f);
+	}
+
+	return fields;
 }
 
 /**

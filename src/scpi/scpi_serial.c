@@ -46,6 +46,8 @@ static const struct {
 	{ 0x0aad, 0x0117, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 	{ 0x0aad, 0x0118, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
 	{ 0x0aad, 0x0119, "115200/8n1" },        /* R&S HMO series, previously branded as Hameg HMO */
+	{ 0x2184, 0x0030, "115200/8n1" },        /* GW-Instek GDM-8341 (VCP, SiLabs CP210x) */
+	{ 0x2184, 0x0058, "115200/8n1" },        /* GW-Instek GDM-9061 (USBCDC mode) */
 };
 
 static GSList *scpi_serial_scan(struct drv_context *drvc)
@@ -180,17 +182,22 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 
 	/* Try to read new data into the buffer. */
 	ret = serial_read_nonblocking(sscpi->serial, buf, maxlen);
-
 	if (ret < 0)
 		return ret;
 
-	if (ret > 0) {
-		if (buf[ret - 1] == '\n') {
-			sscpi->got_newline = TRUE;
-			sr_spew("Received terminator");
-		} else {
-			sscpi->got_newline = FALSE;
-		}
+	/*
+	 * Check for line termination at the end of the receive data.
+	 * Handle the usual case of NL, as well as the unusual NL+CR
+	 * combination (some GWInstek DMMs were found to do this).
+	 */
+	sscpi->got_newline = FALSE;
+	if (ret >= 1 && buf[ret - 1] == '\n') {
+		sscpi->got_newline = TRUE;
+		sr_spew("Received NL terminator");
+	} else if (ret >= 2 && buf[ret - 2] == '\n' && buf[ret - 1] == '\r') {
+		ret--;
+		sscpi->got_newline = TRUE;
+		sr_spew("Received NL+CR terminator");
 	}
 
 	return ret;

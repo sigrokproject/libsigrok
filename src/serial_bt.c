@@ -816,6 +816,7 @@ static struct ser_lib_functions serlib_bt = {
 	 * here, since the caller will cache/register them already.
 	 */
 	.set_params = std_dummy_set_params,
+	.set_handshake = std_dummy_set_handshake,
 	.setup_source_add = ser_bt_setup_source_add,
 	.setup_source_remove = ser_bt_setup_source_remove,
 	.list = ser_bt_list,

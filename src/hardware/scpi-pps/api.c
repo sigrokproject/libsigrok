@@ -333,6 +333,7 @@ static int config_get(uint32_t key, GVariant **data,
 	int cmd, ret;
 	const char *s;
 	int reg;
+	gboolean is_hmp_sqii;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -391,6 +392,11 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_CURRENT_LIMIT;
 		break;
 	case SR_CONF_OVER_VOLTAGE_PROTECTION_ENABLED:
+		if (devc->device->dialect == SCPI_DIALECT_HMP) {
+			/* OVP is always enabled. */
+			*data = g_variant_new_boolean(TRUE);
+			return 0;
+		}
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_ENABLED;
 		break;
@@ -423,12 +429,18 @@ static int config_get(uint32_t key, GVariant **data,
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD;
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
+		if (devc->device->dialect == SCPI_DIALECT_HMP) {
+			/* OTP is always enabled. */
+			*data = g_variant_new_boolean(TRUE);
+			return 0;
+		}
 		gvtype = G_VARIANT_TYPE_BOOLEAN;
 		cmd = SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION;
 		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE:
 		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
-			devc->device->dialect == SCPI_DIALECT_HP_COMP)
+			devc->device->dialect == SCPI_DIALECT_HP_COMP ||
+			devc->device->dialect == SCPI_DIALECT_HMP)
 			gvtype = G_VARIANT_TYPE_STRING;
 		else
 			gvtype = G_VARIANT_TYPE_BOOLEAN;
@@ -451,8 +463,22 @@ static int config_get(uint32_t key, GVariant **data,
 		channel_group_name = g_strdup(cg->name);
 	}
 
-	ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
-		channel_group_cmd, channel_group_name, data, gvtype, cmd);
+	is_hmp_sqii = FALSE;
+	is_hmp_sqii |= cmd == SCPI_CMD_GET_OUTPUT_REGULATION;
+	is_hmp_sqii |= cmd == SCPI_CMD_GET_OVER_TEMPERATURE_PROTECTION_ACTIVE;
+	is_hmp_sqii &= devc->device->dialect == SCPI_DIALECT_HMP;
+	if (is_hmp_sqii) {
+		if (!cg) {
+			/* STAT:QUES:INST:ISUMx query requires channel spec. */
+			sr_err("Need a channel group for regulation or OTP-active query.");
+			return SR_ERR_NA;
+		}
+		ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
+			0, NULL, data, gvtype, cmd, channel_group_name);
+	} else {
+		ret = sr_scpi_cmd_resp(sdi, devc->device->commands,
+			channel_group_cmd, channel_group_name, data, gvtype, cmd);
+	}
 	g_free(channel_group_name);
 
 	/*
@@ -501,6 +527,18 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new_string("CC");
 			else if (reg & (1 << 11))
 				*data = g_variant_new_string("CC-");
+			else
+				*data = g_variant_new_string("UR");
+		}
+		if (devc->device->dialect == SCPI_DIALECT_HMP) {
+			/* Evaluate Condition Status Register from a HMP series device. */
+			s = g_variant_get_string(*data, NULL);
+			sr_atoi(s, &reg);
+			g_variant_unref(*data);
+			if (reg & (1 << 0))
+				*data = g_variant_new_string("CC");
+			else if (reg & (1 << 1))
+				*data = g_variant_new_string("CV");
 			else
 				*data = g_variant_new_string("UR");
 		}
@@ -556,7 +594,8 @@ static int config_get(uint32_t key, GVariant **data,
 			g_variant_unref(*data);
 			*data = g_variant_new_boolean(reg & (1 << 4));
 		}
-		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB) {
+		if (devc->device->dialect == SCPI_DIALECT_HP_66XXB ||
+		    devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* Evaluate Questionable Status Register bit 4 from a HP 66xxB. */
 			s = g_variant_get_string(*data, NULL);
 			sr_atoi(s, &reg);
