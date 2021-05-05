@@ -405,6 +405,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ikalogic-scanaplus/protocol.c \
 	src/hardware/ikalogic-scanaplus/api.c
 endif
+if HW_IPDBG_AWG
+src_libdrivers_la_SOURCES += \
+	src/hardware/ipdbg-awg/protocol.h \
+	src/hardware/ipdbg-awg/protocol.c \
+	src/hardware/ipdbg-awg/api.c
+endif
 if HW_IPDBG_LA
 src_libdrivers_la_SOURCES += \
 	src/hardware/ipdbg-la/protocol.h \
