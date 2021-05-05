@@ -17,6 +17,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <config.h>
 #include <scpi.h>
 
@@ -26,16 +28,6 @@
 
 
 size_t samples_sent = 0; // DEBUG
-
-// uint64_t samplerates[3]; // sample rate storage: min, max, step size (all in Hz)
-// const int channel_count_max = 16; // maximum number of channels
-// const int channel_char_max=6;
-// char chan_names[16][7] = { // channel names, start with default
-// 	"000001", "000002", "000003", "000004", "000005", "000006", "000007", "000008",
-// 	"000009", "000010", "000011", "000012", "000013", "000014", "000015", "000016",
-// };
-
-// int32_t channel_count = 0; // initialize to 0
 
 SR_PRIV int tlf_samplerates_list(const struct sr_dev_inst *sdi) // gets sample rates from device
 {
@@ -261,89 +253,6 @@ SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi) // gets channel names fro
 		sr_spew("Channel index: %d Channel name: %s", i, devc->chan_names[i]);
 	}
 
-	// **** CHANNEL test ************************
-
-	// for (int i=0; i < chan_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:STATus?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, status: %s", command, i+1, buf);
-	// }
-
-	// for (int i=0; i < chan_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:STATus ON", i+1); // define channel to get name
-	// 	sr_spew("About to send: %s, count: %ld", command, strlen(command));
-	// 	if (sr_scpi_send(sdi->conn, command) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s", command);
-	// }
-
-	// for (int i=0; i < chan_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:STATus?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, status: %s", command, i+1, buf);
-	// }
-
-	// 	for (int i=0; i < chan_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:STATus OFF", i+1); // define channel to get name
-	// 	sr_spew("About to send: %s, count: %ld", command, strlen(command));
-	// 	if (sr_scpi_send(sdi->conn, command) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s", command);
-	// }
-
-	// for (int i=0; i < chan_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:STATus?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, status: %s", command, i+1, buf);
-	// }
-
-	// ***** end Channel setting test
-
-	// // **** TRIGGER test
-
-	// for (int32_t i=0; i < channel_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	// }
-
-	// // Set trigger
-	// for (int32_t i=0; i < channel_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:TRIGger R", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	// }
-
-
-	// for (int32_t i=0; i < channel_count; i++) {
-
-	// 	sprintf(command, "CHANnel%d:TRIGger?", i+1); // define channel to get name
-	// 	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
-	// 		return SR_ERR;
-	// 	}
-	// 	sr_spew("send: %s, chan #: %d, TRIGGER: %s", command, i+1, buf);
-	// }
-
-
 	sr_dbg("Setting all channels on, configuring channels");
 
 	/* Logic channels, all in one channel group. */
@@ -429,7 +338,21 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
 {
-	return sr_scpi_send(sdi->conn, "RUN");
+	struct dev_context *devc;
+	int ret;
+
+	if (!(devc = sdi->priv)) {
+		return SR_ERR;
+	}
+
+	devc->measured_samples = 0; // reset measurement counter
+	samples_sent=0;
+	sr_spew("reset devc->measured_samples, samples_sent");
+
+	ret = sr_scpi_send(sdi->conn, "RUN");
+	g_usleep(3000000); // delay for measurement time before reading.
+
+	return ret;
 
 }
 
@@ -439,151 +362,14 @@ SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi) // stop measurement
 
 }
 
-
-// // from Yokogawa-dlm
-// /**
-//  * Attempts to query sample data from the oscilloscope in order to send it
-//  * to the session bus for further processing.
-//  *
-//  * @param fd The file descriptor used as the event source.
-//  * @param revents The received events.
-//  * @param cb_data Callback data, in this case our device instance.
-//  *
-//  * @return TRUE in case of success or a recoverable error,
-//  *         FALSE when a fatal error was encountered.
-//  */
-// SR_PRIV int dlm_data_receive(int fd, int revents, void *cb_data)
-// {
-// 	struct sr_dev_inst *sdi;
-// 	struct scope_state *model_state;
-// 	struct dev_context *devc;
-// 	struct sr_channel *ch;
-// 	int chunk_len, num_bytes;
-// 	static GArray *data = NULL;
-
-// 	(void)fd;
-// 	(void)revents;
-
-// 	if (!(sdi = cb_data))
-// 		return FALSE;
-
-// 	if (!(devc = sdi->priv))
-// 		return FALSE;
-
-// 	if (!(model_state = (struct scope_state*)devc->model_state))
-// 		return FALSE;
-
-// 	/* Are we waiting for a response from the device? */
-// 	if (!devc->data_pending)
-// 		return TRUE;
-
-// 	/* Check if a new query response is coming our way. */
-// 	if (!data) {
-// 		if (sr_scpi_read_begin(sdi->conn) == SR_OK)
-// 			/* The 16 here accounts for the header and EOL. */
-// 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
-// 					16 + model_state->samples_per_frame);
-// 		else
-// 			return TRUE;
-// 	}
-
-// 	/* Store incoming data. */
-// 	chunk_len = sr_scpi_read_data(sdi->conn, devc->receive_buffer,
-// 			RECEIVE_BUFFER_SIZE);
-// 	if (chunk_len < 0) {
-// 		sr_err("Error while reading data: %d", chunk_len);
-// 		goto fail;
-// 	}
-// 	g_array_append_vals(data, devc->receive_buffer, chunk_len);
-
-// 	/* Read the entire query response before processing. */
-// 	if (!sr_scpi_read_complete(sdi->conn))
-// 		return TRUE;
-
-// 	/* We finished reading and are no longer waiting for data. */
-// 	devc->data_pending = FALSE;
-
-// 	 Signal the beginning of a new frame if this is the first channel.
-// 	if (devc->current_channel == devc->enabled_channels)
-// 		std_session_send_df_frame_begin(sdi);
-
-// 	if (dlm_block_data_header_process(data, &num_bytes) != SR_OK) {
-// 		sr_err("Encountered malformed block data header.");
-// 		goto fail;
-// 	}
-
-// 	if (num_bytes == 0) {
-// 		sr_warn("Zero-length waveform data packet received. " \
-// 				"Live mode not supported yet, stopping " \
-// 				"acquisition and retrying.");
-// 		/* Don't care about return value here. */
-// 		dlm_acquisition_stop(sdi->conn);
-// 		g_array_free(data, TRUE);
-// 		dlm_channel_data_request(sdi);
-// 		return TRUE;
-// 	}
-
-// 	ch = devc->current_channel->data;
-// 	switch (ch->type) {
-// 	case SR_CHANNEL_ANALOG:
-// 		if (dlm_analog_samples_send(data,
-// 				&model_state->analog_states[ch->index],
-// 				sdi) != SR_OK)
-// 			goto fail;
-// 		break;
-// 	case SR_CHANNEL_LOGIC:
-// 		if (dlm_digital_samples_send(data, sdi) != SR_OK)
-// 			goto fail;
-// 		break;
-// 	default:
-// 		sr_err("Invalid channel type encountered.");
-// 		break;
-// 	}
-
-// 	g_array_free(data, TRUE);
-// 	data = NULL;
-
-// 	/*
-// 	 * Signal the end of this frame if this was the last enabled channel
-// 	 * and set the next enabled channel. Then, request its data.
-// 	 */
-// 	if (!devc->current_channel->next) {
-// 		std_session_send_df_frame_end(sdi);
-// 		devc->current_channel = devc->enabled_channels;
-
-// 		/*
-// 		 * As of now we only support importing the current acquisition
-// 		 * data so we're going to stop at this point.
-// 		 */
-// 		sr_dev_acquisition_stop(sdi);
-// 		return TRUE;
-// 	} else
-// 		devc->current_channel = devc->current_channel->next;
-
-// 	if (dlm_channel_data_request(sdi) != SR_OK) {
-// 		sr_err("Failed to request acquisition data.");
-// 		goto fail;
-// 	}
-
-// 	return TRUE;
-
-// fail:
-// 	if (data) {
-// 		g_array_free(data, TRUE);
-// 		data = NULL;
-// 	}
-
-// 	return FALSE;
-// }
-
 SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int chunk_len;
 	static GArray *data = NULL;
-	char print_buffer[6000];
-	char tmp_buffer[6000];
+	// char print_buffer[6000]; // for debugging data values
+	// char tmp_buffer[6000];
 
 	// int ret;
 
@@ -591,50 +377,31 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 	(void) fd;
 
+
 	sr_spew("---> Entering tlf_receive_data");
+
 	if (!(sdi = cb_data))
 		return TRUE;
+	sr_spew("---> tlf_receive_data - A");
 
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	sr_spew("---> tlf_receive_data - B");
 	 //Are we waiting for a response from the device?
 	if (!devc->data_pending)
 		return TRUE;
 
+	sr_spew("---> tlf_receive_data - ask for DATA?");
 	if ( sr_scpi_send(sdi->conn, "DATA?") != SR_OK ) {
+			sr_spew("---> tlf_receive_data - going to close");
 			goto close;
 		}
 
-	// sr_spew("sent DATA?");
-
-
-	// ret = sr_scpi_get_string(sdi->conn, "DATA?", tmp_buffer);
-	// //ret = sr_scpi_get_data(sdi->conn, "DATA?", devc->receive_buffer);
-
-	// sr_spew("get data, ret= %d, %s", ret, tmp_buffer);
-
-	// /* Check if a new query response is coming our way. */
-	// if (!data) { // initial query
-
-	// 	ret = sr_scpi_read_begin(sdi->conn);
-	// 	sr_spew("read_begin = %d", ret);
-
-	// 	// if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
-	// 	// 	// /* The 16 here accounts for the header and EOL. */
-	// 	// 	data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
-	// 	// 			32);
-	// 	// 			//16 + model_state->samples_per_frame);
-	// 	// 	sr_spew("created new data array");
-	// 	// }
-	// 	// else
-	// 	// 	sr_spew("else?");
-	// 	// 	return TRUE;
-	// }
-
-	//std_session_send_df_frame_end(sdi);
 
 	if (!data) {
+		sr_spew("---> tlf_receive_data -> read_begin A");
+
 		if (sr_scpi_read_begin(sdi->conn) == SR_OK) {
 			// /* The 16 here accounts for the header and EOL. */
 			data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t),
@@ -645,6 +412,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		else
 			return TRUE;
 	} else {
+		sr_spew("---> tlf_receive_data -> read_begin 2");
 		sr_scpi_read_begin(sdi->conn);
 	}
 
@@ -664,57 +432,19 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	sr_spew("Received data, chunk_len: %d", chunk_len);
-	// g_array_append_vals(data, devc->receive_buffer, chunk_len);
 
 	uint32_t timestamp;
 	uint16_t value;
 
-	print_buffer[0] = '\0';
+	// print_buffer[0] = '\0'; // for debugging data values
 	for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
-		// uint32_t timestamp = ((char) devc->receive_buffer[i+1] << 8) | ((char) devc->receive_buffer[i]);
-		// uint16_t value = ((char) devc->receive_buffer[i+3] << 8) | ((char) devc->receive_buffer[i+2]);
-
-		// uint32_t timestamp = ((uint16_t) devc->receive_buffer[i+1] << 8) | devc->receive_buffer[i];
-
 		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
-		// uint32_t timestamp = (uint8_t) devc->receive_buffer[i+1];
-		// sprintf(tmp_buffer, "[1: %u]", timestamp); //32 bit timestamp
-		// strcat(print_buffer, tmp_buffer);
-		// timestamp = timestamp << 8;
-		// sprintf(tmp_buffer, "[2: %u]", timestamp); //32 bit timestamp
-		// strcat(print_buffer, tmp_buffer);
-		// timestamp = timestamp | (uint8_t) devc->receive_buffer[i];
-		// sprintf(tmp_buffer, "[3: %u]", timestamp); //32 bit timestamp
-		// strcat(print_buffer, tmp_buffer);
-
-		// uint16_t value = ((uint16_t) devc->receive_buffer[i+3] << 8) | devc->receive_buffer[i+2];
-
 		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
-		// sprintf(tmp_buffer, "[1v: %u]", value); //32 bit timestamp
-		// strcat(print_buffer, tmp_buffer);
-		// value = value << 8;
-		// // sprintf(tmp_buffer, "[2v: %u]", value); //32 bit timestamp
-		// // strcat(print_buffer, tmp_buffer);
-		// value = value | (uint8_t) devc->receive_buffer[i+2];
-		// // sprintf(tmp_buffer, "[3v: %u]", value); //32 bit timestamp
-		// // strcat(print_buffer, tmp_buffer);
 
-
-		sprintf(tmp_buffer, "[%u %u]", timestamp, value); //32 bit timestamp
-		strcat(print_buffer, tmp_buffer);
-
-		//sprintf(tmp_buffer, "[old %u %hu] ", (uint32_t) devc->receive_buffer[i], (uint16_t) devc->receive_buffer[i+4]); //32 bit timestamp
-	// for (int i=0; i < chunk_len; i=i+4) {
-	// 	sprintf(tmp_buffer, "[%hu %hu]:", devc->receive_buffer[i], devc->receive_buffer[i+2]); //16 bit timestamp
-		//strcat(print_buffer, tmp_buffer);
-		// sprintf(tmp_buffer, "[%d %d %d %d]--", devc->receive_buffer[i], devc->receive_buffer[i+1], devc->receive_buffer[i+2], devc->receive_buffer[i+3]);
-
-		// sprintf(tmp_buffer, "[%d %d %d %d]--", (uint8_t) devc->receive_buffer[i], (uint8_t) devc->receive_buffer[i+1], (uint8_t) devc->receive_buffer[i+2], (uint8_t) devc->receive_buffer[i+3]);
-		// strcat(print_buffer, tmp_buffer);
+		// sprintf(tmp_buffer, "[%u %u]", timestamp, value); // for debugging data values
+		// strcat(print_buffer, tmp_buffer); // for debugging data values
 	}
-	sr_warn("Data: %s", print_buffer);
-
-	//return TRUE;
+	// sr_warn("Data: %s", print_buffer); // for debugging data values
 
 	// Perform Run-Length Encoded extraction into samples at each tick
 	//
@@ -728,7 +458,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 	struct sr_datafeed_logic logic;
 	unsigned int buffer_size = 12;
 
-
 	if (devc->measured_samples == 0) { // this is the first time reading, so allocate the buffer
 							  // todo *** after the last read, free the malloc'ed buffer.
 		devc->raw_sample_buf = g_try_malloc(buffer_size * 2);
@@ -737,7 +466,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 			return FALSE;
 		}
 
-		// Do we need to initialize the last_timestamp, last_sample for the first sample?
 	}
 
 	packet.type = SR_DF_LOGIC;
@@ -757,8 +485,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		for (int32_t tick=devc->last_timestamp; tick < (int32_t) timestamp; tick++) {
 			// run from the previous time_stamp to the current one, fill with last_sample data
 			((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
-			//sr_spew("measured_samples: %ld, storing: %u, last: [%u %u], data: [%u %u]", devc->measured_samples, devc->last_sample, devc->last_timestamp, devc->last_sample, timestamp, value);
-			//sr_spew("measured_samples: %ld, data: [%u %u]", devc->measured_samples, timestamp, value);
 			devc->measured_samples++;
 			devc->pending_samples++; // number of samples currently stored in the buffer
 
@@ -769,11 +495,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 				}
 				sr_session_send(sdi, &packet);
 
-
-				// DEBUG
-
-
-				//sr_spew("Packet sent, proceeding.");
 				devc->pending_samples = 0;
 			}
 		}
@@ -795,39 +516,19 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		sr_session_send(sdi, &packet);
 	}
 
-
-	sr_warn("Data: %s", print_buffer);
-
+	// sr_warn("Data: %s", print_buffer); // for debugging data values
 	sr_spew("Finished flush.");
-
 	sr_warn("Sent samples %zu", samples_sent);
 
 	if (samples_sent >= devc->cur_samples) {
 		goto close;
 	}
 
-
-	// std_session_send_df_frame_end(sdi);
-	// std_session_send_df_frame_begin(sdi);
-
 	sr_spew("<- returning from tlf_receive_data");
-
-	// Need to determine when samples are completed.
 
 	return TRUE;
 
-	// /* Read the entire query response before processing. */
-	// if (!sr_scpi_read_complete(sdi->conn)){
-	// 	sr_spew("read is incomplete, loop back");
-	// 	return TRUE;
-	// }
-
-
-
-	//sr_dev_acquisition_stop(sdi); //   ***** this is just a trial
-
 	/* We finished reading and are no longer waiting for data. */
-
 
 	sr_spew("freeing data");
 	g_array_free(data, TRUE);
@@ -844,6 +545,7 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		g_array_free(data, TRUE);
 		data = NULL;
 		sr_dev_acquisition_stop(sdi);
+
 	}
 
 	return FALSE;

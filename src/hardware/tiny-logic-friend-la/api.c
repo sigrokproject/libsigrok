@@ -25,11 +25,9 @@
 
 static struct sr_dev_driver tiny_logic_friend_la_driver_info;
 
-//static const char *manufacturer = "TinyLogicFriend";
-
 static const uint32_t scanopts[] = { // setup the communication options, use USB TMC
 	// SR_CONF_CONN,
-	// SR_CONF_NUM_LOGIC_CHANNELS, // todo - double check this (taken from beaglelogic)
+	// SR_CONF_NUM_LOGIC_CHANNELS,
 };
 
 static const uint32_t drvopts[] = { // This driver is for a logic analyzer
@@ -38,26 +36,15 @@ static const uint32_t drvopts[] = { // This driver is for a logic analyzer
 
 static const uint32_t devopts[] = {
 	// These are the options on the tinyLogicFriend that can be set
-	// These need to be verified and testing ***
-//	SR_CONF_CONTINUOUS,
-//  SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET, // for example, see pipistrello-ols
-//  SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET,
+//	SR_CONF_CONTINUOUS, // *todo* future expansion
+//  SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET, // *todo* future expansion - for example, see pipistrello-ols
+//  SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET, // *todo* future expansion
 //  SR_CONF_ENABLED | SR_CONF_SET,
 //  SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
     SR_CONF_TRIGGER_MATCH | SR_CONF_LIST, // Need to update and verify this.
 };
-
-
-// // todo - make this variable based on the trigger options returned from a scan
-// static const int32_t trigger_matches[] = {
-// 	SR_TRIGGER_ZERO,
-// 	SR_TRIGGER_ONE,
-// 	SR_TRIGGER_RISING,
-// 	SR_TRIGGER_FALLING,
-// 	SR_TRIGGER_EDGE,
-// };
 
 // Starting point is from rohde_schwarz_sme_0x driver, which uses
 // USB TMC (Test and Measurement Class) communication
@@ -77,8 +64,6 @@ static int tlf_get_lists(struct sr_dev_inst *sdi)
 
 	sr_spew("-> Enter tlf_init_device");
 
-	// devc = sdi->priv; // this is the local context, do we need need to reference this directly
-	// 				  // maybe send devc to the ``collect`` functions
 	model_found = 0;
 
 	sr_spew("-> Enter tlf_init_device 1");
@@ -159,8 +144,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 									   // and initialize all device options and get current settings
 		goto fail;
 
-	// DEBUG ** todo
-
 	GSList *l;
 	for (l = sdi->channels; l; l = l->next) {
 		sr_err("** probe_device channel found");
@@ -177,14 +160,9 @@ fail:
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	//struct sr_dev_inst *sdi;
 	sr_spew("-> Enter scan");
-	// sr_scpi_scan(di->context, options, probe_device);
 
-	// return std_scan_complete(di, g_slist_append(NULL, sdi));
 	// set all important setup parameters into the probe_device function
-
-
 	return sr_scpi_scan(di->context, options, probe_device);
 
 }
@@ -194,7 +172,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 	int ret;
 
 	sr_spew("-> Enter dev_open");
-	// return sr_scpi_open(sdi->conn);
 
 	if ((ret = sr_scpi_open(sdi->conn)) < 0) {
 		sr_err("Failed to open SCPI device: %s.", sr_strerror(ret));
@@ -210,7 +187,6 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return sr_scpi_close(sdi->conn);
 }
 
-// *** needs a bunch of configuration parameters added
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -226,8 +202,6 @@ static int config_get(uint32_t key, GVariant **data,
 		sr_err("Must call `scan` prior to calling `config_get`.");
 		return SR_ERR_ARG;
 	}
-
-	sr_spew("-> Enter config_get 2");
 
 	if (!cg) {
 		switch (key) {
@@ -304,7 +278,6 @@ static int config_channel_set(const struct sr_dev_inst *sdi,
 
 }
 
-// *** needs a bunch of configuration parameters added
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -312,12 +285,12 @@ static int config_set(uint32_t key, GVariant *data,
 	struct sr_channel *ch;
 	uint64_t value;
 
+	sr_spew("-> Enter config_set");
+
 	if (!sdi) {
 		sr_err("Must call `scan` prior to calling `config_set`.");
 		return SR_ERR_NA;
 	}
-
-	sr_spew("-> Enter config_set");
 
 	devc = sdi->priv;
 
@@ -374,19 +347,12 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	sr_spew("-> config_list");
 	struct dev_context *devc;
-	// uint32_t buf_32;
-
-	// if (!sdi) {
-	// 	sr_err("Must call `scan` prior to calling `config_list`.");
-	// return SR_ERR_NA;
-	// }
 
 	sr_spew("-> Enter config_list");
 
 	switch(key) {
 	case SR_CONF_SCAN_OPTIONS:
 		sr_spew("  -> SR_CONF_SCAN_OPTIONS");
-		// return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, NO_OPTS, NO_OPTS);
 	case SR_CONF_DEVICE_OPTIONS:
 		sr_spew("  -> SR_CONF_DEVICE_OPTIONS");
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
@@ -418,7 +384,7 @@ static int config_list(uint32_t key, GVariant **data,
 				return SR_ERR;
 			}
 			*data = std_gvar_tuple_u64(100, devc->max_samples);
-			sr_dbg("max_samples: %llu", devc->max_samples);
+			sr_dbg("max_samples: %u", devc->max_samples);
 			break;
 		}
 	default:
@@ -432,149 +398,44 @@ static int config_list(uint32_t key, GVariant **data,
 
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-	// modified from yokogawa-dlm
 {
-	// GSList *l;
-	// gboolean digital_added;
-	// struct sr_channel *ch;
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	int ret;
 
 	sr_spew("->dev_acquisition_start");
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
-	// digital_added = FALSE;
-
-	// g_slist_free(devc->enabled_channels);
-	// devc->enabled_channels = NULL;
-
-	// for (l = sdi->channels; l; l = l->next) {
-	// 	ch = l->data;
-	// 	if (!ch->enabled)
-	// 		continue;
-	// 	/* Only add a single digital channel. */
-	// 	if (ch->type != SR_CHANNEL_LOGIC || !digital_added) {
-	// 		devc->enabled_channels = g_slist_append(
-	// 			devc->enabled_channels, ch);
-	// 		if (ch->type == SR_CHANNEL_LOGIC)
-	// 			digital_added = TRUE;
-	// 	}
-	// }
-
-	// if (!devc->enabled_channels)
-	// 	return SR_ERR;
-
-	// if (dlm_check_channels(devc->enabled_channels) != SR_OK) {
-	// 	sr_err("Invalid channel configuration specified!");
-	// 	return SR_ERR_NA;
-	// }
-
-	//  Request data for the first enabled channel.
-	// devc->current_channel = devc->enabled_channels;
-	// dlm_channel_data_request(sdi);
-
 	devc->data_pending = TRUE; // initialize all the variables before reading data.
 	devc->measured_samples = 0;
 	devc->last_sample = 0;
 	devc->last_timestamp = 0;
 
-
-
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
-			tlf_receive_data, (void *)sdi);
-
-	sr_spew("->dev_acquisition_start 2");
-
-	// sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 5,
-			// tlf_receive_data, (void *)sdi);
-
 	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
 
-	sr_spew("->dev_acquisition_start 3");
-
 	sr_spew("Go RUN");
-
 	std_session_send_df_frame_begin(sdi);
 
-	return tlf_exec_run(sdi);
+	ret=tlf_exec_run(sdi);
+
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50, // timeout value (ms)
+			tlf_receive_data, (void *)sdi);
+
+	return ret;
 }
 
 
-
-
-// static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-// {
-// 	/* TODO: configure hardware, reset acquisition state, set up
-// 	 * callbacks and send header packet. */
-// 	char buffer[555];
-// 	int len;
-
-
-// 	sr_spew("-> Enter dev_acquisition_start");
-// 	tlf_exec_run(sdi);
-
-// 	// todo setup triggers here
-
-// 	// read measurements
-
-// 	// /*
-// 	//  * Start acquisition on the first enabled channel. The
-// 	//  * receive routine will continue driving the acquisition.
-// 	//  */
-// 	// sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50,
-// 	// 		lecroy_xstream_receive_data, (void *)sdi);
-
-// 	// std_session_send_df_header(sdi);
-
-// 	// devc->current_channel = devc->enabled_channels;
-
-// 	// return lecroy_xstream_request_data(sdi);
-
-
-// 	sr_scpi_source_add(sdi->session, sdi->conn, G_IO_IN, 50,
-// 		tlf_receive_data, (void *)sdi);
-
-
-// 	sr_spew("Go RUN");
-// 	return tlf_exec_run(sdi);
-// }
-
 static int dev_acquisition_stop(const struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
-
 
 	sr_spew("-> Enter dev_acquisition_stop");
 	std_session_send_df_frame_end(sdi);
 	sr_scpi_source_remove(sdi->session, sdi->conn);
 	tlf_exec_stop(sdi);
-	// todo clear triggers
 
 	return SR_OK;
 }
-
-// static int tlf_init(struct sr_dev_driver *di, struct sr_context *sr_ctx)
-// {
-//  	sr_spew("-> Enter tlf_init");
-//  	std_init(di, sr_ctx);
-//  	sr_spew("-> Leave tlf_init");
-//  	return SR_OK;
-// }
-
-// static int tlf_dev_list(const struct sr_dev_inst *sdi)
-// {
-//  	(void) sdi;
-//  	sr_spew("-> Enter tlf_dev_list");
-//  	return SR_OK;
-// }
-
-// static int tlf_dev_clear(const struct sr_dev_inst *sdi)
-// {
-//  	(void) sdi;
-//  	sr_spew("-> Enter tlf_dev_clear");
-//  	return SR_OK;
-// }
 
 
 static struct sr_dev_driver tiny_logic_friend_la_driver_info = {
@@ -589,7 +450,7 @@ static struct sr_dev_driver tiny_logic_friend_la_driver_info = {
 	.config_channel_set = config_channel_set,
 	.config_get = config_get,
 	.config_set = config_set,
-	.config_list = config_list,  // #2 This is run second
+	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
 	.dev_acquisition_start = dev_acquisition_start,

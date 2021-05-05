@@ -407,7 +407,7 @@
 #define SR_PACKAGE_VERSION_MINOR 6
 
 /* Version of libsigrok. */
-#define SR_PACKAGE_VERSION_STRING "0.6.0-git-1601147d"
+#define SR_PACKAGE_VERSION_STRING "0.6.0-git-77d9a787"
 
 /* Define to 1 if all of the C90 standard headers exist (not just the ones
    required in a freestanding environment). This macro is provided for

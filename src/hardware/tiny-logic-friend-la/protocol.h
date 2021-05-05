@@ -30,7 +30,7 @@
 
 #define TRIGGER_MATCHES_COUNT 5 // maximum number of trigger matches
 
-#define RECEIVE_BUFFER_SIZE 1024
+#define RECEIVE_BUFFER_SIZE 4096
 
 /** Private, per-device-instance driver context. */
 
@@ -94,6 +94,5 @@ SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi); // start measurement
 SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi); // stop measurement
 
 SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data);
-
 
 #endif
