@@ -339,7 +339,6 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
 {
 	struct dev_context *devc;
-	int ret;
 
 	if (!(devc = sdi->priv)) {
 		return SR_ERR;
@@ -349,10 +348,7 @@ SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
 	samples_sent=0;
 	sr_spew("reset devc->measured_samples, samples_sent");
 
-	ret = sr_scpi_send(sdi->conn, "RUN");
-	g_usleep(3000000); // delay for measurement time before reading.
-
-	return ret;
+	return sr_scpi_send(sdi->conn, "RUN");
 
 }
 

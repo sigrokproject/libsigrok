@@ -401,7 +401,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
-	int ret;
 
 	sr_spew("->dev_acquisition_start");
 
@@ -412,17 +411,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->last_sample = 0;
 	devc->last_timestamp = 0;
 
+
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50, // timeout value (ms)
+			tlf_receive_data, (void *)sdi);
+
 	std_session_send_df_header(sdi); // sends the SR_DF_HEADER command to the session
 
 	sr_spew("Go RUN");
 	std_session_send_df_frame_begin(sdi);
 
-	ret=tlf_exec_run(sdi);
-
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 50, // timeout value (ms)
-			tlf_receive_data, (void *)sdi);
-
-	return ret;
+	return tlf_exec_run(sdi);
 }
 
 
