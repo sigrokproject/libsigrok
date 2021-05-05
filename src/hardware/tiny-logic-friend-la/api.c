@@ -37,7 +37,10 @@ static const uint32_t drvopts[] = { // This driver is for a logic analyzer
 static const uint32_t devopts[] = {
 	// These are the options on the tinyLogicFriend that can be set
 //	SR_CONF_CONTINUOUS, // *todo* future expansion
-//  SR_CONF_RLE | SR_CONF_GET | SR_CONF_SET, // *todo* future expansion - for example, see pipistrello-ols
+    SR_CONF_RLE | SR_CONF_GET, // get whether "RLE" or "CLOCK"
+    						  // RLE: Data provided in 16-bit timestamp, pin value
+    						  // CLOCK: Data provied in 16-bit pin value
+    						  //  - for example, see pipistrello-ols
 //  SR_CONF_FILTER | SR_CONF_GET | SR_CONF_SET, // *todo* future expansion
 //  SR_CONF_ENABLED | SR_CONF_SET,
 //  SR_CONF_NUM_LOGIC_CHANNELS | SR_CONF_GET,
@@ -97,6 +100,9 @@ static int tlf_get_lists(struct sr_dev_inst *sdi)
 		return SR_ERR_NA;
 	}
 
+	if (!(tlf_RLE_mode_get(sdi) == SR_OK)) {
+		return SR_ERR_NA;
+	}
 	sr_spew("-> Enter tlf_init_device 6");
 
 	return SR_OK;
@@ -225,6 +231,10 @@ static int config_get(uint32_t key, GVariant **data,
 			}
 			*data = g_variant_new_uint64(buf_32);
 			break;
+		case SR_CONF_RLE:
+
+			/* ADD code ********/
+
 		default:
 			sr_dbg("(1) Unsupported key: %d ", key);
 			return SR_ERR_NA;

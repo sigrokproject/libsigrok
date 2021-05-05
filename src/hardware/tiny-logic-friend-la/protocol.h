@@ -71,6 +71,8 @@ struct dev_context {
 
 	uint16_t * raw_sample_buf;
 
+	int RLE_mode; // set TRUE if uses Run Length Encoding
+
 };
 
 #define LOG_PREFIX "tiny-logic-friend-la"
@@ -89,6 +91,8 @@ SR_PRIV int tlf_channels_list(struct sr_dev_inst *sdi); // gets channel names fr
 
 SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi); // get list of trigger options
 SR_PRIV int tlf_trigger_set(const struct sr_dev_inst *sdi, int32_t channel_index, char * trigger); // set trigger
+
+SR_PRIV int tlf_RLE_mode_get(const struct sr_dev_inst *sdi); // get data mode, Run Length Encoded or Clock
 
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi); // start measurement
 SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi); // stop measurement

@@ -336,6 +336,37 @@ SR_PRIV int tlf_trigger_list(const struct sr_dev_inst *sdi) // gets trigger opti
 	return SR_OK;
 }
 
+
+SR_PRIV int tlf_RLE_mode_get(const struct sr_dev_inst *sdi)
+{
+	char *buf;
+	char command[25];
+	struct dev_context *devc;
+	devc = sdi->priv;
+
+	sprintf(command, "MODE?"); // get trigger options
+	if (sr_scpi_get_string(sdi->conn, command, &buf) != SR_OK) {
+		return SR_ERR;
+	}
+	sr_spew("send: %s, Response: %s", command, buf);
+
+	if ( !g_ascii_strcasecmp(buf, "RLE") ) {
+			devc->RLE_mode = TRUE;
+			sr_spew("Mode is Run Length Encoded (RLE)");
+			return SR_OK;
+		}
+
+	if ( !g_ascii_strcasecmp(buf, "CLOCK") ) {
+			devc->RLE_mode = FALSE;
+			sr_spew("Mode is Clock sampling (CLOCK)");
+			return SR_OK;
+		}
+
+	// no match to availble modes
+	return SR_ERR;
+
+}
+
 SR_PRIV int tlf_exec_run(const struct sr_dev_inst *sdi) // start measurement
 {
 	struct dev_context *devc;
@@ -359,11 +390,25 @@ SR_PRIV int tlf_exec_stop(const struct sr_dev_inst *sdi) // stop measurement
 }
 
 SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
+// tlf_receive_data is currently configured to receive Run-Length-Encoded tuples (16-bit timestamp, value)
+//
+// * todo *
+// This function should be updated to re-configure based on devc->RLE_mode value, whether it is
+// Run Length Encoded data or pure clock sampling data
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	int chunk_len;
 	static GArray *data = NULL;
+
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+
+	// if run length encoded
+	unsigned int rle_buffer_size = 12;
+	uint32_t timestamp;
+	uint16_t value;
+
 	// char print_buffer[6000]; // for debugging data values
 	// char tmp_buffer[6000];
 
@@ -412,10 +457,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 		sr_scpi_read_begin(sdi->conn);
 	}
 
-	/* Store incoming data. */
-
-	// request data
-
 	sr_spew("get a chunk");
 
 	// read data
@@ -429,91 +470,114 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 	sr_spew("Received data, chunk_len: %d", chunk_len);
 
-	uint32_t timestamp;
-	uint16_t value;
+	packet.type = SR_DF_LOGIC; // setup packet for sr_session_send
+	packet.payload = &logic;
+	logic.unitsize = 2; // 16 bits
 
-	// print_buffer[0] = '\0'; // for debugging data values
-	for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
-		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
-		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
-
-		// sprintf(tmp_buffer, "[%u %u]", timestamp, value); // for debugging data values
-		// strcat(print_buffer, tmp_buffer); // for debugging data values
-	}
-	// sr_warn("Data: %s", print_buffer); // for debugging data values
-
+	if (devc->RLE_mode) {
 	// Perform Run-Length Encoded extraction into samples at each tick
 	//
 
-	// should initialize prior to starting first read
-	//		- devc->last_sample
-	//		- devc->last_timestamp
-	//		- devc->num_samples
+		// print_buffer[0] = '\0'; // for debugging data values
+		for (int i=0; i < chunk_len; i=i+4) { // for 32 bit uint timestamp
+			timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+			value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
 
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_logic logic;
-	unsigned int buffer_size = 12;
-
-	if (devc->measured_samples == 0) { // this is the first time reading, so allocate the buffer
-							  // todo *** after the last read, free the malloc'ed buffer.
-		devc->raw_sample_buf = g_try_malloc(buffer_size * 2);
-		if (!devc->raw_sample_buf) {
-			sr_err("Sample buffer malloc failed.");
-			return FALSE;
+			// sprintf(tmp_buffer, "[%u %u]", timestamp, value); // for debugging data values
+			// strcat(print_buffer, tmp_buffer); // for debugging data values
 		}
-
-	}
-
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
-	logic.unitsize = 2;
-	logic.data = devc->raw_sample_buf;
+		// sr_warn("Data: %s", print_buffer); // for debugging data values
 
 
-	for (int i=0; i < chunk_len; i=i+4) {
-		timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
-		value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
-		samples_sent++;
+		// should initialize prior to starting first read
+		//		- devc->last_sample
+		//		- devc->last_timestamp
+		//		- devc->num_samples
 
-		sr_spew("devc->measured_samples: %zu", devc->measured_samples);
-
-		// todo * can we do math with int32_t and uint16_t unsigned??  WARNING
-		for (int32_t tick=devc->last_timestamp; tick < (int32_t) timestamp; tick++) {
-			// run from the previous time_stamp to the current one, fill with last_sample data
-			((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
-			devc->measured_samples++;
-			devc->pending_samples++; // number of samples currently stored in the buffer
-
-			if (devc->pending_samples == buffer_size) { //buffer_size) {
-				logic.length = devc->pending_samples * 2;
-				if (logic.data == NULL) {
-					sr_spew("tlf_receive_data: payload is NULL");
-				}
-				sr_session_send(sdi, &packet);
-
-				devc->pending_samples = 0;
+		if (devc->measured_samples == 0) { // this is the first time reading, so allocate the buffer
+								  // todo *** after the last read, free the malloc'ed buffer.
+			devc->raw_sample_buf = g_try_malloc(rle_buffer_size * 2);
+			if (!devc->raw_sample_buf) {
+				sr_err("Sample buffer malloc failed.");
+				return FALSE;
 			}
 		}
 
-		// finished processing the previous sample and timestamp, save next sample
-		devc->last_sample = value;
-		if (timestamp == 65535) {
-			devc->last_timestamp = -1; // wrapped around the 16 bit counter,
-									   // so reset to -1 for next sample
-		} else {
-			devc->last_timestamp = timestamp;
+		// packet.type = SR_DF_LOGIC;
+		// packet.payload = &logic;
+		// logic.unitsize = 2;
+		logic.data = devc->raw_sample_buf;
+
+
+		for (int i=0; i < chunk_len; i=i+4) {
+			timestamp = (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+			value = (((uint8_t) devc->receive_buffer[i+3]) << 8) | ((uint8_t) devc->receive_buffer[i+2]);
+			samples_sent++;
+
+			sr_spew("devc->measured_samples: %zu", devc->measured_samples);
+
+			// todo * can we do math with int32_t and uint16_t unsigned??  WARNING
+			for (int32_t tick=devc->last_timestamp; tick < (int32_t) timestamp; tick++) {
+				// run from the previous time_stamp to the current one, fill with last_sample data
+				((uint16_t*) devc->raw_sample_buf)[devc->pending_samples] = devc->last_sample;
+				devc->measured_samples++;
+				devc->pending_samples++; // number of samples currently stored in the buffer
+
+				if (devc->pending_samples == rle_buffer_size) { //run length encoded buffer_size) {
+					logic.length = devc->pending_samples * 2;
+					if (logic.data == NULL) {
+						sr_spew("tlf_receive_data: payload is NULL");
+					}
+					sr_session_send(sdi, &packet);
+
+					devc->pending_samples = 0;
+				}
+			}
+
+			// finished processing the previous sample and timestamp, save next sample
+			devc->last_sample = value;
+			if (timestamp == 65535) {
+				devc->last_timestamp = -1; // wrapped around the 16 bit counter,
+										   // so reset to -1 for next sample
+			} else {
+				devc->last_timestamp = timestamp;
+			}
 		}
-	}
 
-	sr_spew("About to flush...");
-	// flush any remaining data in the buffer wit sr_session_send
-	if (devc->pending_samples > 0) {
-		logic.length = devc->pending_samples * 2;
+		sr_spew("About to flush...");
+		// flush any remaining data in the buffer wit sr_session_send
+		if (devc->pending_samples > 0) {
+			logic.length = devc->pending_samples * 2;
+			sr_session_send(sdi, &packet);
+		}
+
+		// sr_warn("Data: %s", print_buffer); // for debugging data values
+		sr_spew("Finished flush.");
+	} else {  // data is provided in pure sampling mode
+
+		for (int i=0; i < chunk_len*2; i=i+2) { // break chunk_len (32 bit pieces) into 16-bit pieces
+
+			devc->raw_sample_buf = g_try_malloc(chunk_len * 4);
+			if (!devc->raw_sample_buf) {
+				sr_err("Sample buffer malloc failed.");
+				return FALSE;
+			}
+			devc->raw_sample_buf[i] = (uint16_t) (((uint8_t) devc->receive_buffer[i+1]) << 8) | ((uint8_t) devc->receive_buffer[i]);
+
+		}
+		logic.data = devc->raw_sample_buf;
+		logic.length = chunk_len * 2;
+
 		sr_session_send(sdi, &packet);
+
+
+
+
+
 	}
 
-	// sr_warn("Data: %s", print_buffer); // for debugging data values
-	sr_spew("Finished flush.");
+
+
 	sr_warn("Sent samples %zu", samples_sent);
 
 	if (samples_sent >= devc->cur_samples) {

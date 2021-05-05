@@ -7,7 +7,7 @@ Name: libsigrokcxx
 Description: C++ bindings for libsigrok
 URL: http://www.sigrok.org
 Requires: libsigrok glibmm-2.4
-Version: 0.6.0-git-77d9a787
+Version: 0.6.0-git-f7305a73
 Libs: -L${libdir} -lsigrokcxx
 Libs.private: -lm
 Cflags: -I${includedir}

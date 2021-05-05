@@ -47,7 +47,7 @@
 #define SR_PACKAGE_VERSION_MICRO 0
 
 /** The libsigrok package version ("major.minor.micro") as string. */
-#define SR_PACKAGE_VERSION_STRING "0.6.0-git-77d9a787"
+#define SR_PACKAGE_VERSION_STRING "0.6.0-git-f7305a73"
 
 /*
  * Library/libtool version macros (can be used for conditional compilation).
