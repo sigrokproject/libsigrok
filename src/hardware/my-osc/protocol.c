@@ -20,6 +20,22 @@
 #include <config.h>
 #include "protocol.h"
 
+void my_osc_osc_set_samplerate(struct sr_serial_dev_inst *serial, uint64_t val){
+	char buf[9];
+	buf[0] = CMD_SET_SAMPLE_RATE;
+	WL64(buf + 1, val);
+	if (serial_write_blocking(serial, buf, 9, serial_timeout(serial, 1)) != 9)
+		return SR_ERR;
+}
+
+void my_osc_set_limit_samples(struct sr_serial_dev_inst *serial, uint64_t val){
+	char buf[9];
+	buf[0] = CMD_SET_LIMIT_SAMPLES;
+	WL64(buf + 1, val);
+	if (serial_write_blocking(serial, buf, 9, serial_timeout(serial, 1)) != 9)
+		return SR_ERR;
+}
+
 SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -36,6 +52,8 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_spec spec;
 	char **tokens;
 	GSList *l;
+
+	struct sr_channel *ch;
 
 	sdi = cb_data;
 	devc = sdi->priv;
@@ -69,7 +87,7 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
 	analog.num_samples = 1;
-
+	
 	/* Voltage */
 	l = g_slist_copy(sdi->channels);
 	l = g_slist_remove_link(l, g_slist_nth(l, 1));
@@ -114,6 +132,24 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 			sr_dev_acquisition_stop(sdi);
 		}
 	}*/
+
+	len = devc->cur_samplerate;
+	buf = devc->buf;
+	if (serial_read_blocking(serial, buf, len, 250) != len) {
+		return TRUE;
+	}
+
+	ch = devc->channel_entry->data;
+	sr_analog_init(&analog, &encoding, &meaning, &spec, 4);
+	
+
+	if (devc->channel_entry->next) {
+		/* We got the frame for this channel, now get the next channel. */
+		devc->channel_entry = devc->channel_entry->next;
+		rigol_ds_channel_start(sdi);
+	} else {
+		/* Done with this frame. */
+		std_session_send_df_frame_end(sdi);
 
 	return TRUE;
 }

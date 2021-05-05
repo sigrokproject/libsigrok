@@ -24,7 +24,7 @@
 #include <string.h>
 #include "protocol.h"
 
-#define SERIALCOMM "9600/8n1"
+#define SERIALCOMM "576000/8n1"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -42,7 +42,7 @@ static const uint32_t devopts[] = {
 
 static const uint64_t samplerates[] = {
 	SR_HZ(1),
-	SR_KHZ(500),
+	SR_KHZ(100),
 	SR_HZ(1),
 };
 
@@ -120,7 +120,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
-		devc->cur_samplerate = SR_HZ(1);
+		devc->cur_samplerate = SR_HZ(10);
 		devc->limits.limit_samples = MIN_NUM_SAMPLES;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
@@ -161,21 +161,23 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 	uint64_t tmp_u64;
 	devc = sdi->priv;
-
+	serial = sdi->conn;
 	if (!sdi)
 		return SR_ERR_ARG;
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		//set_samplerate();
 		tmp_u64 = g_variant_get_uint64(data);
+		my_osc_osc_set_samplerate(serial, tmp_u64);
 		if (tmp_u64 < samplerates[0] || tmp_u64 > samplerates[1])
 			return SR_ERR_SAMPLERATE;
 		devc->cur_samplerate = tmp_u64;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		tmp_u64 = g_variant_get_uint64(data);
+		my_osc_set_limit_samples(serial, tmp_u64);
 		if (tmp_u64 < MIN_NUM_SAMPLES)
 			return SR_ERR;
 		devc->limits.limit_samples = tmp_u64;
@@ -227,6 +229,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			my_osc_receive_data, (struct sr_dev_inst *)sdi);
 
+	std_session_send_df_frame_begin(sdi);
+
 	return SR_OK;
 }
 
@@ -235,10 +239,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 	serial = sdi->conn;
 	serial_source_remove(sdi->session, serial);
-	struct dev_context *devc;
 	int ret;
-
-	devc = sdi->priv;
 
 	ret = std_serial_dev_acquisition_stop(sdi);
 

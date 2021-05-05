@@ -30,12 +30,15 @@
 #define BUFSIZE 100
 
 //Commands
-#define CMD_CONF 0x00
-#define CMD_SCAN 0x01
-#define CMD_START 0x02
+#define CMD_SCAN 0x00
+#define CMD_START 0x01
+#define CMD_STOP 0x02
+#define CMD_RESET 0x03
+#define CMD_SET_SAMPLE_RATE 0x04
+#define CMD_SET_LIMIT_SAMPLES 0x05
 
 //Limit sample range
-#define MIN_NUM_SAMPLES 10
+#define MIN_NUM_SAMPLES 100
 #define MAX_NUM_SAMPLES 1000000
 
 struct dev_context {
@@ -48,8 +51,15 @@ struct dev_context {
 	float voltage;
 	float current;
 
+    /* GSList entry for the current channel. */
+	GSList *channel_entry;
+
 };
 
 SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data);
+
+//Set parameters
+void my_osc_osc_set_samplerate(struct sr_serial_dev_inst *serial, uint64_t val);
+void my_osc_set_limit_samples(struct sr_serial_dev_inst *serial, uint64_t val);
 
 #endif
