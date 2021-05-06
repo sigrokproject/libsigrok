@@ -8,7 +8,7 @@ Description: Backend library for the sigrok signal analysis software suite
 URL: http://www.sigrok.org
 Requires: glib-2.0
 Requires.private: libserialport >= 0.1.1 libftdi1 >= 1.0 libusb-1.0 >= 1.0.16 gio-2.0 >= 2.24.0 libzip >= 0.10
-Version: 0.6.0-git-f7305a73
+Version: 0.6.0-git-09e2d0fe
 Libs: -L${libdir} -lsigrok
 Libs.private: 
 Cflags: -I${includedir}

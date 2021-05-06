@@ -1791,7 +1791,7 @@ SR_EXTRA_CFLAGS = -std=c99 -fvisibility=hidden
 SR_EXTRA_CXX_LIBS = 
 SR_EXTRA_LIBS = 
 SR_LIB_VERSION = 4:0:0
-SR_PACKAGE_VERSION = 0.6.0-git-f7305a73
+SR_PACKAGE_VERSION = 0.6.0-git-09e2d0fe
 SR_PKGLIBS = libserialport >= 0.1.1 libftdi1 >= 1.0 libusb-1.0 >= 1.0.16 gio-2.0 >= 2.24.0 libzip >= 0.10
 SR_WFLAGS = -Wall -Wextra -Wmissing-prototypes
 SR_WXXFLAGS = -Wall -Wextra

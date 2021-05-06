@@ -570,10 +570,6 @@ SR_PRIV int tlf_receive_data(int fd, int revents, void *cb_data)
 
 		sr_session_send(sdi, &packet);
 
-
-
-
-
 	}
 
 
