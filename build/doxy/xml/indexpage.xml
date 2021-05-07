@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="indexpage" kind="page">
+    <compoundname>index</compoundname>
+    <title>libsigrok API</title>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<sect1 id="index_1sec_intro">
+<title>Introduction</title>
+<para>The <ulink url="http://sigrok.org">sigrok</ulink> project aims at creating a portable, cross-platform, Free/Libre/Open-Source signal analysis software suite that supports various device types (such as logic analyzers, oscilloscopes, multimeters, and more).</para>
+<para><ulink url="http://sigrok.org/wiki/Libsigrok">libsigrok</ulink> is a shared library written in C which provides the basic API for talking to <ulink url="http://sigrok.org/wiki/Supported_hardware">supported hardware</ulink> and reading/writing the acquired data into various <ulink url="http://sigrok.org/wiki/Input_output_formats">input/output file formats</ulink>.</para>
+</sect1>
+<sect1 id="index_1sec_api">
+<title>API reference</title>
+<para>See the &quot;Modules&quot; page for an introduction to various libsigrok related topics and the detailed API documentation of the respective functions.</para>
+<para>You can also browse the API documentation by file, or review all data structures.</para>
+</sect1>
+<sect1 id="index_1sec_mailinglists">
+<title>Mailing lists</title>
+<para>There is one mailing list for sigrok/libsigrok: <ulink url="https://lists.sourceforge.net/lists/listinfo/sigrok-devel">sigrok-devel</ulink>.</para>
+</sect1>
+<sect1 id="index_1sec_irc">
+<title>IRC</title>
+<para>You can find the sigrok developers in the <ulink url="irc://chat.freenode.net/sigrok">#sigrok</ulink> IRC channel on Freenode.</para>
+</sect1>
+<sect1 id="index_1sec_website">
+<title>Website</title>
+<para><ulink url="http://sigrok.org/wiki/Libsigrok">sigrok.org/wiki/Libsigrok</ulink> </para>
+</sect1>
+    </detaileddescription>
+    <location file="src/backend.c"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00090" kind="struct" language="C++" prot="public">
+    <compoundname>sr_int128_t</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00090_1a0703cb81d0268c25ce682ec4d5326034" prot="public" static="no" mutable="no">
+        <type>int64_t</type>
+        <definition>int64_t sr_int128_t::high</definition>
+        <argsstring></argsstring>
+        <name>high</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="521" column="9" bodyfile="src/analog.c" bodystart="521" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00090_1a2edfbf54118ef7e61d350ab8d8ce8f8a" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t sr_int128_t::low</definition>
+        <argsstring></argsstring>
+        <name>low</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="522" column="10" bodyfile="src/analog.c" bodystart="522" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>sr_int128_t</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>low</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>high</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>uint64_t</label>
+      </node>
+      <node id="3">
+        <label>int64_t</label>
+      </node>
+    </collaborationgraph>
+    <location file="src/analog.c" line="520" column="1" bodyfile="src/analog.c" bodystart="520" bodyend="523"/>
+    <listofallmembers>
+      <member refid="a00090_1a0703cb81d0268c25ce682ec4d5326034" prot="public" virt="non-virtual"><scope>sr_int128_t</scope><name>high</name></member>
+      <member refid="a00090_1a2edfbf54118ef7e61d350ab8d8ce8f8a" prot="public" virt="non-virtual"><scope>sr_int128_t</scope><name>low</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

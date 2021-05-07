@@ -1,0 +1,386 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00178" kind="struct" language="C++" prot="public">
+    <compoundname>sr_dev_driver</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00178_1aee9d5b592d3a13f2f4b9780169bee4cb" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* sr_dev_driver::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <briefdescription>
+<para>Driver name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Lowercase a-z, 0-9 and dashes (-) only. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1197" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="1197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1ad7661b4c4f558ebeaf377f1527e0a90b" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* sr_dev_driver::longname</definition>
+        <argsstring></argsstring>
+        <name>longname</name>
+        <briefdescription>
+<para>Long name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Verbose driver name shown to user. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1199" column="12" bodyfile="include/libsigrok/libsigrok.h" bodystart="1199" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1aab7fed5ebd4f9586e634cb4a2d5ed5e0" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int sr_dev_driver::api_version</definition>
+        <argsstring></argsstring>
+        <name>api_version</name>
+        <briefdescription>
+<para>API version (currently 1). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><linebreak/>
+ </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1201" column="5" bodyfile="include/libsigrok/libsigrok.h" bodystart="1201" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1ab651e39fdcbadacbb2782af2989716bc" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::init) (struct sr_dev_driver *driver, struct sr_context *sr_ctx)</definition>
+        <argsstring>)(struct sr_dev_driver *driver, struct sr_context *sr_ctx)</argsstring>
+        <name>init</name>
+        <briefdescription>
+<para>Called when driver is loaded, e.g. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>program startup. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1203" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1203" bodyend="-1"/>
+        <referencedby refid="a00073_1ga33ced36993359a47eae8810f79737976" compoundref="a00023" startline="418" endline="438">sr_driver_init</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a5273581dd915f71d52f7001382409eaf" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::cleanup) (const struct sr_dev_driver *driver)</definition>
+        <argsstring>)(const struct sr_dev_driver *driver)</argsstring>
+        <name>cleanup</name>
+        <briefdescription>
+<para>Called before driver is unloaded. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Driver must free all resources held by it. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1206" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a6304934e2d2ab5cb11685a8e116a26f5" prot="public" static="no" mutable="no">
+        <type>GSList *(*</type>
+        <definition>GSList*(* sr_dev_driver::scan) (struct sr_dev_driver *driver, GSList *options)</definition>
+        <argsstring>)(struct sr_dev_driver *driver, GSList *options)</argsstring>
+        <name>scan</name>
+        <briefdescription>
+<para>Scan for devices. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Driver should do all initialisation required. Can be called several times, e.g. with different port options. <parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>NULL</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Error or no devices found. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>other</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>GSList of a struct sr_dev_inst for each device. Must be freed by caller! </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1213" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1aa6b7607dae39a70d13534815317e1716" prot="public" static="no" mutable="no">
+        <type>GSList *(*</type>
+        <definition>GSList*(* sr_dev_driver::dev_list) (const struct sr_dev_driver *driver)</definition>
+        <argsstring>)(const struct sr_dev_driver *driver)</argsstring>
+        <name>dev_list</name>
+        <briefdescription>
+<para>Get list of device instances the driver knows about. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>NULL or GSList of a struct sr_dev_inst for each device. Must not be freed by caller! </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1218" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1218" bodyend="-1"/>
+        <referencedby refid="a00071_1gaf6973a5d7c159e588211a287d716aa26" compoundref="a00017" startline="609" endline="615">sr_dev_list</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a84cc44efef6af3904bb854f2437b5911" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::dev_clear) (const struct sr_dev_driver *driver)</definition>
+        <argsstring>)(const struct sr_dev_driver *driver)</argsstring>
+        <name>dev_clear</name>
+        <briefdescription>
+<para>Clear list of devices the driver knows about. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1220" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1220" bodyend="-1"/>
+        <referencedby refid="a00071_1ga757ef4b2ca0d6be7098fa2b6f87e1995" compoundref="a00017" startline="628" endline="648">sr_dev_clear</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a53a547f712afbaa08238df3ba91fd8e9" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::config_get) (uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</definition>
+        <argsstring>)(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</argsstring>
+        <name>config_get</name>
+        <briefdescription>
+<para>Query value of a configuration key in driver or given device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="a00073_1gabc6131f95a0a1198355a4f013200ad7b" kindref="member">sr_config_get()</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1224" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1224" bodyend="-1"/>
+        <referencedby refid="a00073_1gabc6131f95a0a1198355a4f013200ad7b" compoundref="a00023" startline="797" endline="830">sr_config_get</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a5c6ff0dd59c229d97161ae35384c25f8" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::config_set) (uint32_t key, GVariant *data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</definition>
+        <argsstring>)(uint32_t key, GVariant *data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</argsstring>
+        <name>config_set</name>
+        <briefdescription>
+<para>Set value of a configuration key in driver or a given device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="a00073_1ga17f18fc144eeb667f2fd596948426941" kindref="member">sr_config_set()</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1229" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1229" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1aaad0ed5ffa68c9794e24d88e79865d06" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::config_channel_set) (const struct sr_dev_inst *sdi, struct sr_channel *ch, unsigned int changes)</definition>
+        <argsstring>)(const struct sr_dev_inst *sdi, struct sr_channel *ch, unsigned int changes)</argsstring>
+        <name>config_channel_set</name>
+        <briefdescription>
+<para>Channel status change. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="a00071_1ga01a44d3f7c1231b214940f363bbd5f1c" kindref="member">sr_dev_channel_enable()</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1234" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1234" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a5ef5645f17617763fc461fa50dacb6bf" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::config_commit) (const struct sr_dev_inst *sdi)</definition>
+        <argsstring>)(const struct sr_dev_inst *sdi)</argsstring>
+        <name>config_commit</name>
+        <briefdescription>
+<para>Apply configuration settings to the device hardware. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="a00073_1ga392e481fc872786f871b5c7ce3934087" kindref="member">sr_config_commit()</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1238" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1238" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1add11215f64fb44c03ccd406ce42b5c5a" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::config_list) (uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</definition>
+        <argsstring>)(uint32_t key, GVariant **data, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</argsstring>
+        <name>config_list</name>
+        <briefdescription>
+<para>List all possible values for a configuration key in a device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="see"><para><ref refid="a00073_1gaac72c02a32f953728715973412be0bc6" kindref="member">sr_config_list()</ref>. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1242" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1242" bodyend="-1"/>
+        <referencedby refid="a00073_1gaac72c02a32f953728715973412be0bc6" compoundref="a00023" startline="940" endline="994">sr_config_list</referencedby>
+        <referencedby refid="a00071_1ga26fee1c71ff0c486f93db5ee80c1e943" compoundref="a00017" startline="317" endline="347">sr_dev_options</referencedby>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a7f0445bf3bb027d97bb76a1c7906a3bf" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::dev_open) (struct sr_dev_inst *sdi)</definition>
+        <argsstring>)(struct sr_dev_inst *sdi)</argsstring>
+        <name>dev_open</name>
+        <briefdescription>
+<para>Open device. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1248" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1248" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1aa0e17068b85b7ea0a02cbd92c1020d58" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::dev_close) (struct sr_dev_inst *sdi)</definition>
+        <argsstring>)(struct sr_dev_inst *sdi)</argsstring>
+        <name>dev_close</name>
+        <briefdescription>
+<para>Close device. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1250" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1250" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1af75f2d88722e3461c86f04415e67f3aa" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::dev_acquisition_start) (const struct sr_dev_inst *sdi)</definition>
+        <argsstring>)(const struct sr_dev_inst *sdi)</argsstring>
+        <name>dev_acquisition_start</name>
+        <briefdescription>
+<para>Begin data acquisition on the specified device. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1252" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1252" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1ac9bf347e88677d04489b9e50ddbcbd54" prot="public" static="no" mutable="no">
+        <type>int(*</type>
+        <definition>int(* sr_dev_driver::dev_acquisition_stop) (struct sr_dev_inst *sdi)</definition>
+        <argsstring>)(struct sr_dev_inst *sdi)</argsstring>
+        <name>dev_acquisition_stop</name>
+        <briefdescription>
+<para>End data acquisition on the specified device. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1254" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1254" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00178_1a78504fc823d187e0f2f2646d9f20e883" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* sr_dev_driver::context</definition>
+        <argsstring></argsstring>
+        <name>context</name>
+        <briefdescription>
+<para>Device driver context, considered private. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Initialized by <ref refid="a00178_1ab651e39fdcbadacbb2782af2989716bc" kindref="member">init()</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="1258" column="6" bodyfile="include/libsigrok/libsigrok.h" bodystart="1258" bodyend="-1"/>
+        <referencedby refid="a00071_1ga757ef4b2ca0d6be7098fa2b6f87e1995" compoundref="a00017" startline="628" endline="648">sr_dev_clear</referencedby>
+        <referencedby refid="a00073_1ga997c1db14dae8faef0865b6331d52bdd" compoundref="a00023" startline="546" endline="570">sr_driver_scan</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Device driver data. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>See also <ulink url="http://sigrok.org/wiki/Hardware_driver_API">http://sigrok.org/wiki/Hardware_driver_API</ulink> . </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="6">
+        <label>void *</label>
+      </node>
+      <node id="1">
+        <label>sr_dev_driver</label>
+        <link refid="a00178"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>scan</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>dev_list</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>api_version</edgelabel>
+          <edgelabel>cleanup</edgelabel>
+          <edgelabel>config_channel_set</edgelabel>
+          <edgelabel>config_commit</edgelabel>
+          <edgelabel>config_get</edgelabel>
+          <edgelabel>config_list</edgelabel>
+          <edgelabel>config_set</edgelabel>
+          <edgelabel>dev_acquisition_start</edgelabel>
+          <edgelabel>dev_acquisition_stop</edgelabel>
+          <edgelabel>dev_clear</edgelabel>
+          <edgelabel>...</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>longname</edgelabel>
+          <edgelabel>name</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>context</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>int</label>
+      </node>
+      <node id="5">
+        <label>const char *</label>
+      </node>
+      <node id="3">
+        <label>GSList *(*)(const struct sr_dev_driver *driver)</label>
+      </node>
+      <node id="2">
+        <label>GSList *(*)(struct sr_dev_driver *driver, GSList *options)</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="1194" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="1194" bodyend="1259"/>
+    <listofallmembers>
+      <member refid="a00178_1aab7fed5ebd4f9586e634cb4a2d5ed5e0" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>api_version</name></member>
+      <member refid="a00178_1a5273581dd915f71d52f7001382409eaf" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>cleanup</name></member>
+      <member refid="a00178_1aaad0ed5ffa68c9794e24d88e79865d06" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>config_channel_set</name></member>
+      <member refid="a00178_1a5ef5645f17617763fc461fa50dacb6bf" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>config_commit</name></member>
+      <member refid="a00178_1a53a547f712afbaa08238df3ba91fd8e9" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>config_get</name></member>
+      <member refid="a00178_1add11215f64fb44c03ccd406ce42b5c5a" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>config_list</name></member>
+      <member refid="a00178_1a5c6ff0dd59c229d97161ae35384c25f8" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>config_set</name></member>
+      <member refid="a00178_1a78504fc823d187e0f2f2646d9f20e883" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>context</name></member>
+      <member refid="a00178_1af75f2d88722e3461c86f04415e67f3aa" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_acquisition_start</name></member>
+      <member refid="a00178_1ac9bf347e88677d04489b9e50ddbcbd54" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_acquisition_stop</name></member>
+      <member refid="a00178_1a84cc44efef6af3904bb854f2437b5911" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_clear</name></member>
+      <member refid="a00178_1aa0e17068b85b7ea0a02cbd92c1020d58" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_close</name></member>
+      <member refid="a00178_1aa6b7607dae39a70d13534815317e1716" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_list</name></member>
+      <member refid="a00178_1a7f0445bf3bb027d97bb76a1c7906a3bf" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>dev_open</name></member>
+      <member refid="a00178_1ab651e39fdcbadacbb2782af2989716bc" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>init</name></member>
+      <member refid="a00178_1ad7661b4c4f558ebeaf377f1527e0a90b" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>longname</name></member>
+      <member refid="a00178_1aee9d5b592d3a13f2f4b9780169bee4cb" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>name</name></member>
+      <member refid="a00178_1a6304934e2d2ab5cb11685a8e116a26f5" prot="public" virt="non-virtual"><scope>sr_dev_driver</scope><name>scan</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

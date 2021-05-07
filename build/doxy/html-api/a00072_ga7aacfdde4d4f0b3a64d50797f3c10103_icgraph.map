@@ -1,0 +1,4 @@
+<map id="sr_strerror" name="sr_strerror">
+<area shape="rect" id="node1" title="Return a human&#45;readable error string for the given libsigrok error code." alt="" coords="195,5,276,32"/>
+<area shape="rect" id="node2" href="$a00076.html#gac037d037baecc2b3679044d2b7c3bad3" title="Add a device instance to a session." alt="" coords="5,5,147,32"/>
+</map>

@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00014" kind="file" language="C++">
+    <compoundname>crc.c</compoundname>
+    <includes local="no">config.h</includes>
+    <includes local="no">stdint.h</includes>
+    <includes refid="a00050" local="no">libsigrok/libsigrok.h</includes>
+    <includes local="yes">libsigrok-internal.h</includes>
+    <incdepgraph>
+      <node id="11">
+        <label>libsigrok-internal.h</label>
+      </node>
+      <node id="3">
+        <label>stdint.h</label>
+      </node>
+      <node id="10">
+        <label>libsigrok/version.h</label>
+        <link refid="a00056"/>
+      </node>
+      <node id="8">
+        <label>glib.h</label>
+      </node>
+      <node id="6">
+        <label>sys/time.h</label>
+      </node>
+      <node id="4">
+        <label>libsigrok/libsigrok.h</label>
+        <link refid="a00050"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>src/crc.c</label>
+        <link refid="a00014"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>config.h</label>
+      </node>
+      <node id="5">
+        <label>stdio.h</label>
+      </node>
+      <node id="9">
+        <label>libsigrok/proto.h</label>
+        <link refid="a00053"/>
+      </node>
+      <node id="7">
+        <label>inttypes.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00014_1a3a61d3449bef6056d58c782fde322718" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> uint16_t</type>
+        <definition>SR_PRIV uint16_t sr_crc16</definition>
+        <argsstring>(uint16_t crc, const uint8_t *buffer, int len)</argsstring>
+        <name>sr_crc16</name>
+        <param>
+          <type>uint16_t</type>
+          <declname>crc</declname>
+        </param>
+        <param>
+          <type>const uint8_t *</type>
+          <declname>buffer</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/crc.c" line="25" column="18" bodyfile="src/crc.c" bodystart="25" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="src/crc.c"/>
+  </compounddef>
+</doxygen>

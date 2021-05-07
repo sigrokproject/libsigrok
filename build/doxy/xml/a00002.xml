@@ -1,0 +1,752 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00002" kind="file" language="C++">
+    <compoundname>analog.c</compoundname>
+    <includes local="no">config.h</includes>
+    <includes local="no">stdio.h</includes>
+    <includes local="no">stdint.h</includes>
+    <includes local="no">string.h</includes>
+    <includes local="no">ctype.h</includes>
+    <includes local="no">math.h</includes>
+    <includes refid="a00050" local="no">libsigrok/libsigrok.h</includes>
+    <includes local="yes">libsigrok-internal.h</includes>
+    <incdepgraph>
+      <node id="14">
+        <label>libsigrok-internal.h</label>
+      </node>
+      <node id="4">
+        <label>stdint.h</label>
+      </node>
+      <node id="13">
+        <label>libsigrok/version.h</label>
+        <link refid="a00056"/>
+      </node>
+      <node id="5">
+        <label>string.h</label>
+      </node>
+      <node id="11">
+        <label>glib.h</label>
+      </node>
+      <node id="7">
+        <label>math.h</label>
+      </node>
+      <node id="9">
+        <label>sys/time.h</label>
+      </node>
+      <node id="6">
+        <label>ctype.h</label>
+      </node>
+      <node id="8">
+        <label>libsigrok/libsigrok.h</label>
+        <link refid="a00050"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>src/analog.c</label>
+        <link refid="a00002"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>config.h</label>
+      </node>
+      <node id="3">
+        <label>stdio.h</label>
+      </node>
+      <node id="12">
+        <label>libsigrok/proto.h</label>
+        <link refid="a00053"/>
+      </node>
+      <node id="10">
+        <label>inttypes.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="a00086" prot="public">unit_mq_string</innerclass>
+    <innerclass refid="a00090" prot="public">sr_int128_t</innerclass>
+    <innerclass refid="a00094" prot="public">sr_uint128_t</innerclass>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="a00069_1gad30581a7e8c3a59ede738d2b578a77fc" prot="public" static="yes" mutable="no">
+        <type>struct unit_mq_string</type>
+        <definition>struct unit_mq_string unit_strings[]</definition>
+        <argsstring>[]</argsstring>
+        <name>unit_strings</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="1" column="0" bodyfile="src/analog.c" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00069_1ga908b18b6dfcf5582ffc18ba43463ae7f" prot="public" static="yes" mutable="no">
+        <type>struct unit_mq_string</type>
+        <definition>struct unit_mq_string mq_strings[]</definition>
+        <argsstring>[]</argsstring>
+        <name>mq_strings</name>
+        <initializer>= {
+	{ <ref refid="a00050_1a31c9af7f081f614bac17fafd2245b670abda55b4aa0b4f552a390bd1c53d6ebd0" kindref="member">SR_MQFLAG_AC</ref>, &quot; AC&quot; },
+	{ SR_MQFLAG_DC, &quot; DC&quot; },
+	{ SR_MQFLAG_RMS, &quot; RMS&quot; },
+	{ SR_MQFLAG_DIODE, &quot; DIODE&quot; },
+	{ SR_MQFLAG_HOLD, &quot; HOLD&quot; },
+	{ SR_MQFLAG_MAX, &quot; MAX&quot; },
+	{ SR_MQFLAG_MIN, &quot; MIN&quot; },
+	{ SR_MQFLAG_AUTORANGE, &quot; AUTO&quot; },
+	{ SR_MQFLAG_RELATIVE, &quot; REL&quot; },
+	{ SR_MQFLAG_SPL_FREQ_WEIGHT_A, &quot;(A)&quot; },
+	{ SR_MQFLAG_SPL_FREQ_WEIGHT_C, &quot;(C)&quot; },
+	{ SR_MQFLAG_SPL_FREQ_WEIGHT_Z, &quot;(Z)&quot; },
+	{ SR_MQFLAG_SPL_FREQ_WEIGHT_FLAT, &quot;(SPL)&quot; },
+	{ SR_MQFLAG_SPL_TIME_WEIGHT_S, &quot; S&quot; },
+	{ SR_MQFLAG_SPL_TIME_WEIGHT_F, &quot; F&quot; },
+	{ SR_MQFLAG_SPL_LAT, &quot; LAT&quot; },
+	
+	{ SR_MQFLAG_SPL_PCT_OVER_ALARM, &quot;%oA&quot; },
+	{ SR_MQFLAG_DURATION, &quot; DURATION&quot; },
+	{ SR_MQFLAG_AVG, &quot; AVG&quot; },
+	{ SR_MQFLAG_REFERENCE, &quot; REF&quot; },
+	{ SR_MQFLAG_UNSTABLE, &quot; UNSTABLE&quot; },
+	{ SR_MQFLAG_FOUR_WIRE, &quot; 4-WIRE&quot; },
+	ALL_ZERO
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="1" column="0" bodyfile="src/analog.c" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00069_1ga3daf962e11ffdb3253cae65c570fc8e5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> int</type>
+        <definition>SR_PRIV int sr_analog_init</definition>
+        <argsstring>(struct sr_datafeed_analog *analog, struct sr_analog_encoding *encoding, struct sr_analog_meaning *meaning, struct sr_analog_spec *spec, int digits)</argsstring>
+        <name>sr_analog_init</name>
+        <param>
+          <type>struct <ref refid="a00138" kindref="compound">sr_datafeed_analog</ref> *</type>
+          <declname>analog</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00142" kindref="compound">sr_analog_encoding</ref> *</type>
+          <declname>encoding</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00146" kindref="compound">sr_analog_meaning</ref> *</type>
+          <declname>meaning</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00150" kindref="compound">sr_analog_spec</ref> *</type>
+          <declname>spec</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>digits</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="126" column="13" bodyfile="src/analog.c" bodystart="126" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga7c692bc1d32dc9b126cd0d6bbf21f2bd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_analog_to_float</definition>
+        <argsstring>(const struct sr_datafeed_analog *analog, float *outbuf)</argsstring>
+        <name>sr_analog_to_float</name>
+        <param>
+          <type>const struct <ref refid="a00138" kindref="compound">sr_datafeed_analog</ref> *</type>
+          <declname>analog</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>outbuf</declname>
+        </param>
+        <briefdescription>
+<para>Convert an analog datafeed payload to an array of floats. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The caller must provide the #outbuf space for the conversion result, and is expected to free allocated space after use.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">analog</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The analog payload to convert. Must not be NULL. analog-&gt;data, analog-&gt;meaning, and analog-&gt;encoding must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">outbuf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Memory where to store the result. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Unsupported encoding. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="177" column="6" bodyfile="src/analog.c" bodystart="177" bodyend="379"/>
+        <references refid="a00146_1aa94e9989cfd57941a7867daa98076498" compoundref="a00050" startline="545">sr_analog_meaning::channels</references>
+        <references refid="a00138_1a5c4aca13deba4509ec718b04f825fe10" compoundref="a00050" startline="518">sr_datafeed_analog::data</references>
+        <references refid="a00138_1ad570779bcec5a0800815112655031fd5" compoundref="a00050" startline="520">sr_datafeed_analog::encoding</references>
+        <references refid="a00142_1a353bda910ac93467e21a50b43dbdf516" compoundref="a00050" startline="529">sr_analog_encoding::is_bigendian</references>
+        <references refid="a00142_1a17214e15d937f4772717f8b7264376a6" compoundref="a00050" startline="528">sr_analog_encoding::is_float</references>
+        <references refid="a00142_1a0dad760e9db99e0a2d2752048c571df1" compoundref="a00050" startline="527">sr_analog_encoding::is_signed</references>
+        <references refid="a00138_1a9e97bc2f38a677065f11d7ec4ade7644" compoundref="a00050" startline="521">sr_datafeed_analog::meaning</references>
+        <references refid="a00138_1abdc9b88c81408149c899a659e5010ece" compoundref="a00050" startline="519">sr_datafeed_analog::num_samples</references>
+        <references refid="a00142_1a9b9c1ca6430afe229022f34302aee963" compoundref="a00050" startline="538">sr_analog_encoding::offset</references>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+        <references refid="a00142_1af89e406a513d86adba6cfc3f92dc7310" compoundref="a00050" startline="537">sr_analog_encoding::scale</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+        <references refid="a00142_1a3dd833a3bd6be6fa415f775a2d9afacb" compoundref="a00050" startline="526">sr_analog_encoding::unitsize</references>
+        <referencedby refid="a00011_1abae077d85c8390eff878bf7d096d929a" compoundref="a00011" startline="81" endline="109">sr_a2l_schmitt_trigger</referencedby>
+        <referencedby refid="a00011_1a3f168ba982a19fb0e51254d5852e6572" compoundref="a00011" startline="44" endline="65">sr_a2l_threshold</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1gad4605e40840772ded016b36e5ce938d6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_analog_si_prefix</definition>
+        <argsstring>(float *value, int *digits)</argsstring>
+        <name>sr_analog_si_prefix</name>
+        <param>
+          <type>float *</type>
+          <declname>value</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>digits</declname>
+        </param>
+        <briefdescription>
+<para>Scale a float value to the appropriate SI prefix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="inout">value</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The float value to convert to appropriate SI prefix. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="inout">digits</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The number of significant decimal digits in value.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The SI prefix to which value was scaled, as a printable string.</para>
+</simplesect>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="391" column="13" bodyfile="src/analog.c" bodystart="391" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1gaae286256e4f6420bbb1d426e23015479" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>gboolean sr_analog_si_prefix_friendly</definition>
+        <argsstring>(enum sr_unit unit)</argsstring>
+        <name>sr_analog_si_prefix_friendly</name>
+        <param>
+          <type>enum <ref refid="a00050_1af13f9a5c3de811f4e120314aa8eb964c" kindref="member">sr_unit</ref></type>
+          <declname>unit</declname>
+        </param>
+        <briefdescription>
+<para>Check if a unit &quot;accepts&quot; an SI prefix. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>E.g. SR_UNIT_VOLT is SI prefix friendly while SR_UNIT_DECIBEL_MW or SR_UNIT_PERCENTAGE are not.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">unit</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The unit to check for SI prefix &quot;friendliness&quot;.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>TRUE if the unit &quot;accept&quot; an SI prefix.</para>
+</simplesect>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="430" column="11" bodyfile="src/analog.c" bodystart="430" bodyend="455"/>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964cae9301ccd6318bde7c36ffa4d94914ec4" compoundref="a00050" startline="256">SR_UNIT_AMPERE</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca90c56ae287735913c59bf21916126b2d" compoundref="a00050" startline="260">SR_UNIT_FARAD</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca7dd7d5ba7533d6ccf095876e8f50d3ba" compoundref="a00050" startline="317">SR_UNIT_GRAM</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca34762c3c913b90c20aa1960c43fcd181" compoundref="a00050" startline="315">SR_UNIT_HENRY</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca219fc1840c3d80a5082dee7e557845ef" compoundref="a00050" startline="268">SR_UNIT_HERTZ</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca26a2a73753bf99869ce2dde298eb27dd" compoundref="a00050" startline="262">SR_UNIT_KELVIN</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca216477cfd2f4473555293e4b118c2f02" compoundref="a00050" startline="307">SR_UNIT_METER_SECOND</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca03bacbe7d892ac232c9aa4ea17d0ef58" compoundref="a00050" startline="258">SR_UNIT_OHM</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca5192db7b7eff5186277a8435d3bc9f33" compoundref="a00050" startline="274">SR_UNIT_SECOND</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964cad9b588a2d89343c4fcb59cb5aad5fea3" compoundref="a00050" startline="276">SR_UNIT_SIEMENS</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca23f7eb1b23df6a5bc11850ebaf4d671a" compoundref="a00050" startline="254">SR_UNIT_VOLT</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca16455f01bfbe466b05ea7897c3fa2394" compoundref="a00050" startline="301">SR_UNIT_VOLT_AMPERE</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca583f457f52ab39dde0e1b04a6c6af885" compoundref="a00050" startline="303">SR_UNIT_WATT</references>
+        <references refid="a00050_1af13f9a5c3de811f4e120314aa8eb964ca3c7ccdbbeba16e2d1e990307ea76fff8" compoundref="a00050" startline="305">SR_UNIT_WATT_HOUR</references>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga849fde6f4ed4c75d12b7358cabe5a65d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_analog_unit_to_string</definition>
+        <argsstring>(const struct sr_datafeed_analog *analog, char **result)</argsstring>
+        <name>sr_analog_unit_to_string</name>
+        <param>
+          <type>const struct <ref refid="a00138" kindref="compound">sr_datafeed_analog</ref> *</type>
+          <declname>analog</declname>
+        </param>
+        <param>
+          <type>char **</type>
+          <declname>result</declname>
+        </param>
+        <briefdescription>
+<para>Convert the unit/MQ/MQ flags in the analog struct to a string. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The string is allocated by the function and must be freed by the caller after use by calling g_free().</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">analog</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Struct containing the unit, MQ and MQ flags. Must not be NULL. analog-&gt;meaning must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">result</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to store result. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid argument.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="472" column="6" bodyfile="src/analog.c" bodystart="472" bodyend="499"/>
+        <references refid="a00138_1a9e97bc2f38a677065f11d7ec4ade7644" compoundref="a00050" startline="521">sr_datafeed_analog::meaning</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga1c1b8581323f334e9580b9a36d5a52fd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sr_rational_set</definition>
+        <argsstring>(struct sr_rational *r, int64_t p, uint64_t q)</argsstring>
+        <name>sr_rational_set</name>
+        <param>
+          <type>struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>int64_t</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>q</declname>
+        </param>
+        <briefdescription>
+<para>Set <ref refid="a00118" kindref="compound">sr_rational</ref> r to the given value. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="out">r</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Rational number struct to set. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">p</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Numerator. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">q</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Denominator.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="510" column="7" bodyfile="src/analog.c" bodystart="510" bodyend="517"/>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga96b43fcbadd392c368f84458ae5bfa02" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void mult_int64</definition>
+        <argsstring>(struct sr_int128_t *res, const int64_t a, const int64_t b)</argsstring>
+        <name>mult_int64</name>
+        <param>
+          <type>struct sr_int128_t *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const int64_t</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const int64_t</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="530" column="13" bodyfile="src/analog.c" bodystart="530" bodyend="544"/>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1gab1b51c56885fd42a1e2b2f038069f13a" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void mult_uint64</definition>
+        <argsstring>(struct sr_uint128_t *res, const uint64_t a, const uint64_t b)</argsstring>
+        <name>mult_uint64</name>
+        <param>
+          <type>struct sr_uint128_t *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const uint64_t</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="546" column="13" bodyfile="src/analog.c" bodystart="546" bodyend="561"/>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1gaf5f21f8d1f341bb0593316610668d973" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_rational_eq</definition>
+        <argsstring>(const struct sr_rational *a, const struct sr_rational *b)</argsstring>
+        <name>sr_rational_eq</name>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+<para>Compare two <ref refid="a00118" kindref="compound">sr_rational</ref> for equality. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The values are compared for numerical equality, i.e. 2/10 == 1/5.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">a</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">b</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>if both values are equal. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>0</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Otherwise.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="577" column="6" bodyfile="src/analog.c" bodystart="577" bodyend="596"/>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga7ee05b9bac44087e25a0708da9c0359f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_rational_mult</definition>
+        <argsstring>(struct sr_rational *res, const struct sr_rational *a, const struct sr_rational *b)</argsstring>
+        <name>sr_rational_mult</name>
+        <param>
+          <type>struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+<para>Multiply two <ref refid="a00118" kindref="compound">sr_rational</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The resulting nominator/denominator are reduced if the result would not fit otherwise. If the resulting nominator/denominator are relatively prime, this may not be possible.</para>
+<para>It is safe to use the same variable for result and input values.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">a</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">b</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second value. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Result.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Resulting value too large.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="616" column="6" bodyfile="src/analog.c" bodystart="616" bodyend="673"/>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+        <referencedby refid="a00069_1ga1b073bd224cb636ad043442cc8ad0c29" compoundref="a00002" startline="694" endline="713">sr_rational_div</referencedby>
+      </memberdef>
+      <memberdef kind="function" id="a00069_1ga1b073bd224cb636ad043442cc8ad0c29" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_rational_div</definition>
+        <argsstring>(struct sr_rational *res, const struct sr_rational *num, const struct sr_rational *div)</argsstring>
+        <name>sr_rational_div</name>
+        <param>
+          <type>struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>num</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00118" kindref="compound">sr_rational</ref> *</type>
+          <declname>div</declname>
+        </param>
+        <briefdescription>
+<para>Divide rational a by rational b. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The resulting nominator/denominator are reduced if the result would not fit otherwise. If the resulting nominator/denominator are relatively prime, this may not be possible.</para>
+<para>It is safe to use the same variable for result and input values.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">num</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Numerator. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">div</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Divisor. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="out">res</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Result.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Division by zero, denominator of divisor too large, or resulting value too large.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.5.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/analog.c" line="694" column="6" bodyfile="src/analog.c" bodystart="694" bodyend="713"/>
+        <references refid="a00118_1a4aaae7eaf8b4be92c17c5158b431ca59" compoundref="a00050" startline="487">sr_rational::p</references>
+        <references refid="a00118_1aea760e51129f529a28b91d5ba757678c" compoundref="a00050" startline="489">sr_rational::q</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00069_1ga7ee05b9bac44087e25a0708da9c0359f" compoundref="a00002" startline="616" endline="673">sr_rational_mult</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Handling and converting analog data. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="src/analog.c"/>
+  </compounddef>
+</doxygen>

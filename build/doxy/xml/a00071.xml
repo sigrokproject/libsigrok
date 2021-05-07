@@ -1,0 +1,1269 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00071" kind="group">
+    <compoundname>grp_devices</compoundname>
+    <title>Devices</title>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00071_1gad8fe7915caeeaedcbd72526a8f9f63a3" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+        <definition>SR_PRIV struct sr_channel* sr_channel_new</definition>
+        <argsstring>(struct sr_dev_inst *sdi, int index, int type, gboolean enabled, const char *name)</argsstring>
+        <name>sr_channel_new</name>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>gboolean</type>
+          <declname>enabled</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Allocate and initialize a new struct <ref refid="a00162" kindref="compound">sr_channel</ref> and add it to sdi. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The device instance the channel is connected to. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The index of this channel, starting at 0. Logic channels will be encoded according to this index in SR_DF_LOGIC packets. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Channel type (SR_CHANNEL_LOGIC, ...)</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">enabled</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Is this channel enabled?</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of channel.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new struct sr_channel*. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="60" column="25" bodyfile="src/device.c" bodystart="60" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga8ed3aab2456f48f66706f155dc0c9100" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_channel_free</definition>
+        <argsstring>(struct sr_channel *ch)</argsstring>
+        <name>sr_channel_free</name>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>ch</declname>
+        </param>
+        <briefdescription>
+<para>Release a previously allocated struct <ref refid="a00162" kindref="compound">sr_channel</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">ch</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to struct <ref refid="a00162" kindref="compound">sr_channel</ref>. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="85" column="14" bodyfile="src/device.c" bodystart="85" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gacb2423bfb2c3c31081d4ce11700e3884" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_channel_free_cb</definition>
+        <argsstring>(void *p)</argsstring>
+        <name>sr_channel_free_cb</name>
+        <param>
+          <type>void *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+<para>Wrapper around sr_channel_free(), suitable for glib iterators. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="99" column="14" bodyfile="src/device.c" bodystart="99" bodyend="102"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gabd4d8d0d8548c03bb55a6683a835a036" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_channel_name_set</definition>
+        <argsstring>(struct sr_channel *channel, const char *name)</argsstring>
+        <name>sr_dev_channel_name_set</name>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Set the name of the specified channel. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If the channel already has a different name assigned to it, it will be removed, and the new name will be saved instead.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The channel whose name to set. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The new name that the specified channel should get. A copy of the string is made.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK on success, or SR_ERR_ARG on invalid arguments.</para>
+</simplesect>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="118" column="6" bodyfile="src/device.c" bodystart="118" bodyend="128"/>
+        <references refid="a00162_1a84f0d94ca2d6aee33e01d6a2e8156e57" compoundref="a00050" startline="624">sr_channel::name</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga01a44d3f7c1231b214940f363bbd5f1c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_channel_enable</definition>
+        <argsstring>(struct sr_channel *channel, gboolean state)</argsstring>
+        <name>sr_dev_channel_enable</name>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>gboolean</type>
+          <declname>state</declname>
+        </param>
+        <briefdescription>
+<para>Enable or disable a channel. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The channel to enable or disable. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">state</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>TRUE to enable the channel, FALSE to disable.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK on success or SR_ERR on failure. In case of invalid arguments, SR_ERR_ARG is returned and the channel enabled state remains unchanged.</para>
+</simplesect>
+<simplesect kind="since"><para>0.3.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="142" column="6" bodyfile="src/device.c" bodystart="142" bodyend="164"/>
+        <references refid="a00162_1a3ba1b7e09ac02f832d155b13439c0a44" compoundref="a00050" startline="622">sr_channel::enabled</references>
+        <references refid="a00162_1a88c15932db28a3d45df9d11e44f7adcb" compoundref="a00050" startline="615">sr_channel::sdi</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gadf0dac699ef92bf5002243c1cc297b44" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+        <definition>SR_PRIV struct sr_channel* sr_next_enabled_channel</definition>
+        <argsstring>(const struct sr_dev_inst *sdi, struct sr_channel *cur_channel)</argsstring>
+        <name>sr_next_enabled_channel</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>cur_channel</declname>
+        </param>
+        <briefdescription>
+<para>Returns the next enabled channel, wrapping around if necessary. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The device instance the channel is connected to. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">cur_channel</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The current channel.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to the next enabled channel of this device. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="177" column="25" bodyfile="src/device.c" bodystart="177" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gab06789addfc3fe6daebc819bc6b959cc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> gboolean</type>
+        <definition>SR_PRIV gboolean sr_channels_differ</definition>
+        <argsstring>(struct sr_channel *ch1, struct sr_channel *ch2)</argsstring>
+        <name>sr_channels_differ</name>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>ch1</declname>
+        </param>
+        <param>
+          <type>struct <ref refid="a00162" kindref="compound">sr_channel</ref> *</type>
+          <declname>ch2</declname>
+        </param>
+        <briefdescription>
+<para>Compare two channels, return whether they differ. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The channels&apos; names and types are checked. The enabled state is not considered a condition for difference. The test is motivated by the desire to detect changes in the configuration of acquisition setups between re-reads of an input file.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">ch1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First channel. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">ch2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second channel.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>TRUE upon differences or unexpected input, FALSE otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="210" column="18" bodyfile="src/device.c" bodystart="210" bodyend="221"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga397a81a93fd82d17706208b66725698d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> gboolean</type>
+        <definition>SR_PRIV gboolean sr_channel_lists_differ</definition>
+        <argsstring>(GSList *l1, GSList *l2)</argsstring>
+        <name>sr_channel_lists_differ</name>
+        <param>
+          <type>GSList *</type>
+          <declname>l1</declname>
+        </param>
+        <param>
+          <type>GSList *</type>
+          <declname>l2</declname>
+        </param>
+        <briefdescription>
+<para>Compare two channel lists, return whether they differ. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Listing the same set of channels but in a different order is considered a difference in the lists.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">l1</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>First channel list. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">l2</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Second channel list.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>TRUE upon differences or unexpected input, FALSE otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="236" column="18" bodyfile="src/device.c" bodystart="236" bodyend="256"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga8748df5e84b0785ccf26409e427f2375" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>gboolean sr_dev_has_option</definition>
+        <argsstring>(const struct sr_dev_inst *sdi, int key)</argsstring>
+        <name>sr_dev_has_option</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+<para>Determine whether the specified device instance has the specified capability. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the device instance to be checked. Must not be NULL. If the device&apos;s &apos;driver&apos; field is NULL (virtual device), this function will always return FALSE (virtual devices don&apos;t have a hardware capabilities list). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The option that should be checked for is supported by the specified device.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>TRUE</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device has the specified option. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>FALSE</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device does not have the specified option, invalid input parameters or other error conditions.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="275" column="11" bodyfile="src/device.c" bodystart="275" bodyend="300"/>
+        <references refid="a00162_1a88c15932db28a3d45df9d11e44f7adcb" compoundref="a00050" startline="615">sr_channel::sdi</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga26fee1c71ff0c486f93db5ee80c1e943" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GArray *</type>
+        <definition>GArray* sr_dev_options</definition>
+        <argsstring>(const struct sr_dev_driver *driver, const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)</argsstring>
+        <name>sr_dev_options</name>
+        <param>
+          <type>const struct <ref refid="a00178" kindref="compound">sr_dev_driver</ref> *</type>
+          <declname>driver</declname>
+        </param>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00166" kindref="compound">sr_channel_group</ref> *</type>
+          <declname>cg</declname>
+        </param>
+        <briefdescription>
+<para>Enumerate the configuration options of the specified item. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>driver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the driver to be checked. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the device instance to be checked. May be NULL to check driver options. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a channel group, if a specific channel group is to be checked. Must be NULL to check device-wide options.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A GArray * of enum sr_configkey values, or NULL on invalid arguments. The array must be freed by the caller using g_array_free().</para>
+</simplesect>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="317" column="9" bodyfile="src/device.c" bodystart="317" bodyend="347"/>
+        <references refid="a00178_1add11215f64fb44c03ccd406ce42b5c5a" compoundref="a00050" startline="1242">sr_dev_driver::config_list</references>
+        <references refid="a00162_1a88c15932db28a3d45df9d11e44f7adcb" compoundref="a00050" startline="615">sr_channel::sdi</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gaafd19fdb190135fee018781ad4f95bb8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_config_capabilities_list</definition>
+        <argsstring>(const struct sr_dev_inst *sdi, const struct sr_channel_group *cg, const int key)</argsstring>
+        <name>sr_dev_config_capabilities_list</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00166" kindref="compound">sr_channel_group</ref> *</type>
+          <declname>cg</declname>
+        </param>
+        <param>
+          <type>const int</type>
+          <declname>key</declname>
+        </param>
+        <briefdescription>
+<para>Enumerate the configuration capabilities supported by a device instance for a given configuration key. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to the device instance to be checked. Must not be NULL. If the device&apos;s &apos;driver&apos; field is NULL (virtual device), this function will always return FALSE (virtual devices don&apos;t have a hardware capabilities list). </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>cg</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Pointer to a channel group, if a specific channel group is to be checked. Must be NULL to check device-wide options. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">key</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The option that should be checked for is supported by the specified device.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>A</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>bitmask of enum sr_configcap values, which will be zero for invalid inputs or if the key is unsupported.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="367" column="6" bodyfile="src/device.c" bodystart="367" bodyend="393"/>
+        <references refid="a00162_1a88c15932db28a3d45df9d11e44f7adcb" compoundref="a00050" startline="615">sr_channel::sdi</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga11dcc1cfb14c582a5cc683a08bb5da65" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct sr_dev_inst *</type>
+        <definition>struct sr_dev_inst* sr_dev_inst_user_new</definition>
+        <argsstring>(const char *vendor, const char *model, const char *version)</argsstring>
+        <name>sr_dev_inst_user_new</name>
+        <param>
+          <type>const char *</type>
+          <declname>vendor</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>model</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>version</declname>
+        </param>
+        <briefdescription>
+<para>Allocate and init a new user-generated device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>vendor</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device vendor. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>model</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device model. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>version</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device version.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>struct</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>sr_dev_inst *. Dynamically allocated, free using sr_dev_inst_free(). </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="405" column="19" bodyfile="src/device.c" bodystart="405" bodyend="418"/>
+        <references refid="a00050_1a849b033f345398d0fc85d4dc7d93be97ac3316d7b058dc02920c68d6d31382524" compoundref="a00050" startline="1174">SR_INST_USER</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga8c038a70b39b7465e74f1954be8d4c60" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_inst_channel_add</definition>
+        <argsstring>(struct sr_dev_inst *sdi, int index, int type, const char *name)</argsstring>
+        <name>sr_dev_inst_channel_add</name>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Add a new channel to the specified device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">index</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The index of this channel, starting at 0. Logic channels will be encoded according to this index in SR_DF_LOGIC packets. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Channel type (SR_CHANNEL_LOGIC, ...)</para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Name of channel.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>SR_OK Success. </para>
+</simplesect>
+<simplesect kind="return"><para>SR_OK Invalid argument. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="431" column="6" bodyfile="src/device.c" bodystart="431" bodyend="439"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1a849b033f345398d0fc85d4dc7d93be97ac3316d7b058dc02920c68d6d31382524" compoundref="a00050" startline="1174">SR_INST_USER</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gafdee5f89fb7b8c2e15773fe87c88af43" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_dev_inst_free</definition>
+        <argsstring>(struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_free</name>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Free device instance struct created by sr_dev_inst(). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to free. If NULL, the function will do nothing. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="448" column="14" bodyfile="src/device.c" bodystart="448" bodyend="481"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga9ba6be0efd8ed756e7a0f78c23c3bffb" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> struct sr_serial_dev_inst *</type>
+        <definition>SR_PRIV struct sr_serial_dev_inst* sr_serial_dev_inst_new</definition>
+        <argsstring>(const char *port, const char *serialcomm)</argsstring>
+        <name>sr_serial_dev_inst_new</name>
+        <param>
+          <type>const char *</type>
+          <declname>port</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>serialcomm</declname>
+        </param>
+        <briefdescription>
+<para>Allocate and init a struct for a serial device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Both parameters are copied to newly allocated strings, and freed automatically by sr_serial_dev_inst_free().</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">port</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>OS-specific serial port specification. Examples: &quot;/dev/ttyUSB0&quot;, &quot;/dev/ttyACM1&quot;, &quot;/dev/tty.Modem-0&quot;, &quot;COM1&quot;. Must not be NULL. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">serialcomm</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>A serial communication parameters string, in the form of &lt;speed&gt;/&lt;data bits&gt;&lt;parity&gt;&lt;stopbits&gt;, for example &quot;9600/8n1&quot; or &quot;600/7o2&quot;. This is an optional parameter; it may be filled in later. Can be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A pointer to a newly initialized struct sr_serial_dev_inst, or NULL on error. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="545" column="33" bodyfile="src/device.c" bodystart="545" bodyend="556"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga30dc35b1faa3bca721f99eb4322be9df" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_serial_dev_inst_free</definition>
+        <argsstring>(struct sr_serial_dev_inst *serial)</argsstring>
+        <name>sr_serial_dev_inst_free</name>
+        <param>
+          <type>struct sr_serial_dev_inst *</type>
+          <declname>serial</declname>
+        </param>
+        <briefdescription>
+<para>Free struct sr_serial_dev_inst * allocated by sr_serial_dev_inst(). </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>serial</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The struct sr_serial_dev_inst * to free. If NULL, this function will do nothing. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="566" column="14" bodyfile="src/device.c" bodystart="566" bodyend="574"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gab9627a44dc4ab79276ae9e017037f2ae" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> struct sr_usbtmc_dev_inst *</type>
+        <definition>SR_PRIV struct sr_usbtmc_dev_inst* sr_usbtmc_dev_inst_new</definition>
+        <argsstring>(const char *device)</argsstring>
+        <name>sr_usbtmc_dev_inst_new</name>
+        <param>
+          <type>const char *</type>
+          <declname>device</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="578" column="33" bodyfile="src/device.c" bodystart="578" bodyend="587"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga94ce64225d3cf2e2ba0216fdddd6af56" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="a00050_1a543a61499eead2576f48b70fbc336e71" kindref="member">SR_PRIV</ref> void</type>
+        <definition>SR_PRIV void sr_usbtmc_dev_inst_free</definition>
+        <argsstring>(struct sr_usbtmc_dev_inst *usbtmc)</argsstring>
+        <name>sr_usbtmc_dev_inst_free</name>
+        <param>
+          <type>struct sr_usbtmc_dev_inst *</type>
+          <declname>usbtmc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="590" column="14" bodyfile="src/device.c" bodystart="590" bodyend="597"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gaf6973a5d7c159e588211a287d716aa26" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GSList *</type>
+        <definition>GSList* sr_dev_list</definition>
+        <argsstring>(const struct sr_dev_driver *driver)</argsstring>
+        <name>sr_dev_list</name>
+        <param>
+          <type>const struct <ref refid="a00178" kindref="compound">sr_dev_driver</ref> *</type>
+          <declname>driver</declname>
+        </param>
+        <briefdescription>
+<para>Get the list of devices/instances of the specified driver. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>driver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The driver to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The list of devices/instances of this driver, or NULL upon errors or if the list is empty.</para>
+</simplesect>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="609" column="9" bodyfile="src/device.c" bodystart="609" bodyend="615"/>
+        <references refid="a00178_1aa6b7607dae39a70d13534815317e1716" compoundref="a00050" startline="1218">sr_dev_driver::dev_list</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga757ef4b2ca0d6be7098fa2b6f87e1995" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_clear</definition>
+        <argsstring>(const struct sr_dev_driver *driver)</argsstring>
+        <name>sr_dev_clear</name>
+        <param>
+          <type>const struct <ref refid="a00178" kindref="compound">sr_dev_driver</ref> *</type>
+          <declname>driver</declname>
+        </param>
+        <briefdescription>
+<para>Clear the list of device instances a driver knows about. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>driver</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The driver to use. This must be a pointer to one of the entries returned by <ref refid="a00073_1ga755e937630acf9037eff1938233782c8" kindref="member">sr_driver_list()</ref>. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid driver.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="628" column="6" bodyfile="src/device.c" bodystart="628" bodyend="648"/>
+        <references refid="a00178_1a78504fc823d187e0f2f2646d9f20e883" compoundref="a00050" startline="1258">sr_dev_driver::context</references>
+        <references refid="a00178_1a84cc44efef6af3904bb854f2437b5911" compoundref="a00050" startline="1220">sr_dev_driver::dev_clear</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gabb8d2f9296376e2223d1c23d04de5cf2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_open</definition>
+        <argsstring>(struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_open</name>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Open the specified device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If the device instance is already open (sdi-&gt;status == SR_ST_ACTIVE), SR_ERR will be returned and no re-opening of the device will be attempted.</para>
+<para>If opening was successful, sdi-&gt;status is set to SR_ST_ACTIVE, otherwise it will be left unchanged.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid arguments. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance was already active, or other error.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="667" column="6" bodyfile="src/device.c" bodystart="667" bodyend="688"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a132553bf1f479756d2590f9fd40bb289" compoundref="a00050" startline="68">SR_ERR</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+        <references refid="a00050_1aeafac70caf348818c4ea8290137ff0e9a27b78acb86610b24607730033ab1eac7" compoundref="a00050" startline="1188">SR_ST_ACTIVE</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga64973860ad236d001ee8f45d09b98372" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_dev_close</definition>
+        <argsstring>(struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_close</name>
+        <param>
+          <type>struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Close the specified device instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>If the device instance is not open (sdi-&gt;status != SR_ST_ACTIVE), SR_ERR_DEV_CLOSED will be returned and no closing will be attempted.</para>
+<para>Note: sdi-&gt;status will be set to SR_ST_INACTIVE, regardless of whether there are any errors during closing of the device instance (any errors will be reported via error code and log message, though).</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<parameterlist kind="retval"><parameteritem>
+<parameternamelist>
+<parametername>SR_OK</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Success. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_ARG</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Invalid arguments. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR_DEV_CLOSED</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance was not active. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>SR_ERR</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Other error.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="since"><para>0.2.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="709" column="6" bodyfile="src/device.c" bodystart="709" bodyend="725"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a876e62a9b4ae742236909f3cc639478a" compoundref="a00050" startline="74">SR_ERR_DEV_CLOSED</references>
+        <references refid="a00050_1aeafac70caf348818c4ea8290137ff0e9a27b78acb86610b24607730033ab1eac7" compoundref="a00050" startline="1188">SR_ST_ACTIVE</references>
+        <references refid="a00050_1aeafac70caf348818c4ea8290137ff0e9afc2699248859ab2bcb7550e3760460cc" compoundref="a00050" startline="1186">SR_ST_INACTIVE</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gac54ac663464d994e07681e7566f3b068" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct <ref refid="a00178" kindref="compound">sr_dev_driver</ref> *</type>
+        <definition>struct sr_dev_driver* sr_dev_inst_driver_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_driver_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; driver. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The driver instance or NULL on error. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="734" column="21" bodyfile="src/device.c" bodystart="734" bodyend="740"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga666849e9e179e21e2cd263311a49b100" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_dev_inst_vendor_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_vendor_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; vendor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The vendor string or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="749" column="13" bodyfile="src/device.c" bodystart="749" bodyend="755"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga0cf89172ac7c3110348fec441e3e4119" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_dev_inst_model_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_model_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; model. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The model string or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="764" column="13" bodyfile="src/device.c" bodystart="764" bodyend="770"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga8cd7545b8254c6f5b1150b43f3fd406f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_dev_inst_version_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_version_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; version. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The version string or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="779" column="13" bodyfile="src/device.c" bodystart="779" bodyend="785"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga7dadb80a5ebe2fef6be0369c8bcb7ee4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_dev_inst_sernum_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_sernum_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; serial number. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The serial number string or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="794" column="13" bodyfile="src/device.c" bodystart="794" bodyend="800"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga77f128263c50a618983c360185229115" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_dev_inst_connid_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_connid_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; connection identifier. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A copy of the connection ID string or NULL. The caller is responsible for g_free()ing the string when it is no longer needed. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="810" column="13" bodyfile="src/device.c" bodystart="810" bodyend="880"/>
+        <references refid="a00050_1a849b033f345398d0fc85d4dc7d93be97aa912ddffee5003f408b80e7b5e2e9a8b" compoundref="a00050" startline="1172">SR_INST_SCPI</references>
+        <references refid="a00050_1a849b033f345398d0fc85d4dc7d93be97a9745a78144502dbaa2eef05925cd9e39" compoundref="a00050" startline="1170">SR_INST_SERIAL</references>
+        <references refid="a00050_1a849b033f345398d0fc85d4dc7d93be97a5a5cfb4465e2bbcc603d22fd9853aa80" compoundref="a00050" startline="1168">SR_INST_USB</references>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1ga7fd62dba1ab23181dd5f3515ce244c54" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GSList *</type>
+        <definition>GSList* sr_dev_inst_channels_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_channels_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; channel list. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The GSList of channels or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="889" column="9" bodyfile="src/device.c" bodystart="889" bodyend="895"/>
+      </memberdef>
+      <memberdef kind="function" id="a00071_1gad2a2914e066fc3c405836445ecdd9ca4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>GSList *</type>
+        <definition>GSList* sr_dev_inst_channel_groups_get</definition>
+        <argsstring>(const struct sr_dev_inst *sdi)</argsstring>
+        <name>sr_dev_inst_channel_groups_get</name>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <briefdescription>
+<para>Queries a device instances&apos; channel groups list. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>sdi</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Device instance to use. Must not be NULL.</para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>The GSList of channel groups or NULL. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/device.c" line="904" column="9" bodyfile="src/device.c" bodystart="904" bodyend="910"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Device handling in libsigrok. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

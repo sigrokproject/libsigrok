@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00134" kind="struct" language="C++" prot="public">
+    <compoundname>sr_datafeed_logic</compoundname>
+    <includes refid="a00050" local="no">libsigrok.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00134_1abb05d508b27b5d449af50b7b2b34b26a" prot="public" static="no" mutable="no">
+        <type>uint64_t</type>
+        <definition>uint64_t sr_datafeed_logic::length</definition>
+        <argsstring></argsstring>
+        <name>length</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="511" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="511" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00134_1ab593803f612613cff26bbd64ff39435c" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t sr_datafeed_logic::unitsize</definition>
+        <argsstring></argsstring>
+        <name>unitsize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="512" column="10" bodyfile="include/libsigrok/libsigrok.h" bodystart="512" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00134_1a66994faadfe017216bb900939349cfba" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* sr_datafeed_logic::data</definition>
+        <argsstring></argsstring>
+        <name>data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/libsigrok/libsigrok.h" line="513" column="6" bodyfile="include/libsigrok/libsigrok.h" bodystart="513" bodyend="-1"/>
+        <referencedby refid="a00076_1gacefe885be96f97d263ccd2b44ddac7bc" compoundref="a00035" startline="1561" endline="1606">sr_packet_free</referencedby>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Logic datafeed payload for type SR_DF_LOGIC. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>void *</label>
+      </node>
+      <node id="2">
+        <label>uint64_t</label>
+      </node>
+      <node id="1">
+        <label>sr_datafeed_logic</label>
+        <link refid="a00134"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>length</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>unitsize</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>data</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>uint16_t</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/libsigrok/libsigrok.h" line="510" column="1" bodyfile="include/libsigrok/libsigrok.h" bodystart="510" bodyend="514"/>
+    <listofallmembers>
+      <member refid="a00134_1a66994faadfe017216bb900939349cfba" prot="public" virt="non-virtual"><scope>sr_datafeed_logic</scope><name>data</name></member>
+      <member refid="a00134_1abb05d508b27b5d449af50b7b2b34b26a" prot="public" virt="non-virtual"><scope>sr_datafeed_logic</scope><name>length</name></member>
+      <member refid="a00134_1ab593803f612613cff26bbd64ff39435c" prot="public" virt="non-virtual"><scope>sr_datafeed_logic</scope><name>unitsize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

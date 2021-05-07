@@ -1,0 +1,398 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00062" kind="file" language="C++">
+    <compoundname>output.c</compoundname>
+    <includes local="no">config.h</includes>
+    <includes local="no">string.h</includes>
+    <includes refid="a00050" local="no">libsigrok/libsigrok.h</includes>
+    <includes local="yes">libsigrok-internal.h</includes>
+    <incdepgraph>
+      <node id="12">
+        <label>libsigrok-internal.h</label>
+      </node>
+      <node id="7">
+        <label>stdint.h</label>
+      </node>
+      <node id="11">
+        <label>libsigrok/version.h</label>
+        <link refid="a00056"/>
+      </node>
+      <node id="3">
+        <label>string.h</label>
+      </node>
+      <node id="9">
+        <label>glib.h</label>
+      </node>
+      <node id="6">
+        <label>sys/time.h</label>
+      </node>
+      <node id="4">
+        <label>libsigrok/libsigrok.h</label>
+        <link refid="a00050"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>config.h</label>
+      </node>
+      <node id="1">
+        <label>src/output/output.c</label>
+        <link refid="a00062"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>stdio.h</label>
+      </node>
+      <node id="10">
+        <label>libsigrok/proto.h</label>
+        <link refid="a00053"/>
+      </node>
+      <node id="8">
+        <label>inttypes.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="a00081_1gaf4c11b2975430e720b703df7239652f2" prot="public" static="yes" mutable="no">
+        <type>const struct sr_output_module *</type>
+        <definition>const struct sr_output_module* output_module_list[]</definition>
+        <argsstring>[]</argsstring>
+        <name>output_module_list</name>
+        <initializer>= {
+	&amp;output_ascii,
+	&amp;output_binary,
+	&amp;output_bits,
+	&amp;output_csv,
+	&amp;output_hex,
+	&amp;output_ols,
+	&amp;output_vcd,
+	&amp;output_chronovu_la8,
+	&amp;output_analog,
+	&amp;output_srzip,
+	&amp;output_wav,
+	&amp;output_wavedrom,
+	&amp;output_null,
+	NULL,
+}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="71" column="36" bodyfile="src/output/output.c" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="a00081_1gaef157a70847b5cd4e5db3f706f97bb7a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_output_module **</type>
+        <definition>const struct sr_output_module** sr_output_list</definition>
+        <argsstring>(void)</argsstring>
+        <name>sr_output_list</name>
+        <param>
+          <type>void</type>
+        </param>
+        <briefdescription>
+<para>Returns a NULL-terminated list of all available output modules. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="93" column="30" bodyfile="src/output/output.c" bodystart="93" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gadaaeaa73ee938484c31094a05fc5cea6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_output_id_get</definition>
+        <argsstring>(const struct sr_output_module *omod)</argsstring>
+        <name>sr_output_id_get</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified output module&apos;s ID. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="103" column="13" bodyfile="src/output/output.c" bodystart="103" bodyend="111"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gaf1764b518bd10533a686b3a50a849aed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_output_name_get</definition>
+        <argsstring>(const struct sr_output_module *omod)</argsstring>
+        <name>sr_output_name_get</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified output module&apos;s name. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="118" column="13" bodyfile="src/output/output.c" bodystart="118" bodyend="126"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gaf6538c0a75f51cba0c704cca50d2d401" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char* sr_output_description_get</definition>
+        <argsstring>(const struct sr_output_module *omod)</argsstring>
+        <name>sr_output_description_get</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified output module&apos;s description. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="133" column="13" bodyfile="src/output/output.c" bodystart="133" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gab1b775eab6f493462ad96d83cb5eb950" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *const  *</type>
+        <definition>const char* const* sr_output_extensions_get</definition>
+        <argsstring>(const struct sr_output_module *omod)</argsstring>
+        <name>sr_output_extensions_get</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <briefdescription>
+<para>Returns the specified output module&apos;s file extensions typical for the file format, as a NULL terminated array, or returns a NULL pointer if there is no preferred extension. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="note"><para>these are a suggestions only.</para>
+</simplesect>
+<simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="151" column="19" bodyfile="src/output/output.c" bodystart="151" bodyend="160"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1ga6ebef60903110bb03be4c3e3783ac9b9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>gboolean</type>
+        <definition>gboolean sr_output_test_flag</definition>
+        <argsstring>(const struct sr_output_module *omod, uint64_t flag)</argsstring>
+        <name>sr_output_test_flag</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <param>
+          <type>uint64_t</type>
+          <declname>flag</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="168" column="11" bodyfile="src/output/output.c" bodystart="168" bodyend="172"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1ga4ebad67fb70ac52f736d21190637a128" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_output_module *</type>
+        <definition>const struct sr_output_module* sr_output_find</definition>
+        <argsstring>(char *id)</argsstring>
+        <name>sr_output_find</name>
+        <param>
+          <type>char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Return the output module with the specified ID, or NULL if no module with that id is found. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="180" column="30" bodyfile="src/output/output.c" bodystart="180" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gaafc116fd45e035ab626da3a155a34125" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct <ref refid="a00154" kindref="compound">sr_option</ref> **</type>
+        <definition>const struct sr_option** sr_output_options_get</definition>
+        <argsstring>(const struct sr_output_module *omod)</argsstring>
+        <name>sr_output_options_get</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <briefdescription>
+<para>Returns a NULL-terminated array of struct <ref refid="a00154" kindref="compound">sr_option</ref>, or NULL if the module takes no options. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>Each call to this function must be followed by a call to <ref refid="a00081_1ga5a8ecfb107a90d4d9fad92bf80b650cc" kindref="member">sr_output_options_free()</ref>.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="201" column="23" bodyfile="src/output/output.c" bodystart="201" bodyend="220"/>
+        <references refid="a00154_1afada45d978757a68c202595ce6ceb8b7" compoundref="a00050" startline="561">sr_option::id</references>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1ga5a8ecfb107a90d4d9fad92bf80b650cc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void sr_output_options_free</definition>
+        <argsstring>(const struct sr_option **options)</argsstring>
+        <name>sr_output_options_free</name>
+        <param>
+          <type>const struct <ref refid="a00154" kindref="compound">sr_option</ref> **</type>
+          <declname>options</declname>
+        </param>
+        <briefdescription>
+<para>After a call to <ref refid="a00081_1gaafc116fd45e035ab626da3a155a34125" kindref="member">sr_output_options_get()</ref>, this function cleans up all resources returned by that call. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="228" column="7" bodyfile="src/output/output.c" bodystart="228" bodyend="247"/>
+        <references refid="a00154_1a9cd94aff6f0b88deb90de546009ec62d" compoundref="a00050" startline="567">sr_option::def</references>
+        <references refid="a00154_1a08fc98c220b8e4230c13ca58e85402c2" compoundref="a00050" startline="569">sr_option::values</references>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gac3d851b86178014ba38725c882df310c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const struct sr_output *</type>
+        <definition>const struct sr_output* sr_output_new</definition>
+        <argsstring>(const struct sr_output_module *omod, GHashTable *options, const struct sr_dev_inst *sdi, const char *filename)</argsstring>
+        <name>sr_output_new</name>
+        <param>
+          <type>const struct sr_output_module *</type>
+          <declname>omod</declname>
+        </param>
+        <param>
+          <type>GHashTable *</type>
+          <declname>options</declname>
+        </param>
+        <param>
+          <type>const struct sr_dev_inst *</type>
+          <declname>sdi</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+<para>Create a new output instance using the specified output module. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><computeroutput>options</computeroutput> is a *HashTable with the keys corresponding with the module options&apos; <computeroutput>id</computeroutput> field. The values should be GVariant pointers with sunk * references, of the same GVariantType as the option&apos;s default value.</para>
+<para>The sr_dev_inst passed in can be used by the instance to determine channel names, samplerate, and so on.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="262" column="23" bodyfile="src/output/output.c" bodystart="262" bodyend="326"/>
+        <references refid="a00154_1a9cd94aff6f0b88deb90de546009ec62d" compoundref="a00050" startline="567">sr_option::def</references>
+        <references refid="a00154_1afada45d978757a68c202595ce6ceb8b7" compoundref="a00050" startline="561">sr_option::id</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1gacb03f8a92c738c52b37d019fc893aeac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_output_send</definition>
+        <argsstring>(const struct sr_output *o, const struct sr_datafeed_packet *packet, GString **out)</argsstring>
+        <name>sr_output_send</name>
+        <param>
+          <type>const struct sr_output *</type>
+          <declname>o</declname>
+        </param>
+        <param>
+          <type>const struct <ref refid="a00122" kindref="compound">sr_datafeed_packet</ref> *</type>
+          <declname>packet</declname>
+        </param>
+        <param>
+          <type>GString **</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+<para>Send a packet to the specified output instance. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>The instance&apos;s output is returned as a newly allocated GString, which must be freed by the caller.</para>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="336" column="6" bodyfile="src/output/output.c" bodystart="336" bodyend="340"/>
+      </memberdef>
+      <memberdef kind="function" id="a00081_1ga45328449dcc9cb8804c2635ebf558182" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int sr_output_free</definition>
+        <argsstring>(const struct sr_output *o)</argsstring>
+        <name>sr_output_free</name>
+        <param>
+          <type>const struct sr_output *</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+<para>Free the specified output instance and all associated resources. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="since"><para>0.4.0 </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/output/output.c" line="347" column="6" bodyfile="src/output/output.c" bodystart="347" bodyend="361"/>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95a214df8baf519bba79a1b48d364be3f20" compoundref="a00050" startline="70">SR_ERR_ARG</references>
+        <references refid="a00050_1af94f33f23c5855e3e429bd2ca01e3b95aa35b06e07345c41f0102c255c9cd0bf1" compoundref="a00050" startline="67">SR_OK</references>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Output module handling. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="src/output/output.c"/>
+  </compounddef>
+</doxygen>

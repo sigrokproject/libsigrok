@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="dir_68267d1309a1af8e8297ef4c3efbcdba" kind="dir">
+    <compoundname>src</compoundname>
+    <innerdir refid="dir_d365e15d984c8d0205117ee0c40d6716">src/input</innerdir>
+    <innerdir refid="dir_994de0fd01319e484ee1453a6afebed0">src/output</innerdir>
+    <innerdir refid="dir_f1045338104a6f1bc5c5f037b0ca9be2">src/transform</innerdir>
+    <innerfile refid="a00002">analog.c</innerfile>
+    <innerfile refid="a00005">backend.c</innerfile>
+    <innerfile refid="a00008">binary_helpers.c</innerfile>
+    <innerfile refid="a00011">conversion.c</innerfile>
+    <innerfile refid="a00014">crc.c</innerfile>
+    <innerfile refid="a00017">device.c</innerfile>
+    <innerfile refid="a00020">error.c</innerfile>
+    <innerfile refid="a00023">hwdriver.c</innerfile>
+    <innerfile refid="a00026">log.c</innerfile>
+    <innerfile refid="a00029">resource.c</innerfile>
+    <innerfile refid="a00032">serial.c</innerfile>
+    <innerfile refid="a00035">session.c</innerfile>
+    <innerfile refid="a00038">session_file.c</innerfile>
+    <innerfile refid="a00041">strutil.c</innerfile>
+    <innerfile refid="a00044">trigger.c</innerfile>
+    <innerfile refid="a00047">version.c</innerfile>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="src/"/>
+  </compounddef>
+</doxygen>

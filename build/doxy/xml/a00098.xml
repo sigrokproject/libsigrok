@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="a00098" kind="struct" language="C++" prot="public">
+    <compoundname>datafeed_callback</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="a00098_1a1e14f72956a9044e5e67b820bed9dee0" prot="public" static="no" mutable="no">
+        <type><ref refid="a00053_1abe3dfadc282fa9e0cc1479a27feec66b" kindref="member">sr_datafeed_callback</ref></type>
+        <definition>sr_datafeed_callback datafeed_callback::cb</definition>
+        <argsstring></argsstring>
+        <name>cb</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="50" column="22" bodyfile="src/session.c" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="a00098_1aa07be2d73ed11dd1bda3a484a69e39d5" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* datafeed_callback::cb_data</definition>
+        <argsstring></argsstring>
+        <name>cb_data</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="src/session.c" line="51" column="6" bodyfile="src/session.c" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="5">
+        <label>void *</label>
+      </node>
+      <node id="2">
+        <label>sr_datafeed_packet</label>
+        <link refid="a00122"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>payload</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>type</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>uint16_t</label>
+      </node>
+      <node id="3">
+        <label>const void *</label>
+      </node>
+      <node id="1">
+        <label>datafeed_callback</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cb</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>cb_data</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="src/session.c" line="49" column="1" bodyfile="src/session.c" bodystart="49" bodyend="52"/>
+    <listofallmembers>
+      <member refid="a00098_1a1e14f72956a9044e5e67b820bed9dee0" prot="public" virt="non-virtual"><scope>datafeed_callback</scope><name>cb</name></member>
+      <member refid="a00098_1aa07be2d73ed11dd1bda3a484a69e39d5" prot="public" virt="non-virtual"><scope>datafeed_callback</scope><name>cb_data</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

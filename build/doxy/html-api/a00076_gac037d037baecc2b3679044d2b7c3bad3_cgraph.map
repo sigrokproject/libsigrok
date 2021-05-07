@@ -1,0 +1,5 @@
+<map id="sr_session_dev_add" name="sr_session_dev_add">
+<area shape="rect" id="node1" title="Add a device instance to a session." alt="" coords="5,31,147,57"/>
+<area shape="rect" id="node2" href="$a00073.html#ga392e481fc872786f871b5c7ce3934087" title="Apply configuration settings to the device hardware." alt="" coords="195,5,320,32"/>
+<area shape="rect" id="node3" href="$a00072.html#ga7aacfdde4d4f0b3a64d50797f3c10103" title="Return a human&#45;readable error string for the given libsigrok error code." alt="" coords="217,56,298,83"/>
+</map>

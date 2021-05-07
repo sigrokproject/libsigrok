@@ -418,6 +418,7 @@ SR_API struct sr_dev_driver **sr_driver_list(const struct sr_context *ctx)
 SR_API int sr_driver_init(struct sr_context *ctx, struct sr_dev_driver *driver)
 {
 	int ret;
+	sr_spew("->sr_driver_init: %s", driver->name);
 
 	if (!ctx) {
 		sr_err("Invalid libsigrok context, can't initialize.");
@@ -546,6 +547,8 @@ static int check_options(struct sr_dev_driver *driver, GSList *options,
 SR_API GSList *sr_driver_scan(struct sr_dev_driver *driver, GSList *options)
 {
 	GSList *l;
+
+	sr_spew("->sr_driver_scan");
 
 	if (!driver) {
 		sr_err("Invalid driver, can't scan for devices.");
@@ -826,6 +829,7 @@ SR_API int sr_config_get(const struct sr_dev_driver *driver,
 		sr_err("%s: No channel group specified.",
 			(sdi) ? sdi->driver->name : "unknown");
 
+	sr_spew("sr_config_get: returning");
 	return ret;
 }
 
