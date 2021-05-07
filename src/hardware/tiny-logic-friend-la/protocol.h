@@ -25,6 +25,8 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
+#define LOG_PREFIX "tiny-logic-friend-la"
+
 #define TLF_CHANNEL_COUNT_MAX 16 // maximum number of channels allowed
 #define TLF_CHANNEL_CHAR_MAX 6   // maximum number of characters for the channel names
 
@@ -35,7 +37,7 @@
 /** Private, per-device-instance driver context. */
 
 // dev_context is where all the device specific variables should go that are private
-// should hold state variables for all the settings
+// should hold state variables for the device
 //
 struct dev_context {
 	//const struct tlf_device_model *model_config; // what is this? *** todo
@@ -60,7 +62,7 @@ struct dev_context {
 	gboolean channel_state[TLF_CHANNEL_COUNT_MAX]; // set TRUE for enable, FALSE for disable
 
 	char receive_buffer[RECEIVE_BUFFER_SIZE];
-	gboolean data_pending;
+	gboolean data_pending; // state variable if data is pending to be measured
 
 	size_t measured_samples;
 	size_t pending_samples;
@@ -75,7 +77,6 @@ struct dev_context {
 
 };
 
-#define LOG_PREFIX "tiny-logic-friend-la"
 
 SR_PRIV int tlf_samplerates_list(const struct sr_dev_inst *sdi); // gets sample rates
 SR_PRIV int tlf_samplerate_set(const struct sr_dev_inst *sdi, uint64_t sample_rate); // set sample rate

@@ -1,4 +1,0 @@
-<map id="sr_a2l_schmitt_trigger" name="sr_a2l_schmitt_trigger">
-<area shape="rect" id="node1" title="Convert analog values to logic values by using a Schmitt&#45;trigger algorithm." alt="" coords="5,5,156,32"/>
-<area shape="rect" id="node2" href="$a00069.html#ga7c692bc1d32dc9b126cd0d6bbf21f2bd" title="Convert an analog datafeed payload to an array of floats." alt="" coords="204,5,332,32"/>
-</map>

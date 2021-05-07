@@ -233,7 +233,8 @@ static int config_get(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_RLE:
 
-			/* ADD code ********/
+			// todo ADD code if you need to verify something for run-length-encoding RLE ********
+			// `RLE_mode` state variable should have been verified during `scan`
 
 		default:
 			sr_dbg("(1) Unsupported key: %d ", key);
