@@ -1,4 +1,0 @@
-<map id="sr_a2l_threshold" name="sr_a2l_threshold">
-<area shape="rect" id="node1" title="Convert analog values to logic values by using a fixed threshold." alt="" coords="5,5,123,32"/>
-<area shape="rect" id="node2" href="$a00069.html#ga7c692bc1d32dc9b126cd0d6bbf21f2bd" title="Convert an analog datafeed payload to an array of floats." alt="" coords="171,5,299,32"/>
-</map>

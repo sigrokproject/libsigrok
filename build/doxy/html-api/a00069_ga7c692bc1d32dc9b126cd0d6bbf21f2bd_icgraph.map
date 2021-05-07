@@ -1,5 +1,0 @@
-<map id="sr_analog_to_float" name="sr_analog_to_float">
-<area shape="rect" id="node1" title="Convert an analog datafeed payload to an array of floats." alt="" coords="204,31,332,57"/>
-<area shape="rect" id="node2" href="$a00011.html#abae077d85c8390eff878bf7d096d929a" title="Convert analog values to logic values by using a Schmitt&#45;trigger algorithm." alt="" coords="5,5,156,32"/>
-<area shape="rect" id="node3" href="$a00011.html#a3f168ba982a19fb0e51254d5852e6572" title="Convert analog values to logic values by using a fixed threshold." alt="" coords="22,56,139,83"/>
-</map>
