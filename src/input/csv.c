@@ -657,10 +657,12 @@ static int make_column_details_from_format(const struct sr_input *in,
 			 * line won't get processed another time.
 			 */
 			column = column_texts[detail->col_nr - 1];
-			if (inc->use_header && column && *column)
+			if (inc->use_header && column && *column) {
+				column = g_strstrip(column);
 				caption = sr_scpi_unquote_string(column);
-			else
+			} else {
 				caption = NULL;
+			}
 			if (!caption || !*caption)
 				caption = NULL;
 			/*
