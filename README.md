@@ -6,7 +6,9 @@ To load the TinyLogicFriend support onto your board, [go to the TinyLogicFriend 
 
 To use sigrok's PulseView software with TinyLogicFriend, right now you need to rebuild `libsigrok` (with this repository) and also build `sigrok-cli` and `PulseView`.
 
-Right now, you need to build it all for yourself using the tinyLogicFriend driver from my github [`libsigrok` repository](https://github.com/kmatch98/libsigrok)**.  I strongly recommend using **[sigrok-util](https://github.com/sigrokproject/sigrok-util) to build for your platform**.  You will need to replace the baseline `libsigrok` library with this version that includes the tinyLogicFriend driver.  Then build everything, including `libsigrok`, `sigrok-cli` and `PulseView`. So far, I have succesfully built PulseView with tinyLogicFriend on an iMac running MacOS Big Sur.
+Right now, you need to build it all for yourself using the tinyLogicFriend driver from [my github `libsigrok` repository](https://github.com/kmatch98/libsigrok).  I strongly recommend using [sigrok-util](https://github.com/sigrokproject/sigrok-util) to build for your platform.  Replace the baseline `libsigrok` library with this version that includes the tinyLogicFriend driver.  Then build everything, including `libsigrok`, `sigrok-cli` and `PulseView`.
+
+So far, I have succesfully built PulseView with tinyLogicFriend on an iMac running MacOS Big Sur.
 
 ----------
 # building PulseView on MacOS
@@ -20,10 +22,11 @@ I changed lines from these files:
 directory: `/usr/local/Cellar/glib/2.68.1/include/glib-2.0/glib`
 
 files: Update these 4 files
-	- `gatomic.h`
-	- `gmem.h`
-	- `gmacros.h`
-	- `grcbox.h`
+
+-  `gatomic.h`
+-  `gmem.h`
+-  `gmacros.h`
+-  `grcbox.h`
 
 In these four files, I commented out these lines, like this:
 
