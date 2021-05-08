@@ -1151,7 +1151,6 @@ SR_PRIV int sr_session_send(const struct sr_dev_inst *sdi,
 	 * transform module in the list, and so on.
 	 */
 	packet_in = (struct sr_datafeed_packet *)packet;
-
 	for (l = sdi->session->transforms; l; l = l->next) {
 		t = l->data;
 		sr_spew("Running transform module '%s'.", t->module->id);

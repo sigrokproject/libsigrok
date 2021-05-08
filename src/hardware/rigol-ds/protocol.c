@@ -34,7 +34,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-
 /*
  * This is a unified protocol driver for the DS1000 and DS2000 series.
  *

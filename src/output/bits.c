@@ -106,8 +106,6 @@ static GString *gen_header(const struct sr_output *o)
 	num_channels = g_slist_length(o->sdi->channels);
 	g_string_append_printf(header, "Acquisition with %d/%d channels",
 			ctx->num_enabled_channels, num_channels);
-
-
 	if (ctx->samplerate != 0) {
 		samplerate_s = sr_samplerate_string(ctx->samplerate);
 		g_string_append_printf(header, " at %s", samplerate_s);
@@ -150,7 +148,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 		ctx->trigger = ctx->spl_cnt;
 		break;
 	case SR_DF_LOGIC:
-
 		if (!ctx->header_done) {
 			*out = gen_header(o);
 			ctx->header_done = TRUE;
@@ -165,6 +162,7 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				p = logic->data + i + idx / 8;
 				c = (*p & (1 << (idx % 8))) ? '1' : '0';
 				g_string_append_c(ctx->lines[j], c);
+
 				if (ctx->spl_cnt == ctx->spl) {
 					/* Flush line buffers. */
 					g_string_append_len(*out, ctx->lines[j]->str, ctx->lines[j]->len);
@@ -189,7 +187,6 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 				/* Line buffers were already flushed. */
 				ctx->spl_cnt = 0;
 		}
-		// sr_spew("bits.receive: SR_DF_LOGIC finished");
 		break;
 	case SR_DF_END:
 		if (ctx->spl_cnt) {

@@ -129,8 +129,6 @@ static GString *gen_header(const struct sr_output *o)
 	size_t num_channels;
 	char *samplerate_s;
 
-	sr_spew("gen_header: xx");
-
 	ctx = o->priv;
 	if (ctx->samplerate == 0) {
 		if (sr_config_get(o->sdi->driver, o->sdi, NULL, SR_CONF_SAMPLERATE,

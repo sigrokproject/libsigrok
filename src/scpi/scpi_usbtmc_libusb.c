@@ -130,8 +130,6 @@ static GSList *scpi_usbtmc_libusb_scan(struct drv_context *drvc)
 	int confidx, intfidx, ret, i;
 	char *res;
 
-	sr_spew("USBTMC: scan");
-
 	ret = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	if (ret < 0) {
 		sr_err("Failed to get device list: %s.",
@@ -182,8 +180,6 @@ static int scpi_usbtmc_libusb_dev_inst_new(void *priv, struct drv_context *drvc,
 	(void)resource;
 	(void)serialcomm;
 
-	sr_spew("USBTMC: inst_new");
-
 	if (!params || !params[1]) {
 		sr_err("Invalid parameters.");
 		return SR_ERR;
@@ -223,8 +219,6 @@ static int scpi_usbtmc_remote(struct scpi_usbtmc_libusb *uscpi)
 	struct libusb_device_descriptor des;
 	int ret;
 	uint8_t status;
-
-	sr_spew("USBTMC: remote");
 
 	if (!(uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1))
 		return SR_OK;
@@ -271,8 +265,6 @@ static void scpi_usbtmc_local(struct scpi_usbtmc_libusb *uscpi)
 	int ret;
 	uint8_t status;
 
-	sr_spew("USBTMC: local");
-
 	if (!(uscpi->usb488_dev_cap & USB488_DEV_CAP_RL1))
 		return;
 
@@ -310,8 +302,6 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 	uint8_t capabilities[24];
 	int ret, found = 0;
 	int do_reset;
-
-	sr_spew("USBTMC: open");
 
 	if (usb->devhdl)
 		return SR_OK;
@@ -409,28 +399,6 @@ static int scpi_usbtmc_libusb_open(struct sr_scpi_dev_inst *scpi)
 		uscpi->usbtmc_dev_cap = capabilities[ 5];
 		uscpi->usb488_dev_cap = capabilities[15];
 	}
-
-	// /////// Trial added for tiny-logic-friend
-	// char *response;
-	// sr_log(4, "*** Looking for a TinyLogicFriend, Sending command: LUVU ***");
-	// ret = sr_scpi_get_string(scpi, "LUVU", &response);
-	// if (ret < 0) {
-	// 	sr_log(4, "____    No response :(     ____");
-	// } else {
-	// 	sr_log(4, "******Response received: %s ******", response);
-	// 	sr_log(4, "");
-	// 	sr_log(4, "_______¶¶¶_¶¶¶");
-	// 	sr_log(4, "______¶¶__¶__¶¶");
-	// 	sr_log(4, "______¶¶_____¶¶");
-	// 	sr_log(4, "_______¶¶___¶¶");
-	// 	sr_log(4, "________¶¶¶¶¶");
-	// 	sr_log(4, "_________¶¶¶");
-	// 	sr_log(4, "__________¶");
-	// 	sr_log(4, "");
-
-	// }
-	/////// Trial added for tiny-logic-friend
-
 	sr_dbg("Device capabilities: %s%s%s%s%s, %s, %s",
 	       uscpi->usb488_dev_cap & USB488_DEV_CAP_SCPI        ? "SCPI, "    : "",
 	       uscpi->usbtmc_dev_cap & USBTMC_DEV_CAP_TERMCHAR    ? "TermChar, ": "",
@@ -453,8 +421,6 @@ static int scpi_usbtmc_libusb_connection_id(struct sr_scpi_dev_inst *scpi,
 	struct scpi_usbtmc_libusb *uscpi = scpi->priv;
 	struct sr_usb_dev_inst *usb = uscpi->usb;
 
-	sr_spew("USBTMC: connection_id");
-
 	*connection_id = g_strdup_printf("%s/%" PRIu8 ".%" PRIu8 "",
 		scpi->prefix, usb->bus, usb->address);
 
@@ -467,7 +433,6 @@ static int scpi_usbtmc_libusb_source_add(struct sr_session *session,
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	(void)events;
-	sr_spew("USBTMC: source_add");
 	return usb_source_add(session, uscpi->ctx, timeout, cb, cb_data);
 }
 
