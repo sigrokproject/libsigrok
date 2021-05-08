@@ -381,12 +381,6 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hp-3478a/protocol.c \
 	src/hardware/hp-3478a/api.c
 endif
-if HW_HP_59306A
-src_libdrivers_la_SOURCES += \
-	src/hardware/hp-59306a/protocol.h \
-	src/hardware/hp-59306a/protocol.c \
-	src/hardware/hp-59306a/api.c
-endif
 if HW_HUNG_CHANG_DSO_2100
 src_libdrivers_la_SOURCES += \
 	src/hardware/hung-chang-dso-2100/protocol.h \
@@ -631,6 +625,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/testo/protocol.h \
 	src/hardware/testo/protocol.c \
 	src/hardware/testo/api.c
+endif
+if HW_TINY_LOGIC_FRIEND_LA
+src_libdrivers_la_SOURCES += \
+	src/hardware/tiny-logic-friend-la/protocol.h \
+	src/hardware/tiny-logic-friend-la/protocol.c \
+	src/hardware/tiny-logic-friend-la/api.c
 endif
 if HW_TONDAJ_SL_814
 src_libdrivers_la_SOURCES += \
