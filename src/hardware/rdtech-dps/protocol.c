@@ -586,6 +586,10 @@ SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi)
 	struct rdtech_dps_state state;
 	int ret;
 
+	if (!sdi || !sdi->priv)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+
 	ret = rdtech_dps_get_state(sdi, &state, ST_CTX_PRE_ACQ);
 	if (ret != SR_OK)
 		return ret;
