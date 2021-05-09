@@ -55,7 +55,14 @@ static int sr_ser_libsp_open(struct sr_serial_dev_inst *serial, int flags)
 	char *error;
 	int sp_flags;
 
-	sp_get_port_by_name(serial->port, &serial->sp_data);
+	ret = sp_get_port_by_name(serial->port, &serial->sp_data);
+	if (ret != SP_OK) {
+		error = sp_last_error_message();
+		sr_err("Error getting port from name %s: (%d) %s.",
+			serial->port, sp_last_error_code(), error);
+		sp_free_error_message(error);
+		return SR_ERR;
+	}
 
 	sp_flags = 0;
 	if (flags & SERIAL_RDWR)
