@@ -27,7 +27,7 @@
 
 #define LOG_PREFIX "my-osc"
 
-#define BUFSIZE 100
+#define BUFSIZE 1000
 
 //Commands
 #define CMD_SCAN 0x00
@@ -35,11 +35,11 @@
 #define CMD_STOP 0x02
 #define CMD_RESET 0x03
 #define CMD_SET_SAMPLE_RATE 0x04
-#define CMD_SET_LIMIT_SAMPLES 0x05
+#define CMD_SET_LIMIT_FRAMES 0x05
 
 //Limit sample range
-#define MIN_NUM_SAMPLES 100
-#define MAX_NUM_SAMPLES 1000000
+#define MIN_NUM_FRAMES 100
+#define MAX_NUM_FRAMES 1000000
 
 struct dev_context {
     struct sr_sw_limits limits;
@@ -50,6 +50,7 @@ struct dev_context {
 
 	float voltage;
 	float current;
+    float data[10];
 
     /* GSList entry for the current channel. */
 	GSList *channel_entry;
@@ -59,7 +60,7 @@ struct dev_context {
 SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data);
 
 //Set parameters
-void my_osc_osc_set_samplerate(struct sr_serial_dev_inst *serial, uint64_t val);
+void my_osc_set_limit_frames(struct sr_serial_dev_inst *serial, uint64_t val);
 void my_osc_set_limit_samples(struct sr_serial_dev_inst *serial, uint64_t val);
 
 #endif

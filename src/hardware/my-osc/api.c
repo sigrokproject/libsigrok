@@ -24,7 +24,7 @@
 #include <string.h>
 #include "protocol.h"
 
-#define SERIALCOMM "576000/8n1"
+#define SERIALCOMM "115200/8n1"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -36,8 +36,9 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET
 };
 
 static const uint64_t samplerates[] = {
@@ -121,7 +122,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc = g_malloc0(sizeof(struct dev_context));
 		sr_sw_limits_init(&devc->limits);
 		devc->cur_samplerate = SR_HZ(10);
-		devc->limits.limit_samples = MIN_NUM_SAMPLES;
+		devc->limits.limit_frames = MIN_NUM_FRAMES;
+		devc->channel_entry = cg->channels;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
 		sdi->priv = devc;
@@ -147,8 +149,11 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
-	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limits.limit_samples);
+	case SR_CONF_LIMIT_FRAMES:
+		*data = g_variant_new_uint64(devc->limits.limit_frames);
+		break;
+	case SR_CONF_DATA_SOURCE:
+		*data = g_variant_new_string("Live");
 		break;
 	default:
 		return SR_ERR_NA;
@@ -175,12 +180,12 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_SAMPLERATE;
 		devc->cur_samplerate = tmp_u64;
 		break;
-	case SR_CONF_LIMIT_SAMPLES:
+	case SR_CONF_LIMIT_FRAMES:
 		tmp_u64 = g_variant_get_uint64(data);
-		my_osc_set_limit_samples(serial, tmp_u64);
-		if (tmp_u64 < MIN_NUM_SAMPLES)
+		my_osc_set_limit_frames(serial, tmp_u64);
+		if (tmp_u64 < MIN_NUM_FRAMES)
 			return SR_ERR;
-		devc->limits.limit_samples = tmp_u64;
+		devc->limits.limit_frames = tmp_u64;
 		break;
 	default:
 		return SR_ERR_NA;
