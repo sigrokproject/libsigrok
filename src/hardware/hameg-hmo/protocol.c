@@ -1380,8 +1380,6 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	data = NULL;
-
 	if (!(sdi = cb_data))
 		return TRUE;
 
@@ -1410,6 +1408,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 	 */
 	switch (ch->type) {
 	case SR_CHANNEL_ANALOG:
+		data = NULL;
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
 				g_byte_array_free(data, TRUE);
@@ -1442,6 +1441,7 @@ SR_PRIV int hmo_receive_data(int fd, int revents, void *cb_data)
 		data = NULL;
 		break;
 	case SR_CHANNEL_LOGIC:
+		data = NULL;
 		if (sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK) {
 			if (data)
 				g_byte_array_free(data, TRUE);
