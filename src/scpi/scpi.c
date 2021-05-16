@@ -863,28 +863,30 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 	float tmp;
 	char *response;
 	gchar **ptr, **tokens;
+	size_t token_count;
 	GArray *response_array;
 
 	*scpi_response = NULL;
-	response = NULL;
-	tokens = NULL;
 
+	response = NULL;
 	ret = sr_scpi_get_string(scpi, command, &response);
 	if (ret != SR_OK && !response)
 		return ret;
 
 	tokens = g_strsplit(response, ",", 0);
+	token_count = g_strv_length(tokens);
+
+	response_array = g_array_sized_new(TRUE, FALSE,
+		sizeof(float), token_count + 1);
+
 	ptr = tokens;
-
-	response_array = g_array_sized_new(TRUE, FALSE, sizeof(float), 256);
-
 	while (*ptr) {
-		if (sr_atof_ascii(*ptr, &tmp) == SR_OK)
-			response_array = g_array_append_val(response_array,
-							    tmp);
-		else
+		ret = sr_atof_ascii(*ptr, &tmp);
+		if (ret != SR_OK) {
 			ret = SR_ERR_DATA;
-
+			break;
+		}
+		response_array = g_array_append_val(response_array, tmp);
 		ptr++;
 	}
 	g_strfreev(tokens);
@@ -920,28 +922,30 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	int tmp, ret;
 	char *response;
 	gchar **ptr, **tokens;
+	size_t token_count;
 	GArray *response_array;
 
 	*scpi_response = NULL;
-	response = NULL;
-	tokens = NULL;
 
+	response = NULL;
 	ret = sr_scpi_get_string(scpi, command, &response);
 	if (ret != SR_OK && !response)
 		return ret;
 
 	tokens = g_strsplit(response, ",", 0);
+	token_count = g_strv_length(tokens);
+
+	response_array = g_array_sized_new(TRUE, FALSE,
+		sizeof(uint8_t), token_count + 1);
+
 	ptr = tokens;
-
-	response_array = g_array_sized_new(TRUE, FALSE, sizeof(uint8_t), 256);
-
 	while (*ptr) {
-		if (sr_atoi(*ptr, &tmp) == SR_OK)
-			response_array = g_array_append_val(response_array,
-							    tmp);
-		else
+		ret = sr_atoi(*ptr, &tmp);
+		if (ret != SR_OK) {
 			ret = SR_ERR_DATA;
-
+			break;
+		}
+		response_array = g_array_append_val(response_array, tmp);
 		ptr++;
 	}
 	g_strfreev(tokens);
@@ -1151,7 +1155,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	}
 	g_free(response);
 
-	hw_info = g_malloc0(sizeof(struct sr_scpi_hw_info));
+	hw_info = g_malloc0(sizeof(*hw_info));
 
 	idn_substr = g_strstr_len(tokens[0], -1, "IDN ");
 	if (idn_substr == NULL)
