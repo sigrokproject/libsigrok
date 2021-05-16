@@ -100,8 +100,10 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 	ret = sr_scpi_get_string(sdi->conn, command, &response);
 	if (ret != SR_OK)
 		return ret;
-	if (!response || !*response)
+	if (!response || !*response) {
+		g_free(response);
 		return SR_ERR_NA;
+	}
 	have = response;
 	if (*have == '"')
 		have++;
