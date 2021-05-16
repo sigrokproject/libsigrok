@@ -138,15 +138,15 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	if ((ret != SR_OK) || !response)
 		return NULL;
 
-	if (strcmp(response, "HP3457A")) {
+	if (strcmp(response, "HP3457A") != 0) {
 		g_free(response);
 		return NULL;
 	}
 
 	g_free(response);
 
-	devc = g_malloc0(sizeof(struct dev_context));
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	devc = g_malloc0(sizeof(*devc));
+	sdi = g_malloc0(sizeof(*sdi));
 	sdi->vendor = g_strdup("Hewlett-Packard");
 	sdi->model = g_strdup("3457A");
 	sdi->version = get_revision(scpi);
