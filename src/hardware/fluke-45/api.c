@@ -78,16 +78,20 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sr_scpi_get_string(scpi, "ECHO-TEST", &response);
 	if (response && strcmp(response, "ECHO-TEST") == 0) {
 		sr_err("Serial port ECHO is ON. Please turn it OFF!");
+		g_free(response);
 		return NULL;
 	}
+	g_free(response);
 #endif
 
 	/* Get device IDN. */
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+		sr_scpi_hw_info_free(hw_info);
 		sr_info("Couldn't get IDN response, retrying.");
 		sr_scpi_close(scpi);
 		sr_scpi_open(scpi);
 		if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
+			sr_scpi_hw_info_free(hw_info);
 			sr_info("Couldn't get IDN response.");
 			return NULL;
 		}

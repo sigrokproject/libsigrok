@@ -332,6 +332,7 @@ SR_PRIV int fl45_scpi_get_response(const struct sr_dev_inst *sdi, char *cmd)
 		 * If the response is a prompt then ignore and read the next
 		 * response in the buffer.
 		 */
+		g_free(devc->response);
 		devc->response = NULL;
 		/* Now attempt to read again. */
 		if (sr_scpi_get_string(sdi->conn, NULL, &devc->response) != SR_OK)
@@ -339,9 +340,10 @@ SR_PRIV int fl45_scpi_get_response(const struct sr_dev_inst *sdi, char *cmd)
 	}
 
 	/* NULL RS232 error prompts. */
-	if (strcmp(devc->response, "!>") == 0
-	    || (strcmp(devc->response, "?>") == 0)) {
+	if (strcmp(devc->response, "!>") == 0 ||
+	    (strcmp(devc->response, "?>") == 0)) {
 		/* Unable to execute CMD. */
+		g_free(devc->response);
 		devc->response = NULL;
 	}
 
