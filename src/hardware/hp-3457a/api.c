@@ -138,8 +138,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	if ((ret != SR_OK) || !response)
 		return NULL;
 
-	if (strcmp(response, "HP3457A"))
+	if (strcmp(response, "HP3457A")) {
+		g_free(response);
 		return NULL;
+	}
 
 	g_free(response);
 
