@@ -410,9 +410,11 @@ SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi)
 /**
  * Get the connection ID of the SCPI device.
  *
- * @param scpi Previously initialized SCPI device structure.
- * @param connection_id Pointer where to store the connection ID. The caller
- *        is responsible for g_free()ing the string when it is no longer needed.
+ * Callers must free the allocated memory regardless of the routine's
+ * return code. See @ref g_free().
+ *
+ * @param[in] scpi Previously initialized SCPI device structure.
+ * @param[out] connection_id Pointer where to store the connection ID.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
@@ -610,9 +612,12 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 /**
  * Send a SCPI command, receive the reply and store the reply in scpi_response.
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device (can be NULL).
- * @param scpi_response Pointer where to store the SCPI response.
+ * Callers must free the allocated memory regardless of the routine's
+ * return code. See @ref g_free().
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[out] scpi_response Pointer where to store the SCPI response.
  *
  * @return SR_OK on success, SR_ERR* on failure.
  */
@@ -841,14 +846,15 @@ SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
  * Send a SCPI command, read the reply, parse it as comma separated list of
  * floats and store the as an result in scpi_response.
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device (can be NULL).
- * @param scpi_response Pointer where to store the parsed result.
+ * Callers must free the allocated memory (unless it's NULL) regardless of
+ * the routine's return code. See @ref g_array_free().
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[out] scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
- *         error or upon no response. The allocated response must be freed by
- *         the caller in the case of an SR_OK as well as in the case of
- *         parsing error.
+ *         error or upon no response.
  */
 SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 			       const char *command, GArray **scpi_response)
@@ -898,14 +904,15 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
  * Send a SCPI command, read the reply, parse it as comma separated list of
  * unsigned 8 bit integers and store the as an result in scpi_response.
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device (can be NULL).
- * @param scpi_response Pointer where to store the parsed result.
+ * Callers must free the allocated memory (unless it's NULL) regardless of
+ * the routine's return code. See @ref g_array_free().
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[out] scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
- *         error or upon no response. The allocated response must be freed by
- *         the caller in the case of an SR_OK as well as in the case of
- *         parsing error.
+ *         error or upon no response.
  */
 SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 			       const char *command, GArray **scpi_response)
@@ -954,14 +961,15 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
  * Send a SCPI command, read the reply, parse it as binary data with a
  * "definite length block" header and store the as an result in scpi_response.
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device (can be NULL).
- * @param scpi_response Pointer where to store the parsed result.
+ * Callers must free the allocated memory (unless it's NULL) regardless of
+ * the routine's return code. See @ref g_byte_array_free().
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[out] scpi_response Pointer where to store the parsed result.
  *
  * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
- *         error or upon no response. The allocated response must be freed by
- *         the caller in the case of an SR_OK as well as in the case of
- *         parsing error.
+ *         error or upon no response.
  */
 SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 			       const char *command, GByteArray **scpi_response)
@@ -1094,10 +1102,11 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
  * Send the *IDN? SCPI command, receive the reply, parse it and store the
  * reply as a sr_scpi_hw_info structure in the supplied scpi_response pointer.
  *
- * The hw_info structure must be freed by the caller via sr_scpi_hw_info_free().
+ * Callers must free the allocated memory regardless of the routine's
+ * return code. See @ref sr_scpi_hw_info_free().
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param scpi_response Pointer where to store the hw_info structure.
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[out] scpi_response Pointer where to store the hw_info structure.
  *
  * @return SR_OK upon success, SR_ERR* on failure.
  */
