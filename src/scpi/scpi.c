@@ -620,8 +620,10 @@ SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
 			       const char *command, char **scpi_response)
 {
 	GString *response;
-	response = g_string_sized_new(1024);
 
+	*scpi_response = NULL;
+
+	response = g_string_sized_new(1024);
 	if (sr_scpi_get_data(scpi, command, &response) != SR_OK) {
 		if (response)
 			g_string_free(response, TRUE);
@@ -857,6 +859,7 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 	gchar **ptr, **tokens;
 	GArray *response_array;
 
+	*scpi_response = NULL;
 	response = NULL;
 	tokens = NULL;
 
@@ -883,7 +886,6 @@ SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
 
 	if (ret != SR_OK && response_array->len == 0) {
 		g_array_free(response_array, TRUE);
-		*scpi_response = NULL;
 		return SR_ERR_DATA;
 	}
 
@@ -913,6 +915,7 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	gchar **ptr, **tokens;
 	GArray *response_array;
 
+	*scpi_response = NULL;
 	response = NULL;
 	tokens = NULL;
 
@@ -939,7 +942,6 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 
 	if (response_array->len == 0) {
 		g_array_free(response_array, TRUE);
-		*scpi_response = NULL;
 		return SR_ERR_DATA;
 	}
 
@@ -972,6 +974,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	long datalen;
 	gint64 timeout;
 
+	*scpi_response = NULL;
+
 	g_mutex_lock(&scpi->scpi_mutex);
 
 	if (command)
@@ -992,8 +996,6 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	response = g_string_sized_new(1024);
 
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-
-	*scpi_response = NULL;
 
 	/* Get (the first chunk of) the response. */
 	do {
@@ -1108,6 +1110,7 @@ SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	struct sr_scpi_hw_info *hw_info;
 	gchar *idn_substr;
 
+	*scpi_response = NULL;
 	response = NULL;
 	tokens = NULL;
 
