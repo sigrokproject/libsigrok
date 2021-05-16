@@ -782,7 +782,7 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (sr_scpi_get_string(sdi->conn, "TRSE?", &response) != SR_OK)
 		return SR_ERR;
 	tokens = g_strsplit(response, ",", 0);
-	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
+	num_tokens = g_strv_length(tokens);
 	if (num_tokens < 4) {
 		sr_dbg("IDN response not according to spec: %80.s.", response);
 		g_strfreev(tokens);
