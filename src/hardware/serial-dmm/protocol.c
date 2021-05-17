@@ -199,7 +199,7 @@ static void handle_new_data(struct sr_dev_inst *sdi, void *info)
 			pkt_size = dmm->packet_size;
 		}
 
-		/* Process the package. */
+		/* Process the packet. */
 		sr_dbg("Valid packet, size %zu, processing", pkt_size);
 		handle_packet(sdi, check_ptr, pkt_size, info);
 		check_pos += pkt_size;
