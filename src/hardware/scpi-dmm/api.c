@@ -201,6 +201,13 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		0, 0,
 	},
 	{
+		"Agilent", "34460A",
+		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34405a),
+		scpi_dmm_get_meas_agilent,
+		ARRAY_AND_SIZE(devopts_generic),
+		0, 0,
+	},
+	{
 		"GW", "GDM8251A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
