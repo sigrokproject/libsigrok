@@ -191,42 +191,42 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0,
+		0, 0, FALSE,
 	},
 	{
 		"Agilent", "34410A",
 		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0,
+		0, 0, FALSE,
 	},
 	{
 		"GW", "GDM8251A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500, 0,
+		1000 * 2500, 0, FALSE,
 	},
 	{
 		"GW", "GDM8255A",
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500, 0,
+		1000 * 2500, 0, FALSE,
 	},
 	{
 		"GWInstek", "GDM9060",
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0,
+		0, 0, FALSE,
 	},
 	{
 		"GWInstek", "GDM9061",
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0,
+		0, 0, FALSE,
 	},
 	{
 		"HP", "34401A",
@@ -234,21 +234,21 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
-		1000 * 1500, 0,
+		1000 * 1500, 0, FALSE,
 	},
 	{
 		"Keysight", "34465A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0,
+		0, 0, FALSE,
 	},
 	{
 		"OWON", "XDM2041",
 		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 1e9,
+		0, 1e9, TRUE,
 	},
 };
 
@@ -302,10 +302,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	gchar *channel_name;
 	const char *command;
 
-	if (!probe_opc_support(scpi))
-		scpi->no_opc_command = TRUE;
-
-	scpi_dmm_cmd_delay(scpi);
 	ret = sr_scpi_get_hw_id(scpi, &hw_info);
 	if (ret != SR_OK) {
 		sr_info("Could not get IDN response.");
@@ -317,6 +313,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
+
+	if (model->check_opc && !probe_opc_support(scpi))
+		scpi->no_opc_command = TRUE;
 
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->vendor = g_strdup(hw_info->manufacturer);
