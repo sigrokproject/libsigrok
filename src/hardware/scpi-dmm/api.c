@@ -43,7 +43,7 @@ static const struct scpi_command cmdset_agilent[] = {
 	{ DMM_CMD_SETUP_REMOTE, "\n", },
 	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
 	{ DMM_CMD_QUERY_FUNC, "CONF?", },
-	{ DMM_CMD_START_ACQ, "MEAS", },
+	{ DMM_CMD_START_ACQ, "INIT", },
 	{ DMM_CMD_STOP_ACQ, "ABORT", },
 	{ DMM_CMD_QUERY_VALUE, "READ?", },
 	{ DMM_CMD_QUERY_PREC, "CONF?", },
