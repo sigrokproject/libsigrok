@@ -39,6 +39,15 @@ static const uint32_t devopts_generic[] = {
 	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
+static const uint32_t devopts_generic_range[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_MEASURED_QUANTITY | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
 static const struct scpi_command cmdset_agilent[] = {
 	{ DMM_CMD_SETUP_REMOTE, "\n", },
 	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
@@ -47,6 +56,10 @@ static const struct scpi_command cmdset_agilent[] = {
 	{ DMM_CMD_STOP_ACQ, "ABORT", },
 	{ DMM_CMD_QUERY_VALUE, "READ?", },
 	{ DMM_CMD_QUERY_PREC, "CONF?", },
+	{ DMM_CMD_QUERY_RANGE_AUTO, "%s:RANGE:AUTO?", },
+	{ DMM_CMD_QUERY_RANGE, "%s:RANGE?", },
+	{ DMM_CMD_SETUP_RANGE_AUTO, "%s:RANGE:AUTO ON", },
+	{ DMM_CMD_SETUP_RANGE, "%s:RANGE %s", },
 	ALL_ZERO,
 };
 
@@ -190,8 +203,9 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		"Agilent", "34405A",
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
-		ARRAY_AND_SIZE(devopts_generic),
+		ARRAY_AND_SIZE(devopts_generic_range),
 		0, 0, FALSE,
+		scpi_dmm_get_range_text, scpi_dmm_set_range_from_text, NULL,
 	},
 	{
 		"Agilent", "34410A",
@@ -199,6 +213,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"GW", "GDM8251A",
@@ -206,6 +221,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		1000 * 2500, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"GW", "GDM8255A",
@@ -213,6 +229,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		1000 * 2500, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"GWInstek", "GDM9060",
@@ -220,6 +237,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"GWInstek", "GDM9061",
@@ -227,6 +245,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"HP", "34401A",
@@ -235,13 +254,15 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
 		1000 * 1500, 0, FALSE,
+		NULL, NULL, NULL,
 	},
 	{
 		"Keysight", "34465A",
 		1, 6, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
-		ARRAY_AND_SIZE(devopts_generic),
+		ARRAY_AND_SIZE(devopts_generic_range),
 		0, 0, FALSE,
+		scpi_dmm_get_range_text, scpi_dmm_set_range_from_text, NULL,
 	},
 	{
 		"OWON", "XDM2041",
@@ -249,6 +270,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
 		0, 1e9, TRUE,
+		NULL, NULL, NULL,
 	},
 };
 
@@ -413,6 +435,7 @@ static int config_get(uint32_t key, GVariant **data,
 	enum sr_mqflag mqflag;
 	GVariant *arr[2];
 	int ret;
+	const char *range;
 
 	(void)cg;
 
@@ -435,6 +458,14 @@ static int config_get(uint32_t key, GVariant **data,
 		arr[1] = g_variant_new_uint64(mqflag);
 		*data = g_variant_new_tuple(arr, ARRAY_SIZE(arr));
 		return SR_OK;
+	case SR_CONF_RANGE:
+		if (!devc || !devc->model->get_range_text)
+			return SR_ERR_NA;
+		range = devc->model->get_range_text(sdi);
+		if (!range || !*range)
+			return SR_ERR_NA;
+		*data = g_variant_new_string(range);
+		return SR_OK;
 	default:
 		return SR_ERR_NA;
 	}
@@ -447,6 +478,7 @@ static int config_set(uint32_t key, GVariant *data,
 	enum sr_mq mq;
 	enum sr_mqflag mqflag;
 	GVariant *tuple_child;
+	const char *range;
 
 	(void)cg;
 
@@ -464,6 +496,11 @@ static int config_set(uint32_t key, GVariant *data,
 		mqflag = g_variant_get_uint64(tuple_child);
 		g_variant_unref(tuple_child);
 		return scpi_dmm_set_mq(sdi, mq, mqflag);
+	case SR_CONF_RANGE:
+		if (!devc || !devc->model->set_range_from_text)
+			return SR_ERR_NA;
+		range = g_variant_get_string(data, NULL);
+		return devc->model->set_range_from_text(sdi, range);
 	default:
 		return SR_ERR_NA;
 	}
@@ -502,6 +539,11 @@ static int config_list(uint32_t key, GVariant **data,
 			g_variant_builder_add_value(&gvb, gvar);
 		}
 		*data = g_variant_builder_end(&gvb);
+		return SR_OK;
+	case SR_CONF_RANGE:
+		if (!devc || !devc->model->get_range_text_list)
+			return SR_ERR_NA;
+		*data = devc->model->get_range_text_list(sdi);
 		return SR_OK;
 	default:
 		(void)devc;

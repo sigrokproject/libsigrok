@@ -41,6 +41,10 @@ enum scpi_dmm_cmdcode {
 	DMM_CMD_QUERY_VALUE,
 	DMM_CMD_QUERY_PREC,
 	DMM_CMD_SETUP_LOCAL,
+	DMM_CMD_QUERY_RANGE_AUTO,
+	DMM_CMD_QUERY_RANGE,
+	DMM_CMD_SETUP_RANGE_AUTO,
+	DMM_CMD_SETUP_RANGE,
 };
 
 struct mqopt_item {
@@ -66,6 +70,10 @@ struct scpi_dmm_model {
 	unsigned int read_timeout_us; /* If zero, use default from src/scpi/scpi.c. */
 	float infinity_limit; /* If zero, use default from protocol.c */
 	gboolean check_opc;
+	const char *(*get_range_text)(const struct sr_dev_inst *sdi);
+	int (*set_range_from_text)(const struct sr_dev_inst *sdi,
+		const char *range);
+	GVariant *(*get_range_text_list)(const struct sr_dev_inst *sdi);
 };
 
 struct dev_context {
@@ -87,6 +95,7 @@ struct dev_context {
 		struct sr_analog_spec spec[SCPI_DMM_MAX_CHANNELS];
 	} run_acq_info;
 	gchar *precision;
+	char range_text[32];
 };
 
 SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi);
@@ -99,6 +108,10 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 	const struct mqopt_item **mqitem);
 SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 	enum sr_mq mq, enum sr_mqflag flag);
+SR_PRIV const char *scpi_dmm_get_range_text(const struct sr_dev_inst *sdi);
+SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
+	const char *range);
+SR_PRIV GVariant *scpi_dmm_get_range_text_list(const struct sr_dev_inst *sdi);
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch);
 SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch);
 SR_PRIV int scpi_dmm_receive_data(int fd, int revents, void *cb_data);
