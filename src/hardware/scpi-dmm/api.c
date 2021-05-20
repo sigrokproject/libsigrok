@@ -50,6 +50,7 @@ static const uint32_t devopts_generic_range[] = {
 
 static const struct scpi_command cmdset_agilent[] = {
 	{ DMM_CMD_SETUP_REMOTE, "\n", },
+	{ DMM_CMD_SETUP_LOCAL, "SYST:LOC", },
 	{ DMM_CMD_SETUP_FUNC, "CONF:%s", },
 	{ DMM_CMD_QUERY_FUNC, "CONF?", },
 	{ DMM_CMD_START_ACQ, "INIT", },
