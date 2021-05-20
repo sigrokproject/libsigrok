@@ -167,6 +167,10 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8a98", ENV{ID_SIGROK}="1"
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", ENV{ID_SIGROK}="1"
 
+# Keysight USBTMC-connected devices
+# 34465A
+ATTRS{idVendor}=="2a8d", ATTRS{idProduct}=="0101", ENV{ID_SIGROK}="1"
+
 # Kingst LA2016
 ATTRS{idVendor}=="77a1", ATTRS{idProduct}=="01a2", ENV{ID_SIGROK}="1"
 
