@@ -195,10 +195,16 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 	if (!read_resp || read_resp->error) {
 		sr_err("Device read failed for %s with error %ld",
 		       vxi->address, read_resp ? read_resp->error : 0);
+		if (read_resp) {
+			g_free(read_resp->data.data_val);
+			read_resp->data.data_val = NULL;
+		}
 		return SR_ERR;
 	}
 
 	memcpy(buf, read_resp->data.data_val, read_resp->data.data_len);
+	g_free(read_resp->data.data_val);
+	read_resp->data.data_val = NULL;
 	vxi->read_complete = read_resp->reason & (RRR_TERM | RRR_END);
 	return read_resp->data.data_len;  /* actual number of bytes received */
 }
