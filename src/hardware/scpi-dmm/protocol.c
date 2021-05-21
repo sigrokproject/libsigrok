@@ -171,6 +171,8 @@ SR_PRIV const char *scpi_dmm_get_range_text(const struct sr_dev_inst *sdi)
 		return NULL;
 	if (!mqitem || !mqitem->scpi_func_setup)
 		return NULL;
+	if (mqitem->drv_flags & FLAG_NO_RANGE)
+		return NULL;
 
 	scpi_dmm_cmd_delay(sdi->conn);
 	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL,
@@ -230,6 +232,8 @@ SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
 		return ret;
 	if (!item || !item->scpi_func_setup)
 		return SR_ERR_ARG;
+	if (item->drv_flags & FLAG_NO_RANGE)
+		return SR_ERR_NA;
 
 	is_auto = g_ascii_strcasecmp(range, "auto") == 0;
 	scpi_dmm_cmd_delay(sdi->conn);

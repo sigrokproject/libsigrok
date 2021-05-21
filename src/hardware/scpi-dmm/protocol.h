@@ -57,6 +57,7 @@ struct mqopt_item {
 };
 #define NO_DFLT_PREC	-99
 #define FLAGS_NONE	0
+#define FLAG_NO_RANGE	(1 << 0)
 
 struct scpi_dmm_model {
 	const char *vendor;
