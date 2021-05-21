@@ -53,8 +53,10 @@ struct mqopt_item {
 	const char *scpi_func_setup;
 	const char *scpi_func_query;
 	int default_precision;
+	uint32_t drv_flags;
 };
 #define NO_DFLT_PREC	-99
+#define FLAGS_NONE	0
 
 struct scpi_dmm_model {
 	const char *vendor;
