@@ -221,7 +221,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500, 0, FALSE,
+		2500 * 1000, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -229,7 +229,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		1000 * 2500, 0, FALSE,
+		2500 * 1000, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -254,7 +254,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
-		1000 * 1500, 0, FALSE,
+		1500 * 1000, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
