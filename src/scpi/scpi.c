@@ -315,33 +315,32 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 {
 	GSList *resources, *l, *devices;
 	struct sr_dev_inst *sdi;
-	const char *resource = NULL;
-	const char *serialcomm = NULL;
+	const char *resource, *conn;
+	const char *serialcomm, *comm;
 	gchar **res;
 	unsigned i;
 
-	for (l = options; l; l = l->next) {
-		struct sr_config *src = l->data;
-		switch (src->key) {
-		case SR_CONF_CONN:
-			resource = g_variant_get_string(src->data, NULL);
-			break;
-		case SR_CONF_SERIALCOMM:
-			serialcomm = g_variant_get_string(src->data, NULL);
-			break;
-		}
-	}
+	resource = NULL;
+	serialcomm = NULL;
+	(void)sr_serial_extract_options(options, &resource, &serialcomm);
 
 	devices = NULL;
 	for (i = 0; i < ARRAY_SIZE(scpi_devs); i++) {
-		if ((resource && strcmp(resource, scpi_devs[i]->prefix))
-		    || !scpi_devs[i]->scan)
+		if (resource && strcmp(resource, scpi_devs[i]->prefix) != 0)
+			continue;
+		if (!scpi_devs[i]->scan)
 			continue;
 		resources = scpi_devs[i]->scan(drvc);
 		for (l = resources; l; l = l->next) {
 			res = g_strsplit(l->data, ":", 2);
-			if (res[0] && (sdi = sr_scpi_scan_resource(drvc, res[0],
-			               serialcomm ? serialcomm : res[1], probe_device))) {
+			if (!res[0]) {
+				g_strfreev(res);
+				continue;
+			}
+			conn = res[0];
+			comm = serialcomm ? : res[1];
+			sdi = sr_scpi_scan_resource(drvc, conn, comm, probe_device);
+			if (sdi) {
 				devices = g_slist_append(devices, sdi);
 				sdi->connection_id = g_strdup(l->data);
 			}
