@@ -31,12 +31,6 @@
 #include "scpi.h"
 #include "protocol.h"
 
-/*
- * This test violates the SCPI protocol, and confuses other devices.
- * Disable it for now, until a better location was found.
- */
-#define ECHO_TEST 0
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
@@ -68,21 +62,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	unsigned int i;
 	const struct fluke_scpi_dmm_model *model = NULL;
 	gchar *channel_name;
-#if ECHO_TEST
-	char *response;
-#endif
-
-#if ECHO_TEST
-	/* Test for serial port ECHO enabled. */
-	response = NULL;
-	sr_scpi_get_string(scpi, "ECHO-TEST", &response);
-	if (response && strcmp(response, "ECHO-TEST") == 0) {
-		sr_err("Serial port ECHO is ON. Please turn it OFF!");
-		g_free(response);
-		return NULL;
-	}
-	g_free(response);
-#endif
 
 	/* Get device IDN. */
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
