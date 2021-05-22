@@ -54,12 +54,11 @@ static const struct scpi_command cmdset_agilent[] = {
 	{ DMM_CMD_QUERY_FUNC, "CONF?", },
 	{ DMM_CMD_START_ACQ, "INIT", },
 	{ DMM_CMD_STOP_ACQ, "ABORT", },
-	{ DMM_CMD_QUERY_VALUE, "READ?", },
+	{ DMM_CMD_QUERY_VALUE, "FETCH?", },
 	{ DMM_CMD_QUERY_PREC, "CONF?", },
 	{ DMM_CMD_QUERY_RANGE_AUTO, "%s:RANGE:AUTO?", },
 	{ DMM_CMD_QUERY_RANGE, "%s:RANGE?", },
-	{ DMM_CMD_SETUP_RANGE_AUTO, "%s:RANGE:AUTO ON", },
-	{ DMM_CMD_SETUP_RANGE, "%s:RANGE %s", },
+	{ DMM_CMD_SETUP_RANGE, "CONF:%s %s", },
 	ALL_ZERO,
 };
 
