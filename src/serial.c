@@ -928,13 +928,20 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 /**
  * Extract the serial device and options from the options linked list.
  *
- * @param options List of options passed from the command line.
- * @param serial_device Pointer where to store the extracted serial device.
- * @param serial_options Pointer where to store the optional extracted serial
+ * The caller's passed in references get updated when the list of options
+ * contains one of the desired parameters. This lets callers pre-assign
+ * default values which take effect in the absence of user specifications.
+ * Either reference is optional, passing #NULL is acceptable.
+ *
+ * Callers must not free returned strings. These shall be considered
+ * read-only handles to data that is managed elsewhere.
+ *
+ * @param[in] options List of options passed from the command line.
+ * @param[out] serial_device Pointer where to store the extracted serial device.
+ * @param[out] serial_options Pointer where to store the optional extracted serial
  * options.
  *
- * @return SR_OK if a serial_device is found, SR_ERR if no device is found. The
- * returned string should not be freed by the caller.
+ * @return SR_OK if a serial_device is found, SR_ERR if no device is found.
  *
  * @private
  */
@@ -944,23 +951,25 @@ SR_PRIV int sr_serial_extract_options(GSList *options,
 	GSList *l;
 	struct sr_config *src;
 
-	*serial_device = NULL;
-
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
+			if (!serial_device)
+				break;
 			*serial_device = g_variant_get_string(src->data, NULL);
 			sr_dbg("Parsed serial device: %s.", *serial_device);
 			break;
 		case SR_CONF_SERIALCOMM:
+			if (!serial_options)
+				break;
 			*serial_options = g_variant_get_string(src->data, NULL);
 			sr_dbg("Parsed serial options: %s.", *serial_options);
 			break;
 		}
 	}
 
-	if (!*serial_device) {
+	if (serial_device && !*serial_device) {
 		sr_dbg("No serial device specified.");
 		return SR_ERR;
 	}
