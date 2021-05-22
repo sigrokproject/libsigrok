@@ -50,6 +50,14 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	size_t idx, nr;
 	struct sr_channel_group *cg;
 
+	/*
+	 * The device cannot get identified by means of SCPI queries.
+	 * Neither shall non-SCPI requests get emitted before reliable
+	 * identification of the device. Assume that we only get here
+	 * when user specs led us to believe it's safe to communicate
+	 * to the expected kind of device.
+	 */
+
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->vendor = g_strdup("Hewlett-Packard");
 	sdi->model = g_strdup("59306A");
@@ -79,6 +87,14 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
+	const char *conn;
+
+	/* Only scan for a device when conn= was specified. */
+	conn = NULL;
+	(void)sr_serial_extract_options(options, &conn, NULL);
+	if (!conn)
+		return NULL;
+
 	return sr_scpi_scan(di->context, options, probe_device);
 }
 
