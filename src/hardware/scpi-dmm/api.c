@@ -127,9 +127,9 @@ static const struct scpi_command cmdset_owon[] = {
 
 static const struct mqopt_item mqopts_agilent_34405a[] = {
 	{ SR_MQ_VOLTAGE, SR_MQFLAG_DC, "VOLT:DC", "VOLT ", NO_DFLT_PREC, FLAGS_NONE, },
-	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_VOLTAGE, SR_MQFLAG_AC, "VOLT:AC", "VOLT:AC ", NO_DFLT_PREC, FLAG_CONF_DELAY, },
 	{ SR_MQ_CURRENT, SR_MQFLAG_DC, "CURR:DC", "CURR ", NO_DFLT_PREC, FLAGS_NONE, },
-	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR:AC ", NO_DFLT_PREC, FLAGS_NONE, },
+	{ SR_MQ_CURRENT, SR_MQFLAG_AC, "CURR:AC", "CURR:AC ", NO_DFLT_PREC, FLAG_CONF_DELAY, },
 	{ SR_MQ_RESISTANCE, 0, "RES", "RES ", NO_DFLT_PREC, FLAGS_NONE, },
 	{ SR_MQ_RESISTANCE, SR_MQFLAG_FOUR_WIRE, "FRES", "FRES ", NO_DFLT_PREC, FLAGS_NONE, },
 	{ SR_MQ_CONTINUITY, 0, "CONT", "CONT", -1, FLAG_NO_RANGE, },
@@ -204,7 +204,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 5, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic_range),
-		0, 0, FALSE,
+		0, 200 * 1000, 0, FALSE,
 		scpi_dmm_get_range_text, scpi_dmm_set_range_from_text, NULL,
 	},
 	{
@@ -212,7 +212,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_hp, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0, FALSE,
+		0, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -220,7 +220,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		2500 * 1000, 0, FALSE,
+		2500 * 1000, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -228,7 +228,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek, ARRAY_AND_SIZE(mqopts_gwinstek_gdm8200a),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		2500 * 1000, 0, FALSE,
+		2500 * 1000, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -236,7 +236,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0, FALSE,
+		0, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -244,7 +244,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_gwinstek_906x, ARRAY_AND_SIZE(mqopts_gwinstek_gdm906x),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 0, FALSE,
+		0, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -253,7 +253,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic),
 		/* 34401A: typ. 1020ms for AC readings (default is 1000ms). */
-		1500 * 1000, 0, FALSE,
+		1500 * 1000, 0, 0, FALSE,
 		NULL, NULL, NULL,
 	},
 	{
@@ -261,7 +261,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic_range),
-		0, 0, FALSE,
+		0, 0, 0, FALSE,
 		scpi_dmm_get_range_text, scpi_dmm_set_range_from_text, NULL,
 	},
 	{
@@ -269,7 +269,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 5, cmdset_owon, ARRAY_AND_SIZE(mqopts_owon_xdm2041),
 		scpi_dmm_get_meas_gwinstek,
 		ARRAY_AND_SIZE(devopts_generic),
-		0, 1e9, TRUE,
+		0, 0, 1e9, TRUE,
 		NULL, NULL, NULL,
 	},
 };

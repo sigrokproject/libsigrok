@@ -58,6 +58,7 @@ struct mqopt_item {
 #define NO_DFLT_PREC	-99
 #define FLAGS_NONE	0
 #define FLAG_NO_RANGE	(1 << 0)
+#define FLAG_CONF_DELAY	(1 << 1)
 
 struct scpi_dmm_model {
 	const char *vendor;
@@ -71,6 +72,7 @@ struct scpi_dmm_model {
 	const uint32_t *devopts;
 	size_t devopts_size;
 	unsigned int read_timeout_us; /* If zero, use default from src/scpi/scpi.c. */
+	unsigned int conf_delay_us;
 	float infinity_limit; /* If zero, use default from protocol.c */
 	gboolean check_opc;
 	const char *(*get_range_text)(const struct sr_dev_inst *sdi);
