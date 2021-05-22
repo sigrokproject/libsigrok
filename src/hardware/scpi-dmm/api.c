@@ -261,7 +261,7 @@ SR_PRIV const struct scpi_dmm_model models[] = {
 		1, 6, cmdset_agilent, ARRAY_AND_SIZE(mqopts_agilent_34405a),
 		scpi_dmm_get_meas_agilent,
 		ARRAY_AND_SIZE(devopts_generic_range),
-		0, 0, 0, 0, FALSE,
+		0, 0, 10 * 1000, 0, FALSE,
 		scpi_dmm_get_range_text, scpi_dmm_set_range_from_text, NULL,
 	},
 	{
