@@ -363,13 +363,12 @@ static GSList *do_scan(lps_modelid modelid, struct sr_dev_driver *drv, GSList *o
 
 	sdi = NULL;
 	devc = NULL;
-	conn = serialcomm = NULL;
 
 	/* Process and check options. */
+	conn = NULL;
+	serialcomm = SERIALCOMM;
 	if (sr_serial_extract_options(options, &conn, &serialcomm) != SR_OK)
 		return NULL;
-	if (!serialcomm)
-		serialcomm = SERIALCOMM;
 
 	/* Init serial port. */
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
