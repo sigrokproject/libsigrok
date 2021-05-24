@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017-2021 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -203,7 +203,7 @@ static int config_get(uint32_t key, GVariant **data,
 		if (ret != SR_OK)
 			return ret;
 		arr[0] = g_variant_new_uint32(devc->measurement_mq);
-		arr[1] = g_variant_new_uint64(devc->measurement_mq_flags);
+		arr[1] = g_variant_new_uint64(devc->measurement_mq_flag);
 		*data = g_variant_new_tuple(arr, 2);
 		break;
 	case SR_CONF_RANGE:
@@ -213,7 +213,7 @@ static int config_get(uint32_t key, GVariant **data,
 		range_str = "Auto";
 		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
 			if (rangeopts[i].mq == devc->measurement_mq &&
-					rangeopts[i].mqflag == devc->measurement_mq_flags &&
+					rangeopts[i].mqflag == devc->measurement_mq_flag &&
 					rangeopts[i].range_exp == devc->range_exp) {
 				range_str = rangeopts[i].range_str;
 				break;
@@ -265,7 +265,7 @@ static int config_set(uint32_t key, GVariant *data,
 		range_str = g_variant_get_string(data, NULL);
 		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
 			if (rangeopts[i].mq == devc->measurement_mq &&
-					rangeopts[i].mqflag == devc->measurement_mq_flags &&
+					rangeopts[i].mqflag == devc->measurement_mq_flag &&
 					g_strcmp0(rangeopts[i].range_str, range_str) == 0) {
 				return hp_3478a_set_range(sdi, rangeopts[i].range_exp);
 			}
@@ -321,7 +321,7 @@ static int config_list(uint32_t key, GVariant **data,
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 		for (i = 0; i < ARRAY_SIZE(rangeopts); i++) {
 			if (rangeopts[i].mq == devc->measurement_mq &&
-					rangeopts[i].mqflag == devc->measurement_mq_flags) {
+					rangeopts[i].mqflag == devc->measurement_mq_flag) {
 				g_variant_builder_add(&gvb, "s", rangeopts[i].range_str);
 			}
 		}

@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2017 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017-2021 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@
 #define SB1_RANGE_BLOCK		0b00011100
 #define SB1_DIGITS_BLOCK	0b00000011
 
-/* Status Byte 1 (Function) */
+/** Status Byte 1 (Function) */
 enum sb1_function {
 	FUNCTION_VDC			= 0b00100000,
 	FUNCTION_VAC			= 0b01000000,
@@ -42,7 +42,7 @@ enum sb1_function {
 	FUNCTION_EXR			= 0b11100000,
 };
 
-/* Status Byte 1 (Range V DC) */
+/** Status Byte 1 (Range V DC) */
 enum sb1_range_vdc {
 	RANGE_VDC_30MV			= 0b00000100,
 	RANGE_VDC_300MV			= 0b00001000,
@@ -51,7 +51,7 @@ enum sb1_range_vdc {
 	RANGE_VDC_300V			= 0b00010100,
 };
 
-/* Status Byte 1 (Range V AC) */
+/** Status Byte 1 (Range V AC) */
 enum sb1_range_vac {
 	RANGE_VAC_300MV			= 0b00000100,
 	RANGE_VAC_3V			= 0b00001000,
@@ -59,13 +59,13 @@ enum sb1_range_vac {
 	RANGE_VAC_300V			= 0b00010000,
 };
 
-/* Status Byte 1 (Range A) */
+/** Status Byte 1 (Range A) */
 enum sb1_range_a {
 	RANGE_A_300MA			= 0b00000100,
 	RANGE_A_3A			= 0b00001000,
 };
 
-/* Status Byte 1 (Range Ohm) */
+/** Status Byte 1 (Range Ohm) */
 enum sb1_range_ohm {
 	RANGE_OHM_30R			= 0b00000100,
 	RANGE_OHM_300R			= 0b00001000,
@@ -76,14 +76,14 @@ enum sb1_range_ohm {
 	RANGE_OHM_30MR			= 0b00011100,
 };
 
-/* Status Byte 1 (Digits) */
+/** Status Byte 1 (Digits) */
 enum sb1_digits {
 	DIGITS_5_5			= 0b00000001,
 	DIGITS_4_5			= 0b00000010,
 	DIGITS_3_5			= 0b00000011,
 };
 
-/* Status Byte 2 */
+/** Status Byte 2 */
 enum sb2_status {
 	STATUS_INT_TRIGGER		= (1 << 0),
 	STATUS_AUTO_RANGE		= (1 << 1),
@@ -94,7 +94,7 @@ enum sb2_status {
 	STATUS_EXT_TRIGGER		= (1 << 6),
 };
 
-/* Status Byte 3 (Serial Poll Mask) */
+/** Status Byte 3 (Serial Poll Mask) */
 enum sb3_srq {
 	SRQ_BUS_AVAIL			= (1 << 0),
 	SRQ_SYNTAX_ERR			= (1 << 2),
@@ -104,7 +104,7 @@ enum sb3_srq {
 	SRQ_POWER_ON			= (1 << 7),
 };
 
-/* Status Byte 4 (Error) */
+/** Status Byte 4 (Error) */
 enum sb4_error {
 	ERROR_SELF_TEST			= (1 << 0),
 	ERROR_RAM_SELF_TEST		= (1 << 1),
@@ -114,20 +114,20 @@ enum sb4_error {
 	ERROR_AD_LINK			= (1 << 5),
 };
 
-/* Channel connector (front terminals or rear terminals. */
+/** Channel connector (front terminals or rear terminals. */
 enum terminal_connector {
 	TERMINAL_FRONT,
 	TERMINAL_REAR,
 };
 
-/* Possible triggers */
+/** Available triggers */
 enum trigger_state {
 	TRIGGER_UNDEFINED,
 	TRIGGER_EXTERNAL,
 	TRIGGER_INTERNAL,
 };
 
-/* Possible line frequencies */
+/** Available line frequencies */
 enum line_freq {
 	LINE_50HZ,
 	LINE_60HZ,
@@ -138,9 +138,15 @@ struct dev_context {
 
 	double measurement;
 	enum sr_mq measurement_mq;
-	/** The measurement mq flags only contain flags for AC, DC and 4-wire. */
-	enum sr_mqflag measurement_mq_flags;
-	/** The acquisition mq flags also contain flags for autoranging and RMS. */
+	/**
+	 * The measurement mq flag can contain none or one of the
+	 * following flags: AC, DC, or 4-wire.
+	 */
+	enum sr_mqflag measurement_mq_flag;
+	/**
+	 * The acquisition mq flags can contain multiple flags,
+	 * for example autoranging, RMS, etc.
+	 */
 	enum sr_mqflag acquisition_mq_flags;
 	enum sr_unit measurement_unit;
 	int range_exp;
