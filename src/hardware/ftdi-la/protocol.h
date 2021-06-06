@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <glib.h>
+#include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -54,12 +55,13 @@ struct dev_context {
 
 	uint32_t cur_samplerate;
 
-	unsigned char *data_buf;
-	size_t data_buf_size;
+	struct libusb_transfer **transfers;
+	size_t num_transfers;
+	size_t active_transfers;
 
 	uint64_t limit_samples;
 	uint64_t samples_sent;
-
+	gboolean acq_aborted;
 };
 
 SR_PRIV int ftdi_la_set_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate);

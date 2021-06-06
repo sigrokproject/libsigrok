@@ -19,7 +19,6 @@
  */
 
 #include <config.h>
-#include <libusb.h>
 #include "protocol.h"
 
 /* Timeout (in ms) of non-data USB transfers. Data transfers use a timeout
@@ -27,7 +26,14 @@
 #define USB_TIMEOUT 100
 
 /* Target duration (in ms) of samples to fetch in a single USB transfer. */
-#define MS_PER_TRANSFER 100
+#define MS_PER_TRANSFER 10
+
+/* Target size (in ms) of the entire ring buffer of transfers. Represents
+ * maximum expected userspace scheduling latency. */
+#define BUFFER_SIZE_MS 250
+
+#define MIN_TRANSFER_BUFFERS 2
+#define MAX_TRANSFER_BUFFERS 32
 
 /* Definitions taken from libftdi and Linux's ftdi_sio.h. */
 #define VENDOR_OUT (LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE | LIBUSB_ENDPOINT_OUT)
@@ -206,36 +212,131 @@ static void send_samples(const struct sr_dev_inst *sdi, unsigned char *buf, size
 	}
 }
 
-SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data)
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
-	(void)fd;
-
-	if (!(revents == G_IO_IN || revents == 0))
-		return TRUE;
-
-	struct sr_dev_inst *sdi = cb_data;
+	const struct sr_dev_inst *sdi = transfer->user_data;
 	struct dev_context *devc = sdi->priv;
-	struct sr_usb_dev_inst *usb = sdi->conn;
-
-	unsigned int timeout;
-	int bytes_read;
 	int ret;
 
-	sr_spew("recv_data called");
+	sr_spew("receive_transfer called");
 
-	timeout = (devc->data_buf_size * 1000ull) / devc->cur_samplerate;
-	timeout += timeout / 4; /* 25% safety margin */
+	if (devc->acq_aborted || transfer->status == LIBUSB_TRANSFER_CANCELLED)
+		goto cleanup_transfer;
 
-	ret = libusb_bulk_transfer(usb->devhdl,
-			 devc->in_ep_addr, devc->data_buf, devc->data_buf_size,
-			 &bytes_read, timeout);
-	if (ret < 0) {
-		sr_err("Failed to read FTDI data: %s.", libusb_error_name(ret));
-		sr_dev_acquisition_stop(sdi);
-		return FALSE;
+	if (transfer->status == LIBUSB_TRANSFER_ERROR ||
+			transfer->status == LIBUSB_TRANSFER_NO_DEVICE ||
+			transfer->status == LIBUSB_TRANSFER_STALL) {
+		sr_err("USB transfer failed: %s.", libusb_error_name(transfer->status));
+		stop_acquisition(sdi);
+		goto cleanup_transfer;
 	}
 
-	send_samples(sdi, devc->data_buf, bytes_read);
+	sr_spew("Processing completed transfer of length %d.", transfer->actual_length);
+	send_samples(sdi, transfer->buffer, transfer->actual_length);
+
+	/* Check again, since send_samples() may have aborted acquisition. */
+	if (!devc->acq_aborted) {
+		/* Resubmit */
+		ret = libusb_submit_transfer(transfer);
+		if (ret != 0) {
+			sr_err("USB transfer submission failed: %s.", libusb_error_name(ret));
+			stop_acquisition(sdi);
+			goto cleanup_transfer;
+		}
+
+		return;
+	}
+
+cleanup_transfer:
+	g_free(transfer->buffer);
+	transfer->buffer = NULL; /* Stop libusb from trying to free it too. */
+	libusb_free_transfer(transfer);
+
+	for (size_t i = 0; i < devc->num_transfers; i++) {
+		if (devc->transfers[i] == transfer) {
+			devc->transfers[i] = NULL;
+			break;
+		}
+	}
+
+	if (--devc->active_transfers == 0) {
+		devc->num_transfers = 0;
+		g_free(devc->transfers);
+		sr_info("Freed all transfer allocations.");
+
+		usb_source_remove(sdi->session, sdi->session->ctx);
+	}
+}
+
+static int alloc_transfers(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	size_t num_xfers;
+	unsigned int packets_per_xfer, samples_per_xfer, bytes_per_xfer, timeout;
+	unsigned char *buf;
+
+	/* The numerator here is samples per second multiplied by seconds per
+	 * transfer, which simplifies to samples per transfer. Divide that by
+	 * samples per packet to get packets per transfer. */
+	packets_per_xfer = DIV_ROUND_UP((devc->cur_samplerate * MS_PER_TRANSFER) / 1000,
+			devc->in_ep_pkt_size - NUM_STATUS_BYTES);
+	/* Without status byte overhead. */
+	samples_per_xfer = packets_per_xfer * (devc->in_ep_pkt_size - NUM_STATUS_BYTES);
+	/* With status byte overhead. */
+	bytes_per_xfer = packets_per_xfer * devc->in_ep_pkt_size;
+
+	/* Enough to hold about BUFFER_SIZE_MS ms of samples. */
+	num_xfers = devc->cur_samplerate / samples_per_xfer;
+	num_xfers = num_xfers * BUFFER_SIZE_MS / 1000;
+	num_xfers = CLAMP(num_xfers, MIN_TRANSFER_BUFFERS, MAX_TRANSFER_BUFFERS);
+
+	sr_dbg("Using %zu USB transfers of size %u.", num_xfers, bytes_per_xfer);
+
+	timeout = (num_xfers * samples_per_xfer * 1000ull) / devc->cur_samplerate;
+	timeout += timeout / 4; /* 25% safety margin */
+
+	devc->transfers = g_try_malloc0_n(num_xfers, sizeof(*devc->transfers));
+	if (!devc->transfers) {
+		sr_err("Failed to allocate USB transfer pointers.");
+		return SR_ERR_MALLOC;
+	}
+	devc->num_transfers = num_xfers;
+	devc->active_transfers = num_xfers;
+
+	for (size_t i = 0; i < num_xfers; i++) {
+		buf = g_try_malloc(bytes_per_xfer);
+		devc->transfers[i] = libusb_alloc_transfer(0);
+
+		if (!buf || !devc->transfers[i]) {
+			sr_err("Ran out of memory while allocating transfers.");
+			return SR_ERR_MALLOC;
+		}
+
+		libusb_fill_bulk_transfer(devc->transfers[i], usb->devhdl,
+				devc->in_ep_addr, buf, bytes_per_xfer,
+				receive_transfer, (void *)sdi, timeout);
+	}
+
+	return SR_OK;
+}
+
+static int handle_event(int fd, int revents, void *cb_data)
+{
+	(void)fd;
+	(void)revents;
+
+	const struct sr_dev_inst *sdi = cb_data;
+	int ret;
+
+	struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+
+	ret = libusb_handle_events_timeout(sdi->session->ctx->libusb_ctx, &tv);
+	if (ret != 0) {
+		sr_err("libusb event handling failed: %s.", libusb_error_name(ret));
+		stop_acquisition(sdi);
+		return FALSE;
+	}
 
 	return TRUE;
 }
@@ -244,7 +345,6 @@ SR_PRIV int ftdi_la_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
-	unsigned int packets_per_xfer, bytes_per_xfer;
 	int ret;
 
 	/* Reset the chip */
@@ -284,26 +384,44 @@ SR_PRIV int ftdi_la_start_acquisition(const struct sr_dev_inst *sdi)
 
 	/* Reset internal variables before every new acquisition. */
 	devc->samples_sent = 0;
+	devc->acq_aborted = FALSE;
 
-	/* The numerator here is samples per second multiplied by seconds per
-	 * transfer, which simplifies to samples per transfer. Divide that by
-	 * samples per packet to get packets per transfer. */
-	packets_per_xfer = DIV_ROUND_UP((devc->cur_samplerate * MS_PER_TRANSFER) / 1000,
-			devc->in_ep_pkt_size - NUM_STATUS_BYTES);
-	bytes_per_xfer = packets_per_xfer * devc->in_ep_pkt_size;
+	ret = alloc_transfers(sdi);
+	if (ret != SR_OK)
+		return ret;
 
-	devc->data_buf_size = bytes_per_xfer;
-	devc->data_buf = g_malloc0(bytes_per_xfer);
+	ret = usb_source_add(sdi->session, sdi->session->ctx, -1, handle_event,
+			(void *)sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	ret = std_session_send_df_header(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	/* Hook up a dummy handler to receive data from the device. */
-	ret = sr_session_source_add(sdi->session, -1, G_IO_IN, 0,
-			ftdi_la_receive_data, (void *)sdi);
-	if (ret != SR_OK)
-		return ret;
+	ret = 0;
+	for (size_t i = 0; i < devc->num_transfers; i++) {
+		if (ret == 0) {
+			/* If we haven't failed yet, submit the next transfer. */
+			ret = libusb_submit_transfer(devc->transfers[i]);
+
+			/* After the first failure, abort and cancel all started
+			 * transfers, which will cause them to be torn down in
+			 * their callbacks. */
+			if (ret != 0) {
+				sr_err("USB transfer initial submission failed: %s.",
+						libusb_error_name(ret));
+				stop_acquisition(sdi);
+			}
+		}
+
+		if (ret != 0) {
+			/* If we failed (on this iteration or a previous one),
+			 * manually call the callback, which will notice that
+			 * acq_aborted is set and cleanly free the transfer. */
+			receive_transfer(devc->transfers[i]);
+		}
+	}
 
 	return SR_OK;
 }
@@ -314,11 +432,14 @@ static void stop_acquisition(const struct sr_dev_inst *sdi)
 
 	sr_info("Stopping acquisition.");
 
-	sr_session_source_remove(sdi->session, -1);
+	devc->acq_aborted = TRUE;
+
+	for (ssize_t i = devc->num_transfers - 1; i >= 0; i--) {
+		if (devc->transfers[i])
+			libusb_cancel_transfer(devc->transfers[i]);
+	}
 
 	std_session_send_df_end(sdi);
-
-	g_free(devc->data_buf);
 }
 
 SR_PRIV int ftdi_la_stop_acquisition(struct sr_dev_inst *sdi)
