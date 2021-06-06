@@ -27,28 +27,44 @@
 
 #define LOG_PREFIX "ftdi-la"
 
-#define DATA_BUF_SIZE (16 * 1024)
-
 struct ftdi_chip_desc {
 	uint16_t vendor;
 	uint16_t product;
-	int samplerate_div;
+
+	/* Set to TRUE for chips that expect an interface to be specified for
+	 * commands like baud rate selection, even if the specific chip only
+	 * has a single one (e.g. FT232H). */
+	gboolean multi_iface;
+	unsigned int num_ifaces; /* No effect if multi_iface is FALSE. */
+
+	uint32_t base_clock;
+	uint32_t bitbang_divisor;
+
 	char *channel_names[];
 };
 
 struct dev_context {
-	struct ftdi_context *ftdic;
 	const struct ftdi_chip_desc *desc;
 
-	uint64_t limit_samples;
+	uint16_t usb_iface_idx;
+	uint16_t ftdi_iface_idx; /* 1-indexed because FTDI hates us */
+
+	uint16_t in_ep_pkt_size;
+	uint8_t in_ep_addr;
+
 	uint32_t cur_samplerate;
 
 	unsigned char *data_buf;
+	size_t data_buf_size;
+
+	uint64_t limit_samples;
 	uint64_t samples_sent;
-	uint64_t bytes_received;
+
 };
 
-SR_PRIV int ftdi_la_set_samplerate(struct dev_context *devc);
+SR_PRIV int ftdi_la_set_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate);
 SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int ftdi_la_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int ftdi_la_stop_acquisition(struct sr_dev_inst *sdi);
 
 #endif

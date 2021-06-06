@@ -19,7 +19,6 @@
  */
 
 #include <config.h>
-#include <ftdi.h>
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -49,7 +48,13 @@ static const uint64_t samplerates[] = {
 static const struct ftdi_chip_desc ft2232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6010,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 2,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",
 		"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
@@ -61,7 +66,13 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 	.vendor = 0x0403,
 	.product = 0x8a98,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 1, /* Second interface reserved for UART */
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+
 	/* 20 pin JTAG header */
 	.channel_names = {
 		"TCK", "TDI", "TDO", "TMS", "RST", "nTRST", "DBGRQ", "RTCK",
@@ -72,7 +83,13 @@ static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 static const struct ftdi_chip_desc ft4232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6011,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 4,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",	"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
 		/* TODO: BDBUS[0..7], CDBUS[0..7], DDBUS[0..7] channels. */
@@ -83,7 +100,10 @@ static const struct ftdi_chip_desc ft4232h_desc = {
 static const struct ftdi_chip_desc ft232r_desc = {
 	.vendor = 0x0403,
 	.product = 0x6001,
-	.samplerate_div = 30,
+
+	.base_clock = 48000000u,
+	.bitbang_divisor = 1u,
+
 	.channel_names = {
 		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
 		NULL
@@ -93,7 +113,13 @@ static const struct ftdi_chip_desc ft232r_desc = {
 static const struct ftdi_chip_desc ft232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6014,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 1,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
 		NULL
@@ -116,6 +142,7 @@ static void scan_device(struct libusb_device *dev, GSList **devices)
 	const struct ftdi_chip_desc *desc;
 	struct dev_context *devc;
 	char vendor[127], model[127], serial_num[127];
+	char connection_id[64];
 	struct sr_dev_inst *sdi;
 	int rv;
 
@@ -190,14 +217,19 @@ static void scan_device(struct libusb_device *dev, GSList **devices)
 		serial_num[0] = '\0';
 	}
 
+	if (usb_get_port_path(dev, connection_id, sizeof(connection_id)) < 0)
+		goto out_close_hdl;
+
 	sr_dbg("Found an FTDI device: %s.", model);
 
 	devc = g_malloc0(sizeof(struct dev_context));
 
-	/* Allocate memory for the incoming data. */
-	devc->data_buf = g_malloc0(DATA_BUF_SIZE);
-
 	devc->desc = desc;
+	/* TODO: Expose all interfaces */
+	devc->usb_iface_idx = 0;
+	devc->ftdi_iface_idx = desc->multi_iface ? 1 : 0;
+	devc->in_ep_addr = LIBUSB_ENDPOINT_IN | 1;
+	devc->in_ep_pkt_size = libusb_get_max_packet_size(dev, devc->in_ep_addr);
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
@@ -205,8 +237,10 @@ static void scan_device(struct libusb_device *dev, GSList **devices)
 	sdi->model = g_strdup(model);
 	sdi->serial_num = g_strdup(serial_num);
 	sdi->priv = devc;
-	sdi->connection_id = g_strdup_printf("d:%u/%u",
-		libusb_get_bus_number(dev), libusb_get_device_address(dev));
+	sdi->connection_id = g_strdup(connection_id);
+	sdi->inst_type = SR_INST_USB;
+	sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(dev),
+			libusb_get_device_address(dev), NULL);
 
 	for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
 		sr_channel_new(sdi, chan - &(desc->channel_names[0]),
@@ -268,80 +302,42 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return std_scan_complete(di, devices);
 }
 
-static void clear_helper(struct dev_context *devc)
-{
-	g_free(devc->data_buf);
-}
-
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	int ret = SR_OK;
+	struct sr_dev_driver *di = sdi->driver;
+	struct drv_context *drvc = di->context;
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	int ret;
 
-	devc = sdi->priv;
+	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+	if (ret != SR_OK)
+		return ret;
 
-	devc->ftdic = ftdi_new();
-	if (!devc->ftdic)
-		return SR_ERR;
+	libusb_detach_kernel_driver(usb->devhdl, devc->usb_iface_idx);
+	/* Ignore failures and just try to claim anyway */
 
-	ret = ftdi_usb_open_string(devc->ftdic, sdi->connection_id);
+	ret = libusb_claim_interface(usb->devhdl, devc->usb_iface_idx);
 	if (ret < 0) {
-		/* Log errors, except for -3 ("device not found"). */
-		if (ret != -3)
-			sr_err("Failed to open device (%d): %s", ret,
-			       ftdi_get_error_string(devc->ftdic));
-		goto err_ftdi_free;
-	}
-
-	ret = PURGE_FTDI_BOTH(devc->ftdic);
-	if (ret < 0) {
-		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
-	}
-
-	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_RESET);
-	if (ret < 0) {
-		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
-	}
-
-	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_BITBANG);
-	if (ret < 0) {
-		sr_err("Failed to put FTDI chip into bitbang mode (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
+		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
+		goto err_close_usb;
 	}
 
 	return SR_OK;
 
-err_dev_open_close_ftdic:
-	ftdi_usb_close(devc->ftdic);
-
-err_ftdi_free:
-	ftdi_free(devc->ftdic);
+err_close_usb:
+	sr_usb_close(usb);
 
 	return SR_ERR;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
 
-	devc = sdi->priv;
-
-	if (!devc->ftdic)
-		return SR_ERR_BUG;
-
-	ftdi_usb_close(devc->ftdic);
-	ftdi_free(devc->ftdic);
-	devc->ftdic = NULL;
+	libusb_release_interface(usb->devhdl, devc->usb_iface_idx);
+	sr_usb_close(usb);
 
 	return SR_OK;
 }
@@ -394,10 +390,7 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		value = g_variant_get_uint64(data);
-		if (value < 3600)
-			return SR_ERR_SAMPLERATE;
-		devc->cur_samplerate = value;
-		return ftdi_la_set_samplerate(devc);
+		return ftdi_la_set_samplerate(sdi, value);
 	default:
 		return SR_ERR_NA;
 	}
@@ -422,39 +415,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (!devc->ftdic)
-		return SR_ERR_BUG;
-
-	ftdi_set_bitmode(devc->ftdic, 0, BITMODE_BITBANG);
-
-	/* Properly reset internal variables before every new acquisition. */
-	devc->samples_sent = 0;
-	devc->bytes_received = 0;
-
-	std_session_send_df_header(sdi);
-
-	/* Hook up a dummy handler to receive data from the device. */
-	sr_session_source_add(sdi->session, -1, G_IO_IN, 0,
-			      ftdi_la_receive_data, (void *)sdi);
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	sr_session_source_remove(sdi->session, -1);
-
-	std_session_send_df_end(sdi);
-
-	return SR_OK;
-}
-
 static struct sr_dev_driver ftdi_la_driver_info = {
 	.name = "ftdi-la",
 	.longname = "FTDI LA",
@@ -463,14 +423,14 @@ static struct sr_dev_driver ftdi_la_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = ftdi_la_start_acquisition,
+	.dev_acquisition_stop = ftdi_la_stop_acquisition,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(ftdi_la_driver_info);
