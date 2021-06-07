@@ -288,7 +288,7 @@ static int alloc_transfers(const struct sr_dev_inst *sdi)
 
 	/* Enough to hold about BUFFER_SIZE_MS ms of samples. */
 	num_xfers = devc->cur_samplerate / samples_per_xfer;
-	num_xfers = num_xfers * BUFFER_SIZE_MS / 1000;
+	num_xfers = (num_xfers * BUFFER_SIZE_MS) / 1000;
 	num_xfers = CLAMP(num_xfers, MIN_TRANSFER_BUFFERS, MAX_TRANSFER_BUFFERS);
 
 	sr_dbg("Using %zu USB transfers of size %u.", num_xfers, bytes_per_xfer);

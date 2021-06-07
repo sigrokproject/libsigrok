@@ -41,7 +41,7 @@ struct ftdi_chip_desc {
 	uint32_t base_clock;
 	uint32_t bitbang_divisor;
 
-	char *channel_names[];
+	char *channel_names[]; /* 8 channel names for each interface */
 };
 
 struct dev_context {

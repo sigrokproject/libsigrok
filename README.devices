@@ -228,6 +228,14 @@ rather useful for a given type of device.
 
  $ sigrok-cli --driver <somedriver>:conn=sn=<serno>
 
+The FTDI-LA driver accepts an optional channel letter after the standard USB
+specifier in its conn= property, separated by a slash. The letter distinguishes
+between the multiple MPSSE channels available on chips like the FT2232H and
+corresponds to first letter of the pins for that channel. So for the ADBUSx
+pins on a device with USB address 3.17, you'd specify `-d ftdi-la:conn=3.17/A`.
+For the BDBUSx pins on any device, `-d ftdi-la:conn=/B`. Channel letters are
+case-insensitive.
+
 
 Specifying serial port parameters
 ---------------------------------

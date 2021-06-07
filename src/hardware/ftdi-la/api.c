@@ -18,6 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <config.h>
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
@@ -56,10 +57,8 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 	.bitbang_divisor = 2u,
 
 	.channel_names = {
-		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",
-		"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		/* TODO: BDBUS[0..7] channels. */
-		NULL
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
+		"BDBUS0", "BDBUS1", "BDBUS2", "BDBUS3", "BDBUS4", "BDBUS5", "BDBUS6", "BDBUS7",
 	}
 };
 
@@ -76,7 +75,6 @@ static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 	/* 20 pin JTAG header */
 	.channel_names = {
 		"TCK", "TDI", "TDO", "TMS", "RST", "nTRST", "DBGRQ", "RTCK",
-		NULL
 	}
 };
 
@@ -92,8 +90,9 @@ static const struct ftdi_chip_desc ft4232h_desc = {
 
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",	"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		/* TODO: BDBUS[0..7], CDBUS[0..7], DDBUS[0..7] channels. */
-		NULL
+		"BDBUS0", "BDBUS1", "BDBUS2", "BDBUS3", "BDBUS4", "BDBUS5", "BDBUS6", "BDBUS7",
+		"CDBUS0", "CDBUS1", "CDBUS2", "CDBUS3", "CDBUS4", "CDBUS5", "CDBUS6", "CDBUS7",
+		"DDBUS0", "DDBUS1", "DDBUS2", "DDBUS3", "DDBUS4", "DDBUS5", "DDBUS6", "DDBUS7",
 	}
 };
 
@@ -106,7 +105,6 @@ static const struct ftdi_chip_desc ft232r_desc = {
 
 	.channel_names = {
 		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
-		NULL
 	}
 };
 
@@ -122,7 +120,6 @@ static const struct ftdi_chip_desc ft232h_desc = {
 
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		NULL
 	}
 };
 
@@ -135,15 +132,19 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	NULL,
 };
 
-static void scan_device(struct libusb_device *dev, GSList **devices)
+static void scan_device(struct libusb_device *dev, GSList **devices, int iface_idx)
 {
 	struct libusb_device_descriptor usb_desc;
+	struct libusb_config_descriptor *config;
+	const struct libusb_interface_descriptor *iface;
 	struct libusb_device_handle *hdl;
 	const struct ftdi_chip_desc *desc;
 	struct dev_context *devc;
 	char vendor[127], model[127], serial_num[127];
 	char connection_id[64];
 	struct sr_dev_inst *sdi;
+	unsigned int num_ifaces;
+	int in_ep_idx;
 	int rv;
 
 	libusb_get_device_descriptor(dev, &usb_desc);
@@ -220,33 +221,84 @@ static void scan_device(struct libusb_device *dev, GSList **devices)
 	if (usb_get_port_path(dev, connection_id, sizeof(connection_id)) < 0)
 		goto out_close_hdl;
 
-	sr_dbg("Found an FTDI device: %s.", model);
+	if ((rv = libusb_get_active_config_descriptor(dev, &config)) != 0) {
+		sr_warn("Failed to get config descriptor for device: %s.",
+			libusb_error_name(rv));
+		goto out_close_hdl;
+	}
 
-	devc = g_malloc0(sizeof(struct dev_context));
+	num_ifaces = desc->multi_iface ? desc->num_ifaces : 1;
+	if (config->bNumInterfaces < num_ifaces) {
+		sr_err("Found FTDI device with fewer USB interfaces than we "
+			"expect for its type. This is a bug in FTDI-LA.");
+		goto out_free_config;
+	}
 
-	devc->desc = desc;
-	/* TODO: Expose all interfaces */
-	devc->usb_iface_idx = 0;
-	devc->ftdi_iface_idx = desc->multi_iface ? 1 : 0;
-	devc->in_ep_addr = LIBUSB_ENDPOINT_IN | 1;
-	devc->in_ep_pkt_size = libusb_get_max_packet_size(dev, devc->in_ep_addr);
+	sr_dbg("Found a %d-channel FTDI device: %s.", num_ifaces, model);
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(vendor);
-	sdi->model = g_strdup(model);
-	sdi->serial_num = g_strdup(serial_num);
-	sdi->priv = devc;
-	sdi->connection_id = g_strdup(connection_id);
-	sdi->inst_type = SR_INST_USB;
-	sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(dev),
-			libusb_get_device_address(dev), NULL);
+	for (unsigned int i = 0; i < num_ifaces; i++) {
+		/* If the user asked for a specific interface, skip the others. */
+		if (iface_idx >= 0 && (unsigned int)iface_idx != i)
+			continue;
 
-	for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
-		sr_channel_new(sdi, chan - &(desc->channel_names[0]),
-				SR_CHANNEL_LOGIC, TRUE, *chan);
+		if (config->interface[i].num_altsetting <= 0) {
+			sr_err("FTDI interface %d has bad num_altsetting %d",
+				i, config->interface[i].num_altsetting);
+			goto out_free_config;
+		}
 
-	*devices = g_slist_append(*devices, sdi);
+		iface = &config->interface[i].altsetting[0];
+
+		/* Locate the IN endpoint */
+		in_ep_idx = -1;
+		for (uint8_t j = 0; j < iface->bNumEndpoints; j++) {
+			/* LIBUSB_TRANSFER_TYPE_BULK should more properly be
+			 * LIBUSB_ENDPOINT_TRANSFER_TYPE_BULK, but we currently support
+			 * libusb 1.0.20-rc3, which does not include that enum value, for
+			 * Windows builds. */
+			if ((iface->endpoint[j].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_IN &&
+					(iface->endpoint[j].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) == LIBUSB_TRANSFER_TYPE_BULK) {
+				in_ep_idx = j;
+				break;
+			}
+		}
+		if (in_ep_idx == -1) {
+			sr_err("FTDI interface %d has no bulk IN endpoint", i);
+			goto out_free_config;
+		}
+
+		devc = g_malloc0(sizeof(struct dev_context));
+		devc->desc = desc;
+		devc->usb_iface_idx = i;
+		devc->ftdi_iface_idx = desc->multi_iface ? i + 1 : i;
+		devc->in_ep_addr = iface->endpoint[in_ep_idx].bEndpointAddress;
+		devc->in_ep_pkt_size = iface->endpoint[in_ep_idx].wMaxPacketSize;
+
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(vendor);
+		sdi->model = g_strdup(model);
+		sdi->serial_num = g_strdup(serial_num);
+		sdi->priv = devc;
+		if (num_ifaces > 1) {
+			sdi->connection_id = g_strdup_printf("%s, channel %c",
+					connection_id, 'A' + i);
+		} else {
+			sdi->connection_id = g_strdup(connection_id);
+		}
+		sdi->inst_type = SR_INST_USB;
+		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(dev),
+				libusb_get_device_address(dev), NULL);
+
+		for (int chan = 0; chan < 8; chan++)
+			sr_channel_new(sdi, chan, SR_CHANNEL_LOGIC, TRUE,
+					desc->channel_names[(i*8) + chan]);
+
+		*devices = g_slist_append(*devices, sdi);
+	}
+
+out_free_config:
+	libusb_free_config_descriptor(config);
 
 out_close_hdl:
 	libusb_close(hdl);
@@ -257,7 +309,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
 	const char *conn;
-	GSList *l, *conn_devices;
+	gchar **conn_parts;
+	gboolean conn_has_usb = FALSE;
+	GSList *l, *conn_devices = NULL;
+	int conn_iface = -1;
 	GSList *devices;
 	struct drv_context *drvc;
 	libusb_device **devlist;
@@ -273,15 +328,31 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	if (conn)
-		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
-	else
-		conn_devices = NULL;
+	if (conn && conn[0]) {
+		conn_parts = g_strsplit(conn, "/", 2);
+
+		/* USB identifier */
+		if (conn_parts[0][0]) {
+			conn_has_usb = TRUE;
+			conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn_parts[0]);
+		}
+
+		/* Interface identifier (e.g. A or B; case-insensitive) */
+		if (conn_parts[1]) {
+			if (strlen(conn_parts[1]) != 1 || !isalpha(conn_parts[1][0])) {
+				sr_err("Invalid interface ID: %s.", conn_parts[1]);
+			} else {
+				conn_iface = toupper(conn_parts[1][0]) - 'A';
+			}
+		}
+
+		g_strfreev(conn_parts);
+	}
 
 	devices = NULL;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
-		if (conn) {
+		if (conn_has_usb) {
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
 				if (usb->bus == libusb_get_bus_number(devlist[i])
@@ -294,7 +365,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 		}
 
-		scan_device(devlist[i], &devices);
+		scan_device(devlist[i], &devices, conn_iface);
 	}
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
 	libusb_free_device_list(devlist, 1);
