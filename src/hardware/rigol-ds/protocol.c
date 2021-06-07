@@ -267,7 +267,7 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 /* Wait for enough data becoming available in scope output buffer */
 static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 {
-	char *buf;
+	char *buf, c;
 	struct dev_context *devc;
 	time_t start;
 	int len, ret;
@@ -297,10 +297,11 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
 				return SR_ERR;
 			ret = parse_int(buf + 5, &len);
+			c = buf[0];
 			g_free(buf);
 			if (ret != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == 'R' && len < (1000 * 1000));
+		} while (c == 'R' && len < (1000 * 1000));
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_NONE);
