@@ -240,7 +240,7 @@ static const struct rate_map rate_map[] = {
 	{ SR_MHZ(50),  0x0005, 0 },
 	{ SR_MHZ(20),  0x0303, 0 },
 	{ SR_MHZ(10),  0x0308, 0 },
-	{ SR_MHZ(5),   0x030c, 0 },
+	{ SR_MHZ(5),   0x0312, 0 },
 	{ SR_MHZ(2),   0x0330, 0 },
 	{ SR_MHZ(1),   0x0362, 0 },
 	{ SR_KHZ(500), 0x03c6, 0 },
