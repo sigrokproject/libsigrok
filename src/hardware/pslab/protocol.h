@@ -26,13 +26,14 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "pslab"
-#define NUM_ANALOG_CHANNELS 8
+#define NUM_ANALOG_CHANNELS 4
 
-#define BUFSIZE 10000
+#define MAX_SAMPLES 10000
 #define COMMON 0x0b
-#define VERSION_COMMAND 0x05
+#define MIN_SAMPLES 10
 
 #define ADC 0x02
+#define VERSION_COMMAND 0x05
 #define CAPTURE_ONE 0x01
 #define CAPTURE_TWO 0x02
 #define CAPTURE_DMASPEED 0x03
@@ -49,38 +50,71 @@
 #define CAPTURE_MULTIPLE 0x0e
 #define SET_HI_CAPTURE 0x0f
 #define SET_LO_CAPTURE 0x10
+#define RETRIEVE_BUFFER 0x08
+
+static const uint8_t GAIN_VALUES[] = {1, 2, 4, 5, 8, 10, 16, 32};
 
 struct dev_context {
+	/* device mode */
+	int mode;
+
+	/* trigger */
+	gboolean trigger_enabled;
+	struct sr_channel *trigger_channel;
+	double trigger_voltage;
+
+	/* Acquisition settings */
+	uint64_t samplerate;
+	GSList * enabled_channels;
+	struct sr_channel *channel_one_map;
+	struct sr_sw_limits limits;
+
+	/* GSList entry for the current channel. */
+	GSList *channel_entry;
+
+	/* Acq buffers used for reading from the scope and sending data to app */
+	uint16_t *short_int_buffer;
+	float *data;
 };
 
 struct analog_channel {
 	const char *name;
-
+	int index;
 	int chosa;
-
 	double minInput;
-
 	double maxInput;
 };
 
 struct channel_priv {
-
-	int samples_in_buffer;
-
 	int buffer_idx;
-
 	int chosa;
-
-	int gain;
-
+	double min_input;
+	double max_input;
+	uint16_t gain;
 	int programmable_gain_amplifier;
-
-	int resolution;
+	double resolution;
 };
 
-SR_PRIV int pslab_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV char* pslab_get_version(struct sr_serial_dev_inst* serial, uint8_t c1, uint8_t c2);
+struct channel_group_priv {
+	int range;
+};
 
-SR_PRIV struct dev_context *pslab_dev_new();
+
+SR_PRIV int pslab_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV char* pslab_get_version(struct sr_serial_dev_inst* serial);
+SR_PRIV int pslab_set_gain(const struct sr_dev_inst *sdi,
+	const struct sr_channel *ch, uint16_t gain);
+SR_PRIV void pslab_set_resolution(const struct sr_channel *ch, int resolution);
+SR_PRIV int pslab_get_ack(const struct sr_dev_inst *sdi);
+SR_PRIV void pslab_configure_trigger(const struct sr_dev_inst *sdi);
+SR_PRIV void pslab_caputure_oscilloscope(const struct sr_dev_inst *sdi);
+SR_PRIV int pslab_fetch_data(const struct sr_dev_inst *sdi);
+SR_PRIV gboolean pslab_progress(const struct sr_dev_inst *sdi);
+SR_PRIV float pslab_scale(const struct sr_channel *ch, uint16_t raw_value);
+SR_PRIV int assign_channel(const char* channel_name,
+			   struct sr_channel *target, GSList* list);
+SR_PRIV int pslab_unscale(const struct sr_channel *ch, double voltage);
+SR_PRIV void pslab_write_u8(struct sr_serial_dev_inst* serial, uint8_t buf[], int count);
+SR_PRIV void pslab_write_u16(struct sr_serial_dev_inst* serial, uint16_t val[], int count);
 
 #endif
