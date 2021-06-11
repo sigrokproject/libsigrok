@@ -39,3 +39,13 @@ SR_PRIV int pslab_receive_data(int fd, int revents, void *cb_data)
 
 	return TRUE;
 }
+
+SR_PRIV char* pslab_get_version(struct sr_serial_dev_inst* serial, uint8_t c1, uint8_t c2 )
+{
+	char *buffer = g_malloc0(16);
+	int len = 15;
+	serial_write_blocking(serial,&c1, sizeof(c1), serial_timeout(serial, sizeof(c1)));
+	serial_write_blocking(serial,&c2, sizeof(c2),serial_timeout(serial, sizeof(c2)));
+	serial_readline(serial, &buffer, &len, serial_timeout(serial, sizeof(buffer)));
+	return buffer;
+}

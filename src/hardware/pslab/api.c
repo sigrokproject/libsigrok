@@ -22,14 +22,14 @@
 #include "protocol.h"
 
 static const struct analog_channel analog_channels[] = {
-		{"CH1", 3},
-		{"CH2", 0},
-		{"CH3", 1},
-		{"MIC", 2},
-		{"AN4", 4},
-		{"RES", 7},
-		{"CAP", 5},
-		{"VOL", 8},
+		{"CH1", 3,16.5, -16.5},
+		{"CH2", 0,16.5, -16.5},
+		{"CH3", 1,-3.3, 3.3},
+		{"MIC", 2,-3.3,3.3},
+		{"AN4", 4,0, 3.3},
+		{"RES", 7,0, 3.3},
+		{"CAP", 5,0,3.3},
+		{"VOL", 8,0,3.3},
 };
 
 static struct sr_dev_driver pslab_driver_info;
@@ -67,21 +67,31 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	for (l = device_paths; l; l = l->next)
 	{
-		if (path && path != l->data) {
+		char *device_path = l->data;
+		if (path && path != device_path) {
 			continue;
 		}
-		serial = sr_serial_dev_inst_new(l->data, serialcomm);
-
+		serial = sr_serial_dev_inst_new(device_path, serialcomm);
 		if (serial_open(serial, SERIAL_RDWR) != SR_OK) {
 			continue;
 		}
+
+		char* version = pslab_get_version(serial, COMMON, VERSION_COMMAND);
+		gboolean isPSLabDevice = g_str_has_prefix(version, "PSLab") || g_str_has_prefix(version, "CSpark");
+		if(!isPSLabDevice) {
+			g_free(version);
+			serial_close(serial);
+			continue;
+		}
+		sr_info("PSLab device found: %s on port: %s", version, device_path);
 
 		sdi = g_new0(struct sr_dev_inst, 1);
 		sdi->status = SR_ST_INACTIVE;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->vendor = g_strdup("FOSSASIA");
-		sdi->connection_id = l->data;
+		sdi->connection_id = device_path;
 		sdi->conn = serial;
+		sdi->version = version;
 
 		struct sr_channel_group *cg = g_new0(struct sr_channel_group, 1);
 		cg->name = g_strdup("Analog");
@@ -110,24 +120,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		serial_close(serial);
 	}
 	return std_scan_complete(di, devices);
-}
-
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and close it. */
-
-	return SR_OK;
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -218,8 +210,8 @@ static struct sr_dev_driver pslab_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
 	.dev_acquisition_start = dev_acquisition_start,
 	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
