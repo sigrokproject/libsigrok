@@ -26,10 +26,34 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "pslab"
+#define NUM_ANALOG_CHANNELS 8
 
 struct dev_context {
 };
 
+struct analog_channel {
+	const char *name;
+
+	int chosa;
+};
+
+struct channel_priv {
+
+	int samples_in_buffer;
+
+	int buffer_idx;
+
+	int chosa;
+
+	int gain;
+
+	int programmable_gain_amplifier;
+
+	int resolution;
+};
+
 SR_PRIV int pslab_receive_data(int fd, int revents, void *cb_data);
+
+SR_PRIV struct dev_context *pslab_dev_new();
 
 #endif
