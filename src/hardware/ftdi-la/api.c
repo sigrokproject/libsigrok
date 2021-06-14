@@ -102,19 +102,6 @@ static const struct ftdi_chip_desc ft4232h_desc = {
 	}
 };
 
-static const struct ftdi_chip_desc ft232r_desc = {
-	.vendor = 0x0403,
-	.product = 0x6001,
-
-	.base_clock = 48000000u,
-	.bitbang_divisor = 1u,
-	.max_sample_rates = {2400000u},
-
-	.channel_names = {
-		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
-	}
-};
-
 static const struct ftdi_chip_desc ft232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6014,
@@ -132,11 +119,18 @@ static const struct ftdi_chip_desc ft232h_desc = {
 	}
 };
 
+/* TODO: The FT230X and FT231X are a new generation of full-speed chips that
+ * reportedly lack the bitbang erratum that makes the FT232R unusable. They
+ * ought to be usable with this driver's code as-is, but I don't have the
+ * hardware to validate this, so they aren't in the list of chips yet. I would
+ * expect them to have a descriptor almost identical to the former FT232R
+ * descriptor that was removed from this driver ("git blame" this comment to
+ * find it). */
+
 static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
 	&ft2232h_tumpa_desc,
 	&ft4232h_desc,
-	&ft232r_desc,
 	&ft232h_desc,
 	NULL,
 };
@@ -158,6 +152,14 @@ static void scan_device(struct libusb_device *dev, GSList **devices, int iface_i
 	int rv;
 
 	libusb_get_device_descriptor(dev, &usb_desc);
+
+	if (usb_desc.idVendor == 0x0403 && usb_desc.idProduct == 0x6001) {
+		sr_warn("Detected an FT232R, which FTDI-LA no longer supports "
+			"due to a silicon bug. See "
+			"https://sigrok.org/wiki/FTDI-LA#FT232R_Support_Removal"
+			" for more information.");
+		return;
+	}
 
 	desc = NULL;
 	for (unsigned long i = 0; i < ARRAY_SIZE(chip_descs); i++) {
