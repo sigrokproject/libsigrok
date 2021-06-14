@@ -40,12 +40,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_CONN | SR_CONF_GET,
 };
 
-static const uint64_t samplerates[] = {
-	SR_HZ(3600),
-	SR_MHZ(10),
-	SR_HZ(1),
-};
-
 static const struct ftdi_chip_desc ft2232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6010,
@@ -55,6 +49,11 @@ static const struct ftdi_chip_desc ft2232h_desc = {
 
 	.base_clock = 120000000u,
 	.bitbang_divisor = 2u,
+	/* My testing on two separate FT2232H chips indicates that channel A
+	 * can run successfully at 15MHz but that channel B will run at 7.5MHz
+	 * if you ask for 15. It's strange, but I'm not gonna turn down three
+	 * extra MHz by limiting both to 12 :) */
+	.max_sample_rates = {15000000u, 12000000u},
 
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
@@ -71,6 +70,7 @@ static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 
 	.base_clock = 120000000u,
 	.bitbang_divisor = 2u,
+	.max_sample_rates = {15000000u, 12000000u},
 
 	/* 20 pin JTAG header */
 	.channel_names = {
@@ -87,6 +87,12 @@ static const struct ftdi_chip_desc ft4232h_desc = {
 
 	.base_clock = 120000000u,
 	.bitbang_divisor = 2u,
+	/* TODO: It's likely that channel A (and maybe C or D too) can run at
+	 * 15MHz on the FT4232H just like on the FT2232H, as the two chips use
+	 * the same die internally. However, since I don't have a FT4232 to
+	 * test with, I'm playing it safe and capping them all to 12MHz for
+	 * now. */
+	.max_sample_rates = {12000000u, 12000000u, 12000000u, 12000000u},
 
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",	"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
@@ -102,6 +108,7 @@ static const struct ftdi_chip_desc ft232r_desc = {
 
 	.base_clock = 48000000u,
 	.bitbang_divisor = 1u,
+	.max_sample_rates = {2400000u},
 
 	.channel_names = {
 		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
@@ -117,6 +124,8 @@ static const struct ftdi_chip_desc ft232h_desc = {
 
 	.base_clock = 120000000u,
 	.bitbang_divisor = 2u,
+	/* TODO: This can also probably be 15MHz. See FT4232H comment above. */
+	.max_sample_rates = {12000000u},
 
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
@@ -132,6 +141,7 @@ static const struct ftdi_chip_desc *chip_descs[] = {
 	NULL,
 };
 
+/* iface_idx indicates which device channel to scan. -1 scans all of them. */
 static void scan_device(struct libusb_device *dev, GSList **devices, int iface_idx)
 {
 	struct libusb_device_descriptor usb_desc;
@@ -230,7 +240,7 @@ static void scan_device(struct libusb_device *dev, GSList **devices, int iface_i
 	num_ifaces = desc->multi_iface ? desc->num_ifaces : 1;
 	if (config->bNumInterfaces < num_ifaces) {
 		sr_err("Found FTDI device with fewer USB interfaces than we "
-			"expect for its type. This is a bug in FTDI-LA.");
+			"expect for its type. This is a bug in libsigrok.");
 		goto out_free_config;
 	}
 
@@ -469,6 +479,19 @@ static int config_set(uint32_t key, GVariant *data,
 	return SR_OK;
 }
 
+static GVariant *get_samplerates(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	uint64_t samplerates[] = {
+		SR_HZ(3600),
+		devc->desc->max_sample_rates[devc->usb_iface_idx],
+		SR_HZ(1),
+	};
+	
+	return std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+}
+
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -477,7 +500,7 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		*data = get_samplerates(sdi);
 		break;
 	default:
 		return SR_ERR_NA;

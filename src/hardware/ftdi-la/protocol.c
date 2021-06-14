@@ -64,7 +64,7 @@ struct clock_config {
 static void stop_acquisition(const struct sr_dev_inst *sdi);
 
 static struct clock_config get_closest_config(uint32_t requested_rate,
-		const struct ftdi_chip_desc *chip)
+		const struct ftdi_chip_desc *chip, int iface_idx)
 {
 	const uint8_t fraction_codes[8] = {0, 3, 2, 4, 1, 5, 6, 7};
 
@@ -73,6 +73,16 @@ static struct clock_config get_closest_config(uint32_t requested_rate,
 	uint32_t bb_clock; /* bitbang clock */
 	uint32_t twothirds_clock;
 	uint32_t half_clock;
+
+	/* Low divisor values for bitbang mode don't work on most of the chips
+	 * I've tested and instead seem to alias higher values. For example,
+	 * setting a divisor of 1 (register value 0) on the FT2232H ought to
+	 * produce a 60MHz clock, but instead we only seem to sample at 15MHz
+	 * (equivalent to a divisor of 4) on channel A and 12MHz (equivalent
+	 * to a divisor of 5) on channel B. Look up the highest clock rate
+	 * known to work correctly and clamp to it. */
+	if (requested_rate > chip->max_sample_rates[iface_idx])
+		requested_rate = chip->max_sample_rates[iface_idx];
 
 	/* Increments of 0.125: divisor_eighths = divisor * 8 */
 	uint32_t divisor_eighths;
@@ -125,7 +135,7 @@ SR_PRIV int ftdi_la_set_samplerate(const struct sr_dev_inst *sdi, uint64_t reque
 	uint16_t index_val;
 	int ret;
 
-	config = get_closest_config(requested_rate, devc->desc);
+	config = get_closest_config(requested_rate, devc->desc, devc->usb_iface_idx);
 
 	devc->cur_samplerate = DIV_ROUND_CLOSEST(config.rate_millihz, 1000);
 

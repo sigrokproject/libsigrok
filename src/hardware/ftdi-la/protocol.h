@@ -28,6 +28,10 @@
 
 #define LOG_PREFIX "ftdi-la"
 
+/* Number of interfaces on largest supported chip. Used to size arrays of
+ * per-interface parameters. */
+#define MAX_IFACES 4
+
 struct ftdi_chip_desc {
 	uint16_t vendor;
 	uint16_t product;
@@ -40,6 +44,7 @@ struct ftdi_chip_desc {
 
 	uint32_t base_clock;
 	uint32_t bitbang_divisor;
+	uint32_t max_sample_rates[MAX_IFACES];
 
 	char *channel_names[]; /* 8 channel names for each interface */
 };
