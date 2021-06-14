@@ -306,6 +306,9 @@ static void scan_device(struct libusb_device *dev, GSList **devices, int iface_i
 			sr_channel_new(sdi, chan, SR_CHANNEL_LOGIC, TRUE,
 					desc->channel_names[(i*8) + chan]);
 
+		/* Default to max sample rate. */
+		ftdi_la_store_samplerate(sdi, desc->max_sample_rates[i]);
+
 		*devices = g_slist_append(*devices, sdi);
 	}
 
@@ -428,16 +431,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
 	(void)cg;
 
-	devc = sdi->priv;
-
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(devc->cur_samplerate);
+		*data = g_variant_new_uint64(ftdi_la_cur_samplerate(sdi));
 		break;
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
@@ -473,7 +473,8 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		value = g_variant_get_uint64(data);
-		return ftdi_la_set_samplerate(sdi, value);
+		ftdi_la_store_samplerate(sdi, value);
+		return SR_OK;
 	default:
 		return SR_ERR_NA;
 	}

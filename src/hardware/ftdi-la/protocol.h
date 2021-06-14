@@ -49,6 +49,11 @@ struct ftdi_chip_desc {
 	char *channel_names[]; /* 8 channel names for each interface */
 };
 
+struct clock_config {
+	uint64_t rate_millihz;
+	uint32_t encoded_divisor;
+};
+
 struct dev_context {
 	const struct ftdi_chip_desc *desc;
 
@@ -58,7 +63,7 @@ struct dev_context {
 	uint16_t in_ep_pkt_size;
 	uint8_t in_ep_addr;
 
-	uint32_t cur_samplerate;
+	struct clock_config cur_clk;
 
 	struct libusb_transfer **transfers;
 	size_t num_transfers;
@@ -69,7 +74,8 @@ struct dev_context {
 	gboolean acq_aborted;
 };
 
-SR_PRIV int ftdi_la_set_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate);
+SR_PRIV unsigned int ftdi_la_cur_samplerate(const struct sr_dev_inst *sdi);
+SR_PRIV void ftdi_la_store_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate);
 SR_PRIV int ftdi_la_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int ftdi_la_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int ftdi_la_stop_acquisition(struct sr_dev_inst *sdi);

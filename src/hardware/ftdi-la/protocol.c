@@ -56,11 +56,6 @@
 #define DIV_ROUND_CLOSEST(x, d) (((x) + ((d) / 2)) / (d))
 #define AVG(a, b) (((a) + (b)) / 2)
 
-struct clock_config {
-	uint64_t rate_millihz;
-	uint32_t encoded_divisor;
-};
-
 static void stop_acquisition(const struct sr_dev_inst *sdi);
 
 static struct clock_config get_closest_config(uint32_t requested_rate,
@@ -125,36 +120,45 @@ static struct clock_config get_closest_config(uint32_t requested_rate,
 	return res;
 }
 
-SR_PRIV int ftdi_la_set_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate)
+SR_PRIV unsigned int ftdi_la_cur_samplerate(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+	return DIV_ROUND_CLOSEST(devc->cur_clk.rate_millihz, 1000);
+}
+
+SR_PRIV void ftdi_la_store_samplerate(const struct sr_dev_inst *sdi, uint64_t requested_rate)
+{
+	struct dev_context *devc = sdi->priv;
+
+	uint64_t requested_rate_millihz = requested_rate * 1000ull;
+
+	devc->cur_clk = get_closest_config(requested_rate, devc->desc, devc->usb_iface_idx);
+
+	if (requested_rate_millihz != devc->cur_clk.rate_millihz) {
+		sr_warn("Chip does not support sample rate %" PRIu64
+			"; adjusted to %" PRIu64 ".%03" PRIu64 ".",
+			requested_rate, devc->cur_clk.rate_millihz / 1000,
+			devc->cur_clk.rate_millihz % 1000);
+	} else {
+		sr_info("Configured exact sample rate %" PRIu64 ".", requested_rate);
+	}
+}
+
+static int write_samplerate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc = sdi->priv;
 	struct sr_usb_dev_inst *usb = sdi->conn;
 
-	struct clock_config config;
-	uint64_t requested_rate_millihz = requested_rate * 1000ull;
 	uint16_t index_val;
 	int ret;
 
-	config = get_closest_config(requested_rate, devc->desc, devc->usb_iface_idx);
-
-	devc->cur_samplerate = DIV_ROUND_CLOSEST(config.rate_millihz, 1000);
-
-	if (requested_rate_millihz != config.rate_millihz) {
-		sr_warn("Chip does not support sample rate %" PRIu64
-			"; adjusted to %" PRIu64 ".%03" PRIu64 ".",
-			requested_rate, config.rate_millihz / 1000,
-			config.rate_millihz % 1000);
-	} else {
-		sr_info("Configured exact sample rate %" PRIu64 ".", requested_rate);
-	}
-
 	if (devc->desc->multi_iface)
-		index_val = ((config.encoded_divisor >> 16) << 8) | devc->ftdi_iface_idx;
+		index_val = ((devc->cur_clk.encoded_divisor >> 16) << 8) | devc->ftdi_iface_idx;
 	else
-		index_val = config.encoded_divisor >> 16;
+		index_val = devc->cur_clk.encoded_divisor >> 16;
 
 	ret = libusb_control_transfer(usb->devhdl, VENDOR_OUT, REQ_SET_BAUD_RATE,
-			config.encoded_divisor & 0xffff, index_val, NULL, 0, USB_TIMEOUT);
+			devc->cur_clk.encoded_divisor & 0xffff, index_val, NULL, 0, USB_TIMEOUT);
 	if (ret < 0) {
 		sr_err("Failed to set sample rate: %s.", libusb_error_name(ret));
 		return SR_ERR;
@@ -285,11 +289,12 @@ static int alloc_transfers(const struct sr_dev_inst *sdi)
 	size_t num_xfers;
 	unsigned int packets_per_xfer, samples_per_xfer, bytes_per_xfer, timeout;
 	unsigned char *buf;
+	unsigned int cur_samplerate = ftdi_la_cur_samplerate(sdi);
 
 	/* The numerator here is samples per second multiplied by seconds per
 	 * transfer, which simplifies to samples per transfer. Divide that by
 	 * samples per packet to get packets per transfer. */
-	packets_per_xfer = DIV_ROUND_UP((devc->cur_samplerate * MS_PER_TRANSFER) / 1000,
+	packets_per_xfer = DIV_ROUND_UP((cur_samplerate * MS_PER_TRANSFER) / 1000,
 			devc->in_ep_pkt_size - NUM_STATUS_BYTES);
 	/* Without status byte overhead. */
 	samples_per_xfer = packets_per_xfer * (devc->in_ep_pkt_size - NUM_STATUS_BYTES);
@@ -297,13 +302,13 @@ static int alloc_transfers(const struct sr_dev_inst *sdi)
 	bytes_per_xfer = packets_per_xfer * devc->in_ep_pkt_size;
 
 	/* Enough to hold about BUFFER_SIZE_MS ms of samples. */
-	num_xfers = devc->cur_samplerate / samples_per_xfer;
+	num_xfers = cur_samplerate / samples_per_xfer;
 	num_xfers = (num_xfers * BUFFER_SIZE_MS) / 1000;
 	num_xfers = CLAMP(num_xfers, MIN_TRANSFER_BUFFERS, MAX_TRANSFER_BUFFERS);
 
 	sr_dbg("Using %zu USB transfers of size %u.", num_xfers, bytes_per_xfer);
 
-	timeout = (num_xfers * samples_per_xfer * 1000ull) / devc->cur_samplerate;
+	timeout = (num_xfers * samples_per_xfer * 1000ull) / cur_samplerate;
 	timeout += timeout / 4; /* 25% safety margin */
 
 	devc->transfers = g_try_malloc0_n(num_xfers, sizeof(*devc->transfers));
@@ -364,6 +369,11 @@ SR_PRIV int ftdi_la_start_acquisition(const struct sr_dev_inst *sdi)
 		sr_err("Failed to reset FTDI chip: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
+
+	/* Set sample rate */
+	ret = write_samplerate(sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	/* Set bitbang mode, all pins input */
 	uint16_t mode = (SET_BITMODE_BITBANG << 8) | 0x00;
