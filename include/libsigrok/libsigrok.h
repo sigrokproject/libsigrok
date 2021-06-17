@@ -723,6 +723,12 @@ enum sr_configkey {
 	/** The device can measure power. */
 	SR_CONF_POWERMETER,
 
+	/**
+	 * The device can switch between multiple sources, e.g. a relay actuator
+	 * or multiplexer.
+	 */
+	SR_CONF_MULTIPLEXER,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/

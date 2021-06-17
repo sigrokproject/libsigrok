@@ -21,12 +21,12 @@
  */
 
 #include <config.h>
-#include "vxi.h"
 #include <rpc/rpc.h>
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "scpi.h"
+#include "vxi.h"
 
 #define LOG_PREFIX "scpi_vxi"
 #define VXI_DEFAULT_TIMEOUT_MS 2000
@@ -43,7 +43,7 @@ struct scpi_vxi {
 static int scpi_vxi_dev_inst_new(void *priv, struct drv_context *drvc,
 		const char *resource, char **params, const char *serialcomm)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi;
 
 	(void)drvc;
 	(void)resource;
@@ -54,6 +54,7 @@ static int scpi_vxi_dev_inst_new(void *priv, struct drv_context *drvc,
 		return SR_ERR;
 	}
 
+	vxi = priv;
 	vxi->address    = g_strdup(params[1]);
 	vxi->instrument = g_strdup(params[2] ? params[2] : "inst0");
 
@@ -62,11 +63,13 @@ static int scpi_vxi_dev_inst_new(void *priv, struct drv_context *drvc,
 
 static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_vxi *vxi = scpi->priv;
+	struct scpi_vxi *vxi;
 	Create_LinkParms link_parms;
 	Create_LinkResp *link_resp;
 
-	vxi->client = clnt_create(vxi->address, DEVICE_CORE, DEVICE_CORE_VERSION, "tcp");
+	vxi = scpi->priv;
+	vxi->client = clnt_create(vxi->address,
+		DEVICE_CORE, DEVICE_CORE_VERSION, "tcp");
 	if (!vxi->client) {
 		sr_err("Client creation failed for %s", vxi->address);
 		return SR_ERR;
@@ -78,7 +81,8 @@ static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 	link_parms.lock_timeout = VXI_DEFAULT_TIMEOUT_MS;
 	link_parms.device = (char *)"inst0";
 
-	if (!(link_resp = create_link_1(&link_parms, vxi->client))) {
+	link_resp = create_link_1(&link_parms, vxi->client);
+	if (!link_resp) {
 		sr_err("Link creation failed for %s", vxi->address);
 		return SR_ERR;
 	}
@@ -95,8 +99,9 @@ static int scpi_vxi_open(struct sr_scpi_dev_inst *scpi)
 static int scpi_vxi_connection_id(struct sr_scpi_dev_inst *scpi,
 		char **connection_id)
 {
-	struct scpi_vxi *vxi = scpi->priv;
+	struct scpi_vxi *vxi;
 
+	vxi = scpi->priv;
 	*connection_id = g_strdup_printf("%s/%s", scpi->prefix, vxi->address);
 
 	return SR_OK;
@@ -125,13 +130,14 @@ static int scpi_vxi_source_remove(struct sr_session *session, void *priv)
 
 static int scpi_vxi_send(void *priv, const char *command)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi;
 	Device_WriteResp *write_resp;
 	Device_WriteParms write_parms;
 	unsigned long len;
 
 	len = strlen(command);
 
+	vxi = priv;
 	write_parms.lid           = vxi->link;
 	write_parms.io_timeout    = VXI_DEFAULT_TIMEOUT_MS;
 	write_parms.lock_timeout  = VXI_DEFAULT_TIMEOUT_MS;
@@ -139,26 +145,28 @@ static int scpi_vxi_send(void *priv, const char *command)
 	write_parms.data.data_len = MIN(len, vxi->max_send_size);
 	write_parms.data.data_val = (char *)command;
 
-	if (!(write_resp = device_write_1(&write_parms, vxi->client))
-	    || write_resp->error) {
+	write_resp = device_write_1(&write_parms, vxi->client);
+	if (!write_resp || write_resp->error) {
 		sr_err("Device write failed for %s with error %ld",
 		       vxi->address, write_resp ? write_resp->error : 0);
 		return SR_ERR;
 	}
 
-	if (write_resp->size < len)
+	if (write_resp->size < len) {
 		sr_dbg("Only sent %lu/%lu bytes of SCPI command: '%s'.",
 		       write_resp->size, len, command);
-	else
+	} else {
 		sr_spew("Successfully sent SCPI command: '%s'.", command);
+	}
 
 	return SR_OK;
 }
 
 static int scpi_vxi_read_begin(void *priv)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi;
 
+	vxi = priv;
 	vxi->read_complete = 0;
 
 	return SR_OK;
@@ -171,10 +179,11 @@ static int scpi_vxi_read_begin(void *priv)
 
 static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi;
 	Device_ReadParms read_parms;
 	Device_ReadResp *read_resp;
 
+	vxi = priv;
 	read_parms.lid          = vxi->link;
 	read_parms.io_timeout   = VXI_DEFAULT_TIMEOUT_MS;
 	read_parms.lock_timeout = VXI_DEFAULT_TIMEOUT_MS;
@@ -182,14 +191,20 @@ static int scpi_vxi_read_data(void *priv, char *buf, int maxlen)
 	read_parms.termChar     = 0;
 	read_parms.requestSize  = maxlen;
 
-	if (!(read_resp = device_read_1(&read_parms, vxi->client))
-	    || read_resp->error) {
+	read_resp = device_read_1(&read_parms, vxi->client);
+	if (!read_resp || read_resp->error) {
 		sr_err("Device read failed for %s with error %ld",
 		       vxi->address, read_resp ? read_resp->error : 0);
+		if (read_resp) {
+			g_free(read_resp->data.data_val);
+			read_resp->data.data_val = NULL;
+		}
 		return SR_ERR;
 	}
 
 	memcpy(buf, read_resp->data.data_val, read_resp->data.data_len);
+	g_free(read_resp->data.data_val);
+	read_resp->data.data_val = NULL;
 	vxi->read_complete = read_resp->reason & (RRR_TERM | RRR_END);
 	return read_resp->data.data_len;  /* actual number of bytes received */
 }
@@ -203,13 +218,15 @@ static int scpi_vxi_read_complete(void *priv)
 
 static int scpi_vxi_close(struct sr_scpi_dev_inst *scpi)
 {
-	struct scpi_vxi *vxi = scpi->priv;
+	struct scpi_vxi *vxi;
 	Device_Error *dev_error;
 
+	vxi = scpi->priv;
 	if (!vxi->client)
 		return SR_ERR;
 
-	if (!(dev_error = destroy_link_1(&vxi->link, vxi->client))) {
+	dev_error = destroy_link_1(&vxi->link, vxi->client);
+	if (!dev_error) {
 		sr_err("Link destruction failed for %s", vxi->address);
 		return SR_ERR;
 	}
@@ -222,8 +239,9 @@ static int scpi_vxi_close(struct sr_scpi_dev_inst *scpi)
 
 static void scpi_vxi_free(void *priv)
 {
-	struct scpi_vxi *vxi = priv;
+	struct scpi_vxi *vxi;
 
+	vxi = priv;
 	g_free(vxi->address);
 	g_free(vxi->instrument);
 }

@@ -63,8 +63,8 @@
  * @section sec_irc IRC
  *
  * You can find the sigrok developers in the
- * <a href="irc://chat.freenode.net/sigrok">\#sigrok</a>
- * IRC channel on Freenode.
+ * <a href="ircs://irc.libera.chat/#sigrok">\#sigrok</a>
+ * IRC channel on Libera.Chat.
  *
  * @section sec_website Website
  *

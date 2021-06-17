@@ -836,6 +836,53 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/* Owon P4000 series */
+static const uint32_t owon_p4000_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET
+};
+
+static const uint32_t owon_p4000_devopts_cg[] = {
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const struct channel_spec owon_p4603_ch[] = {
+	{ "1", { 0.01, 60, 0.001, 3, 3 }, { 0.001, 3, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.001}, { 0.001, 3.1, 0.001} },
+};
+
+static const struct channel_spec owon_p4305_ch[] = {
+	{ "1", { 0.01, 30, 0.001, 3, 3 }, { 0.001, 5, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 31, 0.001}, { 0.001, 3.1, 0.001} },
+};
+
+static const struct channel_group_spec owon_p4000_cg[] = {
+	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP, SR_MQFLAG_DC },
+};
+
+static const struct scpi_command owon_p4000_cmd[] = {
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, "MEAS:POW?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP 1" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP 0" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:LIM?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:LIM %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, "CURR:LIM?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, "CURR:LIM %.6f" },
+	ALL_ZERO
+};
+
 /* Philips/Fluke PM2800 series */
 static const uint32_t philips_pm2800_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -1056,11 +1103,22 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
+static const struct channel_spec rs_hmp2020_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
+static const struct channel_spec rs_hmp2030_ch[] = {
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+};
+
 static const struct channel_spec rs_hmp4040_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
 };
 
 static const struct channel_group_spec rs_hmp4040_cg[] = {
@@ -1392,6 +1450,28 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.update_status = NULL,
 	},
 
+	/* Owon P4000 series */
+	{ "OWON", "^P4305$", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(owon_p4000_devopts),
+		ARRAY_AND_SIZE(owon_p4000_devopts_cg),
+		ARRAY_AND_SIZE(owon_p4305_ch),
+		ARRAY_AND_SIZE(owon_p4000_cg),
+		owon_p4000_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "OWON", "^P4603$", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(owon_p4000_devopts),
+		ARRAY_AND_SIZE(owon_p4000_devopts_cg),
+		ARRAY_AND_SIZE(owon_p4603_ch),
+		ARRAY_AND_SIZE(owon_p4000_cg),
+		owon_p4000_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
 	/* Philips/Fluke PM2800 series */
 	{ "Philips", "^PM28[13][123]/[01234]{1,2}$", SCPI_DIALECT_PHILIPS, 0,
 		ARRAY_AND_SIZE(philips_pm2800_devopts),
@@ -1433,6 +1513,26 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
 		ARRAY_AND_SIZE(rs_hmp4040_ch),
 		ARRAY_AND_SIZE(rs_hmp4040_cg),
+		rs_hmp4040_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "ROHDE&SCHWARZ", "HMP2020", SCPI_DIALECT_HMP, 0,
+		ARRAY_AND_SIZE(rs_hmp4040_devopts),
+		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
+		rs_hmp2020_ch, 2,
+		rs_hmp4040_cg, 2,
+		rs_hmp4040_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+	{ "ROHDE&SCHWARZ", "HMP2030", SCPI_DIALECT_HMP, 0,
+		ARRAY_AND_SIZE(rs_hmp4040_devopts),
+		ARRAY_AND_SIZE(rs_hmp4040_devopts_cg),
+		rs_hmp2030_ch, 3,
+		rs_hmp4040_cg, 3,
 		rs_hmp4040_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,

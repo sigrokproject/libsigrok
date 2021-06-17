@@ -780,6 +780,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->counter_enabled = TRUE;
 		else
 			devc->counter_enabled = FALSE;
+		g_free(response);
 
 		if (!devc->counter_enabled) {
 			/*
@@ -833,8 +834,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				(void *)sdi);
 		}
 	}
-
-	g_free(response);
 
 	return ret;
 }

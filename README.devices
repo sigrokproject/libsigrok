@@ -417,6 +417,7 @@ a short list for convenience:
  - GW Instek VCP: See the discussion on manual driver assignment to common
    USB to UART chips with non-default USB identification.
  - MASTECH MS6514: Press the "Setup/PC-Link" button for roughly 3 seconds.
+ - Meterman 38XR: Press the "RS232" button.
  - Metrix MX56C: Press the PRINT button to have the meter send acquisition
    data via IR. Hold the PRINT button to adjust the meter's transmission
    interval.

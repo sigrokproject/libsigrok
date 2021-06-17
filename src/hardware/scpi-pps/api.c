@@ -254,6 +254,17 @@ static GSList *scan_scpi_pps(struct sr_dev_driver *di, GSList *options)
 
 static GSList *scan_hpib_pps(struct sr_dev_driver *di, GSList *options)
 {
+	const char *conn;
+
+	/*
+	 * Only scan for HP-IB devices when conn= was specified, to not
+	 * break SCPI devices' operation.
+	 */
+	conn = NULL;
+	(void)sr_serial_extract_options(options, &conn, NULL);
+	if (!conn)
+		return NULL;
+
 	return sr_scpi_scan(di->context, options, probe_hpib_pps_device);
 }
 

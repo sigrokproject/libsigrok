@@ -569,6 +569,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
 	),
 	DMM(
+		"peaktech-2025", fs9922,
+		"PeakTech", "2025", "2400/8n1/rts=0/dtr=1",
+		FS9922_PACKET_SIZE, 0, 0, NULL,
+		sr_fs9922_packet_valid, sr_fs9922_parse, NULL
+	),
+	DMM(
 		"sparkfun-70c", fs9922,
 		"SparkFun", "70C", "2400/8n1/rts=0/dtr=1",
 		FS9922_PACKET_SIZE, 0, 0, NULL,
@@ -619,21 +625,12 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		NULL
 	),
 	/* }}} */
-	/* ms2115b based meters {{{ */
+	/* meterman_38xr based meters {{{ */
 	DMM(
-		"mastech-ms2115b", ms2115b,
-		"MASTECH", "MS2115B", "1200/8n1",
-		MS2115B_PACKET_SIZE, 0, 0, NULL,
-		sr_ms2115b_packet_valid, sr_ms2115b_parse,
-		NULL
-	),
-	/* }}} */
-	/* ms8250d based meters {{{ */
-	DMM(
-		"mastech-ms8250d", ms8250d,
-		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
-		MS8250D_PACKET_SIZE, 0, 0, NULL,
-		sr_ms8250d_packet_valid, sr_ms8250d_parse,
+		"meterman-38xr", meterman_38xr,
+		"Meterman", "38XR", "9600/8n1/rts=0/dtr=1",
+		METERMAN_38XR_PACKET_SIZE, 0, 0, NULL,
+		meterman_38xr_packet_valid, meterman_38xr_parse,
 		NULL
 	),
 	/* }}} */
@@ -741,6 +738,24 @@ SR_REGISTER_DEV_DRIVER_LIST(serial_dmm_drivers,
 		"Voltcraft", "ME-42", "600/7n2/rts=0/dtr=1",
 		METEX14_PACKET_SIZE, 250, 60, sr_metex14_packet_request,
 		sr_metex14_packet_valid, sr_metex14_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms2115b based meters {{{ */
+	DMM(
+		"mastech-ms2115b", ms2115b,
+		"MASTECH", "MS2115B", "1200/8n1",
+		MS2115B_PACKET_SIZE, 0, 0, NULL,
+		sr_ms2115b_packet_valid, sr_ms2115b_parse,
+		NULL
+	),
+	/* }}} */
+	/* ms8250d based meters {{{ */
+	DMM(
+		"mastech-ms8250d", ms8250d,
+		"MASTECH", "MS8250D", "2400/8n1/rts=0/dtr=1",
+		MS8250D_PACKET_SIZE, 0, 0, NULL,
+		sr_ms8250d_packet_valid, sr_ms8250d_parse,
 		NULL
 	),
 	/* }}} */

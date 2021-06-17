@@ -40,6 +40,8 @@ SUBSYSTEM!="usb|usbmisc|usb_device|hidraw", GOTO="libsigrok_rules_end"
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0618", ENV{ID_SIGROK}="1"
 # 34410A
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0607", ENV{ID_SIGROK}="1"
+# 34460A
+ATTRS{idVendor}=="0957", ATTRS{idProduct}=="1b07", ENV{ID_SIGROK}="1"
 # DSO1000 series
 ATTRS{idVendor}=="0957", ATTRS{idProduct}=="0588", ENV{ID_SIGROK}="1"
 # MSO7000A series
@@ -167,6 +169,10 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="8a98", ENV{ID_SIGROK}="1"
 # Kecheng KC-330B
 ATTRS{idVendor}=="1041", ATTRS{idProduct}=="8101", ENV{ID_SIGROK}="1"
 
+# Keysight USBTMC-connected devices
+# 34465A
+ATTRS{idVendor}=="2a8d", ATTRS{idProduct}=="0101", ENV{ID_SIGROK}="1"
+
 # Kingst LA2016
 ATTRS{idVendor}=="77a1", ATTRS{idProduct}=="01a2", ENV{ID_SIGROK}="1"
 
@@ -200,6 +206,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6011", ENV{ID_SIGROK}="1"
 # MIC 98583
 # Tondaj SL-814
 ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", ENV{ID_SIGROK}="1"
+
+# Microchip PICkit2
+ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="0033", ENV{ID_SIGROK}="1"
 
 # Openbench Logic Sniffer
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="000a", ENV{ID_SIGROK}="1"

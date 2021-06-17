@@ -106,7 +106,7 @@ static void rigol_ds_set_wait_event(struct dev_context *devc, enum wait_events e
  */
 static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char status2)
 {
-	char *buf;
+	char *buf, c;
 	struct dev_context *devc;
 	time_t start;
 
@@ -133,7 +133,9 @@ static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char
 
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == status1 || buf[0] == status2);
+			c = buf[0];
+			g_free(buf);
+		} while (c == status1 || c == status2);
 
 		devc->wait_status = 2;
 	}
@@ -146,7 +148,9 @@ static int rigol_ds_event_wait(const struct sr_dev_inst *sdi, char status1, char
 
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:STAT?", &buf) != SR_OK)
 				return SR_ERR;
-		} while (buf[0] != status1 && buf[0] != status2);
+			c = buf[0];
+			g_free(buf);
+		} while (c != status1 && c != status2);
 
 		rigol_ds_set_wait_event(devc, WAIT_NONE);
 	}
@@ -263,10 +267,10 @@ static int rigol_ds_check_stop(const struct sr_dev_inst *sdi)
 /* Wait for enough data becoming available in scope output buffer */
 static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 {
-	char *buf;
+	char *buf, c;
 	struct dev_context *devc;
 	time_t start;
-	int len;
+	int len, ret;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -292,10 +296,12 @@ static int rigol_ds_block_wait(const struct sr_dev_inst *sdi)
 			/* "READ,nnnn" (still working) or "IDLE,nnnn" (finished) */
 			if (sr_scpi_get_string(sdi->conn, ":WAV:STAT?", &buf) != SR_OK)
 				return SR_ERR;
-
-			if (parse_int(buf + 5, &len) != SR_OK)
+			ret = parse_int(buf + 5, &len);
+			c = buf[0];
+			g_free(buf);
+			if (ret != SR_OK)
 				return SR_ERR;
-		} while (buf[0] == 'R' && len < (1000 * 1000));
+		} while (c == 'R' && len < (1000 * 1000));
 	}
 
 	rigol_ds_set_wait_event(devc, WAIT_NONE);
@@ -334,6 +340,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 	gchar *trig_mode;
 	unsigned int num_channels, i, j;
 	int buffer_samples;
+	int ret;
 
 	if (!(devc = sdi->priv))
 		return SR_ERR;
@@ -366,7 +373,9 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 				return SR_ERR;
 			if (sr_scpi_get_string(sdi->conn, ":TRIG:MODE?", &trig_mode) != SR_OK)
 				return SR_ERR;
-			if (rigol_ds_config_set(sdi, ":TRIG:%s:SWE SING", trig_mode) != SR_OK)
+			ret = rigol_ds_config_set(sdi, ":TRIG:%s:SWE SING", trig_mode);
+			g_free(trig_mode);
+			if (ret != SR_OK)
 				return SR_ERR;
 			if (rigol_ds_config_set(sdi, ":RUN") != SR_OK)
 				return SR_ERR;
@@ -935,6 +944,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	/* Coupling. */
 	for (i = 0; i < devc->model->analog_channels; i++) {
 		cmd = g_strdup_printf(":CHAN%d:COUP?", i + 1);
+		g_free(devc->coupling[i]);
+		devc->coupling[i] = NULL;
 		res = sr_scpi_get_string(sdi->conn, cmd, &devc->coupling[i]);
 		g_free(cmd);
 		if (res != SR_OK)
@@ -945,6 +956,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		sr_dbg("CH%d %s", i + 1, devc->coupling[i]);
 
 	/* Trigger source. */
+	g_free(devc->trigger_source);
+	devc->trigger_source = NULL;
 	if (sr_scpi_get_string(sdi->conn, ":TRIG:EDGE:SOUR?", &devc->trigger_source) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current trigger source %s", devc->trigger_source);
@@ -956,6 +969,8 @@ SR_PRIV int rigol_ds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	sr_dbg("Current horizontal trigger position %g", devc->horiz_triggerpos);
 
 	/* Trigger slope. */
+	g_free(devc->trigger_slope);
+	devc->trigger_slope = NULL;
 	if (sr_scpi_get_string(sdi->conn, ":TRIG:EDGE:SLOP?", &devc->trigger_slope) != SR_OK)
 		return SR_ERR;
 	sr_dbg("Current trigger slope %s", devc->trigger_slope);

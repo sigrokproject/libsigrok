@@ -257,10 +257,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	const struct siglent_sds_model *model;
 	gchar *channel_name;
 
-	sr_dbg("Setting Communication Headers to off.");
-	if (sr_scpi_send(scpi, "CHDR OFF") != SR_OK)
-		return NULL;
-
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response, retrying.");
 		sr_scpi_close(scpi);
@@ -283,6 +279,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		sr_scpi_hw_info_free(hw_info);
 		return NULL;
 	}
+
+	sr_dbg("Setting Communication Headers to off.");
+	if (sr_scpi_send(scpi, "CHDR OFF") != SR_OK)
+		return NULL;
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->vendor = g_strdup(model->series->vendor->name);

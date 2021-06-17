@@ -75,6 +75,7 @@ static int siglent_sds_event_wait(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
 				return SR_ERR;
 			sr_atoi(buf, &out);
+			g_free(buf);
 			g_usleep(s);
 		} while (out == 0);
 
@@ -100,6 +101,7 @@ static int siglent_sds_event_wait(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
 				return SR_ERR;
 			sr_atoi(buf, &out);
+			g_free(buf);
 			g_usleep(s);
 		/* XXX
 		 * Now this loop condition looks suspicious! A bitwise
@@ -168,6 +170,7 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
 				return SR_ERR;
 			sr_atoi(buf, &out);
+			g_free(buf);
 			if (out == DEVICE_STATE_TRIG_RDY) {
 				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
 			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
@@ -217,6 +220,7 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
 				return SR_ERR;
 			sr_atoi(buf, &out);
+			g_free(buf);
 			if (out == DEVICE_STATE_TRIG_RDY) {
 				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
 			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
@@ -760,6 +764,8 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	/* Coupling. */
 	for (i = 0; i < devc->model->analog_channels; i++) {
 		cmd = g_strdup_printf("C%d:CPL?", i + 1);
+		g_free(devc->coupling[i]);
+		devc->coupling[i] = NULL;
 		res = sr_scpi_get_string(sdi->conn, cmd, &devc->coupling[i]);
 		g_free(cmd);
 		if (res != SR_OK)
@@ -776,7 +782,7 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	if (sr_scpi_get_string(sdi->conn, "TRSE?", &response) != SR_OK)
 		return SR_ERR;
 	tokens = g_strsplit(response, ",", 0);
-	for (num_tokens = 0; tokens[num_tokens] != NULL; num_tokens++);
+	num_tokens = g_strv_length(tokens);
 	if (num_tokens < 4) {
 		sr_dbg("IDN response not according to spec: %80.s.", response);
 		g_strfreev(tokens);
@@ -813,6 +819,8 @@ SR_PRIV int siglent_sds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Trigger slope. */
 	cmd = g_strdup_printf("%s:TRSL?", devc->trigger_source);
+	g_free(devc->trigger_slope);
+	devc->trigger_slope = NULL;
 	res = sr_scpi_get_string(sdi->conn, cmd, &devc->trigger_slope);
 	g_free(cmd);
 	if (res != SR_OK)
@@ -886,12 +894,15 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 		g_free(cmd);
 		samplerate_scope = 0;
 		fvalue = 0;
-		if (res != SR_OK)
+		if (res != SR_OK) {
+			g_free(sample_points_string);
 			return SR_ERR;
+		}
 		if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
 			sample_points_string[strlen(sample_points_string) - 4] = '\0';
 			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
 				sr_dbg("Invalid float converted from scope response.");
+				g_free(sample_points_string);
 				return SR_ERR;
 			}
 			samplerate_scope = fvalue * 1000000;
@@ -899,6 +910,7 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 			sample_points_string[strlen(sample_points_string) - 4] = '\0';
 			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
 				sr_dbg("Invalid float converted from scope response.");
+				g_free(sample_points_string);
 				return SR_ERR;
 			}
 			samplerate_scope = fvalue * 10000;

@@ -28,7 +28,9 @@ SR_PRIV void scpi_dmm_cmd_delay(struct sr_scpi_dev_inst *scpi)
 {
 	if (WITH_CMD_DELAY)
 		g_usleep(WITH_CMD_DELAY * 1000);
-	sr_scpi_get_opc(scpi);
+
+	if (!scpi->no_opc_command)
+		sr_scpi_get_opc(scpi);
 }
 
 SR_PRIV const struct mqopt_item *scpi_dmm_lookup_mq_number(
@@ -98,8 +100,10 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 	ret = sr_scpi_get_string(sdi->conn, command, &response);
 	if (ret != SR_OK)
 		return ret;
-	if (!response || !*response)
+	if (!response || !*response) {
+		g_free(response);
 		return SR_ERR_NA;
+	}
 	have = response;
 	if (*have == '"')
 		have++;
@@ -114,6 +118,8 @@ SR_PRIV int scpi_dmm_get_mq(const struct sr_dev_inst *sdi,
 		if (mqitem)
 			*mqitem = item;
 		ret = SR_OK;
+	} else {
+		sr_warn("Unknown measurement quantity: %s", have);
 	}
 
 	if (rsp) {
@@ -144,8 +150,123 @@ SR_PRIV int scpi_dmm_set_mq(const struct sr_dev_inst *sdi,
 	ret = sr_scpi_send(sdi->conn, command, mode);
 	if (ret != SR_OK)
 		return ret;
+	if (item->drv_flags & FLAG_CONF_DELAY)
+		g_usleep(devc->model->conf_delay_us);
 
 	return SR_OK;
+}
+
+SR_PRIV const char *scpi_dmm_get_range_text(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+	const struct mqopt_item *mqitem;
+	gboolean is_auto;
+	char *response, *pos;
+	double range;
+	int digits;
+
+	devc = sdi->priv;
+
+	ret = scpi_dmm_get_mq(sdi, NULL, NULL, NULL, &mqitem);
+	if (ret != SR_OK)
+		return NULL;
+	if (!mqitem || !mqitem->scpi_func_setup)
+		return NULL;
+	if (mqitem->drv_flags & FLAG_NO_RANGE)
+		return NULL;
+
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL,
+		DMM_CMD_QUERY_RANGE_AUTO, mqitem->scpi_func_setup);
+	if (ret != SR_OK)
+		return NULL;
+	ret = sr_scpi_get_bool(sdi->conn, NULL, &is_auto);
+	if (ret != SR_OK)
+		return NULL;
+	if (is_auto)
+		return "auto";
+
+	/*
+	 * Get the response into a text buffer. The range value may be
+	 * followed by a precision value separated by comma. Common text
+	 * to number conversion support code may assume that the input
+	 * text spans to the end of the text, need not accept trailing
+	 * text which is not part of a number.
+	 */
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL,
+		DMM_CMD_QUERY_RANGE, mqitem->scpi_func_setup);
+	if (ret != SR_OK)
+		return NULL;
+	response = NULL;
+	ret = sr_scpi_get_string(sdi->conn, NULL, &response);
+	if (ret != SR_OK) {
+		g_free(response);
+		return NULL;
+	}
+	pos = strchr(response, ',');
+	if (pos)
+		*pos = '\0';
+	ret = sr_atod_ascii_digits(response, &range, &digits);
+	g_free(response);
+	if (ret != SR_OK)
+		return NULL;
+	snprintf(devc->range_text, sizeof(devc->range_text), "%lf", range);
+	return devc->range_text;
+}
+
+SR_PRIV int scpi_dmm_set_range_from_text(const struct sr_dev_inst *sdi,
+	const char *range)
+{
+	struct dev_context *devc;
+	int ret;
+	const struct mqopt_item *item;
+	gboolean is_auto;
+
+	devc = sdi->priv;
+
+	if (!range || !*range)
+		return SR_ERR_ARG;
+
+	ret = scpi_dmm_get_mq(sdi, NULL, NULL, NULL, &item);
+	if (ret != SR_OK)
+		return ret;
+	if (!item || !item->scpi_func_setup)
+		return SR_ERR_ARG;
+	if (item->drv_flags & FLAG_NO_RANGE)
+		return SR_ERR_NA;
+
+	is_auto = g_ascii_strcasecmp(range, "auto") == 0;
+	scpi_dmm_cmd_delay(sdi->conn);
+	ret = sr_scpi_cmd(sdi, devc->cmdset, 0, NULL, DMM_CMD_SETUP_RANGE,
+		item->scpi_func_setup, is_auto ? "AUTO" : range);
+	if (ret != SR_OK)
+		return ret;
+	if (item->drv_flags & FLAG_CONF_DELAY)
+		g_usleep(devc->model->conf_delay_us);
+
+	return SR_OK;
+}
+
+SR_PRIV GVariant *scpi_dmm_get_range_text_list(const struct sr_dev_inst *sdi)
+{
+	GVariantBuilder gvb;
+	GVariant *list;
+
+	(void)sdi;
+
+	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
+	/* TODO
+	 * Add more items _when_ the connected device supports a fixed
+	 * or known set of ranges. The Agilent protocol is flexible and
+	 * tolerant, set requests accept any value, and the device will
+	 * use an upper limit which is at least the specified value.
+	 * The values are communicated as mere numbers without units.
+	 */
+	list = g_variant_builder_end(&gvb);
+
+	return list;
 }
 
 SR_PRIV int scpi_dmm_get_meas_agilent(const struct sr_dev_inst *sdi, size_t ch)
@@ -459,9 +580,11 @@ SR_PRIV int scpi_dmm_get_meas_gwinstek(const struct sr_dev_inst *sdi, size_t ch)
 	if (!response)
 		return SR_ERR;
 	limit = 9e37;
-	if (info->d_value > +limit) {
+	if (devc->model->infinity_limit != 0.0)
+		limit = devc->model->infinity_limit;
+	if (info->d_value >= +limit) {
 		info->d_value = +INFINITY;
-	} else if (info->d_value < -limit) {
+	} else if (info->d_value <= -limit) {
 		info->d_value = -INFINITY;
 	} else {
 		p = response;
