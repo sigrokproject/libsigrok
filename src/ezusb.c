@@ -35,6 +35,9 @@
 
 #define FW_CHUNKSIZE (4 * 1024)
 
+#define GET_LSW(v)  ((unsigned short)((v) & 0xFFFF))    // Get Least Significant Word part of an integer.
+#define GET_MSW(v)  ((unsigned short)((v) >> 16))       // Get Most Significant Word part of an integer.
+
 SR_PRIV int ezusb_reset(struct libusb_device_handle *hdl, int set_clear)
 {
 	int ret;

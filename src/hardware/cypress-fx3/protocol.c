@@ -94,8 +94,6 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 
 	cmd.sampling_factor = (FX3_PIB_CLOCK)/(samplerate);
 
-	sr_spew("Sampling rate selected = %d, sampling_factor = %d\r\n",samplerate,cmd.sampling_factor);
-
 	/* Send the control message. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_ENDPOINT_OUT, CMD_START, 0x0000, 0x0000,
