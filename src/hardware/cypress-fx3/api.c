@@ -27,7 +27,7 @@ static const struct cypress_fx3_profile supported_fx3[] = {
 	 * Cypress FX3
 	 */
 	{ 0x04b4, 0x1234, "Cypress", "FX3", NULL,
-		"cypress_fx3.fw",
+		"cypress-fx3.fw",
 		DEV_CAPS_16BIT, NULL, NULL},
 
 	ALL_ZERO
