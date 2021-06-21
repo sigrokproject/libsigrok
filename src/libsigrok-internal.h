@@ -2043,6 +2043,12 @@ SR_PRIV int ezusb_install_firmware(struct sr_context *ctx, libusb_device_handle 
 				   const char *name);
 SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
 				  int configuration, const char *name);
+SR_PRIV int ezusb_upload_firmware_fx3(struct sr_context *ctx, libusb_device *dev,
+				  int configuration, const char *name);
+SR_PRIV int ezusb_install_firmware_fx3(struct sr_context *ctx,libusb_device_handle *hdl,
+					const char *name);
+SR_PRIV int ezusb_fx3_ram_write (libusb_device_handle *hdl, unsigned char *buf, 
+					unsigned int ramAddress, int len);				  
 #endif
 
 /*--- usb.c -----------------------------------------------------------------*/

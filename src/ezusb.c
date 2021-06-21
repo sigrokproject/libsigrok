@@ -142,3 +142,137 @@ SR_PRIV int ezusb_upload_firmware(struct sr_context *ctx, libusb_device *dev,
 
 	return SR_OK;
 }
+
+SR_PRIV int ezusb_fx3_ram_write (libusb_device_handle *hdl,
+        unsigned char *buf,
+        unsigned int   ramAddress,
+        int            len)
+{
+    int r;
+    int index = 0;
+    int size;
+
+    while (len > 0) {
+        size = MIN(len ,FW_CHUNKSIZE);
+
+        r = libusb_control_transfer (hdl, 0x40, 0xA0, GET_LSW(ramAddress), GET_MSW(ramAddress),
+                &buf[index], size, 100);
+
+        if (r != size) {
+            sr_err ("Error: Vendor write to FX3 RAM failed\n");
+            return SR_ERR;
+        }
+        ramAddress += size;
+        index      += size;
+        len        -= size;
+    }
+
+    return SR_OK;
+}
+
+
+
+
+SR_PRIV int ezusb_install_firmware_fx3(struct sr_context *ctx,
+				   libusb_device_handle *hdl,
+				   const char *name)
+{
+	unsigned char *firmware;
+	size_t length, offset, chunksize,filesize;
+	int ret, result;
+	unsigned int  *data_p;
+    unsigned int i, checksum;
+    unsigned int address;
+    int r, index;
+
+	/* Max size of FX3 fw file is 256 KB  = 1 << 18*/
+	firmware = sr_resource_load(ctx, SR_RESOURCE_FIRMWARE,
+			name, &filesize, 1 << 18);
+	if (!firmware)
+		return SR_ERR;
+
+	sr_info("Uploading FX3 firmware '%s'.", name);
+
+	result = SR_OK;
+	/* Run through each section of code, and use vendor commands to download them to RAM.*/
+    index    = 4;
+    checksum = 0;
+    while (index < filesize) {
+        data_p  = (unsigned int *)(firmware + index);
+        length  = data_p[0];
+        address = data_p[1];
+        if (length != 0) {
+            for (i = 0; i < length; i++)
+                checksum += data_p[2 + i];
+            r = ezusb_fx3_ram_write (hdl, firmware + index + 8, address, length * 4);
+            if (r != 0) {
+                sr_err ("Error: Failed to download data to FX3 RAM\n");
+                free (firmware);
+                return SR_ERR;
+            }
+        } else {
+            if (checksum != data_p[2]) {
+                sr_err ("Error: Checksum error in firmware binary\n");
+                free (firmware);
+                return SR_ERR;
+            }
+            r = libusb_control_transfer (hdl, 0x40, 0xA0, GET_LSW(address), GET_MSW(address), NULL,
+                    0, 100);
+            if (r != 0)
+                printf ("Info: Ignored error in control transfer: %d\n", r);
+            break;
+        }
+        index += (8 + length * 4);
+    }
+	g_free(firmware);
+
+	sr_info("Firmware upload done.");
+	return result;
+}
+
+
+SR_PRIV int ezusb_upload_firmware_fx3(struct sr_context *ctx, libusb_device *dev,
+				  int configuration, const char *name)
+{
+	struct libusb_device_handle *hdl;
+	int ret;
+
+	sr_info("uploading firmware to FX3 device on %d.%d",
+		libusb_get_bus_number(dev), libusb_get_device_address(dev));
+
+	if ((ret = libusb_open(dev, &hdl)) < 0) {
+		sr_err("failed to open FX3 device: %s.", libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+/*
+ * The libusb Darwin backend is broken: it can report a kernel driver being
+ * active, but detaching it always returns an error.
+ */
+#if !defined(__APPLE__)
+	if (libusb_kernel_driver_active(hdl, 0) == 1) {
+		if ((ret = libusb_detach_kernel_driver(hdl, 0)) < 0) {
+			sr_err("failed to detach kernel driver: %s",
+					libusb_error_name(ret));
+			return SR_ERR;
+		}
+	}
+#endif
+
+	if ((ret = libusb_set_configuration(hdl, configuration)) < 0) {
+		sr_err("Unable to set configuration: %s",
+				libusb_error_name(ret));
+		return SR_ERR;
+	}
+
+	if (ezusb_install_firmware_fx3(ctx, hdl, name) < 0)
+		return SR_ERR;
+	
+	libusb_close(hdl);
+
+	return SR_OK;
+}
+
+
+
+
