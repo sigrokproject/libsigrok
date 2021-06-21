@@ -244,7 +244,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
 		has_firmware = usb_match_manuf_prod(devlist[i],
-				"sigrok", "cypress_fx3");
+				"sigrok", "cypress-fx3");
 		if (has_firmware) {
 			/* Already has the firmware, so fix the new address. */
 			sr_dbg("Found an Cypress FX3 device.");
