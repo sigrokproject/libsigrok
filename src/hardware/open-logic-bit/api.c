@@ -32,10 +32,15 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_TEST_MODE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
 static const char *channel_names[] = {
 	"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"
+};
+
+static const char *test_mode[] = {
+	"False", "True"
 };
 
 static const uint64_t samplerates[] = {
@@ -76,6 +81,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->data_pos    = 0;
 	devc->num_samples = 0;
 	devc->sample_rate = SR_MHZ(100);
+	devc->cfg_test_mode = 0;
 
 	if (!(devc->ftdic = ftdi_new())) {
 		sr_err("Failed to initialize libftdi.");
@@ -201,6 +207,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
+	case SR_CONF_TEST_MODE:
+		*data = g_variant_new_string(test_mode[devc->cfg_test_mode]);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -212,6 +221,7 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int idx;
 
 	(void)cg;
 
@@ -223,6 +233,12 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
+		break;
+	case SR_CONF_TEST_MODE:
+		idx = std_str_idx(data, ARRAY_AND_SIZE(test_mode));
+		if (idx < 0)
+			return SR_ERR_ARG;
+		devc->cfg_test_mode = idx;
 		break;
 	default:
 		return SR_ERR_NA;
@@ -242,6 +258,9 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+		break;
+	case SR_CONF_TEST_MODE:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(test_mode));
 		break;
 	default:
 		return SR_ERR_NA;

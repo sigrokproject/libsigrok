@@ -60,35 +60,31 @@ struct ob_status_s
 
 /* Register definitions - auto generated*/
 #define LA_BUFFER_CFG     0x0
-	#define LA_BUFFER_CFG_CONT                   31
 	#define LA_BUFFER_CFG_CONT_SHIFT             31
 	#define LA_BUFFER_CFG_CONT_MASK              0x1
 
-	#define LA_BUFFER_CFG_WIDTH                  7
-	#define LA_BUFFER_CFG_WIDTH_SHIFT            7
-	#define LA_BUFFER_CFG_WIDTH_MASK             0x1
+	#define LA_BUFFER_CFG_TEST_MODE_SHIFT        8
+	#define LA_BUFFER_CFG_TEST_MODE_MASK         0x1
+
+	#define LA_BUFFER_CFG_WIDTH_SHIFT            6
+	#define LA_BUFFER_CFG_WIDTH_MASK             0x3
 
 	#define LA_BUFFER_CFG_CLK_DIV_SHIFT          2
 	#define LA_BUFFER_CFG_CLK_DIV_MASK           0xf
 
-	#define LA_BUFFER_CFG_CLK_SRC                1
 	#define LA_BUFFER_CFG_CLK_SRC_SHIFT          1
 	#define LA_BUFFER_CFG_CLK_SRC_MASK           0x1
 
-	#define LA_BUFFER_CFG_ENABLED                0
 	#define LA_BUFFER_CFG_ENABLED_SHIFT          0
 	#define LA_BUFFER_CFG_ENABLED_MASK           0x1
 
 #define LA_BUFFER_STS     0x4
-	#define LA_BUFFER_STS_DATA_LOSS              2
 	#define LA_BUFFER_STS_DATA_LOSS_SHIFT        2
 	#define LA_BUFFER_STS_DATA_LOSS_MASK         0x1
 
-	#define LA_BUFFER_STS_WRAPPED                1
 	#define LA_BUFFER_STS_WRAPPED_SHIFT          1
 	#define LA_BUFFER_STS_WRAPPED_MASK           0x1
 
-	#define LA_BUFFER_STS_TRIG                   0
 	#define LA_BUFFER_STS_TRIG_SHIFT             0
 	#define LA_BUFFER_STS_TRIG_MASK              0x1
 
@@ -503,8 +499,9 @@ SR_PRIV int openlb_start_acquisition(struct dev_context *devc)
 
 	/* Write clock config first (allows resync between domains) */
 	int clk_div      = (SR_MHZ(100) / devc->sample_rate) - 1;
-	cfg_reg |= (clk_div << LA_BUFFER_CFG_CLK_DIV_SHIFT);
-	cfg_reg |= (0       << LA_BUFFER_CFG_WIDTH_SHIFT);
+	cfg_reg |= (clk_div             << LA_BUFFER_CFG_CLK_DIV_SHIFT);
+	cfg_reg |= (0                   << LA_BUFFER_CFG_WIDTH_SHIFT);
+	cfg_reg |= (devc->cfg_test_mode << LA_BUFFER_CFG_TEST_MODE_SHIFT);
 	if (openlb_write32(devc, CFG_BASE_ADDR + LA_BUFFER_CFG, cfg_reg) < 0)
 		return SR_ERR;
 
