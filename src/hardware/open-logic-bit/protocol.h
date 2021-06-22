@@ -37,9 +37,10 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint32_t sample_rate;
 	int      cfg_test_mode;
+	uint32_t num_channels;
 
 	uint64_t num_samples;
-	uint16_t *data_buf;
+	uint32_t *data_buf;
 	uint32_t data_pos;
 
 	uint16_t seq_num;
@@ -49,6 +50,7 @@ struct dev_context {
 	uint32_t trigger_level;
 };
 
+SR_PRIV int openlb_read_max_channels(const struct sr_dev_inst *sdi);
 SR_PRIV int openlb_convert_triggers(const struct sr_dev_inst *sdi);
 SR_PRIV int openlb_close(struct dev_context *devc);
 SR_PRIV int openlb_start_acquisition(struct dev_context *devc);

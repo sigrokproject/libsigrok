@@ -79,6 +79,9 @@ struct ob_status_s
 	#define LA_BUFFER_CFG_ENABLED_MASK           0x1
 
 #define LA_BUFFER_STS     0x4
+    #define LA_BUFFER_STS_NUM_CHANNELS_SHIFT     24
+    #define LA_BUFFER_STS_NUM_CHANNELS_MASK      0x3f
+
 	#define LA_BUFFER_STS_DATA_LOSS_SHIFT        2
 	#define LA_BUFFER_STS_DATA_LOSS_MASK         0x1
 
@@ -370,7 +373,7 @@ static void openlb_send_samples(struct sr_dev_inst *sdi, uint32_t samples_to_sen
 
 	packet.type    = SR_DF_LOGIC;
 	packet.payload = &logic;
-	logic.unitsize = 2;
+	logic.unitsize = 4;
 	logic.length   = samples_to_send * logic.unitsize;
 	logic.data     = devc->data_buf;
 
@@ -387,7 +390,7 @@ static void openlb_send_samples(struct sr_dev_inst *sdi, uint32_t samples_to_sen
  * @param[in] sample Sample value.
  * @param[in] flush Flush sample buffer - pass to libsigrok.
  */
-static void openlb_push_sample(struct sr_dev_inst *sdi, uint16_t sample, int flush)
+static void openlb_push_sample(struct sr_dev_inst *sdi, uint32_t sample, int flush)
 {
 	struct dev_context *devc = sdi->priv;
 
@@ -404,6 +407,30 @@ static void openlb_push_sample(struct sr_dev_inst *sdi, uint16_t sample, int flu
 		devc->data_buf[devc->data_pos++] = sample;
 		devc->num_samples++;
 	}
+}
+
+/**
+ * Read maximum number of supported channels from the device status register.
+ *
+ * @param[in] sdi Device instance data. Must not be NULL.
+ *
+ * @retval Number of channels (e.g. 8,16,24,32)
+ * @retval SR_ERR Error.
+ */
+SR_PRIV int openlb_read_max_channels(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	/* Check for data loss (this should never happen) */
+	uint32_t value = 0;
+	if (openlb_read32(devc, CFG_BASE_ADDR + LA_BUFFER_STS, &value) < 0)
+		return SR_ERR;
+
+	value >>= LA_BUFFER_STS_NUM_CHANNELS_SHIFT;
+	value &=  LA_BUFFER_STS_NUM_CHANNELS_MASK;
+
+	sr_dbg("Device supports %d channels\n", value);
+	return (int)value;
 }
 
 /**
@@ -500,7 +527,16 @@ SR_PRIV int openlb_start_acquisition(struct dev_context *devc)
 	/* Write clock config first (allows resync between domains) */
 	int clk_div      = (SR_MHZ(100) / devc->sample_rate) - 1;
 	cfg_reg |= (clk_div             << LA_BUFFER_CFG_CLK_DIV_SHIFT);
-	cfg_reg |= (0                   << LA_BUFFER_CFG_WIDTH_SHIFT);
+	if (devc->num_channels == 16)
+		cfg_reg |= (0               << LA_BUFFER_CFG_WIDTH_SHIFT);
+	else if (devc->num_channels == 24)
+		cfg_reg |= (1               << LA_BUFFER_CFG_WIDTH_SHIFT);
+	else if (devc->num_channels == 32)
+		cfg_reg |= (2               << LA_BUFFER_CFG_WIDTH_SHIFT);
+	else {
+		sr_err("Incorrect number of channels (possible values 16, 24, 32).");
+		return SR_ERR;
+	}
 	cfg_reg |= (devc->cfg_test_mode << LA_BUFFER_CFG_TEST_MODE_SHIFT);
 	if (openlb_write32(devc, CFG_BASE_ADDR + LA_BUFFER_CFG, cfg_reg) < 0)
 		return SR_ERR;
@@ -555,6 +591,8 @@ SR_PRIV int openlb_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
+	sr_info("Samples captured (including RLE): %d", level);
+
 	/* Check for data loss (this should never happen) */
 	uint32_t value = 0;
 	if (openlb_read32(devc, CFG_BASE_ADDR + LA_BUFFER_STS, &value) < 0)
@@ -575,7 +613,7 @@ SR_PRIV int openlb_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	sr_info("Samples ready for extraction.");
+	sr_info("Samples ready for extraction: words: %d", level);
 	uint32_t base = MEM_BASE_ADDR;
 	uint32_t size = level;
 	uint8_t  *data = g_malloc0(size);
@@ -597,8 +635,8 @@ SR_PRIV int openlb_receive_data(int fd, int revents, void *cb_data)
 	/* Convert RLE data to individual samples */
 	uint32_t *sample_buf = (uint32_t *)data;
 	for (uint32_t i=0; i<size/4; i++) {
-		uint16_t repeats = sample_buf[i] >> 16;
-		uint16_t value   = sample_buf[i] >> 0;
+		uint16_t repeats = (devc->num_channels == 32) ? 1 : sample_buf[i] >> devc->num_channels;
+		uint32_t value   = sample_buf[i] >> 0;
 
 		for (uint16_t j=0;j<repeats;j++)
 			openlb_push_sample(sdi, value, (j == (repeats -1)) && (i == ((size/4)-1)));
