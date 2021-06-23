@@ -214,7 +214,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model  = NULL;
 		sdi->priv   = devc;
 
-		openlb_close(devc);
+		ftdi_usb_close(devc->ftdic);
 
 		/* Try and query number of channels supported on the device
 		   unless explicit number of channels listed */
@@ -233,7 +233,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return std_scan_complete(di, g_slist_append(NULL, sdi));
 	}
 
-	openlb_close(devc);
 err_free_ftdic:
 	ftdi_free(devc->ftdic);
 err_free_sample_buf:
