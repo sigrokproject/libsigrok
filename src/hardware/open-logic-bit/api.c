@@ -21,8 +21,17 @@
 #include <config.h>
 #include "protocol.h"
 
-#define USB_VENDOR_ID			0x0403
-#define USB_DEVICE_ID			0x6014
+struct olb_targets_s
+{
+	uint16_t vid;
+	uint16_t pid;
+	int      iface;
+	int      num_channels; // -1 then query target
+};
+
+static struct olb_targets_s target_list[] = {
+	{ 0x0403, 0x6014, INTERFACE_A, 24 }
+};
 
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
@@ -73,14 +82,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	ret = ftdi_set_interface(devc->ftdic, INTERFACE_A);
+	ret = ftdi_set_interface(devc->ftdic, devc->dev_iface);
 	if (ret < 0) {
 		sr_err("Failed to set FTDI interface A (%d): %s", ret,
 		       ftdi_get_error_string(devc->ftdic));
 		return SR_ERR;
 	}
 
-	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
+	ret = ftdi_usb_open_desc(devc->ftdic, devc->dev_vid, devc->dev_pid,
 				 NULL, NULL);
 	if (ret < 0) {
 		sr_err("Failed to open device (%d): %s", ret,
@@ -143,6 +152,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+	struct olb_targets_s *target;
 	int ret;
 	int max_channels;
 	unsigned int i;
@@ -164,38 +174,64 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		goto err_free_sample_buf;
 	}
 
-	ret = ftdi_usb_open_desc(devc->ftdic, USB_VENDOR_ID, USB_DEVICE_ID,
-				 NULL, NULL);
-	if (ret < 0) {
-		/* Log errors, except for -3 ("device not found"). */
-		if (ret != -3)
-			sr_err("Failed to open device (%d): %s", ret,
-			       ftdi_get_error_string(devc->ftdic));
-		goto err_free_ftdic;
+	target = NULL;
+	for (i = 0; i < ARRAY_SIZE(target_list); i++) {
+		target = &target_list[i];
+
+		/* Try and open device by vid/pid */
+		ret = ftdi_usb_open_desc(devc->ftdic, target->vid, target->pid, NULL, NULL);
+
+		/* All fine - we found a candidate */
+		if (ret == 0) {
+			sr_info("Found a candidate device for open-logic-bit (vid=%04x, pid=%04x)", 
+					 target->vid, target->pid);
+			ftdi_usb_close(devc->ftdic);
+			break;
+		}
+
+		/* Not found, try next candidate */
+		target = NULL;
 	}
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup("OpenLogicBit");
-	sdi->model  = NULL;
-	sdi->priv   = devc;
+	/* Found a candidate device */
+	if (target != NULL) {
+		devc->dev_vid   = target->vid;
+		devc->dev_pid   = target->pid;
+		devc->dev_iface = target->iface;
 
-	openlb_close(devc);
+		ret = ftdi_usb_open_desc(devc->ftdic, devc->dev_vid, devc->dev_pid, NULL, NULL);
+		if (ret < 0) {
+			/* Log errors, except for -3 ("device not found"). */
+			if (ret != -3)
+				sr_err("Failed to open device (%d): %s", ret,
+				       ftdi_get_error_string(devc->ftdic));
+			goto err_free_ftdic;
+		}
 
-	/* Try and query number of channels supported on the device */
-	max_channels = 32;
-	if (dev_open(sdi) == SR_OK) {
-		max_channels = openlb_read_max_channels(sdi);
-		if (max_channels < 0)
-			sr_err("Failed to read number of supported device channels.");
-		dev_close(sdi);
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup("OpenLogicBit");
+		sdi->model  = NULL;
+		sdi->priv   = devc;
+
+		openlb_close(devc);
+
+		/* Try and query number of channels supported on the device
+		   unless explicit number of channels listed */
+		max_channels = target->num_channels;
+		if (max_channels == -1 && dev_open(sdi) == SR_OK) {
+			max_channels = openlb_read_max_channels(sdi);
+			if (max_channels < 0)
+				sr_err("Failed to read number of supported device channels.");
+			dev_close(sdi);
+		}
+
+		devc->num_channels = (uint32_t)max_channels;
+		for (i = 0; i < devc->num_channels; i++)
+			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
+
+		return std_scan_complete(di, g_slist_append(NULL, sdi));
 	}
-
-	devc->num_channels = (uint32_t)max_channels;
-	for (i = 0; i < devc->num_channels; i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_names[i]);
-
-	return std_scan_complete(di, g_slist_append(NULL, sdi));
 
 	openlb_close(devc);
 err_free_ftdic:

@@ -34,6 +34,11 @@
 
 struct dev_context {
 	struct ftdi_context *ftdic;
+
+	uint16_t dev_vid;
+	uint16_t dev_pid;
+	int      dev_iface;
+
 	uint64_t limit_samples;
 	uint32_t sample_rate;
 	int      cfg_test_mode;
