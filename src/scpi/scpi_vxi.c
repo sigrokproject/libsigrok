@@ -21,12 +21,12 @@
  */
 
 #include <config.h>
-#include <rpc/rpc.h>
+/* vxi.h must the first #include after config.h See commit d40b8557. */
+#include "vxi.h"
 #include <string.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 #include "scpi.h"
-#include "vxi.h"
 
 #define LOG_PREFIX "scpi_vxi"
 #define VXI_DEFAULT_TIMEOUT_MS 2000
