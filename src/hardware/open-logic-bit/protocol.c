@@ -445,7 +445,7 @@ SR_PRIV int openlb_convert_triggers(const struct sr_dev_inst *sdi)
 	struct sr_trigger_stage *stage;
 	struct sr_trigger_match *match;
 	const GSList *l, *m;
-	uint16_t channel_bit;
+	uint32_t channel_bit;
 
 	devc = sdi->priv;
 	devc->trigger_enable  = 0x0000;
@@ -485,7 +485,7 @@ SR_PRIV int openlb_convert_triggers(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	sr_dbg("Trigger sense/level/enable = 0x%04x / 0x%04x / 0x%04x.",
+	sr_dbg("Trigger sense/level/enable = 0x%08x / 0x%08x / 0x%08x.",
 			devc->trigger_sense,
 			devc->trigger_level,
 			devc->trigger_enable);
