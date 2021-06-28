@@ -557,7 +557,7 @@ static size_t get_buffer_size(struct dev_context *devc)
 	 * a multiple of 512.
 	 */
 	s = 10 * to_bytes_per_ms(devc->cur_samplerate);
-	return (s + 511) & ~511;
+	return (s + 1023) & ~1023;
 }
 
 static unsigned int get_number_of_transfers(struct dev_context *devc)
