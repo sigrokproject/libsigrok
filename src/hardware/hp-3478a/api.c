@@ -176,7 +176,7 @@ static int config_get(uint32_t key, GVariant **data,
 
 	(void)cg;
 
-	devc = sdi->priv;
+	devc = sdi ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -231,7 +231,7 @@ static int config_set(uint32_t key, GVariant *data,
 
 	(void)cg;
 
-	devc = sdi->priv;
+	devc = sdi ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -278,7 +278,7 @@ static int config_list(uint32_t key, GVariant **data,
 	GVariant *gvar, *arr[2];
 	GVariantBuilder gvb;
 
-	devc = sdi->priv;
+	devc = sdi ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
