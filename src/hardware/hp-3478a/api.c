@@ -192,6 +192,8 @@ static int config_get(uint32_t key, GVariant **data,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
 	devc = sdi->priv;
 
 	switch (key) {
@@ -247,6 +249,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 	(void)cg;
 
+	if (!sdi)
+		return SR_ERR_ARG;
 	devc = sdi->priv;
 
 	switch (key) {
@@ -293,6 +297,10 @@ static int config_list(uint32_t key, GVariant **data,
 	unsigned int i;
 	GVariant *gvar, *arr[2];
 	GVariantBuilder gvb;
+
+	/* Only handle standard keys when no device instance is given. */
+	if (!sdi)
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 
 	devc = sdi->priv;
 
