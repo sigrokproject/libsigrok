@@ -99,6 +99,9 @@ SR_EXTRA_CXX_LIBS=
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 	[libserialport >= 0.1.1])
 
+SR_ARG_OPT_PKG([libm2k], [LIBM2K], ,
+	[libm2k])
+
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
 # pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
@@ -141,8 +144,9 @@ AS_IF([test "x$sr_have_libieee1284" = xyes],
 SR_ARG_OPT_PKG([libgio], [LIBGIO], , [gio-2.0 >= 2.24.0])
 
 AC_LANG_PUSH([C++])
-PKG_CHECK_MODULES(LIBM2K, libm2k)
+PKG_CHECK_MODULES(LIBM2K, [libm2k] )
 AC_DEFINE([HAVE_LIBM2K], [1], [Have libm2k dep.])
+#SR_APPEND([SR_PKGLIBS], ['libm2k'])
 SR_APPEND([sr_deps_avail], [libm2k])
 AM_CONDITIONAL([NEED_LIBM2K], [test "x$sr_have_libm2k" = xyes])
 AC_LANG_POP([C++])
@@ -659,6 +663,7 @@ $sr_driver_summary
 Enabled serial communication transports:
   - serial comm ................... $sr_have_serial_comm
   - libserialport ................. $sr_have_libserialport
+  - libm2k ........................ $sr_have_libm2k
   - hidapi ........................ $sr_have_libhidapi
   - bluetooth ..................... $sr_have_bluetooth
   - bluez ......................... $sr_have_libbluez
