@@ -42,6 +42,7 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 
 	int len;
+	uint8_t shift = 0;
 	struct sr_serial_dev_inst *serial;
 	char *buf;
 
@@ -63,29 +64,34 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	len = BUFSIZE - devc->buflen;;
+	len = 4 * devc->cur_samplerate;;
 	buf = devc->buf;
-	len = serial_read_nonblocking(serial, buf, len);
+	//len = serial_read_nonblocking(serial, buf, len);
+	len = serial_read_blocking(serial, buf, len, 100);
 	if (len <= 0) {
 		return TRUE;
 	}
 
-	for (uint16_t i = 0; i < 10; i++)
-		devc->data[i] = *((int16_t *)buf + i)/1000.0;
+	while (devc->channel_entry)
+	{
+		for (uint64_t i = 0; i < devc->cur_samplerate; i++)
+			devc->data[i] = *((int16_t *)buf + 2 * i + shift)/1000.0;
 
-	ch = devc->channel_entry->data;
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
-	packet.type = SR_DF_ANALOG;
-	packet.payload = &analog;
-	analog.num_samples = len/2;
-	analog.data = devc->data;
-	meaning.channels = g_slist_append(NULL, ch);
-	meaning.mq = SR_MQ_VOLTAGE;
-	meaning.unit = SR_UNIT_VOLT;
-	sr_session_send(sdi, &packet);
-	sr_sw_limits_update_frames_read(&devc->limits, 1);
-	memset(devc->buf, 0, BUFSIZE);
+		ch = devc->channel_entry->data;
+		sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		analog.num_samples = len/4;
+		analog.data = devc->data;
+		meaning.channels = g_slist_append(NULL, ch);
+		meaning.mq = SR_MQ_VOLTAGE;
+		meaning.unit = SR_UNIT_VOLT;
+		sr_session_send(sdi, &packet);
 
+		shift++;
+		devc->channel_entry = devc->channel_entry->next;
+	}
+	
 	/*if (devc->channel_entry->next) {
 		devc->channel_entry = devc->channel_entry->next;
 		rigol_ds_channel_start(sdi);
@@ -94,9 +100,18 @@ SR_PRIV int my_osc_receive_data(int fd, int revents, void *cb_data)
 		if (sr_sw_limits_check(&devc->limits))
 			sr_dev_acquisition_stop(sdi);
 	}*/
-	std_session_send_df_frame_end(sdi);
-	if (sr_sw_limits_check(&devc->limits))
+	sr_sw_limits_update_frames_read(&devc->limits, 1);
+	memset(devc->buf, 0, BUFSIZE);
+	//std_session_send_df_frame_end(sdi);
+	if (sr_sw_limits_check(&devc->limits)){
 		sr_dev_acquisition_stop(sdi);
+		sr_err("%d", len);
+	}
+	else{
+		devc->channel_entry = devc->enabled_channels;
+		//std_session_send_df_frame_begin(sdi);
+		//sr_err("%d", len);
+	}
 
 	return TRUE;
 }

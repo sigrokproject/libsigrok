@@ -27,7 +27,7 @@
 
 #define LOG_PREFIX "my-osc"
 
-#define BUFSIZE 1000
+#define BUFSIZE 64 * 1024
 
 //Commands
 #define CMD_SCAN 0x00
@@ -50,8 +50,9 @@ struct dev_context {
 
 	float voltage;
 	float current;
-    float data[10];
+    float data[64 * 1024];
 
+    GSList *enabled_channels;
     /* GSList entry for the current channel. */
 	GSList *channel_entry;
 

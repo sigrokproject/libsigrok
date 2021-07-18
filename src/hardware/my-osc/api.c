@@ -42,8 +42,8 @@ static const uint32_t devopts[] = {
 };
 
 static const uint64_t samplerates[] = {
-	SR_HZ(1),
-	SR_KHZ(100),
+	SR_HZ(10),
+	SR_KHZ(10),
 	SR_HZ(1),
 };
 
@@ -123,7 +123,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_sw_limits_init(&devc->limits);
 		devc->cur_samplerate = SR_HZ(10);
 		devc->limits.limit_frames = MIN_NUM_FRAMES;
-		devc->channel_entry = cg->channels;
+		devc->enabled_channels = cg->channels;
+		devc->channel_entry = devc->enabled_channels;
 		sdi->inst_type = SR_INST_SERIAL;
 		sdi->conn = serial;
 		sdi->priv = devc;
@@ -234,7 +235,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 			my_osc_receive_data, (struct sr_dev_inst *)sdi);
 
-	std_session_send_df_frame_begin(sdi);
+	//std_session_send_df_frame_begin(sdi);
 
 	return SR_OK;
 }
