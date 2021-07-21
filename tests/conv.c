@@ -206,7 +206,7 @@ END_TEST
 
 START_TEST(test_endian_write_inc)
 {
-	uint8_t buff[2 * sizeof(uint64_t)];
+	uint8_t buff[3 * sizeof(uint64_t)];
 	uint8_t *p;
 	size_t l;
 
