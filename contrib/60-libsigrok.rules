@@ -97,6 +97,9 @@ ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ENV{ID_SIGROK}="1"
 # Dangerous Prototypes Buspirate (v4)
 ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="fb00", ENV{ID_SIGROK}="1"
 
+# dcttech.com USB relay card, and other V-USB based firmware
+ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05df", ENV{ID_SIGROK}="1"
+
 # DreamSourceLab DSLogic
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0001", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Pro
