@@ -1428,7 +1428,7 @@ SR_PRIV int brymen_bm52x_config_list(void *st, uint32_t key, GVariant **data,
 	int ret;
 	size_t count, idx;
 	GVariantBuilder gvb;
-	char name[20];
+	char name[32];
 
 	/*
 	 * Have common keys handled by caller's common code.
