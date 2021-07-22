@@ -40,7 +40,7 @@ SR_PRIV int dcttech_usbrelay_update_state(const struct sr_dev_inst *sdi)
 		return SR_ERR_IO;
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		txt = sr_hexdump_new(report, sizeof(report));
-		sr_spew("got report bytes: %s", txt->str);
+		sr_spew("Got report bytes: %s.", txt->str);
 		sr_hexdump_free(txt);
 	}
 
@@ -100,7 +100,7 @@ SR_PRIV int dcttech_usbrelay_switch_cg(const struct sr_dev_inst *sdi,
 	}
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		txt = sr_hexdump_new(report, sizeof(report));
-		sr_spew("sending report bytes: %s", txt->str);
+		sr_spew("Sending report bytes: %s", txt->str);
 		sr_hexdump_free(txt);
 	}
 	ret = hid_send_feature_report(devc->hid_dev, report, sizeof(report));

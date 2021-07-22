@@ -19,6 +19,7 @@
 
 #include <config.h>
 
+#include <ctype.h>
 #include <hidapi.h>
 #include <string.h>
 
@@ -43,9 +44,11 @@ static const uint32_t devopts_cg[] = {
 
 static struct sr_dev_driver dcttech_usbrelay_driver_info;
 
-static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
-	size_t relay_count)
+static struct sr_dev_inst *probe_device_common(const char *path,
+	const wchar_t *vendor, const wchar_t *product)
 {
+	char nonws[16], *s, *endp;
+	unsigned long relay_count;
 	hid_device *hid;
 	int ret;
 	char serno[SERNO_LENGTH + 1];
@@ -60,10 +63,26 @@ static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
 	size_t idx, nr;
 	struct sr_channel_group *cg;
 
+	/*
+	 * Get relay count from product string. Weak condition,
+	 * accept any trailing number regardless of preceeding text.
+	 */
+	snprintf(nonws, sizeof(nonws), "%ls", product);
+	s = nonws;
+	s += strlen(s);
+	while (s > nonws && isdigit((int)s[-1]))
+		s--;
+	ret = sr_atoul_base(s, &relay_count, &endp, 10);
+	if (ret != SR_OK || !endp || *endp)
+		return NULL;
+	if (!relay_count)
+		return NULL;
+	sr_info("Relay count %lu from product string %s.", relay_count, nonws);
+
 	/* Open device, need to communicate to identify. */
-	hid = hid_open_path(dev->path);
+	hid = hid_open_path(path);
 	if (!hid) {
-		sr_err("Cannot open %s: %ls.", dev->path, hid_error(NULL));
+		sr_err("Cannot open %s.", path);
 		return NULL;
 	}
 
@@ -75,15 +94,15 @@ static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
 	hid_close(hid);
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		txt = sr_hexdump_new(report, sizeof(report));
-		sr_spew("raw report, rc %d, bytes %s", ret, txt->str);
+		sr_spew("Got report bytes: %s, rc %d.", txt->str, ret);
 		sr_hexdump_free(txt);
 	}
 	if (ret < 0) {
-		sr_err("Cannot read %s: %ls.", dev->path, hid_error(NULL));
+		sr_err("Cannot read %s: %ls.", path, hid_error(NULL));
 		return NULL;
 	}
 	if (ret != sizeof(report)) {
-		sr_err("Unexpected HID report length: %s.", dev->path);
+		sr_err("Unexpected HID report length %d from %s.", ret, path);
 		return NULL;
 	}
 
@@ -97,26 +116,27 @@ static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
 		c = report[1 + snr_pos];
 		serno[snr_pos] = c;
 		if (c < 0x20 || c > 0x7e) {
-			sr_dbg("non-printable serno");
+			sr_warn("Skipping %s, non-printable serial.", path);
 			return NULL;
 		}
 	}
 	curr_state = report[1 + STATE_INDEX];
-	sr_spew("report data, serno[%s], relays 0x%02x.", serno, curr_state);
+	sr_info("HID report data: serial number %s, relay state 0x%02x.",
+		serno, curr_state);
 
 	/* Create a device instance. */
 	sdi = g_malloc0(sizeof(*sdi));
-	sdi->vendor = g_strdup_printf("%ls", dev->manufacturer_string);
-	sdi->model = g_strdup_printf("%ls", dev->product_string);
+	sdi->vendor = g_strdup_printf("%ls", vendor);
+	sdi->model = g_strdup_printf("%ls", product);
 	sdi->serial_num = g_strdup(serno);
-	sdi->connection_id = g_strdup(dev->path);
+	sdi->connection_id = g_strdup(path);
 	sdi->driver = &dcttech_usbrelay_driver_info;
 	sdi->inst_type = SR_INST_USB;
 
 	/* Create channels (groups). */
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
-	devc->hid_path = g_strdup(dev->path);
+	devc->hid_path = g_strdup(path);
 	devc->relay_count = relay_count;
 	devc->relay_mask = (1U << relay_count) - 1;
 	for (idx = 0; idx < devc->relay_count; idx++) {
@@ -132,17 +152,61 @@ static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
 	return sdi;
 }
 
+static struct sr_dev_inst *probe_device_enum(struct hid_device_info *dev)
+{
+	return probe_device_common(dev->path,
+		dev->manufacturer_string, dev->product_string);
+}
+
+static struct sr_dev_inst *probe_device_path(const char *path)
+{
+	hid_device *dev;
+	gboolean ok;
+	int ret;
+	wchar_t vendor[32], product[32];
+
+	/*
+	 * TODO Accept different types of conn= specs? Either paths that
+	 * hidapi(3) can open. Or bus.addr specs that we can check for
+	 * during USB enumeration and derive a hidapi(3) compatible path
+	 * from? Is some "unescaping" desirable for platforms which have
+	 * colons in hidapi(3) paths that collide with how conn= specs
+	 * are passed in sigrok? This would be the place to translate
+	 * the 'path' to a canonical format.
+	 */
+
+	dev = hid_open_path(path);
+	if (!dev) {
+		sr_err("Cannot open %s.", path);
+		return NULL;
+	}
+
+	ok = TRUE;
+	ret = hid_get_manufacturer_string(dev, vendor, ARRAY_SIZE(vendor));
+	if (ret != 0)
+		ok = FALSE;
+	if (!wcslen(vendor))
+		ok = FALSE;
+	ret = hid_get_product_string(dev, product, ARRAY_SIZE(product));
+	if (ret != 0)
+		ok = FALSE;
+	if (!wcslen(product))
+		ok = FALSE;
+	hid_close(dev);
+	if (!ok)
+		return NULL;
+
+	return probe_device_common(path, vendor, product);
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	const char *conn;
 	GSList *devices;
 	struct drv_context *drvc;
 	struct hid_device_info *devs, *curdev;
-	int ret;
 	wchar_t *ws;
 	char nonws[32];
-	char *s, *endp;
-	unsigned long relay_count;
 	struct sr_dev_inst *sdi;
 
 	/* Get optional conn= spec when provided. */
@@ -150,12 +214,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	(void)sr_serial_extract_options(options, &conn, NULL);
 	if (conn && !*conn)
 		conn = NULL;
-	/*
-	 * TODO Accept different types of conn= specs? Either paths that
-	 * hidapi(3) can open. Or bus.addr specs that we can check for
-	 * during USB enumeration. Derive want_path, want_bus, want_addr
-	 * here from the optional conn= spec.
-	 */
 
 	devices = NULL;
 	drvc = di->context;
@@ -164,26 +222,33 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/*
 	 * The firmware is V-USB based. The USB VID:PID identification
 	 * is shared across several projects. Need to inspect the vendor
-	 * and product _strings_ to actually identify the device.
+	 * and product _strings_ to actually identify the device. The
+	 * USB serial number need not be present nor reliable. The HID
+	 * report content will carry the board's serial number.
 	 *
-	 * The USB serial number need not be present nor reliable. The
-	 * HID report contains a five character string which may serve
-	 * as an identification for boards (is said to differ between
-	 * boards). The last byte encodes the current relays state.
+	 * When conn= was specified, then have HIDAPI open _this_ device
+	 * and skip the enumeration. Which allows users to specify paths
+	 * that need not match the enumeration's details.
 	 */
+	if (conn) {
+		sr_info("Checking HID path %s.", conn);
+		sdi = probe_device_path(conn);
+		if (!sdi)
+			sr_warn("Failed to communicate to %s.", conn);
+		else
+			devices = g_slist_append(devices, sdi);
+	}
 	devs = hid_enumerate(VENDOR_ID, PRODUCT_ID);
 	for (curdev = devs; curdev; curdev = curdev->next) {
+		if (conn)
+			break;
 		if (!curdev->vendor_id || !curdev->product_id)
 			continue;
 		if (!curdev->manufacturer_string || !curdev->product_string)
 			continue;
 		if (!*curdev->manufacturer_string || !*curdev->product_string)
 			continue;
-		if (conn && strcmp(curdev->path, conn) != 0) {
-			sr_dbg("skipping %s, conn= mismatch", curdev->path);
-			continue;
-		}
-		sr_dbg("checking %04hx:%04hx, vendor %ls, product %ls.",
+		sr_dbg("Checking %04hx:%04hx, vendor %ls, product %ls.",
 			curdev->vendor_id, curdev->product_id,
 			curdev->manufacturer_string, curdev->product_string);
 
@@ -198,18 +263,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (!ws || !wcslen(ws))
 			continue;
 		snprintf(nonws, sizeof(nonws), "%ls", ws);
-		s = nonws;
-		if (!g_str_has_prefix(s, PRODUCT_STRING_PREFIX))
+		if (!g_str_has_prefix(nonws, PRODUCT_STRING_PREFIX))
 			continue;
-		s += strlen(PRODUCT_STRING_PREFIX);
-		ret = sr_atoul_base(s, &relay_count, &endp, 10);
-		if (ret != SR_OK || !endp || *endp)
-			continue;
-		sr_info("Found: HID path %s, relay count %lu.",
-			curdev->path, relay_count);
 
 		/* Identify device by communicating to it. */
-		sdi = probe_device(curdev, relay_count);
+		sr_info("Checking HID path %s.", curdev->path);
+		sdi = probe_device_enum(curdev);
 		if (!sdi) {
 			sr_warn("Failed to communicate to %s.", curdev->path);
 			continue;
