@@ -43,7 +43,8 @@ static const uint32_t devopts_cg[] = {
 
 static struct sr_dev_driver dcttech_usbrelay_driver_info;
 
-static struct sr_dev_inst *probe_device(const char *path, size_t relay_count)
+static struct sr_dev_inst *probe_device(struct hid_device_info *dev,
+	size_t relay_count)
 {
 	hid_device *hid;
 	int ret;
@@ -60,9 +61,11 @@ static struct sr_dev_inst *probe_device(const char *path, size_t relay_count)
 	struct sr_channel_group *cg;
 
 	/* Open device, need to communicate to identify. */
-	hid = hid_open_path(path);
-	if (!hid)
+	hid = hid_open_path(dev->path);
+	if (!hid) {
+		sr_err("Cannot open %s: %ls.", dev->path, hid_error(NULL));
 		return NULL;
+	}
 
 	/* Get an HID report. */
 	hid_set_nonblocking(hid, 0);
@@ -75,8 +78,14 @@ static struct sr_dev_inst *probe_device(const char *path, size_t relay_count)
 		sr_spew("raw report, rc %d, bytes %s", ret, txt->str);
 		sr_hexdump_free(txt);
 	}
-	if (ret != sizeof(report))
+	if (ret < 0) {
+		sr_err("Cannot read %s: %ls.", dev->path, hid_error(NULL));
 		return NULL;
+	}
+	if (ret != sizeof(report)) {
+		sr_err("Unexpected HID report length: %s.", dev->path);
+		return NULL;
+	}
 
 	/*
 	 * Serial number must be all printable characters. Relay state
@@ -87,22 +96,27 @@ static struct sr_dev_inst *probe_device(const char *path, size_t relay_count)
 	for (snr_pos = 0; snr_pos < SERNO_LENGTH; snr_pos++) {
 		c = report[1 + snr_pos];
 		serno[snr_pos] = c;
-		if (c < 0x20 || c > 0x7e)
+		if (c < 0x20 || c > 0x7e) {
+			sr_dbg("non-printable serno");
 			return NULL;
+		}
 	}
 	curr_state = report[1 + STATE_INDEX];
 	sr_spew("report data, serno[%s], relays 0x%02x.", serno, curr_state);
 
-	/*
-	 * Create a device instance, create channels (groups). The
-	 * caller fills in vendor, model, conn from USB enum details.
-	 */
+	/* Create a device instance. */
 	sdi = g_malloc0(sizeof(*sdi));
+	sdi->vendor = g_strdup_printf("%ls", dev->manufacturer_string);
+	sdi->model = g_strdup_printf("%ls", dev->product_string);
 	sdi->serial_num = g_strdup(serno);
-	sdi->connection_id = g_strdup(path);
+	sdi->connection_id = g_strdup(dev->path);
+	sdi->driver = &dcttech_usbrelay_driver_info;
+	sdi->inst_type = SR_INST_USB;
+
+	/* Create channels (groups). */
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
-	devc->hid_path = g_strdup(path);
+	devc->hid_path = g_strdup(dev->path);
 	devc->relay_count = relay_count;
 	devc->relay_mask = (1U << relay_count) - 1;
 	for (idx = 0; idx < devc->relay_count; idx++) {
@@ -195,18 +209,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			curdev->path, relay_count);
 
 		/* Identify device by communicating to it. */
-		sdi = probe_device(curdev->path, relay_count);
+		sdi = probe_device(curdev, relay_count);
 		if (!sdi) {
 			sr_warn("Failed to communicate to %s.", curdev->path);
 			continue;
 		}
-
-		/* Amend driver instance from USB enumeration details. */
-		sdi->vendor = g_strdup_printf("%ls", curdev->manufacturer_string);
-		sdi->model = g_strdup_printf("%ls", curdev->product_string);
-		sdi->driver = &dcttech_usbrelay_driver_info;
-		sdi->inst_type = SR_INST_USB;
-
 		devices = g_slist_append(devices, sdi);
 	}
 	hid_free_enumeration(devs);
