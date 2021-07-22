@@ -98,6 +98,8 @@ static struct sr_dev_inst *probe_device(const char *path, size_t relay_count)
 	 * caller fills in vendor, model, conn from USB enum details.
 	 */
 	sdi = g_malloc0(sizeof(*sdi));
+	sdi->serial_num = g_strdup(serno);
+	sdi->connection_id = g_strdup(path);
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	devc->hid_path = g_strdup(path);
@@ -202,7 +204,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		/* Amend driver instance from USB enumeration details. */
 		sdi->vendor = g_strdup_printf("%ls", curdev->manufacturer_string);
 		sdi->model = g_strdup_printf("%ls", curdev->product_string);
-		sdi->conn = g_strdup(curdev->path);
 		sdi->driver = &dcttech_usbrelay_driver_info;
 		sdi->inst_type = SR_INST_USB;
 
@@ -256,9 +257,9 @@ static int config_get(uint32_t key, GVariant **data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CONN:
-			if (!sdi->conn)
+			if (!sdi->connection_id)
 				return SR_ERR_NA;
-			*data = g_variant_new_string(sdi->conn);
+			*data = g_variant_new_string(sdi->connection_id);
 			return SR_OK;
 		default:
 			return SR_ERR_NA;
