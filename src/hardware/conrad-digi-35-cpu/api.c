@@ -88,7 +88,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 	sdi->priv = devc;
-	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "CH1");
 
 	return std_scan_complete(di, g_slist_append(NULL, sdi));
 }
