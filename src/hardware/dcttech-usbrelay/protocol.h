@@ -43,6 +43,7 @@
 
 struct dev_context {
 	char *hid_path;
+	uint16_t usb_vid, usb_pid;
 	hid_device *hid_dev;
 	size_t relay_count;
 	uint32_t relay_mask;

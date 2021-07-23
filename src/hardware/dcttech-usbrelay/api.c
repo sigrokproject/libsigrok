@@ -45,6 +45,7 @@ static const uint32_t devopts_cg[] = {
 static struct sr_dev_driver dcttech_usbrelay_driver_info;
 
 static struct sr_dev_inst *probe_device_common(const char *path,
+	uint16_t vid, uint16_t pid,
 	const wchar_t *vendor, const wchar_t *product)
 {
 	char nonws[16], *s, *endp;
@@ -80,7 +81,10 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	sr_info("Relay count %lu from product string %s.", relay_count, nonws);
 
 	/* Open device, need to communicate to identify. */
-	hid = hid_open_path(path);
+	if (vid && pid)
+		hid = hid_open(vid, pid, NULL);
+	else
+		hid = hid_open_path(path);
 	if (!hid) {
 		sr_err("Cannot open %s.", path);
 		return NULL;
@@ -137,6 +141,8 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	devc->hid_path = g_strdup(path);
+	devc->usb_vid = vid;
+	devc->usb_pid = pid;
 	devc->relay_count = relay_count;
 	devc->relay_mask = (1U << relay_count) - 1;
 	for (idx = 0; idx < devc->relay_count; idx++) {
@@ -154,33 +160,62 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 
 static struct sr_dev_inst *probe_device_enum(struct hid_device_info *dev)
 {
-	return probe_device_common(dev->path,
+	return probe_device_common(dev->path, 0, 0,
 		dev->manufacturer_string, dev->product_string);
 }
 
-static struct sr_dev_inst *probe_device_path(const char *path)
+static struct sr_dev_inst *probe_device_conn(const char *path)
 {
+	char vid_pid[12];
+	uint16_t vid, pid;
+	const char *s;
+	char *endp;
+	unsigned long num;
 	hid_device *dev;
 	gboolean ok;
 	int ret;
 	wchar_t vendor[32], product[32];
 
 	/*
-	 * TODO Accept different types of conn= specs? Either paths that
-	 * hidapi(3) can open. Or bus.addr specs that we can check for
-	 * during USB enumeration and derive a hidapi(3) compatible path
-	 * from? Is some "unescaping" desirable for platforms which have
-	 * colons in hidapi(3) paths that collide with how conn= specs
-	 * are passed in sigrok? This would be the place to translate
-	 * the 'path' to a canonical format.
+	 * The hidapi(3) library's API strives for maximum portability,
+	 * thus won't provide ways of getting a path from alternative
+	 * presentations like VID:PID pairs, bus.addr specs, etc. The
+	 * typical V-USB setup neither provides reliable serial numbers
+	 * (that USB enumeration would cover). So this driver's support
+	 * for conn= specs beyond Unix style path names is limited, too.
+	 * This implementation tries "VID.PID" then assumes "path". The
+	 * inability to even get the path for a successfully opened HID
+	 * results in redundancy across the places which open devices.
 	 */
 
-	dev = hid_open_path(path);
+	/* Check for "<vid>.<pid>" specs. */
+	vid = pid = 0;
+	s = path;
+	ret = sr_atoul_base(s, &num, &endp, 16);
+	if (ret == SR_OK && endp && endp == s + 4 && *endp == '.' && num) {
+		vid = num;
+		s = ++endp;
+	}
+	ret = sr_atoul_base(s, &num, &endp, 16);
+	if (ret == SR_OK && endp && endp == s + 4 && *endp == '\0' && num) {
+		pid = num;
+		s = ++endp;
+	}
+	if (vid && pid) {
+		snprintf(vid_pid, sizeof(vid_pid), "%04x.%04x", vid, pid);
+		path = vid_pid;
+		sr_dbg("Using VID.PID %s.", path);
+	}
+
+	/* Open the device, get vendor and product strings. */
+	if (vid && pid)
+		dev = hid_open(vid, pid, NULL);
+	else
+		dev = hid_open_path(path);
 	if (!dev) {
 		sr_err("Cannot open %s.", path);
 		return NULL;
 	}
-
 	ok = TRUE;
 	ret = hid_get_manufacturer_string(dev, vendor, ARRAY_SIZE(vendor));
 	if (ret != 0)
@@ -196,7 +231,7 @@ static struct sr_dev_inst *probe_device_path(const char *path)
 	if (!ok)
 		return NULL;
 
-	return probe_device_common(path, vendor, product);
+	return probe_device_common(path, vid, pid, vendor, product);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -232,7 +267,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	 */
 	if (conn) {
 		sr_info("Checking HID path %s.", conn);
-		sdi = probe_device_path(conn);
+		sdi = probe_device_conn(conn);
 		if (!sdi)
 			sr_warn("Failed to communicate to %s.", conn);
 		else
@@ -291,7 +326,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 		devc->hid_dev = NULL;
 	}
 
-	devc->hid_dev = hid_open_path(devc->hid_path);
+	if (devc->usb_vid && devc->usb_pid)
+		devc->hid_dev = hid_open(devc->usb_vid, devc->usb_pid, NULL);
+	else
+		devc->hid_dev = hid_open_path(devc->hid_path);
 	if (!devc->hid_dev)
 		return SR_ERR_IO;
 
