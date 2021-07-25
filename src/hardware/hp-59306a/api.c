@@ -30,10 +30,7 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	/*
-	 * TODO Enable/disable multiple channel groups at once.
-	 * SR_CONF_ENABLED | SR_CONF_SET,
-	 */
+	SR_CONF_ENABLED | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -115,8 +112,10 @@ static int config_set(uint32_t key, GVariant *data,
 
 	if (!cg) {
 		switch (key) {
-		/* TODO: Enable/disbale multiple channel groups at once. */
 		case SR_CONF_ENABLED:
+			/* Enable/disable all channels at the same time. */
+			on = g_variant_get_boolean(data);
+			return hp_59306a_switch_cg(sdi, cg, on);
 		default:
 			return SR_ERR_NA;
 		}
