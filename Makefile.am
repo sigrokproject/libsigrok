@@ -417,6 +417,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/hung-chang-dso-2100/protocol.c \
 	src/hardware/hung-chang-dso-2100/api.c
 endif
+if HW_ICSTATION_USBRELAY
+src_libdrivers_la_SOURCES += \
+	src/hardware/icstation-usbrelay/protocol.h \
+	src/hardware/icstation-usbrelay/protocol.c \
+	src/hardware/icstation-usbrelay/api.c
+endif
 if HW_IKALOGIC_SCANALOGIC2
 src_libdrivers_la_SOURCES += \
 	src/hardware/ikalogic-scanalogic2/protocol.h \
