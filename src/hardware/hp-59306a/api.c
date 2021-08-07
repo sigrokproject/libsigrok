@@ -75,7 +75,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		nr = idx + 1;
 
 		cg = g_malloc0(sizeof(*cg));
-		cg->name = g_strdup_printf("CH%zu", nr);
+		cg->name = g_strdup_printf("R%zu", nr);
 
 		cgc = g_malloc0(sizeof(*cgc));
 		cgc->number = nr;
@@ -183,7 +183,7 @@ static int config_list(uint32_t key, GVariant **data,
 
 static struct sr_dev_driver hp_59306a_driver_info = {
 	.name = "hp-59306a",
-	.longname = "hp-59306a",
+	.longname = "HP 59306A",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
