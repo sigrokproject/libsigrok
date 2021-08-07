@@ -4,6 +4,7 @@
  * Copyright (C) 2018 James Churchill <pelrun@gmail.com>
  * Copyright (C) 2019 Frank Stettner <frank-stettner@gmx.net>
  * Copyright (C) 2021 Gerhard Sittig <gerhard.sittig@gmx.net>
+ * Copyright (C) 2021 Constantin Wenger <constantin.wenger@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,6 +99,27 @@ enum rdtech_rd_register {
 	REG_RD_OCP_THR = 83, /* 0x53 */
 	/* One "live" slot and 9 "memory" positions. */
 	REG_RD_START_MEM = 84, /* 0x54 */
+};
+
+enum etommens_etm_xxxxp_register {
+	REG_ETM_ENABLE = 0x0001,
+	REG_ETM_PROTECTION = 0x0002,
+	REG_ETM_MODEL = 0x0003,
+	REG_ETM_CLASS = 0x0004,
+	REG_ETM_DECIMALS = 0x0005,
+	REG_ETM_UOUT = 0x0010,
+	REG_ETM_IOUT = 0x0011,
+	REG_ETM_POWER1 = 0x0012, // W power has 2x16bit
+	REG_ETM_POWER2 = 0x0013,
+	REG_ETM_POWERCAL = 0x0014,
+	REG_ETM_OVP_VALUE = 0x0020,
+	REG_ETM_OCP_VALUE = 0x0021,
+	REG_ETM_OPP_VALUE1 = 0x0022, // W power has 2x16bits
+	REG_ETM_OPP_VALUE2 = 0x0023,
+	REG_ETM_USET = 0x0030,
+	REG_ETM_ISET = 0x0031,
+	REG_ETM_U_CEIL = 0xC11E,
+	REG_ETM_I_CEIL = 0xC12E,
 };
 
 /* Retries failed modbus read attempts for improved reliability. */
@@ -213,6 +235,65 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 	/* UNREACH */
 }
 
+/**
+ * @private
+ * Read model info from the etommens device
+ *
+ * @param[in] modbus The modbus interface
+ * @param[out] model buffer for the model to be written into
+ * @param[out] dclass device class, this is used in manufacturer software to load info
+ * @param[out] max_voltage upper limit for voltage using device internal format
+ * @param[out] max_current upper limit for current using device internal format
+ * @param[out] digits_voltage how many digits are used for voltage (use this to divide device format with 10^digits_voltage)
+ * @param[out] digits_current how many digits are used for current (see digits_voltage)
+ * @param[out] digits_power how many digits are used for power (see digits_voltage)
+ *
+ * @return SR_OK upon success, SR_ERR_ARG upon invalid arguments,
+ *         SR_ERR_DATA upon invalid data, or SR_ERR on failure.
+ */
+SR_PRIV int etommens_etm_xxxxp_device_info_get(
+		struct sr_modbus_dev_inst *modbus, uint16_t *model,
+		uint16_t *dclass, uint16_t *max_voltage, uint16_t *max_current,
+		uint16_t *digits_voltage, uint16_t *digits_current,
+		uint16_t *digits_power)
+{
+	uint16_t registers[3];
+	uint16_t registersumax[1];
+	uint16_t registersimax[1];
+	uint16_t decimals;
+	int ret;
+
+	ret = sr_modbus_read_holding_registers(modbus, REG_ETM_MODEL, 3, registers);
+	if (ret == SR_OK) {
+		*model = RB16(registers);
+		*dclass = RB16(registers + 1);
+		decimals = RB16(registers + 2);
+		*digits_voltage = (decimals >> 8) & 0x000F;
+		*digits_current = (decimals >> 4) & 0x000F;
+		*digits_power = decimals & 0x000F;
+	} else {
+		return ret;
+	}
+
+	ret = sr_modbus_read_holding_registers(modbus, REG_ETM_U_CEIL, 1,
+			registersumax);
+	if (ret == SR_OK)
+		*max_voltage = RB16(registersumax);
+	else
+		return ret;
+	ret = sr_modbus_read_holding_registers(modbus, REG_ETM_I_CEIL, 1,
+			registersimax);
+	if (ret == SR_OK)
+		*max_current = RB16(registersimax);
+	else
+		return ret;
+	sr_dbg("Decimals: 0x%X", decimals);
+	sr_dbg("decimals for voltage 0x%X current 0x%X power 0x%X",
+			*digits_voltage, *digits_current, *digits_power);
+	sr_dbg("Max voltage %d, %d Max current", *max_voltage, *max_current);
+	return SR_OK;
+}
+
 /* Send a measured value to the session feed. */
 static int send_value(const struct sr_dev_inst *sdi,
 	struct sr_channel *ch, float value,
@@ -265,10 +346,10 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	uint16_t uset_raw, iset_raw, uout_raw, iout_raw, power_raw;
 	uint16_t reg_val, reg_state, out_state, ovpset_raw, ocpset_raw;
 	gboolean is_lock, is_out_enabled, is_reg_cc;
-	gboolean uses_ovp, uses_ocp;
-	float volt_target, curr_limit;
-	float ovp_threshold, ocp_threshold;
-	float curr_voltage, curr_current, curr_power;
+	gboolean uses_ovp, uses_ocp, uses_otp;
+	double volt_target, curr_limit;
+	double ovp_threshold, ocp_threshold;
+	double curr_voltage, curr_current, curr_power;
 
 	if (!sdi || !sdi->priv || !sdi->conn)
 		return SR_ERR_ARG;
@@ -308,7 +389,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	(void)get_init_state;
 	(void)get_curr_meas;
 
-	switch (devc->model->model_type) {
+	switch (devc->model_type) {
 	case MODEL_DPS:
 		/*
 		 * Transfer a chunk of registers in a single call. It's
@@ -343,6 +424,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		reg_val = read_u16le_inc(&rdptr); /* PROTECT */
 		uses_ovp = reg_val == STATE_OVP;
 		uses_ocp = reg_val == STATE_OCP;
+		uses_otp = 0; /* we can't query this */
 		reg_state = read_u16le_inc(&rdptr); /* CV_CC */
 		is_reg_cc = reg_state == MODE_CC;
 		out_state = read_u16le_inc(&rdptr); /* ENABLE */
@@ -392,6 +474,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		reg_val = read_u16be_inc(&rdptr); /* PROTECT */
 		uses_ovp = reg_val == STATE_OVP;
 		uses_ocp = reg_val == STATE_OCP;
+		uses_otp = 0; /* we can't query this */
 		reg_state = read_u16be_inc(&rdptr); /* REGULATION */
 		is_reg_cc = reg_state == MODE_CC;
 		out_state = read_u16be_inc(&rdptr); /* ENABLE */
@@ -414,6 +497,50 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 
 		/* Details which we cannot query from the device. */
 		is_lock = FALSE;
+
+		break;
+
+	case MODEL_ETOMMENS:
+		g_mutex_lock(&devc->rw_mutex);
+		ret = sr_modbus_read_holding_registers(modbus, REG_ETM_USET, 2, registers);
+		g_mutex_unlock(&devc->rw_mutex);
+		if (ret != SR_OK)
+			return ret;
+		volt_target = RB16(registers + 0) / devc->voltage_multiplier;
+		curr_limit = RB16(registers + 1) / devc->current_multiplier;
+
+		g_mutex_lock(&devc->rw_mutex);
+		ret = sr_modbus_read_holding_registers(modbus, REG_ETM_UOUT, 5,
+				registers);
+		g_mutex_unlock(&devc->rw_mutex);
+		if (ret != SR_OK)
+			return ret;
+		curr_voltage = RB16(registers + 0) / devc->voltage_multiplier;
+		curr_current = RB16(registers + 1) / devc->current_multiplier;
+		curr_power = RB32(registers + 2) / devc->power_multiplier;
+		// cv = 0x0002, cc = 0x0003, output disabled = 0x0000
+		is_reg_cc = (RB32(registers + 4) & 0x0001) == 0x0001;
+
+		g_mutex_lock(&devc->rw_mutex);
+		ret = sr_modbus_read_holding_registers(modbus, REG_ETM_ENABLE, 2,
+				registers);
+		g_mutex_unlock(&devc->rw_mutex);
+		if (ret != SR_OK)
+			return ret;
+		is_out_enabled = RB16(registers + 0) != 0x0;
+		uses_ovp = RB16(registers + 1) & 0x0001;
+		uses_ocp = RB16(registers + 1) & 0x0002;
+		uses_otp = RB16(registers + 1) & 0x0008;
+
+		g_mutex_lock(&devc->rw_mutex);
+		ret = sr_modbus_read_holding_registers(modbus, REG_ETM_OVP_VALUE, 4,
+				registers);
+		g_mutex_unlock(&devc->rw_mutex);
+		if (ret != SR_OK)
+			return ret;
+		ovp_threshold = RB16(registers + 0) / devc->voltage_multiplier;
+		ocp_threshold = RB16(registers + 1) / devc->current_multiplier;
+		is_lock = FALSE; // we can't query this from device
 
 		break;
 
@@ -440,6 +567,8 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	state->mask |= STATE_PROTECT_OVP;
 	state->protect_ocp = uses_ocp;
 	state->mask |= STATE_PROTECT_OCP;
+	state->protect_otp = uses_otp;
+	state->mask |= STATE_PROTECT_OTP;
 	state->protect_enabled = TRUE;
 	state->mask |= STATE_PROTECT_ENABLED;
 	state->voltage_target = volt_target;
@@ -477,7 +606,7 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 	/* Only a subset of known values is settable. */
 	if (state->mask & STATE_OUTPUT_ENABLED) {
 		reg_value = state->output_enabled ? 1 : 0;
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			ret = rdtech_dps_set_reg(sdi, REG_DPS_ENABLE, reg_value);
 			if (ret != SR_OK)
@@ -488,13 +617,18 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			if (ret != SR_OK)
 				return ret;
 			break;
+		case MODEL_ETOMMENS:
+			ret = rdtech_rd_set_reg(sdi, REG_ETM_ENABLE, reg_value);
+			if (ret != SR_OK)
+				return ret;
+			break;
 		default:
 			return SR_ERR_ARG;
 		}
 	}
 	if (state->mask & STATE_VOLTAGE_TARGET) {
 		reg_value = state->voltage_target * devc->voltage_multiplier;
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			ret = rdtech_dps_set_reg(sdi, REG_DPS_USET, reg_value);
 			if (ret != SR_OK)
@@ -505,13 +639,18 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			if (ret != SR_OK)
 				return ret;
 			break;
+		case MODEL_ETOMMENS:
+			ret = rdtech_rd_set_reg(sdi, REG_ETM_USET, reg_value);
+			if (ret != SR_OK)
+				return ret;
+			break;
 		default:
 			return SR_ERR_ARG;
 		}
 	}
 	if (state->mask & STATE_CURRENT_LIMIT) {
 		reg_value = state->current_limit * devc->current_multiplier;
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			ret = rdtech_dps_set_reg(sdi, REG_DPS_ISET, reg_value);
 			if (ret != SR_OK)
@@ -522,13 +661,18 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			if (ret != SR_OK)
 				return ret;
 			break;
+		case MODEL_ETOMMENS:
+			ret = rdtech_rd_set_reg(sdi, REG_ETM_ISET, reg_value);
+			if (ret != SR_OK)
+				return ret;
+			break;
 		default:
 			return SR_ERR_ARG;
 		}
 	}
 	if (state->mask & STATE_OVP_THRESHOLD) {
 		reg_value = state->ovp_threshold * devc->voltage_multiplier;
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			ret = rdtech_dps_set_reg(sdi, PRE_DPS_OVPSET, reg_value);
 			if (ret != SR_OK)
@@ -539,13 +683,18 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			if (ret != SR_OK)
 				return ret;
 			break;
+		case MODEL_ETOMMENS:
+			ret = rdtech_rd_set_reg(sdi, REG_ETM_OVP_VALUE, reg_value);
+			if (ret != SR_OK)
+				return ret;
+			break;
 		default:
 			return SR_ERR_ARG;
 		}
 	}
 	if (state->mask & STATE_OCP_THRESHOLD) {
 		reg_value = state->ocp_threshold * devc->current_multiplier;
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			ret = rdtech_dps_set_reg(sdi, PRE_DPS_OCPSET, reg_value);
 			if (ret != SR_OK)
@@ -556,12 +705,17 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			if (ret != SR_OK)
 				return ret;
 			break;
+		case MODEL_ETOMMENS:
+			ret = rdtech_rd_set_reg(sdi, REG_ETM_OCP_VALUE, reg_value);
+			if (ret != SR_OK)
+				return ret;
+			break;
 		default:
 			return SR_ERR_ARG;
 		}
 	}
 	if (state->mask & STATE_LOCK) {
-		switch (devc->model->model_type) {
+		switch (devc->model_type) {
 		case MODEL_DPS:
 			reg_value = state->lock ? 1 : 0;
 			ret = rdtech_dps_set_reg(sdi, REG_DPS_LOCK, reg_value);
@@ -571,6 +725,8 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 		case MODEL_RD:
 			/* Do nothing, _and_ silently succeed. */
 			break;
+		case MODEL_ETOMMENS:
+			break; // we can't set this
 		default:
 			return SR_ERR_ARG;
 		}
@@ -598,6 +754,8 @@ SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi)
 		devc->curr_ovp_state = state.protect_ovp;
 	if (state.mask & STATE_PROTECT_OCP)
 		devc->curr_ocp_state = state.protect_ocp;
+	if (state.mask & STATE_PROTECT_OTP)
+		devc->curr_otp_state = state.protect_otp;
 	if (state.mask & STATE_REGULATION_CC)
 		devc->curr_cc_state = state.regulation_cc;
 	if (state.mask & STATE_OUTPUT_ENABLED)
@@ -635,11 +793,11 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	ch = g_slist_nth_data(sdi->channels, 0);
 	send_value(sdi, ch, state.voltage,
 		SR_MQ_VOLTAGE, SR_MQFLAG_DC, SR_UNIT_VOLT,
-		devc->model->voltage_digits);
+		devc->voltage_digits);
 	ch = g_slist_nth_data(sdi->channels, 1);
 	send_value(sdi, ch, state.current,
 		SR_MQ_CURRENT, SR_MQFLAG_DC, SR_UNIT_AMPERE,
-		devc->model->current_digits);
+		devc->current_digits);
 	ch = g_slist_nth_data(sdi->channels, 2);
 	send_value(sdi, ch, state.power,
 		SR_MQ_POWER, 0, SR_UNIT_WATT, 2);
@@ -657,6 +815,12 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 			SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
 			g_variant_new_boolean(state.protect_ocp));
 		devc->curr_ocp_state = state.protect_ocp;
+	}
+	if (devc->curr_otp_state != state.protect_otp) {
+		(void)sr_session_send_meta(sdi,
+			SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(state.protect_otp));
+		devc->curr_otp_state = state.protect_otp;
 	}
 	if (devc->curr_cc_state != state.regulation_cc) {
 		regulation_text = state.regulation_cc ? "CC" : "CV";
