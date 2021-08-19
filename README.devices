@@ -211,6 +211,12 @@ or VXI communication parameters. See these examples:
  $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
  $ sigrok-cli --driver <somedriver>:conn=usbtmc/<bus>.<addr> ...
 
+Individual device drivers _may_ implement additional semantics for the
+conn= specification, which would not apply to other drivers, yet can be
+rather useful for a given type of device.
+
+ $ sigrok-cli --driver <somedriver>:conn=sn=<serno>
+
 
 Specifying serial port parameters
 ---------------------------------

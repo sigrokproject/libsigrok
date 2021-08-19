@@ -45,7 +45,7 @@ static const uint32_t devopts_cg[] = {
 static struct sr_dev_driver dcttech_usbrelay_driver_info;
 
 static struct sr_dev_inst *probe_device_common(const char *path,
-	uint16_t vid, uint16_t pid,
+	uint16_t vid, uint16_t pid, const char *want_serno,
 	const wchar_t *vendor, const wchar_t *product)
 {
 	char nonws[16], *s, *endp;
@@ -128,6 +128,12 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	sr_info("HID report data: serial number %s, relay state 0x%02x.",
 		serno, curr_state);
 
+	/* Optionally filter by serial number. */
+	if (want_serno && *want_serno && strcmp(serno, want_serno) != 0) {
+		sr_dbg("Serial number does not match user spec. Skipping.");
+		return NULL;
+	}
+
 	/* Create a device instance. */
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->vendor = g_strdup_printf("%ls", vendor);
@@ -158,9 +164,10 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	return sdi;
 }
 
-static struct sr_dev_inst *probe_device_enum(struct hid_device_info *dev)
+static struct sr_dev_inst *probe_device_enum(struct hid_device_info *dev,
+	const char *want_serno)
 {
-	return probe_device_common(dev->path, 0, 0,
+	return probe_device_common(dev->path, 0, 0, want_serno,
 		dev->manufacturer_string, dev->product_string);
 }
 
@@ -231,7 +238,7 @@ static struct sr_dev_inst *probe_device_conn(const char *path)
 	if (!ok)
 		return NULL;
 
-	return probe_device_common(path, vid, pid, vendor, product);
+	return probe_device_common(path, vid, pid, NULL, vendor, product);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -239,6 +246,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn;
 	GSList *devices;
 	struct drv_context *drvc;
+	char want_serno[SERNO_LENGTH + 1];
 	struct hid_device_info *devs, *curdev;
 	wchar_t *ws;
 	char nonws[32];
@@ -257,14 +265,25 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/*
 	 * The firmware is V-USB based. The USB VID:PID identification
 	 * is shared across several projects. Need to inspect the vendor
-	 * and product _strings_ to actually identify the device. The
-	 * USB serial number need not be present nor reliable. The HID
-	 * report content will carry the board's serial number.
+	 * and product _strings_ to actually identify the device.
 	 *
-	 * When conn= was specified, then have HIDAPI open _this_ device
-	 * and skip the enumeration. Which allows users to specify paths
-	 * that need not match the enumeration's details.
+	 * The USB serial number need not be present nor reliable. The
+	 * HID report content will carry the board's serial number.
+	 * When users specify "sn=..." connection strings, then run a
+	 * regular USB enumation, and filter the result set by serial
+	 * numbers which only become available with HID reports.
+	 *
+	 * When other connection strings were specified, then have
+	 * HIDAPI open _this_ device and skip the enumeration. Which
+	 * allows users to specify paths that need not match the
+	 * enumeration's details.
 	 */
+	memset(want_serno, 0, sizeof(want_serno));
+	if (conn && g_str_has_prefix(conn, "sn=")) {
+		conn += strlen("sn=");
+		snprintf(want_serno, sizeof(want_serno), "%s", conn);
+		conn = NULL;
+	}
 	if (conn) {
 		sr_info("Checking HID path %s.", conn);
 		sdi = probe_device_conn(conn);
@@ -303,11 +322,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		/* Identify device by communicating to it. */
 		sr_info("Checking HID path %s.", curdev->path);
-		sdi = probe_device_enum(curdev);
-		if (!sdi) {
-			sr_warn("Failed to communicate to %s.", curdev->path);
+		sdi = probe_device_enum(curdev, want_serno);
+		if (!sdi)
 			continue;
-		}
 		devices = g_slist_append(devices, sdi);
 	}
 	hid_free_enumeration(devs);

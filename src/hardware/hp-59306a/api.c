@@ -30,10 +30,8 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	/*
-	 * TODO Enable/disable multiple channel groups at once.
-	 * SR_CONF_ENABLED | SR_CONF_SET,
-	 */
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_ENABLED | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -64,6 +62,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->conn = scpi;
 	sdi->driver = &hp_59306a_driver_info;
 	sdi->inst_type = SR_INST_SCPI;
+	if (sr_scpi_connection_id(scpi, &sdi->connection_id) != SR_OK) {
+		g_free(sdi->connection_id);
+		sdi->connection_id = NULL;
+	}
 
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
@@ -73,7 +75,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		nr = idx + 1;
 
 		cg = g_malloc0(sizeof(*cg));
-		cg->name = g_strdup_printf("CH%zu", nr);
+		cg->name = g_strdup_printf("R%zu", nr);
 
 		cgc = g_malloc0(sizeof(*cgc));
 		cgc->number = nr;
@@ -108,6 +110,25 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return sr_scpi_close(sdi->conn);
 }
 
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	(void)cg;
+
+	if (!sdi || !data)
+		return SR_ERR_ARG;
+
+	switch (key) {
+	case SR_CONF_CONN:
+		*data = g_variant_new_string(sdi->connection_id);
+		break;
+	default:
+		return SR_ERR_NA;
+	}
+
+	return SR_OK;
+}
+
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -115,8 +136,10 @@ static int config_set(uint32_t key, GVariant *data,
 
 	if (!cg) {
 		switch (key) {
-		/* TODO: Enable/disbale multiple channel groups at once. */
 		case SR_CONF_ENABLED:
+			/* Enable/disable all channels at the same time. */
+			on = g_variant_get_boolean(data);
+			return hp_59306a_switch_cg(sdi, cg, on);
 		default:
 			return SR_ERR_NA;
 		}
@@ -160,14 +183,14 @@ static int config_list(uint32_t key, GVariant **data,
 
 static struct sr_dev_driver hp_59306a_driver_info = {
 	.name = "hp-59306a",
-	.longname = "hp-59306a",
+	.longname = "HP 59306A",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = std_dev_clear,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
