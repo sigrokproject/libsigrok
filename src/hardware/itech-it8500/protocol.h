@@ -208,7 +208,7 @@ SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 		enum itech_it8500_command command, int *result);
 SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 		struct sr_channel *ch, double value, enum sr_mq mq,
-		enum sr_unit unit, int digits);
+		enum sr_mqflag mqflags, enum sr_unit unit, int digits);
 SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data);
 
 #endif

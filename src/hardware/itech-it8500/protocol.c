@@ -341,7 +341,7 @@ SR_PRIV int itech_it8500_get_int(const struct sr_dev_inst *sdi,
 
 SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 		struct sr_channel *ch, double value, enum sr_mq mq,
-		enum sr_unit unit, int digits)
+		enum sr_mqflag mqflags, enum sr_unit unit, int digits)
 {
 	struct sr_datafeed_packet packet;
 	struct sr_datafeed_analog analog;
@@ -359,7 +359,7 @@ SR_PRIV void itech_it8500_channel_send_value(const struct sr_dev_inst *sdi,
 	analog.encoding->is_float = TRUE;
 	analog.meaning->mq = mq;
 	analog.meaning->unit = unit;
-	analog.meaning->mqflags = SR_MQFLAG_DC;
+	analog.meaning->mqflags = mqflags;
 
 	packet.type = SR_DF_ANALOG;
 	packet.payload = &analog;
@@ -389,15 +389,15 @@ SR_PRIV int itech_it8500_receive_data(int fd, int revents, void *cb_data)
 
 	l = g_slist_nth(sdi->channels, 0);
 	itech_it8500_channel_send_value(sdi, l->data, devc->voltage,
-			SR_MQ_VOLTAGE, SR_UNIT_VOLT, 5);
+		SR_MQ_VOLTAGE, SR_MQFLAG_DC, SR_UNIT_VOLT, 5);
 
 	l = g_slist_nth(sdi->channels, 1);
 	itech_it8500_channel_send_value(sdi, l->data, devc->current,
-			SR_MQ_CURRENT, SR_UNIT_AMPERE, 5);
+		SR_MQ_CURRENT, SR_MQFLAG_DC, SR_UNIT_AMPERE, 5);
 
 	l = g_slist_nth(sdi->channels, 2);
 	itech_it8500_channel_send_value(sdi, l->data, devc->power,
-			SR_MQ_POWER, SR_UNIT_WATT, 5);
+		SR_MQ_POWER, 0, SR_UNIT_WATT, 5);
 
 	std_session_send_df_frame_end(sdi);
 
