@@ -1518,7 +1518,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 	char **words;
 	size_t word_count, word_idx;
 	char *curr_word, *next_word, curr_first;
-	gboolean is_timestamp, is_section, is_real, is_multibit, is_singlebit;
+	gboolean is_timestamp, is_section, is_real, is_multibit, is_singlebit, is_string;
 	uint64_t timestamp;
 	char *identifier, *endptr;
 	size_t count;
@@ -1725,6 +1725,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 		is_singlebit |= curr_first == 'l' || curr_first == 'h';
 		is_singlebit |= curr_first == 'x' || curr_first == 'z';
 		is_singlebit |= curr_first == 'u' || curr_first == '-';
+		is_string = curr_first == 's';
 		if (is_real) {
 			char *real_text;
 			float real_val;
@@ -1870,6 +1871,12 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			}
 			inc->conv_bits.value[0] = bit_value;
 			process_bits(inc, identifier, inc->conv_bits.value, 1);
+			continue;
+		}
+
+		if (is_string) {
+			/* Just ignore any strings */
+			word_idx++;
 			continue;
 		}
 
