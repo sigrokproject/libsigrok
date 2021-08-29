@@ -27,10 +27,30 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "bkprecision-1856d"
+#define BKPRECISION1856D_MSG_SIZE 15
+#define BKPRECISION1856D_MSG_NUMBER_SIZE 10
+
+
+enum {
+	InputA = 0,
+	InputC = 1,
+};
 
 struct dev_context {
+	struct sr_sw_limits sw_limits;
+	unsigned int sel_input;
+	unsigned int curr_sel_input;
+	unsigned int gate_time;
+
+	char buffer[BKPRECISION1856D_MSG_SIZE];
+	unsigned int buffer_level;
 };
 
 SR_PRIV int bkprecision_1856d_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void bkprecision_1856d_init(const struct sr_dev_inst *sdi);
+SR_PRIV void bkprecision_1856d_set_gate_time(struct dev_context *devc,
+											 int time);
+SR_PRIV void bkprecision_1856d_select_input(struct dev_context *devc,
+											int intput);
 
 #endif
