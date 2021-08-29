@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2021 Daniel Anselmi <danselmi@gmx.ch>
+ * Copyright (C) 2024 Daniel Anselmi <danselmi@gmx.ch>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,12 +24,42 @@
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "scpi.h"
 
 #define LOG_PREFIX "rohde-schwarz-nrpxsn"
 
-struct dev_context {
+
+struct rohde_schwarz_nrpxsn_device_model {
+	const char *model_str;
+	double freq_min;
+	double freq_max;
+	double power_min;
+	double power_max;
 };
 
-SR_PRIV int rohde_schwarz_nrpxsn_receive_data(int fd, int revents, void *cb_data);
+enum MEAS_STATES {
+	IDLE,
+	WAITING_MEASUREMENT,
+};
+
+struct dev_context {
+	struct sr_sw_limits limits;
+	int trigger_source;
+	int trigger_source_changed;
+	uint64_t curr_freq;
+	int curr_freq_changed;
+	int measurement_state;
+
+	const struct rohde_schwarz_nrpxsn_device_model *model_config;
+};
+
+SR_PRIV int rohde_schwarz_nrpxsn_receive_data(
+		int fd, int revents, void *cb_data);
+SR_PRIV int rohde_schwarz_nrpxsn_init(
+		struct sr_scpi_dev_inst *scpi, struct dev_context *devc);
+SR_PRIV int rohde_schwarz_nrpxsn_update_trigger_source(
+		struct sr_scpi_dev_inst *scpi, struct dev_context *devc);
+SR_PRIV int rohde_schwarz_nrpxsn_update_curr_freq(
+		struct sr_scpi_dev_inst *scpi, struct dev_context *devc);
 
 #endif

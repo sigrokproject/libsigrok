@@ -39,6 +39,8 @@ static const char *scpi_vendors[][2] = {
 	{ "PHILIPS", "Philips" },
 	{ "RIGOL TECHNOLOGIES", "Rigol" },
 	{ "Siglent Technologies", "Siglent" },
+	{ "R&S", "ROHDE&SCHWARZ"},
+	{ "Rohde&Schwarz", "ROHDE&SCHWARZ"},
 };
 
 /**
