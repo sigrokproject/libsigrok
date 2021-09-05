@@ -855,7 +855,7 @@ static int parse_header_var(struct context *inc, char *contents)
 	} else if (is_real || is_int) {
 		ch_type = SR_CHANNEL_ANALOG;
 	} else {
-		sr_info("Unsupported signal type: '%s'", type);
+		sr_err("Unsupported signal type: '%s'", type);
 		g_strfreev(parts);
 		return SR_ERR_DATA;
 	}
