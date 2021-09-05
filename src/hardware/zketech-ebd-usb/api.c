@@ -86,7 +86,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(struct dev_context));
 	g_mutex_init(&devc->rw_mutex);
 	devc->current_limit = 0;
-	devc->voltage_limit = 0;
+	devc->uvc_threshold = 0;
 	devc->running = FALSE;
 	devc->load_activated = FALSE;
 	sr_sw_limits_init(&devc->limits);
@@ -98,7 +98,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (ret < 0) {
 		sr_warn("Could not receive message!");
 		ret = SR_ERR;
-	} else if (0 == ret) {
+	} else if (ret == 0) {
 		sr_warn("No message received!");
 		ret = SR_ERR;
 	}
@@ -147,7 +147,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_double(fvalue);
 		return ret;
 	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
-		ret = ebd_get_voltage_limit(sdi, &fvalue);
+		ret = ebd_get_uvc_threshold(sdi, &fvalue);
 		if (ret == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		return ret;
@@ -180,7 +180,7 @@ static int config_set(uint32_t key, GVariant *data,
 		value = g_variant_get_double(data);
 		if (value < 0.0 || value > 21.0)
 			return SR_ERR_ARG;
-		return ebd_set_voltage_limit(sdi, value);
+		return ebd_set_uvc_threshold(sdi, value);
 	default:
 		return SR_ERR_NA;
 	}
@@ -192,7 +192,8 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts,
+			devopts);
 	case SR_CONF_CURRENT_LIMIT:
 		*data = std_gvar_min_max_step(0.0, 4.0, 0.001);
 		break;
@@ -231,9 +232,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 	if (sdi) {
 		devc = sdi->priv;
-		if (devc->load_activated) {
+		if (devc->load_activated)
 			ebd_loadtoggle(sdi->conn, devc);
-		}
 		ebd_stop(sdi->conn, devc);
 	}
 
