@@ -457,9 +457,9 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			logic_sample =
 			    &ctx->logic_samples[i * ctx->num_logic_channels];
 
+
 			if (ctx->dedup) {
-				if (i > 0 && i < ctx->num_samples - 1 &&
-				    !memcmp(logic_sample, ctx->previous_sample,
+				if (!memcmp(logic_sample, ctx->previous_sample,
 					    ctx->num_logic_channels) &&
 				    !memcmp(analog_sample,
 					    ctx->previous_sample +
@@ -513,12 +513,10 @@ static void dump_saved_values(struct context *ctx, GString **out)
 	}
 
 	/* Discard all of the working space. */
-	g_free(ctx->previous_sample);
 	g_free(ctx->analog_samples);
 	g_free(ctx->logic_samples);
 	ctx->channels_seen = 0;
 	ctx->num_samples = 0;
-	ctx->previous_sample = NULL;
 	ctx->analog_samples = NULL;
 	ctx->logic_samples = NULL;
 }
