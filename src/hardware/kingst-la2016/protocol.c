@@ -46,13 +46,13 @@
 #define PWM_CLOCK        SR_MHZ(200)	/* this is 200MHz for both the LA2016 and LA1016 */
 
 /* usb vendor class control requests to the cypress FX2 microcontroller */
-#define	CMD_EEPROM	0xa2	/* ctrl_in reads, ctrl_out writes */
-#define	CMD_FPGA_INIT	0x50	/* used before and after FPGA bitstream loading */
-#define	CMD_FPGA_SPI	0x20	/* access registers in the FPGA over SPI bus, ctrl_in reads, ctrl_out writes */
-#define	CMD_FPGA_ENABLE	0x10
-#define	CMD_BULK_RESET	0x38	/* flush FX2 usb endpoint 6 IN fifos */
-#define	CMD_BULK_START	0x30	/* begin transfer of capture data via usb endpoint 6 IN */
-#define	CMD_KAUTH	0x60	/* communicate with authentication ic U10, not used */
+#define CMD_FPGA_ENABLE	0x10
+#define CMD_FPGA_SPI	0x20	/* access registers in the FPGA over SPI bus, ctrl_in reads, ctrl_out writes */
+#define CMD_BULK_START	0x30	/* begin transfer of capture data via usb endpoint 6 IN */
+#define CMD_BULK_RESET	0x38	/* flush FX2 usb endpoint 6 IN fifos */
+#define CMD_FPGA_INIT	0x50	/* used before and after FPGA bitstream loading */
+#define CMD_KAUTH	0x60	/* communicate with authentication ic U10, not used */
+#define CMD_EEPROM	0xa2	/* ctrl_in reads, ctrl_out writes */
 
 /*
  * fpga spi register addresses for control request CMD_FPGA_SPI:
@@ -63,15 +63,15 @@
  * as appropriate. In this driver code just use IN transactions
  * to read, OUT to write.
  */
-#define	REG_RUN		0x00	/* read capture status, write capture start */
-#define	REG_PWM_EN	0x02	/* user pwm channels on/off */
-#define	REG_CAPT_MODE	0x03	/* set to 0x00 for capture to sdram, 0x01 bypass sdram for streaming */
-#define	REG_BULK	0x08	/* write start address and number of bytes for capture data bulk upload */
-#define	REG_SAMPLING	0x10	/* write capture config, read capture data location in sdram */
-#define	REG_TRIGGER	0x20	/* write level and edge trigger config */
-#define	REG_THRESHOLD	0x68	/* write two pwm configs to control input threshold dac */
-#define	REG_PWM1	0x70	/* write config for user pwm1 */
-#define	REG_PWM2	0x78	/* write config for user pwm2 */
+#define REG_RUN		0x00	/* read capture status, write capture start */
+#define REG_PWM_EN	0x02	/* user pwm channels on/off */
+#define REG_CAPT_MODE	0x03	/* set to 0x00 for capture to sdram, 0x01 bypass sdram for streaming */
+#define REG_BULK	0x08	/* write start address and number of bytes for capture data bulk upload */
+#define REG_SAMPLING	0x10	/* write capture config, read capture data location in sdram */
+#define REG_TRIGGER	0x20	/* write level and edge trigger config */
+#define REG_THRESHOLD	0x68	/* write two pwm configs to control input threshold dac */
+#define REG_PWM1	0x70	/* write config for user pwm1 */
+#define REG_PWM2	0x78	/* write config for user pwm2 */
 
 static int ctrl_in(const struct sr_dev_inst *sdi,
 		   uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
@@ -510,7 +510,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, devc->limit_samples);
 	write_u8_inc(&wrptr, 0);
 	write_u32le_inc(&wrptr, devc->pre_trigger_size);
-	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xFFFFFF00 );
+	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xFFFFFF00);
 	write_u16le_inc(&wrptr, divisor);
 	write_u8_inc(&wrptr, 0);
 
@@ -544,7 +544,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
-	static uint16_t previous_state=0;
+	static uint16_t previous_state = 0;
 	int ret;
 
 	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, &state, sizeof(state))) != SR_OK) {
@@ -557,18 +557,18 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	 * just print a log message if status has changed.
 	 */
 
-	if(state != previous_state) {
+	if (state != previous_state) {
 		previous_state = state;
-		if((state & 0x0003)==1) {
+		if ((state & 0x0003) == 0x01) {
 			sr_dbg("run_state: 0x%04x (%s)", state, "idle");
 		}
-		else if((state & 0x000f)==2) {
+		else if ((state & 0x000f) == 0x02) {
 			sr_dbg("run_state: 0x%04x (%s)", state, "pre-trigger sampling");
 		}
-		else if((state & 0x000f)==0x0a) {
+		else if ((state & 0x000f) == 0x0a) {
 			sr_dbg("run_state: 0x%04x (%s)", state, "sampling, waiting for trigger");
 		}
-		else if((state & 0x000f)==0x0e) {
+		else if ((state & 0x000f) == 0x0e) {
 			sr_dbg("run_state: 0x%04x (%s)", state, "post-trigger sampling");
 		}
 		else {
@@ -769,7 +769,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	}
 	else {
 		sr_dbg("purchase date: 20%02hx-%02hx", (purchase_date_bcd[0]) & 0x00ff, (purchase_date_bcd[0] >> 8) & 0x00ff);
-		if( purchase_date_bcd[0] != (0x0ffff & ~purchase_date_bcd[1]) ) {
+		if (purchase_date_bcd[0] != (0x0ffff & ~purchase_date_bcd[1])) {
 			sr_err("purchase date: checksum failure");
 		}
 	}

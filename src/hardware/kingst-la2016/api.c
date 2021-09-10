@@ -674,7 +674,7 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 	if (devc->have_trigger == 0) {
 		if (la2016_has_triggered(sdi) == 0) {
-			/*sr_dbg("not yet ready for download...");*/
+			/* not yet ready for download */
 			return TRUE;
 		}
 		devc->have_trigger = 1;
