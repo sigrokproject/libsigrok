@@ -24,10 +24,9 @@
 /* Log a byte-array as hex values. */
 static void log_buf(const char *message, uint8_t buf[], size_t count)
 {
-	size_t i;
 	char buffer[count * 2 + 1];
 
-	for (i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		sprintf(&buffer[2 * i], "%02X", buf[i]);
 	}
 
@@ -79,14 +78,12 @@ static void encode_value(float current, uint8_t *hi, uint8_t *lo, float divisor)
 /* Send updated configuration values to the load. */
 static int send_cfg(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
-	uint8_t send[] =
-		{ 0xfa, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8 };
+	uint8_t send[] = {0xfa, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf8};
 
 	encode_value(devc->current_limit, &send[2], &send[3], 1000.0);
 	encode_value(devc->uvc_threshold, &send[4], &send[5], 100.0);
 
-	send[8] = send[1] ^ send[2] ^ send[3] ^ send[4] ^ send[5]
-		^ send[6] ^ send[7];
+	send[8] = send[1] ^ send[2] ^ send[3] ^ send[4] ^ send[5] ^ send[6] ^ send[7];
 
 	return send_cmd(serial, send, 10);
 }
@@ -94,8 +91,7 @@ static int send_cfg(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 /* Send the init/connect sequence; drive starts sending voltage and current. */
 SR_PRIV int ebd_init(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
-	uint8_t init[] =
-		{ 0xfa, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xf8 };
+	uint8_t init[] = { 0xfa, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0xf8 };
 
 	(void)devc;
 
@@ -107,14 +103,12 @@ SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial,
 	struct dev_context *devc)
 {
 	int ret;
-	uint8_t start[] =
-		{ 0xfa, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf8 };
+	uint8_t start[] = { 0xfa, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xf8 };
 
 	encode_value(devc->current_limit, &start[2], &start[3], 1000.0);
 	encode_value(devc->uvc_threshold, &start[4], &start[5], 100.0);
 
-	start[8] = start[1] ^ start[2] ^ start[3] ^ start[4] ^ start[5]
-		^ start[6] ^ start[7];
+	start[8] = start[1] ^ start[2] ^ start[3] ^ start[4] ^ start[5] ^ start[6] ^ start[7];
 
 	sr_info("Activating load");
 	ret = send_cmd(serial, start, 10);
@@ -133,10 +127,9 @@ SR_PRIV int ebd_loadstart(struct sr_serial_dev_inst *serial,
 SR_PRIV int ebd_loadtoggle(struct sr_serial_dev_inst *serial,
 	struct dev_context *devc)
 {
-	uint8_t toggle[] =
-		{ 0xfa, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xF8 };
+	uint8_t toggle[] = { 0xfa, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xF8 };
 
-	(void) devc;
+	(void)devc;
 
 	sr_info("Toggling load");
 	return send_cmd(serial, toggle, 10);
@@ -145,10 +138,9 @@ SR_PRIV int ebd_loadtoggle(struct sr_serial_dev_inst *serial,
 /* Stop the drive. */
 SR_PRIV int ebd_stop(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
-	uint8_t stop[] =
-		{ 0xfa, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xF8 };
+	uint8_t stop[] = { 0xfa, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xF8 };
 
-	(void) devc;
+	(void)devc;
 
 	return send_cmd(serial, stop, 10);
 }
@@ -194,9 +186,8 @@ SR_PRIV int ebd_read_message(struct sr_serial_dev_inst *serial, size_t length,
 	while (!message_complete && turn < max_turns) {
 		/* Wait for header byte. */
 		message_length = 0;
-		while (buf[0] != MSG_FRAME_BEGIN && turn < max_turns) {
-			ret = serial_read_blocking(serial, &buf[0], 1,
-				serial_timeout(serial, 1));
+		while ((buf[0] != MSG_FRAME_BEGIN) && (turn < max_turns)) {
+			ret = serial_read_blocking(serial, &buf[0], 1, serial_timeout(serial, 1));
 			if (ret < 0) {
 				sr_err("Error %d reading byte.", ret);
 				return ret;
@@ -213,11 +204,10 @@ SR_PRIV int ebd_read_message(struct sr_serial_dev_inst *serial, size_t length,
 			turn++;
 		}
 		/* Read until end byte. */
-		while (buf[message_length - 1] != MSG_FRAME_END
-			&& message_length < length && turn < max_turns) {
+		while ((buf[message_length - 1] != MSG_FRAME_END)
+			&& (message_length < length) && (turn < max_turns)) {
 
-			ret = serial_read_blocking(serial, &buf[message_length],
-				1, serial_timeout(serial, 1));
+			ret = serial_read_blocking(serial, &buf[message_length], 1, serial_timeout(serial, 1));
 			if (ret < 0) {
 				sr_err("Error %d reading byte.", ret);
 				return ret;
@@ -313,8 +303,8 @@ SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 		sr_err("No messages received");
 		devc->running = FALSE;
 		return 0;
-	} else if (ret != 19 ||
-		(reply[1] != 0x00 && reply[1] != 0x0a && reply[1] != 0x64 && reply[1] != 0x6e)) {
+	} else if ((ret != 19) ||
+		((reply[1] != 0x00) && (reply[1] != 0x0a) && (reply[1] != 0x64) && (reply[1] != 0x6e))) {
 
 		sr_info("Not measurement message received");
 		return ret;
@@ -332,9 +322,9 @@ SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	devc->running = TRUE;
-	if (reply[1] == 0x00 || reply[1] == 0x64)
+	if ((reply[1] == 0x00) || (reply[1] == 0x64))
 		devc->load_activated = FALSE;
-	else if (reply[1] == 0x0a || reply[1] == 0x6e)
+	else if ((reply[1] == 0x0a) || (reply[1] == 0x6e))
 		devc->load_activated = TRUE;
 
 	/* Calculate values. */
@@ -362,7 +352,7 @@ SR_PRIV int ebd_receive_data(int fd, int revents, void *cb_data)
 	} else if (!devc->load_activated && !ebd_current_is0(devc)) {
 		ebd_loadstart(serial, devc);
 	} else if (devc->load_activated &&
-		(current_limit != devc->current_limit || uvc_threshold != devc->uvc_threshold)) {
+		((current_limit != devc->current_limit) || (uvc_threshold != devc->uvc_threshold))) {
 
 		sr_dbg("Adjusting limit from %.03f A %.03f V to %.03f A %.03f V",
 			current_limit, uvc_threshold, devc->current_limit,
