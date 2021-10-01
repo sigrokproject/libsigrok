@@ -723,9 +723,11 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	}
 
 	to_read = devc->n_bytes_to_read;
-	if (to_read > LA2016_BULK_MAX)
-		to_read = LA2016_BULK_MAX;
-
+	/* choose a buffer size for all of the usb transfers */
+	if (to_read >= LA2016_USB_BUFSZ)
+		to_read = LA2016_USB_BUFSZ; /* multiple transfers */
+	else /* one transfer, make buffer size some multiple of LA2016_EP6_PKTSZ */
+		to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
 	buffer = g_try_malloc(to_read);
 	if (!buffer) {
 		sr_err("Failed to allocate %d bytes for bulk transfer", to_read);

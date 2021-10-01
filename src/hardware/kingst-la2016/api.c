@@ -641,8 +641,11 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc->n_bytes_to_read -= transfer->actual_length;
 	if (devc->n_bytes_to_read) {
 		uint32_t to_read = devc->n_bytes_to_read;
-		if (to_read > LA2016_BULK_MAX)
-			to_read = LA2016_BULK_MAX;
+		/* determine read size for the next usb transfer */
+		if (to_read >= LA2016_USB_BUFSZ)
+			to_read = LA2016_USB_BUFSZ;
+		else /* last transfer, make read size some multiple of LA2016_EP6_PKTSZ */
+			to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
 		libusb_fill_bulk_transfer(
 			transfer, usb->devhdl,
 			0x86, transfer->buffer, to_read,
