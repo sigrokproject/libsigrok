@@ -37,6 +37,16 @@
 
 #define LA2016_BULK_MAX         8388608
 
+/*
+ * On Windows sigrok uses WinUSB RAW_IO policy which requires the
+ * USB transfer buffer size to be a multiple of the endpoint max packet
+ * size, which is 512 bytes in this case. Also, the maximum allowed size of
+ * the transfer buffer is normally read from WinUSB_GetPipePolicy API but
+ * libusb does not expose this function. Typically, max size is 2MB.
+ */
+#define LA2016_EP6_PKTSZ	512 /* endpoint 6 max packet size */
+#define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KB buffer */
+
 #define MAX_RENUM_DELAY_MS	3000
 #define DEFAULT_TIMEOUT_MS      200
 
