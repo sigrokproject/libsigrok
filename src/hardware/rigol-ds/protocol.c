@@ -358,6 +358,7 @@ SR_PRIV int rigol_ds_capture_start(const struct sr_dev_inst *sdi)
 		       PRIu64, devc->num_frames + 1, limit_frames);
 
 	switch (devc->model->series->protocol) {
+	case PROTOCOL_V1:
 	case PROTOCOL_V2:
 		rigol_ds_set_wait_event(devc, WAIT_TRIGGER);
 		break;
@@ -469,6 +470,13 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 	const gboolean first_frame = (devc->num_frames == 0);
 
 	switch (devc->model->series->protocol) {
+	case PROTOCOL_V1:
+			if (sr_scpi_send(sdi->conn, ":WAV:SOUR CHAN%d",
+					ch->index + 1) != SR_OK)
+				return SR_ERR;
+			if (sr_scpi_send(sdi->conn, ":WAV:DATA?") != SR_OK)
+				return SR_ERR;
+		break;
 	case PROTOCOL_V2:
 	case PROTOCOL_V3:
 		if (ch->type == SR_CHANNEL_LOGIC) {
@@ -535,6 +543,9 @@ SR_PRIV int rigol_ds_channel_start(const struct sr_dev_inst *sdi)
 		if (first_frame && sr_scpi_get_int(sdi->conn, ":WAV:YREF?",
 				&devc->vert_reference[ch->index]) != SR_OK)
 			return SR_ERR;
+	} else if (devc->model->series->protocol == PROTOCOL_V1 &&
+			ch->type == SR_CHANNEL_ANALOG) {
+		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25;
 	} else if (ch->type == SR_CHANNEL_ANALOG) {
 		devc->vert_inc[ch->index] = devc->vdiv[ch->index] / 25.6;
 	}
@@ -603,6 +614,87 @@ static int rigol_ds_read_header(struct sr_dev_inst *sdi)
 	sr_dbg("Received data block header: '%s' -> block length %d", buf, ret);
 
 	return ret;
+}
+
+/*
+ * This is the receiver and parser for Agilent DSO3000 series sample data.
+ * It is sidderent from what newer models use. It looks somewhat like this:
+ *
+ *   "0x4D 0x34 0xDC ... 0x0D 0xE5 \n"
+ *
+ * That is -- sequence of 0x, followed by two-digit uppercase hexadecimal
+ * 8-bit number and a space, terminated with a line feed. The use of
+ * uppercase characters is not documented, but the Agilent Scope Connect
+ * mis-handles lowercase characters. The last space prior to newline is also
+ * not documented, but it was observed to be there.
+ *
+ * The firmware for these scopes is unbelievably buggy and likes to regularly
+ * insert spurious \x00 bytes when sending the data over RS-232, sometimes in
+ * place of legitimate data. The Agilent Scope Connect software seems to
+ * compensate for this buginess by being extremely tolerant of garbage
+ * input. Due to the lack of a better option, this parser aims to do the same
+ * thing like the vendor software does -- recover from unexpected input by
+ * skipping over it until we find something that looks like sample data. Sigh.
+ */
+static int rigol_ds_read_hex_data(void *scpi, char *buf, int maxlen)
+{
+	int state = 0;
+	int len = 0;
+	char c;
+	int h;
+
+	while (1) {
+		if (sr_scpi_read_data(scpi, &c, 1) == 0)
+			continue;
+		sr_dbg("Got character 0x%02x '%c'", c, c);
+
+		if (c == '\n') {
+			while (len < maxlen)
+				buf[len++] = 0;
+			break;
+		}
+
+		if (state == 4) {
+			state = 0;
+			if (c == ' ')
+				continue;
+		}
+
+		if (state == 0) {
+			state++;
+			if (c == '0')
+				continue;
+		}
+
+		if (state == 1) {
+			state++;
+			if (c == 'x')
+				continue;
+		}
+
+		if (len >= maxlen)
+			break;
+
+		if (c >= '0' && c <= '9') {
+			h = c - '0';
+		} else if (c >= 'a' && c <= 'f') {
+			h = c - 'a' + 0xa;
+		} else if (c >= 'A' && c <= 'F') {
+			h = c - 'A' + 0xa;
+		} else {
+			if (state == 3)
+				((unsigned char *)buf)[len++] >>= 4;
+			state = 0;
+			continue;
+		}
+
+		if (state++ == 2)
+			buf[len] = h << 4;
+		else
+			buf[len++] |= h;
+	}
+
+	return len;
 }
 
 SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
@@ -725,7 +817,10 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		len = ACQ_BUFFER_SIZE;
 	sr_dbg("Requesting read of %d bytes", len);
 
-	len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
+	if (devc->format == FORMAT_HEX)
+		len = rigol_ds_read_hex_data(scpi, (char *)devc->buffer, len);
+	else
+		len = sr_scpi_read_data(scpi, (char *)devc->buffer, len);
 
 	if (len == -1) {
 		sr_err("Error while reading block data, aborting capture.");
@@ -746,6 +841,9 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 		if (devc->model->series->protocol >= PROTOCOL_V4)
 			for (i = 0; i < len; i++)
 				devc->data[i] = ((int)devc->buffer[i] - vref - origin) * vdiv;
+		else if (devc->model->series->protocol == PROTOCOL_V1)
+			for (i = 0; i < len; i++)
+				devc->data[i] = (126 - devc->buffer[i]) * vdiv - offset;
 		else
 			for (i = 0; i < len; i++)
 				devc->data[i] = (128 - devc->buffer[i]) * vdiv - offset;

@@ -853,6 +853,7 @@ static int config_list(uint32_t key, GVariant **data,
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
 		switch (devc->model->series->protocol) {
+		case PROTOCOL_V1:
 		case PROTOCOL_V2:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 2);
 			break;
@@ -952,6 +953,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
 		switch (protocol) {
+		case PROTOCOL_V1:
 		case PROTOCOL_V2:
 		case PROTOCOL_V3:
 			/* V1 and V2 do not have segmented data */
