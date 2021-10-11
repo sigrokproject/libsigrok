@@ -232,6 +232,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/arachnid-labs-re-load-pro/protocol.c \
 	src/hardware/arachnid-labs-re-load-pro/api.c
 endif
+if HW_ASIX_OMEGA_RTM_CLI
+src_libdrivers_la_SOURCES += \
+	src/hardware/asix-omega-rtm-cli/protocol.h \
+	src/hardware/asix-omega-rtm-cli/protocol.c \
+	src/hardware/asix-omega-rtm-cli/api.c
+endif
 if HW_ASIX_SIGMA
 src_libdrivers_la_SOURCES += \
 	src/hardware/asix-sigma/protocol.h \
