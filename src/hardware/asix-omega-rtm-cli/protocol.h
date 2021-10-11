@@ -20,16 +20,41 @@
 #ifndef LIBSIGROK_HARDWARE_ASIX_OMEGA_RTM_CLI_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_ASIX_OMEGA_RTM_CLI_PROTOCOL_H
 
-#include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include <stdint.h>
+
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "asix-omega-rtm-cli"
 
+#define RTMCLI_STDOUT_CHUNKSIZE (1024 * 1024)
+#define FEED_QUEUE_DEPTH (256 * 1024)
+
 struct dev_context {
+	struct sr_sw_limits limits;
+	struct {
+		gchar **argv;
+		GSpawnFlags flags;
+		gboolean running;
+		GPid pid;
+		gint fd_stdin_write;
+		gint fd_stdout_read;
+	} child;
+	struct {
+		uint8_t buff[RTMCLI_STDOUT_CHUNKSIZE];
+		size_t fill;
+	} rawdata;
+	struct {
+		struct feed_queue_logic *queue;
+		uint8_t last_sample[sizeof(uint16_t)];
+		uint64_t remain_count;
+		gboolean check_count;
+	} samples;
 };
 
-SR_PRIV int asix_omega_rtm_cli_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int omega_rtm_cli_open(const struct sr_dev_inst *sdi);
+SR_PRIV int omega_rtm_cli_close(const struct sr_dev_inst *sdi);
+SR_PRIV int omega_rtm_cli_receive_data(int fd, int revents, void *cb_data);
 
 #endif
