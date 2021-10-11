@@ -197,25 +197,25 @@ static const struct rigol_ds_vendor supported_vendors[] = {
 /* vendor, series/name, protocol, data format, max timebase, min vdiv,
  * number of horizontal divs, live waveform samples, memory buffer samples */
 static const struct rigol_ds_series supported_series[] = {
-	[VS5000] = {VENDOR(RIGOL), "VS5000", PROTOCOL_V1, FORMAT_RAW,
+	[VS5000] = {VENDOR(RIGOL), "VS5000", PROTOCOL_V2, FORMAT_RAW,
 		{50, 1}, {2, 1000}, 14, 2048, 0},
-	[DS1000] = {VENDOR(RIGOL), "DS1000", PROTOCOL_V2, FORMAT_IEEE488_2,
+	[DS1000] = {VENDOR(RIGOL), "DS1000", PROTOCOL_V3, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 12, 600, 1048576},
-	[DS2000] = {VENDOR(RIGOL), "DS2000", PROTOCOL_V3, FORMAT_IEEE488_2,
+	[DS2000] = {VENDOR(RIGOL), "DS2000", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{500, 1}, {500, 1000000}, 14, 1400, 14000},
-	[DS2000A] = {VENDOR(RIGOL), "DS2000A", PROTOCOL_V3, FORMAT_IEEE488_2,
+	[DS2000A] = {VENDOR(RIGOL), "DS2000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{1000, 1}, {500, 1000000}, 14, 1400, 14000},
-	[DSO1000] = {VENDOR(AGILENT), "DSO1000", PROTOCOL_V3, FORMAT_IEEE488_2,
+	[DSO1000] = {VENDOR(AGILENT), "DSO1000", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 12, 600, 20480},
-	[DSO1000B] = {VENDOR(AGILENT), "DSO1000", PROTOCOL_V3, FORMAT_IEEE488_2,
+	[DSO1000B] = {VENDOR(AGILENT), "DSO1000", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 12, 600, 20480},
-	[DS1000Z] = {VENDOR(RIGOL), "DS1000Z", PROTOCOL_V4, FORMAT_IEEE488_2,
+	[DS1000Z] = {VENDOR(RIGOL), "DS1000Z", PROTOCOL_V5, FORMAT_IEEE488_2,
 		{50, 1}, {1, 1000}, 12, 1200, 12000000},
-	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V4, FORMAT_IEEE488_2,
+	[DS4000] = {VENDOR(RIGOL), "DS4000", PROTOCOL_V5, FORMAT_IEEE488_2,
 		{1000, 1}, {1, 1000}, 14, 1400, 0},
-	[MSO5000] = {VENDOR(RIGOL), "MSO5000", PROTOCOL_V5, FORMAT_IEEE488_2,
+	[MSO5000] = {VENDOR(RIGOL), "MSO5000", PROTOCOL_V6, FORMAT_IEEE488_2,
 		{1000, 1}, {500, 1000000}, 10, 1000, 0},
-	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
+	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V5, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
 };
 
@@ -474,7 +474,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!scpi)
 		return SR_ERR_BUG;
 
-	if (devc->model->series->protocol == PROTOCOL_V2)
+	if (devc->model->series->protocol == PROTOCOL_V3)
 		rigol_ds_config_set(sdi, ":KEY:LOCK DISABLE");
 
 	return sr_scpi_close(scpi);
@@ -771,10 +771,10 @@ static int config_set(uint32_t key, GVariant *data,
 		tmp_str = g_variant_get_string(data, NULL);
 		if (!strcmp(tmp_str, "Live"))
 			devc->data_source = DATA_SOURCE_LIVE;
-		else if (devc->model->series->protocol >= PROTOCOL_V2
+		else if (devc->model->series->protocol >= PROTOCOL_V3
 			&& !strcmp(tmp_str, "Memory"))
 			devc->data_source = DATA_SOURCE_MEMORY;
-		else if (devc->model->series->protocol >= PROTOCOL_V3
+		else if (devc->model->series->protocol >= PROTOCOL_V4
 			 && !strcmp(tmp_str, "Segmented"))
 			devc->data_source = DATA_SOURCE_SEGMENTED;
 		else {
@@ -853,10 +853,10 @@ static int config_list(uint32_t key, GVariant **data,
 			/* Can't know this until we have the exact model. */
 			return SR_ERR_ARG;
 		switch (devc->model->series->protocol) {
-		case PROTOCOL_V1:
+		case PROTOCOL_V2:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 2);
 			break;
-		case PROTOCOL_V2:
+		case PROTOCOL_V3:
 			*data = g_variant_new_strv(data_sources, ARRAY_SIZE(data_sources) - 1);
 			break;
 		default:
@@ -908,7 +908,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			/* Only one list entry for older protocols. All channels are
 			 * retrieved together when this entry is processed. */
 			if (ch->enabled && (
-						protocol > PROTOCOL_V3 ||
+						protocol > PROTOCOL_V4 ||
 						!some_digital))
 				devc->enabled_channels = g_slist_append(
 						devc->enabled_channels, ch);
@@ -916,7 +916,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				some_digital = TRUE;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
+					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V4 ?
 								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
@@ -924,9 +924,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (protocol >= PROTOCOL_V5)
+				if (protocol >= PROTOCOL_V6)
 					cmd = ":LA:DISP D%d,%s";
-				else if (protocol >= PROTOCOL_V3)
+				else if (protocol >= PROTOCOL_V4)
 					cmd = ":LA:DIG%d:DISP %s";
 				else
 					cmd = ":DIG%d:TURN %s";
@@ -945,24 +945,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* Turn off LA module if on and no digital channels selected. */
 	if (devc->la_enabled && !some_digital)
 		if (rigol_ds_config_set(sdi,
-				devc->model->series->protocol >= PROTOCOL_V3 ?
+				devc->model->series->protocol >= PROTOCOL_V4 ?
 					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
 			return SR_ERR;
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
 		switch (protocol) {
-		case PROTOCOL_V1:
 		case PROTOCOL_V2:
+		case PROTOCOL_V3:
 			/* V1 and V2 do not have segmented data */
 			sr_err("Data source 'Segmented' not supported on this model");
 			break;
-		case PROTOCOL_V3:
 		case PROTOCOL_V4:
+		case PROTOCOL_V5:
 		{
 			int frames = 0;
 			if (sr_scpi_get_int(sdi->conn,
-						protocol == PROTOCOL_V4 ? "FUNC:WREP:FEND?" :
+						protocol == PROTOCOL_V5 ? "FUNC:WREP:FEND?" :
 						"FUNC:WREP:FMAX?", &frames) != SR_OK)
 				return SR_ERR;
 			if (frames <= 0) {
@@ -972,7 +972,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->num_frames_segmented = frames;
 			break;
 		}
-		case PROTOCOL_V5:
+		case PROTOCOL_V6:
 			/* The frame limit has to be read on the fly, just set up
 			 * reading of the first frame */
 			if (rigol_ds_config_set(sdi, "REC:CURR 1") != SR_OK)
@@ -988,11 +988,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->digital_frame_size = digital_frame_size(sdi);
 
 	switch (devc->model->series->protocol) {
-	case PROTOCOL_V2:
+	case PROTOCOL_V3:
 		if (rigol_ds_config_set(sdi, ":ACQ:MEMD LONG") != SR_OK)
 			return SR_ERR;
 		break;
-	case PROTOCOL_V3:
+	case PROTOCOL_V4:
 		/* Apparently for the DS2000 the memory
 		 * depth can only be set in Running state -
 		 * this matches the behaviour of the UI. */
@@ -1024,7 +1024,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
-		if (devc->model->series->protocol < PROTOCOL_V3) {
+		if (devc->model->series->protocol < PROTOCOL_V4) {
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
 		}
