@@ -2671,6 +2671,9 @@ SR_PRIV int sr_sw_limits_config_set(struct sr_sw_limits *limits, uint32_t key,
 	GVariant *data);
 SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits);
 SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits);
+SR_PRIV int sr_sw_limits_get_remain(const struct sr_sw_limits *limits,
+	uint64_t *samples, uint64_t *frames, uint64_t *msecs,
+	gboolean *exceeded);
 SR_PRIV void sr_sw_limits_update_samples_read(struct sr_sw_limits *limits,
 	uint64_t samples_read);
 SR_PRIV void sr_sw_limits_update_frames_read(struct sr_sw_limits *limits,

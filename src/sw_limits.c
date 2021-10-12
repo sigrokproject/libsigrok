@@ -166,6 +166,87 @@ SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits)
 }
 
 /**
+ * Get remaining counts until software limits are reached.
+ *
+ * This routine fills in those C language variables which callers
+ * requested, and provides the remaining value until a specified limit
+ * would be reached.
+ *
+ * The @ref sr_sw_limits_config_get() routine is suitable for rare
+ * configuration calls and interfaces nicely with Glib data types. The
+ * @ref sr_sw_limits_check() routine only provides a weak "exceeded"
+ * result. This @ref sr_sw_limits_get_remain() routine is suitable for
+ * additional checks and more eager limits enforcement in (potentially
+ * tight) acquisition code paths. Hardware compression may result in
+ * rather large "overshoots" when checks are done only late.
+ *
+ * @param[in] limits software limit instance
+ * @param[out] samples remaining samples count until the limit is reached
+ * @param[out] frames remaining frames count until the limit is reached
+ * @param[out] msecs remaining milliseconds until the limit is reached
+ *
+ * @return SR_ERR_* upon error, SR_OK otherwise
+ */
+SR_PRIV int sr_sw_limits_get_remain(const struct sr_sw_limits *limits,
+	uint64_t *samples, uint64_t *frames, uint64_t *msecs,
+	gboolean *exceeded)
+{
+
+	if (!limits)
+		return SR_ERR_ARG;
+
+	if (exceeded)
+		*exceeded = FALSE;
+
+	if (samples) do {
+		*samples = 0;
+		if (!limits->limit_samples)
+			break;
+		if (limits->samples_read >= limits->limit_samples) {
+			if (exceeded)
+				*exceeded = TRUE;
+			break;
+		}
+		*samples = limits->limit_samples - limits->samples_read;
+	} while (0);
+
+	if (frames) do {
+		*frames = 0;
+		if (!limits->limit_frames)
+			break;
+		if (limits->frames_read >= limits->limit_frames) {
+			if (exceeded)
+				*exceeded = TRUE;
+			break;
+		}
+		*frames = limits->limit_frames - limits->frames_read;
+	} while (0);
+
+	if (msecs) do {
+		guint64 now, elapsed, remain;
+
+		*msecs = 0;
+		if (!limits->limit_msec)
+			break;
+		if (!limits->start_time)
+			break;
+		now = g_get_monotonic_time();
+		if (now < limits->start_time)
+			break;
+		elapsed = now - limits->start_time;
+		if (elapsed >= limits->limit_msec) {
+			if (exceeded)
+				*exceeded = TRUE;
+			break;
+		}
+		remain = limits->limit_msec - elapsed;
+		*msecs = remain / 1000;
+	} while (0);
+
+	return SR_OK;
+}
+
+/**
  * Update the amount of samples that have been read
  *
  * Update the amount of samples that have been read in the current data
