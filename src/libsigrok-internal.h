@@ -2683,7 +2683,7 @@ struct feed_queue_logic;
 struct feed_queue_analog;
 
 SR_API struct feed_queue_logic *feed_queue_logic_alloc(
-	struct sr_dev_inst *sdi,
+	const struct sr_dev_inst *sdi,
 	size_t sample_count, size_t unit_size);
 SR_API int feed_queue_logic_submit(struct feed_queue_logic *q,
 	const uint8_t *data, size_t count);
@@ -2691,7 +2691,7 @@ SR_API int feed_queue_logic_flush(struct feed_queue_logic *q);
 SR_API void feed_queue_logic_free(struct feed_queue_logic *q);
 
 SR_API struct feed_queue_analog *feed_queue_analog_alloc(
-	struct sr_dev_inst *sdi,
+	const struct sr_dev_inst *sdi,
 	size_t sample_count, int digits, struct sr_channel *ch);
 SR_API int feed_queue_analog_submit(struct feed_queue_analog *q,
 	float data, size_t count);
