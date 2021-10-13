@@ -182,6 +182,7 @@ enum series {
 	DSO1000,
 	DSO1000B,
 	DS1000Z,
+	DSO3000,
 	DS4000,
 	MSO5000,
 	MSO7000A,
@@ -197,6 +198,8 @@ static const struct rigol_ds_vendor supported_vendors[] = {
 /* vendor, series/name, protocol, data format, max timebase, min vdiv,
  * number of horizontal divs, live waveform samples, memory buffer samples */
 static const struct rigol_ds_series supported_series[] = {
+	[DSO3000] = {VENDOR(AGILENT), "DSO3000", PROTOCOL_V1, FORMAT_HEX,
+		{50, 1}, {2, 1000}, 12, 1200, 4000},
 	[VS5000] = {VENDOR(RIGOL), "VS5000", PROTOCOL_V2, FORMAT_RAW,
 		{50, 1}, {2, 1000}, 14, 2048, 0},
 	[DS1000] = {VENDOR(RIGOL), "DS1000", PROTOCOL_V3, FORMAT_IEEE488_2,
@@ -281,6 +284,7 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DS1000Z), "MSO1104Z", {5, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DS1000Z), "MSO1074Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DS1000Z), "MSO1104Z-S", {5, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DSO3000), "DSO3062A", {5, 1000000000}, CH_INFO(2, false), mso7000a_cmd},
 	{SERIES(DS4000), "DS4024", {1, 1000000000}, CH_INFO(4, false), std_cmd},
 	{SERIES(MSO5000), "MSO5072", {1, 1000000000}, CH_INFO(2, true), std_cmd},
 	{SERIES(MSO5000), "MSO5074", {1, 1000000000}, CH_INFO(4, true), std_cmd},
