@@ -336,9 +336,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(supported_models); i++) {
+		if (strcmp(hw_info->model, supported_models[i].name))
+			continue;
+
 		if (!g_ascii_strcasecmp(hw_info->manufacturer,
-					supported_models[i].series->vendor->full_name) &&
-				!strcmp(hw_info->model, supported_models[i].name)) {
+					supported_models[i].series->vendor->full_name) ||
+				!strcmp(hw_info->manufacturer,
+					supported_models[i].series->vendor->name)) {
 			model = &supported_models[i];
 			break;
 		}
