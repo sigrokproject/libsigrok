@@ -504,13 +504,14 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 
-	devc = sdi->priv;
-
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
+		if (!sdi)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
 		if (devc->max_samplerate == SR_MHZ(200)) {
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la2016));
 		}
