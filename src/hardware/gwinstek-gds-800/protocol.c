@@ -1,6 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
+ * Copyright (C) 2021 Richard Allen <rsaxvc@rsaxvc.net>
  * Copyright (C) 2015 Martin Lederhilger <martin.lederhilger@gmx.at>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,9 +22,6 @@
 #include <math.h>
 #include <string.h>
 
-#define ANALOG_CHANNELS 2
-#define VERTICAL_DIVISIONS 10
-
 static int read_data(struct sr_dev_inst *sdi,
 		struct sr_scpi_dev_inst *scpi, struct dev_context *devc,
 		int data_size)
@@ -42,11 +40,18 @@ static int read_data(struct sr_dev_inst *sdi,
 
 	devc->cur_rcv_buffer_position += len;
 
+#if defined(HAVE_LIBSERIALPORT) && \
+	SP_PACKAGE_VERSION_MAJOR == 0 && \
+	SP_PACKAGE_VERSION_MINOR == 0
+	/* Very old Linux versions of libserial port use cooked termios */
 	/* Handle the case where sr_scpi_read_data stopped at the newline. */
 	if (len < data_size && sr_scpi_read_complete(scpi)) {
 		devc->rcv_buffer[devc->cur_rcv_buffer_position] = '\n';
 		devc->cur_rcv_buffer_position++;
 	}
+#else
+	/* 0.1.0 and above use raw termios, no reprocessing needed */
+#endif
 
 	if (devc->cur_rcv_buffer_position < data_size)
 		return SR_ERR; /* Not finished yet. */
@@ -61,6 +66,23 @@ static int read_data(struct sr_dev_inst *sdi,
 	}
 }
 
+SR_PRIV int gwinstek_gds_800_fetch_volts_per_div(struct sr_scpi_dev_inst *scpi, int channel, float * output)
+{
+	char command[32];
+	char *response;
+
+	/* Fetch data needed for conversion from device. */
+	snprintf(command, sizeof(command), ":CHAN%d:SCAL?", channel + 1);
+	if (sr_scpi_get_string(scpi, command, &response) != SR_OK) {
+		sr_err("Failed to get volts per division.");
+		return SR_ERR;
+	}
+	*output = g_ascii_strtod(response, NULL);
+	g_free(response);
+	return SR_OK;
+}
+
+
 SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 {
 	struct sr_dev_inst *sdi;
@@ -71,13 +93,10 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	char command[32];
-	char *response;
 	float volts_per_division;
 	int num_samples, i;
 	float samples[MAX_SAMPLES];
 	uint32_t sample_rate;
-	char *end_ptr;
 
 	(void)fd;
 
@@ -129,7 +148,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			devc->cur_rcv_buffer_position = 0;
 		} else {
 			/* All channels acquired. */
-			if (devc->cur_acq_channel == ANALOG_CHANNELS - 1) {
+			if (devc->cur_acq_channel == devc->num_acq_channel - 1) {
 				sr_spew("All channels acquired.");
 
 				if (devc->cur_acq_frame == devc->frame_limit - 1) {
@@ -167,7 +186,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			devc->rcv_buffer[0] != '5' &&
 			devc->rcv_buffer[0] != '6') {
 			sr_err("Data size digits is not 4, 5 or 6 but "
-			       "'%c'.", devc->rcv_buffer[0]);
+			   "'%c'.", devc->rcv_buffer[0]);
 			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		} else {
@@ -216,17 +235,11 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 			break;
 
 		/* Fetch data needed for conversion from device. */
-		snprintf(command, sizeof(command), ":CHAN%d:SCAL?",
-				devc->cur_acq_channel + 1);
-		if (sr_scpi_get_string(scpi, command, &response) != SR_OK) {
+		if(gwinstek_gds_800_fetch_volts_per_div(sdi->conn, devc->cur_acq_channel, &volts_per_division) != SR_OK) {
 			sr_err("Failed to get volts per division.");
 			sr_dev_acquisition_stop(sdi);
 			return TRUE;
 		}
-		volts_per_division = g_ascii_strtod(response, &end_ptr);
-		if (!strcmp(end_ptr, "mV"))
-			volts_per_division *= 1.e-3;
-		g_free(response);
 
 		num_samples = (devc->data_size - 8) / 2;
 		sr_spew("Received %d number of samples from channel "
@@ -254,7 +267,7 @@ SR_PRIV int gwinstek_gds_800_receive_data(int fd, int revents, void *cb_data)
 		g_slist_free(analog.meaning->channels);
 
 		/* All channels acquired. */
-		if (devc->cur_acq_channel == ANALOG_CHANNELS - 1) {
+		if (devc->cur_acq_channel == devc->num_acq_channel - 1) {
 			sr_spew("All channels acquired.");
 
 			if (devc->cur_acq_frame == devc->frame_limit - 1) {
