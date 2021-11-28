@@ -87,6 +87,12 @@ static const struct hantek_6xxx_profile dev_profiles[] = {
 		ARRAY_AND_SIZE(vdivs),
 	},
 	{
+		0x04b4, 0x2020, 0x1d50, 0x608e, 0x0001,
+		"Voltcraft", "DSO2020",  "fx2lafw-hantek-6022be.fw",
+		ARRAY_AND_SIZE(dc_coupling), FALSE,
+		ARRAY_AND_SIZE(vdivs),
+	},
+	{
 		0x8102, 0x8102, 0x1d50, 0x608e, 0x0002,
 		"Sainsmart", "DDS120", "fx2lafw-sainsmart-dds120.fw",
 		ARRAY_AND_SIZE(acdc_coupling), TRUE,
