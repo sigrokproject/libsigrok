@@ -324,6 +324,9 @@ ATTRS{idVendor}=="04fc", ATTRS{idProduct}=="0201", ENV{ID_SIGROK}="1"
 # Victor 86C
 ATTRS{idVendor}=="1244", ATTRS{idProduct}=="d237", ENV{ID_SIGROK}="1"
 
+# Voltcraft DSO2020, renumerates as 1d50:608e "sigrok fx2lafw", Serial: Hantek 6022BE
+ATTRS{idVendor}=="04b4", ATTRS{idProduct}=="2020", ENV{ID_SIGROK}="1"
+
 # YiXingDianZi MDSO
 ATTRS{idVendor}=="d4a2", ATTRS{idProduct}=="5660", ENV{ID_SIGROK}="1"
 
