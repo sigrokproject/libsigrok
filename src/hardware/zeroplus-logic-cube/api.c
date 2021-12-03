@@ -184,6 +184,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; devlist[i]; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);
 
+		prof = NULL;
+		for (j = 0; j < zeroplus_models[j].vid; j++) {
+			if (des.idVendor == zeroplus_models[j].vid &&
+				des.idProduct == zeroplus_models[j].pid) {
+				prof = &zeroplus_models[j];
+			}
+		}
+
+		if (!prof)
+			continue;
+
 		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
 			continue;
 
@@ -202,16 +213,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
 			continue;
 
-		prof = NULL;
-		for (j = 0; j < zeroplus_models[j].vid; j++) {
-			if (des.idVendor == zeroplus_models[j].vid &&
-				des.idProduct == zeroplus_models[j].pid) {
-				prof = &zeroplus_models[j];
-			}
-		}
-
-		if (!prof)
-			continue;
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
