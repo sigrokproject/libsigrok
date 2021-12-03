@@ -20,6 +20,8 @@
 #include <config.h>
 #include "protocol.h"
 
+#define CHRONOVU_VENDOR (0x0403)
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -168,6 +170,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 
 		libusb_get_device_descriptor(devlist[i], &des);
+
+		/* See https://sigrok.org/bugzilla/show_bug.cgi?id=1115 and
+		 * https://github.com/sigrokproject/libsigrok/pull/166 */
+		if (des.idVendor != CHRONOVU_VENDOR)
+			continue;
 
 		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
 			continue;
