@@ -489,7 +489,7 @@ SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data)
 	 */
 	if (sr_scpi_gpib_spoll(scpi, &status_register) != SR_OK)
 		return FALSE;
-	if (!(((uint8_t)status_register) & 0x01))
+	if (!(((uint8_t)status_register) & SRQ_BUS_AVAIL))
 		return TRUE;
 
 	/* Get a reading from the DMM. */
