@@ -500,7 +500,7 @@ a protocol description and use of the protocol depends on the firmware's
 availability at the user's site. Which then would allow to capture to
 DRAM at high rates without the communication bottleneck, before the data
 gets communicated to the PC after the acquisition has completed. Compare
-the native sigrok supoprt for Asix Sigma.
+the native sigrok support for Asix Sigma.
 
 
 ChronoVu LA8/LA16 USB VID/PIDs
