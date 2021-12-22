@@ -1482,9 +1482,16 @@ SR_PRIV int sr_session_source_destroyed(struct sr_session *session,
 
 static void copy_src(struct sr_config *src, struct sr_datafeed_meta *meta_copy)
 {
+	struct sr_config *item;
+
+#if GLIB_CHECK_VERSION(2, 67, 3)
+	item = g_memdup2(src, sizeof(*src));
+#else
+	item = g_memdup(src, sizeof(*src));
+#endif
+
 	g_variant_ref(src->data);
-	meta_copy->config = g_slist_append(meta_copy->config,
-	                                   g_memdup(src, sizeof(struct sr_config)));
+	meta_copy->config = g_slist_append(meta_copy->config, item);
 }
 
 SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
@@ -1496,6 +1503,9 @@ SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
 	struct sr_datafeed_logic *logic_copy;
 	const struct sr_datafeed_analog *analog;
 	struct sr_datafeed_analog *analog_copy;
+	struct sr_analog_encoding *encoding_copy;
+	struct sr_analog_meaning *meaning_copy;
+	struct sr_analog_spec *spec_copy;
 	uint8_t *payload;
 
 	*copy = g_malloc0(sizeof(struct sr_datafeed_packet));
@@ -1540,14 +1550,20 @@ SR_API int sr_packet_copy(const struct sr_datafeed_packet *packet,
 		memcpy(analog_copy->data, analog->data,
 				analog->encoding->unitsize * analog->num_samples);
 		analog_copy->num_samples = analog->num_samples;
-		analog_copy->encoding = g_memdup(analog->encoding,
-				sizeof(struct sr_analog_encoding));
-		analog_copy->meaning = g_memdup(analog->meaning,
-				sizeof(struct sr_analog_meaning));
+#if GLIB_CHECK_VERSION(2, 67, 3)
+		encoding_copy = g_memdup2(analog->encoding, sizeof(*analog->encoding));
+		meaning_copy = g_memdup2(analog->meaning, sizeof(*analog->meaning));
+		spec_copy = g_memdup2(analog->spec, sizeof(*analog->spec));
+#else
+		encoding_copy = g_memdup(analog->encoding, sizeof(*analog->encoding));
+		meaning_copy = g_memdup(analog->meaning, sizeof(*analog->meaning));
+		spec_copy = g_memdup(analog->spec, sizeof(*analog->spec));
+#endif
+		analog_copy->encoding = encoding_copy;
+		analog_copy->meaning = meaning_copy;
 		analog_copy->meaning->channels = g_slist_copy(
 				analog->meaning->channels);
-		analog_copy->spec = g_memdup(analog->spec,
-				sizeof(struct sr_analog_spec));
+		analog_copy->spec = spec_copy;
 		(*copy)->payload = analog_copy;
 		break;
 	default:
