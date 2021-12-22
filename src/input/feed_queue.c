@@ -95,6 +95,21 @@ SR_API int feed_queue_logic_flush(struct feed_queue_logic *q)
 	return SR_OK;
 }
 
+SR_API int feed_queue_logic_send_trigger(struct feed_queue_logic *q)
+{
+	int ret;
+
+	ret = feed_queue_logic_flush(q);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = std_session_send_df_trigger(q->sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 SR_API void feed_queue_logic_free(struct feed_queue_logic *q)
 {
 
