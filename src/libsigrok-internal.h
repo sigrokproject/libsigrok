@@ -1916,8 +1916,6 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 		size_t packet_size, packet_valid_callback is_valid,
 		packet_valid_len_callback is_valid_len, size_t *return_size,
 		uint64_t timeout_ms);
-SR_PRIV int sr_serial_extract_options(GSList *options, const char **serial_device,
-				      const char **serial_options);
 SR_PRIV int serial_source_add(struct sr_session *session,
 		struct sr_serial_dev_inst *serial, int events, int timeout,
 		sr_receive_data_callback cb, void *cb_data);
@@ -1995,6 +1993,9 @@ extern SR_PRIV struct ser_hid_chip_functions *ser_hid_chip_funcs_victor;
 SR_PRIV const char *ser_hid_chip_find_name_vid_pid(uint16_t vid, uint16_t pid);
 #endif
 #endif
+
+SR_PRIV int sr_serial_extract_options(GSList *options,
+	const char **serial_device, const char **serial_options);
 
 /*--- bt/ API ---------------------------------------------------------------*/
 

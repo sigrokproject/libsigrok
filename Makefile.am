@@ -143,6 +143,9 @@ libsigrok_la_SOURCES += \
 	src/serial_hid_victor.c \
 	src/serial_libsp.c \
 	src/scpi/scpi_serial.c
+else
+libsigrok_la_SOURCES += \
+	src/serial.c
 endif
 if NEED_USB
 libsigrok_la_SOURCES += \
