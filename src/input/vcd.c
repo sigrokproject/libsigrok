@@ -304,7 +304,7 @@ static void ts_stats_check_early(struct ts_stats *stats)
 		if (stats->total_ts_seen != cp->count)
 			continue;
 		/* First occurance of that timestamp count. Check the value. */
-		sr_dbg("TS early chk: total %" PRIu64 ", min delta %zu / %zu.",
+		sr_dbg("TS early chk: total %zu, min delta %" PRIu64 " / %" PRIu64 ".",
 			cp->count, seen_delta, check_delta);
 		if (check_delta < cp->delta)
 			return;
