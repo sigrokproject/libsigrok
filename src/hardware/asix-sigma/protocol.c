@@ -625,7 +625,7 @@ static int sigma_fpga_init_bitbang_once(struct dev_context *devc)
 	if (ret != SR_OK)
 		return ret;
 	g_usleep(10 * 1000);
-	ftdi_usb_purge_buffers(&devc->ftdi.ctx);
+	PURGE_FTDI_BOTH(&devc->ftdi.ctx);
 
 	/*
 	 * Wait until the FPGA asserts INIT_B. Check in a maximum number
@@ -889,7 +889,7 @@ static int upload_firmware(struct sr_context *ctx, struct dev_context *devc,
 			ftdi_get_error_string(&devc->ftdi.ctx));
 		return SR_ERR;
 	}
-	ftdi_usb_purge_buffers(&devc->ftdi.ctx);
+	PURGE_FTDI_BOTH(&devc->ftdi.ctx);
 	while (sigma_read_raw(devc, &pins, sizeof(pins)) > 0)
 		;
 

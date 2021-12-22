@@ -325,7 +325,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		goto err_ftdi_free;
 	}
 
-	ret = ftdi_usb_purge_buffers(devc->ftdic);
+	ret = PURGE_FTDI_BOTH(devc->ftdic);
 	if (ret < 0) {
 		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
 		       ret, ftdi_get_error_string(devc->ftdic));

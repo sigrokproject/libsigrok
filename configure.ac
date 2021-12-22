@@ -616,6 +616,7 @@ AM_COND_IF([BINDINGS_CXX], [
 ])
 
 # Check for specific libusb features, now that we know the CFLAGS.
+# Also check for version dependent libftdi features.
 AC_LANG([C])
 sr_save_cflags=$CFLAGS
 sr_save_libs=$LIBS
@@ -625,6 +626,7 @@ AC_CHECK_TYPES([libusb_os_handle],
 	[sr_have_libusb_os_handle=yes], [sr_have_libusb_os_handle=no],
 	[[#include <libusb.h>]])
 AC_CHECK_FUNCS([zip_discard])
+AC_CHECK_FUNCS([ftdi_tciflush ftdi_tcoflush ftdi_tcioflush])
 LIBS=$sr_save_libs
 CFLAGS=$sr_save_cflags
 

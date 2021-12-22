@@ -32,6 +32,9 @@
 #ifdef HAVE_LIBUSB_1_0
 #include <libusb.h>
 #endif
+#ifdef HAVE_LIBFTDI
+#include <ftdi.h>
+#endif
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -979,6 +982,21 @@ static inline void write_dblle_inc(uint8_t **p, double x)
 #define libusb_has_capability(x) 0
 #define libusb_handle_events_timeout_completed(ctx, tv, c) \
 	libusb_handle_events_timeout(ctx, tv)
+#endif
+
+/*
+ * Convenience for FTDI library version dependency.
+ * - Version 1.5 introduced ftdi_tciflush(), ftdi_tcoflush(), and
+ *   ftdi_tcioflush() all within the same commit, and deprecated
+ *   ftdi_usb_purge_buffers() which suffered from inverse semantics.
+ *   The API is drop-in compatible (arguments count and data types are
+ *   identical). The libsigrok source code always flushes RX and TX at
+ *   the same time, never individually.
+ */
+#if defined HAVE_FTDI_TCIOFLUSH && HAVE_FTDI_TCIOFLUSH
+#  define PURGE_FTDI_BOTH ftdi_tcioflush
+#else
+#  define PURGE_FTDI_BOTH ftdi_usb_purge_buffers
 #endif
 
 /* Static definitions of structs ending with an all-zero entry are a
