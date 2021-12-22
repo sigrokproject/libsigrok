@@ -2064,7 +2064,9 @@ SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
 
 /** Binary value type */
 enum binary_value_type {
-	BVT_UINT8 = 0,
+	BVT_INVALID,
+
+	BVT_UINT8,
 	BVT_BE_UINT8 = BVT_UINT8,
 	BVT_LE_UINT8 = BVT_UINT8,
 
