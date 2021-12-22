@@ -627,10 +627,9 @@ static void add_sample(const struct sr_input *in, uint16_t data, size_t count)
 			unit_buffer, send_first);
 		inc->submit.submit_count += send_first;
 		inc->submit.samples_to_trigger -= send_first;
-		feed_queue_logic_flush(inc->submit.feed);
 		sr_dbg("Trigger: sending DF packet, at %" PRIu64 ".",
 			inc->submit.submit_count);
-		std_session_send_df_trigger(in->sdi);
+		feed_queue_logic_send_trigger(inc->submit.feed);
 	}
 	if (count) {
 		(void)feed_queue_logic_submit(inc->submit.feed,
