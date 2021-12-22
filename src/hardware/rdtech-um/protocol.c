@@ -42,7 +42,7 @@ static const struct binary_analog_channel rdtech_default_channels[] = {
 	{ "T", { 10, BVT_BE_UINT16, 1.0, },  0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
 	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ NULL, },
+	ALL_ZERO,
 };
 
 static const struct binary_analog_channel rdtech_um25c_channels[] = {
@@ -53,7 +53,7 @@ static const struct binary_analog_channel rdtech_um25c_channels[] = {
 	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
 	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ NULL, },
+	ALL_ZERO,
 };
 
 static int poll_csum_fff1(char buf[], int len)

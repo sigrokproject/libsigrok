@@ -71,7 +71,7 @@ static const struct binary_analog_channel rdtech_tc_channels[] = {
 	{ "D-", {  64 + 36, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "E0", {  64 + 12, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 	{ "E1", {  64 + 20, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ NULL, },
+	ALL_ZERO,
 };
 
 static int check_pac_crc(uint8_t *data)
