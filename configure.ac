@@ -96,6 +96,18 @@ SR_PKGLIBS_RUBY=
 SR_EXTRA_LIBS=
 SR_EXTRA_CXX_LIBS=
 
+SR_ARG_OPT_PKG([zlib], [ZLIB], , [zlib])
+AM_CONDITIONAL([HAVE_ZLIB], [test "x$sr_have_zlib" = xyes])
+AM_COND_IF([HAVE_ZLIB], [
+	SR_APPEND([sr_deps_avail], [crc32 zlib])
+	SR_PREPEND([SR_EXTRA_LIBS], [-lz])
+])
+
+AM_CONDITIONAL([HAVE_INPUT_STF], [test "x$sr_have_zlib" = xyes])
+AM_COND_IF([HAVE_INPUT_STF], [
+	AC_DEFINE([HAVE_INPUT_STF], [1], [Is the STF input module supported?])
+])
+
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 	[libserialport >= 0.1.1])
 
@@ -621,9 +633,12 @@ AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*
 
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
+sr_zlib_version=`$PKG_CONFIG --modversion zlib 2>&AS_MESSAGE_LOG_FD`
 
 AC_DEFINE_UNQUOTED([CONF_LIBZIP_VERSION], ["$sr_libzip_version"],
 	[Build-time version of libzip.])
+AC_DEFINE_UNQUOTED([CONF_ZLIB_VERSION], ["$sr_zlib_version"],
+	[Build-time version of zlib.])
 AC_DEFINE_UNQUOTED([CONF_HOST], ["$host"],
 	[The canonical host libsigrok will run on.])
 

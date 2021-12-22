@@ -85,11 +85,14 @@ libsigrok_la_SOURCES += \
 	src/input/logicport.c \
 	src/input/raw_analog.c \
 	src/input/saleae.c \
-	src/input/stf.c \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
 	src/input/wav.c \
 	src/input/null.c
+if HAVE_INPUT_STF
+libsigrok_la_SOURCES += \
+	src/input/stf.c
+endif
 
 # Output modules
 libsigrok_la_SOURCES += \

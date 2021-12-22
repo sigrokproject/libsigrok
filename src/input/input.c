@@ -80,7 +80,9 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_binary,
 	&input_chronovu_la8,
 	&input_csv,
+#if defined HAVE_INPUT_STF && HAVE_INPUT_STF
 	&input_stf,
+#endif
 	&input_trace32_ad,
 	&input_vcd,
 	&input_wav,
