@@ -160,7 +160,6 @@ struct dev_context {
 	uint16_t mode;
 	uint32_t trigger_pos;
 	gboolean external_clock;
-	gboolean continuous_mode;
 	int clock_edge;
 	double cur_threshold;
 	GThread *thread_handle;
