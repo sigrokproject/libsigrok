@@ -727,24 +727,40 @@ static void resubmit_transfer(struct libusb_transfer *transfer)
 static void deinterleave_buffer(const uint8_t *src, size_t length,
 	uint16_t *dst_ptr, size_t channel_count, uint16_t channel_mask)
 {
-	uint16_t sample;
+	uint64_t *src_ptr = (uint64_t*)src;
+	uint64_t last_data[NUM_CHANNELS];
+	bool first_loop = TRUE;
+	unsigned int idx;
+	/* for first iteration, force last_data to be different */
+	for (unsigned int i = 0; i < channel_count; i++)
+		last_data[i] = ~src_ptr[i];
 
-	for (const uint64_t *src_ptr = (uint64_t*)src;
-		src_ptr < (uint64_t*)(src + length);
-		src_ptr += channel_count) {
-		for (int bit = 0; bit != 64; bit++) {
-			const uint64_t *word_ptr = src_ptr;
-			sample = 0;
-			for (unsigned int channel = 0; channel != 16;
-				channel++) {
-				const uint16_t m = channel_mask >> channel;
-				if (!m)
-					break;
-				if ((m & 1) && ((*word_ptr++ >> bit) & UINT64_C(1)))
-					sample |= 1 << channel;
+	while (((uint8_t *)src_ptr) < (src + length)) {
+		if (G_LIKELY(!first_loop)) {
+			/* forward copy the previous data... */
+			memcpy(&dst_ptr[DSLOGIC_ATOMIC_SAMPLES], dst_ptr,
+				DSLOGIC_ATOMIC_SAMPLES * sizeof(uint16_t));
+			dst_ptr += DSLOGIC_ATOMIC_SAMPLES;
+		} else
+			first_loop = FALSE;
+		idx = 0;
+		for (unsigned int channel = 0; channel != 16; channel++) {
+			/* ...and now selectively search for changes per channel */
+			if (channel_mask & (1 << channel)) {
+				if (last_data[idx] != src_ptr[idx]) {
+					for (unsigned int bit = 0; bit != DSLOGIC_ATOMIC_SAMPLES; bit++) {
+						if (src_ptr[channel] & (UINT64_C(1) << bit))
+							dst_ptr[bit] |= (1 << channel);
+						else
+							dst_ptr[bit] &= ~(uint16_t)(1 << channel);
+					}
+				}
+				idx++;
 			}
-			*dst_ptr++ = sample;
 		}
+
+		memcpy(last_data, src_ptr, channel_count * sizeof(uint64_t));
+		src_ptr += channel_count;
 	}
 }
 
