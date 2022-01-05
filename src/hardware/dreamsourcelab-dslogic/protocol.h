@@ -147,7 +147,7 @@ struct dev_context {
 
 	gboolean acq_aborted;
 
-	unsigned int sent_samples;
+	uint64_t sent_samples;
 	int submitted_transfers;
 	int empty_transfer_count;
 
