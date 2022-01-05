@@ -60,6 +60,14 @@ enum dslogic_operation_modes {
 	DS_OP_LOOPBACK_TEST,
 };
 
+enum dslogic_data_processing_states {
+	DS_DATA_PROC_IDLE,
+	DS_DATA_PROC_START_REQ,
+	DS_DATA_PROC_RUNNING,
+	DS_DATA_PROC_ABORT_REQ,
+	DS_DATA_PROC_MAX_SAMPLES_REACHED,
+};
+
 enum dslogic_edge_modes {
 	DS_EDGE_RISING,
 	DS_EDGE_FALLING,
@@ -140,6 +148,11 @@ struct dev_context {
 	gboolean continuous_mode;
 	int clock_edge;
 	double cur_threshold;
+	GThread *thread_handle;
+	struct libusb_transfer *completed_transfer;
+	GMutex data_proc_mutex;
+	GCond data_proc_state_cond;
+	enum dslogic_data_processing_states data_proc_state;
 };
 
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);

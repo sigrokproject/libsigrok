@@ -670,6 +670,10 @@ static void abort_acquisition(struct dev_context *devc)
 		if (devc->transfers[i])
 			libusb_cancel_transfer(devc->transfers[i]);
 	}
+	g_mutex_lock(&devc->data_proc_mutex);
+	devc->data_proc_state = DS_DATA_PROC_ABORT_REQ;
+	g_cond_signal(&devc->data_proc_state_cond);
+	g_mutex_unlock(&devc->data_proc_mutex);
 }
 
 static void finish_acquisition(struct sr_dev_inst *sdi)
@@ -685,6 +689,8 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 	devc->num_transfers = 0;
 	g_free(devc->transfers);
 	g_free(devc->deinterleave_buffer);
+	g_cond_clear(&devc->data_proc_state_cond);
+	g_mutex_clear(&devc->data_proc_mutex);
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -781,19 +787,103 @@ static void send_data(struct sr_dev_inst *sdi,
 	sr_session_send(sdi, &packet);
 }
 
+static void * session_worker_thread(void *data) {
+	struct sr_dev_inst *const sdi = data;
+	struct dev_context *devc = sdi->priv;
+	const size_t channel_count = enabled_channel_count(sdi);
+	const uint16_t channel_mask = enabled_channel_mask(sdi);
+	uint64_t num_samples;
+	unsigned int cur_sample_count;
+	int trigger_offset;
+
+	while (TRUE) {
+		g_mutex_lock(&devc->data_proc_mutex);
+		while (devc->data_proc_state == DS_DATA_PROC_IDLE)
+			g_cond_wait(&devc->data_proc_state_cond, &devc->data_proc_mutex);
+		if (devc->data_proc_state != DS_DATA_PROC_START_REQ) {
+			g_cond_signal(&devc->data_proc_state_cond);
+			g_mutex_unlock(&devc->data_proc_mutex);
+			break;
+		}
+
+		devc->data_proc_state = DS_DATA_PROC_RUNNING;
+		g_mutex_unlock(&devc->data_proc_mutex);
+
+		cur_sample_count = DSLOGIC_ATOMIC_SAMPLES * devc->completed_transfer->actual_length /
+					(DSLOGIC_ATOMIC_BYTES * channel_count);
+		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
+			if (devc->limit_samples && 
+				devc->sent_samples + cur_sample_count > devc->limit_samples)
+				num_samples = devc->limit_samples - devc->sent_samples;
+			else
+				num_samples = cur_sample_count;
+
+			/**
+			 * The DSLogic emits sample data as sequences of 64-bit sample words
+			 * in a round-robin i.e. 64-bits from channel 0, 64-bits from channel 1
+			 * etc. for each of the enabled channels, then looping back to the
+			 * channel.
+			 *
+			 * Because sigrok's internal representation is bit-interleaved channels
+			 * we must recast the data.
+			 *
+			 * Hopefully in future it will be possible to pass the data on as-is.
+			 */
+			if (devc->completed_transfer->actual_length % 
+				(DSLOGIC_ATOMIC_BYTES * channel_count) != 0) {
+				sr_err("Invalid transfer length!");
+			} else {
+				deinterleave_buffer(devc->completed_transfer->buffer,
+					devc->completed_transfer->actual_length,
+					devc->deinterleave_buffer, channel_count, channel_mask);
+
+				/* Send the incoming transfer to the session bus. */
+				if (devc->trigger_pos > devc->sent_samples
+					&& devc->trigger_pos <= devc->sent_samples + num_samples) {
+					/* DSLogic trigger in this block. Send trigger position. */
+					trigger_offset = devc->trigger_pos - devc->sent_samples;
+					/* Pre-trigger samples. */
+					send_data(sdi, devc->deinterleave_buffer, trigger_offset);
+					devc->sent_samples += trigger_offset;
+					/* Trigger position. */
+					devc->trigger_pos = 0;
+					std_session_send_df_trigger(sdi);
+					/* Post trigger samples. */
+					num_samples -= trigger_offset;
+					send_data(sdi, devc->deinterleave_buffer
+						+ trigger_offset, num_samples);
+					devc->sent_samples += num_samples;
+				} else {
+					send_data(sdi, devc->deinterleave_buffer, num_samples);
+					devc->sent_samples += num_samples;
+				}
+			}
+		}
+		g_mutex_lock(&devc->data_proc_mutex);
+		if (devc->data_proc_state == DS_DATA_PROC_RUNNING) {
+			if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+				devc->data_proc_state = DS_DATA_PROC_MAX_SAMPLES_REACHED;
+			} else  {
+				devc->data_proc_state = DS_DATA_PROC_IDLE;
+			}
+		}
+		/* always submit a new transfer even if max sample count is reached.
+		aborting the transfer is handling only in receive_transfer callback
+		*/
+		resubmit_transfer(devc->completed_transfer);
+		g_cond_signal(&devc->data_proc_state_cond);
+		g_mutex_unlock(&devc->data_proc_mutex);
+	}
+
+	return NULL;
+}
+
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *const sdi = transfer->user_data;
 	struct dev_context *const devc = sdi->priv;
-	const size_t channel_count = enabled_channel_count(sdi);
-	const uint16_t channel_mask = enabled_channel_mask(sdi);
-	const unsigned int cur_sample_count = DSLOGIC_ATOMIC_SAMPLES *
-		transfer->actual_length /
-		(DSLOGIC_ATOMIC_BYTES * channel_count);
-
 	gboolean packet_has_error = FALSE;
-	unsigned int num_samples;
-	int trigger_offset;
+	gboolean abort = FALSE;
 
 	/*
 	 * If acquisition has already ended, just free any queued up
@@ -839,55 +929,30 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		devc->empty_transfer_count = 0;
 	}
 
-	if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-		if (devc->limit_samples && devc->sent_samples + cur_sample_count > devc->limit_samples)
-			num_samples = devc->limit_samples - devc->sent_samples;
-		else
-			num_samples = cur_sample_count;
-
-		/**
-		 * The DSLogic emits sample data as sequences of 64-bit sample words
-		 * in a round-robin i.e. 64-bits from channel 0, 64-bits from channel 1
-		 * etc. for each of the enabled channels, then looping back to the
-		 * channel.
-		 *
-		 * Because sigrok's internal representation is bit-interleaved channels
-		 * we must recast the data.
-		 *
-		 * Hopefully in future it will be possible to pass the data on as-is.
+	/* 
+	 * Since we are here in receive transfer callback, hand over 
+	 * time-consuming data processing to a dedicated worker thread
+	 * and continue here to process the next transfer which may have finished
+	 * already.
 		 */
-		if (transfer->actual_length % (DSLOGIC_ATOMIC_BYTES * channel_count) != 0)
-			sr_err("Invalid transfer length!");
-		deinterleave_buffer(transfer->buffer, transfer->actual_length,
-			devc->deinterleave_buffer, channel_count, channel_mask);
+	g_mutex_lock(&devc->data_proc_mutex);
+	while ((devc->data_proc_state == DS_DATA_PROC_RUNNING) ||
+		(devc->data_proc_state == DS_DATA_PROC_START_REQ))
+		g_cond_wait(&devc->data_proc_state_cond, &devc->data_proc_mutex);
+	if (devc->data_proc_state == DS_DATA_PROC_IDLE) {
+		devc->completed_transfer = transfer;
+		devc->data_proc_state = DS_DATA_PROC_START_REQ;
+	} else {
+		abort = TRUE;
 
-		/* Send the incoming transfer to the session bus. */
-		if (devc->trigger_pos > devc->sent_samples
-			&& devc->trigger_pos <= devc->sent_samples + num_samples) {
-			/* DSLogic trigger in this block. Send trigger position. */
-			trigger_offset = devc->trigger_pos - devc->sent_samples;
-			/* Pre-trigger samples. */
-			send_data(sdi, devc->deinterleave_buffer, trigger_offset);
-			devc->sent_samples += trigger_offset;
-			/* Trigger position. */
-			devc->trigger_pos = 0;
-			std_session_send_df_trigger(sdi);
-			/* Post trigger samples. */
-			num_samples -= trigger_offset;
-			send_data(sdi, devc->deinterleave_buffer
-				+ trigger_offset, num_samples);
-			devc->sent_samples += num_samples;
-		} else {
-			send_data(sdi, devc->deinterleave_buffer, num_samples);
-			devc->sent_samples += num_samples;
-		}
 	}
-
-	if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+	g_cond_signal(&devc->data_proc_state_cond);
+	g_mutex_unlock(&devc->data_proc_mutex);
+	if (abort) {
 		abort_acquisition(devc);
 		free_transfer(transfer);
-	} else
-		resubmit_transfer(transfer);
+
+	}
 }
 
 static int receive_data(int fd, int revents, void *cb_data)
@@ -1063,6 +1128,12 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
+	devc->data_proc_state = DS_DATA_PROC_IDLE;
+	g_cond_init(&devc->data_proc_state_cond);
+	g_mutex_init(&devc->data_proc_mutex);
+	devc->thread_handle = g_thread_new("DSL session worker thread",
+							session_worker_thread, (void*)sdi);
+
 
 	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
 
