@@ -168,6 +168,7 @@ struct dev_context {
 	GMutex data_proc_mutex;
 	GCond data_proc_state_cond;
 	enum dslogic_data_processing_states data_proc_state;
+	uint64_t samples_captured;
 };
 
 SR_PRIV int dslogic_fpga_firmware_upload(const struct sr_dev_inst *sdi);

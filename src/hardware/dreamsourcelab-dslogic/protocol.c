@@ -1259,6 +1259,7 @@ static void * session_worker_thread(void *data) {
 	const size_t channel_count = enabled_channel_count(sdi);
 	const uint16_t channel_mask = enabled_channel_mask(sdi);
 	uint64_t num_samples;
+	uint64_t limit_samples;
 	unsigned int cur_sample_count;
 	int trigger_offset;
 
@@ -1274,13 +1275,16 @@ static void * session_worker_thread(void *data) {
 
 		devc->data_proc_state = DS_DATA_PROC_RUNNING;
 		g_mutex_unlock(&devc->data_proc_mutex);
+		limit_samples = devc->limit_samples;
+		if (!devc->continuous_mode)
+				limit_samples = devc->samples_captured;
 
 		cur_sample_count = DSLOGIC_ATOMIC_SAMPLES * devc->completed_transfer->actual_length /
 					(DSLOGIC_ATOMIC_BYTES * channel_count);
-		if (!devc->limit_samples || devc->sent_samples < devc->limit_samples) {
-			if (devc->limit_samples && 
-				devc->sent_samples + cur_sample_count > devc->limit_samples)
-				num_samples = devc->limit_samples - devc->sent_samples;
+		if (!limit_samples || devc->sent_samples < limit_samples) {
+			if (limit_samples && 
+				devc->sent_samples + cur_sample_count > limit_samples)
+				num_samples = limit_samples - devc->sent_samples;
 			else
 				num_samples = cur_sample_count;
 
@@ -1327,7 +1331,7 @@ static void * session_worker_thread(void *data) {
 		}
 		g_mutex_lock(&devc->data_proc_mutex);
 		if (devc->data_proc_state == DS_DATA_PROC_RUNNING) {
-			if (devc->limit_samples && devc->sent_samples >= devc->limit_samples) {
+			if (limit_samples && devc->sent_samples >= limit_samples) {
 				devc->data_proc_state = DS_DATA_PROC_MAX_SAMPLES_REACHED;
 			} else  {
 				devc->data_proc_state = DS_DATA_PROC_IDLE;
@@ -1554,6 +1558,7 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 	const struct sr_dev_inst *sdi;
 	struct dslogic_trigger_pos *tpos;
 	struct dev_context *devc;
+	uint64_t remain_samples;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
@@ -1569,6 +1574,13 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 		tpos = (struct dslogic_trigger_pos *)transfer->buffer;
 		sr_info("tpos real_pos %d ram_saddr %d cnt_h %d cnt_l %d", tpos->real_pos,
 			tpos->ram_saddr, tpos->remain_cnt_h, tpos->remain_cnt_l);
+		remain_samples = ((uint64_t)tpos->remain_cnt_h) << 32;
+		remain_samples += tpos->remain_cnt_l;
+		if (devc->limit_samples > remain_samples)
+			devc->samples_captured = devc->limit_samples - remain_samples;
+		else
+			devc->samples_captured = devc->limit_samples;
+		devc->samples_captured &= ~(DSLOGIC_ATOMIC_SAMPLES - 1);
 		devc->trigger_pos = tpos->real_pos;
 		g_free(tpos);
 		start_transfers(sdi);
