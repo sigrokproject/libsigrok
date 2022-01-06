@@ -752,9 +752,11 @@ static bool set_trigger(const struct sr_dev_inst *sdi, struct fpga_config_common
 	trigger_point = (devc->capture_ratio * devc->limit_samples) / 100;
 	if (trigger_point < DSLOGIC_ATOMIC_SAMPLES)
 		trigger_point = DSLOGIC_ATOMIC_SAMPLES;
-	const uint64_t mem_depth = devc->profile->mem_depth /
+	const uint64_t mem_depth_per_channel = devc->profile->mem_depth /
 		num_enabled_channels;
-	const uint64_t max_trigger_point = (mem_depth * 10) / 100;
+	const uint64_t max_trigger_point = devc->continuous_mode ?
+		((mem_depth_per_channel * 10) / 100) :
+		((mem_depth_per_channel * DS_MAX_TRIG_PERCENT) / 100);
 	if (trigger_point > max_trigger_point)
 		trigger_point = max_trigger_point;
 	cfg->trig_pos = trigger_point & ~(DSLOGIC_ATOMIC_SAMPLES - 1);
@@ -908,11 +910,20 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	else if (devc->cur_samplerate == devc->profile->quarter_samplerate)
 		mode |= DS_MODE_QUAR_MODE;
 
-	mode |= DS_MODE_STREAM_MODE;
+	if (devc->continuous_mode)
+		mode |= DS_MODE_STREAM_MODE;
 	if (devc->external_clock) {
 		mode |= DS_MODE_CLK_TYPE;
 		if (devc->clock_edge == DS_EDGE_FALLING)
 			mode |= DS_MODE_CLK_EDGE;
+	}
+	if (devc->limit_samples > DS_MAX_LOGIC_DEPTH *
+		ceil(devc->cur_samplerate * 1.0 / devc->profile->max_samplerate)
+		&& !devc->continuous_mode) {
+		/* Enable RLE for long captures.
+		 * Without this, captured data present errors.
+		 */
+		mode |= DS_MODE_RLE_MODE;
 	}
 
 	WL16(&cfg->mode, mode);
@@ -1109,6 +1120,7 @@ SR_PRIV struct dev_context *dslogic_dev_new(void)
 	devc->cur_samplerate = 0;
 	devc->limit_samples = 0;
 	devc->capture_ratio = 0;
+	devc->continuous_mode = FALSE;
 	devc->clock_edge = DS_EDGE_RISING;
 
 	return devc;
@@ -1430,7 +1442,14 @@ static size_t to_bytes_per_ms(const struct sr_dev_inst *sdi)
 	const struct dev_context *const devc = sdi->priv;
 	const size_t ch_count = enabled_channel_count(sdi);
 
+	if (devc->continuous_mode)
 		return (devc->cur_samplerate * ch_count) / (1000 * 8);
+
+
+	/* If we're in buffered mode, the transfer rate is not so important,
+	 * but we expect to get at least 10% of the high-speed USB bandwidth.
+	 */
+	return 35000000 / (1000 * 10);
 }
 
 static size_t get_buffer_size(const struct sr_dev_inst *sdi)

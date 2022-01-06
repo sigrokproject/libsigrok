@@ -477,6 +477,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(devc->external_clock);
 		break;
+	case SR_CONF_CONTINUOUS:
+		*data = g_variant_new_boolean(devc->continuous_mode);
+		break;
 	case SR_CONF_CLOCK_EDGE:
 		idx = devc->clock_edge;
 		if (idx >= (int)ARRAY_SIZE(signal_edges))
@@ -529,6 +532,9 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		devc->external_clock = g_variant_get_boolean(data);
+		break;
+	case SR_CONF_CONTINUOUS:
+		devc->continuous_mode = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(signal_edges))) < 0)
