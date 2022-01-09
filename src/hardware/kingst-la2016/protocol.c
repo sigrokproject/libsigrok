@@ -751,6 +751,185 @@ SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfe
 	return SR_OK;
 }
 
+static void send_chunk(struct sr_dev_inst *sdi,
+	const uint8_t *packets, unsigned int num_tfers)
+{
+	struct dev_context *devc;
+	struct sr_datafeed_logic logic;
+	struct sr_datafeed_packet sr_packet;
+	unsigned int max_samples, n_samples, total_samples, free_n_samples;
+	unsigned int i, j, k;
+	int do_signal_trigger;
+	uint16_t *wp;
+	const uint8_t *rp;
+	uint16_t state;
+	uint8_t repetitions;
+
+	devc = sdi->priv;
+
+	logic.unitsize = 2;
+	logic.data = devc->convbuffer;
+
+	sr_packet.type = SR_DF_LOGIC;
+	sr_packet.payload = &logic;
+
+	max_samples = devc->convbuffer_size / 2;
+	n_samples = 0;
+	wp = (uint16_t *)devc->convbuffer;
+	total_samples = 0;
+	do_signal_trigger = 0;
+
+	if (devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
+		std_session_send_df_trigger(sdi);
+		devc->reading_behind_trigger = 1;
+	}
+
+	rp = packets;
+	for (i = 0; i < num_tfers; i++) {
+		for (k = 0; k < NUM_PACKETS_IN_CHUNK; k++) {
+			free_n_samples = max_samples - n_samples;
+			if (free_n_samples < 256 || do_signal_trigger) {
+				logic.length = n_samples * 2;
+				sr_session_send(sdi, &sr_packet);
+				n_samples = 0;
+				wp = (uint16_t *)devc->convbuffer;
+				if (do_signal_trigger) {
+					std_session_send_df_trigger(sdi);
+					do_signal_trigger = 0;
+				}
+			}
+
+			state = read_u16le_inc(&rp);
+			repetitions = read_u8_inc(&rp);
+			for (j = 0; j < repetitions; j++)
+				*wp++ = state;
+
+			n_samples += repetitions;
+			total_samples += repetitions;
+			devc->total_samples += repetitions;
+			if (!devc->reading_behind_trigger) {
+				devc->n_reps_until_trigger--;
+				if (devc->n_reps_until_trigger == 0) {
+					devc->reading_behind_trigger = 1;
+					do_signal_trigger = 1;
+					sr_dbg("  here is trigger position after %" PRIu64 " samples, %.6fms",
+					       devc->total_samples,
+					       (double)devc->total_samples / devc->cur_samplerate * 1e3);
+				}
+			}
+		}
+		(void)read_u8_inc(&rp); /* Skip sequence number. */
+	}
+	if (n_samples) {
+		logic.length = n_samples * 2;
+		sr_session_send(sdi, &sr_packet);
+		if (do_signal_trigger) {
+			std_session_send_df_trigger(sdi);
+		}
+	}
+	sr_dbg("send_chunk done after %d samples", total_samples);
+}
+
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	int ret;
+
+	sdi = transfer->user_data;
+	devc = sdi->priv;
+	usb = sdi->conn;
+
+	sr_dbg("receive_transfer(): status %s received %d bytes.",
+	       libusb_error_name(transfer->status), transfer->actual_length);
+
+	if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
+		sr_err("bulk transfer timeout!");
+		devc->transfer_finished = 1;
+	}
+	send_chunk(sdi, transfer->buffer, transfer->actual_length / TRANSFER_PACKET_LENGTH);
+
+	devc->n_bytes_to_read -= transfer->actual_length;
+	if (devc->n_bytes_to_read) {
+		uint32_t to_read = devc->n_bytes_to_read;
+		/* determine read size for the next usb transfer */
+		if (to_read >= LA2016_USB_BUFSZ)
+			to_read = LA2016_USB_BUFSZ;
+		else /* last transfer, make read size some multiple of LA2016_EP6_PKTSZ */
+			to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
+		libusb_fill_bulk_transfer(
+			transfer, usb->devhdl,
+			0x86, transfer->buffer, to_read,
+			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
+
+		if ((ret = libusb_submit_transfer(transfer)) == 0)
+			return;
+		sr_err("Failed to submit further transfer: %s.", libusb_error_name(ret));
+	}
+
+	g_free(transfer->buffer);
+	libusb_free_transfer(transfer);
+	devc->transfer_finished = 1;
+}
+
+SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
+{
+	const struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct drv_context *drvc;
+	struct timeval tv;
+
+	(void)fd;
+	(void)revents;
+
+	sdi = cb_data;
+	devc = sdi->priv;
+	drvc = sdi->driver->context;
+
+	if (devc->have_trigger == 0) {
+		if (la2016_has_triggered(sdi) == 0) {
+			/* not yet ready for download */
+			return TRUE;
+		}
+		devc->have_trigger = 1;
+		devc->transfer_finished = 0;
+		devc->reading_behind_trigger = 0;
+		devc->total_samples = 0;
+		/* we can start retrieving data! */
+		if (la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
+			sr_err("failed to start retrieval!");
+			return FALSE;
+		}
+		sr_dbg("retrieval is started...");
+		std_session_send_df_frame_begin(sdi);
+
+		return TRUE;
+	}
+
+	tv.tv_sec = tv.tv_usec = 0;
+	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	if (devc->transfer_finished) {
+		sr_dbg("transfer is finished!");
+		std_session_send_df_frame_end(sdi);
+
+		usb_source_remove(sdi->session, drvc->sr_ctx);
+		std_session_send_df_end(sdi);
+
+		la2016_stop_acquisition(sdi);
+
+		g_free(devc->convbuffer);
+		devc->convbuffer = NULL;
+
+		devc->transfer = NULL;
+
+		sr_dbg("transfer is now finished");
+	}
+
+	return TRUE;
+}
+
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
