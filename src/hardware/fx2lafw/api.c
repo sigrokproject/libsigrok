@@ -112,6 +112,13 @@ static const struct fx2lafw_profile supported_fx2[] = {
 		"fx2lafw-usb-c-grok.fw",
 		0, NULL, NULL},
 
+	/*
+	 * Cypress SuperSpeed Explorer Kit (CYUSB3KIT-003)
+	 */
+	{ 0x04b4, 0x00f3, "Cypress", "SuperSpeed Explorer Kit", NULL,
+		"fx3lafw-cypress-fx3.fw",
+		DEV_CAPS_FX3 | DEV_CAPS_32BIT, NULL, NULL },
+
 	ALL_ZERO
 };
 
@@ -158,7 +165,13 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(12),
 	SR_MHZ(16),
 	SR_MHZ(24),
+	/* FX3 only rates below here */
+	SR_MHZ(32),
 	SR_MHZ(48),
+	SR_MHZ(64),
+	SR_MHZ(96),
+	SR_MHZ(192),
+#define NUM_FX3_RATES 5
 };
 
 static gboolean is_plausible(const struct libusb_device_descriptor *des)
@@ -302,7 +315,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->connection_id = g_strdup(connection_id);
 
 		/* Fill in channellist according to this device's profile. */
-		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		num_logic_channels =
+			prof->dev_caps & DEV_CAPS_32BIT ? 32 :
+			(prof->dev_caps & DEV_CAPS_24BIT ? 24 :
+			 (prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8));
 		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
 
 		/* Logic channels, all in one channel group. */
@@ -335,6 +351,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
+		if (!(prof->dev_caps & DEV_CAPS_FX3))
+			devc->num_samplerates -= NUM_FX3_RATES;
 		has_firmware = usb_match_manuf_prod(devlist[i],
 				"sigrok", "fx2lafw");
 
@@ -347,7 +365,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					libusb_get_device_address(devlist[i]), NULL);
 		} else {
 			if (ezusb_upload_firmware(drvc->sr_ctx, devlist[i],
-					USB_CONFIGURATION, prof->firmware) == SR_OK) {
+					USB_CONFIGURATION, prof->firmware,
+					(prof->dev_caps & DEV_CAPS_FX3) != 0) == SR_OK) {
 				/* Store when this device's FW was updated. */
 				devc->fw_updated = g_get_monotonic_time();
 			} else {

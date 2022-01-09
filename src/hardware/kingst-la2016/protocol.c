@@ -625,7 +625,7 @@ SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev
 {
 	char fw_file[1024];
 	snprintf(fw_file, sizeof(fw_file) - 1, UC_FIRMWARE, product_id);
-	return ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
+	return ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file, FALSE);
 }
 
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
