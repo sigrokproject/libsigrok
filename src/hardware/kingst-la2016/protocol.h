@@ -126,6 +126,7 @@ SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb);
+SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi);
 

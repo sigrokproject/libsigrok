@@ -662,7 +662,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc->transfer_finished = 1;
 }
 
-static int handle_event(int fd, int revents, void *cb_data)
+SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
@@ -780,7 +780,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	devc->have_trigger = 0;
-	usb_source_add(sdi->session, drvc->sr_ctx, 50, handle_event, (void *)sdi);
+	usb_source_add(sdi->session, drvc->sr_ctx, 50,
+		la2016_receive_data, (void *)sdi);
 
 	std_session_send_df_header(sdi);
 
