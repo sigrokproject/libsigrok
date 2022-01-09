@@ -659,20 +659,43 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 {
-	return set_run_mode(sdi, 3);
+	int ret;
+
+	ret = set_run_mode(sdi, 3);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
 }
 
-SR_PRIV int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
+static int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 {
-	return set_run_mode(sdi, 0);
+	int ret;
+
+	ret = set_run_mode(sdi, 0);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
 }
 
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 {
-	return la2016_stop_acquisition(sdi);
+	int ret;
+	struct dev_context *devc;
+
+	ret = la2016_stop_acquisition(sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (devc && devc->transfer)
+		libusb_cancel_transfer(devc->transfer);
+
+	return SR_OK;
 }
 
-SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi)
+static int la2016_has_triggered(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 
@@ -681,7 +704,7 @@ SR_PRIV int la2016_has_triggered(const struct sr_dev_inst *sdi)
 	return (state & 0x3) == 1;
 }
 
-SR_PRIV int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb)
+static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;

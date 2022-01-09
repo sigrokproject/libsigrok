@@ -540,12 +540,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static void abort_acquisition(struct dev_context *devc)
-{
-	if (devc->transfer)
-		libusb_cancel_transfer(devc->transfer);
-}
-
 static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -596,7 +590,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->ctx = drvc->sr_ctx;
 
 	if ((ret = la2016_start_acquisition(sdi)) != SR_OK) {
-		abort_acquisition(devc);
+		la2016_abort_acquisition(sdi);
 		return ret;
 	}
 
@@ -614,7 +608,6 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	int ret;
 
 	ret = la2016_abort_acquisition(sdi);
-	abort_acquisition(sdi->priv);
 
 	return ret;
 }
