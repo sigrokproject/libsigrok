@@ -24,11 +24,7 @@
 
 #include <config.h>
 
-#include <glib.h>
 #include <libsigrok/libsigrok.h>
-#include <libusb.h>
-#include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "libsigrok-internal.h"

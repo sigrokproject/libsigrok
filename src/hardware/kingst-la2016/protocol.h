@@ -23,7 +23,6 @@
 #ifndef LIBSIGROK_HARDWARE_KINGST_LA2016_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_KINGST_LA2016_PROTOCOL_H
 
-#include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include <stdint.h>
 
