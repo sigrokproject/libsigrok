@@ -21,15 +21,17 @@
  */
 
 #include <config.h>
-#include <stdint.h>
-#include <string.h>
+
+#include <errno.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <stdio.h>
-#include <errno.h>
-#include <math.h>
 #include <inttypes.h>
 #include <libsigrok/libsigrok.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

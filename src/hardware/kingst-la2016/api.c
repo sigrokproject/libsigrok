@@ -23,12 +23,14 @@
 /* mostly stolen from src/hardware/saleae-logic16/ */
 
 #include <config.h>
+
 #include <glib.h>
+#include <libsigrok/libsigrok.h>
 #include <libusb.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <libsigrok/libsigrok.h>
+
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

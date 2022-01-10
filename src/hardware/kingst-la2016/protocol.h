@@ -23,10 +23,9 @@
 #ifndef LIBSIGROK_HARDWARE_KINGST_LA2016_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_KINGST_LA2016_PROTOCOL_H
 
-#include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
-#include "libsigrok-internal.h"
+#include <stdint.h>
 
 #define LOG_PREFIX "kingst-la2016"
 
