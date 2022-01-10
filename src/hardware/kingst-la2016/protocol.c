@@ -36,9 +36,9 @@
 
 #define MAX_SAMPLE_RATE_LA2016	SR_MHZ(200)
 #define MAX_SAMPLE_RATE_LA1016	SR_MHZ(100)
-#define MAX_SAMPLE_DEPTH 10e9
-#define MAX_PWM_FREQ     SR_MHZ(20)
-#define PWM_CLOCK        SR_MHZ(200)	/* this is 200MHz for both the LA2016 and LA1016 */
+#define MAX_SAMPLE_DEPTH	10e9
+#define MAX_PWM_FREQ		SR_MHZ(20)
+#define PWM_CLOCK		SR_MHZ(200)	/* 200MHz for both LA2016 and LA1016 */
 
 /* usb vendor class control requests to the cypress FX2 microcontroller */
 #define CMD_FPGA_ENABLE	0x10

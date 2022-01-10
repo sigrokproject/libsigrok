@@ -26,14 +26,12 @@
 #include <libsigrok/libsigrok.h>
 #include <stdint.h>
 
-#define LOG_PREFIX "kingst-la2016"
+#define LOG_PREFIX	"kingst-la2016"
 
 #define LA2016_VID		0x77a1
 #define LA2016_PID		0x01a2
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
-
-#define LA2016_BULK_MAX         8388608
 
 /*
  * On Windows sigrok uses WinUSB RAW_IO policy which requires the
@@ -46,13 +44,13 @@
 #define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KB buffer */
 
 #define MAX_RENUM_DELAY_MS	3000
-#define DEFAULT_TIMEOUT_MS      200
+#define DEFAULT_TIMEOUT_MS	200
 
-#define LA2016_THR_VOLTAGE_MIN  0.40
-#define LA2016_THR_VOLTAGE_MAX  4.00
+#define LA2016_THR_VOLTAGE_MIN	0.40
+#define LA2016_THR_VOLTAGE_MAX	4.00
 
-#define LA2016_NUM_SAMPLES_MIN  256
-#define LA2016_NUM_SAMPLES_MAX  (10UL * 1000 * 1000 * 1000)
+#define LA2016_NUM_SAMPLES_MIN	256
+#define LA2016_NUM_SAMPLES_MAX	(10UL * 1000 * 1000 * 1000)
 
 typedef struct pwm_setting_dev {
 	uint32_t period;
@@ -72,8 +70,8 @@ typedef struct capture_info {
 	uint32_t write_pos;
 } capture_info_t;
 
-#define NUM_PACKETS_IN_CHUNK 5
-#define TRANSFER_PACKET_LENGTH 16
+#define NUM_PACKETS_IN_CHUNK	5
+#define TRANSFER_PACKET_LENGTH	16
 
 typedef struct pwm_setting {
 	uint8_t enabled;
