@@ -472,6 +472,30 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+
+/*
+ * set_sample_config()
+ * 
+ * These parameters are written to the fpga registers to define the next capture:
+ * 
+ * (1) Total number of samples (5 bytes)
+ *     OEM software allows a maximum of 10G (10e9) which is written as
+ *     the 34 bit number 0x02540be400 into five bytes.
+ * (2) Number of pre-trigger samples (5 bytes)
+ *     Similar to above, 34 bits written into five bytes.
+ * (3) Pre-trigger memory limit (3 bytes)
+ *     If the inputs are changing rapidly, creating many repetition packets, then
+ *     the sample memory could be filled just on pre-trigger samples alone.
+ *     This is prevented by specifying the maximum amount of memory to be used for
+ *     pre-trigger samples. Written as three byte number (numbytes/256).
+ * (4) Sample clock divisor (2 bytes)
+ *     Set the main clock divisor to determine sample rate. The main clock
+ *     is 100MHz for LA1016 and 200MHz for LA2016.
+ * (5) One byte, always zero, purpose unknown.
+ * 
+ * The above configuration is a total of 16 bytes.
+ * 
+ */
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -479,8 +503,9 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	uint64_t total;
 	int ret;
 	uint16_t divisor;
-	uint8_t buf[2 * sizeof(uint32_t) + 48 / 8 + sizeof(uint16_t)];
+	uint8_t buf[16];
 	uint8_t *wrptr;
+	uint32_t pretrig_mem_limit;
 
 	devc = sdi->priv;
 	total = 128 * 1024 * 1024;
@@ -502,16 +527,30 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	}
 
 	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
+	
+	pretrig_mem_limit = ((total * devc->capture_ratio) / 100) >> 8;
 
-	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
-	       devc->cur_samplerate / 1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
+	sr_dbg("set sampling configuration %.0fkHz, %" PRIu64 " samples, trigger-pos %d%%",
+	       devc->cur_samplerate / 1e3, devc->limit_samples, (unsigned int)devc->capture_ratio);
 
 	wrptr = buf;
-	write_u32le_inc(&wrptr, devc->limit_samples);
-	write_u8_inc(&wrptr, 0);
-	write_u32le_inc(&wrptr, devc->pre_trigger_size);
-	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xFFFFFF00);
+
+	/* write 34 bit total samples requested into five bytes */
+	write_u32le_inc(&wrptr, (uint32_t)devc->limit_samples);
+	write_u8_inc(&wrptr, (uint8_t)(0x03 & (devc->limit_samples >> 32)));
+
+	/* write 34 bit pre-trigger samples requested into five bytes */
+	write_u32le_inc(&wrptr, (uint32_t)devc->pre_trigger_size);
+	write_u8_inc(&wrptr, (uint8_t)(0x03 & (devc->limit_samples >> 32)));
+
+	/* write 3 byte pre-trigger memory limit */
+	write_u16le_inc(&wrptr, (uint16_t)pretrig_mem_limit);
+	write_u8_inc(&wrptr, (uint8_t)(pretrig_mem_limit >> 16));
+
+	/* write 2 byte divisor to set sample rate */
 	write_u16le_inc(&wrptr, divisor);
+
+	/* write 0x00 byte, purpose unknown */
 	write_u8_inc(&wrptr, 0);
 
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
