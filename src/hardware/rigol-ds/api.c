@@ -883,6 +883,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	GSList *l;
 	char *cmd;
 	int protocol;
+	int ret;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -1021,19 +1022,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->channel_entry = devc->enabled_channels;
 
-	if (devc->data_source == DATA_SOURCE_LIVE)
-		devc->sample_rate = analog_frame_size(sdi) / 
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		devc->sample_rate = analog_frame_size(sdi) /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
-	else {
+	} else {
 		float xinc;
-		if (devc->model->series->protocol >= PROTOCOL_V3 && 
-				sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc) != SR_OK) {
-			sr_err("Couldn't get sampling rate");
+		if (devc->model->series->protocol < PROTOCOL_V3) {
+			sr_err("Cannot get samplerate (below V3).");
+			return SR_ERR;
+		}
+		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
+		if (ret != SR_OK) {
+			sr_err("Cannot get samplerate (WAV:XINC? failed).");
+			return SR_ERR;
+		}
+		if (!xinc) {
+			sr_err("Cannot get samplerate (zero XINC value).");
 			return SR_ERR;
 		}
 		devc->sample_rate = 1. / xinc;
 	}
-
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;

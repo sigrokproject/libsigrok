@@ -132,7 +132,7 @@ static int rdtech_dps_set_reg(const struct sr_dev_inst *sdi,
 	modbus = sdi->conn;
 
 	wrptr = (void *)registers;
-	write_u16le(wrptr, value);
+	write_u16be(wrptr, value);
 
 	g_mutex_lock(&devc->rw_mutex);
 	ret = sr_modbus_write_multiple_registers(modbus, address,
@@ -187,8 +187,8 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 		if (ret != SR_OK)
 			return ret;
 		rdptr = (void *)registers;
-		*model = read_u16le_inc(&rdptr);
-		*version = read_u16le_inc(&rdptr);
+		*model = read_u16be_inc(&rdptr);
+		*version = read_u16be_inc(&rdptr);
 		*serno = 0;
 		sr_info("RDTech DPS/DPH model: %u version: %u",
 			*model, *version);
@@ -327,25 +327,25 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 
 		/* Interpret the registers' values. */
 		rdptr = (const void *)registers;
-		uset_raw = read_u16le_inc(&rdptr);
+		uset_raw = read_u16be_inc(&rdptr);
 		volt_target = uset_raw / devc->voltage_multiplier;
-		iset_raw = read_u16le_inc(&rdptr);
+		iset_raw = read_u16be_inc(&rdptr);
 		curr_limit = iset_raw / devc->current_multiplier;
-		uout_raw = read_u16le_inc(&rdptr);
+		uout_raw = read_u16be_inc(&rdptr);
 		curr_voltage = uout_raw / devc->voltage_multiplier;
-		iout_raw = read_u16le_inc(&rdptr);
+		iout_raw = read_u16be_inc(&rdptr);
 		curr_current = iout_raw / devc->current_multiplier;
-		power_raw = read_u16le_inc(&rdptr);
+		power_raw = read_u16be_inc(&rdptr);
 		curr_power = power_raw / 100.0f;
-		(void)read_u16le_inc(&rdptr); /* UIN */
-		reg_val = read_u16le_inc(&rdptr); /* LOCK */
+		(void)read_u16be_inc(&rdptr); /* UIN */
+		reg_val = read_u16be_inc(&rdptr); /* LOCK */
 		is_lock = reg_val != 0;
-		reg_val = read_u16le_inc(&rdptr); /* PROTECT */
+		reg_val = read_u16be_inc(&rdptr); /* PROTECT */
 		uses_ovp = reg_val == STATE_OVP;
 		uses_ocp = reg_val == STATE_OCP;
-		reg_state = read_u16le_inc(&rdptr); /* CV_CC */
+		reg_state = read_u16be_inc(&rdptr); /* CV_CC */
 		is_reg_cc = reg_state == MODE_CC;
-		out_state = read_u16le_inc(&rdptr); /* ENABLE */
+		out_state = read_u16be_inc(&rdptr); /* ENABLE */
 		is_out_enabled = out_state != 0;
 
 		/* Transfer another chunk of registers in a single call. */
@@ -358,9 +358,9 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 
 		/* Interpret the second registers chunk's values. */
 		rdptr = (const void *)registers;
-		ovpset_raw = read_u16le_inc(&rdptr); /* PRE OVPSET */
+		ovpset_raw = read_u16be_inc(&rdptr); /* PRE OVPSET */
 		ovp_threshold = ovpset_raw * devc->voltage_multiplier;
-		ocpset_raw = read_u16le_inc(&rdptr); /* PRE OCPSET */
+		ocpset_raw = read_u16be_inc(&rdptr); /* PRE OCPSET */
 		ocp_threshold = ocpset_raw * devc->current_multiplier;
 
 		break;
