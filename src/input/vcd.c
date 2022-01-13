@@ -48,7 +48,7 @@
  * Based on Verilog standard IEEE Std 1364-2001 Version C
  *
  * Supported features:
- * - $var with 'wire' and 'reg' types of scalar variables
+ * - $var with 'wire', 'reg' and 'logic' types of scalar variables
  * - $timescale definition for samplerate
  * - multiple character variable identifiers
  * - same identifer used for multiple signals (identical values)
@@ -689,7 +689,7 @@ static int parse_scope(struct context *inc, char *contents, gboolean is_up)
 static int parse_header_var(struct context *inc, char *contents)
 {
 	char *type, *size_txt, *id, *ref, *idx;
-	gboolean is_reg, is_wire, is_real, is_int;
+	gboolean is_reg, is_wire, is_logic, is_real, is_int;
 	gboolean is_str;
 	enum sr_channeltype ch_type;
 	size_t size, next_size;
@@ -713,11 +713,12 @@ static int parse_header_var(struct context *inc, char *contents)
 
 	is_reg = g_strcmp0(type, "reg") == 0;
 	is_wire = g_strcmp0(type, "wire") == 0;
+	is_logic = g_strcmp0(type, "logic") == 0;
 	is_real = g_strcmp0(type, "real") == 0;
 	is_int = g_strcmp0(type, "integer") == 0;
 	is_str = g_strcmp0(type, "string") == 0;
 
-	if (is_reg || is_wire) {
+	if (is_reg || is_wire || is_logic) {
 		ch_type = SR_CHANNEL_LOGIC;
 	} else if (is_real || is_int) {
 		ch_type = SR_CHANNEL_ANALOG;
