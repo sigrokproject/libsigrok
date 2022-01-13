@@ -1203,6 +1203,10 @@ static void deinterleave_buffer(const uint8_t *src, size_t length,
 	uint64_t last_data[NUM_CHANNELS];
 	bool first_loop = TRUE;
 	unsigned int idx;
+
+	/* initially memset first samples of destination buffer to avoid
+	recording uninitialized garbage for channels which are not enabled */
+	memset(dst_ptr, 0, DSLOGIC_ATOMIC_SAMPLES * sizeof(uint16_t));
 	/* for first iteration, force last_data to be different */
 	for (unsigned int i = 0; i < channel_count; i++)
 		last_data[i] = ~src_ptr[i];
