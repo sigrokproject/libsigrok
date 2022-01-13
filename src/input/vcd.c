@@ -35,6 +35,9 @@
  *     timestamp 0.
  *   Value > 0: Start at the given timestamp.
  *
+ * samplerate: overwrite/manually specify the samplerate for this VCD file
+ *   and ignore timescale sections.
+ *
  * downsample: Divide the samplerate by the given factor. This can
  *   speed up operation on long captures.
  *
@@ -123,6 +126,7 @@
 struct context {
 	struct vcd_user_opt {
 		size_t maxchannels; /* sigrok channels (output) */
+		uint64_t samplerate;
 		uint64_t downsample;
 		uint64_t compress;
 		uint64_t skip_starttime;
@@ -556,6 +560,11 @@ static gboolean have_header(GString *buf)
 static int parse_timescale(struct context *inc, char *contents)
 {
 	uint64_t p, q;
+
+	if (inc->options.samplerate != 0) {
+		sr_info("Ignoring timescale section as the samplerate was manually overwritten!");
+		return SR_OK;
+	}
 
 	/*
 	 * The standard allows for values 1, 10 or 100
@@ -1945,6 +1954,13 @@ static int init(struct sr_input *in, GHashTable *options)
 	data = g_hash_table_lookup(options, "numchannels");
 	inc->options.maxchannels = g_variant_get_uint32(data);
 
+	data = g_hash_table_lookup(options, "samplerate_overwrite");
+	inc->options.samplerate = g_variant_get_uint64(data);
+	if (inc->options.samplerate != 0) {
+		// Set the samplerate
+		inc->samplerate = inc->options.samplerate;
+	}
+
 	data = g_hash_table_lookup(options, "downsample");
 	inc->options.downsample = g_variant_get_uint64(data);
 	if (inc->options.downsample < 1)
@@ -2083,6 +2099,7 @@ static int reset(struct sr_input *in)
 
 enum vcd_option_t {
 	OPT_NUM_CHANS,
+	OPT_SAMPLERATE,
 	OPT_DOWN_SAMPLE,
 	OPT_SKIP_COUNT,
 	OPT_COMPRESS,
@@ -2093,6 +2110,13 @@ static struct sr_option options[] = {
 	[OPT_NUM_CHANS] = {
 		"numchannels", "Max number of sigrok channels",
 		"The maximum number of sigrok channels to create for VCD input signals.",
+		NULL, NULL,
+	},
+	[OPT_SAMPLERATE] = {
+		"samplerate_overwrite", "Overwrite Samplerate",
+		"Overwrite the input file's samplerate, i.e. for frequencies not representable via timescale."
+		"By default the VCD file is searched for a timescale section to compute the samplerate."
+		"For values other than 0 this value will be considered as the actual samplerate and the timescale section will be ignored.",
 		NULL, NULL,
 	},
 	[OPT_DOWN_SAMPLE] = {
@@ -2120,6 +2144,7 @@ static const struct sr_option *get_options(void)
 {
 	if (!options[0].def) {
 		options[OPT_NUM_CHANS].def = g_variant_ref_sink(g_variant_new_uint32(0));
+		options[OPT_SAMPLERATE].def = g_variant_ref_sink(g_variant_new_uint64(0));
 		options[OPT_DOWN_SAMPLE].def = g_variant_ref_sink(g_variant_new_uint64(1));
 		options[OPT_SKIP_COUNT].def = g_variant_ref_sink(g_variant_new_uint64(~UINT64_C(0)));
 		options[OPT_COMPRESS].def = g_variant_ref_sink(g_variant_new_uint64(0));
