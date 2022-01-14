@@ -1225,7 +1225,7 @@ static void deinterleave_buffer(const uint8_t *src, size_t length,
 			if (channel_mask & (1 << channel)) {
 				if (last_data[idx] != src_ptr[idx]) {
 					for (unsigned int bit = 0; bit != DSLOGIC_ATOMIC_SAMPLES; bit++) {
-						if (src_ptr[channel] & (UINT64_C(1) << bit))
+						if (src_ptr[idx] & (UINT64_C(1) << bit))
 							dst_ptr[bit] |= (1 << channel);
 						else
 							dst_ptr[bit] &= ~(uint16_t)(1 << channel);
