@@ -26,10 +26,22 @@
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "francaise-instrumentation-ams515"
+#define SERIAL_WRITE_TIMEOUT_MS 1
+#define SERIAL_READ_TIMEOUT_MS 100
+#define ANSWER_MAX 15
+#define MAX_CHANNELS 3
 
 struct dev_context {
+	int selected_channel; // channel currently displayed on the front panel
+	// TODO
 };
 
 SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data);
+
+SR_PRIV int francaise_instrumentation_ams515_send_raw(struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed);
+
+SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result);
+SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param);
+SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi, const char cmd, char param);
 
 #endif
