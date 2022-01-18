@@ -40,14 +40,16 @@ static const uint32_t drvopts[] = {
  *
  * TODO: implement other commands?
  *
- * S{A,B,C} / S?	sets / query selected output on the front panel
- * V		enable overcurrent protection?
- * I?		returns "Ok", likely overcurrent indicator
+ * S[ABC] / S?	sets / query selected output on the front panel
+ * I?		Overcurrent indicator, returns "Ok", or ">[ABC]" (not sure for more than 1)
+ * V		Lock front panel
  * D / D?	disable display?? (does *not* disable outputs)
  *
  * Note lowercase letters are also accepted as commands.
  *
  * TODO: implement monitoring of manual controls?
+ *
+ * TODO: support +0/-0 on channel C by caching last value to avoid clicking the relay?
  */
 
 static const uint32_t devopts[] = {
@@ -55,9 +57,11 @@ static const uint32_t devopts[] = {
 };
 
 static const uint32_t devopts_cg[] = {
-	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_ENABLED | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET,
 };
 
 struct channel_spec {
@@ -67,7 +71,7 @@ struct channel_spec {
 
 static const struct channel_spec channel_specs[] = {
 	{ { 0, 15, 0.1L }, { 1, 1, 0 } }, // Actually +/- symetrical outputs
-	{ { 2, 5.5, 0.1L }, { 2, 2, 0 } },
+	{ { 2, 5.5, 0.1L }, { 3, 3, 0 } },
 	{ { -15, 15, 0.1L }, { 0.2, 0.2, 0 } },
 };
 
@@ -117,6 +121,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	}
 	buf = g_malloc(ANSWER_MAX);
+	// TODO: malloc sdi here so we can pass it to send_raw
 	res = francaise_instrumentation_ams515_send_raw(serial, ident_request, buf, TRUE);
 	if (res < SR_OK)
 		return NULL;
@@ -173,17 +178,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 	serial = sdi->conn;
 
 	/* Request the unit to turn echo off if not already. */
-	const char *cmd = "T?\r";
-	char *answer = g_malloc0(ANSWER_MAX);
-	res = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
-	if (res >= SR_OK && !strcmp(answer, "00")) {
-		cmd = "T\r";
-		res = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
-	}
+	res = francaise_instrumentation_ams515_set_echo(serial, FALSE);
 	if (res != SR_OK)
 		sr_dbg("Failed to disable echo on unit");
 
-	g_free(answer);
 	return ret;
 }
 
@@ -209,6 +207,8 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	int channel, ival, ret;
+	char answer[ANSWER_MAX];
+	gboolean bval;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -228,6 +228,9 @@ static int config_get(uint32_t key, GVariant **data,
 		ch = cg->channels->data;
 		channel = ch->index;
 
+		if (channel < 0 || channel > MAX_CHANNELS)
+			return SR_ERR_ARG;
+
 		switch (key) {
 		case SR_CONF_ENABLED:
 			*data = g_variant_new_boolean(TRUE);
@@ -239,6 +242,29 @@ static int config_get(uint32_t key, GVariant **data,
 			if (ret < SR_OK)
 				return ret;
 			*data = g_variant_new_double((double)(ival * 150 / 0x96) / 10);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+			*data = g_variant_new_boolean(TRUE);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
+			ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+			if (ret < SR_OK)
+				return ret;
+			if (!strcmp(answer, "Ok"))
+				bval = FALSE;
+			else if (answer[0] == '>') {
+				int i;
+				bval = FALSE;
+				for (i = 1; i < ANSWER_MAX && answer[i]; i++) {
+					if (answer[i] == 'A' + channel)
+						bval = TRUE;
+				}
+			} else
+				return SR_ERR;
+			*data = g_variant_new_boolean(bval);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
+			*data = g_variant_new_double(channel_specs[channel].current[1]);
 			break;
 		default:
 			return SR_ERR_NA;

@@ -33,14 +33,16 @@
 
 struct dev_context {
 	int selected_channel; // channel currently displayed on the front panel
-	// TODO
 };
 
 SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV int francaise_instrumentation_ams515_send_raw(struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed);
+SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed);
+
+SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev_inst *serial, gboolean param);
 
 SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result);
+SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result);
 SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param);
 SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi, const char cmd, char param);
 

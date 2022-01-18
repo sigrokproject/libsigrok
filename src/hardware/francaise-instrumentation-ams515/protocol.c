@@ -53,10 +53,11 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_send_raw(struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed)
+SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed)
 {
 	int cmdlen = strlen(cmd);
-	int i;
+	int i, ret = SR_ERR_IO;
+	gboolean resync = FALSE;
 
 	if (!serial)
 		return SR_ERR_ARG;
@@ -99,7 +100,8 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(struct sr_serial_dev_inst 
 		echoed = TRUE;
 		if (c != cmd[i]) {
 			sr_err("Mismatched echoed cmd: %c != %c", c, cmd[i]);
-			return SR_ERR;
+			// actually keep going, if we ever want to resync properly
+			//return SR_ERR;
 		}
 	}
 
@@ -107,25 +109,95 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(struct sr_serial_dev_inst 
 	/*
 	 * Read until we get the prompt.
 	 */
-	for (i = 0; i < ANSWER_MAX-1 && answer[i] != '>'; i++) {
+	for (i = 0; i < ANSWER_MAX-1; i++) {
 		if (serial_read_blocking(serial, &answer[i], 1, SERIAL_READ_TIMEOUT_MS) < 1) {
 			sr_err("Unable to read cmd answer.");
 			break;
 		}
 		sr_spew("send_raw(): answer: 0x%02x '%c'", answer[i], answer[i]);
 		// skip CR/LF
-		if (answer[i] == '\r' || answer[i] == '\n')
+		if (answer[i] == '\r' || answer[i] == '\n') {
+			if (!echoed) {
+				// We shouldn't get CR/LF in no-echo mode.
+				// Likely the device was power-cycled, switch it back to no-echo mode
+				sr_dbg("CR/LF found reply in no-echo mode!");
+				resync = TRUE;
+				break;
+			}
 			i--;
-		if (answer[i] == '>')
+		}
+		// The "I?" command returns a ">" in the answer, ain't it funny?
+		if (answer[i] == '>' && (cmd[0] != 'I' || i > 0)) {
+			// We got a prompt, so the command was handled.
+			ret = SR_OK;
 			break;
+		}
 	}
 	answer[i] = '\0';
 	sr_spew("send_raw(): answer: '%s'", answer);
 
+
+	// Some error occured
 	if (!strcmp("Error!", answer))
 		return SR_ERR;
 
-	return SR_OK;
+	// Argument is out of bounds
+	if (!strcmp("Dep", answer))
+		return SR_ERR_ARG;
+
+	// Over-current
+	if (!strcmp("Icc", answer))
+		return SR_ERR;
+
+	if (resync) {
+		/*
+		 * Something bad happened.
+		 * Maybe the device was power-cycled, try to disable echo again.
+		 */
+		serial_flush(serial);
+		francaise_instrumentation_ams515_send_raw(serial, "T\r", answer, TRUE);
+		serial_flush(serial);
+		// Assume this command failed
+	}
+
+	return ret;
+}
+
+/**
+ * Set echo mode on the device
+ *
+ * @param[in] cmd Raw command char.
+ * @param[in] param Echo mode to set.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR Error.
+ */
+SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev_inst *serial, gboolean param)
+{
+	const char *cmd;
+	char answer[ANSWER_MAX];
+	int ret;
+
+	if (!serial)
+		return SR_ERR_ARG;
+
+	serial_flush(serial);
+
+	cmd = "T?\r";
+	// Query current echo mode
+	ret = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
+	if (ret < SR_OK)
+		return ret;
+	if (!param && !strcmp(answer, "00") || param && !strcmp(answer, "FF")) {
+		cmd = "T\r";
+		// Toggle echo mode to the one we want
+		ret = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
+	}
+
+	serial_flush(serial);
+
+	return ret;
 }
 
 /**
@@ -164,7 +236,37 @@ SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst 
 }
 
 /**
- * Send query command with integer parameter
+ * Send query command with string result
+ *
+ * @param[in] cmd Raw command char.
+ * @param[out] result Pointer to result char[ANSWER_MAX]
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR Error.
+ */
+SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result)
+{
+	struct sr_serial_dev_inst *serial;
+	char command[4];
+	int ret;
+	long res;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+	serial = sdi->conn;
+	if (!serial || !result)
+		return SR_ERR_ARG;
+
+	snprintf(command, 4, "%c?\r", cmd);
+	ret = francaise_instrumentation_ams515_send_raw(serial, command, result, FALSE);
+	if (ret < SR_OK)
+		return ret;
+	return SR_OK;
+}
+
+/**
+ * Send command with integer parameter
  *
  * @param[in] cmd Raw command char.
  * @param[out] param Integer parameter.
@@ -188,14 +290,14 @@ SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *
 		return SR_ERR_ARG;
 
 	snprintf(command, 9, "%c%c%02.02X\r", cmd, param < 0 ? '-' : '+', abs(param));
-	sr_spew("send_send_int(): sending %s", command);
+	sr_spew("send_int(): sending %s", command);
 
 	ret = francaise_instrumentation_ams515_send_raw(serial, command, answer, FALSE);
 	return ret;
 }
 
 /**
- * Send query command with char parameter
+ * Send command with char parameter
  *
  * @param[in] cmd Raw command char.
  * @param[out] param Character parameter.
@@ -219,7 +321,7 @@ SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst 
 		return SR_ERR_ARG;
 
 	snprintf(command, 9, "%c%c\r", cmd, param);
-	sr_spew("send_send_char(): sending %s", command);
+	sr_spew("send_char(): sending %s", command);
 
 	ret = francaise_instrumentation_ams515_send_raw(serial, command, answer, FALSE);
 	return ret;
