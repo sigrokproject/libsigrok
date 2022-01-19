@@ -81,9 +81,11 @@ static int ctrl_in(const struct sr_dev_inst *sdi,
 		     usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
 		     bRequest, wValue, wIndex, (unsigned char *)data, wLength,
 		     DEFAULT_TIMEOUT_MS)) != wLength) {
-		sr_err("failed to read %d bytes via ctrl-in %d %#x, %d: %s.",
-		       wLength, bRequest, wValue, wIndex,
-		       libusb_error_name(ret));
+		sr_dbg("USB ctrl in: %d bytes, req %d val %#x idx %d: %s.",
+			wLength, bRequest, wValue, wIndex,
+			libusb_error_name(ret));
+		sr_err("Cannot read %d bytes from USB: %s.",
+			wLength, libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -103,9 +105,11 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 		     usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
 		     bRequest, wValue, wIndex, (unsigned char*)data, wLength,
 		     DEFAULT_TIMEOUT_MS)) != wLength) {
-		sr_err("failed to write %d bytes via ctrl-out %d %#x, %d: %s.",
-		       wLength, bRequest, wValue, wIndex,
-		       libusb_error_name(ret));
+		sr_dbg("USB ctrl out: %d bytes, req %d val %#x idx %d: %s.",
+			wLength, bRequest, wValue, wIndex,
+			libusb_error_name(ret));
+		sr_err("Cannot write %d bytes to USB: %s.",
+			wLength, libusb_error_name(ret));
 		return SR_ERR;
 	}
 
@@ -135,7 +139,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 
 	ret = sr_resource_open(drvc->sr_ctx, &bitstream, SR_RESOURCE_FIRMWARE, bitstream_fname);
 	if (ret != SR_OK) {
-		sr_err("could not find fpga firmware %s!", bitstream_fname);
+		sr_err("Cannot find FPGA bitstream %s.", bitstream_fname);
 		return ret;
 	}
 
@@ -143,7 +147,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 	wrptr = buffer;
 	write_u32le_inc(&wrptr, devc->bitstream_size);
 	if ((ret = ctrl_out(sdi, CMD_FPGA_INIT, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
-		sr_err("failed to give upload init command");
+		sr_err("Cannot initiate FPGA bitstream upload.");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
 	}
@@ -153,7 +157,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 		if (pos < bitstream.size) {
 			len = (int)sr_resource_read(drvc->sr_ctx, &bitstream, &block, sizeof(block));
 			if (len < 0) {
-				sr_err("failed to read from fpga bitstream!");
+				sr_err("Cannot read FPGA bitstream.");
 				sr_resource_close(drvc->sr_ctx, &bitstream);
 				return SR_ERR;
 			}
@@ -169,12 +173,14 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 
 		ret = libusb_bulk_transfer(usb->devhdl, 2, (unsigned char*)&block[0], len, &act_len, DEFAULT_TIMEOUT_MS);
 		if (ret != 0) {
-			sr_dbg("failed to write fpga bitstream block at %#x len %d: %s.", pos, (int)len, libusb_error_name(ret));
+			sr_dbg("Cannot write FPGA bitstream, block %#x len %d: %s.",
+				pos, (int)len, libusb_error_name(ret));
 			ret = SR_ERR;
 			break;
 		}
 		if (act_len != len) {
-			sr_dbg("failed to write fpga bitstream block at %#x len %d: act_len is %d.", pos, (int)len, act_len);
+			sr_dbg("Short write for FPGA bitstream, block %#x len %d: got %d.",
+				pos, (int)len, act_len);
 			ret = SR_ERR;
 			break;
 		}
@@ -183,21 +189,23 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 	sr_resource_close(drvc->sr_ctx, &bitstream);
 	if (ret != 0)
 		return ret;
-	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.", bitstream.size);
+	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.",
+		bitstream.size);
 
 	if ((ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
-		sr_err("failed to read response after FPGA bitstream upload");
+		sr_err("Cannot read response after FPGA bitstream upload.");
 		return ret;
 	}
 	if (cmd_resp != 0) {
-		sr_err("after fpga bitstream upload command response is 0x%02x, expect 0!", cmd_resp);
+		sr_err("Unexpected FPGA bitstream upload response, got 0x%02x, want 0.",
+			cmd_resp);
 		return SR_ERR;
 	}
 
 	g_usleep(30000);
 
 	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed enable fpga");
+		sr_err("Cannot enable FPGA after bitstream upload.");
 		return ret;
 	}
 
@@ -260,8 +268,8 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 		duty_R56 = 1100;
 	}
 
-	sr_dbg("set threshold voltage %.2fV", voltage);
-	sr_dbg("duty_R56=0x%04x, duty_R79=0x%04x", duty_R56, duty_R79);
+	sr_dbg("Set threshold voltage %.2fV.", voltage);
+	sr_dbg("Duty cycle values: R56 0x%04x, R79 0x%04x.", duty_R56, duty_R79);
 
 	wrptr = buf;
 	write_u16le_inc(&wrptr, duty_R56);
@@ -269,7 +277,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_THRESHOLD, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
-		sr_err("error setting new threshold voltage of %.2fV", voltage);
+		sr_err("Cannot set threshold voltage %.2fV.", voltage);
 		return ret;
 	}
 	devc->threshold_voltage = voltage;
@@ -289,10 +297,10 @@ static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 	if (p1) cfg |= 1 << 0;
 	if (p2) cfg |= 1 << 1;
 
-	sr_dbg("set pwm enable %d %d", p1, p2);
+	sr_dbg("Set PWM enable %d %d. Config 0x%02x.", p1, p2, cfg);
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0, &cfg, sizeof(cfg));
 	if (ret != SR_OK) {
-		sr_err("error setting new pwm enable 0x%02x", cfg);
+		sr_err("Cannot setup PWM enabled state.");
 		return ret;
 	}
 	devc->pwm_setting[0].enabled = (p1) ? 1 : 0;
@@ -314,28 +322,29 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, flo
 	devc = sdi->priv;
 
 	if (which < 1 || which > 2) {
-		sr_err("invalid pwm channel: %d", which);
+		sr_err("Invalid PWM channel: %d.", which);
 		return SR_ERR;
 	}
 	if (freq > MAX_PWM_FREQ) {
-		sr_err("pwm frequency too high: %.1f", freq);
+		sr_err("Too high a PWM frequency: %.1f.", freq);
 		return SR_ERR;
 	}
 	if (duty > 100 || duty < 0) {
-		sr_err("invalid pwm percentage: %f", duty);
+		sr_err("Invalid PWM duty cycle: %f.", duty);
 		return SR_ERR;
 	}
 
 	cfg.period = (uint32_t)(PWM_CLOCK / freq);
 	cfg.duty = (uint32_t)(0.5f + (cfg.period * duty / 100.));
-	sr_dbg("set pwm%d period %d, duty %d", which, cfg.period, cfg.duty);
+	sr_dbg("Set PWM%d period %d, duty %d.", which, cfg.period, cfg.duty);
 
 	wrptr = buf;
 	write_u32le_inc(&wrptr, cfg.period);
 	write_u32le_inc(&wrptr, cfg.duty);
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_PWM[which - 1], 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
-		sr_err("error setting new pwm%d config %d %d", which, cfg.period, cfg.duty);
+		sr_err("Cannot setup PWM%d configuration %d %d.",
+			which, cfg.period, cfg.duty);
 		return ret;
 	}
 	setting = &devc->pwm_setting[which - 1];
@@ -424,7 +433,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_RISING:
 				if ((cfg.enabled & ~cfg.level)) {
-					sr_err("Only one trigger signal with falling-/rising-edge allowed.");
+					sr_err("Device only supports one edge trigger.");
 					return SR_ERR;
 				}
 				cfg.level &= ~ch_mask;
@@ -432,24 +441,24 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 				break;
 			case SR_TRIGGER_FALLING:
 				if ((cfg.enabled & ~cfg.level)) {
-					sr_err("Only one trigger signal with falling-/rising-edge allowed.");
+					sr_err("Device only supports one edge trigger.");
 					return SR_ERR;
 				}
 				cfg.level &= ~ch_mask;
 				cfg.high_or_falling |= ch_mask;
 				break;
 			default:
-				sr_err("Unknown trigger value.");
+				sr_err("Unknown trigger condition.");
 				return SR_ERR;
 			}
 			cfg.enabled |= ch_mask;
 			channel = channel->next;
 		}
 	}
-	sr_dbg("set trigger configuration channels: 0x%04x, "
-	       "trigger-enabled 0x%04x, level-triggered 0x%04x, "
-	       "high/falling 0x%04x", cfg.channels, cfg.enabled, cfg.level,
-	       cfg.high_or_falling);
+	sr_dbg("Set trigger config: "
+		"channels 0x%04x, trigger-enabled 0x%04x, "
+		"level-triggered 0x%04x, high/falling 0x%04x.",
+		cfg.channels, cfg.enabled, cfg.level, cfg.high_or_falling);
 
 	devc->had_triggers_configured = cfg.enabled != 0;
 
@@ -460,7 +469,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, cfg.high_or_falling);
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_TRIGGER, 16, buf, wrptr - buf);
 	if (ret != SR_OK) {
-		sr_err("error setting trigger config!");
+		sr_err("Cannot setup trigger configuration.");
 		return ret;
 	}
 
@@ -481,7 +490,8 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	total = 128 * 1024 * 1024;
 
 	if (devc->cur_samplerate > devc->max_samplerate) {
-		sr_err("too high sample rate: %" PRIu64, devc->cur_samplerate);
+		sr_err("Too high a sample rate: %" PRIu64 ".",
+			devc->cur_samplerate);
 		return SR_ERR;
 	}
 
@@ -492,14 +502,17 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	devc->cur_samplerate = devc->max_samplerate / divisor;
 
 	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
-		sr_err("too high sample depth: %" PRIu64, devc->limit_samples);
+		sr_err("Too high a sample depth: %" PRIu64 ".",
+			devc->limit_samples);
 		return SR_ERR;
 	}
 
 	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
 
-	sr_dbg("set sampling configuration %.0fkHz, %d samples, trigger-pos %d%%",
-	       devc->cur_samplerate / 1e3, (unsigned int)devc->limit_samples, (unsigned int)devc->capture_ratio);
+	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples, trigger-pos %" PRIu64 "%%.",
+		devc->cur_samplerate / 1000,
+		devc->limit_samples,
+		devc->capture_ratio);
 
 	wrptr = buf;
 	write_u32le_inc(&wrptr, devc->limit_samples);
@@ -511,7 +524,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
-		sr_err("error setting sample config!");
+		sr_err("Cannot setup acquisition configuration.");
 		return ret;
 	}
 
@@ -543,7 +556,7 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	int ret;
 
 	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, &state, sizeof(state))) != SR_OK) {
-		sr_err("failed to read run state!");
+		sr_err("Cannot read run state.");
 		return ret;
 	}
 
@@ -555,19 +568,22 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	if (state != previous_state) {
 		previous_state = state;
 		if ((state & 0x0003) == 0x01) {
-			sr_dbg("run_state: 0x%04x (%s)", state, "idle");
+			sr_dbg("Run state: 0x%04x (%s).", state, "idle");
 		}
 		else if ((state & 0x000f) == 0x02) {
-			sr_dbg("run_state: 0x%04x (%s)", state, "pre-trigger sampling");
+			sr_dbg("Run state: 0x%04x (%s).", state,
+				"pre-trigger sampling");
 		}
 		else if ((state & 0x000f) == 0x0a) {
-			sr_dbg("run_state: 0x%04x (%s)", state, "sampling, waiting for trigger");
+			sr_dbg("Run state: 0x%04x (%s).", state,
+				"sampling, waiting for trigger");
 		}
 		else if ((state & 0x000f) == 0x0e) {
-			sr_dbg("run_state: 0x%04x (%s)", state, "post-trigger sampling");
+			sr_dbg("Run state: 0x%04x (%s).", state,
+				"post-trigger sampling");
 		}
 		else {
-			sr_dbg("run_state: 0x%04x", state);
+			sr_dbg("Run state: 0x%04x.", state);
 		}
 	}
 
@@ -579,7 +595,7 @@ static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t fast_blinking)
 	int ret;
 
 	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
-		sr_err("failed to send set-run-mode command %d", fast_blinking);
+		sr_err("Cannot configure run mode %d.", fast_blinking);
 		return ret;
 	}
 
@@ -596,7 +612,7 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, sizeof(buf))) != SR_OK) {
-		sr_err("failed to read capture info!");
+		sr_err("Cannot read capture info.");
 		return ret;
 	}
 
@@ -605,13 +621,16 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	devc->info.n_rep_packets_before_trigger = read_u32le_inc(&rdptr);
 	devc->info.write_pos = read_u32le_inc(&rdptr);
 
-	sr_dbg("capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d",
+	sr_dbg("Capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d.",
 	       devc->info.n_rep_packets, devc->info.n_rep_packets,
-	       devc->info.n_rep_packets_before_trigger, devc->info.n_rep_packets_before_trigger,
+	       devc->info.n_rep_packets_before_trigger,
+	       devc->info.n_rep_packets_before_trigger,
 	       devc->info.write_pos, devc->info.write_pos);
 
-	if (devc->info.n_rep_packets % 5)
-		sr_warn("number of packets is not as expected multiples of 5: %d", devc->info.n_rep_packets);
+	if (devc->info.n_rep_packets % 5) {
+		sr_warn("Unexpected packets count %lu, not a multiple of 5.",
+			(unsigned long)devc->info.n_rep_packets);
+	}
 
 	return SR_OK;
 }
@@ -637,7 +656,7 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 
 	cmd = 0;
 	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd))) != SR_OK) {
-		sr_err("failed to send stop sampling command");
+		sr_err("Cannot send command to stop sampling.");
 		return ret;
 	}
 
@@ -720,23 +739,24 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer
 	devc->read_pos = devc->info.write_pos - devc->n_bytes_to_read;
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
-	sr_dbg("want to read %d tfer-packets starting from pos %d",
+	sr_dbg("Want to read %u xfer-packets starting from pos %" PRIu32 ".",
 	       devc->n_transfer_packets_to_read, devc->read_pos);
 
 	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed to reset bulk state");
+		sr_err("Cannot reset USB bulk state.");
 		return ret;
 	}
-	sr_dbg("will read from 0x%08x, 0x%08x bytes", devc->read_pos, devc->n_bytes_to_read);
+	sr_dbg("Will read from 0x%08lx, 0x%08x bytes.",
+		(unsigned long)devc->read_pos, devc->n_bytes_to_read);
 	wrptr = wrbuf;
 	write_u32le_inc(&wrptr, devc->read_pos);
 	write_u32le_inc(&wrptr, devc->n_bytes_to_read);
 	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
-		sr_err("failed to send bulk config");
+		sr_err("Cannot send USB bulk config.");
 		return ret;
 	}
 	if ((ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed to unblock bulk transfers");
+		sr_err("Cannot unblock USB bulk transfers.");
 		return ret;
 	}
 
@@ -748,7 +768,8 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer
 		to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
 	buffer = g_try_malloc(to_read);
 	if (!buffer) {
-		sr_err("Failed to allocate %d bytes for bulk transfer", to_read);
+		sr_dbg("USB bulk transfer size %d bytes.", (int)to_read);
+		sr_err("Cannot allocate buffer for USB bulk transfer.");
 		return SR_ERR_MALLOC;
 	}
 
@@ -759,7 +780,7 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer
 		cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
 	if ((ret = libusb_submit_transfer(devc->transfer)) != 0) {
-		sr_err("Failed to submit transfer: %s.", libusb_error_name(ret));
+		sr_err("Cannot submit USB transfer: %s.", libusb_error_name(ret));
 		libusb_free_transfer(devc->transfer);
 		devc->transfer = NULL;
 		g_free(buffer);
@@ -830,7 +851,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 				if (devc->n_reps_until_trigger == 0) {
 					devc->reading_behind_trigger = 1;
 					do_signal_trigger = 1;
-					sr_dbg("  here is trigger position after %" PRIu64 " samples, %.6fms",
+					sr_dbg("Trigger position after %" PRIu64 " samples, %.6fms.",
 					       devc->total_samples,
 					       (double)devc->total_samples / devc->cur_samplerate * 1e3);
 				}
@@ -845,7 +866,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 			std_session_send_df_trigger(sdi);
 		}
 	}
-	sr_dbg("send_chunk done after %d samples", total_samples);
+	sr_dbg("Send_chunk done after %u samples.", total_samples);
 }
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
@@ -863,7 +884,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	       libusb_error_name(transfer->status), transfer->actual_length);
 
 	if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
-		sr_err("bulk transfer timeout!");
+		sr_err("USB bulk transfer timeout.");
 		devc->transfer_finished = 1;
 	}
 	send_chunk(sdi, transfer->buffer, transfer->actual_length / TRANSFER_PACKET_LENGTH);
@@ -883,7 +904,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 		if ((ret = libusb_submit_transfer(transfer)) == 0)
 			return;
-		sr_err("Failed to submit further transfer: %s.", libusb_error_name(ret));
+		sr_err("Cannot submit another USB transfer: %s.",
+			libusb_error_name(ret));
 	}
 
 	g_free(transfer->buffer);
@@ -916,10 +938,10 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 		devc->total_samples = 0;
 		/* we can start retrieving data! */
 		if (la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
-			sr_err("failed to start retrieval!");
+			sr_err("Cannot start acquisition data download.");
 			return FALSE;
 		}
-		sr_dbg("retrieval is started...");
+		sr_dbg("Acquisition data download started.");
 		std_session_send_df_frame_begin(sdi);
 
 		return TRUE;
@@ -929,7 +951,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 	if (devc->transfer_finished) {
-		sr_dbg("transfer is finished!");
+		sr_dbg("Download finished, post processing.");
 		std_session_send_df_frame_end(sdi);
 
 		usb_source_remove(sdi->session, drvc->sr_ctx);
@@ -942,7 +964,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 
 		devc->transfer = NULL;
 
-		sr_dbg("transfer is now finished");
+		sr_dbg("Download finished, done post processing.");
 	}
 
 	return TRUE;
@@ -964,12 +986,14 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	 * This helps to identify the age of devices if unknown magic numbers occur.
 	 */
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, purchase_date_bcd, sizeof(purchase_date_bcd))) != SR_OK) {
-		sr_err("failed to read eeprom purchase_date_bcd");
+		sr_err("Cannot read purchase date in EEPROM.");
 	}
 	else {
-		sr_dbg("purchase date: 20%02hx-%02hx", (purchase_date_bcd[0]) & 0x00ff, (purchase_date_bcd[0] >> 8) & 0x00ff);
+		sr_dbg("Purchase date: 20%02hx-%02hx.",
+			(purchase_date_bcd[0]) & 0xff,
+			(purchase_date_bcd[0] >> 8) & 0xff);
 		if (purchase_date_bcd[0] != (0x0ffff & ~purchase_date_bcd[1])) {
-			sr_err("purchase date: checksum failure");
+			sr_err("Purchase date fails checksum test.");
 		}
 	}
 
@@ -1007,7 +1031,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	 */
 
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &buf, sizeof(buf))) != SR_OK) {
-		sr_err("failed to read eeprom device identifier bytes");
+		sr_err("Cannot read EEPROM device identifier bytes.");
 		return ret;
 	}
 
@@ -1018,11 +1042,11 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	}
 	else if (buf[4] == (0x0ff & ~buf[5])) {
 		/* backup copy of magic passes complement check */
-		sr_dbg("device_type: using backup copy of magic number");
+		sr_dbg("Using backup copy of device type magic number.");
 		magic = buf[4];
 	}
 
-	sr_dbg("device_type: magic number is %hhu", magic);
+	sr_dbg("Device type: magic number is %hhu.", magic);
 
 	/* select the correct fpga bitstream for this device */
 	switch (magic) {
@@ -1043,26 +1067,26 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
 		break;
 	default:
-		sr_err("device_type: device not supported; magic number indicates this is not a LA2016 or LA1016");
+		sr_err("Cannot identify as one of the supported models.");
 		return SR_ERR;
 	}
 
 	if (ret != SR_OK) {
-		sr_err("failed to upload fpga bitstream");
+		sr_err("Cannot upload FPGA bitstream.");
 		return ret;
 	}
 
 	state = run_state(sdi);
 	if (state != 0x85e9) {
-		sr_warn("expect run state to be 0x85e9, but it reads 0x%04x", state);
+		sr_warn("Unexpected run state, want 0x85e9, got 0x%04x.", state);
 	}
 
 	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed to send CMD_BULK_RESET");
+		sr_err("Cannot reset USB bulk transfer.");
 		return ret;
 	}
 
-	sr_dbg("device should be initialized");
+	sr_dbg("Device should be initialized.");
 
 	return set_defaults(sdi);
 }
@@ -1072,7 +1096,7 @@ SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi)
 	int ret;
 
 	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x00, 0, NULL, 0)) != SR_OK) {
-		sr_err("failed to send deinit command");
+		sr_err("Cannot deinitialize device's FPGA.");
 		return ret;
 	}
 

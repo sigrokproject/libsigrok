@@ -194,10 +194,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		fw_updated = 0;
 		dev_addr = libusb_get_device_address(devlist[i]);
 		if (des.iProduct != 2) {
-			sr_info("device at '%s' has no firmware loaded!", connection_id);
+			sr_info("Device at '%s' has no firmware loaded.", connection_id);
 
 			if (la2016_upload_firmware(drvc->sr_ctx, devlist[i], des.idProduct) != SR_OK) {
-				sr_err("uC firmware upload failed!");
+				sr_err("MCU firmware upload failed.");
 				g_free(sdi->connection_id);
 				g_free(sdi);
 				continue;
@@ -287,8 +287,7 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 
 		ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
 		if (ret == LIBUSB_ERROR_BUSY) {
-			sr_err("Unable to claim USB interface. Another "
-			       "program or driver has already claimed it.");
+			sr_err("Cannot claim USB interface. Another program or driver using it?");
 			ret = SR_ERR;
 			break;
 		} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
@@ -296,13 +295,13 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 			break;
 		} else if (ret != 0) {
-			sr_err("Unable to claim interface: %s.", libusb_error_name(ret));
+			sr_err("Cannot claim USB interface: %s.", libusb_error_name(ret));
 			ret = SR_ERR;
 			break;
 		}
 
 		if ((ret = la2016_init_device(sdi)) != SR_OK) {
-			sr_err("Failed to init device.");
+			sr_err("Cannot initialize device.");
 			break;
 		}
 
@@ -371,7 +370,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	if (ret != SR_OK) {
-		sr_err("Unable to open device.");
+		sr_err("Cannot open device.");
 		return SR_ERR;
 	}
 
@@ -569,13 +568,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (configure_channels(sdi) != SR_OK) {
-		sr_err("Failed to configure channels.");
+		sr_err("Cannot configure channels.");
 		return SR_ERR;
 	}
 
 	devc->convbuffer_size = 4 * 1024 * 1024;
 	if (!(devc->convbuffer = g_try_malloc(devc->convbuffer_size))) {
-		sr_err("Conversion buffer malloc failed.");
+		sr_err("Cannot allocate conversion buffer.");
 		return SR_ERR_MALLOC;
 	}
 
