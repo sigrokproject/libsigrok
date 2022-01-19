@@ -19,6 +19,7 @@
 
 #include <config.h>
 #include "protocol.h"
+#include <math.h>
 
 static struct sr_dev_driver francaise_instrumentation_ams515_driver_info;
 
@@ -58,9 +59,10 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET,
+	//SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
-	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET,
 };
 
@@ -76,7 +78,9 @@ static const struct channel_spec channel_specs[] = {
 };
 
 static const char *channel_modes[] = {
-	"Independent",
+	"Front Panel Enabled",
+	"Front Panel Locked",
+	"Front Panel Off"
 };
 
 /* We MUST disable hardware flow control it seems */
@@ -91,7 +95,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
 	GSList *l, *devices;
-	int len, i, res;
+	int i, res;
 	const char *conn, *serialcomm;
 	char *buf, **tokens;
 	const char *ident_request = "R?\r";
@@ -120,9 +124,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_err("Unable open serial port.");
 		return NULL;
 	}
+
 	buf = g_malloc(ANSWER_MAX);
-	// TODO: malloc sdi here so we can pass it to send_raw
-	res = francaise_instrumentation_ams515_send_raw(serial, ident_request, buf, TRUE);
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	devc = g_malloc0(sizeof(struct dev_context));
+	sdi->conn = serial;
+	sdi->priv = devc;
+	g_mutex_init(&devc->mutex);
+
+	res = francaise_instrumentation_ams515_send_raw(sdi, ident_request, buf, TRUE);
 	if (res < SR_OK)
 		return NULL;
 	tokens = g_strsplit(buf, " ", 2);
@@ -130,16 +140,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	// XXX: are there other versions around?
 	if (tokens[0] && !strcmp("AMS515", tokens[0])
 			&& tokens[1] && !strncmp("4.1", tokens[1], 2)) {
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Française d'Instrumentation");
 		sdi->model = g_strdup(tokens[0]);
 		sdi->version = g_strdup(tokens[1]);
-		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->inst_type = SR_INST_SERIAL;
-		sdi->conn = serial;
-		sdi->priv = devc;
 		devc->selected_channel = -1;
+		devc->resync = FALSE;
+		devc->overcurrent = FALSE;
 		for (i = 0; i < MAX_CHANNELS; i++) {
 			char name[4];
 			snprintf(name, 2, "%c", 'A' + i);
@@ -156,29 +164,28 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_free(buf);
 
 	serial_close(serial);
-	if (!devices)
+	if (!devices) {
 		sr_serial_dev_inst_free(serial);
+		g_free(devc);
+		g_free(sdi);
+	}
 
 	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	struct sr_serial_dev_inst *serial;
 	int ret, res;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	devc = sdi->priv;
 	ret = std_serial_dev_open(sdi);
 	if (ret != SR_OK)
 		return ret;
-	serial = sdi->conn;
 
 	/* Request the unit to turn echo off if not already. */
-	res = francaise_instrumentation_ams515_set_echo(serial, FALSE);
+	res = francaise_instrumentation_ams515_set_echo(sdi, FALSE);
 	if (res != SR_OK)
 		sr_dbg("Failed to disable echo on unit");
 
@@ -194,11 +201,28 @@ static int dev_close(struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
+	g_mutex_clear(&devc->mutex);
 
 	(void)devc;
 	// TODO: turn back echo mode?
 
 	return std_serial_dev_close(sdi);
+}
+
+static void dev_clear_callback(void *priv)
+{
+	struct dev_context *devc;
+
+	if (!priv)
+		return;
+
+	devc = priv;
+	g_mutex_clear(&devc->mutex);
+}
+
+static int dev_clear(const struct sr_dev_driver *di)
+{
+	return std_dev_clear_with_callback(di, dev_clear_callback);
 }
 
 static int config_get(uint32_t key, GVariant **data,
@@ -218,7 +242,7 @@ static int config_get(uint32_t key, GVariant **data,
 	if (!cg) {
 		switch (key) {
 		case SR_CONF_CHANNEL_CONFIG:
-			*data = g_variant_new_string(channel_modes[0]);
+			*data = g_variant_new_string(channel_modes[devc->panel_mode]);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -228,6 +252,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ch = cg->channels->data;
 		channel = ch->index;
 
+		sr_dbg("config_get(channel %d)", channel);
 		if (channel < 0 || channel > MAX_CHANNELS)
 			return SR_ERR_ARG;
 
@@ -247,6 +272,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
+			sr_dbg("config_get(OCA)");
 			ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
 			if (ret < SR_OK)
 				return ret;
@@ -290,9 +316,13 @@ static int config_set(uint32_t key, GVariant *data,
 		case SR_CONF_CHANNEL_CONFIG:
 			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
-			if (ival > 0)
+			if (ival > 2)
 				return SR_ERR_ARG; /* Not supported on this model. */
+			sr_dbg("config_set(CHANNEL_CONFIG) %d", ival);
 			/* Nothing to do. */
+			devc->panel_mode = ival;
+			ret = francaise_instrumentation_ams515_set_state(sdi, 'V', ival > 0);
+			ret = francaise_instrumentation_ams515_set_state(sdi, 'D', ival > 1);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -372,6 +402,43 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+static int dev_acquisition_start(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	/*
+	 * No need for timerfd here,
+	 * we just fake a channel on an invalid fd and let the timeout wake us up.
+	 * TODO: check if it works in windows.
+	 */
+	devc->channel = g_io_channel_unix_new(-1);
+
+	sr_session_source_add_channel(sdi->session, devc->channel,
+		G_IO_IN | G_IO_ERR, 500,
+		francaise_instrumentation_ams515_receive_data, (void *)sdi);
+
+	std_session_send_df_header(sdi);
+
+	return SR_OK;
+}
+
+static int dev_acquisition_stop(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	sr_session_source_remove_channel(sdi->session, devc->channel);
+	g_io_channel_unref(devc->channel);
+	devc->channel = NULL;
+
+	std_session_send_df_end(sdi);
+
+	return SR_OK;
+}
+
 static struct sr_dev_driver francaise_instrumentation_ams515_driver_info = {
 	.name = "francaise-instrumentation-ams515",
 	.longname = "Française d'Instrumentation AMS515",
@@ -380,14 +447,14 @@ static struct sr_dev_driver francaise_instrumentation_ams515_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = std_dummy_dev_acquisition_start,
-	.dev_acquisition_stop = std_dummy_dev_acquisition_stop,
+	.dev_acquisition_start = dev_acquisition_start,
+	.dev_acquisition_stop = dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(francaise_instrumentation_ams515_driver_info);
