@@ -32,14 +32,21 @@
 #define MAX_CHANNELS 3
 
 struct dev_context {
+	int panel_mode;
 	int selected_channel; // channel currently displayed on the front panel
+	gboolean resync;
+	gboolean overcurrent;
+	int timer_fd;
+	GIOChannel *channel;
+	GMutex mutex;
 };
 
 SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed);
+SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi, const char *cmd, char *answer, gboolean echoed);
 
-SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev_inst *serial, gboolean param);
+SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi, char cmd, gboolean param);
+SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi, gboolean param);
 
 SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result);
 SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result);

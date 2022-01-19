@@ -23,9 +23,14 @@
 SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
+	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
+	char answer[ANSWER_MAX];
+	int res;
 
 	(void)fd;
+
+	sr_dbg("receive_data() %d %d\n", fd, revents);
 
 	if (!(sdi = cb_data))
 		return TRUE;
@@ -33,13 +38,59 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
 	if (!(devc = sdi->priv))
 		return TRUE;
 
-	if (revents == G_IO_IN) {
-		/* TODO */
+	if (!(serial = sdi->conn))
+		return TRUE;
+
+	// We shouldn't be getting actual events here, just timeouts
+	if (revents == 0/*G_IO_IN*/) {
+		if (devc->resync) {
+			/*
+			 * Something bad happened.
+			 * Maybe the device was power-cycled, try to disable echo again.
+			 */
+			devc->resync = FALSE;
+			sr_dbg("Resyncing serial.");
+			serial_flush(serial);
+			francaise_instrumentation_ams515_send_raw(sdi, "T\r", answer, TRUE);
+			serial_flush(serial);
+			// Assume this command failed
+		}
+		/*
+		 * First make sure we aren't over-current,
+		 * else other commands won't work anyway.
+		 */
+		res = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+		sr_dbg("I? -> '%s'", answer);
+		if (res == SR_OK) {
+			if (!strcmp(answer, "Ok") && devc->overcurrent) {
+				sr_dbg("End of overcurrent.");
+				devc->overcurrent = FALSE;
+				sr_session_send_meta(sdi,
+					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+					g_variant_new_boolean(FALSE));
+			} else if (answer[0] == '>') {
+				// No need to check which channel at this point.
+				sr_dbg("Notifying overcurrent.");
+				// XXX: how do we tell on which channel group it happens anyway?
+				sr_session_send_meta(sdi,
+					SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+					g_variant_new_boolean(TRUE));
+				devc->overcurrent = TRUE;
+			}
+		}
+
+		/* Check the front panel status */
+		if (!devc->overcurrent) {
+			res = francaise_instrumentation_ams515_query_str(sdi, 'S', answer);
+			if (res == SR_OK && answer[0] >= 'A' && answer[0] <= 'C')
+				devc->selected_channel = answer[0] - 'A';
+			sr_dbg("Selected channel %d.", devc->selected_channel);
+			// TODO: check actual targets
+		}
 	}
 
 	return TRUE;
 }
-
 
 
 /**
@@ -53,17 +104,27 @@ SR_PRIV int francaise_instrumentation_ams515_receive_data(int fd, int revents, v
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev_inst *serial, const char *cmd, char *answer, gboolean echoed)
+SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *sdi, const char *cmd, char *answer, gboolean echoed)
 {
+	struct sr_serial_dev_inst *serial;
+	struct dev_context *devc;
 	int cmdlen = strlen(cmd);
 	int i, ret = SR_ERR_IO;
-	gboolean resync = FALSE;
 
-	if (!serial)
+	if (!sdi)
 		return SR_ERR_ARG;
+	serial = sdi->conn;
+	devc = sdi->priv;
+	if (!serial || !devc)
+		return SR_ERR_ARG;
+	/* do not even try */
+	if (devc->resync)
+		return SR_ERR_IO;
 
 	sr_spew("send_raw(): '%s'", cmd);
 	memset(answer, '\0', ANSWER_MAX);
+
+	g_mutex_lock(&devc->mutex);
 
 	/*
 	 * The device seems to have an echo mode that can be disabled.
@@ -85,7 +146,7 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev
 		char c;
 		if (serial_write_blocking(serial, &cmd[i], 1, SERIAL_WRITE_TIMEOUT_MS) < 1) {
 			sr_err("Write error for cmd[%d].", i);
-			return SR_ERR;
+			break;//return SR_ERR;
 		}
 		// if we didn't get an echo of the first char,
 		// assume no echo, and don't eat the result.
@@ -114,14 +175,14 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev
 			sr_err("Unable to read cmd answer.");
 			break;
 		}
-		sr_spew("send_raw(): answer: 0x%02x '%c'", answer[i], answer[i]);
+		//sr_spew("send_raw(): answer: 0x%02x '%c'", answer[i], answer[i]);
 		// skip CR/LF
 		if (answer[i] == '\r' || answer[i] == '\n') {
 			if (!echoed) {
 				// We shouldn't get CR/LF in no-echo mode.
 				// Likely the device was power-cycled, switch it back to no-echo mode
 				sr_dbg("CR/LF found reply in no-echo mode!");
-				resync = TRUE;
+				devc->resync = TRUE;
 				break;
 			}
 			i--;
@@ -133,9 +194,11 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev
 			break;
 		}
 	}
+
+	g_mutex_unlock(&devc->mutex);
+
 	answer[i] = '\0';
 	sr_spew("send_raw(): answer: '%s'", answer);
-
 
 	// Some error occured
 	if (!strcmp("Error!", answer))
@@ -146,25 +209,16 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev
 		return SR_ERR_ARG;
 
 	// Over-current
-	if (!strcmp("Icc", answer))
+	if (!strcmp("Icc", answer)) {
+		devc->overcurrent = TRUE;
 		return SR_ERR;
-
-	if (resync) {
-		/*
-		 * Something bad happened.
-		 * Maybe the device was power-cycled, try to disable echo again.
-		 */
-		serial_flush(serial);
-		francaise_instrumentation_ams515_send_raw(serial, "T\r", answer, TRUE);
-		serial_flush(serial);
-		// Assume this command failed
 	}
 
 	return ret;
 }
 
 /**
- * Set echo mode on the device
+ * Set a state on the device to enabled or disabled
  *
  * @param[in] cmd Raw command char.
  * @param[in] param Echo mode to set.
@@ -173,12 +227,48 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_serial_dev
  * @retval SR_ERR_ARG Invalid argument.
  * @retval SR_ERR Error.
  */
-SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev_inst *serial, gboolean param)
+SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst *sdi, char cmd, gboolean param)
 {
+	char command[4];
+	char answer[ANSWER_MAX];
+	int ret;
+
+	if (!sdi)
+		return SR_ERR_ARG;
+
+	snprintf(command, 4, "%c?\r", cmd);
+	// Query current echo mode
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
+	if (ret < SR_OK)
+		return ret;
+	if (param && !strcmp(answer, "00") || !param && !strcmp(answer, "FF")) {
+		snprintf(command, 4, "%c\r", cmd);
+		// Toggle echo mode to the one we want
+		ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
+	}
+
+	return ret;
+}
+
+/**
+ * Set echo mode on the device
+ *
+ * @param[in] param Echo mode to set.
+ *
+ * @retval SR_OK Success.
+ * @retval SR_ERR_ARG Invalid argument.
+ * @retval SR_ERR Error.
+ */
+SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi, gboolean param)
+{
+	struct sr_serial_dev_inst *serial;
 	const char *cmd;
 	char answer[ANSWER_MAX];
 	int ret;
 
+	if (!sdi)
+		return SR_ERR_ARG;
+	serial = sdi->conn;
 	if (!serial)
 		return SR_ERR_ARG;
 
@@ -186,13 +276,13 @@ SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev
 
 	cmd = "T?\r";
 	// Query current echo mode
-	ret = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
 	if (ret < SR_OK)
 		return ret;
 	if (!param && !strcmp(answer, "00") || param && !strcmp(answer, "FF")) {
 		cmd = "T\r";
 		// Toggle echo mode to the one we want
-		ret = francaise_instrumentation_ams515_send_raw(serial, cmd, answer, TRUE);
+		ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
 	}
 
 	serial_flush(serial);
@@ -212,20 +302,16 @@ SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_serial_dev
  */
 SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst *sdi, const char cmd, int *result)
 {
-	struct sr_serial_dev_inst *serial;
 	char command[4];
 	char answer[ANSWER_MAX];
 	int ret;
 	long res;
 
-	if (!sdi)
-		return SR_ERR_ARG;
-	serial = sdi->conn;
-	if (!serial || !result)
+	if (!sdi || !result)
 		return SR_ERR_ARG;
 
 	snprintf(command, 4, "%c?\r", cmd);
-	ret = francaise_instrumentation_ams515_send_raw(serial, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	if (ret < SR_OK)
 		return ret;
 	if (answer[0] != '+' && answer[0] != '-')
@@ -247,19 +333,15 @@ SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst 
  */
 SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst *sdi, const char cmd, char *result)
 {
-	struct sr_serial_dev_inst *serial;
 	char command[4];
 	int ret;
 	long res;
 
-	if (!sdi)
-		return SR_ERR_ARG;
-	serial = sdi->conn;
-	if (!serial || !result)
+	if (!sdi || !result)
 		return SR_ERR_ARG;
 
 	snprintf(command, 4, "%c?\r", cmd);
-	ret = francaise_instrumentation_ams515_send_raw(serial, command, result, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, result, FALSE);
 	if (ret < SR_OK)
 		return ret;
 	return SR_OK;
@@ -277,7 +359,6 @@ SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst 
  */
 SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param)
 {
-	struct sr_serial_dev_inst *serial;
 	char command[10];
 	char answer[ANSWER_MAX];
 	int ret;
@@ -285,14 +366,11 @@ SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *
 
 	if (!sdi)
 		return SR_ERR_ARG;
-	serial = sdi->conn;
-	if (!serial)
-		return SR_ERR_ARG;
 
 	snprintf(command, 9, "%c%c%02.02X\r", cmd, param < 0 ? '-' : '+', abs(param));
 	sr_spew("send_int(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(serial, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	return ret;
 }
 
@@ -308,7 +386,6 @@ SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *
  */
 SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst *sdi, const char cmd, char param)
 {
-	struct sr_serial_dev_inst *serial;
 	char command[10];
 	char answer[ANSWER_MAX];
 	int ret;
@@ -316,13 +393,10 @@ SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst 
 
 	if (!sdi)
 		return SR_ERR_ARG;
-	serial = sdi->conn;
-	if (!serial)
-		return SR_ERR_ARG;
 
 	snprintf(command, 9, "%c%c\r", cmd, param);
 	sr_spew("send_char(): sending %s", command);
 
-	ret = francaise_instrumentation_ams515_send_raw(serial, command, answer, FALSE);
+	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	return ret;
 }
