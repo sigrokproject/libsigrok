@@ -40,33 +40,31 @@
 #define MAX_PWM_FREQ		SR_MHZ(20)
 #define PWM_CLOCK		SR_MHZ(200)	/* 200MHz for both LA2016 and LA1016 */
 
-/* usb vendor class control requests to the cypress FX2 microcontroller */
+/* USB vendor class control requests, executed by the Cypress FX2 MCU. */
 #define CMD_FPGA_ENABLE	0x10
-#define CMD_FPGA_SPI	0x20	/* access registers in the FPGA over SPI bus, ctrl_in reads, ctrl_out writes */
-#define CMD_BULK_START	0x30	/* begin transfer of capture data via usb endpoint 6 IN */
-#define CMD_BULK_RESET	0x38	/* flush FX2 usb endpoint 6 IN fifos */
-#define CMD_FPGA_INIT	0x50	/* used before and after FPGA bitstream loading */
-#define CMD_KAUTH	0x60	/* communicate with authentication ic U10, not used */
-#define CMD_EEPROM	0xa2	/* ctrl_in reads, ctrl_out writes */
+#define CMD_FPGA_SPI	0x20	/* R/W access to FPGA registers via SPI. */
+#define CMD_BULK_START	0x30	/* Start sample data download via USB EP6 IN. */
+#define CMD_BULK_RESET	0x38	/* Flush FIFO of FX2 USB EP6 IN. */
+#define CMD_FPGA_INIT	0x50	/* Used before and after FPGA bitstream upload. */
+#define CMD_KAUTH	0x60	/* Communicate to auth IC (U10). Not used. */
+#define CMD_EEPROM	0xa2	/* R/W access to EEPROM content. */
 
 /*
- * fpga spi register addresses for control request CMD_FPGA_SPI:
- * There are around 60 byte-wide registers within the fpga and
- * these are the base addresses used for accessing them.
- * On the spi bus, the msb of the address byte is set for read
- * and cleared for write, but that is handled by the fx2 mcu
- * as appropriate. In this driver code just use IN transactions
- * to read, OUT to write.
+ * FPGA register addresses (base addresses when registers span multiple
+ * bytes, in that case data is kept in little endian format). Passed to
+ * CMD_FPGA_SPI requests. The FX2 MCU transparently handles the detail
+ * of SPI transfers encoding the read (1) or write (0) direction in the
+ * MSB of the address field. There are some 60 byte-wide FPGA registers.
  */
-#define REG_RUN		0x00	/* read capture status, write capture start */
-#define REG_PWM_EN	0x02	/* user pwm channels on/off */
-#define REG_CAPT_MODE	0x03	/* set to 0x00 for capture to sdram, 0x01 bypass sdram for streaming */
-#define REG_BULK	0x08	/* write start address and number of bytes for capture data bulk upload */
-#define REG_SAMPLING	0x10	/* write capture config, read capture data location in sdram */
-#define REG_TRIGGER	0x20	/* write level and edge trigger config */
-#define REG_THRESHOLD	0x68	/* write two pwm configs to control input threshold dac */
-#define REG_PWM1	0x70	/* write config for user pwm1 */
-#define REG_PWM2	0x78	/* write config for user pwm2 */
+#define REG_RUN		0x00	/* Read capture status, write start capture. */
+#define REG_PWM_EN	0x02	/* User PWM channels on/off. */
+#define REG_CAPT_MODE	0x03	/* Write 0x00 capture to SDRAM, 0x01 streaming. */
+#define REG_BULK	0x08	/* Write start addr, byte count to download samples. */
+#define REG_SAMPLING	0x10	/* Write capture config, read capture SDRAM location. */
+#define REG_TRIGGER	0x20	/* write level and edge trigger config. */
+#define REG_THRESHOLD	0x68	/* Write PWM config to setup input threshold DAC. */
+#define REG_PWM1	0x70	/* Write config for user PWM1. */
+#define REG_PWM2	0x78	/* Write config for user PWM2. */
 
 static int ctrl_in(const struct sr_dev_inst *sdi,
 		   uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
@@ -162,7 +160,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 				return SR_ERR;
 			}
 		} else {
-			// fill with zero's until zero_pad_to
+			/*  Zero-pad until 'zero_pad_to'. */
 			len = zero_pad_to - pos;
 			if ((unsigned)len > sizeof(block))
 				len = sizeof(block);
@@ -224,7 +222,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	uint8_t buf[2 * sizeof(uint16_t)];
 	uint8_t *wrptr;
 
-	/* clamp threshold setting within valid range for LA2016 */
+	/* Clamp threshold setting to valid range for LA2016. */
 	if (voltage > 4.0) {
 		voltage = 4.0;
 	}
@@ -233,34 +231,30 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	}
 
 	/*
-	 * The fpga has two programmable pwm outputs which feed a dac that
-	 * is used to adjust input offset. The dac changes the input
-	 * swing around the fixed fpga input threshold.
-	 * The two pwm outputs can be seen on R79 and R56 respectvely.
-	 * Frequency is fixed at 100kHz and duty is varied.
-	 * The R79 pwm uses just three settings.
-	 * The R56 pwm varies with required threshold and its behaviour
-	 * also changes depending on the setting of R79 PWM.
-	 */
-
-	/*
-	 * calculate required pwm duty register values from requested threshold voltage
-	 * see last page of schematic (on wiki) for an explanation of these numbers
+	 * Two PWM output channels feed one DAC which generates a bias
+	 * voltage, which offsets the input probe's voltage level, and
+	 * in combination with the FPGA pins' fixed threshold result in
+	 * a programmable input threshold from the user's perspective.
+	 * The PWM outputs can be seen on R79 and R56 respectively, the
+	 * frequency is 100kHz and the duty cycle varies. The R79 PWM
+	 * uses three discrete settings. The R56 PWM varies with desired
+	 * thresholds and depends on the R79 PWM configuration. See the
+	 * schematics comments which discuss the formulae.
 	 */
 	if (voltage >= 2.9) {
-		duty_R79 = 0;		/* this pwm is off (0V)*/
+		duty_R79 = 0;		/* PWM off (0V). */
 		duty_R56 = (uint16_t)(302 * voltage - 363);
 	}
 	else if (voltage <= -0.4) {
-		duty_R79 = 0x02D7;	/* 72% duty */
+		duty_R79 = 0x02d7;	/* 72% duty cycle. */
 		duty_R56 = (uint16_t)(302 * voltage + 1090);
 	}
 	else {
-		duty_R79 = 0x00f2;	/* 25% duty */
+		duty_R79 = 0x00f2;	/* 25% duty cycle. */
 		duty_R56 = (uint16_t)(302 * voltage + 121);
 	}
 
-	/* clamp duty register values at sensible limits */
+	/* Clamp duty register values to sensible limits. */
 	if (duty_R56 < 10) {
 		duty_R56 = 10;
 	}
@@ -518,7 +512,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, devc->limit_samples);
 	write_u8_inc(&wrptr, 0);
 	write_u32le_inc(&wrptr, devc->pre_trigger_size);
-	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xFFFFFF00);
+	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xffffff00);
 	write_u16le_inc(&wrptr, divisor);
 	write_u8_inc(&wrptr, 0);
 
@@ -531,23 +525,22 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-/* The run state is read from FPGA registers 1[hi-byte] and 0[lo-byte]
- * and the bits are interpreted as follows:
+/*
+ * FPGA register REG_RUN holds the run state (u16le format). Bit fields
+ * of interest:
+ *   bit 0: value 1 = idle
+ *   bit 1: value 1 = writing to SDRAM
+ *   bit 2: value 0 = waiting for trigger, 1 = trigger seen
+ *   bit 3: value 0 = pretrigger sampling, 1 = posttrigger sampling
+ * The meaning of other bit fields is unknown.
  *
- * register 0:
- *	bit0 1=	idle
- *	bit1 1=	writing to sdram
- *	bit2 0=	waiting_for_trigger 1=been_triggered
- *	bit3 0=	pretrigger_sampling 1=posttrigger_sampling
- * 	...unknown...
- * register 1:
- *	meaning of bits unknown (but vendor software reads this, so just do the same)
- *
- * The run state values occur in this order:
- * 0x85E2: pre-sampling (for samples before trigger position, capture ratio > 0%)
- * 0x85EA: pre-sampling complete, now waiting for trigger (whilst sampling continuously)
- * 0x85EE: running
- * 0x85ED: idle
+ * Typical values in order of appearance during execution:
+ *   0x85e2: pre-sampling, samples before the trigger position,
+ *     when capture ratio > 0%
+ *   0x85ea: pre-sampling complete, now waiting for the trigger
+ *     (whilst sampling continuously)
+ *   0x85ee: trigger seen, capturing post-trigger samples, running
+ *   0x85ed: idle
  */
 static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
@@ -560,11 +553,10 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	/* This function is called about every 50ms.
-	 * To avoid filling the log file with redundant information during long captures,
-	 * just print a log message if status has changed.
+	/*
+	 * Avoid flooding the log, only dump values as they change.
+	 * The routine is called about every 50ms.
 	 */
-
 	if (state != previous_state) {
 		previous_state = state;
 		if ((state & 0x0003) == 0x01) {
@@ -760,11 +752,15 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer
 		return ret;
 	}
 
+	/*
+	 * Pick a buffer size for all USB transfers. The buffer size
+	 * must be a multiple of the endpoint packet size. And cannot
+	 * exceed a maximum value.
+	 */
 	to_read = devc->n_bytes_to_read;
-	/* choose a buffer size for all of the usb transfers */
-	if (to_read >= LA2016_USB_BUFSZ)
-		to_read = LA2016_USB_BUFSZ; /* multiple transfers */
-	else /* one transfer, make buffer size some multiple of LA2016_EP6_PKTSZ */
+	if (to_read >= LA2016_USB_BUFSZ) /* Multiple transfers. */
+		to_read = LA2016_USB_BUFSZ;
+	else /* One transfer. */
 		to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
 	buffer = g_try_malloc(to_read);
 	if (!buffer) {
@@ -892,10 +888,14 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	devc->n_bytes_to_read -= transfer->actual_length;
 	if (devc->n_bytes_to_read) {
 		uint32_t to_read = devc->n_bytes_to_read;
-		/* determine read size for the next usb transfer */
+		/*
+		 * Determine read size for the next USB transfer. Make
+		 * the buffer size a multiple of the endpoint packet
+		 * size. Don't exceed a maximum value.
+		 */
 		if (to_read >= LA2016_USB_BUFSZ)
 			to_read = LA2016_USB_BUFSZ;
-		else /* last transfer, make read size some multiple of LA2016_EP6_PKTSZ */
+		else
 			to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
 		libusb_fill_bulk_transfer(
 			transfer, usb->devhdl,
@@ -929,14 +929,14 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 
 	if (devc->have_trigger == 0) {
 		if (la2016_has_triggered(sdi) == 0) {
-			/* not yet ready for download */
+			/* Not yet ready for sample data download. */
 			return TRUE;
 		}
 		devc->have_trigger = 1;
 		devc->transfer_finished = 0;
 		devc->reading_behind_trigger = 0;
 		devc->total_samples = 0;
-		/* we can start retrieving data! */
+		/* We can start downloading sample data. */
 		if (la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
 			return FALSE;
@@ -981,9 +981,11 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	/* Four bytes of eeprom at 0x20 are purchase year & month in BCD format, with 16bit
-	 * complemented checksum; e.g. 2004DFFB = 2020-April.
-	 * This helps to identify the age of devices if unknown magic numbers occur.
+	/*
+	 * Four EEPROM bytes at offset 0x20 are purchase year and month
+	 * in BCD format, with 16bit complemented checksum. For example
+	 * 20 04 df fb translates to 2020-04. This can help identify the
+	 * age of devices when unknown magic numbers are seen.
 	 */
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, purchase_date_bcd, sizeof(purchase_date_bcd))) != SR_OK) {
 		sr_err("Cannot read purchase date in EEPROM.");
@@ -998,57 +1000,62 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	}
 
 	/*
-	 * There are four known kingst logic analyser devices which use this same usb vid and pid:
-	 * LA2016, LA1016 and the older revision of each of these. They all use the same hardware
-	 * and the same FX2 mcu firmware but each requires a different fpga bitstream. They are
-	 * differentiated by a 'magic' byte within the 8 bytes of EEPROM from address 0x08.
-	 * For example;
+	 * Several Kingst logic analyzer devices share the same USB VID
+	 * and PID. The product ID determines which MCU firmware to load.
+	 * The MCU firmware provides access to EEPROM content which then
+	 * allows to identify the device model. Which in turn determines
+	 * which FPGA bitstream to load. Eight bytes at offset 0x08 are
+	 * to get inspected.
 	 *
-	 * magic=0x08
-	 *  | ~magic=0xf7
-	 *  | |
-	 * 08F7000008F710EF
-	 *          | |
-	 *          | ~magic-backup
-	 *          magic-backup
+	 * EEPROM content for model identification is kept redundantly
+	 * in memory. The values are stored in verbatim and in inverted
+	 * form, multiple copies are kept at different offsets. Example
+	 * data:
 	 *
-	 * It seems that only these magic bytes are used, other bytes shown above are 'don't care'.
-	 * Changing the magic byte on newer device to older magic causes OEM software to load
-	 * the older fpga bitstream. The device then functions but has channels out of order.
-	 * It's likely the bitstreams were changed to move input channel pins due to PCB changes.
+	 *   magic 0x08
+	 *    | ~magic 0xf7
+	 *    | |
+	 *   08f7000008f710ef
+	 *            | |
+	 *            | ~magic backup
+	 *            magic backup
 	 *
-	 * magic 9 == LA1016a using "kingst-la1016a1-fpga.bitstream" (latest v1.3.0 PCB, perhaps others)
-	 * magic 8 == LA2016a using "kingst-la2016a1-fpga.bitstream" (latest v1.3.0 PCB, perhaps others)
-	 * magic 3 == LA1016 using "kingst-la1016-fpga.bitstream"
-	 * magic 2 == LA2016 using "kingst-la2016-fpga.bitstream"
+	 * Exclusively inspecting the magic byte appears to be sufficient,
+	 * other fields seem to be 'don't care'.
 	 *
-	 * This was all determined by altering the eeprom contents of an LA2016 and LA1016 and observing
-	 * the vendor software actions, either raising errors or loading specific bitstreams.
+	 *   magic 2 == LA2016 using "kingst-la2016-fpga.bitstream"
+	 *   magic 3 == LA1016 using "kingst-la1016-fpga.bitstream"
+	 *   magic 8 == LA2016a using "kingst-la2016a1-fpga.bitstream"
+	 *              (latest v1.3.0 PCB, perhaps others)
+	 *   magic 9 == LA1016a using "kingst-la1016a1-fpga.bitstream"
+	 *              (latest v1.3.0 PCB, perhaps others)
 	 *
-	 * Note:
-	 * An LA1016 cannot be converted to an LA2016 by changing the magic number - the bitstream
-	 * will not authenticate with ic U10, which has different security coding for each device type.
+	 * When EEPROM content does not match the hardware configuration
+	 * (the board layout), the software may load but yield incorrect
+	 * results (like swapped channels). The FPGA bitstream itself
+	 * will authenticate with IC U10 and fail when its capabilities
+	 * do not match the hardware model. An LA1016 won't become a
+	 * LA2016 by faking its EEPROM content.
 	 */
-
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &buf, sizeof(buf))) != SR_OK) {
 		sr_err("Cannot read EEPROM device identifier bytes.");
 		return ret;
 	}
 
 	magic = 0;
-	if (buf[0] == (0x0ff & ~buf[1])) {
-		/* primary copy of magic passes complement check */
+	if (buf[0] == (0xff & ~buf[1])) {
+		/* Primary copy of magic passes complement check. */
 		magic = buf[0];
 	}
 	else if (buf[4] == (0x0ff & ~buf[5])) {
-		/* backup copy of magic passes complement check */
+		/* Backup copy of magic passes complement check. */
 		sr_dbg("Using backup copy of device type magic number.");
 		magic = buf[4];
 	}
 
 	sr_dbg("Device type: magic number is %hhu.", magic);
 
-	/* select the correct fpga bitstream for this device */
+	/* Select the FPGA bitstream depending on the model. */
 	switch (magic) {
 	case 2:
 		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016);

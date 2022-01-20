@@ -20,7 +20,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/* mostly stolen from src/hardware/saleae-logic16/ */
+/*
+ * This driver implementation initially was derived from the
+ * src/hardware/saleae-logic16/ source code.
+ */
 
 #include <config.h>
 
@@ -158,7 +161,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	else
 		conn_devices = NULL;
 
-	/* Find all LA2016 devices and upload firmware to them. */
+	/* Find all LA2016 devices, optionally upload firmware to them. */
 	devices = NULL;
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
 	for (i = 0; devlist[i]; i++) {
@@ -171,8 +174,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					break;
 			}
 			if (!l) {
-				/* This device matched none of the ones that
-				 * matched the conn specification. */
+				/*
+				 * A connection parameter was specified and
+				 * this device does not match the filter.
+				 */
 				continue;
 			}
 		}
@@ -185,7 +190,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
 			continue;
 
-		/* Already has the firmware */
+		/* USB identification matches, a device was found. */
 		sr_dbg("Found a LA2016 device.");
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
@@ -203,7 +208,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				continue;
 			}
 			fw_updated = g_get_monotonic_time();
-			dev_addr = 0xff; /* to mark that we don't know address yet... ugly */
+			/* Will re-enumerate. Mark as "unknown address yet". */
+			dev_addr = 0xff;
 		}
 
 		sdi->vendor = g_strdup("Kingst");
@@ -261,24 +267,24 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 			continue;
 
 		if ((sdi->status == SR_ST_INITIALIZING) || (sdi->status == SR_ST_INACTIVE)) {
-			/*
-			 * Check device by its physical USB bus/port address.
-			 */
+			/* Check physical USB bus/port address. */
 			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
 				continue;
 
-			if (strcmp(sdi->connection_id, connection_id))
-				/* This is not the one. */
+			if (strcmp(sdi->connection_id, connection_id)) {
+				/* Not the device we looked up before. */
 				continue;
+			}
 		}
 
 		if (!(ret = libusb_open(devlist[i], &usb->devhdl))) {
-			if (usb->address == 0xff)
+			if (usb->address == 0xff) {
 				/*
-				 * First time we touch this device after FW
-				 * upload, so we don't know the address yet.
+				 * First encounter after firmware upload.
+				 * Grab current address after enumeration.
 				 */
 				usb->address = libusb_get_device_address(devlist[i]);
+			}
 		} else {
 			sr_err("Failed to open device: %s.", libusb_error_name(ret));
 			ret = SR_ERR;
@@ -338,14 +344,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/*
-	 * If the firmware was recently uploaded, wait up to MAX_RENUM_DELAY_MS
-	 * milliseconds for the FX2 to renumerate.
+	 * When the sigrok driver recently uploaded firmware, wait for
+	 * the FX2 to re-enumerate. Deal with the condition that the
+	 * MCU can take some 2000ms to be gone from the bus before it
+	 * re-appears executing the recently uploaded firmware.
 	 */
 	ret = SR_ERR;
 	if (devc->fw_updated > 0) {
 		sr_info("Waiting for device to reset after firmware upload.");
-		/* Takes >= 2000ms for the uC to be gone from the USB bus. */
-		reset_done = devc->fw_updated + 18 * (uint64_t)1e5; /* 1.8 seconds */
+		reset_done = devc->fw_updated;
+		reset_done += 1800 * 1000; /* 1.8 seconds */
 		now = g_get_monotonic_time();
 		if (reset_done > now)
 			g_usleep(reset_done - now);
@@ -415,9 +423,11 @@ static int config_get(uint32_t key, GVariant **data,
 		if (!sdi->conn)
 			return SR_ERR_ARG;
 		usb = sdi->conn;
-		if (usb->address == 255) {
-			/* Device still needs to re-enumerate after firmware
-			 * upload, so we don't know its (future) address. */
+		if (usb->address == 0xff) {
+			/*
+			 * Device still needs to re-enumerate after firmware
+			 * upload, so we don't know its (future) address.
+			 */
 			return SR_ERR;
 		}
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);

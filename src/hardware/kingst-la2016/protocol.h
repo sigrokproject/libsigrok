@@ -36,12 +36,12 @@
 /*
  * On Windows sigrok uses WinUSB RAW_IO policy which requires the
  * USB transfer buffer size to be a multiple of the endpoint max packet
- * size, which is 512 bytes in this case. Also, the maximum allowed size of
- * the transfer buffer is normally read from WinUSB_GetPipePolicy API but
- * libusb does not expose this function. Typically, max size is 2MB.
+ * size, which is 512 bytes in this case. Also, the maximum allowed size
+ * of the transfer buffer is normally read from WinUSB_GetPipePolicy API
+ * but libusb does not expose this function. Typically, max size is 2MB.
  */
-#define LA2016_EP6_PKTSZ	512 /* endpoint 6 max packet size */
-#define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KB buffer */
+#define LA2016_EP6_PKTSZ	512 /* Max packet size of USB endpoint 6. */
+#define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KiB buffer. */
 
 #define MAX_RENUM_DELAY_MS	3000
 #define DEFAULT_TIMEOUT_MS	200
@@ -83,6 +83,8 @@ struct dev_context {
 	struct sr_context *ctx;
 
 	int64_t fw_updated;
+
+	/* User specified parameters. */
 	pwm_setting_t pwm_setting[2];
 	unsigned int threshold_voltage_idx;
 	float threshold_voltage;
@@ -95,10 +97,10 @@ struct dev_context {
 
 	uint32_t bitstream_size;
 
-	/* derived stuff */
+	/* Values derived from user specs. */
 	uint64_t pre_trigger_size;
 
-	/* state after sampling */
+	/* Internal acquisition and download state. */
 	int had_triggers_configured;
 	int have_trigger;
 	int transfer_finished;
