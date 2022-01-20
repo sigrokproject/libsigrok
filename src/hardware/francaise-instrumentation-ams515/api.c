@@ -38,13 +38,10 @@ static const uint32_t drvopts[] = {
  * R?		(Reference?) Return Model and Version
  * T / T?	Toggle echo
  * [ABC] / [ABC]?	Set / query channel target voltage
- *
- * TODO: implement other commands?
- *
- * S[ABC] / S?	sets / query selected output on the front panel
  * I?		Overcurrent indicator, returns "Ok", or ">[ABC]" (not sure for more than 1)
+ * S[ABC] / S?	sets / query selected output on the front panel
  * V		Lock front panel
- * D / D?	disable display?? (does *not* disable outputs)
+ * D / D?	disable display (does *not* disable outputs)
  *
  * Note lowercase letters are also accepted as commands.
  *
@@ -195,7 +192,6 @@ static int dev_open(struct sr_dev_inst *sdi)
 static int dev_close(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -306,8 +302,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct sr_channel *ch;
 	gdouble dval;
-	int channel, ival, ret;
-	gboolean bval;
+	int channel, ival, ret = SR_OK;
 
 	devc = sdi->priv;
 
@@ -354,7 +349,7 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 	}
 
-	return SR_OK;
+	return ret;
 }
 
 static int config_list(uint32_t key, GVariant **data,
