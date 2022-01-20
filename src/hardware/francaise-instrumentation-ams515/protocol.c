@@ -146,7 +146,7 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 		char c;
 		if (serial_write_blocking(serial, &cmd[i], 1, SERIAL_WRITE_TIMEOUT_MS) < 1) {
 			sr_err("Write error for cmd[%d].", i);
-			break;//return SR_ERR;
+			break;
 		}
 		// if we didn't get an echo of the first char,
 		// assume no echo, and don't eat the result.
@@ -162,7 +162,6 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 		if (c != cmd[i]) {
 			sr_err("Mismatched echoed cmd: %c != %c", c, cmd[i]);
 			// actually keep going, if we ever want to resync properly
-			//return SR_ERR;
 		}
 	}
 
@@ -237,13 +236,13 @@ SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst 
 		return SR_ERR_ARG;
 
 	snprintf(command, 4, "%c?\r", cmd);
-	// Query current echo mode
+	// Query current state
 	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
 	if (ret < SR_OK)
 		return ret;
-	if (param && !strcmp(answer, "00") || !param && !strcmp(answer, "FF")) {
+	if ((param && !strcmp(answer, "00")) || (!param && !strcmp(answer, "FF"))) {
 		snprintf(command, 4, "%c\r", cmd);
-		// Toggle echo mode to the one we want
+		// Toggle state to the one we want
 		ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, TRUE);
 	}
 
@@ -279,7 +278,7 @@ SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *
 	ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
 	if (ret < SR_OK)
 		return ret;
-	if (!param && !strcmp(answer, "00") || param && !strcmp(answer, "FF")) {
+	if ((!param && !strcmp(answer, "00")) || (param && !strcmp(answer, "FF"))) {
 		cmd = "T\r";
 		// Toggle echo mode to the one we want
 		ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
@@ -311,6 +310,8 @@ SR_PRIV int francaise_instrumentation_ams515_query_int(const struct sr_dev_inst 
 		return SR_ERR_ARG;
 
 	snprintf(command, 4, "%c?\r", cmd);
+	sr_dbg("query_int(): sending %s", command);
+
 	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	if (ret < SR_OK)
 		return ret;
@@ -335,12 +336,13 @@ SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst 
 {
 	char command[4];
 	int ret;
-	long res;
 
 	if (!sdi || !result)
 		return SR_ERR_ARG;
 
 	snprintf(command, 4, "%c?\r", cmd);
+	sr_dbg("query_str(): sending %s", command);
+
 	ret = francaise_instrumentation_ams515_send_raw(sdi, command, result, FALSE);
 	if (ret < SR_OK)
 		return ret;
@@ -359,16 +361,15 @@ SR_PRIV int francaise_instrumentation_ams515_query_str(const struct sr_dev_inst 
  */
 SR_PRIV int francaise_instrumentation_ams515_send_int(const struct sr_dev_inst *sdi, const char cmd, int param)
 {
-	char command[10];
+	char command[13];
 	char answer[ANSWER_MAX];
 	int ret;
-	long res;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	snprintf(command, 9, "%c%c%02.02X\r", cmd, param < 0 ? '-' : '+', abs(param));
-	sr_spew("send_int(): sending %s", command);
+	snprintf(command, 12, "%c%c%.02X\r", cmd, param < 0 ? '-' : '+', abs(param));
+	sr_dbg("send_int(): sending %s", command);
 
 	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	return ret;
@@ -389,13 +390,12 @@ SR_PRIV int francaise_instrumentation_ams515_send_char(const struct sr_dev_inst 
 	char command[10];
 	char answer[ANSWER_MAX];
 	int ret;
-	long res;
 
 	if (!sdi)
 		return SR_ERR_ARG;
 
 	snprintf(command, 9, "%c%c\r", cmd, param);
-	sr_spew("send_char(): sending %s", command);
+	sr_dbg("send_char(): sending %s", command);
 
 	ret = francaise_instrumentation_ams515_send_raw(sdi, command, answer, FALSE);
 	return ret;
