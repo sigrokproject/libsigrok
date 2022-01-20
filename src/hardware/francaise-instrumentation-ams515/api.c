@@ -58,7 +58,6 @@ static const uint32_t devopts[] = {
 
 static const uint32_t devopts_cg[] = {
 	SR_CONF_ENABLED | SR_CONF_GET,
-	//SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
 	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
@@ -186,23 +185,21 @@ static int dev_open(struct sr_dev_inst *sdi)
 	/* Request the unit to turn echo off if not already. */
 	res = francaise_instrumentation_ams515_set_echo(sdi, FALSE);
 	if (res != SR_OK)
-		sr_dbg("Failed to disable echo on unit");
+		sr_dbg("Failed to disable echo on unit.");
 
 	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-
 	if (!sdi)
 		return SR_ERR_ARG;
 
-	devc = sdi->priv;
-	g_mutex_clear(&devc->mutex);
-
-	(void)devc;
-	// TODO: turn back echo mode?
+	// Enable front panel again
+	francaise_instrumentation_ams515_set_state(sdi, 'D', FALSE);
+	francaise_instrumentation_ams515_set_state(sdi, 'V', FALSE);
+	// Turn back echo mode
+	francaise_instrumentation_ams515_set_echo(sdi, TRUE);
 
 	return std_serial_dev_close(sdi);
 }
@@ -246,7 +243,6 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			sr_dbg("config_get(OCA)");
 			*data = g_variant_new_boolean(devc->overcurrent);
 			break;
 		default:
@@ -257,7 +253,6 @@ static int config_get(uint32_t key, GVariant **data,
 		ch = cg->channels->data;
 		channel = ch->index;
 
-		sr_dbg("config_get(channel %d)", channel);
 		if (channel < 0 || channel > MAX_CHANNELS)
 			return SR_ERR_ARG;
 
@@ -265,8 +260,6 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_ENABLED:
 			*data = g_variant_new_boolean(TRUE);
 			break;
-		case SR_CONF_VOLTAGE:
-			// XXX: not even sure it can actually measure output
 		case SR_CONF_VOLTAGE_TARGET:
 			ret = francaise_instrumentation_ams515_query_int(sdi, 'A' + channel, &ival);
 			if (ret < SR_OK)
@@ -277,7 +270,6 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			sr_dbg("config_get(OCA) %d", channel);
 			ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
 			if (ret < SR_OK)
 				return ret;
@@ -321,9 +313,7 @@ static int config_set(uint32_t key, GVariant *data,
 			if ((ival = std_str_idx(data, ARRAY_AND_SIZE(channel_modes))) < 0)
 				return SR_ERR_ARG;
 			if (ival > 2)
-				return SR_ERR_ARG; /* Not supported on this model. */
-			sr_dbg("config_set(CHANNEL_CONFIG) %d", ival);
-			/* Nothing to do. */
+				return SR_ERR_ARG;
 			devc->panel_mode = ival;
 			ret = francaise_instrumentation_ams515_set_state(sdi, 'V', ival > 0);
 			ret = francaise_instrumentation_ams515_set_state(sdi, 'D', ival > 1);
@@ -415,7 +405,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/*
 	 * No need for timerfd here,
 	 * we just fake a channel on an invalid fd and let the timeout wake us up.
-	 * TODO: check if it works in windows.
+	 * TODO: check if it works in Windows.
 	 */
 	devc->channel = g_io_channel_unix_new(-1);
 
