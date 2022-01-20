@@ -67,8 +67,8 @@
 #define REG_PWM2	0x78	/* Write config for user PWM2. */
 
 static int ctrl_in(const struct sr_dev_inst *sdi,
-		   uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
-		   void *data, uint16_t wLength)
+	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
+	void *data, uint16_t wLength)
 {
 	struct sr_usb_dev_inst *usb;
 	int ret;
@@ -91,8 +91,8 @@ static int ctrl_in(const struct sr_dev_inst *sdi,
 }
 
 static int ctrl_out(const struct sr_dev_inst *sdi,
-		    uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
-		    void *data, uint16_t wLength)
+	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
+	void *data, uint16_t wLength)
 {
 	struct sr_usb_dev_inst *usb;
 	int ret;
@@ -114,7 +114,8 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bitstream_fname)
+static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
+	const char *bitstream_fname)
 {
 	struct dev_context *devc;
 	struct drv_context *drvc;
@@ -169,7 +170,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi, const char *bits
 		if (len == 0)
 			break;
 
-		ret = libusb_bulk_transfer(usb->devhdl, 2, (unsigned char*)&block[0], len, &act_len, DEFAULT_TIMEOUT_MS);
+		ret = libusb_bulk_transfer(usb->devhdl, 2,
+			&block[0], len, &act_len, DEFAULT_TIMEOUT_MS);
 		if (ret != 0) {
 			sr_dbg("Cannot write FPGA bitstream, block %#x len %d: %s.",
 				pos, (int)len, libusb_error_name(ret));
@@ -218,15 +220,14 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 
 	devc = sdi->priv;
 
-	uint16_t duty_R79,duty_R56;
+	uint16_t duty_R79, duty_R56;
 	uint8_t buf[2 * sizeof(uint16_t)];
 	uint8_t *wrptr;
 
 	/* Clamp threshold setting to valid range for LA2016. */
 	if (voltage > 4.0) {
 		voltage = 4.0;
-	}
-	else if (voltage < -4.0) {
+	} else if (voltage < -4.0) {
 		voltage = -4.0;
 	}
 
@@ -244,12 +245,10 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	if (voltage >= 2.9) {
 		duty_R79 = 0;		/* PWM off (0V). */
 		duty_R56 = (uint16_t)(302 * voltage - 363);
-	}
-	else if (voltage <= -0.4) {
+	} else if (voltage <= -0.4) {
 		duty_R79 = 0x02d7;	/* 72% duty cycle. */
 		duty_R56 = (uint16_t)(302 * voltage + 1090);
-	}
-	else {
+	} else {
 		duty_R79 = 0x00f2;	/* 25% duty cycle. */
 		duty_R56 = (uint16_t)(302 * voltage + 121);
 	}
@@ -257,8 +256,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	/* Clamp duty register values to sensible limits. */
 	if (duty_R56 < 10) {
 		duty_R56 = 10;
-	}
-	else if (duty_R56 > 1100) {
+	} else if (duty_R56 > 1100) {
 		duty_R56 = 1100;
 	}
 
@@ -303,7 +301,8 @@ static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
 	return SR_OK;
 }
 
-static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which, float freq, float duty)
+static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which,
+	float freq, float duty)
 {
 	int CTRL_PWM[] = { REG_PWM1, REG_PWM2 };
 	struct dev_context *devc;
@@ -561,20 +560,16 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 		previous_state = state;
 		if ((state & 0x0003) == 0x01) {
 			sr_dbg("Run state: 0x%04x (%s).", state, "idle");
-		}
-		else if ((state & 0x000f) == 0x02) {
+		} else if ((state & 0x000f) == 0x02) {
 			sr_dbg("Run state: 0x%04x (%s).", state,
 				"pre-trigger sampling");
-		}
-		else if ((state & 0x000f) == 0x0a) {
+		} else if ((state & 0x000f) == 0x0a) {
 			sr_dbg("Run state: 0x%04x (%s).", state,
 				"sampling, waiting for trigger");
-		}
-		else if ((state & 0x000f) == 0x0e) {
+		} else if ((state & 0x000f) == 0x0e) {
 			sr_dbg("Run state: 0x%04x (%s).", state,
 				"post-trigger sampling");
-		}
-		else {
+		} else {
 			sr_dbg("Run state: 0x%04x.", state);
 		}
 	}
@@ -614,10 +609,10 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	devc->info.write_pos = read_u32le_inc(&rdptr);
 
 	sr_dbg("Capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d.",
-	       devc->info.n_rep_packets, devc->info.n_rep_packets,
-	       devc->info.n_rep_packets_before_trigger,
-	       devc->info.n_rep_packets_before_trigger,
-	       devc->info.write_pos, devc->info.write_pos);
+		devc->info.n_rep_packets, devc->info.n_rep_packets,
+		devc->info.n_rep_packets_before_trigger,
+		devc->info.n_rep_packets_before_trigger,
+		devc->info.write_pos, devc->info.write_pos);
 
 	if (devc->info.n_rep_packets % 5) {
 		sr_warn("Unexpected packets count %lu, not a multiple of 5.",
@@ -627,7 +622,8 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id)
+SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx,
+	libusb_device *dev, uint16_t product_id)
 {
 	char fw_file[1024];
 	snprintf(fw_file, sizeof(fw_file) - 1, UC_FIRMWARE, product_id);
@@ -710,7 +706,8 @@ static int la2016_has_triggered(const struct sr_dev_inst *sdi)
 	return (state & 0x3) == 1;
 }
 
-static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer_cb_fn cb)
+static int la2016_start_retrieval(const struct sr_dev_inst *sdi,
+	libusb_transfer_cb_fn cb)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
@@ -732,7 +729,7 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi, libusb_transfer
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
 	sr_dbg("Want to read %u xfer-packets starting from pos %" PRIu32 ".",
-	       devc->n_transfer_packets_to_read, devc->read_pos);
+		devc->n_transfer_packets_to_read, devc->read_pos);
 
 	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
 		sr_err("Cannot reset USB bulk state.");
@@ -848,8 +845,8 @@ static void send_chunk(struct sr_dev_inst *sdi,
 					devc->reading_behind_trigger = 1;
 					do_signal_trigger = 1;
 					sr_dbg("Trigger position after %" PRIu64 " samples, %.6fms.",
-					       devc->total_samples,
-					       (double)devc->total_samples / devc->cur_samplerate * 1e3);
+						devc->total_samples,
+						(double)devc->total_samples / devc->cur_samplerate * 1e3);
 				}
 			}
 		}
@@ -877,7 +874,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	usb = sdi->conn;
 
 	sr_dbg("receive_transfer(): status %s received %d bytes.",
-	       libusb_error_name(transfer->status), transfer->actual_length);
+		libusb_error_name(transfer->status), transfer->actual_length);
 
 	if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
 		sr_err("USB bulk transfer timeout.");
@@ -989,8 +986,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	 */
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, purchase_date_bcd, sizeof(purchase_date_bcd))) != SR_OK) {
 		sr_err("Cannot read purchase date in EEPROM.");
-	}
-	else {
+	} else {
 		sr_dbg("Purchase date: 20%02hx-%02hx.",
 			(purchase_date_bcd[0]) & 0xff,
 			(purchase_date_bcd[0] >> 8) & 0xff);
@@ -1046,8 +1042,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	if (buf[0] == (0xff & ~buf[1])) {
 		/* Primary copy of magic passes complement check. */
 		magic = buf[0];
-	}
-	else if (buf[4] == (0x0ff & ~buf[5])) {
+	} else if (buf[4] == (0xff & ~buf[5])) {
 		/* Backup copy of magic passes complement check. */
 		sr_dbg("Using backup copy of device type magic number.");
 		magic = buf[4];

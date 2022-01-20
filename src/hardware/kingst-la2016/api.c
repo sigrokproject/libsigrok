@@ -521,8 +521,7 @@ static int config_list(uint32_t key, GVariant **data,
 		devc = sdi->priv;
 		if (devc->max_samplerate == SR_MHZ(200)) {
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la2016));
-		}
-		else {
+		} else {
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la1016));
 		}
 		break;

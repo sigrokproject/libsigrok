@@ -117,7 +117,8 @@ struct dev_context {
 	struct libusb_transfer *transfer;
 };
 
-SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id);
+SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx,
+	libusb_device *dev, uint16_t product_id);
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
