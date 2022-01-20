@@ -261,8 +261,6 @@ SR_PRIV int francaise_instrumentation_ams515_set_state(const struct sr_dev_inst 
 SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *sdi, gboolean param)
 {
 	struct sr_serial_dev_inst *serial;
-	const char *cmd;
-	char answer[ANSWER_MAX];
 	int ret;
 
 	if (!sdi)
@@ -273,16 +271,8 @@ SR_PRIV int francaise_instrumentation_ams515_set_echo(const struct sr_dev_inst *
 
 	serial_flush(serial);
 
-	cmd = "T?\r";
-	// Query current echo mode
-	ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
-	if (ret < SR_OK)
-		return ret;
-	if ((!param && !strcmp(answer, "00")) || (param && !strcmp(answer, "FF"))) {
-		cmd = "T\r";
-		// Toggle echo mode to the one we want
-		ret = francaise_instrumentation_ams515_send_raw(sdi, cmd, answer, TRUE);
-	}
+	// State is actually reversed
+	ret = francaise_instrumentation_ams515_set_state(sdi, 'T', !param);
 
 	serial_flush(serial);
 
