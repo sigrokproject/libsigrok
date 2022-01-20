@@ -52,6 +52,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_CHANNEL_CONFIG | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	//SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
+	//SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
 };
 
 static const uint32_t devopts_cg[] = {
@@ -59,7 +61,7 @@ static const uint32_t devopts_cg[] = {
 	//SR_CONF_VOLTAGE | SR_CONF_GET,
 	SR_CONF_VOLTAGE_TARGET | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_GET,
-	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
 	SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD | SR_CONF_GET,
 };
 
@@ -240,6 +242,13 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_CHANNEL_CONFIG:
 			*data = g_variant_new_string(channel_modes[devc->panel_mode]);
 			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_ENABLED:
+			*data = g_variant_new_boolean(TRUE);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
+			sr_dbg("config_get(OCA)");
+			*data = g_variant_new_boolean(devc->overcurrent);
+			break;
 		default:
 			return SR_ERR_NA;
 		}
@@ -268,7 +277,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			sr_dbg("config_get(OCA)");
+			sr_dbg("config_get(OCA) %d", channel);
 			ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
 			if (ret < SR_OK)
 				return ret;
