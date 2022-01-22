@@ -57,6 +57,12 @@
 #define RENUM_GONE_DELAY_MS	1800
 #define RENUM_POLL_INTERVAL_MS	200
 
+/*
+ * The device expects some zero padding to follow the content of the
+ * file which contains the FPGA bitstream. Specify the chunk size here.
+ */
+#define LA2016_EP2_PADDING	2048
+
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
 
@@ -104,8 +110,6 @@ struct dev_context {
 	uint64_t capture_ratio;
 	uint16_t cur_channels;
 	int num_channels;
-
-	uint32_t bitstream_size;
 
 	/* Values derived from user specs. */
 	uint64_t pre_trigger_size;

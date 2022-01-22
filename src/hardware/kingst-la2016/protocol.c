@@ -198,19 +198,18 @@ static int check_fpga_bitstream(const struct sr_dev_inst *sdi)
 static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	const char *bitstream_fname)
 {
-	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct sr_usb_dev_inst *usb;
 	struct sr_resource bitstream;
+	uint32_t bitstream_size;
 	uint8_t buffer[sizeof(uint32_t)];
 	uint8_t *wrptr;
 	uint8_t block[4096];
 	int len, act_len;
 	unsigned int pos;
 	int ret;
-	unsigned int zero_pad_to = 0x2c000;
+	unsigned int zero_pad_to;
 
-	devc = sdi->priv;
 	drvc = sdi->driver->context;
 	usb = sdi->conn;
 
@@ -222,14 +221,18 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		return ret;
 	}
 
-	devc->bitstream_size = (uint32_t)bitstream.size;
+	bitstream_size = (uint32_t)bitstream.size;
 	wrptr = buffer;
-	write_u32le_inc(&wrptr, devc->bitstream_size);
+	write_u32le_inc(&wrptr, bitstream_size);
 	if ((ret = ctrl_out(sdi, CMD_FPGA_INIT, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
 		sr_err("Cannot initiate FPGA bitstream upload.");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
 	}
+	zero_pad_to = bitstream_size;
+	zero_pad_to += LA2016_EP2_PADDING - 1;
+	zero_pad_to /= LA2016_EP2_PADDING;
+	zero_pad_to *= LA2016_EP2_PADDING;
 
 	pos = 0;
 	while (1) {
