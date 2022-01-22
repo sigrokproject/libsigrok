@@ -1106,7 +1106,9 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	uint16_t state;
 	uint8_t buf[8];
-	int16_t purchase_date_bcd[2];
+	const uint8_t *rdptr;
+	uint8_t date_yy, date_mm;
+	uint8_t dinv_yy, dinv_mm;
 	uint8_t magic;
 	const char *bitstream_fn;
 	int ret;
@@ -1114,20 +1116,24 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	/*
-	 * Four EEPROM bytes at offset 0x20 are purchase year and month
-	 * in BCD format, with 16bit complemented checksum. For example
-	 * 20 04 df fb translates to 2020-04. This can help identify the
-	 * age of devices when unknown magic numbers are seen.
+	 * Four EEPROM bytes at offset 0x20 are the manufacturing date,
+	 * year and month in BCD format, followed by inverted values for
+	 * consistency checks. For example bytes 20 04 df fb translate
+	 * to 2020-04. This information can help identify the vintage of
+	 * devices when unknown magic numbers are seen.
 	 */
-	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, purchase_date_bcd, sizeof(purchase_date_bcd))) != SR_OK) {
-		sr_err("Cannot read purchase date in EEPROM.");
+	ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, buf, 4 * sizeof(uint8_t));
+	if (ret != SR_OK) {
+		sr_err("Cannot read manufacture date in EEPROM.");
 	} else {
-		sr_dbg("Purchase date: 20%02hx-%02hx.",
-			(purchase_date_bcd[0]) & 0xff,
-			(purchase_date_bcd[0] >> 8) & 0xff);
-		if (purchase_date_bcd[0] != (0x0ffff & ~purchase_date_bcd[1])) {
-			sr_err("Purchase date fails checksum test.");
-		}
+		rdptr = &buf[0];
+		date_yy = read_u8_inc(&rdptr);
+		date_mm = read_u8_inc(&rdptr);
+		dinv_yy = read_u8_inc(&rdptr);
+		dinv_mm = read_u8_inc(&rdptr);
+		sr_info("Manufacture date: 20%02hx-%02hx.", date_yy, date_mm);
+		if ((date_mm ^ dinv_mm) != 0xff || (date_yy ^ dinv_yy) != 0xff)
+			sr_warn("Manufacture date fails checksum test.");
 	}
 
 	/*
@@ -1172,17 +1178,18 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		sr_err("Cannot read EEPROM device identifier bytes.");
 		return ret;
 	}
-
-	magic = 0;
-	if (buf[0] == (0xff & ~buf[1])) {
+	if ((buf[0] ^ buf[1]) == 0xff) {
 		/* Primary copy of magic passes complement check. */
+		sr_dbg("Using primary copy of device type magic number.");
 		magic = buf[0];
-	} else if (buf[4] == (0xff & ~buf[5])) {
+	} else if ((buf[4] ^ buf[5]) == 0xff) {
 		/* Backup copy of magic passes complement check. */
 		sr_dbg("Using backup copy of device type magic number.");
 		magic = buf[4];
+	} else {
+		sr_err("Cannot find consistent device type identification.");
+		magic = 0;
 	}
-
 	sr_dbg("Device type: magic number is %hhu.", magic);
 
 	/* Select the FPGA bitstream depending on the model. */
