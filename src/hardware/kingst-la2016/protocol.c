@@ -55,6 +55,16 @@
  * CMD_FPGA_SPI requests. The FX2 MCU transparently handles the detail
  * of SPI transfers encoding the read (1) or write (0) direction in the
  * MSB of the address field. There are some 60 byte-wide FPGA registers.
+ *
+ * Unfortunately the FPGA registers change their meaning between the
+ * read and write directions of access, or exclusively provide one of
+ * these directions and not the other. This is an arbitrary vendor's
+ * choice, there is nothing which the sigrok driver could do about it.
+ * Values written to registers typically cannot get read back, neither
+ * verified after writing a configuration, nor queried upon startup for
+ * automatic detection of the current configuration. Neither appear to
+ * be there echo registers for presence and communication checks, nor
+ * version identifying registers, as far as we know.
  */
 #define REG_RUN		0x00	/* Read capture status, write start capture. */
 #define REG_PWM_EN	0x02	/* User PWM channels on/off. */
@@ -114,6 +124,77 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/*
+ * Check the necessity for FPGA bitstream upload, because another upload
+ * would take some 600ms which is undesirable after program startup. Try
+ * to access some FPGA registers and check the values' plausibility. The
+ * check should fail on the safe side, request another upload when in
+ * doubt. A positive response (the request to continue operation with the
+ * currently active bitstream) should be conservative. Accessing multiple
+ * registers is considered cheap compared to the cost of bitstream upload.
+ *
+ * It helps though that both the vendor software and the sigrok driver
+ * use the same bundle of MCU firmware and FPGA bitstream for any of the
+ * supported models. We don't expect to successfully communicate to the
+ * device yet disagree on its protocol. Ideally we would access version
+ * identifying registers for improved robustness, but are not aware of
+ * any. A bitstream reload can always be forced by a power cycle.
+ */
+static int check_fpga_bitstream(const struct sr_dev_inst *sdi)
+{
+	uint8_t init_rsp;
+	int ret;
+	uint16_t run_state;
+	uint8_t pwm_en;
+	size_t read_len;
+	uint8_t buff[sizeof(run_state)];
+	const uint8_t *rdptr;
+
+	sr_dbg("Checking operation of the FPGA bitstream.");
+
+	init_rsp = 0xff;
+	ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &init_rsp, sizeof(init_rsp));
+	if (ret != SR_OK || init_rsp != 0) {
+		sr_dbg("FPGA init query failed, or unexpected response.");
+		return SR_ERR_IO;
+	}
+
+	read_len = sizeof(run_state);
+	ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, buff, read_len);
+	if (ret != SR_OK) {
+		sr_dbg("FPGA register access failed (run state).");
+		return SR_ERR_IO;
+	}
+	rdptr = buff;
+	run_state = read_u16le_inc(&rdptr);
+	sr_spew("FPGA register: run state 0x%04x.", run_state);
+	if (run_state && (run_state & 0x3) != 0x1) {
+		sr_dbg("Unexpected FPGA register content (run state).");
+		return SR_ERR_DATA;
+	}
+	if (run_state && (run_state & ~0xf) != 0x85e0) {
+		sr_dbg("Unexpected FPGA register content (run state).");
+		return SR_ERR_DATA;
+	}
+
+	read_len = sizeof(pwm_en);
+	ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0, buff, read_len);
+	if (ret != SR_OK) {
+		sr_dbg("FPGA register access failed (PWM enable).");
+		return SR_ERR_IO;
+	}
+	rdptr = buff;
+	pwm_en = read_u8_inc(&rdptr);
+	sr_spew("FPGA register: PWM enable 0x%02x.", pwm_en);
+	if ((pwm_en & 0x3) != 0x0) {
+		sr_dbg("Unexpected FPGA register content (PWM enable).");
+		return SR_ERR_DATA;
+	}
+
+	sr_info("Could re-use current FPGA bitstream. No upload required.");
+	return SR_OK;
+}
+
 static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	const char *bitstream_fname)
 {
@@ -123,7 +204,6 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	struct sr_resource bitstream;
 	uint8_t buffer[sizeof(uint32_t)];
 	uint8_t *wrptr;
-	uint8_t cmd_resp;
 	uint8_t block[4096];
 	int len, act_len;
 	unsigned int pos;
@@ -192,6 +272,14 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.",
 		bitstream.size);
 
+	return SR_OK;
+}
+
+static int enable_fpga_bitstream(const struct sr_dev_inst *sdi)
+{
+	int ret;
+	uint8_t cmd_resp;
+
 	if ((ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
 		sr_err("Cannot read response after FPGA bitstream upload.");
 		return ret;
@@ -201,15 +289,14 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 			cmd_resp);
 		return SR_ERR;
 	}
-
 	g_usleep(30000);
 
 	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0)) != SR_OK) {
 		sr_err("Cannot enable FPGA after bitstream upload.");
 		return ret;
 	}
-
 	g_usleep(40000);
+
 	return SR_OK;
 }
 
@@ -974,6 +1061,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	uint8_t buf[8];
 	int16_t purchase_date_bcd[2];
 	uint8_t magic;
+	const char *bitstream_fn;
 	int ret;
 
 	devc = sdi->priv;
@@ -1053,28 +1141,40 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	/* Select the FPGA bitstream depending on the model. */
 	switch (magic) {
 	case 2:
-		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016);
+		bitstream_fn = FPGA_FW_LA2016;
 		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
 		break;
 	case 3:
-		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA1016);
+		bitstream_fn = FPGA_FW_LA1016;
 		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
 		break;
 	case 8:
-		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA2016A);
+		bitstream_fn = FPGA_FW_LA2016A;
 		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
 		break;
 	case 9:
-		ret = upload_fpga_bitstream(sdi, FPGA_FW_LA1016A);
+		bitstream_fn = FPGA_FW_LA1016A;
 		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
 		break;
 	default:
+		bitstream_fn = NULL;
+		break;
+	}
+	if (!bitstream_fn || !*bitstream_fn) {
 		sr_err("Cannot identify as one of the supported models.");
 		return SR_ERR;
 	}
 
+	if (check_fpga_bitstream(sdi) != SR_OK) {
+		ret = upload_fpga_bitstream(sdi, bitstream_fn);
+		if (ret != SR_OK) {
+			sr_err("Cannot upload FPGA bitstream.");
+			return ret;
+		}
+	}
+	ret = enable_fpga_bitstream(sdi);
 	if (ret != SR_OK) {
-		sr_err("Cannot upload FPGA bitstream.");
+		sr_err("Cannot enable FPGA bitstream after upload.");
 		return ret;
 	}
 
