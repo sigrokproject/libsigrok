@@ -914,22 +914,23 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	unsigned int max_samples, n_samples, total_samples, free_n_samples;
 	unsigned int i, j, k;
 	int do_signal_trigger;
-	uint16_t *wp;
+	uint8_t *wp;
 	const uint8_t *rp;
 	uint16_t state;
 	uint8_t repetitions;
+	uint8_t sample_buff[sizeof(state)];
 
 	devc = sdi->priv;
 
-	logic.unitsize = 2;
+	logic.unitsize = sizeof(sample_buff);
 	logic.data = devc->convbuffer;
 
 	sr_packet.type = SR_DF_LOGIC;
 	sr_packet.payload = &logic;
 
-	max_samples = devc->convbuffer_size / 2;
+	max_samples = devc->convbuffer_size / sizeof(sample_buff);
 	n_samples = 0;
-	wp = (uint16_t *)devc->convbuffer;
+	wp = devc->convbuffer;
 	total_samples = 0;
 	do_signal_trigger = 0;
 
@@ -946,7 +947,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 				logic.length = n_samples * 2;
 				sr_session_send(sdi, &sr_packet);
 				n_samples = 0;
-				wp = (uint16_t *)devc->convbuffer;
+				wp = devc->convbuffer;
 				if (do_signal_trigger) {
 					std_session_send_df_trigger(sdi);
 					do_signal_trigger = 0;
@@ -955,8 +956,11 @@ static void send_chunk(struct sr_dev_inst *sdi,
 
 			state = read_u16le_inc(&rp);
 			repetitions = read_u8_inc(&rp);
-			for (j = 0; j < repetitions; j++)
-				*wp++ = state;
+			write_u16le((void *)&sample_buff, state);
+			for (j = 0; j < repetitions; j++) {
+				memcpy(wp, sample_buff, logic.unitsize);
+				wp += logic.unitsize;
+			}
 
 			n_samples += repetitions;
 			total_samples += repetitions;
@@ -975,7 +979,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		(void)read_u8_inc(&rp); /* Skip sequence number. */
 	}
 	if (n_samples) {
-		logic.length = n_samples * 2;
+		logic.length = n_samples * logic.unitsize;
 		sr_session_send(sdi, &sr_packet);
 		if (do_signal_trigger) {
 			std_session_send_df_trigger(sdi);
