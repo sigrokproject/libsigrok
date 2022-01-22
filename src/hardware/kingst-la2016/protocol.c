@@ -662,14 +662,20 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
  */
 static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
-	uint16_t state;
-	static uint16_t previous_state = 0;
-	int ret;
+	static uint16_t previous_state;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, &state, sizeof(state))) != SR_OK) {
+	int ret;
+	uint16_t state;
+	uint8_t buff[sizeof(state)];
+	const uint8_t *rdptr;
+	const char *label;
+
+	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, buff, sizeof(state))) != SR_OK) {
 		sr_err("Cannot read run state.");
 		return ret;
 	}
+	rdptr = buff;
+	state = read_u16le_inc(&rdptr);
 
 	/*
 	 * Avoid flooding the log, only dump values as they change.
@@ -677,17 +683,19 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	 */
 	if (state != previous_state) {
 		previous_state = state;
-		if ((state & 0x0003) == 0x01) {
-			sr_dbg("Run state: 0x%04x (%s).", state, "idle");
-		} else if ((state & 0x000f) == 0x02) {
-			sr_dbg("Run state: 0x%04x (%s).", state,
-				"pre-trigger sampling");
-		} else if ((state & 0x000f) == 0x0a) {
-			sr_dbg("Run state: 0x%04x (%s).", state,
-				"sampling, waiting for trigger");
-		} else if ((state & 0x000f) == 0x0e) {
-			sr_dbg("Run state: 0x%04x (%s).", state,
-				"post-trigger sampling");
+		if ((state & 0x3) == 0x1) {
+			label = "idle";
+		} else if ((state & 0xf) == 0x2) {
+			label = "pre-trigger sampling";
+		} else if ((state & 0xf) == 0xa) {
+			label = "sampling, waiting for trigger";
+		} else if ((state & 0xf) == 0xe) {
+			label = "post-trigger sampling";
+		} else {
+			label = NULL;
+		}
+		if (label && *label) {
+			sr_dbg("Run state: 0x%04x (%s).", state, label);
 		} else {
 			sr_dbg("Run state: 0x%04x.", state);
 		}
