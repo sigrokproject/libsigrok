@@ -125,7 +125,7 @@ static const char *logic_threshold[] = {
 	"USER",
 };
 
-#define MAX_NUM_LOGIC_THRESHOLD_ENTRIES ARRAY_SIZE(logic_threshold)
+#define LOGIC_THRESHOLD_IDX_USER	(ARRAY_SIZE(logic_threshold) - 1)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -412,6 +412,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	double rounded;
+	const char *label;
 
 	(void)cg;
 
@@ -447,7 +448,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_double(rounded, rounded + 0.1);
 		return SR_OK;
 	case SR_CONF_LOGIC_THRESHOLD:
-		*data = g_variant_new_string(logic_threshold[devc->threshold_voltage_idx]);
+		label = logic_threshold[devc->threshold_voltage_idx];
+		*data = g_variant_new_string(label);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
 		*data = g_variant_new_double(devc->threshold_voltage);
@@ -484,14 +486,12 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		g_variant_get(data, "(dd)", &low, &high);
 		devc->threshold_voltage = (low + high) / 2.0;
-		devc->threshold_voltage_idx = MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1; /* USER */
+		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_USER;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD: {
-		if ((idx = std_str_idx(data, logic_threshold, MAX_NUM_LOGIC_THRESHOLD_ENTRIES)) < 0)
+		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(logic_threshold))) < 0)
 			return SR_ERR_ARG;
-		if (idx == MAX_NUM_LOGIC_THRESHOLD_ENTRIES - 1) {
-			/* user threshold */
-		} else {
+		if (idx != LOGIC_THRESHOLD_IDX_USER) {
 			devc->threshold_voltage = logic_threshold_value[idx];
 		}
 		devc->threshold_voltage_idx = idx;
@@ -538,7 +538,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
-		*data = g_variant_new_strv(logic_threshold, MAX_NUM_LOGIC_THRESHOLD_ENTRIES);
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_threshold));
 		break;
 	default:
 		return SR_ERR_NA;
