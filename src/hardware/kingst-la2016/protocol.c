@@ -592,14 +592,14 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	double clock_divisor;
-	uint64_t total;
-	int ret;
-	uint16_t divisor;
-	uint8_t buf[2 * sizeof(uint32_t) + 48 / 8 + sizeof(uint16_t)];
+	uint16_t divider_u16;
+	uint64_t pre_trigger_samples;
+	uint64_t pre_trigger_memory;
+	uint8_t buf[REG_TRIGGER - REG_SAMPLING]; /* Width of REG_SAMPLING. */
 	uint8_t *wrptr;
+	int ret;
 
 	devc = sdi->priv;
-	total = LA2016_PRE_MEM_LIMIT_BASE;
 
 	if (devc->cur_samplerate > devc->max_samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
@@ -608,10 +608,10 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	}
 
 	clock_divisor = devc->max_samplerate / (double)devc->cur_samplerate;
-	if (clock_divisor > 0xffff)
-		clock_divisor = 0xffff;
-	divisor = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = devc->max_samplerate / divisor;
+	if (clock_divisor > 65535)
+		return SR_ERR_ARG;
+	divider_u16 = (uint16_t)(clock_divisor + 0.5);
+	devc->cur_samplerate = devc->max_samplerate / divider_u16;
 
 	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
 		sr_err("Too high a sample depth: %" PRIu64 ".",
@@ -619,21 +619,37 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	devc->pre_trigger_size = (devc->capture_ratio * devc->limit_samples) / 100;
+	/*
+	 * The acquisition configuration communicates "pre-trigger"
+	 * specs in several formats. sigrok users provide a percentage
+	 * (0-100%), which translates to a pre-trigger samples count
+	 * (assuming that a total samples count limit was specified).
+	 * The device supports hardware compression, which depends on
+	 * slowly changing input data to be effective. Fast changing
+	 * input data may occupy more space in sample memory than its
+	 * uncompressed form would. This is why a third parameter can
+	 * limit the amount of sample memory to use for pre-trigger
+	 * data. Only the upper 24 bits of that memory size spec get
+	 * communicated to the device (written to its FPGA register).
+	 */
+	pre_trigger_samples = devc->limit_samples * devc->capture_ratio / 100;
+	pre_trigger_memory = LA2016_PRE_MEM_LIMIT_BASE;
+	pre_trigger_memory *= devc->capture_ratio;
+	pre_trigger_memory /= 100;
+	pre_trigger_memory &= 0xffffff00ul; /* Funny register layout. */
 
-	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples, trigger-pos %" PRIu64 "%%.",
-		devc->cur_samplerate / 1000,
-		devc->limit_samples,
-		devc->capture_ratio);
+	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
+		devc->cur_samplerate / 1000, devc->limit_samples);
+	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
+		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
 
 	wrptr = buf;
 	write_u32le_inc(&wrptr, devc->limit_samples);
 	write_u8_inc(&wrptr, 0);
-	write_u32le_inc(&wrptr, devc->pre_trigger_size);
-	write_u32le_inc(&wrptr, ((total * devc->capture_ratio) / 100) & 0xffffff00);
-	write_u16le_inc(&wrptr, divisor);
+	write_u32le_inc(&wrptr, pre_trigger_samples);
+	write_u32le_inc(&wrptr, pre_trigger_memory);
+	write_u16le_inc(&wrptr, divider_u16);
 	write_u8_inc(&wrptr, 0);
-
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("Cannot setup acquisition configuration.");

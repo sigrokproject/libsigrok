@@ -118,9 +118,6 @@ struct dev_context {
 	uint16_t cur_channels;
 	int num_channels;
 
-	/* Values derived from user specs. */
-	uint64_t pre_trigger_size;
-
 	/* Internal acquisition and download state. */
 	int had_triggers_configured;
 	int have_trigger;
