@@ -198,7 +198,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		fw_uploaded = 0;
 		dev_addr = libusb_get_device_address(devlist[i]);
-		if (des.iProduct != 2) {
+		if (des.iProduct != LA2016_IPRODUCT_INDEX) {
 			sr_info("Device at '%s' has no firmware loaded.", connection_id);
 
 			if (la2016_upload_firmware(drvc->sr_ctx, devlist[i], des.idProduct) != SR_OK) {
@@ -263,7 +263,9 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 	for (i = 0; i < device_count; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID || des.iProduct != 2)
+		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
+			continue;
+		if (des.iProduct != LA2016_IPRODUCT_INDEX)
 			continue;
 
 		if ((sdi->status == SR_ST_INITIALIZING) || (sdi->status == SR_ST_INACTIVE)) {
@@ -580,7 +582,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	devc->convbuffer_size = 4 * 1024 * 1024;
+	devc->convbuffer_size = LA2016_CONVBUFFER_SIZE;
 	if (!(devc->convbuffer = g_try_malloc(devc->convbuffer_size))) {
 		sr_err("Cannot allocate conversion buffer.");
 		return SR_ERR_MALLOC;

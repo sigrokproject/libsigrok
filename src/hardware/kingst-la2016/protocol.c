@@ -34,11 +34,30 @@
 #define FPGA_FW_LA1016	"kingst-la1016-fpga.bitstream"
 #define FPGA_FW_LA1016A	"kingst-la1016a1-fpga.bitstream"
 
+/* Maximum device capabilities. May differ between models. */
 #define MAX_SAMPLE_RATE_LA2016	SR_MHZ(200)
 #define MAX_SAMPLE_RATE_LA1016	SR_MHZ(100)
 #define MAX_SAMPLE_DEPTH	10e9
 #define MAX_PWM_FREQ		SR_MHZ(20)
 #define PWM_CLOCK		SR_MHZ(200)	/* 200MHz for both LA2016 and LA1016 */
+
+/*
+ * Default device configuration. Must be applicable to any of the
+ * supported devices (no model specific default values yet). Specific
+ * firmware implementation details unfortunately won't let us detect
+ * and keep using previously configured values.
+ */
+#define LA2016_DFLT_SAMPLERATE	SR_MHZ(100)
+#define LA2016_DFLT_SAMPLEDEPTH	(5 * 1000 * 1000)
+#define LA2016_DFLT_CAPT_RATIO	5 /* Capture ratio, in percent. */
+
+/* TODO
+ * What is the origin and motivation of that 128Mi literal? What is its
+ * unit? How does it relate to a device's hardware capabilities? How to
+ * map the 1GiB of RAM of an LA2016 (at 16 channels) to the 128Mi value?
+ * It cannot be sample count. Is it memory size in bytes perhaps?
+ */
+#define LA2016_PRE_MEM_LIMIT_BASE	(128 * 1024 * 1024)
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
 #define CMD_FPGA_ENABLE	0x10
@@ -76,6 +95,10 @@
 #define REG_PWM1	0x70	/* Write config for user PWM1. */
 #define REG_PWM2	0x78	/* Write config for user PWM2. */
 
+/* Bit patterns to write to REG_RUN, setup run mode. */
+#define RUNMODE_HALT	0x00
+#define RUNMODE_RUN	0x03
+
 static int ctrl_in(const struct sr_dev_inst *sdi,
 	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	void *data, uint16_t wLength)
@@ -85,8 +108,8 @@ static int ctrl_in(const struct sr_dev_inst *sdi,
 
 	usb = sdi->conn;
 
-	if ((ret = libusb_control_transfer(
-		     usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
+	if ((ret = libusb_control_transfer(usb->devhdl,
+		     LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
 		     bRequest, wValue, wIndex, (unsigned char *)data, wLength,
 		     DEFAULT_TIMEOUT_MS)) != wLength) {
 		sr_dbg("USB ctrl in: %d bytes, req %d val %#x idx %d: %s.",
@@ -109,8 +132,8 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 
 	usb = sdi->conn;
 
-	if ((ret = libusb_control_transfer(
-		     usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
+	if ((ret = libusb_control_transfer(usb->devhdl,
+		     LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
 		     bRequest, wValue, wIndex, (unsigned char*)data, wLength,
 		     DEFAULT_TIMEOUT_MS)) != wLength) {
 		sr_dbg("USB ctrl out: %d bytes, req %d val %#x idx %d: %s.",
@@ -152,7 +175,7 @@ static int check_fpga_bitstream(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Checking operation of the FPGA bitstream.");
 
-	init_rsp = 0xff;
+	init_rsp = ~0;
 	ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &init_rsp, sizeof(init_rsp));
 	if (ret != SR_OK || init_rsp != 0) {
 		sr_dbg("FPGA init query failed, or unexpected response.");
@@ -253,7 +276,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		if (len == 0)
 			break;
 
-		ret = libusb_bulk_transfer(usb->devhdl, 2,
+		ret = libusb_bulk_transfer(usb->devhdl, USB_EP_FPGA_BITSTREAM,
 			&block[0], len, &act_len, DEFAULT_TIMEOUT_MS);
 		if (ret != 0) {
 			sr_dbg("Cannot write FPGA bitstream, block %#x len %d: %s.",
@@ -292,13 +315,13 @@ static int enable_fpga_bitstream(const struct sr_dev_inst *sdi)
 			cmd_resp);
 		return SR_ERR;
 	}
-	g_usleep(30000);
+	g_usleep(30 * 1000);
 
 	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0)) != SR_OK) {
 		sr_err("Cannot enable FPGA after bitstream upload.");
 		return ret;
 	}
-	g_usleep(40000);
+	g_usleep(40 * 1000);
 
 	return SR_OK;
 }
@@ -404,7 +427,7 @@ static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which,
 
 	devc = sdi->priv;
 
-	if (which < 1 || which > 2) {
+	if (which < 1 || which > ARRAY_SIZE(CTRL_PWM)) {
 		sr_err("Invalid PWM channel: %d.", which);
 		return SR_ERR;
 	}
@@ -444,10 +467,10 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	devc->capture_ratio = 5; /* percent */
+	devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
 	devc->cur_channels = 0xffff;
-	devc->limit_samples = 5000000;
-	devc->cur_samplerate = SR_MHZ(100);
+	devc->limit_samples = LA2016_DFLT_SAMPLEDEPTH;
+	devc->cur_samplerate = LA2016_DFLT_SAMPLERATE;
 
 	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
 	if (ret)
@@ -457,11 +480,11 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 	if (ret)
 		return ret;
 
-	ret = set_pwm(sdi, 1, 1e3, 50);
+	ret = set_pwm(sdi, 1, SR_KHZ(1), 50);
 	if (ret)
 		return ret;
 
-	ret = set_pwm(sdi, 2, 100e3, 50);
+	ret = set_pwm(sdi, 2, SR_KHZ(100), 50);
 	if (ret)
 		return ret;
 
@@ -550,6 +573,12 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	write_u32le_inc(&wrptr, cfg.enabled);
 	write_u32le_inc(&wrptr, cfg.level);
 	write_u32le_inc(&wrptr, cfg.high_or_falling);
+	/* TODO
+	 * Comment on this literal 16. Origin, meaning? Cannot be the
+	 * register offset, nor the transfer length. Is it a channels
+	 * count that is relevant for 16 and 32 channel models? Is it
+	 * an obsolete experiment?
+	 */
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_TRIGGER, 16, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("Cannot setup trigger configuration.");
@@ -570,7 +599,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	uint8_t *wrptr;
 
 	devc = sdi->priv;
-	total = 128 * 1024 * 1024;
+	total = LA2016_PRE_MEM_LIMIT_BASE;
 
 	if (devc->cur_samplerate > devc->max_samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
@@ -704,9 +733,10 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 		devc->info.n_rep_packets_before_trigger,
 		devc->info.write_pos, devc->info.write_pos);
 
-	if (devc->info.n_rep_packets % 5) {
-		sr_warn("Unexpected packets count %lu, not a multiple of 5.",
-			(unsigned long)devc->info.n_rep_packets);
+	if (devc->info.n_rep_packets % NUM_PACKETS_IN_CHUNK) {
+		sr_warn("Unexpected packets count %lu, not a multiple of %d.",
+			(unsigned long)devc->info.n_rep_packets,
+			NUM_PACKETS_IN_CHUNK);
 	}
 
 	return SR_OK;
@@ -753,7 +783,7 @@ SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	ret = set_run_mode(sdi, 3);
+	ret = set_run_mode(sdi, RUNMODE_RUN);
 	if (ret != SR_OK)
 		return ret;
 
@@ -764,7 +794,7 @@ static int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	ret = set_run_mode(sdi, 0);
+	ret = set_run_mode(sdi, RUNMODE_HALT);
 	if (ret != SR_OK)
 		return ret;
 
@@ -857,9 +887,9 @@ static int la2016_start_retrieval(const struct sr_dev_inst *sdi,
 	}
 
 	devc->transfer = libusb_alloc_transfer(0);
-	libusb_fill_bulk_transfer(
-		devc->transfer, usb->devhdl,
-		0x86, buffer, to_read,
+	libusb_fill_bulk_transfer(devc->transfer,
+		usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
+		buffer, to_read,
 		cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
 	if ((ret = libusb_submit_transfer(devc->transfer)) != 0) {
@@ -984,9 +1014,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			to_read = LA2016_USB_BUFSZ;
 		else
 			to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
-		libusb_fill_bulk_transfer(
-			transfer, usb->devhdl,
-			0x86, transfer->buffer, to_read,
+		libusb_fill_bulk_transfer(transfer,
+			usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
+			transfer->buffer, to_read,
 			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
 		if ((ret = libusb_submit_transfer(transfer)) == 0)

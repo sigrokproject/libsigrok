@@ -30,8 +30,11 @@
 
 #define LA2016_VID		0x77a1
 #define LA2016_PID		0x01a2
+#define LA2016_IPRODUCT_INDEX	2
 #define USB_INTERFACE		0
 #define USB_CONFIGURATION	1
+#define USB_EP_FPGA_BITSTREAM	2
+#define USB_EP_CAPTURE_DATA	6
 
 /*
  * On Windows sigrok uses WinUSB RAW_IO policy which requires the
@@ -69,6 +72,10 @@
 #define LA2016_NUM_SAMPLES_MIN	256
 #define LA2016_NUM_SAMPLES_MAX	(10UL * 1000 * 1000 * 1000)
 
+#define LA2016_NUM_PWMCH_MAX	2
+
+#define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
+
 typedef struct pwm_setting_dev {
 	uint32_t period;
 	uint32_t duty;
@@ -101,7 +108,7 @@ struct dev_context {
 	uint64_t fw_uploaded;
 
 	/* User specified parameters. */
-	pwm_setting_t pwm_setting[2];
+	pwm_setting_t pwm_setting[LA2016_NUM_PWMCH_MAX];
 	unsigned int threshold_voltage_idx;
 	float threshold_voltage;
 	uint64_t max_samplerate;
