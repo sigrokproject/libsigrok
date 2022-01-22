@@ -358,12 +358,12 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	if (voltage >= 2.9) {
 		duty_R79 = 0;		/* PWM off (0V). */
 		duty_R56 = (uint16_t)(302 * voltage - 363);
-	} else if (voltage <= -0.4) {
-		duty_R79 = 0x02d7;	/* 72% duty cycle. */
-		duty_R56 = (uint16_t)(302 * voltage + 1090);
-	} else {
+	} else if (voltage > -0.4) {
 		duty_R79 = 0x00f2;	/* 25% duty cycle. */
 		duty_R56 = (uint16_t)(302 * voltage + 121);
+	} else {
+		duty_R79 = 0x02d7;	/* 72% duty cycle. */
+		duty_R56 = (uint16_t)(302 * voltage + 1090);
 	}
 
 	/* Clamp duty register values to sensible limits. */
@@ -696,12 +696,23 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	return state;
 }
 
-static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t fast_blinking)
+static int la2016_has_triggered(const struct sr_dev_inst *sdi)
+{
+	uint16_t state;
+
+	state = run_state(sdi);
+	if ((state & 0x3) == 0x1)
+		return 1;
+
+	return 0;
+}
+
+static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t mode)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &fast_blinking, sizeof(fast_blinking))) != SR_OK) {
-		sr_err("Cannot configure run mode %d.", fast_blinking);
+	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &mode, sizeof(mode))) != SR_OK) {
+		sr_err("Cannot configure run mode %d.", mode);
 		return ret;
 	}
 
@@ -815,15 +826,6 @@ SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 		libusb_cancel_transfer(devc->transfer);
 
 	return SR_OK;
-}
-
-static int la2016_has_triggered(const struct sr_dev_inst *sdi)
-{
-	uint16_t state;
-
-	state = run_state(sdi);
-
-	return (state & 0x3) == 1;
 }
 
 static int la2016_start_retrieval(const struct sr_dev_inst *sdi,
@@ -1223,7 +1225,11 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 
 	sr_dbg("Device should be initialized.");
 
-	return set_defaults(sdi);
+	ret = set_defaults(sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
 }
 
 SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi)
