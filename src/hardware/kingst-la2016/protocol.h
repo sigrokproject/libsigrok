@@ -43,8 +43,19 @@
 #define LA2016_EP6_PKTSZ	512 /* Max packet size of USB endpoint 6. */
 #define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KiB buffer. */
 
-#define MAX_RENUM_DELAY_MS	3000
+/* USB communication timeout during regular operation. */
 #define DEFAULT_TIMEOUT_MS	200
+
+/*
+ * Check for MCU firmware to take effect after upload. Check the device
+ * presence for a maximum period of time, delay between checks in that
+ * phase. Allow for the device to vanish after upload and before checks,
+ * to not mistake its earlier incarnation for the successful operation
+ * of the most recently loaded firmware.
+ */
+#define RENUM_CHECK_PERIOD_MS	3000
+#define RENUM_GONE_DELAY_MS	1800
+#define RENUM_POLL_INTERVAL_MS	200
 
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
@@ -81,8 +92,7 @@ typedef struct pwm_setting {
 
 struct dev_context {
 	struct sr_context *ctx;
-
-	int64_t fw_updated;
+	uint64_t fw_uploaded;
 
 	/* User specified parameters. */
 	pwm_setting_t pwm_setting[2];

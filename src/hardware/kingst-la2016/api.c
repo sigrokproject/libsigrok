@@ -142,7 +142,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	unsigned int i, j;
 	const char *conn;
 	char connection_id[64];
-	int64_t fw_updated;
+	uint64_t fw_uploaded;
 	unsigned int dev_addr;
 
 	drvc = di->context;
@@ -196,7 +196,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->connection_id = g_strdup(connection_id);
 
-		fw_updated = 0;
+		fw_uploaded = 0;
 		dev_addr = libusb_get_device_address(devlist[i]);
 		if (des.iProduct != 2) {
 			sr_info("Device at '%s' has no firmware loaded.", connection_id);
@@ -207,7 +207,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				g_free(sdi);
 				continue;
 			}
-			fw_updated = g_get_monotonic_time();
+			fw_uploaded = g_get_monotonic_time();
 			/* Will re-enumerate. Mark as "unknown address yet". */
 			dev_addr = 0xff;
 		}
@@ -222,7 +222,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		devc = g_malloc0(sizeof(struct dev_context));
 		sdi->priv = devc;
-		devc->fw_updated = fw_updated;
+		devc->fw_uploaded = fw_uploaded;
 		devc->threshold_voltage_idx = 0;
 		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
 
@@ -336,43 +336,42 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int64_t timediff_us, timediff_ms;
-	uint64_t reset_done;
-	uint64_t now;
+	uint64_t reset_done, now, elapsed_ms;
 	int ret;
 
 	devc = sdi->priv;
 
 	/*
-	 * When the sigrok driver recently uploaded firmware, wait for
-	 * the FX2 to re-enumerate. Deal with the condition that the
-	 * MCU can take some 2000ms to be gone from the bus before it
-	 * re-appears executing the recently uploaded firmware.
+	 * When the sigrok driver recently has uploaded MCU firmware,
+	 * then wait for the FX2 to re-enumerate. Allow the USB device
+	 * to vanish before it reappears. Timeouts are rough estimates
+	 * after all, the imprecise time of the last check (potentially
+	 * executes after the total check period) simplifies code paths
+	 * with optional diagnostics. And increases the probability of
+	 * successfully detecting "late/slow" devices.
 	 */
-	ret = SR_ERR;
-	if (devc->fw_updated > 0) {
+	if (devc->fw_uploaded) {
 		sr_info("Waiting for device to reset after firmware upload.");
-		reset_done = devc->fw_updated;
-		reset_done += 1800 * 1000; /* 1.8 seconds */
 		now = g_get_monotonic_time();
-		if (reset_done > now)
+		reset_done = devc->fw_uploaded + RENUM_GONE_DELAY_MS * 1000;
+		if (now < reset_done)
 			g_usleep(reset_done - now);
-		timediff_ms = 0;
-		while (timediff_ms < MAX_RENUM_DELAY_MS) {
-			g_usleep(200 * 1000);
-
-			timediff_us = g_get_monotonic_time() - devc->fw_updated;
-			timediff_ms = timediff_us / 1000;
-
-			if ((ret = la2016_dev_open(sdi)) == SR_OK)
+		do {
+			now = g_get_monotonic_time();
+			elapsed_ms = (now - devc->fw_uploaded) / 1000;
+			sr_spew("Waited %" PRIu64 "ms.", elapsed_ms);
+			ret = la2016_dev_open(sdi);
+			if (ret == SR_OK) {
+				devc->fw_uploaded = 0;
 				break;
-			sr_spew("Waited %" PRIi64 "ms.", timediff_ms);
-		}
+			}
+			g_usleep(RENUM_POLL_INTERVAL_MS * 1000);
+		} while (elapsed_ms < RENUM_CHECK_PERIOD_MS);
 		if (ret != SR_OK) {
 			sr_err("Device failed to re-enumerate.");
 			return SR_ERR;
 		}
-		sr_info("Device came back after %" PRIi64 "ms.", timediff_ms);
+		sr_info("Device came back after %" PRIi64 "ms.", elapsed_ms);
 	} else {
 		ret = la2016_dev_open(sdi);
 	}
