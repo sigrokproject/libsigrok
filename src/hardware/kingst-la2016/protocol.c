@@ -396,69 +396,77 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	return SR_OK;
 }
 
-static int enable_pwm(const struct sr_dev_inst *sdi, uint8_t p1, uint8_t p2)
+static int enable_pwm(const struct sr_dev_inst *sdi, gboolean p1, gboolean p2)
 {
 	struct dev_context *devc;
 	uint8_t cfg;
 	int ret;
 
 	devc = sdi->priv;
+
 	cfg = 0;
-
-	if (p1) cfg |= 1 << 0;
-	if (p2) cfg |= 1 << 1;
-
+	if (p1)
+		cfg |= 1U << 0;
+	if (p2)
+		cfg |= 1U << 1;
 	sr_dbg("Set PWM enable %d %d. Config 0x%02x.", p1, p2, cfg);
+
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0, &cfg, sizeof(cfg));
 	if (ret != SR_OK) {
 		sr_err("Cannot setup PWM enabled state.");
 		return ret;
 	}
+
 	devc->pwm_setting[0].enabled = (p1) ? 1 : 0;
 	devc->pwm_setting[1].enabled = (p2) ? 1 : 0;
 
 	return SR_OK;
 }
 
-static int set_pwm(const struct sr_dev_inst *sdi, uint8_t which,
+static int configure_pwm(const struct sr_dev_inst *sdi, uint8_t which,
 	float freq, float duty)
 {
-	int CTRL_PWM[] = { REG_PWM1, REG_PWM2 };
+	static uint8_t ctrl_reg_tab[] = { REG_PWM1, REG_PWM2, };
+
 	struct dev_context *devc;
-	pwm_setting_dev_t cfg;
-	pwm_setting_t *setting;
+	uint8_t ctrl_reg;
+	struct pwm_setting_dev cfg;
+	struct pwm_setting *setting;
 	int ret;
 	uint8_t buf[2 * sizeof(uint32_t)];
 	uint8_t *wrptr;
 
 	devc = sdi->priv;
 
-	if (which < 1 || which > ARRAY_SIZE(CTRL_PWM)) {
+	if (which < 1 || which > ARRAY_SIZE(ctrl_reg_tab)) {
 		sr_err("Invalid PWM channel: %d.", which);
 		return SR_ERR;
 	}
-	if (freq > MAX_PWM_FREQ) {
+	if (freq < 0 || freq > MAX_PWM_FREQ) {
 		sr_err("Too high a PWM frequency: %.1f.", freq);
 		return SR_ERR;
 	}
-	if (duty > 100 || duty < 0) {
+	if (duty < 0 || duty > 100) {
 		sr_err("Invalid PWM duty cycle: %f.", duty);
 		return SR_ERR;
 	}
 
+	memset(&cfg, 0, sizeof(cfg));
 	cfg.period = (uint32_t)(PWM_CLOCK / freq);
 	cfg.duty = (uint32_t)(0.5f + (cfg.period * duty / 100.));
 	sr_dbg("Set PWM%d period %d, duty %d.", which, cfg.period, cfg.duty);
 
+	ctrl_reg = ctrl_reg_tab[which - 1];
 	wrptr = buf;
 	write_u32le_inc(&wrptr, cfg.period);
 	write_u32le_inc(&wrptr, cfg.duty);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, CTRL_PWM[which - 1], 0, buf, wrptr - buf);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, ctrl_reg, 0, buf, wrptr - buf);
 	if (ret != SR_OK) {
 		sr_err("Cannot setup PWM%d configuration %d %d.",
 			which, cfg.period, cfg.duty);
 		return ret;
 	}
+
 	setting = &devc->pwm_setting[which - 1];
 	setting->freq = freq;
 	setting->duty = duty;
@@ -481,19 +489,19 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 	if (ret)
 		return ret;
 
-	ret = enable_pwm(sdi, 0, 0);
+	ret = enable_pwm(sdi, FALSE, FALSE);
 	if (ret)
 		return ret;
 
-	ret = set_pwm(sdi, 1, SR_KHZ(1), 50);
+	ret = configure_pwm(sdi, 1, SR_KHZ(1), 50);
 	if (ret)
 		return ret;
 
-	ret = set_pwm(sdi, 2, SR_KHZ(100), 50);
+	ret = configure_pwm(sdi, 2, SR_KHZ(100), 50);
 	if (ret)
 		return ret;
 
-	ret = enable_pwm(sdi, 1, 1);
+	ret = enable_pwm(sdi, TRUE, TRUE);
 	if (ret)
 		return ret;
 

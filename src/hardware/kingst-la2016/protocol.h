@@ -98,7 +98,7 @@ typedef struct capture_info {
 #define TRANSFER_PACKET_LENGTH	16
 
 typedef struct pwm_setting {
-	uint8_t enabled;
+	gboolean enabled;
 	float freq;
 	float duty;
 } pwm_setting_t;
