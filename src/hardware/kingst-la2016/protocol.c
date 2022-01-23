@@ -99,6 +99,12 @@
 #define RUNMODE_HALT	0x00
 #define RUNMODE_RUN	0x03
 
+/* Bit patterns when reading from REG_RUN, get run state. */
+#define RUNSTATE_IDLE_BIT	(1UL << 0)
+#define RUNSTATE_DRAM_BIT	(1UL << 1)
+#define RUNSTATE_TRGD_BIT	(1UL << 2)
+#define RUNSTATE_POST_BIT	(1UL << 3)
+
 static int ctrl_in(const struct sr_dev_inst *sdi,
 	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	void *data, uint16_t wLength)
@@ -679,13 +685,33 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
  * The meaning of other bit fields is unknown.
  *
  * Typical values in order of appearance during execution:
+ *   0x85e1: idle, no acquisition pending
+ *     IDLE set, TRGD don't care, POST don't care; DRAM don't care
+ *     "In idle state." Takes precedence over all others.
  *   0x85e2: pre-sampling, samples before the trigger position,
  *     when capture ratio > 0%
+ *     IDLE clear, TRGD clear, POST clear; DRAM don't care
+ *     "Not idle any more, no post yet, not triggered yet."
  *   0x85ea: pre-sampling complete, now waiting for the trigger
  *     (whilst sampling continuously)
+ *     IDLE clear, TRGD clear, POST set; DRAM don't care
+ *     "Post set thus after pre, not triggered yet"
  *   0x85ee: trigger seen, capturing post-trigger samples, running
+ *     IDLE clear, TRGD set, POST set; DRAM don't care
+ *     "Triggered and in post, not idle yet."
  *   0x85ed: idle
+ *     IDLE set, TRGD don't care, POST don't care; DRAM don't care
+ *     "In idle state." TRGD/POST don't care, same meaning as above.
  */
+static const uint16_t runstate_mask_idle = RUNSTATE_IDLE_BIT;
+static const uint16_t runstate_patt_idle = RUNSTATE_IDLE_BIT;
+static const uint16_t runstate_mask_step =
+	RUNSTATE_IDLE_BIT | RUNSTATE_TRGD_BIT | RUNSTATE_POST_BIT;
+static const uint16_t runstate_patt_pre_trig = 0;
+static const uint16_t runstate_patt_wait_trig = RUNSTATE_POST_BIT;
+static const uint16_t runstate_patt_post_trig =
+	RUNSTATE_TRGD_BIT | RUNSTATE_POST_BIT;
+
 static uint16_t run_state(const struct sr_dev_inst *sdi)
 {
 	static uint16_t previous_state;
@@ -707,25 +733,23 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	 * Avoid flooding the log, only dump values as they change.
 	 * The routine is called about every 50ms.
 	 */
-	if (state != previous_state) {
-		previous_state = state;
-		if ((state & 0x3) == 0x1) {
-			label = "idle";
-		} else if ((state & 0xf) == 0x2) {
-			label = "pre-trigger sampling";
-		} else if ((state & 0xf) == 0xa) {
-			label = "sampling, waiting for trigger";
-		} else if ((state & 0xf) == 0xe) {
-			label = "post-trigger sampling";
-		} else {
-			label = NULL;
-		}
-		if (label && *label) {
-			sr_dbg("Run state: 0x%04x (%s).", state, label);
-		} else {
-			sr_dbg("Run state: 0x%04x.", state);
-		}
-	}
+	if (state == previous_state)
+		return state;
+
+	previous_state = state;
+	label = NULL;
+	if ((state & runstate_mask_idle) == runstate_patt_idle)
+		label = "idle";
+	if ((state & runstate_mask_step) == runstate_patt_pre_trig)
+		label = "pre-trigger sampling";
+	if ((state & runstate_mask_step) == runstate_patt_wait_trig)
+		label = "sampling, waiting for trigger";
+	if ((state & runstate_mask_step) == runstate_patt_post_trig)
+		label = "post-trigger sampling";
+	if (label && *label)
+		sr_dbg("Run state: 0x%04x (%s).", state, label);
+	else
+		sr_dbg("Run state: 0x%04x.", state);
 
 	return state;
 }
@@ -735,7 +759,7 @@ static int la2016_has_triggered(const struct sr_dev_inst *sdi)
 	uint16_t state;
 
 	state = run_state(sdi);
-	if ((state & 0x3) == 0x1)
+	if ((state & runstate_mask_idle) == runstate_patt_idle)
 		return 1;
 
 	return 0;
