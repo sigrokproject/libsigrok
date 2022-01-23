@@ -687,7 +687,7 @@ SR_PRIV GVariant *std_gvar_min_max_step_thresholds(const double min, const doubl
 
 	g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
 
-	for (d = min; d <= max; d += step) {
+	for (d = min; d <= max + step / 2.0; d += step) {
 		/*
 		 * We will never see exactly 0.0 because of the error we're
 		 * accumulating, so catch the "zero" value and force it to be 0.
