@@ -512,7 +512,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_trigger *trigger;
-	trigger_cfg_t cfg;
+	struct trigger_cfg cfg;
 	GSList *stages;
 	GSList *channel;
 	struct sr_trigger_stage *stage1;

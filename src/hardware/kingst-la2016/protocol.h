@@ -76,39 +76,39 @@
 
 #define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
 
-typedef struct pwm_setting_dev {
+struct pwm_setting_dev {
 	uint32_t period;
 	uint32_t duty;
-} pwm_setting_dev_t;
+};
 
-typedef struct trigger_cfg {
+struct trigger_cfg {
 	uint32_t channels;
 	uint32_t enabled;
 	uint32_t level;
 	uint32_t high_or_falling;
-} trigger_cfg_t;
+};
 
-typedef struct capture_info {
+struct capture_info {
 	uint32_t n_rep_packets;
 	uint32_t n_rep_packets_before_trigger;
 	uint32_t write_pos;
-} capture_info_t;
+};
 
 #define NUM_PACKETS_IN_CHUNK	5
 #define TRANSFER_PACKET_LENGTH	16
 
-typedef struct pwm_setting {
+struct pwm_setting {
 	gboolean enabled;
 	float freq;
 	float duty;
-} pwm_setting_t;
+};
 
 struct dev_context {
 	struct sr_context *ctx;
 	uint64_t fw_uploaded;
 
 	/* User specified parameters. */
-	pwm_setting_t pwm_setting[LA2016_NUM_PWMCH_MAX];
+	struct pwm_setting pwm_setting[LA2016_NUM_PWMCH_MAX];
 	unsigned int threshold_voltage_idx;
 	float threshold_voltage;
 	uint64_t max_samplerate;
@@ -121,7 +121,7 @@ struct dev_context {
 	gboolean trigger_involved;
 	gboolean completion_seen;
 	gboolean download_finished;
-	capture_info_t info;
+	struct capture_info info;
 	unsigned int n_transfer_packets_to_read; /* each with 5 acq packets */
 	unsigned int n_bytes_to_read;
 	unsigned int n_reps_until_trigger;
