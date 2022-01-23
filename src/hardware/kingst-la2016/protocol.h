@@ -108,7 +108,7 @@ struct dev_context {
 
 	/* User specified parameters. */
 	struct pwm_setting pwm_setting[LA2016_NUM_PWMCH_MAX];
-	unsigned int threshold_voltage_idx;
+	size_t threshold_voltage_idx;
 	float threshold_voltage;
 	uint64_t max_samplerate;
 	uint64_t cur_samplerate;

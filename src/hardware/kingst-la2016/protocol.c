@@ -304,7 +304,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		pos += len;
 	}
 	sr_resource_close(drvc->sr_ctx, &bitstream);
-	if (ret != 0)
+	if (ret != SR_OK)
 		return ret;
 	sr_info("FPGA bitstream upload (%" PRIu64 " bytes) done.",
 		bitstream.size);
@@ -831,7 +831,7 @@ SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx,
 	libusb_device *dev, uint16_t product_id)
 {
 	char fw_file[1024];
-	snprintf(fw_file, sizeof(fw_file) - 1, UC_FIRMWARE, product_id);
+	snprintf(fw_file, sizeof(fw_file), UC_FIRMWARE, product_id);
 	return ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
 }
 
