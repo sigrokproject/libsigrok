@@ -122,14 +122,14 @@ struct dev_context {
 	gboolean completion_seen;
 	gboolean download_finished;
 	struct capture_info info;
-	unsigned int n_transfer_packets_to_read; /* each with 5 acq packets */
-	unsigned int n_bytes_to_read;
-	unsigned int n_reps_until_trigger;
+	uint32_t n_transfer_packets_to_read; /* each with 5 acq packets */
+	uint32_t n_bytes_to_read;
+	uint32_t n_reps_until_trigger;
 	gboolean trigger_marked;
 	uint64_t total_samples;
 	uint32_t read_pos;
 
-	unsigned int convbuffer_size;
+	size_t convbuffer_size;
 	uint8_t *convbuffer;
 	struct libusb_transfer *transfer;
 };

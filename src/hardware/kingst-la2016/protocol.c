@@ -970,20 +970,25 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/*
+ * A chunk (received via USB) contains a number of transfers (USB length
+ * divided by 16) which contain a number of packets (5 per transfer) which
+ * contain a number of samples (8bit repeat count per 16bit sample data).
+ */
 static void send_chunk(struct sr_dev_inst *sdi,
-	const uint8_t *packets, unsigned int num_tfers)
+	const uint8_t *packets, size_t num_xfers)
 {
 	struct dev_context *devc;
 	struct sr_datafeed_logic logic;
 	struct sr_datafeed_packet sr_packet;
 	unsigned int max_samples, n_samples, total_samples, free_n_samples;
-	unsigned int i, j, k;
+	size_t num_pkts;
 	gboolean do_signal_trigger;
 	uint8_t *wp;
 	const uint8_t *rp;
-	uint16_t state;
-	uint8_t repetitions;
-	uint8_t sample_buff[sizeof(state)];
+	uint16_t sample_value;
+	size_t repetitions;
+	uint8_t sample_buff[sizeof(sample_value)];
 
 	devc = sdi->priv;
 
@@ -1005,11 +1010,18 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	}
 
 	rp = packets;
-	for (i = 0; i < num_tfers; i++) {
-		for (k = 0; k < NUM_PACKETS_IN_CHUNK; k++) {
+	while (num_xfers--) {
+		num_pkts = NUM_PACKETS_IN_CHUNK;
+		while (num_pkts--) {
+			/*
+			 * Flush the conversion buffer when a trigger
+			 * location needs to get communicated, or when
+			 * an to-get-expected sample repetition count
+			 * would no longer fit into the buffer.
+			 */
 			free_n_samples = max_samples - n_samples;
 			if (free_n_samples < 256 || do_signal_trigger) {
-				logic.length = n_samples * 2;
+				logic.length = n_samples * sizeof(sample_buff);;
 				sr_session_send(sdi, &sr_packet);
 				n_samples = 0;
 				wp = devc->convbuffer;
@@ -1019,17 +1031,19 @@ static void send_chunk(struct sr_dev_inst *sdi,
 				}
 			}
 
-			state = read_u16le_inc(&rp);
+			sample_value = read_u16le_inc(&rp);
 			repetitions = read_u8_inc(&rp);
-			write_u16le((void *)&sample_buff, state);
-			for (j = 0; j < repetitions; j++) {
-				memcpy(wp, sample_buff, logic.unitsize);
-				wp += logic.unitsize;
-			}
 
 			n_samples += repetitions;
 			total_samples += repetitions;
 			devc->total_samples += repetitions;
+
+			write_u16le(sample_buff, sample_value);
+			while (repetitions--) {
+				memcpy(wp, sample_buff, logic.unitsize);
+				wp += logic.unitsize;
+			}
+
 			if (devc->trigger_involved && !devc->trigger_marked) {
 				if (!--devc->n_reps_until_trigger) {
 					devc->trigger_marked = TRUE;
