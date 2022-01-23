@@ -191,7 +191,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 
 		/* USB identification matches, a device was found. */
-		sr_dbg("Found a LA2016 device.");
+		sr_dbg("Found a device (USB identification).");
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->connection_id = g_strdup(connection_id);
@@ -553,14 +553,11 @@ static int configure_channels(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	devc->cur_channels = 0;
-	devc->num_channels = 0;
-
 	for (GSList *l = sdi->channels; l; l = l->next) {
 		struct sr_channel *ch = (struct sr_channel*)l->data;
 		if (ch->enabled == FALSE)
 			continue;
 		devc->cur_channels |= 1 << ch->index;
-		devc->num_channels++;
 	}
 
 	return SR_OK;
@@ -601,7 +598,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	devc->have_trigger = 0;
+	devc->completion_seen = FALSE;
 	usb_source_add(sdi->session, drvc->sr_ctx, 50,
 		la2016_receive_data, (void *)sdi);
 

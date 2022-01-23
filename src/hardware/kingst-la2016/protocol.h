@@ -116,17 +116,16 @@ struct dev_context {
 	uint64_t limit_samples;
 	uint64_t capture_ratio;
 	uint16_t cur_channels;
-	int num_channels;
 
 	/* Internal acquisition and download state. */
-	int had_triggers_configured;
-	int have_trigger;
-	int transfer_finished;
+	gboolean trigger_involved;
+	gboolean completion_seen;
+	gboolean download_finished;
 	capture_info_t info;
 	unsigned int n_transfer_packets_to_read; /* each with 5 acq packets */
 	unsigned int n_bytes_to_read;
 	unsigned int n_reps_until_trigger;
-	unsigned int reading_behind_trigger;
+	gboolean trigger_marked;
 	uint64_t total_samples;
 	uint32_t read_pos;
 

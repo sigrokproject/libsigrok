@@ -474,7 +474,6 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
-	devc->cur_channels = 0xffff;
 	devc->limit_samples = LA2016_DFLT_SAMPLEDEPTH;
 	devc->cur_samplerate = LA2016_DFLT_SAMPLERATE;
 
@@ -532,7 +531,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 		channel = stage1->matches;
 		while (channel) {
 			match = channel->data;
-			ch_mask = 1 << match->channel->index;
+			ch_mask = 1UL << match->channel->index;
 
 			switch (match->match) {
 			case SR_TRIGGER_ZERO:
@@ -572,7 +571,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 		"level-triggered 0x%04x, high/falling 0x%04x.",
 		cfg.channels, cfg.enabled, cfg.level, cfg.high_or_falling);
 
-	devc->had_triggers_configured = cfg.enabled != 0;
+	devc->trigger_involved = cfg.enabled != 0;
 
 	wrptr = buf;
 	write_u32le_inc(&wrptr, cfg.channels);
@@ -754,7 +753,7 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	return state;
 }
 
-static int la2016_has_triggered(const struct sr_dev_inst *sdi)
+static int la2016_is_idle(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 
@@ -796,7 +795,7 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	devc->info.n_rep_packets_before_trigger = read_u32le_inc(&rdptr);
 	devc->info.write_pos = read_u32le_inc(&rdptr);
 
-	sr_dbg("Capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x%d.",
+	sr_dbg("Capture info: n_rep_packets: 0x%08x/%d, before_trigger: 0x%08x/%d, write_pos: 0x%08x/%d.",
 		devc->info.n_rep_packets, devc->info.n_rep_packets,
 		devc->info.n_rep_packets_before_trigger,
 		devc->info.n_rep_packets_before_trigger,
@@ -886,7 +885,7 @@ SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-static int la2016_start_retrieval(const struct sr_dev_inst *sdi,
+static int la2016_start_download(const struct sr_dev_inst *sdi,
 	libusb_transfer_cb_fn cb)
 {
 	struct dev_context *devc;
@@ -971,7 +970,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	struct sr_datafeed_packet sr_packet;
 	unsigned int max_samples, n_samples, total_samples, free_n_samples;
 	unsigned int i, j, k;
-	int do_signal_trigger;
+	gboolean do_signal_trigger;
 	uint8_t *wp;
 	const uint8_t *rp;
 	uint16_t state;
@@ -990,11 +989,11 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	n_samples = 0;
 	wp = devc->convbuffer;
 	total_samples = 0;
-	do_signal_trigger = 0;
+	do_signal_trigger = FALSE;
 
-	if (devc->had_triggers_configured && devc->reading_behind_trigger == 0 && devc->info.n_rep_packets_before_trigger == 0) {
+	if (devc->trigger_involved && !devc->trigger_marked && devc->info.n_rep_packets_before_trigger == 0) {
 		std_session_send_df_trigger(sdi);
-		devc->reading_behind_trigger = 1;
+		devc->trigger_marked = TRUE;
 	}
 
 	rp = packets;
@@ -1008,7 +1007,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 				wp = devc->convbuffer;
 				if (do_signal_trigger) {
 					std_session_send_df_trigger(sdi);
-					do_signal_trigger = 0;
+					do_signal_trigger = FALSE;
 				}
 			}
 
@@ -1023,11 +1022,10 @@ static void send_chunk(struct sr_dev_inst *sdi,
 			n_samples += repetitions;
 			total_samples += repetitions;
 			devc->total_samples += repetitions;
-			if (!devc->reading_behind_trigger) {
-				devc->n_reps_until_trigger--;
-				if (devc->n_reps_until_trigger == 0) {
-					devc->reading_behind_trigger = 1;
-					do_signal_trigger = 1;
+			if (devc->trigger_involved && !devc->trigger_marked) {
+				if (!--devc->n_reps_until_trigger) {
+					devc->trigger_marked = TRUE;
+					do_signal_trigger = TRUE;
 					sr_dbg("Trigger position after %" PRIu64 " samples, %.6fms.",
 						devc->total_samples,
 						(double)devc->total_samples / devc->cur_samplerate * 1e3);
@@ -1062,7 +1060,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
 		sr_err("USB bulk transfer timeout.");
-		devc->transfer_finished = 1;
+		devc->download_finished = TRUE;
 	}
 	send_chunk(sdi, transfer->buffer, transfer->actual_length / TRANSFER_PACKET_LENGTH);
 
@@ -1091,7 +1089,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	g_free(transfer->buffer);
 	libusb_free_transfer(transfer);
-	devc->transfer_finished = 1;
+	devc->download_finished = TRUE;
 }
 
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
@@ -1108,17 +1106,17 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 
-	if (devc->have_trigger == 0) {
-		if (la2016_has_triggered(sdi) == 0) {
+	if (!devc->completion_seen) {
+		if (!la2016_is_idle(sdi)) {
 			/* Not yet ready for sample data download. */
 			return TRUE;
 		}
-		devc->have_trigger = 1;
-		devc->transfer_finished = 0;
-		devc->reading_behind_trigger = 0;
+		devc->completion_seen = TRUE;
+		devc->download_finished = FALSE;
+		devc->trigger_marked = FALSE;
 		devc->total_samples = 0;
 		/* We can start downloading sample data. */
-		if (la2016_start_retrieval(sdi, receive_transfer) != SR_OK) {
+		if (la2016_start_download(sdi, receive_transfer) != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
 			return FALSE;
 		}
@@ -1131,7 +1129,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
-	if (devc->transfer_finished) {
+	if (devc->download_finished) {
 		sr_dbg("Download finished, post processing.");
 		std_session_send_df_frame_end(sdi);
 
