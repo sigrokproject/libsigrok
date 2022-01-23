@@ -489,7 +489,8 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_USER;
 		break;
 	case SR_CONF_LOGIC_THRESHOLD: {
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(logic_threshold))) < 0)
+		idx = std_str_idx(data, ARRAY_AND_SIZE(logic_threshold));
+		if (idx < 0)
 			return SR_ERR_ARG;
 		if (idx != LOGIC_THRESHOLD_IDX_USER) {
 			devc->threshold_voltage = logic_threshold_value[idx];
@@ -515,7 +516,8 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg,
+			scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
 			return SR_ERR_ARG;
@@ -527,7 +529,8 @@ static int config_list(uint32_t key, GVariant **data,
 		}
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = std_gvar_tuple_u64(LA2016_NUM_SAMPLES_MIN, LA2016_NUM_SAMPLES_MAX);
+		*data = std_gvar_tuple_u64(LA2016_NUM_SAMPLES_MIN,
+			LA2016_NUM_SAMPLES_MAX);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_min_max_step_thresholds(
@@ -580,12 +583,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 
 	devc->convbuffer_size = LA2016_CONVBUFFER_SIZE;
-	if (!(devc->convbuffer = g_try_malloc(devc->convbuffer_size))) {
+	devc->convbuffer = g_try_malloc(devc->convbuffer_size);
+	if (!devc->convbuffer) {
 		sr_err("Cannot allocate conversion buffer.");
 		return SR_ERR_MALLOC;
 	}
 
-	if ((ret = la2016_setup_acquisition(sdi)) != SR_OK) {
+	ret = la2016_setup_acquisition(sdi);
+	if (ret != SR_OK) {
 		g_free(devc->convbuffer);
 		devc->convbuffer = NULL;
 		return ret;
@@ -593,7 +598,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->ctx = drvc->sr_ctx;
 
-	if ((ret = la2016_start_acquisition(sdi)) != SR_OK) {
+	ret = la2016_start_acquisition(sdi);
+	if (ret != SR_OK) {
 		la2016_abort_acquisition(sdi);
 		return ret;
 	}

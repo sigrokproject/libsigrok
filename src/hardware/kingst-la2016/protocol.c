@@ -114,10 +114,11 @@ static int ctrl_in(const struct sr_dev_inst *sdi,
 
 	usb = sdi->conn;
 
-	if ((ret = libusb_control_transfer(usb->devhdl,
-		     LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
-		     bRequest, wValue, wIndex, (unsigned char *)data, wLength,
-		     DEFAULT_TIMEOUT_MS)) != wLength) {
+	ret = libusb_control_transfer(usb->devhdl,
+		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN,
+		bRequest, wValue, wIndex, data, wLength,
+		DEFAULT_TIMEOUT_MS);
+	if (ret != wLength) {
 		sr_dbg("USB ctrl in: %d bytes, req %d val %#x idx %d: %s.",
 			wLength, bRequest, wValue, wIndex,
 			libusb_error_name(ret));
@@ -138,10 +139,11 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 
 	usb = sdi->conn;
 
-	if ((ret = libusb_control_transfer(usb->devhdl,
-		     LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
-		     bRequest, wValue, wIndex, (unsigned char*)data, wLength,
-		     DEFAULT_TIMEOUT_MS)) != wLength) {
+	ret = libusb_control_transfer(usb->devhdl,
+		LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT,
+		bRequest, wValue, wIndex, data, wLength,
+		DEFAULT_TIMEOUT_MS);
+	if (ret != wLength) {
 		sr_dbg("USB ctrl out: %d bytes, req %d val %#x idx %d: %s.",
 			wLength, bRequest, wValue, wIndex,
 			libusb_error_name(ret));
@@ -244,7 +246,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 
 	sr_info("Uploading FPGA bitstream '%s'.", bitstream_fname);
 
-	ret = sr_resource_open(drvc->sr_ctx, &bitstream, SR_RESOURCE_FIRMWARE, bitstream_fname);
+	ret = sr_resource_open(drvc->sr_ctx, &bitstream,
+		SR_RESOURCE_FIRMWARE, bitstream_fname);
 	if (ret != SR_OK) {
 		sr_err("Cannot find FPGA bitstream %s.", bitstream_fname);
 		return ret;
@@ -253,7 +256,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	bitstream_size = (uint32_t)bitstream.size;
 	wrptr = buffer;
 	write_u32le_inc(&wrptr, bitstream_size);
-	if ((ret = ctrl_out(sdi, CMD_FPGA_INIT, 0x00, 0, buffer, wrptr - buffer)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_INIT, 0x00, 0, buffer, wrptr - buffer);
+	if (ret != SR_OK) {
 		sr_err("Cannot initiate FPGA bitstream upload.");
 		sr_resource_close(drvc->sr_ctx, &bitstream);
 		return ret;
@@ -266,7 +270,8 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 	pos = 0;
 	while (1) {
 		if (pos < bitstream.size) {
-			len = (int)sr_resource_read(drvc->sr_ctx, &bitstream, &block, sizeof(block));
+			len = (int)sr_resource_read(drvc->sr_ctx, &bitstream,
+				block, sizeof(block));
 			if (len < 0) {
 				sr_err("Cannot read FPGA bitstream.");
 				sr_resource_close(drvc->sr_ctx, &bitstream);
@@ -310,20 +315,22 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 static int enable_fpga_bitstream(const struct sr_dev_inst *sdi)
 {
 	int ret;
-	uint8_t cmd_resp;
+	uint8_t resp;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &cmd_resp, sizeof(cmd_resp))) != SR_OK) {
+	ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &resp, sizeof(resp));
+	if (ret != SR_OK) {
 		sr_err("Cannot read response after FPGA bitstream upload.");
 		return ret;
 	}
-	if (cmd_resp != 0) {
+	if (resp != 0) {
 		sr_err("Unexpected FPGA bitstream upload response, got 0x%02x, want 0.",
-			cmd_resp);
+			resp);
 		return SR_ERR;
 	}
 	g_usleep(30 * 1000);
 
-	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x01, 0, NULL, 0);
+	if (ret != SR_OK) {
 		sr_err("Cannot enable FPGA after bitstream upload.");
 		return ret;
 	}
@@ -729,7 +736,8 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	const uint8_t *rdptr;
 	const char *label;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, buff, sizeof(state))) != SR_OK) {
+	ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_RUN, 0, buff, sizeof(state));
+	if (ret != SR_OK) {
 		sr_err("Cannot read run state.");
 		return ret;
 	}
@@ -776,7 +784,8 @@ static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t mode)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &mode, sizeof(mode))) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_RUN, 0, &mode, sizeof(mode));
+	if (ret != SR_OK) {
 		sr_err("Cannot configure run mode %d.", mode);
 		return ret;
 	}
@@ -793,7 +802,8 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if ((ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, sizeof(buf))) != SR_OK) {
+	ret = ctrl_in(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, sizeof(buf));
+	if (ret != SR_OK) {
 		sr_err("Cannot read capture info.");
 		return ret;
 	}
@@ -839,7 +849,8 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
 		return ret;
 
 	cmd = 0;
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd))) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd));
+	if (ret != SR_OK) {
 		sr_err("Cannot send command to stop sampling.");
 		return ret;
 	}
@@ -907,7 +918,8 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	devc = sdi->priv;
 	usb = sdi->conn;
 
-	if ((ret = get_capture_info(sdi)) != SR_OK)
+	ret = get_capture_info(sdi);
+	if (ret != SR_OK)
 		return ret;
 
 	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / NUM_PACKETS_IN_CHUNK;
@@ -918,7 +930,8 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	sr_dbg("Want to read %u xfer-packets starting from pos %" PRIu32 ".",
 		devc->n_transfer_packets_to_read, devc->read_pos);
 
-	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
 		sr_err("Cannot reset USB bulk state.");
 		return ret;
 	}
@@ -927,11 +940,13 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	wrptr = wrbuf;
 	write_u32le_inc(&wrptr, devc->read_pos);
 	write_u32le_inc(&wrptr, devc->n_bytes_to_read);
-	if ((ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_BULK, 0, wrbuf, wrptr - wrbuf)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_BULK, 0, wrbuf, wrptr - wrbuf);
+	if (ret != SR_OK) {
 		sr_err("Cannot send USB bulk config.");
 		return ret;
 	}
-	if ((ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
 		sr_err("Cannot unblock USB bulk transfers.");
 		return ret;
 	}
@@ -956,10 +971,10 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	devc->transfer = libusb_alloc_transfer(0);
 	libusb_fill_bulk_transfer(devc->transfer,
 		usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
-		buffer, to_read,
-		cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
+		buffer, to_read, cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
-	if ((ret = libusb_submit_transfer(devc->transfer)) != 0) {
+	ret = libusb_submit_transfer(devc->transfer);
+	if (ret != 0) {
 		sr_err("Cannot submit USB transfer: %s.", libusb_error_name(ret));
 		libusb_free_transfer(devc->transfer);
 		devc->transfer = NULL;
@@ -1103,7 +1118,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			transfer->buffer, to_read,
 			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
 
-		if ((ret = libusb_submit_transfer(transfer)) == 0)
+		ret = libusb_submit_transfer(transfer);
+		if (ret == 0)
 			return;
 		sr_err("Cannot submit another USB transfer: %s.",
 			libusb_error_name(ret));
