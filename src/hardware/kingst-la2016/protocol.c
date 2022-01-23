@@ -343,12 +343,11 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
 	struct dev_context *devc;
 	int ret;
-
-	devc = sdi->priv;
-
 	uint16_t duty_R79, duty_R56;
 	uint8_t buf[2 * sizeof(uint16_t)];
 	uint8_t *wrptr;
+
+	devc = sdi->priv;
 
 	/* Clamp threshold setting to valid range for LA2016. */
 	if (voltage > 4.0) {

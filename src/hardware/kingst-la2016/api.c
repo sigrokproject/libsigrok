@@ -574,14 +574,17 @@ static int config_list(uint32_t key, GVariant **data,
 static int configure_channels(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GSList *l;
+	struct sr_channel *ch;
 
 	devc = sdi->priv;
+
 	devc->cur_channels = 0;
-	for (GSList *l = sdi->channels; l; l = l->next) {
-		struct sr_channel *ch = (struct sr_channel*)l->data;
-		if (ch->enabled == FALSE)
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (!ch->enabled)
 			continue;
-		devc->cur_channels |= 1 << ch->index;
+		devc->cur_channels |= 1UL << ch->index;
 	}
 
 	return SR_OK;
