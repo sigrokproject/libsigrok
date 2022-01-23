@@ -104,8 +104,7 @@ struct pwm_setting {
 };
 
 struct dev_context {
-	struct sr_context *ctx;
-	uint64_t fw_uploaded;
+	uint64_t fw_uploaded; /* Timestamp of most recent FW upload. */
 
 	/* User specified parameters. */
 	struct pwm_setting pwm_setting[LA2016_NUM_PWMCH_MAX];

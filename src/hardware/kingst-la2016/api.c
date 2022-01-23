@@ -130,6 +130,7 @@ static const char *logic_threshold[] = {
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
+	struct sr_context *ctx;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	struct sr_usb_dev_inst *usb;
@@ -138,14 +139,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *devices;
 	GSList *conn_devices;
 	struct libusb_device_descriptor des;
-	libusb_device **devlist;
-	unsigned int i, j;
+	libusb_device **devlist, *dev;
+	size_t dev_count, dev_idx, ch_idx;
+	uint8_t bus, addr;
 	const char *conn;
-	char connection_id[64];
+	char conn_id[64];
 	uint64_t fw_uploaded;
-	unsigned int dev_addr;
+	int ret;
 
 	drvc = di->context;
+	ctx = drvc->sr_ctx;;
 
 	conn = NULL;
 	for (l = options; l; l = l->next) {
@@ -157,20 +160,27 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 	if (conn)
-		conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+		conn_devices = sr_usb_find(ctx->libusb_ctx, conn);
 	else
 		conn_devices = NULL;
 
 	/* Find all LA2016 devices, optionally upload firmware to them. */
 	devices = NULL;
-	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-	for (i = 0; devlist[i]; i++) {
+	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
+	if (ret < 0) {
+		sr_err("Cannot get device list: %s.", libusb_error_name(ret));
+		return devices;
+	}
+	dev_count = ret;
+	for (dev_idx = 0; dev_idx < dev_count; dev_idx++) {
+		dev = devlist[dev_idx];
+		bus = libusb_get_bus_number(dev);
+		addr = libusb_get_device_address(dev);
 		if (conn) {
 			usb = NULL;
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
-				if (usb->bus == libusb_get_bus_number(devlist[i]) &&
-				    usb->address == libusb_get_device_address(devlist[i]))
+				if (usb->bus == bus && usb->address == addr)
 					break;
 			}
 			if (!l) {
@@ -182,26 +192,26 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			}
 		}
 
-		libusb_get_device_descriptor(devlist[i], &des);
-
-		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+		libusb_get_device_descriptor(dev, &des);
+		ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
+		if (ret < 0)
 			continue;
-
 		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
 			continue;
 
 		/* USB identification matches, a device was found. */
 		sr_dbg("Found a device (USB identification).");
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi = g_malloc0(sizeof(*sdi));
 		sdi->status = SR_ST_INITIALIZING;
-		sdi->connection_id = g_strdup(connection_id);
+		sdi->connection_id = g_strdup(conn_id);
 
 		fw_uploaded = 0;
-		dev_addr = libusb_get_device_address(devlist[i]);
 		if (des.iProduct != LA2016_IPRODUCT_INDEX) {
-			sr_info("Device at '%s' has no firmware loaded.", connection_id);
+			sr_info("Device at '%s' has no firmware loaded.",
+				conn_id);
 
-			if (la2016_upload_firmware(drvc->sr_ctx, devlist[i], des.idProduct) != SR_OK) {
+			ret = la2016_upload_firmware(ctx, dev, des.idProduct);
+			if (ret != SR_OK) {
 				sr_err("MCU firmware upload failed.");
 				g_free(sdi->connection_id);
 				g_free(sdi);
@@ -209,18 +219,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			}
 			fw_uploaded = g_get_monotonic_time();
 			/* Will re-enumerate. Mark as "unknown address yet". */
-			dev_addr = 0xff;
+			addr = 0xff;
 		}
 
 		sdi->vendor = g_strdup("Kingst");
 		sdi->model = g_strdup("LA2016");
 
-		for (j = 0; j < ARRAY_SIZE(channel_names); j++)
-			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE, channel_names[j]);
+		for (ch_idx = 0; ch_idx < ARRAY_SIZE(channel_names); ch_idx++) {
+			sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
+				TRUE, channel_names[ch_idx]);
+		}
 
 		devices = g_slist_append(devices, sdi);
 
-		devc = g_malloc0(sizeof(struct dev_context));
+		devc = g_malloc0(sizeof(*devc));
 		sdi->priv = devc;
 		devc->fw_uploaded = fw_uploaded;
 		devc->threshold_voltage_idx = 0;
@@ -229,9 +241,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->status = SR_ST_INACTIVE;
 		sdi->inst_type = SR_INST_USB;
 
-		sdi->conn = sr_usb_dev_inst_new(
-			libusb_get_bus_number(devlist[i]),
-			dev_addr, NULL);
+		sdi->conn = sr_usb_dev_inst_new(bus, addr, NULL);
 	}
 	libusb_free_device_list(devlist, 1);
 	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
@@ -242,55 +252,68 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 static int la2016_dev_open(struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
-	libusb_device **devlist;
+	struct drv_context *drvc;
+	struct sr_context *ctx;
+	libusb_device **devlist, *dev;
 	struct sr_usb_dev_inst *usb;
 	struct libusb_device_descriptor des;
-	struct drv_context *drvc;
-	int ret, i, device_count;
-	char connection_id[64];
+	int ret;
+	size_t device_count, dev_idx;
+	gboolean check_conn;
+	char conn_id[64];
 
 	di = sdi->driver;
 	drvc = di->context;
+	ctx = drvc->sr_ctx;;
 	usb = sdi->conn;
 	ret = SR_ERR;
 
-	device_count = libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-	if (device_count < 0) {
-		sr_err("Failed to get device list: %s.", libusb_error_name(device_count));
+	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
+	if (ret < 0) {
+		sr_err("Cannot get device list: %s.", libusb_error_name(ret));
 		return SR_ERR;
 	}
-
-	for (i = 0; i < device_count; i++) {
-		libusb_get_device_descriptor(devlist[i], &des);
+	device_count = ret;
+	if (!device_count) {
+		sr_warn("Device list is empty. Cannot open.");
+		return SR_ERR;
+	}
+	for (dev_idx = 0; dev_idx < device_count; dev_idx++) {
+		dev = devlist[dev_idx];
+		libusb_get_device_descriptor(dev, &des);
 
 		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
 			continue;
 		if (des.iProduct != LA2016_IPRODUCT_INDEX)
 			continue;
 
-		if ((sdi->status == SR_ST_INITIALIZING) || (sdi->status == SR_ST_INACTIVE)) {
+		check_conn = sdi->status == SR_ST_INITIALIZING;
+		check_conn |= sdi->status == SR_ST_INACTIVE;
+		if (check_conn) {
 			/* Check physical USB bus/port address. */
-			if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
+			ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
+			if (ret < 0)
 				continue;
-
-			if (strcmp(sdi->connection_id, connection_id)) {
+			if (strcmp(sdi->connection_id, conn_id) != 0) {
 				/* Not the device we looked up before. */
 				continue;
 			}
 		}
 
-		if (!(ret = libusb_open(devlist[i], &usb->devhdl))) {
-			if (usb->address == 0xff) {
-				/*
-				 * First encounter after firmware upload.
-				 * Grab current address after enumeration.
-				 */
-				usb->address = libusb_get_device_address(devlist[i]);
-			}
-		} else {
-			sr_err("Failed to open device: %s.", libusb_error_name(ret));
-			ret = SR_ERR;
+		ret = libusb_open(dev, &usb->devhdl);
+		if (ret != 0) {
+			sr_err("Cannot open device: %s.",
+				libusb_error_name(ret));
+			ret = SR_ERR_IO;
 			break;
+		}
+
+		if (usb->address == 0xff) {
+			/*
+			 * First encounter after firmware upload.
+			 * Grab current address after enumeration.
+			 */
+			usb->address = libusb_get_device_address(dev);
 		}
 
 		ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
@@ -303,7 +326,8 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 			ret = SR_ERR;
 			break;
 		} else if (ret != 0) {
-			sr_err("Cannot claim USB interface: %s.", libusb_error_name(ret));
+			sr_err("Cannot claim USB interface: %s.",
+				libusb_error_name(ret));
 			ret = SR_ERR;
 			break;
 		}
@@ -315,12 +339,9 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 
 		sr_info("Opened device on %d.%d (logical) / %s (physical), interface %d.",
 			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
-
 		ret = SR_OK;
-
 		break;
 	}
-
 	libusb_free_device_list(devlist, 1);
 
 	if (ret != SR_OK) {
@@ -329,7 +350,7 @@ static int la2016_dev_open(struct sr_dev_inst *sdi)
 			libusb_close(usb->devhdl);
 			usb->devhdl = NULL;
 		}
-		return SR_ERR;
+		return ret;
 	}
 
 	return SR_OK;
@@ -371,7 +392,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 		} while (elapsed_ms < RENUM_CHECK_PERIOD_MS);
 		if (ret != SR_OK) {
 			sr_err("Device failed to re-enumerate.");
-			return SR_ERR;
+			return ret;
 		}
 		sr_info("Device came back after %" PRIi64 "ms.", elapsed_ms);
 	} else {
@@ -380,7 +401,7 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (ret != SR_OK) {
 		sr_err("Cannot open device.");
-		return SR_ERR;
+		return ret;
 	}
 
 	return SR_OK;
@@ -570,11 +591,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
+	struct sr_context *ctx;
 	struct dev_context *devc;
 	int ret;
 
 	di = sdi->driver;
 	drvc = di->context;
+	ctx = drvc->sr_ctx;;
 	devc = sdi->priv;
 
 	if (configure_channels(sdi) != SR_OK) {
@@ -596,16 +619,16 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	devc->ctx = drvc->sr_ctx;
-
 	ret = la2016_start_acquisition(sdi);
 	if (ret != SR_OK) {
 		la2016_abort_acquisition(sdi);
+		g_free(devc->convbuffer);
+		devc->convbuffer = NULL;
 		return ret;
 	}
 
 	devc->completion_seen = FALSE;
-	usb_source_add(sdi->session, drvc->sr_ctx, 50,
+	usb_source_add(sdi->session, ctx, 50,
 		la2016_receive_data, (void *)sdi);
 
 	std_session_send_df_header(sdi);
