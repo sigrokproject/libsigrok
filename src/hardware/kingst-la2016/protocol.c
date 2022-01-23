@@ -636,18 +636,28 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	pre_trigger_memory = LA2016_PRE_MEM_LIMIT_BASE;
 	pre_trigger_memory *= devc->capture_ratio;
 	pre_trigger_memory /= 100;
-	pre_trigger_memory &= 0xffffff00ul; /* Funny register layout. */
 
 	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
 		devc->cur_samplerate / 1000, devc->limit_samples);
 	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
 		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
 
+	/*
+	 * The acquisition configuration occupies a total of 16 bytes:
+	 * - A 34bit total samples count limit (up to 10 billions) that
+	 *   is kept in a 40bit register.
+	 * - A 34bit pre-trigger samples count limit (up to 10 billions)
+	 *   in another 40bit register.
+	 * - A 32bit pre-trigger memory space limit (in bytes) of which
+	 *   the upper 24bits are kept in an FPGA register.
+	 * - A 16bit clock divider which gets applied to the maximum
+	 *   samplerate of the device.
+	 * - An 8bit register of unknown meaning. Currently always 0.
+	 */
 	wrptr = buf;
-	write_u32le_inc(&wrptr, devc->limit_samples);
-	write_u8_inc(&wrptr, 0);
-	write_u32le_inc(&wrptr, pre_trigger_samples);
-	write_u32le_inc(&wrptr, pre_trigger_memory);
+	write_u40le_inc(&wrptr, devc->limit_samples);
+	write_u40le_inc(&wrptr, pre_trigger_samples);
+	write_u24le_inc(&wrptr, pre_trigger_memory >> 8);
 	write_u16le_inc(&wrptr, divider_u16);
 	write_u8_inc(&wrptr, 0);
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_SAMPLING, 0, buf, wrptr - buf);
