@@ -33,6 +33,16 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+/*
+ * Default device configuration. Must be applicable to any of the
+ * supported devices (no model specific default values yet). Specific
+ * firmware implementation details unfortunately won't let us detect
+ * and keep using previously configured values.
+ */
+#define LA2016_DFLT_SAMPLERATE	SR_MHZ(100)
+#define LA2016_DFLT_SAMPLEDEPTH	(5 * 1000 * 1000)
+#define LA2016_DFLT_CAPT_RATIO	5 /* Capture ratio, in percent. */
+
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -45,7 +55,8 @@ static const uint32_t devopts[] = {
 	/* TODO: SR_CONF_CONTINUOUS, */
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET | SR_CONF_GET | SR_CONF_LIST,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
@@ -246,6 +257,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc = g_malloc0(sizeof(*devc));
 		sdi->priv = devc;
 		devc->fw_uploaded = fw_uploaded;
+		sr_sw_limits_init(&devc->sw_limits);
+		devc->sw_limits.limit_samples = LA2016_DFLT_SAMPLEDEPTH;
+		devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
+		devc->cur_samplerate = LA2016_DFLT_SAMPLERATE;
 		devc->threshold_voltage_idx = 0;
 		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
 
@@ -470,8 +485,8 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->cur_samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = g_variant_new_uint64(devc->limit_samples);
-		break;
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_get(&devc->sw_limits, key, data);
 	case SR_CONF_CAPTURE_RATIO:
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
@@ -510,8 +525,8 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->cur_samplerate = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->limit_samples = g_variant_get_uint64(data);
-		break;
+	case SR_CONF_LIMIT_MSEC:
+		return sr_sw_limits_config_set(&devc->sw_limits, key, data);
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
@@ -545,6 +560,8 @@ static int config_list(uint32_t key, GVariant **data,
 {
 	struct dev_context *devc;
 
+	devc = sdi ? sdi->priv : NULL;
+
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -553,7 +570,6 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
 			return SR_ERR_ARG;
-		devc = sdi->priv;
 		if (devc->max_samplerate == SR_MHZ(200)) {
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la2016));
 		} else {
@@ -595,25 +611,29 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	ctx = drvc->sr_ctx;;
 	devc = sdi->priv;
 
-	devc->convbuffer_size = LA2016_CONVBUFFER_SIZE;
-	devc->convbuffer = g_try_malloc(devc->convbuffer_size);
-	if (!devc->convbuffer) {
-		sr_err("Cannot allocate conversion buffer.");
-		return SR_ERR_MALLOC;
+	if (!devc->feed_queue) {
+		devc->feed_queue = feed_queue_logic_alloc(sdi,
+			LA2016_CONVBUFFER_SIZE, sizeof(uint16_t));
+		if (!devc->feed_queue) {
+			sr_err("Cannot allocate buffer for session feed.");
+			return SR_ERR_MALLOC;
+		}
 	}
+
+	sr_sw_limits_acquisition_start(&devc->sw_limits);
 
 	ret = la2016_setup_acquisition(sdi);
 	if (ret != SR_OK) {
-		g_free(devc->convbuffer);
-		devc->convbuffer = NULL;
+		feed_queue_logic_free(devc->feed_queue);
+		devc->feed_queue = NULL;
 		return ret;
 	}
 
 	ret = la2016_start_acquisition(sdi);
 	if (ret != SR_OK) {
 		la2016_abort_acquisition(sdi);
-		g_free(devc->convbuffer);
-		devc->convbuffer = NULL;
+		feed_queue_logic_free(devc->feed_queue);
+		devc->feed_queue = NULL;
 		return ret;
 	}
 

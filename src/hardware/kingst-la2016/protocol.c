@@ -34,16 +34,6 @@
 #define FPGA_FW_LA1016	"kingst-la1016-fpga.bitstream"
 #define FPGA_FW_LA1016A	"kingst-la1016a1-fpga.bitstream"
 
-/*
- * Default device configuration. Must be applicable to any of the
- * supported devices (no model specific default values yet). Specific
- * firmware implementation details unfortunately won't let us detect
- * and keep using previously configured values.
- */
-#define LA2016_DFLT_SAMPLERATE	SR_MHZ(100)
-#define LA2016_DFLT_SAMPLEDEPTH	(5 * 1000 * 1000)
-#define LA2016_DFLT_CAPT_RATIO	5 /* Capture ratio, in percent. */
-
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
 #define CMD_FPGA_ENABLE	0x10
 #define CMD_FPGA_SPI	0x20	/* R/W access to FPGA registers via SPI. */
@@ -472,10 +462,6 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
-	devc->limit_samples = LA2016_DFLT_SAMPLEDEPTH;
-	devc->cur_samplerate = LA2016_DFLT_SAMPLERATE;
-
 	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
 	if (ret)
 		return ret;
@@ -616,6 +602,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	double clock_divisor;
 	uint16_t divider_u16;
+	uint64_t limit_samples;
 	uint64_t pre_trigger_samples;
 	uint64_t pre_trigger_memory;
 	uint8_t buf[REG_TRIGGER - REG_SAMPLING]; /* Width of REG_SAMPLING. */
@@ -641,15 +628,19 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	divider_u16 = (uint16_t)(clock_divisor + 0.5);
 	devc->cur_samplerate = devc->max_samplerate / divider_u16;
 
-	if (devc->limit_samples > LA2016_NUM_SAMPLES_MAX) {
-		sr_err("Too high a sample depth: %" PRIu64 ".",
-			devc->limit_samples);
-		return SR_ERR;
+	ret = sr_sw_limits_get_remain(&devc->sw_limits,
+		&limit_samples, NULL, NULL, NULL);
+	if (ret != SR_OK) {
+		sr_err("Cannot get acquisition limits.");
+		return ret;
 	}
-	if (devc->limit_samples < LA2016_NUM_SAMPLES_MIN) {
-		sr_err("Too low a sample depth: %" PRIu64 ".",
-			devc->limit_samples);
-		return SR_ERR;
+	if (limit_samples > LA2016_NUM_SAMPLES_MAX) {
+		sr_err("Too high a sample depth: %" PRIu64 ".", limit_samples);
+		return SR_ERR_ARG;
+	}
+	if (limit_samples < LA2016_NUM_SAMPLES_MIN) {
+		sr_err("Too low a sample depth: %" PRIu64 ".", limit_samples);
+		return SR_ERR_ARG;
 	}
 
 	/*
@@ -665,15 +656,21 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	 * data. Only the upper 24 bits of that memory size spec get
 	 * communicated to the device (written to its FPGA register).
 	 */
-	pre_trigger_samples = devc->limit_samples * devc->capture_ratio / 100;
+	pre_trigger_samples = limit_samples * devc->capture_ratio / 100;
 	pre_trigger_memory = LA2016_PRE_MEM_LIMIT_BASE;
 	pre_trigger_memory *= devc->capture_ratio;
 	pre_trigger_memory /= 100;
 
 	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
-		devc->cur_samplerate / 1000, devc->limit_samples);
+		devc->cur_samplerate / 1000, limit_samples);
 	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
 		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
+
+	if (!devc->trigger_involved) {
+		sr_dbg("Voiding pre-trigger setup. No trigger involved.");
+		pre_trigger_samples = 1;
+		pre_trigger_memory = 0x100;
+	}
 
 	/*
 	 * The acquisition configuration occupies a total of 16 bytes:
@@ -688,7 +685,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	 * - An 8bit register of unknown meaning. Currently always 0.
 	 */
 	wrptr = buf;
-	write_u40le_inc(&wrptr, devc->limit_samples);
+	write_u40le_inc(&wrptr, limit_samples);
 	write_u40le_inc(&wrptr, pre_trigger_samples);
 	write_u24le_inc(&wrptr, pre_trigger_memory >> 8);
 	write_u16le_inc(&wrptr, divider_u16);
@@ -1007,12 +1004,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	const uint8_t *packets, size_t num_xfers)
 {
 	struct dev_context *devc;
-	struct sr_datafeed_logic logic;
-	struct sr_datafeed_packet sr_packet;
-	unsigned int max_samples, n_samples, total_samples, free_n_samples;
 	size_t num_pkts;
-	gboolean do_signal_trigger;
-	uint8_t *wp;
 	const uint8_t *rp;
 	uint16_t sample_value;
 	size_t repetitions;
@@ -1020,20 +1012,12 @@ static void send_chunk(struct sr_dev_inst *sdi,
 
 	devc = sdi->priv;
 
-	logic.unitsize = sizeof(sample_buff);
-	logic.data = devc->convbuffer;
-
-	sr_packet.type = SR_DF_LOGIC;
-	sr_packet.payload = &logic;
-
-	max_samples = devc->convbuffer_size / sizeof(sample_buff);
-	n_samples = 0;
-	wp = devc->convbuffer;
-	total_samples = 0;
-	do_signal_trigger = FALSE;
+	/* Ignore incoming USB data after complete sample data download. */
+	if (devc->download_finished)
+		return;
 
 	if (devc->trigger_involved && !devc->trigger_marked && devc->info.n_rep_packets_before_trigger == 0) {
-		std_session_send_df_trigger(sdi);
+		feed_queue_logic_send_trigger(devc->feed_queue);
 		devc->trigger_marked = TRUE;
 	}
 
@@ -1041,41 +1025,22 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	while (num_xfers--) {
 		num_pkts = NUM_PACKETS_IN_CHUNK;
 		while (num_pkts--) {
-			/*
-			 * Flush the conversion buffer when a trigger
-			 * location needs to get communicated, or when
-			 * an to-get-expected sample repetition count
-			 * would no longer fit into the buffer.
-			 */
-			free_n_samples = max_samples - n_samples;
-			if (free_n_samples < 256 || do_signal_trigger) {
-				logic.length = n_samples * sizeof(sample_buff);;
-				sr_session_send(sdi, &sr_packet);
-				n_samples = 0;
-				wp = devc->convbuffer;
-				if (do_signal_trigger) {
-					std_session_send_df_trigger(sdi);
-					do_signal_trigger = FALSE;
-				}
-			}
 
 			sample_value = read_u16le_inc(&rp);
 			repetitions = read_u8_inc(&rp);
 
-			n_samples += repetitions;
-			total_samples += repetitions;
 			devc->total_samples += repetitions;
 
 			write_u16le(sample_buff, sample_value);
-			while (repetitions--) {
-				memcpy(wp, sample_buff, logic.unitsize);
-				wp += logic.unitsize;
-			}
+			feed_queue_logic_submit(devc->feed_queue,
+				sample_buff, repetitions);
+			sr_sw_limits_update_samples_read(&devc->sw_limits,
+				repetitions);
 
 			if (devc->trigger_involved && !devc->trigger_marked) {
 				if (!--devc->n_reps_until_trigger) {
+					feed_queue_logic_send_trigger(devc->feed_queue);
 					devc->trigger_marked = TRUE;
-					do_signal_trigger = TRUE;
 					sr_dbg("Trigger position after %" PRIu64 " samples, %.6fms.",
 						devc->total_samples,
 						(double)devc->total_samples / devc->cur_samplerate * 1e3);
@@ -1084,14 +1049,16 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		}
 		(void)read_u8_inc(&rp); /* Skip sequence number. */
 	}
-	if (n_samples) {
-		logic.length = n_samples * logic.unitsize;
-		sr_session_send(sdi, &sr_packet);
-		if (do_signal_trigger) {
-			std_session_send_df_trigger(sdi);
-		}
+
+	if (!devc->download_finished && sr_sw_limits_check(&devc->sw_limits)) {
+		sr_dbg("Acquisition limit reached.");
+		devc->download_finished = TRUE;
 	}
-	sr_dbg("Send_chunk done after %u samples.", total_samples);
+	if (devc->download_finished) {
+		sr_dbg("Download finished, flushing session feed queue.");
+		feed_queue_logic_flush(devc->feed_queue);
+	}
+	sr_dbg("Total samples after chunk: %" PRIu64 ".", devc->total_samples);
 }
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
@@ -1099,6 +1066,7 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
+	size_t num_xfers;
 	int ret;
 
 	sdi = transfer->user_data;
@@ -1107,12 +1075,15 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 
 	sr_dbg("receive_transfer(): status %s received %d bytes.",
 		libusb_error_name(transfer->status), transfer->actual_length);
-
-	if (transfer->status == LIBUSB_TRANSFER_TIMED_OUT) {
-		sr_err("USB bulk transfer timeout.");
-		devc->download_finished = TRUE;
-	}
-	send_chunk(sdi, transfer->buffer, transfer->actual_length / TRANSFER_PACKET_LENGTH);
+	/*
+	 * Implementation detail: A USB transfer timeout is not fatal
+	 * here. We just process whatever was received, empty input is
+	 * perfectly acceptable. Reaching (or exceeding) the sw limits
+	 * or exhausting the device's captured data will complete the
+	 * sample data download.
+	 */
+	num_xfers = transfer->actual_length / TRANSFER_PACKET_LENGTH;
+	send_chunk(sdi, transfer->buffer, num_xfers);
 
 	devc->n_bytes_to_read -= transfer->actual_length;
 	if (devc->n_bytes_to_read) {
@@ -1149,6 +1120,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	struct dev_context *devc;
 	struct drv_context *drvc;
 	struct timeval tv;
+	int ret;
 
 	(void)fd;
 	(void)revents;
@@ -1157,42 +1129,56 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 
+	/*
+	 * Wait for the acquisition to complete in hardware.
+	 * Periodically check a potentially configured msecs timeout.
+	 */
 	if (!devc->completion_seen) {
 		if (!la2016_is_idle(sdi)) {
+			if (sr_sw_limits_check(&devc->sw_limits)) {
+				devc->sw_limits.limit_msec = 0;
+				sr_dbg("Limit reached. Stopping acquisition.");
+				la2016_stop_acquisition(sdi);
+			}
 			/* Not yet ready for sample data download. */
 			return TRUE;
 		}
+		sr_dbg("Acquisition completion seen (hardware).");
+		devc->sw_limits.limit_msec = 0;
 		devc->completion_seen = TRUE;
 		devc->download_finished = FALSE;
 		devc->trigger_marked = FALSE;
 		devc->total_samples = 0;
-		/* We can start downloading sample data. */
-		if (la2016_start_download(sdi, receive_transfer) != SR_OK) {
+
+		/* Initiate the download of acquired sample data. */
+		std_session_send_df_frame_begin(sdi);
+		ret = la2016_start_download(sdi, receive_transfer);
+		if (ret != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
 			return FALSE;
 		}
 		sr_dbg("Acquisition data download started.");
-		std_session_send_df_frame_begin(sdi);
 
 		return TRUE;
 	}
 
+	/* Handle USB reception. Drives sample data download. */
 	tv.tv_sec = tv.tv_usec = 0;
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
+	/* Postprocess completion of sample data download. */
 	if (devc->download_finished) {
 		sr_dbg("Download finished, post processing.");
-		std_session_send_df_frame_end(sdi);
-
-		usb_source_remove(sdi->session, drvc->sr_ctx);
-		std_session_send_df_end(sdi);
 
 		la2016_stop_acquisition(sdi);
-
-		g_free(devc->convbuffer);
-		devc->convbuffer = NULL;
-
+		usb_source_remove(sdi->session, drvc->sr_ctx);
 		devc->transfer = NULL;
+
+		feed_queue_logic_flush(devc->feed_queue);
+		feed_queue_logic_free(devc->feed_queue);
+		devc->feed_queue = NULL;
+		std_session_send_df_frame_end(sdi);
+		std_session_send_df_end(sdi);
 
 		sr_dbg("Download finished, done post processing.");
 	}

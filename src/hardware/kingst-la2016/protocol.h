@@ -127,7 +127,7 @@ struct dev_context {
 	float threshold_voltage;
 	uint64_t max_samplerate;
 	uint64_t cur_samplerate;
-	uint64_t limit_samples;
+	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;
 
 	/* Internal acquisition and download state. */
@@ -142,8 +142,7 @@ struct dev_context {
 	uint64_t total_samples;
 	uint32_t read_pos;
 
-	size_t convbuffer_size;
-	uint8_t *convbuffer;
+	struct feed_queue_logic *feed_queue;
 	struct libusb_transfer *transfer;
 };
 
