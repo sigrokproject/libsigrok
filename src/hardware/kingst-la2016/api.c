@@ -65,7 +65,17 @@ static const char *channel_names[] = {
 	"CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15",
 };
 
+/*
+ * The hardware uses a (model dependent) 100/200/500MHz base clock and
+ * a 16bit divider (common across all models). The range from 10kHz to
+ * 100/200/500MHz should be applicable to all devices. High rates may
+ * suffer from coarse resolution (e.g. in the "500MHz div 2" case) and
+ * may not provide the desired 1/2/5 steps. This is not an issue now,
+ * the 500MHz model is not supported yet by this driver.
+ */
+
 static const uint64_t samplerates_la2016[] = {
+	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -84,6 +94,7 @@ static const uint64_t samplerates_la2016[] = {
 };
 
 static const uint64_t samplerates_la1016[] = {
+	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -571,25 +582,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
-static int configure_channels(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	GSList *l;
-	struct sr_channel *ch;
-
-	devc = sdi->priv;
-
-	devc->cur_channels = 0;
-	for (l = sdi->channels; l; l = l->next) {
-		ch = l->data;
-		if (!ch->enabled)
-			continue;
-		devc->cur_channels |= 1UL << ch->index;
-	}
-
-	return SR_OK;
-}
-
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct sr_dev_driver *di;
@@ -602,11 +594,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	drvc = di->context;
 	ctx = drvc->sr_ctx;;
 	devc = sdi->priv;
-
-	if (configure_channels(sdi) != SR_OK) {
-		sr_err("Cannot configure channels.");
-		return SR_ERR;
-	}
 
 	devc->convbuffer_size = LA2016_CONVBUFFER_SIZE;
 	devc->convbuffer = g_try_malloc(devc->convbuffer_size);

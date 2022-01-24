@@ -34,13 +34,6 @@
 #define FPGA_FW_LA1016	"kingst-la1016-fpga.bitstream"
 #define FPGA_FW_LA1016A	"kingst-la1016a1-fpga.bitstream"
 
-/* Maximum device capabilities. May differ between models. */
-#define MAX_SAMPLE_RATE_LA2016	SR_MHZ(200)
-#define MAX_SAMPLE_RATE_LA1016	SR_MHZ(100)
-#define MAX_SAMPLE_DEPTH	10e9
-#define MAX_PWM_FREQ		SR_MHZ(20)
-#define PWM_CLOCK		SR_MHZ(200)	/* 200MHz for both LA2016 and LA1016 */
-
 /*
  * Default device configuration. Must be applicable to any of the
  * supported devices (no model specific default values yet). Specific
@@ -50,14 +43,6 @@
 #define LA2016_DFLT_SAMPLERATE	SR_MHZ(100)
 #define LA2016_DFLT_SAMPLEDEPTH	(5 * 1000 * 1000)
 #define LA2016_DFLT_CAPT_RATIO	5 /* Capture ratio, in percent. */
-
-/* TODO
- * What is the origin and motivation of that 128Mi literal? What is its
- * unit? How does it relate to a device's hardware capabilities? How to
- * map the 1GiB of RAM of an LA2016 (at 16 channels) to the 128Mi value?
- * It cannot be sample count. Is it memory size in bytes perhaps?
- */
-#define LA2016_PRE_MEM_LIMIT_BASE	(128 * 1024 * 1024)
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
 #define CMD_FPGA_ENABLE	0x10
@@ -514,6 +499,25 @@ static int set_defaults(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static uint16_t get_channels_mask(const struct sr_dev_inst *sdi)
+{
+	uint16_t channels;
+	GSList *l;
+	struct sr_channel *ch;
+
+	channels = 0;
+	for (l = sdi->channels; l; l = l->next) {
+		ch = l->data;
+		if (ch->type != SR_CHANNEL_LOGIC)
+			continue;
+		if (!ch->enabled)
+			continue;
+		channels |= 1UL << ch->index;
+	}
+
+	return channels;
+}
+
 static int set_trigger_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -533,7 +537,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 
 	memset(&cfg, 0, sizeof(cfg));
 
-	cfg.channels = devc->cur_channels;
+	cfg.channels = get_channels_mask(sdi);
 
 	if (trigger && trigger->stages) {
 		stages = trigger->stages;
@@ -623,7 +627,12 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	if (devc->cur_samplerate > devc->max_samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
 			devc->cur_samplerate);
-		return SR_ERR;
+		return SR_ERR_ARG;
+	}
+	if (devc->cur_samplerate < MIN_SAMPLE_RATE_LA2016) {
+		sr_err("Too low a sample rate: %" PRIu64 ".",
+			devc->cur_samplerate);
+		return SR_ERR_ARG;
 	}
 
 	clock_divisor = devc->max_samplerate / (double)devc->cur_samplerate;
@@ -632,8 +641,13 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	divider_u16 = (uint16_t)(clock_divisor + 0.5);
 	devc->cur_samplerate = devc->max_samplerate / divider_u16;
 
-	if (devc->limit_samples > MAX_SAMPLE_DEPTH) {
+	if (devc->limit_samples > LA2016_NUM_SAMPLES_MAX) {
 		sr_err("Too high a sample depth: %" PRIu64 ".",
+			devc->limit_samples);
+		return SR_ERR;
+	}
+	if (devc->limit_samples < LA2016_NUM_SAMPLES_MIN) {
+		sr_err("Too low a sample depth: %" PRIu64 ".",
 			devc->limit_samples);
 		return SR_ERR;
 	}
