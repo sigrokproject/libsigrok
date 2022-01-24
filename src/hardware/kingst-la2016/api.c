@@ -61,8 +61,8 @@ static const int32_t trigger_matches[] = {
 };
 
 static const char *channel_names[] = {
-	"0", "1", "2", "3", "4", "5", "6", "7",
-	"8", "9", "10", "11", "12", "13", "14", "15",
+	"CH0", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7",
+	"CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15",
 };
 
 static const uint64_t samplerates_la2016[] = {
