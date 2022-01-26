@@ -380,12 +380,9 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	for (i = 0; i < device->num_channels; i++) {
 		ch = sr_channel_new(sdi, ch_idx++, SR_CHANNEL_ANALOG, TRUE,
 				device->channels[i].name);
-		cg = g_malloc0(sizeof(*cg));
 		snprintf(tmp, sizeof(tmp), "%u", i + 1);
-		cg->name = g_strdup(tmp);
+		cg = sr_channel_group_new(sdi, tmp, NULL);
 		cg->channels = g_slist_append(cg->channels, ch);
-
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
 	/* Create channels for the frequency counter output. */

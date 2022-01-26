@@ -205,15 +205,6 @@ static void free_channel(void *data)
 	g_free(vcd_ch);
 }
 
-/* TODO Drop the local decl when this has become a common helper. */
-void sr_channel_group_free(struct sr_channel_group *cg);
-
-/* Wrapper for GDestroyNotify compatibility. */
-static void cg_free(void *p)
-{
-	sr_channel_group_free(p);
-}
-
 /*
  * Another timestamp delta was observed, update statistics: Update the
  * sorted list of minimum values, and increment the occurance counter.
@@ -1074,10 +1065,8 @@ static void create_channels(const struct sr_input *in,
 		if (vcd_ch->type != ch_type)
 			continue;
 		cg = NULL;
-		if (vcd_ch->size != 1) {
-			cg = g_malloc0(sizeof(*cg));
-			cg->name = g_strdup(vcd_ch->name);
-		}
+		if (vcd_ch->size != 1)
+			cg = sr_channel_group_new(sdi, vcd_ch->name, NULL);
 		for (size_idx = 0; size_idx < vcd_ch->size; size_idx++) {
 			ch_name = get_channel_name(vcd_ch, size_idx);
 			sr_dbg("sigrok channel idx %zu, name %s, type %s, en %d.",
@@ -1089,8 +1078,6 @@ static void create_channels(const struct sr_input *in,
 			if (cg)
 				cg->channels = g_slist_append(cg->channels, ch);
 		}
-		if (cg)
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 }
 
@@ -1135,7 +1122,7 @@ static void keep_header_for_reread(const struct sr_input *in)
 
 	inc = in->priv;
 
-	g_slist_free_full(inc->prev.sr_groups, cg_free);
+	g_slist_free_full(inc->prev.sr_groups, sr_channel_group_free_cb);
 	inc->prev.sr_groups = in->sdi->channel_groups;
 	in->sdi->channel_groups = NULL;
 
@@ -1174,7 +1161,7 @@ static gboolean check_header_in_reread(const struct sr_input *in)
 		return FALSE;
 	}
 
-	g_slist_free_full(in->sdi->channel_groups, cg_free);
+	g_slist_free_full(in->sdi->channel_groups, sr_channel_group_free_cb);
 	in->sdi->channel_groups = inc->prev.sr_groups;
 	inc->prev.sr_groups = NULL;
 

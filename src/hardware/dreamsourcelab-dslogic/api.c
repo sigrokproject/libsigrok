@@ -240,15 +240,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->connection_id = g_strdup(connection_id);
 
 		/* Logic channels, all in one channel group. */
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup("Logic");
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
 		for (j = 0; j < NUM_CHANNELS; j++) {
 			sprintf(channel_name, "%d", j);
 			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
 						TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
-		sdi->channel_groups = g_slist_append(NULL, cg);
 
 		devc = dslogic_dev_new();
 		devc->profile = prof;

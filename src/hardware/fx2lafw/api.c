@@ -306,15 +306,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
 
 		/* Logic channels, all in one channel group. */
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup("Logic");
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
 		for (j = 0; j < num_logic_channels; j++) {
 			sprintf(channel_name, "D%d", j);
 			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
 						TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
-		sdi->channel_groups = g_slist_append(NULL, cg);
 
 		for (j = 0; j < num_analog_channels; j++) {
 			snprintf(channel_name, 16, "A%d", j);
@@ -322,10 +320,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 					SR_CHANNEL_ANALOG, TRUE, channel_name);
 
 			/* Every analog channel gets its own channel group. */
-			cg = g_malloc0(sizeof(struct sr_channel_group));
-			cg->name = g_strdup(channel_name);
+			cg = sr_channel_group_new(sdi, channel_name, NULL);
 			cg->channels = g_slist_append(NULL, ch);
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		}
 
 		devc = fx2lafw_dev_new();
