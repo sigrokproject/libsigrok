@@ -1645,6 +1645,11 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
 SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2);
 SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2);
 
+SR_PRIV struct sr_channel_group *sr_channel_group_new(struct sr_dev_inst *sdi,
+	const char *name, void *priv);
+SR_PRIV void sr_channel_group_free(struct sr_channel_group *cg);
+SR_PRIV void sr_channel_group_free_cb(void *cg);
+
 /** Device instance data */
 struct sr_dev_inst {
 	/** Device driver. */
