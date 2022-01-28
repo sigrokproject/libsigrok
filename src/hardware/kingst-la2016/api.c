@@ -77,15 +77,19 @@ static const char *channel_names[] = {
 };
 
 /*
- * The hardware uses a (model dependent) 100/200/500MHz base clock and
+ * The hardware uses a 100/200/500MHz base clock (model dependent) and
  * a 16bit divider (common across all models). The range from 10kHz to
  * 100/200/500MHz should be applicable to all devices. High rates may
  * suffer from coarse resolution (e.g. in the "500MHz div 2" case) and
- * may not provide the desired 1/2/5 steps. This is not an issue now,
- * the 500MHz model is not supported yet by this driver.
+ * may not provide the desired 1/2/5 steps. Fortunately this exclusively
+ * affects the 500MHz model where 250MHz is used instead of 200MHz and
+ * the 166MHz and 125MHz rates are not presented to users. Deep memory
+ * of these models and hardware compression reduce the necessity to let
+ * users pick from a huge list of possible rates.
+ *
  */
 
-static const uint64_t samplerates_la2016[] = {
+static const uint64_t rates_500mhz[] = {
 	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
@@ -94,9 +98,25 @@ static const uint64_t samplerates_la2016[] = {
 	SR_KHZ(500),
 	SR_MHZ(1),
 	SR_MHZ(2),
-	SR_MHZ(4),
 	SR_MHZ(5),
-	SR_MHZ(8),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(50),
+	SR_MHZ(100),
+	SR_MHZ(250),
+	SR_MHZ(500),
+};
+
+static const uint64_t rates_200mhz[] = {
+	SR_KHZ(10),
+	SR_KHZ(20),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(5),
 	SR_MHZ(10),
 	SR_MHZ(20),
 	SR_MHZ(50),
@@ -104,7 +124,7 @@ static const uint64_t samplerates_la2016[] = {
 	SR_MHZ(200),
 };
 
-static const uint64_t samplerates_la1016[] = {
+static const uint64_t rates_100mhz[] = {
 	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
@@ -113,9 +133,7 @@ static const uint64_t samplerates_la1016[] = {
 	SR_KHZ(500),
 	SR_MHZ(1),
 	SR_MHZ(2),
-	SR_MHZ(4),
 	SR_MHZ(5),
-	SR_MHZ(8),
 	SR_MHZ(10),
 	SR_MHZ(20),
 	SR_MHZ(50),
@@ -570,11 +588,12 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
 			return SR_ERR_ARG;
-		if (devc->max_samplerate == SR_MHZ(200)) {
-			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la2016));
-		} else {
-			*data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates_la1016));
-		}
+		if (devc->max_samplerate == SR_MHZ(500))
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_500mhz));
+		else if (devc->max_samplerate == SR_MHZ(200))
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_200mhz));
+		else
+			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_100mhz));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(LA2016_NUM_SAMPLES_MIN,
