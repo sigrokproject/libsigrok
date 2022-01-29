@@ -1264,6 +1264,7 @@ static void * session_worker_thread(void *data) {
 	const uint16_t channel_mask = enabled_channel_mask(sdi);
 	uint64_t num_samples;
 	uint64_t limit_samples;
+	gboolean abort = FALSE;
 	unsigned int cur_sample_count;
 	int trigger_offset;
 
@@ -1303,9 +1304,13 @@ static void * session_worker_thread(void *data) {
 			 *
 			 * Hopefully in future it will be possible to pass the data on as-is.
 			 */
-			if (devc->completed_transfer->actual_length % 
-				(DSLOGIC_ATOMIC_BYTES * channel_count) != 0) {
+			if ((devc->completed_transfer->actual_length % 
+				(DSLOGIC_ATOMIC_BYTES * channel_count) != 0)) {
 				sr_err("Invalid transfer length!");
+				/* we need to abort here since we are now misaligned with the
+				received data stream which in worst case could lead to a
+				channel swap */
+				abort = TRUE;
 			} else {
 				deinterleave_buffer(devc->completed_transfer->buffer,
 					devc->completed_transfer->actual_length,
@@ -1335,7 +1340,7 @@ static void * session_worker_thread(void *data) {
 		}
 		g_mutex_lock(&devc->data_proc_mutex);
 		if (devc->data_proc_state == DS_DATA_PROC_RUNNING) {
-			if (limit_samples && devc->sent_samples >= limit_samples) {
+			if (abort || (limit_samples && devc->sent_samples >= limit_samples)) {
 				devc->data_proc_state = DS_DATA_PROC_MAX_SAMPLES_REACHED;
 			} else  {
 				devc->data_proc_state = DS_DATA_PROC_IDLE;
@@ -1546,6 +1551,8 @@ static int start_transfers(const struct sr_dev_inst *sdi)
 			libusb_free_transfer(transfer);
 			g_free(buf);
 			abort_acquisition(devc);
+			if (devc->submitted_transfers == 0)
+				finish_acquisition((struct sr_dev_inst *)sdi);
 			return SR_ERR;
 		}
 		devc->transfers[i] = transfer;
