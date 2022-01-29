@@ -405,10 +405,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 	if (devc->cur_threshold == 0.0) {
 		devc->cur_threshold = thresholds[1][0];
-		return dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
+		ret = dslogic_set_voltage_threshold(sdi, devc->cur_threshold);
 	}
+	devc->continuous_mode = TRUE;
 
-	return SR_OK;
+	return ret;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
