@@ -65,8 +65,6 @@ enum dslogic_operation_modes {
 };
 
 enum dslogic_data_processing_states {
-	DS_DATA_PROC_IDLE,
-	DS_DATA_PROC_START_REQ,
 	DS_DATA_PROC_RUNNING,
 	DS_DATA_PROC_ABORT_REQ,
 	DS_DATA_PROC_MAX_SAMPLES_REACHED,
@@ -164,7 +162,7 @@ struct dev_context {
 	int clock_edge;
 	double cur_threshold;
 	GThread *thread_handle;
-	struct libusb_transfer *completed_transfer;
+	GQueue *finished_transfers;
 	GMutex data_proc_mutex;
 	GCond data_proc_state_cond;
 	enum dslogic_data_processing_states data_proc_state;

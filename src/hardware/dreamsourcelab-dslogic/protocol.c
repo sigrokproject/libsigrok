@@ -220,6 +220,11 @@ struct vco_config {
 	uint8_t byte[4];
 };
 
+struct finished_transfer {
+	unsigned char *buffer;
+	uint32_t length;
+};
+
 static const struct vco_config vco_init_config[] = {
 	{DS_I2C_REG_VCO_ADDR+2, 1, 0, {0x01, 0x00, 0x00, 0x00}},
 	{DS_I2C_REG_VCO_ADDR, 4, 0, {0x01, 0x61, 0x00, 0x30}},
@@ -1140,6 +1145,7 @@ static void abort_acquisition(struct dev_context *devc)
 	devc->data_proc_state = DS_DATA_PROC_ABORT_REQ;
 	g_cond_signal(&devc->data_proc_state_cond);
 	g_mutex_unlock(&devc->data_proc_mutex);
+	g_thread_join(devc->thread_handle);
 }
 
 static void finish_acquisition(struct sr_dev_inst *sdi)
@@ -1157,6 +1163,7 @@ static void finish_acquisition(struct sr_dev_inst *sdi)
 	g_free(devc->deinterleave_buffer);
 	g_cond_clear(&devc->data_proc_state_cond);
 	g_mutex_clear(&devc->data_proc_mutex);
+	g_queue_free(devc->finished_transfers);
 }
 
 static void free_transfer(struct libusb_transfer *transfer)
@@ -1265,26 +1272,34 @@ static void * session_worker_thread(void *data) {
 	uint64_t num_samples;
 	uint64_t limit_samples;
 	gboolean abort = FALSE;
+	struct finished_transfer *finished_transfer;
 	unsigned int cur_sample_count;
 	int trigger_offset;
 
 	while (TRUE) {
 		g_mutex_lock(&devc->data_proc_mutex);
-		while (devc->data_proc_state == DS_DATA_PROC_IDLE)
+		while ((g_queue_get_length(devc->finished_transfers) == 0) &&
+			(devc->data_proc_state != DS_DATA_PROC_ABORT_REQ))
 			g_cond_wait(&devc->data_proc_state_cond, &devc->data_proc_mutex);
-		if (devc->data_proc_state != DS_DATA_PROC_START_REQ) {
+		if (devc->data_proc_state == DS_DATA_PROC_ABORT_REQ) {
+			while (NULL !=
+				(finished_transfer = g_queue_pop_head(devc->finished_transfers)))
+			{
+				g_free(finished_transfer->buffer);
+				g_free(finished_transfer);
+			}
 			g_cond_signal(&devc->data_proc_state_cond);
 			g_mutex_unlock(&devc->data_proc_mutex);
 			break;
 		}
 
-		devc->data_proc_state = DS_DATA_PROC_RUNNING;
+		finished_transfer = g_queue_pop_head(devc->finished_transfers);
 		g_mutex_unlock(&devc->data_proc_mutex);
 		limit_samples = devc->limit_samples;
 		if (!devc->continuous_mode)
 				limit_samples = devc->samples_captured;
-
-		cur_sample_count = DSLOGIC_ATOMIC_SAMPLES * devc->completed_transfer->actual_length /
+		
+		cur_sample_count = DSLOGIC_ATOMIC_SAMPLES * finished_transfer->length /
 					(DSLOGIC_ATOMIC_BYTES * channel_count);
 		if (!limit_samples || devc->sent_samples < limit_samples) {
 			if (limit_samples && 
@@ -1304,7 +1319,7 @@ static void * session_worker_thread(void *data) {
 			 *
 			 * Hopefully in future it will be possible to pass the data on as-is.
 			 */
-			if ((devc->completed_transfer->actual_length % 
+			if ((finished_transfer->length % 
 				(DSLOGIC_ATOMIC_BYTES * channel_count) != 0)) {
 				sr_err("Invalid transfer length!");
 				/* we need to abort here since we are now misaligned with the
@@ -1312,8 +1327,8 @@ static void * session_worker_thread(void *data) {
 				channel swap */
 				abort = TRUE;
 			} else {
-				deinterleave_buffer(devc->completed_transfer->buffer,
-					devc->completed_transfer->actual_length,
+				deinterleave_buffer(finished_transfer->buffer,
+					finished_transfer->length,
 					devc->deinterleave_buffer, channel_count, channel_mask);
 
 				/* Send the incoming transfer to the session bus. */
@@ -1338,18 +1353,14 @@ static void * session_worker_thread(void *data) {
 				}
 			}
 		}
+		g_free(finished_transfer->buffer);
+		g_free(finished_transfer);
 		g_mutex_lock(&devc->data_proc_mutex);
 		if (devc->data_proc_state == DS_DATA_PROC_RUNNING) {
 			if (abort || (limit_samples && devc->sent_samples >= limit_samples)) {
 				devc->data_proc_state = DS_DATA_PROC_MAX_SAMPLES_REACHED;
-			} else  {
-				devc->data_proc_state = DS_DATA_PROC_IDLE;
 			}
 		}
-		/* always submit a new transfer even if max sample count is reached.
-		aborting the transfer is handling only in receive_transfer callback
-		*/
-		resubmit_transfer(devc->completed_transfer);
 		g_cond_signal(&devc->data_proc_state_cond);
 		g_mutex_unlock(&devc->data_proc_mutex);
 	}
@@ -1361,6 +1372,8 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *const sdi = transfer->user_data;
 	struct dev_context *const devc = sdi->priv;
+	struct finished_transfer *finished_transfer;
+	unsigned char *buf;
 	gboolean packet_has_error = FALSE;
 	gboolean abort = FALSE;
 
@@ -1413,14 +1426,23 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	 * time-consuming data processing to a dedicated worker thread
 	 * and continue here to process the next transfer which may have finished
 	 * already.
+	 * We allocate a new buffer for the transfer, the buffer of the finished
+	 * transfer will be free'd in the worker thread.
 	 */
 	g_mutex_lock(&devc->data_proc_mutex);
-	while ((devc->data_proc_state == DS_DATA_PROC_RUNNING) ||
-		(devc->data_proc_state == DS_DATA_PROC_START_REQ))
-		g_cond_wait(&devc->data_proc_state_cond, &devc->data_proc_mutex);
-	if (devc->data_proc_state == DS_DATA_PROC_IDLE) {
-		devc->completed_transfer = transfer;
-		devc->data_proc_state = DS_DATA_PROC_START_REQ;
+	if (devc->data_proc_state == DS_DATA_PROC_RUNNING) {
+		if (!(buf = g_try_malloc(transfer->length))) {
+			sr_err("USB transfer buffer malloc failed.");
+			abort = true;
+		} else {
+			finished_transfer = g_malloc(sizeof(struct finished_transfer));
+			finished_transfer->buffer = transfer->buffer;
+			finished_transfer->length = transfer->actual_length;
+			g_queue_push_tail(devc->finished_transfers,
+				finished_transfer);
+			transfer->buffer = buf;
+			resubmit_transfer(transfer);
+		}
 	} else {
 		abort = TRUE;
 
@@ -1620,9 +1642,10 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->sent_samples = 0;
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
-	devc->data_proc_state = DS_DATA_PROC_IDLE;
+	devc->data_proc_state = DS_DATA_PROC_RUNNING;
 	g_cond_init(&devc->data_proc_state_cond);
 	g_mutex_init(&devc->data_proc_mutex);
+	devc->finished_transfers = g_queue_new();
 	devc->thread_handle = g_thread_new("DSL session worker thread",
 							session_worker_thread, (void*)sdi);
 
