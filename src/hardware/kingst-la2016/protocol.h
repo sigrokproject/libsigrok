@@ -131,14 +131,14 @@ struct dev_context {
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
 	struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id);
-SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
-SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	gboolean show_message);
 SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx);
+SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
 
 #endif
