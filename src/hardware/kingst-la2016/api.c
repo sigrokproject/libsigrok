@@ -770,16 +770,7 @@ static int config_get(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_CONN:
-		if (!sdi->conn)
-			return SR_ERR_ARG;
 		usb = sdi->conn;
-		if (usb->address == 0xff) {
-			/*
-			 * Device still needs to re-enumerate after firmware
-			 * upload, so we don't know its (future) address.
-			 */
-			return SR_ERR;
-		}
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_SAMPLERATE:
@@ -817,6 +808,7 @@ static int config_set(uint32_t key, GVariant *data,
 	int ret, cg_type;
 	size_t logic_idx, analog_idx;
 	struct pwm_setting *pwm;
+	double value_f;
 	double low, high;
 	int idx;
 
@@ -844,13 +836,19 @@ static int config_set(uint32_t key, GVariant *data,
 				return ret;
 			break;
 		case SR_CONF_OUTPUT_FREQUENCY:
-			pwm->freq = g_variant_get_double(data);
+			value_f = g_variant_get_double(data);
+			if (value_f <= 0.0 || value_f > MAX_PWM_FREQ)
+				return SR_ERR_ARG;
+			pwm->freq = value_f;
 			ret = la2016_write_pwm_config(sdi, analog_idx);
 			if (ret != SR_OK)
 				return ret;
 			break;
 		case SR_CONF_DUTY_CYCLE:
-			pwm->duty = g_variant_get_double(data);
+			value_f = g_variant_get_double(data);
+			if (value_f <= 0.0 || value_f > 100.0)
+				return SR_ERR_ARG;
+			pwm->duty = value_f;
 			ret = la2016_write_pwm_config(sdi, analog_idx);
 			if (ret != SR_OK)
 				return ret;

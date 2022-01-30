@@ -344,10 +344,10 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	devc = sdi->priv;
 
 	/* Clamp threshold setting to valid range for LA2016. */
-	if (voltage > 4.0) {
-		voltage = 4.0;
-	} else if (voltage < -4.0) {
-		voltage = -4.0;
+	if (voltage > LA2016_THR_VOLTAGE_MAX) {
+		voltage = LA2016_THR_VOLTAGE_MAX;
+	} else if (voltage < -LA2016_THR_VOLTAGE_MAX) {
+		voltage = -LA2016_THR_VOLTAGE_MAX;
 	}
 
 	/*
