@@ -566,6 +566,15 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 	g_free(usb);
 }
 
+/**
+ * Wrapper for g_slist_free_full() convenience.
+ *
+ * @private
+ */
+SR_PRIV void sr_usb_dev_inst_free_cb(gpointer p)
+{
+	sr_usb_dev_inst_free(p);
+}
 #endif
 
 #ifdef HAVE_SERIAL_COMM

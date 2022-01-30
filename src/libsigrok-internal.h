@@ -1688,6 +1688,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
+SR_PRIV void sr_usb_dev_inst_free_cb(gpointer p); /* Glib wrapper. */
 #endif
 
 #ifdef HAVE_SERIAL_COMM
