@@ -249,7 +249,17 @@ static int la2016_identify_read(struct sr_dev_inst *sdi,
 			sr_err("Cannot communicate to MCU firmware.");
 		return ret;
 	}
+
+	/*
+	 * Also complete the hardware configuration (FPGA bitstream)
+	 * when MCU firmware communication became operational. Either
+	 * failure is considered fatal when probing for the device.
+	 */
 	ret = la2016_identify_device(sdi, show_message);
+	if (ret == SR_OK) {
+		ret = la2016_init_hardware(sdi);
+	}
+
 	la2016_close_usb(usb);
 
 	return ret;
@@ -582,6 +592,16 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
+	/*
+	 * Setup a default configuration of device features. This
+	 * affects the logic threshold, PWM channels, and similar.
+	 */
+	ret = la2016_init_params(sdi);
+	if (ret != SR_OK) {
+		sr_err("Cannot initialize device's hardware.");
+		return ret;
+	}
+
 	return SR_OK;
 }
 
@@ -594,7 +614,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!usb->devhdl)
 		return SR_ERR_BUG;
 
-	la2016_deinit_device(sdi);
+	la2016_deinit_hardware(sdi);
 
 	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);

@@ -155,7 +155,8 @@ SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	gboolean show_message);
-SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi);
-SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_init_params(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi);
 
 #endif

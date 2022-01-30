@@ -1371,7 +1371,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
+SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	const char *bitstream_fn;
@@ -1400,12 +1400,20 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		sr_warn("Unexpected run state, want 0x85e9, got 0x%04x.", state);
 	}
 
-	if ((ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
 		sr_err("Cannot reset USB bulk transfer.");
 		return ret;
 	}
 
 	sr_dbg("Device should be initialized.");
+
+	return SR_OK;
+}
+
+SR_PRIV int la2016_init_params(const struct sr_dev_inst *sdi)
+{
+	int ret;
 
 	ret = set_defaults(sdi);
 	if (ret != SR_OK)
@@ -1414,11 +1422,12 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi)
+SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
-	if ((ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x00, 0, NULL, 0)) != SR_OK) {
+	ret = ctrl_out(sdi, CMD_FPGA_ENABLE, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
 		sr_err("Cannot deinitialize device's FPGA.");
 		return ret;
 	}
