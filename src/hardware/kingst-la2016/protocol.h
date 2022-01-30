@@ -69,23 +69,11 @@
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
 
-#define LA2016_NUM_SAMPLES_MIN	(UINT64_C(256))
 #define LA2016_NUM_SAMPLES_MAX	(UINT64_C(10 * 1000 * 1000 * 1000))
 
 /* Maximum device capabilities. May differ between models. */
-#define MAX_SAMPLE_RATE_LA2016	SR_MHZ(200)
-#define MAX_SAMPLE_RATE_LA1016	SR_MHZ(100)
-#define MIN_SAMPLE_RATE_LA2016	SR_KHZ(10)
 #define MAX_PWM_FREQ		SR_MHZ(20)
 #define PWM_CLOCK		SR_MHZ(200)	/* 200MHz for both LA2016 and LA1016 */
-
-/* TODO
- * What is the origin and motivation of that 128Mi literal? What is its
- * unit? How does it relate to a device's hardware capabilities? How to
- * map the 1GiB of RAM of an LA2016 (at 16 channels) to the 128Mi value?
- * It cannot be sample count. Is it memory size in bytes perhaps?
- */
-#define LA2016_PRE_MEM_LIMIT_BASE	(128 * 1024 * 1024)
 
 #define LA2016_NUM_PWMCH_MAX	2
 

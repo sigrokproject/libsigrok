@@ -615,7 +615,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	double clock_divisor;
+	uint64_t min_samplerate, eff_samplerate;
 	uint16_t divider_u16;
 	uint64_t limit_samples;
 	uint64_t pre_trigger_samples;
@@ -631,17 +631,15 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 			devc->cur_samplerate);
 		return SR_ERR_ARG;
 	}
-	if (devc->cur_samplerate < MIN_SAMPLE_RATE_LA2016) {
+	min_samplerate = devc->model->samplerate;
+	min_samplerate /= 65536;
+	if (devc->cur_samplerate < min_samplerate) {
 		sr_err("Too low a sample rate: %" PRIu64 ".",
 			devc->cur_samplerate);
 		return SR_ERR_ARG;
 	}
-
-	clock_divisor = devc->model->samplerate / (double)devc->cur_samplerate;
-	if (clock_divisor > 65535)
-		return SR_ERR_ARG;
-	divider_u16 = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = devc->model->samplerate / divider_u16;
+	divider_u16 = devc->model->samplerate / devc->cur_samplerate;
+	eff_samplerate = devc->model->samplerate / divider_u16;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
 		&limit_samples, NULL, NULL, NULL);
@@ -650,12 +648,14 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 		return ret;
 	}
 	if (limit_samples > LA2016_NUM_SAMPLES_MAX) {
-		sr_err("Too high a sample depth: %" PRIu64 ".", limit_samples);
-		return SR_ERR_ARG;
+		sr_warn("Too high a sample depth: %" PRIu64 ", capping.",
+			limit_samples);
+		limit_samples = LA2016_NUM_SAMPLES_MAX;
 	}
-	if (limit_samples < LA2016_NUM_SAMPLES_MIN) {
-		sr_err("Too low a sample depth: %" PRIu64 ".", limit_samples);
-		return SR_ERR_ARG;
+	if (limit_samples == 0) {
+		limit_samples = LA2016_NUM_SAMPLES_MAX;
+		sr_dbg("Passing %" PRIu64 " to HW for unlimited samples.",
+			limit_samples);
 	}
 
 	/*
@@ -670,22 +670,35 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	 * limit the amount of sample memory to use for pre-trigger
 	 * data. Only the upper 24 bits of that memory size spec get
 	 * communicated to the device (written to its FPGA register).
+	 *
+	 * TODO Determine whether the pre-trigger memory size gets
+	 * specified in samples or in bytes. A previous implementation
+	 * suggests bytes but this is suspicious when every other spec
+	 * is in terms of samples.
 	 */
-	pre_trigger_samples = limit_samples * devc->capture_ratio / 100;
-	pre_trigger_memory = LA2016_PRE_MEM_LIMIT_BASE;
-	pre_trigger_memory *= devc->capture_ratio;
-	pre_trigger_memory /= 100;
-
-	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
-		devc->cur_samplerate / 1000, limit_samples);
-	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
-		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
-
-	if (!devc->trigger_involved) {
-		sr_dbg("Voiding pre-trigger setup. No trigger involved.");
+	if (devc->trigger_involved) {
+		pre_trigger_samples = limit_samples;
+		pre_trigger_samples *= devc->capture_ratio;
+		pre_trigger_samples /= 100;
+		pre_trigger_memory = devc->model->memory_bits;
+		pre_trigger_memory *= UINT64_C(1024 * 1024 * 1024);
+		pre_trigger_memory /= 8; /* devc->model->channel_count ? */
+		pre_trigger_memory *= devc->capture_ratio;
+		pre_trigger_memory /= 100;
+	} else {
+		sr_dbg("No trigger setup, skipping pre-trigger config.");
 		pre_trigger_samples = 1;
+		pre_trigger_memory = 0;
+	}
+	/* Ensure non-zero value after LSB shift out in HW reg. */
+	if (pre_trigger_memory < 0x100) {
 		pre_trigger_memory = 0x100;
 	}
+
+	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
+		eff_samplerate / SR_KHZ(1), limit_samples);
+	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
+		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
 
 	/*
 	 * The acquisition configuration occupies a total of 16 bytes:

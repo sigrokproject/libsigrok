@@ -33,16 +33,6 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-/*
- * Default device configuration. Must be applicable to any of the
- * supported devices (no model specific default values yet). Specific
- * firmware implementation details unfortunately won't let us detect
- * and keep using previously configured values.
- */
-#define LA2016_DFLT_SAMPLERATE	SR_MHZ(100)
-#define LA2016_DFLT_SAMPLEDEPTH	(5 * 1000 * 1000)
-#define LA2016_DFLT_CAPT_RATIO	5 /* Capture ratio, in percent. */
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 };
@@ -568,9 +558,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 
 		sr_sw_limits_init(&devc->sw_limits);
-		devc->sw_limits.limit_samples = LA2016_DFLT_SAMPLEDEPTH;
-		devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
-		devc->cur_samplerate = LA2016_DFLT_SAMPLERATE;
+		devc->sw_limits.limit_samples = 0;
+		devc->capture_ratio = 50;
+		devc->cur_samplerate = devc->model->samplerate;
 		devc->threshold_voltage_idx = 0;
 		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
 
@@ -738,8 +728,7 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_100mhz));
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		*data = std_gvar_tuple_u64(LA2016_NUM_SAMPLES_MIN,
-			LA2016_NUM_SAMPLES_MAX);
+		*data = std_gvar_tuple_u64(0, LA2016_NUM_SAMPLES_MAX);
 		break;
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_min_max_step_thresholds(
