@@ -1238,6 +1238,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 {
 	struct dev_context *devc;
 	uint8_t buf[8];
+	size_t rdoff, rdlen;
 	const uint8_t *rdptr;
 	uint8_t date_yy, date_mm;
 	uint8_t dinv_yy, dinv_mm;
@@ -1255,13 +1256,23 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	 * to 2020-04. This information can help identify the vintage of
 	 * devices when unknown magic numbers are seen.
 	 */
-	ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, buf, 4 * sizeof(uint8_t));
+	rdoff = 0x20;
+	rdlen = 4 * sizeof(uint8_t);
+	ret = ctrl_in(sdi, CMD_EEPROM, rdoff, 0, buf, rdlen);
 	if (ret != SR_OK && !show_message) {
+		/* Non-fatal weak attempt during probe. Not worth logging. */
 		sr_dbg("Cannot access EEPROM.");
 		return SR_ERR_IO;
 	} else if (ret != SR_OK) {
+		/* Failed attempt in regular use. Non-fatal. Worth logging. */
 		sr_err("Cannot read manufacture date in EEPROM.");
 	} else {
+		if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
+			GString *txt;
+			txt = sr_hexdump_new(buf, rdlen);
+			sr_spew("Manufacture date bytes %s.", txt->str);
+			sr_hexdump_free(txt);
+		}
 		rdptr = &buf[0];
 		date_yy = read_u8_inc(&rdptr);
 		date_mm = read_u8_inc(&rdptr);
@@ -1311,18 +1322,27 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	 * LA2016 by faking its EEPROM content.
 	 */
 	devc->identify_magic = 0;
-	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &buf, sizeof(buf))) != SR_OK) {
+	rdoff = 0x08;
+	rdlen = 8 * sizeof(uint8_t);
+	ret = ctrl_in(sdi, CMD_EEPROM, rdoff, 0, &buf, rdlen);
+	if (ret != SR_OK) {
 		sr_err("Cannot read EEPROM device identifier bytes.");
 		return ret;
 	}
+	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
+		GString *txt;
+		txt = sr_hexdump_new(buf, rdlen);
+		sr_spew("EEPROM magic bytes %s.", txt->str);
+		sr_hexdump_free(txt);
+	}
 	if ((buf[0] ^ buf[1]) == 0xff) {
 		/* Primary copy of magic passes complement check. */
-		sr_dbg("Using primary copy of device type magic number.");
 		magic = buf[0];
+		sr_dbg("Using primary magic, value %d.", (int)magic);
 	} else if ((buf[4] ^ buf[5]) == 0xff) {
 		/* Backup copy of magic passes complement check. */
-		sr_dbg("Using backup copy of device type magic number.");
 		magic = buf[4];
+		sr_dbg("Using backup magic, value %d.", (int)magic);
 	} else {
 		sr_err("Cannot find consistent device type identification.");
 		magic = 0;
@@ -1335,16 +1355,15 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		if (model->magic != magic)
 			continue;
 		devc->model = model;
-		sr_info("EEPROM magic %d, model '%s'.", (int)magic, model->name);
+		sr_info("Model '%s', %zu channels, max %" PRIu64 "MHz.",
+			model->name, model->channel_count,
+			model->samplerate / SR_MHZ(1));
 		devc->fpga_bitstream = g_strdup_printf(FPGA_FWFILE_FMT,
 			model->fpga_stem);
-		sr_info("Max %zu channels at %" PRIu64 "MHz samplerate.",
-			model->channel_count, model->samplerate / SR_MHZ(1));
 		sr_info("FPGA bitstream file '%s'.", devc->fpga_bitstream);
 		break;
 	}
 	if (!devc->model) {
-		sr_spew("Device type: magic number is %hhu.", magic);
 		sr_err("Cannot identify as one of the supported models.");
 		return SR_ERR;
 	}
