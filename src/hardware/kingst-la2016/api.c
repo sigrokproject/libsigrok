@@ -71,9 +71,11 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_FALLING,
 };
 
-static const char *channel_names[] = {
+static const char *channel_names_logic[] = {
 	"CH0", "CH1", "CH2", "CH3", "CH4", "CH5", "CH6", "CH7",
 	"CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15",
+	"CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23",
+	"CH24", "CH25", "CH26", "CH27", "CH28", "CH29", "CH30", "CH31",
 };
 
 /*
@@ -167,6 +169,225 @@ static const char *logic_threshold[] = {
 
 #define LOGIC_THRESHOLD_IDX_USER	(ARRAY_SIZE(logic_threshold) - 1)
 
+/* Convenience. Release an allocated devc from error paths. */
+static void kingst_la2016_free_devc(struct dev_context *devc)
+{
+	if (!devc)
+		return;
+	g_free(devc->mcu_firmware);
+	g_free(devc->fpga_bitstream);
+	g_free(devc);
+}
+
+/* Convenience. Release an allocated sdi from error paths. */
+static void kingst_la2016_free_sdi(struct sr_dev_inst *sdi)
+{
+	if (!sdi)
+		return;
+	g_free(sdi->vendor);
+	g_free(sdi->model);
+	g_free(sdi->version);
+	g_free(sdi->serial_num);
+	g_free(sdi->connection_id);
+	sr_usb_dev_inst_free(sdi->conn);
+	kingst_la2016_free_devc(sdi->priv);
+}
+
+/* Convenience. Open a USB device (including claiming an interface). */
+static int la2016_open_usb(struct sr_usb_dev_inst *usb,
+	libusb_device *dev, gboolean show_message)
+{
+	int ret;
+
+	ret = libusb_open(dev, &usb->devhdl);
+	if (ret != 0) {
+		if (show_message) {
+			sr_err("Cannot open device: %s.",
+				libusb_error_name(ret));
+		}
+		return SR_ERR_IO;
+	}
+
+	if (usb->address == 0xff) {
+		/*
+		 * First encounter after firmware upload.
+		 * Grab current address after enumeration.
+		 */
+		usb->address = libusb_get_device_address(dev);
+	}
+
+	ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
+	if (ret == LIBUSB_ERROR_BUSY) {
+		sr_err("Cannot claim USB interface. Another program or driver using it?");
+		return SR_ERR_IO;
+	} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
+		sr_err("Device has been disconnected.");
+		return SR_ERR_IO;
+	} else if (ret != 0) {
+		sr_err("Cannot claim USB interface: %s.",
+			libusb_error_name(ret));
+		return SR_ERR_IO;
+	}
+
+	return SR_OK;
+}
+
+/* Convenience. Close an opened USB device (and release the interface). */
+static void la2016_close_usb(struct sr_usb_dev_inst *usb)
+{
+
+	if (!usb)
+		return;
+
+	if (usb->devhdl) {
+		libusb_release_interface(usb->devhdl, USB_INTERFACE);
+		libusb_close(usb->devhdl);
+		usb->devhdl = NULL;
+	}
+}
+
+/* Communicate to an USB device to identify the Kingst LA model. */
+static int la2016_identify_read(struct sr_dev_inst *sdi,
+	struct sr_usb_dev_inst *usb, libusb_device *dev,
+	gboolean show_message)
+{
+	int ret;
+
+	ret = la2016_open_usb(usb, dev, show_message);
+	if (ret != SR_OK) {
+		if (show_message)
+			sr_err("Cannot communicate to MCU firmware.");
+		return ret;
+	}
+	ret = la2016_identify_device(sdi, show_message);
+	la2016_close_usb(usb);
+
+	return ret;
+}
+
+/* Find given conn_id in another USB enum. Identify Kingst LA model. */
+static int la2016_identify_enum(struct sr_dev_inst *sdi)
+{
+	struct sr_dev_driver *di;
+	struct drv_context *drvc;
+	struct sr_context *ctx;
+	libusb_device **devlist, *dev;
+	struct libusb_device_descriptor des;
+	int ret, id_ret;
+	size_t device_count, dev_idx;
+	char conn_id[64];
+
+	di = sdi->driver;
+	drvc = di->context;
+	ctx = drvc->sr_ctx;;
+
+	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
+	if (ret < 0)
+		return SR_ERR_IO;
+	device_count = ret;
+	if (!device_count)
+		return SR_ERR_IO;
+	id_ret = SR_ERR_IO;
+	for (dev_idx = 0; dev_idx < device_count; dev_idx++) {
+		dev = devlist[dev_idx];
+		libusb_get_device_descriptor(dev, &des);
+		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
+			continue;
+		if (des.iProduct != LA2016_IPRODUCT_INDEX)
+			continue;
+		ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
+		if (ret < 0)
+			continue;
+		if (strcmp(sdi->connection_id, conn_id) != 0)
+			continue;
+		id_ret = la2016_identify_read(sdi, sdi->conn, dev, FALSE);
+		break;
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return id_ret;
+}
+
+/* Wait for a device to re-appear after firmware upload. */
+static int la2016_identify_wait(struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	uint64_t reset_done, now, elapsed_ms;
+	int ret;
+
+	devc = sdi->priv;
+
+	sr_info("Waiting for device to reset after firmware upload.");
+	now = g_get_monotonic_time();
+	reset_done = devc->fw_uploaded + RENUM_GONE_DELAY_MS * 1000;
+	if (now < reset_done)
+		g_usleep(reset_done - now);
+	do {
+		now = g_get_monotonic_time();
+		elapsed_ms = (now - devc->fw_uploaded) / 1000;
+		sr_spew("Waited %" PRIu64 "ms.", elapsed_ms);
+		ret = la2016_identify_enum(sdi);
+		if (ret == SR_OK) {
+			devc->fw_uploaded = 0;
+			break;
+		}
+		g_usleep(RENUM_POLL_INTERVAL_MS * 1000);
+	} while (elapsed_ms < RENUM_CHECK_PERIOD_MS);
+	if (ret != SR_OK) {
+		sr_err("Device failed to re-enumerate.");
+		return ret;
+	}
+	sr_info("Device came back after %" PRIi64 "ms.", elapsed_ms);
+
+	return SR_OK;
+}
+
+/*
+ * Open given conn_id from another USB enum. Used by dev_open(). Similar
+ * to, and should be kept in sync with la2016_identify_enum().
+ */
+static int la2016_open_enum(struct sr_dev_inst *sdi)
+{
+	struct sr_dev_driver *di;
+	struct drv_context *drvc;
+	struct sr_context *ctx;
+	libusb_device **devlist, *dev;
+	struct libusb_device_descriptor des;
+	int ret, open_ret;
+	size_t device_count, dev_idx;
+	char conn_id[64];
+
+	di = sdi->driver;
+	drvc = di->context;
+	ctx = drvc->sr_ctx;;
+
+	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
+	if (ret < 0)
+		return SR_ERR_IO;
+	device_count = ret;
+	if (!device_count)
+		return SR_ERR_IO;
+	open_ret = SR_ERR_IO;
+	for (dev_idx = 0; dev_idx < device_count; dev_idx++) {
+		dev = devlist[dev_idx];
+		libusb_get_device_descriptor(dev, &des);
+		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
+			continue;
+		if (des.iProduct != LA2016_IPRODUCT_INDEX)
+			continue;
+		ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
+		if (ret < 0)
+			continue;
+		if (strcmp(sdi->connection_id, conn_id) != 0)
+			continue;
+		open_ret = la2016_open_usb(sdi->conn, dev, TRUE);
+		break;
+	}
+	libusb_free_device_list(devlist, 1);
+
+	return open_ret;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -176,21 +397,23 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_usb_dev_inst *usb;
 	struct sr_config *src;
 	GSList *l;
-	GSList *devices;
+	GSList *devices, *found_devices, *renum_devices;
 	GSList *conn_devices;
 	struct libusb_device_descriptor des;
 	libusb_device **devlist, *dev;
 	size_t dev_count, dev_idx, ch_idx;
 	uint8_t bus, addr;
+	uint16_t pid;
 	const char *conn;
 	char conn_id[64];
-	uint64_t fw_uploaded;
 	int ret;
+	size_t ch_off, ch_max;
 
 	drvc = di->context;
 	ctx = drvc->sr_ctx;;
 
 	conn = NULL;
+	conn_devices = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -201,11 +424,22 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 	if (conn)
 		conn_devices = sr_usb_find(ctx->libusb_ctx, conn);
-	else
-		conn_devices = NULL;
+	if (conn && !conn_devices) {
+		sr_err("Cannot find the specified connection '%s'.", conn);
+		return NULL;
+	}
 
-	/* Find all LA2016 devices, optionally upload firmware to them. */
+	/*
+	 * Find all LA2016 devices, optionally upload firmware to them.
+	 * Defer completion of sdi/devc creation until all (selected)
+	 * devices were found in a usable state, and their models got
+	 * identified which affect their feature set. It appears that
+	 * we cannot communicate to the device within the same USB enum
+	 * cycle, needs another USB enumeration after firmware upload.
+	 */
 	devices = NULL;
+	found_devices = NULL;
+	renum_devices = NULL;
 	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
 	if (ret < 0) {
 		sr_err("Cannot get device list: %s.", libusb_error_name(ret));
@@ -216,65 +450,123 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		dev = devlist[dev_idx];
 		bus = libusb_get_bus_number(dev);
 		addr = libusb_get_device_address(dev);
-		if (conn) {
-			usb = NULL;
-			for (l = conn_devices; l; l = l->next) {
-				usb = l->data;
-				if (usb->bus == bus && usb->address == addr)
-					break;
-			}
-			if (!l) {
-				/*
-				 * A connection parameter was specified and
-				 * this device does not match the filter.
-				 */
-				continue;
-			}
+
+		/* Filter by connection when externally specified. */
+		for (l = conn_devices; l; l = l->next) {
+			usb = l->data;
+			if (usb->bus == bus && usb->address == addr)
+				break;
+		}
+		if (conn_devices && !l) {
+			sr_spew("Bus %hhu, addr %hhu do not match specified filter.",
+				bus, addr);
+			continue;
 		}
 
+		/* Check USB VID:PID. Get the connection string. */
 		libusb_get_device_descriptor(dev, &des);
+		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
+			continue;
+		pid = des.idProduct;
 		ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
 		if (ret < 0)
 			continue;
-		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
-			continue;
+		sr_dbg("USB enum found %04x:%04x at path %s, %d.%d.",
+			des.idVendor, des.idProduct, conn_id, bus, addr);
+		usb = sr_usb_dev_inst_new(bus, addr, NULL);
 
-		/* USB identification matches, a device was found. */
-		sr_dbg("Found a device (USB identification).");
 		sdi = g_malloc0(sizeof(*sdi));
+		sdi->driver = di;
 		sdi->status = SR_ST_INITIALIZING;
+		sdi->inst_type = SR_INST_USB;
 		sdi->connection_id = g_strdup(conn_id);
-
-		fw_uploaded = 0;
-		if (des.iProduct != LA2016_IPRODUCT_INDEX) {
-			sr_info("Device at '%s' has no firmware loaded.",
-				conn_id);
-
-			ret = la2016_upload_firmware(ctx, dev, des.idProduct);
-			if (ret != SR_OK) {
-				sr_err("MCU firmware upload failed.");
-				g_free(sdi->connection_id);
-				g_free(sdi);
-				continue;
-			}
-			fw_uploaded = g_get_monotonic_time();
-			/* Will re-enumerate. Mark as "unknown address yet". */
-			addr = 0xff;
-		}
-
-		sdi->vendor = g_strdup("Kingst");
-		sdi->model = g_strdup("LA2016");
-
-		for (ch_idx = 0; ch_idx < ARRAY_SIZE(channel_names); ch_idx++) {
-			sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
-				TRUE, channel_names[ch_idx]);
-		}
-
-		devices = g_slist_append(devices, sdi);
+		sdi->conn = usb;
 
 		devc = g_malloc0(sizeof(*devc));
 		sdi->priv = devc;
-		devc->fw_uploaded = fw_uploaded;
+
+		/*
+		 * Load MCU firmware if it is currently missing. Which
+		 * makes the device disappear and renumerate in USB.
+		 * We need to come back another time to communicate to
+		 * this device.
+		 */
+		devc->fw_uploaded = 0;
+		if (des.iProduct != LA2016_IPRODUCT_INDEX) {
+			sr_info("Uploading MCU firmware to '%s'.", conn_id);
+			ret = la2016_upload_firmware(sdi, ctx, dev, pid);
+			if (ret != SR_OK) {
+				sr_err("MCU firmware upload failed.");
+				kingst_la2016_free_sdi(sdi);
+				continue;
+			}
+			devc->fw_uploaded = g_get_monotonic_time();
+			usb->address = 0xff;
+			renum_devices = g_slist_append(renum_devices, sdi);
+			continue;
+		}
+
+		/*
+		 * Communicate to the MCU firmware to access EEPROM data
+		 * which lets us identify the device type. Then stop, to
+		 * share remaining sdi/devc creation with those devices
+		 * which had their MCU firmware uploaded above and which
+		 * get revisited later.
+		 */
+		ret = la2016_identify_read(sdi, usb, dev, TRUE);
+		if (ret != SR_OK || !devc->model) {
+			sr_err("Unknown or unsupported device type.");
+			kingst_la2016_free_sdi(sdi);
+			continue;
+		}
+		found_devices = g_slist_append(found_devices, sdi);
+	}
+	libusb_free_device_list(devlist, 1);
+	g_slist_free_full(conn_devices, sr_usb_dev_inst_free_cb);
+
+	/*
+	 * Wait for devices to re-appear after firmware upload. Append
+	 * the yet unidentified device to the list of found devices, or
+	 * release the previously allocated sdi/devc.
+	 */
+	for (l = renum_devices; l; l = l->next) {
+		sdi = l->data;
+		devc = sdi->priv;
+		ret = la2016_identify_wait(sdi);
+		if (ret != SR_OK || !devc->model) {
+			sr_dbg("Skipping unusable '%s'.", sdi->connection_id);
+			kingst_la2016_free_sdi(sdi);
+			continue;
+		}
+		found_devices = g_slist_append(found_devices, sdi);
+	}
+	g_slist_free(renum_devices);
+
+	/*
+	 * All found devices got identified, their type is known here.
+	 * Complete the sdi/devc creation. Assign default settings
+	 * because the vendor firmware would not let us read back the
+	 * previously written configuration.
+	 */
+	for (l = found_devices; l; l = l->next) {
+		sdi = l->data;
+		devc = sdi->priv;
+
+		sdi->vendor = g_strdup("Kingst");
+		sdi->model = g_strdup(devc->model->name);
+		ch_off = 0;
+
+		/* Create the logic channels. */
+		ch_max = ARRAY_SIZE(channel_names_logic);
+		if (ch_max > devc->model->channel_count)
+			ch_max = devc->model->channel_count;
+		for (ch_idx = 0; ch_idx < ch_max; ch_idx++) {
+			sr_channel_new(sdi, ch_off,
+				SR_CHANNEL_LOGIC, TRUE,
+				channel_names_logic[ch_idx]);
+			ch_off++;
+		}
+
 		sr_sw_limits_init(&devc->sw_limits);
 		devc->sw_limits.limit_samples = LA2016_DFLT_SAMPLEDEPTH;
 		devc->capture_ratio = LA2016_DFLT_CAPT_RATIO;
@@ -283,166 +575,18 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
 
 		sdi->status = SR_ST_INACTIVE;
-		sdi->inst_type = SR_INST_USB;
-
-		sdi->conn = sr_usb_dev_inst_new(bus, addr, NULL);
+		devices = g_slist_append(devices, sdi);
 	}
-	libusb_free_device_list(devlist, 1);
-	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
+	g_slist_free(found_devices);
 
 	return std_scan_complete(di, devices);
 }
 
-static int la2016_dev_open(struct sr_dev_inst *sdi)
-{
-	struct sr_dev_driver *di;
-	struct drv_context *drvc;
-	struct sr_context *ctx;
-	libusb_device **devlist, *dev;
-	struct sr_usb_dev_inst *usb;
-	struct libusb_device_descriptor des;
-	int ret;
-	size_t device_count, dev_idx;
-	gboolean check_conn;
-	char conn_id[64];
-
-	di = sdi->driver;
-	drvc = di->context;
-	ctx = drvc->sr_ctx;;
-	usb = sdi->conn;
-	ret = SR_ERR;
-
-	ret = libusb_get_device_list(ctx->libusb_ctx, &devlist);
-	if (ret < 0) {
-		sr_err("Cannot get device list: %s.", libusb_error_name(ret));
-		return SR_ERR;
-	}
-	device_count = ret;
-	if (!device_count) {
-		sr_warn("Device list is empty. Cannot open.");
-		return SR_ERR;
-	}
-	for (dev_idx = 0; dev_idx < device_count; dev_idx++) {
-		dev = devlist[dev_idx];
-		libusb_get_device_descriptor(dev, &des);
-
-		if (des.idVendor != LA2016_VID || des.idProduct != LA2016_PID)
-			continue;
-		if (des.iProduct != LA2016_IPRODUCT_INDEX)
-			continue;
-
-		check_conn = sdi->status == SR_ST_INITIALIZING;
-		check_conn |= sdi->status == SR_ST_INACTIVE;
-		if (check_conn) {
-			/* Check physical USB bus/port address. */
-			ret = usb_get_port_path(dev, conn_id, sizeof(conn_id));
-			if (ret < 0)
-				continue;
-			if (strcmp(sdi->connection_id, conn_id) != 0) {
-				/* Not the device we looked up before. */
-				continue;
-			}
-		}
-
-		ret = libusb_open(dev, &usb->devhdl);
-		if (ret != 0) {
-			sr_err("Cannot open device: %s.",
-				libusb_error_name(ret));
-			ret = SR_ERR_IO;
-			break;
-		}
-
-		if (usb->address == 0xff) {
-			/*
-			 * First encounter after firmware upload.
-			 * Grab current address after enumeration.
-			 */
-			usb->address = libusb_get_device_address(dev);
-		}
-
-		ret = libusb_claim_interface(usb->devhdl, USB_INTERFACE);
-		if (ret == LIBUSB_ERROR_BUSY) {
-			sr_err("Cannot claim USB interface. Another program or driver using it?");
-			ret = SR_ERR;
-			break;
-		} else if (ret == LIBUSB_ERROR_NO_DEVICE) {
-			sr_err("Device has been disconnected.");
-			ret = SR_ERR;
-			break;
-		} else if (ret != 0) {
-			sr_err("Cannot claim USB interface: %s.",
-				libusb_error_name(ret));
-			ret = SR_ERR;
-			break;
-		}
-
-		if ((ret = la2016_init_device(sdi)) != SR_OK) {
-			sr_err("Cannot initialize device.");
-			break;
-		}
-
-		sr_info("Opened device on %d.%d (logical) / %s (physical), interface %d.",
-			usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
-		ret = SR_OK;
-		break;
-	}
-	libusb_free_device_list(devlist, 1);
-
-	if (ret != SR_OK) {
-		if (usb->devhdl) {
-			libusb_release_interface(usb->devhdl, USB_INTERFACE);
-			libusb_close(usb->devhdl);
-			usb->devhdl = NULL;
-		}
-		return ret;
-	}
-
-	return SR_OK;
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	uint64_t reset_done, now, elapsed_ms;
 	int ret;
 
-	devc = sdi->priv;
-
-	/*
-	 * When the sigrok driver recently has uploaded MCU firmware,
-	 * then wait for the FX2 to re-enumerate. Allow the USB device
-	 * to vanish before it reappears. Timeouts are rough estimates
-	 * after all, the imprecise time of the last check (potentially
-	 * executes after the total check period) simplifies code paths
-	 * with optional diagnostics. And increases the probability of
-	 * successfully detecting "late/slow" devices.
-	 */
-	if (devc->fw_uploaded) {
-		sr_info("Waiting for device to reset after firmware upload.");
-		now = g_get_monotonic_time();
-		reset_done = devc->fw_uploaded + RENUM_GONE_DELAY_MS * 1000;
-		if (now < reset_done)
-			g_usleep(reset_done - now);
-		do {
-			now = g_get_monotonic_time();
-			elapsed_ms = (now - devc->fw_uploaded) / 1000;
-			sr_spew("Waited %" PRIu64 "ms.", elapsed_ms);
-			ret = la2016_dev_open(sdi);
-			if (ret == SR_OK) {
-				devc->fw_uploaded = 0;
-				break;
-			}
-			g_usleep(RENUM_POLL_INTERVAL_MS * 1000);
-		} while (elapsed_ms < RENUM_CHECK_PERIOD_MS);
-		if (ret != SR_OK) {
-			sr_err("Device failed to re-enumerate.");
-			return ret;
-		}
-		sr_info("Device came back after %" PRIi64 "ms.", elapsed_ms);
-	} else {
-		ret = la2016_dev_open(sdi);
-	}
-
+	ret = la2016_open_enum(sdi);
 	if (ret != SR_OK) {
 		sr_err("Cannot open device.");
 		return ret;
@@ -464,9 +608,7 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	sr_info("Closing device on %d.%d (logical) / %s (physical) interface %d.",
 		usb->bus, usb->address, sdi->connection_id, USB_INTERFACE);
-	libusb_release_interface(usb->devhdl, USB_INTERFACE);
-	libusb_close(usb->devhdl);
-	usb->devhdl = NULL;
+	la2016_close_usb(sdi->conn);
 
 	return SR_OK;
 }
@@ -588,9 +730,9 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_SAMPLERATE:
 		if (!sdi)
 			return SR_ERR_ARG;
-		if (devc->max_samplerate == SR_MHZ(500))
+		if (devc->model->samplerate == SR_MHZ(500))
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_500mhz));
-		else if (devc->max_samplerate == SR_MHZ(200))
+		else if (devc->model->samplerate == SR_MHZ(200))
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_200mhz));
 		else
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_100mhz));

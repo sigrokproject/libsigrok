@@ -91,6 +91,15 @@
 
 #define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
 
+struct kingst_model {
+	uint8_t magic;		/* EEPROM magic byte value. */
+	const char *name;	/* User perceived model name. */
+	const char *fpga_stem;	/* Bitstream filename stem. */
+	uint64_t samplerate;	/* Max samplerate in Hz. */
+	size_t channel_count;	/* Max channel count (16, 32). */
+	uint64_t memory_bits;	/* RAM capacity in Gbit (1, 2, 4). */
+};
+
 struct pwm_setting_dev {
 	uint32_t period;
 	uint32_t duty;
@@ -119,13 +128,17 @@ struct pwm_setting {
 };
 
 struct dev_context {
+	uint16_t usb_pid;
+	char *mcu_firmware;
+	char *fpga_bitstream;
 	uint64_t fw_uploaded; /* Timestamp of most recent FW upload. */
+	uint8_t identify_magic;
+	const struct kingst_model *model;
 
 	/* User specified parameters. */
 	struct pwm_setting pwm_setting[LA2016_NUM_PWMCH_MAX];
 	size_t threshold_voltage_idx;
 	float threshold_voltage;
-	uint64_t max_samplerate;
 	uint64_t cur_samplerate;
 	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;
@@ -146,12 +159,14 @@ struct dev_context {
 	struct libusb_transfer *transfer;
 };
 
-SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx,
-	libusb_device *dev, uint16_t product_id);
+SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
+	struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id);
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
+	gboolean show_message);
 SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_device(const struct sr_dev_inst *sdi);
 

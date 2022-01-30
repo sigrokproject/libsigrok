@@ -28,11 +28,26 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define UC_FIRMWARE	"kingst-la-%04x.fw"
-#define FPGA_FW_LA2016	"kingst-la2016-fpga.bitstream"
-#define FPGA_FW_LA2016A	"kingst-la2016a1-fpga.bitstream"
-#define FPGA_FW_LA1016	"kingst-la1016-fpga.bitstream"
-#define FPGA_FW_LA1016A	"kingst-la1016a1-fpga.bitstream"
+/* USB PID dependent MCU firmware. Model dependent FPGA bitstream. */
+#define MCU_FWFILE_FMT	"kingst-la-%04x.fw"
+#define FPGA_FWFILE_FMT	"kingst-%s-fpga.bitstream"
+
+/*
+ * List of supported devices and their features. See @ref kingst_model
+ * for the fields' type and meaning. Table is sorted by EEPROM magic.
+ *
+ * TODO
+ * - Below LA1016 properties were guessed, need verification.
+ * - Add LA5016 and LA5032 devices when their EEPROM magic is known.
+ * - Does LA1010 fit the driver implementation? Samplerates vary with
+ *   channel counts, lack of local sample memory. Most probably not.
+ */
+static const struct kingst_model models[] = {
+	{ 2, "LA2016", "la2016", SR_MHZ(200), 16, 1, },
+	{ 3, "LA1016", "la1016", SR_MHZ(100), 16, 1, },
+	{ 8, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
+	{ 9, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
+};
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
 #define CMD_FPGA_ENABLE	0x10
@@ -611,7 +626,7 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->cur_samplerate > devc->max_samplerate) {
+	if (devc->cur_samplerate > devc->model->samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
 			devc->cur_samplerate);
 		return SR_ERR_ARG;
@@ -622,11 +637,11 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 	}
 
-	clock_divisor = devc->max_samplerate / (double)devc->cur_samplerate;
+	clock_divisor = devc->model->samplerate / (double)devc->cur_samplerate;
 	if (clock_divisor > 65535)
 		return SR_ERR_ARG;
 	divider_u16 = (uint16_t)(clock_divisor + 0.5);
-	devc->cur_samplerate = devc->max_samplerate / divider_u16;
+	devc->cur_samplerate = devc->model->samplerate / divider_u16;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
 		&limit_samples, NULL, NULL, NULL);
@@ -838,12 +853,31 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int la2016_upload_firmware(struct sr_context *sr_ctx,
-	libusb_device *dev, uint16_t product_id)
+SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
+	struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id)
 {
-	char fw_file[1024];
-	snprintf(fw_file, sizeof(fw_file), UC_FIRMWARE, product_id);
-	return ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
+	struct dev_context *devc;
+	char *fw_file;
+	int ret;
+
+	devc = sdi ? sdi->priv : NULL;
+
+	fw_file = g_strdup_printf(MCU_FWFILE_FMT, product_id);
+	sr_info("USB PID %04hx, MCU firmware '%s'.", product_id, fw_file);
+
+	ret = ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
+	if (ret != SR_OK) {
+		g_free(fw_file);
+		return ret;
+	}
+
+	if (devc) {
+		devc->mcu_firmware = fw_file;
+		fw_file = NULL;
+	}
+	g_free(fw_file);
+
+	return SR_OK;
 }
 
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
@@ -1186,16 +1220,17 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	return TRUE;
 }
 
-SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
+SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
+	gboolean show_message)
 {
 	struct dev_context *devc;
-	uint16_t state;
 	uint8_t buf[8];
 	const uint8_t *rdptr;
 	uint8_t date_yy, date_mm;
 	uint8_t dinv_yy, dinv_mm;
 	uint8_t magic;
-	const char *bitstream_fn;
+	size_t model_idx;
+	const struct kingst_model *model;
 	int ret;
 
 	devc = sdi->priv;
@@ -1208,7 +1243,10 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	 * devices when unknown magic numbers are seen.
 	 */
 	ret = ctrl_in(sdi, CMD_EEPROM, 0x20, 0, buf, 4 * sizeof(uint8_t));
-	if (ret != SR_OK) {
+	if (ret != SR_OK && !show_message) {
+		sr_dbg("Cannot access EEPROM.");
+		return SR_ERR_IO;
+	} else if (ret != SR_OK) {
 		sr_err("Cannot read manufacture date in EEPROM.");
 	} else {
 		rdptr = &buf[0];
@@ -1259,6 +1297,7 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 	 * do not match the hardware model. An LA1016 won't become a
 	 * LA2016 by faking its EEPROM content.
 	 */
+	devc->identify_magic = 0;
 	if ((ret = ctrl_in(sdi, CMD_EEPROM, 0x08, 0, &buf, sizeof(buf))) != SR_OK) {
 		sr_err("Cannot read EEPROM device identifier bytes.");
 		return ret;
@@ -1275,36 +1314,43 @@ SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
 		sr_err("Cannot find consistent device type identification.");
 		magic = 0;
 	}
-	sr_dbg("Device type: magic number is %hhu.", magic);
+	devc->identify_magic = magic;
 
-	/* Select the FPGA bitstream depending on the model. */
-	switch (magic) {
-	case 2:
-		bitstream_fn = FPGA_FW_LA2016;
-		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
-		break;
-	case 3:
-		bitstream_fn = FPGA_FW_LA1016;
-		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
-		break;
-	case 8:
-		bitstream_fn = FPGA_FW_LA2016A;
-		devc->max_samplerate = MAX_SAMPLE_RATE_LA2016;
-		break;
-	case 9:
-		bitstream_fn = FPGA_FW_LA1016A;
-		devc->max_samplerate = MAX_SAMPLE_RATE_LA1016;
-		break;
-	default:
-		bitstream_fn = NULL;
+	devc->model = NULL;
+	for (model_idx = 0; model_idx < ARRAY_SIZE(models); model_idx++) {
+		model = &models[model_idx];
+		if (model->magic != magic)
+			continue;
+		devc->model = model;
+		sr_info("EEPROM magic %d, model '%s'.", (int)magic, model->name);
+		devc->fpga_bitstream = g_strdup_printf(FPGA_FWFILE_FMT,
+			model->fpga_stem);
+		sr_info("Max %zu channels at %" PRIu64 "MHz samplerate.",
+			model->channel_count, model->samplerate / SR_MHZ(1));
+		sr_info("FPGA bitstream file '%s'.", devc->fpga_bitstream);
 		break;
 	}
-	if (!bitstream_fn || !*bitstream_fn) {
+	if (!devc->model) {
+		sr_spew("Device type: magic number is %hhu.", magic);
 		sr_err("Cannot identify as one of the supported models.");
 		return SR_ERR;
 	}
 
-	if (check_fpga_bitstream(sdi) != SR_OK) {
+	return SR_OK;
+}
+
+SR_PRIV int la2016_init_device(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	const char *bitstream_fn;
+	int ret;
+	uint16_t state;
+
+	devc = sdi->priv;
+	bitstream_fn = devc ? devc->fpga_bitstream : "";
+
+	ret = check_fpga_bitstream(sdi);
+	if (ret != SR_OK) {
 		ret = upload_fpga_bitstream(sdi, bitstream_fn);
 		if (ret != SR_OK) {
 			sr_err("Cannot upload FPGA bitstream.");
