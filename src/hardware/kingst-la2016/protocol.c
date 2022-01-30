@@ -392,110 +392,101 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 	return SR_OK;
 }
 
-static int enable_pwm(const struct sr_dev_inst *sdi, gboolean p1, gboolean p2)
+/*
+ * Communicates a channel's configuration to the device after the
+ * parameters may have changed. Configuration of one channel may
+ * interfere with other channels since they share FPGA registers.
+ */
+static int set_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
 {
-	struct dev_context *devc;
-	uint8_t cfg;
-	int ret;
-
-	devc = sdi->priv;
-
-	cfg = 0;
-	if (p1)
-		cfg |= 1U << 0;
-	if (p2)
-		cfg |= 1U << 1;
-	sr_dbg("Set PWM enable %d %d. Config 0x%02x.", p1, p2, cfg);
-
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0, &cfg, sizeof(cfg));
-	if (ret != SR_OK) {
-		sr_err("Cannot setup PWM enabled state.");
-		return ret;
-	}
-
-	devc->pwm_setting[0].enabled = (p1) ? 1 : 0;
-	devc->pwm_setting[1].enabled = (p2) ? 1 : 0;
-
-	return SR_OK;
-}
-
-static int configure_pwm(const struct sr_dev_inst *sdi, uint8_t which,
-	float freq, float duty)
-{
-	static uint8_t ctrl_reg_tab[] = { REG_PWM1, REG_PWM2, };
+	static uint8_t reg_bases[] = { REG_PWM1, REG_PWM2, };
 
 	struct dev_context *devc;
-	uint8_t ctrl_reg;
-	struct pwm_setting_dev cfg;
-	struct pwm_setting *setting;
+	struct pwm_setting *params;
+	uint8_t reg_base;
+	double val_f;
+	uint32_t val_u;
+	uint32_t period, duty;
+	size_t ch;
 	int ret;
-	uint8_t buf[2 * sizeof(uint32_t)];
+	uint8_t enable_all, enable_cfg, reg_val;
+	uint8_t buf[REG_PWM2 - REG_PWM1]; /* Width of one REG_PWMx. */
 	uint8_t *wrptr;
 
 	devc = sdi->priv;
+	if (idx >= ARRAY_SIZE(devc->pwm_setting))
+		return SR_ERR_ARG;
+	params = &devc->pwm_setting[idx];
+	if (idx >= ARRAY_SIZE(reg_bases))
+		return SR_ERR_ARG;
+	reg_base = reg_bases[idx];
 
-	if (which < 1 || which > ARRAY_SIZE(ctrl_reg_tab)) {
-		sr_err("Invalid PWM channel: %d.", which);
-		return SR_ERR;
-	}
-	if (freq < 0 || freq > MAX_PWM_FREQ) {
-		sr_err("Too high a PWM frequency: %.1f.", freq);
-		return SR_ERR;
-	}
-	if (duty < 0 || duty > 100) {
-		sr_err("Invalid PWM duty cycle: %f.", duty);
-		return SR_ERR;
-	}
+	/*
+	 * Map application's specs to hardware register values. Do math
+	 * in floating point initially, but convert to u32 eventually.
+	 */
+	sr_dbg("PWM config, app spec, ch %zu, en %d, freq %.1f, duty %.1f.",
+		idx, params->enabled ? 1 : 0, params->freq, params->duty);
+	val_f = PWM_CLOCK;
+	val_f /= params->freq;
+	val_u = val_f;
+	period = val_u;
+	val_f = period;
+	val_f *= params->duty;
+	val_f /= 100.0;
+	val_f += 0.5;
+	val_u = val_f;
+	duty = val_u;
+	sr_dbg("PWM config, reg 0x%04x, freq %u, duty %u.",
+		(unsigned)reg_base, (unsigned)period, (unsigned)duty);
 
-	memset(&cfg, 0, sizeof(cfg));
-	cfg.period = (uint32_t)(PWM_CLOCK / freq);
-	cfg.duty = (uint32_t)(0.5f + (cfg.period * duty / 100.));
-	sr_dbg("Set PWM%d period %d, duty %d.", which, cfg.period, cfg.duty);
+	/* Get the "enabled" state of all supported PWM channels. */
+	enable_all = 0;
+	for (ch = 0; ch < ARRAY_SIZE(devc->pwm_setting); ch++) {
+		if (!devc->pwm_setting[ch].enabled)
+			continue;
+		enable_all |= 1U << ch;
+	}
+	enable_cfg = 1U << idx;
+	sr_spew("PWM config, enable all 0x%02hhx, cfg 0x%02hhx.",
+		enable_all, enable_cfg);
 
-	ctrl_reg = ctrl_reg_tab[which - 1];
-	wrptr = buf;
-	write_u32le_inc(&wrptr, cfg.period);
-	write_u32le_inc(&wrptr, cfg.duty);
-	ret = ctrl_out(sdi, CMD_FPGA_SPI, ctrl_reg, 0, buf, wrptr - buf);
+	/*
+	 * Disable the to-get-configured channel before its parameters
+	 * will change. Or disable and exit when the channel is supposed
+	 * to get turned off.
+	 */
+	sr_spew("PWM config, disabling before param change.");
+	reg_val = enable_all & ~enable_cfg;
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0,
+		&reg_val, sizeof(reg_val));
 	if (ret != SR_OK) {
-		sr_err("Cannot setup PWM%d configuration %d %d.",
-			which, cfg.period, cfg.duty);
+		sr_err("Cannot adjust PWM enabled state.");
+		return ret;
+	}
+	if (!params->enabled)
+		return SR_OK;
+
+	/* Write register values to device. */
+	sr_spew("PWM config, sending new parameters.");
+	wrptr = buf;
+	write_u32le_inc(&wrptr, period);
+	write_u32le_inc(&wrptr, duty);
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, reg_base, 0, buf, wrptr - buf);
+	if (ret != SR_OK) {
+		sr_err("Cannot change PWM parameters.");
 		return ret;
 	}
 
-	setting = &devc->pwm_setting[which - 1];
-	setting->freq = freq;
-	setting->duty = duty;
-
-	return SR_OK;
-}
-
-static int set_defaults(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	int ret;
-
-	devc = sdi->priv;
-
-	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
-	if (ret)
+	/* Enable configured channel after write completion. */
+	sr_spew("PWM config, enabling after param change.");
+	reg_val = enable_all | enable_cfg;
+	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_PWM_EN, 0,
+		&reg_val, sizeof(reg_val));
+	if (ret != SR_OK) {
+		sr_err("Cannot adjust PWM enabled state.");
 		return ret;
-
-	ret = enable_pwm(sdi, FALSE, FALSE);
-	if (ret)
-		return ret;
-
-	ret = configure_pwm(sdi, 1, SR_KHZ(1), 50);
-	if (ret)
-		return ret;
-
-	ret = configure_pwm(sdi, 2, SR_KHZ(100), 50);
-	if (ret)
-		return ret;
-
-	ret = enable_pwm(sdi, TRUE, TRUE);
-	if (ret)
-		return ret;
+	}
 
 	return SR_OK;
 }
@@ -1411,17 +1402,6 @@ SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
-SR_PRIV int la2016_init_params(const struct sr_dev_inst *sdi)
-{
-	int ret;
-
-	ret = set_defaults(sdi);
-	if (ret != SR_OK)
-		return ret;
-
-	return SR_OK;
-}
-
 SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi)
 {
 	int ret;
@@ -1433,4 +1413,9 @@ SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi)
 	}
 
 	return SR_OK;
+}
+
+SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
+{
+	return set_pwm_config(sdi, idx);
 }

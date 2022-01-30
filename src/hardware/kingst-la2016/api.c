@@ -567,12 +567,27 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			ch_off++;
 		}
 
+		/*
+		 * Ideally we'd get the previous configuration from the
+		 * hardware, but this device is write-only. So we have
+		 * to assign a fixed set of initial configuration values.
+		 */
 		sr_sw_limits_init(&devc->sw_limits);
 		devc->sw_limits.limit_samples = 0;
 		devc->capture_ratio = 50;
 		devc->cur_samplerate = devc->model->samplerate;
 		devc->threshold_voltage_idx = 0;
 		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
+		if  (ARRAY_SIZE(devc->pwm_setting) >= 1) {
+			devc->pwm_setting[0].enabled = FALSE;
+			devc->pwm_setting[0].freq = SR_KHZ(1);
+			devc->pwm_setting[0].duty = 50;
+		}
+		if  (ARRAY_SIZE(devc->pwm_setting) >= 2) {
+			devc->pwm_setting[1].enabled = FALSE;
+			devc->pwm_setting[1].freq = SR_KHZ(100);
+			devc->pwm_setting[1].duty = 50;
+		}
 
 		sdi->status = SR_ST_INACTIVE;
 		devices = g_slist_append(devices, sdi);
@@ -584,7 +599,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
+	size_t ch;
+
+	devc = sdi->priv;
 
 	ret = la2016_open_enum(sdi);
 	if (ret != SR_OK) {
@@ -592,14 +611,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 		return ret;
 	}
 
-	/*
-	 * Setup a default configuration of device features. This
-	 * affects the logic threshold, PWM channels, and similar.
-	 */
-	ret = la2016_init_params(sdi);
-	if (ret != SR_OK) {
-		sr_err("Cannot initialize device's hardware.");
-		return ret;
+	/* Send most recent PWM configuration to the device. */
+	for (ch = 0; ch < ARRAY_SIZE(devc->pwm_setting); ch++) {
+		ret = la2016_write_pwm_config(sdi, ch);
+		if (ret != SR_OK)
+			return ret;
 	}
 
 	return SR_OK;

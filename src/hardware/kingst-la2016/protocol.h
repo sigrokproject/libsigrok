@@ -88,11 +88,6 @@ struct kingst_model {
 	uint64_t memory_bits;	/* RAM capacity in Gbit (1, 2, 4). */
 };
 
-struct pwm_setting_dev {
-	uint32_t period;
-	uint32_t duty;
-};
-
 struct trigger_cfg {
 	uint32_t channels;
 	uint32_t enabled;
@@ -109,12 +104,6 @@ struct capture_info {
 #define NUM_PACKETS_IN_CHUNK	5
 #define TRANSFER_PACKET_LENGTH	16
 
-struct pwm_setting {
-	gboolean enabled;
-	float freq;
-	float duty;
-};
-
 struct dev_context {
 	uint16_t usb_pid;
 	char *mcu_firmware;
@@ -124,7 +113,11 @@ struct dev_context {
 	const struct kingst_model *model;
 
 	/* User specified parameters. */
-	struct pwm_setting pwm_setting[LA2016_NUM_PWMCH_MAX];
+	struct pwm_setting {
+		gboolean enabled;
+		float freq;
+		float duty;
+	} pwm_setting[LA2016_NUM_PWMCH_MAX];
 	size_t threshold_voltage_idx;
 	float threshold_voltage;
 	uint64_t cur_samplerate;
@@ -156,7 +149,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	gboolean show_message);
 SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi);
-SR_PRIV int la2016_init_params(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx);
 
 #endif
