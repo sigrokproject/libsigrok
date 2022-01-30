@@ -95,6 +95,10 @@ static const struct kingst_model models[] = {
 #define RUNSTATE_TRGD_BIT	(1UL << 2)
 #define RUNSTATE_POST_BIT	(1UL << 3)
 
+/* Properties related to the layout of capture data downloads. */
+#define NUM_PACKETS_IN_CHUNK	5
+#define TRANSFER_PACKET_LENGTH	16
+
 static int ctrl_in(const struct sr_dev_inst *sdi,
 	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	void *data, uint16_t wLength)
@@ -514,7 +518,12 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_trigger *trigger;
-	struct trigger_cfg cfg;
+	struct trigger_cfg {
+		uint32_t channels;
+		uint32_t enabled;
+		uint32_t level;
+		uint32_t high_or_falling;
+	} cfg;
 	GSList *stages;
 	GSList *channel;
 	struct sr_trigger_stage *stage1;

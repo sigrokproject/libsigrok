@@ -88,22 +88,6 @@ struct kingst_model {
 	uint64_t memory_bits;	/* RAM capacity in Gbit (1, 2, 4). */
 };
 
-struct trigger_cfg {
-	uint32_t channels;
-	uint32_t enabled;
-	uint32_t level;
-	uint32_t high_or_falling;
-};
-
-struct capture_info {
-	uint32_t n_rep_packets;
-	uint32_t n_rep_packets_before_trigger;
-	uint32_t write_pos;
-};
-
-#define NUM_PACKETS_IN_CHUNK	5
-#define TRANSFER_PACKET_LENGTH	16
-
 struct dev_context {
 	uint16_t usb_pid;
 	char *mcu_firmware;
@@ -128,7 +112,11 @@ struct dev_context {
 	gboolean trigger_involved;
 	gboolean completion_seen;
 	gboolean download_finished;
-	struct capture_info info;
+	struct capture_info {
+		uint32_t n_rep_packets;
+		uint32_t n_rep_packets_before_trigger;
+		uint32_t write_pos;
+	} info;
 	uint32_t n_transfer_packets_to_read; /* each with 5 acq packets */
 	uint32_t n_bytes_to_read;
 	uint32_t n_reps_until_trigger;
