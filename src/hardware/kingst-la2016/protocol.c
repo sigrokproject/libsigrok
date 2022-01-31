@@ -96,17 +96,6 @@ static const struct kingst_model models[] = {
 #define RUNSTATE_TRGD_BIT	(1UL << 2)
 #define RUNSTATE_POST_BIT	(1UL << 3)
 
-/*
- * Properties related to the layout of capture data downloads.
- *
- * TODO Check the layout of 32 channel models' capture data. Could it be
- * 3x (u32 + u8) instead of 5x (u16 + u8) perhaps? Same 16 bytes chunk
- * but fewer packets per chunk and thus per transfer? Which questions
- * the NUM_PACKETS_IN_CHUNK literal, maybe needs to be a runtime value?
- */
-#define NUM_PACKETS_IN_CHUNK	5
-#define TRANSFER_PACKET_LENGTH	16
-
 static int ctrl_in(const struct sr_dev_inst *sdi,
 	uint8_t bRequest, uint16_t wValue, uint16_t wIndex,
 	void *data, uint16_t wLength)
@@ -861,10 +850,10 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 		devc->info.n_rep_packets_before_trigger,
 		devc->info.write_pos, devc->info.write_pos);
 
-	if (devc->info.n_rep_packets % NUM_PACKETS_IN_CHUNK) {
-		sr_warn("Unexpected packets count %lu, not a multiple of %d.",
+	if (devc->info.n_rep_packets % devc->packets_per_chunk) {
+		sr_warn("Unexpected packets count %lu, not a multiple of %lu.",
 			(unsigned long)devc->info.n_rep_packets,
-			NUM_PACKETS_IN_CHUNK);
+			(unsigned long)devc->packets_per_chunk);
 	}
 
 	return SR_OK;
@@ -981,8 +970,10 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
-	devc->n_transfer_packets_to_read = devc->info.n_rep_packets / NUM_PACKETS_IN_CHUNK;
-	devc->n_bytes_to_read = devc->n_transfer_packets_to_read * TRANSFER_PACKET_LENGTH;
+	devc->n_transfer_packets_to_read = devc->info.n_rep_packets;
+	devc->n_transfer_packets_to_read /= devc->packets_per_chunk;
+	devc->n_bytes_to_read = devc->n_transfer_packets_to_read;
+	devc->n_bytes_to_read *= TRANSFER_PACKET_LENGTH;
 	devc->read_pos = devc->info.write_pos - devc->n_bytes_to_read;
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
@@ -1074,8 +1065,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	sample_value = 0;
 	rp = packets;
 	while (num_xfers--) {
-		/* XXX model dependent? 5 or 3? */
-		num_pkts = NUM_PACKETS_IN_CHUNK;
+		num_pkts = devc->packets_per_chunk;
 		while (num_pkts--) {
 
 			/* TODO Verify 32channel layout. */

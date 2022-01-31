@@ -1025,6 +1025,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			sr_err("Cannot allocate buffer for session feed.");
 			return SR_ERR_MALLOC;
 		}
+		devc->packets_per_chunk = TRANSFER_PACKET_LENGTH;
+		devc->packets_per_chunk--;
+		devc->packets_per_chunk /= unitsize + sizeof(uint8_t);
 	}
 
 	sr_sw_limits_acquisition_start(&devc->sw_limits);

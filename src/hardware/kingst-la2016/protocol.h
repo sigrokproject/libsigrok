@@ -78,6 +78,8 @@
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
 
+/* Properties related to the layout of capture data downloads. */
+#define TRANSFER_PACKET_LENGTH	16
 #define LA2016_NUM_SAMPLES_MAX	(UINT64_C(10 * 1000 * 1000 * 1000))
 
 /* Maximum device capabilities. May differ between models. */
@@ -129,6 +131,7 @@ struct dev_context {
 	gboolean trigger_involved;
 	gboolean completion_seen;
 	gboolean download_finished;
+	uint32_t packets_per_chunk;
 	struct capture_info {
 		uint32_t n_rep_packets;
 		uint32_t n_rep_packets_before_trigger;
