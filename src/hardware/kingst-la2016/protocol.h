@@ -67,23 +67,13 @@
 #define LA2016_EP2_PADDING	2048
 
 /*
- * The complex logic input threshold voltage support with a custom level
- * is not operational yet. Ideally we could support the set of pre-made
- * voltages with their pretty text labels, and one of them referencing
- * a voltage which is user specified. But not all applications support
- * this setup equally well, or present it most appropriately to users.
- * So let's implement something simpler for the moment until the more
- * complex approach becomes accessible in all applications.
- *
- * Strictly speaking the logic input threshold voltage is a property of
- * the "Logic" channel group. Again not all applications support such
- * an approach, and like to see them as global device properties.
+ * Whether the logic input threshold voltage is a config item of the
+ * "Logic" channel group or a global config item of the device. Ideally
+ * it would be the former (being strictly related to the Logic channels)
+ * but mainline applications work better with the latter, and many other
+ * device drivers implement it that way, too.
  */
 #define WITH_THRESHOLD_DEVCFG	1
-#define WITH_THRESHOLD_SIMPLE	1
-#if !WITH_THRESHOLD_DEVCFG && !WITH_THRESHOLD_SIMPLE
-#  error "Custom threshold in Logic group is not implemented."
-#endif
 
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
@@ -123,9 +113,6 @@ struct dev_context {
 		float duty;
 	} pwm_setting[LA2016_NUM_PWMCH_MAX];
 	size_t threshold_voltage_idx;
-#if !WITH_THRESHOLD_SIMPLE
-	float threshold_voltage;
-#endif
 	uint64_t cur_samplerate;
 	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;

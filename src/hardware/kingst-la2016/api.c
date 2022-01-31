@@ -50,10 +50,6 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 #if WITH_THRESHOLD_DEVCFG
 	SR_CONF_VOLTAGE_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-#if !WITH_THRESHOLD_SIMPLE
-	SR_CONF_LOGIC_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_LOGIC_THRESHOLD_CUSTOM | SR_CONF_GET | SR_CONF_SET,
-#endif
 #endif
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
@@ -153,8 +149,6 @@ static const uint64_t rates_100mhz[] = {
 	SR_MHZ(100),
 };
 
-#if WITH_THRESHOLD_SIMPLE
-
 /*
  * Only list a few discrete voltages, to form a useful set which covers
  * most logic families. Too many choices can make some applications use
@@ -187,55 +181,6 @@ static double threshold_voltage(const struct sr_dev_inst *sdi, double *high)
 
 	return voltage;
 }
-
-#else /* WITH_THRESHOLD_SIMPLE */
-
-static const float logic_threshold_value[] = {
-	1.58,
-	2.5,
-	1.165,
-	1.5,
-	1.25,
-	0.9,
-	0.75,
-	0.60,
-	0.45,
-};
-
-static const char *logic_threshold[] = {
-	"TTL 5V",
-	"CMOS 5V",
-	"CMOS 3.3V",
-	"CMOS 3.0V",
-	"CMOS 2.5V",
-	"CMOS 1.8V",
-	"CMOS 1.5V",
-	"CMOS 1.2V",
-	"CMOS 0.9V",
-	"USER",
-};
-
-#define LOGIC_THRESHOLD_IDX_USER	(ARRAY_SIZE(logic_threshold) - 1)
-
-static double threshold_voltage(const struct sr_dev_inst *sdi, double *high)
-{
-	struct dev_context *devc;
-	size_t idx;
-	double voltage;
-
-	devc = sdi->priv;
-	idx = devc->threshold_voltage_idx;
-	if (idx == LOGIC_THRESHOLD_IDX_USER)
-		voltage = devc->threshold_voltage;
-	else
-		voltage = logic_threshold_value[idx];
-	if (high)
-		*high = voltage;
-
-	return voltage;
-}
-
-#endif /* WITH_THRESHOLD_SIMPLE */
 
 /* Convenience. Release an allocated devc from error paths. */
 static void kingst_la2016_free_devc(struct dev_context *devc)
@@ -673,12 +618,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->sw_limits.limit_samples = 0;
 		devc->capture_ratio = 50;
 		devc->cur_samplerate = devc->model->samplerate;
-#if WITH_THRESHOLD_SIMPLE
 		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_DFLT;
-#else /* WITH_THRESHOLD_SIMPLE */
-		devc->threshold_voltage_idx = 0;
-		devc->threshold_voltage = logic_threshold_value[devc->threshold_voltage_idx];
-#endif /* WITH_THRESHOLD_SIMPLE */
 		if  (ARRAY_SIZE(devc->pwm_setting) >= 1) {
 			devc->pwm_setting[0].enabled = FALSE;
 			devc->pwm_setting[0].freq = SR_KHZ(1);
@@ -803,7 +743,6 @@ static int config_get(uint32_t key, GVariant **data,
 	struct pwm_setting *pwm;
 	struct sr_usb_dev_inst *usb;
 	double voltage, rounded;
-	const char *label;
 
 	(void)rounded;
 	(void)voltage;
@@ -821,12 +760,10 @@ static int config_get(uint32_t key, GVariant **data,
 	if (cg && cg_type == SR_CHANNEL_LOGIC) {
 		switch (key) {
 #if !WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 		case SR_CONF_VOLTAGE_THRESHOLD:
 			voltage = threshold_voltage(sdi, NULL);
 			*data = std_gvar_tuple_double(voltage, voltage);
 			break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 		default:
 			return SR_ERR_NA;
@@ -868,24 +805,10 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 #if WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		voltage = threshold_voltage(sdi, NULL);
 		*data = std_gvar_tuple_double(voltage, voltage);
 		break;
-#else /* WITH_THRESHOLD_SIMPLE */
-	case SR_CONF_VOLTAGE_THRESHOLD:
-		rounded = (int)(devc->threshold_voltage / 0.1) * 0.1;
-		*data = std_gvar_tuple_double(rounded, rounded + 0.1);
-		break;
-	case SR_CONF_LOGIC_THRESHOLD:
-		label = logic_threshold[devc->threshold_voltage_idx];
-		*data = g_variant_new_string(label);
-		break;
-	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
-		*data = g_variant_new_double(devc->threshold_voltage);
-		break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 	default:
 		return SR_ERR_NA;
@@ -902,7 +825,6 @@ static int config_set(uint32_t key, GVariant *data,
 	size_t logic_idx, analog_idx;
 	struct pwm_setting *pwm;
 	double value_f;
-	double low, high, voltage;
 	int idx;
 
 	devc = sdi->priv;
@@ -916,7 +838,6 @@ static int config_set(uint32_t key, GVariant *data,
 	if (cg && cg_type == SR_CHANNEL_LOGIC) {
 		switch (key) {
 #if !WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 		case SR_CONF_LOGIC_THRESHOLD:
 			idx = std_double_tuple_idx(data,
 				ARRAY_AND_SIZE(threshold_ranges));
@@ -924,7 +845,6 @@ static int config_set(uint32_t key, GVariant *data,
 				return SR_ERR_ARG;
 			devc->threshold_voltage_idx = idx;
 			break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 		default:
 			return SR_ERR_NA;
@@ -977,7 +897,6 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->capture_ratio = g_variant_get_uint64(data);
 		break;
 #if WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		idx = std_double_tuple_idx(data,
 			ARRAY_AND_SIZE(threshold_ranges));
@@ -985,26 +904,6 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		devc->threshold_voltage_idx = idx;
 		break;
-#else /* WITH_THRESHOLD_SIMPLE */
-	case SR_CONF_VOLTAGE_THRESHOLD:
-		g_variant_get(data, "(dd)", &low, &high);
-		devc->threshold_voltage = (low + high) / 2.0;
-		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_USER;
-		break;
-	case SR_CONF_LOGIC_THRESHOLD: {
-		idx = std_str_idx(data, ARRAY_AND_SIZE(logic_threshold));
-		if (idx < 0)
-			return SR_ERR_ARG;
-		if (idx != LOGIC_THRESHOLD_IDX_USER) {
-			devc->threshold_voltage = logic_threshold_value[idx];
-		}
-		devc->threshold_voltage_idx = idx;
-		break;
-	}
-	case SR_CONF_LOGIC_THRESHOLD_CUSTOM:
-		devc->threshold_voltage = g_variant_get_double(data);
-		break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 	default:
 		return SR_ERR_NA;
@@ -1038,11 +937,9 @@ static int config_list(uint32_t key, GVariant **data,
 				sizeof(devopts_cg_logic[0]));
 			break;
 #if !WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 		case SR_CONF_VOLTAGE_THRESHOLD:
 			*data = std_gvar_thresholds(ARRAY_AND_SIZE(threshold_ranges));
 			break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 		default:
 			return SR_ERR_NA;
@@ -1083,20 +980,9 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_u64(0, LA2016_NUM_SAMPLES_MAX);
 		break;
 #if WITH_THRESHOLD_DEVCFG
-#if WITH_THRESHOLD_SIMPLE
 	case SR_CONF_VOLTAGE_THRESHOLD:
 		*data = std_gvar_thresholds(ARRAY_AND_SIZE(threshold_ranges));
 		break;
-#else /* WITH_THRESHOLD_SIMPLE */
-	case SR_CONF_VOLTAGE_THRESHOLD:
-		*data = std_gvar_min_max_step_thresholds(
-			LA2016_THR_VOLTAGE_MIN,
-			LA2016_THR_VOLTAGE_MAX, 0.1);
-		break;
-	case SR_CONF_LOGIC_THRESHOLD:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_threshold));
-		break;
-#endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
