@@ -86,6 +86,10 @@ static const struct kingst_model models[] = {
 #define REG_PWM1	0x70	/* Write config for user PWM1. */
 #define REG_PWM2	0x78	/* Write config for user PWM2. */
 
+/* Bit patterns to write to REG_CAPT_MODE. */
+#define CAPTMODE_TO_RAM	0x00
+#define CAPTMODE_STREAM	0x01
+
 /* Bit patterns to write to REG_RUN, setup run mode. */
 #define RUNMODE_HALT	0x00
 #define RUNMODE_RUN	0x03
@@ -512,8 +516,8 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_trigger *trigger;
 	struct trigger_cfg {
-		uint32_t channels;
-		uint32_t enabled;
+		uint32_t channels;	/* Actually: Enabled channels? */
+		uint32_t enabled;	/* Actually: Triggering channels? */
 		uint32_t level;
 		uint32_t high_or_falling;
 	} cfg;
@@ -579,7 +583,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 		}
 	}
 	sr_dbg("Set trigger config: "
-		"channels 0x%04x, trigger-enabled 0x%04x, "
+		"enabled-channels 0x%04x, triggering-channels 0x%04x, "
 		"level-triggered 0x%04x, high/falling 0x%04x.",
 		cfg.channels, cfg.enabled, cfg.level, cfg.high_or_falling);
 
@@ -896,7 +900,7 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 	if (ret != SR_OK)
 		return ret;
 
-	cmd = 0;
+	cmd = CAPTMODE_TO_RAM;
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd));
 	if (ret != SR_OK) {
 		sr_err("Cannot send command to stop sampling.");
