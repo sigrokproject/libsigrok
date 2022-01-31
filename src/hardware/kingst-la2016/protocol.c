@@ -80,7 +80,8 @@ static const struct kingst_model models[] = {
 #define REG_CAPT_MODE	0x03	/* Write 0x00 capture to SDRAM, 0x01 streaming. */
 #define REG_BULK	0x08	/* Write start addr, byte count to download samples. */
 #define REG_SAMPLING	0x10	/* Write capture config, read capture SDRAM location. */
-#define REG_TRIGGER	0x20	/* write level and edge trigger config. */
+#define REG_TRIGGER	0x20	/* Write level and edge trigger config. */
+#define REG_UNKNOWN_30	0x30
 #define REG_THRESHOLD	0x68	/* Write PWM config to setup input threshold DAC. */
 #define REG_PWM1	0x70	/* Write config for user PWM1. */
 #define REG_PWM2	0x78	/* Write config for user PWM2. */
@@ -168,11 +169,11 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 static int check_fpga_bitstream(const struct sr_dev_inst *sdi)
 {
 	uint8_t init_rsp;
+	uint8_t buff[REG_PWM_EN - REG_RUN]; /* Larger of REG_RUN, REG_PWM_EN. */
 	int ret;
 	uint16_t run_state;
 	uint8_t pwm_en;
 	size_t read_len;
-	uint8_t buff[sizeof(run_state)];
 	const uint8_t *rdptr;
 
 	sr_dbg("Checking operation of the FPGA bitstream.");
@@ -337,7 +338,7 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
 	int ret;
 	uint16_t duty_R79, duty_R56;
-	uint8_t buf[2 * sizeof(uint16_t)];
+	uint8_t buf[REG_PWM1 - REG_THRESHOLD]; /* Width of REG_THRESHOLD. */
 	uint8_t *wrptr;
 
 	/* Clamp threshold setting to valid range for LA2016. */
@@ -526,7 +527,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	struct sr_trigger_match *match;
 	uint16_t ch_mask;
 	int ret;
-	uint8_t buf[4 * sizeof(uint32_t)];
+	uint8_t buf[REG_UNKNOWN_30 - REG_TRIGGER]; /* Width of REG_TRIGGER. */
 	uint8_t *wrptr;
 
 	devc = sdi->priv;
@@ -766,7 +767,7 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 
 	int ret;
 	uint16_t state;
-	uint8_t buff[sizeof(state)];
+	uint8_t buff[REG_PWM_EN - REG_RUN]; /* Width of REG_RUN. */
 	const uint8_t *rdptr;
 	const char *label;
 
@@ -831,7 +832,7 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	int ret;
-	uint8_t buf[3 * sizeof(uint32_t)];
+	uint8_t buf[REG_TRIGGER - REG_SAMPLING]; /* Width of REG_SAMPLING. */
 	const uint8_t *rdptr;
 
 	devc = sdi->priv;
@@ -961,7 +962,7 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 	int ret;
-	uint8_t wrbuf[2 * sizeof(uint32_t)];
+	uint8_t wrbuf[REG_SAMPLING - REG_BULK]; /* Width of REG_BULK. */
 	uint8_t *wrptr;
 	uint32_t to_read;
 	uint8_t *buffer;
@@ -1231,7 +1232,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	gboolean show_message)
 {
 	struct dev_context *devc;
-	uint8_t buf[8];
+	uint8_t buf[8]; /* Larger size of manuf date and device type magic. */
 	size_t rdoff, rdlen;
 	const uint8_t *rdptr;
 	uint8_t date_yy, date_mm;
