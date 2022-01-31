@@ -335,13 +335,10 @@ static int enable_fpga_bitstream(const struct sr_dev_inst *sdi)
 
 static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 {
-	struct dev_context *devc;
 	int ret;
 	uint16_t duty_R79, duty_R56;
 	uint8_t buf[2 * sizeof(uint16_t)];
 	uint8_t *wrptr;
-
-	devc = sdi->priv;
 
 	/* Clamp threshold setting to valid range for LA2016. */
 	if (voltage > LA2016_THR_VOLTAGE_MAX) {
@@ -391,7 +388,6 @@ static int set_threshold_voltage(const struct sr_dev_inst *sdi, float voltage)
 		sr_err("Cannot set threshold voltage %.2fV.", voltage);
 		return ret;
 	}
-	devc->threshold_voltage = voltage;
 
 	return SR_OK;
 }
@@ -893,15 +889,13 @@ SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi)
+SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
+	double voltage)
 {
-	struct dev_context *devc;
 	int ret;
 	uint8_t cmd;
 
-	devc = sdi->priv;
-
-	ret = set_threshold_voltage(sdi, devc->threshold_voltage);
+	ret = set_threshold_voltage(sdi, voltage);
 	if (ret != SR_OK)
 		return ret;
 

@@ -66,6 +66,25 @@
  */
 #define LA2016_EP2_PADDING	2048
 
+/*
+ * The complex logic input threshold voltage support with a custom level
+ * is not operational yet. Ideally we could support the set of pre-made
+ * voltages with their pretty text labels, and one of them referencing
+ * a voltage which is user specified. But not all applications support
+ * this setup equally well, or present it most appropriately to users.
+ * So let's implement something simpler for the moment until the more
+ * complex approach becomes accessible in all applications.
+ *
+ * Strictly speaking the logic input threshold voltage is a property of
+ * the "Logic" channel group. Again not all applications support such
+ * an approach, and like to see them as global device properties.
+ */
+#define WITH_THRESHOLD_DEVCFG	1
+#define WITH_THRESHOLD_SIMPLE	1
+#if !WITH_THRESHOLD_DEVCFG && !WITH_THRESHOLD_SIMPLE
+#  error "Custom threshold in Logic group is not implemented."
+#endif
+
 #define LA2016_THR_VOLTAGE_MIN	0.40
 #define LA2016_THR_VOLTAGE_MAX	4.00
 
@@ -136,7 +155,8 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx);
-SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi);
+SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
+	double voltage);
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
