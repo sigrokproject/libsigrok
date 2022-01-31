@@ -96,7 +96,14 @@ static const struct kingst_model models[] = {
 #define RUNSTATE_TRGD_BIT	(1UL << 2)
 #define RUNSTATE_POST_BIT	(1UL << 3)
 
-/* Properties related to the layout of capture data downloads. */
+/*
+ * Properties related to the layout of capture data downloads.
+ *
+ * TODO Check the layout of 32 channel models' capture data. Could it be
+ * 3x (u32 + u8) instead of 5x (u16 + u8) perhaps? Same 16 bytes chunk
+ * but fewer packets per chunk and thus per transfer? Which questions
+ * the NUM_PACKETS_IN_CHUNK literal, maybe needs to be a runtime value?
+ */
 #define NUM_PACKETS_IN_CHUNK	5
 #define TRANSFER_PACKET_LENGTH	16
 
