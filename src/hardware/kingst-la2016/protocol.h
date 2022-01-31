@@ -86,6 +86,14 @@
 
 #define LA2016_NUM_PWMCH_MAX	2
 
+/*
+ * Whether to de-initialize the device hardware in the driver's close
+ * callback. It is desirable to e.g. configure PWM channels and leave
+ * the generator running after the application shuts down. Users can
+ * always disable channels on their way out if they want to.
+ */
+#define WITH_DEINIT_IN_CLOSE	0
+
 #define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
 
 struct kingst_model {
