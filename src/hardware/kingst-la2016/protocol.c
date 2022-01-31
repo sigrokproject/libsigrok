@@ -119,7 +119,7 @@ static int ctrl_in(const struct sr_dev_inst *sdi,
 			libusb_error_name(ret));
 		sr_err("Cannot read %d bytes from USB: %s.",
 			wLength, libusb_error_name(ret));
-		return SR_ERR;
+		return SR_ERR_IO;
 	}
 
 	return SR_OK;
@@ -144,7 +144,7 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 			libusb_error_name(ret));
 		sr_err("Cannot write %d bytes to USB: %s.",
 			wLength, libusb_error_name(ret));
-		return SR_ERR;
+		return SR_ERR_IO;
 	}
 
 	return SR_OK;
@@ -270,7 +270,7 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 			if (len < 0) {
 				sr_err("Cannot read FPGA bitstream.");
 				sr_resource_close(drvc->sr_ctx, &bitstream);
-				return SR_ERR;
+				return SR_ERR_IO;
 			}
 		} else {
 			/*  Zero-pad until 'zero_pad_to'. */
@@ -287,13 +287,13 @@ static int upload_fpga_bitstream(const struct sr_dev_inst *sdi,
 		if (ret != 0) {
 			sr_dbg("Cannot write FPGA bitstream, block %#x len %d: %s.",
 				pos, (int)len, libusb_error_name(ret));
-			ret = SR_ERR;
+			ret = SR_ERR_IO;
 			break;
 		}
 		if (act_len != len) {
 			sr_dbg("Short write for FPGA bitstream, block %#x len %d: got %d.",
 				pos, (int)len, act_len);
-			ret = SR_ERR;
+			ret = SR_ERR_IO;
 			break;
 		}
 		pos += len;
@@ -320,7 +320,7 @@ static int enable_fpga_bitstream(const struct sr_dev_inst *sdi)
 	if (resp != 0) {
 		sr_err("Unexpected FPGA bitstream upload response, got 0x%02x, want 0.",
 			resp);
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 	g_usleep(30 * 1000);
 
@@ -542,7 +542,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 		stage1 = stages->data;
 		if (stages->next) {
 			sr_err("Only one trigger stage supported for now.");
-			return SR_ERR;
+			return SR_ERR_ARG;
 		}
 		channel = stage1->matches;
 		while (channel) {
@@ -561,7 +561,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 			case SR_TRIGGER_RISING:
 				if ((cfg.enabled & ~cfg.level)) {
 					sr_err("Device only supports one edge trigger.");
-					return SR_ERR;
+					return SR_ERR_ARG;
 				}
 				cfg.level &= ~ch_mask;
 				cfg.high_or_falling &= ~ch_mask;
@@ -569,14 +569,14 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 			case SR_TRIGGER_FALLING:
 				if ((cfg.enabled & ~cfg.level)) {
 					sr_err("Device only supports one edge trigger.");
-					return SR_ERR;
+					return SR_ERR_ARG;
 				}
 				cfg.level &= ~ch_mask;
 				cfg.high_or_falling |= ch_mask;
 				break;
 			default:
 				sr_err("Unknown trigger condition.");
-				return SR_ERR;
+				return SR_ERR_ARG;
 			}
 			cfg.enabled |= ch_mask;
 			channel = channel->next;
@@ -1031,7 +1031,7 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 		libusb_free_transfer(devc->transfer);
 		devc->transfer = NULL;
 		g_free(buffer);
-		return SR_ERR;
+		return SR_ERR_IO;
 	}
 
 	return SR_OK;
@@ -1360,7 +1360,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	}
 	if (!devc->model) {
 		sr_err("Cannot identify as one of the supported models.");
-		return SR_ERR;
+		return SR_ERR_DATA;
 	}
 
 	return SR_OK;
