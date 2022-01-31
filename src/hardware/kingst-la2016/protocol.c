@@ -1203,6 +1203,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 
 		/* Initiate the download of acquired sample data. */
 		std_session_send_df_frame_begin(sdi);
+		devc->frame_begin_sent = TRUE;
 		ret = la2016_start_download(sdi, receive_transfer);
 		if (ret != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
@@ -1228,7 +1229,10 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 		feed_queue_logic_flush(devc->feed_queue);
 		feed_queue_logic_free(devc->feed_queue);
 		devc->feed_queue = NULL;
-		std_session_send_df_frame_end(sdi);
+		if (devc->frame_begin_sent) {
+			std_session_send_df_frame_end(sdi);
+			devc->frame_begin_sent = FALSE;
+		}
 		std_session_send_df_end(sdi);
 
 		sr_dbg("Download finished, done post processing.");

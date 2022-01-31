@@ -129,6 +129,7 @@ struct dev_context {
 
 	/* Internal acquisition and download state. */
 	gboolean trigger_involved;
+	gboolean frame_begin_sent;
 	gboolean completion_seen;
 	gboolean download_finished;
 	uint32_t packets_per_chunk;
