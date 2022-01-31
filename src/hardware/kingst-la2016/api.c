@@ -974,8 +974,10 @@ static int config_list(uint32_t key, GVariant **data,
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_500mhz));
 		else if (devc->model->samplerate == SR_MHZ(200))
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_200mhz));
-		else
+		else if (devc->model->samplerate == SR_MHZ(100))
 			*data = std_gvar_samplerates(ARRAY_AND_SIZE(rates_100mhz));
+		else
+			return SR_ERR_BUG;
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		*data = std_gvar_tuple_u64(0, LA2016_NUM_SAMPLES_MAX);
@@ -1001,6 +1003,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct sr_context *ctx;
 	struct dev_context *devc;
+	size_t unitsize;
 	double voltage;
 	int ret;
 
@@ -1010,8 +1013,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (!devc->feed_queue) {
+		if (devc->model->channel_count == 32)
+			unitsize = sizeof(uint32_t);
+		else if (devc->model->channel_count == 16)
+			unitsize = sizeof(uint16_t);
+		else
+			return SR_ERR_ARG;
 		devc->feed_queue = feed_queue_logic_alloc(sdi,
-			LA2016_CONVBUFFER_SIZE, sizeof(uint16_t));
+			LA2016_CONVBUFFER_SIZE, unitsize);
 		if (!devc->feed_queue) {
 			sr_err("Cannot allocate buffer for session feed.");
 			return SR_ERR_MALLOC;

@@ -499,9 +499,9 @@ static int set_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
 	return SR_OK;
 }
 
-static uint16_t get_channels_mask(const struct sr_dev_inst *sdi)
+static uint32_t get_channels_mask(const struct sr_dev_inst *sdi)
 {
-	uint16_t channels;
+	uint32_t channels;
 	GSList *l;
 	struct sr_channel *ch;
 
@@ -532,7 +532,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	GSList *channel;
 	struct sr_trigger_stage *stage1;
 	struct sr_trigger_match *match;
-	uint16_t ch_mask;
+	uint32_t ch_mask;
 	int ret;
 	uint8_t buf[REG_UNKNOWN_30 - REG_TRIGGER]; /* Width of REG_TRIGGER. */
 	uint8_t *wrptr;
@@ -1056,7 +1056,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	size_t num_pkts;
 	const uint8_t *rp;
-	uint16_t sample_value;
+	uint32_t sample_value;
 	size_t repetitions;
 	uint8_t sample_buff[sizeof(sample_value)];
 
@@ -1071,17 +1071,23 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		devc->trigger_marked = TRUE;
 	}
 
+	sample_value = 0;
 	rp = packets;
 	while (num_xfers--) {
+		/* XXX model dependent? 5 or 3? */
 		num_pkts = NUM_PACKETS_IN_CHUNK;
 		while (num_pkts--) {
 
-			sample_value = read_u16le_inc(&rp);
+			/* TODO Verify 32channel layout. */
+			if (devc->model->channel_count == 32)
+				sample_value = read_u32le_inc(&rp);
+			else if (devc->model->channel_count == 16)
+				sample_value = read_u16le_inc(&rp);
 			repetitions = read_u8_inc(&rp);
 
 			devc->total_samples += repetitions;
 
-			write_u16le(sample_buff, sample_value);
+			write_u32le(sample_buff, sample_value);
 			feed_queue_logic_submit(devc->feed_queue,
 				sample_buff, repetitions);
 			sr_sw_limits_update_samples_read(&devc->sw_limits,
