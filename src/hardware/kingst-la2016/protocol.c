@@ -1404,8 +1404,8 @@ SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi)
 	}
 
 	state = run_state(sdi);
-	if (state != 0x85e9) {
-		sr_warn("Unexpected run state, want 0x85e9, got 0x%04x.", state);
+	if ((state & 0xfff0) != 0x85e0) {
+		sr_warn("Unexpected run state, want 0x85eX, got 0x%04x.", state);
 	}
 
 	ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0);
