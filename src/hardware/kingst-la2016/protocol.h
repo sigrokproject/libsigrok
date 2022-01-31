@@ -123,7 +123,9 @@ struct dev_context {
 		float duty;
 	} pwm_setting[LA2016_NUM_PWMCH_MAX];
 	size_t threshold_voltage_idx;
+#if !WITH_THRESHOLD_SIMPLE
 	float threshold_voltage;
+#endif
 	uint64_t cur_samplerate;
 	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;

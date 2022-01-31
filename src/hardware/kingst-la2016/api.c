@@ -1093,16 +1093,14 @@ static int config_list(uint32_t key, GVariant **data,
 			LA2016_THR_VOLTAGE_MIN,
 			LA2016_THR_VOLTAGE_MAX, 0.1);
 		break;
+	case SR_CONF_LOGIC_THRESHOLD:
+		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_threshold));
+		break;
 #endif /* WITH_THRESHOLD_SIMPLE */
 #endif /* WITH_THRESHOLD_DEVCFG */
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
-#if WITH_THRESHOLD_DEVCFG && !WITH_THRESHOLD_SIMPLE
-	case SR_CONF_LOGIC_THRESHOLD:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_threshold));
-		break;
-#endif
 	default:
 		return SR_ERR_NA;
 	}
