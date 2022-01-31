@@ -1018,8 +1018,9 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 	to_read = devc->n_bytes_to_read;
 	if (to_read >= LA2016_USB_BUFSZ) /* Multiple transfers. */
 		to_read = LA2016_USB_BUFSZ;
-	else /* One transfer. */
-		to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
+	to_read += LA2016_EP6_PKTSZ - 1;
+	to_read /= LA2016_EP6_PKTSZ;
+	to_read *= LA2016_EP6_PKTSZ;
 	buffer = g_try_malloc(to_read);
 	if (!buffer) {
 		sr_dbg("USB bulk transfer size %d bytes.", (int)to_read);
@@ -1144,8 +1145,9 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		 */
 		if (to_read >= LA2016_USB_BUFSZ)
 			to_read = LA2016_USB_BUFSZ;
-		else
-			to_read = (to_read + (LA2016_EP6_PKTSZ-1)) & ~(LA2016_EP6_PKTSZ-1);
+		to_read += LA2016_EP6_PKTSZ - 1;
+		to_read /= LA2016_EP6_PKTSZ;
+		to_read *= LA2016_EP6_PKTSZ;
 		libusb_fill_bulk_transfer(transfer,
 			usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
 			transfer->buffer, to_read,
