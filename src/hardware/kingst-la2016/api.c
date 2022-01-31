@@ -617,7 +617,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_sw_limits_init(&devc->sw_limits);
 		devc->sw_limits.limit_samples = 0;
 		devc->capture_ratio = 50;
-		devc->cur_samplerate = devc->model->samplerate;
+		devc->samplerate = devc->model->samplerate;
 		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_DFLT;
 		if  (ARRAY_SIZE(devc->pwm_setting) >= 1) {
 			devc->pwm_setting[0].enabled = FALSE;
@@ -796,7 +796,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_printf("%d.%d", usb->bus, usb->address);
 		break;
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(devc->cur_samplerate);
+		*data = g_variant_new_uint64(devc->samplerate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:
@@ -888,7 +888,7 @@ static int config_set(uint32_t key, GVariant *data,
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		devc->cur_samplerate = g_variant_get_uint64(data);
+		devc->samplerate = g_variant_get_uint64(data);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 	case SR_CONF_LIMIT_MSEC:

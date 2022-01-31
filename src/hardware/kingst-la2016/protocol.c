@@ -622,19 +622,19 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	if (devc->cur_samplerate > devc->model->samplerate) {
+	if (devc->samplerate > devc->model->samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
-			devc->cur_samplerate);
+			devc->samplerate);
 		return SR_ERR_ARG;
 	}
 	min_samplerate = devc->model->samplerate;
 	min_samplerate /= 65536;
-	if (devc->cur_samplerate < min_samplerate) {
+	if (devc->samplerate < min_samplerate) {
 		sr_err("Too low a sample rate: %" PRIu64 ".",
-			devc->cur_samplerate);
+			devc->samplerate);
 		return SR_ERR_ARG;
 	}
-	divider_u16 = devc->model->samplerate / devc->cur_samplerate;
+	divider_u16 = devc->model->samplerate / devc->samplerate;
 	eff_samplerate = devc->model->samplerate / divider_u16;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
@@ -1084,7 +1084,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 					devc->trigger_marked = TRUE;
 					sr_dbg("Trigger position after %" PRIu64 " samples, %.6fms.",
 						devc->total_samples,
-						(double)devc->total_samples / devc->cur_samplerate * 1e3);
+						(double)devc->total_samples / devc->samplerate * 1e3);
 				}
 			}
 		}
