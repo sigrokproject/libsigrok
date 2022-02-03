@@ -150,7 +150,7 @@ struct dev_context {
 };
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
-	struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id);
+	struct sr_context *sr_ctx, libusb_device *dev, gboolean skip_upload);
 SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	gboolean show_message);
 SR_PRIV int la2016_init_hardware(const struct sr_dev_inst *sdi);

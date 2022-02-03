@@ -864,28 +864,29 @@ static int get_capture_info(const struct sr_dev_inst *sdi)
 }
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
-	struct sr_context *sr_ctx, libusb_device *dev, uint16_t product_id)
+	struct sr_context *sr_ctx, libusb_device *dev, gboolean skip_upload)
 {
 	struct dev_context *devc;
-	char *fw_file;
+	uint16_t pid;
+	char *fw;
 	int ret;
 
 	devc = sdi ? sdi->priv : NULL;
+	if (!devc || !devc->usb_pid)
+		return SR_ERR_ARG;
+	pid = devc->usb_pid;
 
-	fw_file = g_strdup_printf(MCU_FWFILE_FMT, product_id);
-	sr_info("USB PID %04hx, MCU firmware '%s'.", product_id, fw_file);
+	fw = g_strdup_printf(MCU_FWFILE_FMT, pid);
+	sr_info("USB PID %04hx, MCU firmware '%s'.", pid, fw);
+	devc->mcu_firmware = g_strdup(fw);
 
-	ret = ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw_file);
-	if (ret != SR_OK) {
-		g_free(fw_file);
+	if (skip_upload)
+		ret = SR_OK;
+	else
+		ret = ezusb_upload_firmware(sr_ctx, dev, USB_CONFIGURATION, fw);
+	g_free(fw);
+	if (ret != SR_OK)
 		return ret;
-	}
-
-	if (devc) {
-		devc->mcu_firmware = fw_file;
-		fw_file = NULL;
-	}
-	g_free(fw_file);
 
 	return SR_OK;
 }

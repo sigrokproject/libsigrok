@@ -517,9 +517,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		 * this device.
 		 */
 		devc->fw_uploaded = 0;
+		devc->usb_pid = pid;
 		if (des.iProduct != LA2016_IPRODUCT_INDEX) {
 			sr_info("Uploading MCU firmware to '%s'.", conn_id);
-			ret = la2016_upload_firmware(sdi, ctx, dev, pid);
+			ret = la2016_upload_firmware(sdi, ctx, dev, FALSE);
 			if (ret != SR_OK) {
 				sr_err("MCU firmware upload failed.");
 				kingst_la2016_free_sdi(sdi);
@@ -529,6 +530,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			usb->address = 0xff;
 			renum_devices = g_slist_append(renum_devices, sdi);
 			continue;
+		} else {
+			ret = la2016_upload_firmware(sdi, NULL, NULL, TRUE);
+			if (ret != SR_OK) {
+				sr_err("MCU firmware filename check failed.");
+				kingst_la2016_free_sdi(sdi);
+				continue;
+			}
 		}
 
 		/*
