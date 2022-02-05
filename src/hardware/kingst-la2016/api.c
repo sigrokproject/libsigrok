@@ -1,6 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
+ * Copyright (C) 2022 Gerhard Sittig <gerhard.sittig@gmx.net>
  * Copyright (C) 2020 Florian Schmidt <schmidt_florian@gmx.de>
  * Copyright (C) 2013 Marcus Comstedt <marcus@mc.pp.se>
  * Copyright (C) 2013 Bert Vermeulen <bert@biot.com>
