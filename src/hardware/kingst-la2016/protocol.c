@@ -150,6 +150,56 @@ static int ctrl_out(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+/* HACK Experiment to spot FPGA registers of interest. */
+static void la2016_dump_fpga_registers(const struct sr_dev_inst *sdi,
+	const char *caption, size_t reg_lower, size_t reg_upper)
+{
+	static const size_t dump_chunk_len = 16;
+
+	size_t rdlen;
+	uint8_t rdbuf[0x80 - 0x00];	/* Span all FPGA registers. */
+	const uint8_t *rdptr;
+	int ret;
+	size_t dump_addr, indent, dump_len;
+	GString *txt;
+
+	if (sr_log_loglevel_get() < SR_LOG_SPEW)
+		return;
+
+	if (!reg_lower && !reg_upper) {
+		reg_lower = 0;
+		reg_upper = sizeof(rdbuf);
+	}
+	if (reg_upper - reg_lower > sizeof(rdbuf))
+		reg_upper = sizeof(rdbuf) - reg_lower;
+
+	rdlen = reg_upper - reg_lower;
+	ret = ctrl_in(sdi, CMD_FPGA_SPI, reg_lower, 0, rdbuf, rdlen);
+	if (ret != SR_OK) {
+		sr_err("Cannot get registers space.");
+		return;
+	}
+	rdptr = rdbuf;
+
+	sr_spew("FPGA registers dump: %s", caption ? : "for fun");
+	dump_addr = reg_lower;
+	while (rdlen) {
+		dump_len = rdlen;
+		indent = dump_addr % dump_chunk_len;
+		if (dump_len > dump_chunk_len)
+			dump_len = dump_chunk_len;
+		if (dump_len + indent > dump_chunk_len)
+			dump_len = dump_chunk_len - indent;
+		txt = sr_hexdump_new(rdptr, dump_len);
+		sr_spew("  %04zx  %*s%s",
+			dump_addr, (int)(3 * indent), "", txt->str);
+		sr_hexdump_free(txt);
+		dump_addr += dump_len;
+		rdptr += dump_len;
+		rdlen -= dump_len;
+	}
+}
+
 /*
  * Check the necessity for FPGA bitstream upload, because another upload
  * would take some 600ms which is undesirable after program startup. Try
@@ -177,6 +227,7 @@ static int check_fpga_bitstream(const struct sr_dev_inst *sdi)
 	const uint8_t *rdptr;
 
 	sr_dbg("Checking operation of the FPGA bitstream.");
+	la2016_dump_fpga_registers(sdi, "bitstream check", 0, 0);
 
 	init_rsp = ~0;
 	ret = ctrl_in(sdi, CMD_FPGA_INIT, 0x00, 0, &init_rsp, sizeof(init_rsp));
@@ -1201,6 +1252,8 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 		devc->download_finished = FALSE;
 		devc->trigger_marked = FALSE;
 		devc->total_samples = 0;
+
+		la2016_dump_fpga_registers(sdi, "acquisition complete", 0, 0);
 
 		/* Initiate the download of acquired sample data. */
 		std_session_send_df_frame_begin(sdi);
