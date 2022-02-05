@@ -39,6 +39,7 @@ static const uint32_t scanopts[] = {
 
 static const uint32_t drvopts[] = {
 	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_SIGNAL_GENERATOR,
 };
 
 static const uint32_t devopts[] = {
@@ -54,6 +55,12 @@ static const uint32_t devopts[] = {
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
 };
 
+static const uint32_t devopts_cg_pwm[] = {
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_OUTPUT_FREQUENCY | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_DUTY_CYCLE | SR_CONF_GET | SR_CONF_SET,
+};
+
 static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ZERO,
 	SR_TRIGGER_ONE,
@@ -66,6 +73,10 @@ static const char *channel_names_logic[] = {
 	"CH8", "CH9", "CH10", "CH11", "CH12", "CH13", "CH14", "CH15",
 	"CH16", "CH17", "CH18", "CH19", "CH20", "CH21", "CH22", "CH23",
 	"CH24", "CH25", "CH26", "CH27", "CH28", "CH29", "CH30", "CH31",
+};
+
+static const char *channel_names_pwm[] = {
+	"PWM1", "PWM2",
 };
 
 /*
@@ -408,6 +419,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char conn_id[64];
 	int ret;
 	size_t ch_off, ch_max;
+	struct sr_channel *ch;
+	struct sr_channel_group *cg;
 
 	drvc = di->context;
 	ctx = drvc->sr_ctx;;
@@ -556,15 +569,32 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model = g_strdup(devc->model->name);
 		ch_off = 0;
 
-		/* Create the logic channels. */
+		/* Create the "Logic" channel group. */
 		ch_max = ARRAY_SIZE(channel_names_logic);
 		if (ch_max > devc->model->channel_count)
 			ch_max = devc->model->channel_count;
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
+		devc->cg_logic = cg;
 		for (ch_idx = 0; ch_idx < ch_max; ch_idx++) {
-			sr_channel_new(sdi, ch_off,
+			ch = sr_channel_new(sdi, ch_off,
 				SR_CHANNEL_LOGIC, TRUE,
 				channel_names_logic[ch_idx]);
 			ch_off++;
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
+
+		/* Create the "PWMx" channel groups. */
+		ch_max = ARRAY_SIZE(channel_names_pwm);
+		for (ch_idx = 0; ch_idx < ch_max; ch_idx++) {
+			const char *name;
+			name = channel_names_pwm[ch_idx];
+			cg = sr_channel_group_new(sdi, name, NULL);
+			if (!devc->cg_pwm)
+				devc->cg_pwm = cg;
+			ch = sr_channel_new(sdi, ch_off,
+				SR_CHANNEL_ANALOG, FALSE, name);
+			ch_off++;
+			cg->channels = g_slist_append(cg->channels, ch);
 		}
 
 		/*
@@ -639,19 +669,104 @@ static int dev_close(struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/* Config API helper. Get type and index of a channel group. */
+static int get_cg_index(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg,
+	int *type, size_t *logic, size_t *analog)
+{
+	struct dev_context *devc;
+	GSList *l;
+	size_t idx;
+
+	/* Preset return values. */
+	if (type)
+		*type = 0;
+	if (logic)
+		*logic = 0;
+	if (analog)
+		*analog = 0;
+
+	/* Start categorizing the received cg. */
+	if (!sdi)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+	if (!cg)
+		return SR_OK;
+	l = sdi->channel_groups;
+
+	/* First sdi->channelgroups item is "Logic". */
+	if (!l)
+		return SR_ERR_BUG;
+	if (cg == l->data) {
+		if (type)
+			*type = SR_CHANNEL_LOGIC;
+		if (logic)
+			*logic = 0;
+		return SR_OK;
+	}
+	l = l->next;
+
+	/* Next sdi->channelgroups items are "PWMx". */
+	idx = 0;
+	while (l && l->data != cg) {
+		idx++;
+		l = l->next;
+	}
+	if (l && idx < ARRAY_SIZE(devc->pwm_setting)) {
+		if (type)
+			*type = SR_CHANNEL_ANALOG;
+		if (analog)
+			*analog = idx;
+		return SR_OK;
+	}
+
+	return SR_ERR_ARG;
+}
+
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int ret, cg_type;
+	size_t logic_idx, analog_idx;
+	struct pwm_setting *pwm;
 	struct sr_usb_dev_inst *usb;
 	double rounded;
 	const char *label;
 
-	(void)cg;
-
 	if (!sdi)
 		return SR_ERR_ARG;
 	devc = sdi->priv;
+
+	/* Check for types (and index) of channel groups. */
+	ret = get_cg_index(sdi, cg, &cg_type, &logic_idx, &analog_idx);
+	if (cg && ret != SR_OK)
+		return SR_ERR_ARG;
+
+	/* Handle requests for the "Logic" channel group. */
+	if (cg && cg_type == SR_CHANNEL_LOGIC) {
+		/* TODO */
+		return SR_ERR_NA;
+	}
+
+	/* Handle requests for the "PWMx" channel groups. */
+	if (cg && cg_type == SR_CHANNEL_ANALOG) {
+		pwm = &devc->pwm_setting[analog_idx];
+		switch (key) {
+		case SR_CONF_ENABLED:
+			*data = g_variant_new_boolean(pwm->enabled);
+			break;
+		case SR_CONF_OUTPUT_FREQUENCY:
+			*data = g_variant_new_double(pwm->freq);
+			break;
+		case SR_CONF_DUTY_CYCLE:
+			*data = g_variant_new_double(pwm->duty);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+		return SR_OK;
+	}
 
 	switch (key) {
 	case SR_CONF_CONN:
@@ -699,12 +814,52 @@ static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int ret, cg_type;
+	size_t logic_idx, analog_idx;
+	struct pwm_setting *pwm;
 	double low, high;
 	int idx;
 
-	(void)cg;
-
 	devc = sdi->priv;
+
+	/* Check for types (and index) of channel groups. */
+	ret = get_cg_index(sdi, cg, &cg_type, &logic_idx, &analog_idx);
+	if (cg && ret != SR_OK)
+		return SR_ERR_ARG;
+
+	/* Handle requests for the "Logic" channel group. */
+	if (cg && cg_type == SR_CHANNEL_LOGIC) {
+		/* TODO */
+		return SR_ERR_NA;
+	}
+
+	/* Handle requests for the "PWMx" channel groups. */
+	if (cg && cg_type == SR_CHANNEL_ANALOG) {
+		pwm = &devc->pwm_setting[analog_idx];
+		switch (key) {
+		case SR_CONF_ENABLED:
+			pwm->enabled = g_variant_get_boolean(data);
+			ret = la2016_write_pwm_config(sdi, analog_idx);
+			if (ret != SR_OK)
+				return ret;
+			break;
+		case SR_CONF_OUTPUT_FREQUENCY:
+			pwm->freq = g_variant_get_double(data);
+			ret = la2016_write_pwm_config(sdi, analog_idx);
+			if (ret != SR_OK)
+				return ret;
+			break;
+		case SR_CONF_DUTY_CYCLE:
+			pwm->duty = g_variant_get_double(data);
+			ret = la2016_write_pwm_config(sdi, analog_idx);
+			if (ret != SR_OK)
+				return ret;
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+		return SR_OK;
+	}
 
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
@@ -745,8 +900,35 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
+	int ret, cg_type;
+	size_t logic_idx, analog_idx;
 
 	devc = sdi ? sdi->priv : NULL;
+
+	/* Check for types (and index) of channel groups. */
+	ret = get_cg_index(sdi, cg, &cg_type, &logic_idx, &analog_idx);
+	if (cg && ret != SR_OK)
+		return SR_ERR_ARG;
+
+	/* Handle requests for the "Logic" channel group. */
+	if (cg && cg_type == SR_CHANNEL_LOGIC) {
+		/* TODO */
+		return SR_ERR_NA;
+	}
+
+	/* Handle requests for the "PWMx" channel groups. */
+	if (cg && cg_type == SR_CHANNEL_ANALOG) {
+		switch (key) {
+		case SR_CONF_DEVICE_OPTIONS:
+			*data = g_variant_new_fixed_array(G_VARIANT_TYPE_UINT32,
+				devopts_cg_pwm, ARRAY_SIZE(devopts_cg_pwm),
+				sizeof(devopts_cg_pwm[0]));
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+		return SR_OK;
+	}
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
