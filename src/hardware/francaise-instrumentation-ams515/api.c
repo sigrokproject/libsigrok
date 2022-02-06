@@ -150,11 +150,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			char name[4];
 			snprintf(name, 2, "%c", 'A' + i);
 			ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, name);
-			cg = g_malloc(sizeof(struct sr_channel_group));
-			cg->name = g_strdup(name);
+			cg = sr_channel_group_new(sdi, name, NULL);
 			cg->channels = g_slist_append(NULL, ch);
-			cg->priv = NULL;
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		}
 		devices = g_slist_append(devices, sdi);
 	}
