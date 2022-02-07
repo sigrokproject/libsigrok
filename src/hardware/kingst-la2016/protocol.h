@@ -113,6 +113,7 @@ struct kingst_model {
 	uint64_t samplerate;	/* Max samplerate in Hz. */
 	size_t channel_count;	/* Max channel count (16, 32). */
 	uint64_t memory_bits;	/* RAM capacity in Gbit (1, 2, 4). */
+	uint64_t baseclock;	/* Base clock to derive samplerate from. */
 };
 
 struct dev_context {

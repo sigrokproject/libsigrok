@@ -43,18 +43,18 @@
  * TODO Verify the identification of models that were not tested before.
  */
 static const struct kingst_model models[] = {
-	{  2, 1, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
-	{  2, 0, "LA2016", "la2016",   SR_MHZ(200), 16, 1, },
-	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
-	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, },
-	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, },
-	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, },
-	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, },
-	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, },
-	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
-	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
-	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, },
-	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, },
+	{  2, 1, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{  2, 0, "LA2016", "la2016",   SR_MHZ(200), 16, 1, 0, },
+	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, 0, },
+	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, 0, },
+	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, 0, },
+	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, 0, },
 };
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
@@ -716,6 +716,7 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	uint64_t baseclock;
 	uint64_t min_samplerate, eff_samplerate;
 	uint64_t stream_bandwidth;
 	uint16_t divider_u16;
@@ -733,15 +734,18 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 			devc->samplerate);
 		return SR_ERR_ARG;
 	}
-	min_samplerate = devc->model->samplerate;
+	baseclock = devc->model->baseclock;
+	if (!baseclock)
+		baseclock = devc->model->samplerate;
+	min_samplerate = baseclock;
 	min_samplerate /= 65536;
 	if (devc->samplerate < min_samplerate) {
 		sr_err("Too low a sample rate: %" PRIu64 ".",
 			devc->samplerate);
 		return SR_ERR_ARG;
 	}
-	divider_u16 = devc->model->samplerate / devc->samplerate;
-	eff_samplerate = devc->model->samplerate / divider_u16;
+	divider_u16 = baseclock / devc->samplerate;
+	eff_samplerate = baseclock / divider_u16;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
 		&limit_samples, NULL, NULL, NULL);
