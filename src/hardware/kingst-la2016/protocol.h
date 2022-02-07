@@ -107,7 +107,7 @@
 #define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
 
 struct kingst_model {
-	uint8_t magic;		/* EEPROM magic byte value. */
+	uint8_t magic, magic2;	/* EEPROM magic byte values. */
 	const char *name;	/* User perceived model name. */
 	const char *fpga_stem;	/* Bitstream filename stem. */
 	uint64_t samplerate;	/* Max samplerate in Hz. */
@@ -120,7 +120,7 @@ struct dev_context {
 	char *mcu_firmware;
 	char *fpga_bitstream;
 	uint64_t fw_uploaded; /* Timestamp of most recent FW upload. */
-	uint8_t identify_magic;
+	uint8_t identify_magic, identify_magic2;
 	const struct kingst_model *model;
 	struct sr_channel_group *cg_logic, *cg_pwm;
 

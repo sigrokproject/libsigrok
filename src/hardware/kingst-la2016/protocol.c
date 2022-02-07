@@ -34,20 +34,27 @@
 #define FPGA_FWFILE_FMT	"kingst-%s-fpga.bitstream"
 
 /*
- * List of supported devices and their features. See @ref kingst_model
+ * List of known devices and their features. See @ref kingst_model
  * for the fields' type and meaning. Table is sorted by EEPROM magic.
+ * More specific items need to go first (additional byte[2/6]). Not
+ * all devices are covered by this driver implementation, but telling
+ * users what was detected is considered useful.
  *
- * TODO
- * - Below LA1016 properties were guessed, need verification.
- * - Add LA5016 and LA5032 devices when their EEPROM magic is known.
- * - Does LA1010 fit the driver implementation? Samplerates vary with
- *   channel counts, lack of local sample memory. Most probably not.
+ * TODO Verify the identification of models that were not tested before.
  */
 static const struct kingst_model models[] = {
-	{ 2, "LA2016", "la2016", SR_MHZ(200), 16, 1, },
-	{ 3, "LA1016", "la1016", SR_MHZ(100), 16, 1, },
-	{ 8, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
-	{ 9, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
+	{  2, 1, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
+	{  2, 0, "LA2016", "la2016",   SR_MHZ(200), 16, 1, },
+	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
+	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, },
+	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, },
+	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, },
+	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, },
+	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, },
+	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
+	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
+	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, },
+	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, },
 };
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
@@ -1690,7 +1697,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	const uint8_t *rdptr;
 	uint8_t date_yy, date_mm;
 	uint8_t dinv_yy, dinv_mm;
-	uint8_t magic;
+	uint8_t magic, magic2;
 	size_t model_idx;
 	const struct kingst_model *model;
 	int ret;
@@ -1783,24 +1790,38 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		sr_spew("EEPROM magic bytes %s.", txt->str);
 		sr_hexdump_free(txt);
 	}
-	if ((buf[0] ^ buf[1]) == 0xff) {
-		/* Primary copy of magic passes complement check. */
+	magic = 0;
+	magic2 = 0;
+	if ((buf[0] ^ buf[1]) == 0xff && (buf[2] ^ buf[3]) == 0xff) {
+		/* Primary copy of magic passes complement check (4 bytes). */
 		magic = buf[0];
-		sr_dbg("Using primary magic, value %d.", (int)magic);
-	} else if ((buf[4] ^ buf[5]) == 0xff) {
-		/* Backup copy of magic passes complement check. */
+		magic2 = buf[2];
+		sr_dbg("Using primary magic %hhu (%hhu).", magic, magic2);
+	} else if ((buf[4] ^ buf[5]) == 0xff && (buf[6] ^ buf[7]) == 0xff) {
+		/* Backup copy of magic passes complement check (4 bytes). */
 		magic = buf[4];
-		sr_dbg("Using backup magic, value %d.", (int)magic);
+		magic2 = buf[6];
+		sr_dbg("Using secondary magic %hhu (%hhu).", magic, magic2);
+	} else if ((buf[0] ^ buf[1]) == 0xff) {
+		/* Primary copy of magic passes complement check (2 bytes). */
+		magic = buf[0];
+		sr_dbg("Using primary magic %hhu.", magic);
+	} else if ((buf[4] ^ buf[5]) == 0xff) {
+		/* Backup copy of magic passes complement check (2 bytes). */
+		magic = buf[4];
+		sr_dbg("Using secondary magic %hhu.", magic);
 	} else {
 		sr_err("Cannot find consistent device type identification.");
-		magic = 0;
 	}
 	devc->identify_magic = magic;
+	devc->identify_magic2 = magic2;
 
 	devc->model = NULL;
 	for (model_idx = 0; model_idx < ARRAY_SIZE(models); model_idx++) {
 		model = &models[model_idx];
 		if (model->magic != magic)
+			continue;
+		if (model->magic2 && model->magic2 != magic2)
 			continue;
 		devc->model = model;
 		sr_info("Model '%s', %zu channels, max %" PRIu64 "MHz.",
@@ -1809,6 +1830,10 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		devc->fpga_bitstream = g_strdup_printf(FPGA_FWFILE_FMT,
 			model->fpga_stem);
 		sr_info("FPGA bitstream file '%s'.", devc->fpga_bitstream);
+		if (!model->channel_count) {
+			sr_warn("Device lacks logic channels. Not supported.");
+			devc->model = NULL;
+		}
 		break;
 	}
 	if (!devc->model) {
