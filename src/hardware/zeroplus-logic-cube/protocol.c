@@ -20,6 +20,7 @@
 #include <config.h>
 #include <math.h>
 #include "protocol.h"
+#include "analyzer.h"
 
 SR_PRIV size_t get_memory_size(int type)
 {

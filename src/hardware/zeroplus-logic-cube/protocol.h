@@ -26,9 +26,13 @@
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
-#include "analyzer.h"
 
 #define LOG_PREFIX "zeroplus-logic-cube"
+
+typedef enum {
+	LAPC_CLOCK_EDGE_RISING,
+	LAPC_CLOCK_EDGE_FALLING,
+} ext_clock_edge_t;
 
 struct zp_model;
 struct dev_context {
@@ -42,6 +46,8 @@ struct dev_context {
 	uint64_t capture_ratio;
 	double cur_threshold;
 	const struct zp_model *prof;
+	gboolean use_ext_clock;
+	ext_clock_edge_t ext_clock_edge;
 };
 
 SR_PRIV size_t get_memory_size(int type);
