@@ -30,6 +30,11 @@
 
 #define LOG_PREFIX "zeroplus-logic-cube"
 
+enum ext_clock_edge_t {
+	LAPC_CLOCK_EDGE_RISING,
+	LAPC_CLOCK_EDGE_FALLING,
+};
+
 struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t max_samplerate;
@@ -45,8 +50,11 @@ struct dev_context {
 	uint64_t capture_ratio;
 	double cur_threshold;
 	const struct zp_model *prof;
+	gboolean use_ext_clock;
+	enum ext_clock_edge_t clock_edge;
 };
 
+SR_PRIV void set_clock(int ext, int edge);
 SR_PRIV unsigned int get_memory_size(int type);
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples);

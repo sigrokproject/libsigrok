@@ -74,6 +74,7 @@
 #define COMPRESSION_ENABLE	0x8001
 #define COMPRESSION_DOUBLE	0x8002
 
+SR_PRIV void analyzer_set_clock(int ext, int edge);
 SR_PRIV void analyzer_set_freq(int freq, int scale);
 SR_PRIV void analyzer_set_ramsize_trigger_address(unsigned int address);
 SR_PRIV void analyzer_set_triggerbar_address(unsigned int address);

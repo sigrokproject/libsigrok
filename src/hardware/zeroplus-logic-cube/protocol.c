@@ -21,6 +21,12 @@
 #include <math.h>
 #include "protocol.h"
 
+SR_PRIV void set_clock(int ext, int edge)
+{
+	analyzer_set_clock(ext, edge);
+}
+
+
 SR_PRIV unsigned int get_memory_size(int type)
 {
 	if (type == MEMORY_SIZE_8K)
