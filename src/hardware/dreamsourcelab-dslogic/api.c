@@ -51,7 +51,7 @@ static const struct dslogic_profile supported_device[] = {
 	/* DreamSourceLab DSLogic U3Pro16 */
 	{ 0x2a0e, 0x002a, "DreamSourceLab", "DSLogic U3Pro16", NULL,
 		"dreamsourcelab-dslogic-basic-fx2.fw",
-		DSLOGIC_CAPS_ADF4360, "DreamSourceLab", "DSLogic", 
+		DSLOGIC_CAPS_ADF4360 | DSLOGIC_CAPS_USB30, "DreamSourceLab", "DSLogic", 
 		2ULL * 1024ULL * 1024ULL * 1024ULL, 40,
 		1024, SR_MHZ(500), SR_MHZ(500), SR_GHZ(1), 5},
 

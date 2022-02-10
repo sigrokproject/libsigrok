@@ -866,6 +866,17 @@ static int fpga_configure(const struct sr_dev_inst *sdi)
 	WL16(&cfg->trig_glb_header, DS_CFG_TRIG_GLB);
 	WL16(&cfg->trig_header, DS_CFG_TRIG);
 
+	if ((devc->profile->dev_caps & DSLOGIC_CAPS_USB30) == 0) {
+		uint8_t cmd;
+		cmd = DS_WR_WORDWIDE;
+		ret = command_write(usb->devhdl, DSL_CTL_WORDWIDE, sizeof(uint8_t), &cmd);
+		if (ret != SR_OK) {
+			sr_err("Failed to set GPIF to be wordwide.");
+			g_free(cfg_buffer);
+			return ret;
+		}
+	}
+
 	/* Pass in the length of a fixed-size struct. Really. */
 	len = fpga_config_size(sdi) / 2;
 	c[0] = len & 0xff;

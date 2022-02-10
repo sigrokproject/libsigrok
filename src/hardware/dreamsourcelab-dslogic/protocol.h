@@ -56,6 +56,7 @@
 #define DSLOGIC_U3PRO16_FPGA_FIRMWARE "dreamsourcelab-dslogic-u3pro16-fpga.fw"
 
 #define DSLOGIC_CAPS_ADF4360 (1 << 8)
+#define DSLOGIC_CAPS_USB30   (1 << 7)
 
 enum dslogic_operation_modes {
 	DS_OP_NORMAL,
