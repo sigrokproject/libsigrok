@@ -121,7 +121,7 @@ static void test_rational(const char *input, struct sr_rational expected)
 	fail_unless(ret == SR_OK, "Unexpected rc for '%s': %d, errno %d.",
 		input, ret, errno);
 	fail_unless((expected.p == rational.p) && (expected.q == rational.q),
-		    "Invalid result for '%s': %ld/%ld'.",
+		    "Invalid result for '%s': %" PRIi64 "/%" PRIu64 "'.",
 		    input, rational.p, rational.q);
 }
 
