@@ -164,7 +164,6 @@ static const char *coupling_options_rtm300x[] = {
 static const char *coupling_options_rth100x[] = {
 	"ACL", // AC with 1 MOhm termination
 	"DCL", // DC with 1 MOhm termination
-	"GND",
 };
 
 static const char *scope_trigger_slopes[] = {
