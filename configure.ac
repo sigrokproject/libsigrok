@@ -630,9 +630,6 @@ AC_CHECK_FUNCS([ftdi_tciflush ftdi_tcoflush ftdi_tcioflush])
 LIBS=$sr_save_libs
 CFLAGS=$sr_save_cflags
 
-AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*],
-	[AC_MSG_ERROR([Windows builds require the event-abstraction branch of libusb])])])
-
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
 sr_zlib_version=`$PKG_CONFIG --modversion zlib 2>&AS_MESSAGE_LOG_FD`
