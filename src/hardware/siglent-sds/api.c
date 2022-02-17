@@ -171,6 +171,7 @@ enum series {
 	SDS1000XP,
 	SDS1000XE,
 	SDS2000X,
+	SDS2000XP,
 };
 
 /* short name, full name */
@@ -183,19 +184,21 @@ static const struct siglent_sds_vendor supported_vendors[] = {
  * number of vertical divs, live waveform samples, memory buffer samples */
 static const struct siglent_sds_series supported_series[] = {
 	[SDS1000CML] = {VENDOR(SIGLENT), "SDS1000CML", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000CNL] = {VENDOR(SIGLENT), "SDS1000CNL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000DL] = {VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000X] = {VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
 	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
 	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+	[SDS2000XP] = {VENDOR(SIGLENT), "SDS2000X+", SPO_MODEL,
+		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -227,6 +230,11 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
+	{ SERIES(SDS2000XP), "SDS2102X Plus", { 1, 1000000000 }, 2, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2104X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2204X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2354X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
+	{ SERIES(SDS2000XP), "SDS2504X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
 };
 
 static struct sr_dev_driver siglent_sds_driver_info;
@@ -429,6 +437,36 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string("History");
 		break;
 	case SR_CONF_SAMPLERATE:
+		/* SDS2000X+: The channels need to be enabled/disabled prior to
+		 * obtaining the sample rate when the data source is set to display.
+		 * If a channel is turned on/off on the oscilloscope then use Sigrok's settings instead. */
+		if (!strcmp(devc->model->series->name, "SDS2000X+") && devc->data_source == DATA_SOURCE_SCREEN) {
+			GSList *l;
+			for (l = sdi->channels; l; l = l->next) {
+				ch = l->data;
+				if (ch->type == SR_CHANNEL_ANALOG) {
+					char *channel_state;
+					char *cmd = g_strdup_printf("C%d:TRA?", ch->index + 1);
+					sr_scpi_get_string(sdi->conn, cmd, &channel_state);
+					if (!strcmp(channel_state, "ON") && !ch->enabled)
+						if (siglent_sds_config_set(sdi, "C%d:TRA %s", ch->index + 1,
+							ch->enabled ? "ON" : "OFF") != SR_OK)
+							return SR_ERR;
+					if (!strcmp(channel_state, "OFF") && ch->enabled)
+						if (siglent_sds_config_set(sdi, "C%d:TRA %s", ch->index + 1,
+							ch->enabled ? "ON" : "OFF") != SR_OK)
+							return SR_ERR;
+					if (ch->enabled != devc->analog_channels[ch->index]) {
+						/* Enabled channel is currently disabled, or vice versa. */
+						if (siglent_sds_config_set(sdi, "C%d:TRA %s", ch->index + 1,
+							ch->enabled ? "ON" : "OFF") != SR_OK)
+							return SR_ERR;
+						devc->analog_channels[ch->index] = ch->enabled;
+						devc->channels_switched = TRUE;
+					}
+				}
+			}
+		}
 		siglent_sds_get_dev_cfg_horizontal(sdi);
 		*data = g_variant_new_uint64(devc->samplerate);
 		break;
@@ -857,10 +895,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	// devc->analog_frame_size = devc->model->series->buffer_samples;
 	// devc->digital_frame_size = devc->model->series->buffer_samples;
 
-	siglent_sds_get_dev_cfg_horizontal(sdi);
+	if (strcmp(devc->model->series->name, "SDS2000X+"))
+		siglent_sds_get_dev_cfg_horizontal(sdi);
+	siglent_sds_get_dev_cfg_vertical(sdi);
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
-		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
+		if (siglent_sds_config_set(sdi, "WFSU SP,0,NP,0,FP,0") != SR_OK)
 			return SR_ERR;
 		if (devc->average_enabled) {
 			if (siglent_sds_config_set(sdi, "ACQW AVERAGE,%i", devc->average_samples) != SR_OK)
