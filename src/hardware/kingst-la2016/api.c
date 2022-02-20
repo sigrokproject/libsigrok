@@ -680,6 +680,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 	if (!usb->devhdl)
 		return SR_ERR_BUG;
 
+	la2016_release_resources(sdi);
+
 	if (WITH_DEINIT_IN_CLOSE)
 		la2016_deinit_hardware(sdi);
 

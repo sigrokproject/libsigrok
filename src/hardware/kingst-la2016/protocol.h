@@ -49,6 +49,7 @@
 
 /* USB communication timeout during regular operation. */
 #define DEFAULT_TIMEOUT_MS	200
+#define CAPTURE_TIMEOUT_MS	500
 
 /*
  * Check for MCU firmware to take effect after upload. Check the device
@@ -148,6 +149,7 @@ struct dev_context {
 
 	struct feed_queue_logic *feed_queue;
 	struct libusb_transfer *transfer;
+	size_t transfer_bufsize;
 };
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
@@ -162,5 +164,6 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void la2016_release_resources(const struct sr_dev_inst *sdi);
 
 #endif

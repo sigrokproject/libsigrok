@@ -943,6 +943,137 @@ SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *xfer);
+
+static int la2016_usbxfer_release(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct libusb_transfer *xfer;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Release all USB transfers. */
+	xfer = devc->transfer;
+	devc->transfer = NULL;
+	if (!xfer)
+		return SR_OK;
+
+	g_free(xfer->buffer);
+	libusb_free_transfer(xfer);
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	size_t bufsize;
+	uint8_t *buffer;
+	struct libusb_transfer *xfer;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Transfers were already allocated before? */
+	if (devc->transfer)
+		return SR_OK;
+
+	/*
+	 * Allocate all USB transfers and their buffers. Arrange for a
+	 * buffer size which is within the device's capabilities, and
+	 * is a multiple of the USB endpoint's size, to make use of the
+	 * RAW_IO performance feature.
+	 *
+	 * Implementation detail: The LA2016_USB_BUFSZ value happens
+	 * to match all those constraints. No additional arithmetics is
+	 * required in this location.
+	 */
+	bufsize = LA2016_USB_BUFSZ;
+	buffer = g_try_malloc(bufsize);
+	if (!buffer) {
+		sr_err("Cannot allocate USB transfer buffer.");
+		return SR_ERR_MALLOC;
+	}
+	xfer = libusb_alloc_transfer(0);
+	if (!xfer) {
+		sr_err("Cannot allocate USB transfer.");
+		g_free(buffer);
+		return SR_ERR_MALLOC;
+	}
+	xfer->buffer = buffer;
+	devc->transfer = xfer;
+	devc->transfer_bufsize = bufsize;
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_cancel_all(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct libusb_transfer *xfer;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Unconditionally cancel the transfer. Ignore errors. */
+	xfer = devc->transfer;
+	if (xfer)
+		libusb_cancel_transfer(xfer);
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_resubmit(const struct sr_dev_inst *sdi,
+	struct libusb_transfer *xfer)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	libusb_transfer_cb_fn cb;
+	int ret;
+
+	devc = sdi ? sdi->priv : NULL;
+	usb = sdi ? sdi->conn : NULL;
+	if (!devc || !usb)
+		return SR_ERR_ARG;
+
+	if (!xfer)
+		return SR_ERR_ARG;
+
+	cb = receive_transfer;
+	libusb_fill_bulk_transfer(xfer, usb->devhdl,
+		USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
+		xfer->buffer, devc->transfer_bufsize,
+		cb, (void *)sdi, CAPTURE_TIMEOUT_MS);
+	ret = libusb_submit_transfer(xfer);
+	if (ret != 0) {
+		sr_err("Cannot submit USB transfer: %s.",
+			libusb_error_name(ret));
+		return SR_ERR_IO;
+	}
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_submit_all(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	int ret;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	ret = la2016_usbxfer_resubmit(sdi, devc->transfer);
+	if (ret != SR_OK)
+		return ret;
+
+	return SR_OK;
+}
+
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 	double voltage)
 {
@@ -975,6 +1106,10 @@ SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	int ret;
 
+	ret = la2016_usbxfer_allocate(sdi);
+	if (ret != SR_OK)
+		return ret;
+
 	ret = set_run_mode(sdi, RUNMODE_RUN);
 	if (ret != SR_OK)
 		return ret;
@@ -996,32 +1131,24 @@ static int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 {
 	int ret;
-	struct dev_context *devc;
 
 	ret = la2016_stop_acquisition(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	devc = sdi ? sdi->priv : NULL;
-	if (devc && devc->transfer)
-		libusb_cancel_transfer(devc->transfer);
+	(void)la2016_usbxfer_cancel_all(sdi);
 
 	return SR_OK;
 }
 
-static int la2016_start_download(const struct sr_dev_inst *sdi,
-	libusb_transfer_cb_fn cb)
+static int la2016_start_download(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
 	int ret;
 	uint8_t wrbuf[REG_SAMPLING - REG_BULK]; /* Width of REG_BULK. */
 	uint8_t *wrptr;
-	uint32_t to_read;
-	uint8_t *buffer;
 
 	devc = sdi->priv;
-	usb = sdi->conn;
 
 	ret = get_capture_info(sdi);
 	if (ret != SR_OK)
@@ -1052,42 +1179,17 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 		sr_err("Cannot send USB bulk config.");
 		return ret;
 	}
-	ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+
+	ret = la2016_usbxfer_submit_all(sdi);
 	if (ret != SR_OK) {
-		sr_err("Cannot unblock USB bulk transfers.");
+		sr_err("Cannot submit USB bulk transfers.");
 		return ret;
 	}
 
-	/*
-	 * Pick a buffer size for all USB transfers. The buffer size
-	 * must be a multiple of the endpoint packet size. And cannot
-	 * exceed a maximum value.
-	 */
-	to_read = devc->n_bytes_to_read;
-	if (to_read >= LA2016_USB_BUFSZ) /* Multiple transfers. */
-		to_read = LA2016_USB_BUFSZ;
-	to_read += LA2016_EP6_PKTSZ - 1;
-	to_read /= LA2016_EP6_PKTSZ;
-	to_read *= LA2016_EP6_PKTSZ;
-	buffer = g_try_malloc(to_read);
-	if (!buffer) {
-		sr_dbg("USB bulk transfer size %d bytes.", (int)to_read);
-		sr_err("Cannot allocate buffer for USB bulk transfer.");
-		return SR_ERR_MALLOC;
-	}
-
-	devc->transfer = libusb_alloc_transfer(0);
-	libusb_fill_bulk_transfer(devc->transfer,
-		usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
-		buffer, to_read, cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
-
-	ret = libusb_submit_transfer(devc->transfer);
-	if (ret != 0) {
-		sr_err("Cannot submit USB transfer: %s.", libusb_error_name(ret));
-		libusb_free_transfer(devc->transfer);
-		devc->transfer = NULL;
-		g_free(buffer);
-		return SR_ERR_IO;
+	ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
+		sr_err("Cannot start USB bulk transfers.");
+		return ret;
 	}
 
 	return SR_OK;
@@ -1192,13 +1294,13 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
+	gboolean was_cancelled;
 	int ret;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
-	usb = sdi->conn;
 
+	was_cancelled = transfer->status == LIBUSB_TRANSFER_CANCELLED;
 	sr_dbg("receive_transfer(): status %s received %d bytes.",
 		libusb_error_name(transfer->status), transfer->actual_length);
 	/*
@@ -1210,35 +1312,17 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	 */
 	send_chunk(sdi, transfer->buffer, transfer->actual_length);
 
-	if (!devc->download_finished) {
-		uint32_t to_read;
-
-		/*
-		 * Determine read size for the next USB transfer. Make
-		 * the buffer size a multiple of the endpoint packet
-		 * size. Don't exceed a maximum value.
-		 */
-		to_read = devc->n_bytes_to_read;
-		if (to_read >= LA2016_USB_BUFSZ)
-			to_read = LA2016_USB_BUFSZ;
-		to_read += LA2016_EP6_PKTSZ - 1;
-		to_read /= LA2016_EP6_PKTSZ;
-		to_read *= LA2016_EP6_PKTSZ;
-		libusb_fill_bulk_transfer(transfer,
-			usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
-			transfer->buffer, to_read,
-			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
-
-		ret = libusb_submit_transfer(transfer);
-		if (ret == 0)
+	/*
+	 * Re-submit completed transfers (regardless of timeout or
+	 * data reception), unless the transfer was cancelled when
+	 * the acquisition was terminated or has completed.
+	 */
+	if (!was_cancelled && !devc->download_finished) {
+		ret = la2016_usbxfer_resubmit(sdi, transfer);
+		if (ret == SR_OK)
 			return;
-		sr_err("Cannot submit another USB transfer: %s.",
-			libusb_error_name(ret));
 		devc->download_finished = TRUE;
 	}
-
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
 }
 
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
@@ -1282,7 +1366,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 		/* Initiate the download of acquired sample data. */
 		std_session_send_df_frame_begin(sdi);
 		devc->frame_begin_sent = TRUE;
-		ret = la2016_start_download(sdi, receive_transfer);
+		ret = la2016_start_download(sdi);
 		if (ret != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
 			return FALSE;
@@ -1293,7 +1377,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Handle USB reception. Drives sample data download. */
-	tv.tv_sec = tv.tv_usec = 0;
+	memset(&tv, 0, sizeof(tv));
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 	/* Postprocess completion of sample data download. */
@@ -1302,7 +1386,10 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 
 		la2016_stop_acquisition(sdi);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		devc->transfer = NULL;
+
+		la2016_usbxfer_cancel_all(sdi);
+		memset(&tv, 0, sizeof(tv));
+		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 		feed_queue_logic_flush(devc->feed_queue);
 		feed_queue_logic_free(devc->feed_queue);
@@ -1508,6 +1595,11 @@ SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi)
 	}
 
 	return SR_OK;
+}
+
+SR_PRIV void la2016_release_resources(const struct sr_dev_inst *sdi)
+{
+	(void)la2016_usbxfer_release(sdi);
 }
 
 SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
