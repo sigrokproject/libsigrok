@@ -44,7 +44,6 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	/* TODO: SR_CONF_CONTINUOUS, */
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -54,6 +53,7 @@ static const uint32_t devopts[] = {
 #endif
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CONTINUOUS | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_logic[] = {
@@ -627,6 +627,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->sw_limits.limit_samples = 0;
 		devc->capture_ratio = 50;
 		devc->samplerate = devc->model->samplerate;
+		if (!devc->model->memory_bits)
+			devc->continuous = TRUE;
 		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_DFLT;
 		if  (ARRAY_SIZE(devc->pwm_setting) >= 1) {
 			devc->pwm_setting[0].enabled = FALSE;
@@ -822,6 +824,9 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_double(voltage, voltage);
 		break;
 #endif /* WITH_THRESHOLD_DEVCFG */
+	case SR_CONF_CONTINUOUS:
+		*data = g_variant_new_boolean(devc->continuous);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -838,6 +843,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct pwm_setting *pwm;
 	double value_f;
 	int idx;
+	gboolean on;
 
 	devc = sdi->priv;
 
@@ -917,6 +923,12 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->threshold_voltage_idx = idx;
 		break;
 #endif /* WITH_THRESHOLD_DEVCFG */
+	case SR_CONF_CONTINUOUS:
+		on = g_variant_get_boolean(data);
+		if (!devc->model->memory_bits && !on)
+			return SR_ERR_ARG;
+		devc->continuous = on;
+		break;
 	default:
 		return SR_ERR_NA;
 	}

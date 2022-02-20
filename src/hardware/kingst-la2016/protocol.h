@@ -91,6 +91,11 @@
 
 #define LA2016_NUM_PWMCH_MAX	2
 
+/* Streaming mode related thresholds. Not enforced, used for warnings. */
+#define LA2016_STREAM_MBPS_MAX	200	/* In units of Mbps. */
+#define LA2016_STREAM_PUSH_THR	16	/* In units of Mbps. */
+#define LA2016_STREAM_PUSH_IVAL	250	/* In units of ms. */
+
 /*
  * Whether to de-initialize the device hardware in the driver's close
  * callback. It is desirable to e.g. configure PWM channels and leave
@@ -129,6 +134,7 @@ struct dev_context {
 	uint64_t samplerate;
 	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;
+	gboolean continuous;
 
 	/* Internal acquisition and download state. */
 	gboolean trigger_involved;
@@ -151,6 +157,15 @@ struct dev_context {
 	struct feed_queue_logic *feed_queue;
 	GSList *transfers;
 	size_t transfer_bufsize;
+	struct stream_state_t {
+		size_t enabled_count;
+		uint32_t enabled_mask;
+		uint32_t channel_masks[32];
+		size_t channel_index;
+		uint32_t sample_data[32];
+		uint64_t flush_period_ms;
+		uint64_t last_flushed;
+	} stream;
 };
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
