@@ -79,6 +79,7 @@ static const struct kingst_model models[] = {
 #define REG_RUN		0x00	/* Read capture status, write start capture. */
 #define REG_PWM_EN	0x02	/* User PWM channels on/off. */
 #define REG_CAPT_MODE	0x03	/* Write 0x00 capture to SDRAM, 0x01 streaming. */
+#define REG_PIN_STATE	0x04	/* Read current pin state (real time display). */
 #define REG_BULK	0x08	/* Write start addr, byte count to download samples. */
 #define REG_SAMPLING	0x10	/* Write capture config, read capture SDRAM location. */
 #define REG_TRIGGER	0x20	/* Write level and edge trigger config. */
