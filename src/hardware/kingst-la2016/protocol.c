@@ -1515,15 +1515,22 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	gboolean was_cancelled;
+	gboolean was_cancelled, device_gone;
 	int ret;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
 
 	was_cancelled = transfer->status == LIBUSB_TRANSFER_CANCELLED;
+	device_gone = transfer->status == LIBUSB_TRANSFER_NO_DEVICE;
 	sr_dbg("receive_transfer(): status %s received %d bytes.",
 		libusb_error_name(transfer->status), transfer->actual_length);
+	if (device_gone) {
+		sr_warn("Lost communication to USB device.");
+		devc->download_finished = TRUE;
+		return;
+	}
+
 	/*
 	 * Implementation detail: A USB transfer timeout is not fatal
 	 * here. We just process whatever was received, empty input is
