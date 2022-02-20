@@ -1099,10 +1099,10 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
  * contain a number of samples (8bit repeat count per 16bit sample data).
  */
 static void send_chunk(struct sr_dev_inst *sdi,
-	const uint8_t *packets, size_t num_xfers)
+	const uint8_t *data_buffer, size_t data_length)
 {
 	struct dev_context *devc;
-	size_t num_pkts;
+	size_t num_xfers, num_pkts;
 	const uint8_t *rp;
 	uint32_t sample_value;
 	size_t repetitions;
@@ -1119,8 +1119,20 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		devc->trigger_marked = TRUE;
 	}
 
+	/*
+	 * Adjust the number of remaining bytes to read from the device
+	 * before the processing of the currently received chunk affects
+	 * the variable which holds the number of received bytes.
+	 */
+	if (data_length > devc->n_bytes_to_read)
+		devc->n_bytes_to_read = 0;
+	else
+		devc->n_bytes_to_read -= data_length;
+
+	/* Process the received chunk of capture data. */
 	sample_value = 0;
-	rp = packets;
+	rp = data_buffer;
+	num_xfers = data_length / TRANSFER_PACKET_LENGTH;
 	while (num_xfers--) {
 		num_pkts = devc->packets_per_chunk;
 		while (num_pkts--) {
@@ -1153,6 +1165,18 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		(void)read_u8_inc(&rp); /* Skip sequence number. */
 	}
 
+	/*
+	 * Check for several conditions which shall terminate the
+	 * capture data download: When the amount of capture data in
+	 * the device is exhausted. When the user specified samples
+	 * count limit is reached.
+	 */
+	if (!devc->n_bytes_to_read) {
+		devc->download_finished = TRUE;
+	} else {
+		sr_dbg("%" PRIu32 " more bytes to download from the device.",
+			devc->n_bytes_to_read);
+	}
 	if (!devc->download_finished && sr_sw_limits_check(&devc->sw_limits)) {
 		sr_dbg("Acquisition limit reached.");
 		devc->download_finished = TRUE;
@@ -1169,7 +1193,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	size_t num_xfers;
 	int ret;
 
 	sdi = transfer->user_data;
@@ -1185,17 +1208,17 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	 * or exhausting the device's captured data will complete the
 	 * sample data download.
 	 */
-	num_xfers = transfer->actual_length / TRANSFER_PACKET_LENGTH;
-	send_chunk(sdi, transfer->buffer, num_xfers);
+	send_chunk(sdi, transfer->buffer, transfer->actual_length);
 
-	devc->n_bytes_to_read -= transfer->actual_length;
-	if (devc->n_bytes_to_read) {
-		uint32_t to_read = devc->n_bytes_to_read;
+	if (!devc->download_finished) {
+		uint32_t to_read;
+
 		/*
 		 * Determine read size for the next USB transfer. Make
 		 * the buffer size a multiple of the endpoint packet
 		 * size. Don't exceed a maximum value.
 		 */
+		to_read = devc->n_bytes_to_read;
 		if (to_read >= LA2016_USB_BUFSZ)
 			to_read = LA2016_USB_BUFSZ;
 		to_read += LA2016_EP6_PKTSZ - 1;
@@ -1211,11 +1234,11 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 			return;
 		sr_err("Cannot submit another USB transfer: %s.",
 			libusb_error_name(ret));
+		devc->download_finished = TRUE;
 	}
 
 	g_free(transfer->buffer);
 	libusb_free_transfer(transfer);
-	devc->download_finished = TRUE;
 }
 
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
