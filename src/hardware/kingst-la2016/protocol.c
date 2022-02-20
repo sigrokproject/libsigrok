@@ -915,15 +915,15 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	return state;
 }
 
-static int la2016_is_idle(const struct sr_dev_inst *sdi)
+static gboolean la2016_is_idle(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 
 	state = run_state(sdi);
 	if ((state & runstate_mask_idle) == runstate_patt_idle)
-		return 1;
+		return TRUE;
 
-	return 0;
+	return FALSE;
 }
 
 static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t mode)
