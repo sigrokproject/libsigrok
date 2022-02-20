@@ -46,6 +46,7 @@
  */
 #define LA2016_EP6_PKTSZ	512 /* Max packet size of USB endpoint 6. */
 #define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KiB buffer. */
+#define LA2016_USB_XFER_COUNT	32 /* Size of USB bulk transfers pool. */
 
 /* USB communication timeout during regular operation. */
 #define DEFAULT_TIMEOUT_MS	200
@@ -148,7 +149,7 @@ struct dev_context {
 	uint32_t read_pos;
 
 	struct feed_queue_logic *feed_queue;
-	struct libusb_transfer *transfer;
+	GSList *transfers;
 	size_t transfer_bufsize;
 };
 

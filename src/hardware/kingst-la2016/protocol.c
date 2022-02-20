@@ -945,23 +945,26 @@ SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
 
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *xfer);
 
+static void la2016_usbxfer_release_cb(gpointer p)
+{
+	struct libusb_transfer *xfer;
+
+	xfer = p;
+	g_free(xfer->buffer);
+	libusb_free_transfer(xfer);
+}
+
 static int la2016_usbxfer_release(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct libusb_transfer *xfer;
 
 	devc = sdi ? sdi->priv : NULL;
 	if (!devc)
 		return SR_ERR_ARG;
 
 	/* Release all USB transfers. */
-	xfer = devc->transfer;
-	devc->transfer = NULL;
-	if (!xfer)
-		return SR_OK;
-
-	g_free(xfer->buffer);
-	libusb_free_transfer(xfer);
+	g_slist_free_full(devc->transfers, la2016_usbxfer_release_cb);
+	devc->transfers = NULL;
 
 	return SR_OK;
 }
@@ -969,7 +972,7 @@ static int la2016_usbxfer_release(const struct sr_dev_inst *sdi)
 static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	size_t bufsize;
+	size_t bufsize, xfercount;
 	uint8_t *buffer;
 	struct libusb_transfer *xfer;
 
@@ -978,7 +981,7 @@ static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 
 	/* Transfers were already allocated before? */
-	if (devc->transfer)
+	if (devc->transfers)
 		return SR_OK;
 
 	/*
@@ -992,19 +995,22 @@ static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
 	 * required in this location.
 	 */
 	bufsize = LA2016_USB_BUFSZ;
-	buffer = g_try_malloc(bufsize);
-	if (!buffer) {
-		sr_err("Cannot allocate USB transfer buffer.");
-		return SR_ERR_MALLOC;
+	xfercount = LA2016_USB_XFER_COUNT;
+	while (xfercount--) {
+		buffer = g_try_malloc(bufsize);
+		if (!buffer) {
+			sr_err("Cannot allocate USB transfer buffer.");
+			return SR_ERR_MALLOC;
+		}
+		xfer = libusb_alloc_transfer(0);
+		if (!xfer) {
+			sr_err("Cannot allocate USB transfer.");
+			g_free(buffer);
+			return SR_ERR_MALLOC;
+		}
+		xfer->buffer = buffer;
+		devc->transfers = g_slist_append(devc->transfers, xfer);
 	}
-	xfer = libusb_alloc_transfer(0);
-	if (!xfer) {
-		sr_err("Cannot allocate USB transfer.");
-		g_free(buffer);
-		return SR_ERR_MALLOC;
-	}
-	xfer->buffer = buffer;
-	devc->transfer = xfer;
 	devc->transfer_bufsize = bufsize;
 
 	return SR_OK;
@@ -1013,6 +1019,7 @@ static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
 static int la2016_usbxfer_cancel_all(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GSList *l;
 	struct libusb_transfer *xfer;
 
 	devc = sdi ? sdi->priv : NULL;
@@ -1020,9 +1027,12 @@ static int la2016_usbxfer_cancel_all(const struct sr_dev_inst *sdi)
 		return SR_ERR_ARG;
 
 	/* Unconditionally cancel the transfer. Ignore errors. */
-	xfer = devc->transfer;
-	if (xfer)
+	for (l = devc->transfers; l; l = l->next) {
+		xfer = l->data;
+		if (!xfer)
+			continue;
 		libusb_cancel_transfer(xfer);
+	}
 
 	return SR_OK;
 }
@@ -1061,15 +1071,22 @@ static int la2016_usbxfer_resubmit(const struct sr_dev_inst *sdi,
 static int la2016_usbxfer_submit_all(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	GSList *l;
+	struct libusb_transfer *xfer;
 	int ret;
 
 	devc = sdi ? sdi->priv : NULL;
 	if (!devc)
 		return SR_ERR_ARG;
 
-	ret = la2016_usbxfer_resubmit(sdi, devc->transfer);
-	if (ret != SR_OK)
-		return ret;
+	for (l = devc->transfers; l; l = l->next) {
+		xfer = l->data;
+		if (!xfer)
+			return SR_ERR_ARG;
+		ret = la2016_usbxfer_resubmit(sdi, xfer);
+		if (ret != SR_OK)
+			return ret;
+	}
 
 	return SR_OK;
 }
