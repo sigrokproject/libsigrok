@@ -67,7 +67,7 @@
  * The device expects some zero padding to follow the content of the
  * file which contains the FPGA bitstream. Specify the chunk size here.
  */
-#define LA2016_EP2_PADDING	2048
+#define LA2016_EP2_PADDING	4096
 
 /*
  * Whether the logic input threshold voltage is a config item of the
