@@ -87,20 +87,23 @@ static const char *channel_names_pwm[] = {
 };
 
 /*
- * The hardware uses a 100/200/500MHz base clock (model dependent) and
- * a 16bit divider (common across all models). The range from 10kHz to
- * 100/200/500MHz should be applicable to all devices. High rates may
- * suffer from coarse resolution (e.g. in the "500MHz div 2" case) and
- * may not provide the desired 1/2/5 steps. Fortunately this exclusively
- * affects the 500MHz model where 250MHz is used instead of 200MHz and
- * the 166MHz and 125MHz rates are not presented to users. Deep memory
- * of these models and hardware compression reduce the necessity to let
- * users pick from a huge list of possible rates.
+ * The devices have an upper samplerate limit of 100/200/500 MHz each.
+ * But their hardware uses different base clocks (100/200/800MHz, this
+ * is _not_ a typo) and a 16bit divider. Which results in per-model ranges
+ * of supported rates which not only differ in the upper boundary, but
+ * also at the lower boundary. It's assumed that the 10kHz rate is not
+ * useful enough to provide by all means. Starting at 20kHz for all models
+ * simplfies the implementation of the config API routines, and eliminates
+ * redundancy in these samplerates tables.
  *
+ * Streaming mode is constrained by the channel count and samplerate
+ * product (the bits per second which need to travel the USB connection
+ * while the acquisition is executing). Because streaming mode does not
+ * compress the capture data, a later implementation may desire a finer
+ * resolution. For now let's just stick with the 1/2/5 steps.
  */
 
 static const uint64_t rates_500mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -113,12 +116,11 @@ static const uint64_t rates_500mhz[] = {
 	SR_MHZ(20),
 	SR_MHZ(50),
 	SR_MHZ(100),
-	SR_MHZ(250),
+	SR_MHZ(200),
 	SR_MHZ(500),
 };
 
 static const uint64_t rates_200mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -135,7 +137,6 @@ static const uint64_t rates_200mhz[] = {
 };
 
 static const uint64_t rates_100mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),

@@ -48,13 +48,13 @@ static const struct kingst_model models[] = {
 	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
 	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, 0, },
 	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, SR_MHZ(800), },
-	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, 0, },
-	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, 0, },
+	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
+	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, SR_MHZ(800), },
 	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, SR_MHZ(800), },
 	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
 	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
 	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
-	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, 0, },
+	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
 };
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
@@ -729,6 +729,13 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	/*
+	 * The base clock need not be identical to the maximum samplerate,
+	 * and differs between models. The 500MHz devices even use a base
+	 * clock of 800MHz, and communicate divider 1 to the hardware to
+	 * configure the 500MHz samplerate. This allows them to operate at
+	 * a 200MHz samplerate which uses divider 4.
+	 */
 	if (devc->samplerate > devc->model->samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
 			devc->samplerate);
@@ -746,6 +753,8 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	}
 	divider_u16 = baseclock / devc->samplerate;
 	eff_samplerate = baseclock / divider_u16;
+	if (eff_samplerate > devc->model->samplerate)
+		eff_samplerate = devc->model->samplerate;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
 		&limit_samples, NULL, NULL, NULL);
