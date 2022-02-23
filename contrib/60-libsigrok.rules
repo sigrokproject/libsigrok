@@ -110,6 +110,8 @@ ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0002", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0020", ENV{ID_SIGROK}="1"
 # DreamSourceLab DSLogic Basic
 ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="0021", ENV{ID_SIGROK}="1"
+# DreamSourceLab DSLogic U3Pro16
+ATTRS{idVendor}=="2a0e", ATTRS{idProduct}=="002a", ENV{ID_SIGROK}="1"
 
 # GW-Instek GDM-9061 (USBTMC mode)
 ATTRS{idVendor}=="2184", ATTRS{idProduct}=="0059", ENV{ID_SIGROK}="1"
