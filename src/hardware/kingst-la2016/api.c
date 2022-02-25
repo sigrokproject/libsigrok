@@ -44,7 +44,6 @@ static const uint32_t drvopts[] = {
 };
 
 static const uint32_t devopts[] = {
-	/* TODO: SR_CONF_CONTINUOUS, */
 	SR_CONF_CONN | SR_CONF_GET,
 	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
@@ -54,6 +53,7 @@ static const uint32_t devopts[] = {
 #endif
 	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
 	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_CONTINUOUS | SR_CONF_GET | SR_CONF_SET,
 };
 
 static const uint32_t devopts_cg_logic[] = {
@@ -87,20 +87,23 @@ static const char *channel_names_pwm[] = {
 };
 
 /*
- * The hardware uses a 100/200/500MHz base clock (model dependent) and
- * a 16bit divider (common across all models). The range from 10kHz to
- * 100/200/500MHz should be applicable to all devices. High rates may
- * suffer from coarse resolution (e.g. in the "500MHz div 2" case) and
- * may not provide the desired 1/2/5 steps. Fortunately this exclusively
- * affects the 500MHz model where 250MHz is used instead of 200MHz and
- * the 166MHz and 125MHz rates are not presented to users. Deep memory
- * of these models and hardware compression reduce the necessity to let
- * users pick from a huge list of possible rates.
+ * The devices have an upper samplerate limit of 100/200/500 MHz each.
+ * But their hardware uses different base clocks (100/200/800MHz, this
+ * is _not_ a typo) and a 16bit divider. Which results in per-model ranges
+ * of supported rates which not only differ in the upper boundary, but
+ * also at the lower boundary. It's assumed that the 10kHz rate is not
+ * useful enough to provide by all means. Starting at 20kHz for all models
+ * simplfies the implementation of the config API routines, and eliminates
+ * redundancy in these samplerates tables.
  *
+ * Streaming mode is constrained by the channel count and samplerate
+ * product (the bits per second which need to travel the USB connection
+ * while the acquisition is executing). Because streaming mode does not
+ * compress the capture data, a later implementation may desire a finer
+ * resolution. For now let's just stick with the 1/2/5 steps.
  */
 
 static const uint64_t rates_500mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -113,12 +116,11 @@ static const uint64_t rates_500mhz[] = {
 	SR_MHZ(20),
 	SR_MHZ(50),
 	SR_MHZ(100),
-	SR_MHZ(250),
+	SR_MHZ(200),
 	SR_MHZ(500),
 };
 
 static const uint64_t rates_200mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -135,7 +137,6 @@ static const uint64_t rates_200mhz[] = {
 };
 
 static const uint64_t rates_100mhz[] = {
-	SR_KHZ(10),
 	SR_KHZ(20),
 	SR_KHZ(50),
 	SR_KHZ(100),
@@ -627,6 +628,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->sw_limits.limit_samples = 0;
 		devc->capture_ratio = 50;
 		devc->samplerate = devc->model->samplerate;
+		if (!devc->model->memory_bits)
+			devc->continuous = TRUE;
 		devc->threshold_voltage_idx = LOGIC_THRESHOLD_IDX_DFLT;
 		if  (ARRAY_SIZE(devc->pwm_setting) >= 1) {
 			devc->pwm_setting[0].enabled = FALSE;
@@ -679,6 +682,8 @@ static int dev_close(struct sr_dev_inst *sdi)
 
 	if (!usb->devhdl)
 		return SR_ERR_BUG;
+
+	la2016_release_resources(sdi);
 
 	if (WITH_DEINIT_IN_CLOSE)
 		la2016_deinit_hardware(sdi);
@@ -820,6 +825,9 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = std_gvar_tuple_double(voltage, voltage);
 		break;
 #endif /* WITH_THRESHOLD_DEVCFG */
+	case SR_CONF_CONTINUOUS:
+		*data = g_variant_new_boolean(devc->continuous);
+		break;
 	default:
 		return SR_ERR_NA;
 	}
@@ -836,6 +844,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct pwm_setting *pwm;
 	double value_f;
 	int idx;
+	gboolean on;
 
 	devc = sdi->priv;
 
@@ -915,6 +924,12 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->threshold_voltage_idx = idx;
 		break;
 #endif /* WITH_THRESHOLD_DEVCFG */
+	case SR_CONF_CONTINUOUS:
+		on = g_variant_get_boolean(data);
+		if (!devc->model->memory_bits && !on)
+			return SR_ERR_ARG;
+		devc->continuous = on;
+		break;
 	default:
 		return SR_ERR_NA;
 	}

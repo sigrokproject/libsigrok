@@ -45,10 +45,12 @@
  * but libusb does not expose this function. Typically, max size is 2MB.
  */
 #define LA2016_EP6_PKTSZ	512 /* Max packet size of USB endpoint 6. */
-#define LA2016_USB_BUFSZ	(256 * 2 * LA2016_EP6_PKTSZ) /* 256KiB buffer. */
+#define LA2016_USB_BUFSZ	(512 * 1024) /* 512KiB buffer. */
+#define LA2016_USB_XFER_COUNT	8 /* Size of USB bulk transfers pool. */
 
 /* USB communication timeout during regular operation. */
 #define DEFAULT_TIMEOUT_MS	200
+#define CAPTURE_TIMEOUT_MS	500
 
 /*
  * Check for MCU firmware to take effect after upload. Check the device
@@ -65,7 +67,7 @@
  * The device expects some zero padding to follow the content of the
  * file which contains the FPGA bitstream. Specify the chunk size here.
  */
-#define LA2016_EP2_PADDING	2048
+#define LA2016_EP2_PADDING	4096
 
 /*
  * Whether the logic input threshold voltage is a config item of the
@@ -89,6 +91,11 @@
 
 #define LA2016_NUM_PWMCH_MAX	2
 
+/* Streaming mode related thresholds. Not enforced, used for warnings. */
+#define LA2016_STREAM_MBPS_MAX	200	/* In units of Mbps. */
+#define LA2016_STREAM_PUSH_THR	16	/* In units of Mbps. */
+#define LA2016_STREAM_PUSH_IVAL	250	/* In units of ms. */
+
 /*
  * Whether to de-initialize the device hardware in the driver's close
  * callback. It is desirable to e.g. configure PWM channels and leave
@@ -100,12 +107,13 @@
 #define LA2016_CONVBUFFER_SIZE	(4 * 1024 * 1024)
 
 struct kingst_model {
-	uint8_t magic;		/* EEPROM magic byte value. */
+	uint8_t magic, magic2;	/* EEPROM magic byte values. */
 	const char *name;	/* User perceived model name. */
 	const char *fpga_stem;	/* Bitstream filename stem. */
 	uint64_t samplerate;	/* Max samplerate in Hz. */
 	size_t channel_count;	/* Max channel count (16, 32). */
 	uint64_t memory_bits;	/* RAM capacity in Gbit (1, 2, 4). */
+	uint64_t baseclock;	/* Base clock to derive samplerate from. */
 };
 
 struct dev_context {
@@ -113,7 +121,7 @@ struct dev_context {
 	char *mcu_firmware;
 	char *fpga_bitstream;
 	uint64_t fw_uploaded; /* Timestamp of most recent FW upload. */
-	uint8_t identify_magic;
+	uint8_t identify_magic, identify_magic2;
 	const struct kingst_model *model;
 	struct sr_channel_group *cg_logic, *cg_pwm;
 
@@ -127,6 +135,7 @@ struct dev_context {
 	uint64_t samplerate;
 	struct sr_sw_limits sw_limits;
 	uint64_t capture_ratio;
+	gboolean continuous;
 
 	/* Internal acquisition and download state. */
 	gboolean trigger_involved;
@@ -147,7 +156,17 @@ struct dev_context {
 	uint32_t read_pos;
 
 	struct feed_queue_logic *feed_queue;
-	struct libusb_transfer *transfer;
+	GSList *transfers;
+	size_t transfer_bufsize;
+	struct stream_state_t {
+		size_t enabled_count;
+		uint32_t enabled_mask;
+		uint32_t channel_masks[32];
+		size_t channel_index;
+		uint32_t sample_data[32];
+		uint64_t flush_period_ms;
+		uint64_t last_flushed;
+	} stream;
 };
 
 SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
@@ -162,5 +181,6 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV void la2016_release_resources(const struct sr_dev_inst *sdi);
 
 #endif

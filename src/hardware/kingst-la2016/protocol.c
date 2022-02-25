@@ -34,20 +34,27 @@
 #define FPGA_FWFILE_FMT	"kingst-%s-fpga.bitstream"
 
 /*
- * List of supported devices and their features. See @ref kingst_model
+ * List of known devices and their features. See @ref kingst_model
  * for the fields' type and meaning. Table is sorted by EEPROM magic.
+ * More specific items need to go first (additional byte[2/6]). Not
+ * all devices are covered by this driver implementation, but telling
+ * users what was detected is considered useful.
  *
- * TODO
- * - Below LA1016 properties were guessed, need verification.
- * - Add LA5016 and LA5032 devices when their EEPROM magic is known.
- * - Does LA1010 fit the driver implementation? Samplerates vary with
- *   channel counts, lack of local sample memory. Most probably not.
+ * TODO Verify the identification of models that were not tested before.
  */
 static const struct kingst_model models[] = {
-	{ 2, "LA2016", "la2016", SR_MHZ(200), 16, 1, },
-	{ 3, "LA1016", "la1016", SR_MHZ(100), 16, 1, },
-	{ 8, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, },
-	{ 9, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, },
+	{  2, 1, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{  2, 0, "LA2016", "la2016",   SR_MHZ(200), 16, 1, 0, },
+	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, 0, },
+	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
+	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, SR_MHZ(800), },
+	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
 };
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
@@ -79,6 +86,7 @@ static const struct kingst_model models[] = {
 #define REG_RUN		0x00	/* Read capture status, write start capture. */
 #define REG_PWM_EN	0x02	/* User PWM channels on/off. */
 #define REG_CAPT_MODE	0x03	/* Write 0x00 capture to SDRAM, 0x01 streaming. */
+#define REG_PIN_STATE	0x04	/* Read current pin state (real time display). */
 #define REG_BULK	0x08	/* Write start addr, byte count to download samples. */
 #define REG_SAMPLING	0x10	/* Write capture config, read capture SDRAM location. */
 #define REG_TRIGGER	0x20	/* Write level and edge trigger config. */
@@ -544,25 +552,43 @@ static int set_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
 	return SR_OK;
 }
 
-static uint32_t get_channels_mask(const struct sr_dev_inst *sdi)
+/*
+ * Determine the number of enabled channels as well as their bitmask
+ * representation. Derive data here which later simplifies processing
+ * of raw capture data memory content in streaming mode.
+ */
+static void la2016_prepare_stream(const struct sr_dev_inst *sdi)
 {
-	uint32_t channels;
+	struct dev_context *devc;
+	struct stream_state_t *stream;
+	size_t channel_mask;
 	GSList *l;
 	struct sr_channel *ch;
 
-	channels = 0;
+	devc = sdi->priv;
+	stream = &devc->stream;
+	memset(stream, 0, sizeof(*stream));
+
+	stream->enabled_count = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
 			continue;
 		if (!ch->enabled)
 			continue;
-		channels |= 1UL << ch->index;
+		channel_mask = 1UL << ch->index;
+		stream->enabled_mask |= channel_mask;
+		stream->channel_masks[stream->enabled_count++] = channel_mask;
 	}
-
-	return channels;
+	stream->channel_index = 0;
 }
 
+/*
+ * This routine configures the set of enabled channels, as well as the
+ * trigger condition (if one was specified). Also prepares the capture
+ * data processing in stream mode, where the memory layout dramatically
+ * differs from normal mode.
+ */
 static int set_trigger_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -583,12 +609,16 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	uint8_t *wrptr;
 
 	devc = sdi->priv;
-	trigger = sr_session_trigger_get(sdi->session);
+
+	la2016_prepare_stream(sdi);
 
 	memset(&cfg, 0, sizeof(cfg));
-
-	cfg.channels = get_channels_mask(sdi);
-
+	cfg.channels = devc->stream.enabled_mask;
+	if (!cfg.channels) {
+		sr_err("Need at least one enabled logic channel.");
+		return SR_ERR_ARG;
+	}
+	trigger = sr_session_trigger_get(sdi->session);
 	if (trigger && trigger->stages) {
 		stages = trigger->stages;
 		stage1 = stages->data;
@@ -639,6 +669,24 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 		"level-triggered 0x%04x, high/falling 0x%04x.",
 		cfg.channels, cfg.enabled, cfg.level, cfg.high_or_falling);
 
+	/*
+	 * Don't configure hardware trigger parameters in streaming mode
+	 * or when the device lacks local memory. Yet the above dump of
+	 * derived parameters from user specs is considered valueable.
+	 *
+	 * TODO Add support for soft triggers when hardware triggers in
+	 * the device are not used or are not available at all.
+	 */
+	if (!devc->model->memory_bits || devc->continuous) {
+		if (!devc->model->memory_bits)
+			sr_dbg("Device without memory. No hardware triggers.");
+		else if (devc->continuous)
+			sr_dbg("Streaming mode. No hardware triggers.");
+		cfg.enabled = 0;
+		cfg.level = 0;
+		cfg.high_or_falling = 0;
+	}
+
 	devc->trigger_involved = cfg.enabled != 0;
 
 	wrptr = buf;
@@ -661,10 +709,16 @@ static int set_trigger_config(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+/*
+ * This routine communicates the sample configuration to the device:
+ * Total samples count and samplerate, pre-trigger configuration.
+ */
 static int set_sample_config(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
+	uint64_t baseclock;
 	uint64_t min_samplerate, eff_samplerate;
+	uint64_t stream_bandwidth;
 	uint16_t divider_u16;
 	uint64_t limit_samples;
 	uint64_t pre_trigger_samples;
@@ -675,20 +729,32 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
+	/*
+	 * The base clock need not be identical to the maximum samplerate,
+	 * and differs between models. The 500MHz devices even use a base
+	 * clock of 800MHz, and communicate divider 1 to the hardware to
+	 * configure the 500MHz samplerate. This allows them to operate at
+	 * a 200MHz samplerate which uses divider 4.
+	 */
 	if (devc->samplerate > devc->model->samplerate) {
 		sr_err("Too high a sample rate: %" PRIu64 ".",
 			devc->samplerate);
 		return SR_ERR_ARG;
 	}
-	min_samplerate = devc->model->samplerate;
+	baseclock = devc->model->baseclock;
+	if (!baseclock)
+		baseclock = devc->model->samplerate;
+	min_samplerate = baseclock;
 	min_samplerate /= 65536;
 	if (devc->samplerate < min_samplerate) {
 		sr_err("Too low a sample rate: %" PRIu64 ".",
 			devc->samplerate);
 		return SR_ERR_ARG;
 	}
-	divider_u16 = devc->model->samplerate / devc->samplerate;
-	eff_samplerate = devc->model->samplerate / divider_u16;
+	divider_u16 = baseclock / devc->samplerate;
+	eff_samplerate = baseclock / divider_u16;
+	if (eff_samplerate > devc->model->samplerate)
+		eff_samplerate = devc->model->samplerate;
 
 	ret = sr_sw_limits_get_remain(&devc->sw_limits,
 		&limit_samples, NULL, NULL, NULL);
@@ -719,13 +785,12 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 	 * limit the amount of sample memory to use for pre-trigger
 	 * data. Only the upper 24 bits of that memory size spec get
 	 * communicated to the device (written to its FPGA register).
-	 *
-	 * TODO Determine whether the pre-trigger memory size gets
-	 * specified in samples or in bytes. A previous implementation
-	 * suggests bytes but this is suspicious when every other spec
-	 * is in terms of samples.
 	 */
-	if (devc->trigger_involved) {
+	if (!devc->model->memory_bits) {
+		sr_dbg("Memory-less device, skipping pre-trigger config.");
+		pre_trigger_samples = 0;
+		pre_trigger_memory = 0;
+	} else if (devc->trigger_involved) {
 		pre_trigger_samples = limit_samples;
 		pre_trigger_samples *= devc->capture_ratio;
 		pre_trigger_samples /= 100;
@@ -736,18 +801,33 @@ static int set_sample_config(const struct sr_dev_inst *sdi)
 		pre_trigger_memory /= 100;
 	} else {
 		sr_dbg("No trigger setup, skipping pre-trigger config.");
-		pre_trigger_samples = 1;
+		pre_trigger_samples = 0;
 		pre_trigger_memory = 0;
 	}
 	/* Ensure non-zero value after LSB shift out in HW reg. */
-	if (pre_trigger_memory < 0x100) {
+	if (pre_trigger_memory < 0x100)
 		pre_trigger_memory = 0x100;
-	}
 
-	sr_dbg("Set sample config: %" PRIu64 "kHz, %" PRIu64 " samples.",
-		eff_samplerate / SR_KHZ(1), limit_samples);
+	sr_dbg("Set sample config: %" PRIu64 "kHz (div %" PRIu16 "), %" PRIu64 " samples.",
+		eff_samplerate / SR_KHZ(1), divider_u16, limit_samples);
 	sr_dbg("Capture ratio %" PRIu64 "%%, count %" PRIu64 ", mem %" PRIu64 ".",
 		devc->capture_ratio, pre_trigger_samples, pre_trigger_memory);
+
+	if (devc->continuous) {
+		stream_bandwidth = eff_samplerate;
+		stream_bandwidth *= devc->stream.enabled_count;
+		sr_dbg("Streaming: channel count %zu, product %" PRIu64 ".",
+			devc->stream.enabled_count, stream_bandwidth);
+		stream_bandwidth /= 1000 * 1000;
+		if (stream_bandwidth >= LA2016_STREAM_MBPS_MAX) {
+			sr_warn("High USB stream bandwidth: %" PRIu64 "Mbps.",
+				stream_bandwidth);
+		}
+		if (stream_bandwidth < LA2016_STREAM_PUSH_THR) {
+			sr_dbg("Streaming: low Mbps, suggest periodic flush.");
+			devc->stream.flush_period_ms = LA2016_STREAM_PUSH_IVAL;
+		}
+	}
 
 	/*
 	 * The acquisition configuration occupies a total of 16 bytes:
@@ -856,15 +936,15 @@ static uint16_t run_state(const struct sr_dev_inst *sdi)
 	return state;
 }
 
-static int la2016_is_idle(const struct sr_dev_inst *sdi)
+static gboolean la2016_is_idle(const struct sr_dev_inst *sdi)
 {
 	uint16_t state;
 
 	state = run_state(sdi);
 	if ((state & runstate_mask_idle) == runstate_patt_idle)
-		return 1;
+		return TRUE;
 
-	return 0;
+	return FALSE;
 }
 
 static int set_run_mode(const struct sr_dev_inst *sdi, uint8_t mode)
@@ -943,17 +1023,168 @@ SR_PRIV int la2016_upload_firmware(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
+static void LIBUSB_CALL receive_transfer(struct libusb_transfer *xfer);
+
+static void la2016_usbxfer_release_cb(gpointer p)
+{
+	struct libusb_transfer *xfer;
+
+	xfer = p;
+	g_free(xfer->buffer);
+	libusb_free_transfer(xfer);
+}
+
+static int la2016_usbxfer_release(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Release all USB transfers. */
+	g_slist_free_full(devc->transfers, la2016_usbxfer_release_cb);
+	devc->transfers = NULL;
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_allocate(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	size_t bufsize, xfercount;
+	uint8_t *buffer;
+	struct libusb_transfer *xfer;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Transfers were already allocated before? */
+	if (devc->transfers)
+		return SR_OK;
+
+	/*
+	 * Allocate all USB transfers and their buffers. Arrange for a
+	 * buffer size which is within the device's capabilities, and
+	 * is a multiple of the USB endpoint's size, to make use of the
+	 * RAW_IO performance feature.
+	 *
+	 * Implementation detail: The LA2016_USB_BUFSZ value happens
+	 * to match all those constraints. No additional arithmetics is
+	 * required in this location.
+	 */
+	bufsize = LA2016_USB_BUFSZ;
+	xfercount = LA2016_USB_XFER_COUNT;
+	while (xfercount--) {
+		buffer = g_try_malloc(bufsize);
+		if (!buffer) {
+			sr_err("Cannot allocate USB transfer buffer.");
+			return SR_ERR_MALLOC;
+		}
+		xfer = libusb_alloc_transfer(0);
+		if (!xfer) {
+			sr_err("Cannot allocate USB transfer.");
+			g_free(buffer);
+			return SR_ERR_MALLOC;
+		}
+		xfer->buffer = buffer;
+		devc->transfers = g_slist_append(devc->transfers, xfer);
+	}
+	devc->transfer_bufsize = bufsize;
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_cancel_all(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	GSList *l;
+	struct libusb_transfer *xfer;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	/* Unconditionally cancel the transfer. Ignore errors. */
+	for (l = devc->transfers; l; l = l->next) {
+		xfer = l->data;
+		if (!xfer)
+			continue;
+		libusb_cancel_transfer(xfer);
+	}
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_resubmit(const struct sr_dev_inst *sdi,
+	struct libusb_transfer *xfer)
+{
+	struct dev_context *devc;
+	struct sr_usb_dev_inst *usb;
+	libusb_transfer_cb_fn cb;
+	int ret;
+
+	devc = sdi ? sdi->priv : NULL;
+	usb = sdi ? sdi->conn : NULL;
+	if (!devc || !usb)
+		return SR_ERR_ARG;
+
+	if (!xfer)
+		return SR_ERR_ARG;
+
+	cb = receive_transfer;
+	libusb_fill_bulk_transfer(xfer, usb->devhdl,
+		USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
+		xfer->buffer, devc->transfer_bufsize,
+		cb, (void *)sdi, CAPTURE_TIMEOUT_MS);
+	ret = libusb_submit_transfer(xfer);
+	if (ret != 0) {
+		sr_err("Cannot submit USB transfer: %s.",
+			libusb_error_name(ret));
+		return SR_ERR_IO;
+	}
+
+	return SR_OK;
+}
+
+static int la2016_usbxfer_submit_all(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	GSList *l;
+	struct libusb_transfer *xfer;
+	int ret;
+
+	devc = sdi ? sdi->priv : NULL;
+	if (!devc)
+		return SR_ERR_ARG;
+
+	for (l = devc->transfers; l; l = l->next) {
+		xfer = l->data;
+		if (!xfer)
+			return SR_ERR_ARG;
+		ret = la2016_usbxfer_resubmit(sdi, xfer);
+		if (ret != SR_OK)
+			return ret;
+	}
+
+	return SR_OK;
+}
+
 SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 	double voltage)
 {
+	struct dev_context *devc;
 	int ret;
 	uint8_t cmd;
+
+	devc = sdi->priv;
 
 	ret = set_threshold_voltage(sdi, voltage);
 	if (ret != SR_OK)
 		return ret;
 
-	cmd = CAPTMODE_TO_RAM;
+	cmd = devc->continuous ? CAPTMODE_STREAM : CAPTMODE_TO_RAM;
 	ret = ctrl_out(sdi, CMD_FPGA_SPI, REG_CAPT_MODE, 0, &cmd, sizeof(cmd));
 	if (ret != SR_OK) {
 		sr_err("Cannot send command to stop sampling.");
@@ -973,22 +1204,50 @@ SR_PRIV int la2016_setup_acquisition(const struct sr_dev_inst *sdi,
 
 SR_PRIV int la2016_start_acquisition(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
 
-	ret = set_run_mode(sdi, RUNMODE_RUN);
+	devc = sdi->priv;
+
+	ret = la2016_usbxfer_allocate(sdi);
 	if (ret != SR_OK)
 		return ret;
+
+	if (devc->continuous) {
+		ret = ctrl_out(sdi, CMD_BULK_RESET, 0x00, 0, NULL, 0);
+		if (ret != SR_OK)
+			return ret;
+
+		ret = la2016_usbxfer_submit_all(sdi);
+		if (ret != SR_OK)
+			return ret;
+
+		/*
+		 * Periodic receive callback will set runmode. This
+		 * activity MUST be close to data reception, a pause
+		 * between these steps breaks the stream's operation.
+		 */
+	} else {
+		ret = set_run_mode(sdi, RUNMODE_RUN);
+		if (ret != SR_OK)
+			return ret;
+	}
 
 	return SR_OK;
 }
 
 static int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	int ret;
 
 	ret = set_run_mode(sdi, RUNMODE_HALT);
 	if (ret != SR_OK)
 		return ret;
+
+	devc = sdi->priv;
+	if (devc->continuous)
+		devc->download_finished = TRUE;
 
 	return SR_OK;
 }
@@ -996,32 +1255,24 @@ static int la2016_stop_acquisition(const struct sr_dev_inst *sdi)
 SR_PRIV int la2016_abort_acquisition(const struct sr_dev_inst *sdi)
 {
 	int ret;
-	struct dev_context *devc;
 
 	ret = la2016_stop_acquisition(sdi);
 	if (ret != SR_OK)
 		return ret;
 
-	devc = sdi ? sdi->priv : NULL;
-	if (devc && devc->transfer)
-		libusb_cancel_transfer(devc->transfer);
+	(void)la2016_usbxfer_cancel_all(sdi);
 
 	return SR_OK;
 }
 
-static int la2016_start_download(const struct sr_dev_inst *sdi,
-	libusb_transfer_cb_fn cb)
+static int la2016_start_download(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
 	int ret;
 	uint8_t wrbuf[REG_SAMPLING - REG_BULK]; /* Width of REG_BULK. */
 	uint8_t *wrptr;
-	uint32_t to_read;
-	uint8_t *buffer;
 
 	devc = sdi->priv;
-	usb = sdi->conn;
 
 	ret = get_capture_info(sdi);
 	if (ret != SR_OK)
@@ -1052,42 +1303,17 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
 		sr_err("Cannot send USB bulk config.");
 		return ret;
 	}
-	ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+
+	ret = la2016_usbxfer_submit_all(sdi);
 	if (ret != SR_OK) {
-		sr_err("Cannot unblock USB bulk transfers.");
+		sr_err("Cannot submit USB bulk transfers.");
 		return ret;
 	}
 
-	/*
-	 * Pick a buffer size for all USB transfers. The buffer size
-	 * must be a multiple of the endpoint packet size. And cannot
-	 * exceed a maximum value.
-	 */
-	to_read = devc->n_bytes_to_read;
-	if (to_read >= LA2016_USB_BUFSZ) /* Multiple transfers. */
-		to_read = LA2016_USB_BUFSZ;
-	to_read += LA2016_EP6_PKTSZ - 1;
-	to_read /= LA2016_EP6_PKTSZ;
-	to_read *= LA2016_EP6_PKTSZ;
-	buffer = g_try_malloc(to_read);
-	if (!buffer) {
-		sr_dbg("USB bulk transfer size %d bytes.", (int)to_read);
-		sr_err("Cannot allocate buffer for USB bulk transfer.");
-		return SR_ERR_MALLOC;
-	}
-
-	devc->transfer = libusb_alloc_transfer(0);
-	libusb_fill_bulk_transfer(devc->transfer,
-		usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
-		buffer, to_read, cb, (void *)sdi, DEFAULT_TIMEOUT_MS);
-
-	ret = libusb_submit_transfer(devc->transfer);
-	if (ret != 0) {
-		sr_err("Cannot submit USB transfer: %s.", libusb_error_name(ret));
-		libusb_free_transfer(devc->transfer);
-		devc->transfer = NULL;
-		g_free(buffer);
-		return SR_ERR_IO;
+	ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+	if (ret != SR_OK) {
+		sr_err("Cannot start USB bulk transfers.");
+		return ret;
 	}
 
 	return SR_OK;
@@ -1099,10 +1325,10 @@ static int la2016_start_download(const struct sr_dev_inst *sdi,
  * contain a number of samples (8bit repeat count per 16bit sample data).
  */
 static void send_chunk(struct sr_dev_inst *sdi,
-	const uint8_t *packets, size_t num_xfers)
+	const uint8_t *data_buffer, size_t data_length)
 {
 	struct dev_context *devc;
-	size_t num_pkts;
+	size_t num_xfers, num_pkts;
 	const uint8_t *rp;
 	uint32_t sample_value;
 	size_t repetitions;
@@ -1119,8 +1345,20 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		devc->trigger_marked = TRUE;
 	}
 
+	/*
+	 * Adjust the number of remaining bytes to read from the device
+	 * before the processing of the currently received chunk affects
+	 * the variable which holds the number of received bytes.
+	 */
+	if (data_length > devc->n_bytes_to_read)
+		devc->n_bytes_to_read = 0;
+	else
+		devc->n_bytes_to_read -= data_length;
+
+	/* Process the received chunk of capture data. */
 	sample_value = 0;
-	rp = packets;
+	rp = data_buffer;
+	num_xfers = data_length / TRANSFER_PACKET_LENGTH;
 	while (num_xfers--) {
 		num_pkts = devc->packets_per_chunk;
 		while (num_pkts--) {
@@ -1153,6 +1391,18 @@ static void send_chunk(struct sr_dev_inst *sdi,
 		(void)read_u8_inc(&rp); /* Skip sequence number. */
 	}
 
+	/*
+	 * Check for several conditions which shall terminate the
+	 * capture data download: When the amount of capture data in
+	 * the device is exhausted. When the user specified samples
+	 * count limit is reached.
+	 */
+	if (!devc->n_bytes_to_read) {
+		devc->download_finished = TRUE;
+	} else {
+		sr_dbg("%" PRIu32 " more bytes to download from the device.",
+			devc->n_bytes_to_read);
+	}
 	if (!devc->download_finished && sr_sw_limits_check(&devc->sw_limits)) {
 		sr_dbg("Acquisition limit reached.");
 		devc->download_finished = TRUE;
@@ -1164,20 +1414,144 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	sr_dbg("Total samples after chunk: %" PRIu64 ".", devc->total_samples);
 }
 
+/*
+ * Process a chunk of capture data in streaming mode. The memory layout
+ * is rather different from "normal mode" (see the send_chunk() routine
+ * above). In streaming mode data is not compressed, and memory cells
+ * neither contain raw sampled pin values at a given point in time. The
+ * memory content needs transformation.
+ * - The memory content can be seen as a sequence of memory cells.
+ * - Each cell contains samples that correspond to the same channel.
+ *   The next cell contains samples for the next channel, etc.
+ * - Only enabled channels occupy memory cells. Disabled channels are
+ *   not part of the capture data memory layout.
+ * - The LSB bit position in a cell is the sample which was taken first
+ *   for this channel. Upper bit positions were taken later.
+ *
+ * Implementor's note: This routine is inspired by convert_sample_data()
+ * in the https://github.com/AlexUg/sigrok implementation. Which in turn
+ * appears to have been derived from the saleae-logic16 sigrok driver.
+ * The code is phrased conservatively to verify the layout as discussed
+ * above, performance was not a priority. Operation was verified with an
+ * LA2016 device. The memory layout of 32 channel models is yet to get
+ * determined.
+ */
+static void stream_data(struct sr_dev_inst *sdi,
+	const uint8_t *data_buffer, size_t data_length)
+{
+	struct dev_context *devc;
+	struct stream_state_t *stream;
+	size_t bit_count;
+	const uint8_t *rp;
+	uint32_t sample_value;
+	uint8_t sample_buff[sizeof(sample_value)];
+	size_t bit_idx;
+	uint32_t ch_mask;
+
+	devc = sdi->priv;
+	stream = &devc->stream;
+
+	/* Ignore incoming USB data after complete sample data download. */
+	if (devc->download_finished)
+		return;
+	sr_dbg("Stream mode, got another chunk: %p, length %zu.",
+		data_buffer, data_length);
+
+	/* TODO Add soft trigger support when in stream mode? */
+
+	/*
+	 * TODO Are memory cells always as wide as the channel count?
+	 * Are they always 16bits wide? Verify for 32 channel devices.
+	 */
+	bit_count = devc->model->channel_count;
+	if (bit_count == 32) {
+		data_length /= sizeof(uint32_t);
+	} else if (bit_count == 16) {
+		data_length /= sizeof(uint16_t);
+	} else {
+		/*
+		 * Unhandled case. Acquisition should not start.
+		 * The statement silences the compiler.
+		 */
+		return;
+	}
+	rp = data_buffer;
+	sample_value = 0;
+	while (data_length--) {
+		/* Get another entity. */
+		if (bit_count == 32)
+			sample_value = read_u32le_inc(&rp);
+		else if (bit_count == 16)
+			sample_value = read_u16le_inc(&rp);
+
+		/* Map the entity's bits to a channel's samples. */
+		ch_mask = stream->channel_masks[stream->channel_index];
+		for (bit_idx = 0; bit_idx < bit_count; bit_idx++) {
+			if (sample_value & (1UL << bit_idx))
+				stream->sample_data[bit_idx] |= ch_mask;
+		}
+
+		/*
+		 * Advance to the next channel. Submit a block of
+		 * samples when all channels' data was seen.
+		 */
+		stream->channel_index++;
+		if (stream->channel_index != stream->enabled_count)
+			continue;
+		for (bit_idx = 0; bit_idx < bit_count; bit_idx++) {
+			sample_value = stream->sample_data[bit_idx];
+			write_u32le(sample_buff, sample_value);
+			feed_queue_logic_submit(devc->feed_queue, sample_buff, 1);
+		}
+		sr_sw_limits_update_samples_read(&devc->sw_limits, bit_count);
+		devc->total_samples += bit_count;
+		memset(stream->sample_data, 0, sizeof(stream->sample_data));
+		stream->channel_index = 0;
+	}
+
+	/*
+	 * Need we count empty or failed USB transfers? This version
+	 * doesn't, assumes that timeouts are perfectly legal because
+	 * transfers are started early, and slow samplerates or trigger
+	 * support in hardware are plausible causes for empty transfers.
+	 *
+	 * TODO Maybe a good condition would be (rather large) a timeout
+	 * after a previous capture data chunk was seen? So that stalled
+	 * streaming gets detected which _is_ an exceptional condition.
+	 * We have observed these when "runmode" is set early but bulk
+	 * transfers start late with a pause after setting the runmode.
+	 */
+	if (sr_sw_limits_check(&devc->sw_limits)) {
+		sr_dbg("Acquisition end reached (sw limits).");
+		devc->download_finished = TRUE;
+	}
+	if (devc->download_finished) {
+		sr_dbg("Stream receive done, flushing session feed queue.");
+		feed_queue_logic_flush(devc->feed_queue);
+	}
+	sr_dbg("Total samples after chunk: %" PRIu64 ".", devc->total_samples);
+}
+
 static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct sr_usb_dev_inst *usb;
-	size_t num_xfers;
+	gboolean was_cancelled, device_gone;
 	int ret;
 
 	sdi = transfer->user_data;
 	devc = sdi->priv;
-	usb = sdi->conn;
 
+	was_cancelled = transfer->status == LIBUSB_TRANSFER_CANCELLED;
+	device_gone = transfer->status == LIBUSB_TRANSFER_NO_DEVICE;
 	sr_dbg("receive_transfer(): status %s received %d bytes.",
 		libusb_error_name(transfer->status), transfer->actual_length);
+	if (device_gone) {
+		sr_warn("Lost communication to USB device.");
+		devc->download_finished = TRUE;
+		return;
+	}
+
 	/*
 	 * Implementation detail: A USB transfer timeout is not fatal
 	 * here. We just process whatever was received, empty input is
@@ -1185,37 +1559,22 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 	 * or exhausting the device's captured data will complete the
 	 * sample data download.
 	 */
-	num_xfers = transfer->actual_length / TRANSFER_PACKET_LENGTH;
-	send_chunk(sdi, transfer->buffer, num_xfers);
+	if (devc->continuous)
+		stream_data(sdi, transfer->buffer, transfer->actual_length);
+	else
+		send_chunk(sdi, transfer->buffer, transfer->actual_length);
 
-	devc->n_bytes_to_read -= transfer->actual_length;
-	if (devc->n_bytes_to_read) {
-		uint32_t to_read = devc->n_bytes_to_read;
-		/*
-		 * Determine read size for the next USB transfer. Make
-		 * the buffer size a multiple of the endpoint packet
-		 * size. Don't exceed a maximum value.
-		 */
-		if (to_read >= LA2016_USB_BUFSZ)
-			to_read = LA2016_USB_BUFSZ;
-		to_read += LA2016_EP6_PKTSZ - 1;
-		to_read /= LA2016_EP6_PKTSZ;
-		to_read *= LA2016_EP6_PKTSZ;
-		libusb_fill_bulk_transfer(transfer,
-			usb->devhdl, USB_EP_CAPTURE_DATA | LIBUSB_ENDPOINT_IN,
-			transfer->buffer, to_read,
-			receive_transfer, (void *)sdi, DEFAULT_TIMEOUT_MS);
-
-		ret = libusb_submit_transfer(transfer);
-		if (ret == 0)
+	/*
+	 * Re-submit completed transfers (regardless of timeout or
+	 * data reception), unless the transfer was cancelled when
+	 * the acquisition was terminated or has completed.
+	 */
+	if (!was_cancelled && !devc->download_finished) {
+		ret = la2016_usbxfer_resubmit(sdi, transfer);
+		if (ret == SR_OK)
 			return;
-		sr_err("Cannot submit another USB transfer: %s.",
-			libusb_error_name(ret));
+		devc->download_finished = TRUE;
 	}
-
-	g_free(transfer->buffer);
-	libusb_free_transfer(transfer);
-	devc->download_finished = TRUE;
 }
 
 SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
@@ -1233,11 +1592,35 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	devc = sdi->priv;
 	drvc = sdi->driver->context;
 
+	/* Arrange for the start of stream mode when requested. */
+	if (devc->continuous && !devc->frame_begin_sent) {
+		sr_dbg("First receive callback in stream mode.");
+		devc->download_finished = FALSE;
+		devc->trigger_marked = FALSE;
+		devc->total_samples = 0;
+
+		std_session_send_df_frame_begin(sdi);
+		devc->frame_begin_sent = TRUE;
+
+		ret = set_run_mode(sdi, RUNMODE_RUN);
+		if (ret != SR_OK) {
+			sr_err("Cannot set 'runmode' to 'run'.");
+			return FALSE;
+		}
+
+		ret = ctrl_out(sdi, CMD_BULK_START, 0x00, 0, NULL, 0);
+		if (ret != SR_OK) {
+			sr_err("Cannot start USB bulk transfers.");
+			return FALSE;
+		}
+		sr_dbg("Stream data reception initiated.");
+	}
+
 	/*
 	 * Wait for the acquisition to complete in hardware.
 	 * Periodically check a potentially configured msecs timeout.
 	 */
-	if (!devc->completion_seen) {
+	if (!devc->continuous && !devc->completion_seen) {
 		if (!la2016_is_idle(sdi)) {
 			if (sr_sw_limits_check(&devc->sw_limits)) {
 				devc->sw_limits.limit_msec = 0;
@@ -1259,7 +1642,7 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 		/* Initiate the download of acquired sample data. */
 		std_session_send_df_frame_begin(sdi);
 		devc->frame_begin_sent = TRUE;
-		ret = la2016_start_download(sdi, receive_transfer);
+		ret = la2016_start_download(sdi);
 		if (ret != SR_OK) {
 			sr_err("Cannot start acquisition data download.");
 			return FALSE;
@@ -1270,8 +1653,27 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	/* Handle USB reception. Drives sample data download. */
-	tv.tv_sec = tv.tv_usec = 0;
+	memset(&tv, 0, sizeof(tv));
 	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
+
+	/*
+	 * Periodically flush acquisition data in streaming mode.
+	 * Without this nudge, previously received and accumulated data
+	 * keeps sitting in queues and is not seen by applications.
+	 */
+	if (devc->continuous && devc->stream.flush_period_ms) {
+		uint64_t now, elapsed;
+		now = g_get_monotonic_time();
+		if (!devc->stream.last_flushed)
+			devc->stream.last_flushed = now;
+		elapsed = now - devc->stream.last_flushed;
+		elapsed /= 1000;
+		if (elapsed >= devc->stream.flush_period_ms) {
+			sr_dbg("Stream mode, flushing.");
+			feed_queue_logic_flush(devc->feed_queue);
+			devc->stream.last_flushed = now;
+		}
+	}
 
 	/* Postprocess completion of sample data download. */
 	if (devc->download_finished) {
@@ -1279,7 +1681,10 @@ SR_PRIV int la2016_receive_data(int fd, int revents, void *cb_data)
 
 		la2016_stop_acquisition(sdi);
 		usb_source_remove(sdi->session, drvc->sr_ctx);
-		devc->transfer = NULL;
+
+		la2016_usbxfer_cancel_all(sdi);
+		memset(&tv, 0, sizeof(tv));
+		libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 		feed_queue_logic_flush(devc->feed_queue);
 		feed_queue_logic_free(devc->feed_queue);
@@ -1305,7 +1710,7 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 	const uint8_t *rdptr;
 	uint8_t date_yy, date_mm;
 	uint8_t dinv_yy, dinv_mm;
-	uint8_t magic;
+	uint8_t magic, magic2;
 	size_t model_idx;
 	const struct kingst_model *model;
 	int ret;
@@ -1398,24 +1803,38 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		sr_spew("EEPROM magic bytes %s.", txt->str);
 		sr_hexdump_free(txt);
 	}
-	if ((buf[0] ^ buf[1]) == 0xff) {
-		/* Primary copy of magic passes complement check. */
+	magic = 0;
+	magic2 = 0;
+	if ((buf[0] ^ buf[1]) == 0xff && (buf[2] ^ buf[3]) == 0xff) {
+		/* Primary copy of magic passes complement check (4 bytes). */
 		magic = buf[0];
-		sr_dbg("Using primary magic, value %d.", (int)magic);
-	} else if ((buf[4] ^ buf[5]) == 0xff) {
-		/* Backup copy of magic passes complement check. */
+		magic2 = buf[2];
+		sr_dbg("Using primary magic %hhu (%hhu).", magic, magic2);
+	} else if ((buf[4] ^ buf[5]) == 0xff && (buf[6] ^ buf[7]) == 0xff) {
+		/* Backup copy of magic passes complement check (4 bytes). */
 		magic = buf[4];
-		sr_dbg("Using backup magic, value %d.", (int)magic);
+		magic2 = buf[6];
+		sr_dbg("Using secondary magic %hhu (%hhu).", magic, magic2);
+	} else if ((buf[0] ^ buf[1]) == 0xff) {
+		/* Primary copy of magic passes complement check (2 bytes). */
+		magic = buf[0];
+		sr_dbg("Using primary magic %hhu.", magic);
+	} else if ((buf[4] ^ buf[5]) == 0xff) {
+		/* Backup copy of magic passes complement check (2 bytes). */
+		magic = buf[4];
+		sr_dbg("Using secondary magic %hhu.", magic);
 	} else {
 		sr_err("Cannot find consistent device type identification.");
-		magic = 0;
 	}
 	devc->identify_magic = magic;
+	devc->identify_magic2 = magic2;
 
 	devc->model = NULL;
 	for (model_idx = 0; model_idx < ARRAY_SIZE(models); model_idx++) {
 		model = &models[model_idx];
 		if (model->magic != magic)
+			continue;
+		if (model->magic2 && model->magic2 != magic2)
 			continue;
 		devc->model = model;
 		sr_info("Model '%s', %zu channels, max %" PRIu64 "MHz.",
@@ -1424,6 +1843,10 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		devc->fpga_bitstream = g_strdup_printf(FPGA_FWFILE_FMT,
 			model->fpga_stem);
 		sr_info("FPGA bitstream file '%s'.", devc->fpga_bitstream);
+		if (!model->channel_count) {
+			sr_warn("Device lacks logic channels. Not supported.");
+			devc->model = NULL;
+		}
 		break;
 	}
 	if (!devc->model) {
@@ -1485,6 +1908,11 @@ SR_PRIV int la2016_deinit_hardware(const struct sr_dev_inst *sdi)
 	}
 
 	return SR_OK;
+}
+
+SR_PRIV void la2016_release_resources(const struct sr_dev_inst *sdi)
+{
+	(void)la2016_usbxfer_release(sdi);
 }
 
 SR_PRIV int la2016_write_pwm_config(const struct sr_dev_inst *sdi, size_t idx)
