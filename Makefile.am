@@ -583,6 +583,13 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/pce-322a/protocol.c \
 	src/hardware/pce-322a/api.c
 endif
+if HW_PEAKTECH_607X
+src_libdrivers_la_SOURCES += \
+	src/hardware/peaktech-607x/endian.h \
+	src/hardware/peaktech-607x/protocol.h \
+	src/hardware/peaktech-607x/protocol.c \
+	src/hardware/peaktech-607x/api.c
+endif
 if HW_PIPISTRELLO_OLS
 src_libdrivers_la_SOURCES += \
 	src/hardware/pipistrello-ols/protocol.h \
