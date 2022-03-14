@@ -29,8 +29,10 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-
-#define SERIALCOMM "115200/8n1"
+//Baud rate is really a don't care because we run USB CDC, dtr must be 1.
+//flow should be zero since we don't
+//use xon/xoff
+#define SERIALCOMM "115200/8n1/dtr=1/rts=0/flow=0"
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,		//Required OS name for the port, i.e. /dev/ttyACM0
@@ -114,7 +116,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList * options)
 		return NULL;
 	}
 
-	sr_info("Reseting device with *s at %s.", conn);
+	sr_info("Resetting device with *s at %s.", conn);
 	send_serial_char(serial, '*');
 	g_usleep(10000);
 	//drain any inflight data
