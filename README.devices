@@ -288,6 +288,19 @@ rules shipped by the system will be broken.
 Please consult the udev docs for details.
 
 
+Assigning drivers to devices (Windows, Zadig)
+---------------------------------------------
+
+On Windows systems it may be necessary to assign drivers to devices
+before libusb based applications can access them. It may be necessary
+to re-run this driver assignment after firmware upload in case the
+device changes its USB identification as a consequence of loading the
+firmware image.
+
+The https://sigrok.org/wiki/Windows wiki page discusses this subject,
+and other platform specific aspects.
+
+
 Non-default drivers for commodity chips
 ---------------------------------------
 
