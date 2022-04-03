@@ -403,6 +403,18 @@ See also: http://erste.de/UT61/index.html
   done
 
 
+UNI-T UT-D04 cable issue on Windows
+-----------------------------------
+
+There have been reports that CH9325 based cables are not detected on
+Windows out of the box when they are assigned to libwdi drivers. Though
+they may be usable in that case when the USB address is manually specified.
+This can happen when some "USB to serial" driver is assigned which does not
+provide a genuine COM port that enumerates naturally. Manually assigning a
+"USB input device" driver can improve HIDAPI compatibility and make the
+cable show up in sigrok's serial port enumeration.
+
+
 Enabling multimeter / data logger measurement output
 ----------------------------------------------------
 
