@@ -38,14 +38,58 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,		//Required OS name for the port, i.e. /dev/ttyACM0
 	SR_CONF_SERIALCOMM,	//Optional config of the port, i.e. 115200/8n1
 };
-
-//PulseView reads a sample rate config list as a min, max and step.
-//If step is 1 then it creates a 1,2,5,10 set of selects, as well as the max.
-//If step is not 1, then it gives a place to enter any value, which gives the greatest flexibility
+//The host can either provide a std_gvar_samplerates_steps or a std_gvar_samplerates.
+//The latter is just a long list of every supported rate.
+//For the steps, pulseview/pv/toolbars/mainbar.cpp will do a min,max,step.  If step is 
+//1 then it provides a 1,2,5,10 select otherwise it allows a spin box.
+//Going with the full list because while the spin box is more flexible, it is harder to read
+/*
 static const uint64_t samplerates[] = {
 	SR_HZ(10),
 	SR_MHZ(120),
 	SR_HZ(2),
+};
+*/
+static const uint64_t samplerates[] = {
+	SR_KHZ(5),
+	SR_KHZ(6),
+	SR_KHZ(8),
+	SR_KHZ(10),
+	SR_KHZ(20),
+	SR_KHZ(30),
+	SR_KHZ(40),
+	SR_KHZ(50),
+	SR_KHZ(60),
+	SR_KHZ(80),
+	SR_KHZ(100),
+	SR_KHZ(125),
+	SR_KHZ(150),
+	SR_KHZ(160),//max rate of 3 ADC channels that has integer divisor/dividend
+	SR_KHZ(200),
+	SR_KHZ(250), //max rate of 2 ADC channels
+	SR_KHZ(300),
+	SR_KHZ(400),
+	SR_KHZ(500),
+	SR_KHZ(600),
+	SR_KHZ(800),
+	//Give finer granularity near the thresholds of RLE effectiveness
+	SR_MHZ(1),
+	SR_MHZ(1.25),
+	SR_MHZ(1.5),
+	SR_MHZ(2),
+	SR_MHZ(2.5),
+	SR_MHZ(3),
+	SR_MHZ(4),
+	SR_MHZ(5),
+	SR_MHZ(6),
+	SR_MHZ(8),
+	SR_MHZ(10),
+	SR_MHZ(15),
+	SR_MHZ(20),
+	SR_MHZ(30),
+	SR_MHZ(40),
+	SR_MHZ(60),
+       	SR_MHZ(120)
 };
 
 static const uint32_t drvopts[] = {
@@ -151,12 +195,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList * options)
 	}
 	//Expected ID response is SRPICO,AxxyDzz,VV 
 	//where xx are number of analog channels, y is bytes per analog sample
-	//and zz is number of digital channels, and VV is two digit version# which must be 00
+	//and zz is number of digital channels, and VV is two digit version# which must be 02
 	if ((num_read < 16)
 	    || (strncmp(buf, "SRPICO,A", 8))
 	    || (buf[11] != 'D')
 	    || (buf[15] != '0')
-	    || (buf[16] != '0')) {
+	    || (buf[16] != '2')) {
 		sr_err("ERROR:Bad response string %s %d", buf, num_read);
 		return NULL;
 	}
@@ -248,8 +292,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList * options)
 	//Note: The intent of making this buffer large is to prevent CDC serial buffer overflows.
 	//However, it is likely that if the host is running slow (i.e. it's a raspberry pi model 3) that it becomes
 	//compute bound and doesn't service CDC serial responses in time to not overflow the internal CDC buffers.
-	//And thus no serial buffer is large enough.  But, it's only 256K....
-	devc->serial_buffer_size = 256000;
+	//And thus no serial buffer is large enough.  But, it's only 32K....
+	devc->serial_buffer_size = 32000;
 	devc->buffer = NULL;
 	sr_dbg("Setting serial buffer size: %i.",
 	       devc->serial_buffer_size);
@@ -257,11 +301,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList * options)
 	//While slices are sent as a group of one sample across all channels, sigrok wants analog 
 	//channel data sent as separate packets.  
 	//Logical trace values are packed together.
-	//A serial byte in normal mode never represent more than one sample so a 2x multiplier is plenty.
-	//In D4 mode a serial byte can represents 100s of samples due to RLE, but process_D4 ensures that
-	//it breaks up the rle_memset calls to prevent overflowing the sample buffer.
-	//that it doesn't overflow the sample buffers.
-	devc->sample_buf_size = devc->serial_buffer_size * 2;
+	//An RLE byte in normal mode can represent up to 1640 samples.
+	//In D4 an RLE byte can represents up to 640 samples.
+        //Rather than making the sample_buf_size 1640x the size of serial buff, we require that the process loops
+        //push samples to the session as we get anywhere close to full.
+
+	devc->sample_buf_size = devc->serial_buffer_size;
 	for (i = 0; i < devc->num_a_channels; i++) {
 		devc->a_data_bufs[i] = NULL;
 		devc->a_pretrig_bufs[i] = NULL;
@@ -377,12 +422,12 @@ static int config_list(uint32_t key, GVariant ** data,
 	}
 	sr_dbg("start config_list with key %X\n", key);
 	switch (key) {
-//Pulseview in  pulseview/pv/toolbars/mainbar.cpp requires list support for frequencies as a triple
-//of min,max,step.  If step is 1, then it proves a 1,2,5,10 select, but if not 1 it allows a spin box
 	case SR_CONF_SAMPLERATE:
 		sr_dbg("Return sample rate list");
 		*data =
-		    std_gvar_samplerates_steps(ARRAY_AND_SIZE
+//		    std_gvar_samplerates_steps(ARRAY_AND_SIZE
+//					       (samplerates));
+		    std_gvar_samplerates(ARRAY_AND_SIZE
 					       (samplerates));
 		break;
 //This must be set to get SW trigger support
@@ -500,16 +545,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_dbg("bps %d\n", devc->bytes_per_slice);
 
 	//Apply sample rate limits
-	//Save off the lower rate values which are hacked way of getting configs to the device
-	uint8_t cfg_bits;
-	cfg_bits = (devc->sample_rate % 10 & 0x6);	//Only bits 2&1 are used as cfg_bits
-	devc->sample_rate -= cfg_bits;
-	sr_warn("Capture device cfg_bits of 0x%X from sample rate %lld",
-		cfg_bits, devc->sample_rate);
-	if ((a_enabled == 3) && (devc->sample_rate > 166660)) {
+	if ((a_enabled == 3) && (devc->sample_rate > 160000)) {
 		sr_err
-		    ("ERROR:3 channel ADC sample rate dropped to 166.660khz");
-		devc->sample_rate = 166660;
+		    ("ERROR:3 channel ADC sample rate dropped to 160khz");
+		devc->sample_rate = 160000;
 	}
 	if ((a_enabled == 2) && (devc->sample_rate > 250000)) {
 		sr_err
@@ -543,15 +582,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			//Always increment the divisor so that we go down in frequency to avoid max sample rate issues
 			commondivint++;
 			devc->sample_rate = 24000000ULL / commondivint;
-			//While the common divisor is an integer, that does not mean the resulting sample rate is, and
-			//we want to keep the sample_rate divisible by 10 to support the cfg_bits
-			while ((devc->sample_rate % 10)
-			       && (commondivint < 4800)) {
-				commondivint++;
-				devc->sample_rate =
-				    24000000ULL / commondivint;
-				//sr_err(" sample rate of %llu div %u\n\r",devc->sample_rate,commondivint); 
-			}
 			//Make sure the divisor increement didn't make use go too low.
 			if (devc->sample_rate < 5000) {
 				devc->sample_rate = 50000;
@@ -580,20 +610,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	//modulo 10 to add cfg_bits back in
-	//All code above should create overrides that are multiples of 10, but add a check just in case.
-	if (devc->sample_rate % 10) {
-		sr_err("Output sample rate %llu not mod 10",
-		       devc->sample_rate);
-		devc->sample_rate = (devc->sample_rate / 10) * 10;
-	}
-
-	devc->sample_rate += cfg_bits;
-	if (cfg_bits) {
-		sr_warn
-		    ("Embedding cfg_bits of 0x%X in sample_rate %lld\n\r",
-		     cfg_bits, devc->sample_rate);
-	}
 	sprintf(&tmpstr[0], "R%llu\n", devc->sample_rate);
 	if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
 		sr_err("Sample rate to device failed");
@@ -638,10 +654,62 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR_MALLOC;
 		}
 	}
-
+	devc->pretrig_entries =
+	    (devc->capture_ratio * devc->limit_samples) / 100;
+        //While the driver supports the passing of trigger info to the device
+        //it has been found that the sw overhead of supporting triggering and 
+        //pretrigger buffer entries etc.. ends up slowing the cores down enough
+        //that the effect continous sample rate isn't much higher than that of sending
+        //untriggered samples across USB.  Thus this code will remain but likely may 
+        //not be used by the device.
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
-		devc->pretrig_entries =
-		    (devc->capture_ratio * devc->limit_samples) / 100;
+                if (g_slist_length(trigger->stages) > 1)
+                        return SR_ERR_NA;
+
+                struct sr_trigger_stage *stage;
+                struct sr_trigger_match *match;
+		GSList *l;
+		stage = g_slist_nth_data(trigger->stages, 0);
+                if (!stage)
+                        return SR_ERR_ARG;
+                for (l = stage->matches; l; l = l->next) {
+                        match = l->data;
+                        if (!match->match)
+                                continue;
+                        if (!match->channel->enabled)
+                                continue;
+                        int idx = match->channel->index;
+                        int8_t val;
+                        switch(match->match){
+			    case SR_TRIGGER_ZERO:
+			      val=0; break;
+			    case SR_TRIGGER_ONE:
+			      val=1; break;
+			    case SR_TRIGGER_RISING:
+			      val=2; break;
+			    case SR_TRIGGER_FALLING:
+			      val=3; break;
+			    case SR_TRIGGER_EDGE:
+			      val=4; break;
+			    default:
+			      val=-1;
+			}
+			sr_info("Trigger value idx %d match %d",idx,match->match);
+                        //Only set trigger on enabled channels
+                        if((val>=0) && ((devc->d_chan_mask>>idx)&1)){
+			  sprintf(&tmpstr[0], "t%d%02d\n", val,idx+2);
+			  if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
+			    sr_err("Trigger cfg to device failed");
+			    return SR_ERR;
+			  }   
+
+			}
+                }
+	        sprintf(&tmpstr[0], "p%d\n", devc->pretrig_entries);
+		if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
+		    sr_err("Pretrig to device failed");
+			    return SR_ERR; 
+                }              
 		devc->stl =
 		    soft_trigger_logic_new(sdi, trigger,
 					   devc->pretrig_entries);
