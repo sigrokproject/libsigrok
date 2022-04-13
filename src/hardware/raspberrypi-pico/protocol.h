@@ -123,7 +123,7 @@ struct dev_context {
 /* RLE related*/
 	/*Previous sample values to duplicate for rle */
 	float a_last[MAX_ANALOG_CHANNELS];
-	uint8_t d_last[MAX_DIGITAL_CHANNELS / 8];
+        uint8_t d_last[4];
 
 /* SW Trigger Related */
 	struct soft_trigger_logic *stl;

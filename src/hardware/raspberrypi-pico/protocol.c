@@ -130,7 +130,6 @@ void process_D4(struct sr_dev_inst *sdi, struct dev_context *d)
 	uint8_t cbyte;
 	uint8_t cval;
 	uint32_t rlecnt = 0;
-	uint32_t sampcnt = 0;	//number of samples received with no rles
 	while (d->ser_rdptr < d->bytes_avail) {
 		cbyte = d->buffer[(d->ser_rdptr)];
 		//RLE only byte
@@ -141,46 +140,24 @@ void process_D4(struct sr_dev_inst *sdi, struct dev_context *d)
 			rlecnt += (cbyte & 0x70) >> 4;
 			if (rlecnt) {
 				//On a value change, duplicate the previous values first.
-				//The maximum value of one rle is 640.
-				//To ensure we don't overflow the sample buffer but still send it large chunks of data 
-				//(to make the packet sends to the session efficient) only call process group after
-				//a large number of samples have been seen.
-				//Likely we could use the max rle value of 640 but 2048 gives some extra room.
-				if ((rlecnt + d->cbuf_wrptr) >
-				    (d->sample_buf_size - 2048)) {
-					//process_group is sent the number of slices which is just the cbufwrptr divided by the slice size
-					//This modulo check should never happen as long the calculations for dig_sample_bytes etc are 
-					//correct, but it's a good cross check for code development.
-					if ((d->cbuf_wrptr) %
-					    (d->dig_sample_bytes)) {
-						sr_err
-						    ("Modulo fail %d %d ",
-						     d->cbuf_wrptr,
-						     d->dig_sample_bytes);
-					}
-					process_group(sdi, d,
-						      (d->cbuf_wrptr /
-						       d->dig_sample_bytes));
-				}
 				rle_memset(d, rlecnt);
 				rlecnt = 0;
-				sampcnt = 0;
 			}
 			//Finally add in the new values
 			cval = cbyte & 0xF;
-			d->d_data_buf[d->cbuf_wrptr++] = cval;
+                        uint32_t didx=(d->cbuf_wrptr) * (d->dig_sample_bytes);
+			d->d_data_buf[didx] = cval;
 			//pad in all other bytes since the sessions even wants disabled channels reported
 			for (j = 1; j < d->dig_sample_bytes; j++) {
-				d->d_data_buf[d->cbuf_wrptr++] = 0;
+				d->d_data_buf[didx+j] = 0;
 			}
-			sampcnt++;
 			d->byte_cnt++;
 			sr_spew
-			    ("Dchan4 rdptr %d wrptr %d bytein 0x%X rle %d cval 0x%X\n",
+			    ("Dchan4 rdptr %d wrptr %d bytein 0x%X rle %d cval 0x%X didx %d\n",
 			     (d->ser_rdptr) - 1, d->cbuf_wrptr, cbyte,
-			     rlecnt, cval);
+			     rlecnt, cval,didx);
+                        d->cbuf_wrptr++;
 			rlecnt = 0;
-
 			d->d_last[0] = cval;
 		}
 		//Any other character ends parsing - it could be a frame error or a start of the final byte cnt
@@ -201,26 +178,35 @@ void process_D4(struct sr_dev_inst *sdi, struct dev_context *d)
 			break;	//break from while loop
 		}
 		(d->ser_rdptr)++;
-	}			//while rdptr < wrptr
+		//To ensure we don't overflow the sample buffer, but still send it large chunks of data 
+		//(to make the packet sends to the session efficient) only call process group after
+		//a large number of samples have been seen.
+                //cbuf_wrptr counts slices, so shift right by 2 to create a worst case x4 multiple ratio of
+                //cbuf_wrptr value to the depth of the sample buffer.
+		//Likely we could use the max rle value of 640 but 1024 gives some extra room.
+                //Also do a simple check of rlecnt>2000 since that is a reasonable minimal value to send to the session
+		if ((rlecnt>=2000)
+                     ||((rlecnt + ((d->cbuf_wrptr)<<2))) > (d->sample_buf_size - 1024)) {
+                         sr_spew("D4 preoverflow wrptr %d bufsize %d rlecnt %d\n\r",d->cbuf_wrptr,d->sample_buf_size,rlecnt);
+ 			 rle_memset(d, rlecnt);
+ 			 process_group(sdi, d, d->cbuf_wrptr);
+                         rlecnt=0;
+		     }
+
+	}//while rdptr < wrptr
 	sr_spew("D4 while done rdptr %d", d->ser_rdptr);
 	//If we reach the end of the serial input stream send any remaining values or rles to the session
-	/*this can also be skipped now the rle_memset handles cbufwrptr
-	   if(sampcnt){
-	   process_group(sdi,d,sampcnt);
-	   sampcnt=0;
-	   }   
-	 */
 	if (rlecnt) {
 		sr_spew("Residual D4 slice rlecnt %d", rlecnt);
 		rle_memset(d, rlecnt);
 	}
 	if (d->cbuf_wrptr) {
 		sr_spew("Residual D4 data wrptr %d", d->cbuf_wrptr);
-		process_group(sdi, d, d->cbuf_wrptr / d->dig_sample_bytes);
+		process_group(sdi, d, d->cbuf_wrptr);
 
 	}
 
-}				//Process_D4
+} //Process_D4
 
 //Process incoming data stream and forward to trigger processing with process_group
 //The final value of ser_rdptr indicates how many bytes were processed.
@@ -230,12 +216,11 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 	int32_t i;
 	uint32_t tmp32;
 	uint8_t cbyte;
-	uint32_t slices_avail = 0;
 	uint32_t cword;
-	uint32_t slice_bytes;	//number of bytes that have legal slice values
-	//Only process legal data values for this mode which are >=0x80
+	uint32_t slice_bytes;	//number of bytes that have legal slice values including RLE
+	//Only process legal data values for this mode which are 0x32-0x7F for RLE and 0x80 to 0xFF for data
 	for (slice_bytes = 1; (slice_bytes < devc->bytes_avail)
-	     && (devc->buffer[slice_bytes - 1] >= 0x80); slice_bytes++);
+	     && (devc->buffer[slice_bytes - 1] >= 0x30); slice_bytes++);
 	if (slice_bytes != devc->bytes_avail) {
 		cbyte = devc->buffer[slice_bytes - 1];
 		slice_bytes--;	//Don't process the ending character
@@ -258,12 +243,26 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 	sr_spew("process slice avail %d rdptr %d sb %d byte_cnt %lld",
 		devc->bytes_avail, devc->ser_rdptr, slice_bytes,
 		devc->byte_cnt);
-	//Must have a full slice
-	while ((devc->ser_rdptr + devc->bytes_per_slice) <= slice_bytes) {
-		//The use of devc->cbuf_wrptr is different between analog and digital.
-		//For analog it targets a float sized offset for that channel's buffer 
-		//For digital it targets a bit, so the 3 lsbs are bit offsets within a byte
-		slices_avail++;
+	//Must have a full slice or one rle byte
+        while (((devc->ser_rdptr + devc->bytes_per_slice) <= slice_bytes) 
+               ||((devc->ser_rdptr  < slice_bytes)&&(devc->buffer[devc->ser_rdptr] < 0x80))) { 
+
+          if(devc->buffer[devc->ser_rdptr] < 0x80){
+	     int16_t rlecnt;
+	     if(devc->buffer[devc->ser_rdptr]<=79){
+                rlecnt=devc->buffer[devc->ser_rdptr]-47;
+             }else{ 
+	       rlecnt=(devc->buffer[devc->ser_rdptr]-78)*32;
+	     }
+             sr_info("RLEcnt of %d in %d",rlecnt,devc->buffer[devc->ser_rdptr]);
+             if((rlecnt < 1)||(rlecnt>1568)){
+                sr_err("Bad rlecnt val %d in %d",rlecnt,devc->buffer[devc->ser_rdptr]);
+             }else{
+                rle_memset(devc,rlecnt);
+             }
+             devc->ser_rdptr++;
+
+          }else{
 		cword = 0;
 		//build up a word 7 bits at a time, using only enabled channels
 		for (i = 0; i < devc->num_d_channels; i += 7) {
@@ -275,6 +274,11 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 			}
 		}
 		//and then distribute 8 bits at a time to all possible channels
+                //but first save of cword for rle
+                devc->d_last[0]=cword&0xFF;
+                devc->d_last[1]=(cword>>8)&0xFF;
+                devc->d_last[2]=(cword>>16)&0xFF;
+                devc->d_last[3]=(cword>>24)&0xFF;
 		for (i = 0; i < devc->num_d_channels; i += 8) {
 			uint32_t idx =
 			    ((devc->cbuf_wrptr) * devc->dig_sample_bytes) +
@@ -286,6 +290,7 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 			     devc->d_data_buf[idx], cword);
 			cword >>= 8;
 		}
+
 		//Each analog value is a 7 bit value
 		for (i = 0; i < devc->num_a_channels; i++) {
 			if ((devc->a_chan_mask >> i) & 1) {
@@ -308,9 +313,19 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 			}	//if channel enabled
 		}		//for num_a_channels
 		devc->cbuf_wrptr++;
-	}			//While another slice available
-	if (slices_avail) {
-		process_group(sdi, devc, slices_avail);
+           }//Not an RLE
+           //RLEs can create a large number of samples relative to the incoming serial buffer
+           //To prevent overflow of the sample data buffer we call process_group.
+           //cbuf_wrptr and sample_buf_size are both in terms of slices
+           //2048 is more than needed for a max rle of 1640 on the next incoming character
+           if((devc->cbuf_wrptr +2048) >  devc->sample_buf_size){
+              sr_spew("Drain large buff %d %d\n\r",devc->cbuf_wrptr,devc->sample_buf_size);
+              process_group(sdi, devc, devc->cbuf_wrptr);
+
+           }
+	}//While another slice or RLE available
+	if (devc->cbuf_wrptr){
+		process_group(sdi, devc, devc->cbuf_wrptr);
 	}
 
 }
@@ -462,8 +477,8 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 			sr_spew
 			    ("Process_group sending %d post trig samples dsb %d",
 			     num_samples, devc->dig_sample_bytes);
-			//for(int z=0;(z<num_samples);z+=2){
-			//  sr_spew("0x%X ",devc->d_data_buf[z]);
+			//for(int z=0;(z<num_samples);z++){
+			  // sr_spew("0x%X ",devc->d_data_buf[z]);
 			//}
 			if (devc->num_d_channels) {
 				packet.type = SR_DF_LOGIC;
@@ -651,18 +666,22 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 //This function relies on the caller to ensure d_data_buf has samples to handle the full value of the rle
 void rle_memset(struct dev_context *devc, uint32_t num_slices)
 {
-	uint32_t j, k;
-	sr_spew("rle_memset val 0x%X,slices %d dsb %d\n", devc->d_last[0],
+	uint32_t j, k,didx;
+	sr_spew("rle_memset vals 0x%X, 0x%X, 0x%X slices %d dsb %d\n", devc->d_last[0],devc->d_last[1],devc->d_last[2],
 		num_slices, devc->dig_sample_bytes);
 	//Even if a channel is disabled, PV expects the same location and size for the enabled
 	// channels as if the channel were enabled.
 	for (j = 0; j < num_slices; j++) {
+                didx=devc->cbuf_wrptr*devc->dig_sample_bytes;
 		for (k = 0; k < devc->dig_sample_bytes; k++) {
-			devc->d_data_buf[devc->cbuf_wrptr++] =
-			    devc->d_last[k];
-			//sr_spew("k %d j %d v 0x%X",k,j,devc->d_data_buf[(devc->cbuf_wrptr)-1]);
+			devc->d_data_buf[didx + k] =  devc->d_last[k];
+			//	sr_spew("k %d j %d v 0x%X p %d didx %d",k,j,devc->d_data_buf[(devc->cbuf_wrptr)+k],(devc->cbuf_wrptr)+k,didx);
 		}
+		// cbuf_wrptr always counts slices/samples (and not the bytes in the buffer)
+                // regardless of mode
+                devc->cbuf_wrptr++;
 	}
+        
 }
 
 //This callback function is mapped from api.c with serial_source_add and is created after a capture
