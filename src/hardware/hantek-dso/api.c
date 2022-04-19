@@ -168,8 +168,7 @@ static const uint64_t vdivs[][2] = {
 };
 
 static const char *trigger_sources[] = {
-	"CH1", "CH2", "EXT",
-	/* TODO: forced */
+	"CH1", "CH2", "EXT", "forced"
 };
 
 static const char *trigger_slopes[] = {
@@ -859,8 +858,10 @@ static int handle_event(int fd, int revents, void *cb_data)
 				break;
 			if (dso_enable_trigger(sdi) != SR_OK)
 				break;
-//			if (dso_force_trigger(sdi) != SR_OK)
-//				break;
+			if (!strcmp("forced", devc->triggersource)) {
+				if (dso_force_trigger(sdi) != SR_OK)
+					break;
+			}
 			sr_dbg("Successfully requested next chunk.");
 		}
 		break;
