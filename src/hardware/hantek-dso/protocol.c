@@ -280,7 +280,7 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 		tmp = 3;
 	else if (!strcmp("CH1", devc->triggersource))
 		tmp = 2;
-	else if (!strcmp("EXT", devc->triggersource))
+	else if (!strcmp("EXT", devc->triggersource) || !strcmp("forced", devc->triggersource))
 		tmp = 0;
 	else {
 		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
@@ -426,7 +426,7 @@ SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 		tmp = 0;
 	else if (!strcmp("CH1", devc->triggersource))
 		tmp = 1;
-	else if (!strcmp("EXT", devc->triggersource))
+	else if (!strcmp("EXT", devc->triggersource) || !strcmp("forced", devc->triggersource))
 		tmp = 2;
 	else {
 		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
