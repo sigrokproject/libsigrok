@@ -173,7 +173,7 @@ SR_API const char *const *sr_input_extensions_get(
  *
  * @since 0.4.0
  */
-SR_API const struct sr_input_module *sr_input_find(char *id)
+SR_API const struct sr_input_module *sr_input_find(const char *id)
 {
 	int i;
 
