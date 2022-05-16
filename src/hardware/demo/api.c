@@ -151,14 +151,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	if (num_logic_channels > 0) {
 		/* Logic channels, all in one channel group. */
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup("Logic");
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
 		for (i = 0; i < num_logic_channels; i++) {
 			sprintf(channel_name, "D%d", i);
 			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
-		sdi->channel_groups = g_slist_append(NULL, cg);
 	}
 
 	/* Analog channels, channel groups and pattern generators. */
@@ -173,9 +171,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		pattern = 0;
 		/* An "Analog" channel group with all analog channels in it. */
-		acg = g_malloc0(sizeof(struct sr_channel_group));
-		acg->name = g_strdup("Analog");
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, acg);
+		acg = sr_channel_group_new(sdi, "Analog", NULL);
 
 		for (i = 0; i < num_analog_channels; i++) {
 			snprintf(channel_name, 16, "A%d", i);
@@ -184,10 +180,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			acg->channels = g_slist_append(acg->channels, ch);
 
 			/* Every analog channel gets its own channel group as well. */
-			cg = g_malloc0(sizeof(struct sr_channel_group));
-			cg->name = g_strdup(channel_name);
+			cg = sr_channel_group_new(sdi, channel_name, NULL);
 			cg->channels = g_slist_append(NULL, ch);
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
 			/* Every channel gets a generator struct. */
 			ag = g_malloc(sizeof(struct analog_gen));

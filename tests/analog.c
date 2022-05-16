@@ -598,7 +598,7 @@ END_TEST
 
 START_TEST(test_mult_rational)
 {
-	const struct sr_rational r[][3] = {
+	static const struct sr_rational r[][3] = {
 		/*   a    *    b    =    c   */
 		{ { 1, 1 }, { 1, 1 }, { 1, 1 }},
 		{ { 2, 1 }, { 3, 1 }, { 6, 1 }},
@@ -625,13 +625,15 @@ START_TEST(test_mult_rational)
 		{ { 10000*3, 4 }, { -80000*3, 1 }, { -200000000*9, 1 }},
 	};
 
-	for (unsigned i = 0; i < ARRAY_SIZE(r); i++) {
-		struct sr_rational res;
+	size_t i;
+	struct sr_rational res;
+	int rc;
 
-		int rc = sr_rational_mult(&res, &r[i][0], &r[i][1]);
+	for (i = 0; i < ARRAY_SIZE(r); i++) {
+		rc = sr_rational_mult(&res, &r[i][0], &r[i][1]);
 		fail_unless(rc == SR_OK);
 		fail_unless(sr_rational_eq(&res, &r[i][2]) == 1,
-			"sr_rational_mult() failed: [%d] %ld/%lu != %ld/%lu.",
+			"sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
 			i, res.p, res.q, r[i][2].p, r[i][2].q);
 	}
 }
@@ -639,7 +641,7 @@ END_TEST
 
 START_TEST(test_div_rational)
 {
-	const struct sr_rational r[][3] = {
+	static const struct sr_rational r[][3] = {
 		/*   a    *    b    =    c   */
 		{ { 1, 1 }, { 1, 1 }, { 1, 1 }},
 		{ { 2, 1 }, { 1, 3 }, { 6, 1 }},
@@ -662,19 +664,20 @@ START_TEST(test_div_rational)
 		{ { 10000*3, 4 }, { -1, 80000*3 }, { -200000000*9, 1 }},
 	};
 
-	for (unsigned i = 0; i < ARRAY_SIZE(r); i++) {
-		struct sr_rational res;
+	size_t i;
+	struct sr_rational res;
+	int rc;
 
-		int rc = sr_rational_div(&res, &r[i][0], &r[i][1]);
+	for (i = 0; i < ARRAY_SIZE(r); i++) {
+		rc = sr_rational_div(&res, &r[i][0], &r[i][1]);
 		fail_unless(rc == SR_OK);
 		fail_unless(sr_rational_eq(&res, &r[i][2]) == 1,
-			"sr_rational_mult() failed: [%d] %ld/%lu != %ld/%lu.",
+			"sr_rational_mult() failed: [%zu] %" PRIi64 "/%" PRIu64 " != %" PRIi64 "/%" PRIu64 ".",
 			i, res.p, res.q, r[i][2].p, r[i][2].q);
 	}
 
 	{
-		struct sr_rational res;
-		int rc = sr_rational_div(&res, &r[0][0], &((struct sr_rational){ 0, 5 }));
+		rc = sr_rational_div(&res, &r[0][0], &((struct sr_rational){ 0, 5 }));
 
 		fail_unless(rc == SR_ERR_ARG);
 	}

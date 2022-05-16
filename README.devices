@@ -288,6 +288,19 @@ rules shipped by the system will be broken.
 Please consult the udev docs for details.
 
 
+Assigning drivers to devices (Windows, Zadig)
+---------------------------------------------
+
+On Windows systems it may be necessary to assign drivers to devices
+before libusb based applications can access them. It may be necessary
+to re-run this driver assignment after firmware upload in case the
+device changes its USB identification as a consequence of loading the
+firmware image.
+
+The https://sigrok.org/wiki/Windows wiki page discusses this subject,
+and other platform specific aspects.
+
+
 Non-default drivers for commodity chips
 ---------------------------------------
 
@@ -388,6 +401,18 @@ See also: http://erste.de/UT61/index.html
       grep "WCH.CN" $dat/manufacturer > /dev/null && echo auto > ${dat}/power/level && echo 0 > ${dat}/power/autosuspend
     fi
   done
+
+
+UNI-T UT-D04 cable issue on Windows
+-----------------------------------
+
+There have been reports that CH9325 based cables are not detected on
+Windows out of the box when they are assigned to libwdi drivers. Though
+they may be usable in that case when the USB address is manually specified.
+This can happen when some "USB to serial" driver is assigned which does not
+provide a genuine COM port that enumerates naturally. Manually assigning a
+"USB input device" driver can improve HIDAPI compatibility and make the
+cable show up in sigrok's serial port enumeration.
 
 
 Enabling multimeter / data logger measurement output

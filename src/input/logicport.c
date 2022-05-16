@@ -60,10 +60,6 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-/* TODO: Move these helpers to some library API routine group. */
-struct sr_channel_group *sr_channel_group_new(const char *name, void *priv);
-void sr_channel_group_free(struct sr_channel_group *cg);
-
 #define LOG_PREFIX	"input/logicport"
 
 #define MAX_CHANNELS	34
@@ -153,26 +149,6 @@ static void free_signal_group(struct signal_group_desc *desc)
 		return;
 	g_free(desc->name);
 	g_free(desc);
-}
-
-struct sr_channel_group *sr_channel_group_new(const char *name, void *priv)
-{
-	struct sr_channel_group *cg;
-
-	cg = g_malloc0(sizeof(*cg));
-	if (name && *name)
-		cg->name = g_strdup(name);
-	cg->priv = priv;
-
-	return cg;
-}
-
-void sr_channel_group_free(struct sr_channel_group *cg)
-{
-	if (!cg)
-		return;
-	g_free(cg->name);
-	g_slist_free(cg->channels);
 }
 
 /* Wrapper for GDestroyNotify compatibility. */
@@ -802,10 +778,9 @@ static int create_channels_groups(struct sr_input *in)
 	sdi = in->sdi;
 	for (l = inc->signal_groups; l; l = l->next) {
 		desc = l->data;
-		cg = sr_channel_group_new(desc->name, NULL);
+		cg = sr_channel_group_new(sdi, desc->name, NULL);
 		if (!cg)
 			return SR_ERR_MALLOC;
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		mask = UINT64_C(1);
 		for (idx = 0; idx < inc->channel_count; idx++, mask <<= 1) {
 			if (!(desc->mask & mask))

@@ -49,6 +49,7 @@ Requirements for the C library:
  - libgpib (optional, used by some drivers)
  - libieee1284 (optional, used by some drivers)
  - libgio >= 2.32.0 (optional, used by some drivers)
+ - nettle (optional, used by some drivers)
  - check >= 0.9.4 (optional, only needed to run unit tests)
  - doxygen (optional, only needed for the C API docs)
  - graphviz (optional, only needed for the C API docs)

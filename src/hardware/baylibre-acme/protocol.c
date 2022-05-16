@@ -332,9 +332,8 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	if (hwmon < 0)
 		return FALSE;
 
-	cg = g_malloc0(sizeof(struct sr_channel_group));
 	cgp = g_malloc0(sizeof(struct channel_group_priv));
-	cg->priv = cgp;
+	cg = sr_channel_group_new(sdi, NULL, cgp);
 
 	/*
 	 * See if we can read the EEPROM contents. If not, assume it's
@@ -379,8 +378,6 @@ SR_PRIV gboolean bl_acme_register_probe(struct sr_dev_inst *sdi, int type,
 	} else {
 		sr_err("Invalid probe type: %d.", type);
 	}
-
-	sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 
 	return TRUE;
 }

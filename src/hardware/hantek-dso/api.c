@@ -199,10 +199,8 @@ static struct sr_dev_inst *dso_dev_new(const struct dso_profile *prof)
 	 */
 	for (i = 0; i < ARRAY_SIZE(channel_names); i++) {
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_names[i]);
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup(channel_names[i]);
+		cg = sr_channel_group_new(sdi, channel_names[i], NULL);
 		cg->channels = g_slist_append(cg->channels, ch);
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
 	devc = g_malloc0(sizeof(struct dev_context));

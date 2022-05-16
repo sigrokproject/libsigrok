@@ -527,14 +527,9 @@ SR_PRIV int lecroy_xstream_init_device(struct sr_dev_inst *sdi)
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, channel_enabled,
 			(*scope_models[model_index].analog_names)[i]);
 
-		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
-
-		devc->analog_groups[i]->name = g_strdup(
-			(char *)(*scope_models[model_index].analog_names)[i]);
+		devc->analog_groups[i] = sr_channel_group_new(sdi,
+			(*scope_models[model_index].analog_names)[i], NULL);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
-
-		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-			devc->analog_groups[i]);
 	}
 
 	devc->model_config = &scope_models[model_index];

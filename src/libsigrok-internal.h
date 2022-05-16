@@ -451,6 +451,19 @@ static inline void write_u16le(uint8_t *p, uint16_t x)
 #define WL16(p, x) write_u16le((uint8_t *)(p), (uint16_t)(x))
 
 /**
+ * Write a 24 bits unsigned integer to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u24le(uint8_t *p, uint32_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+}
+#define WL24(p, x) write_u24le((uint8_t *)(p), (uint32_t)(x))
+
+/**
  * Write a 32 bits unsigned integer to memory stored as big endian.
  * @param p a pointer to the output memory
  * @param x the input unsigned integer
@@ -477,6 +490,21 @@ static inline void write_u32le(uint8_t *p, uint32_t x)
 	p[3] = x & 0xff; x >>= 8;
 }
 #define WL32(p, x) write_u32le((uint8_t *)(p), (uint32_t)(x))
+
+/**
+ * Write a 40 bits unsigned integer to memory stored as little endian.
+ * @param p a pointer to the output memory
+ * @param x the input unsigned integer
+ */
+static inline void write_u40le(uint8_t *p, uint64_t x)
+{
+	p[0] = x & 0xff; x >>= 8;
+	p[1] = x & 0xff; x >>= 8;
+	p[2] = x & 0xff; x >>= 8;
+	p[3] = x & 0xff; x >>= 8;
+	p[4] = x & 0xff; x >>= 8;
+}
+#define WL40(p, x) write_u40le((uint8_t *)(p), (uint64_t)(x))
 
 /**
  * Write a 48 bits unsigned integer to memory stored as little endian.
@@ -899,6 +927,19 @@ static inline void write_u16le_inc(uint8_t **p, uint16_t x)
 }
 
 /**
+ * Write unsigned 24bit liggle endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u24le_inc(uint8_t **p, uint32_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u24le(*p, x);
+	*p += 3 * sizeof(uint8_t);
+}
+
+/**
  * Write unsigned 32bit big endian integer to raw memory, increment write position.
  * @param[in, out] p Pointer into byte stream.
  * @param[in] x Value to write.
@@ -922,6 +963,19 @@ static inline void write_u32le_inc(uint8_t **p, uint32_t x)
 		return;
 	write_u32le(*p, x);
 	*p += sizeof(x);
+}
+
+/**
+ * Write unsigned 40bit little endian integer to raw memory, increment write position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in] x Value to write.
+ */
+static inline void write_u40le_inc(uint8_t **p, uint64_t x)
+{
+	if (!p || !*p)
+		return;
+	write_u40le(*p, x);
+	*p += 5 * sizeof(uint8_t);
 }
 
 /**
@@ -1591,6 +1645,11 @@ SR_PRIV struct sr_channel *sr_next_enabled_channel(const struct sr_dev_inst *sdi
 SR_PRIV gboolean sr_channels_differ(struct sr_channel *ch1, struct sr_channel *ch2);
 SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2);
 
+SR_PRIV struct sr_channel_group *sr_channel_group_new(struct sr_dev_inst *sdi,
+	const char *name, void *priv);
+SR_PRIV void sr_channel_group_free(struct sr_channel_group *cg);
+SR_PRIV void sr_channel_group_free_cb(void *cg);
+
 /** Device instance data */
 struct sr_dev_inst {
 	/** Device driver. */
@@ -1629,6 +1688,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi);
 SR_PRIV struct sr_usb_dev_inst *sr_usb_dev_inst_new(uint8_t bus,
 		uint8_t address, struct libusb_device_handle *hdl);
 SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb);
+SR_PRIV void sr_usb_dev_inst_free_cb(gpointer p); /* Glib wrapper. */
 #endif
 
 #ifdef HAVE_SERIAL_COMM

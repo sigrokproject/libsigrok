@@ -145,8 +145,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 
 	for (i = 0; i < num_channel_groups; i++) {
 		cgs = &channel_groups[i];
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup(cgs->name);
+		cg = sr_channel_group_new(sdi, cgs->name, NULL);
 		for (j = 0, mask = 1; j < 64; j++, mask <<= 1) {
 			if (cgs->channel_index_mask & mask) {
 				for (l = sdi->channels; l; l = l->next) {
@@ -167,7 +166,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi,
 		pcg = g_malloc0(sizeof(struct pps_channel_group));
 		pcg->features = cgs->features;
 		cg->priv = pcg;
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
 	sr_scpi_hw_info_free(hw_info);
