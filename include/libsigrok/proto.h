@@ -166,7 +166,7 @@ SR_API const char *sr_input_name_get(const struct sr_input_module *imod);
 SR_API const char *sr_input_description_get(const struct sr_input_module *imod);
 SR_API const char *const *sr_input_extensions_get(
 		const struct sr_input_module *imod);
-SR_API const struct sr_input_module *sr_input_find(char *id);
+SR_API const struct sr_input_module *sr_input_find(const char *id);
 SR_API const struct sr_option **sr_input_options_get(const struct sr_input_module *imod);
 SR_API void sr_input_options_free(const struct sr_option **options);
 SR_API struct sr_input *sr_input_new(const struct sr_input_module *imod,

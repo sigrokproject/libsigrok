@@ -63,6 +63,7 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	struct channel_group_context *cgc;
 	size_t idx, nr;
 	struct sr_channel_group *cg;
+	char cg_name[24];
 
 	/*
 	 * Get relay count from product string. Weak condition,
@@ -153,12 +154,11 @@ static struct sr_dev_inst *probe_device_common(const char *path,
 	devc->relay_mask = (1U << relay_count) - 1;
 	for (idx = 0; idx < devc->relay_count; idx++) {
 		nr = idx + 1;
-		cg = g_malloc0(sizeof(*cg));
-		cg->name = g_strdup_printf("R%zu", nr);
+		snprintf(cg_name, sizeof(cg_name), "R%zu", nr);
 		cgc = g_malloc0(sizeof(*cgc));
-		cg->priv = cgc;
 		cgc->number = nr;
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+		cg = sr_channel_group_new(sdi, cg_name, cgc);
+		(void)cg;
 	}
 
 	return sdi;

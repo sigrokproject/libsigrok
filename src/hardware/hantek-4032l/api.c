@@ -233,10 +233,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		struct sr_channel_group *channel_groups[2];
 		for (int j = 0; j < 2; j++) {
-			cg = g_malloc0(sizeof(struct sr_channel_group));
+			cg = sr_channel_group_new(sdi, NULL, NULL);
 			cg->name = g_strdup_printf("%c", 'A' + j);
 			channel_groups[j] = cg;
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		}
 
 		/* Assemble channel list and add channel to channel groups. */
