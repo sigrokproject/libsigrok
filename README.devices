@@ -63,6 +63,10 @@ The following drivers/devices require a firmware upload upon connection:
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
 
+ - kingst-la2016: The Kingst LA series of logic analyzers needs MCU firmware
+   and FPGA netlists. The 'sigrok-util' repository contains a script to
+   extract these files from the vendor software.
+
  - lecroy-logicstudio: The LeCroy LogicStudio requires FPGA bitstream files.
    These can be extracted from the vendor's Windows software using a tool
    from our 'sigrok-util' repository/project.
