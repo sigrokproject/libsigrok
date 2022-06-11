@@ -360,19 +360,27 @@ Examples (sigrok-cli):
 
  $ sigrok-cli --driver uni-t-ut61e-ser:conn=/dev/ttyUSB0 ...
  $ sigrok-cli --driver voltcraft-vc820-ser:conn=/dev/ttyS0 ...
+ $ sigrok-cli --driver uni-t-ut61e-ser:conn=hid/cp2110
 
-When using any of the UT-D04 USB/HID cables you have to use the respective
-driver _without_ the '-ser' drivername suffix (internally all of these models
-are handled by the 'uni-t-dmm' driver).
+Using any of the UT-D04 et al USB/HID cables can be done in two different
+ways: Use transparent serial over HID support in libsigrok, by giving the
+-ser driver a conn=hid/... serial port spec. This re-uses the 'serial-dmm'
+driver, results in better coverage of these code paths, and reduces
+maintenance overhead. Or by running non-ser drivers and passing USB
+specific connection details. When the driver _without_ the '-ser' suffix
+is used, the models are handled by the 'uni-t-dmm' driver. These duplicate
+drivers only exist for historical reasons, the redundancy may result in
+differences of behaviour between the two implementations. When in doubt,
+check if the '-ser' driver works for you.
 
-You also need to specify the USB vendor/device IDs of the cable.
-Autodetection is not possible here, since various other products use the
-USB VID/PID of those cables too, and there is no way to distinguish them.
+In the USB specific driver case you need to specify the cable's vendor
+and product IDs. Autodetection is not possible here, since various other
+products use the USB VID/PID of those cables too, and there is no way to
+distinguish them. The sigrok software errs on the safe side, and won't
+communicate to serial ports unless explicitly instructed by the user.
 
-Since the UT-D04 cables are USB based (but don't use a USB-to-serial chip)
-there is no need to specify a serial port via 'conn', of course.
-However, the user running the frontend does also need to have permissions
-to access the respective USB device (see above).
+The user running the frontend does also need to have permissions to
+access the respective USB device (see above).
 
 Examples (sigrok-cli):
 
