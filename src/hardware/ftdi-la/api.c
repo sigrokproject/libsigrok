@@ -92,7 +92,7 @@ static const struct ftdi_chip_desc ft232r_desc = {
 static const struct ftdi_chip_desc ft232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6014,
-	.samplerate_div = 30,
+	.samplerate_div = 20,
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
 		NULL
