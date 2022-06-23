@@ -464,7 +464,7 @@ SR_PRIV void analyzer_configure(libusb_device_handle *devh)
 	/* Sele_Inside_Outside_Clock */
 	if (g_clock_ext == 0)
 		gl_reg_write(devh, CLOCK_SOURCE, 0x01);
-	else if (g_edge==0)
+	else if (g_edge == 0)
 			gl_reg_write(devh, CLOCK_SOURCE, 0x02);
 		else
 			gl_reg_write(devh, CLOCK_SOURCE, 0x0);
