@@ -589,7 +589,7 @@ SR_PRIV void analyzer_set_trigger_count(int count)
 
 SR_PRIV void analyzer_set_clock(int ext, int edge)
 {
-	g_clock_ext=ext;
+	g_clock_ext = ext;
 	g_edge=edge;
 }
 
