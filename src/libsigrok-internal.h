@@ -2557,6 +2557,16 @@ SR_PRIV gboolean sr_rs9lcd_packet_valid(const uint8_t *buf);
 SR_PRIV int sr_rs9lcd_parse(const uint8_t *buf, float *floatval,
 			    struct sr_datafeed_analog *analog, void *info);
 
+/*--- dmm/qm1578.c -----------------------------------------------------------*/
+
+#define DIGITECH_QM1578_PACKET_SIZE 15
+
+/* Dummy info struct. The parser does not use it. */
+struct qm1578_info { int dummy; };
+
+SR_PRIV gboolean sr_digitech_qm1578_packet_valid(const uint8_t *buf);
+SR_PRIV int sr_digitech_qm1578_parse(const uint8_t *buf, float *floatval,
+			     struct sr_datafeed_analog *analog, void *info);
 /*--- dmm/bm25x.c -----------------------------------------------------------*/
 
 #define BRYMEN_BM25X_PACKET_SIZE 15
