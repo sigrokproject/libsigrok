@@ -621,20 +621,6 @@ static const uint32_t hp_6630a_devopts_cg[] = {
 	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
-static const uint32_t keysight_e36300a_devopts_cg[] = {
-	SR_CONF_ENABLED | SR_CONF_SET,
-	SR_CONF_VOLTAGE | SR_CONF_GET,
-	SR_CONF_CURRENT | SR_CONF_GET,
-	SR_CONF_VOLTAGE_TARGET | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_CURRENT_LIMIT | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
-	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
-	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET | SR_CONF_GET,
-	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
-	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
-	SR_CONF_REGULATION | SR_CONF_GET,
-};
-
 static const struct channel_spec hp_6632a_ch[] = {
 	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00125, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
 };
@@ -1024,6 +1010,26 @@ static int hp_6630b_update_status(const struct sr_dev_inst *sdi)
 
 /* Keysight E36300A series */
 
+static const uint32_t keysight_e36300a_devopts[] = {
+	SR_CONF_CONTINUOUS,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t keysight_e36300a_devopts_cg[] = {
+	SR_CONF_ENABLED | SR_CONF_SET,
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+	SR_CONF_CURRENT | SR_CONF_GET,
+	SR_CONF_VOLTAGE_TARGET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_CURRENT_LIMIT | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_VOLTAGE_PROTECTION_THRESHOLD | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_OVER_CURRENT_PROTECTION_ENABLED | SR_CONF_SET | SR_CONF_GET,
+	SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE | SR_CONF_GET,
+	SR_CONF_REGULATION | SR_CONF_GET,
+};
+
 static const struct channel_spec keysight_e36312a_ch[] = {
 	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 5.15, 0.001, 3, 8 }, { 0, 31.827  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS },
 	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
@@ -1064,6 +1070,176 @@ static const struct scpi_command keysight_e36300a_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_REGULATION, ":STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
 };
+
+static int keysight_e36300a_init_acquisition(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	int ret;
+
+	scpi = sdi->conn;
+
+	/*
+	 * Set bit 13 of Questionable Status register (INSTrument summary)
+	 */
+	ret = sr_scpi_send(scpi, "STAT:QUES:ENAB 8192");
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Monitor all of 3 INSTruments (channel groups): bits 3, 2, 1
+	 */
+	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ENAB 14");
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Monitor OVP(4), OCP(8), OTP(16), UNR(32)
+	 */
+	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM1:ENAB 60");
+	if (ret != SR_OK)
+		return ret;
+	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM2:ENAB 60");
+	if (ret != SR_OK)
+		return ret;
+	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM3:ENAB 60");
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Service Request Enable Register set for Questionable Status Register bit (8).
+	 * This masks the Status Register generating a SRQ/RQS. Not implemented yet!
+	 */
+	/*
+	ret = sr_scpi_send(scpi, "*SRE 136");
+	if (ret != SR_OK)
+		return ret;
+	*/
+
+	return SR_OK;
+}
+
+static int keysight_e36300a_update_status(const struct sr_dev_inst *sdi)
+{
+	struct sr_scpi_dev_inst *scpi;
+	struct dev_context *devc;
+	struct sr_channel *ch;
+	struct sr_channel_group *cg;
+	struct sr_channel_group *cg_tmp;
+	GSList *cgs;
+	GSList *chs;
+	int ret;
+	int stb;
+	int ques_even;
+	int isum_even;
+	int isum_cond;
+	gboolean output_enabled;
+	
+	gboolean unreg, cv, cc;
+	char *regulation;
+	char send_buf[128];
+	int recv_int;
+
+	scpi = sdi->conn;
+
+	unreg = FALSE;
+	cv = FALSE;
+	cc = FALSE;
+	output_enabled = FALSE;
+	regulation = "";
+
+	if (!(devc = sdi->priv))
+		return TRUE;
+
+	ch = devc->cur_acquisition_channel;
+	cg_tmp = NULL;
+	for (cgs = sdi->channel_groups; cgs && !cg_tmp; cgs = cgs->next) {
+		if ((cg = cgs->data)) {
+			for (chs = cg->channels; chs; chs = chs->next) {
+				if (chs->data == ch) {
+					cg_tmp = cg;
+					break;
+				}
+			}
+		}
+	}
+	cg = cg_tmp;
+	g_print("UPDATE: CH '%s', CG '%s'\n", ch->name, (cg) ? cg->name : "null");
+	if (!cg)
+		return SR_OK;
+	// for (cgs->f)
+	
+	/* 
+	 * !!! Use of SPoll has not been tested: E36300A supports GPIB with an optional interface card,
+	 * but not tested yet.
+	 * This code snippet copied from HP 663xB should work well.
+	 * 
+	 * Use SPoll when SCPI uses GPIB as transport layer.
+	 * SPoll is approx. twice as fast as a normal GPIB write + read would be!
+	 */
+#ifdef HAVE_LIBGPIB
+	char spoll_buf;
+
+	if (scpi->transport == SCPI_TRANSPORT_LIBGPIB) {
+		ret = sr_scpi_gpib_spoll(scpi, &spoll_buf);
+		if (ret != SR_OK)
+			return ret;
+		stb = (uint8_t)spoll_buf;
+	}
+	else {
+#endif
+		ret = sr_scpi_get_int(scpi, "*STB?", &stb);
+		if (ret != SR_OK)
+			return ret;
+#ifdef HAVE_LIBGPIB
+	}
+#endif
+
+	// /* Questionable status summary bit */
+	// if (stb & (1 << 3)) {
+	// 	ret = sr_scpi_get_int(scpi, "STAT:QUES?", &ques_even);
+	// 	if (ret != SR_OK)
+	// 		return ret;
+
+		g_snprintf(send_buf, 128, "STAT:QUES:INST:ISUM%s:COND?", cg->name);
+		ret = sr_scpi_get_int(scpi, send_buf, &isum_cond);
+		if (ret != SR_OK)
+			return ret;
+
+		/* OVP */
+		sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(isum_cond & (1 << 2)));
+
+		/* OCP */
+		sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
+			g_variant_new_boolean(isum_cond & (1 << 3)));
+
+		/* OTP */
+		sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
+			g_variant_new_boolean(isum_cond & (1 << 4)));
+
+		/* Regulation */
+		unreg = (isum_cond & (1 << 5));
+		cc = (isum_cond & 0x3u) == 0x1u;
+		cv = (isum_cond & 0x3u) == 0x2u;
+		if (unreg && !cc && !cv)
+			regulation = "UR";
+		else if (!unreg && !cc && cv)
+			regulation = "CV";
+		else if (!unreg && cc && !cv)
+			regulation = "CC";
+		sr_session_send_meta(sdi, SR_CONF_REGULATION,
+			g_variant_new_string(regulation));
+
+		ret = sr_scpi_get_bool(scpi, "OUTP?", &output_enabled);
+		if (ret != SR_OK)
+			return ret;
+		sr_session_send_meta(sdi, SR_CONF_ENABLED,
+			g_variant_new_boolean(output_enabled));
+	// }
+
+	return SR_OK;
+}
+
 
 /* Owon P4000 series */
 static const uint32_t owon_p4000_devopts[] = {
@@ -1571,14 +1747,14 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 
 	/* Keysight E36312A */
 	{ "Keysight", "E36312A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
-		ARRAY_AND_SIZE(hp_6630b_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
 		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
 		ARRAY_AND_SIZE(keysight_e36312a_ch),
 		ARRAY_AND_SIZE(keysight_e36312a_cg),
 		keysight_e36300a_cmd,
 		.probe_channels = NULL,
-		hp_6630b_init_acquisition,
-		hp_6630b_update_status,
+		.init_acquisition=NULL,
+		.update_status=NULL,
 	},
 
 	/* HP 6613C */
