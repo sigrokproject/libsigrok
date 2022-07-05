@@ -40,9 +40,6 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
 	int ret;
-	// struct sr_channel *ch;
-	// struct sr_channel_group *cg;
-	// GSList *cgs;
 
 	float f;
 	GVariant *gvdata;
@@ -78,19 +75,6 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 		device->update_status) {
 		device->update_status(sdi);
 	}
-
-	// Didn't work well.
-	// All channels' statuses overwrite the CH1 (V1) status.
-
-	// ch = devc->cur_acquisition_channel;
-	// for (cgs = sdi->channel_groups; cgs; cgs = cgs->next) {
-	// 	if ((cg = cgs->data) && ch == cg->channels->data) {
-	// 		if (device->update_status) device->update_status(sdi);
-	// 		g_print("======== ACQ: CH '%s', CG '%s': UPDATE\n", ch->name, cg->name);
-	// 	} else {
-	// 		g_print("======== ACQ: CH '%s', CG '%s': IGNORED\n", ch->name, cg->name);
-	// 	}
-	// }
 
 	if (pch->mq == SR_MQ_VOLTAGE) {
 		gvtype = G_VARIANT_TYPE_DOUBLE;

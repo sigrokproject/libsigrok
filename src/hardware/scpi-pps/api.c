@@ -566,7 +566,11 @@ static int config_get(uint32_t key, GVariant **data,
 				*data = g_variant_new_string("CC");
 			else if (reg == 0x02u)
 				*data = g_variant_new_string("CV");
-			else  // 2 LSBs == 11: HW Failure, 00: Unregulated
+			else if (reg == 0x03u)
+				/* 2 LSBs == 11: HW Failure*/
+				*data = g_variant_new_string("");
+			else
+				/* 2 LSBs == 00: Unregulated */
 				*data = g_variant_new_string("UR");
 		}
 

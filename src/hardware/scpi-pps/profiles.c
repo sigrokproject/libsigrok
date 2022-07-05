@@ -1030,13 +1030,30 @@ static const uint32_t keysight_e36300a_devopts_cg[] = {
 	SR_CONF_REGULATION | SR_CONF_GET,
 };
 
+/* NOT TESTED; estimated from the E36312A results and data sheet. */
+/* The measurement resolution of CHs 2 and 3 of E36311A is 10mV, different from 1mV in E36312A, */
+/*    but the data sheet does not provide us with the programming resolution. */
+static const struct channel_spec keysight_e36311a_ch[] = {
+	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 5.15, 0.001, 3, 8 }, { 0, 31.827  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS },
+	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
+	{ "3", { -25.75, 0, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
+};
+
+/* fetched from the equipment using the ':SOUR:VOLT? MAX,(@N)' command (where N=1,2,3) */
 static const struct channel_spec keysight_e36312a_ch[] = {
 	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 5.15, 0.001, 3, 8 }, { 0, 31.827  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS },
 	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
 	{ "3", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 1.03, 0.001, 3, 8 }, { 0, 26.5225 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
 };
 
-static const struct channel_group_spec keysight_e36312a_cg[] = {
+/* NOT TESTED; estimated from the E36312A results and data sheet. */
+static const struct channel_spec keysight_e36313a_ch[] = {
+	{ "1", { 0,  6.18, 0.001, 3, 8 }, { 2e-3, 10.3, 0.001, 3, 8 }, { 0, 63.654  }, FREQ_DC_ONLY, { 0.5, 6.6 , 0.001 }, NO_OCP_LIMITS },
+	{ "2", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 2.06, 0.001, 3, 8 }, { 0, 53.045 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
+	{ "3", { 0, 25.75, 0.001, 3, 8 }, { 1e-3, 2.06, 0.001, 3, 8 }, { 0, 53.045 }, FREQ_DC_ONLY, { 0.5, 27.5, 0.001 }, NO_OCP_LIMITS },
+};
+
+static const struct channel_group_spec keysight_e36300a_cg[] = {
 	{ "1", CH_IDX(0), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
 	{ "2", CH_IDX(1), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
 	{ "3", CH_IDX(2), PPS_OVP | PPS_OCP | PPS_OTP, SR_MQFLAG_DC },
@@ -1044,8 +1061,10 @@ static const struct channel_group_spec keysight_e36312a_cg[] = {
 
 static const struct scpi_command keysight_e36300a_cmd[] = {
 	/*
-	 * SCPI_CMD_REMOTE and SCPI_CMD_LOCAL are not used when GPIB is used,
-	 * otherwise the device will report (non critical) error 602.
+	 * Only tested on an E36312A connected via LAN.
+	 * E36311A, E36312A, and E36313A support the USB connection
+	 * while E36312A and E36313A also support GPIB with an optional interface card,
+	 * but these are not tested.
 	 */
 	{ SCPI_CMD_REMOTE, "SYST:REM" },
 	{ SCPI_CMD_LOCAL, "SYST:LOC" },
@@ -1070,176 +1089,6 @@ static const struct scpi_command keysight_e36300a_cmd[] = {
 	{ SCPI_CMD_GET_OUTPUT_REGULATION, ":STAT:QUES:INST:ISUM%s:COND?" },
 	ALL_ZERO
 };
-
-static int keysight_e36300a_init_acquisition(const struct sr_dev_inst *sdi)
-{
-	struct sr_scpi_dev_inst *scpi;
-	int ret;
-
-	scpi = sdi->conn;
-
-	/*
-	 * Set bit 13 of Questionable Status register (INSTrument summary)
-	 */
-	ret = sr_scpi_send(scpi, "STAT:QUES:ENAB 8192");
-	if (ret != SR_OK)
-		return ret;
-
-	/*
-	 * Monitor all of 3 INSTruments (channel groups): bits 3, 2, 1
-	 */
-	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ENAB 14");
-	if (ret != SR_OK)
-		return ret;
-
-	/*
-	 * Monitor OVP(4), OCP(8), OTP(16), UNR(32)
-	 */
-	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM1:ENAB 60");
-	if (ret != SR_OK)
-		return ret;
-	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM2:ENAB 60");
-	if (ret != SR_OK)
-		return ret;
-	ret = sr_scpi_send(scpi, "STAT:QUES:INST:ISUM3:ENAB 60");
-	if (ret != SR_OK)
-		return ret;
-
-	/*
-	 * Service Request Enable Register set for Questionable Status Register bit (8).
-	 * This masks the Status Register generating a SRQ/RQS. Not implemented yet!
-	 */
-	/*
-	ret = sr_scpi_send(scpi, "*SRE 136");
-	if (ret != SR_OK)
-		return ret;
-	*/
-
-	return SR_OK;
-}
-
-static int keysight_e36300a_update_status(const struct sr_dev_inst *sdi)
-{
-	struct sr_scpi_dev_inst *scpi;
-	struct dev_context *devc;
-	struct sr_channel *ch;
-	struct sr_channel_group *cg;
-	struct sr_channel_group *cg_tmp;
-	GSList *cgs;
-	GSList *chs;
-	int ret;
-	int stb;
-	int ques_even;
-	int isum_even;
-	int isum_cond;
-	gboolean output_enabled;
-	
-	gboolean unreg, cv, cc;
-	char *regulation;
-	char send_buf[128];
-	int recv_int;
-
-	scpi = sdi->conn;
-
-	unreg = FALSE;
-	cv = FALSE;
-	cc = FALSE;
-	output_enabled = FALSE;
-	regulation = "";
-
-	if (!(devc = sdi->priv))
-		return TRUE;
-
-	ch = devc->cur_acquisition_channel;
-	cg_tmp = NULL;
-	for (cgs = sdi->channel_groups; cgs && !cg_tmp; cgs = cgs->next) {
-		if ((cg = cgs->data)) {
-			for (chs = cg->channels; chs; chs = chs->next) {
-				if (chs->data == ch) {
-					cg_tmp = cg;
-					break;
-				}
-			}
-		}
-	}
-	cg = cg_tmp;
-	g_print("UPDATE: CH '%s', CG '%s'\n", ch->name, (cg) ? cg->name : "null");
-	if (!cg)
-		return SR_OK;
-	// for (cgs->f)
-	
-	/* 
-	 * !!! Use of SPoll has not been tested: E36300A supports GPIB with an optional interface card,
-	 * but not tested yet.
-	 * This code snippet copied from HP 663xB should work well.
-	 * 
-	 * Use SPoll when SCPI uses GPIB as transport layer.
-	 * SPoll is approx. twice as fast as a normal GPIB write + read would be!
-	 */
-#ifdef HAVE_LIBGPIB
-	char spoll_buf;
-
-	if (scpi->transport == SCPI_TRANSPORT_LIBGPIB) {
-		ret = sr_scpi_gpib_spoll(scpi, &spoll_buf);
-		if (ret != SR_OK)
-			return ret;
-		stb = (uint8_t)spoll_buf;
-	}
-	else {
-#endif
-		ret = sr_scpi_get_int(scpi, "*STB?", &stb);
-		if (ret != SR_OK)
-			return ret;
-#ifdef HAVE_LIBGPIB
-	}
-#endif
-
-	// /* Questionable status summary bit */
-	// if (stb & (1 << 3)) {
-	// 	ret = sr_scpi_get_int(scpi, "STAT:QUES?", &ques_even);
-	// 	if (ret != SR_OK)
-	// 		return ret;
-
-		g_snprintf(send_buf, 128, "STAT:QUES:INST:ISUM%s:COND?", cg->name);
-		ret = sr_scpi_get_int(scpi, send_buf, &isum_cond);
-		if (ret != SR_OK)
-			return ret;
-
-		/* OVP */
-		sr_session_send_meta(sdi, SR_CONF_OVER_VOLTAGE_PROTECTION_ACTIVE,
-			g_variant_new_boolean(isum_cond & (1 << 2)));
-
-		/* OCP */
-		sr_session_send_meta(sdi, SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE,
-			g_variant_new_boolean(isum_cond & (1 << 3)));
-
-		/* OTP */
-		sr_session_send_meta(sdi, SR_CONF_OVER_TEMPERATURE_PROTECTION_ACTIVE,
-			g_variant_new_boolean(isum_cond & (1 << 4)));
-
-		/* Regulation */
-		unreg = (isum_cond & (1 << 5));
-		cc = (isum_cond & 0x3u) == 0x1u;
-		cv = (isum_cond & 0x3u) == 0x2u;
-		if (unreg && !cc && !cv)
-			regulation = "UR";
-		else if (!unreg && !cc && cv)
-			regulation = "CV";
-		else if (!unreg && cc && !cv)
-			regulation = "CC";
-		sr_session_send_meta(sdi, SR_CONF_REGULATION,
-			g_variant_new_string(regulation));
-
-		ret = sr_scpi_get_bool(scpi, "OUTP?", &output_enabled);
-		if (ret != SR_OK)
-			return ret;
-		sr_session_send_meta(sdi, SR_CONF_ENABLED,
-			g_variant_new_boolean(output_enabled));
-	// }
-
-	return SR_OK;
-}
-
 
 /* Owon P4000 series */
 static const uint32_t owon_p4000_devopts[] = {
@@ -1745,18 +1594,6 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		hp_6630b_update_status,
 	},
 
-	/* Keysight E36312A */
-	{ "Keysight", "E36312A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
-		ARRAY_AND_SIZE(keysight_e36300a_devopts),
-		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
-		ARRAY_AND_SIZE(keysight_e36312a_ch),
-		ARRAY_AND_SIZE(keysight_e36312a_cg),
-		keysight_e36300a_cmd,
-		.probe_channels = NULL,
-		.init_acquisition=NULL,
-		.update_status=NULL,
-	},
-
 	/* HP 6613C */
 	{ "HP", "6613C", SCPI_DIALECT_HP_66XXB, PPS_OTP,
 		ARRAY_AND_SIZE(hp_6630b_devopts),
@@ -1851,6 +1688,42 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.probe_channels = NULL,
 		hp_6630b_init_acquisition,
 		hp_6630b_update_status,
+	},
+
+	/* Keysight E36311A; NOT TESTED*/
+	{ "Keysight", "E36311A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36311a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition=NULL,
+		.update_status=NULL,
+	},
+
+	/* Keysight E36312A */
+	{ "Keysight", "E36312A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36312a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition=NULL,
+		.update_status=NULL,
+	},
+
+	/* Keysight E36313A; NOT TESTED*/
+	{ "Keysight", "E36313A", SCPI_DIALECT_KEYSIGHT_E36300A, 0,
+		ARRAY_AND_SIZE(keysight_e36300a_devopts),
+		ARRAY_AND_SIZE(keysight_e36300a_devopts_cg),
+		ARRAY_AND_SIZE(keysight_e36313a_ch),
+		ARRAY_AND_SIZE(keysight_e36300a_cg),
+		keysight_e36300a_cmd,
+		.probe_channels = NULL,
+		.init_acquisition=NULL,
+		.update_status=NULL,
 	},
 
 	/* Rigol DP700 series */
