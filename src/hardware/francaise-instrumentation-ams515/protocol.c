@@ -154,7 +154,7 @@ SR_PRIV int francaise_instrumentation_ams515_send_raw(const struct sr_dev_inst *
 			continue;
 		// we do not know if echo is on, so we try to read
 		if (serial_read_blocking(serial, &c, 1, SERIAL_READ_TIMEOUT_MS) < 1) {
-			sr_err("Unable to read echoed cmd, assuming no echo.");
+			sr_dbg("Unable to read echoed cmd, assuming no echo.");
 			echoed = FALSE;
 			continue;
 		}
