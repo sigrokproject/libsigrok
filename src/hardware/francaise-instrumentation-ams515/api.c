@@ -240,7 +240,16 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(TRUE);
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_ACTIVE:
-			*data = g_variant_new_boolean(devc->overcurrent);
+			bval = devc->overcurrent;
+			// If we already have a situation, report it immediately, else query the device
+			if (!bval) {
+				ret = francaise_instrumentation_ams515_query_str(sdi, 'I', answer);
+				if (ret < SR_OK)
+					return ret;
+				if (answer[0] == '>' && (answer[1] >= 'A' && answer[1] <= 'C'))
+					bval = TRUE;
+			}
+			*data = g_variant_new_boolean(bval);
 			break;
 		default:
 			return SR_ERR_NA;
