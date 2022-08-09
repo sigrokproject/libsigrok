@@ -265,6 +265,13 @@ ATTRS{idVendor}=="0925", ATTRS{idProduct}=="3881", ENV{ID_SIGROK}="1"
 # Saleae Logic16
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1001", ENV{ID_SIGROK}="1"
 
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1003", ENV{ID_SIGROK}="1"
+
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1004", ENV{ID_SIGROK}="1"
+
+# Saleae Logic Pro 8
+ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1005", ENV{ID_SIGROK}="1"
+
 # Saleae Logic Pro 16
 ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
 
