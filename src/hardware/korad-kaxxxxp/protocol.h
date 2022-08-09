@@ -51,6 +51,7 @@ enum {
 	TENMA_72_2540_V52,
 	TENMA_72_2535_V21,
 	TENMA_72_2710_V66,
+	TENMA_72_2705_V66,
 	STAMOS_SLS31_V20,
 	KORAD_KD6005P,
 	/* Support for future devices with this protocol. */
