@@ -199,7 +199,7 @@ static int create_channels(struct sr_input *in)
 	struct context *inc;
 	int type;
 	size_t count, idx;
-	char name[4];
+	char name[24];
 	struct sr_channel *ch;
 
 	inc = in->priv;

@@ -206,7 +206,7 @@ END_TEST
 
 START_TEST(test_endian_write_inc)
 {
-	uint8_t buff[2 * sizeof(uint64_t)];
+	uint8_t buff[3 * sizeof(uint64_t)];
 	uint8_t *p;
 	size_t l;
 
@@ -227,6 +227,13 @@ START_TEST(test_endian_write_inc)
 	write_u48le_inc(&p, 0x181716151413);
 	l = p - &buff[0];
 	fail_unless(l == 4 * 48 / 8 * sizeof(uint8_t));
+	fail_unless(memcmp(&buff[0], &buff1234large[0], l) == 0);
+
+	p = &buff[0];
+	write_u24le_inc(&p, 0xfe030201);
+	write_u40le_inc(&p, 0xdcba0807060504ul);
+	l = p - &buff[0];
+	fail_unless(l == 24 / 8 + 40 / 8);
 	fail_unless(memcmp(&buff[0], &buff1234large[0], l) == 0);
 }
 END_TEST

@@ -256,6 +256,62 @@ SR_PRIV gboolean sr_channel_lists_differ(GSList *l1, GSList *l2)
 }
 
 /**
+ * Allocate and initialize a new channel group, and add it to sdi.
+ *
+ * @param[in] sdi The device instance the channel group is connected to.
+ *                Optional, can be NULL.
+ * @param[in] name @copydoc sr_channel_group::name
+ * @param[in] priv @copydoc sr_channel_group::priv
+ *
+ * @return A pointer to a new struct sr_channel_group, NULL upon error.
+ *
+ * @private
+ */
+SR_PRIV struct sr_channel_group *sr_channel_group_new(struct sr_dev_inst *sdi,
+	const char *name, void *priv)
+{
+	struct sr_channel_group *cg;
+
+	cg = g_malloc0(sizeof(*cg));
+	if (name && *name)
+		cg->name = g_strdup(name);
+	cg->priv = priv;
+
+	if (sdi)
+		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
+
+	return cg;
+}
+
+/**
+ * Release a previously allocated struct sr_channel_group.
+ *
+ * @param[in] cg Pointer to struct sr_channel_group.
+ *
+ * @private
+ */
+SR_PRIV void sr_channel_group_free(struct sr_channel_group *cg)
+{
+	if (!cg)
+		return;
+
+	g_free(cg->name);
+	g_slist_free(cg->channels);
+	g_free(cg->priv);
+	g_free(cg);
+}
+
+/**
+ * Wrapper around sr_channel_group_free(), suitable for glib iterators.
+ *
+ * @private
+ */
+SR_PRIV void sr_channel_group_free_cb(void *cg)
+{
+	return sr_channel_group_free(cg);
+}
+
+/**
  * Determine whether the specified device instance has the specified
  * capability.
  *
@@ -448,7 +504,6 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 {
 	struct sr_channel *ch;
-	struct sr_channel_group *cg;
 	GSList *l;
 
 	if (!sdi)
@@ -459,15 +514,7 @@ SR_PRIV void sr_dev_inst_free(struct sr_dev_inst *sdi)
 		sr_channel_free(ch);
 	}
 	g_slist_free(sdi->channels);
-
-	for (l = sdi->channel_groups; l; l = l->next) {
-		cg = l->data;
-		g_free(cg->name);
-		g_slist_free(cg->channels);
-		g_free(cg->priv);
-		g_free(cg);
-	}
-	g_slist_free(sdi->channel_groups);
+	g_slist_free_full(sdi->channel_groups, sr_channel_group_free_cb);
 
 	if (sdi->session)
 		sr_session_dev_remove(sdi->session, sdi);
@@ -519,6 +566,15 @@ SR_PRIV void sr_usb_dev_inst_free(struct sr_usb_dev_inst *usb)
 	g_free(usb);
 }
 
+/**
+ * Wrapper for g_slist_free_full() convenience.
+ *
+ * @private
+ */
+SR_PRIV void sr_usb_dev_inst_free_cb(gpointer p)
+{
+	sr_usb_dev_inst_free(p);
+}
 #endif
 
 #ifdef HAVE_SERIAL_COMM

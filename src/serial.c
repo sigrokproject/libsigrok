@@ -925,6 +925,8 @@ SR_PRIV int serial_stream_detect(struct sr_serial_dev_inst *serial,
 	return SR_ERR;
 }
 
+#endif
+
 /**
  * Extract the serial device and options from the options linked list.
  *
@@ -976,6 +978,8 @@ SR_PRIV int sr_serial_extract_options(GSList *options,
 
 	return SR_OK;
 }
+
+#ifdef HAVE_SERIAL_COMM
 
 /** @private */
 SR_PRIV int serial_source_add(struct sr_session *session,

@@ -37,17 +37,17 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const
 		break
 
 	switch (spec->type) {
-		VALUE_TYPE(BVT_UINT8, R8, 1);
+		VALUE_TYPE(BVT_UINT8, R8, sizeof(uint8_t));
 
-		VALUE_TYPE(BVT_BE_UINT16, RB16, 2);
-		VALUE_TYPE(BVT_BE_UINT32, RB32, 4);
-		VALUE_TYPE(BVT_BE_UINT64, RB64, 8);
-		VALUE_TYPE(BVT_BE_FLOAT, RBFL, 4);
+		VALUE_TYPE(BVT_BE_UINT16, RB16, sizeof(uint16_t));
+		VALUE_TYPE(BVT_BE_UINT32, RB32, sizeof(uint32_t));
+		VALUE_TYPE(BVT_BE_UINT64, RB64, sizeof(uint64_t));
+		VALUE_TYPE(BVT_BE_FLOAT, RBFL, sizeof(float));
 
-		VALUE_TYPE(BVT_LE_UINT16, RL16, 2);
-		VALUE_TYPE(BVT_LE_UINT32, RL32, 4);
-		VALUE_TYPE(BVT_LE_UINT64, RL64, 8);
-		VALUE_TYPE(BVT_LE_FLOAT, RLFL, 4);
+		VALUE_TYPE(BVT_LE_UINT16, RL16, sizeof(uint16_t));
+		VALUE_TYPE(BVT_LE_UINT32, RL32, sizeof(uint32_t));
+		VALUE_TYPE(BVT_LE_UINT64, RL64, sizeof(uint64_t));
+		VALUE_TYPE(BVT_LE_FLOAT, RLFL, sizeof(float));
 
 	default:
 		return SR_ERR_ARG;

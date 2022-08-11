@@ -194,11 +194,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		for (i = 0; i < model->num_channels; i++) {
 			snprintf(channel, sizeof(channel), "CH%d", i + 1);
 			ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel);
-			cg = g_malloc(sizeof(struct sr_channel_group));
-			cg->name = g_strdup(channel);
+			cg = sr_channel_group_new(sdi, channel, NULL);
 			cg->channels = g_slist_append(NULL, ch);
-			cg->priv = NULL;
-			sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 		}
 
 		devc = g_malloc0(sizeof(struct dev_context));

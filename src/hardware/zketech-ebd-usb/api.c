@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2018 Sven Bursch-Osewold <sb_git@bursch.com>
+ * Copyright (C) 2019 King Kévin <kingkevin@cuvoodoo.info>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +33,7 @@ static const uint32_t drvopts[] = {
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
 	SR_CONF_CURRENT_LIMIT | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
 
@@ -43,7 +45,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	struct sr_config *src;
 	struct sr_serial_dev_inst *serial;
-	uint8_t reply[MSG_LEN];
+	uint8_t reply[MSG_MAX_LEN];
 
 	conn = NULL;
 	serialcomm = NULL;
@@ -76,12 +78,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
-	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V");
-	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I");
+	sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "V.VBUS");
+	sr_channel_new(sdi, 1, SR_CHANNEL_ANALOG, TRUE, "I.VBUS");
+	sr_channel_new(sdi, 2, SR_CHANNEL_ANALOG, TRUE, "V.D+");
+	sr_channel_new(sdi, 3, SR_CHANNEL_ANALOG, TRUE, "V.D-");
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	g_mutex_init(&devc->rw_mutex);
 	devc->current_limit = 0;
+	devc->uvc_threshold = 0;
 	devc->running = FALSE;
 	devc->load_activated = FALSE;
 	sr_sw_limits_init(&devc->limits);
@@ -89,10 +94,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Starting device. */
 	ebd_init(serial, devc);
-	int ret = ebd_read_chars(serial, MSG_LEN, reply);
-	if (ret != MSG_LEN || reply[MSG_FRAME_BEGIN_POS] != MSG_FRAME_BEGIN \
-			|| reply[MSG_FRAME_END_POS] != MSG_FRAME_END) {
-		sr_warn("Invalid message received!");
+	int ret = ebd_read_message(serial, MSG_MAX_LEN, reply);
+	if (ret < 0) {
+		sr_warn("Could not receive message!");
+		ret = SR_ERR;
+	} else if (ret == 0) {
+		sr_warn("No message received!");
 		ret = SR_ERR;
 	}
 	ebd_stop(serial, devc);
@@ -139,6 +146,11 @@ static int config_get(uint32_t key, GVariant **data,
 		if (ret == SR_OK)
 			*data = g_variant_new_double(fvalue);
 		return ret;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		ret = ebd_get_uvc_threshold(sdi, &fvalue);
+		if (ret == SR_OK)
+			*data = g_variant_new_double(fvalue);
+		return ret;
 	default:
 		return SR_ERR_NA;
 	}
@@ -164,6 +176,11 @@ static int config_set(uint32_t key, GVariant *data,
 		if (value < 0.0 || value > 4.0)
 			return SR_ERR_ARG;
 		return ebd_set_current_limit(sdi, value);
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		value = g_variant_get_double(data);
+		if (value < 0.0 || value > 21.0)
+			return SR_ERR_ARG;
+		return ebd_set_uvc_threshold(sdi, value);
 	default:
 		return SR_ERR_NA;
 	}
@@ -175,9 +192,13 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts,
+			devopts);
 	case SR_CONF_CURRENT_LIMIT:
-		*data = std_gvar_min_max_step(0.0, 4.0, 0.01);
+		*data = std_gvar_min_max_step(0.0, 4.0, 0.001);
+		break;
+	case SR_CONF_UNDER_VOLTAGE_CONDITION_THRESHOLD:
+		*data = std_gvar_min_max_step(0.0, 21.0, 0.01);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -198,8 +219,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	ebd_init(serial, devc);
-	if (!ebd_current_is0(devc))
-		ebd_loadstart(serial, devc);
 
 	serial_source_add(sdi->session, serial, G_IO_IN, 100,
 		ebd_receive_data, (void *)sdi);
@@ -209,7 +228,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	ebd_loadstop(sdi->conn, sdi->priv);
+	struct dev_context *devc;
+
+	if (sdi) {
+		devc = sdi->priv;
+		if (devc->load_activated)
+			ebd_loadtoggle(sdi->conn, devc);
+		ebd_stop(sdi->conn, devc);
+	}
 
 	return std_serial_dev_acquisition_stop(sdi);
 }

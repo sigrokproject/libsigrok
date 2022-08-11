@@ -395,17 +395,13 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 		channel_name = g_strdup_printf("CH%d", i + 1);
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, channel_name);
 
-		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
-
-		devc->analog_groups[i]->name = channel_name;
+		devc->analog_groups[i] = sr_channel_group_new(sdi,
+			channel_name, NULL);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
-		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				devc->analog_groups[i]);
 	}
 
 	if (devc->model->has_digital) {
-		devc->digital_group = g_malloc0(sizeof(struct sr_channel_group));
-
+		devc->digital_group = sr_channel_group_new(sdi, "LA", NULL);
 		for (i = 0; i < ARRAY_SIZE(devc->digital_channels); i++) {
 			channel_name = g_strdup_printf("D%d", i);
 			ch = sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE, channel_name);
@@ -413,9 +409,6 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 			devc->digital_group->channels = g_slist_append(
 					devc->digital_group->channels, ch);
 		}
-		devc->digital_group->name = g_strdup("LA");
-		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				devc->digital_group);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(timebases); i++) {
@@ -883,6 +876,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	GSList *l;
 	char *cmd;
 	int protocol;
+	int ret;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -1021,19 +1015,26 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->channel_entry = devc->enabled_channels;
 
-	if (devc->data_source == DATA_SOURCE_LIVE)
-		devc->sample_rate = analog_frame_size(sdi) / 
+	if (devc->data_source == DATA_SOURCE_LIVE) {
+		devc->sample_rate = analog_frame_size(sdi) /
 			(devc->timebase * devc->model->series->num_horizontal_divs);
-	else {
+	} else {
 		float xinc;
-		if (devc->model->series->protocol >= PROTOCOL_V3 && 
-				sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc) != SR_OK) {
-			sr_err("Couldn't get sampling rate");
+		if (devc->model->series->protocol < PROTOCOL_V3) {
+			sr_err("Cannot get samplerate (below V3).");
+			return SR_ERR;
+		}
+		ret = sr_scpi_get_float(sdi->conn, "WAV:XINC?", &xinc);
+		if (ret != SR_OK) {
+			sr_err("Cannot get samplerate (WAV:XINC? failed).");
+			return SR_ERR;
+		}
+		if (!xinc) {
+			sr_err("Cannot get samplerate (zero XINC value).");
 			return SR_ERR;
 		}
 		devc->sample_rate = 1. / xinc;
 	}
-
 
 	if (rigol_ds_capture_start(sdi) != SR_OK)
 		return SR_ERR;

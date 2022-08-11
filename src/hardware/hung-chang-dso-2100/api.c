@@ -138,11 +138,9 @@ static GSList *scan_port(GSList *devices, struct parport *port)
 	ieee1284_ref(port);
 
 	for (i = 0; i < NUM_CHANNELS; i++) {
-		cg = g_malloc0(sizeof(struct sr_channel_group));
-		cg->name = g_strdup(trigger_sources[i]);
+		cg = sr_channel_group_new(sdi, trigger_sources[i], NULL);
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, FALSE, trigger_sources[i]);
 		cg->channels = g_slist_append(cg->channels, ch);
-		sdi->channel_groups = g_slist_append(sdi->channel_groups, cg);
 	}
 
 	devc = g_malloc0(sizeof(struct dev_context));

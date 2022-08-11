@@ -790,24 +790,17 @@ SR_PRIV int dlm_device_init(struct sr_dev_inst *sdi, int model_index)
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
 				(*scope_models[model_index].analog_names)[i]);
 
-		devc->analog_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
-
-		devc->analog_groups[i]->name = g_strdup(
-				(char *)(*scope_models[model_index].analog_names)[i]);
+		devc->analog_groups[i] = sr_channel_group_new(sdi,
+			(*scope_models[model_index].analog_names)[i], NULL);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
-
-		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				devc->analog_groups[i]);
 	}
 
 	/* Add digital channel groups. */
 	for (i = 0; i < scope_models[model_index].pods; i++) {
-		devc->digital_groups[i] = g_malloc0(sizeof(struct sr_channel_group));
+		devc->digital_groups[i] = sr_channel_group_new(sdi, NULL, NULL);
 		if (!devc->digital_groups[i])
 			return SR_ERR_MALLOC;
 		devc->digital_groups[i]->name = g_strdup_printf("POD%d", i);
-		sdi->channel_groups = g_slist_append(sdi->channel_groups,
-				devc->digital_groups[i]);
 	}
 
 	/* Add digital channels. */

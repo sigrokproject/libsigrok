@@ -28,10 +28,10 @@
 
 #define LOG_PREFIX "openbench-logic-sniffer"
 
-#define NUM_BASIC_TRIGGER_STAGES   4
-#define CLOCK_RATE                 SR_MHZ(100)
-#define MIN_NUM_SAMPLES            4
-#define DEFAULT_SAMPLERATE         SR_KHZ(200)
+#define NUM_BASIC_TRIGGER_STAGES     4
+#define CLOCK_RATE                   SR_MHZ(100)
+#define MIN_NUM_SAMPLES              4
+#define DEFAULT_SAMPLERATE           SR_KHZ(200)
 
 /* Command opcodes */
 #define CMD_RESET                     0x00
@@ -123,23 +123,22 @@ struct dev_context {
 
 	unsigned int rle_count;
 	unsigned char sample[4];
-	unsigned char tmp_sample[4];
 	unsigned char *raw_sample_buf;
 };
 
 SR_PRIV extern const char *ols_channel_names[];
 
 SR_PRIV int send_shortcommand(struct sr_serial_dev_inst *serial,
-		uint8_t command);
-SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial,
-		uint8_t command, uint8_t *data);
+			      uint8_t command);
+SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial, uint8_t command,
+			     uint8_t *data);
 SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial);
 SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV uint32_t ols_channel_mask(const struct sr_dev_inst *sdi);
 SR_PRIV struct dev_context *ols_dev_new(void);
 SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
-		uint64_t samplerate);
+			       uint64_t samplerate);
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV int ols_receive_data(int fd, int revents, void *cb_data);
 

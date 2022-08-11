@@ -66,6 +66,7 @@
 extern SR_PRIV struct sr_input_module input_chronovu_la8;
 extern SR_PRIV struct sr_input_module input_csv;
 extern SR_PRIV struct sr_input_module input_binary;
+extern SR_PRIV struct sr_input_module input_stf;
 extern SR_PRIV struct sr_input_module input_trace32_ad;
 extern SR_PRIV struct sr_input_module input_vcd;
 extern SR_PRIV struct sr_input_module input_wav;
@@ -79,6 +80,9 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_binary,
 	&input_chronovu_la8,
 	&input_csv,
+#if defined HAVE_INPUT_STF && HAVE_INPUT_STF
+	&input_stf,
+#endif
 	&input_trace32_ad,
 	&input_vcd,
 	&input_wav,
@@ -169,7 +173,7 @@ SR_API const char *const *sr_input_extensions_get(
  *
  * @since 0.4.0
  */
-SR_API const struct sr_input_module *sr_input_find(char *id)
+SR_API const struct sr_input_module *sr_input_find(const char *id)
 {
 	int i;
 

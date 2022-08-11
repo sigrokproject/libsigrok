@@ -32,6 +32,13 @@ Per-driver firmware requirements
 
 The following drivers/devices require a firmware upload upon connection:
 
+ - asix-omega-rtm-cli: There is no native sigrok support for ASIX OMEGA
+   devices. But the vendor's RTM CLI application can be used in streaming
+   mode, which transparently handles the device detection and firmware
+   download. The firmware ships with the vendor application. See below
+   for details how to make the vendor application available to the sigrok
+   driver.
+
  - asix-sigma: The ASIX SIGMA and SIGMA2 require various firmware files,
    depending on the settings used. These files are available from our
    'sigrok-firmware' repository/project under a license which allows us
@@ -55,6 +62,10 @@ The following drivers/devices require a firmware upload upon connection:
    series of Hantek PC oscilloscopes) need firmware files.
    These can be extracted from the vendor's Windows drivers using a tool
    from our 'sigrok-util' repository/project.
+
+ - kingst-la2016: The Kingst LA series of logic analyzers needs MCU firmware
+   and FPGA netlists. The 'sigrok-util' repository contains a script to
+   extract these files from the vendor software.
 
  - lecroy-logicstudio: The LeCroy LogicStudio requires FPGA bitstream files.
    These can be extracted from the vendor's Windows software using a tool
@@ -220,6 +231,12 @@ or VXI communication parameters. See these examples:
  $ sigrok-cli --driver <somedriver>:conn=vxi/<ipaddr> ...
  $ sigrok-cli --driver <somedriver>:conn=usbtmc/<bus>.<addr> ...
 
+Individual device drivers _may_ implement additional semantics for the
+conn= specification, which would not apply to other drivers, yet can be
+rather useful for a given type of device.
+
+ $ sigrok-cli --driver <somedriver>:conn=sn=<serno>
+
 
 Specifying serial port parameters
 ---------------------------------
@@ -284,6 +301,19 @@ rules shipped by the system will be broken.
 Please consult the udev docs for details.
 
 
+Assigning drivers to devices (Windows, Zadig)
+---------------------------------------------
+
+On Windows systems it may be necessary to assign drivers to devices
+before libusb based applications can access them. It may be necessary
+to re-run this driver assignment after firmware upload in case the
+device changes its USB identification as a consequence of loading the
+firmware image.
+
+The https://sigrok.org/wiki/Windows wiki page discusses this subject,
+and other platform specific aspects.
+
+
 Non-default drivers for commodity chips
 ---------------------------------------
 
@@ -343,19 +373,27 @@ Examples (sigrok-cli):
 
  $ sigrok-cli --driver uni-t-ut61e-ser:conn=/dev/ttyUSB0 ...
  $ sigrok-cli --driver voltcraft-vc820-ser:conn=/dev/ttyS0 ...
+ $ sigrok-cli --driver uni-t-ut61e-ser:conn=hid/cp2110
 
-When using any of the UT-D04 USB/HID cables you have to use the respective
-driver _without_ the '-ser' drivername suffix (internally all of these models
-are handled by the 'uni-t-dmm' driver).
+Using any of the UT-D04 et al USB/HID cables can be done in two different
+ways: Use transparent serial over HID support in libsigrok, by giving the
+-ser driver a conn=hid/... serial port spec. This re-uses the 'serial-dmm'
+driver, results in better coverage of these code paths, and reduces
+maintenance overhead. Or by running non-ser drivers and passing USB
+specific connection details. When the driver _without_ the '-ser' suffix
+is used, the models are handled by the 'uni-t-dmm' driver. These duplicate
+drivers only exist for historical reasons, the redundancy may result in
+differences of behaviour between the two implementations. When in doubt,
+check if the '-ser' driver works for you.
 
-You also need to specify the USB vendor/device IDs of the cable.
-Autodetection is not possible here, since various other products use the
-USB VID/PID of those cables too, and there is no way to distinguish them.
+In the USB specific driver case you need to specify the cable's vendor
+and product IDs. Autodetection is not possible here, since various other
+products use the USB VID/PID of those cables too, and there is no way to
+distinguish them. The sigrok software errs on the safe side, and won't
+communicate to serial ports unless explicitly instructed by the user.
 
-Since the UT-D04 cables are USB based (but don't use a USB-to-serial chip)
-there is no need to specify a serial port via 'conn', of course.
-However, the user running the frontend does also need to have permissions
-to access the respective USB device (see above).
+The user running the frontend does also need to have permissions to
+access the respective USB device (see above).
 
 Examples (sigrok-cli):
 
@@ -384,6 +422,18 @@ See also: http://erste.de/UT61/index.html
       grep "WCH.CN" $dat/manufacturer > /dev/null && echo auto > ${dat}/power/level && echo 0 > ${dat}/power/autosuspend
     fi
   done
+
+
+UNI-T UT-D04 cable issue on Windows
+-----------------------------------
+
+There have been reports that CH9325 based cables are not detected on
+Windows out of the box when they are assigned to libwdi drivers. Though
+they may be usable in that case when the USB address is manually specified.
+This can happen when some "USB to serial" driver is assigned which does not
+provide a genuine COM port that enumerates naturally. Manually assigning a
+"USB input device" driver can improve HIDAPI compatibility and make the
+cable show up in sigrok's serial port enumeration.
 
 
 Enabling multimeter / data logger measurement output
@@ -439,6 +489,64 @@ a short list for convenience:
  - Victor 70C/86C: Press the "REL/RS232" button for roughly 1 second.
  - Voltcraft VC-830: Press the "REL/PC" button for roughly 2 seconds.
  - Voltcraft VC-870: Press the "REL/PC" button for roughly 1 second.
+
+
+ASIX OMEGA in RTM CLI mode
+--------------------------
+
+The asix-sigma driver can detect the Omega devices' presence, but does
+not support their protocol and emits a diagnostics message. The firmware
+image is not available for distribution, and information on the protocol
+is not available. That's why native support is in some distant future.
+Yet basic operation of Omega devices is available by using the vendor's
+command line application for real time mode (RTM CLI).
+
+The vendor application targets Windows (on x86), but also executes on
+Linux when 32bit libraries for FTDI communication are provided. The
+user manual discusses the installation. The sigrok asix-omega-rtm-cli
+driver uses the vendor provided omegartmcli.exe binary to configure the
+device for streaming, and to acquire sample data.
+
+Either make an "omegartmcli" executable available in PATH. This can be
+the vendor's executable or some wrapper around it or a symlink to it.
+Or specify the executable's location in the OMEGARTMCLI environment
+variable. The sigrok driver accepts an optional serial number (six or
+eight hex digits) to select one out of several connected devices.
+
+  (optional)
+  $ export "OMEGARTMCLI=$HOME/.wine/drive_c/progx86/ASIX/SIGMA/omegartmcli.exe"
+
+  (optional)
+  $ OMEGASN=":conn=sn=a6030123"
+
+  (example use)
+  $ sigrok-cli -d asix-omega-rtm-cli${OMEGASN} --show
+  $ sigrok-cli -d asix-omega-rtm-cli${OMEGASN} -o capture.sr --time 10s
+  $ sigrok-cli -d asix-omega-rtm-cli${OMEGASN} -o capture.sr --samples 100m
+  $ pulseview  -d asix-omega-rtm-cli${OMEGASN}
+
+The RTM mode of operation samples 16 channels at a fixed rate of 200MHz.
+Hardware triggers are not available in this mode. Glib should handle
+platform specific details of external process execution, but the driver
+was only tested on Linux so far. Acquisition start in sigrok applications
+may take some time before sample data becomes available (roughly one
+second here on a slow machine). This is an implementation detail of the
+RTM CLI approach including execution under wine.
+
+The reliability of that setup in the presence of fast changing input
+signals is yet to get determined. It's assumed that slow input signals
+are operational. It's essential that the _average_ rate of changes in
+the input signal in combination with the hardware compression are such
+that the FTDI FIFO can communicate all involved data via USB2.0 to the
+application. Intermediate bursts of rapid changes shall not be an issue
+given the Omega devices' deep memory which RTM uses for buffering.
+
+Native support for the Asix Omega devices depends on the availability of
+a protocol description and use of the protocol depends on the firmware's
+availability at the user's site. Which then would allow to capture to
+DRAM at high rates without the communication bottleneck, before the data
+gets communicated to the PC after the acquisition has completed. Compare
+the native sigrok support for Asix Sigma.
 
 
 ChronoVu LA8/LA16 USB VID/PIDs

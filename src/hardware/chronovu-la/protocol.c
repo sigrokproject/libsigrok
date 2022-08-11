@@ -202,7 +202,7 @@ static int close_usb_reset_sequencer(struct dev_context *devc)
 		sr_dbg("Purging buffers, resetting+closing FTDI device.");
 
 		/* Log errors, but ignore them (i.e., don't abort). */
-		if ((ret = ftdi_usb_purge_buffers(devc->ftdic)) < 0)
+		if ((ret = PURGE_FTDI_BOTH(devc->ftdic)) < 0)
 			sr_err("Failed to purge FTDI buffers (%d): %s.",
 			       ret, ftdi_get_error_string(devc->ftdic));
 		if ((ret = ftdi_usb_reset(devc->ftdic)) < 0)

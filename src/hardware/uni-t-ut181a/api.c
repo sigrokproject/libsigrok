@@ -203,7 +203,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	ret = serial_open(serial, SERIAL_RDWR);
 	snprintf(conn_id, sizeof(conn_id), "%s", serial->port);
-	serial_flush(serial);
 	/*
 	 * We cannot identify the device at this point in time.
 	 * Successful open shall suffice for now. More activity
@@ -532,6 +531,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		devc->info.rec_data.samples_total = devc->wait_state.data_value;
 		devc->info.rec_data.samples_curr = 0;
 		ret = ut181a_send_cmd_get_rec_samples(serial, rec_idx, 0);
+	} else {
+		sr_err("Unhandled data source %d, programming error?",
+			(int)devc->data_source);
+		ret = SR_ERR_BUG;
 	}
 	if (ret < 0)
 		return ret;

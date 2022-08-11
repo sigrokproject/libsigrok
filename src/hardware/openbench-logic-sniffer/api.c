@@ -48,9 +48,9 @@ static const int32_t trigger_matches[] = {
 	SR_TRIGGER_ONE,
 };
 
-static const char* external_clock_edges[] = {
-	"rising", // positive edge
-	"falling" // negative edge
+static const char *external_clock_edges[] = {
+	"rising", /* positive edge */
+	"falling" /* negative edge */
 };
 
 #define STR_PATTERN_NONE     "None"
@@ -146,7 +146,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		return NULL;
 	}
 
-	num_read = serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4));
+	num_read =
+		serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4));
 	if (num_read < 0) {
 		sr_err("Getting ID reply failed (%d).", num_read);
 		return NULL;
@@ -181,13 +182,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->version = g_strdup("v1.0");
 		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
 			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-					ols_channel_names[i]);
+				       ols_channel_names[i]);
 		sdi->priv = ols_dev_new();
 	}
 	/* Configure samplerate and divider. */
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
-		sr_dbg("Failed to set default samplerate (%"PRIu64").",
-				DEFAULT_SAMPLERATE);
+		sr_dbg("Failed to set default samplerate (%" PRIu64 ").",
+		       DEFAULT_SAMPLERATE);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
@@ -197,7 +198,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 }
 
 static int config_get(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -227,15 +229,18 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string(STR_PATTERN_NONE);
 		break;
 	case SR_CONF_RLE:
-		*data = g_variant_new_boolean(devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
+		*data = g_variant_new_boolean(
+			devc->capture_flags & CAPTURE_FLAG_RLE ? TRUE : FALSE);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK:
 		*data = g_variant_new_boolean(
-			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL ? TRUE : FALSE);
+			devc->capture_flags & CAPTURE_FLAG_CLOCK_EXTERNAL
+			? TRUE : FALSE);
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_string(external_clock_edges[
-			devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK ? 1 : 0]);
+			devc->capture_flags & CAPTURE_FLAG_INVERT_EXT_CLOCK
+			? 1 : 0]);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -245,7 +250,8 @@ static int config_get(uint32_t key, GVariant **data,
 }
 
 static int config_set(uint32_t key, GVariant *data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		      const struct sr_dev_inst *sdi,
+		      const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	uint16_t flag;
@@ -334,7 +340,8 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+		       const struct sr_dev_inst *sdi,
+		       const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 	int num_ols_changrp, i;
@@ -342,7 +349,8 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts,
+				       devopts);
 	case SR_CONF_SAMPLERATE:
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
@@ -359,8 +367,6 @@ static int config_list(uint32_t key, GVariant **data,
 		if (!sdi)
 			return SR_ERR_ARG;
 		devc = sdi->priv;
-		if (devc->capture_flags & CAPTURE_FLAG_RLE)
-			return SR_ERR_NA;
 		if (devc->max_samples == 0)
 			/* Device didn't specify sample memory size in metadata. */
 			return SR_ERR_NA;
@@ -375,8 +381,8 @@ static int config_list(uint32_t key, GVariant **data,
 				num_ols_changrp++;
 		}
 
-		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES,
-			(num_ols_changrp) ? devc->max_samples / num_ols_changrp : MIN_NUM_SAMPLES);
+		*data = std_gvar_tuple_u64(MIN_NUM_SAMPLES, (num_ols_changrp)
+			? devc->max_samples / num_ols_changrp : MIN_NUM_SAMPLES);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -413,10 +419,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	/* If the device stops sending for longer than it takes to send a byte,
 	 * that means it's finished. But wait at least 100 ms to be safe.
 	 */
-	serial_source_add(sdi->session, serial, G_IO_IN, 100,
-			ols_receive_data, (struct sr_dev_inst *)sdi);
-
-	return SR_OK;
+	return serial_source_add(sdi->session, serial, G_IO_IN, 100,
+				 ols_receive_data, (struct sr_dev_inst *)sdi);
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)

@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2017-2018 Frank Stettner <frank-stettner@gmx.net>
+ * Copyright (C) 2017-2021 Frank Stettner <frank-stettner@gmx.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -69,9 +69,8 @@ SR_PRIV int hp_3478a_set_mq(const struct sr_dev_inst *sdi, enum sr_mq mq,
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 
-	/* No need to send command if we're not changing measurement type. */
-	if (devc->measurement_mq == mq &&
-		((devc->measurement_mq_flags & mq_flags) == mq_flags))
+	/* No need to send a command if we're not changing the measurement type. */
+	if (devc->measurement_mq == mq && devc->measurement_mq_flag == mq_flags)
 		return SR_OK;
 
 	for (i = 0; i < ARRAY_SIZE(sr_mq_to_cmd_map); i++) {
@@ -227,17 +226,17 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 		return SR_ERR_DATA;
 
 	/* Function + Range */
-	devc->measurement_mq_flags = 0;
+	devc->measurement_mq_flag = 0;
 	devc->acquisition_mq_flags = 0;
 	if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_VDC) {
 		devc->measurement_mq = SR_MQ_VOLTAGE;
-		devc->measurement_mq_flags |= SR_MQFLAG_DC;
+		devc->measurement_mq_flag = SR_MQFLAG_DC;
 		devc->acquisition_mq_flags |= SR_MQFLAG_DC;
 		devc->measurement_unit = SR_UNIT_VOLT;
 		parse_range_vdc(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_VAC) {
 		devc->measurement_mq = SR_MQ_VOLTAGE;
-		devc->measurement_mq_flags |= SR_MQFLAG_AC;
+		devc->measurement_mq_flag = SR_MQFLAG_AC;
 		devc->acquisition_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		devc->measurement_unit = SR_UNIT_VOLT;
 		parse_range_vac(devc, function_byte);
@@ -247,19 +246,19 @@ static int parse_function_byte(struct dev_context *devc, uint8_t function_byte)
 		parse_range_ohm(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_4WR) {
 		devc->measurement_mq = SR_MQ_RESISTANCE;
-		devc->measurement_mq_flags |= SR_MQFLAG_FOUR_WIRE;
+		devc->measurement_mq_flag = SR_MQFLAG_FOUR_WIRE;
 		devc->acquisition_mq_flags |= SR_MQFLAG_FOUR_WIRE;
 		devc->measurement_unit = SR_UNIT_OHM;
 		parse_range_ohm(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_ADC) {
 		devc->measurement_mq = SR_MQ_CURRENT;
-		devc->measurement_mq_flags |= SR_MQFLAG_DC;
+		devc->measurement_mq_flag = SR_MQFLAG_DC;
 		devc->acquisition_mq_flags |= SR_MQFLAG_DC;
 		devc->measurement_unit = SR_UNIT_AMPERE;
 		parse_range_a(devc, function_byte);
 	} else if ((function_byte & SB1_FUNCTION_BLOCK) == FUNCTION_AAC) {
 		devc->measurement_mq = SR_MQ_CURRENT;
-		devc->measurement_mq_flags |= SR_MQFLAG_AC;
+		devc->measurement_mq_flag = SR_MQFLAG_AC;
 		devc->acquisition_mq_flags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		devc->measurement_unit = SR_UNIT_AMPERE;
 		parse_range_a(devc, function_byte);
@@ -490,7 +489,7 @@ SR_PRIV int hp_3478a_receive_data(int fd, int revents, void *cb_data)
 	 */
 	if (sr_scpi_gpib_spoll(scpi, &status_register) != SR_OK)
 		return FALSE;
-	if (!(((uint8_t)status_register) & 0x01))
+	if (!(((uint8_t)status_register) & SRQ_BUS_AVAIL))
 		return TRUE;
 
 	/* Get a reading from the DMM. */

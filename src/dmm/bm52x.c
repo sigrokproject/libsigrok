@@ -1362,7 +1362,7 @@ SR_PRIV int brymen_bm52x_config_get(void *st, uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct brymen_bm52x_state *state;
-	char text[20];
+	char text[32];
 
 	state = st;
 
@@ -1428,7 +1428,7 @@ SR_PRIV int brymen_bm52x_config_list(void *st, uint32_t key, GVariant **data,
 	int ret;
 	size_t count, idx;
 	GVariantBuilder gvb;
-	char name[20];
+	char name[32];
 
 	/*
 	 * Have common keys handled by caller's common code.

@@ -96,6 +96,18 @@ SR_PKGLIBS_RUBY=
 SR_EXTRA_LIBS=
 SR_EXTRA_CXX_LIBS=
 
+SR_ARG_OPT_PKG([zlib], [ZLIB], , [zlib])
+AM_CONDITIONAL([HAVE_ZLIB], [test "x$sr_have_zlib" = xyes])
+AM_COND_IF([HAVE_ZLIB], [
+	SR_APPEND([sr_deps_avail], [crc32 zlib])
+	SR_PREPEND([SR_EXTRA_LIBS], [-lz])
+])
+
+AM_CONDITIONAL([HAVE_INPUT_STF], [test "x$sr_have_zlib" = xyes])
+AM_COND_IF([HAVE_INPUT_STF], [
+	AC_DEFINE([HAVE_INPUT_STF], [1], [Is the STF input module supported?])
+])
+
 SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 	[libserialport >= 0.1.1])
 
@@ -213,6 +225,27 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
 
+
+#######################
+##  miniLZO related  ##
+#######################
+# These were taken from the README.LZO file in the miniLZO archive.
+
+AC_CHECK_TYPE(ptrdiff_t,long)
+AC_TYPE_SIZE_T
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+AC_CHECK_SIZEOF(__int64)
+AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(size_t)
+AC_CHECK_SIZEOF(ptrdiff_t)
+
+AC_C_CONST
+
+AC_CHECK_FUNCS(memcmp memcpy memmove memset)
+
 ########################
 ##  Hardware drivers  ##
 ########################
@@ -262,6 +295,7 @@ SR_DRIVER([Appa 55II], [appa-55ii], [serial_comm])
 SR_DRIVER([APPA DMM], [appa-dmm])
 SR_DRIVER([Arachnid Labs Re:load Pro], [arachnid-labs-re-load-pro], [serial_comm])
 SR_DRIVER([ASIX SIGMA/SIGMA2], [asix-sigma], [libftdi])
+SR_DRIVER([ASIX OMEGA RTM CLI], [asix-omega-rtm-cli])
 SR_DRIVER([Atten PPS3xxx], [atten-pps3xxx], [serial_comm])
 SR_DRIVER([BayLibre ACME], [baylibre-acme], [sys_timerfd_h])
 SR_DRIVER([BeagleLogic], [beaglelogic], [sys_mman_h sys_ioctl_h])
@@ -270,6 +304,7 @@ SR_DRIVER([Center 3xx], [center-3xx], [serial_comm])
 SR_DRIVER([ChronoVu LA], [chronovu-la], [libusb libftdi])
 SR_DRIVER([Colead SLM], [colead-slm], [serial_comm])
 SR_DRIVER([Conrad DIGI 35 CPU], [conrad-digi-35-cpu], [serial_comm])
+SR_DRIVER([dcttech usbrelay], [dcttech-usbrelay], [libhidapi])
 SR_DRIVER([demo], [demo])
 SR_DRIVER([DreamSourceLab DSLogic], [dreamsourcelab-dslogic], [libusb])
 SR_DRIVER([Fluke 45], [fluke-45])
@@ -279,7 +314,7 @@ SR_DRIVER([fx2lafw], [fx2lafw], [libusb])
 SR_DRIVER([GMC MH 1x/2x], [gmc-mh-1x-2x], [serial_comm])
 SR_DRIVER([GW Instek GDS-800], [gwinstek-gds-800], [serial_comm])
 SR_DRIVER([GW Instek GPD], [gwinstek-gpd], [serial_comm])
-SR_DRIVER([Hameg HMO], [hameg-hmo], [serial_comm])
+SR_DRIVER([Hameg HMO], [hameg-hmo])
 SR_DRIVER([Hantek 4032L], [hantek-4032l], [libusb])
 SR_DRIVER([Hantek 6xxx], [hantek-6xxx], [libusb])
 SR_DRIVER([Hantek DSO], [hantek-dso], [libusb])
@@ -582,6 +617,7 @@ AM_COND_IF([BINDINGS_CXX], [
 ])
 
 # Check for specific libusb features, now that we know the CFLAGS.
+# Also check for version dependent libftdi features.
 AC_LANG([C])
 sr_save_cflags=$CFLAGS
 sr_save_libs=$LIBS
@@ -591,17 +627,18 @@ AC_CHECK_TYPES([libusb_os_handle],
 	[sr_have_libusb_os_handle=yes], [sr_have_libusb_os_handle=no],
 	[[#include <libusb.h>]])
 AC_CHECK_FUNCS([zip_discard])
+AC_CHECK_FUNCS([ftdi_tciflush ftdi_tcoflush ftdi_tcioflush])
 LIBS=$sr_save_libs
 CFLAGS=$sr_save_cflags
 
-AM_COND_IF([NEED_USB], [AS_CASE([$sr_have_libusb_os_handle:$host_os], [no:mingw*],
-	[AC_MSG_ERROR([Windows builds require the event-abstraction branch of libusb])])])
-
 sr_glib_version=`$PKG_CONFIG --modversion glib-2.0 2>&AS_MESSAGE_LOG_FD`
 sr_libzip_version=`$PKG_CONFIG --modversion libzip 2>&AS_MESSAGE_LOG_FD`
+sr_zlib_version=`$PKG_CONFIG --modversion zlib 2>&AS_MESSAGE_LOG_FD`
 
 AC_DEFINE_UNQUOTED([CONF_LIBZIP_VERSION], ["$sr_libzip_version"],
 	[Build-time version of libzip.])
+AC_DEFINE_UNQUOTED([CONF_ZLIB_VERSION], ["$sr_zlib_version"],
+	[Build-time version of zlib.])
 AC_DEFINE_UNQUOTED([CONF_HOST], ["$host"],
 	[The canonical host libsigrok will run on.])
 

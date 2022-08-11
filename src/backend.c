@@ -25,6 +25,7 @@
 #endif
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+#include "minilzo/minilzo.h"
 
 /** @cond PRIVATE */
 #define LOG_PREFIX "backend"
@@ -136,8 +137,16 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 		glib_binary_age, glib_interface_age));
 	l = g_slist_append(l, m);
 
+	m = g_slist_append(NULL, g_strdup("zlib"));
+	m = g_slist_append(m, g_strdup_printf("%s", CONF_ZLIB_VERSION));
+	l = g_slist_append(l, m);
+
 	m = g_slist_append(NULL, g_strdup("libzip"));
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBZIP_VERSION));
+	l = g_slist_append(l, m);
+
+	m = g_slist_append(NULL, g_strdup("minilzo"));
+	m = g_slist_append(m, g_strdup_printf("%s", lzo_version_string()));
 	l = g_slist_append(l, m);
 
 #ifdef HAVE_LIBSERIALPORT
@@ -593,6 +602,14 @@ SR_API int sr_init(struct sr_context **ctx)
 		goto done;
 	}
 #endif
+
+	if ((ret = lzo_init()) != LZO_E_OK) {
+		sr_err("lzo_init() failed with return code %d.", ret);
+		sr_err("This usually indicates a compiler bug. Recompile without");
+		sr_err("optimizations, and enable '-DLZO_DEBUG' for diagnostics.");
+		ret = SR_ERR;
+		goto done;
+	}
 
 #ifdef HAVE_LIBUSB_1_0
 	ret = libusb_init(&context->libusb_ctx);
