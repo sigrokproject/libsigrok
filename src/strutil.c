@@ -1320,4 +1320,344 @@ SR_API int sr_parse_voltage(const char *voltstr, uint64_t *p, uint64_t *q)
 	return SR_OK;
 }
 
+/**
+ * Append another text item to a NULL terminated string vector.
+ *
+ * @param[in] table The previous string vector.
+ * @param[in,out] sz The previous and the resulting vector size
+ *       (item count).
+ * @param[in] text The text string to append to the vector.
+ *       Can be #NULL.
+ *
+ * @returns The new vector, its location can differ from 'table'.
+ *       Or #NULL in case of failure.
+ *
+ * This implementation happens to work for the first invocation when
+ * 'table' is #NULL and 'sz' is 0, as well as subsequent append calls.
+ * The 'text' can be #NULL or can be a non-empty string. When 'sz' is
+ * not provided, then the 'table' must be a NULL terminated vector,
+ * so that the routine can auto-determine the vector's current length.
+ *
+ * This routine re-allocates the vector as needed. Callers must not
+ * rely on the memory address to remain the same across calls.
+ */
+static char **append_probe_name(char **table, size_t *sz, const char *text)
+{
+	size_t curr_size, alloc_size;
+	char **new_table;
+
+	/* Get the table's previous size (item count). */
+	if (sz)
+		curr_size = *sz;
+	else if (table)
+		curr_size = g_strv_length(table);
+	else
+		curr_size = 0;
+
+	/* Extend storage to hold one more item, and the termination. */
+	alloc_size = curr_size + (text ? 1 : 0) + 1;
+	alloc_size *= sizeof(table[0]);
+	new_table = g_realloc(table, alloc_size);
+	if (!new_table) {
+		g_strfreev(table);
+		if (sz)
+			*sz = 0;
+		return NULL;
+	}
+
+	/* Append the item, NULL terminate. */
+	if (text) {
+		new_table[curr_size] = g_strdup(text);
+		if (!new_table[curr_size]) {
+			g_strfreev(new_table);
+			if (sz)
+				*sz = 0;
+			return NULL;
+		}
+		curr_size++;
+	}
+	if (sz)
+		*sz = curr_size;
+	new_table[curr_size] = NULL;
+
+	return new_table;
+}
+
+static char **append_probe_names(char **table, size_t *sz,
+	const char **names)
+{
+	if (!names)
+		return table;
+
+	while (names[0]) {
+		table = append_probe_name(table, sz, names[0]);
+		names++;
+	}
+	return table;
+}
+
+static const struct {
+	const char *name;
+	const char **expands;
+} probe_name_aliases[] = {
+	{
+		"ac97", (const char *[]){
+			"sync", "clk",
+			"out", "in", "rst",
+			NULL,
+		},
+	},
+	{
+		"i2c", (const char *[]){
+			"scl", "sda", NULL,
+		},
+	},
+	{
+		"jtag", (const char *[]){
+			"tdi", "tdo", "tck", "tms", NULL,
+		},
+	},
+	{
+		"jtag-opt", (const char *[]){
+			"tdi", "tdo", "tck", "tms",
+			"trst", "srst", "rtck", NULL,
+		},
+	},
+	{
+		"ieee488", (const char *[]){
+			"dio1", "dio2", "dio3", "dio4",
+			"dio5", "dio6", "dio7", "dio8",
+			"eoi", "dav", "nrfd", "ndac",
+			"ifc", "srq", "atn", "ren", NULL,
+		},
+	},
+	{
+		"lpc", (const char *[]){
+			"lframe", "lclk",
+			"lad0", "lad1", "lad2", "lad3",
+			NULL,
+		},
+	},
+	{
+		"lpc-opt", (const char *[]){
+			"lframe", "lclk",
+			"lad0", "lad1", "lad2", "lad3",
+			"lreset", "ldrq", "serirq", "clkrun",
+			"lpme", "lpcpd", "lsmi",
+			NULL,
+		},
+	},
+	{
+		"mcs48", (const char *[]){
+			"ale", "psen",
+			"d0", "d1", "d2", "d3",
+			"d4", "d5", "d6", "d7",
+			"a8", "a9", "a10", "a11",
+			"a12", "a13",
+			NULL,
+		},
+	},
+	{
+		"microwire", (const char *[]){
+			"cs", "sk", "si", "so", NULL,
+		},
+	},
+	{
+		"sdcard_sd", (const char *[]){
+			"cmd", "clk",
+			"dat0", "dat1", "dat2", "dat3",
+			NULL,
+		},
+	},
+	{
+		"seven_segment", (const char *[]){
+			"a", "b", "c", "d", "e", "f", "g",
+			"dp", NULL,
+		},
+	},
+	{
+		"spi", (const char *[]){
+			"clk", "miso", "mosi", "cs", NULL,
+		},
+	},
+	{
+		"swd", (const char *[]){
+			"swclk", "swdio", NULL,
+		},
+	},
+	{
+		"uart", (const char *[]){
+			"rx", "tx", NULL,
+		},
+	},
+	{
+		"usb", (const char *[]){
+			"dp", "dm", NULL,
+		},
+	},
+	{
+		"z80", (const char *[]){
+			"d0", "d1", "d2", "d3",
+			"d4", "d5", "d6", "d7",
+			"m1", "rd", "wr",
+			"mreq", "iorq",
+			"a0", "a1", "a2", "a3",
+			"a4", "a5", "a6", "a7",
+			"a8", "a9", "a10", "a11",
+			"a12", "a13", "a14", "a15",
+			NULL,
+		},
+	},
+};
+
+/* Case insensitive lookup of an alias name. */
+static const char **lookup_probe_alias(const char *name)
+{
+	size_t idx;
+
+	for (idx = 0; idx < ARRAY_SIZE(probe_name_aliases); idx++) {
+		if (g_ascii_strcasecmp(probe_name_aliases[idx].name, name) != 0)
+			continue;
+		return probe_name_aliases[idx].expands;
+	}
+	return NULL;
+}
+
+/**
+ * Parse a probe names specification, allocate a string vector.
+ *
+ * @param[in] spec The input spec, list of probes or aliases.
+ * @param[in] dflt_names The default probe names, a string array.
+ * @param[in] dflt_count The default probe names count. Either must
+ *        match the unterminated array size, or can be 0 when the
+ *        default names are NULL terminated.
+ * @param[in] max_count Optional resulting vector size limit.
+ * @param[out] ret_count Optional result vector size (return value).
+ *
+ * @returns A string vector with resulting probe names. Or #NULL
+ *        in case of failure.
+ *
+ * The input spec is a comma separated list of probe names. Items can
+ * be aliases which expand to a corresponding set of signal names.
+ * The resulting names list optionally gets padded from the caller's
+ * builtin probe names, an empty input spec yields the original names
+ * as provided by the caller. Padding is omitted when the spec starts
+ * with '-', which may result in a device with fewer channels being
+ * created, enough to cover the user's spec, but none extra to maybe
+ * enable and use later on. An optional maximum length spec will trim
+ * the result set to that size. The resulting vector length optionally
+ * is returned to the caller, so that it need not re-get the length.
+ *
+ * Calling applications must release the allocated vector by means
+ * of @ref sr_free_probe_names().
+ *
+ * @since 0.6.0
+ */
+SR_API char **sr_parse_probe_names(const char *spec,
+	const char **dflt_names, size_t dflt_count,
+	size_t max_count, size_t *ret_count)
+{
+	char **result_names;
+	size_t result_count;
+	gboolean pad_from_dflt;
+	char **spec_names, *spec_name;
+	size_t spec_idx;
+	const char **alias_names;
+
+	if (!spec || !*spec)
+		spec = NULL;
+
+	/*
+	 * Accept zero length spec for default input names. Determine
+	 * the name table's length here. Cannot re-use g_strv_length()
+	 * because of the 'const' decoration in application code.
+	 */
+	if (!dflt_count) {
+		while (dflt_names && dflt_names[dflt_count])
+			dflt_count++;
+	}
+	if (!dflt_count)
+		return NULL;
+
+	/*
+	 * Start with an empty resulting names table. Will grow
+	 * dynamically as more names get appended.
+	 */
+	result_names = NULL;
+	result_count = 0;
+	pad_from_dflt = TRUE;
+
+	/*
+	 * When an input spec exists, use its content. Lookup alias
+	 * names, and append their corresponding signals. Or append
+	 * the verbatim input name if it is not an alias. Recursion
+	 * is not supported in this implementation.
+	 *
+	 * A leading '-' before the signal names list suppresses the
+	 * padding of the resulting list from the device's default
+	 * probe names.
+	 */
+	spec_names = NULL;
+	if (spec && *spec == '-') {
+		spec++;
+		pad_from_dflt = FALSE;
+	}
+	if (spec && *spec)
+		spec_names = g_strsplit(spec, ",", 0);
+	for (spec_idx = 0; spec_names && spec_names[spec_idx]; spec_idx++) {
+		spec_name = spec_names[spec_idx];
+		if (!*spec_name)
+			continue;
+		alias_names = lookup_probe_alias(spec_name);
+		if (alias_names) {
+			result_names = append_probe_names(result_names,
+				&result_count, alias_names);
+		} else {
+			result_names = append_probe_name(result_names,
+				&result_count, spec_name);
+		}
+	}
+	g_strfreev(spec_names);
+
+	/*
+	 * By default pad the resulting names from the caller's
+	 * probe names. Don't pad if the input spec started with
+	 * '-', when the spec's exact length was requested.
+	 */
+	if (pad_from_dflt) do {
+		if (max_count && result_count >= max_count)
+			break;
+		if (result_count >= dflt_count)
+			break;
+		result_names = append_probe_name(result_names, &result_count,
+			dflt_names[result_count]);
+	} while (1);
+
+	/* Optionally trim the result to the caller's length limit. */
+	if (max_count) {
+		while (result_count > max_count) {
+			--result_count;
+			g_free(result_names[result_count]);
+			result_names[result_count] = NULL;
+		}
+	}
+
+	if (ret_count)
+		*ret_count = result_count;
+
+	return result_names;
+}
+
+/**
+ * Release previously allocated probe names (string vector).
+ *
+ * @param[in] names The previously allocated string vector.
+ *
+ * @since 0.6.0
+ */
+SR_API void sr_free_probe_names(char **names)
+{
+	g_strfreev(names);
+}
+
 /** @} */
