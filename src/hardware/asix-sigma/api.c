@@ -35,6 +35,7 @@ static const char *channel_names[] = {
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_PROBE_NAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -109,6 +110,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct drv_context *drvc;
 	libusb_context *usbctx;
 	const char *conn;
+	const char *probe_names;
 	GSList *l, *conn_devices;
 	struct sr_config *src;
 	GSList *devices;
@@ -126,17 +128,22 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	size_t devidx, chidx;
+	size_t count;
 
 	drvc = di->context;
 	usbctx = drvc->sr_ctx->libusb_ctx;
 
 	/* Find all devices which match an (optional) conn= spec. */
 	conn = NULL;
+	probe_names = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -234,12 +241,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->model = g_strdup(dev_text);
 		sdi->serial_num = g_strdup(serno_txt);
 		sdi->connection_id = g_strdup(conn_id);
-		for (chidx = 0; chidx < ARRAY_SIZE(channel_names); chidx++)
-			sr_channel_new(sdi, chidx, SR_CHANNEL_LOGIC,
-				TRUE, channel_names[chidx]);
-
 		devc = g_malloc0(sizeof(*devc));
 		sdi->priv = devc;
+		devc->channel_names = sr_parse_probe_names(probe_names,
+			channel_names, ARRAY_SIZE(channel_names),
+			ARRAY_SIZE(channel_names), &count);
+		for (chidx = 0; chidx < count; chidx++)
+			sr_channel_new(sdi, chidx, SR_CHANNEL_LOGIC,
+				TRUE, devc->channel_names[chidx]);
 		devc->id.vid = des.idVendor;
 		devc->id.pid = des.idProduct;
 		devc->id.serno = serno_num;
@@ -304,7 +313,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_boolean(devc->clock.use_ext_clock);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
-		clock_text = channel_names[devc->clock.clock_pin];
+		clock_text = devc->channel_names[devc->clock.clock_pin];
 		*data = g_variant_new_string(clock_text);
 		break;
 	case SR_CONF_CLOCK_EDGE:
@@ -330,6 +339,8 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	int ret;
 	uint64_t want_rate, have_rate;
+	const char **names;
+	size_t count;
 	int idx;
 
 	(void)cg;
@@ -357,7 +368,9 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->clock.use_ext_clock = g_variant_get_boolean(data);
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
-		idx = std_str_idx(data, ARRAY_AND_SIZE(channel_names));
+		names = (const char **)devc->channel_names;
+		count = g_strv_length(devc->channel_names);
+		idx = std_str_idx(data, names, count);
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->clock.clock_pin = idx;
@@ -384,6 +397,11 @@ static int config_set(uint32_t key, GVariant *data,
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	struct dev_context *devc;
+	const char **names;
+	size_t count;
+
+	devc = sdi->priv;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -395,7 +413,9 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = sigma_get_samplerates_list();
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
-		*data = g_variant_new_strv(ARRAY_AND_SIZE(channel_names));
+		names = (const char **)devc->channel_names;
+		count = g_strv_length(devc->channel_names);
+		*data = g_variant_new_strv(names, count);
 		break;
 	case SR_CONF_CLOCK_EDGE:
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(ext_clock_edges));
