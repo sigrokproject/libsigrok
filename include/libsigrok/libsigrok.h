@@ -784,6 +784,26 @@ enum sr_configkey {
 	 */
 	SR_CONF_FORCE_DETECT,
 
+	/**
+	 * Override builtin probe names from user specs.
+	 *
+	 * Users may want to override the names which are assigned to
+	 * probes during scan (these usually match the vendor's labels
+	 * on the device). This avoids the interactive tedium of
+	 * changing channel names after device creation and before
+	 * protocol decoder attachment. Think of IEEE488 recorders or
+	 * parallel computer bus loggers. The scan option eliminates
+	 * the issue of looking up previously assigned names before
+	 * renaming a channel (see sigrok-cli -C), which depends on
+	 * the device as well as the application, and is undesirable.
+	 * The scan option is limited to those drivers which implement
+	 * support for it, but works identically across those drivers.
+	 *
+	 * The value is a string, either a comma separated list of
+	 * probe names, or an alias for a typical set of names.
+	 */
+	SR_CONF_PROBE_NAMES,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Device (or channel group) configuration -----------------------*/

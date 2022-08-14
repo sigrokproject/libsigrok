@@ -74,6 +74,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Modbus slave address", NULL},
 	{SR_CONF_FORCE_DETECT, SR_T_STRING, "force_detect",
 		"Forced detection", NULL},
+	{SR_CONF_PROBE_NAMES, SR_T_STRING, "probe_names",
+		"Names of device's probes", NULL},
 
 	/* Device (or channel group) configuration */
 	{SR_CONF_SAMPLERATE, SR_T_UINT64, "samplerate",
