@@ -126,9 +126,10 @@ static const uint32_t devopts[] = {
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	const char *conn, *serno, *exe;
-	GSList *devices;
-	size_t argc, chidx;
+	const char *conn, *probe_names, *serno, *exe;
+	GSList *devices, *l;
+	struct sr_config *src;
+	size_t argc, chmax, chidx;
 	gchar **argv, *output, *vers_text, *eol;
 	GSpawnFlags flags;
 	GError *error;
@@ -139,9 +140,18 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Extract optional serial number from conn= spec. */
 	conn = NULL;
+	probe_names = NULL;
 	(void)sr_serial_extract_options(options, &conn, NULL);
 	if (!conn || !*conn)
 		conn = NULL;
+	for (l = options; l; l = l->next) {
+		src = l->data;
+		switch (src->key) {
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(src->data, NULL);
+			break;
+		}
+	}
 	serno = NULL;
 	if (conn) {
 		if (!g_str_has_prefix(conn, "sn=")) {
@@ -242,13 +252,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->serial_num = g_strdup(serno);
 	if (conn)
 		sdi->connection_id = g_strdup(conn);
-	for (chidx = 0; chidx < ARRAY_SIZE(channel_names); chidx++) {
-		sr_channel_new(sdi, chidx, SR_CHANNEL_LOGIC,
-			TRUE, channel_names[chidx]);
-	}
-
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
+	devc->channel_names = sr_parse_probe_names(probe_names,
+		channel_names, ARRAY_SIZE(channel_names),
+		ARRAY_SIZE(channel_names), &chmax);
+	for (chidx = 0; chidx < chmax; chidx++) {
+		sr_channel_new(sdi, chidx, SR_CHANNEL_LOGIC,
+			TRUE, devc->channel_names[chidx]);
+	}
+
 	sr_sw_limits_init(&devc->limits);
 	argc = 1;
 	g_free(argv[argc]);

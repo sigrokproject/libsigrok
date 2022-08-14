@@ -32,6 +32,7 @@
 #define FEED_QUEUE_DEPTH (256 * 1024)
 
 struct dev_context {
+	char **channel_names;
 	struct sr_sw_limits limits;
 	struct {
 		gchar **argv;
