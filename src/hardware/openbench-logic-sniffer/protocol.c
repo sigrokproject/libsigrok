@@ -139,16 +139,6 @@ static int convert_trigger(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-SR_PRIV struct dev_context *ols_dev_new(void)
-{
-	struct dev_context *devc;
-
-	devc = g_malloc0(sizeof(struct dev_context));
-	devc->trigger_at_smpl = OLS_NO_TRIGGER;
-
-	return devc;
-}
-
 static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
 {
 	struct dev_context *devc = sdi->priv;
@@ -186,9 +176,9 @@ static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 		devc->device_flags |= DEVICE_FLAG_IS_DEMON_CORE;
 }
 
-SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
+SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 {
-	struct sr_dev_inst *sdi;
+	struct sr_serial_dev_inst *serial;
 	struct dev_context *devc;
 	uint32_t tmp_int;
 	uint8_t key, type;
@@ -196,10 +186,8 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	GString *tmp_str, *devname, *version;
 	guchar tmp_c;
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	devc = ols_dev_new();
-	sdi->priv = devc;
+	serial = sdi->conn;
+	devc = sdi->priv;
 
 	devname = g_string_new("");
 	version = g_string_new("");
@@ -324,7 +312,7 @@ SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial)
 	/* Optionally amend received metadata, model specific quirks. */
 	ols_metadata_quirks(sdi);
 
-	return sdi;
+	return SR_OK;
 }
 
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,

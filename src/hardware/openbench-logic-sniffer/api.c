@@ -102,6 +102,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	unsigned int i;
 	const char *conn, *serialcomm;
 	char buf[4] = { 0, 0, 0, 0 };
+	struct dev_context *devc;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -167,36 +168,44 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		       buf[0], buf[1], buf[2], buf[3]);
 	}
 
-	/* Definitely using the OLS protocol, check if it supports
+	/*
+	 * Create common data structures (sdi, devc) here in the common
+	 * code path. These further get filled in either from metadata
+	 * which is gathered from the device, or from open coded generic
+	 * fallback data which is kept in the driver source code.
+	 */
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->status = SR_ST_INACTIVE;
+	sdi->inst_type = SR_INST_SERIAL;
+	sdi->conn = serial;
+	sdi->connection_id = g_strdup(serial->port);
+	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
+	devc->trigger_at_smpl = OLS_NO_TRIGGER;
+
+	/*
+	 * Definitely using the OLS protocol, check if it supports
 	 * the metadata command.
 	 */
 	send_shortcommand(serial, CMD_METADATA);
-
 	g_usleep(RESPONSE_DELAY_US);
-
 	if (serial_has_receive_data(serial) != 0) {
 		/* Got metadata. */
-		sdi = get_metadata(serial);
+		(void)ols_get_metadata(sdi);
 	} else {
 		/* Not an OLS -- some other board that uses the sump protocol. */
 		sr_info("Device does not support metadata.");
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
-		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("Sump");
 		sdi->model = g_strdup("Logic Analyzer");
 		sdi->version = g_strdup("v1.0");
 		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
 			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
 				       ols_channel_names[i]);
-		sdi->priv = ols_dev_new();
 	}
 	/* Configure samplerate and divider. */
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
 		sr_dbg("Failed to set default samplerate (%" PRIu64 ").",
 		       DEFAULT_SAMPLERATE);
-	sdi->inst_type = SR_INST_SERIAL;
-	sdi->conn = serial;
-	sdi->connection_id = g_strdup(serial->port);
 
 	serial_close(serial);
 

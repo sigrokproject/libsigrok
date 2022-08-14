@@ -135,8 +135,7 @@ SR_PRIV int send_longcommand(struct sr_serial_dev_inst *serial, uint8_t command,
 SR_PRIV int ols_send_reset(struct sr_serial_dev_inst *serial);
 SR_PRIV int ols_prepare_acquisition(const struct sr_dev_inst *sdi);
 SR_PRIV uint32_t ols_channel_mask(const struct sr_dev_inst *sdi);
-SR_PRIV struct dev_context *ols_dev_new(void);
-SR_PRIV struct sr_dev_inst *get_metadata(struct sr_serial_dev_inst *serial);
+SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi);
 SR_PRIV int ols_set_samplerate(const struct sr_dev_inst *sdi,
 			       uint64_t samplerate);
 SR_PRIV void abort_acquisition(const struct sr_dev_inst *sdi);
