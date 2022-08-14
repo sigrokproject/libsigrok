@@ -99,6 +99,8 @@
 #define OLS_NO_TRIGGER (-1)
 
 struct dev_context {
+	char **channel_names;
+
 	/* constant device properties: */
 	size_t max_channels;
 	uint32_t max_samples;

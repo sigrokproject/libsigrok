@@ -25,6 +25,7 @@
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_SERIALCOMM,
+	SR_CONF_PROBE_NAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -100,12 +101,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	GSList *l;
 	int num_read;
 	unsigned int i;
-	const char *conn, *serialcomm;
+	const char *conn, *serialcomm, *probe_names;
 	char buf[4] = { 0, 0, 0, 0 };
 	struct dev_context *devc;
 	size_t ch_max;
 
 	conn = serialcomm = NULL;
+	probe_names = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -114,6 +116,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		case SR_CONF_SERIALCOMM:
 			serialcomm = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -183,6 +188,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(*devc));
 	sdi->priv = devc;
 	devc->trigger_at_smpl = OLS_NO_TRIGGER;
+	devc->channel_names = sr_parse_probe_names(probe_names,
+		ols_channel_names, ARRAY_SIZE(ols_channel_names),
+		ARRAY_SIZE(ols_channel_names), &ch_max);
 
 	/*
 	 * Definitely using the OLS protocol, check if it supports
@@ -201,14 +209,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->vendor = g_strdup("Sump");
 		sdi->model = g_strdup("Logic Analyzer");
 		sdi->version = g_strdup("v1.0");
-		devc->max_channels = ARRAY_SIZE(ols_channel_names);
+		devc->max_channels = ch_max;
 	}
-	ch_max = ARRAY_SIZE(ols_channel_names);
 	if (devc->max_channels && ch_max > devc->max_channels)
 		ch_max = devc->max_channels;
 	for (i = 0; i < ch_max; i++) {
 		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-			ols_channel_names[i]);
+			devc->channel_names[i]);
 	}
 	/* Configure samplerate and divider. */
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
