@@ -36,6 +36,7 @@
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_PROBE_NAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -430,6 +431,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	uint8_t bus, addr;
 	uint16_t pid;
 	const char *conn;
+	const char *probe_names;
 	char conn_id[64];
 	int ret;
 	size_t ch_off, ch_max;
@@ -441,11 +443,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	conn = NULL;
 	conn_devices = NULL;
+	probe_names = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -595,12 +601,14 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		ch_max = ARRAY_SIZE(channel_names_logic);
 		if (ch_max > devc->model->channel_count)
 			ch_max = devc->model->channel_count;
+		devc->channel_names_logic = sr_parse_probe_names(probe_names,
+			channel_names_logic, ch_max, ch_max, &ch_max);
 		cg = sr_channel_group_new(sdi, "Logic", NULL);
 		devc->cg_logic = cg;
 		for (ch_idx = 0; ch_idx < ch_max; ch_idx++) {
 			ch = sr_channel_new(sdi, ch_off,
 				SR_CHANNEL_LOGIC, TRUE,
-				channel_names_logic[ch_idx]);
+				devc->channel_names_logic[ch_idx]);
 			ch_off++;
 			cg->channels = g_slist_append(cg->channels, ch);
 		}

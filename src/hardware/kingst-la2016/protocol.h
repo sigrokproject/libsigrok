@@ -123,6 +123,7 @@ struct dev_context {
 	uint64_t fw_uploaded; /* Timestamp of most recent FW upload. */
 	uint8_t identify_magic, identify_magic2;
 	const struct kingst_model *model;
+	char **channel_names_logic;
 	struct sr_channel_group *cg_logic, *cg_pwm;
 
 	/* User specified parameters. */
