@@ -255,6 +255,7 @@ SR_PRIV struct dev_context *fx2lafw_dev_new(void)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->profile = NULL;
+	devc->channel_names = NULL;
 	devc->fw_updated = 0;
 	devc->cur_samplerate = 0;
 	devc->limit_frames = 1;

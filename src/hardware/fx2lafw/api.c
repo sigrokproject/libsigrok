@@ -117,6 +117,7 @@ static const struct fx2lafw_profile supported_fx2[] = {
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_PROBE_NAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -161,6 +162,15 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(48),
 };
 
+static const char *channel_names_logic[] = {
+	"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
+	"D8", "D9", "D10", "D11", "D12", "D13", "D14", "D15",
+};
+
+static const char *channel_names_analog[] = {
+	"A0", "A1", "A2", "A3",
+};
+
 static gboolean is_plausible(const struct libusb_device_descriptor *des)
 {
 	int i;
@@ -190,20 +200,26 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_descriptor des;
 	libusb_device **devlist;
 	struct libusb_device_handle *hdl;
-	int ret, i, j;
-	int num_logic_channels = 0, num_analog_channels = 0;
+	int ret, i;
+	size_t j, num_logic_channels, num_analog_channels;
 	const char *conn;
+	const char *probe_names;
 	char manufacturer[64], product[64], serial_num[64], connection_id[64];
-	char channel_name[16];
+	size_t ch_max, ch_idx;
+	const char *channel_name;
 
 	drvc = di->context;
 
 	conn = NULL;
+	probe_names = NULL;
 	for (l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(src->data, NULL);
+			break;
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(src->data, NULL);
 			break;
 		}
 	}
@@ -301,33 +317,55 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);
 
+		devc = fx2lafw_dev_new();
+		devc->profile = prof;
+		sdi->priv = devc;
+		devices = g_slist_append(devices, sdi);
+
 		/* Fill in channellist according to this device's profile. */
 		num_logic_channels = prof->dev_caps & DEV_CAPS_16BIT ? 16 : 8;
+		if (num_logic_channels > ARRAY_SIZE(channel_names_logic))
+			num_logic_channels = ARRAY_SIZE(channel_names_logic);
 		num_analog_channels = prof->dev_caps & DEV_CAPS_AX_ANALOG ? 1 : 0;
+		if (num_analog_channels > ARRAY_SIZE(channel_names_analog))
+			num_analog_channels = ARRAY_SIZE(channel_names_analog);
+
+		/*
+		 * Allow user specs to override the builtin probe names.
+		 *
+		 * Implementor's note: Because the device's number of
+		 * logic channels is not known at compile time, and thus
+		 * the location of the analog channel names is not known
+		 * at compile time, and the construction of a list with
+		 * default names at runtime is not done here, and we
+		 * don't want to keep several default lists around, this
+		 * implementation only supports to override the names of
+		 * logic probes. The use case which motivated the config
+		 * key is protocol decoders, which are logic only.
+		 */
+		ch_max = num_logic_channels;
+		devc->channel_names = sr_parse_probe_names(probe_names,
+			channel_names_logic, ch_max, ch_max, &ch_max);
+		ch_idx = 0;
 
 		/* Logic channels, all in one channel group. */
 		cg = sr_channel_group_new(sdi, "Logic", NULL);
 		for (j = 0; j < num_logic_channels; j++) {
-			sprintf(channel_name, "D%d", j);
-			ch = sr_channel_new(sdi, j, SR_CHANNEL_LOGIC,
-						TRUE, channel_name);
+			channel_name = devc->channel_names[j];
+			ch = sr_channel_new(sdi, ch_idx++, SR_CHANNEL_LOGIC,
+				TRUE, channel_name);
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
 
 		for (j = 0; j < num_analog_channels; j++) {
-			snprintf(channel_name, 16, "A%d", j);
-			ch = sr_channel_new(sdi, j + num_logic_channels,
-					SR_CHANNEL_ANALOG, TRUE, channel_name);
+			channel_name = channel_names_analog[j];
+			ch = sr_channel_new(sdi, ch_idx++, SR_CHANNEL_ANALOG,
+				TRUE, channel_name);
 
 			/* Every analog channel gets its own channel group. */
 			cg = sr_channel_group_new(sdi, channel_name, NULL);
 			cg->channels = g_slist_append(NULL, ch);
 		}
-
-		devc = fx2lafw_dev_new();
-		devc->profile = prof;
-		sdi->priv = devc;
-		devices = g_slist_append(devices, sdi);
 
 		devc->samplerates = samplerates;
 		devc->num_samplerates = ARRAY_SIZE(samplerates);
