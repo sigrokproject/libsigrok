@@ -100,7 +100,7 @@
 
 struct dev_context {
 	/* constant device properties: */
-	int max_channels;
+	size_t max_channels;
 	uint32_t max_samples;
 	uint32_t max_samplerate;
 	uint32_t protocol_version;

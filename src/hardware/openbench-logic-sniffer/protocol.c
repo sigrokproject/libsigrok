@@ -139,18 +139,6 @@ static int convert_trigger(const struct sr_dev_inst *sdi,
 	return SR_OK;
 }
 
-static void ols_channel_new(struct sr_dev_inst *sdi, int num_chan)
-{
-	struct dev_context *devc = sdi->priv;
-	int i;
-
-	for (i = 0; i < num_chan; i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-			       ols_channel_names[i]);
-
-	devc->max_channels = num_chan;
-}
-
 static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -165,7 +153,7 @@ static void ols_metadata_quirks(struct sr_dev_inst *sdi)
 	is_shrimp = sdi->model && strcmp(sdi->model, "Shrimp1.0") == 0;
 	if (is_shrimp) {
 		if (!devc->max_channels)
-			ols_channel_new(sdi, 4);
+			devc->max_channels = 4;
 		if (!devc->max_samples)
 			devc->max_samples = 256 * 1024;
 		if (!devc->max_samplerate)
@@ -252,7 +240,7 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 			switch (key) {
 			case METADATA_TOKEN_NUM_PROBES_LONG:
 				/* Number of usable channels */
-				ols_channel_new(sdi, tmp_int);
+				devc->max_channels = tmp_int;
 				break;
 			case METADATA_TOKEN_SAMPLE_MEMORY_BYTES:
 				/* Amount of sample memory available (bytes) */
@@ -286,7 +274,7 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 			switch (key) {
 			case METADATA_TOKEN_NUM_PROBES_SHORT:
 				/* Number of usable channels */
-				ols_channel_new(sdi, tmp_c);
+				devc->max_channels = tmp_c;
 				break;
 			case METADATA_TOKEN_PROTOCOL_VERSION_SHORT:
 				/* protocol version */

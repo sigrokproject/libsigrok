@@ -103,6 +103,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	char buf[4] = { 0, 0, 0, 0 };
 	struct dev_context *devc;
+	size_t ch_max;
 
 	conn = serialcomm = NULL;
 	for (l = options; l; l = l->next) {
@@ -185,7 +186,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/*
 	 * Definitely using the OLS protocol, check if it supports
-	 * the metadata command.
+	 * the metadata command. Otherwise assign generic values.
+	 * Create as many sigrok channels as was determined when
+	 * the device was probed.
 	 */
 	send_shortcommand(serial, CMD_METADATA);
 	g_usleep(RESPONSE_DELAY_US);
@@ -193,14 +196,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		/* Got metadata. */
 		(void)ols_get_metadata(sdi);
 	} else {
-		/* Not an OLS -- some other board that uses the sump protocol. */
+		/* Not an OLS -- some other board using the SUMP protocol. */
 		sr_info("Device does not support metadata.");
 		sdi->vendor = g_strdup("Sump");
 		sdi->model = g_strdup("Logic Analyzer");
 		sdi->version = g_strdup("v1.0");
-		for (i = 0; i < ARRAY_SIZE(ols_channel_names); i++)
-			sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
-				       ols_channel_names[i]);
+		devc->max_channels = ARRAY_SIZE(ols_channel_names);
+	}
+	ch_max = ARRAY_SIZE(ols_channel_names);
+	if (devc->max_channels && ch_max > devc->max_channels)
+		ch_max = devc->max_channels;
+	for (i = 0; i < ch_max; i++) {
+		sr_channel_new(sdi, i, SR_CHANNEL_LOGIC, TRUE,
+			ols_channel_names[i]);
 	}
 	/* Configure samplerate and divider. */
 	if (ols_set_samplerate(sdi, DEFAULT_SAMPLERATE) != SR_OK)
