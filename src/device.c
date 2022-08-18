@@ -67,7 +67,7 @@ SR_PRIV struct sr_channel *sr_channel_new(struct sr_dev_inst *sdi,
 	ch->index = index;
 	ch->type = type;
 	ch->enabled = enabled;
-	if (name)
+	if (name && *name)
 		ch->name = g_strdup(name);
 
 	sdi->channels = g_slist_append(sdi->channels, ch);
@@ -119,6 +119,8 @@ SR_API int sr_dev_channel_name_set(struct sr_channel *channel,
 		const char *name)
 {
 	if (!channel)
+		return SR_ERR_ARG;
+	if (!name || !*name)
 		return SR_ERR_ARG;
 
 	g_free(channel->name);
@@ -489,7 +491,8 @@ SR_API int sr_dev_inst_channel_add(struct sr_dev_inst *sdi, int index, int type,
 	if (!sdi || sdi->inst_type != SR_INST_USER || index < 0)
 		return SR_ERR_ARG;
 
-	sr_channel_new(sdi, index, type, TRUE, name);
+	if (!sr_channel_new(sdi, index, type, TRUE, name))
+		return SR_ERR_DATA;
 
 	return SR_OK;
 }
