@@ -414,6 +414,7 @@ enum appadmm_model_id_e {
 	 * APPA 500 Series (Optical RS232/USB, BLE)
 	 * APPA 506B
 	 * BENNING MM 12
+	 * KPS DMM9000BT
 	 * Sefram 7352B
 	 */
 	APPADMM_MODEL_ID_506B = 0x06,
@@ -447,6 +448,7 @@ enum appadmm_model_id_e {
 	 * APPA S Series (BLE)
 	 * APPA S2
 	 * BENNING MM 10-1
+	 * KPS DMM3500BT
 	 * RS PRO S2
 	 */
 	APPADMM_MODEL_ID_S2 = 0x0a,
@@ -464,13 +466,14 @@ enum appadmm_model_id_e {
 	 * APPA 170 Series (BLE)
 	 * APPA 172B
 	 * BENNING CM 9-2
+	 * KPS DCM7000BT
 	 */
 	APPADMM_MODEL_ID_172 = 0x0c,
 
 	/**
 	 * APPA 170 Series (BLE)
 	 * APPA 173B
-	 * BENNING CM 10-1
+	 * BENNING CM 10-PV
 	 */
 	APPADMM_MODEL_ID_173 = 0x0d,
 
@@ -483,7 +486,8 @@ enum appadmm_model_id_e {
 	/**
 	 * APPA 170 Series (BLE)
 	 * APPA 177B
-	 * BENNING CM 10-PV
+	 * BENNING CM 10-1
+	 * KPS DCM8000BT
 	 */
 	APPADMM_MODEL_ID_177 = 0x0f,
 
