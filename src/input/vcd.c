@@ -1176,7 +1176,7 @@ static gboolean check_header_in_reread(const struct sr_input *in)
 static int parse_header(const struct sr_input *in, GString *buf)
 {
 	struct context *inc;
-	gboolean status;
+	gboolean enddef_seen, header_valid;
 	char *name, *contents;
 	size_t size;
 	int ret;
@@ -1184,34 +1184,35 @@ static int parse_header(const struct sr_input *in, GString *buf)
 	inc = in->priv;
 
 	/* Parse sections until complete header was seen. */
-	status = FALSE;
+	enddef_seen = FALSE;
+	header_valid = TRUE;
 	name = contents = NULL;
 	inc->conv_bits.max_bits = 1;
 	while (parse_section(buf, &name, &contents)) {
 		sr_dbg("Section '%s', contents '%s'.", name, contents);
 
 		if (g_strcmp0(name, "enddefinitions") == 0) {
-			status = TRUE;
+			enddef_seen = TRUE;
 			goto done_section;
 		}
 		if (g_strcmp0(name, "timescale") == 0) {
 			if (parse_timescale(inc, contents) != SR_OK)
-				status = FALSE;
+				header_valid = FALSE;
 			goto done_section;
 		}
 		if (g_strcmp0(name, "scope") == 0) {
 			if (parse_scope(inc, contents, FALSE) != SR_OK)
-				status = FALSE;
+				header_valid = FALSE;
 			goto done_section;
 		}
 		if (g_strcmp0(name, "upscope") == 0) {
 			if (parse_scope(inc, NULL, TRUE) != SR_OK)
-				status = FALSE;
+				header_valid = FALSE;
 			goto done_section;
 		}
 		if (g_strcmp0(name, "var") == 0) {
 			if (parse_header_var(inc, contents) != SR_OK)
-				status = FALSE;
+				header_valid = FALSE;
 			goto done_section;
 		}
 
@@ -1221,14 +1222,14 @@ done_section:
 		g_free(contents);
 		contents = NULL;
 
-		if (status)
+		if (enddef_seen)
 			break;
 	}
 	g_free(name);
 	g_free(contents);
 
-	inc->got_header = status;
-	if (!status)
+	inc->got_header = enddef_seen && header_valid;
+	if (!inc->got_header)
 		return SR_ERR_DATA;
 
 	/* Create sigrok channels here, late, logic before analog. */
@@ -2008,6 +2009,9 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 
 	inc = in->priv;
 
+	if (!inc->got_header)
+		return SR_ERR_DATA;
+
 	/* Send feed header and samplerate (once) before sample data. */
 	if (!inc->started) {
 		std_session_send_df_header(in->sdi);
@@ -2168,11 +2172,14 @@ static int end(struct sr_input *in)
 		ret = SR_OK;
 
 	/* Flush most recently queued sample data when EOF is seen. */
-	count = inc->data_after_timestamp ? 1 : 0;
-	add_samples(in, count, TRUE);
+	if (inc->got_header && ret == SR_OK) {
+		count = inc->data_after_timestamp ? 1 : 0;
+		add_samples(in, count, TRUE);
+	}
 
 	/* Optionally suggest downsampling after all input data was seen. */
-	(void)ts_stats_post(inc, !inc->data_after_timestamp);
+	if (inc->got_header)
+		(void)ts_stats_post(inc, !inc->data_after_timestamp);
 
 	/* Must send DF_END when DF_HEADER was sent before. */
 	if (inc->started)
