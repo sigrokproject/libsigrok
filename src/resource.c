@@ -57,6 +57,19 @@ SR_API GSList *sr_resourcepaths_get(int res_type)
 		env = g_getenv("SIGROK_FIRMWARE_DIR");
 		if (env)
 			l = g_slist_append(l, g_strdup(env));
+
+		env = g_getenv("SIGROK_FIRMWARE_PATH");
+		if (env) {
+			char **dir_list, **dir_iter, *dir_item;
+			dir_list = g_strsplit(env, G_SEARCHPATH_SEPARATOR_S, 0);
+			for (dir_iter = dir_list; *dir_iter; dir_iter++) {
+				dir_item = *dir_iter;
+				if (!dir_item || !*dir_item)
+					continue;
+				l = g_slist_append(l, g_strdup(dir_item));
+			}
+			g_strfreev(dir_list);
+		}
 	}
 
 	l = g_slist_append(l, g_build_filename(g_get_user_data_dir(), subdir, NULL));
