@@ -401,7 +401,7 @@ static int config_list(uint32_t key, GVariant **data,
 	const char **names;
 	size_t count;
 
-	devc = sdi->priv;
+	devc = sdi ? sdi->priv : NULL;
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
@@ -413,6 +413,8 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = sigma_get_samplerates_list();
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
+		if (!devc)
+			return SR_ERR_ARG;
 		names = (const char **)devc->channel_names;
 		count = g_strv_length(devc->channel_names);
 		*data = g_variant_new_strv(names, count);
