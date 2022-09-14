@@ -54,6 +54,8 @@ static const struct kingst_model models[] = {
 	{ 0x08, 0x00, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
 	{ 0x09, 0x00, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
 	{ 0x0a, 0x00, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 0x0c, 0x10, "LA5016", "la5016a2", SR_MHZ(500), 16, 2, SR_MHZ(800), },
+	{ 0x0c, 0x00, "LA5016", "la5016a2", SR_MHZ(500), 16, 2, SR_MHZ(800), },
 	{ 0x41, 0x00, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
 };
 
