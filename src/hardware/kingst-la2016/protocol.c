@@ -43,18 +43,18 @@
  * TODO Verify the identification of models that were not tested before.
  */
 static const struct kingst_model models[] = {
-	{  2, 1, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
-	{  2, 0, "LA2016", "la2016",   SR_MHZ(200), 16, 1, 0, },
-	{  3, 1, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
-	{  3, 0, "LA1016", "la1016",   SR_MHZ(100), 16, 1, 0, },
-	{  4, 0, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, SR_MHZ(800), },
-	{  5, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
-	{  6, 0, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, SR_MHZ(800), },
-	{  7, 0, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, SR_MHZ(800), },
-	{  8, 0, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
-	{  9, 0, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
-	{ 10, 0, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
-	{ 65, 0, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
+	{ 0x02, 0x01, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{ 0x02, 0x00, "LA2016", "la2016",   SR_MHZ(200), 16, 1, 0, },
+	{ 0x03, 0x01, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{ 0x03, 0x00, "LA1016", "la1016",   SR_MHZ(100), 16, 1, 0, },
+	{ 0x04, 0x00, "LA1010", "la1010a0", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 0x05, 0x00, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
+	{ 0x06, 0x00, "LA5032", "la5032a0", SR_MHZ(500), 32, 4, SR_MHZ(800), },
+	{ 0x07, 0x00, "LA1010", "la1010a1", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 0x08, 0x00, "LA2016", "la2016a1", SR_MHZ(200), 16, 1, 0, },
+	{ 0x09, 0x00, "LA1016", "la1016a1", SR_MHZ(100), 16, 1, 0, },
+	{ 0x0a, 0x00, "LA1010", "la1010a2", SR_MHZ(100), 16, 0, SR_MHZ(800), },
+	{ 0x41, 0x00, "LA5016", "la5016a1", SR_MHZ(500), 16, 2, SR_MHZ(800), },
 };
 
 /* USB vendor class control requests, executed by the Cypress FX2 MCU. */
@@ -1809,20 +1809,20 @@ SR_PRIV int la2016_identify_device(const struct sr_dev_inst *sdi,
 		/* Primary copy of magic passes complement check (4 bytes). */
 		magic = buf[0];
 		magic2 = buf[2];
-		sr_dbg("Using primary magic %hhu (%hhu).", magic, magic2);
+		sr_dbg("Using primary magic 0x%hhx (0x%hhx).", magic, magic2);
 	} else if ((buf[4] ^ buf[5]) == 0xff && (buf[6] ^ buf[7]) == 0xff) {
 		/* Backup copy of magic passes complement check (4 bytes). */
 		magic = buf[4];
 		magic2 = buf[6];
-		sr_dbg("Using secondary magic %hhu (%hhu).", magic, magic2);
+		sr_dbg("Using secondary magic 0x%hhx (0x%hhx).", magic, magic2);
 	} else if ((buf[0] ^ buf[1]) == 0xff) {
 		/* Primary copy of magic passes complement check (2 bytes). */
 		magic = buf[0];
-		sr_dbg("Using primary magic %hhu.", magic);
+		sr_dbg("Using primary magic 0x%hhx.", magic);
 	} else if ((buf[4] ^ buf[5]) == 0xff) {
 		/* Backup copy of magic passes complement check (2 bytes). */
 		magic = buf[4];
-		sr_dbg("Using secondary magic %hhu.", magic);
+		sr_dbg("Using secondary magic 0x%hhx.", magic);
 	} else {
 		sr_err("Cannot find consistent device type identification.");
 	}
