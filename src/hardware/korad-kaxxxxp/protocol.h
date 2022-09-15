@@ -31,33 +31,6 @@
 
 #define KAXXXXP_POLL_INTERVAL_MS 80
 
-enum {
-	KORAD_KA3005P,
-	KORAD_KA3005P_0X01,
-	KORAD_KA3005P_0XBC,
-	KORAD_KA3005P_V42,
-	KORAD_KA3005P_V55,
-	KORAD_KD3005P_V20,
-	KORAD_KD3005P_V20_NOSP,
-	KORAD_KD3005P_V21_NOSP,
-	KORAD_KD3005P_V41,
-	KORAD_KD3005P_V68,
-	KORAD_KD6005P,
-	RND_320_KA3005P,
-	RND_320_KD3005P,
-	RND_320K30PV,
-	STAMOS_SLS31_V20,
-	TENMA_72_2535_V21,
-	TENMA_72_2540_V20,
-	TENMA_72_2540_V21,
-	TENMA_72_2540_V52,
-	TENMA_72_2550_V2,
-	TENMA_72_2710_V66,
-	VELLEMAN_LABPS3005D,
-	VELLEMAN_PS3005D,
-	/* Support for future devices with this protocol. */
-};
-
 enum korad_quirks_flag {
 	KORAD_QUIRK_NONE = 0,
 	KORAD_QUIRK_LABPS_OVP_EN = 1UL << 0,
@@ -66,7 +39,6 @@ enum korad_quirks_flag {
 
 /* Information on single model */
 struct korad_kaxxxxp_model {
-	int model_id; /**< Model info */
 	const char *vendor; /**< Vendor name */
 	const char *name; /**< Model name */
 	const char *id; /**< Model ID, as delivered by interface */
