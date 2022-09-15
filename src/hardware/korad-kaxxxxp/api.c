@@ -116,8 +116,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	const char *force_detect;
 	struct sr_serial_dev_inst *serial;
+	size_t i;
 	char reply[50];
-	int ret, i, model_id;
+	int ret;
+	const struct korad_kaxxxxp_model *model;
 	size_t len;
 	char *serno;
 
@@ -188,35 +190,35 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		serno += strlen(serno_prefix);
 	}
 
-	model_id = -1;
+	model = NULL;
 	for (i = 0; models[i].id; i++) {
 		if (g_strcmp0(models[i].id, reply) != 0)
 			continue;
-		model_id = i;
+		model = &models[i];
 		break;
 	}
-	if (model_id < 0 && force_detect) {
+	if (!model && force_detect) {
 		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
 			reply, force_detect);
 		for (i = 0; models[i].id; i++) {
 			if (strcmp(models[i].id, force_detect) != 0)
 				continue;
 			sr_info("Found replacement, using it instead.");
-			model_id = i;
+			model = &models[i];
 			break;
 		}
 	}
-	if (model_id < 0) {
+	if (!model) {
 		sr_err("Unknown model ID '%s' detected, aborting.", reply);
 		return NULL;
 	}
-	sr_dbg("Found: %s %s (idx %d, ID '%s').", models[model_id].vendor,
-		models[model_id].name, model_id, models[model_id].id);
+	sr_dbg("Found: %s %s (idx %zu, ID '%s').", model->vendor, model->name,
+		model - &models[0], model->id);
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = g_strdup(models[model_id].vendor);
-	sdi->model = g_strdup(models[model_id].name);
+	sdi->vendor = g_strdup(model->vendor);
+	sdi->model = g_strdup(model->name);
 	if (serno)
 		sdi->serial_num = g_strdup(serno);
 	sdi->inst_type = SR_INST_SERIAL;
@@ -229,7 +231,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc = g_malloc0(sizeof(struct dev_context));
 	sr_sw_limits_init(&devc->limits);
 	g_mutex_init(&devc->rw_mutex);
-	devc->model = &models[model_id];
+	devc->model = model;
 	devc->req_sent_at = 0;
 	devc->cc_mode_1_changed = FALSE;
 	devc->cc_mode_2_changed = FALSE;
