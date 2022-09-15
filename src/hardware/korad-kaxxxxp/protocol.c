@@ -258,6 +258,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	char reply[6];
 	float *value;
 	char status_byte;
+	gboolean needs_ovp_quirk;
 	gboolean prev_status;
 
 	g_mutex_lock(&devc->rw_mutex);
@@ -345,9 +346,8 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		devc->output_enabled_changed = devc->output_enabled != prev_status;
 
 		/* OVP enabled, special handling for Velleman LABPS3005 quirk. */
-		if ((devc->model->model_id == VELLEMAN_LABPS3005D && devc->output_enabled) ||
-			devc->model->model_id != VELLEMAN_LABPS3005D) {
-
+		needs_ovp_quirk = devc->model->quirks & KORAD_QUIRK_LABPS_OVP_EN;
+		if (!needs_ovp_quirk || devc->output_enabled) {
 			prev_status = devc->ovp_enabled;
 			devc->ovp_enabled = status_byte & (1 << 7);
 			devc->ovp_enabled_changed = devc->ovp_enabled != prev_status;
