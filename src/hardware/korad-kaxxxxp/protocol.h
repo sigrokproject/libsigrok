@@ -58,6 +58,12 @@ enum {
 	/* Support for future devices with this protocol. */
 };
 
+enum korad_quirks_flag {
+	KORAD_QUIRK_NONE = 0,
+	KORAD_QUIRK_LABPS_OVP_EN = 1UL << 0,
+	KORAD_QUIRK_ALL = (1UL << 1) - 1,
+};
+
 /* Information on single model */
 struct korad_kaxxxxp_model {
 	int model_id; /**< Model info */
@@ -67,6 +73,7 @@ struct korad_kaxxxxp_model {
 	int channels; /**< Number of channels */
 	const double *voltage; /**< References: Min, max, step */
 	const double *current; /**< References: Min, max, step */
+	enum korad_quirks_flag quirks;
 };
 
 /* Reply targets */
