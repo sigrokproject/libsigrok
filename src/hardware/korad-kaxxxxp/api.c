@@ -111,7 +111,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	char reply[50];
 	int ret, i, model_id;
 	size_t len;
-	char *serno;
+	char *serno, *short_id;
 
 	conn = NULL;
 	serialcomm = NULL;
@@ -198,6 +198,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			break;
 		}
 	}
+       /*
+       * Try to find the model without version information when
+       * the id string has a space separated version information.
+       */
+       if (model_id < 0) {
+               for (i = 0; models[i].id; i++) {
+                       short_id = strrchr(models[i].id, ' ');
+                       if(short_id && strncmp(models[i].id, reply, short_id - models[i].id) == 0) {
+                               model_id = i;
+                               break;
+                       }
+               }
+       }
+
 	if (model_id < 0) {
 		sr_err("Unknown model ID '%s' detected, aborting.", reply);
 		return NULL;
