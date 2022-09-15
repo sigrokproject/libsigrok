@@ -65,8 +65,8 @@ struct korad_kaxxxxp_model {
 	const char *name; /**< Model name */
 	const char *id; /**< Model ID, as delivered by interface */
 	int channels; /**< Number of channels */
-	double voltage[3]; /**< Min, max, step */
-	double current[3]; /**< Min, max, step */
+	const double *voltage; /**< References: Min, max, step */
+	const double *current; /**< References: Min, max, step */
 };
 
 /* Reply targets */
