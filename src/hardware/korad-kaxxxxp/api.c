@@ -54,7 +54,8 @@ static const double amps_5[] = { 0, 5.1, 0.001, };
 
 static const struct korad_kaxxxxp_model models[] = {
 	/* Vendor, model name, ID reply, channels, voltage, current, quirks. */
-	{"Korad", "KA3005P", "KORADKA3005PV2.0", 1, volts_30, amps_5, 0},
+	{"Korad", "KA3005P", "KORADKA3005PV2.0",
+		1, volts_30, amps_5, KORAD_QUIRK_ID_TRAILING},
 	/* Some KA3005P have extra bytes after the ID text. */
 	{"Korad", "KA3005P", "KORADKA3005PV2.0\x01", 1, volts_30, amps_5, 0},
 	{"Korad", "KA3005P", "KORADKA3005PV2.0\xBC", 1, volts_30, amps_5, 0},
@@ -69,7 +70,8 @@ static const struct korad_kaxxxxp_model models[] = {
 	{"RND", "KA3005P", "RND 320-KA3005P V5.5", 1, volts_30, amps_5, 0},
 	{"RND", "KD3005P", "RND 320-KD3005P V4.2", 1, volts_30, amps_5, 0},
 	{"RND", "KA3005P", "RND 320-KA3005P V2.0", 1, volts_30, amps_5, 0},
-	{"Stamos Soldering", "S-LS-31", "S-LS-31 V2.0", 1, volts_30, amps_5, 0},
+	{"Stamos Soldering", "S-LS-31", "S-LS-31 V2.0",
+		1, volts_30, amps_5, KORAD_QUIRK_ID_NO_VENDOR},
 	{"Tenma", "72-2535", "TENMA 72-2535 V2.1", 1, volts_30, amps_3, 0},
 	{"Tenma", "72-2540", "TENMA72-2540V2.0", 1, volts_30, amps_5, 0},
 	{"Tenma", "72-2540", "TENMA 72-2540 V2.1", 1, volts_30, amps_5, 0},
@@ -82,6 +84,26 @@ static const struct korad_kaxxxxp_model models[] = {
 		1, volts_30, amps_5, 0},
 	ALL_ZERO
 };
+
+/*
+ * Bump this when adding new models[] above. Make sure the text buffer
+ * for the ID response can hold the longest sequence that we expect in
+ * the field which consists of: vendor + model [ + version ][ + serno ].
+ * Don't be too generous here, the maximum receive buffer size affects
+ * the timeout within which the first response character is expected.
+ */
+static const size_t id_text_buffer_size = 48;
+
+/*
+ * Check whether the device's "*IDN?" response matches a supported model.
+ * The caller already stripped off the optional serial number.
+ */
+static gboolean model_matches(const struct korad_kaxxxxp_model *model,
+	const char *id_text)
+{
+	/* TODO Implement more versatile ID response text checks. */
+	return g_strcmp0(model->id, id_text) == 0;
+}
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
@@ -134,17 +156,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		return NULL;
 
-	/*
-	 * Prepare a receive buffer for the identification response that
-	 * is large enough to hold the longest known model name, and an
-	 * optional serial number. Communicate the identification request.
-	 */
-	len = 0;
-	for (i = 0; models[i].id; i++) {
-		if (len < strlen(models[i].id))
-			len = strlen(models[i].id);
-	}
-	len += strlen(serno_prefix) + 12;
+	/* Communicate the identification request. */
+	len = id_text_buffer_size;
 	if (len > sizeof(reply) - 1)
 		len = sizeof(reply) - 1;
 	sr_dbg("Want max %zu bytes.", len);
@@ -170,7 +183,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	model = NULL;
 	for (i = 0; models[i].id; i++) {
-		if (g_strcmp0(models[i].id, reply) != 0)
+		if (!model_matches(&models[i], reply))
 			continue;
 		model = &models[i];
 		break;
@@ -179,7 +192,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
 			reply, force_detect);
 		for (i = 0; models[i].id; i++) {
-			if (strcmp(models[i].id, force_detect) != 0)
+			if (!model_matches(&models[i], force_detect))
 				continue;
 			sr_info("Found replacement, using it instead.");
 			model = &models[i];
