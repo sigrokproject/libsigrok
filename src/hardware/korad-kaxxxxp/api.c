@@ -19,6 +19,9 @@
  */
 
 #include <config.h>
+
+#include <ctype.h>
+
 #include "protocol.h"
 
 static const uint32_t scanopts[] = {
@@ -101,8 +104,84 @@ static const size_t id_text_buffer_size = 48;
 static gboolean model_matches(const struct korad_kaxxxxp_model *model,
 	const char *id_text)
 {
-	/* TODO Implement more versatile ID response text checks. */
-	return g_strcmp0(model->id, id_text) == 0;
+	gboolean matches;
+	gboolean skip_vendor, accept_trail;
+	const char *want;
+
+	if (!model)
+		return FALSE;
+
+	/*
+	 * When the models[] entry contains a specific response text,
+	 * then expect to see this very text in literal form. This
+	 * lets the driver map weird and untypical responses to a
+	 * specific set of display texts for vendor and model names.
+	 */
+	if (model->id && model->id[0]) {
+		matches = g_strcmp0(model->id, id_text) == 0;
+		if (matches)
+			sr_dbg("Matches expected ID text: '%s'.", model->id);
+		return matches;
+	}
+
+	/*
+	 * A more generic approach which covers most devices: Check
+	 * for the very vendor and model names which also are shown
+	 * to users (the display texts). Weakened to match responses
+	 * more widely: Case insensitive checks, optional whitespace
+	 * in responses, optional version details. Optional trailing
+	 * garbage. Optional omission of the vendor name. Shall match
+	 * all the devices which were individually listed in earlier
+	 * implementations of the driver, and shall also match firmware
+	 * versions that were not listed before.
+	 */
+	skip_vendor = model->quirks & KORAD_QUIRK_ID_NO_VENDOR;
+	accept_trail = model->quirks & KORAD_QUIRK_ID_TRAILING;
+	if (!skip_vendor) {
+		want = model->vendor;
+		matches = g_ascii_strncasecmp(id_text, want, strlen(want)) == 0;
+		if (!matches)
+			return FALSE;
+		id_text += strlen(want);
+		while (isspace((int)*id_text))
+			id_text++;
+	}
+	want = model->name;
+	matches = g_ascii_strncasecmp(id_text, want, strlen(want)) == 0;
+	if (!matches)
+		return FALSE;
+	id_text += strlen(want);
+	while (isspace((int)*id_text))
+		id_text++;
+	if (*id_text == 'V') {
+		/* TODO Isolate and (also) return version details? */
+		id_text++;
+		while (*id_text == '.' || isdigit((int)*id_text))
+			id_text++;
+		while (isspace((int)*id_text))
+			id_text++;
+	}
+	if (accept_trail) {
+		/*
+		 * TODO Determine how many non-printables to accept here
+		 * and how strict to check for "known" garbage variants.
+		 */
+		switch (*id_text) {
+		case '\x01':
+		case '\xbc':
+			id_text++;
+			break;
+		case '\x00':
+			/* EMPTY */
+			break;
+		default:
+			return FALSE;
+		}
+	}
+	if (*id_text)
+		return FALSE;
+	sr_dbg("Matches generic '[vendor] model [vers] [trail]' pattern.");
+	return TRUE;
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -182,16 +261,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	}
 
 	model = NULL;
-	for (i = 0; models[i].id; i++) {
+	for (i = 0; models[i].name; i++) {
 		if (!model_matches(&models[i], reply))
 			continue;
 		model = &models[i];
 		break;
 	}
 	if (!model && force_detect) {
-		sr_warn("Found model ID '%s' is unknown, trying '%s' spec.",
+		sr_warn("Found unknown model ID '%s', trying '%s' spec.",
 			reply, force_detect);
-		for (i = 0; models[i].id; i++) {
+		for (i = 0; models[i].name; i++) {
 			if (!model_matches(&models[i], force_detect))
 				continue;
 			sr_info("Found replacement, using it instead.");
@@ -200,11 +279,11 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 	if (!model) {
-		sr_err("Unknown model ID '%s' detected, aborting.", reply);
+		sr_err("Found unknown model ID '%s', aborting.", reply);
 		return NULL;
 	}
-	sr_dbg("Found: %s %s (idx %zu, ID '%s').", model->vendor, model->name,
-		model - &models[0], model->id);
+	sr_dbg("Found: %s %s (idx %zu).", model->vendor, model->name,
+		model - &models[0]);
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
