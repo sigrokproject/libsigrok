@@ -36,7 +36,8 @@ enum korad_quirks_flag {
 	KORAD_QUIRK_LABPS_OVP_EN = 1UL << 0,
 	KORAD_QUIRK_ID_NO_VENDOR = 1UL << 1,
 	KORAD_QUIRK_ID_TRAILING = 1UL << 2,
-	KORAD_QUIRK_ALL = (1UL << 3) - 1,
+	KORAD_QUIRK_ID_OPT_VERSION = 1UL << 3,
+	KORAD_QUIRK_ALL = (1UL << 4) - 1,
 };
 
 /* Information on single model */

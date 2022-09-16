@@ -92,7 +92,7 @@ static gboolean model_matches(const struct korad_kaxxxxp_model *model,
 	const char *id_text)
 {
 	gboolean matches;
-	gboolean skip_vendor, accept_trail;
+	gboolean opt_version, skip_vendor, accept_trail;
 	const char *want;
 
 	if (!model)
@@ -103,12 +103,34 @@ static gboolean model_matches(const struct korad_kaxxxxp_model *model,
 	 * then expect to see this very text in literal form. This
 	 * lets the driver map weird and untypical responses to a
 	 * specific set of display texts for vendor and model names.
+	 * Accept an optionally trailing version if models[] says so.
 	 */
 	if (model->id && model->id[0]) {
-		matches = g_strcmp0(model->id, id_text) == 0;
-		if (matches)
+		opt_version = model->quirks & KORAD_QUIRK_ID_OPT_VERSION;
+		if (!opt_version) {
+			matches = g_strcmp0(id_text, model->id) == 0;
+			if (!matches)
+				return FALSE;
 			sr_dbg("Matches expected ID text: '%s'.", model->id);
-		return matches;
+			return TRUE;
+		}
+		matches = g_str_has_prefix(id_text, model->id);
+		if (!matches)
+			return FALSE;
+		id_text += strlen(model->id);
+		while (isspace((int)*id_text))
+			id_text++;
+		if (*id_text == 'V') {
+			id_text++;
+			while (*id_text == '.' || isdigit((int)*id_text))
+				id_text++;
+			while (isspace((int)*id_text))
+				id_text++;
+		}
+		if (*id_text)
+			return FALSE;
+		sr_dbg("Matches expected ID text [vers]: '%s'.", model->id);
+		return TRUE;
 	}
 
 	/*
