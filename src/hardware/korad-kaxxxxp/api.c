@@ -195,6 +195,30 @@ static gboolean model_matches(const struct korad_kaxxxxp_model *model,
 	return TRUE;
 }
 
+/* Lookup a model from an ID response text. */
+static const struct korad_kaxxxxp_model *model_lookup(const char *id_text)
+{
+	size_t idx;
+	const struct korad_kaxxxxp_model *check;
+
+	if (!id_text || !*id_text)
+		return NULL;
+	sr_dbg("Looking up: [%s].", id_text);
+
+	for (idx = 0; idx < ARRAY_SIZE(models); idx++) {
+		check = &models[idx];
+		if (!check->name || !check->name[0])
+			continue;
+		if (!model_matches(check, id_text))
+			continue;
+		sr_dbg("Found: [%s] [%s]", check->vendor, check->name);
+		return check;
+	}
+	sr_dbg("Not found");
+
+	return NULL;
+}
+
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	static const char *serno_prefix = " SN:";
@@ -206,7 +230,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	const char *conn, *serialcomm;
 	const char *force_detect;
 	struct sr_serial_dev_inst *serial;
-	size_t i;
 	char reply[50];
 	int ret;
 	const struct korad_kaxxxxp_model *model;
@@ -271,26 +294,16 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		serno += strlen(serno_prefix);
 	}
 
-	model = NULL;
-	for (i = 0; models[i].name; i++) {
-		if (!model_matches(&models[i], reply))
-			continue;
-		model = &models[i];
-		break;
-	}
+	model = model_lookup(reply);
 	if (!model && force_detect) {
-		sr_warn("Found unknown model ID '%s', trying '%s' spec.",
+		sr_warn("Could not find model ID '%s', trying '%s'.",
 			reply, force_detect);
-		for (i = 0; models[i].name; i++) {
-			if (!model_matches(&models[i], force_detect))
-				continue;
+		model = model_lookup(force_detect);
+		if (model)
 			sr_info("Found replacement, using it instead.");
-			model = &models[i];
-			break;
-		}
 	}
 	if (!model) {
-		sr_err("Found unknown model ID '%s', aborting.", reply);
+		sr_err("Unsupported model ID '%s', aborting.", reply);
 		return NULL;
 	}
 	sr_dbg("Found: %s %s (idx %zu).", model->vendor, model->name,
