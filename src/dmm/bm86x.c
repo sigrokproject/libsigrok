@@ -26,6 +26,7 @@
  * http://www.brymen.com/Download2.html
  * http://www.brymen.com/PD02BM860s_protocolDL.html
  * http://www.brymen.com/images/DownloadList/ProtocolList/BM860-BM860s_List/BM860-BM860s-500000-count-dual-display-DMMs-protocol.pdf
+ * http://web.archive.org/web/20191231053213/http://www.brymen.com/images/DownloadList/ProtocolList/BM860-BM860s_List/BM860-BM860s-500000-count-dual-display-DMMs-protocol.pdf
  */
 
 #include <config.h>
