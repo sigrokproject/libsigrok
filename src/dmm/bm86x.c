@@ -23,9 +23,9 @@
  *
  * Brymen BM86x serial protocol parser. The USB protocol (for the cable)
  * and the packet description (for the meter) were retrieved from:
- * http://brymen.com/product-html/Download2.html
- * http://brymen.com/product-html/PD02BM860s_protocolDL.html
- * http://brymen.com/product-html/images/DownloadList/ProtocolList/BM860-BM860s_List/BM860-BM860s-500000-count-dual-display-DMMs-protocol.pdf
+ * http://www.brymen.com/Download2.html
+ * http://www.brymen.com/PD02BM860s_protocolDL.html
+ * http://www.brymen.com/images/DownloadList/ProtocolList/BM860-BM860s_List/BM860-BM860s-500000-count-dual-display-DMMs-protocol.pdf
  */
 
 #include <config.h>
