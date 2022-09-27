@@ -26,6 +26,7 @@
  * http://www.brymen.com/Download2.html
  * http://www.brymen.com/PD02BM520s_protocolDL.html
  * http://www.brymen.com/images/DownloadList/ProtocolList/BM520-BM520s_List/BM520-BM520s-10000-count-professional-dual-display-mobile-logging-DMMs-protocol.zip
+ * http://web.archive.org/web/20180119175327/http://brymen.com/product-html/images/DownloadList/ProtocolList/BM520-BM520s_List/BM520-BM520s-10000-count-professional-dual-display-mobile-logging-DMMs-protocol.zip
  *
  * This parser was initially created for BM520s devices and tested with
  * BM525s. The Brymen BM820s family of devices uses the same protocol,

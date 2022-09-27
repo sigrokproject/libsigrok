@@ -27,6 +27,7 @@
  * http://www.brymen.com/Download2.html
  * http://www.brymen.com/PD02BM850s_protocolDL.html
  * http://www.brymen.com/images/DownloadList/ProtocolList/BM850-BM850a-BM850s_List/BM850-BM850a-BM850s-500000-count-DMM-protocol-BC85X-BC85Xa.zip
+ * http://web.archive.org/web/20180119175500/http://brymen.com/product-html/images/DownloadList/ProtocolList/BM850-BM850a-BM850s_List/BM850-BM850a-BM850s-500000-count-DMM-protocol-BC85X-BC85Xa.zip
  *
  * Implementor's notes on the protocol:
  * - The BM85x devices require a low RTS pulse after COM port open and
