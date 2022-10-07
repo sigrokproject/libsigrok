@@ -88,6 +88,9 @@ libsigrok_la_SOURCES += \
 	src/input/trace32_ad.c \
 	src/input/vcd.c \
 	src/input/wav.c \
+	src/input/gologic.c \
+	src/input/gologic_proj.c \
+	src/input/ini.c \
 	src/input/null.c
 if HAVE_INPUT_STF
 libsigrok_la_SOURCES += \
