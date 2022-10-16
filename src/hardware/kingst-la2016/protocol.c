@@ -1322,9 +1322,28 @@ static int la2016_start_download(const struct sr_dev_inst *sdi)
 }
 
 /*
- * A chunk (received via USB) contains a number of transfers (USB length
- * divided by 16) which contain a number of packets (5 per transfer) which
- * contain a number of samples (8bit repeat count per 16bit sample data).
+ * A chunk of sample memory was received via USB. These chunks contain
+ * transfers of 16 or 32 bytes each (model dependent size and layout).
+ * Transfers contain a number of packets (5 or 6 per transfer), which
+ * contain a number of samples (16 or 32 sampled pin values, and an
+ * 8bit repeat count for these sampled pin values). A sequence number
+ * follows the packets within the transfer, allows to detect missing or
+ * out of order reception.
+ *
+ * Memory layout for 16-channel models:
+ * - 16 bytes per transfer
+ * - 5x (u16 pins, and u8 count)
+ * - 1x u8 sequence number
+ *
+ * Memory layout for 32-channel models:
+ * - 32 bytes per transfer
+ * - 6x (u32 pins, and u8 count)
+ * - 2x u8 sequence number (inverted, and normal)
+ *
+ * This implementation silently ignores the (weak) sequence number.
+ *
+ * TODO Adjust the code paths for the 32-channel models. The version
+ * below currently only works correctly for 16-channel models.
  */
 static void send_chunk(struct sr_dev_inst *sdi,
 	const uint8_t *data_buffer, size_t data_length)
@@ -1422,21 +1441,22 @@ static void send_chunk(struct sr_dev_inst *sdi,
  * above). In streaming mode data is not compressed, and memory cells
  * neither contain raw sampled pin values at a given point in time. The
  * memory content needs transformation.
- * - The memory content can be seen as a sequence of memory cells.
- * - Each cell contains samples that correspond to the same channel.
- *   The next cell contains samples for the next channel, etc.
- * - Only enabled channels occupy memory cells. Disabled channels are
- *   not part of the capture data memory layout.
- * - The LSB bit position in a cell is the sample which was taken first
- *   for this channel. Upper bit positions were taken later.
+ *
+ * All enabled channels get iterated over. Disabled channels will not
+ * occupy space in the streamed sample data. Per channel chunk there is
+ * one 16bit entity which carries samples that were taken at different
+ * times. The least significant bit was sampled first, higher bits were
+ * sampled later. After all 16bit entities for all enabled channels
+ * were seen, the first enabled channel's next chunk follows.
  *
  * Implementor's note: This routine is inspired by convert_sample_data()
  * in the https://github.com/AlexUg/sigrok implementation. Which in turn
  * appears to have been derived from the saleae-logic16 sigrok driver.
  * The code is phrased conservatively to verify the layout as discussed
  * above, performance was not a priority. Operation was verified with an
- * LA2016 device. The memory layout of 32 channel models is yet to get
- * determined.
+ * LA2016 device. The LA5032 reportedly shares the 16 samples per channel
+ * layout, just round-robins through a potentially larger set of enabled
+ * channels before returning to the first of the channels.
  */
 static void stream_data(struct sr_dev_inst *sdi,
 	const uint8_t *data_buffer, size_t data_length)
