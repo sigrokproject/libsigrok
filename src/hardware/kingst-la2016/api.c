@@ -1035,7 +1035,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct drv_context *drvc;
 	struct sr_context *ctx;
 	struct dev_context *devc;
-	size_t unitsize;
+	size_t unitsize, xfersize, repsize, seqsize;
 	double voltage;
 	int ret;
 
@@ -1045,21 +1045,35 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc = sdi->priv;
 
 	if (!devc->feed_queue) {
-		if (devc->model->channel_count == 32)
+		/*
+		 * TODO
+		 * Move this into protocol.c which concentrates the
+		 * wire format. The api.c source should not bother.
+		 */
+		if (devc->model->channel_count == 32) {
 			unitsize = sizeof(uint32_t);
-		else if (devc->model->channel_count == 16)
+			repsize = sizeof(uint8_t);
+			seqsize = 2 * sizeof(uint8_t);
+			xfersize = 32;
+		} else if (devc->model->channel_count == 16) {
 			unitsize = sizeof(uint16_t);
-		else
+			repsize = sizeof(uint8_t);
+			seqsize = 1 * sizeof(uint8_t);
+			xfersize = 16;
+		} else {
 			return SR_ERR_ARG;
+		}
 		devc->feed_queue = feed_queue_logic_alloc(sdi,
 			LA2016_CONVBUFFER_SIZE, unitsize);
 		if (!devc->feed_queue) {
 			sr_err("Cannot allocate buffer for session feed.");
 			return SR_ERR_MALLOC;
 		}
-		devc->packets_per_chunk = TRANSFER_PACKET_LENGTH;
-		devc->packets_per_chunk--;
-		devc->packets_per_chunk /= unitsize + sizeof(uint8_t);
+		devc->transfer_size = xfersize;
+		devc->sequence_size = seqsize;
+		devc->packets_per_chunk = xfersize;
+		devc->packets_per_chunk -= seqsize;
+		devc->packets_per_chunk /= unitsize + repsize;
 	}
 
 	sr_sw_limits_acquisition_start(&devc->sw_limits);

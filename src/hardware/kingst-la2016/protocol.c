@@ -1283,7 +1283,7 @@ static int la2016_start_download(const struct sr_dev_inst *sdi)
 	devc->n_transfer_packets_to_read = devc->info.n_rep_packets;
 	devc->n_transfer_packets_to_read /= devc->packets_per_chunk;
 	devc->n_bytes_to_read = devc->n_transfer_packets_to_read;
-	devc->n_bytes_to_read *= TRANSFER_PACKET_LENGTH;
+	devc->n_bytes_to_read *= devc->transfer_size;
 	devc->read_pos = devc->info.write_pos - devc->n_bytes_to_read;
 	devc->n_reps_until_trigger = devc->info.n_rep_packets_before_trigger;
 
@@ -1341,15 +1341,12 @@ static int la2016_start_download(const struct sr_dev_inst *sdi)
  * - 2x u8 sequence number (inverted, and normal)
  *
  * This implementation silently ignores the (weak) sequence number.
- *
- * TODO Adjust the code paths for the 32-channel models. The version
- * below currently only works correctly for 16-channel models.
  */
 static void send_chunk(struct sr_dev_inst *sdi,
 	const uint8_t *data_buffer, size_t data_length)
 {
 	struct dev_context *devc;
-	size_t num_xfers, num_pkts;
+	size_t num_xfers, num_pkts, num_seqs;
 	const uint8_t *rp;
 	uint32_t sample_value;
 	size_t repetitions;
@@ -1379,12 +1376,11 @@ static void send_chunk(struct sr_dev_inst *sdi,
 	/* Process the received chunk of capture data. */
 	sample_value = 0;
 	rp = data_buffer;
-	num_xfers = data_length / TRANSFER_PACKET_LENGTH;
+	num_xfers = data_length / devc->transfer_size;
 	while (num_xfers--) {
 		num_pkts = devc->packets_per_chunk;
 		while (num_pkts--) {
 
-			/* TODO Verify 32channel layout. */
 			if (devc->model->channel_count == 32)
 				sample_value = read_u32le_inc(&rp);
 			else if (devc->model->channel_count == 16)
@@ -1409,7 +1405,10 @@ static void send_chunk(struct sr_dev_inst *sdi,
 				}
 			}
 		}
-		(void)read_u8_inc(&rp); /* Skip sequence number. */
+		/* Skip the sequence number bytes. */
+		num_seqs = devc->sequence_size;
+		while (num_seqs--)
+			(void)read_u8_inc(&rp);
 	}
 
 	/*
