@@ -1461,30 +1461,15 @@ static void stream_data(struct sr_dev_inst *sdi,
 
 	/* TODO Add soft trigger support when in stream mode? */
 
-	/*
-	 * TODO Are memory cells always as wide as the channel count?
-	 * Are they always 16bits wide? Verify for 32 channel devices.
-	 */
-	bit_count = devc->model->channel_count;
-	if (bit_count == 32) {
-		data_length /= sizeof(uint32_t);
-	} else if (bit_count == 16) {
-		data_length /= sizeof(uint16_t);
-	} else {
-		/*
-		 * Unhandled case. Acquisition should not start.
-		 * The statement silences the compiler.
-		 */
-		return;
-	}
+	/* All channels' chunks carry 16 samples for one channel. */
+	bit_count = 16;
+	data_length /= sizeof(uint16_t);
+
 	rp = data_buffer;
 	sample_value = 0;
 	while (data_length--) {
 		/* Get another entity. */
-		if (bit_count == 32)
-			sample_value = read_u32le_inc(&rp);
-		else if (bit_count == 16)
-			sample_value = read_u16le_inc(&rp);
+		sample_value = read_u16le_inc(&rp);
 
 		/* Map the entity's bits to a channel's samples. */
 		ch_mask = stream->channel_masks[stream->channel_index];
