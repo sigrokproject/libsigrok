@@ -674,7 +674,7 @@ SR_PRIV int rigol_ds_receive(int fd, int revents, void *cb_data)
 				return TRUE;
 			if (first_frame && rigol_ds_config_set(sdi, ":WAV:STOP %d",
 					MIN(devc->num_channel_bytes + ACQ_BLOCK_SIZE,
-						devc->analog_frame_size)) != SR_OK)
+						expected_data_bytes)) != SR_OK)
 				return TRUE;
 		}
 
