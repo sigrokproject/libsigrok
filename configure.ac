@@ -401,9 +401,23 @@ AC_ARG_ENABLE([java],
 
 sr_cxx_missing=
 
-# Check if the C++ compiler supports the C++11 standard.
-AX_CXX_COMPILE_STDCXX([11], [noext], [optional])
-AS_IF([test "x$HAVE_CXX11" != x1],
+# Check if the C++ compiler supports at least the C++11 standard.
+# Get the highest of the available C++17/C++14/C++11 standards.
+# This transparently amends CXXFLAGS to pick the detected standard.
+HAVE_MODERN_CXX=
+AS_IF([test "x$HAVE_MODERN_CXX" = x],
+	[AX_CXX_COMPILE_STDCXX([17], [noext], [optional])])
+AS_IF([test "x$HAVE_CXX17" = x1],
+	[HAVE_MODERN_CXX=yes])
+AS_IF([test "x$HAVE_MODERN_CXX" = x],
+	[AX_CXX_COMPILE_STDCXX([14], [noext], [optional])])
+AS_IF([test "x$HAVE_CXX14" = x1],
+	[HAVE_MODERN_CXX=yes])
+AS_IF([test "x$HAVE_MODERN_CXX" = x],
+	[AX_CXX_COMPILE_STDCXX([11], [noext], [optional])])
+AS_IF([test "x$HAVE_CXX11" = x1],
+	[HAVE_MODERN_CXX=yes])
+AS_IF([test "x$HAVE_MODERN_CXX" = x],
 	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
 # The C++ bindings need glibmm.
