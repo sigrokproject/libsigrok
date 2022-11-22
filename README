@@ -64,7 +64,7 @@ Requirements for the C++ bindings:
  - doxygen (required for building the bindings, not only for C++ API docs!)
  - graphviz (optional, only needed for the C++ API docs)
  - Python (2 or 3) executable (development files are not needed)
- - glibmm-2.4 (>= 2.32.0)
+ - glibmm-2.4 (>= 2.32.0) or glibmm-2.68 (>= 2.68.0)
 
 Requirements for the Python bindings:
 

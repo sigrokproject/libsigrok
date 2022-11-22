@@ -421,8 +421,21 @@ AS_IF([test "x$HAVE_MODERN_CXX" = x],
 	[SR_APPEND([sr_cxx_missing], [', '], ['C++11'])])
 
 # The C++ bindings need glibmm.
-SR_PKG_CHECK([glibmm], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])
+# Prefer glibmm-2.4 for backwards compatibility.
+# Accept glibmm-2.68 when glibmm-2.4 is not available.
+sr_have_glibmm=no
 AS_IF([test "x$sr_have_glibmm" != xyes],
+	[SR_PKG_CHECK([glibmm24], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])])
+AS_IF([test "x$sr_have_glibmm24" = xyes],
+	[SR_APPEND([SR_GLIBMM_REQUIRES], [glibmm-2.4>=2.32.0])
+	sr_have_glibmm=yes])
+AS_IF([test "x$sr_have_glibmm" != xyes],
+	[SR_PKG_CHECK([glibmm268], [SR_PKGLIBS_CXX], [glibmm-2.68 >= 2.68.0])])
+AS_IF([test "x$sr_have_glibmm268" = xyes],
+	[SR_APPEND([SR_GLIBMM_REQUIRES], [glibmm-2.68>=2.68.0])
+	sr_have_glibmm=yes])
+AS_IF([test "x$sr_have_glibmm" = xyes],
+	[AC_SUBST(SR_GLIBMM_REQUIRES)],
 	[SR_APPEND([sr_cxx_missing], [', '], [glibmm])])
 
 # The C++ bindings use Doxygen to parse libsigrok symbols.
