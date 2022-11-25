@@ -70,6 +70,7 @@ static const struct korad_kaxxxxp_model models[] = {
 	{"Tenma", "72-2535", "", 1, volts_30, amps_3, 0},
 	{"Tenma", "72-2540", "", 1, volts_30, amps_5, 0},
 	{"Tenma", "72-2550", "", 1, volts_60, amps_3, 0},
+	{"Tenma", "72-2705", "", 1, volts_30, amps_3, 0},
 	{"Tenma", "72-2710", "", 1, volts_30, amps_5, 0},
 	{"Velleman", "LABPS3005D", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_LABPS_OVP_EN},
