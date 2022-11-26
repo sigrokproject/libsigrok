@@ -273,6 +273,7 @@ ATTRS{idVendor}=="21a9", ATTRS{idProduct}=="1006", ENV{ID_SIGROK}="1"
 # f4ec:ee38: E.g. SDS1104X-E scope
 # f4ed:ee3a: E.g. SDS1202X-E scope or SDG1010 waveform generator
 ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
+ATTRS{idVendor}=="f4ec", ATTRS{idProduct}=="ee38", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="f4ed", ATTRS{idProduct}=="ee3a", ENV{ID_SIGROK}="1"
 
 # sigrok FX2 LA (8ch)
