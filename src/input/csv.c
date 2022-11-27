@@ -1452,7 +1452,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		inc->analog_datafeed_buf_size /= sample_size;
 		inc->analog_datafeed_buf_size /= inc->analog_channels;
 		sample_count = inc->analog_channels * inc->analog_datafeed_buf_size;
-		inc->analog_datafeed_buffer = g_malloc0(sample_count * sample_size);
+		inc->analog_datafeed_buffer = g_malloc(sample_count * sample_size);
 		if (!inc->analog_datafeed_buffer) {
 			sr_err("Cannot allocate datafeed send buffer (analog).");
 			ret = SR_ERR_MALLOC;
