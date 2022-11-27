@@ -362,8 +362,6 @@ static int queue_logic_samples(const struct sr_input *in)
 	return SR_OK;
 }
 
-static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t value);
-
 static void clear_analog_samples(struct context *inc)
 {
 	size_t idx;
@@ -372,7 +370,7 @@ static void clear_analog_samples(struct context *inc)
 		return;
 	inc->analog_sample_buffer = &inc->analog_datafeed_buffer[inc->analog_datafeed_buf_fill];
 	for (idx = 0; idx < inc->analog_channels; idx++)
-		set_analog_value(inc, idx, 0.0);
+		inc->analog_sample_buffer[idx * inc->analog_datafeed_buf_size] = 0.0;
 }
 
 static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t value)
@@ -1454,7 +1452,7 @@ static int initial_parse(const struct sr_input *in, GString *buf)
 		inc->analog_datafeed_buf_size /= sample_size;
 		inc->analog_datafeed_buf_size /= inc->analog_channels;
 		sample_count = inc->analog_channels * inc->analog_datafeed_buf_size;
-		inc->analog_datafeed_buffer = g_malloc0(sample_count * sample_size);
+		inc->analog_datafeed_buffer = g_malloc(sample_count * sample_size);
 		if (!inc->analog_datafeed_buffer) {
 			sr_err("Cannot allocate datafeed send buffer (analog).");
 			ret = SR_ERR_MALLOC;
