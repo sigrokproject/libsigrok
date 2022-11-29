@@ -1,8 +1,4 @@
 /*
- * This file is part of the libsigrok project.
- *
- * Copyright (C) 2022 Kiron Sen <kirons96@gmail.com>
- *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -135,7 +131,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver virtual_driver_info = {
 	.name = "virtual",
-	.longname = "virtual",
+	.longname = "Virtual hardware interface",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
