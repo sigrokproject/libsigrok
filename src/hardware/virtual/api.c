@@ -17,7 +17,6 @@
 #include "protocol.h"
 
 static const uint32_t scanopts[] = {
-	SR_CONF_FORCE_DETECT,
 };
 
 // NOTE: see similar scope/logic analyzers - link-mso19, hameg-hmo, siglent-sds
@@ -35,24 +34,38 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	const void *conn; // TODO: change to FIFO
 	GSList *devices;
 
+	// TODO: allow user to configure scope/LA options here
 	(void)options;
 
 	devices = NULL;
 	drvc = di->context;
 	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	conn = NULL; // TODO: get FIFO
+	if (!conn)
+		return NULL;
 
 	// TODO: PV only allows for USB, serial or TCP connections - need to support a new type of connection
-	// TODO: auto-connect this device and remove "connect to a device" option
-	// TODO: write a high-level shell script that compiles the FW, creates the FIFO, runs renode, runs PV, returns final screenshot
-	// TODO: migrate TODOs to jira...
+	// - how does the demo device interact with PV??? maybe recompile it in and see
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->inst_type = SR_INST_USER;
+	sdi->status = SR_ST_INACTIVE;
+	sdi->model = g_strdup("Virtual hardware interface");
+	sdi->conn = conn;
+
+	devc = g_malloc0(sizeof(struct dev_context));
+	devc->cur_samplerate = SR_KHZ(1); // TODO: update to actual sample rate
+	devc->num_logic_channels = 1;
+	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
+
+	devc->all_logic_channels_mask = (1UL << devc->num_logic_channels);
+	devc->all_logic_channels_mask--;
+
+	devc->num_analog_channels = 0;
 
 	return devices;
 }
