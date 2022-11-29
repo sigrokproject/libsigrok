@@ -16,6 +16,19 @@
 #include <config.h>
 #include "protocol.h"
 
+static const uint32_t scanopts[] = {
+	SR_CONF_FORCE_DETECT,
+};
+
+// NOTE: see similar scope/logic analyzers - link-mso19, hameg-hmo, siglent-sds
+static const uint32_t drvopts[] = {
+	SR_CONF_OSCILLOSCOPE,
+	SR_CONF_LOGIC_ANALYZER,
+};
+
+static const uint32_t devopts[] = {
+};
+
 static struct sr_dev_driver virtual_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -31,6 +44,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* TODO: scan for devices, either based on a SR_CONF_CONN option
 	 * or on a USB scan. */
+
+	// NOTE: see ipdbg-la - they connect using TCP
+	sdi->inst_type = SR_INST_USER;
 
 	return devices;
 }
