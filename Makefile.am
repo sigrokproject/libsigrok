@@ -680,6 +680,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-ut32x/protocol.c \
 	src/hardware/uni-t-ut32x/api.c
 endif
+if HW_VIRTUAL
+src_libdrivers_la_SOURCES += \
+	src/hardware/virtual/protocol.h \
+	src/hardware/virtual/protocol.c \
+	src/hardware/virtual/api.c
+endif
 if HW_YOKOGAWA_DLM
 src_libdrivers_la_SOURCES += \
 	src/hardware/yokogawa-dlm/protocol.h \
