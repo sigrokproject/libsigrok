@@ -34,6 +34,7 @@ static struct sr_dev_driver virtual_driver_info;
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
+	struct sr_dev_inst *sdi;
 	GSList *devices;
 
 	(void)options;
@@ -45,7 +46,12 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	/* TODO: scan for devices, either based on a SR_CONF_CONN option
 	 * or on a USB scan. */
 
-	// NOTE: see ipdbg-la - they connect using TCP
+	// TODO: PV only allows for USB, serial or TCP connections - need to support a new type of connection
+	// TODO: auto-connect this device and remove "connect to a device" option
+	// TODO: write a high-level shell script that compiles the FW, creates the FIFO, runs renode, runs PV, returns final screenshot
+	// TODO: migrate TODOs to jira...
+
+	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->inst_type = SR_INST_USER;
 
 	return devices;
