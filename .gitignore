@@ -15,6 +15,7 @@
 .*.sw*
 /*.kdev4
 /Makefile.am.user
+.vscode
 
 # Configure/build cruft
 *.[ao]
