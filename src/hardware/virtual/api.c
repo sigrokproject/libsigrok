@@ -161,7 +161,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
-	ret = sr_session_source_add(sdi->session, &devc->fd, (G_IO_IN | G_IO_ERR), 
+	ret = sr_session_source_add(sdi->session, devc->fd, (G_IO_IN | G_IO_ERR), 
 			10, virtual_receive_data, (void *)sdi);
 	if (ret != SR_OK)
 		return ret;
@@ -175,7 +175,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	int ret;
 
 	/* Remove session source and send EOT packet */
-	ret = sr_session_source_remove(sdi->session, &devc->fd);
+	ret = sr_session_source_remove(sdi->session, devc->fd);
 	if (ret != SR_OK)
 		return ret;
 
