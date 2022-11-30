@@ -58,7 +58,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->fd = -1;
-	devc->cur_samplerate = SR_HZ(100); // TODO: update to actual sample rate
+	// TODO: write samples at 10Hz on C# side, read at 10Hz on libsigrok side
+	// TODO: speed up C# writing and slow down reading here in the future with buffered FIFO
+	devc->cur_samplerate = SR_HZ(10);
 	devc->num_logic_channels = 1;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 
