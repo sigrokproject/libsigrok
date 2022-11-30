@@ -13,8 +13,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <config.h>
 #include "protocol.h"
+
+#define FIFO_PATH "../../../fifo"
 
 static const uint32_t scanopts[] = {
 };
@@ -35,7 +40,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct drv_context *drvc;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	const void *conn; // TODO: change to FIFO
 	GSList *devices;
 
 	// TODO: allow user to configure scope/LA options here
@@ -45,17 +49,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	drvc = di->context;
 	drvc->instances = NULL;
 
-	conn = NULL; // TODO: get FIFO
-	if (!conn)
-		return NULL;
-
 	// TODO: PV only allows for USB, serial or TCP connections - need to support a new type of connection
 	// - how does the demo device interact with PV??? maybe recompile it in and see
 
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("Virtual hardware interface");
-	sdi->conn = conn;
+	sdi->filename = -1;
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->cur_samplerate = SR_KHZ(1); // TODO: update to actual sample rate
@@ -72,18 +72,21 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
+	sdi->filename = open(FIFO_PATH, O_RDONLY);
+	if (sdi->filename == -1)
+		return SR_ERR_IO;
+	
+	sdi->status = SR_ST_ACTIVE;
 
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	(void)sdi;
+	if (close(sdi->filename) == -1)
+		return SR_ERR_IO;
 
-	/* TODO: get handle from sdi->conn and close it. */
+	sdi->status = SR_ST_INACTIVE;
 
 	return SR_OK;
 }

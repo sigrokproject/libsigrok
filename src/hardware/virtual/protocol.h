@@ -34,8 +34,6 @@ struct dev_context {
 	int32_t num_logic_channels;
 	size_t logic_unitsize;
 	uint64_t all_logic_channels_mask;
-	/* There is only ever one logic channel group, so its pattern goes here. */
-	uint8_t logic_data[LOGIC_BUFSIZE];
 	/* Analog */
 	int32_t num_analog_channels;
 	size_t enabled_logic_channels;
