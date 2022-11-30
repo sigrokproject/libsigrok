@@ -58,16 +58,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	devc = g_malloc0(sizeof(struct dev_context));
 	devc->fd = -1;
-	// TODO: write samples at 10Hz on C# side, read at 10Hz on libsigrok side
-	// TODO: speed up C# writing and slow down reading here in the future with buffered FIFO
-	devc->cur_samplerate = SR_HZ(10);
-	devc->num_logic_channels = 1;
-	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
-
-	devc->all_logic_channels_mask = (1UL << devc->num_logic_channels);
-	devc->all_logic_channels_mask--;
-
-	devc->num_analog_channels = 0;
 
 	return devices;
 }
@@ -163,8 +153,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (ret != SR_OK)
 		return ret;
 
+	// TODO: write samples at 10Hz on C# side, read at 10Hz on libsigrok side
+	// TODO: speed up C# writing and slow down reading here in the future with buffered FIFO
+
+	// TODO: does this set sample rate??? or just timeout...
 	ret = sr_session_source_add(sdi->session, devc->fd, (G_IO_IN | G_IO_ERR), 
-			10, virtual_receive_data, (void *)sdi);
+			100, virtual_receive_data, (void *)sdi);
 	if (ret != SR_OK)
 		return ret;
 

@@ -24,24 +24,14 @@
 #define LOG_PREFIX "virtual"
 
 struct dev_context {
-    uint64_t cur_samplerate;
-	uint64_t sent_samples;
-	uint64_t sent_frame_samples; /* Number of samples that were sent for current frame. */
-	int64_t start_us;
-	int64_t spent_us;
-	uint64_t step;
-	/* Logic */
-	int32_t num_logic_channels;
-	size_t logic_unitsize;
-	uint64_t all_logic_channels_mask;
-	/* Analog */
-	int32_t num_analog_channels;
-	size_t enabled_logic_channels;
-	size_t enabled_analog_channels;
-	size_t first_partial_logic_index;
-	uint8_t first_partial_logic_mask;
 	/** FIFO filename */
 	int fd;
+	// TODO: add configurations
+	// uint64_t cur_samplerate; // SR_CONF_SAMPLERATE
+	// int32_t num_logic_channels; // SR_CONF_NUM_LOGIC_CHANNELS
+	// int32_t num_analog_channels; // SR_CONF_NUM_ANALOG_CHANNELS
+	// size_t enabled_logic_channels; // SR_CONF_ENABLED?
+	// size_t enabled_analog_channels; // SR_CONF_ENABLED?
 };
 
 SR_PRIV int virtual_receive_data(int fd, int revents, void *cb_data);
