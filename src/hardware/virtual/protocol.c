@@ -23,6 +23,9 @@ SR_PRIV int virtual_receive_data(int fd, int revents, void *cb_data)
 
 	(void)fd;
 
+	if (!(sdi = cb_data) || !(devc = sdi->priv))
+		return TRUE;
+
 	if (!(sdi = cb_data))
 		return TRUE;
 

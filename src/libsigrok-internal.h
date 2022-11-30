@@ -1678,8 +1678,6 @@ struct sr_dev_inst {
 	void *priv;
 	/** Session to which this device is currently assigned. */
 	struct sr_session *session;
-	/** FIFO filename (virtual only) */
-	int filename;
 };
 
 /* Generic device instances */

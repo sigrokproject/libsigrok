@@ -40,6 +40,8 @@ struct dev_context {
 	size_t enabled_analog_channels;
 	size_t first_partial_logic_index;
 	uint8_t first_partial_logic_mask;
+	/** FIFO filename */
+	int fd;
 };
 
 SR_PRIV int virtual_receive_data(int fd, int revents, void *cb_data);

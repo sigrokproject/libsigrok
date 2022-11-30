@@ -55,10 +55,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	sdi = g_malloc0(sizeof(struct sr_dev_inst));
 	sdi->status = SR_ST_INACTIVE;
 	sdi->model = g_strdup("Virtual hardware interface");
-	sdi->filename = -1;
 
 	devc = g_malloc0(sizeof(struct dev_context));
-	devc->cur_samplerate = SR_KHZ(1); // TODO: update to actual sample rate
+	devc->fd = -1;
+	devc->cur_samplerate = SR_HZ(100); // TODO: update to actual sample rate
 	devc->num_logic_channels = 1;
 	devc->logic_unitsize = (devc->num_logic_channels + 7) / 8;
 
@@ -72,8 +72,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	sdi->filename = open(FIFO_PATH, O_RDONLY);
-	if (sdi->filename == -1)
+	struct dev_context *devc = sdi->priv;
+
+	devc->fd = open(FIFO_PATH, O_RDONLY);
+	if (devc->fd == -1)
 		return SR_ERR_IO;
 	
 	sdi->status = SR_ST_ACTIVE;
@@ -83,7 +85,9 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	if (close(sdi->filename) == -1)
+	struct dev_context *devc = sdi->priv;
+
+	if (close(devc->fd) == -1)
 		return SR_ERR_IO;
 
 	sdi->status = SR_ST_INACTIVE;
@@ -150,19 +154,34 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
+	struct dev_context *devc = sdi->priv;
+	int ret;
+	
+	ret = std_session_send_df_header(sdi);
+	if (ret != SR_OK)
+		return ret;
 
-	(void)sdi;
+	ret = sr_session_source_add(sdi->session, &devc->fd, (G_IO_IN | G_IO_ERR), 
+			10, virtual_receive_data, (void *)sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
+	struct dev_context *devc = sdi->priv;
+	int ret;
 
-	(void)sdi;
+	/* Remove session source and send EOT packet */
+	ret = sr_session_source_remove(sdi->session, &devc->fd);
+	if (ret != SR_OK)
+		return ret;
+
+	ret = std_session_send_df_end(sdi);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
