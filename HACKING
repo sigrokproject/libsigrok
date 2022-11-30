@@ -79,6 +79,9 @@ Random notes
  - Generally avoid assigning values to variables at declaration time,
    especially so for complex and/or run-time dependent values.
 
+ - Separate assignments from control flow. Example: Avoid the pattern
+   if (var = func()) {...}  as it complicates review and maintenance.
+
  - Consistently use g_*malloc() / g_*malloc0(). Do not use standard
    malloc()/calloc() if it can be avoided (sometimes other libs such
    as libftdi can return malloc()'d memory, for example).
@@ -94,6 +97,9 @@ Random notes
 
    Do use g_try_malloc() or g_try_malloc0() for large (>= 1MB) allocations
    and check the return value.
+
+ - Endianness conversion: Prefer the common helpers that are provided in
+   libsigrok-internal.h, such as read_u16be() etc.
 
  - You should never print any messages (neither to stdout nor stderr nor
    elsewhere) "manually" via e.g. printf() or g_log() or similar functions.
