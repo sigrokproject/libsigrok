@@ -98,6 +98,9 @@ Random notes
    Do use g_try_malloc() or g_try_malloc0() for large (>= 1MB) allocations
    and check the return value.
 
+ - Endianness conversions : prefer the functions provided in
+   libsigrok-internal.h, such as read_be16() etc.
+
  - You should never print any messages (neither to stdout nor stderr nor
    elsewhere) "manually" via e.g. printf() or g_log() or similar functions.
    Only sr_err()/sr_warn()/sr_info()/sr_dbg()/sr_spew() should be used.
