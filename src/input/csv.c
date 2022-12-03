@@ -379,8 +379,6 @@ static void set_analog_value(struct context *inc, size_t ch_idx, csv_analog_t va
 {
 	if (ch_idx >= inc->analog_channels)
 		return;
-	if (!value)
-		return;
 	inc->analog_sample_buffer[ch_idx * inc->analog_datafeed_buf_size] = value;
 }
 
