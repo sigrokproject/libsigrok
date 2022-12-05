@@ -163,7 +163,7 @@ static int init(struct sr_input *in, GHashTable *options)
 
 	/* Calculate the desired timestamp scaling factor. */
 	inc->samplerate = 1000000 *
-		g_variant_get_uint32(g_hash_table_lookup(options, "samplerate"));
+		g_variant_get_uint64(g_hash_table_lookup(options, "samplerate"));
 
 	inc->timestamp_scale = ((1 / TIMESTAMP_RESOLUTION) / (double)inc->samplerate);
 
@@ -891,7 +891,7 @@ static const struct sr_option *get_options(void)
 		options[9].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[10].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
 		options[11].def = g_variant_ref_sink(g_variant_new_boolean(FALSE));
-		options[12].def = g_variant_ref_sink(g_variant_new_uint32(DEFAULT_SAMPLERATE));
+		options[12].def = g_variant_ref_sink(g_variant_new_uint64(DEFAULT_SAMPLERATE));
 	}
 
 	return options;
