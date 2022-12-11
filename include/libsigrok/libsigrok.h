@@ -153,6 +153,7 @@ enum sr_datatype {
 	SR_T_DOUBLE_RANGE,
 	SR_T_INT32,
 	SR_T_MQ,
+	SR_T_UINT32,
 
 	/* Update sr_variant_type_get() (hwdriver.c) upon changes! */
 };

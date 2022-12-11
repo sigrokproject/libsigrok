@@ -100,6 +100,20 @@ static inline unsigned long stoul(const std::string &str)
 }
 #endif
 
+// Conversion from text to uint32_t, including a range check.
+// This is sigrok specific, _not_ part of any C++ standard library.
+static uint32_t stou32(const std::string &str)
+{
+	unsigned long ret;
+	errno = 0;
+	ret = stoul(str);
+	if (errno == ERANGE)
+		throw std::out_of_range("stou32");
+	if (ret > std::numeric_limits<uint32_t>::max())
+		throw std::out_of_range("stou32");
+	return ret;
+}
+
 Glib::VariantBase ConfigKey::parse_string(std::string value, enum sr_datatype dt)
 {
 	GVariant *variant;
@@ -135,6 +149,13 @@ Glib::VariantBase ConfigKey::parse_string(std::string value, enum sr_datatype dt
 		case SR_T_INT32:
 			try {
 				variant = g_variant_new_int32(stoi(value));
+			} catch (invalid_argument&) {
+				throw Error(SR_ERR_ARG);
+			}
+			break;
+		case SR_T_UINT32:
+			try {
+				variant = g_variant_new_uint32(stou32(value));
 			} catch (invalid_argument&) {
 				throw Error(SR_ERR_ARG);
 			}

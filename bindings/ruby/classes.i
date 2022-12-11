@@ -236,6 +236,8 @@ Glib::VariantBase ruby_to_variant_by_key(VALUE input, const sigrok::ConfigKey *k
         return Glib::Variant<double>::create(RFLOAT_VALUE(input));
     else if (type == SR_T_INT32 && RB_TYPE_P(input, T_FIXNUM))
         return Glib::Variant<gint32>::create(NUM2INT(input));
+    else if (type == SR_T_UINT32 && RB_TYPE_P(input, T_FIXNUM))
+        return Glib::Variant<guint32>::create(NUM2UINT(input));
     else
         throw sigrok::Error(SR_ERR_ARG);
 }
@@ -261,6 +263,8 @@ Glib::VariantBase ruby_to_variant_by_option(VALUE input, std::shared_ptr<sigrok:
         return Glib::Variant<double>::create(RFLOAT_VALUE(input));
     else if (variant.is_of_type(Glib::VARIANT_TYPE_INT32) && RB_TYPE_P(input, T_FIXNUM))
         return Glib::Variant<gint32>::create(NUM2INT(input));
+    else if (variant.is_of_type(Glib::VARIANT_TYPE_UINT32) && RB_TYPE_P(input, T_FIXNUM))
+        return Glib::Variant<guint32>::create(NUM2UINT(input));
     else
         throw sigrok::Error(SR_ERR_ARG);
 }
