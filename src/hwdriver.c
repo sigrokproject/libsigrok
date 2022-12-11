@@ -331,6 +331,8 @@ SR_PRIV const GVariantType *sr_variant_type_get(int datatype)
 	switch (datatype) {
 	case SR_T_INT32:
 		return G_VARIANT_TYPE_INT32;
+	case SR_T_UINT32:
+		return G_VARIANT_TYPE_UINT32;
 	case SR_T_UINT64:
 		return G_VARIANT_TYPE_UINT64;
 	case SR_T_STRING:

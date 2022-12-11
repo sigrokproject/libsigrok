@@ -109,6 +109,17 @@ Glib::VariantBase ConfigKey::parse_string(std::string value, enum sr_datatype dt
 				throw Error(SR_ERR_ARG);
 			}
 			break;
+		case SR_T_UINT32:
+			try {
+				unsigned long tmp = stoul(value);
+				if (tmp > std::numeric_limits<uint32_t>::max()) {
+					throw std::out_of_range("stoui");
+				}
+				variant = g_variant_new_uint32(tmp);
+			} catch (invalid_argument&) {
+				throw Error(SR_ERR_ARG);
+			}
+			break;
 		default:
 			throw Error(SR_ERR_BUG);
 	}

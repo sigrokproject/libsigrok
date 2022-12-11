@@ -1565,6 +1565,8 @@ Glib::VariantBase Option::parse_string(string value)
 		dt = SR_T_FLOAT;
 	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_INT32)) {
 		dt = SR_T_INT32;
+	} else if (g_variant_is_of_type(tmpl, G_VARIANT_TYPE_UINT32)) {
+		dt = SR_T_UINT32;
 	} else {
 		throw Error(SR_ERR_BUG);
 	}
