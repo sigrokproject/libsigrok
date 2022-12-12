@@ -34,30 +34,33 @@ static const char mso_foot[] = { 0x7e };
 static int mso_send_control_message(struct sr_serial_dev_inst *serial,
 				    uint16_t payload[], int n)
 {
-	int w, ret;
-	int payload_s = n * sizeof(*payload);
-	int s = payload_s + sizeof(mso_head) + sizeof(mso_foot);
-	char *p, *buf;
+	int written, ret, payload_size, total_size;
+	char *copy_ptr, *buf;
 
+	payload_size = n * sizeof(*payload);
+	total_size = payload_size + sizeof(mso_head) + sizeof(mso_foot);
 	ret = SR_ERR;
 
-	buf = g_malloc(s);
+	buf = g_malloc(total_size);
 
-	p = buf;
-	memcpy(p, mso_head, sizeof(mso_head));
-	p += sizeof(mso_head);
-	memcpy(p, payload, payload_s);
-	p += payload_s;
-	memcpy(p, mso_foot, sizeof(mso_foot));
+	copy_ptr = buf;
+	memcpy(copy_ptr, mso_head, sizeof(mso_head));
+	copy_ptr += sizeof(mso_head);
+	memcpy(copy_ptr, payload, payload_size);
+	copy_ptr += payload_size;
+	memcpy(copy_ptr, mso_foot, sizeof(mso_foot));
 
-	w = 0;
-	while (w < s) {
-		ret = serial_write_blocking(serial, buf + w, s - w, 10);
+	written = 0;
+	while (written < total_size) {
+		ret = serial_write_blocking(serial,
+				buf + written,
+				total_size - written,
+				10);
 		if (ret < 0) {
 			ret = SR_ERR;
 			goto free;
 		}
-		w += ret;
+		written += ret;
 	}
 	ret = SR_OK;
 free:
@@ -173,23 +176,23 @@ SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
 			    devc->vbit));
 }
 
-SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
+SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
 			     struct dev_context *devc)
 {
 	unsigned int u1, u2, u3, u4, u5, u6;
 
-	(void)iProduct;
+	(void)product;
 
 	/* FIXME: This code is in the original app, but I think its
 	 * used only for the GUI */
-	/*    if (strstr(iProduct, "REV_02") || strstr(iProduct, "REV_03"))
+	/*    if (strstr(product, "REV_02") || strstr(product, "REV_03"))
 	   devc->num_sample_rates = 0x16;
 	   else
 	   devc->num_sample_rates = 0x10; */
 
 	/* parse iSerial */
-	if (iSerial[0] != '4' || sscanf(iSerial, "%5u%3u%3u%1u%1u%6u",
-					&u1, &u2, &u3, &u4, &u5, &u6) != 6)
+	if (serial_num[0] != '4' || sscanf(serial_num, "%5u%3u%3u%1u%1u%6u",
+					   &u1, &u2, &u3, &u4, &u5, &u6) != 6)
 		return SR_ERR;
 	if (u1 == 0)
 		u1 = 42874;
@@ -205,7 +208,7 @@ SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
 
 	/*
 	 * FIXME: There is more code on the original software to handle
-	 * bigger iSerial strings, but as I can't test on my device
+	 * bigger serial_num strings, but as I can't test on my device
 	 * I will not implement it yet
 	 */
 
