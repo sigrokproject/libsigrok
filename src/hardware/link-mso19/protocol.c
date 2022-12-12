@@ -82,6 +82,19 @@ static uint16_t mso_bank_select(const struct dev_context *devc, int bank)
 	return mso_trans(REG_CTL2, devc->ctlbase2 | BITS_CTL2_BANK(bank));
 }
 
+static uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
+{
+	int threshold;
+	/* Trigger threshold is affected by the offset, so we need to add in
+	 * the offset */
+	threshold = devc->dso_trigger_adjusted + devc->dso_offset_adjusted;
+	/* A calibrated raw threshold is always sent in 1x voltage, so need to
+	 * scale by probe factor and then by calibration vbit */
+	threshold = threshold / devc->dso_probe_factor / devc->vbit;
+
+	return (uint16_t) (TRIG_THRESH_START - threshold);
+}
+
 SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -176,19 +189,6 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 
 	sr_dbg("Setting dac word to 0x%x.", val);
 	return mso_send_control_message(devc->serial, ARRAY_AND_SIZE(ops));
-}
-
-SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
-{
-	int threshold;
-	/* Trigger threshold is affected by the offset, so we need to add in
-	 * the offset */
-	threshold = devc->dso_trigger_adjusted + devc->dso_offset_adjusted;
-	/* A calibrated raw threshold is always sent in 1x voltage, so need to
-	 * scale by probe factor and then by calibration vbit */
-	threshold = threshold / devc->dso_probe_factor / devc->vbit;
-
-	return (uint16_t) (TRIG_THRESH_START - threshold);
 }
 
 SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
