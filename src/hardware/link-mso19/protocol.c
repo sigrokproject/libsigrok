@@ -409,7 +409,8 @@ SR_PRIV int mso_receive_data(int fd, int revents, void *cb_data)
 	logic.unitsize = sizeof(*logic_out);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 3);
-	analog.meaning->channels = g_slist_append(NULL, g_slist_nth_data(sdi->channels, 0));
+	analog.meaning->channels = g_slist_append(
+			NULL, g_slist_nth_data(sdi->channels, 0));
 	analog.meaning->mq = SR_MQ_VOLTAGE;
 	analog.meaning->unit = SR_UNIT_VOLT;
 	analog.meaning->mqflags = SR_MQFLAG_DC;
@@ -470,8 +471,12 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 
-	devc->la_trigger_mask = 0xFF;	//the mask for the LA_TRIGGER (bits set to 0 matter, those set to 1 are ignored).
-	devc->la_trigger = 0x00;	//The value of the LA byte that generates a trigger event (in that mode).
+	/* The mask for the LA_TRIGGER
+	 * (bits set to 0 matter, those set to 1 are ignored). */
+	devc->la_trigger_mask = 0xFF;
+	/* The LA byte that generates a trigger event (in that mode).
+	 * Set to 0x00 and then bitwise-or in the SR_TRIGGER_ONE bits */
+	devc->la_trigger = 0x00;
 	trigger = sr_session_trigger_get(sdi->session);
 	if (!trigger)
 		return SR_OK;
