@@ -380,12 +380,12 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_NA;
 		*data = g_variant_new_string(devc->coupling);
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_NA;
 		*data = g_variant_new_uint64(devc->dso_probe_factor);
 		break;
@@ -393,20 +393,20 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_string(trigger_sources[devc->trigger_source]);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (cg_is_analog(cg))
+		if (CG_IS_ANALOG(cg))
 			*data = g_variant_new_string(dso_trigger_slopes[devc->dso_trigger_slope]);
-		else if (cg_is_digital(cg))
+		else if (CG_IS_DIGITAL(cg))
 			*data = g_variant_new_string(la_trigger_slopes[devc->la_trigger_slope]);
 		else
 			return SR_ERR_NA;
 		break;
 	case SR_CONF_TRIGGER_LEVEL:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		*data = g_variant_new_double(devc->dso_trigger_level);
 		break;
 	case SR_CONF_OFFSET:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		*data = g_variant_new_double(devc->dso_offset);
 		break;
@@ -414,7 +414,7 @@ static int config_get(uint32_t key, GVariant **data,
 		*data = g_variant_new_double(devc->horiz_triggerpos);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
-		if (!cg_is_digital(cg))
+		if (!CG_IS_DIGITAL(cg))
 			return SR_ERR_ARG;
 		*data = g_variant_new_string(logic_thresholds[devc->logic_threshold]);
 		break;
@@ -463,12 +463,12 @@ static int config_set(uint32_t key, GVariant *data,
 		mso_update_trigger_slope(devc);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (cg_is_analog(cg)) {
+		if (CG_IS_ANALOG(cg)) {
 			idx = std_str_idx(data, ARRAY_AND_SIZE(dso_trigger_slopes));
 			if (idx < 0)
 				return SR_ERR_ARG;
 			devc->dso_trigger_slope = idx;
-		} else if (cg_is_digital(cg)) {
+		} else if (CG_IS_DIGITAL(cg)) {
 			idx = std_str_idx(data, ARRAY_AND_SIZE(la_trigger_slopes));
 			if (idx < 0)
 				return SR_ERR_ARG;
@@ -479,13 +479,13 @@ static int config_set(uint32_t key, GVariant *data,
 		mso_update_trigger_slope(devc);
 		break;
 	case SR_CONF_TRIGGER_LEVEL:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		devc->dso_trigger_level = g_variant_get_double(data);
 		mso_limit_trigger_level(devc);
 		break;
 	case SR_CONF_OFFSET:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		devc->dso_offset = g_variant_get_double(data);
 		mso_update_offset_value(devc);
@@ -501,7 +501,7 @@ static int config_set(uint32_t key, GVariant *data,
 		mso_update_trigger_pos(devc);
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		idx = std_str_idx(data, ARRAY_AND_SIZE(coupling));
 		if (idx < 0)
@@ -509,7 +509,7 @@ static int config_set(uint32_t key, GVariant *data,
 		devc->coupling = coupling[idx];
 		break;
 	case SR_CONF_PROBE_FACTOR:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
 		tmp_u64 = g_variant_get_uint64(data);
 		if (!tmp_u64)
@@ -518,7 +518,7 @@ static int config_set(uint32_t key, GVariant *data,
 		mso_update_offset_value(devc);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
-		if (!cg_is_digital(cg))
+		if (!CG_IS_DIGITAL(cg))
 			return SR_ERR_ARG;
 		idx = std_str_idx(data, ARRAY_AND_SIZE(logic_thresholds));
 		if (idx < 0)
@@ -541,9 +541,9 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		if (!cg)
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
-		else if (cg_is_analog(cg))
+		else if (CG_IS_ANALOG(cg))
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
-		else if (cg_is_digital(cg))
+		else if (CG_IS_DIGITAL(cg))
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_digital));
 		else
 			return SR_ERR_NA;
@@ -552,7 +552,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 		break;
 	case SR_CONF_COUPLING:
-		if (!cg_is_analog(cg))
+		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_NA;
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(coupling));
 		break;
@@ -560,9 +560,9 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(trigger_sources));
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
-		if (cg_is_analog(cg))
+		if (CG_IS_ANALOG(cg))
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(dso_trigger_slopes));
-		else if (cg_is_digital(cg))
+		else if (CG_IS_DIGITAL(cg))
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(la_trigger_slopes));
 		else
 			return SR_ERR_NA;
@@ -571,7 +571,7 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
-		if (!cg_is_digital(cg))
+		if (!CG_IS_DIGITAL(cg))
 			return SR_ERR_ARG;
 		*data = g_variant_new_strv(ARRAY_AND_SIZE(logic_thresholds));
 		break;
