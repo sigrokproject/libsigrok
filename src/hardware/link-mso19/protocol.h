@@ -128,7 +128,6 @@ SR_PRIV int mso_read_buffer(struct sr_dev_inst *sdi);
 SR_PRIV int mso_arm(const struct sr_dev_inst *sdi);
 SR_PRIV int mso_force_capture(struct sr_dev_inst *sdi);
 SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val);
-SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc);
 SR_PRIV int mso_reset_fsm(const struct sr_dev_inst *sdi);
 
 SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi);
