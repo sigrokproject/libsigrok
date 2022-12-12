@@ -182,11 +182,6 @@ static void mso_update_trigger_pos(struct dev_context *devc)
 		devc->ctltrig_pos |= sign_bit;
 }
 
-static void mso_update_logic_threshold_value(struct dev_context *devc)
-{
-	devc->logic_threshold_value = logic_threshold_values[devc->logic_threshold];
-}
-
 static void mso_update_offset_value(struct dev_context *devc)
 {
 	double scaled_value = devc->dso_offset / devc->dso_probe_factor;
@@ -251,7 +246,7 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	devc->dso_probe_factor = 10;
 	devc->limit_samples = MSO_NUM_SAMPLES;
 	devc->logic_threshold = ARRAY_SIZE(logic_thresholds) - 1; // 3.3V/5V
-	mso_update_logic_threshold_value(devc);
+	devc->logic_threshold_value = logic_threshold_values[devc->logic_threshold];
 	mso_update_offset_value(devc);
 
 	devc->protocol_trigger.spimode = 0;
@@ -524,7 +519,8 @@ static int config_set(uint32_t key, GVariant *data,
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->logic_threshold = idx;
-		mso_update_logic_threshold_value(devc);
+		devc->logic_threshold_value =
+			logic_threshold_values[devc->logic_threshold];
 		break;
 	default:
 		return SR_ERR_NA;
