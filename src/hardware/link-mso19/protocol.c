@@ -78,8 +78,11 @@ static uint16_t mso_bank_select(const struct dev_context *devc, int bank)
 
 SR_PRIV int mso_configure_trigger(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-	uint16_t threshold_value = mso_calc_trigger_threshold(devc);
+	struct dev_context *devc;
+	uint16_t threshold_value;
+
+	devc = sdi->priv;
+	threshold_value = mso_calc_trigger_threshold(devc);
 
 	TRIG_UPDATE_THRESH_MSB(devc->ctltrig, threshold_value);
 
@@ -262,9 +265,12 @@ SR_PRIV int mso_clkrate_out(struct sr_serial_dev_inst *serial, uint16_t val)
 
 SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	unsigned int i;
-	int ret = SR_ERR;
+	int ret;
+
+	devc = sdi->priv;
+	ret = SR_ERR;
 
 	for (i = 0; i < ARRAY_SIZE(rate_map); i++) {
 		if (rate_map[i].rate == rate) {
@@ -283,7 +289,9 @@ SR_PRIV int mso_configure_rate(const struct sr_dev_inst *sdi, uint32_t rate)
 }
 
 static int mso_validate_status(uint8_t val) {
-	uint8_t action = BITS_STATUS_ACTION(val);
+	uint8_t action;
+
+	action = BITS_STATUS_ACTION(val);
 	if (action == 0 || action > STATUS_DATA_READY
 			|| val & 0xC0) {
 		sr_err("Invalid status byte %.2x", val);
@@ -296,8 +304,10 @@ static int mso_validate_status(uint8_t val) {
 SR_PRIV int mso_read_status(struct sr_serial_dev_inst *serial, uint8_t *status)
 {
 	uint16_t ops[] = { mso_trans(REG_STATUS, 0) };
-	uint8_t buf = 0;
+	uint8_t buf;
 	int ret;
+
+	buf = 0;
 
 	sr_dbg("Requesting status.");
 	ret = mso_send_control_message(serial, ARRAY_AND_SIZE(ops));

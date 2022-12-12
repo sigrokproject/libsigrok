@@ -160,8 +160,11 @@ static void mso_limit_trigger_level(struct dev_context *devc)
 
 static void mso_update_trigger_pos(struct dev_context *devc)
 {
-	int pos = (devc->horiz_triggerpos * MSO_NUM_SAMPLES) + 0.5;
-	uint16_t sign_bit = TRIG_POS_IS_POSITIVE;
+	int pos;
+	uint16_t sign_bit;
+
+	pos = (devc->horiz_triggerpos * MSO_NUM_SAMPLES) + 0.5;
+	sign_bit = TRIG_POS_IS_POSITIVE;
 	if (pos < 0) {
 		pos = -pos;
 		sign_bit = TRIG_POS_IS_NEGATIVE;
@@ -184,9 +187,12 @@ static void mso_update_trigger_pos(struct dev_context *devc)
 
 static void mso_update_offset_value(struct dev_context *devc)
 {
-	double scaled_value = devc->dso_offset / devc->dso_probe_factor;
-	double limited_value = MIN(2.0, MAX(-2.0, scaled_value));
-	int value = devc->dac_offset - (limited_value / devc->offset_vbit);
+	double scaled_value, limited_value;
+	int value;
+
+	scaled_value = devc->dso_offset / devc->dso_probe_factor;
+	limited_value = MIN(2.0, MAX(-2.0, scaled_value));
+	value = devc->dac_offset - (limited_value / devc->offset_vbit);
 	value = MIN(DAC_DSO_VALUE_MASK, MAX(0, value));
 	devc->dso_offset_value = value;
 	devc->dso_offset_adjusted = (devc->dac_offset - value) *
@@ -289,10 +295,12 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	GSList *devices = NULL;
-	const char *conn = NULL;
-	GSList *l;
+	GSList *devices, *l;
+	const char *conn;
 	struct sr_config *src;
+
+	devices = NULL;
+	conn = NULL;
 
 	for (l = options; l; l = l->next) {
 		src = l->data;
@@ -581,8 +589,9 @@ static int config_list(uint32_t key, GVariant **data,
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int ret = SR_ERR;
+	int ret;
 
+	ret = SR_ERR;
 	devc = sdi->priv;
 
 	if (mso_configure_channels(sdi) != SR_OK) {
