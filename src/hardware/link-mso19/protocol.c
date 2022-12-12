@@ -23,6 +23,12 @@
 #include <config.h>
 #include "protocol.h"
 
+#define LA_TRIGGER_MASK_IGNORE_ALL  0xff
+#define TRIG_THRESH_START	    0x200 /* Equates to a trigger at 0.0 volts */
+
+#define VBIT_CALIBRATION_DENOMINATOR (10000.0 * 1000.0)
+#define OFFSET_VBIT_CALIBRATION_NUMERATOR 3.0
+
 /* serial protocol */
 #define mso_trans(a, v) \
 	g_htons(((v) & 0x3f) | (((v) & 0xc0) << 6) | (((a) & 0xf) << 8) | \
@@ -174,9 +180,15 @@ SR_PRIV int mso_dac_out(const struct sr_dev_inst *sdi, uint16_t val)
 
 SR_PRIV uint16_t mso_calc_trigger_threshold(struct dev_context *devc)
 {
-	return (uint16_t) (0x200 -
-			   (((devc->dso_trigger_adjusted + devc->dso_offset_adjusted) / devc->dso_probe_factor) /
-			    devc->vbit));
+	int threshold;
+	/* Trigger threshold is affected by the offset, so we need to add in
+	 * the offset */
+	threshold = devc->dso_trigger_adjusted + devc->dso_offset_adjusted;
+	/* A calibrated raw threshold is always sent in 1x voltage, so need to
+	 * scale by probe factor and then by calibration vbit */
+	threshold = threshold / devc->dso_probe_factor / devc->vbit;
+
+	return (uint16_t) (TRIG_THRESH_START - threshold);
 }
 
 SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
@@ -193,19 +205,31 @@ SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
 	   else
 	   devc->num_sample_rates = 0x10; */
 
-	/* parse iSerial */
+	/* Parse serial_num. This code/calulation is based off of another
+	 * project https://github.com/tkrmnz/mso19fcgi */
 	if (serial_num[0] != '4' || sscanf(serial_num, "%5u%3u%3u%1u%1u%6u",
 					   &u1, &u2, &u3, &u4, &u5, &u6) != 6)
 		return SR_ERR;
+
+	/* Provide sane defaults if the serial number doesn't look right */
 	if (u1 == 0)
 		u1 = 42874;
 	if (u2 == 0)
 		u2 = 343;
 	if (u3 == 0)
 		u3 = 500;
-	devc->vbit = ((double)u1) / 10000.0 / 1000.0;
+
+	/* vbit is a calibration value used to alter the analog signal to
+	 * correct for voltage reference inaccuracy */
+	devc->vbit = ((double)u1) / VBIT_CALIBRATION_DENOMINATOR;
+	/* dac_offset is used to move the voltage range of the detectable
+	 * signal up or down by use of a DAC. This way you can detect signals
+	 * in a given range, for example [-2v, 2v], [0v, 4v], [-4v, 0v] */
 	devc->dac_offset = u2;
-	devc->offset_vbit = 3.0 / u3;
+	/* offset_vbit is similar to vbit, but used with the dac_offset
+	 * calculations. It is a calibration value to correct any inaccuracy in
+	 * the voltage output of the DAC */
+	devc->offset_vbit = OFFSET_VBIT_CALIBRATION_NUMERATOR / u3;
 	devc->hwmodel = u4;
 	devc->hwrev = u5;
 
@@ -473,7 +497,7 @@ SR_PRIV int mso_configure_channels(const struct sr_dev_inst *sdi)
 
 	/* The mask for the LA_TRIGGER
 	 * (bits set to 0 matter, those set to 1 are ignored). */
-	devc->la_trigger_mask = 0xFF;
+	devc->la_trigger_mask = LA_TRIGGER_MASK_IGNORE_ALL;
 	/* The LA byte that generates a trigger event (in that mode).
 	 * Set to 0x00 and then bitwise-or in the SR_TRIGGER_ONE bits */
 	devc->la_trigger = 0x00;
