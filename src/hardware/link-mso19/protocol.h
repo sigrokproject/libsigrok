@@ -114,7 +114,7 @@ struct dev_context {
 	char buffer[4096];
 };
 
-SR_PRIV int mso_parse_serial(const char *iSerial, const char *iProduct,
+SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
 			     struct dev_context *ctx);
 SR_PRIV int mso_read_status(struct sr_serial_dev_inst *serial,
 			    uint8_t *status);
