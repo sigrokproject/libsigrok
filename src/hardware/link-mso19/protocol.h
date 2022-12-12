@@ -38,8 +38,8 @@
 #define MSO_NUM_SAMPLES		1024
 #define MSO_NUM_LOGIC_CHANNELS	8
 
-#define cg_is_digital(cg) (cg && cg->name[0] == 'L')
-#define cg_is_analog(cg) (cg && cg->name[0] == 'D')
+#define CG_IS_DIGITAL(cg) (cg && cg->name[0] == 'L')
+#define CG_IS_ANALOG(cg) (cg && cg->name[0] == 'D')
 
 /* Structure for the pattern generator state */
 struct mso_patgen {
