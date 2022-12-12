@@ -158,10 +158,12 @@ static void mso_limit_trigger_level(struct dev_context *devc)
 	sr_info("Adjusted dso trigger level to %f", devc->dso_trigger_adjusted);
 }
 
-static void mso_update_trigger_pos(struct dev_context *devc)
+static void mso_set_trigger_pos(struct dev_context *devc, double trigger_pos)
 {
 	int pos;
 	uint16_t sign_bit;
+
+	devc->horiz_triggerpos = trigger_pos;
 
 	pos = (devc->horiz_triggerpos * MSO_NUM_SAMPLES) + 0.5;
 	sign_bit = TRIG_POS_IS_POSITIVE;
@@ -185,11 +187,12 @@ static void mso_update_trigger_pos(struct dev_context *devc)
 		devc->ctltrig_pos |= sign_bit;
 }
 
-static void mso_update_offset_value(struct dev_context *devc)
+static void mso_set_offset_value(struct dev_context *devc, double offset)
 {
 	double scaled_value, limited_value;
 	int value;
 
+	devc->dso_offset = offset;
 	scaled_value = devc->dso_offset / devc->dso_probe_factor;
 	limited_value = MIN(2.0, MAX(-2.0, scaled_value));
 	value = devc->dac_offset - (limited_value / devc->offset_vbit);
@@ -245,15 +248,14 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	TRIG_UPDATE_OUT(devc->ctltrig, TRIG_OUT_TRIGGER);
 	TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
 	mso_update_trigger_slope(devc);
-	devc->horiz_triggerpos = 0.5;
-	mso_update_trigger_pos(devc);
+	mso_set_trigger_pos(devc, 0.5);
 	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
 	devc->dso_probe_factor = 10;
 	devc->limit_samples = MSO_NUM_SAMPLES;
 	devc->logic_threshold = ARRAY_SIZE(logic_thresholds) - 1; // 3.3V/5V
 	devc->logic_threshold_value = logic_threshold_values[devc->logic_threshold];
-	mso_update_offset_value(devc);
+	mso_set_offset_value(devc, 0.0);
 
 	devc->protocol_trigger.spimode = 0;
 	for (i = 0; i < ARRAY_SIZE(devc->protocol_trigger.word); i++) {
@@ -490,8 +492,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_OFFSET:
 		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
-		devc->dso_offset = g_variant_get_double(data);
-		mso_update_offset_value(devc);
+		mso_set_offset_value(devc, g_variant_get_double(data));
 		break;
 	case SR_CONF_HORIZ_TRIGGERPOS:
 		pos = g_variant_get_double(data);
@@ -500,8 +501,7 @@ static int config_set(uint32_t key, GVariant *data,
 			sr_err("Trigger position (%f) should be between -10.0 and 1.0", pos);
 			return SR_ERR_ARG;
 		}
-		devc->horiz_triggerpos = pos;
-		mso_update_trigger_pos(devc);
+		mso_set_trigger_pos(devc, pos);
 		break;
 	case SR_CONF_COUPLING:
 		if (!CG_IS_ANALOG(cg))
@@ -518,7 +518,8 @@ static int config_set(uint32_t key, GVariant *data,
 		if (!tmp_u64)
 			return SR_ERR_ARG;
 		devc->dso_probe_factor = tmp_u64;
-		mso_update_offset_value(devc);
+		/* probe factor affects offset, so recalculate offset */
+		mso_set_offset_value(devc, devc->dso_offset);
 		break;
 	case SR_CONF_LOGIC_THRESHOLD:
 		if (!CG_IS_DIGITAL(cg))
