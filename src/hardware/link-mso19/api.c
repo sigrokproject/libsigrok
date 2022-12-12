@@ -139,23 +139,26 @@ static void mso_update_trigger_slope(struct dev_context *devc)
 	}
 }
 
-static void mso_limit_trigger_level(struct dev_context *devc)
+static void mso_set_trigger_level(struct dev_context *devc,
+		double trigger_level)
 {
-	double max_level = 2.0 * devc->dso_probe_factor;
-	double min_level = -max_level;
-	max_level -= devc->dso_offset_adjusted;
-	min_level -= devc->dso_offset_adjusted;
+	double voltage_range, max_level, min_level;
 
-	if (devc->dso_trigger_level < min_level) {
+	voltage_range = 2.0 * devc->dso_probe_factor;
+	max_level = voltage_range - devc->dso_offset_adjusted;
+	min_level = -voltage_range - devc->dso_offset_adjusted;
+
+	devc->dso_trigger_level = trigger_level;
+
+	if (trigger_level < min_level)
 		devc->dso_trigger_adjusted = min_level;
-	} else if (devc->dso_trigger_level > max_level) {
+	else if (trigger_level > max_level)
 		devc->dso_trigger_adjusted = max_level;
-	} else if (devc->dso_trigger_level != devc->dso_trigger_adjusted){
-		devc->dso_trigger_adjusted = devc->dso_trigger_level;
-	} else {
-		return;
-	}
-	sr_info("Adjusted dso trigger level to %f", devc->dso_trigger_adjusted);
+	else
+		devc->dso_trigger_adjusted = trigger_level;
+
+	if (trigger_level != devc->dso_trigger_adjusted)
+		sr_info("Adjusted dso trigger level to %f", devc->dso_trigger_adjusted);
 }
 
 static void mso_set_trigger_pos(struct dev_context *devc, double trigger_pos)
@@ -203,7 +206,8 @@ static void mso_set_offset_value(struct dev_context *devc, double offset)
 	if (limited_value != scaled_value) {
 		sr_info("Adjusted dso offset to %f", devc->dso_offset_adjusted);
 	}
-	mso_limit_trigger_level(devc);
+	/* offset affects trigger level, so recalculate */
+	mso_set_trigger_level(devc, devc->dso_trigger_level);
 
 }
 
@@ -486,8 +490,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_TRIGGER_LEVEL:
 		if (!CG_IS_ANALOG(cg))
 			return SR_ERR_ARG;
-		devc->dso_trigger_level = g_variant_get_double(data);
-		mso_limit_trigger_level(devc);
+		mso_set_trigger_level(devc, g_variant_get_double(data));
 		break;
 	case SR_CONF_OFFSET:
 		if (!CG_IS_ANALOG(cg))
