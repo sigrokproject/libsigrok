@@ -113,30 +113,47 @@ static const uint16_t logic_threshold_values[] = {
 	0xfff,
 };
 
-static void mso_update_trigger_slope(struct dev_context *devc)
+/* This function needs to be in api.c because we use the API indices
+ * TRIGGER_SOURCE_* and TRIGGER_SLOPE_* to determine how to set the
+ * trigger_register bits. */
+SR_PRIV uint8_t mso_calc_trigger_register(struct dev_context *devc,
+		uint16_t threshold_value)
 {
+	uint8_t source_bits, trig_out_bits, edge_bit, thresh_msb;
+
+	/* TODO: implement other TRIG_OUT_* options */
+	trig_out_bits = TRIG_OUT_TRIGGER;
+	source_bits = 0;
+	edge_bit = 0;
+	thresh_msb = (threshold_value >> 8) & TRIG_THRESH_MSB_MASK;
+
+
 	switch (devc->trigger_source) {
 	case TRIGGER_SOURCE_DSO:
+		source_bits = TRIG_SRC_DSO;
 		switch (devc->dso_trigger_slope) {
 		case TRIGGER_SLOPE_RISING:
-			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_RISING);
+			edge_bit = TRIG_EDGE_RISING;
 			break;
 		case TRIGGER_SLOPE_FALLING:
-			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_FALLING);
+			edge_bit = TRIG_EDGE_FALLING;
 			break;
 		}
 		break;
 	case TRIGGER_SOURCE_LA:
+		source_bits = TRIG_SRC_LA;
 		switch (devc->la_trigger_slope) {
 		case TRIGGER_SLOPE_F_T:
-			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_F_T);
+			edge_bit = TRIG_EDGE_F_T;
 			break;
 		case TRIGGER_SLOPE_T_F:
-			TRIG_UPDATE_EDGE(devc->ctltrig, TRIG_EDGE_T_F);
+			edge_bit = TRIG_EDGE_T_F;
 			break;
 		}
 		break;
 	}
+
+	return source_bits | trig_out_bits | edge_bit | thresh_msb;
 }
 
 static void mso_set_trigger_level(struct dev_context *devc,
@@ -249,9 +266,9 @@ static GSList* scan_handle_port(GSList *devices, struct sp_port *port)
 	}
 	sprintf(hwrev, "r%d", devc->hwrev);
 	devc->ctlbase1 = BIT_CTL1_ADC_ENABLE;
-	TRIG_UPDATE_OUT(devc->ctltrig, TRIG_OUT_TRIGGER);
-	TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
-	mso_update_trigger_slope(devc);
+	devc->trigger_source = TRIGGER_SOURCE_DSO;
+	devc->dso_trigger_slope = TRIGGER_SLOPE_RISING;
+	devc->la_trigger_slope = TRIGGER_SLOPE_F_T;
 	mso_set_trigger_pos(devc, 0.5);
 	devc->coupling = coupling[0];
 	devc->cur_rate = SR_KHZ(10);
@@ -461,15 +478,6 @@ static int config_set(uint32_t key, GVariant *data,
 		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->trigger_source = idx;
-		switch (idx) {
-		case TRIGGER_SOURCE_DSO:
-			TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_DSO);
-			break;
-		case TRIGGER_SOURCE_LA:
-			TRIG_UPDATE_SRC(devc->ctltrig, TRIG_SRC_LA);
-			break;
-		}
-		mso_update_trigger_slope(devc);
 		break;
 	case SR_CONF_TRIGGER_SLOPE:
 		if (CG_IS_ANALOG(cg)) {
@@ -485,7 +493,6 @@ static int config_set(uint32_t key, GVariant *data,
 		} else {
 			return SR_ERR_NA;
 		}
-		mso_update_trigger_slope(devc);
 		break;
 	case SR_CONF_TRIGGER_LEVEL:
 		if (!CG_IS_ANALOG(cg))

@@ -87,7 +87,6 @@ struct dev_context {
 	/* register cache */
 	uint8_t ctlbase1;
 	uint8_t ctlbase2;
-	uint8_t ctltrig;
 	uint16_t ctltrig_pos;
 	uint8_t status;
 
@@ -114,6 +113,11 @@ struct dev_context {
 	char buffer[4096];
 };
 
+/* from api.c */
+SR_PRIV uint8_t mso_calc_trigger_register(struct dev_context *devc,
+		uint16_t threshold_value);
+
+/* from protocol.c */
 SR_PRIV int mso_parse_serial(const char *serial_num, const char *product,
 			     struct dev_context *ctx);
 SR_PRIV int mso_read_status(struct sr_serial_dev_inst *serial,
@@ -179,12 +183,10 @@ enum {
 	TRIG_EDGE_FALLING =	1 << 2,
 	TRIG_EDGE_T_F =		0 << 2,
 	TRIG_EDGE_F_T =		1 << 2,
-	TRIG_EDGE_MASK =	1 << 2,
 
 	TRIG_OUT_TRIGGER =	0 << 3,
 	TRIG_OUT_PG =		1 << 3,
 	TRIG_OUT_NOISE =	3 << 3,
-	TRIG_OUT_MASK =		3 << 3,
 
 	TRIG_SRC_DSO =		0 << 5,
 	TRIG_SRC_DSO_PULSE_GE =	1 << 5,
@@ -192,13 +194,7 @@ enum {
 	TRIG_SRC_SPI =		4 << 5,
 	TRIG_SRC_I2C =		5 << 5,
 	TRIG_SRC_LA =		7 << 5,
-	TRIG_SRC_MASK =		7 << 5,
 };
-#define TRIG_UPDATE_MASK(reg, val, mask) reg = (((reg) & ~(mask)) | ((val) & (mask)))
-#define TRIG_UPDATE_THRESH_MSB(reg, val) TRIG_UPDATE_MASK((reg), (val) >> 8, TRIG_THRESH_MSB_MASK)
-#define TRIG_UPDATE_EDGE(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_EDGE_MASK)
-#define TRIG_UPDATE_OUT(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_OUT_MASK)
-#define TRIG_UPDATE_SRC(reg, val)	TRIG_UPDATE_MASK((reg), (val), TRIG_SRC_MASK)
 
 /* bits - REG_TRIG_POS_MSB */
 enum {
