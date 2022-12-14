@@ -113,7 +113,7 @@ static const uint16_t logic_threshold_values[] = {
 	0xfff,
 };
 
-/* This function needs to be in api.c because we use the API indeces
+/* This function needs to be in api.c because we use the API indices
  * TRIGGER_SOURCE_* and TRIGGER_SLOPE_* to determine how to set the
  * trigger_register bits. */
 SR_PRIV uint8_t mso_calc_trigger_register(struct dev_context *devc,
