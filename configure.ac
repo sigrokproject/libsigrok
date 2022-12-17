@@ -465,6 +465,16 @@ AM_COND_IF([BINDINGS_CXX], [
 	AS_IF([test "x$sr_cv_have_stoi_stod" = xyes],
 		[AC_DEFINE([HAVE_STOI_STOD], [1],
 			[Specifies whether we have the stoi and stod functions.])])
+	# In theory std::stoul() should have identical availability
+	# as std::stoi() and std::stod() have. All of them are C++11.
+	# But we play it safe here, and check support individually.
+	AC_CACHE_CHECK([for stoul], [sr_cv_have_stoul],
+		[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <string>]],
+				[[(void) std::stoul("1");]])],
+			[sr_cv_have_stoul=yes], [sr_cv_have_stoul=no])])
+	AS_IF([test "x$sr_cv_have_stoul" = xyes],
+		[AC_DEFINE([HAVE_STOUL], [1],
+			[Specifies whether we have the std::stoul function.])])
 ])
 
 #######################

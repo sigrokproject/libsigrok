@@ -70,6 +70,36 @@ static inline double stod( const std::string& str )
 }
 #endif
 
+#ifndef HAVE_STOUL
+
+/* Fallback implementation of stoul. */
+
+#include <cerrno>
+#include <cstdlib>
+#include <limits>
+#include <stdexcept>
+
+static inline unsigned long stoul(const std::string &str)
+{
+	char *endptr;
+	unsigned long ret;
+	errno = 0;
+	ret = std::strtoul(str.c_str(), &endptr, 10);
+	if (endptr == str.c_str())
+		throw std::invalid_argument("stoul");
+	/*
+	 * TODO Convert to a larger/wider intermediate data type?
+	 * Because after conversion into the very target type, the
+	 * range check is assumed to be ineffective.
+	 */
+	if (errno == ERANGE ||
+		ret < std::numeric_limits<unsigned long>::min() ||
+		ret > std::numeric_limits<unsigned long>::max())
+		throw std::out_of_range("stoul");
+	return ret;
+}
+#endif
+
 Glib::VariantBase ConfigKey::parse_string(std::string value, enum sr_datatype dt)
 {
 	GVariant *variant;
