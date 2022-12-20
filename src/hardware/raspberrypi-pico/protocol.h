@@ -25,15 +25,16 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-//This is used by sr_dbg/log etc
-#define LOG_PREFIX "srgn"
+//This is used by sr_dbg/log etc to indicate where a printout came from
+#define LOG_PREFIX "srpico"
  //number of bytes between markers
 #define MRK_STRIDE 128
 
-//This must be 32 or or less since many channel enable/disable masks and other elements may be only 32 bits wide.
-//But is reduced further based on pico board limitations
-#define MAX_ANALOG_CHANNELS 3
-#define MAX_DIGITAL_CHANNELS 21
+//These must be 32 or or less since many channel enable/disable masks and other elements may be only 32 bits wide.
+//Setting values larger than what a PICO can support to enable other devices, or possibly modes where
+//channels are created from internal values rather than external pins
+#define MAX_ANALOG_CHANNELS 8
+#define MAX_DIGITAL_CHANNELS 32
 //digits input to sr_analog_init
 #define ANALOG_DIGITS 4
 
@@ -50,9 +51,8 @@ typedef enum rxstate {
 	RX_STOPPED = 2,		//received stop marker, waiting for byte cnt
 	RX_ABORT = 3,		//received aborted marker or other error
 } rxstate_t;
-//TODO todo - stopped review here - renam wrptr, and review all variables
 struct dev_context {
-/*Configuration Parameters */
+//Configuration Parameters 
 	//It is up to the user to understand sample rates and serial download speed etc and 
 	// do the right thing. i.e. don't expect continuous streaming bandwidth greater 
 	//than serial link speed etc...
@@ -84,12 +84,12 @@ struct dev_context {
 	uint16_t bytes_per_slice;
 	//The number of bytes needed to store all channels for one sample in the device data buff
 	uint32_t dig_sample_bytes;
-/* Tracking/status once started */
+// Tracking/status once started 
 	//number of bytes in the current serial input stream
 	uint32_t bytes_avail;
-	//Samples sent to the session */
+	//Samples sent to the session 
 	uint32_t sent_samples;
-	//count total received bytes to detect lost info*/
+	//count total received bytes to detect lost info
 	uint64_t byte_cnt;
 	//For SW based triggering we put the device into continuous transmit and stop when 
 	// we detect a sample and capture all the samples we need. trigger_fired is thus set when
@@ -101,7 +101,7 @@ struct dev_context {
 	//error been detected
 	//        gboolean device_stopped;
 	rxstate_t rxstate;
-/* Serial Related */
+// Serial Related 
 	// Serial data buffer 
 	unsigned char *buffer;
 	//Size of incoming serial buffer
@@ -111,26 +111,26 @@ struct dev_context {
 	//write pointer into the serial input buffer
 	uint32_t wrptr;
 
-/* Buffering Related */
-	/* parsed serial read data is split into each channels dedicated buffer for analog */
+// Buffering Related 
+	// parsed serial read data is split into each channels dedicated buffer for analog 
 	float *a_data_bufs[MAX_ANALOG_CHANNELS];
-	/*digital samples are stored packed together since cli/pulseview want it that way */
+	// digital samples are stored packed together since cli/pulseview want it that way 
 	uint8_t *d_data_buf;
-	/*write point for the the per channel data buffers */
+	// write pointer for the the per channel data buffers 
 	uint32_t cbuf_wrptr;
-	/*size of packet data buffers for each channel */
+	// size of packet data buffers for each channel 
 	uint32_t sample_buf_size;
-/* RLE related*/
-	/*Previous sample values to duplicate for rle */
+// RLE related
+	// Previous sample values to duplicate for rle 
 	float a_last[MAX_ANALOG_CHANNELS];
         uint8_t d_last[4];
 
-/* SW Trigger Related */
+// SW Trigger Related 
 	struct soft_trigger_logic *stl;
 	//Maximum number of entries to store pre-trigger
 	uint32_t pretrig_entries;
-	/* Analog pre-trigger storage for software based triggering
-	   because sw based only has internal storage for logic */
+	// Analog pre-trigger storage for software based triggering
+	//   because sw based only has internal storage for logic 
 	float *a_pretrig_bufs[MAX_ANALOG_CHANNELS];
 	uint32_t pretrig_wr_ptr;
 
