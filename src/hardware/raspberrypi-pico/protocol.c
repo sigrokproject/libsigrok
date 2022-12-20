@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #define _GNU_SOURCE
 
 #include <config.h>
@@ -60,7 +59,8 @@ SR_PRIV int send_serial_char(struct sr_serial_dev_inst *serial, char ch)
 	return SR_OK;
 }
 
-//Issue a command that expects a string return, return length of string
+//Issue a command that expects a string return that is less than 30 characters.
+//returns the length of string
 int send_serial_w_resp(struct sr_serial_dev_inst *serial, char *str,
 		       char *resp, size_t cnt)
 {
@@ -74,14 +74,11 @@ int send_serial_w_resp(struct sr_serial_dev_inst *serial, char *str,
 		if (num_read > 0)
 			break;
 	}
-	//sr_spew("rwprsp1 i %d nr %d",i,num_read);
 	//Since the serial port is usb CDC we can't calculate timeouts based on baud rate but
 	//even if the response is split between two USB transfers 10ms should be plenty.
 	num_read +=
 	    serial_read_blocking(serial, &(resp[num_read]), cnt - num_read,
 				 10);
-	//sr_spew("rwrsp2 nr %d",num_read);
-
 	if ((num_read < 1) || (num_read > 30)) {
 		sr_err("ERROR:Serial_w_resp failed (%d).", num_read);
 		return -1;
@@ -96,8 +93,9 @@ SR_PRIV int send_serial_w_ack(struct sr_serial_dev_inst *serial, char *str)
 	char buf[2];
 	int num_read;
 	//In case we have left over transfer from the device, drain them
+	//These should not exist in normal operation
 	while ((num_read = serial_read_blocking(serial, buf, 2, 10))) {
-		//sr_dbg("swack drops 2 previous bytes %d %d",buf[0],buf[1]);
+		sr_dbg("swack drops 2 bytes %d %d",buf[0],buf[1]);
 	}
 	send_serial_str(serial, str);
 	//1000ms timeout
@@ -240,7 +238,7 @@ void process_slice(struct sr_dev_inst *sdi, struct dev_context *devc)
 	}
 	//If the wrptr is non-zero due to a residual from the previous serial transfer don't double count it towards byte_cnt
 	devc->byte_cnt += slice_bytes - (devc->wrptr);
-	sr_spew("process slice avail %d rdptr %d sb %d byte_cnt %lld",
+	sr_spew("process slice avail %d rdptr %d sb %d byte_cnt %" PRIu64 "",
 		devc->bytes_avail, devc->ser_rdptr, slice_bytes,
 		devc->byte_cnt);
 	//Must have a full slice or one rle byte
@@ -363,8 +361,8 @@ int send_analog(struct sr_dev_inst *sdi, struct dev_context *devc,
 			packet.payload = &analog;
 			sr_session_send(sdi, &packet);
 			g_slist_free(analog.meaning->channels);
-		}		//if enabled
-	}			//for channels
+		}//if enabled
+	}//for channels
 	return 0;
 
 }
@@ -411,15 +409,11 @@ int send_analog_ring(struct sr_dev_inst *sdi, struct dev_context *devc,
 				analog.num_samples = num_post;
 				analog.data =
 				    (devc->a_pretrig_bufs[i]) + start_post;
-				//sr_spew("ring buf %d starts at %p",i,(void *) devc->a_pretrig_bufs[i]);
-				//sr_spew("analog data %d starts at %p",i,(void *) analog.data);
-				//sr_spew("Sending A%d ring buffer oldest ",i);
 				for (uint32_t j = 0;
 				     j < analog.num_samples; j++) {
 					fptr =
 					    analog.data +
 					    (j * sizeof(float));
-					//sr_spew("RNGDCT%d j %d %f %p",i,j,*fptr,(void *)fptr);
 				}
 				sr_session_send(sdi, &packet);
 			}
@@ -441,8 +435,8 @@ int send_analog_ring(struct sr_dev_inst *sdi, struct dev_context *devc,
 			}
 			g_slist_free(analog.meaning->channels);
 			sr_dbg("Sending A%d ring buffer done ", i);
-		}		//if enabled
-	}			//for channels
+		}//if enabled
+	}//for channels
 	return 0;
 
 }
@@ -477,9 +471,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 			sr_spew
 			    ("Process_group sending %d post trig samples dsb %d",
 			     num_samples, devc->dig_sample_bytes);
-			//for(int z=0;(z<num_samples);z++){
-			  // sr_spew("0x%X ",devc->d_data_buf[z]);
-			//}
 			if (devc->num_d_channels) {
 				packet.type = SR_DF_LOGIC;
 				packet.payload = &logic;
@@ -492,10 +483,10 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 				sr_session_send(sdi, &packet);
 			}
 			send_analog(sdi, devc, num_samples, 0);
-		}		//num_sample>0
+		}//num_samples >0
 		devc->sent_samples += num_samples;
 		return 0;
-	}			//trigger_fired
+	}//trigger_fired
 	else {
 		size_t num_ring_samples;
 		size_t sptr;
@@ -503,7 +494,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 		size_t numtail;
 		size_t numwrap;
 		size_t srcptr;
-		//sr_spew("Process_group check %d pre trig samples",num_slices);
 		//The trigger_offset is -1 if no trigger is found, but if a trigger is found
 		//then trigger_offset is the offset into the data buffer sent to it.
 		//The pre_trigger_samples is the total number of samples before the trigger, but limited to
@@ -514,11 +504,9 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 							  num_slices *
 							  devc->dig_sample_bytes,
 							  &pre_trigger_samples);
-		//A trigger offset >=0 indicate a trigger was seen.  The stl will isue the trigger to the session
+		//A trigger offset >=0 indicates a trigger was seen.  The stl will isue the trigger to the session
 		//and will forward all pre trigger logic samples, but we must send any post trigger logic 
 		//and all pre and post trigger analog signals
-		// sr_dbg("trggr_off %d",trigger_offset);
-		// sr_dbg("pre_samp  %d",pre_trigger_samples);
 		if (trigger_offset > -1) {
 			devc->trigger_fired = TRUE;
 			devc->sent_samples += pre_trigger_samples;
@@ -620,7 +608,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 				srcptr = cbuf_wrptr_cpy - num_ring_samples;
 				sr_spew("RNG num %zu sptr %zu eptr %zu ",
 					num_ring_samples, sptr, eptr);
-				//sr_spew("RNG srcptr %zu nt %zu nw %zu",srcptr,numtail,numwrap);
 				for (i = 0; i < devc->num_a_channels; i++) {
 					if ((devc->a_chan_mask >> i) & 1) {
 						//copy tail
@@ -631,7 +618,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 							    devc->a_data_bufs
 							    [i]
 							    [srcptr + j];
-							//sr_spew("RNGCpyT C%d src %zu dest %zu",i,srcptr+j,sptr+j);
 						}	//for j
 					}	//if chan_mask
 				}	//for channels
@@ -646,7 +632,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 							    devc->a_data_bufs
 							    [i]
 							    [srcptr + j];
-							//sr_spew("RNGCpyW C%d src %zu dest %zu",i,srcptr+j,j);
 						}	//for j
 					}	//if chan_mask
 				}	//for channels
@@ -654,7 +639,6 @@ int process_group(struct sr_dev_inst *sdi, struct dev_context *devc,
 				    (numwrap) ? numwrap : (eptr +
 							   1) %
 				    devc->pretrig_entries;
-				//sr_dbg("RNG pwrptr new %u",devc->pretrig_wr_ptr);
 			}	//if any analog channel enabled and pretrig_entries
 		}		//else (trigger not detected)
 	}			//trigger not set on function entry
@@ -675,7 +659,6 @@ void rle_memset(struct dev_context *devc, uint32_t num_slices)
                 didx=devc->cbuf_wrptr*devc->dig_sample_bytes;
 		for (k = 0; k < devc->dig_sample_bytes; k++) {
 			devc->d_data_buf[didx + k] =  devc->d_last[k];
-			//	sr_spew("k %d j %d v 0x%X p %d didx %d",k,j,devc->d_data_buf[(devc->cbuf_wrptr)+k],(devc->cbuf_wrptr)+k,didx);
 		}
 		// cbuf_wrptr always counts slices/samples (and not the bytes in the buffer)
                 // regardless of mode
@@ -709,7 +692,6 @@ SR_PRIV int raspberrypi_pico_receive(int fd, int revents, void *cb_data)
 		sr_dbg("Reached non active state in receive %d",
 		       devc->rxstate);
 		//don't return - we may be waiting for a final bytecnt
-		//return TRUE;
 	}
 	if (devc->rxstate == RX_IDLE) {
 		//This is the normal end condition where we do one more receive
@@ -736,29 +718,18 @@ SR_PRIV int raspberrypi_pico_receive(int fd, int revents, void *cb_data)
 		devc->buffer[devc->wrptr + len] = 0;
 		//Add the "#" so that spaces are clearly seen
 		sr_dbg("rx string %s#", devc->buffer);
-		//This is not guaranteed to be a dataloss condition, but definitely indicates we are 
-		//processing data right at the incoming rate.
-		//With the addition of the byte_cnt sent at the end we will detect any dataloss conditions
-		//and thus this is disabled
-		//if(len>=(int)bytes_rem-8){
-		//  sr_err("ERROR: Serial buffer near or at max depth, data from device may have been lost");
-		//}
 		devc->bytes_avail = (devc->wrptr + len);
 		sr_spew
 		    ("rx len %d bytes_avail %ul sent_samples %ul wrptr %u",
 		     len, devc->bytes_avail, devc->sent_samples,
 		     devc->wrptr);
-		//sr_err("rx len %d ",len);
 	} else if (len == 0) {
 		return TRUE;
 	} else {
 		sr_err("ERROR:Negative serial read code %d", len);
 		sdi->driver->dev_acquisition_stop(sdi);
 		return FALSE;
-	}			//len>0
-	//This can be used as a bit bucket to drop all samples to see how host processing time effects
-	//the devices ability to send data. Obviously no data will be forwarded to the session so it will hang
-	//        return TRUE; 
+	}// if len>0
 
 	//Process the serial read data
 	devc->ser_rdptr = 0;
@@ -774,7 +745,6 @@ SR_PRIV int raspberrypi_pico_receive(int fd, int revents, void *cb_data)
 	//But they may not use all of it, and thus the residual unused bytes are shifted to the start of the buffer
 	//for the next call.
 	residual_bytes = devc->bytes_avail - devc->ser_rdptr;
-	//sr_spew("Residuals resid %d avail %d rdptr %d wrptr %d\n",residual_bytes,devc->bytes_avail,devc->ser_rdptr,devc->wrptr);
 	if (residual_bytes) {
 		for (i = 0; i < residual_bytes; i++) {
 			devc->buffer[i] =
@@ -827,7 +797,7 @@ SR_PRIV int raspberrypi_pico_receive(int fd, int revents, void *cb_data)
 		}
 		//It's possible we need one more serial transfer to get the byte_cnt, so print that here
 		sr_dbg("Haven't seen byte_cnt + yet");
-	}			//RX_STOPPED
+	} //if RX_STOPPED
 	//If at the sample limit, send a "+" in case we are in continuous mode and need
 	//to stop the device.  Not that even in non continous mode there might be cases where get an extra
 	//sample or two...

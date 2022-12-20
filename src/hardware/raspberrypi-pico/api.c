@@ -38,18 +38,11 @@ static const uint32_t scanopts[] = {
 	SR_CONF_CONN,		//Required OS name for the port, i.e. /dev/ttyACM0
 	SR_CONF_SERIALCOMM,	//Optional config of the port, i.e. 115200/8n1
 };
-//The host can either provide a std_gvar_samplerates_steps or a std_gvar_samplerates.
+//Sample rate can either provide a std_gvar_samplerates_steps or a std_gvar_samplerates.
 //The latter is just a long list of every supported rate.
 //For the steps, pulseview/pv/toolbars/mainbar.cpp will do a min,max,step.  If step is 
 //1 then it provides a 1,2,5,10 select otherwise it allows a spin box.
 //Going with the full list because while the spin box is more flexible, it is harder to read
-/*
-static const uint64_t samplerates[] = {
-	SR_HZ(10),
-	SR_MHZ(120),
-	SR_HZ(2),
-};
-*/
 static const uint64_t samplerates[] = {
 	SR_KHZ(5),
 	SR_KHZ(6),
@@ -72,12 +65,13 @@ static const uint64_t samplerates[] = {
 	SR_KHZ(500),
 	SR_KHZ(600),
 	SR_KHZ(800),
-	//Give finer granularity near the thresholds of RLE effectiveness
+	//Give finer granularity near the thresholds of RLE effectiveness ~1-4Msps
+	//Also use 1.2 and 2.4 as likely max values for ADC overclocking
 	SR_MHZ(1),
-	SR_MHZ(1.25),
+	SR_MHZ(1.2),
 	SR_MHZ(1.5),
 	SR_MHZ(2),
-	SR_MHZ(2.5),
+	SR_MHZ(2.4),
 	SR_MHZ(3),
 	SR_MHZ(4),
 	SR_MHZ(5),
@@ -89,7 +83,17 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(30),
 	SR_MHZ(40),
 	SR_MHZ(60),
-       	SR_MHZ(120)
+	//The baseline 120Mhz PICO clock won't support an 80 or 100
+	//with non fractional divisor, but an overclocked version or one
+	//that modified sysclk could
+	SR_MHZ(80),
+       	SR_MHZ(100),
+       	SR_MHZ(120),
+	//These may not be practically useful, but someone might want to
+	//try to make it work with overclocking
+       	SR_MHZ(150),
+       	SR_MHZ(200),
+       	SR_MHZ(240)	
 };
 
 static const uint32_t drvopts[] = {
@@ -180,7 +184,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList * options)
 		serial_close(serial);
 		g_usleep(100000);
 		if (serial_open(serial, SERIAL_RDWR) != SR_OK) {
-			sr_err("2st serial open fail");
+			sr_err("2nd serial open fail");
 			return NULL;
 		}
 		g_usleep(100000);
@@ -356,7 +360,7 @@ static int config_set(uint32_t key, GVariant * data,
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
-		sr_dbg("config_set slimit %lld\n", devc->limit_samples);
+		sr_dbg("config_set slimit %" PRIu64 "\n", devc->limit_samples);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		devc->capture_ratio = g_variant_get_uint64(data);
@@ -384,7 +388,7 @@ static int config_get(uint32_t key, GVariant ** data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		*data = g_variant_new_uint64(devc->sample_rate);
-		sr_spew("sample rate get of %lld", devc->sample_rate);
+		sr_spew("sample rate get of %" PRIu64 "", devc->sample_rate);
 		break;
 	case SR_CONF_CAPTURE_RATIO:
 		if (!sdi)
@@ -425,8 +429,6 @@ static int config_list(uint32_t key, GVariant ** data,
 	case SR_CONF_SAMPLERATE:
 		sr_dbg("Return sample rate list");
 		*data =
-//		    std_gvar_samplerates_steps(ARRAY_AND_SIZE
-//					       (samplerates));
 		    std_gvar_samplerates(ARRAY_AND_SIZE
 					       (samplerates));
 		break;
@@ -458,10 +460,11 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_channel *ch;
 	struct sr_trigger *trigger;
 	char tmpstr[20];
+	char buf[32];
 	GSList *l;
 	int a_enabled = 0, d_enabled = 0, len;
 	serial = sdi->conn;
-	int i;
+	int i,num_read;
 	devc = sdi->priv;
 	sr_dbg("Enter acq start");
 	sr_dbg("dsbstart %d", devc->dig_sample_bytes);
@@ -493,8 +496,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				    (ch->enabled << ch->index);
 				a_enabled++;
 			}
-//           sr_dbg("A%d en %d mask 0x%X",ch->index,ch->enabled,devc->a_chan_mask);
-
 		}
 		if (ch->name[0] == 'D') {
 			devc->d_chan_mask &= ~(1 << ch->index);
@@ -502,7 +503,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				devc->d_chan_mask |=
 				    (ch->enabled << ch->index);
 				d_enabled++;
-				//            sr_dbg("D%d en %d mask 0x%X",ch->index,ch->enabled,devc->d_chan_mask);
 			}
 		}
 		sr_info("Channel enable masks D 0x%X A 0x%X",
@@ -515,7 +515,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		} else {
 
 		}
-	}			//for all channels
+	}//for all channels
 	//ensure data channels are continuous
 	int invalid = 0;
 	for (i = 0; i < 32; i++) {
@@ -530,7 +530,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			invalid = 1;
 		}
 	}
-	//recalculate bytes_per_slice.  
+	//recalculate bytes_per_slice based on which analog channels are enabled 
 	devc->bytes_per_slice = (a_enabled * devc->a_size);
 
 	for (i = 0; i < devc->num_d_channels; i += 7) {
@@ -545,20 +545,20 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_dbg("bps %d\n", devc->bytes_per_slice);
 
 	//Apply sample rate limits
+	//While earlier versions forced a lower sample rate, the PICO seems to allow
+	//ADC overclocking, and by not enforcing these limits it may support other devices.
+	//Thus call sr_err to get something into the device logs, but allowing it to progress.
 	if ((a_enabled == 3) && (devc->sample_rate > 160000)) {
 		sr_err
-		    ("ERROR:3 channel ADC sample rate dropped to 160khz");
-		devc->sample_rate = 160000;
+		    ("WARN:3 channel ADC sample rate above 160khz");
 	}
 	if ((a_enabled == 2) && (devc->sample_rate > 250000)) {
 		sr_err
-		    ("ERROR:2 channel ADC sample rate dropped to 250khz");
-		devc->sample_rate = 250000;
+		    ("WARN:2 channel ADC sample rate above 250khz");
 	}
 	if ((a_enabled == 1) && (devc->sample_rate > 500000)) {
 		sr_err
-		    ("ERROR:1 channel ADC sample rate dropped to 500khz");
-		devc->sample_rate = 500000;
+		    ("WARN:1 channel ADC sample rate above 500khz");
 	}
 	//Depending on channel configs, rates below 5ksps are possible
 	//but such a low rate can easily stream and this eliminates a lot
@@ -567,14 +567,15 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		sr_err("Sample rate override to min of 5ksps");
 		devc->sample_rate = 5000;
 	}
+	//While PICO specs a max clock ~120-125Mhz, it does overclock in many cases
+	//so leaving is a warning.
 	if (devc->sample_rate > 120000000) {
-		sr_err("Sample rate override to max of 120Msps");
-		devc->sample_rate = 12000000;
+		sr_err("WARN: Sample rate above 120Msps");
 	}
 	//It may take a very large number of samples to notice, but if digital and analog are enabled
 	//and either PIO or ADC are fractional the samples will skew over time.
 	//24Mhz is the max common divisor to the 120Mhz and 48Mhz ADC clock
-	//so force an integer divisor to it.
+	//so force an integer divisor to 24Mhz.
 	if ((a_enabled > 0) && (d_enabled > 0)) {
 		if (24000000ULL % (devc->sample_rate)) {
 			uint32_t commondivint =
@@ -592,9 +593,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 
 	}
-	//If we are only digital only or only analog print a warning that the 
+	//If we are only digital or only analog print a warning that the 
 	//fractional divisors aren't a true PLL fractional feedback loop and thus
 	//could have sample to sample variation.
+	//These warnings of course assume that the device is programmed with the expected ratios
+	//but non PICO implementations, or PICO implementations that use different divisors could avoid.
+	//This generally won't be a problem because most of the sampe_rate pulldown values are integer divisors.
 	if (a_enabled > 0) {
 		if (48000000ULL % (devc->sample_rate * a_enabled)) {
 			sr_warn
@@ -610,18 +614,38 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 	}
 
-	sprintf(&tmpstr[0], "R%llu\n", devc->sample_rate);
-	if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
-		sr_err("Sample rate to device failed");
-		return SR_ERR;
-	}
-	sprintf(tmpstr, "L%lld\n", devc->limit_samples);
+	
+	sprintf(tmpstr, "L%" PRIu64 "\n", devc->limit_samples);
 	if (send_serial_w_ack(serial, tmpstr) != SR_OK) {
 		sr_err("Sample limit to device failed");
 		return SR_ERR;
 	}
+	//To support future devices that may allow the analog scale/offset to change, call get_dev_cfg again to get new values
+	if(raspberrypi_pico_get_dev_cfg(sdi) != SR_OK){
+	  sr_err("get_dev_cfg failure on start");
+	  return SR_ERR;
+	}
 
-
+        //With all other params set, we use the final sample rate setting as an opportunity for the device
+	//to communicate any errors in configuration.
+	//A single  "*" indicates success.
+	//A "*" with subsequent data is success, but allows for the device to print something
+	//to the error console without aborting.
+	//A non "*" in the first character blocks the start
+	sprintf(tmpstr, "R%llu\n", devc->sample_rate);
+	num_read = send_serial_w_resp(serial, tmpstr, buf, 30);
+	buf[num_read]=0;
+	if((num_read>1)&&(buf[0]=='*')){
+	        sr_err("Sample rate to device success with resp %s",buf);
+	}
+	else if(!((num_read==1)&&(buf[0]=='*'))){
+		sr_err("Sample rate to device failed");
+	        if(num_read>0){
+		  buf[num_read]=0;
+		  sr_err("sample_rate error string %s",buf);
+		}
+		return SR_ERR;
+	}
 	devc->sent_samples = 0;
 	devc->byte_cnt = 0;
 	devc->bytes_avail = 0;
@@ -659,9 +683,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
         //While the driver supports the passing of trigger info to the device
         //it has been found that the sw overhead of supporting triggering and 
         //pretrigger buffer entries etc.. ends up slowing the cores down enough
-        //that the effect continous sample rate isn't much higher than that of sending
+        //that the effective continous sample rate isn't much higher than that of sending
         //untriggered samples across USB.  Thus this code will remain but likely may 
-        //not be used by the device.
+        //not be used by the device, unless HW based triggers are implemented
 	if ((trigger = sr_session_trigger_get(sdi->session))) {
                 if (g_slist_length(trigger->stages) > 1)
                         return SR_ERR_NA;
@@ -796,21 +820,16 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 		if (len)
 			sr_err("Dropping %d device bytes\n\r", len);
 	} while (len > 0);
-
-
-
 	if (devc->buffer) {
 		g_free(devc->buffer);
 		devc->buffer = NULL;
 	}
-
 	for (int i = 0; i < devc->num_a_channels; i++) {
 		if (devc->a_data_bufs[i]) {
 			g_free(devc->a_data_bufs[i]);
 			devc->a_data_bufs[i] = NULL;
 		}
 	}
-
 	if (devc->d_data_buf) {
 		g_free(devc->d_data_buf);
 		devc->d_data_buf = NULL;
@@ -820,10 +839,8 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 			g_free(devc->a_pretrig_bufs[i]);
 		devc->a_pretrig_bufs[i] = NULL;
 	}
-
 	serial = sdi->conn;
 	serial_source_remove(sdi->session, serial);
-
 	return SR_OK;
 }
 
