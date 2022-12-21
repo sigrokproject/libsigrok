@@ -105,13 +105,16 @@ The following drivers/devices do not need any firmware upload:
 
  - agilent-dmm
  - appa-55ii
+ - appa-dmm
  - arachnid-labs-re-load-pro
  - atten-pps3xxx
  - baylibre-acme
  - beaglelogic
+ - benning-dmm
  - cem-dt-885x
  - center-3xx (including all subdrivers)
  - chronovu-la
+ - cmt-35xx
  - colead-slm
  - conrad-digi-35-cpu
  - demo
@@ -125,10 +128,12 @@ The following drivers/devices do not need any firmware upload:
  - hantek-4032l
  - hp-3457a
  - hp-3478a
+ - ht-8100
  - hung-chang-dso-2100
  - ikalogic-scanalogic2
  - ikalogic-scanaplus
  - ipdbg-la
+ - iso-tech-idm50x
  - kecheng-kc-330b
  - kern-scale
  - korad-kaxxxxp
@@ -149,8 +154,10 @@ The following drivers/devices do not need any firmware upload:
  - rigol-dg
  - rigol-ds
  - rohde-schwarz-sme-0x
+ - rspro-dmm
  - scpi-dmm
  - scpi-pps
+ - sefram-7xxx
  - serial-dmm (including all subdrivers)
  - serial-lcr (including all subdrivers)
  - siglent-sds
@@ -159,6 +166,8 @@ The following drivers/devices do not need any firmware upload:
  - tondaj-sl-814
  - uni-t-dmm (including all subdrivers)
  - uni-t-ut32x
+ - voltcraft-vc930
+ - voltcraft-vc950
  - yokogawa-dlm
  - zeroplus-logic-cube
  - zketech-ebd-usb
@@ -202,7 +211,7 @@ Formal syntax for serial communication:
    path and serno are "greedy" (span to the end of the spec)
  - Bluetooth Classic and Bluetooth Low Energy (BLE):
    conn=bt/<conn>/<addr>
-   conn can be: rfcomm, ble122, nrf51, cc254x
+   conn can be: rfcomm, ble122, nrf51, cc254x, appa-dmm
    addr can be "dense" or separated, bt/cc254x/0123456789ab or
      bt/rfcomm/11-22-33-44-55-66 or bt/ble122/88:6b:12:34:56:78
      (note that colons may not be available when the conn= spec is taken
@@ -660,3 +669,25 @@ Example:
 
   $ sigrok-cli -c channel_config="Aux;0.1/T" --driver mooshimeter-dmm...
   $ sigrok-cli -c channel_config="A;;AC/V;;AC" --driver mooshimeter-dmm...
+
+APPA Multimeters
+----------------
+
+The driver provides support for all current APPA Multimeters with optical
+serial (EA232, USB) and Bluetooth LE connectivity. These devices are
+available under many brands. Information about the devices and brands, as
+well as further information about using this driver is documented here:
+
+https://sigrok.org/wiki/APPA_Multimeters
+
+The default name of the driver is "appa-dmm", for usability reasons
+a couple of aliases have been established ("benning-dmm", etc.).
+
+Available features:
+
+  - Live data at up to 100ms sample interval (data source "Live")
+  - Downloading stored single readings (data source "MEM")
+  - Downloading logging data (data source "LOG")
+
+The actual availability of a feature depends on hardware capabilities.
+If a feature is not present, an error is reported.

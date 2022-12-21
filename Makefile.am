@@ -123,6 +123,10 @@ libsigrok_la_SOURCES += \
 	src/scpi.h \
 	src/scpi/scpi.c \
 	src/scpi/scpi_tcp.c
+# TP support
+libsigrok_la_SOURCES += \
+	src/tp/appa.h \
+	src/tp/appa.c
 if NEED_RPC
 libsigrok_la_SOURCES += \
 	src/scpi/scpi_vxi.c \
@@ -237,6 +241,14 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/appa-55ii/protocol.h \
 	src/hardware/appa-55ii/protocol.c \
 	src/hardware/appa-55ii/api.c
+endif
+if HW_APPA_DMM
+src_libdrivers_la_SOURCES += \
+	src/hardware/appa-dmm/protocol_packet.h \
+	src/hardware/appa-dmm/protocol_tables.h \
+	src/hardware/appa-dmm/protocol.h \
+	src/hardware/appa-dmm/protocol.c \
+	src/hardware/appa-dmm/api.c
 endif
 if HW_ARACHNID_LABS_RE_LOAD_PRO
 src_libdrivers_la_SOURCES += \
