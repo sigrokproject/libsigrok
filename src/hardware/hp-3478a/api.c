@@ -102,7 +102,7 @@ static const char *digits[] = {
 	"3.5", "4.5", "5.5",
 };
 
-/** Mapping between devc->spec_digits and digits string. */
+/** Mapping between devc->digits and digits string. */
 static const char *digits_map[] = {
 	"", "", "", "", "3.5", "4.5", "5.5",
 };
@@ -227,7 +227,7 @@ static int config_get(uint32_t key, GVariant **data,
 		ret = hp_3478a_get_status_bytes(sdi);
 		if (ret != SR_OK)
 			return ret;
-		*data = g_variant_new_string(digits_map[devc->spec_digits]);
+		*data = g_variant_new_string(digits_map[devc->digits]);
 		break;
 	default:
 		return SR_ERR_NA;

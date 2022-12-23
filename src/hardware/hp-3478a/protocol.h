@@ -150,8 +150,16 @@ struct dev_context {
 	enum sr_mqflag acquisition_mq_flags;
 	enum sr_unit measurement_unit;
 	int range_exp;
-	uint8_t enc_digits;
-	uint8_t spec_digits;
+	/**
+	 * The total number of digits. Rounded up from the resoultion of
+	 * the device, so a 5.5 resolution would be 6 digits.
+	 */
+	uint8_t digits;
+	/**
+	 * The digits used for encoding.digits and spec.spec_digits in
+	 * the analog payload.
+	 */
+	uint8_t sr_digits;
 
 	enum terminal_connector terminal;
 	enum trigger_state trigger;
