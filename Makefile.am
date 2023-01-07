@@ -226,6 +226,12 @@ src_libdrivers_tail_la_SOURCES = src/driver_list_stop.c
 
 src_libdrivers_la_SOURCES = src/drivers.c
 
+if HW_AGILENT_54621D
+src_libdrivers_la_SOURCES += \
+	src/hardware/agilent-54621d/protocol.h \
+	src/hardware/agilent-54621d/protocol.c \
+	src/hardware/agilent-54621d/api.c
+endif
 if HW_AGILENT_DMM
 src_libdrivers_la_SOURCES += \
 	src/hardware/agilent-dmm/protocol.h \
