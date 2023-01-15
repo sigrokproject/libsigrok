@@ -24,6 +24,9 @@
 #define MAX_COMMAND_SIZE 128
 #define LOGIC_GET_THRESHOLD_SETTING "USER" //Threshold Setting that should be reported by the driver. Has to be included in logic_threshold. Has to be done in that hacky way since the device does only report threshold voltage level, yet not threshold setting
 
+#define WAIT_FOR_CAPTURE_COMPLETE_RETRIES 100
+#define WAIT_FOR_CAPTURE_COMPLETE_DELAY (100*1000)
+
 static const char *agilent_scpi_dialect[] = {
 	[SCPI_CMD_GET_DIG_DATA]		      = ":FORM UINT,8;:POD%d:DATA?",
 	[SCPI_CMD_GET_TIMEBASE]		      = ":TIM:SCAL?",				//OK
@@ -40,7 +43,7 @@ static const char *agilent_scpi_dialect[] = {
 	[SCPI_CMD_GET_TRIGGER_SOURCE]	      = ":TRIG:SOUR?",			//Fixed
 	[SCPI_CMD_SET_TRIGGER_SOURCE]	      = ":TRIG:SOUR %s",		//Fixed
 	[SCPI_CMD_GET_TRIGGER_SLOPE]	      = ":TRIG:SLOP?",			//Fixed
-	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:MODE EDGE;:TRIG:SLOP %s", 	//Fixed ?
+	[SCPI_CMD_SET_TRIGGER_SLOPE]	      = ":TRIG:MODE EDGE;:TRIG:SLOP %s", 	//Fixed
 	[SCPI_CMD_GET_TRIGGER_PATTERN]	      = ":TRIG:A:PATT:SOUR?",
 	[SCPI_CMD_SET_TRIGGER_PATTERN]	      = ":TRIG:A:TYPE LOGIC;" \
 					        ":TRIG:A:PATT:FUNC AND;" \
@@ -65,7 +68,7 @@ static const char *agilent_scpi_dialect[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_OSCILLOSCOPE,
-	SR_CONF_SAMPLERATE | SR_CONF_GET,
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_TIMEBASE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 	SR_CONF_NUM_HDIV | SR_CONF_GET,
 	SR_CONF_HORIZ_TRIGGERPOS | SR_CONF_GET | SR_CONF_SET,
@@ -76,6 +79,7 @@ static const uint32_t devopts[] = {
 	SR_CONF_PEAK_DETECTION | SR_CONF_GET | SR_CONF_SET,
 //	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
 	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_DATA_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST, 
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,				//The device doesn't actually support limiting samples, but will allways capture the maximum available amout of samples. However the driver can selectively transfere a subset of samples inorder to reduce transfer times.
 };
 
@@ -192,7 +196,7 @@ static const uint64_t vdivs[][2] = {
 };
 
 static const char *scope_analog_channel_names[] = {
-	"CH1", "CH2",
+	"CHAN1", "CHAN2",
 };
 
 static const char *scope_digital_channel_names[] = {
@@ -248,28 +252,6 @@ static struct scope_config scope_models[] = {
 	//ToDo: Implement other scope models
 };
 
-SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
-{
-	const struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-
-	(void)fd;
-
-	sdi = cb_data;
-	if (!sdi)
-		return TRUE;
-
-	devc = sdi->priv;
-	if (!devc)
-		return TRUE;
-
-	if (revents == G_IO_IN) {
-		/* TODO */
-	}
-
-	return TRUE;
-}
-
 SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -288,7 +270,8 @@ SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi)
 
 	state->sample_rate = tmp_int;
 
-
+	if(devc->sample_rate_limit > tmp_int)
+		devc->sample_rate_limit = tmp_int;
 
 	return SR_OK;
 }
@@ -337,6 +320,7 @@ SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi)
 		cg_name = (*scope_models[model_index].analog_names)[i];
 		devc->analog_groups[i] = sr_channel_group_new(sdi, cg_name, NULL);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
+		//devc->analog_groups[i]->priv = (void *)g_malloc0(sizeof(struct analog_channel_transfer_info));
 	}
 
 	/* Add digital channel groups. */
@@ -365,6 +349,9 @@ SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi)
 	devc->model_config = &scope_models[model_index];
 	devc->samples_limit = 2000;
 	devc->frame_limit = 0;
+	devc->data_source = DATA_SOURCE_LIVE;
+	devc->data = g_malloc(2000*sizeof(float));
+	devc->sample_rate_limit = SR_MHZ(200);
 
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
 		return SR_ERR_MALLOC;
@@ -709,4 +696,271 @@ static int digital_channel_state_get(struct sr_dev_inst *sdi, const struct scope
 	}
 	return SR_OK;
 }
+
+/* Queue data of one channel group, for later submission. */
+SR_PRIV void agilent_54621d_queue_logic_data(struct dev_context *devc,
+				  size_t group, GByteArray *pod_data)
+{
+	size_t size;
+	GByteArray *store;
+	uint8_t *logic_data;
+	size_t idx, logic_step;
+
+	/*
+	 * Upon first invocation, allocate the array which can hold the
+	 * combined logic data for all channels. Assume that each channel
+	 * will yield an identical number of samples per receive call.
+	 *
+	 * As a poor man's safety measure: (Silently) skip processing
+	 * for unexpected sample counts, and ignore samples for
+	 * unexpected channel groups. Don't bother with complicated
+	 * resize logic, considering that many models only support one
+	 * pod, and the most capable supported models have two pods of
+	 * identical size. We haven't yet seen any "odd" configuration.
+	 */
+	if (!devc->logic_data) {
+		size = pod_data->len * devc->pod_count; //ToDo: check if podcount is correctly set
+		store = g_byte_array_sized_new(size);
+		memset(store->data, 0, size);
+		store = g_byte_array_set_size(store, size);
+		devc->logic_data = store;
+	} else {
+		store = devc->logic_data;
+		size = store->len / devc->pod_count;
+		if (group >= devc->pod_count)
+			return;
+	}
+
+	/*
+	 * Fold the data of the most recently received channel group into
+	 * the storage, where data resides for all channels combined.
+	 */
+	logic_data = store->data;
+	logic_data += group;
+	logic_step = devc->pod_count;
+	for (idx = 0; idx < pod_data->len; idx++) {
+		*logic_data = pod_data->data[idx];
+		logic_data += logic_step;
+	}
+
+	/* Truncate acquisition if a smaller number of samples has been requested. */
+	if (devc->samples_limit > 0 && devc->logic_data->len > devc->samples_limit * devc->pod_count)
+		devc->logic_data->len = devc->samples_limit * devc->pod_count;
+}
+
+/* Submit data for all channels, after the individual groups got collected. */
+SR_PRIV void agilent_54621d_send_logic_packet(struct sr_dev_inst *sdi,
+				   struct dev_context *devc)
+{
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_logic logic;
+
+	if (!devc->logic_data)
+		return;
+
+	logic.data = devc->logic_data->data;
+	logic.length = devc->logic_data->len;
+	logic.unitsize = devc->pod_count;
+
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+
+	sr_session_send(sdi, &packet);
+}
+
+/* Undo previous resource allocation. */
+SR_PRIV void agilent_54621d_cleanup_logic_data(struct dev_context *devc)
+{
+
+	if (devc->logic_data) {
+		g_byte_array_free(devc->logic_data, TRUE);
+		devc->logic_data = NULL;
+	}
+	/*
+	 * Keep 'pod_count'! It's required when more frames will be
+	 * received, and does not harm when kept after acquisition.
+	 */
+}
+
+
+SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
+{
+	struct sr_channel *ch;
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct scope_state *state;
+	struct sr_datafeed_packet packet;
+	GByteArray *data;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+	struct sr_datafeed_logic logic;
+	size_t group;
+	int i;
+	struct analog_channel_transfer_info *info;
+	signed int tmp_int;
+	char command[MAX_COMMAND_SIZE];
+
+	float timebase_offset;
+
+	float tmp_float;
+
+	(void)fd;
+	(void)revents;
+
+	if (!(sdi = cb_data))
+		return TRUE;
+
+	if (!(devc = sdi->priv))
+		return TRUE;
+
+	ch = devc->current_channel->data;
+	state = devc->model_state;
+
+		
+
+	switch (ch->type){
+		case SR_CHANNEL_ANALOG:
+			info = (struct analog_channel_transfer_info *)ch->priv;
+			data = NULL;
+			if(sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK){
+				if(data)
+					g_byte_array_free(data, TRUE);
+				sr_err("Failed to retreive block");
+				devc->failcount++;
+				if(devc->failcount>=3){
+					sr_scpi_send(sdi->conn, ":WAV:DATA?");
+					devc->failcount=0;
+				}
+				
+				return TRUE;
+			}
+			devc->failcount=0;
+
+			//Append downloaded block to buffer -- This should no longer be neccessary
+			//g_byte_array_append(devc->buffer, data->data, data->len);
+
+
+			sr_dbg("yRef: %d, yInc: %f, yOri: %f", info->yReference, info->yIncrement, info->yOrigin);
+			for(i = 0; i<data->len; i++){
+				tmp_int=(int8_t)data->data[i];
+				devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
+			}
+			sr_analog_init(&analog, &encoding, &meaning, &spec, 2); //ToDo: 2 digits is just placeholder. needs to be calculated correctly
+			analog.meaning->channels = g_slist_append(NULL, ch);
+			analog.num_samples = data->len;
+			analog.data = devc->data;
+			analog.meaning->mq = SR_MQ_VOLTAGE;
+			analog.meaning->unit = SR_UNIT_VOLT;
+			analog.meaning->mqflags = 0;
+
+			packet.type = SR_DF_ANALOG;
+			packet.payload = &analog;
+			sr_session_send(sdi, &packet);
+			
+			g_slist_free(analog.meaning->channels);
+
+			
+			g_byte_array_free(data, TRUE);
+			data = NULL;
+			break;
+		case SR_CHANNEL_LOGIC:
+			data = NULL;
+			if(sr_scpi_get_block(sdi->conn, NULL, &data) != SR_OK){
+				if(data)
+					g_byte_array_free(data, TRUE);
+				sr_err("Failed to retreive block");
+				devc->failcount++;
+				if(devc->failcount>=3){
+					sr_scpi_send(sdi->conn, ":WAV:DATA?");
+					devc->failcount=0;
+				}
+				
+				return TRUE;
+			}
+			devc->failcount=0;
+
+			group = ch->index / DIGITAL_CHANNELS_PER_POD;
+			agilent_54621d_queue_logic_data(devc, group, data);
+
+
+			break;
+		default:
+			sr_err("Invalid channel type");
+			break;
+	}
+
+	//if more channels need to be downloaded for the current frame
+	if(devc->current_channel->next){
+		devc->current_channel = devc->current_channel->next;
+		//sr_scpi_send(sdi->conn, ":WAV:SOUR %s;DATA?", ((struct sr_channel *)devc->current_channel->data)->name);
+		ch = (struct sr_channel *)devc->current_channel->data;
+		if(ch->type == SR_CHANNEL_LOGIC){
+			group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
+			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d;DATA?", group);
+		} else {
+			g_snprintf(command, sizeof(command), ":WAV:SOUR %s;UNS 0;DATA?", ch->name);	
+		}
+		sr_scpi_send(sdi->conn, command);
+		return TRUE;
+	}
+	agilent_54621d_send_logic_packet(sdi, devc);
+
+	//if more blocks need to be downloaded
+	sr_dbg("Downloaded %d/%d datablocks", devc->num_blocks_downloaded, devc->num_block_to_download);
+	if(devc->num_blocks_downloaded < devc->num_block_to_download){
+		devc->num_blocks_downloaded++;
+		devc->current_channel = devc->enabled_channels;
+		timebase_offset = devc->timebaseLbound+(devc->num_blocks_downloaded+0.5)*devc->block_deltaT;
+		sr_scpi_send(sdi->conn, ":TIM:WIND:POS %f", timebase_offset);
+		//sr_scpi_send(sdi->conn, ":WAV:SOUR %s;DATA?", ((struct sr_channel *)devc->current_channel->data)->name);
+		ch = (struct sr_channel *)devc->current_channel->data;
+		if(ch->type == SR_CHANNEL_LOGIC){
+			group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
+			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d;DATA?", group);
+		} else {
+			g_snprintf(command, sizeof(command), ":WAV:SOUR %s;UNS 0;DATA?", ch->name);	
+		}
+		sr_scpi_send(sdi->conn, command);
+		
+		return TRUE;
+	} else {
+		agilent_54621d_cleanup_logic_data(devc);
+		std_session_send_df_frame_end(sdi);
+		sr_dev_acquisition_stop(sdi);
+		return TRUE;
+	}
+}
+
+SR_PRIV int agilent_54621d_request_data(const struct sr_dev_inst *sdi)
+{
+	
+}
+
+
+
+/*static int wait_for_capture_complete(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	int tmp_int;
+	int i;
+	gboolean acquisition_complete;
+
+	if(!(devc = sdi->priv))
+		return SR_ERR;
+
+	for(i = 0; i<WAIT_FOR_CAPTURE_COMPLETE_RETRIES; i++){
+		sr_scpi_get_int(scpi, ":OPER?", tmp_int);
+		if(!(tmp_int & 8)){		//if bit 3 is unset -> device is stopped. This should be the case once the acquisition is complete
+			return SR_OK;
+		}
+		g_usleep(WAIT_FOR_CAPTURE_COMPLETE_DELAY);
+	}
+	
+	sr_err("Capture Timed out");
+	return SR_ERR;
+
+}*/
 

@@ -20,6 +20,10 @@
 #include <config.h>
 #include "protocol.h"
 #include "scpi.h"
+#include <math.h>
+
+#define WAIT_FOR_CAPTURE_COMPLETE_RETRIES 100
+#define WAIT_FOR_CAPTURE_COMPLETE_DELAY (100*1000)
 
 static struct sr_dev_driver agilent_54621d_driver_info;
 
@@ -42,6 +46,49 @@ enum {
 	CG_NONE,
 	CG_ANALOG,
 	CG_DIGITAL,
+};
+
+//Do not change order
+static const char *data_sources[] = {
+	"Live",
+	"Memory",
+};
+
+static const char *data_channels[] = {
+	"CHAN1",
+	"CHAN2",
+	"POD1",
+	"POD2",
+};
+
+static const uint64_t samplerates[] = {
+	SR_HZ(1),
+	SR_MHZ(200),
+	SR_HZ(1),
+};
+
+static const uint64_t samplerates_literal[] = {
+	SR_KHZ(2),
+	SR_KHZ(4),
+	SR_KHZ(5),
+	SR_KHZ(10),
+	SR_KHZ(20),
+	SR_KHZ(40),
+	SR_KHZ(50),
+	SR_KHZ(100),
+	SR_KHZ(200),
+	SR_KHZ(400),
+	SR_KHZ(500),
+	SR_MHZ(1),
+	SR_MHZ(2),
+	SR_MHZ(4),
+	SR_MHZ(5),
+	SR_MHZ(10),
+	SR_MHZ(20),
+	SR_MHZ(25),
+	SR_MHZ(50),  //Can appear on device
+	SR_MHZ(100), //Can appear on device
+	SR_MHZ(200), //Can appear on device
 };
 
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
@@ -225,7 +272,7 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_string((*model->coupling_options)[state->analog_channels[idx].coupling]);
 			break;
 		case SR_CONF_SAMPLERATE:
-			*data = g_variant_new_uint64(state->sample_rate);
+			*data = g_variant_new_uint64(devc->sample_rate_limit); //state->sample_rate
 			break;
 		case SR_CONF_LOGIC_THRESHOLD:
 			if (!cg)
@@ -252,6 +299,12 @@ static int config_get(uint32_t key, GVariant **data,
 		case SR_CONF_LIMIT_SAMPLES:
 			*data = g_variant_new_uint64(devc->samples_limit);
 			break;
+		case SR_CONF_DATA_SOURCE:
+			if (devc->data_source == DATA_SOURCE_LIVE)
+				*data = g_variant_new_string("Live");
+			else if (devc->data_source == DATA_SOURCE_MEMORY)
+				*data = g_variant_new_string("Memory");
+			break;
 		//ToDo: Check if all options are implemented
 		default:
 			sr_err("could not find requested parameter: %d", key);
@@ -272,6 +325,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct scope_state *state;
 	double tmp_d, tmp_d2;
 	gboolean update_sample_rate, tmp_bool;
+	int tmp_int;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -286,8 +340,24 @@ static int config_set(uint32_t key, GVariant *data,
 	update_sample_rate = FALSE;
 
 	switch (key) {
+	case SR_CONF_SAMPLERATE:
+		if(state->sample_rate < g_variant_get_uint64(data)){
+			devc->sample_rate_limit = state->sample_rate;
+			ret = SR_OK; 
+		} else {
+			devc->sample_rate_limit = g_variant_get_uint64(data);
+			ret = SR_OK;
+		}
+		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		devc->samples_limit = g_variant_get_uint64(data);
+		tmp_int = g_variant_get_uint64(data);
+		tmp_d = (double)tmp_int/devc->sample_rate_limit;														 //total time to be transmitted
+		tmp_d2 = 10*((float) (*model->timebases)[state->timebase][0] / (*model->timebases)[state->timebase][1]); //total time shown in display
+		if(tmp_d > tmp_d2){			//dont allow to transmit more data than shown in the main view. One could zoom out to increase the amount of data shown, but implementing that would probably be a bitch so this driver wont allow to download more data than shown in main view
+			devc->samples_limit = tmp_d2*devc->sample_rate_limit;
+		} else {
+			devc->samples_limit = g_variant_get_uint64(data);
+		}
 		ret = SR_OK;
 		break;
 	case SR_CONF_VDIV:
@@ -458,52 +528,20 @@ static int config_set(uint32_t key, GVariant *data,
 			return SR_ERR_ARG;
 		if ((j = std_cg_idx(cg, devc->digital_groups, model->digital_pods)) < 0)
 			return SR_ERR_ARG;
-		tmp_d = g_variant_get_double(data);
-		if (tmp_d < -2.0 || tmp_d > 8.0)
+		//ToDo: implement logic
+		ret = SR_OK;
+		break;
+	case SR_CONF_DATA_SOURCE:
+		tmp_str = g_variant_get_string(data, NULL);
+		sr_dbg("Setting data source to: '%s'", tmp_str);
+		if(!strcmp(tmp_str, "Live"))
+			devc->data_source = DATA_SOURCE_LIVE;
+		else if(!strcmp(tmp_str, "Memory"))
+			devc->data_source = DATA_SOURCE_MEMORY;
+		else {
+			sr_err("Unknown data source: '%s'", tmp_str);
 			return SR_ERR;
-		g_ascii_formatd(float_str, sizeof(float_str), "%E", tmp_d);
-		/* Check if the threshold command is based on the POD or digital channel index. */
-		if (model->logic_threshold_for_pod)
-			idx = j + 1;
-		else
-			idx = j * DIGITAL_CHANNELS_PER_POD;
-		/* Try to support different dialects exhaustively. */
-		for (i = 0; i < model->num_logic_threshold; i++) {
-			if (!strcmp("USER2", (*model->logic_threshold)[i])) {
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
-					   idx, 2, float_str); /* USER2 */
-				g_snprintf(command2, sizeof(command2),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
-					   idx, "USER2");
-				break;
-			}
-			if (!strcmp("USER", (*model->logic_threshold)[i])) {
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
-					   idx, float_str);
-				g_snprintf(command2, sizeof(command2),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
-					   idx, "USER");
-				break;
-			}
-			if (!strcmp("MAN", (*model->logic_threshold)[i])) {
-				g_snprintf(command, sizeof(command),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_USER_THRESHOLD],
-					   idx, float_str);
-				g_snprintf(command2, sizeof(command2),
-					   (*model->scpi_dialect)[SCPI_CMD_SET_DIG_POD_THRESHOLD],
-					   idx, "MAN");
-				break;
-			}
-		}
-		if (sr_scpi_send(sdi->conn, command) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
-			return SR_ERR;
-		if (sr_scpi_send(sdi->conn, command2) != SR_OK ||
-		    sr_scpi_get_opc(sdi->conn) != SR_OK)
-			return SR_ERR;
-		state->digital_pods[j].user_threshold = tmp_d;
+		} 
 		ret = SR_OK;
 		break;
 	default:
@@ -536,6 +574,9 @@ static int config_list(uint32_t key, GVariant **data,
 
 	ret = SR_OK;
 	switch (key) {
+		case SR_CONF_SAMPLERATE:
+			*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates)); 
+			break;
 		case SR_CONF_SCAN_OPTIONS:
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(scanopts));
 			break;
@@ -589,6 +630,9 @@ static int config_list(uint32_t key, GVariant **data,
 				return SR_ERR_ARG;
 			*data = g_variant_new_strv(*model->logic_threshold, model->num_logic_threshold);
 			break;
+		case SR_CONF_DATA_SOURCE:
+			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
+			break;
 	/* TODO Check if all relevant option are present here */
 	default:
 		sr_info("Trying to query for config list for:");
@@ -607,9 +651,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct scope_state *state;
 	const struct scope_config *model;
-	int ret;
+	int ret, i;
 	char *cmd;
 	gboolean state_changed;
+	volatile int tmp_int;
+	gboolean acq_complete;
+	gboolean tmp_bool;
+	char command[MAX_COMMAND_SIZE];
+	float xinc;
+	int points;
+	char *tmp_string;
+	float tmp_float;
+	struct analog_channel_transfer_info *encoding;
+	int xref;
+	gboolean channel_available;
+	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
+	size_t group, pod_count;
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -619,9 +676,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->num_samples = 0;
 	devc->num_frames = 0;
 
+	//reset to empty
+	for (group = 0; group < ARRAY_SIZE(digital_added); group++)
+		digital_added[group] = FALSE;
+	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
 	state_changed = FALSE;
 
+	pod_count = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		sr_dbg("initializing channel %s", ch->name);
@@ -637,7 +699,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				state_changed = TRUE;
 			}	
 		} else if (ch->type == SR_CHANNEL_LOGIC) {
-			devc->enabled_channels = g_slist_append(devc->enabled_channels, ch);
+			group = ch->index / DIGITAL_CHANNELS_PER_POD;
+			if(ch->enabled && !digital_added[group]){ 						//Only add a single channel per pod
+				devc->enabled_channels = g_slist_append(devc->enabled_channels, ch);
+				digital_added[group] = TRUE;
+				pod_count++;
+			}									
 			//Enable/disable channel if neccessary
 			if(ch->enabled != state->digital_channels[ch->index]) {
 				if( sr_scpi_send(scpi, (*model->scpi_dialect)[SCPI_CMD_SET_DIG_CHAN_STATE], ch->index, ch->enabled ? "ON" : "OFF") != SR_OK || 
@@ -648,15 +715,201 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 		}	
 	}
+	devc->current_channel = devc->enabled_channels;
+	devc->pod_count = pod_count;
+
+	//ToDo: this is a hacky workaround to get what channel groups need to be downloaded. Ther surely is a better way to do this.
+	//ToDo2: Is this even used?
+	devc->channels_to_download = NULL;
+	for(i = 0; i<ARRAY_SIZE(data_channels); i++){
+		g_snprintf(command, sizeof(command), "%s:DISP?", data_channels[i]);
+		if(sr_scpi_get_bool(scpi, command, &tmp_bool) != SR_OK){
+			sr_err("Couldn't get state of channel group");
+			return SR_ERR;
+		}
+		if(tmp_bool)
+			devc->channels_to_download = g_slist_append(devc->channels_to_download, data_channels[i]);
+	}
 
 	//Sample rate needs to be updated if channels have been changed, since in some channel configurations sample rate is reduced
-	if(state_changed)
+	if(TRUE){
+		sr_scpi_send(scpi, ":RUN");		//Device needs to run in order to get the correct sample rate
+		if(sr_scpi_get_opc(scpi) != SR_OK){
+			sr_err("Couldnt set device to running");
+			return SR_ERR;
+		}
 		if(agilent_54621d_update_sample_rate(sdi) != SR_OK)
 			return SR_ERR;
+	}
 
-	//ToDo: Start capture
+	if(devc->data_source == DATA_SOURCE_LIVE){
+		sr_scpi_send(scpi, ":SING");
+		acq_complete = FALSE;
+		for(i = 0; i<WAIT_FOR_CAPTURE_COMPLETE_RETRIES; i++){
+			sr_scpi_get_int(scpi, ":OPER?", &tmp_int);
+			if(!(tmp_int & 8)){		//if bit 3 is unset -> device is stopped. This should be the case once the acquisition is complete
+				acq_complete = TRUE;
+				sr_dbg("Acquisition complete");
+				break;
+			}
+			g_usleep(WAIT_FOR_CAPTURE_COMPLETE_DELAY);
+			if(agilent_54621d_update_sample_rate(sdi) != SR_OK)
+				return SR_ERR;
+		}
+		if(!acq_complete){
+			sr_err("Capture Timed out");
+			return SR_ERR;
+		}
+	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
+		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", devc->channels_to_download[0]);
+		sr_scpi_send(scpi, command);
+		sr_scpi_get_int(scpi, ":WAV:POIN? MAX", &tmp_int);
+		if(tmp_int <= 0){
+			sr_err("No waveform in Memory");
+			return SR_OK;
+		}
+	} else {
+		sr_err("Unknown datasource");
+		return SR_ERR;
+	}
 
+	sr_dbg("determine steps to download data");
+
+	/*
+	* Downloading data is done in a quite manual way to speed up downloading. The device only allows downloading upto 2k points from the view-buffer, or the complete captured waveform (~1m points)
+	* The logic is, that if we want less than the complete waveform we can switch to window view, calculate the settings to have the window show exactly 2k points of the wv, and then transfer these 2k points.
+	* Then we can move the window delay and download the next 2k points. We can repeat this until we have the desired amount of points. 
+	* This is also how the scope transfers the full waveform, however transfering the full wavefrom cannot be interrupted, so the manual approach is better
+	* We save the number of samples already downloaded in devc->num_samples, and the samples themselves in devc->buffer until all data for a channel is ready
+	*/
+
+	//Reset parameters
+	devc->num_samples = 0;
+	devc->num_blocks_downloaded = 0;
+	devc->buffer = g_malloc0(sizeof(char) * devc->samples_limit);
+	devc->headerSent = FALSE;
+
+	//set waveform source channel to the first channel to be downloaded
+	ch = (struct sr_channel *)devc->enabled_channels->data;
+	if(ch->type == SR_CHANNEL_LOGIC){
+		group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
+		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d", group);
+	} else {
+		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", ch->name);	
+	}
+	sr_scpi_send(scpi, command);
+
+	//get required data for calculations
+	sr_scpi_send(scpi, ":TIM:MODE MAIN;:WAV:POIN MAX");
+	sr_scpi_send(scpi, ":WAV:UNS 0");
+	g_usleep(300000);											//Apparently the device needs a little time to do the wav:sour and tim:mode setup before requesting wav:poin? max. waiting 30ms should be enough
+	if(sr_scpi_get_int(scpi, ":WAV:POIN? MAX", &points) != SR_OK){
+		sr_err("Couldn't get max Points");
+		return SR_ERR;
+	}
+	if(sr_scpi_get_float(scpi, ":WAV:XINC?", &xinc) != SR_OK){	//ToDo: is currently unneccessarysince the value needs to be updated after zooming
+		sr_err("Couldn't get x inc");
+		return SR_ERR;
+	}
+	if(sr_scpi_get_string(scpi, ":TIM:REF?", &tmp_string) != SR_OK){
+		sr_err("Couldn't get time ref");
+		return SR_ERR;
+	}
+	if(sr_scpi_get_float(scpi, ":TIM:SCAL?", &tmp_float) != SR_OK){
+		sr_err("Couldn't get time scale");
+		return SR_ERR;
+	}
+
+
+	//set main timebase to show entire waveform. This is neccessary since the the windowed view can not be delayed outside the main view
+	//g_snprintf(command, sizeof(command), ":TIM:RANG %f", (1.0/((struct scope_state*)devc->model_state)->sample_rate)*points);
+	//sr_scpi_send(scpi, command);
+	sr_dbg("time ref is %s", tmp_string);
+	if(!strcmp(tmp_string, "LEFT")){
+		sr_dbg("left");
+		devc->timebaseLbound = tmp_float*-1;
+	} else if(!strcmp(tmp_string, "CENT")){
+		sr_dbg("cent");
+		devc->timebaseLbound = tmp_float*-5;
+	} else {
+		sr_dbg("right");
+		devc->timebaseLbound = tmp_float*-9;
+	}
+	devc->block_deltaT = 2000.0/((int)devc->sample_rate_limit);
+	
+	devc->num_block_to_download = ceil(devc->samples_limit/2000); //ToDo: This needs some sanitization to make sure only available points are being downloaded
+	sr_dbg("Sample rate is: %d", state->sample_rate);
+	//Setup window view for first block download
+	g_snprintf(command, sizeof(command), ":TIM:MODE WIND;:TIM:WIND:RANG %f;:TIM:WIND:POS %f", devc->block_deltaT, devc->timebaseLbound+0.5*devc->block_deltaT);
+	sr_scpi_send(scpi, command);
+
+	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound);
+
+	sr_dbg("beginning data download");
+	//make final setup before download
+	sr_scpi_send(scpi, ":WAV:FORM BYTE;BYT MSBF;UNS 0;POIN 2000");	//ToDo: when downloading high resolution data format needs to be word.
+
+	//get header data and store it in channel->priv so the receive_data function can submit it. This only needs to be done for analog channels
+	while(devc->current_channel){
+		ch = (struct sr_channel *)devc->current_channel->data; 
+		if(ch->type == SR_CHANNEL_ANALOG){
+			ch->priv = (void *)g_malloc0(sizeof(struct analog_channel_transfer_info));
+			encoding = (struct analog_channel_transfer_info *)ch->priv;
+			sr_scpi_send(scpi, ":WAV:SOUR %s", ch->name);
+			
+			//get signed
+			sr_scpi_get_bool(scpi, ":WAV:UNS?", &tmp_bool);
+			encoding->is_unsigned = tmp_bool;
+			
+			//get transmission format. Byte is 1 byte per point, Word is 2 Byte per point
+			sr_scpi_get_string(scpi, ":WAV:FORM?", &tmp_string);
+			if(!strcmp("BYTE", tmp_string))
+				encoding->is_eightbit = TRUE;
+			else if(!strcmp("WORD", tmp_string))
+				encoding->is_eightbit = FALSE;
+			else{
+				sr_err("unknown transmission format");
+			}
+
+			sr_scpi_get_float(scpi, ":WAV:YINC?", &tmp_float);
+			encoding->yIncrement = tmp_float;
+
+			sr_scpi_get_float(scpi, ":WAV:YOR?", &tmp_float);
+			encoding->yOrigin = tmp_float;
+
+			sr_scpi_get_int(scpi, ":WAV:YREF?", &tmp_int);
+			sr_dbg("yRef is: %d", tmp_int);
+			encoding->yReference = tmp_int;
+
+			//ToDo: read data and write to encoding. dont forget to set and reset wav:source
+			sr_dbg("Reading data complete");
+		}
+		devc->current_channel = devc->current_channel->next;	
+	};
+	devc->current_channel = devc->enabled_channels;
+	ch = (struct sr_channel *)devc->current_channel->data;
+	devc->failcount = 0;
+	
+	//set waveform source channel to the first channel to be downloaded
+	ch = (struct sr_channel *)devc->enabled_channels->data;
+	if(ch->type == SR_CHANNEL_LOGIC){
+		group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
+		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d", group);
+	} else {
+		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", ch->name);	
+	}
+	sr_scpi_send(scpi, command);
+
+	//register callback
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100, agilent_54621d_receive_data, (void *)sdi);
+	
 	std_session_send_df_header(sdi);
+	std_session_send_df_frame_begin(sdi);
+	
+	//request data from instrument
+	sr_scpi_send(scpi, ":WAV:DATA?");
+
+
 
 	return SR_OK;
 
@@ -664,11 +917,18 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
-	/* TODO: stop acquisition. */
+	struct dev_context *devc;
+	struct sr_scpi_dev_inst *scpi;
 
-	(void)sdi;
+	devc = sdi->priv;
 
-	return SR_OK;
+	std_session_send_df_end(sdi);
+
+	g_slist_free(devc->enabled_channels);
+	devc->enabled_channels = NULL;
+	scpi = sdi->conn;
+	sr_scpi_source_remove(sdi->session, scpi);
+	sr_scpi_send(scpi, ":TIM:MODE MAIN");
 }
 
 static struct sr_dev_driver agilent_54621d_driver_info = {

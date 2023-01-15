@@ -38,6 +38,11 @@
 #define MAX_DIGITAL_GROUP_COUNT		2
 
 
+enum data_source {
+	DATA_SOURCE_LIVE,
+	DATA_SOURCE_MEMORY,
+};
+
 struct scope_config {
 	const char *name[MAX_INSTRUMENT_VERSIONS];
 	const uint8_t analog_channels;
@@ -91,6 +96,14 @@ struct analog_channel_state {
     char probe_unit;
 };
 
+struct analog_channel_transfer_info {
+	int yReference;
+	float yOrigin;
+	float yIncrement;
+	gboolean is_unsigned;
+	gboolean is_eightbit;
+};
+
 struct digital_pod_state {
     gboolean state;
 
@@ -127,6 +140,8 @@ struct dev_context {
     struct sr_channel_group **analog_groups;
     struct sr_channel_group **digital_groups;
 
+	enum data_source data_source;
+
     GSList *enabled_channels;
     GSList *current_channel;
     uint64_t num_samples;
@@ -136,18 +151,33 @@ struct dev_context {
     uint64_t frame_limit;
 
     size_t pod_count;
-    GByteArray *logic_data;
+
+	//helper variables for data download
+	uint64_t sample_rate_limit;
+    GByteArray *buffer;
+	GSList *channels_to_download;
+	int num_block_to_download;
+	int num_blocks_downloaded;
+	float block_deltaT;
+	float timebaseLbound;
+	gboolean headerSent;
+	float *data;
+	int failcount;
+	GByteArray *logic_data;
 };
 
 SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int agilent_54621d_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_scope_state_get(struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi);
 static struct scope_state *scope_state_new(const struct scope_config *config);
+
 static int analog_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
 static int digital_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
 static int array_float_get(gchar *value, const uint64_t array[][2], int array_len, unsigned int *result);
 static void scope_state_dump(const struct scope_config *config, struct scope_state *state);
 static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi, const char *command, const char *(*array)[], unsigned int n, int *result);
+//static int wait_for_capture_complete(const struct sr_dev_inst *sdi);
 
 #endif
