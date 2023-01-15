@@ -667,6 +667,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	gboolean channel_available;
 	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
 	size_t group, pod_count;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_header header;
+	struct timeval timeToTrigger;
+
 
 	scpi = sdi->conn;
 	devc = sdi->priv;
@@ -720,7 +724,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	//ToDo: this is a hacky workaround to get what channel groups need to be downloaded. Ther surely is a better way to do this.
 	//ToDo2: Is this even used?
-	devc->channels_to_download = NULL;
+	/*devc->channels_to_download = NULL;
 	for(i = 0; i<ARRAY_SIZE(data_channels); i++){
 		g_snprintf(command, sizeof(command), "%s:DISP?", data_channels[i]);
 		if(sr_scpi_get_bool(scpi, command, &tmp_bool) != SR_OK){
@@ -729,7 +733,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		}
 		if(tmp_bool)
 			devc->channels_to_download = g_slist_append(devc->channels_to_download, data_channels[i]);
-	}
+	}*/
 
 	//Sample rate needs to be updated if channels have been changed, since in some channel configurations sample rate is reduced
 	if(TRUE){
@@ -761,7 +765,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		}
 	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
-		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", devc->channels_to_download[0]);
+		ch = (struct sr_channel *)devc->current_channel->data;
+		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", ch->name);
 		sr_scpi_send(scpi, command);
 		sr_scpi_get_int(scpi, ":WAV:POIN? MAX", &tmp_int);
 		if(tmp_int <= 0){
@@ -903,7 +908,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	//register callback
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100, agilent_54621d_receive_data, (void *)sdi);
 	
-	std_session_send_df_header(sdi);
+	
+	packet.type = SR_DF_HEADER;
+	packet.payload = (uint8_t *)&header;
+	header.feed_version = 1;
+	header.starttime.tv_sec = 0;
+	header.starttime.tv_usec = 1000000.0*devc->timebaseLbound;
+	sr_dbg("Pretrigger time: %d", header.starttime.tv_usec);
+	sr_session_send(sdi, &packet);
+	
+
+	//std_session_send_df_header(sdi);
 	std_session_send_df_frame_begin(sdi);
 	
 	//request data from instrument
@@ -937,7 +952,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	scpi = sdi->conn;
 	sr_scpi_source_remove(sdi->session, scpi);
 	sr_scpi_send(scpi, ":SYST:DSP \"\"");
-	sr_scpi_send(scpi, ":TIM:RANG %f; :TIM:DEL 0", timebase);
+	sr_scpi_send(scpi, ":TIM:SCAL %f; :TIM:DEL 0", timebase);
 	sr_scpi_send(scpi, ":TIM:MODE MAIN");
 }
 
