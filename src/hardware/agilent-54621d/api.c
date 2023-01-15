@@ -840,7 +840,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->num_block_to_download = ceil(devc->samples_limit/2000); //ToDo: This needs some sanitization to make sure only available points are being downloaded
 	sr_dbg("Sample rate is: %d", state->sample_rate);
 	//Setup window view for first block download
-	g_snprintf(command, sizeof(command), ":TIM:MODE WIND;:TIM:WIND:RANG %f;:TIM:WIND:POS %f", devc->block_deltaT, devc->timebaseLbound+0.5*devc->block_deltaT);
+	g_snprintf(command, sizeof(command), ":TIM:MODE MAIN;:TIM:RANG %f;:TIM:DEL %f", devc->block_deltaT, devc->timebaseLbound+0.5*devc->block_deltaT);
 	sr_scpi_send(scpi, command);
 
 	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound);
@@ -907,6 +907,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_frame_begin(sdi);
 	
 	//request data from instrument
+	sr_scpi_send(scpi, ":SYST:DSP \"Reading Block 1/%d\"", devc->num_block_to_download);
 	sr_scpi_send(scpi, ":WAV:DATA?");
 
 
@@ -919,15 +920,24 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
+	const struct scope_config *model;
+	struct scope_state *state;
+	float timebase;
 
 	devc = sdi->priv;
+	model = devc->model_config;
+	state = devc->model_state;
 
 	std_session_send_df_end(sdi);
+
+	timebase = (float) (*model->timebases)[state->timebase][0] / (*model->timebases)[state->timebase][1];
 
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
 	scpi = sdi->conn;
 	sr_scpi_source_remove(sdi->session, scpi);
+	sr_scpi_send(scpi, ":SYST:DSP \"\"");
+	sr_scpi_send(scpi, ":TIM:RANG %f; :TIM:DEL 0", timebase);
 	sr_scpi_send(scpi, ":TIM:MODE MAIN");
 }
 

@@ -806,6 +806,8 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 
 	float tmp_float;
 
+	char *tmp_string;
+
 	(void)fd;
 	(void)revents;
 
@@ -891,6 +893,10 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 			break;
 	}
 
+	//Sometimes the trailing \nl on a datablock is received delayed an not read by the sr_get_data_block. therefore we try to read a response and just dismiss it if there is any
+	if(sr_scpi_read_data(sdi->conn, &tmp_string, 1) == SR_OK)
+		sr_info("Received delayed NL on block download");
+
 	//if more channels need to be downloaded for the current frame
 	if(devc->current_channel->next){
 		devc->current_channel = devc->current_channel->next;
@@ -909,11 +915,12 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 
 	//if more blocks need to be downloaded
 	sr_dbg("Downloaded %d/%d datablocks", devc->num_blocks_downloaded, devc->num_block_to_download);
-	if(devc->num_blocks_downloaded < devc->num_block_to_download){
+	if(devc->num_blocks_downloaded+1 < devc->num_block_to_download){
 		devc->num_blocks_downloaded++;
 		devc->current_channel = devc->enabled_channels;
 		timebase_offset = devc->timebaseLbound+(devc->num_blocks_downloaded+0.5)*devc->block_deltaT;
-		sr_scpi_send(sdi->conn, ":TIM:WIND:POS %f", timebase_offset);
+		sr_scpi_send(sdi->conn, ":TIM:DEL %f", timebase_offset);
+		sr_scpi_send(sdi->conn, ":SYST:DSP \"Reading Block %d/%d\"", devc->num_blocks_downloaded+1, devc->num_block_to_download);
 		//sr_scpi_send(sdi->conn, ":WAV:SOUR %s;DATA?", ((struct sr_channel *)devc->current_channel->data)->name);
 		ch = (struct sr_channel *)devc->current_channel->data;
 		if(ch->type == SR_CHANNEL_LOGIC){
