@@ -38,15 +38,21 @@ enum rdtech_dps_model_type {
 	MODEL_RD,
 };
 
-struct rdtech_dps_model {
-	enum rdtech_dps_model_type model_type;
-	unsigned int id;
-	const char *name;
+struct rdtech_dps_range {
+	const char *range_str;
 	unsigned int max_current;
 	unsigned int max_voltage;
 	unsigned int max_power;
 	unsigned int current_digits;
 	unsigned int voltage_digits;
+};
+
+struct rdtech_dps_model {
+	enum rdtech_dps_model_type model_type;
+	unsigned int id;
+	const char *name;
+	struct rdtech_dps_range *ranges;
+	unsigned int n_ranges;
 };
 
 struct dev_context {
@@ -59,6 +65,8 @@ struct dev_context {
 	gboolean curr_ocp_state;
 	gboolean curr_cc_state;
 	gboolean curr_out_state;
+	unsigned int curr_range;
+	gboolean acquisition_started;
 };
 
 /* Container to get and set parameter values. */
@@ -77,6 +85,7 @@ struct rdtech_dps_state {
 		STATE_VOLTAGE = 1 << 10,
 		STATE_CURRENT = 1 << 11,
 		STATE_POWER = 1 << 12,
+		STATE_RANGE = 1 << 13,
 	} mask;
 	gboolean lock;
 	gboolean output_enabled, regulation_cc;
@@ -84,6 +93,7 @@ struct rdtech_dps_state {
 	float voltage_target, current_limit;
 	float ovp_threshold, ocp_threshold;
 	float voltage, current, power;
+	unsigned int range;
 };
 
 enum rdtech_dps_state_context {
@@ -100,6 +110,8 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 	enum rdtech_dps_model_type model_type,
 	uint16_t *model, uint16_t *version, uint32_t *serno);
+SR_PRIV void rdtech_dps_update_multipliers(const struct sr_dev_inst *sdi);
+SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_seed_receive(const struct sr_dev_inst *sdi);
 SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data);
 
