@@ -21,6 +21,20 @@
 #include "protocol.h"
 #include "scpi.h"
 
+SR_PRIV void agilent_54621d_queue_logic_data(struct dev_context *devc,
+				  size_t group, GByteArray *pod_data);
+SR_PRIV void agilent_54621d_send_logic_packet(struct sr_dev_inst *sdi,
+				   struct dev_context *devc);		
+SR_PRIV void agilent_54621d_cleanup_logic_data(struct dev_context *devc);
+		  
+static struct scope_state *scope_state_new(const struct scope_config *config);
+
+static int analog_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
+static int digital_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
+static int array_float_get(gchar *value, const uint64_t array[][2], int array_len, unsigned int *result);
+static void scope_state_dump(const struct scope_config *config, struct scope_state *state);
+static int scope_state_get_array_option(struct sr_scpi_dev_inst *scpi, const char *command, const char *(*array)[], unsigned int n, int *result);
+
 #define MAX_COMMAND_SIZE 128
 #define LOGIC_GET_THRESHOLD_SETTING "USER" //Threshold Setting that should be reported by the driver. Has to be included in logic_threshold. Has to be done in that hacky way since the device does only report threshold voltage level, yet not threshold setting
 
@@ -257,7 +271,7 @@ SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct scope_state *state;
 	const struct scope_config *config;
-	uint64_t tmp_int;
+	int tmp_int;
 
 	devc = sdi->priv;
 	config = devc->model_config;
@@ -270,7 +284,7 @@ SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi)
 
 	state->sample_rate = tmp_int;
 
-	if(devc->sample_rate_limit > tmp_int)
+	if(devc->sample_rate_limit > (uint64_t)tmp_int)
 		devc->sample_rate_limit = tmp_int;
 
 	return SR_OK;
@@ -428,7 +442,7 @@ SR_PRIV int agilent_54621d_scope_state_get(struct sr_dev_inst *sdi)
 
 	//ToDo: get trigger pattern
 	//documentation for reading the trigger pattern is a little wonky so I need to test how this is done
-	strncpy(state->trigger_pattern, "0000000000000000000000", MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT); 
+	strncpy(state->trigger_pattern, "00000000000000000000", MAX_ANALOG_CHANNEL_COUNT + MAX_DIGITAL_CHANNEL_COUNT+1); 
 
 
 	//ToDo: get current resolution
@@ -788,25 +802,21 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 	struct sr_channel *ch;
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
-	struct scope_state *state;
 	struct sr_datafeed_packet packet;
 	GByteArray *data;
 	struct sr_datafeed_analog analog;
 	struct sr_analog_encoding encoding;
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
-	struct sr_datafeed_logic logic;
 	size_t group;
 	int i;
 	struct analog_channel_transfer_info *info;
 	signed int tmp_int;
 	char command[MAX_COMMAND_SIZE];
-
 	float timebase_offset;
-
-	float tmp_float;
-
 	char *tmp_string;
+
+	tmp_string = NULL;
 
 	(void)fd;
 	(void)revents;
@@ -818,9 +828,6 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 
 	ch = devc->current_channel->data;
-	state = devc->model_state;
-
-		
 
 	switch (ch->type){
 		case SR_CHANNEL_ANALOG:
@@ -845,7 +852,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 
 
 			sr_dbg("yRef: %d, yInc: %f, yOri: %f", info->yReference, info->yIncrement, info->yOrigin);
-			for(i = 0; i<data->len; i++){
+			for(i = 0; i<(int)data->len; i++){
 				tmp_int=(int8_t)data->data[i];
 				devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
 			}
@@ -894,7 +901,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 	}
 
 	//Sometimes the trailing \nl on a datablock is received delayed an not read by the sr_get_data_block. therefore we try to read a response and just dismiss it if there is any
-	if(sr_scpi_read_data(sdi->conn, &tmp_string, 1) == SR_OK)
+	if(sr_scpi_read_data(sdi->conn, tmp_string, 1) == SR_OK)
 		sr_info("Received delayed NL on block download");
 
 	//if more channels need to be downloaded for the current frame
@@ -904,7 +911,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 		ch = (struct sr_channel *)devc->current_channel->data;
 		if(ch->type == SR_CHANNEL_LOGIC){
 			group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
-			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d;DATA?", group);
+			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%ld;DATA?", group);
 		} else {
 			g_snprintf(command, sizeof(command), ":WAV:SOUR %s;UNS 0;DATA?", ch->name);	
 		}
@@ -925,7 +932,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 		ch = (struct sr_channel *)devc->current_channel->data;
 		if(ch->type == SR_CHANNEL_LOGIC){
 			group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
-			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d;DATA?", group);
+			g_snprintf(command, sizeof(command), ":WAV:SOUR POD%ld;DATA?", group);
 		} else {
 			g_snprintf(command, sizeof(command), ":WAV:SOUR %s;UNS 0;DATA?", ch->name);	
 		}
@@ -938,36 +945,6 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
+	return FALSE;
 }
-
-SR_PRIV int agilent_54621d_request_data(const struct sr_dev_inst *sdi)
-{
-	
-}
-
-
-
-/*static int wait_for_capture_complete(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_scpi_dev_inst *scpi = sdi->conn;
-	int tmp_int;
-	int i;
-	gboolean acquisition_complete;
-
-	if(!(devc = sdi->priv))
-		return SR_ERR;
-
-	for(i = 0; i<WAIT_FOR_CAPTURE_COMPLETE_RETRIES; i++){
-		sr_scpi_get_int(scpi, ":OPER?", tmp_int);
-		if(!(tmp_int & 8)){		//if bit 3 is unset -> device is stopped. This should be the case once the acquisition is complete
-			return SR_OK;
-		}
-		g_usleep(WAIT_FOR_CAPTURE_COMPLETE_DELAY);
-	}
-	
-	sr_err("Capture Timed out");
-	return SR_ERR;
-
-}*/
 

@@ -54,13 +54,6 @@ static const char *data_sources[] = {
 	"Memory",
 };
 
-static const char *data_channels[] = {
-	"CHAN1",
-	"CHAN2",
-	"POD1",
-	"POD2",
-};
-
 static const uint64_t samplerates[] = {
 	SR_HZ(1),
 	SR_MHZ(200),
@@ -96,6 +89,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_scpi_hw_info *hw_info;
+
+	sdi = NULL;
+	devc = NULL;
+	hw_info = NULL;
 
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't  get IDN response.");
@@ -187,7 +184,7 @@ static int check_channel_group(struct dev_context *devc,
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int cg_type, idx, i;
+	int cg_type, idx;
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
@@ -314,18 +311,22 @@ static int config_get(uint32_t key, GVariant **data,
 	return SR_OK;
 }
 
+
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	int ret, cg_type, idx, i, j;
-	char command[MAX_COMMAND_SIZE], command2[MAX_COMMAND_SIZE];
-	char float_str[30], *tmp_str;
+	char command[MAX_COMMAND_SIZE];
+	char float_str[30];
 	struct dev_context *devc;
 	const struct scope_config *model;
 	struct scope_state *state;
 	double tmp_d, tmp_d2;
 	gboolean update_sample_rate, tmp_bool;
 	int tmp_int;
+	const char *tmp_str;
+
+	ret = SR_ERR;
 
 	if (!sdi)
 		return SR_ERR_ARG;
@@ -651,10 +652,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct scope_state *state;
 	const struct scope_config *model;
-	int ret, i;
-	char *cmd;
-	gboolean state_changed;
-	volatile int tmp_int;
+	int i;
+	int tmp_int;
 	gboolean acq_complete;
 	gboolean tmp_bool;
 	char command[MAX_COMMAND_SIZE];
@@ -663,8 +662,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	char *tmp_string;
 	float tmp_float;
 	struct analog_channel_transfer_info *encoding;
-	int xref;
-	gboolean channel_available;
 	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
 	size_t group, pod_count;
 	struct sr_datafeed_packet packet;
@@ -685,7 +682,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		digital_added[group] = FALSE;
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
-	state_changed = FALSE;
 
 	pod_count = 0;
 	for (l = sdi->channels; l; l = l->next) {
@@ -700,7 +696,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 						sr_scpi_get_opc(scpi) != SR_OK)
 					return SR_ERR;
 				state->analog_channels[ch->index].state = ch->enabled;
-				state_changed = TRUE;
 			}	
 		} else if (ch->type == SR_CHANNEL_LOGIC) {
 			group = ch->index / DIGITAL_CHANNELS_PER_POD;
@@ -715,7 +710,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 						sr_scpi_get_opc(scpi) != SR_OK)
 					return SR_ERR;
 				state->digital_channels[ch->index] = ch->enabled;
-				state_changed = TRUE;
 			}
 		}	
 	}
@@ -798,7 +792,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	ch = (struct sr_channel *)devc->enabled_channels->data;
 	if(ch->type == SR_CHANNEL_LOGIC){
 		group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
-		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d", group);
+		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%ld", group);
 	} else {
 		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", ch->name);	
 	}
@@ -843,7 +837,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->block_deltaT = 2000.0/((int)devc->sample_rate_limit);
 	
 	devc->num_block_to_download = ceil(devc->samples_limit/2000); //ToDo: This needs some sanitization to make sure only available points are being downloaded
-	sr_dbg("Sample rate is: %d", state->sample_rate);
+	sr_dbg("Sample rate is: %ld", state->sample_rate);
 	//Setup window view for first block download
 	g_snprintf(command, sizeof(command), ":TIM:MODE MAIN;:TIM:RANG %f;:TIM:DEL %f", devc->block_deltaT, devc->timebaseLbound+0.5*devc->block_deltaT);
 	sr_scpi_send(scpi, command);
@@ -899,7 +893,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	ch = (struct sr_channel *)devc->enabled_channels->data;
 	if(ch->type == SR_CHANNEL_LOGIC){
 		group = ch->index/DIGITAL_CHANNELS_PER_POD+1;
-		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%d", group);
+		g_snprintf(command, sizeof(command), ":WAV:SOUR POD%ld", group);
 	} else {
 		g_snprintf(command, sizeof(command), ":WAV:SOUR %s", ch->name);	
 	}
@@ -914,7 +908,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	header.feed_version = 1;
 	header.starttime.tv_sec = 0;
 	header.starttime.tv_usec = 1000000.0*devc->timebaseLbound;
-	sr_dbg("Pretrigger time: %d", header.starttime.tv_usec);
+	sr_dbg("Pretrigger time: %ld.", header.starttime.tv_usec);
 	sr_session_send(sdi, &packet);
 	
 
@@ -954,6 +948,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	sr_scpi_send(scpi, ":SYST:DSP \"\"");
 	sr_scpi_send(scpi, ":TIM:SCAL %f; :TIM:DEL 0", timebase);
 	sr_scpi_send(scpi, ":TIM:MODE MAIN");
+	return SR_OK;
 }
 
 static struct sr_dev_driver agilent_54621d_driver_info = {
