@@ -50,7 +50,7 @@ enum {
 
 //Do not change order
 static const char *data_sources[] = {
-	"Live",
+	"Single",
 	"Memory",
 };
 
@@ -298,7 +298,7 @@ static int config_get(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_DATA_SOURCE:
 			if (devc->data_source == DATA_SOURCE_LIVE)
-				*data = g_variant_new_string("Live");
+				*data = g_variant_new_string("Single");
 			else if (devc->data_source == DATA_SOURCE_MEMORY)
 				*data = g_variant_new_string("Memory");
 			break;
@@ -535,7 +535,7 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_DATA_SOURCE:
 		tmp_str = g_variant_get_string(data, NULL);
 		sr_dbg("Setting data source to: '%s'", tmp_str);
-		if(!strcmp(tmp_str, "Live"))
+		if(!strcmp(tmp_str, "Single"))
 			devc->data_source = DATA_SOURCE_LIVE;
 		else if(!strcmp(tmp_str, "Memory"))
 			devc->data_source = DATA_SOURCE_MEMORY;
@@ -716,29 +716,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->current_channel = devc->enabled_channels;
 	devc->pod_count = pod_count;
 
-	//ToDo: this is a hacky workaround to get what channel groups need to be downloaded. Ther surely is a better way to do this.
-	//ToDo2: Is this even used?
-	/*devc->channels_to_download = NULL;
-	for(i = 0; i<ARRAY_SIZE(data_channels); i++){
-		g_snprintf(command, sizeof(command), "%s:DISP?", data_channels[i]);
-		if(sr_scpi_get_bool(scpi, command, &tmp_bool) != SR_OK){
-			sr_err("Couldn't get state of channel group");
-			return SR_ERR;
-		}
-		if(tmp_bool)
-			devc->channels_to_download = g_slist_append(devc->channels_to_download, data_channels[i]);
-	}*/
-
-	//Sample rate needs to be updated if channels have been changed, since in some channel configurations sample rate is reduced
-	if(TRUE){
-		sr_scpi_send(scpi, ":RUN");		//Device needs to run in order to get the correct sample rate
-		if(sr_scpi_get_opc(scpi) != SR_OK){
-			sr_err("Couldnt set device to running");
-			return SR_ERR;
-		}
-		if(agilent_54621d_update_sample_rate(sdi) != SR_OK)
-			return SR_ERR;
-	}
 
 	if(devc->data_source == DATA_SOURCE_LIVE){
 		sr_scpi_send(scpi, ":SING");
@@ -826,23 +803,25 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_dbg("time ref is %s", tmp_string);
 	if(!strcmp(tmp_string, "LEFT")){
 		sr_dbg("left");
-		devc->timebaseLbound = tmp_float*-1;
+		devc->refPos = -1;
 	} else if(!strcmp(tmp_string, "CENT")){
 		sr_dbg("cent");
-		devc->timebaseLbound = tmp_float*-5;
+		devc->refPos = -5;
 	} else {
 		sr_dbg("right");
-		devc->timebaseLbound = tmp_float*-9;
+		devc->refPos = -9;
 	}
+	devc->timebaseLbound = tmp_float*devc->refPos;
 	devc->block_deltaT = 2000.0/((int)devc->sample_rate_limit);
 	
 	devc->num_block_to_download = ceil(devc->samples_limit/2000); //ToDo: This needs some sanitization to make sure only available points are being downloaded
+	devc->trigger_at_sample = (uint64_t)((-devc->timebaseLbound)*(devc->sample_rate_limit));
 	sr_dbg("Sample rate is: %ld", state->sample_rate);
 	//Setup window view for first block download
-	g_snprintf(command, sizeof(command), ":TIM:MODE MAIN;:TIM:RANG %f;:TIM:DEL %f", devc->block_deltaT, devc->timebaseLbound+0.5*devc->block_deltaT);
+	g_snprintf(command, sizeof(command), ":TIM:MODE MAIN;:TIM:RANG %f;:TIM:DEL %f", devc->block_deltaT, devc->timebaseLbound-devc->refPos*devc->block_deltaT*0.1);
 	sr_scpi_send(scpi, command);
 
-	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound);
+	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f. Trigger at sample %d", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound, devc->trigger_at_sample);
 
 	sr_dbg("beginning data download");
 	//make final setup before download
@@ -888,6 +867,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->current_channel = devc->enabled_channels;
 	ch = (struct sr_channel *)devc->current_channel->data;
 	devc->failcount = 0;
+	devc->trigger_sent = FALSE;
+	
 	
 	//set waveform source channel to the first channel to be downloaded
 	ch = (struct sr_channel *)devc->enabled_channels->data;

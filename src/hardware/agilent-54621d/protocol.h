@@ -164,6 +164,9 @@ struct dev_context {
 	float *data;
 	int failcount;
 	GByteArray *logic_data;
+	uint64_t trigger_at_sample;
+	gboolean trigger_sent;
+	int refPos;
 };
 
 SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data);

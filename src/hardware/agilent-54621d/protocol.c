@@ -772,14 +772,37 @@ SR_PRIV void agilent_54621d_send_logic_packet(struct sr_dev_inst *sdi,
 	if (!devc->logic_data)
 		return;
 
-	logic.data = devc->logic_data->data;
-	logic.length = devc->logic_data->len;
-	logic.unitsize = devc->pod_count;
+	if(devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
+		logic.data = devc->logic_data->data;
+		logic.length = devc->trigger_at_sample;
+		logic.unitsize = devc->pod_count;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		sr_session_send(sdi, &packet);
 
-	packet.type = SR_DF_LOGIC;
-	packet.payload = &logic;
+		packet.type = SR_DF_TRIGGER;
+		packet.payload = NULL;
+		sr_session_send(sdi, &packet);
+		devc->trigger_sent = TRUE;
 
-	sr_session_send(sdi, &packet);
+		logic.data = devc->logic_data[devc->trigger_at_sample].data;
+		logic.length = devc->logic_data->len-devc->trigger_at_sample;
+		logic.unitsize = devc->pod_count;
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+		sr_session_send(sdi, &packet);
+	}
+	else
+	{
+		logic.data = devc->logic_data->data;
+		logic.length = devc->logic_data->len;
+		logic.unitsize = devc->pod_count;
+
+		packet.type = SR_DF_LOGIC;
+		packet.payload = &logic;
+
+		sr_session_send(sdi, &packet);
+	} 
 }
 
 /* Undo previous resource allocation. */
@@ -815,6 +838,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 	char command[MAX_COMMAND_SIZE];
 	float timebase_offset;
 	char *tmp_string;
+	int points_before_trigger;
 
 	tmp_string = NULL;
 
@@ -847,29 +871,75 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 			}
 			devc->failcount=0;
 
-			//Append downloaded block to buffer -- This should no longer be neccessary
-			//g_byte_array_append(devc->buffer, data->data, data->len);
+			//if Trigger point is in this block
+			if(devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
+				points_before_trigger = (int)(devc->trigger_at_sample - (devc->num_blocks_downloaded*2000));
 
+				sr_dbg("Handling trigger in analog package. Trigger at point: %d", points_before_trigger);
 
-			sr_dbg("yRef: %d, yInc: %f, yOri: %f", info->yReference, info->yIncrement, info->yOrigin);
-			for(i = 0; i<(int)data->len; i++){
-				tmp_int=(int8_t)data->data[i];
-				devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
+				for(i = 0; i<(int)points_before_trigger; i++){
+					tmp_int=(int8_t)data->data[i];
+					devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
+				}
+				if(points_before_trigger>0){
+					sr_analog_init(&analog, &encoding, &meaning, &spec, 2); //ToDo: 2 digits is just placeholder. needs to be calculated correctly
+					analog.meaning->channels = g_slist_append(NULL, ch);
+					analog.num_samples = points_before_trigger;
+					analog.data = devc->data;
+					analog.meaning->mq = SR_MQ_VOLTAGE;
+					analog.meaning->unit = SR_UNIT_VOLT;
+					analog.meaning->mqflags = 0;
+
+					packet.type = SR_DF_ANALOG;
+					packet.payload = &analog;
+					sr_session_send(sdi, &packet);
+					
+					g_slist_free(analog.meaning->channels);
+				}
+								
+				packet.type = SR_DF_TRIGGER;
+				packet.payload = NULL;
+				sr_session_send(sdi, &packet);
+				devc->trigger_sent = TRUE;
+
+				for(i = points_before_trigger; i<(int)data->len; i++){
+					tmp_int=(int8_t)data->data[i];
+					devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
+				}
+				sr_analog_init(&analog, &encoding, &meaning, &spec, 2); //ToDo: 2 digits is just placeholder. needs to be calculated correctly
+				analog.meaning->channels = g_slist_append(NULL, ch);
+				analog.num_samples = data->len-points_before_trigger;
+				analog.data = devc->data;
+				analog.meaning->mq = SR_MQ_VOLTAGE;
+				analog.meaning->unit = SR_UNIT_VOLT;
+				analog.meaning->mqflags = 0;
+
+				packet.type = SR_DF_ANALOG;
+				packet.payload = &analog;
+				sr_session_send(sdi, &packet);
+				
+				g_slist_free(analog.meaning->channels);
 			}
-			sr_analog_init(&analog, &encoding, &meaning, &spec, 2); //ToDo: 2 digits is just placeholder. needs to be calculated correctly
-			analog.meaning->channels = g_slist_append(NULL, ch);
-			analog.num_samples = data->len;
-			analog.data = devc->data;
-			analog.meaning->mq = SR_MQ_VOLTAGE;
-			analog.meaning->unit = SR_UNIT_VOLT;
-			analog.meaning->mqflags = 0;
+			else
+			{
+				for(i = 0; i<(int)data->len; i++){
+					tmp_int=(int8_t)data->data[i];
+					devc->data[i] = (((float)(tmp_int) - info->yReference) * info->yIncrement) + info->yOrigin;
+				}
+				sr_analog_init(&analog, &encoding, &meaning, &spec, 2); //ToDo: 2 digits is just placeholder. needs to be calculated correctly
+				analog.meaning->channels = g_slist_append(NULL, ch);
+				analog.num_samples = data->len;
+				analog.data = devc->data;
+				analog.meaning->mq = SR_MQ_VOLTAGE;
+				analog.meaning->unit = SR_UNIT_VOLT;
+				analog.meaning->mqflags = 0;
 
-			packet.type = SR_DF_ANALOG;
-			packet.payload = &analog;
-			sr_session_send(sdi, &packet);
-			
-			g_slist_free(analog.meaning->channels);
-
+				packet.type = SR_DF_ANALOG;
+				packet.payload = &analog;
+				sr_session_send(sdi, &packet);
+				
+				g_slist_free(analog.meaning->channels);
+			}
 			
 			g_byte_array_free(data, TRUE);
 			data = NULL;
@@ -925,7 +995,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 	if(devc->num_blocks_downloaded+1 < devc->num_block_to_download){
 		devc->num_blocks_downloaded++;
 		devc->current_channel = devc->enabled_channels;
-		timebase_offset = devc->timebaseLbound+(devc->num_blocks_downloaded+0.5)*devc->block_deltaT;
+		timebase_offset = devc->timebaseLbound+(devc->num_blocks_downloaded-devc->refPos*0.1)*devc->block_deltaT;
 		sr_scpi_send(sdi->conn, ":TIM:DEL %f", timebase_offset);
 		sr_scpi_send(sdi->conn, ":SYST:DSP \"Reading Block %d/%d\"", devc->num_blocks_downloaded+1, devc->num_block_to_download);
 		//sr_scpi_send(sdi->conn, ":WAV:SOUR %s;DATA?", ((struct sr_channel *)devc->current_channel->data)->name);
