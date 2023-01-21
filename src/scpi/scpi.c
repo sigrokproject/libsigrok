@@ -66,6 +66,7 @@ static int parse_strict_bool(const char *str, gboolean *ret)
 		*ret = TRUE;
 		return SR_OK;
 	} else if (!g_strcmp0(str, "0") ||
+		   !g_strcmp0(str, "+0") ||
 		   !g_ascii_strncasecmp(str, "n", 1) ||
 		   !g_ascii_strncasecmp(str, "f", 1) ||
 		   !g_ascii_strncasecmp(str, "no", 2) ||
