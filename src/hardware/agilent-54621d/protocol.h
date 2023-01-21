@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2022 Daniel <1824222@stud.hs-mannheim.de>
+ * Copyright (C) 2022 Daniel Echt <taragor83@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -174,7 +174,7 @@ SR_PRIV int agilent_54621d_request_data(const struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_scope_state_get(struct sr_dev_inst *sdi);
 SR_PRIV int agilent_54621d_update_sample_rate(const struct sr_dev_inst *sdi);
+SR_PRIV void agilent_54621d_scope_state_free(struct scope_state *state);
 
-//static int wait_for_capture_complete(const struct sr_dev_inst *sdi);
 
 #endif

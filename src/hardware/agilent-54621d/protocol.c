@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2022 Daniel <1824222@stud.hs-mannheim.de>
+ * Copyright (C) 2022 Daniel Echt <taragor83@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ SR_PRIV void agilent_54621d_send_logic_packet(struct sr_dev_inst *sdi,
 SR_PRIV void agilent_54621d_cleanup_logic_data(struct dev_context *devc);
 		  
 static struct scope_state *scope_state_new(const struct scope_config *config);
+
 
 static int analog_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
 static int digital_channel_state_get(struct sr_dev_inst *sdi, const struct scope_config *config, struct scope_state *state);
@@ -136,7 +137,7 @@ static const char *trigger_sources[] = {
 	"DIG0", "DIG1", "DIG2", "DIG3", "DIG4", "DIG5", "DIG6", "DIG7", "DIG8", "DIG9", "DIG10", "DIG11", "DIG12", "DIG13", "DIG14", "DIG15",
 };
 
-/* This is not currently used */
+/* This is not currently used. Does sigrok allow setting trigger mode?*/
 static const char *trigger_mode[] = {
 	"EDGE",
 	"GLIT",
@@ -334,7 +335,6 @@ SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi)
 		cg_name = (*scope_models[model_index].analog_names)[i];
 		devc->analog_groups[i] = sr_channel_group_new(sdi, cg_name, NULL);
 		devc->analog_groups[i]->channels = g_slist_append(NULL, ch);
-		//devc->analog_groups[i]->priv = (void *)g_malloc0(sizeof(struct analog_channel_transfer_info));
 	}
 
 	/* Add digital channel groups. */
@@ -364,7 +364,11 @@ SR_PRIV int agilent_54621d_init_device(struct sr_dev_inst *sdi)
 	devc->samples_limit = 2000;
 	devc->frame_limit = 0;
 	devc->data_source = DATA_SOURCE_LIVE;
-	devc->data = g_malloc(2000*sizeof(float));
+	devc->data = g_try_malloc0(2000*sizeof(float));
+
+	if(!devc->data)
+		return SR_ERR_MALLOC;
+
 	devc->sample_rate_limit = SR_MHZ(200);
 
 	if (!(devc->model_state = scope_state_new(devc->model_config)))
@@ -379,10 +383,18 @@ static struct scope_state *scope_state_new(const struct scope_config *config) {
 
 	state = g_malloc0(sizeof(struct scope_state));
 	state->analog_channels = g_malloc0_n(config->analog_channels, sizeof(struct analog_channel_state));
-	state->digital_channels = g_malloc0_n(config->digital_channels, sizeof(gboolean) * MAX_DIGITAL_CHANNEL_COUNT);			//ToDo: Why ony one bool size for the digital channel state? Shouldn't it be 1bool per channel?
+	state->digital_channels = g_malloc0_n(config->digital_channels, sizeof(gboolean) * MAX_DIGITAL_CHANNEL_COUNT);
 	state->digital_pods = g_malloc0_n(config->digital_pods, sizeof(struct digital_pod_state));
 
 	return state;
+}
+
+SR_PRIV void agilent_54621d_scope_state_free(struct scope_state *state)
+{
+	g_free(state->analog_channels);
+	g_free(state->digital_channels);
+	g_free(state->digital_pods);
+	g_free(state);
 }
 
 SR_PRIV int agilent_54621d_scope_state_get(struct sr_dev_inst *sdi)
@@ -772,7 +784,7 @@ SR_PRIV void agilent_54621d_send_logic_packet(struct sr_dev_inst *sdi,
 	if (!devc->logic_data)
 		return;
 
-	if(devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
+	if((uint64_t)devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
 		logic.data = devc->logic_data->data;
 		logic.length = devc->trigger_at_sample;
 		logic.unitsize = devc->pod_count;
@@ -872,7 +884,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 			devc->failcount=0;
 
 			//if Trigger point is in this block
-			if(devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
+			if((uint64_t)devc->num_blocks_downloaded == devc->trigger_at_sample/2000 && !devc->trigger_sent){
 				points_before_trigger = (int)(devc->trigger_at_sample - (devc->num_blocks_downloaded*2000));
 
 				sr_dbg("Handling trigger in analog package. Trigger at point: %d", points_before_trigger);
@@ -992,7 +1004,7 @@ SR_PRIV int agilent_54621d_receive_data(int fd, int revents, void *cb_data)
 
 	//if more blocks need to be downloaded
 	sr_dbg("Downloaded %d/%d datablocks", devc->num_blocks_downloaded, devc->num_block_to_download);
-	if(devc->num_blocks_downloaded+1 < devc->num_block_to_download){
+	if(devc->num_blocks_downloaded < devc->num_block_to_download){
 		devc->num_blocks_downloaded++;
 		devc->current_channel = devc->enabled_channels;
 		timebase_offset = devc->timebaseLbound+(devc->num_blocks_downloaded-devc->refPos*0.1)*devc->block_deltaT;

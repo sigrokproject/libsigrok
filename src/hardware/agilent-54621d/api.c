@@ -1,7 +1,7 @@
 /*
  * This file is part of the libsigrok project.
  *
- * Copyright (C) 2022 Daniel <1824222@stud.hs-mannheim.de>
+ * Copyright (C) 2022 Daniel Echt <taragor83@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,30 +60,6 @@ static const uint64_t samplerates[] = {
 	SR_HZ(1),
 };
 
-static const uint64_t samplerates_literal[] = {
-	SR_KHZ(2),
-	SR_KHZ(4),
-	SR_KHZ(5),
-	SR_KHZ(10),
-	SR_KHZ(20),
-	SR_KHZ(40),
-	SR_KHZ(50),
-	SR_KHZ(100),
-	SR_KHZ(200),
-	SR_KHZ(400),
-	SR_KHZ(500),
-	SR_MHZ(1),
-	SR_MHZ(2),
-	SR_MHZ(4),
-	SR_MHZ(5),
-	SR_MHZ(10),
-	SR_MHZ(20),
-	SR_MHZ(25),
-	SR_MHZ(50),  //Can appear on device
-	SR_MHZ(100), //Can appear on device
-	SR_MHZ(200), //Can appear on device
-};
-
 static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 {
 	struct sr_dev_inst *sdi;
@@ -135,6 +111,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	sr_info("Scanning for agilent 54621d");
 	return sr_scpi_scan(di->context, options, probe_device);
+}
+
+static void clear_helper(struct dev_context *devc)
+{
+	agilent_54621d_scope_state_free(devc->model_state);
+	g_free(devc->analog_groups);
+	g_free(devc->digital_groups);
+	g_free(devc->data);
+}
+
+static int dev_clear(const struct sr_dev_driver *di)
+{
+	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -652,9 +641,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	struct scope_state *state;
 	const struct scope_config *model;
-	int i;
 	int tmp_int;
-	gboolean acq_complete;
 	gboolean tmp_bool;
 	char command[MAX_COMMAND_SIZE];
 	float xinc;
@@ -664,9 +651,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct analog_channel_transfer_info *encoding;
 	gboolean digital_added[MAX_DIGITAL_GROUP_COUNT];
 	size_t group, pod_count;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_header header;
-	struct timeval timeToTrigger;
 
 
 	scpi = sdi->conn;
@@ -720,7 +704,6 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if(devc->data_source == DATA_SOURCE_LIVE){
 		sr_scpi_get_bool(scpi, ":TER?", &tmp_bool);
 		sr_scpi_send(scpi, ":SING");
-		acq_complete = FALSE;
 		sr_scpi_get_bool(scpi, ":TER?", &tmp_bool);
 		while(!tmp_bool){
 			g_usleep(WAIT_FOR_CAPTURE_COMPLETE_DELAY);
@@ -747,13 +730,12 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	* The logic is, that if we want less than the complete waveform we can switch to window view, calculate the settings to have the window show exactly 2k points of the wv, and then transfer these 2k points.
 	* Then we can move the window delay and download the next 2k points. We can repeat this until we have the desired amount of points. 
 	* This is also how the scope transfers the full waveform, however transfering the full wavefrom cannot be interrupted, so the manual approach is better
-	* We save the number of samples already downloaded in devc->num_samples, and the samples themselves in devc->buffer until all data for a channel is ready
 	*/
 
 	//Reset parameters
 	devc->num_samples = 0;
 	devc->num_blocks_downloaded = 0;
-	devc->buffer = g_malloc0(sizeof(char) * devc->samples_limit);
+	//devc->buffer = g_malloc0(sizeof(char) * devc->samples_limit);
 	devc->headerSent = FALSE;
 
 	//set waveform source channel to the first channel to be downloaded
@@ -812,7 +794,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	g_snprintf(command, sizeof(command), ":TIM:MODE MAIN;:TIM:RANG %f;:TIM:DEL %f", devc->block_deltaT, devc->timebaseLbound-devc->refPos*devc->block_deltaT*0.1);
 	sr_scpi_send(scpi, command);
 
-	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f. Trigger at sample %d", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound, devc->trigger_at_sample);
+	sr_dbg("Download %d packets with a width of %f. Maxpoints are %d. Lbound is %f. Trigger at sample %ld", devc->num_block_to_download, devc->block_deltaT, points, devc->timebaseLbound, devc->trigger_at_sample);
 
 	sr_dbg("beginning data download");
 	//make final setup before download
@@ -897,6 +879,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	const struct scope_config *model;
 	struct scope_state *state;
 	float timebase;
+	struct sr_channel *ch;
 
 	devc = sdi->priv;
 	model = devc->model_config;
@@ -905,6 +888,13 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 	std_session_send_df_end(sdi);
 
 	timebase = (float) (*model->timebases)[state->timebase][0] / (*model->timebases)[state->timebase][1];
+
+	while(devc->current_channel){
+		ch = (struct sr_channel *)devc->current_channel->data; 
+			if(ch->type == SR_CHANNEL_ANALOG)
+				g_free((struct analog_channel_transfer_info *)ch->priv);
+		devc->current_channel=devc->current_channel->next;
+	}
 
 	g_slist_free(devc->enabled_channels);
 	devc->enabled_channels = NULL;
@@ -924,7 +914,7 @@ static struct sr_dev_driver agilent_54621d_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
