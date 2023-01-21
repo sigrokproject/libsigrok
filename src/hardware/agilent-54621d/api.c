@@ -718,22 +718,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 
 	if(devc->data_source == DATA_SOURCE_LIVE){
+		sr_scpi_get_bool(scpi, ":TER?", &tmp_bool);
 		sr_scpi_send(scpi, ":SING");
 		acq_complete = FALSE;
-		for(i = 0; i<WAIT_FOR_CAPTURE_COMPLETE_RETRIES; i++){
-			sr_scpi_get_int(scpi, ":OPER?", &tmp_int);
-			if(!(tmp_int & 8)){		//if bit 3 is unset -> device is stopped. This should be the case once the acquisition is complete
-				acq_complete = TRUE;
-				sr_dbg("Acquisition complete");
-				break;
-			}
+		sr_scpi_get_bool(scpi, ":TER?", &tmp_bool);
+		while(!tmp_bool){
 			g_usleep(WAIT_FOR_CAPTURE_COMPLETE_DELAY);
-			if(agilent_54621d_update_sample_rate(sdi) != SR_OK)
-				return SR_ERR;
-		}
-		if(!acq_complete){
-			sr_err("Capture Timed out");
-			return SR_ERR;
+			sr_scpi_get_bool(scpi, ":TER?", &tmp_bool);
 		}
 	} else if (devc->data_source == DATA_SOURCE_MEMORY) {
 		ch = (struct sr_channel *)devc->current_channel->data;
@@ -884,14 +875,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 100, agilent_54621d_receive_data, (void *)sdi);
 	
 	
-	packet.type = SR_DF_HEADER;
-	packet.payload = (uint8_t *)&header;
-	header.feed_version = 1;
-	header.starttime.tv_sec = 0;
-	header.starttime.tv_usec = 1000000.0*devc->timebaseLbound;
-	sr_dbg("Pretrigger time: %ld.", header.starttime.tv_usec);
-	sr_session_send(sdi, &packet);
-	
+	std_session_send_df_header(sdi);
 
 	//std_session_send_df_header(sdi);
 	std_session_send_df_frame_begin(sdi);
@@ -903,7 +887,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 
 	return SR_OK;
-
+	
 }
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
