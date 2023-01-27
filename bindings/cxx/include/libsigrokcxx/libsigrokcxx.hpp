@@ -791,9 +791,22 @@ public:
 	/** Samples are stored in big-endian order. */
 	bool is_bigendian() const;
 	/**
-	 * Number of significant digits after the decimal point if positive,
-	 * or number of non-significant digits before the decimal point if negative
-	 * (refers to the value we actually read on the wire).
+	 * Number of significant digits after the decimal point, if positive.
+	 * When negative, exponent with reversed polarity that is necessary to
+	 * express the value with all digits without a decimal point.
+	 * Refers to the value we actually read on the wire.
+	 *
+	 * Examples:
+	 *
+	 * | On the wire | Exponential notation | Exp. not. (normalized) | digits |
+	 * |-------------|----------------------|------------------------|--------|
+	 * |  12.34 MOhm |   1.234 * 10^7   Ohm |      1234 * 10^4   Ohm |     -4 |
+	 * | 1.2345 MOhm |  1.2345 * 10^6   Ohm |     12345 * 10^2   Ohm |     -2 |
+	 * |  123.4 kOhm |   1.234 * 10^5   Ohm |      1234 * 10^2   Ohm |     -2 |
+	 * |   1234  Ohm |   1.234 * 10^3   Ohm |      1234 * 10^0   Ohm |      0 |
+	 * |  12.34  Ohm |   1.234 * 10^1   Ohm |      1234 * 10^-2  Ohm |      2 |
+	 * | 0.0123  Ohm |    1.23 * 10^-2  Ohm |       123 * 10^-4  Ohm |      4 |
+	 * |  1.234 pF   |   1.234 * 10^-12 F   |      1234 * 10^-15 F   |     15 |
 	 */
 	int digits() const;
 	/** TBD */
