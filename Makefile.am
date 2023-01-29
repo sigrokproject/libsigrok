@@ -701,6 +701,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/siglent-sds/protocol.c \
 	src/hardware/siglent-sds/api.c
 endif
+if HW_SIPEED_SLOGIC_ANALYZER
+src_libdrivers_la_SOURCES += \
+	src/hardware/sipeed-slogic-analyzer/protocol.h \
+	src/hardware/sipeed-slogic-analyzer/protocol.c \
+	src/hardware/sipeed-slogic-analyzer/api.c
+endif
 if HW_SYSCLK_LWLA
 src_libdrivers_la_SOURCES += \
 	src/hardware/sysclk-lwla/lwla.h \
