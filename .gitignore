@@ -16,6 +16,10 @@
 /*.kdev4
 /Makefile.am.user
 
+# clangd language server cruft
+.cache/
+/compile_commands.json
+
 # Configure/build cruft
 *.[ao]
 *.l[ao]
