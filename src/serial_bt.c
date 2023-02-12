@@ -23,6 +23,7 @@
 #include "libsigrok-internal.h"
 #include <string.h>
 #include <memory.h>
+#include <stdlib.h>
 
 #define LOG_PREFIX "serial-bt"
 
@@ -145,6 +146,9 @@ static int ser_bt_parse_conn_spec(
 	char **fields, *field;
 	enum ser_bt_conn_t type;
 	const char *addr;
+	const char *extra_arg;
+	int fields_count;
+	long arg_channel;
 
 	if (conn_type)
 		*conn_type = SER_BT_CONN_UNKNOWN;
@@ -168,7 +172,8 @@ static int ser_bt_parse_conn_spec(
 	fields = g_strsplit_set(spec, "/", 0);
 	if (!fields)
 		return SR_ERR_ARG;
-	if (g_strv_length(fields) < 3) {
+	fields_count = g_strv_length(fields);
+	if ( fields_count < 3) {
 		g_strfreev(fields);
 		return SR_ERR_ARG;
 	}
@@ -194,12 +199,20 @@ static int ser_bt_parse_conn_spec(
 	if (remote_addr)
 		*remote_addr = addr;
 
+	if (fields_count > 3 && fields[3] && *fields[3])
+		extra_arg = g_strdup(fields[3]);
+	else
+		extra_arg = NULL;
+
+
 	/* Derive default parameters that match the connection type. */
 	/* TODO Lookup defaults from a table? */
 	switch (type) {
 	case SER_BT_CONN_RFCOMM:
-		if (rfcomm_channel)
-			*rfcomm_channel = 1;
+		if (rfcomm_channel) {
+			arg_channel = extra_arg ? strtol(extra_arg, NULL, 10) : 0;
+			*rfcomm_channel = arg_channel ? arg_channel : 1;
+		}
 		break;
 	case SER_BT_CONN_BLE122:
 		if (read_hdl)
