@@ -21,7 +21,11 @@
 #include <config.h>
 #include "protocol.h"
 
-#define DEVICE_PROCESSING_TIME_MS 80
+#define DEVICE_STD_PROCESSING_TIME_MS	80
+#define DEVICE_LONG_PROCESSING_TIME_MS	500
+
+#define STD_PROCESSING_TIME		0
+#define LONG_PROCESSING_TIME		1
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
 				const char *cmd)
@@ -155,13 +159,26 @@ static void give_device_time_to_process(struct dev_context *devc)
 {
 	int64_t sleeping_time;
 
-	sleeping_time = devc->req_sent_at + (DEVICE_PROCESSING_TIME_MS * 1000);
-	sleeping_time -= g_get_monotonic_time();
+	sleeping_time = devc->next_req_time - g_get_monotonic_time();
 
 	if (sleeping_time > 0) {
 		g_usleep(sleeping_time);
 		sr_spew("Sleeping for processing %" PRIi64 " usec", sleeping_time);
 	}
+}
+
+static void store_next_req_time(struct dev_context *devc, int request_long_processing_time)
+{
+	int64_t processing_time_us;
+
+	/* Some devices requires a longer "cooldown" time after some commands */
+	if (devc->model->quirks & KORAD_QUIRK_LONG_PROCESSING_TIME &&
+			request_long_processing_time)
+		processing_time_us = DEVICE_LONG_PROCESSING_TIME_MS * 1000;
+	else
+		processing_time_us = DEVICE_STD_PROCESSING_TIME_MS * 1000;
+
+	devc->next_req_time =  g_get_monotonic_time() + processing_time_us;
 }
 
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
@@ -243,7 +260,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 		sr_snprintf_ascii(msg, 20, cmd, value);
 
 	ret = korad_kaxxxxp_send_cmd(serial, msg);
-	devc->req_sent_at = g_get_monotonic_time();
+	store_next_req_time(devc, LONG_PROCESSING_TIME);
 	g_free(msg);
 
 	g_mutex_unlock(&devc->rw_mutex);
@@ -305,7 +322,10 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		return ret;
 	}
 
-	devc->req_sent_at = g_get_monotonic_time();
+	if (target == KAXXXXP_STATUS)
+		store_next_req_time(devc, LONG_PROCESSING_TIME);
+	else
+		store_next_req_time(devc, STD_PROCESSING_TIME);
 
 	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply)) < 0) {
 		g_mutex_unlock(&devc->rw_mutex);
