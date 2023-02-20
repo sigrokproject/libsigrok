@@ -22,12 +22,26 @@
 
 #include <stdint.h>
 #include <glib.h>
+#include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "sipeed-slogic-analyzer"
 
+struct slogic_profile {
+	uint16_t vid;
+	uint16_t pid;
+};
+
 struct dev_context {
+    struct slogic_profile *profile;
+
+	uint64_t cur_samplerate;
+	uint64_t limit_samples;
+    int logic_pattern;
+	double voltage_threshold[2];
+	/* Triggers */
+	uint64_t capture_ratio;
 };
 
 SR_PRIV int sipeed_slogic_analyzer_receive_data(int fd, int revents, void *cb_data);
