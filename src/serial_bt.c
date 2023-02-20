@@ -32,6 +32,12 @@
 #define SER_BT_CONN_PREFIX	"bt"
 #define SER_BT_CHUNK_SIZE	1200
 
+#define SER_BT_PARAM_PREFIX_CHANNEL	"channel="
+#define SER_BT_PARAM_PREFIX_HDL_RX	"handle_rx="
+#define SER_BT_PARAM_PREFIX_HDL_TX	"handle_tx="
+#define SER_BT_PARAM_PREFIX_HDL_CCCD	"handle_cccd="
+#define SER_BT_PARAM_PREFIX_VAL_CCCD	"value_cccd="
+
 /**
  * @file
  *
@@ -145,6 +151,10 @@ static int ser_bt_parse_conn_spec(
 	char **fields, *field;
 	enum ser_bt_conn_t type;
 	const char *addr;
+	int ret_parse, ret;
+	size_t fields_count, field_idx;
+	char *endp;
+	unsigned long parm_val;
 
 	if (conn_type)
 		*conn_type = SER_BT_CONN_UNKNOWN;
@@ -241,10 +251,83 @@ static int ser_bt_parse_conn_spec(
 		return SR_ERR_ARG;
 	}
 
-	/* TODO Evaluate optionally trailing fields, override defaults? */
+	/*
+	 * Preset a successful return value for the conn= parse call.
+	 * Scan optional additional fields which specify more params.
+	 * Update the defaults which were setup above. Pessimize the
+	 * routine's return value in error paths.
+	 */
+	ret_parse = SR_OK;
+	fields_count = g_strv_length(fields);
+	for (field_idx = 3; field_idx < fields_count; field_idx++) {
+		field = fields[field_idx];
+		if (!field || !*field)
+			continue;
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_CHANNEL)) {
+			field += strlen(SER_BT_PARAM_PREFIX_CHANNEL);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (rfcomm_channel)
+				*rfcomm_channel = parm_val;
+			continue;
+		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_HDL_RX)) {
+			field += strlen(SER_BT_PARAM_PREFIX_HDL_RX);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (read_hdl)
+				*read_hdl = parm_val;
+			continue;
+		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_HDL_TX)) {
+			field += strlen(SER_BT_PARAM_PREFIX_HDL_TX);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (write_hdl)
+				*write_hdl = parm_val;
+			continue;
+		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_HDL_CCCD)) {
+			field += strlen(SER_BT_PARAM_PREFIX_HDL_CCCD);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (cccd_hdl)
+				*cccd_hdl = parm_val;
+			continue;
+		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_VAL_CCCD)) {
+			field += strlen(SER_BT_PARAM_PREFIX_VAL_CCCD);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (cccd_val)
+				*cccd_val = parm_val;
+			continue;
+		}
+		return SR_ERR_DATA;
+	}
 
 	g_strfreev(fields);
-	return SR_OK;
+	return ret_parse;
 }
 
 static void ser_bt_mask_databits(struct sr_serial_dev_inst *serial,
