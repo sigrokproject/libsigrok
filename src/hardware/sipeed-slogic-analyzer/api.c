@@ -83,15 +83,6 @@ static const uint64_t samplerates[] = {
 
 static struct sr_dev_driver sipeed_slogic_analyzer_driver_info;
 
-#define DBG_VAL(expr) do {\
-	__typeof((expr)) _expr = (expr);\
-	sr_warn("[%u]%s<"#expr"> i:%d\tu:%u\tf:%f\th:%x", __LINE__, __func__, \
-		*(long*)(&_expr), \
-		*(unsigned long*)(&_expr), \
-		*(float*)(&_expr), \
-		*(unsigned long*)(&_expr)); \
-}while(0)
-
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
@@ -212,6 +203,11 @@ static int dev_open(struct sr_dev_inst *sdi)
 	}
 
 	devc->logic_pattern = 3;  /* 2^3 = 8 default */
+	devc->cur_samplerate = samplerates[0];
+	devc->limit_samples = 0;
+	devc->num_frames = 0;
+	devc->limit_frames = 1;
+	devc->capture_ratio = 0;
 	
 	return std_dummy_dev_open(sdi);
 }
@@ -322,25 +318,12 @@ static int config_set(uint32_t key, GVariant *data,
 					logic_pattern_str[logic_pattern]);
 			devc->logic_pattern = logic_pattern;
 			/* Might as well do this now, these are static. */
-		}
-		{
-			
 			size_t idx = 0;
 			for (GSList *l = cg->channels; l; l = l->next, idx += 1) {
 				struct sr_channel *ch = l->data;
 				if (ch->type == SR_CHANNEL_LOGIC) {
 					/* Might as well do this now, these are static. */
-					switch (devc->logic_pattern)
-					{
-					case 0/* 2^0 = 1 */:
-					case 1/* 2^1 = 2 */:
-					case 2/* 2^2 = 4 */:
-					case 3/* 2^3 = 8 */:
-						sr_dev_channel_enable(ch, (idx >= (1 << (devc->logic_pattern))) ? FALSE : TRUE);
-						break;
-					default:
-						break;
-					}
+					sr_dev_channel_enable(ch, (idx >= (1 << (devc->logic_pattern))) ? FALSE : TRUE);
 				} else
 					return SR_ERR_BUG;
 			}
@@ -404,25 +387,6 @@ static int config_list(uint32_t key, GVariant **data,
 	return ret;
 }
 
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
-
-	(void)sdi;DBG_VAL(sdi);
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	/* TODO: stop acquisition. */
-
-	(void)sdi;DBG_VAL(sdi);
-
-	return SR_OK;
-}
-
 static struct sr_dev_driver sipeed_slogic_analyzer_driver_info = {
 	.name = "sipeed-slogic-analyzer",
 	.longname = "Sipeed Slogic Analyzer",
@@ -437,8 +401,8 @@ static struct sr_dev_driver sipeed_slogic_analyzer_driver_info = {
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = sipeed_slogic_acquisition_start,
+	.dev_acquisition_stop = sipeed_slogic_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(sipeed_slogic_analyzer_driver_info);
