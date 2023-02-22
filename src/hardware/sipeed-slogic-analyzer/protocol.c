@@ -93,7 +93,7 @@ SR_PRIV int sipeed_slogic_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 	size_t size = get_buffer_size(devc);
 	for (int i = 0; i < devc->num_transfers; i++) {
-		uint8_t *buf = g_try_malloc(size * 8); /* max 8xu1 */
+		uint8_t *buf = g_try_malloc(size * (8+1)); /* max 8xu1 */
 		if (!buf) {
 			sr_err("USB transfer buffer malloc failed.");
 			return SR_ERR_MALLOC;
@@ -274,9 +274,10 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 check_trigger:
 	if (real_bits < 8) {
 		for (int i = cur_sample_count-1; i>=0; i--) {
-			((uint8_t *)transfer->buffer)[i] = 
-				(((uint8_t *)transfer->buffer)[i/real_bits] >> (real_bits-1-i%real_bits))
-				& ((1<<real_bits)-1);
+			
+			((uint8_t *)transfer->buffer+get_buffer_size(devc))[i] = 
+				(((uint8_t *)transfer->buffer)[i/(8/real_bits)] >> (real_bits*(i%(8/real_bits))))
+				&((1<<real_bits)-1);
 		}
 	}
 	if (devc->trigger_fired) {
@@ -286,7 +287,7 @@ check_trigger:
 			if (devc->limit_samples && devc->sent_samples + num_samples > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 
-			la_send_data_proc(sdi, (uint8_t *)transfer->buffer
+			la_send_data_proc(sdi, (uint8_t *)transfer->buffer + (real_bits<8?get_buffer_size(devc):0)
 				+ processed_samples * unitsize,
 				num_samples * unitsize, unitsize);
 			devc->sent_samples += num_samples;
@@ -305,7 +306,7 @@ check_trigger:
 					devc->sent_samples + num_samples > devc->limit_samples)
 				num_samples = devc->limit_samples - devc->sent_samples;
 
-			la_send_data_proc(sdi, (uint8_t *)transfer->buffer
+			la_send_data_proc(sdi, (uint8_t *)transfer->buffer + (real_bits<8?get_buffer_size(devc):0)
 				+ processed_samples * unitsize
 				+ trigger_offset * unitsize,
 				num_samples * unitsize, unitsize);
@@ -351,13 +352,14 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
-	uint64_t samplerate;
+	uint64_t samplerate, samplechannel;
 	struct cmd_start_acquisition cmd;
 	int ret;
 
 	devc = sdi->priv;
 	usb = sdi->conn;
 	samplerate = devc->cur_samplerate;
+	samplechannel = 1<<devc->logic_pattern;
 
 	/* Compute the sample rate. */
 	if (0) {
@@ -366,18 +368,17 @@ static int command_start_acquisition(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	cmd.sample_rate_h = cmd.sample_rate_l = 0;
-
-	if ((SR_MHZ(160) % samplerate) != 0) {
+	if ((SR_MHZ(160) % samplerate) != 0 || samplechannel * samplerate > 40 * 8 * 1000 * 1000) {
 		sr_err("Unable to sample at %" PRIu64 "Hz.", samplerate);
 		return SR_ERR;
 	}
 
-	sr_dbg("SLogic samplerate = %d, clocksource = %sMHz.", samplerate, "160");
+	sr_dbg("SLogic samplerate(%dch) = %d, clocksource = %sMHz.", samplechannel, samplerate, "160");
 
-	samplerate /= SR_KHZ(1);
+	samplerate /= SR_MHZ(1);
 	cmd.sample_rate_h = (samplerate >> 8) & 0xff;
 	cmd.sample_rate_l = samplerate & 0xff;
+	cmd.sample_channel = samplechannel;
 
 	/* Send the control message. */
 	ret = libusb_control_transfer(usb->devhdl, LIBUSB_REQUEST_TYPE_VENDOR |

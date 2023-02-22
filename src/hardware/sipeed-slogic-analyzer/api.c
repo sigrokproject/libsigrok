@@ -60,13 +60,13 @@ static const int32_t trigger_matches[] = {
 };
 
 static const uint64_t samplerates[] = {
-	SR_KHZ(20),
-	SR_KHZ(25),
-	SR_KHZ(50),
-	SR_KHZ(100),
-	SR_KHZ(200),
-	SR_KHZ(250),
-	SR_KHZ(500),
+	// SR_KHZ(20),
+	// SR_KHZ(25),
+	// SR_KHZ(50),
+	// SR_KHZ(100),
+	// SR_KHZ(200),
+	// SR_KHZ(250),
+	// SR_KHZ(500),
 	/* 160M = 2*2*2*2*2*5M */
 	SR_MHZ(1),
 	SR_MHZ(2),
@@ -79,6 +79,8 @@ static const uint64_t samplerates[] = {
 	SR_MHZ(32),
 	SR_MHZ(40),
 	/* must less than 47MHZ */
+	SR_MHZ(80),
+	SR_MHZ(160),
 };
 
 static struct sr_dev_driver sipeed_slogic_analyzer_driver_info;

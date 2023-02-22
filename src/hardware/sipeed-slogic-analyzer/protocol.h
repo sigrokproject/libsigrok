@@ -74,6 +74,7 @@ struct dev_context {
 struct cmd_start_acquisition {
 	uint8_t sample_rate_l;
 	uint8_t sample_rate_h;
+	uint8_t sample_channel;
 };
 #pragma pack(pop)
 
