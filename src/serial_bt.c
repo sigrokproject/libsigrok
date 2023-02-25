@@ -80,7 +80,11 @@ static const struct scan_supported_item {
 } scan_supported_items[] = {
 	{ "121GW", SER_BT_CONN_BLE122, NULL, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, NULL, },
+	{ "DL24M_BLE", SER_BT_CONN_AC6328, NULL, },
+	{ "DL24M_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
 	{ "HC-05", SER_BT_CONN_RFCOMM, NULL, },
+	{ "UC96_BLE", SER_BT_CONN_AC6328, NULL, },
+	{ "UC96_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
 	{ "UM25C", SER_BT_CONN_RFCOMM, NULL, },
 	{ NULL, SER_BT_CONN_UNKNOWN, NULL, },
 };
@@ -108,6 +112,7 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_BLE122] = "ble122",
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
+	[SER_BT_CONN_AC6328] = "ac6328",
 };
 
 static enum ser_bt_conn_t lookup_conn_name(const char *name)
@@ -283,6 +288,16 @@ static int ser_bt_parse_conn_spec(
 			*write_hdl = 0;
 		if (cccd_hdl)
 			*cccd_hdl = 21;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		break;
+	case SER_BT_CONN_AC6328:
+		if (read_hdl)
+			*read_hdl = 12;
+		if (write_hdl)
+			*write_hdl = 15;
+		if (cccd_hdl)
+			*cccd_hdl = 13;
 		if (cccd_val)
 			*cccd_val = 0x0001;
 		break;
@@ -469,6 +484,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
 		rc = sr_bt_config_notify(desc,
 			read_hdl, write_hdl, cccd_hdl, cccd_val);
 		if (rc < 0)
@@ -501,6 +517,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
 		rc = sr_bt_connect_ble(desc);
 		if (rc < 0)
 			return SR_ERR;
@@ -577,6 +594,7 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
 		/*
 		 * Assume that when applications call the serial layer's
 		 * write routine, then the BLE chip/module does support
@@ -642,6 +660,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
+		case SER_BT_CONN_AC6328:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
@@ -739,6 +758,7 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
+		case SER_BT_CONN_AC6328:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
