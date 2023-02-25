@@ -155,6 +155,9 @@ static void give_device_time_to_process(struct dev_context *devc)
 {
 	int64_t sleeping_time;
 
+	if (!devc->req_sent_at)
+		return;
+
 	sleeping_time = devc->req_sent_at + (DEVICE_PROCESSING_TIME_MS * 1000);
 	sleeping_time -= g_get_monotonic_time();
 
