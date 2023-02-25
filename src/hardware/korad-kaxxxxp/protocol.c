@@ -167,84 +167,81 @@ static void give_device_time_to_process(struct dev_context *devc)
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 				int target, struct dev_context *devc)
 {
-	char *msg;
-	const char *cmd;
-	float value;
+	char msg[20];
 	int ret;
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
 
+	msg[0] = '\0';
+	ret = SR_OK;
 	switch (target) {
 	case KAXXXXP_CURRENT:
 	case KAXXXXP_VOLTAGE:
 	case KAXXXXP_STATUS:
-		sr_err("Can't set measurable parameter %d.", target);
-		g_mutex_unlock(&devc->rw_mutex);
-		return SR_ERR;
+		sr_err("Can't set measured value %d.", target);
+		ret = SR_ERR;
+		break;
 	case KAXXXXP_CURRENT_LIMIT:
-		cmd = "ISET1:%05.3f";
-		value = devc->set_current_limit;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"ISET1:%05.3f", devc->set_current_limit);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
-		cmd = "VSET1:%05.2f";
-		value = devc->set_voltage_target;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"VSET1:%05.2f", devc->set_voltage_target);
 		break;
 	case KAXXXXP_OUTPUT:
-		cmd = "OUT%01.0f";
-		value = (devc->set_output_enabled) ? 1 : 0;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"OUT%1d", (devc->set_output_enabled) ? 1 : 0);
 		/* Set value back to recognize changes */
 		devc->output_enabled = devc->set_output_enabled;
 		break;
 	case KAXXXXP_BEEP:
-		cmd = "BEEP%01.0f";
-		value = (devc->set_beep_enabled) ? 1 : 0;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"BEEP%1d", (devc->set_beep_enabled) ? 1 : 0);
 		break;
 	case KAXXXXP_OCP:
-		cmd = "OCP%01.0f";
-		value = (devc->set_ocp_enabled) ? 1 : 0;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"OCP%1d", (devc->set_ocp_enabled) ? 1 : 0);
 		/* Set value back to recognize changes */
 		devc->ocp_enabled = devc->set_ocp_enabled;
 		break;
 	case KAXXXXP_OVP:
-		cmd = "OVP%01.0f";
-		value = (devc->set_ovp_enabled) ? 1 : 0;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"OVP%1d", (devc->set_ovp_enabled) ? 1 : 0);
 		/* Set value back to recognize changes */
 		devc->ovp_enabled = devc->set_ovp_enabled;
 		break;
 	case KAXXXXP_SAVE:
-		cmd = "SAV%01.0f";
 		if (devc->program < 1 || devc->program > 5) {
-			sr_err("Only programs 1-5 supported and %d isn't "
-			       "between them.", devc->program);
-			g_mutex_unlock(&devc->rw_mutex);
-			return SR_ERR;
+			sr_err("Program %d is not in the supported 1-5 range.",
+			       devc->program);
+			ret = SR_ERR;
+			break;
 		}
-		value = devc->program;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"SAV%1d", devc->program);
 		break;
 	case KAXXXXP_RECALL:
-		cmd = "RCL%01.0f";
 		if (devc->program < 1 || devc->program > 5) {
-			sr_err("Only programs 1-5 supported and %d isn't "
-			       "between them.", devc->program);
-			g_mutex_unlock(&devc->rw_mutex);
-			return SR_ERR;
+			sr_err("Program %d is not in the supported 1-5 range.",
+			       devc->program);
+			ret = SR_ERR;
+			break;
 		}
-		value = devc->program;
+		sr_snprintf_ascii(msg, sizeof(msg),
+			"RCL%1d", devc->program);
 		break;
 	default:
-		sr_err("Don't know how to set %d.", target);
-		g_mutex_unlock(&devc->rw_mutex);
-		return SR_ERR;
+		sr_err("Don't know how to set target %d.", target);
+		ret = SR_ERR;
+		break;
 	}
 
-	msg = g_malloc0(20 + 1);
-	if (cmd)
-		sr_snprintf_ascii(msg, 20, cmd, value);
-
-	ret = korad_kaxxxxp_send_cmd(serial, msg);
-	devc->req_sent_at = g_get_monotonic_time();
-	g_free(msg);
+	if (ret == SR_OK && msg[0]) {
+		ret = korad_kaxxxxp_send_cmd(serial, msg);
+		devc->req_sent_at = g_get_monotonic_time();
+	}
 
 	g_mutex_unlock(&devc->rw_mutex);
 
