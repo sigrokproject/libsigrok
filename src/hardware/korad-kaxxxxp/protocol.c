@@ -22,6 +22,7 @@
 #include "protocol.h"
 
 #define DEVICE_PROCESSING_TIME_MS 80
+#define EXTRA_PROCESSING_TIME_MS  450
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
 	const char *cmd)
@@ -155,16 +156,32 @@ static void give_device_time_to_process(struct dev_context *devc)
 {
 	int64_t sleeping_time;
 
-	if (!devc->req_sent_at)
+	if (!devc->next_req_time)
 		return;
 
-	sleeping_time = devc->req_sent_at + (DEVICE_PROCESSING_TIME_MS * 1000);
-	sleeping_time -= g_get_monotonic_time();
-
+	sleeping_time = devc->next_req_time - g_get_monotonic_time();
 	if (sleeping_time > 0) {
 		g_usleep(sleeping_time);
 		sr_spew("Sleeping for processing %" PRIi64 " usec", sleeping_time);
 	}
+}
+
+static int64_t next_req_time(struct dev_context *devc,
+	gboolean is_set, int target)
+{
+	gboolean is_slow_device, is_long_command;
+	int64_t processing_time_us;
+
+	is_slow_device = devc->model->quirks & KORAD_QUIRK_SLOW_PROCESSING;
+	is_long_command = is_set;
+	is_long_command |= target == KAXXXXP_STATUS;
+
+	processing_time_us = DEVICE_PROCESSING_TIME_MS;
+	if (is_slow_device && is_long_command)
+		processing_time_us += EXTRA_PROCESSING_TIME_MS;
+	processing_time_us *= 1000;
+
+	return g_get_monotonic_time() + processing_time_us;
 }
 
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
@@ -243,7 +260,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 
 	if (ret == SR_OK && msg[0]) {
 		ret = korad_kaxxxxp_send_cmd(serial, msg);
-		devc->req_sent_at = g_get_monotonic_time();
+		devc->next_req_time = next_req_time(devc, TRUE, target);
 	}
 
 	g_mutex_unlock(&devc->rw_mutex);
@@ -305,7 +322,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		return ret;
 	}
 
-	devc->req_sent_at = g_get_monotonic_time();
+	devc->next_req_time = next_req_time(devc, FALSE, target);
 
 	if ((ret = korad_kaxxxxp_read_chars(serial, count, reply)) < 0) {
 		g_mutex_unlock(&devc->rw_mutex);

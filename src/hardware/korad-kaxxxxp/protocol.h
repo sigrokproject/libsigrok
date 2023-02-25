@@ -37,7 +37,8 @@ enum korad_quirks_flag {
 	KORAD_QUIRK_ID_NO_VENDOR = 1UL << 1,
 	KORAD_QUIRK_ID_TRAILING = 1UL << 2,
 	KORAD_QUIRK_ID_OPT_VERSION = 1UL << 3,
-	KORAD_QUIRK_ALL = (1UL << 4) - 1,
+	KORAD_QUIRK_SLOW_PROCESSING = 1UL << 4,
+	KORAD_QUIRK_ALL = (1UL << 5) - 1,
 };
 
 /* Information on single model */
@@ -70,7 +71,7 @@ struct dev_context {
 	const struct korad_kaxxxxp_model *model; /**< Model information. */
 
 	struct sr_sw_limits limits;
-	int64_t req_sent_at;
+	int64_t next_req_time;
 	GMutex rw_mutex;
 
 	float current;          /**< Last current value [A] read from device. */
