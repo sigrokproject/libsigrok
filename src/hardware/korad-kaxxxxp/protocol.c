@@ -24,7 +24,7 @@
 #define DEVICE_PROCESSING_TIME_MS 80
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-				const char *cmd)
+	const char *cmd)
 {
 	int ret;
 
@@ -168,7 +168,7 @@ static void give_device_time_to_process(struct dev_context *devc)
 }
 
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
-				int target, struct dev_context *devc)
+	int target, struct dev_context *devc)
 {
 	char msg[20];
 	int ret;
@@ -252,7 +252,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 }
 
 SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
-				int target, struct dev_context *devc)
+	int target, struct dev_context *devc)
 {
 	int ret, count;
 	char reply[6];
@@ -377,7 +377,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 }
 
 SR_PRIV int korad_kaxxxxp_get_all_values(struct sr_serial_dev_inst *serial,
-				struct dev_context *devc)
+	struct dev_context *devc)
 {
 	int ret, target;
 

@@ -102,15 +102,15 @@ struct dev_context {
 };
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-					const char *cmd);
+		const char *cmd);
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
-					size_t count, char *buf);
+		size_t count, char *buf);
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
-					int target, struct dev_context *devc);
+		int target, struct dev_context *devc);
 SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
-					int target, struct dev_context *devc);
+		int target, struct dev_context *devc);
 SR_PRIV int korad_kaxxxxp_get_all_values(struct sr_serial_dev_inst *serial,
-					struct dev_context *devc);
+		struct dev_context *devc);
 SR_PRIV int korad_kaxxxxp_receive_data(int fd, int revents, void *cb_data);
 
 #endif
