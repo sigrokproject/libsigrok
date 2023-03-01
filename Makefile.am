@@ -650,6 +650,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/sysclk-sla5032/protocol.c \
 	src/hardware/sysclk-sla5032/api.c
 endif
+if HW_TEKTRONIX_TDS
+src_libdrivers_la_SOURCES += \
+	src/hardware/tektronix-tds/protocol.h \
+	src/hardware/tektronix-tds/protocol.c \
+	src/hardware/tektronix-tds/api.c
+endif
 if HW_TELEINFO
 src_libdrivers_la_SOURCES += \
 	src/hardware/teleinfo/protocol.h \
