@@ -62,7 +62,7 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
 
 SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
 	struct sr_channel *ch, const struct binary_analog_channel *bac,
-	const void *data, size_t length)
+	enum sr_mqflag flags, const void *data, size_t length)
 {
 	int err;
 	struct sr_analog_encoding encoding;
@@ -85,7 +85,7 @@ SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
 
 	meaning.mq = bac->mq;
 	meaning.unit = bac->unit;
-	meaning.mqflags = 0;
+	meaning.mqflags = bac->flags | flags;
 	meaning.channels = g_slist_append(NULL, ch);
 
 	spec.spec_digits = bac->digits;

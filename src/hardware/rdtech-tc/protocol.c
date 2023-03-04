@@ -65,12 +65,12 @@ static const uint8_t AES_KEY[] = {
 };
 
 static const struct binary_analog_channel rdtech_tc_channels[] = {
-	{ "V",  {   0 + 48, BVT_LE_UINT32, 1e-4, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I",  {   0 + 52, BVT_LE_UINT32, 1e-5, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", {  64 + 32, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", {  64 + 36, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "E0", {  64 + 12, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ "E1", {  64 + 20, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "V",  {   0 + 48, BVT_LE_UINT32, 1e-4, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "I",  {   0 + 52, BVT_LE_UINT32, 1e-5, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE, 0 },
+	{ "D+", {  64 + 32, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "D-", {  64 + 36, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "E0", {  64 + 12, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR, 0 },
+	{ "E1", {  64 + 20, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR, 0 },
 	ALL_ZERO,
 };
 
@@ -181,7 +181,7 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 
 	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++) {
 		bv_send_analog_channel(sdi, ch->data,
-				       &devc->channels[i], poll_pkt, TC_POLL_LEN);
+				       &devc->channels[i], 0, poll_pkt, TC_POLL_LEN);
         }
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);

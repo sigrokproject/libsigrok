@@ -2175,6 +2175,7 @@ struct binary_analog_channel {
 	int digits;			/**!< Significant digits */
 	enum sr_mq mq;			/**!< Measured quantity */
 	enum sr_unit unit;		/**!< Measured unit */
+	enum sr_mqflag flags;		/**!< Flags */
 };
 
 /**
@@ -2204,7 +2205,7 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
  */
 SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
 	struct sr_channel *ch, const struct binary_analog_channel *spec,
-	const void *data, size_t length);
+	enum sr_mqflag flags, const void *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/
 

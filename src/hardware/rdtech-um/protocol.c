@@ -35,24 +35,24 @@
 #define UM_CMD_POLL 0xf0
 
 static const struct binary_analog_channel rdtech_default_channels[] = {
-	{ "V",  { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I",  { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1.0, },  0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+	{ "V",  { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0},
+	{ "I",  { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE, 0 },
+	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "T", { 10, BVT_BE_UINT16, 1.0, },  0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS, 0 },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR, 0 },
 	ALL_ZERO,
 };
 
 static const struct binary_analog_channel rdtech_um25c_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE, 0 },
+	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT, 0 },
+	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS, 0 },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR, 0 },
 	ALL_ZERO,
 };
 
@@ -163,7 +163,7 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 
 	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++)
 		bv_send_analog_channel(sdi, ch->data,
-				       &devc->profile->channels[i],
+				       &devc->profile->channels[i], 0,
 				       devc->buf, devc->buflen);
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
