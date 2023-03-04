@@ -27,9 +27,30 @@
 
 #define LOG_PREFIX "atorch"
 
-struct dev_context {
+#define ATORCH_BUFSIZE	128
+
+struct atorch_device_profile {
+	uint8_t device_type;
+	const char* device_name;
+	const struct binary_analog_channel *channels;
 };
 
-SR_PRIV int atorch_receive_data(int fd, int revents, void *cb_data);
+enum Msg_Type {
+	MSG_REPORT = 0x01,
+	MSG_REPLY = 0x02,
+	MSG_COMMAND = 0x11
+};
+
+struct dev_context {
+	const struct atorch_device_profile *profile;
+	struct sr_sw_limits limits;
+
+	uint8_t buf[ATORCH_BUFSIZE];
+	size_t wr_idx;
+	size_t rd_idx;
+};
+
+SR_PRIV int atorch_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int atorch_receive_data_callback(int fd, int revents, void *cb_data);
 
 #endif
