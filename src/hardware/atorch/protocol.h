@@ -20,16 +20,49 @@
 #ifndef LIBSIGROK_HARDWARE_ATORCH_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_ATORCH_PROTOCOL_H
 
-#include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include <stdint.h>
+
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "atorch"
 
-struct dev_context {
+#define ATORCH_BUFSIZE	128
+
+struct atorch_device_profile {
+	uint8_t device_type;
+	const char *device_name;
+	const struct atorch_channel_desc *channels;
+	size_t channel_count;
 };
 
-SR_PRIV int atorch_receive_data(int fd, int revents, void *cb_data);
+struct atorch_channel_desc {
+	const char *name;
+	struct binary_value_spec spec;
+	struct sr_rational scale;
+	int digits;
+	enum sr_mq mq;
+	enum sr_unit unit;
+	enum sr_mqflag flags;
+};
+
+enum atorch_msg_type {
+	MSG_REPORT = 0x01,
+	MSG_REPLY = 0x02,
+	MSG_COMMAND = 0x11,
+};
+
+struct dev_context {
+	const struct atorch_device_profile *profile;
+	struct sr_sw_limits limits;
+	struct feed_queue_analog **feeds;
+	uint8_t buf[ATORCH_BUFSIZE];
+	size_t wr_idx;
+	size_t rd_idx;
+};
+
+SR_PRIV int atorch_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc);
+SR_PRIV int atorch_receive_data_callback(int fd, int revents, void *cb_data);
 
 #endif
