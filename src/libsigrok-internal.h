@@ -156,6 +156,24 @@ static inline int16_t read_i16le(const uint8_t *p)
 #define RL16S(x) read_i16le((const uint8_t *)(x))
 
 /**
+ * Read a 24 bits big endian unsigned integer out of memory.
+ * @param x a pointer to the input memory
+ * @return the corresponding unsigned integer
+ */
+static inline uint32_t read_u24be(const uint8_t *p)
+{
+	uint32_t u;
+
+	u = 0;
+	u <<= 8; u |= p[0];
+	u <<= 8; u |= p[1];
+	u <<= 8; u |= p[2];
+
+	return u;
+}
+#define RB24(x) read_u24be((const uint8_t *)(x))
+
+/**
  * Read a 24 bits little endian unsigned integer out of memory.
  * @param x a pointer to the input memory
  * @return the corresponding unsigned integer
@@ -171,6 +189,8 @@ static inline uint32_t read_u24le(const uint8_t *p)
 
 	return u;
 }
+#define RL24(x) read_u24le((const uint8_t *)(x))
+
 
 /**
  * Read a 32 bits big endian unsigned integer out of memory.
@@ -2151,11 +2171,13 @@ enum binary_value_type {
 	BVT_LE_UINT8 = BVT_UINT8,
 
 	BVT_BE_UINT16,
+	BVT_BE_UINT24,
 	BVT_BE_UINT32,
 	BVT_BE_UINT64,
 	BVT_BE_FLOAT,
 
 	BVT_LE_UINT16,
+	BVT_LE_UINT24,
 	BVT_LE_UINT32,
 	BVT_LE_UINT64,
 	BVT_LE_FLOAT,
