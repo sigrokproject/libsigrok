@@ -259,6 +259,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/asix-sigma/protocol.c \
 	src/hardware/asix-sigma/api.c
 endif
+if HW_ATORCH
+src_libdrivers_la_SOURCES += \
+	src/hardware/atorch/protocol.h \
+	src/hardware/atorch/protocol.c \
+	src/hardware/atorch/api.c
+endif
 if HW_ATTEN_PPS3XXX
 src_libdrivers_la_SOURCES += \
 	src/hardware/atten-pps3xxx/protocol.h \
