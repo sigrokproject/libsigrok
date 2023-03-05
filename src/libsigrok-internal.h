@@ -2163,35 +2163,28 @@ enum binary_value_type {
 
 /** Binary value specification */
 struct binary_value_spec {
-	/** Offset into binary blob */
-	size_t offset;
-	/** Data type to decode */
-	enum binary_value_type type;
-	/** Scale factor to get native units */
-	float scale;
+	size_t offset;			/**!< Offset into binary blob */
+	enum binary_value_type type;	/**!< Data type to decode */
+	float scale;			/**!< Scale factor to native units */
 };
 
 /** Binary channel definition */
 struct binary_analog_channel {
-	/** Channel name */
-	const char *name;
-	/** Binary value in data stream */
-	struct binary_value_spec spec;
-	/** Significant digits */
-	int digits;
-	/** Measured quantity */
-	enum sr_mq mq;
-	/** Measured unit */
-	enum sr_unit unit;
+	const char *name;		/**!< Channel name */
+	struct binary_value_spec spec;	/**!< Binary value in data stream */
+	int digits;			/**!< Significant digits */
+	enum sr_mq mq;			/**!< Measured quantity */
+	enum sr_unit unit;		/**!< Measured unit */
 };
 
 /**
  * Read extract a value from a binary blob.
  *
- * @param out Pointer to output buffer.
- * @param spec Binary value specification
- * @param data Pointer to binary blob
- * @param length Size of binary blob
+ * @param[out] out Pointer to output buffer (conversion result)
+ * @param[in] spec Binary value specification
+ * @param[in] data Pointer to binary input data
+ * @param[in] length Size of binary input data
+ *
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
 SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
@@ -2201,11 +2194,12 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
  * Send an analog channel packet based on a binary analog channel
  * specification.
  *
- * @param sdi Device instance
- * @param ch Sigrok channel
- * @param spec Channel specification
- * @param data Pointer to binary blob
- * @param length Size of binary blob
+ * @param[in] sdi Device instance
+ * @param[in] ch Sigrok channel
+ * @param[in] spec Channel specification
+ * @param[in] data Pointer to binary blob
+ * @param[in] length Size of binary blob
+ *
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
 SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
