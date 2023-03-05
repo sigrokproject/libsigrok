@@ -180,9 +180,9 @@ SR_API int feed_queue_analog_params(struct feed_queue_analog *q,
 	if (q->scale_factor == 1.0)
 		q->scale_factor = 0.0;
 
-	q->meaning->mq = mq;
-	q->meaning->mqflags = mqflags;
-	q->meaning->unit = unit;
+	q->meaning.mq = mq;
+	q->meaning.mqflags = mq_flag;
+	q->meaning.unit = unit;
 
 	return SR_OK;
 }
