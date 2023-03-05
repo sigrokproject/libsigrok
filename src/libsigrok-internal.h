@@ -2194,7 +2194,8 @@ struct binary_analog_channel {
  * @param length Size of binary blob
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
-SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const void *data, size_t length);
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+	const void *data, size_t length);
 
 /**
  * Send an analog channel packet based on a binary analog channel
@@ -2207,8 +2208,9 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const
  * @param length Size of binary blob
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
-SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch,
-				   const struct binary_analog_channel *spec, const void *data, size_t length);
+SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
+	struct sr_channel *ch, const struct binary_analog_channel *spec,
+	const void *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/
 

@@ -22,7 +22,8 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const void *data, size_t length)
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+	const void *data, size_t length)
 {
 	float value;
 
@@ -59,8 +60,9 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const
 	return SR_OK;
 }
 
-SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch,
-				   const struct binary_analog_channel *bac, const void *data, size_t length)
+SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
+	struct sr_channel *ch, const struct binary_analog_channel *bac,
+	const void *data, size_t length)
 {
 	int err;
 	struct sr_analog_encoding encoding;
