@@ -44,7 +44,7 @@ enum Msg_Type {
 struct dev_context {
 	const struct atorch_device_profile *profile;
 	struct sr_sw_limits limits;
-
+	GSList *feed_queues_list;
 	uint8_t buf[ATORCH_BUFSIZE];
 	size_t wr_idx;
 	size_t rd_idx;

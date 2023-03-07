@@ -144,22 +144,55 @@ static const struct atorch_device_profile *find_profile_for_device_type(uint8_t 
 	return NULL;
 }
 
+static float read_value(const struct binary_value_spec *spec, const void *data) {
+	data += spec->offset;
+
+	switch (spec->type) {
+	case BVT_UINT8:
+		return read_u8(data);
+	case BVT_BE_UINT16:
+		return read_u16be(data);
+	case BVT_BE_UINT24:
+		return read_u24be(data);
+	case BVT_BE_UINT32:
+		return read_u32be(data);
+	case BVT_BE_UINT64:
+		return read_u64be(data);
+	case BVT_BE_FLOAT:
+		return read_fltbe(data);
+	case BVT_LE_UINT16:
+		return read_u16le(data);
+	case BVT_LE_UINT24:
+		return read_u24le(data);
+	case BVT_LE_UINT32:
+		return read_u32le(data);
+	case BVT_LE_UINT64:
+		return read_u64le(data);
+	case BVT_LE_FLOAT:
+		return read_fltle(data);
+	default:
+		return 0;
+	}
+}
+
 static void parse_report_msg(struct sr_dev_inst *sdi, const uint8_t* report_ptr)
 {
 	struct dev_context *devc;
-	GSList *ch;
-	const struct binary_analog_channel *bc;
+	const struct binary_analog_channel *at_ch;
+	GSList *fqa_list;
+	float val;
 
 	devc = sdi->priv;
 
 	std_session_send_df_frame_begin(sdi);
 
-	ch = sdi->channels;
-	bc = devc->profile->channels;
-	while (ch) {
-		bv_send_analog_channel(sdi, ch->data, bc, 0, report_ptr, MSGLEN_REPORT);
-		ch = g_slist_next(ch);
-		bc++;
+	fqa_list = devc->feed_queues_list;
+	at_ch = devc->profile->channels;
+	while (at_ch->name) {
+		val = read_value(&at_ch->spec, report_ptr);
+		feed_queue_analog_submit(fqa_list->data, val, 1);
+		fqa_list = g_slist_next(fqa_list);
+		at_ch++;
 	}
 
 	std_session_send_df_frame_end(sdi);

@@ -39,6 +39,52 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
 };
 
+/**
+ * Wrapper for g_slist_free_full() convenience.
+ */
+static  void sr_feed_queue_analog_inst_free_cb(gpointer p)
+{
+	feed_queue_analog_free(p);
+}
+
+static int create_channels_feed_queues(struct sr_dev_inst *sdi,
+		struct dev_context *devc)
+{
+	size_t i;
+	struct sr_channel *sr_ch;
+	const struct binary_analog_channel *at_ch;
+	struct feed_queue_analog *fqa;
+	GSList *fqa_list;
+
+	i = 0;
+	fqa_list = NULL;
+	at_ch = devc->profile->channels;
+	while (at_ch->name) {
+
+		sr_ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, at_ch->name);
+		fqa = feed_queue_analog_alloc(sdi, 1, at_ch->digits, sr_ch);
+		if (!fqa)
+			goto error_cleanup;
+
+		if (feed_queue_analog_params(fqa, at_ch->spec.scale, at_ch->mq,
+				at_ch->flags, at_ch->unit) != SR_OK)
+			goto error_cleanup;
+
+		fqa_list = g_slist_append(fqa_list, fqa);
+
+		i++;
+		at_ch++;
+	}
+
+	devc->feed_queues_list = fqa_list;
+
+	return SR_OK;
+
+error_cleanup:
+	g_slist_free_full(fqa_list, sr_feed_queue_analog_inst_free_cb);
+	return SR_ERR;
+}
+
 static GSList *atorch_scan(struct sr_dev_driver *di, const char *conn,
 	const char *serialcomm)
 {
@@ -46,7 +92,6 @@ static GSList *atorch_scan(struct sr_dev_driver *di, const char *conn,
 	GSList *devices;
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
-	size_t i;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -70,19 +115,18 @@ static GSList *atorch_scan(struct sr_dev_driver *di, const char *conn,
 	sdi->conn = serial;
 	sdi->priv = devc;
 
-	for (i = 0 ; devc->profile->channels[i].name ; i++) {
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
-			devc->profile->channels[i].name);
+	/* Create one feed queue per channel */
+	if (create_channels_feed_queues(sdi, devc) != SR_OK) {
+		goto err_out_sdi;
 	}
 
 	serial_close(serial);
 
 	devices = g_slist_append(NULL, sdi);
-	if (!devices)
-		sr_serial_dev_inst_free(serial);
-
 	return std_scan_complete(di, devices);
 
+err_out_sdi:
+	g_free(sdi);
 err_out_serial:
 	g_free(devc);
 	serial_close(serial);
@@ -171,6 +215,17 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static void clr_dev_priv_cb(void *priv)
+{
+	struct dev_context *devc = (struct dev_context *) priv;
+	g_slist_free_full(devc->feed_queues_list, sr_feed_queue_analog_inst_free_cb);
+}
+
+static int dev_clear(const struct sr_dev_driver *driver)
+{
+	return std_dev_clear_with_callback(driver, clr_dev_priv_cb);
+}
+
 static struct sr_dev_driver atorch_driver_info = {
 	.name = "atorch",
 	.longname = "ATORCH",
@@ -179,7 +234,7 @@ static struct sr_dev_driver atorch_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
