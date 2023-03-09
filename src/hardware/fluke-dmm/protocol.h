@@ -29,7 +29,9 @@
 
 /* Supported models */
 enum {
-	FLUKE_187 = 1,
+	FLUKE_87 = 1,
+	FLUKE_89,
+	FLUKE_187,
 	FLUKE_189,
 	FLUKE_287,
 	FLUKE_190,

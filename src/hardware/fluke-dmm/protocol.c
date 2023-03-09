@@ -78,7 +78,7 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 		*e++ = '\0';
 		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK) {
 			/* Happens all the time, when switching modes. */
-			sr_dbg("Invalid float.");
+			sr_dbg("Invalid float: '%s'", tokens[1]);
 			return;
 		}
 		digits = count_digits(tokens[1]);
@@ -466,7 +466,8 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		if (devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
+		if (devc->profile->model == FLUKE_87 || devc->profile->model == FLUKE_89 ||
+				devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
 			devc->expect_response = FALSE;
 			handle_qm_18x(sdi, tokens);
 		} else if (devc->profile->model == FLUKE_287 || devc->profile->model == FLUKE_289) {
