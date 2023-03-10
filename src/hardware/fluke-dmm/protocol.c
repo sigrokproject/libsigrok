@@ -26,6 +26,23 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+static int count_digits(const char *str) {
+	int digits = 0;
+
+	while (*str && *str != ' ' && *str != ',' && *str != '.')
+		str++;
+
+	if (*str == '.' ) {
+		str++;
+		while (*str && *str != ' ' && *str != ',') {
+			str++;
+			digits++;
+		}
+	}
+
+	return digits;
+}
+
 static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
@@ -37,6 +54,7 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 	float fvalue;
 	char *e, *u;
 	gboolean is_oor;
+	int digits;
 
 	devc = sdi->priv;
 
@@ -46,6 +64,7 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 	if ((e = strstr(tokens[1], "Out of range"))) {
 		is_oor = TRUE;
 		fvalue = -1;
+		digits = 0;
 		while (*e && *e != '.')
 			e++;
 	} else {
@@ -61,12 +80,13 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 			sr_dbg("Invalid float : '%s'", tokens[1]);
 			return;
 		}
+
+		digits = count_digits(tokens[1]);
 	}
 	while (*e && *e == ' ')
 		e++;
 
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.data = &fvalue;
 	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
@@ -167,6 +187,7 @@ static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	float fvalue;
+	int digits ;
 
 	devc = sdi->priv;
 
@@ -178,7 +199,8 @@ static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
 		return;
 	}
 
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
+	digits = count_digits(tokens[0]);
+
 	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
 	analog.data = &fvalue;
 	analog.meaning->channels = sdi->channels;
