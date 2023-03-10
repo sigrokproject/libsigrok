@@ -56,7 +56,7 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 		while (*e && *e != ' ')
 			e++;
 		*e++ = '\0';
-		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK || fvalue == 0.0) {
+		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK) {
 			/* Happens all the time, when switching modes. */
 			sr_dbg("Invalid float.");
 			return;
@@ -173,7 +173,7 @@ static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
 	if (!tokens[1])
 		return;
 
-	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
+	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK) {
 		sr_err("Invalid float '%s'.", tokens[0]);
 		return;
 	}
