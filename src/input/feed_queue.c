@@ -132,7 +132,6 @@ struct feed_queue_analog {
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	GSList *channels;
-	float scale_factor;
 };
 
 SR_API struct feed_queue_analog *feed_queue_analog_alloc(
@@ -163,8 +162,7 @@ SR_API struct feed_queue_analog *feed_queue_analog_alloc(
 	return q;
 }
 
-SR_API int feed_queue_analog_params(struct feed_queue_analog *q,
-	float scale_factor,
+SR_API int feed_queue_analog_mq_unit(struct feed_queue_analog *q,
 	enum sr_mq mq, enum sr_mqflag mq_flag, enum sr_unit unit)
 {
 	int ret;
@@ -176,13 +174,29 @@ SR_API int feed_queue_analog_params(struct feed_queue_analog *q,
 	if (ret != SR_OK)
 		return ret;
 
-	q->scale_factor = scale_factor;
-	if (q->scale_factor == 1.0)
-		q->scale_factor = 0.0;
-
 	q->meaning.mq = mq;
 	q->meaning.mqflags = mq_flag;
 	q->meaning.unit = unit;
+
+	return SR_OK;
+}
+
+SR_API int feed_queue_analog_scale_offset(struct feed_queue_analog *q,
+	const struct sr_rational *scale, const struct sr_rational *offset)
+{
+	int ret;
+
+	if (!q)
+		return SR_ERR_ARG;
+
+	ret = feed_queue_analog_flush(q);
+	if (ret != SR_OK)
+		return ret;
+
+	if (scale)
+		q->encoding.scale = *scale;
+	if (offset)
+		q->encoding.offset = *offset;
 
 	return SR_OK;
 }
@@ -192,8 +206,6 @@ SR_API int feed_queue_analog_submit(struct feed_queue_analog *q,
 {
 	int ret;
 
-	if (q->scale_factor)
-		data *= q->scale_factor;
 	while (count--) {
 		q->data_values[q->fill_count++] = data;
 		if (q->fill_count == q->alloc_count) {
