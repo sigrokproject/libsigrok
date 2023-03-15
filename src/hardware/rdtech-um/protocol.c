@@ -28,12 +28,15 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define SERIAL_WRITE_TIMEOUT_MS 1
+/* Read/write timeouts, poll request intervals. */
+#define PROBE_TO_MS 1000
+#define WRITE_TO_MS 1
+#define POLL_PERIOD_MS 100
 
-#define UM_POLL_LEN 130
-#define UM_POLL_PERIOD_MS 100
-#define UM_TIMEOUT_MS 1000
+/* Expected receive data size for poll responses. */
+#define POLL_RECV_LEN 130
 
+/* Command code to request another poll response. */
 #define UM_CMD_POLL 0xf0
 
 static const struct binary_analog_channel rdtech_default_channels[] = {
@@ -62,7 +65,7 @@ static gboolean csum_ok_fff1(const uint8_t *buf, size_t len)
 {
 	uint16_t csum_recv;
 
-	if (len != UM_POLL_LEN)
+	if (len != POLL_RECV_LEN)
 		return FALSE;
 
 	csum_recv = read_u16be(&buf[len - sizeof(uint16_t)]);
@@ -83,7 +86,7 @@ static gboolean csum_ok_um34c(const uint8_t *buf, size_t len)
 	size_t i;
 	uint8_t csum_calc, csum_recv;
 
-	if (len != UM_POLL_LEN)
+	if (len != POLL_RECV_LEN)
 		return FALSE;
 
 	csum_calc = 0;
@@ -118,20 +121,21 @@ static const struct rdtech_um_profile *find_profile(uint16_t id)
 SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_inst *serial)
 {
 	const struct rdtech_um_profile *p;
-	uint8_t request;
+	uint8_t req;
+	int ret;
 	uint8_t buf[RDTECH_UM_BUFSIZE];
 	int rcvd;
 	uint16_t model_id;
 
-	request = UM_CMD_POLL;
-	if (serial_write_blocking(serial, &request, sizeof(request),
-			SERIAL_WRITE_TIMEOUT_MS) < 0) {
-		sr_err("Unable to send probe request.");
+	req = UM_CMD_POLL;
+	ret = serial_write_blocking(serial, &req, sizeof(req), WRITE_TO_MS);
+	if (ret < 0) {
+		sr_err("Failed to send probe request.");
 		return NULL;
 	}
 
-	rcvd = serial_read_blocking(serial, buf, UM_POLL_LEN, UM_TIMEOUT_MS);
-	if (rcvd != UM_POLL_LEN) {
+	rcvd = serial_read_blocking(serial, buf, POLL_RECV_LEN, PROBE_TO_MS);
+	if (rcvd != POLL_RECV_LEN) {
 		sr_err("Failed to read probe response.");
 		return NULL;
 	}
@@ -156,20 +160,21 @@ SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi, gboolean force)
 	struct dev_context *devc;
 	int64_t now, elapsed;
 	struct sr_serial_dev_inst *serial;
-	uint8_t request;
+	uint8_t req;
+	int ret;
 
 	/* Check for expired intervals or forced requests. */
 	devc = sdi->priv;
 	now = g_get_monotonic_time() / 1000;
 	elapsed = now - devc->cmd_sent_at;
-	if (!force && elapsed < UM_POLL_PERIOD_MS)
+	if (!force && elapsed < POLL_PERIOD_MS)
 		return SR_OK;
 
 	/* Send another poll request. Update interval only on success. */
 	serial = sdi->conn;
-	request = UM_CMD_POLL;
-	if (serial_write_blocking(serial, &request, sizeof(request),
-			SERIAL_WRITE_TIMEOUT_MS) < 0) {
+	req = UM_CMD_POLL;
+	ret = serial_write_blocking(serial, &req, sizeof(req), WRITE_TO_MS);
+	if (ret < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
@@ -186,7 +191,7 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	sr_spew("Received poll packet (len: %zu).", devc->buflen);
-	if (devc->buflen != UM_POLL_LEN) {
+	if (devc->buflen != POLL_RECV_LEN) {
 		sr_err("Unexpected poll packet length: %zu", devc->buflen);
 		return;
 	}
@@ -211,7 +216,7 @@ static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *s
 	/* Serial data arrived. */
 	devc = sdi->priv;
 	p = devc->profile;
-	while (devc->buflen < UM_POLL_LEN) {
+	while (devc->buflen < POLL_RECV_LEN) {
 		len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 		if (len < 1)
 			return;
@@ -227,7 +232,7 @@ static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *s
 		}
 	}
 
-	if (devc->buflen != UM_POLL_LEN)
+	if (devc->buflen != POLL_RECV_LEN)
 		sr_warn("Skipping packet, unexpected receive length.");
 	else if (!p->csum_ok(devc->buf, devc->buflen))
 		sr_warn("Skipping packet, checksum verification failed.");
@@ -246,19 +251,21 @@ SR_PRIV int rdtech_um_receive_data(int fd, int revents, void *cb_data)
 
 	if (!(sdi = cb_data))
 		return TRUE;
-
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	/* Drain and process receive data as it becomes available. */
 	serial = sdi->conn;
 	if (revents == G_IO_IN)
 		recv_poll_data(sdi, serial);
 
+	/* Check configured acquisition limits. */
 	if (sr_sw_limits_check(&devc->limits)) {
 		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
+	/* Periodically emit measurement requests. */
 	(void)rdtech_um_poll(sdi, FALSE);
 
 	return TRUE;
