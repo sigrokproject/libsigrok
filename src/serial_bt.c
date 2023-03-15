@@ -125,14 +125,16 @@ static const char *conn_name_text(enum ser_bt_conn_t type)
  * - The next field is the remote device's address, either separated
  *   by colons or dashes or spaces, or not separated at all.
  * - Other parameters (RFCOMM channel, notify handles and write values)
- *   get derived from the connection type. A future implementation may
- *   accept more fields, but the syntax is yet to get developed.
+ *   get derived from the connection type.
+ * - More fields after the remote address are options which override
+ *   builtin defaults (RFCOMM channels, BLE handles, etc).
  *
  * Supported formats resulting from these rules:
- *   bt/<conn>/<addr>
+ *   bt/<conn>/<addr>[/<param>]...
  *
  * Examples:
  *   bt/rfcomm/11-22-33-44-55-66
+ *   bt/rfcomm/11-22-33-44-55-66/channel=2
  *   bt/ble122/88:6b:12:34:56:78
  *   bt/cc254x/0123456789ab
  *
