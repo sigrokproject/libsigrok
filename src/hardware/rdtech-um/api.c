@@ -156,7 +156,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 		rdtech_um_receive_data, (void *)sdi);
 
-	return rdtech_um_poll(sdi);
+	return rdtech_um_poll(sdi, TRUE);
 }
 
 static struct sr_dev_driver rdtech_um_driver_info = {

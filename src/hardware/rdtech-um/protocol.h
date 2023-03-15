@@ -51,6 +51,6 @@ struct dev_context {
 
 SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_inst *serial);
 SR_PRIV int rdtech_um_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi);
+SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi, gboolean force);
 
 #endif

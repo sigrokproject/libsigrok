@@ -147,12 +147,21 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 	return p;
 }
 
-SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi)
+SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi, gboolean force)
 {
 	struct dev_context *devc;
+	int64_t now, elapsed;
 	struct sr_serial_dev_inst *serial;
 	uint8_t request;
 
+	/* Check for expired intervals or forced requests. */
+	devc = sdi->priv;
+	now = g_get_monotonic_time() / 1000;
+	elapsed = now - devc->cmd_sent_at;
+	if (!force && elapsed < UM_POLL_PERIOD_MS)
+		return SR_OK;
+
+	/* Send another poll request. Update interval only on success. */
 	serial = sdi->conn;
 	request = UM_CMD_POLL;
 	if (serial_write_blocking(serial, &request, sizeof(request),
@@ -160,9 +169,7 @@ SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi)
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
-
-	devc = sdi->priv;
-	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
+	devc->cmd_sent_at = now;
 
 	return SR_OK;
 }
@@ -228,7 +235,6 @@ SR_PRIV int rdtech_um_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int64_t now, elapsed;
 
 	(void)fd;
 
@@ -247,11 +253,7 @@ SR_PRIV int rdtech_um_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	now = g_get_monotonic_time() / 1000;
-	elapsed = now - devc->cmd_sent_at;
-
-	if (elapsed > UM_POLL_PERIOD_MS)
-		rdtech_um_poll(sdi);
+	(void)rdtech_um_poll(sdi, FALSE);
 
 	return TRUE;
 }
