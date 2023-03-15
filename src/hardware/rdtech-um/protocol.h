@@ -38,6 +38,7 @@ struct rdtech_um_profile {
 	const char *model_name;
 	enum rdtech_um_model_id model_id;
 	const struct binary_analog_channel *channels;
+	size_t channel_count;
 	gboolean (*csum_ok)(const uint8_t *buf, size_t len);
 };
 

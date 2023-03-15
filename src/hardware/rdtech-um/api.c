@@ -80,8 +80,10 @@ static GSList *rdtech_um_scan(struct sr_dev_driver *di,
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
-	for (ch_idx = 0; (name = p->channels[ch_idx].name); ch_idx++)
+	for (ch_idx = 0; ch_idx < p->channel_count; ch_idx++) {
+		name = p->channels[ch_idx].name;
 		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, name);
+	}
 
 	devices = g_slist_append(NULL, sdi);
 	serial_close(serial);

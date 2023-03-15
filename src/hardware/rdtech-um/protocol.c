@@ -39,7 +39,7 @@
 /* Command code to request another poll response. */
 #define UM_CMD_POLL 0xf0
 
-static const struct binary_analog_channel rdtech_default_channels[] = {
+static const struct binary_analog_channel default_channels[] = {
 	{ "V", { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "I", { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
 	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
@@ -47,10 +47,9 @@ static const struct binary_analog_channel rdtech_default_channels[] = {
 	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
 	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	ALL_ZERO,
 };
 
-static const struct binary_analog_channel rdtech_um25c_channels[] = {
+static const struct binary_analog_channel um25c_channels[] = {
 	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
 	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
@@ -58,7 +57,6 @@ static const struct binary_analog_channel rdtech_um25c_channels[] = {
 	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
 	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	ALL_ZERO,
 };
 
 static gboolean csum_ok_fff1(const uint8_t *buf, size_t len)
@@ -100,9 +98,9 @@ static gboolean csum_ok_um34c(const uint8_t *buf, size_t len)
 }
 
 static const struct rdtech_um_profile um_profiles[] = {
-	{ "UM24C", RDTECH_UM24C, rdtech_default_channels, csum_ok_fff1, },
-	{ "UM25C", RDTECH_UM25C, rdtech_um25c_channels, csum_ok_fff1, },
-	{ "UM34C", RDTECH_UM34C, rdtech_default_channels, csum_ok_um34c, },
+	{ "UM24C", RDTECH_UM24C, ARRAY_AND_SIZE(default_channels), csum_ok_fff1, },
+	{ "UM25C", RDTECH_UM25C, ARRAY_AND_SIZE(um25c_channels), csum_ok_fff1, },
+	{ "UM34C", RDTECH_UM34C, ARRAY_AND_SIZE(default_channels), csum_ok_um34c, },
 };
 
 static const struct rdtech_um_profile *find_profile(uint16_t id)
