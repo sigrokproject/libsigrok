@@ -104,11 +104,13 @@ static const struct rdtech_um_profile um_profiles[] = {
 
 static const struct rdtech_um_profile *find_profile(uint16_t id)
 {
-	unsigned int i;
+	size_t i;
+	const struct rdtech_um_profile *profile;
 
 	for (i = 0; i < ARRAY_SIZE(um_profiles); i++) {
-		if (um_profiles[i].model_id == id)
-			return &um_profiles[i];
+		profile = &um_profiles[i];
+		if (profile->model_id == id)
+			return profile;
 	}
 	return NULL;
 }
@@ -118,7 +120,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 	const struct rdtech_um_profile *p;
 	uint8_t request;
 	uint8_t buf[RDTECH_UM_BUFSIZE];
-	int len;
+	int rcvd;
 	uint16_t model_id;
 
 	request = UM_CMD_POLL;
@@ -128,8 +130,8 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 		return NULL;
 	}
 
-	len = serial_read_blocking(serial, buf, UM_POLL_LEN, UM_TIMEOUT_MS);
-	if (len != UM_POLL_LEN) {
+	rcvd = serial_read_blocking(serial, buf, UM_POLL_LEN, UM_TIMEOUT_MS);
+	if (rcvd != UM_POLL_LEN) {
 		sr_err("Failed to read probe response.");
 		return NULL;
 	}
@@ -141,7 +143,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 		return NULL;
 	}
 
-	if (!p->csum_ok(buf, len)) {
+	if (!p->csum_ok(buf, rcvd)) {
 		sr_err("Probe response fails checksum verification.");
 		return NULL;
 	}
@@ -179,7 +181,7 @@ SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi, gboolean force)
 static void handle_poll_data(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	int i;
+	size_t ch_idx;
 	GSList *ch;
 
 	devc = sdi->priv;
@@ -189,10 +191,12 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 		return;
 	}
 
-	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++) {
+	ch_idx = 0;
+	for (ch = sdi->channels; ch; ch = g_slist_next(ch)) {
 		bv_send_analog_channel(sdi, ch->data,
-			&devc->profile->channels[i],
+			&devc->profile->channels[ch_idx],
 			devc->buf, devc->buflen);
+		ch_idx++;
 	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
