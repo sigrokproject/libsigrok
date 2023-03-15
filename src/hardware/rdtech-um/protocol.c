@@ -39,24 +39,24 @@
 /* Command code to request another poll response. */
 #define UM_CMD_POLL 0xf0
 
-static const struct binary_analog_channel default_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+static const struct rdtech_um_channel_desc default_channels[] = {
+	{ "V", { 2, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, 1, }, { 1, 1e3, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", { 96, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", { 98, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "T", { 10, BVT_BE_UINT16, 1, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, 1, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
-static const struct binary_analog_channel um25c_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+static const struct rdtech_um_channel_desc um25c_channels[] = {
+	{ "V", { 2, BVT_BE_UINT16, 1, }, { 1, 1e3, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, 1, }, { 100, 1e6, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", { 96, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", { 98, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "T", { 10, BVT_BE_UINT16, 1, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, 1, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
 static gboolean csum_ok_fff1(const uint8_t *buf, size_t len)
@@ -191,7 +191,7 @@ static int process_data(struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	const struct rdtech_um_profile *p;
 	size_t ch_idx;
-	GSList *ch;
+	float v;
 	int ret;
 
 	devc = sdi->priv;
@@ -208,12 +208,11 @@ static int process_data(struct sr_dev_inst *sdi,
 		return SR_ERR_DATA;
 	}
 
-	ch_idx = 0;
-	for (ch = sdi->channels; ch; ch = g_slist_next(ch)) {
-		ret = bv_send_analog_channel(sdi, ch->data,
-			&devc->profile->channels[ch_idx],
-			data, dlen);
-		ch_idx++;
+	for (ch_idx = 0; ch_idx < p->channel_count; ch_idx++) {
+		ret = bv_get_value(&v, &p->channels[ch_idx].spec, data, dlen);
+		if (ret != SR_OK)
+			return ret;
+		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
 		if (ret != SR_OK)
 			return ret;
 	}

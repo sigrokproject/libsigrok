@@ -33,11 +33,19 @@ enum rdtech_um_model_id {
 	RDTECH_UM34C = 0x0d4c,
 };
 
-/* Supported device profiles */
+struct rdtech_um_channel_desc {
+	const char *name;
+	struct binary_value_spec spec;
+	struct sr_rational scale;
+	int digits;
+	enum sr_mq mq;
+	enum sr_unit unit;
+};
+
 struct rdtech_um_profile {
 	const char *model_name;
 	enum rdtech_um_model_id model_id;
-	const struct binary_analog_channel *channels;
+	const struct rdtech_um_channel_desc *channels;
 	size_t channel_count;
 	gboolean (*csum_ok)(const uint8_t *buf, size_t len);
 };
@@ -45,6 +53,7 @@ struct rdtech_um_profile {
 struct dev_context {
 	const struct rdtech_um_profile *profile;
 	struct sr_sw_limits limits;
+	struct feed_queue_analog **feeds;
 	uint8_t buf[RDTECH_UM_BUFSIZE];
 	size_t buflen;
 	int64_t cmd_sent_at;
