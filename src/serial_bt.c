@@ -62,6 +62,7 @@ static const struct scan_supported_item {
 	{ "121GW", SER_BT_CONN_BLE122, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
 	{ "HC-05", SER_BT_CONN_RFCOMM, },
+	{ "UM25C", SER_BT_CONN_RFCOMM, },
 	{ NULL, SER_BT_CONN_UNKNOWN, },
 };
 
