@@ -35,11 +35,11 @@
 #define UM_CMD_POLL 0xf0
 
 static const struct binary_analog_channel rdtech_default_channels[] = {
-	{ "V",  { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I",  { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "V", { 2, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
 	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1.0, },  0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
 	{ "E", { 106, BVT_BE_UINT32, 0.001, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 	ALL_ZERO,
@@ -107,7 +107,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 	int len;
 
 	if (serial_write_blocking(serial, &request, sizeof(request),
-                                  SERIAL_WRITE_TIMEOUT_MS) < 0) {
+			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send probe request.");
 		return NULL;
 	}
@@ -139,7 +139,7 @@ SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi)
 	static const uint8_t request = UM_CMD_POLL;
 
 	if (serial_write_blocking(serial, &request, sizeof(request),
-                                  SERIAL_WRITE_TIMEOUT_MS) < 0) {
+			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
@@ -161,10 +161,11 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 		return;
 	}
 
-	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++)
+	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++) {
 		bv_send_analog_channel(sdi, ch->data,
-				       &devc->profile->channels[i],
-				       devc->buf, devc->buflen);
+			&devc->profile->channels[i],
+			devc->buf, devc->buflen);
+	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }

@@ -47,14 +47,16 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-static GSList *rdtech_um_scan(struct sr_dev_driver *di, const char *conn,
-			      const char *serialcomm)
+static GSList *rdtech_um_scan(struct sr_dev_driver *di,
+	const char *conn, const char *serialcomm)
 {
 	struct sr_serial_dev_inst *serial;
 	const struct rdtech_um_profile *p = NULL;
 	GSList *devices = NULL;
 	struct dev_context *devc = NULL;
 	struct sr_dev_inst *sdi = NULL;
+	size_t ch_idx;
+	const char *name;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -80,9 +82,8 @@ static GSList *rdtech_um_scan(struct sr_dev_driver *di, const char *conn,
 	sdi->conn = serial;
 	sdi->priv = devc;
 
-	for (int i = 0; p->channels[i].name; i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
-			       p->channels[i].name);
+	for (ch_idx = 0; (name = p->channels[ch_idx].name); ch_idx++)
+		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, name);
 
 	devices = g_slist_append(devices, sdi);
 	serial_close(serial);
@@ -123,7 +124,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -135,7 +136,7 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
@@ -149,7 +150,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
-			  rdtech_um_receive_data, (void *)sdi);
+		rdtech_um_receive_data, (void *)sdi);
 
 	return rdtech_um_poll(sdi);
 }
