@@ -119,6 +119,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 	uint8_t request;
 	uint8_t buf[RDTECH_UM_BUFSIZE];
 	int len;
+	uint16_t model_id;
 
 	request = UM_CMD_POLL;
 	if (serial_write_blocking(serial, &request, sizeof(request),
@@ -133,14 +134,15 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 		return NULL;
 	}
 
-	p = find_profile(RB16(&buf[0]));
+	model_id = read_u16be(&buf[0]);
+	p = find_profile(model_id);
 	if (!p) {
-		sr_err("Unrecognized UM device (0x%.4" PRIx16 ")!", RB16(&buf[0]));
+		sr_err("Unrecognized UM device (0x%.4" PRIx16 ").", model_id);
 		return NULL;
 	}
 
 	if (!p->csum_ok(buf, len)) {
-		sr_err("Probe response contains illegal checksum or end marker.\n");
+		sr_err("Probe response fails checksum verification.");
 		return NULL;
 	}
 
@@ -209,8 +211,7 @@ static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *s
 		len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 		if (len < 1)
 			return;
-
-		devc->buflen++;
+		devc->buflen += len;
 
 		/* Check if the poll model ID matches the profile. */
 		if (devc->buflen == 2 && RB16(devc->buf) != p->model_id) {
@@ -222,11 +223,12 @@ static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *s
 		}
 	}
 
-	if (devc->buflen == UM_POLL_LEN && p->csum_ok(devc->buf, devc->buflen))
-		handle_poll_data(sdi);
+	if (devc->buflen != UM_POLL_LEN)
+		sr_warn("Skipping packet, unexpected receive length.");
+	else if (!p->csum_ok(devc->buf, devc->buflen))
+		sr_warn("Skipping packet, checksum verification failed.");
 	else
-		sr_warn("Skipping packet with illegal checksum / end marker.");
-
+		handle_poll_data(sdi);
 	devc->buflen = 0;
 }
 
