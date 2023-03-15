@@ -58,15 +58,21 @@ static const struct binary_analog_channel rdtech_um25c_channels[] = {
 	ALL_ZERO,
 };
 
-static int poll_csum_fff1(char buf[], int len)
+static gboolean csum_ok_fff1(const uint8_t *buf, size_t len)
 {
+	uint16_t csum_recv;
+
 	if (len != UM_POLL_LEN)
-		return 0;
-	else
-		return RB16(&buf[len - 2]) == 0xFFF1;
+		return FALSE;
+
+	csum_recv = read_u16be(&buf[len - sizeof(uint16_t)]);
+	if (csum_recv != 0xfff1)
+		return FALSE;
+
+	return TRUE;
 }
 
-static int poll_csum_um34c(char buf[], int len)
+static gboolean csum_ok_um34c(const uint8_t *buf, size_t len)
 {
 	static const int positions[] = {
 		1, 3, 7, 9, 15, 17, 19, 23, 31, 39, 41, 45, 49, 53,
@@ -74,25 +80,26 @@ static int poll_csum_um34c(char buf[], int len)
 		111, 113, 119, 121, 127,
 	};
 
-	unsigned int i;
-	uint8_t csum;
+	size_t i;
+	uint8_t csum_calc, csum_recv;
 
 	if (len != UM_POLL_LEN)
-		return 0;
+		return FALSE;
 
-	csum = 0;
+	csum_calc = 0;
 	for (i = 0; i < ARRAY_SIZE(positions); i++)
-		csum ^= buf[positions[i]];
-	if (csum != (uint8_t)buf[len - 1])
-		return 0;
+		csum_calc ^= buf[positions[i]];
+	csum_recv = read_u8(&buf[len - sizeof(uint8_t)]);
+	if (csum_recv != csum_calc)
+		return FALSE;
 
-	return 1;
+	return TRUE;
 }
 
 static const struct rdtech_um_profile um_profiles[] = {
-	{ "UM24C", RDTECH_UM24C, rdtech_default_channels, &poll_csum_fff1, },
-	{ "UM25C", RDTECH_UM25C, rdtech_um25c_channels, &poll_csum_fff1, },
-	{ "UM34C", RDTECH_UM34C, rdtech_default_channels, &poll_csum_um34c, },
+	{ "UM24C", RDTECH_UM24C, rdtech_default_channels, csum_ok_fff1, },
+	{ "UM25C", RDTECH_UM25C, rdtech_um25c_channels, csum_ok_fff1, },
+	{ "UM34C", RDTECH_UM34C, rdtech_default_channels, csum_ok_um34c, },
 };
 
 static const struct rdtech_um_profile *find_profile(uint16_t id)
@@ -110,7 +117,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 {
 	const struct rdtech_um_profile *p;
 	uint8_t request;
-	char buf[RDTECH_UM_BUFSIZE];
+	uint8_t buf[RDTECH_UM_BUFSIZE];
 	int len;
 
 	request = UM_CMD_POLL;
@@ -132,7 +139,7 @@ SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_ins
 		return NULL;
 	}
 
-	if (!p->poll_csum(buf, len)) {
+	if (!p->csum_ok(buf, len)) {
 		sr_err("Probe response contains illegal checksum or end marker.\n");
 		return NULL;
 	}
@@ -167,9 +174,9 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 	GSList *ch;
 
 	devc = sdi->priv;
-	sr_spew("Received poll packet (len: %d).", devc->buflen);
+	sr_spew("Received poll packet (len: %zu).", devc->buflen);
 	if (devc->buflen != UM_POLL_LEN) {
-		sr_err("Unexpected poll packet length: %i", devc->buflen);
+		sr_err("Unexpected poll packet length: %zu", devc->buflen);
 		return;
 	}
 
@@ -208,7 +215,7 @@ static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *s
 		}
 	}
 
-	if (devc->buflen == UM_POLL_LEN && p->poll_csum(devc->buf, devc->buflen))
+	if (devc->buflen == UM_POLL_LEN && p->csum_ok(devc->buf, devc->buflen))
 		handle_poll_data(sdi);
 	else
 		sr_warn("Skipping packet with illegal checksum / end marker.");
