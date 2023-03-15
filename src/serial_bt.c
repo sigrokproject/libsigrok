@@ -847,7 +847,7 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 
 static GSList *ser_bt_list(GSList *list, sr_ser_list_append_t append)
 {
-	static const int scan_duration = 2;
+	static const int scan_duration = 3;
 
 	struct bt_scan_args_t scan_args;
 	struct sr_bt_desc *desc;
