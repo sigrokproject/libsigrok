@@ -67,19 +67,18 @@ static GSList *rdtech_um_scan(struct sr_dev_driver *di,
 		goto err_out_serial;
 	}
 
-	devc = g_malloc0(sizeof(struct dev_context));
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-
+	devc = g_malloc0(sizeof(*devc));
 	sr_sw_limits_init(&devc->limits);
 	devc->profile = p;
 
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->priv = devc;
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("RDTech");
 	sdi->model = g_strdup(p->model_name);
 	sdi->version = NULL;
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	sdi->priv = devc;
 
 	for (ch_idx = 0; (name = p->channels[ch_idx].name); ch_idx++)
 		sr_channel_new(sdi, ch_idx, SR_CHANNEL_ANALOG, TRUE, name);
