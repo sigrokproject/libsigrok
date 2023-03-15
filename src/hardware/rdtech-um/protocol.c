@@ -46,8 +46,8 @@ static const struct binary_analog_channel rdtech_default_channels[] = {
 };
 
 static const struct binary_analog_channel rdtech_um25c_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "V", { 2, BVT_BE_UINT16, 0.001, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, 0.0001, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
 	{ "D+", { 96, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "D-", { 98, BVT_BE_UINT16, 0.01, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
 	{ "T", { 10, BVT_BE_UINT16, 1.0, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
