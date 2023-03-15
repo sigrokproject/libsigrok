@@ -2163,22 +2163,13 @@ enum binary_value_type {
 
 /** Binary value specification */
 struct binary_value_spec {
-	size_t offset;			/**!< Offset into binary blob */
+	size_t offset;			/**!< Offset into binary image */
 	enum binary_value_type type;	/**!< Data type to decode */
 	float scale;			/**!< Scale factor to native units */
 };
 
-/** Binary channel definition */
-struct binary_analog_channel {
-	const char *name;		/**!< Channel name */
-	struct binary_value_spec spec;	/**!< Binary value in data stream */
-	int digits;			/**!< Significant digits */
-	enum sr_mq mq;			/**!< Measured quantity */
-	enum sr_unit unit;		/**!< Measured unit */
-};
-
 /**
- * Read extract a value from a binary blob.
+ * Read extract a value from a binary data image.
  *
  * @param[out] out Pointer to output buffer (conversion result)
  * @param[in] spec Binary value specification
@@ -2188,22 +2179,6 @@ struct binary_analog_channel {
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
 SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
-	const void *data, size_t length);
-
-/**
- * Send an analog channel packet based on a binary analog channel
- * specification.
- *
- * @param[in] sdi Device instance
- * @param[in] ch Sigrok channel
- * @param[in] spec Channel specification
- * @param[in] data Pointer to binary blob
- * @param[in] length Size of binary blob
- *
- * @return SR_OK on success, SR_ERR_* error code on failure.
- */
-SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi,
-	struct sr_channel *ch, const struct binary_analog_channel *spec,
 	const void *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/
