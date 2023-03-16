@@ -163,12 +163,26 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 	struct sr_serial_dev_inst *serial;
 	int len;
 
+	/*
+	 * Don't send the request while receive data is being accumulated.
+	 */
 	devc = sdi->priv;
+	if (!force && devc->buflen)
+		return SR_OK;
+
+	/*
+	 * Send the request when the transmit interval was reached. Or
+	 * when the caller forced the transmission.
+	 */
 	now = g_get_monotonic_time() / 1000;
 	elapsed = now - devc->cmd_sent_at;
 	if (!force && elapsed < POLL_PERIOD_MS)
 		return SR_OK;
 
+	/*
+	 * Transmit another measurement request. Only advance the
+	 * interval after successful transmission.
+	 */
 	serial = sdi->conn;
 	len = serial_write_blocking(serial,
 		poll_cmd, strlen(poll_cmd), WRITE_TO_MS);
@@ -191,8 +205,8 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 
 	devc = sdi->priv;
 	sr_spew("Received poll packet (len: %zu).", devc->buflen);
-	if (devc->buflen != TC_POLL_LEN) {
-		sr_err("Unexpected poll packet length: %zu", devc->buflen);
+	if (devc->buflen < TC_POLL_LEN) {
+		sr_err("Insufficient poll packet length: %zu", devc->buflen);
 		return SR_ERR_DATA;
 	}
 
@@ -220,13 +234,16 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *serial)
 {
 	struct dev_context *devc;
+	size_t space;
 	int len;
 	int ret;
 
-	/* Serial data arrived. */
+	/* Receive data became available. Drain the transport layer. */
 	devc = sdi->priv;
 	while (devc->buflen < TC_POLL_LEN) {
-		len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
+		space = sizeof(devc->buf) - devc->buflen;
+		len = serial_read_nonblocking(serial,
+			&devc->buf[devc->buflen], space);
 		if (len < 0)
 			return SR_ERR_IO;
 		if (len == 0)
@@ -234,12 +251,20 @@ static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *se
 		devc->buflen += len;
 	}
 
-	if (devc->buflen == TC_POLL_LEN) {
+	/*
+	 * TODO Want to (re-)synchronize to the packet stream? The
+	 * 'pac1' string literal would be a perfect match for that.
+	 */
+
+	/* Process packets when their reception has completed. */
+	while (devc->buflen >= TC_POLL_LEN) {
 		ret = handle_poll_data(sdi);
 		if (ret != SR_OK)
 			return ret;
+		devc->buflen -= TC_POLL_LEN;
+		if (devc->buflen)
+			memmove(&devc->buf[0], &devc->buf[TC_POLL_LEN], devc->buflen);
 	}
-	devc->buflen = 0;
 
 	return SR_OK;
 }
