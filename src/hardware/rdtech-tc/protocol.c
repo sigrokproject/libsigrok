@@ -179,54 +179,67 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 	return SR_OK;
 }
 
-static void handle_poll_data(const struct sr_dev_inst *sdi)
+static int handle_poll_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint8_t poll_pkt[TC_POLL_LEN];
 	size_t i;
 	GSList *ch;
+	int ret;
 
 	devc = sdi->priv;
 	sr_spew("Received poll packet (len: %zu).", devc->buflen);
 	if (devc->buflen != TC_POLL_LEN) {
 		sr_err("Unexpected poll packet length: %zu", devc->buflen);
-		return;
+		return SR_ERR_DATA;
 	}
 
 	if (process_poll_pkt(devc, poll_pkt) != SR_OK) {
 		sr_err("Failed to process poll packet.");
-		return;
+		return SR_ERR_DATA;
 	}
 
 	i = 0;
 	for (ch = sdi->channels; ch; ch = g_slist_next(ch)) {
-		bv_send_analog_channel(sdi, ch->data,
+		ret = bv_send_analog_channel(sdi, ch->data,
 			&devc->channels[i], poll_pkt, TC_POLL_LEN);
 		i++;
+		if (ret != SR_OK)
+			return ret;
 	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
+	if (sr_sw_limits_check(&devc->limits))
+		sr_dev_acquisition_stop(sdi);
+
+	return SR_OK;
 }
 
-static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *serial)
+static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *serial)
 {
 	struct dev_context *devc;
 	int len;
+	int ret;
 
 	/* Serial data arrived. */
 	devc = sdi->priv;
 	while (devc->buflen < TC_POLL_LEN) {
 		len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
-		if (len < 1)
-			return;
-
-		devc->buflen++;
+		if (len < 0)
+			return SR_ERR_IO;
+		if (len == 0)
+			return SR_OK;
+		devc->buflen += len;
 	}
 
-	if (devc->buflen == TC_POLL_LEN)
-		handle_poll_data(sdi);
-
+	if (devc->buflen == TC_POLL_LEN) {
+		ret = handle_poll_data(sdi);
+		if (ret != SR_OK)
+			return ret;
+	}
 	devc->buflen = 0;
+
+	return SR_OK;
 }
 
 SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
@@ -234,6 +247,7 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	int ret;
 
 	(void)fd;
 
@@ -242,16 +256,22 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 	if (!(devc = sdi->priv))
 		return TRUE;
 
+	/* Handle availability of receive data. */
 	serial = sdi->conn;
-	if (revents == G_IO_IN)
-		recv_poll_data(sdi, serial);
+	if (revents == G_IO_IN) {
+		ret = recv_poll_data(sdi, serial);
+		if (ret != SR_OK)
+			sr_dev_acquisition_stop(sdi);
+	}
 
+	/* Check configured acquisition limits. */
 	if (sr_sw_limits_check(&devc->limits)) {
 		sr_dev_acquisition_stop(sdi);
 		return TRUE;
 	}
 
-	rdtech_tc_poll(sdi, FALSE);
+	/* Periodically retransmit measurement requests. */
+	(void)rdtech_tc_poll(sdi, FALSE);
 
 	return TRUE;
 }
