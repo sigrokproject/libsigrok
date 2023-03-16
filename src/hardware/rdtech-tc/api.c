@@ -59,7 +59,7 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
 		goto err_out;
 
-	devc = g_malloc0(sizeof(struct dev_context));
+	devc = g_malloc0(sizeof(*devc));
 	sr_sw_limits_init(&devc->limits);
 
 	if (rdtech_tc_probe(serial, devc) != SR_OK) {
@@ -67,7 +67,8 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 		goto err_out_serial;
 	}
 
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
+	sdi = g_malloc0(sizeof(*sdi));
+	sdi->priv = devc;
 	sdi->status = SR_ST_INACTIVE;
 	sdi->vendor = g_strdup("RDTech");
 	sdi->model = g_strdup(devc->dev_info.model_name);
@@ -75,7 +76,6 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	sdi->serial_num = g_strdup_printf("%08" PRIu32, devc->dev_info.serial_num);
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
-	sdi->priv = devc;
 
 	for (i = 0; devc->channels[i].name; i++) {
 		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
