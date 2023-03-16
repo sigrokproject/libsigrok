@@ -35,7 +35,7 @@
 #define TC_POLL_PERIOD_MS 100
 #define TC_TIMEOUT_MS 1000
 
-static const char POLL_CMD[] = "getva";
+static const char *poll_cmd = "getva";
 
 #define MAGIC_PAC1 0x31636170UL
 #define MAGIC_PAC2 0x32636170UL
@@ -122,7 +122,7 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 	int len;
 	uint8_t poll_pkt[TC_POLL_LEN];
 
-	if (serial_write_blocking(serial, &POLL_CMD, sizeof(POLL_CMD) - 1,
+	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
 			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send probe request.");
 		return SR_ERR;
@@ -152,7 +152,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
 	struct dev_context *devc = sdi->priv;
 	struct sr_serial_dev_inst *serial = sdi->conn;
 
-	if (serial_write_blocking(serial, &POLL_CMD, sizeof(POLL_CMD) - 1,
+	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
 			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
