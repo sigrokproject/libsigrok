@@ -42,8 +42,8 @@ static const uint32_t drvopts[] = {
 
 static const uint32_t devopts[] = {
 	SR_CONF_CONTINUOUS,
-	SR_CONF_LIMIT_SAMPLES | SR_CONF_SET,
-	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
+	SR_CONF_LIMIT_FRAMES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
 };
 
 static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
@@ -139,6 +139,18 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	return rdtech_tc_scan(di, conn, serialcomm);
 }
 
+static int config_get(uint32_t key, GVariant **data,
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+{
+	struct dev_context *devc;
+
+	(void)cg;
+
+	devc = sdi->priv;
+
+	return sr_sw_limits_config_get(&devc->limits, key, data);
+}
+
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
@@ -182,7 +194,7 @@ static struct sr_dev_driver rdtech_tc_driver_info = {
 	.scan = scan,
 	.dev_list = std_dev_list,
 	.dev_clear = dev_clear,
-	.config_get = NULL,
+	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = std_serial_dev_open,
