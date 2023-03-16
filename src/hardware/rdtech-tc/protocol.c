@@ -18,12 +18,14 @@
  */
 
 #include <config.h>
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
+
 #include <glib.h>
-#include <nettle/aes.h>
 #include <libsigrok/libsigrok.h>
+#include <math.h>
+#include <nettle/aes.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "libsigrok-internal.h"
 #include "protocol.h"
 

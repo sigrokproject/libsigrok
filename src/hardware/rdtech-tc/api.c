@@ -18,12 +18,14 @@
  */
 
 #include <config.h>
+
+#include <fcntl.h>
 #include <glib.h>
+#include <libsigrok/libsigrok.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <string.h>
-#include <libsigrok/libsigrok.h>
+
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
