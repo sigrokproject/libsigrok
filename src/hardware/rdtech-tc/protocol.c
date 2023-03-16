@@ -156,10 +156,17 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 	return SR_OK;
 }
 
-SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
+SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 {
 	struct dev_context *devc;
+	int64_t now, elapsed;
 	struct sr_serial_dev_inst *serial;
+
+	devc = sdi->priv;
+	now = g_get_monotonic_time() / 1000;
+	elapsed = now - devc->cmd_sent_at;
+	if (!force && elapsed < TC_POLL_PERIOD_MS)
+		return SR_OK;
 
 	serial = sdi->conn;
 	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
@@ -167,9 +174,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
-
-	devc = sdi->priv;
-	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
+	devc->cmd_sent_at = now;
 
 	return SR_OK;
 }
@@ -229,7 +234,6 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	int64_t now, elapsed;
 
 	(void)fd;
 
@@ -247,10 +251,7 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	now = g_get_monotonic_time() / 1000;
-	elapsed = now - devc->cmd_sent_at;
-	if (elapsed > TC_POLL_PERIOD_MS)
-		rdtech_tc_poll(sdi);
+	rdtech_tc_poll(sdi, FALSE);
 
 	return TRUE;
 }

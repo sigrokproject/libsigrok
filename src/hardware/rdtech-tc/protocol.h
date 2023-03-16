@@ -44,6 +44,6 @@ struct dev_context {
 
 SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc);
 SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi);
+SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force);
 
 #endif
