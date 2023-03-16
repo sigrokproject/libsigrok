@@ -33,9 +33,20 @@ struct rdtech_dev_info {
 	uint32_t serial_num;
 };
 
+struct rdtech_tc_channel_desc {
+	const char *name;
+	struct binary_value_spec spec;
+	struct sr_rational scale;
+	int digits;
+	enum sr_mq mq;
+	enum sr_unit unit;
+};
+
 struct dev_context {
 	struct rdtech_dev_info dev_info;
-	const struct binary_analog_channel *channels;
+	const struct rdtech_tc_channel_desc *channels;
+	size_t channel_count;
+	struct feed_queue_analog **feeds;
 	struct sr_sw_limits limits;
 	uint8_t buf[RDTECH_TC_BUFSIZE];
 	size_t buflen;

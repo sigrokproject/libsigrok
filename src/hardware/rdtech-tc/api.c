@@ -54,6 +54,9 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	struct dev_context *devc;
 	struct sr_dev_inst *sdi;
 	size_t i;
+	const struct rdtech_tc_channel_desc *pch;
+	struct sr_channel *ch;
+	struct feed_queue_analog *feed;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -77,9 +80,14 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	sdi->inst_type = SR_INST_SERIAL;
 	sdi->conn = serial;
 
+	devc->feeds = g_malloc0(devc->channel_count * sizeof(devc->feeds[0]));
 	for (i = 0; devc->channels[i].name; i++) {
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
-			devc->channels[i].name);
+		pch = &devc->channels[i];
+		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, pch->name);
+		feed = feed_queue_analog_alloc(sdi, 1, pch->digits, ch);
+		feed_queue_analog_mq_unit(feed, pch->mq, 0, pch->unit);
+		feed_queue_analog_scale_offset(feed, &pch->scale, NULL);
+		devc->feeds[i] = feed;
 	}
 
 	devices = g_slist_append(NULL, sdi);
@@ -96,6 +104,25 @@ err_out:
 	sr_serial_dev_inst_free(serial);
 
 	return NULL;
+}
+
+static void clear_helper(struct dev_context *devc)
+{
+	size_t idx;
+
+	if (!devc)
+		return;
+
+	if (devc->feeds) {
+		for (idx = 0; idx < devc->channel_count; idx++)
+			feed_queue_analog_free(devc->feeds[idx]);
+		g_free(devc->feeds);
+	}
+}
+
+static int dev_clear(const struct sr_dev_driver *driver)
+{
+	return std_dev_clear_with_callback(driver, (std_dev_clear_callback)clear_helper);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
@@ -154,7 +181,7 @@ static struct sr_dev_driver rdtech_tc_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = std_dev_clear,
+	.dev_clear = dev_clear,
 	.config_get = NULL,
 	.config_set = config_set,
 	.config_list = config_list,

@@ -71,14 +71,13 @@ static const uint8_t AES_KEY[] = {
 	0xa7, 0xf1, 0x06, 0x61, 0x9a, 0xb8, 0x72, 0x88,
 };
 
-static const struct binary_analog_channel rdtech_tc_channels[] = {
-	{ "V",  {   0 + 48, BVT_LE_UINT32, 1e-4, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I",  {   0 + 52, BVT_LE_UINT32, 1e-5, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", {  64 + 32, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", {  64 + 36, BVT_LE_UINT32, 1e-2, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "E0", {  64 + 12, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ "E1", {  64 + 20, BVT_LE_UINT32, 1e-3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	ALL_ZERO,
+static const struct rdtech_tc_channel_desc rdtech_tc_channels[] = {
+	{ "V",  {   0 + 48, BVT_LE_UINT32, 1, }, { 100, 1e6, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I",  {   0 + 52, BVT_LE_UINT32, 1, }, {  10, 1e6, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", {  64 + 32, BVT_LE_UINT32, 1, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", {  64 + 36, BVT_LE_UINT32, 1, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "E0", {  64 + 12, BVT_LE_UINT32, 1, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E1", {  64 + 20, BVT_LE_UINT32, 1, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
 static gboolean check_pac_crc(uint8_t *data)
@@ -149,6 +148,7 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 	}
 
 	devc->channels = rdtech_tc_channels;
+	devc->channel_count = ARRAY_SIZE(rdtech_tc_channels);
 	devc->dev_info.model_name = g_strndup((const char *)&poll_pkt[OFF_MODEL], LEN_MODEL);
 	devc->dev_info.fw_ver = g_strndup((const char *)&poll_pkt[OFF_FW_VER], LEN_FW_VER);
 	devc->dev_info.serial_num = read_u32le(&poll_pkt[OFF_SERIAL]);
@@ -199,9 +199,10 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint8_t poll_pkt[TC_POLL_LEN];
-	size_t i;
-	GSList *ch;
+	size_t ch_idx;
+	const struct rdtech_tc_channel_desc *pch;
 	int ret;
+	float v;
 
 	devc = sdi->priv;
 	sr_spew("Received poll packet (len: %zu).", devc->buflen);
@@ -215,11 +216,12 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 		return SR_ERR_DATA;
 	}
 
-	i = 0;
-	for (ch = sdi->channels; ch; ch = g_slist_next(ch)) {
-		ret = bv_send_analog_channel(sdi, ch->data,
-			&devc->channels[i], poll_pkt, TC_POLL_LEN);
-		i++;
+	for (ch_idx = 0; ch_idx < devc->channel_count; ch_idx++) {
+		pch = &devc->channels[ch_idx];
+		ret = bv_get_value(&v, &pch->spec, poll_pkt, TC_POLL_LEN);
+		if (ret != SR_OK)
+			return ret;
+		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
 		if (ret != SR_OK)
 			return ret;
 	}
