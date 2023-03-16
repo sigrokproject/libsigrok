@@ -158,15 +158,17 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 
 SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-	struct sr_serial_dev_inst *serial = sdi->conn;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
+	serial = sdi->conn;
 	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
 			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
 
+	devc = sdi->priv;
 	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
 
 	return SR_OK;
@@ -174,11 +176,12 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
 
 static void handle_poll_data(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	uint8_t poll_pkt[TC_POLL_LEN];
 	int i;
 	GSList *ch;
 
+	devc = sdi->priv;
 	sr_spew("Received poll packet (len: %d).", devc->buflen);
 	if (devc->buflen != TC_POLL_LEN) {
 		sr_err("Unexpected poll packet length: %i", devc->buflen);
@@ -200,10 +203,11 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 
 static void recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *serial)
 {
-	struct dev_context *devc = sdi->priv;
+	struct dev_context *devc;
 	int len;
 
 	/* Serial data arrived. */
+	devc = sdi->priv;
 	while (devc->buflen < TC_POLL_LEN) {
 		len = serial_read_nonblocking(serial, devc->buf + devc->buflen, 1);
 		if (len < 1)
@@ -229,7 +233,6 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 
 	if (!(sdi = cb_data))
 		return TRUE;
-
 	if (!(devc = sdi->priv))
 		return TRUE;
 
@@ -244,7 +247,6 @@ SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data)
 
 	now = g_get_monotonic_time() / 1000;
 	elapsed = now - devc->cmd_sent_at;
-
 	if (elapsed > TC_POLL_PERIOD_MS)
 		rdtech_tc_poll(sdi);
 

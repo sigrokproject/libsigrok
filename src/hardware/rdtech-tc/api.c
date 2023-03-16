@@ -50,9 +50,10 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	const char *conn, const char *serialcomm)
 {
 	struct sr_serial_dev_inst *serial;
-	GSList *devices = NULL;
-	struct dev_context *devc = NULL;
-	struct sr_dev_inst *sdi = NULL;
+	GSList *devices;
+	struct dev_context *devc;
+	struct sr_dev_inst *sdi;
+	size_t i;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 	if (serial_open(serial, SERIAL_RDWR) != SR_OK)
@@ -76,10 +77,12 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	sdi->conn = serial;
 	sdi->priv = devc;
 
-	for (int i = 0; devc->channels[i].name; i++)
-		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, devc->channels[i].name);
+	for (i = 0; devc->channels[i].name; i++) {
+		sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE,
+			devc->channels[i].name);
+	}
 
-	devices = g_slist_append(devices, sdi);
+	devices = g_slist_append(NULL, sdi);
 	serial_close(serial);
 	if (!devices)
 		sr_serial_dev_inst_free(serial);
@@ -98,9 +101,11 @@ err_out:
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct sr_config *src;
-	const char *conn = NULL;
-	const char *serialcomm = RDTECH_TC_SERIALCOMM;
+	const char *conn;
+	const char *serialcomm;
 
+	conn = NULL;
+	serialcomm = RDTECH_TC_SERIALCOMM;
 	for (GSList *l = options; l; l = l->next) {
 		src = l->data;
 		switch (src->key) {
@@ -138,12 +143,14 @@ static int config_list(uint32_t key, GVariant **data,
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc = sdi->priv;
-	struct sr_serial_dev_inst *serial = sdi->conn;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *serial;
 
+	devc = sdi->priv;
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
 
+	serial = sdi->conn;
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 		rdtech_tc_receive_data, (void *)sdi);
 
