@@ -57,13 +57,14 @@
 static const struct scan_supported_item {
 	const char *name;
 	enum ser_bt_conn_t type;
+	const char *add_params;
 } scan_supported_items[] = {
 	/* Guess connection types from device names (useful for scans). */
-	{ "121GW", SER_BT_CONN_BLE122, },
-	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
-	{ "HC-05", SER_BT_CONN_RFCOMM, },
-	{ "UM25C", SER_BT_CONN_RFCOMM, },
-	{ NULL, SER_BT_CONN_UNKNOWN, },
+	{ "121GW", SER_BT_CONN_BLE122, NULL, },
+	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, NULL, },
+	{ "HC-05", SER_BT_CONN_RFCOMM, NULL, },
+	{ "UM25C", SER_BT_CONN_RFCOMM, NULL, },
+	{ NULL, SER_BT_CONN_UNKNOWN, NULL, },
 };
 
 static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
@@ -780,7 +781,7 @@ static int ser_bt_setup_source_remove(struct sr_session *session,
 	return SR_OK;
 }
 
-static enum ser_bt_conn_t scan_is_supported(const char *name)
+static const struct scan_supported_item *scan_is_supported(const char *name)
 {
 	size_t idx;
 	const struct scan_supported_item *item;
@@ -791,10 +792,10 @@ static enum ser_bt_conn_t scan_is_supported(const char *name)
 			break;
 		if (strcmp(name, item->name) != 0)
 			continue;
-		return item->type;
+		return item;
 	}
 
-	return SER_BT_CONN_UNKNOWN;
+	return NULL;
 }
 
 struct bt_scan_args_t {
@@ -809,6 +810,7 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 	struct bt_scan_args_t *scan_args;
 	GSList *l;
 	char addr_text[20];
+	const struct scan_supported_item *item;
 	enum ser_bt_conn_t type;
 	char *port_name, *port_desc;
 	char *addr_copy;
@@ -831,9 +833,11 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 	g_strcanon(addr_text, "0123456789abcdefABCDEF", '-');
 
 	/* Create a port name, and a description. */
-	type = scan_is_supported(name);
-	port_name = g_strdup_printf("%s/%s/%s",
-		SER_BT_CONN_PREFIX, conn_name_text(type), addr_text);
+	item = scan_is_supported(name);
+	type = item ? item->type : SER_BT_CONN_UNKNOWN;
+	port_name = g_strdup_printf("%s/%s/%s%s",
+		SER_BT_CONN_PREFIX, conn_name_text(type), addr_text,
+		(item && item->add_params) ? item->add_params : "");
 	port_desc = g_strdup_printf("%s (%s)", name, scan_args->bt_type);
 
 	scan_args->port_list = scan_args->append(scan_args->port_list, port_name, port_desc);
