@@ -178,13 +178,13 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	uint8_t poll_pkt[TC_POLL_LEN];
-	int i;
+	size_t i;
 	GSList *ch;
 
 	devc = sdi->priv;
-	sr_spew("Received poll packet (len: %d).", devc->buflen);
+	sr_spew("Received poll packet (len: %zu).", devc->buflen);
 	if (devc->buflen != TC_POLL_LEN) {
-		sr_err("Unexpected poll packet length: %i", devc->buflen);
+		sr_err("Unexpected poll packet length: %zu", devc->buflen);
 		return;
 	}
 

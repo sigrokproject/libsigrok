@@ -38,7 +38,7 @@ struct dev_context {
 	const struct binary_analog_channel *channels;
 	struct sr_sw_limits limits;
 	uint8_t buf[RDTECH_TC_BUFSIZE];
-	int buflen;
+	size_t buflen;
 	int64_t cmd_sent_at;
 };
 
