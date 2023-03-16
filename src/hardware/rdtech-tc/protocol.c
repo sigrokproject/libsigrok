@@ -193,9 +193,11 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 		return;
 	}
 
-	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++) {
+	i = 0;
+	for (ch = sdi->channels; ch; ch = g_slist_next(ch)) {
 		bv_send_analog_channel(sdi, ch->data,
 			&devc->channels[i], poll_pkt, TC_POLL_LEN);
+		i++;
 	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
