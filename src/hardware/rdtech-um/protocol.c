@@ -208,20 +208,23 @@ static int process_data(struct sr_dev_inst *sdi,
 		return SR_ERR_DATA;
 	}
 
+	ret = SR_OK;
+	std_session_send_df_frame_begin(sdi);
 	for (ch_idx = 0; ch_idx < p->channel_count; ch_idx++) {
 		ret = bv_get_value(&v, &p->channels[ch_idx].spec, data, dlen);
 		if (ret != SR_OK)
-			return ret;
+			break;
 		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
 		if (ret != SR_OK)
-			return ret;
+			break;
 	}
+	std_session_send_df_frame_end(sdi);
 
-	sr_sw_limits_update_samples_read(&devc->limits, 1);
+	sr_sw_limits_update_frames_read(&devc->limits, 1);
 	if (sr_sw_limits_check(&devc->limits))
 		sr_dev_acquisition_stop(sdi);
 
-	return SR_OK;
+	return ret;
 }
 
 static int accum_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *serial)
