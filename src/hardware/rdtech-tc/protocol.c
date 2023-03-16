@@ -29,10 +29,9 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-#define SERIAL_WRITE_TIMEOUT_MS 1
-
-#define TC_POLL_PERIOD_MS 100
-#define TC_TIMEOUT_MS 1000
+#define PROBE_TO_MS	1000
+#define WRITE_TO_MS	1
+#define POLL_PERIOD_MS	100
 
 static const char *poll_cmd = "getva";
 
@@ -131,13 +130,14 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 	int len;
 	uint8_t poll_pkt[TC_POLL_LEN];
 
-	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
-			SERIAL_WRITE_TIMEOUT_MS) < 0) {
+	len = serial_write_blocking(serial,
+		poll_cmd, strlen(poll_cmd), WRITE_TO_MS);
+	if (len < 0) {
 		sr_err("Failed to send probe request.");
 		return SR_ERR;
 	}
 
-	len = serial_read_blocking(serial, devc->buf, TC_POLL_LEN, TC_TIMEOUT_MS);
+	len = serial_read_blocking(serial, devc->buf, TC_POLL_LEN, PROBE_TO_MS);
 	if (len != TC_POLL_LEN) {
 		sr_err("Failed to read probe response.");
 		return SR_ERR;
@@ -161,16 +161,18 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 	struct dev_context *devc;
 	int64_t now, elapsed;
 	struct sr_serial_dev_inst *serial;
+	int len;
 
 	devc = sdi->priv;
 	now = g_get_monotonic_time() / 1000;
 	elapsed = now - devc->cmd_sent_at;
-	if (!force && elapsed < TC_POLL_PERIOD_MS)
+	if (!force && elapsed < POLL_PERIOD_MS)
 		return SR_OK;
 
 	serial = sdi->conn;
-	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
-			SERIAL_WRITE_TIMEOUT_MS) < 0) {
+	len = serial_write_blocking(serial,
+		poll_cmd, strlen(poll_cmd), WRITE_TO_MS);
+	if (len < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
