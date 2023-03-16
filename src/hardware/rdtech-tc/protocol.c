@@ -31,25 +31,31 @@
 
 #define SERIAL_WRITE_TIMEOUT_MS 1
 
-#define TC_POLL_LEN 192
 #define TC_POLL_PERIOD_MS 100
 #define TC_TIMEOUT_MS 1000
 
 static const char *poll_cmd = "getva";
 
-#define MAGIC_PAC1 0x31636170UL
-#define MAGIC_PAC2 0x32636170UL
-#define MAGIC_PAC3 0x33636170UL
+/*
+ * Response data (raw sample data) consists of three adjacent chunks
+ * of 64 bytes each. These chunks start with their magic string, and
+ * end in a 32bit checksum field. Measurement values are scattered
+ * across these 192 bytes total size. All multi-byte integer values
+ * are represented in little endian format. Typical size is 32 bits.
+ */
 
-/* Length of PAC block excluding CRC */
-#define PAC_DATA_LEN 60
-/* Length of PAC block including CRC */
+#define MAGIC_PAC1	0x70616331	/* 'pac1' */
+#define MAGIC_PAC2	0x70616332	/* 'pac2' */
+#define MAGIC_PAC3	0x70616333	/* 'pac3' */
+
 #define PAC_LEN 64
+#define PAC_CRC_POS (PAC_LEN - sizeof(uint32_t))
 
 /* Offset to PAC block from start of poll data */
 #define OFF_PAC1 (0 * PAC_LEN)
 #define OFF_PAC2 (1 * PAC_LEN)
 #define OFF_PAC3 (2 * PAC_LEN)
+#define TC_POLL_LEN (3 * PAC_LEN)
 
 #define OFF_MODEL 4
 #define LEN_MODEL 4
@@ -76,42 +82,45 @@ static const struct binary_analog_channel rdtech_tc_channels[] = {
 	ALL_ZERO,
 };
 
-static int check_pac_crc(uint8_t *data)
+static gboolean check_pac_crc(uint8_t *data)
 {
 	uint16_t crc;
 	uint32_t crc_field;
 
-	crc = sr_crc16(SR_CRC16_DEFAULT_INIT, data, PAC_DATA_LEN);
-	crc_field = RL32(data + PAC_DATA_LEN);
-
+	crc = sr_crc16(SR_CRC16_DEFAULT_INIT, data, PAC_CRC_POS);
+	crc_field = read_u32le(&data[PAC_CRC_POS]);
 	if (crc != crc_field) {
 		sr_spew("CRC error. Calculated: %0x" PRIx16 ", expected: %0x" PRIx32,
 			crc, crc_field);
-		return 0;
-	} else {
-		return 1;
+		return FALSE;
 	}
+
+	return TRUE;
 }
 
 static int process_poll_pkt(struct dev_context *devc, uint8_t *dst)
 {
 	struct aes256_ctx ctx;
+	gboolean ok;
 
 	aes256_set_decrypt_key(&ctx, AES_KEY);
 	aes256_decrypt(&ctx, TC_POLL_LEN, dst, devc->buf);
 
-	if (RL32(dst + OFF_PAC1) != MAGIC_PAC1 ||
-	    RL32(dst + OFF_PAC2) != MAGIC_PAC2 ||
-	    RL32(dst + OFF_PAC3) != MAGIC_PAC3) {
-		sr_err("Invalid poll packet magic values!");
-		return SR_ERR;
+	ok = TRUE;
+	ok &= read_u32be(&dst[OFF_PAC1]) == MAGIC_PAC1;
+	ok &= read_u32be(&dst[OFF_PAC2]) == MAGIC_PAC2;
+	ok &= read_u32be(&dst[OFF_PAC3]) == MAGIC_PAC3;
+	if (!ok) {
+		sr_err("Invalid poll response packet (magic values).");
+		return SR_ERR_DATA;
 	}
 
-	if (!check_pac_crc(dst + OFF_PAC1) ||
-	    !check_pac_crc(dst + OFF_PAC2) ||
-	    !check_pac_crc(dst + OFF_PAC3)) {
-		sr_err("Invalid poll checksum!");
-		return SR_ERR;
+	ok &= check_pac_crc(&dst[OFF_PAC1]);
+	ok &= check_pac_crc(&dst[OFF_PAC2]);
+	ok &= check_pac_crc(&dst[OFF_PAC3]);
+	if (!ok) {
+		sr_err("Invalid poll response packet (checksum).");
+		return SR_ERR_DATA;
 	}
 
 	return SR_OK;
@@ -124,7 +133,7 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 
 	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd),
 			SERIAL_WRITE_TIMEOUT_MS) < 0) {
-		sr_err("Unable to send probe request.");
+		sr_err("Failed to send probe request.");
 		return SR_ERR;
 	}
 
@@ -140,9 +149,9 @@ SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_contex
 	}
 
 	devc->channels = rdtech_tc_channels;
-	devc->dev_info.model_name = g_strndup((const char *)poll_pkt + OFF_MODEL, LEN_MODEL);
-	devc->dev_info.fw_ver = g_strndup((const char *)poll_pkt + OFF_FW_VER, LEN_FW_VER);
-	devc->dev_info.serial_num = RL32(poll_pkt + OFF_SERIAL);
+	devc->dev_info.model_name = g_strndup((const char *)&poll_pkt[OFF_MODEL], LEN_MODEL);
+	devc->dev_info.fw_ver = g_strndup((const char *)&poll_pkt[OFF_FW_VER], LEN_FW_VER);
+	devc->dev_info.serial_num = read_u32le(&poll_pkt[OFF_SERIAL]);
 
 	return SR_OK;
 }
