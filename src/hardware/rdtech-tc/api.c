@@ -46,8 +46,8 @@ static const uint32_t devopts[] = {
 	SR_CONF_LIMIT_MSEC | SR_CONF_SET,
 };
 
-static GSList *rdtech_tc_scan(struct sr_dev_driver *di, const char *conn,
-			      const char *serialcomm)
+static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
+	const char *conn, const char *serialcomm)
 {
 	struct sr_serial_dev_inst *serial;
 	GSList *devices = NULL;
@@ -119,7 +119,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 }
 
 static int config_set(uint32_t key, GVariant *data,
-		      const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
 
@@ -131,7 +131,7 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-		       const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
+	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 }
@@ -145,7 +145,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	std_session_send_df_header(sdi);
 
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
-			  rdtech_tc_receive_data, (void *)sdi);
+		rdtech_tc_receive_data, (void *)sdi);
 
 	return rdtech_tc_poll(sdi);
 }

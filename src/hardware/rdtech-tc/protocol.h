@@ -37,13 +37,12 @@ struct dev_context {
 	struct rdtech_dev_info dev_info;
 	const struct binary_analog_channel *channels;
 	struct sr_sw_limits limits;
-
 	uint8_t buf[RDTECH_TC_BUFSIZE];
 	int buflen;
 	int64_t cmd_sent_at;
 };
 
-SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context  *devc);
+SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc);
 SR_PRIV int rdtech_tc_receive_data(int fd, int revents, void *cb_data);
 SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi);
 

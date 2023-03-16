@@ -93,7 +93,7 @@ static int check_pac_crc(uint8_t *data)
 	}
 }
 
-static int process_poll_pkt(struct dev_context  *devc, uint8_t *dst)
+static int process_poll_pkt(struct dev_context *devc, uint8_t *dst)
 {
 	struct aes256_ctx ctx;
 
@@ -117,13 +117,13 @@ static int process_poll_pkt(struct dev_context  *devc, uint8_t *dst)
 	return SR_OK;
 }
 
-SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context  *devc)
+SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
 	int len;
 	uint8_t poll_pkt[TC_POLL_LEN];
 
 	if (serial_write_blocking(serial, &POLL_CMD, sizeof(POLL_CMD) - 1,
-                                  SERIAL_WRITE_TIMEOUT_MS) < 0) {
+			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send probe request.");
 		return SR_ERR;
 	}
@@ -153,7 +153,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial = sdi->conn;
 
 	if (serial_write_blocking(serial, &POLL_CMD, sizeof(POLL_CMD) - 1,
-                                  SERIAL_WRITE_TIMEOUT_MS) < 0) {
+			SERIAL_WRITE_TIMEOUT_MS) < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;
 	}
@@ -183,8 +183,8 @@ static void handle_poll_data(const struct sr_dev_inst *sdi)
 
 	for (ch = sdi->channels, i = 0; ch; ch = g_slist_next(ch), i++) {
 		bv_send_analog_channel(sdi, ch->data,
-				       &devc->channels[i], poll_pkt, TC_POLL_LEN);
-        }
+			&devc->channels[i], poll_pkt, TC_POLL_LEN);
+	}
 
 	sr_sw_limits_update_samples_read(&devc->limits, 1);
 }
