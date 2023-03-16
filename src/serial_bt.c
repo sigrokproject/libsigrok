@@ -54,18 +54,53 @@
 
 /* {{{ support for serial-over-BT channels */
 
+/*
+ * This builtin database of known devices (keyed by their names as
+ * provided during BT/BLE scans) can help improve the presentation of
+ * scan results. Ideally users could take the output and pass it to
+ * subsequent program invocations, not having to "come up with" the
+ * conn= spec, or only having to touch it up minimally. GUI dialogs
+ * could present scan results such that users just need to pick an
+ * item to open a connection.
+ *
+ * The current implementation guesses connection types from device
+ * names, and optionally amends them with additional parameters if
+ * experience shows that individual devices need these extra specs.
+ *
+ * This database may have to move to a separate source file should
+ * its size grow to amounts that are considered inappropriate here
+ * in the serial transport's BT dispatcher. For now the item count
+ * is small.
+ */
+
 static const struct scan_supported_item {
 	const char *name;
 	enum ser_bt_conn_t type;
 	const char *add_params;
 } scan_supported_items[] = {
-	/* Guess connection types from device names (useful for scans). */
 	{ "121GW", SER_BT_CONN_BLE122, NULL, },
 	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, NULL, },
 	{ "HC-05", SER_BT_CONN_RFCOMM, NULL, },
 	{ "UM25C", SER_BT_CONN_RFCOMM, NULL, },
 	{ NULL, SER_BT_CONN_UNKNOWN, NULL, },
 };
+
+static const struct scan_supported_item *scan_is_supported(const char *name)
+{
+	size_t idx;
+	const struct scan_supported_item *item;
+
+	for (idx = 0; idx < ARRAY_SIZE(scan_supported_items); idx++) {
+		item = &scan_supported_items[idx];
+		if (!item->name)
+			break;
+		if (strcmp(name, item->name) != 0)
+			continue;
+		return item;
+	}
+
+	return NULL;
+}
 
 static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_UNKNOWN] = "<type>",
@@ -779,23 +814,6 @@ static int ser_bt_setup_source_remove(struct sr_session *session,
 	/* Release callback args here already? */
 
 	return SR_OK;
-}
-
-static const struct scan_supported_item *scan_is_supported(const char *name)
-{
-	size_t idx;
-	const struct scan_supported_item *item;
-
-	for (idx = 0; idx < ARRAY_SIZE(scan_supported_items); idx++) {
-		item = &scan_supported_items[idx];
-		if (!item->name)
-			break;
-		if (strcmp(name, item->name) != 0)
-			continue;
-		return item;
-	}
-
-	return NULL;
 }
 
 struct bt_scan_args_t {
