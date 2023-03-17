@@ -449,6 +449,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 	int num_tokens, n, i;
 	char cmd[16], **tokens;
+	int ret;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -466,35 +467,48 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		if (devc->profile->model == FLUKE_87 || devc->profile->model == FLUKE_89 ||
-				devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
+		switch (devc->profile->model) {
+		case FLUKE_87:
+		case FLUKE_89:
+		case FLUKE_187:
+		case FLUKE_189:
 			devc->expect_response = FALSE;
 			handle_qm_18x(sdi, tokens);
-		} else if (devc->profile->model == FLUKE_287 || devc->profile->model == FLUKE_289) {
+			break;
+		case FLUKE_287:
+		case FLUKE_289:
 			devc->expect_response = FALSE;
 			handle_qm_28x(sdi, tokens);
-		} else if (devc->profile->model == FLUKE_190) {
+			break;
+		case FLUKE_190:
 			devc->expect_response = FALSE;
-			for (num_tokens = 0; tokens[num_tokens]; num_tokens++);
-			if (num_tokens >= 7) {
-				/* Response to QM: this is a comma-separated list of
-				 * fields with metadata about the measurement. This
-				 * format can return multiple sets of metadata,
-				 * split into sets of 7 tokens each. */
-				devc->meas_type = 0;
-				for (i = 0; i < num_tokens; i += 7)
-					handle_qm_19x_meta(sdi, tokens + i);
-				if (devc->meas_type) {
-					/* Slip the request in now, before the main
-					 * timer loop asks for metadata again. */
-					n = sprintf(cmd, "QM %d\r", devc->meas_type);
-					if (serial_write_blocking(serial, cmd, n, SERIAL_WRITE_TIMEOUT_MS) < 0)
-						sr_err("Unable to send QM (measurement).");
-				}
-			} else {
+			num_tokens = g_strv_length(tokens);
+			if (num_tokens < 7) {
 				/* Response to QM <n> measurement request. */
 				handle_qm_19x_data(sdi, tokens);
+				break;
 			}
+			/*
+			 * Response to QM: This is a comma-separated list of
+			 * fields with metadata about the measurement. This
+			 * format can return multiple sets of metadata,
+			 * split into sets of 7 tokens each.
+			 */
+			devc->meas_type = 0;
+			for (i = 0; i < num_tokens; i += 7)
+				handle_qm_19x_meta(sdi, tokens + i);
+			if (devc->meas_type) {
+				/*
+				 * Slip the request in now, before the main
+				 * timer loop asks for metadata again.
+				 */
+				n = sprintf(cmd, "QM %d\r", devc->meas_type);
+				ret = serial_write_blocking(serial,
+					cmd, n, SERIAL_WRITE_TIMEOUT_MS);
+				if (ret < 0)
+					sr_err("Cannot send QM (measurement).");
+			}
+			break;
 		}
 	}
 	g_strfreev(tokens);
