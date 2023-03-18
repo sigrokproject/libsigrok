@@ -20,6 +20,21 @@
 #ifndef LIBSIGROK_VERSION_H
 #define LIBSIGROK_VERSION_H
 
+/*
+ * Only libsigrok library builds, and only parts of the library build,
+ * need to reference the git-version.h header file. Which contains the
+ * version suffix, which is relevant to local development, but is not
+ * applicable to release builds. Application builds need not bother with
+ * internal library version details, and always can get this information
+ * in text form for display purposes from the library at runtime.
+ */
+#if defined WANT_LIBSIGROK_GIT_VERSION_H
+#  include <libsigrok/git-version.h>
+#else
+#  undef SR_PACKAGE_VERSION_STRING_SUFFIX
+#  define SR_PACKAGE_VERSION_STRING_SUFFIX ""
+#endif
+
 /**
  * @file
  *
@@ -46,7 +61,10 @@
 #undef SR_PACKAGE_VERSION_MICRO
 
 /** The libsigrok package version ("major.minor.micro") as string. */
-#undef SR_PACKAGE_VERSION_STRING
+#define SR_PACKAGE_VERSION_STRING_PREFIX
+
+/** The libsigrok package version with git commit suffix. */
+#define SR_PACKAGE_VERSION_STRING (SR_PACKAGE_VERSION_STRING_PREFIX SR_PACKAGE_VERSION_STRING_SUFFIX)
 
 /*
  * Library/libtool version macros (can be used for conditional compilation).

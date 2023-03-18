@@ -695,6 +695,7 @@ cat >&AS_MESSAGE_FD <<_EOF
 
 libsigrok configuration summary:
  - Package version................. $SR_PACKAGE_VERSION
+ - Version string suffix .......... $SR_PACKAGE_VERSION_STRING_SUFFIX
  - Library ABI version............. $SR_LIB_VERSION
  - Prefix.......................... $prefix
  - Building on..................... $build

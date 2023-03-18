@@ -52,34 +52,48 @@ m4_define([_SR_PKG_VERSION_SET],
 [dnl
 m4_assert([$# >= 6])[]dnl
 $1=$4
+dnl Check if we can get version control details. Re-configure when
+dnl branches change (when HEAD starts pointing somewhere else).
+dnl Track individual revisions at compile time, and only as a local
+dnl dependency of just a part of the library build. In other words:
+dnl Don't re-configure and re-build everything just because a commit
+dnl happened). Checks for tagged sources also happen at compile time.
 sr_git_deps=
-# Check if we can get revision information from git.
 sr_head=`git -C "$srcdir" rev-parse --verify --short HEAD 2>&AS_MESSAGE_LOG_FD`
-
-AS_IF([test "$?" = 0 && test "x$sr_head" != x], [dnl
-	test ! -f "$srcdir/.git/HEAD" \
-		|| sr_git_deps="$sr_git_deps \$(top_srcdir)/.git/HEAD"
-
+AS_IF([test "$?" = 0 && test -n "$sr_head"], [dnl
+	test ! -f "$srcdir/.git/HEAD" || \
+		sr_git_deps="$sr_git_deps ${ac_abs_confdir}/.git/HEAD"
 	sr_head_name=`git -C "$srcdir" rev-parse --symbolic-full-name HEAD 2>&AS_MESSAGE_LOG_FD`
-	AS_IF([test "$?" = 0 && test -f "$srcdir/.git/$sr_head_name"],
-		[sr_git_deps="$sr_git_deps \$(top_srcdir)/.git/$sr_head_name"])
-
-	# Append the revision hash unless we are exactly on a tagged release.
-	git -C "$srcdir" describe --match "$3$4" \
-		--exact-match >&AS_MESSAGE_LOG_FD 2>&AS_MESSAGE_LOG_FD \
-		|| $1="[$]$1-git-$sr_head"
+	AS_IF([test "$?" = 0 && test -f "$srcdir/.git/$sr_head_name"], [dnl
+		sr_head_file="${ac_abs_confdir}/.git/$sr_head_name"
+		AC_SUBST(VERSION_HEAD_FILE, [$sr_head_file])
+	])
+	sr_hash=`git -C "$srcdir" describe --match "$3$4" --always --dirty`
+	sr_hash=`echo "$sr_hash" | sed 's/$3$4-//'` && \
+	$1_STRING_SUFFIX=`git -C "$srcdir" describe --match "$3$4" --exact-match > /dev/null 2> /dev/null || echo "-$sr_hash"`
+	AS_IF([test -n "$1_STRING_SUFFIX"], [$1="[$]$1-git"])
 ])
-# Use $(wildcard) so that things do not break if for whatever
-# reason these files do not exist anymore at make time.
+AM_CONDITIONAL([VCS_IS_GIT], [test -n "$sr_git_deps"])
+# Use $(wildcard) so that things do not break if for whatever reason
+# these files do not exist anymore at make time.
 AS_IF([test -n "$sr_git_deps"],
-	[SR_APPEND([CONFIG_STATUS_DEPENDENCIES], ["\$(wildcard$sr_git_deps)"])])
+	[SR_APPEND([CONFIG_STATUS_DEPENDENCIES], ["\$(wildcard $sr_git_deps)"])])
 AC_SUBST([CONFIG_STATUS_DEPENDENCIES])[]dnl
+AS_IF([test -n "$sr_git_deps$sr_head_file"],
+	[SR_APPEND([VERSION_GITVERSION_DEPS], ["\$(wildcard $sr_git_deps $sr_head_file)"])])
+AC_SUBST(VERSION_GITVERSION_DEPS)[]dnl
+AC_SUBST(VERSION_SOURCE_DIR, [${ac_abs_confdir}])
+AC_SUBST(VERSION_TAG_PREFIX, [$3])[]dnl
+AC_SUBST(VERSION_TAG_NUMBER, [$4])[]dnl
+AC_SUBST(VERSION_TAG_MATCH, [$3$4])[]dnl
+dnl End of git version control details gathering.
+dnl
 AC_SUBST([$1])[]dnl
 dnl
 AC_DEFINE([$1_MAJOR], [$5], [Major version number of $2.])[]dnl
 AC_DEFINE([$1_MINOR], [$6], [Minor version number of $2.])[]dnl
 m4_ifval([$7], [AC_DEFINE([$1_MICRO], [$7], [Micro version number of $2.])])[]dnl
-AC_DEFINE_UNQUOTED([$1_STRING], ["[$]$1"], [Version of $2.])[]dnl
+AC_DEFINE_UNQUOTED([$1_STRING_PREFIX], ["[$]$1"], [Version of $2.])[]dnl
 ])
 
 ## SR_PKG_VERSION_SET(var-prefix, version-triple)
