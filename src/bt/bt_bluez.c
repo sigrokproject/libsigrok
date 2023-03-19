@@ -97,9 +97,6 @@
 #define CONNECT_RFCOMM_TRIES	3
 #define CONNECT_RFCOMM_RETRY_MS	100
 
-/* Silence warning about (currently) unused routine. */
-#define WITH_WRITE_TYPE_HANDLE	0
-
 /* {{{ compat decls */
 /*
  * The availability of conversion helpers in <bluetooth/bluetooth.h>
@@ -240,6 +237,7 @@ struct sr_bt_desc {
 	uint16_t write_handle;
 	uint16_t cccd_handle;
 	uint16_t cccd_value;
+	uint16_t ble_mtu;
 	/* Internal state. */
 	int devid;
 	int fd;
@@ -250,10 +248,8 @@ static int sr_bt_desc_open(struct sr_bt_desc *desc, int *id_ref);
 static void sr_bt_desc_close(struct sr_bt_desc *desc);
 static int sr_bt_check_socket_usable(struct sr_bt_desc *desc);
 static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type);
-#if WITH_WRITE_TYPE_HANDLE
 static ssize_t sr_bt_write_type_handle(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle);
-#endif
 static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle, const uint8_t *data, size_t len);
 static ssize_t sr_bt_char_write_req(struct sr_bt_desc *desc,
@@ -366,7 +362,8 @@ SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel)
 
 SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	uint16_t read_handle, uint16_t write_handle,
-	uint16_t cccd_handle, uint16_t cccd_value)
+	uint16_t cccd_handle, uint16_t cccd_value,
+	uint16_t ble_mtu)
 {
 
 	if (!desc)
@@ -376,6 +373,7 @@ SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	desc->write_handle = write_handle;
 	desc->cccd_handle = cccd_handle;
 	desc->cccd_value = cccd_value;
+	desc->ble_mtu = ble_mtu;
 
 	return 0;
 }
@@ -911,6 +909,7 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 	size_t packet_dlen;
 	const char *type_text;
 	int ret;
+	uint16_t mtu;
 
 	if (!desc)
 		return -1;
@@ -968,6 +967,23 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 
 	/* Dispatch according to the message type. */
 	switch (packet_type) {
+	case BLE_ATT_EXCHANGE_MTU_REQ:
+		type_text = "MTU exchange request";
+		if (buflen < sizeof(uint16_t)) {
+			sr_dbg("%s, invalid (size)", type_text);
+			break;
+		}
+		mtu = read_u16le_inc_len(&bufptr, &buflen);
+		sr_dbg("%s, peripheral value %" PRIu16, type_text, mtu);
+		if (desc->ble_mtu) {
+			mtu = desc->ble_mtu;
+			sr_dbg("%s, central value %" PRIu16, type_text, mtu);
+			sr_bt_write_type_handle(desc,
+				BLE_ATT_EXCHANGE_MTU_RESP, mtu);
+			break;
+		}
+		sr_warn("Unhandled BLE %s.", type_text);
+		break;
 	case BLE_ATT_ERROR_RESP:
 		type_text = "error response";
 		if (!buflen) {
@@ -1057,13 +1073,11 @@ static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type)
 	return 0;
 }
 
-#if WITH_WRITE_TYPE_HANDLE
 static ssize_t sr_bt_write_type_handle(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle)
 {
 	return sr_bt_write_type_handle_bytes(desc, type, handle, NULL, 0);
 }
-#endif
 
 static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle, const uint8_t *data, size_t len)

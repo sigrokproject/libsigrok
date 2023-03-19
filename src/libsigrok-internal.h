@@ -1630,6 +1630,7 @@ struct sr_serial_dev_inst {
 	uint16_t bt_notify_handle_write;
 	uint16_t bt_notify_handle_cccd;
 	uint16_t bt_notify_value_cccd;
+	uint16_t bt_ble_mtu;
 	struct sr_bt_desc *bt_desc;
 	GSList *bt_source_args;
 #endif
@@ -2145,7 +2146,8 @@ SR_PRIV int sr_bt_config_addr_remote(struct sr_bt_desc *desc, const char *addr);
 SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel);
 SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	uint16_t read_handle, uint16_t write_handle,
-	uint16_t cccd_handle, uint16_t cccd_value);
+	uint16_t cccd_handle, uint16_t cccd_value,
+	uint16_t ble_mtu);
 
 SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration);
 SR_PRIV int sr_bt_scan_bt(struct sr_bt_desc *desc, int duration);

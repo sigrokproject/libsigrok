@@ -37,6 +37,7 @@
 #define SER_BT_PARAM_PREFIX_HDL_TX	"handle_tx="
 #define SER_BT_PARAM_PREFIX_HDL_CCCD	"handle_cccd="
 #define SER_BT_PARAM_PREFIX_VAL_CCCD	"value_cccd="
+#define SER_BT_PARAM_PREFIX_BLE_MTU	"mtu="
 
 /**
  * @file
@@ -190,7 +191,8 @@ static int ser_bt_parse_conn_spec(
 	enum ser_bt_conn_t *conn_type, const char **remote_addr,
 	size_t *rfcomm_channel,
 	uint16_t *read_hdl, uint16_t *write_hdl,
-	uint16_t *cccd_hdl, uint16_t *cccd_val)
+	uint16_t *cccd_hdl, uint16_t *cccd_val,
+	uint16_t *ble_mtu)
 {
 	char **fields, *field;
 	enum ser_bt_conn_t type;
@@ -214,6 +216,8 @@ static int ser_bt_parse_conn_spec(
 		*cccd_hdl = 0;
 	if (cccd_val)
 		*cccd_val = 0;
+	if (ble_mtu)
+		*ble_mtu = 0;
 
 	if (!serial || !spec || !spec[0])
 		return SR_ERR_ARG;
@@ -377,6 +381,18 @@ static int ser_bt_parse_conn_spec(
 				*cccd_val = parm_val;
 			continue;
 		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_BLE_MTU)) {
+			field += strlen(SER_BT_PARAM_PREFIX_BLE_MTU);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (ble_mtu)
+				*ble_mtu = parm_val;
+			continue;
+		}
 		return SR_ERR_DATA;
 	}
 
@@ -451,6 +467,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	const char *remote_addr;
 	size_t rfcomm_channel;
 	uint16_t read_hdl, write_hdl, cccd_hdl, cccd_val;
+	uint16_t ble_mtu;
 	int rc;
 	struct sr_bt_desc *desc;
 
@@ -461,7 +478,8 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 			&conn_type, &remote_addr,
 			&rfcomm_channel,
 			&read_hdl, &write_hdl,
-			&cccd_hdl, &cccd_val);
+			&cccd_hdl, &cccd_val,
+			&ble_mtu);
 	if (rc != SR_OK)
 		return SR_ERR_ARG;
 
@@ -491,13 +509,15 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
 		rc = sr_bt_config_notify(desc,
-			read_hdl, write_hdl, cccd_hdl, cccd_val);
+			read_hdl, write_hdl, cccd_hdl, cccd_val,
+			ble_mtu);
 		if (rc < 0)
 			return SR_ERR;
 		serial->bt_notify_handle_read = read_hdl;
 		serial->bt_notify_handle_write = write_hdl;
 		serial->bt_notify_handle_cccd = cccd_hdl;
 		serial->bt_notify_value_cccd = cccd_val;
+		serial->bt_ble_mtu = ble_mtu;
 		break;
 	default:
 		/* Unsupported type, or incomplete implementation. */
