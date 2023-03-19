@@ -408,6 +408,11 @@ static int ser_bt_data_cb(void *cb_data, uint8_t *data, size_t dlen)
 	if (!serial)
 		return -1;
 
+	if (!data && dlen)
+		return -1;
+	if (!data || !dlen)
+		return 0;
+
 	ser_bt_mask_databits(serial, data, dlen);
 	sr_ser_queue_rx_data(serial, data, dlen);
 
