@@ -616,6 +616,30 @@ static inline uint8_t read_u8_inc(const uint8_t **p)
 }
 
 /**
+ * Read unsigned 8bit integer, check length, increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in, out] l Remaining input payload length.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint8_t read_u8_inc_len(const uint8_t **p, size_t *l)
+{
+	uint8_t v;
+
+	if (!p || !*p)
+		return 0;
+	if (l && *l < sizeof(v)) {
+		*l = 0;
+		return 0;
+	}
+	v = read_u8(*p);
+	*p += sizeof(v);
+	if (l)
+		*l -= sizeof(v);
+
+	return v;
+}
+
+/**
  * Read signed 8bit integer from raw memory, increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, signed.
@@ -662,6 +686,30 @@ static inline uint16_t read_u16le_inc(const uint8_t **p)
 		return 0;
 	v = read_u16le(*p);
 	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 16bit integer (LE format), check length, increment position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in, out] l Remaining input payload length.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint16_t read_u16le_inc_len(const uint8_t **p, size_t *l)
+{
+	uint16_t v;
+
+	if (!p || !*p)
+		return 0;
+	if (l && *l < sizeof(v)) {
+		*l = 0;
+		return 0;
+	}
+	v = read_u16le(*p);
+	*p += sizeof(v);
+	if (l)
+		*l -= sizeof(v);
 
 	return v;
 }
