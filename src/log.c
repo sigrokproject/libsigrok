@@ -260,6 +260,10 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 	if (loglevel > cur_loglevel)
 		return SR_OK;
 
+	/* Silently succeed when no logging callback is registered. */
+	if (!sr_log_cb)
+		return SR_OK;
+
 	va_start(args, format);
 	ret = sr_log_cb(sr_log_cb_data, loglevel, format, args);
 	va_end(args);
