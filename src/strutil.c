@@ -788,9 +788,16 @@ SR_PRIV GString *sr_hexdump_new(const uint8_t *data, const size_t len)
 	GString *s;
 	size_t i;
 
-	s = g_string_sized_new(3 * len);
+	i = 3 * len;
+	i += len / 8;
+	i += len / 16;
+	s = g_string_sized_new(i);
 	for (i = 0; i < len; i++) {
 		if (i)
+			g_string_append_c(s, ' ');
+		if (i && (i % 8) == 0)
+			g_string_append_c(s, ' ');
+		if (i && (i % 16) == 0)
 			g_string_append_c(s, ' ');
 		g_string_append_printf(s, "%02x", data[i]);
 	}
