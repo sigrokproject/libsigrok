@@ -57,8 +57,8 @@ static const struct flukedmm_profile supported_flukedmm[] = {
 	{ FLUKE_89, "89", 100, 1000 },
 	{ FLUKE_187, "187", 100, 1000 },
 	{ FLUKE_189, "189", 100, 1000 },
-	{ FLUKE_287, "287", 100, 1000 },
 	{ FLUKE_190, "199B", 1000, 3500 },
+	{ FLUKE_287, "287", 100, 1000 },
 	{ FLUKE_289, "289", 100, 1000 },
 };
 

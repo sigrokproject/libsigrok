@@ -475,11 +475,6 @@ static void handle_line(const struct sr_dev_inst *sdi)
 			devc->expect_response = FALSE;
 			handle_qm_18x(sdi, tokens);
 			break;
-		case FLUKE_287:
-		case FLUKE_289:
-			devc->expect_response = FALSE;
-			handle_qm_28x(sdi, tokens);
-			break;
 		case FLUKE_190:
 			devc->expect_response = FALSE;
 			num_tokens = g_strv_length(tokens);
@@ -508,6 +503,11 @@ static void handle_line(const struct sr_dev_inst *sdi)
 				if (ret < 0)
 					sr_err("Cannot send QM (measurement).");
 			}
+			break;
+		case FLUKE_287:
+		case FLUKE_289:
+			devc->expect_response = FALSE;
+			handle_qm_28x(sdi, tokens);
 			break;
 		}
 	}
