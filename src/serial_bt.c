@@ -114,6 +114,7 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
 	[SER_BT_CONN_AC6328] = "ac6328",
+	[SER_BT_CONN_DIALOG] = "dialog",
 	[SER_BT_CONN_NOTIFY] = "notify",
 };
 
@@ -305,6 +306,18 @@ static int ser_bt_parse_conn_spec(
 			*cccd_hdl = 13;
 		if (cccd_val)
 			*cccd_val = 0x0001;
+		break;
+	case SER_BT_CONN_DIALOG:
+		if (read_hdl)
+			*read_hdl = 23;
+		if (write_hdl)
+			*write_hdl = 18;
+		if (cccd_hdl)
+			*cccd_hdl = 0;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		if (ble_mtu)
+			*ble_mtu = 400;
 		break;
 	case SER_BT_CONN_NOTIFY:
 		/* All other values must be provided externally. */
@@ -514,6 +527,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
 	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_config_notify(desc,
 			read_hdl, write_hdl, cccd_hdl, cccd_val,
@@ -550,6 +564,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
 	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_connect_ble(desc);
 		if (rc < 0)
@@ -628,6 +643,7 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
 	case SER_BT_CONN_NOTIFY:
 		/*
 		 * Assume that when applications call the serial layer's
@@ -695,6 +711,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
 		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_DIALOG:
 		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
@@ -794,6 +811,7 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
 		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_DIALOG:
 		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
