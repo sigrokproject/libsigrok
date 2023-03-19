@@ -65,7 +65,7 @@
 
 #define OFF_SERIAL 12
 
-static const uint8_t AES_KEY[] = {
+static const uint8_t aes_key[] = {
 	0x58, 0x21, 0xfa, 0x56, 0x01, 0xb2, 0xf0, 0x26,
 	0x87, 0xff, 0x12, 0x04, 0x62, 0x2a, 0x4f, 0xb0,
 	0x86, 0xf4, 0x02, 0x60, 0x81, 0x6f, 0x9a, 0x0b,
@@ -83,14 +83,14 @@ static const struct rdtech_tc_channel_desc rdtech_tc_channels[] = {
 
 static gboolean check_pac_crc(uint8_t *data)
 {
-	uint16_t crc;
-	uint32_t crc_field;
+	uint16_t crc_calc;
+	uint32_t crc_recv;
 
-	crc = sr_crc16(SR_CRC16_DEFAULT_INIT, data, PAC_CRC_POS);
-	crc_field = read_u32le(&data[PAC_CRC_POS]);
-	if (crc != crc_field) {
+	crc_calc = sr_crc16(SR_CRC16_DEFAULT_INIT, data, PAC_CRC_POS);
+	crc_recv = read_u32le(&data[PAC_CRC_POS]);
+	if (crc_calc != crc_recv) {
 		sr_spew("CRC error. Calculated: %0x" PRIx16 ", expected: %0x" PRIx32,
-			crc, crc_field);
+			crc_calc, crc_recv);
 		return FALSE;
 	}
 
@@ -102,7 +102,7 @@ static int process_poll_pkt(struct dev_context *devc, uint8_t *dst)
 	struct aes256_ctx ctx;
 	gboolean ok;
 
-	aes256_set_decrypt_key(&ctx, AES_KEY);
+	aes256_set_decrypt_key(&ctx, aes_key);
 	aes256_decrypt(&ctx, TC_POLL_LEN, dst, devc->buf);
 
 	ok = TRUE;
