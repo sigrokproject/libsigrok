@@ -33,8 +33,6 @@
 #define WRITE_TO_MS	1
 #define POLL_PERIOD_MS	100
 
-static const char *poll_cmd = "getva";
-
 /*
  * Response data (raw sample data) consists of three adjacent chunks
  * of 64 bytes each. These chunks start with their magic string, and
@@ -55,6 +53,9 @@ static const char *poll_cmd = "getva";
 #define OFF_PAC2 (1 * PAC_LEN)
 #define OFF_PAC3 (2 * PAC_LEN)
 #define TC_POLL_LEN (3 * PAC_LEN)
+#if TC_POLL_LEN > RDTECH_TC_RSPBUFSIZE
+#  error "response length exceeds receive buffer space"
+#endif
 
 #define OFF_MODEL 4
 #define LEN_MODEL 4
@@ -126,16 +127,28 @@ static int process_poll_pkt(struct dev_context *devc, uint8_t *dst)
 
 SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc)
 {
+	static const char *poll_cmd_cdc = "getva";
+	static const char *poll_cmd_ble = "bgetva\r\n";
+
 	int len;
 	uint8_t poll_pkt[TC_POLL_LEN];
 
+	/* Construct the request text. Which differs across transports. */
+	devc->is_bluetooth = ser_name_is_bt(serial);
+	snprintf(devc->req_text, sizeof(devc->req_text), "%s",
+		devc->is_bluetooth ? poll_cmd_ble : poll_cmd_cdc);
+	sr_dbg("is bluetooth %d -> poll request '%s'.",
+		devc->is_bluetooth, devc->req_text);
+
+	/* Transmit the request. */
 	len = serial_write_blocking(serial,
-		poll_cmd, strlen(poll_cmd), WRITE_TO_MS);
+		devc->req_text, strlen(devc->req_text), WRITE_TO_MS);
 	if (len < 0) {
 		sr_err("Failed to send probe request.");
 		return SR_ERR;
 	}
 
+	/* Receive a response. */
 	len = serial_read_blocking(serial, devc->buf, TC_POLL_LEN, PROBE_TO_MS);
 	if (len != TC_POLL_LEN) {
 		sr_err("Failed to read probe response.");
@@ -185,7 +198,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 	 */
 	serial = sdi->conn;
 	len = serial_write_blocking(serial,
-		poll_cmd, strlen(poll_cmd), WRITE_TO_MS);
+		devc->req_text, strlen(devc->req_text), WRITE_TO_MS);
 	if (len < 0) {
 		sr_err("Unable to send poll request.");
 		return SR_ERR;

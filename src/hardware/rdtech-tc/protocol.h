@@ -25,7 +25,16 @@
 
 #define LOG_PREFIX "rdtech-tc"
 
-#define RDTECH_TC_BUFSIZE 256
+/*
+ * Keep request and response buffers of sufficient size. The maximum
+ * request text currently involved is "bgetva\r\n" which translates
+ * to 9 bytes. The poll response (a measurement, the largest amount
+ * of data that is currently received) is 192 bytes in length. Add
+ * some slack for alignment, and for in-flight messages or adjacent
+ * data during synchronization to the data stream.
+ */
+#define RDTECH_TC_MAXREQLEN 12
+#define RDTECH_TC_RSPBUFSIZE 256
 
 struct rdtech_dev_info {
 	char *model_name;
@@ -43,12 +52,14 @@ struct rdtech_tc_channel_desc {
 };
 
 struct dev_context {
+	gboolean is_bluetooth;
+	char req_text[RDTECH_TC_MAXREQLEN];
 	struct rdtech_dev_info dev_info;
 	const struct rdtech_tc_channel_desc *channels;
 	size_t channel_count;
 	struct feed_queue_analog **feeds;
 	struct sr_sw_limits limits;
-	uint8_t buf[RDTECH_TC_BUFSIZE];
+	uint8_t buf[RDTECH_TC_RSPBUFSIZE];
 	size_t rdlen;
 	int64_t cmd_sent_at;
 };
