@@ -122,6 +122,30 @@ static int process_poll_pkt(struct dev_context *devc, uint8_t *dst)
 		return SR_ERR_DATA;
 	}
 
+	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
+		static const size_t chunk_max = 32;
+
+		const uint8_t *rdptr;
+		size_t rdlen, chunk_addr, chunk_len;
+		GString *txt;
+
+		sr_spew("check passed on decrypted receive data");
+		rdptr = dst;
+		rdlen = TC_POLL_LEN;
+		chunk_addr = 0;
+		while (rdlen) {
+			chunk_len = rdlen;
+			if (chunk_len > chunk_max)
+				chunk_len = chunk_max;
+			txt = sr_hexdump_new(rdptr, chunk_len);
+			sr_spew("%04zx  %s", chunk_addr, txt->str);
+			sr_hexdump_free(txt);
+			chunk_addr += chunk_len;
+			rdptr += chunk_len;
+			rdlen -= chunk_len;
+		}
+	}
+
 	return SR_OK;
 }
 
