@@ -62,6 +62,7 @@ struct dev_context {
 	uint8_t buf[RDTECH_TC_RSPBUFSIZE];
 	size_t rdlen;
 	int64_t cmd_sent_at;
+	size_t rx_after_tx;
 };
 
 SR_PRIV int rdtech_tc_probe(struct sr_serial_dev_inst *serial, struct dev_context *devc);

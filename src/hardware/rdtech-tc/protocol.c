@@ -202,10 +202,17 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 
 	/*
 	 * Don't send the request while receive data is being accumulated.
+	 * Defer request transmission when a previous request has not yet
+	 * seen any response data at all (more probable to happen shortly
+	 * after connecting to the peripheral).
 	 */
 	devc = sdi->priv;
-	if (!force && devc->rdlen)
-		return SR_OK;
+	if (!force) {
+		if (devc->rdlen)
+			return SR_OK;
+		if (!devc->rx_after_tx)
+			return SR_OK;
+	}
 
 	/*
 	 * Send the request when the transmit interval was reached. Or
@@ -228,6 +235,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 		return SR_ERR;
 	}
 	devc->cmd_sent_at = now;
+	devc->rx_after_tx = 0;
 
 	return SR_OK;
 }
@@ -291,6 +299,7 @@ static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *se
 		if (len == 0)
 			return SR_OK;
 		devc->rdlen += len;
+		devc->rx_after_tx += len;
 	}
 
 	/*
