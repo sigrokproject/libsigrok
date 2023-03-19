@@ -84,6 +84,7 @@ static const struct scan_supported_item {
 	{ "DL24M_BLE", SER_BT_CONN_AC6328, NULL, },
 	{ "DL24M_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
 	{ "HC-05", SER_BT_CONN_RFCOMM, NULL, },
+	{ "TC66C", SER_BT_CONN_DIALOG, "/mtu=200", },
 	{ "UC96_BLE", SER_BT_CONN_AC6328, NULL, },
 	{ "UC96_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
 	{ "UM25C", SER_BT_CONN_RFCOMM, NULL, },
