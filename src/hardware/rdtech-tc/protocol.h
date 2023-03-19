@@ -49,7 +49,7 @@ struct dev_context {
 	struct feed_queue_analog **feeds;
 	struct sr_sw_limits limits;
 	uint8_t buf[RDTECH_TC_BUFSIZE];
-	size_t buflen;
+	size_t rdlen;
 	int64_t cmd_sent_at;
 };
 

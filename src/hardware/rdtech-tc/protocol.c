@@ -167,7 +167,7 @@ SR_PRIV int rdtech_tc_poll(const struct sr_dev_inst *sdi, gboolean force)
 	 * Don't send the request while receive data is being accumulated.
 	 */
 	devc = sdi->priv;
-	if (!force && devc->buflen)
+	if (!force && devc->rdlen)
 		return SR_OK;
 
 	/*
@@ -205,9 +205,9 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 	float v;
 
 	devc = sdi->priv;
-	sr_spew("Received poll packet (len: %zu).", devc->buflen);
-	if (devc->buflen < TC_POLL_LEN) {
-		sr_err("Insufficient poll packet length: %zu", devc->buflen);
+	sr_spew("Received poll packet (len: %zu).", devc->rdlen);
+	if (devc->rdlen < TC_POLL_LEN) {
+		sr_err("Insufficient poll packet length: %zu", devc->rdlen);
 		return SR_ERR_DATA;
 	}
 
@@ -245,15 +245,15 @@ static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *se
 
 	/* Receive data became available. Drain the transport layer. */
 	devc = sdi->priv;
-	while (devc->buflen < TC_POLL_LEN) {
-		space = sizeof(devc->buf) - devc->buflen;
+	while (devc->rdlen < TC_POLL_LEN) {
+		space = sizeof(devc->buf) - devc->rdlen;
 		len = serial_read_nonblocking(serial,
-			&devc->buf[devc->buflen], space);
+			&devc->buf[devc->rdlen], space);
 		if (len < 0)
 			return SR_ERR_IO;
 		if (len == 0)
 			return SR_OK;
-		devc->buflen += len;
+		devc->rdlen += len;
 	}
 
 	/*
@@ -262,13 +262,13 @@ static int recv_poll_data(struct sr_dev_inst *sdi, struct sr_serial_dev_inst *se
 	 */
 
 	/* Process packets when their reception has completed. */
-	while (devc->buflen >= TC_POLL_LEN) {
+	while (devc->rdlen >= TC_POLL_LEN) {
 		ret = handle_poll_data(sdi);
 		if (ret != SR_OK)
 			return ret;
-		devc->buflen -= TC_POLL_LEN;
-		if (devc->buflen)
-			memmove(&devc->buf[0], &devc->buf[TC_POLL_LEN], devc->buflen);
+		devc->rdlen -= TC_POLL_LEN;
+		if (devc->rdlen)
+			memmove(devc->buf, &devc->buf[TC_POLL_LEN], devc->rdlen);
 	}
 
 	return SR_OK;
