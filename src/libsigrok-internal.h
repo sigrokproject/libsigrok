@@ -1621,6 +1621,7 @@ struct sr_serial_dev_inst {
 		SER_BT_CONN_NRF51,	/**!< BLE, Nordic nRF51, notifications */
 		SER_BT_CONN_CC254x,	/**!< BLE, TI CC254x, notifications */
 		SER_BT_CONN_AC6328,	/**!< BLE, JL AC6328B, notifications */
+		SER_BT_CONN_NOTIFY,	/**!< BLE, generic notifications */
 		SER_BT_CONN_MAX,	/**!< sentinel */
 	} bt_conn_type;
 	char *bt_addr_local;

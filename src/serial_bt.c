@@ -114,6 +114,7 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
 	[SER_BT_CONN_AC6328] = "ac6328",
+	[SER_BT_CONN_NOTIFY] = "notify",
 };
 
 static enum ser_bt_conn_t lookup_conn_name(const char *name)
@@ -302,6 +303,11 @@ static int ser_bt_parse_conn_spec(
 			*write_hdl = 15;
 		if (cccd_hdl)
 			*cccd_hdl = 13;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		break;
+	case SER_BT_CONN_NOTIFY:
+		/* All other values must be provided externally. */
 		if (cccd_val)
 			*cccd_val = 0x0001;
 		break;
@@ -508,6 +514,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_config_notify(desc,
 			read_hdl, write_hdl, cccd_hdl, cccd_val,
 			ble_mtu);
@@ -543,6 +550,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_connect_ble(desc);
 		if (rc < 0)
 			return SR_ERR;
@@ -620,6 +628,7 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
 	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_NOTIFY:
 		/*
 		 * Assume that when applications call the serial layer's
 		 * write routine, then the BLE chip/module does support
@@ -686,6 +695,7 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
 		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
@@ -784,6 +794,7 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
 		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
