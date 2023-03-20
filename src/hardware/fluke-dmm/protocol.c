@@ -158,119 +158,6 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 	}
 }
 
-static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
-{
-	struct dev_context *devc;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
-	struct sr_analog_encoding encoding;
-	struct sr_analog_meaning meaning;
-	struct sr_analog_spec spec;
-	float fvalue;
-
-	devc = sdi->priv;
-
-	if (!tokens[1])
-		return;
-
-	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
-		sr_err("Invalid float '%s'.", tokens[0]);
-		return;
-	}
-
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
-	analog.data = &fvalue;
-	analog.meaning->channels = sdi->channels;
-	analog.num_samples = 1;
-	analog.meaning->mq = 0;
-
-	if (!strcmp(tokens[1], "VAC") || !strcmp(tokens[1], "VDC")) {
-		analog.meaning->mq = SR_MQ_VOLTAGE;
-		analog.meaning->unit = SR_UNIT_VOLT;
-		if (!strcmp(tokens[2], "NORMAL")) {
-			if (tokens[1][1] == 'A') {
-				analog.meaning->mqflags |= SR_MQFLAG_AC;
-				analog.meaning->mqflags |= SR_MQFLAG_RMS;
-			} else
-				analog.meaning->mqflags |= SR_MQFLAG_DC;
-		} else if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-			fvalue = NAN;
-		} else
-			analog.meaning->mq = 0;
-	} else if (!strcmp(tokens[1], "dBV") || !strcmp(tokens[1], "dBm")) {
-		analog.meaning->mq = SR_MQ_VOLTAGE;
-		if (tokens[1][2] == 'm')
-			analog.meaning->unit = SR_UNIT_DECIBEL_MW;
-		else
-			analog.meaning->unit = SR_UNIT_DECIBEL_VOLT;
-		analog.meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
-	} else if (!strcmp(tokens[1], "CEL") || !strcmp(tokens[1], "FAR")) {
-		if (!strcmp(tokens[2], "NORMAL")) {
-			analog.meaning->mq = SR_MQ_TEMPERATURE;
-			if (tokens[1][0] == 'C')
-				analog.meaning->unit = SR_UNIT_CELSIUS;
-			else
-				analog.meaning->unit = SR_UNIT_FAHRENHEIT;
-		}
-	} else if (!strcmp(tokens[1], "OHM")) {
-		if (!strcmp(tokens[3], "NONE")) {
-			analog.meaning->mq = SR_MQ_RESISTANCE;
-			analog.meaning->unit = SR_UNIT_OHM;
-			if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-				fvalue = INFINITY;
-			} else if (strcmp(tokens[2], "NORMAL"))
-				analog.meaning->mq = 0;
-		} else if (!strcmp(tokens[3], "OPEN_CIRCUIT")) {
-			analog.meaning->mq = SR_MQ_CONTINUITY;
-			analog.meaning->unit = SR_UNIT_BOOLEAN;
-			fvalue = 0.0;
-		} else if (!strcmp(tokens[3], "SHORT_CIRCUIT")) {
-			analog.meaning->mq = SR_MQ_CONTINUITY;
-			analog.meaning->unit = SR_UNIT_BOOLEAN;
-			fvalue = 1.0;
-		}
-	} else if (!strcmp(tokens[1], "F")
-			&& !strcmp(tokens[2], "NORMAL")
-			&& !strcmp(tokens[3], "NONE")) {
-		analog.meaning->mq = SR_MQ_CAPACITANCE;
-		analog.meaning->unit = SR_UNIT_FARAD;
-	} else if (!strcmp(tokens[1], "AAC") || !strcmp(tokens[1], "ADC")) {
-		analog.meaning->mq = SR_MQ_CURRENT;
-		analog.meaning->unit = SR_UNIT_AMPERE;
-		if (!strcmp(tokens[2], "NORMAL")) {
-			if (tokens[1][1] == 'A') {
-				analog.meaning->mqflags |= SR_MQFLAG_AC;
-				analog.meaning->mqflags |= SR_MQFLAG_RMS;
-			} else
-				analog.meaning->mqflags |= SR_MQFLAG_DC;
-		} else if (!strcmp(tokens[2], "OL") || !strcmp(tokens[2], "OL_MINUS")) {
-			fvalue = NAN;
-		} else
-			analog.meaning->mq = 0;
-	} else if (!strcmp(tokens[1], "Hz") && !strcmp(tokens[2], "NORMAL")) {
-		analog.meaning->mq = SR_MQ_FREQUENCY;
-		analog.meaning->unit = SR_UNIT_HERTZ;
-	} else if (!strcmp(tokens[1], "PCT") && !strcmp(tokens[2], "NORMAL")) {
-		analog.meaning->mq = SR_MQ_DUTY_CYCLE;
-		analog.meaning->unit = SR_UNIT_PERCENTAGE;
-	} else if (!strcmp(tokens[1], "S") && !strcmp(tokens[2], "NORMAL")) {
-		analog.meaning->mq = SR_MQ_PULSE_WIDTH;
-		analog.meaning->unit = SR_UNIT_SECOND;
-	} else if (!strcmp(tokens[1], "SIE") && !strcmp(tokens[2], "NORMAL")) {
-		analog.meaning->mq = SR_MQ_CONDUCTANCE;
-		analog.meaning->unit = SR_UNIT_SIEMENS;
-	}
-
-	if (analog.meaning->mq != 0) {
-		/* Got a measurement. */
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		sr_session_send(sdi, &packet);
-		sr_sw_limits_update_samples_read(&devc->limits, 1);
-	}
-}
-
 static void handle_qm_19x_meta(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
@@ -442,16 +329,16 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	}
 
 	tokens = g_strsplit(devc->buf, ",", 0);
+	for (num_tokens = 0; tokens[num_tokens]; num_tokens++);
 	if (tokens[0]) {
 		if (devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
 			devc->expect_response = FALSE;
 			handle_qm_18x(sdi, tokens);
 		} else if (devc->profile->model == FLUKE_287 || devc->profile->model == FLUKE_289) {
 			devc->expect_response = FALSE;
-			handle_qm_28x(sdi, tokens);
+			fluke_handle_qdda_28x(sdi, tokens, num_tokens);
 		} else if (devc->profile->model == FLUKE_190) {
 			devc->expect_response = FALSE;
-			for (num_tokens = 0; tokens[num_tokens]; num_tokens++);
 			if (num_tokens >= 7) {
 				/* Response to QM: this is a comma-separated list of
 				 * fields with metadata about the measurement. This
@@ -482,6 +369,7 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	struct sr_dev_inst *sdi;
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	const char *poll_cmd;
 	int len;
 	int64_t now, elapsed;
 
@@ -492,6 +380,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 
 	if (!(devc = sdi->priv))
 		return TRUE;
+
+	poll_cmd = devc->profile->poll_cmd;
 
 	serial = sdi->conn;
 	if (revents == G_IO_IN) {
@@ -522,8 +412,8 @@ SR_PRIV int fluke_receive_data(int fd, int revents, void *cb_data)
 	 * out-of-sync or temporary disconnect issues. */
 	if ((devc->expect_response == FALSE && elapsed > devc->profile->poll_period)
 			|| elapsed > devc->profile->timeout) {
-		if (serial_write_blocking(serial, "QM\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0)
-			sr_err("Unable to send QM.");
+		if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd), SERIAL_WRITE_TIMEOUT_MS) < 0)
+			sr_err("Unable to send poll command.");
 		devc->cmd_sent_at = now;
 		devc->expect_response = TRUE;
 	}

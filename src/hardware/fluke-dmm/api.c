@@ -52,13 +52,47 @@ static const char *scan_conn[] = {
 	NULL
 };
 
-static const struct flukedmm_profile supported_flukedmm[] = {
-	{ FLUKE_187, "187", 100, 1000 },
-	{ FLUKE_189, "189", 100, 1000 },
-	{ FLUKE_287, "287", 100, 1000 },
-	{ FLUKE_190, "199B", 1000, 3500 },
-	{ FLUKE_289, "289", 100, 1000 },
+static const char *ch_single[] = { "P1", NULL };
+
+/* See fluke-28x.c for an enum corresponding to these names. */
+static const char *ch_28x[] = {
+	"Live",
+	"Rel. Live",
+	"Prim",
+	"Sec",
+	"Bargraph",
+	"Minimum",
+	"Maximum",
+	"Average",
+	"Rel. Ref.",
+	"dB Ref.",
+	"Temp. Off.",
+	NULL,
 };
+
+static const struct flukedmm_profile supported_flukedmm[] = {
+	{ FLUKE_187, "187", ch_single, "QM\r", 100, 1000 },
+	{ FLUKE_189, "189", ch_single, "QM\r", 100, 1000 },
+	{ FLUKE_190, "199B", ch_single, "QM\r", 1000, 3500 },
+	{ FLUKE_287, "287", ch_28x, "QDDA\r", 100, 1000 },
+	{ FLUKE_289, "289", ch_28x, "QDDA\r", 100, 1000 },
+	{ 0, NULL, NULL, NULL, 0, 0},
+};
+
+static const struct flukedmm_profile *find_profile(const char *model)
+{
+	int i;
+
+	if (strncmp("FLUKE", model, 5))
+		return NULL;
+
+	for (i = 0; supported_flukedmm[i].model; i++) {
+		if (!strcmp(supported_flukedmm[i].modelname, model + 6))
+			return &supported_flukedmm[i];
+	}
+
+	return NULL;
+}
 
 static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 		const char *serialcomm)
@@ -67,8 +101,10 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 	GSList *devices;
-	int retry, len, i, s;
+	int retry, len, s;
 	char buf[128], *b, **tokens;
+	const char **ch_name;
+	const struct flukedmm_profile *profile;
 
 	serial = sr_serial_dev_inst_new(conn, serialcomm);
 
@@ -108,28 +144,25 @@ static GSList *fluke_scan(struct sr_dev_driver *di, const char *conn,
 		else
 			/* Fluke 199B, at least, uses semicolon. */
 			tokens = g_strsplit(buf, ";", 3);
-		if (!strncmp("FLUKE", tokens[0], 5)
-				&& tokens[1] && tokens[2]) {
-			for (i = 0; supported_flukedmm[i].model; i++) {
-				if (strcmp(supported_flukedmm[i].modelname, tokens[0] + 6))
-					continue;
-				/* Skip leading spaces in version number. */
-				for (s = 0; tokens[1][s] == ' '; s++);
-				sdi = g_malloc0(sizeof(struct sr_dev_inst));
-				sdi->status = SR_ST_INACTIVE;
-				sdi->vendor = g_strdup("Fluke");
-				sdi->model = g_strdup(tokens[0] + 6);
-				sdi->version = g_strdup(tokens[1] + s);
-				devc = g_malloc0(sizeof(struct dev_context));
-				sr_sw_limits_init(&devc->limits);
-				devc->profile = &supported_flukedmm[i];
-				sdi->inst_type = SR_INST_SERIAL;
-				sdi->conn = serial;
-				sdi->priv = devc;
-				sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, "P1");
-				devices = g_slist_append(devices, sdi);
-				break;
-			}
+
+		profile = find_profile(tokens[0]);
+		if (profile && tokens[1] && tokens[2]) {
+			/* Skip leading spaces in version number. */
+			for (s = 0; tokens[1][s] == ' '; s++);
+			sdi = g_malloc0(sizeof(struct sr_dev_inst));
+			sdi->status = SR_ST_INACTIVE;
+			sdi->vendor = g_strdup("Fluke");
+			sdi->model = g_strdup(tokens[0] + 6);
+			sdi->version = g_strdup(tokens[1] + s);
+			devc = g_malloc0(sizeof(struct dev_context));
+			sr_sw_limits_init(&devc->limits);
+			devc->profile = profile;
+			sdi->inst_type = SR_INST_SERIAL;
+			sdi->conn = serial;
+			sdi->priv = devc;
+			for (ch_name = profile->channels; *ch_name; ch_name++)
+				sr_channel_new(sdi, 0, SR_CHANNEL_ANALOG, TRUE, *ch_name);
+			devices = g_slist_append(devices, sdi);
 		}
 		g_strfreev(tokens);
 		if (devices)
@@ -204,6 +237,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
+	const char *poll_cmd;
 
 	devc = sdi->priv;
 
@@ -214,8 +248,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	serial_source_add(sdi->session, serial, G_IO_IN, 50,
 			fluke_receive_data, (void *)sdi);
 
-	if (serial_write_blocking(serial, "QM\r", 3, SERIAL_WRITE_TIMEOUT_MS) < 0) {
-		sr_err("Unable to send QM.");
+	poll_cmd = devc->profile->poll_cmd;
+	if (serial_write_blocking(serial, poll_cmd, strlen(poll_cmd), SERIAL_WRITE_TIMEOUT_MS) < 0) {
+		sr_err("Unable to send poll command.");
 		return SR_ERR;
 	}
 	devc->cmd_sent_at = g_get_monotonic_time() / 1000;
