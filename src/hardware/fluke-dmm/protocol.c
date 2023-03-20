@@ -26,16 +26,20 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
-static int count_digits(const char *str) {
+static int count_digits(const char *str)
+{
 	int digits;
 
-	while (*str && *str != ' ' && *str != ',' && *str != '.')
+	if (*str == '-' || *str == '+')
+		str++;
+
+	while (*str >= '0' && *str <= '9')
 		str++;
 
 	digits = 0;
 	if (*str == '.') {
 		str++;
-		while (*str && *str != ' ' && *str != ',') {
+		while (*str >= '0' && *str <= '9') {
 			str++;
 			digits++;
 		}
