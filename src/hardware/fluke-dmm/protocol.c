@@ -206,17 +206,37 @@ static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
 	struct sr_analog_spec spec;
 	float fvalue;
 	int digits;
+	int exponent;
+	char *e;
 
 	devc = sdi->priv;
 
 	if (!tokens[1])
 		return;
 
+	/* Split measurement into mantissa / exponent */
+	e = tokens[0];
+	while (*e) {
+		if (*e == 'e' || *e == 'E') {
+			*e = '\0';
+			e++;
+			break;
+		}
+		e++;
+	}
+
 	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK) {
-		sr_err("Invalid float '%s'.", tokens[0]);
+		sr_err("Invalid mantissa '%s'.", tokens[0]);
 		return;
 	}
-	digits = count_digits(tokens[0]);
+
+	if (sr_atoi(e, &exponent) != SR_OK) {
+		sr_err("Invalid exponent '%s'.", e);
+		return;
+	}
+
+	digits = count_digits(tokens[0]) - exponent;
+	fvalue *= pow(10.0f, exponent);
 
 	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.data = &fvalue;
