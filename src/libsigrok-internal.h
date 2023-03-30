@@ -2218,7 +2218,6 @@ enum binary_value_type {
 struct binary_value_spec {
 	size_t offset;			/**!< Offset into binary image */
 	enum binary_value_type type;	/**!< Data type to decode */
-	float scale;			/**!< Scale factor to native units */
 };
 
 /**

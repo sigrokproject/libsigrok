@@ -40,23 +40,23 @@
 #define UM_CMD_POLL 0xf0
 
 static const struct rdtech_um_channel_desc default_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 1, }, { 1, 1e3, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+	{ "V", { 2, BVT_BE_UINT16, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, }, { 1, 1e3, }, 3, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", { 96, BVT_BE_UINT16, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", { 98, BVT_BE_UINT16, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "T", { 10, BVT_BE_UINT16, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 1, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
 static const struct rdtech_um_channel_desc um25c_channels[] = {
-	{ "V", { 2, BVT_BE_UINT16, 1, }, { 1, 1e3, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I", { 4, BVT_BE_UINT16, 1, }, { 100, 1e6, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", { 96, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", { 98, BVT_BE_UINT16, 1, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "T", { 10, BVT_BE_UINT16, 1, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
+	{ "V", { 2, BVT_BE_UINT16, }, { 1, 1e3, }, 3, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I", { 4, BVT_BE_UINT16, }, { 100, 1e6, }, 4, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", { 96, BVT_BE_UINT16, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", { 98, BVT_BE_UINT16, }, { 10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "T", { 10, BVT_BE_UINT16, }, { 1, 1, }, 0, SR_MQ_TEMPERATURE, SR_UNIT_CELSIUS },
 	/* Threshold-based recording (mWh) */
-	{ "E", { 106, BVT_BE_UINT32, 1, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E", { 106, BVT_BE_UINT32, }, { 1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
 static gboolean csum_ok_fff1(const uint8_t *buf, size_t len)

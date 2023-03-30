@@ -56,8 +56,6 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
 
 #undef VALUE_TYPE
 
-	if (spec->scale)
-		value *= spec->scale;
 	if (out)
 		*out = value;
 	return SR_OK;

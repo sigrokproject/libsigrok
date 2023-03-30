@@ -73,12 +73,12 @@ static const uint8_t aes_key[] = {
 };
 
 static const struct rdtech_tc_channel_desc rdtech_tc_channels[] = {
-	{ "V",  {   0 + 48, BVT_LE_UINT32, 1, }, { 100, 1e6, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "I",  {   0 + 52, BVT_LE_UINT32, 1, }, {  10, 1e6, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE },
-	{ "D+", {  64 + 32, BVT_LE_UINT32, 1, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "D-", {  64 + 36, BVT_LE_UINT32, 1, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
-	{ "E0", {  64 + 12, BVT_LE_UINT32, 1, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
-	{ "E1", {  64 + 20, BVT_LE_UINT32, 1, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "V",  {   0 + 48, BVT_LE_UINT32, }, { 100, 1e6, }, 4, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "I",  {   0 + 52, BVT_LE_UINT32, }, {  10, 1e6, }, 5, SR_MQ_CURRENT, SR_UNIT_AMPERE },
+	{ "D+", {  64 + 32, BVT_LE_UINT32, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "D-", {  64 + 36, BVT_LE_UINT32, }, {  10, 1e3, }, 2, SR_MQ_VOLTAGE, SR_UNIT_VOLT },
+	{ "E0", {  64 + 12, BVT_LE_UINT32, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
+	{ "E1", {  64 + 20, BVT_LE_UINT32, }, {   1, 1e3, }, 3, SR_MQ_ENERGY, SR_UNIT_WATT_HOUR },
 };
 
 static gboolean check_pac_crc(uint8_t *data)
