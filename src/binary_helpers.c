@@ -22,8 +22,8 @@
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
-SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
-	const void *data, size_t length)
+SR_PRIV int bv_get_value_with_length_check(float *out,
+	const struct binary_value_spec *spec, const void *data, size_t length)
 {
 	float value;
 

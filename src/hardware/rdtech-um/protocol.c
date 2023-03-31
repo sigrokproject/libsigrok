@@ -211,7 +211,7 @@ static int process_data(struct sr_dev_inst *sdi,
 	ret = SR_OK;
 	std_session_send_df_frame_begin(sdi);
 	for (ch_idx = 0; ch_idx < p->channel_count; ch_idx++) {
-		ret = bv_get_value(&v, &p->channels[ch_idx].spec, data, dlen);
+		ret = bv_get_value_with_length_check(&v, &p->channels[ch_idx].spec, data, dlen);
 		if (ret != SR_OK)
 			break;
 		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
