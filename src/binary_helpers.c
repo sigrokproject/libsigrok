@@ -62,3 +62,52 @@ SR_PRIV int bv_get_value_with_length_check(float *out,
 		*out = value;
 	return SR_OK;
 }
+
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+	const void *data)
+{
+	float value;
+	data += spec->offset;
+
+	switch (spec->type) {
+	case BVT_UINT8:
+		value = read_u8(data);
+		break;
+	case BVT_BE_UINT16:
+		value = read_u16be(data);
+		break;
+	case BVT_BE_UINT24:
+		value = read_u24be(data);
+		break;
+	case BVT_BE_UINT32:
+		value = read_u32be(data);
+		break;
+	case BVT_BE_UINT64:
+		value = read_u64be(data);
+		break;
+	case BVT_BE_FLOAT:
+		value = read_fltbe(data);
+		break;
+	case BVT_LE_UINT16:
+		value = read_u16le(data);
+		break;
+	case BVT_LE_UINT24:
+		value = read_u24le(data);
+		break;
+	case BVT_LE_UINT32:
+		value = read_u32le(data);
+		break;
+	case BVT_LE_UINT64:
+		value = read_u64le(data);
+		break;
+	case BVT_LE_FLOAT:
+		value = read_fltle(data);
+		break;
+	default:
+		return SR_ERR_ARG;
+	}
+
+	if (out)
+		*out = value;
+	return SR_OK;
+}
