@@ -41,11 +41,13 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
 	VALUE_TYPE(BVT_UINT8, read_u8, sizeof(uint8_t));
 
 	VALUE_TYPE(BVT_BE_UINT16, read_u16be, sizeof(uint16_t));
+	VALUE_TYPE(BVT_BE_UINT24, read_u24be, 3);
 	VALUE_TYPE(BVT_BE_UINT32, read_u32be, sizeof(uint32_t));
 	VALUE_TYPE(BVT_BE_UINT64, read_u64be, sizeof(uint64_t));
 	VALUE_TYPE(BVT_BE_FLOAT,  read_fltbe, sizeof(float));
 
 	VALUE_TYPE(BVT_LE_UINT16, read_u16le, sizeof(uint16_t));
+	VALUE_TYPE(BVT_LE_UINT24, read_u24le, 3);
 	VALUE_TYPE(BVT_LE_UINT32, read_u32le, sizeof(uint32_t));
 	VALUE_TYPE(BVT_LE_UINT64, read_u64le, sizeof(uint64_t));
 	VALUE_TYPE(BVT_LE_FLOAT,  read_fltle, sizeof(float));
