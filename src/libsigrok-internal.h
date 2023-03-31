@@ -2253,6 +2253,18 @@ struct binary_value_spec {
 SR_PRIV int bv_get_value_len(float *out, const struct binary_value_spec *spec,
 	const uint8_t *data, size_t length);
 
+/**
+ * Read extract a value from a binary data image, without bound check.
+ *
+ * @param[out] out Pointer to output buffer (conversion result)
+ * @param[in] spec Binary value specification
+ * @param[in] data Pointer to binary input data
+ *
+ * @return SR_OK on success, SR_ERR_* error code on failure.
+ */
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+	const uint8_t *data);
+
 /*--- crc.c -----------------------------------------------------------------*/
 
 #define SR_CRC16_DEFAULT_INIT 0xffffU
