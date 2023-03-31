@@ -2240,7 +2240,8 @@ struct binary_value_spec {
 };
 
 /**
- * Read extract a value from a binary data image.
+ * Read extract a value from a binary data image, ensuring no out-of-bounds
+ * read happens.
  *
  * @param[out] out Pointer to output buffer (conversion result)
  * @param[in] spec Binary value specification
@@ -2249,7 +2250,7 @@ struct binary_value_spec {
  *
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
-SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+SR_PRIV int bv_get_value_len(float *out, const struct binary_value_spec *spec,
 	const uint8_t *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/

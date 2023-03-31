@@ -265,7 +265,7 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 	std_session_send_df_frame_begin(sdi);
 	for (ch_idx = 0; ch_idx < devc->channel_count; ch_idx++) {
 		pch = &devc->channels[ch_idx];
-		ret = bv_get_value(&v, &pch->spec, poll_pkt, TC_POLL_LEN);
+		ret = bv_get_value_len(&v, &pch->spec, poll_pkt, TC_POLL_LEN);
 		if (ret != SR_OK)
 			break;
 		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
