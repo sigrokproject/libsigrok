@@ -2250,7 +2250,7 @@ struct binary_value_spec {
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
 SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
-	const void *data, size_t length);
+	const uint8_t *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/
 
