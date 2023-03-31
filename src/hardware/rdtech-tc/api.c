@@ -81,7 +81,7 @@ static GSList *rdtech_tc_scan(struct sr_dev_driver *di,
 	sdi->conn = serial;
 
 	devc->feeds = g_malloc0(devc->channel_count * sizeof(devc->feeds[0]));
-	for (i = 0; devc->channels[i].name; i++) {
+	for (i = 0; i < devc->channel_count; i++) {
 		pch = &devc->channels[i];
 		ch = sr_channel_new(sdi, i, SR_CHANNEL_ANALOG, TRUE, pch->name);
 		feed = feed_queue_analog_alloc(sdi, 1, pch->digits, ch);
