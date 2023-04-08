@@ -1029,24 +1029,30 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString *response;
-	gsize oldlen;
+	size_t prev_size;
 	char buf[10];
-	long llen;
-	long datalen;
+	unsigned long ul_value;
+	size_t digits_count, bytes_count;
 	gint64 timeout;
 
 	*scpi_response = NULL;
 
 	g_mutex_lock(&scpi->scpi_mutex);
 
+	/* Optionally send a caller provided command. */
 	if (command) {
-		if (scpi_send(scpi, command) != SR_OK) {
+		ret = scpi_send(scpi, command);
+		sr_dbg("SCPI get block, sent command, ret %d.", ret);
+		if (ret != SR_OK) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			return SR_ERR;
 		}
 	}
 
-	if (sr_scpi_read_begin(scpi) != SR_OK) {
+	/* Start reading a reponse message. */
+	ret = sr_scpi_read_begin(scpi);
+	sr_dbg("SCPI get block, read begin, ret %d.", ret);
+	if (ret != SR_OK) {
 		g_mutex_unlock(&scpi->scpi_mutex);
 		return SR_ERR;
 	}
@@ -1059,8 +1065,9 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	 */
 	response = g_string_sized_new(1024);
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-	do {
+	while (response->len < 2) {
 		ret = scpi_read_response(scpi, response, timeout);
+		sr_dbg("SCPI get block, initial read, ret %d.", ret);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
@@ -1068,18 +1075,43 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 		}
 		if (ret == 0 && scpi->read_pause_us)
 			g_usleep(scpi->read_pause_us);
-	} while (response->len < 2);
+	}
 
 	/*
+	 * Get the data block length, then strip off that length detail
+	 * from the input buffer, leaving just the data bytes which were
+	 * received so far. Then read more bytes when necessary.
+	 *
 	 * SCPI protocol data blocks are preceeded with a length spec.
 	 * The length spec consists of a '#' marker, one digit which
 	 * specifies the character count of the length spec, and the
 	 * respective number of characters which specify the data block's
 	 * length. Raw data bytes follow, thus one must no longer assume
-	 * that the received input stream would be an ASCII string.
+	 * that the received input stream would be an ASCII string, or
+	 * that CR or LF characters had a meaning within that block which
+	 * corresponds to message termination. Example:
+	 *   #210abcdefghij<LF>
 	 *
-	 * Get the data block length, and strip off the length spec from
-	 * the input buffer, leaving just the data bytes.
+	 * Zero length is legal but unsupported in this implementation.
+	 * It is referred to as "indefinite length block", the number of
+	 * bytes is unknown or is not communicated in advance. The end
+	 * of the bytes sequence depends on the physical transport's
+	 * end-of-message condition. Which is only reliably available
+	 * in those transports which communicate message length or end
+	 * out of band, separate from the response text or raw bytes.
+	 * The use of indefinite length blocks in firmware is considered
+	 * rare. Whether or not a trailing LF character must be seen as
+	 * part of the raw bytes sequence is yet to get determined. Emit
+	 * a warning for users' and developers' awareness when we see
+	 * this response format. Examples:
+	 *   #0bytes_of_unknown_length_with_uncertain_end_condition
+	 *   #10not_supported_either<LF><EOI>
+	 *
+	 * The SCPI 1999.0 specification (see page 220 and following in
+	 * the "HCOPy" description) references IEEE 488.2, especially
+	 * section 8.7.9 for DEFINITE LENGTH and section 8.7.10 for
+	 * INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE DATA. The latter
+	 * with a leading "#0" length and a trailing "NL^END" marker.
 	 */
 	if (response->str[0] != '#') {
 		g_mutex_unlock(&scpi->scpi_mutex);
@@ -1088,26 +1120,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	}
 	buf[0] = response->str[1];
 	buf[1] = '\0';
-	ret = sr_atol(buf, &llen);
-	/*
-	 * The form "#0..." is legal, and does not mean "empty response",
-	 * but means that the number of data bytes is not known (or was
-	 * not communicated) at this time. Instead the block ends at an
-	 * "END MESSAGE" termination sequence. Which translates to active
-	 * EOI while a text line termination is sent (CR or LF, and this
-	 * text line termination is not part of the block's data value).
-	 * Since this kind of #0... response is considered rare, and
-	 * depends on specific support in physical transports underneath
-	 * the SCPI layer, let's flag the condition and bail out with an
-	 * error here, until it's found to be a genuine issue in the field.
-	 *
-	 * The SCPI 1999.0 specification (see page 220 and following in
-	 * the "HCOPy" description) references IEEE 488.2, especially
-	 * section 8.7.9 for DEFINITE LENGTH and section 8.7.10 for
-	 * INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE DATA. The latter
-	 * with a leading "#0" length and a trailing "NL^END" marker.
-	 */
-	if (ret == SR_OK && !llen) {
+	ret = sr_atoul_base(buf, &ul_value, NULL, 10);
+	if (ret == SR_OK && !ul_value) {
 		sr_err("unsupported INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE");
 		ret = SR_ERR_NA;
 	}
@@ -1116,8 +1130,10 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 		g_string_free(response, TRUE);
 		return ret;
 	}
+	digits_count = ul_value;
 
-	while (response->len < (unsigned long)(2 + llen)) {
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	while (response->len < 2 + digits_count) {
 		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
@@ -1127,54 +1143,64 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 		if (ret == 0 && scpi->read_pause_us)
 			g_usleep(scpi->read_pause_us);
 	}
-
-	memcpy(buf, &response->str[2], llen);
-	buf[llen] = '\0';
-	ret = sr_atol(buf, &datalen);
-	if ((ret != SR_OK) || (datalen == 0)) {
+	memcpy(buf, &response->str[2], digits_count);
+	buf[digits_count] = '\0';
+	ret = sr_atoul_base(buf, &ul_value, NULL, 10);
+	if (ret == SR_OK && !ul_value) {
+		sr_err("unsupported INDEFINITE LENGTH ARBITRARY BLOCK RESPONSE");
+		ret = SR_ERR_NA;
+	}
+	if (ret != SR_OK) {
 		g_mutex_unlock(&scpi->scpi_mutex);
 		g_string_free(response, TRUE);
 		return ret;
 	}
-	g_string_erase(response, 0, 2 + llen);
+	bytes_count = ul_value;
+
+	sr_spew("SCPI get block, text %*s, digits %zu, number %zu.",
+		(int)(2 + digits_count), response->str,
+		digits_count, bytes_count);
+	sr_dbg("SCPI get block, bytes count %zu.", bytes_count);
+	g_string_erase(response, 0, 2 + digits_count);
 
 	/*
-	 * Re-allocate the buffer size to the now known length
-	 * and keep reading more chunks of response data.
+	 * Re-allocate the buffer size to the now known bytes count.
+	 * Keep reading more chunks of response data as necessary.
+	 *
+	 * Do not stall here for incomplete reads. Truncate the data
+	 * and return the partial response upon timeouts (bug 1323).
 	 */
-	oldlen = response->len;
-	g_string_set_size(response, datalen);
-	g_string_set_size(response, oldlen);
-
-	if (oldlen < (unsigned long)(datalen)) {
-		do {
-			oldlen = response->len;
-			ret = scpi_read_response(scpi, response, timeout);
-
-			/* On timeout truncate the buffer and send the partial response
-			 * instead of getting stuck on timeouts...
-			 */
-			if (ret == SR_ERR_TIMEOUT) {
-				datalen = oldlen;
-				break;
-			}
-			if (ret < 0) {
-				g_mutex_unlock(&scpi->scpi_mutex);
-				g_string_free(response, TRUE);
-				return ret;
-			}
-			if (ret == 0 && scpi->read_pause_us)
-				g_usleep(scpi->read_pause_us);
-			if (ret > 0)
-				timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-		} while (response->len < (unsigned long)(datalen));
+	prev_size = response->len;
+	g_string_set_size(response, bytes_count);
+	g_string_set_size(response, prev_size);
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	while (response->len < bytes_count) {
+		prev_size = response->len;
+		ret = scpi_read_response(scpi, response, timeout);
+		sr_dbg("SCPI get block, read block, ret %d.", ret);
+		if (ret == SR_ERR_TIMEOUT) {
+			sr_dbg("SCPI get block, timeout, had %zu, cap to %zu..",
+				response->len, prev_size);
+			bytes_count = prev_size;
+			break;
+		}
+		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
+			g_string_free(response, TRUE);
+			return ret;
+		}
+		if (ret == 0 && scpi->read_pause_us)
+			g_usleep(scpi->read_pause_us);
+		if (ret > 0)
+			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	}
 
 	g_mutex_unlock(&scpi->scpi_mutex);
 
 	/* Convert received data to byte array. */
 	*scpi_response = g_byte_array_new_take(
-		(guint8*)g_string_free(response, FALSE), datalen);
+		(guint8 *)g_string_free(response, FALSE), bytes_count);
+	sr_dbg("SCPI get block, got block, return bytes %zu.", bytes_count);
 
 	return SR_OK;
 }
