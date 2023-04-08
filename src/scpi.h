@@ -112,7 +112,7 @@ struct sr_scpi_dev_inst {
 	/* Only used for quirk workarounds, notably the Rigol DS1000 series. */
 	uint64_t firmware_version;
 	GMutex scpi_mutex;
-	char *actual_channel_name;
+	char *curr_channel_name;
 	gboolean no_opc_command;
 };
 

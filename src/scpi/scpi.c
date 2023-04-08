@@ -605,7 +605,7 @@ SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi)
 
 	scpi->free(scpi->priv);
 	g_free(scpi->priv);
-	g_free(scpi->actual_channel_name);
+	g_free(scpi->curr_channel_name);
 	g_free(scpi);
 }
 
@@ -1316,10 +1316,10 @@ SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
 	/* Select channel. */
 	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
 	if (channel_cmd && channel_name &&
-			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+			g_strcmp0(channel_name, scpi->curr_channel_name)) {
 		sr_spew("sr_scpi_cmd(): new channel = %s", channel_name);
-		g_free(scpi->actual_channel_name);
-		scpi->actual_channel_name = g_strdup(channel_name);
+		g_free(scpi->curr_channel_name);
+		scpi->curr_channel_name = g_strdup(channel_name);
 		ret = scpi_send(scpi, channel_cmd, channel_name);
 		if (ret != SR_OK)
 			return ret;
@@ -1361,10 +1361,10 @@ SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
 	/* Select channel. */
 	channel_cmd = sr_scpi_cmd_get(cmdtable, channel_command);
 	if (channel_cmd && channel_name &&
-			g_strcmp0(channel_name, scpi->actual_channel_name)) {
+			g_strcmp0(channel_name, scpi->curr_channel_name)) {
 		sr_spew("sr_scpi_cmd_get(): new channel = %s", channel_name);
-		g_free(scpi->actual_channel_name);
-		scpi->actual_channel_name = g_strdup(channel_name);
+		g_free(scpi->curr_channel_name);
+		scpi->curr_channel_name = g_strdup(channel_name);
 		ret = scpi_send(scpi, channel_cmd, channel_name);
 		if (ret != SR_OK)
 			return ret;
