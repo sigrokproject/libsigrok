@@ -117,21 +117,21 @@ struct sr_scpi_dev_inst {
 };
 
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
-		struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi));
+	struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi));
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
-		const char *resource, const char *serialcomm);
+	const char *resource, const char *serialcomm);
 SR_PRIV int sr_scpi_open(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_connection_id(struct sr_scpi_dev_inst *scpi,
-		char **connection_id);
+	char **connection_id);
 SR_PRIV int sr_scpi_source_add(struct sr_session *session,
-		struct sr_scpi_dev_inst *scpi, int events, int timeout,
-		sr_receive_data_callback cb, void *cb_data);
+	struct sr_scpi_dev_inst *scpi, int events, int timeout,
+	sr_receive_data_callback cb, void *cb_data);
 SR_PRIV int sr_scpi_source_remove(struct sr_session *session,
-		struct sr_scpi_dev_inst *scpi);
+	struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_send(struct sr_scpi_dev_inst *scpi,
-		const char *format, ...);
+	const char *format, ...);
 SR_PRIV int sr_scpi_send_variadic(struct sr_scpi_dev_inst *scpi,
-		const char *format, va_list args);
+	const char *format, va_list args);
 SR_PRIV int sr_scpi_read_begin(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_read_data(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen);
 SR_PRIV int sr_scpi_write_data(struct sr_scpi_dev_inst *scpi, char *buf, int len);
@@ -140,43 +140,43 @@ SR_PRIV int sr_scpi_close(struct sr_scpi_dev_inst *scpi);
 SR_PRIV void sr_scpi_free(struct sr_scpi_dev_inst *scpi);
 
 SR_PRIV int sr_scpi_read_response(struct sr_scpi_dev_inst *scpi,
-			GString *response, gint64 abs_timeout_us);
+	GString *response, gint64 abs_timeout_us);
 SR_PRIV int sr_scpi_get_string(struct sr_scpi_dev_inst *scpi,
-			const char *command, char **scpi_response);
+	const char *command, char **scpi_response);
 SR_PRIV int sr_scpi_get_bool(struct sr_scpi_dev_inst *scpi,
-			const char *command, gboolean *scpi_response);
+	const char *command, gboolean *scpi_response);
 SR_PRIV int sr_scpi_get_int(struct sr_scpi_dev_inst *scpi,
-			const char *command, int *scpi_response);
+	const char *command, int *scpi_response);
 SR_PRIV int sr_scpi_get_float(struct sr_scpi_dev_inst *scpi,
-			const char *command, float *scpi_response);
+	const char *command, float *scpi_response);
 SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
-			const char *command, double *scpi_response);
+	const char *command, double *scpi_response);
 SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi);
 SR_PRIV int sr_scpi_get_floatv(struct sr_scpi_dev_inst *scpi,
-			const char *command, GArray **scpi_response);
+	const char *command, GArray **scpi_response);
 SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
-			const char *command, GArray **scpi_response);
+	const char *command, GArray **scpi_response);
 SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
-			const char *command, GString **scpi_response);
+	const char *command, GString **scpi_response);
 SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
-			const char *command, GByteArray **scpi_response);
+	const char *command, GByteArray **scpi_response);
 SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
-			struct sr_scpi_hw_info **scpi_response);
+	struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
 
 SR_PRIV const char *sr_scpi_unquote_string(char *s);
 
 SR_PRIV const char *sr_vendor_alias(const char *raw_vendor);
 SR_PRIV const char *sr_scpi_cmd_get(const struct scpi_command *cmdtable,
-		int command);
+	int command);
 SR_PRIV int sr_scpi_cmd(const struct sr_dev_inst *sdi,
-		const struct scpi_command *cmdtable,
-		int channel_command, const char *channel_name,
-		int command, ...);
+	const struct scpi_command *cmdtable,
+	int channel_command, const char *channel_name,
+	int command, ...);
 SR_PRIV int sr_scpi_cmd_resp(const struct sr_dev_inst *sdi,
-		const struct scpi_command *cmdtable,
-		int channel_command, const char *channel_name,
-		GVariant **gvar, const GVariantType *gvtype, int command, ...);
+	const struct scpi_command *cmdtable,
+	int channel_command, const char *channel_name,
+	GVariant **gvar, const GVariantType *gvtype, int command, ...);
 
 /*--- GPIB only functions ---------------------------------------------------*/
 
