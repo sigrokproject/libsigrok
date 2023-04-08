@@ -1034,6 +1034,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	unsigned long ul_value;
 	size_t digits_count, bytes_count;
 	gint64 timeout;
+	size_t trail_count;
 
 	*scpi_response = NULL;
 
@@ -1164,14 +1165,15 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	g_string_erase(response, 0, 2 + digits_count);
 
 	/*
-	 * Re-allocate the buffer size to the now known bytes count.
+	 * Re-allocate the buffer size to the now known bytes count
+	 * (and include some more space for response termination).
 	 * Keep reading more chunks of response data as necessary.
 	 *
 	 * Do not stall here for incomplete reads. Truncate the data
 	 * and return the partial response upon timeouts (bug 1323).
 	 */
 	prev_size = response->len;
-	g_string_set_size(response, bytes_count);
+	g_string_set_size(response, bytes_count + 16);
 	g_string_set_size(response, prev_size);
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	while (response->len < bytes_count) {
@@ -1193,6 +1195,29 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 			g_usleep(scpi->read_pause_us);
 		if (ret > 0)
 			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	}
+
+	/*
+	 * Depending on underlying physical transports the data block
+	 * could be followed by more data which signals end-of-message.
+	 * Keep reading until the transport detects the response's
+	 * completion. Tell transports that binary mode has ended.
+	 */
+	trail_count = response->len - bytes_count;
+	sr_dbg("SCPI get block, block ends, trail length %zu.", trail_count);
+	sr_scpi_block_ends(scpi, &response->str[bytes_count], trail_count);
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	while (!sr_scpi_read_complete(scpi)) {
+		scpi_make_string_space(response, 4, 16);
+		ret = scpi_read_response(scpi, response, timeout);
+		sr_dbg("SCPI get block, read end-of-message, ret %d.", ret);
+		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
+			g_string_free(response, TRUE);
+			return ret;
+		}
+		if (ret == 0 && scpi->read_pause_us)
+			g_usleep(scpi->read_pause_us);
 	}
 
 	g_mutex_unlock(&scpi->scpi_mutex);
