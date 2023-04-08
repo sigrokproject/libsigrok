@@ -1008,10 +1008,14 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 
 /**
  * Send a SCPI command, read the reply, parse it as binary data with a
- * "definite length block" header and store the as an result in scpi_response.
+ * "definite length block" header and store the result in scpi_response.
  *
  * Callers must free the allocated memory (unless it's NULL) regardless of
  * the routine's return code. See @ref g_byte_array_free().
+ *
+ * The "indefinite length block" is not supported by this implementation.
+ * Because not all supported physical transports signal the end-of-message
+ * condition out of band.
  *
  * @param[in] scpi Previously initialised SCPI device structure.
  * @param[in] command The SCPI command to send to the device (can be NULL).
@@ -1024,7 +1028,7 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	const char *command, GByteArray **scpi_response)
 {
 	int ret;
-	GString* response;
+	GString *response;
 	gsize oldlen;
 	char buf[10];
 	long llen;
@@ -1035,11 +1039,12 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 
 	g_mutex_lock(&scpi->scpi_mutex);
 
-	if (command)
+	if (command) {
 		if (scpi_send(scpi, command) != SR_OK) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			return SR_ERR;
 		}
+	}
 
 	if (sr_scpi_read_begin(scpi) != SR_OK) {
 		g_mutex_unlock(&scpi->scpi_mutex);
@@ -1047,14 +1052,13 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	}
 
 	/*
-	 * Assume an initial maximum length, optionally gets adjusted below.
-	 * Prepare a NULL return value for when error paths will be taken.
+	 * Get (the first chunk of) the response.
+	 *
+	 * Start with an arbitrary initial buffer size. Which gets
+	 * extended as subsequent reads require more buffer space.
 	 */
 	response = g_string_sized_new(1024);
-
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-
-	/* Get (the first chunk of) the response. */
 	do {
 		ret = scpi_read_response(scpi, response, timeout);
 		if (ret < 0) {
@@ -1071,8 +1075,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	 * The length spec consists of a '#' marker, one digit which
 	 * specifies the character count of the length spec, and the
 	 * respective number of characters which specify the data block's
-	 * length. Raw data bytes follow (thus one must no longer assume
-	 * that the received input stream would be an ASCIIZ string).
+	 * length. Raw data bytes follow, thus one must no longer assume
+	 * that the received input stream would be an ASCII string.
 	 *
 	 * Get the data block length, and strip off the length spec from
 	 * the input buffer, leaving just the data bytes.
