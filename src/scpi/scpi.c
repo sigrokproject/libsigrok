@@ -581,6 +581,29 @@ SR_PRIV int sr_scpi_write_data(struct sr_scpi_dev_inst *scpi,
 }
 
 /**
+ * Re-check whether remaining payload data contains "end of message".
+ *
+ * This executes after a binary block has completed, and is passed
+ * the remaining previously accumulated receive data. It is only
+ * important to those physical transports where "end of message" is
+ * communicated by means of payload data, not in handshake signals
+ * that are outside of payload bytes.
+ *
+ * @param scpi Previously initialized SCPI device structure.
+ * @param buf Buffer position after binary block.
+ * @param len Number of bytes that were received after the block.
+ *
+ * @return zero upon success, non-zero upon failure.
+ */
+SR_PRIV int sr_scpi_block_ends(struct sr_scpi_dev_inst *scpi,
+	char *buf, size_t len)
+{
+	if (scpi->block_ends)
+		return scpi->block_ends(scpi->priv, buf, len);
+	return SR_OK;
+}
+
+/**
  * Check whether a complete SCPI response has been received.
  *
  * @param scpi Previously initialised SCPI device structure.
