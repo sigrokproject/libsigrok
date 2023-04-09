@@ -261,9 +261,9 @@ static int scpi_read_response(struct sr_scpi_dev_inst *scpi,
  * Send a SCPI command, receive the reply and store the reply in
  * scpi_response, without mutex.
  *
- * @param scpi Previously initialised SCPI device structure.
- * @param command The SCPI command to send to the device.
- * @param scpi_response Pointer where to store the SCPI response.
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device.
+ * @param[out] scpi_response Pointer where to store the SCPI response.
  *
  * @return SR_OK on success, SR_ERR on failure.
  */
@@ -272,7 +272,7 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString *response;
-	int space;
+	size_t space;
 	gint64 timeout;
 
 	/* Optionally send caller provided command. */
@@ -286,22 +286,19 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 		return SR_ERR;
 
 	/* Keep reading until completion or until timeout. */
-	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
-
 	response = *scpi_response;
-
+	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	while (!sr_scpi_read_complete(scpi)) {
 		/* Resize the buffer when free space drops below a threshold. */
 		space = response->allocated_len - response->len;
 		if (space < 128) {
-			int oldlen = response->len;
+			size_t oldlen = response->len;
 			g_string_set_size(response, oldlen + 1024);
 			g_string_set_size(response, oldlen);
 		}
 
 		/* Read another chunk of the response. */
 		ret = scpi_read_response(scpi, response, timeout);
-
 		if (ret < 0)
 			return ret;
 		if (ret > 0)
