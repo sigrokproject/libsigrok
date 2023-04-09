@@ -366,31 +366,33 @@ SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 	const char *resource, const char *serialcomm)
 {
-	struct sr_scpi_dev_inst *scpi = NULL;
+	size_t i;
 	const struct sr_scpi_dev_inst *scpi_dev;
+	struct sr_scpi_dev_inst *scpi;
 	gchar **params;
-	unsigned i;
+	int ret;
 
 	for (i = 0; i < ARRAY_SIZE(scpi_devs); i++) {
 		scpi_dev = scpi_devs[i];
-		if (!strncmp(resource, scpi_dev->prefix, strlen(scpi_dev->prefix))) {
-			sr_dbg("Opening %s device %s.", scpi_dev->name, resource);
-			scpi = g_malloc(sizeof(*scpi));
-			*scpi = *scpi_dev;
-			scpi->priv = g_malloc0(scpi->priv_size);
-			scpi->read_timeout_us = 1000 * 1000;
-			params = g_strsplit(resource, "/", 0);
-			if (scpi->dev_inst_new(scpi->priv, drvc, resource,
-			                       params, serialcomm) != SR_OK) {
-				sr_scpi_free(scpi);
-				scpi = NULL;
-			}
-			g_strfreev(params);
-			break;
+		if (strncmp(resource, scpi_dev->prefix, strlen(scpi_dev->prefix)) != 0)
+			continue;
+		sr_dbg("Opening %s device %s.", scpi_dev->name, resource);
+		scpi = g_malloc0(sizeof(*scpi));
+		*scpi = *scpi_dev;
+		scpi->priv = g_malloc0(scpi->priv_size);
+		scpi->read_timeout_us = 1000 * 1000;
+		params = g_strsplit(resource, "/", 0);
+		ret = scpi->dev_inst_new(scpi->priv, drvc,
+			resource, params, serialcomm);
+		g_strfreev(params);
+		if (ret != SR_OK) {
+			sr_scpi_free(scpi);
+			scpi = NULL;
 		}
+		return scpi;
 	}
 
-	return scpi;
+	return NULL;
 }
 
 /**
