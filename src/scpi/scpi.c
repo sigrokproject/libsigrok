@@ -306,6 +306,8 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 			return ret;
 		if (ret > 0)
 			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		if (ret == 0 && scpi->read_pause_us)
+			g_usleep(scpi->read_pause_us);
 	}
 
 	return SR_OK;
@@ -381,6 +383,7 @@ SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
 		*scpi = *scpi_dev;
 		scpi->priv = g_malloc0(scpi->priv_size);
 		scpi->read_timeout_us = 1000 * 1000;
+		scpi->read_pause_us = 0;
 		params = g_strsplit(resource, "/", 0);
 		ret = scpi->dev_inst_new(scpi->priv, drvc,
 			resource, params, serialcomm);
@@ -1022,6 +1025,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 			g_string_free(response, TRUE);
 			return ret;
 		}
+		if (ret == 0 && scpi->read_pause_us)
+			g_usleep(scpi->read_pause_us);
 	} while (response->len < 2);
 
 	/*
@@ -1078,6 +1083,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 			g_string_free(response, TRUE);
 			return ret;
 		}
+		if (ret == 0 && scpi->read_pause_us)
+			g_usleep(scpi->read_pause_us);
 	}
 
 	memcpy(buf, &response->str[2], llen);
@@ -1115,6 +1122,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 				g_string_free(response, TRUE);
 				return ret;
 			}
+			if (ret == 0 && scpi->read_pause_us)
+				g_usleep(scpi->read_pause_us);
 			if (ret > 0)
 				timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 		} while (response->len < (unsigned long)(datalen));
