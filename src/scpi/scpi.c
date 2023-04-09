@@ -27,8 +27,8 @@
 
 #define LOG_PREFIX "scpi"
 
-#define SCPI_READ_RETRIES 100
-#define SCPI_READ_RETRY_TIMEOUT_US (10 * 1000)
+#define SCPI_OPC_RETRY_COUNT	100
+#define SCPI_OPC_RETRY_DELAY_US	(10 * 1000)
 
 static const char *scpi_vendors[][2] = {
 	{ "Agilent Technologies", "Agilent" },
@@ -828,15 +828,18 @@ SR_PRIV int sr_scpi_get_double(struct sr_scpi_dev_inst *scpi,
  */
 SR_PRIV int sr_scpi_get_opc(struct sr_scpi_dev_inst *scpi)
 {
-	unsigned int i;
+	unsigned int retries;
 	gboolean opc;
+	int ret;
 
-	for (i = 0; i < SCPI_READ_RETRIES; i++) {
+	retries = SCPI_OPC_RETRY_COUNT;
+	while (retries--) {
 		opc = FALSE;
-		sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
-		if (opc)
+		ret = sr_scpi_get_bool(scpi, SCPI_CMD_OPC, &opc);
+		if (ret == SR_OK && opc)
 			return SR_OK;
-		g_usleep(SCPI_READ_RETRY_TIMEOUT_US);
+		if (retries)
+			g_usleep(SCPI_OPC_RETRY_DELAY_US);
 	}
 
 	return SR_ERR;
