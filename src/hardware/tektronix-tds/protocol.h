@@ -161,6 +161,7 @@ struct dev_context {
 	/* Core information */
 	struct sr_channel_group **analog_groups;
 	const struct device_spec *model;
+	GRecMutex mutex;
 
 	/* Current & configured channel settings */
 	gboolean analog_channels[MAX_ANALOG_CHANNELS];

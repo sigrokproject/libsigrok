@@ -363,6 +363,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sdi->inst_type = SR_INST_SCPI;
 
 	devc = g_malloc0(sizeof(*devc));
+	g_rec_mutex_init(&devc->mutex);
 	devc->model = device;
 	sdi->priv = devc;
 
@@ -426,6 +427,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
+
+	devc = (sdi) ? sdi->priv : NULL;
+	if (devc) {
+		g_rec_mutex_clear(&devc->mutex);
+		g_free(devc->buffer);
+	}
+
 	return sr_scpi_close(sdi->conn);
 }
 
@@ -875,6 +884,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	}
 	if (!devc->enabled_channels)
 		return SR_ERR;
+	
+	g_rec_mutex_lock(&devc->mutex);
 
 	// Set view to main, but don't check the status as TBS1000B doesn't
 	// support this command. This ensures the timebase is correct
@@ -901,8 +912,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	devc->channel_entry = devc->enabled_channels;
 
-	if (tektronix_tds_capture_start(sdi) != SR_OK)
+	if (tektronix_tds_capture_start(sdi) != SR_OK) {
+		g_rec_mutex_unlock(&devc->mutex);
 		return SR_ERR;
+	}
 
 	/* Start of first frame. */
 	std_session_send_df_frame_begin(sdi);

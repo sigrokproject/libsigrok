@@ -69,13 +69,17 @@ SR_PRIV int tektronix_tds_capture_finish(const struct sr_dev_inst *sdi)
 	if (devc->capture_mode == CAPTURE_LIVE ||
 		devc->capture_mode == CAPTURE_DISPLAY) {
 		if (tektronix_tds_config_set(sdi, "ACQ:stopa runstop") != SR_OK)
-			return SR_ERR;
+			goto err;
 
 		if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") != SR_OK)
-			return SR_ERR;
+			goto err;
 	}
 
+	g_rec_mutex_unlock(&devc->mutex);
 	return SR_OK;
+err:
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_ERR;
 }
 
 SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
@@ -631,10 +635,17 @@ SR_PRIV int tektronix_tds_config_set(
 {
 	va_list args;
 	int ret;
+	struct dev_context *devc;
+
+	devc = sdi->priv;
+
+	g_rec_mutex_lock(&devc->mutex);
 
 	va_start(args, format);
 	ret = sr_scpi_send_variadic(sdi->conn, format, args);
 	va_end(args);
+
+	g_rec_mutex_unlock(&devc->mutex);
 
 	return ret;
 }
@@ -647,6 +658,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
 	int res;
 
 	devc = sdi->priv;
+	g_rec_mutex_lock(&devc->mutex);
 
 	/* Vertical gain. */
 	for (i = 0; i < devc->model->channels; i++) {
@@ -654,7 +666,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
 		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vdiv[i]);
 		g_free(cmd);
 		if (res != SR_OK)
-			return SR_ERR;
+			goto err;
 	}
 	sr_dbg("Current vertical gain:");
 	for (i = 0; i < devc->model->channels; i++)
@@ -666,13 +678,17 @@ SR_PRIV int tektronix_tds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
 		res = sr_scpi_get_float(sdi->conn, cmd, &devc->vert_offset[i]);
 		g_free(cmd);
 		if (res != SR_OK)
-			return SR_ERR;
+			goto err;
 	}
 	sr_dbg("Current vertical offset:");
 	for (i = 0; i < devc->model->channels; i++)
 		sr_dbg("CH%d %g", i + 1, devc->vert_offset[i]);
 
+	g_rec_mutex_unlock(&devc->mutex);
 	return SR_OK;
+err:
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_ERR;
 }
 
 SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
@@ -684,6 +700,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	int res;
 
 	devc = sdi->priv;
+	g_rec_mutex_lock(&devc->mutex);
 
 	/* Analog channel state. */
 	for (i = 0; i < devc->model->channels; i++) {
@@ -691,7 +708,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		res = sr_scpi_get_bool(sdi->conn, cmd, &devc->analog_channels[i]);
 		g_free(cmd);
 		if (res != SR_OK)
-			return SR_ERR;
+			goto err;
 		ch = g_slist_nth_data(sdi->channels, i);
 		ch->enabled = devc->analog_channels[i];
 	}
@@ -705,7 +722,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		res = sr_scpi_get_float(sdi->conn, cmd, &devc->attenuation[i]);
 		g_free(cmd);
 		if (res != SR_OK)
-			return SR_ERR;
+			goto err;
 	}
 	sr_dbg("Current probe attenuation:");
 	for (i = 0; i < devc->model->channels; i++)
@@ -713,10 +730,10 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 
 	/* Vertical gain and offset. */
 	if (tektronix_tds_get_dev_cfg_vertical(sdi) != SR_OK)
-		return SR_ERR;
+		goto err;
 
 	if (tektronix_tds_get_dev_cfg_horizontal(sdi) != SR_OK)
-		return SR_ERR;
+		goto err;
 
 	/* Coupling. */
 	for (i = 0; i < devc->model->channels; i++) {
@@ -726,7 +743,7 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 		res = sr_scpi_get_string(sdi->conn, cmd, &devc->coupling[i]);
 		g_free(cmd);
 		if (res != SR_OK)
-			return SR_ERR;
+			goto err;
 	}
 
 	sr_dbg("Current coupling:");
@@ -739,13 +756,13 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	g_free(devc->trigger_source);
 	if (sr_scpi_get_string(sdi->conn, "TRIG:MAI:edge:sou?",
 		    &devc->trigger_source) != SR_OK)
-		return SR_ERR;
+		goto err;
 	sr_dbg("Current trigger source: %s.", devc->trigger_source);
 
 	/* Horizontal trigger position. */
 	if (sr_scpi_get_float(sdi->conn, "hor:pos?", &devc->horiz_triggerpos) !=
 		SR_OK)
-		return SR_ERR;
+		goto err;
 
 	// triggerpos is in timeunits, convert back to percentage
 	devc->horiz_triggerpos =
@@ -760,29 +777,33 @@ SR_PRIV int tektronix_tds_get_dev_cfg(const struct sr_dev_inst *sdi)
 	res = sr_scpi_get_string(
 		sdi->conn, "trig:mai:edge:slope?", &devc->trigger_slope);
 	if (res != SR_OK)
-		return SR_ERR;
+		goto err;
 	sr_dbg("Current trigger slope: %s.", devc->trigger_slope);
 
 	/* Trigger level. */
 	res = sr_scpi_get_float(sdi->conn, "trig:mai:lev?", &devc->trigger_level);
 	if (res != SR_OK)
-		return SR_ERR;
+		goto err;
 	sr_dbg("Current trigger level: %g.", devc->trigger_level);
 
 	/* Averaging/peak detection */
 	response = NULL;
 	if (sr_scpi_get_string(sdi->conn, "acq:mod?", &response) != SR_OK)
-		return SR_ERR;
+		goto err;
 	devc->average_enabled = g_ascii_strncasecmp(response, "average", 3) == 0;
 	devc->peak_enabled = g_ascii_strncasecmp(response, "peak", 3) == 0;
 	sr_dbg("Acquisition mode: %s.", response);
 	g_free(response);
 
 	if (sr_scpi_get_int(sdi->conn, "acq:numav?", &devc->average_samples) != SR_OK)
-		return SR_ERR;
+		goto err;
 	sr_dbg("Averaging samples: %i.", devc->average_samples);
 
+	g_rec_mutex_unlock(&devc->mutex);
 	return SR_OK;
+err:
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_ERR;
 }
 
 SR_PRIV int tektronix_tds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
@@ -792,20 +813,21 @@ SR_PRIV int tektronix_tds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 	int memory_depth;
 
 	devc = sdi->priv;
+	g_rec_mutex_lock(&devc->mutex);
 
 	/* Get the timebase. */
 	if (sr_scpi_get_float(sdi->conn, "hor:sca?", &devc->timebase) != SR_OK)
-		return SR_ERR;
+		goto err;
 	sr_dbg("Current timebase: %g.", devc->timebase);
 
 	/* Get the record size. A sanity check as it should be 2500 */
 	if (sr_scpi_get_int(sdi->conn, "hor:reco?", &memory_depth) != SR_OK)
-		return SR_ERR;
+		goto err;
 
 	if (memory_depth != TEK_BUFFER_SIZE) {
 		sr_err("A Tek 2k5 device should have that much memory. Expecting: 2500 bytes, found %d bytes",
 			memory_depth);
-		return SR_ERR;
+		goto err;
 	}
 
 	fvalue = TEK_BUFFER_SIZE / (devc->timebase * (float)TEK_NUM_HDIV);
@@ -817,5 +839,9 @@ SR_PRIV int tektronix_tds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 
 	// TODO: peak detect mode is half of this
 	sr_dbg("Current memory depth: %d.", TEK_BUFFER_SIZE);
+	g_rec_mutex_unlock(&devc->mutex);
 	return SR_OK;
+err:
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_ERR;
 }
