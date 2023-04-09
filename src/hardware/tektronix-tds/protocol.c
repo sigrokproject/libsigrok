@@ -187,7 +187,7 @@ SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
 			g_array_append_val(float_data, voltage);
 		}
 		vdivlog = log10f(vdiv);
-		digits = -(int)vdivlog + (vdivlog < 0.0);
+		digits = -(int)vdivlog + (vdivlog < 0.0) + 3 /* 8-bit resolution*/ - 1;
 		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 		analog.meaning->channels = g_slist_append(NULL, ch);
 		analog.num_samples = float_data->len;

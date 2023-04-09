@@ -469,6 +469,9 @@ static int config_get(uint32_t key, GVariant **data,
 	case SR_CONF_NUM_VDIV:
 		*data = g_variant_new_int32(TEK_NUM_VDIV);
 		break;
+	case SR_CONF_BUFFERSIZE:
+		*data = g_variant_new_uint64(TEK_BUFFER_SIZE);
+		break;
 	case SR_CONF_LIMIT_FRAMES:
 		*data = g_variant_new_uint64(devc->limit_frames);
 		break;
