@@ -52,303 +52,6 @@ static const struct tek_enum_parser parse_table_yunits[] = {{YU_UNKNOWN, "U"},
 
 #define TEK_PRE_HEADER_FIELDS 16
 
-static int tektronix_tds_read_header(struct sr_dev_inst *sdi);
-
-/* Revert all settings, if requested. */
-SR_PRIV int tektronix_tds_capture_finish(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	if (!(devc = sdi->priv))
-		return SR_ERR;
-
-	devc->acquire_status = WAIT_DONE;
-
-	sr_dbg("Setting exiting setttings back");
-
-	if (devc->capture_mode == CAPTURE_LIVE ||
-		devc->capture_mode == CAPTURE_DISPLAY) {
-		if (tektronix_tds_config_set(sdi, "ACQ:stopa runstop") != SR_OK)
-			goto err;
-
-		if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") != SR_OK)
-			goto err;
-	}
-
-	g_rec_mutex_unlock(&devc->mutex);
-	return SR_OK;
-err:
-	g_rec_mutex_unlock(&devc->mutex);
-	return SR_ERR;
-}
-
-SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
-{
-	struct sr_dev_inst *sdi;
-	struct dev_context *devc;
-
-	struct sr_scpi_dev_inst *scpi;
-	struct sr_datafeed_packet packet;
-	struct sr_datafeed_analog analog;
-	struct sr_analog_encoding encoding;
-	struct sr_analog_meaning meaning;
-	struct sr_analog_spec spec;
-	struct sr_channel *ch;
-	int len, i;
-
-	(void)fd;
-
-	sdi = cb_data;
-	if (!sdi)
-		return TRUE;
-
-	devc = sdi->priv;
-	if (!devc)
-		return TRUE;
-	scpi = sdi->conn;
-	ch = devc->channel_entry->data;
-
-	if (revents == G_IO_IN || TRUE) { // this is always 0 for some reason
-
-		// no data yet
-		sr_dbg("Waiting for data...");
-		if (sr_scpi_read_begin(scpi) != SR_OK)
-			return TRUE;
-
-		sr_dbg("New block with header expected.");
-		len = tektronix_tds_read_header(sdi);
-		if (len == 0)
-			/* Still reading the header. */
-			return TRUE;
-
-		if (len == -1) {
-			sr_err("Read error, aborting capture.");
-			std_session_send_df_frame_end(sdi);
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-
-		devc->acquire_status = WAIT_DONE;
-
-		// streaming data back is pretty fast, at least once the scope
-		// eventually starts sending it our way
-		devc->num_block_read = 0;
-
-		sr_dbg("Requesting block: %d bytes.", TEK_BUFFER_SIZE + 1);
-		len = sr_scpi_read_data(
-			scpi, (char *)devc->buffer, TEK_BUFFER_SIZE + 1);
-		if (len == -1) {
-			sr_err("Read error, aborting capture.");
-			std_session_send_df_frame_end(sdi);
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-		sr_dbg("Received block: %d bytes.", len);
-		devc->num_block_read = len;
-
-		// ensure the terminating newline is read
-		while (devc->num_block_read < TEK_BUFFER_SIZE + 1) {
-			sr_dbg("Requesting: %d bytes.",
-				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
-			len = sr_scpi_read_data(scpi,
-				(char *)devc->buffer + devc->num_block_read,
-				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
-			if (len == -1) {
-				sr_err("Read error, aborting capture.");
-				std_session_send_df_frame_end(sdi);
-				sdi->driver->dev_acquisition_stop(sdi);
-				return TRUE;
-			}
-			sr_dbg("Received block: %d bytes.", len);
-			devc->num_block_read += len;
-		}
-		sr_dbg("Transfer has been completed.");
-		if (!sr_scpi_read_complete(scpi)) {
-			sr_err("Read should have been completed.");
-			std_session_send_df_frame_end(sdi);
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-
-		// We have received the entire 2.5k buffer now, so process it,
-		// ignoring the trailing \n
-		len = TEK_BUFFER_SIZE;
-
-		float vdiv = devc->vdiv[ch->index];
-		GArray *float_data;
-		static GArray *data;
-		float voltage, vdivlog;
-		int digits;
-
-		data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
-		g_array_append_vals(data, devc->buffer, len);
-		float_data = g_array_new(FALSE, FALSE, sizeof(float));
-		for (i = 0; i < len; i++) {
-			voltage = (float)g_array_index(data, int8_t, i) -
-				devc->wavepre.y_off;
-			voltage = ((devc->wavepre.y_mult * voltage) +
-				devc->wavepre.y_zero);
-			g_array_append_val(float_data, voltage);
-		}
-		vdivlog = log10f(vdiv);
-		digits = -(int)vdivlog + (vdivlog < 0.0) + 3 /* 8-bit resolution*/ - 1;
-		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
-		analog.meaning->channels = g_slist_append(NULL, ch);
-		analog.num_samples = float_data->len;
-		analog.data = ((float *)float_data->data);
-		if (devc->wavepre.y_unit == YU_VOLTS) {
-			analog.meaning->mq = SR_MQ_VOLTAGE;
-			analog.meaning->unit = SR_UNIT_VOLT;
-		} else if (devc->wavepre.y_unit == YU_AMPS) {
-			analog.meaning->mq = SR_MQ_CURRENT;
-			analog.meaning->unit = SR_UNIT_AMPERE;
-		} else if (devc->wavepre.y_unit == YU_DECIBELS) {
-			analog.meaning->mq = SR_MQ_POWER;
-			analog.meaning->unit = SR_UNIT_DECIBEL_MW;
-		} else {
-			analog.meaning->mq = 0;
-			analog.meaning->unit = SR_UNIT_UNITLESS;
-		}
-		analog.meaning->mqflags = 0;
-		packet.type = SR_DF_ANALOG;
-		packet.payload = &analog;
-		sr_dbg("Computing using trigger point %.6f", devc->horiz_triggerpos);
-		// only the first packet provides trigger information, all others
-		// are "after" the correct timebase
-		if (devc->channel_entry != devc->enabled_channels) {
-			sr_session_send(sdi, &packet);
-		} else if (devc->horiz_triggerpos > 0) {
-			// This will round to (potentially) twice the expected margin 
-			// on-device (% -> s -> %) vs our expectation (%)
-			analog.num_samples = float_data->len * devc->horiz_triggerpos;
-			sr_dbg("First batch has %d", analog.num_samples);
-			sr_session_send(sdi, &packet);
-			std_session_send_df_trigger(sdi);
-			if (devc->horiz_triggerpos < 1) {
-				analog.data = ((float *)float_data->data) + analog.num_samples;
-				analog.num_samples = float_data->len - analog.num_samples;
-				sr_dbg("second batch has %d", analog.num_samples);
-				sr_session_send(sdi, &packet);
-			}
-		} else { // trigger == 0
-			std_session_send_df_trigger(sdi);
-			sr_session_send(sdi, &packet);
-		}
-		g_slist_free(analog.meaning->channels);
-		g_array_free(data, TRUE);
-
-		if (devc->channel_entry->next) {
-			sr_dbg("Doing another channel");
-			/* We got the frame for this channel, now get the next channel. */
-			devc->channel_entry = devc->channel_entry->next;
-			tektronix_tds_channel_start(sdi);
-		} else {
-			/* Done with this frame. */
-			std_session_send_df_frame_end(sdi);
-			if (++devc->num_frames == devc->limit_frames) {
-				/* Last frame, stop capture. */
-				sdi->driver->dev_acquisition_stop(sdi);
-				tektronix_tds_capture_finish(sdi);
-			} else {
-				sr_dbg("Doing another frame");
-				/* Get the next frame, starting with the first channel. */
-				devc->channel_entry = devc->enabled_channels;
-				tektronix_tds_capture_start(sdi);
-
-				/* Start of next frame. */
-				std_session_send_df_frame_begin(sdi);
-			}
-		}
-	}
-	return TRUE;
-}
-
-/* Start reading data from the current channel. */
-SR_PRIV int tektronix_tds_channel_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-	struct sr_channel *ch;
-
-	if (!(devc = sdi->priv))
-		return SR_ERR;
-
-	ch = devc->channel_entry->data;
-
-	sr_dbg("Configure reading data from channel %s.", ch->name);
-
-	if (sr_scpi_send(sdi->conn, "DAT:SOU CH%d", ch->index + 1) != SR_OK)
-		return SR_ERR;
-
-	// wait for trigger (asynchronous)
-	if (devc->acquire_status == WAIT_CAPTURE &&
-		(devc->num_frames > 0 || devc->capture_mode == CAPTURE_LIVE ||
-			devc->capture_mode == CAPTURE_ONE_SHOT ||
-			devc->prior_state_running))
-		if (sr_scpi_send(sdi->conn, "*WAI") != SR_OK)
-			return SR_ERR;
-	devc->acquire_status = WAIT_CHANNEL;
-
-	sr_dbg("Requesting waveform");
-	if (sr_scpi_send(sdi->conn, "WAVF?") != SR_OK)
-		return SR_ERR;
-
-	devc->num_block_read = 0;
-
-	return SR_OK;
-}
-
-/* Start capturing a new frameset. */
-SR_PRIV int tektronix_tds_capture_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	if (!(devc = sdi->priv))
-		return SR_ERR;
-
-	// Force our capture settings to 1 byte, msb, binary
-	if (tektronix_tds_config_set(sdi, "dat:enc RIB") != SR_OK)
-		return SR_ERR;
-	if (tektronix_tds_config_set(sdi, "dat:wid 1") != SR_OK)
-		return SR_ERR;
-
-	devc->acquire_status = WAIT_CAPTURE;
-
-	if (devc->num_frames == 0) {
-		// if we aren't requesting memory, create a new capture
-		// if we are requesting memory, but it was already running,
-		// convert to single-shot so we can synchronize channels
-		if (devc->capture_mode == CAPTURE_LIVE ||
-			devc->capture_mode == CAPTURE_ONE_SHOT ||
-			devc->prior_state_running) {
-			sr_dbg("Triggering restart");
-			// stop before setting single sequence mode, so that we
-			// can get the same waveform data per channel
-			if (!devc->prior_state_single) {
-				if (tektronix_tds_config_set(
-					    sdi, "ACQ:STATE STOP") != SR_OK)
-					return SR_ERR;
-				if (tektronix_tds_config_set(
-					    sdi, "ACQ:stopa seq") != SR_OK)
-					return SR_ERR;
-			}
-			if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") !=
-				SR_OK)
-				return SR_ERR;
-		}
-	} else {
-		// If you are requesting multiple frames, all capture modes reset
-		if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") != SR_OK)
-			return SR_ERR;
-	}
-
-	if (tektronix_tds_channel_start(sdi) != SR_OK)
-		return SR_ERR;
-
-	sr_dbg("Starting data capture for curves.");
-
-	return SR_OK;
-}
-
 static int parse_scpi_int(const char *data, int *out_err, int default_value)
 {
 	int value = default_value;
@@ -629,6 +332,7 @@ static int tektronix_tds_read_header(struct sr_dev_inst *sdi)
 		ret = -1;
 	return ret;
 }
+
 /* Send a configuration setting. */
 SR_PRIV int tektronix_tds_config_set(
 	const struct sr_dev_inst *sdi, const char *format, ...)
@@ -649,6 +353,47 @@ SR_PRIV int tektronix_tds_config_set(
 
 	return ret;
 }
+
+SR_PRIV int tektronix_tds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	float fvalue;
+	int memory_depth;
+
+	devc = sdi->priv;
+	g_rec_mutex_lock(&devc->mutex);
+
+	/* Get the timebase. */
+	if (sr_scpi_get_float(sdi->conn, "hor:sca?", &devc->timebase) != SR_OK)
+		goto err;
+	sr_dbg("Current timebase: %g.", devc->timebase);
+
+	/* Get the record size. A sanity check as it should be 2500 */
+	if (sr_scpi_get_int(sdi->conn, "hor:reco?", &memory_depth) != SR_OK)
+		goto err;
+
+	if (memory_depth != TEK_BUFFER_SIZE) {
+		sr_err("A Tek 2k5 device should have that much memory. Expecting: 2500 bytes, found %d bytes",
+			memory_depth);
+		goto err;
+	}
+
+	fvalue = TEK_BUFFER_SIZE / (devc->timebase * (float)TEK_NUM_HDIV);
+	if (devc->model->sample_rate * 1000000.0 < fvalue)
+		sr_dbg("Current samplerate: %i MSa/s (limited by device).",
+			devc->model->sample_rate);
+	else
+		sr_dbg("Current samplerate: %ld Sa/s.", (long)fvalue);
+
+	// TODO: peak detect mode is half of this
+	sr_dbg("Current memory depth: %d.", TEK_BUFFER_SIZE);
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_OK;
+err:
+	g_rec_mutex_unlock(&devc->mutex);
+	return SR_ERR;
+}
+
 
 SR_PRIV int tektronix_tds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
 {
@@ -806,42 +551,297 @@ err:
 	return SR_ERR;
 }
 
-SR_PRIV int tektronix_tds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
+/* Revert all settings, if requested. */
+SR_PRIV int tektronix_tds_capture_finish(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	float fvalue;
-	int memory_depth;
 
-	devc = sdi->priv;
-	g_rec_mutex_lock(&devc->mutex);
+	if (!(devc = sdi->priv))
+		return SR_ERR;
 
-	/* Get the timebase. */
-	if (sr_scpi_get_float(sdi->conn, "hor:sca?", &devc->timebase) != SR_OK)
-		goto err;
-	sr_dbg("Current timebase: %g.", devc->timebase);
+	devc->acquire_status = WAIT_DONE;
 
-	/* Get the record size. A sanity check as it should be 2500 */
-	if (sr_scpi_get_int(sdi->conn, "hor:reco?", &memory_depth) != SR_OK)
-		goto err;
+	sr_dbg("Setting exiting setttings back");
 
-	if (memory_depth != TEK_BUFFER_SIZE) {
-		sr_err("A Tek 2k5 device should have that much memory. Expecting: 2500 bytes, found %d bytes",
-			memory_depth);
-		goto err;
+	if (devc->capture_mode == CAPTURE_LIVE ||
+		devc->capture_mode == CAPTURE_DISPLAY) {
+		if (tektronix_tds_config_set(sdi, "ACQ:stopa runstop") != SR_OK)
+			goto err;
+
+		if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") != SR_OK)
+			goto err;
 	}
 
-	fvalue = TEK_BUFFER_SIZE / (devc->timebase * (float)TEK_NUM_HDIV);
-	if (devc->model->sample_rate * 1000000.0 < fvalue)
-		sr_dbg("Current samplerate: %i MSa/s (limited by device).",
-			devc->model->sample_rate);
-	else
-		sr_dbg("Current samplerate: %ld Sa/s.", (long)fvalue);
-
-	// TODO: peak detect mode is half of this
-	sr_dbg("Current memory depth: %d.", TEK_BUFFER_SIZE);
 	g_rec_mutex_unlock(&devc->mutex);
 	return SR_OK;
 err:
 	g_rec_mutex_unlock(&devc->mutex);
 	return SR_ERR;
+}
+
+/* Start reading data from the current channel. */
+SR_PRIV int tektronix_tds_channel_start(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+	struct sr_channel *ch;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	ch = devc->channel_entry->data;
+
+	sr_dbg("Configure reading data from channel %s.", ch->name);
+
+	if (sr_scpi_send(sdi->conn, "DAT:SOU CH%d", ch->index + 1) != SR_OK)
+		return SR_ERR;
+
+	// wait for trigger (asynchronous)
+	if (devc->acquire_status == WAIT_CAPTURE &&
+		(devc->num_frames > 0 || devc->capture_mode == CAPTURE_LIVE ||
+			devc->capture_mode == CAPTURE_ONE_SHOT ||
+			devc->prior_state_running))
+		if (sr_scpi_send(sdi->conn, "*WAI") != SR_OK)
+			return SR_ERR;
+	devc->acquire_status = WAIT_CHANNEL;
+
+	sr_dbg("Requesting waveform");
+	if (sr_scpi_send(sdi->conn, "WAVF?") != SR_OK)
+		return SR_ERR;
+
+	devc->num_block_read = 0;
+
+	return SR_OK;
+}
+
+/* Start capturing a new frameset. */
+SR_PRIV int tektronix_tds_capture_start(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc;
+
+	if (!(devc = sdi->priv))
+		return SR_ERR;
+
+	// Force our capture settings to 1 byte, msb, binary
+	if (tektronix_tds_config_set(sdi, "dat:enc RIB") != SR_OK)
+		return SR_ERR;
+	if (tektronix_tds_config_set(sdi, "dat:wid 1") != SR_OK)
+		return SR_ERR;
+
+	devc->acquire_status = WAIT_CAPTURE;
+
+	if (devc->num_frames == 0) {
+		// if we aren't requesting memory, create a new capture
+		// if we are requesting memory, but it was already running,
+		// convert to single-shot so we can synchronize channels
+		if (devc->capture_mode == CAPTURE_LIVE ||
+			devc->capture_mode == CAPTURE_ONE_SHOT ||
+			devc->prior_state_running) {
+			sr_dbg("Triggering restart");
+			// stop before setting single sequence mode, so that we
+			// can get the same waveform data per channel
+			if (!devc->prior_state_single) {
+				if (tektronix_tds_config_set(
+					    sdi, "ACQ:STATE STOP") != SR_OK)
+					return SR_ERR;
+				if (tektronix_tds_config_set(
+					    sdi, "ACQ:stopa seq") != SR_OK)
+					return SR_ERR;
+			}
+			if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") !=
+				SR_OK)
+				return SR_ERR;
+		}
+	} else {
+		// If you are requesting multiple frames, all capture modes reset
+		if (tektronix_tds_config_set(sdi, "ACQ:STATE RUN") != SR_OK)
+			return SR_ERR;
+	}
+
+	if (tektronix_tds_channel_start(sdi) != SR_OK)
+		return SR_ERR;
+
+	sr_dbg("Starting data capture for curves.");
+
+	return SR_OK;
+}
+
+SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+
+	struct sr_scpi_dev_inst *scpi;
+	struct sr_datafeed_packet packet;
+	struct sr_datafeed_analog analog;
+	struct sr_analog_encoding encoding;
+	struct sr_analog_meaning meaning;
+	struct sr_analog_spec spec;
+	struct sr_channel *ch;
+	int len, i;
+
+	(void)fd;
+
+	sdi = cb_data;
+	if (!sdi)
+		return TRUE;
+
+	devc = sdi->priv;
+	if (!devc)
+		return TRUE;
+	scpi = sdi->conn;
+	ch = devc->channel_entry->data;
+
+	if (revents == G_IO_IN || TRUE) { // this is always 0 for some reason
+
+		// no data yet
+		sr_dbg("Waiting for data...");
+		if (sr_scpi_read_begin(scpi) != SR_OK)
+			return TRUE;
+
+		sr_dbg("New block with header expected.");
+		len = tektronix_tds_read_header(sdi);
+		if (len == 0)
+			/* Still reading the header. */
+			return TRUE;
+
+		if (len == -1) {
+			sr_err("Read error, aborting capture.");
+			std_session_send_df_frame_end(sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+
+		devc->acquire_status = WAIT_DONE;
+
+		// streaming data back is pretty fast, at least once the scope
+		// eventually starts sending it our way
+		devc->num_block_read = 0;
+
+		sr_dbg("Requesting block: %d bytes.", TEK_BUFFER_SIZE + 1);
+		len = sr_scpi_read_data(
+			scpi, (char *)devc->buffer, TEK_BUFFER_SIZE + 1);
+		if (len == -1) {
+			sr_err("Read error, aborting capture.");
+			std_session_send_df_frame_end(sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+		sr_dbg("Received block: %d bytes.", len);
+		devc->num_block_read = len;
+
+		// ensure the terminating newline is read
+		while (devc->num_block_read < TEK_BUFFER_SIZE + 1) {
+			sr_dbg("Requesting: %d bytes.",
+				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
+			len = sr_scpi_read_data(scpi,
+				(char *)devc->buffer + devc->num_block_read,
+				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
+			if (len == -1) {
+				sr_err("Read error, aborting capture.");
+				std_session_send_df_frame_end(sdi);
+				sdi->driver->dev_acquisition_stop(sdi);
+				return TRUE;
+			}
+			sr_dbg("Received block: %d bytes.", len);
+			devc->num_block_read += len;
+		}
+		sr_dbg("Transfer has been completed.");
+		if (!sr_scpi_read_complete(scpi)) {
+			sr_err("Read should have been completed.");
+			std_session_send_df_frame_end(sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+
+		// We have received the entire 2.5k buffer now, so process it,
+		// ignoring the trailing \n
+		len = TEK_BUFFER_SIZE;
+
+		float vdiv = devc->vdiv[ch->index];
+		GArray *float_data;
+		static GArray *data;
+		float voltage, vdivlog;
+		int digits;
+
+		data = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
+		g_array_append_vals(data, devc->buffer, len);
+		float_data = g_array_new(FALSE, FALSE, sizeof(float));
+		for (i = 0; i < len; i++) {
+			voltage = (float)g_array_index(data, int8_t, i) -
+				devc->wavepre.y_off;
+			voltage = ((devc->wavepre.y_mult * voltage) +
+				devc->wavepre.y_zero);
+			g_array_append_val(float_data, voltage);
+		}
+		vdivlog = log10f(vdiv);
+		digits = -(int)vdivlog + (vdivlog < 0.0) + 3 /* 8-bit resolution*/ - 1;
+		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+		analog.meaning->channels = g_slist_append(NULL, ch);
+		analog.num_samples = float_data->len;
+		analog.data = ((float *)float_data->data);
+		if (devc->wavepre.y_unit == YU_VOLTS) {
+			analog.meaning->mq = SR_MQ_VOLTAGE;
+			analog.meaning->unit = SR_UNIT_VOLT;
+		} else if (devc->wavepre.y_unit == YU_AMPS) {
+			analog.meaning->mq = SR_MQ_CURRENT;
+			analog.meaning->unit = SR_UNIT_AMPERE;
+		} else if (devc->wavepre.y_unit == YU_DECIBELS) {
+			analog.meaning->mq = SR_MQ_POWER;
+			analog.meaning->unit = SR_UNIT_DECIBEL_MW;
+		} else {
+			analog.meaning->mq = 0;
+			analog.meaning->unit = SR_UNIT_UNITLESS;
+		}
+		analog.meaning->mqflags = 0;
+		packet.type = SR_DF_ANALOG;
+		packet.payload = &analog;
+		sr_dbg("Computing using trigger point %.6f", devc->horiz_triggerpos);
+		// only the first packet provides trigger information, all others
+		// are "after" the correct timebase
+		if (devc->channel_entry != devc->enabled_channels) {
+			sr_session_send(sdi, &packet);
+		} else if (devc->horiz_triggerpos > 0) {
+			// This will round to (potentially) twice the expected margin 
+			// on-device (% -> s -> %) vs our expectation (%)
+			analog.num_samples = float_data->len * devc->horiz_triggerpos;
+			sr_dbg("First batch has %d", analog.num_samples);
+			sr_session_send(sdi, &packet);
+			std_session_send_df_trigger(sdi);
+			if (devc->horiz_triggerpos < 1) {
+				analog.data = ((float *)float_data->data) + analog.num_samples;
+				analog.num_samples = float_data->len - analog.num_samples;
+				sr_dbg("second batch has %d", analog.num_samples);
+				sr_session_send(sdi, &packet);
+			}
+		} else { // trigger == 0
+			std_session_send_df_trigger(sdi);
+			sr_session_send(sdi, &packet);
+		}
+		g_slist_free(analog.meaning->channels);
+		g_array_free(data, TRUE);
+
+		if (devc->channel_entry->next) {
+			sr_dbg("Doing another channel");
+			/* We got the frame for this channel, now get the next channel. */
+			devc->channel_entry = devc->channel_entry->next;
+			tektronix_tds_channel_start(sdi);
+		} else {
+			/* Done with this frame. */
+			std_session_send_df_frame_end(sdi);
+			if (++devc->num_frames == devc->limit_frames) {
+				/* Last frame, stop capture. */
+				sdi->driver->dev_acquisition_stop(sdi);
+				tektronix_tds_capture_finish(sdi);
+			} else {
+				sr_dbg("Doing another frame");
+				/* Get the next frame, starting with the first channel. */
+				devc->channel_entry = devc->enabled_channels;
+				tektronix_tds_capture_start(sdi);
+
+				/* Start of next frame. */
+				std_session_send_df_frame_begin(sdi);
+			}
+		}
+	}
+	return TRUE;
 }
