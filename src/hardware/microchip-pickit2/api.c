@@ -158,15 +158,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->conn = usb;
 		sdi->connection_id = g_strdup(conn);
 
-		/* Create the logic channels group. */
-		cg = sr_channel_group_new(sdi, "Logic", NULL);
-		ch_count = ARRAY_SIZE(channel_names);
-		for (ch_idx = 0; ch_idx < ch_count; ch_idx++) {
-			ch = sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
-				TRUE, channel_names[ch_idx]);
-			cg->channels = g_slist_append(cg->channels, ch);
-		}
-
 		/*
 		 * Create the device context. Pre-select the highest
 		 * samplerate and the deepest sample count available.
@@ -180,6 +171,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->num_captureratios = ARRAY_SIZE(captureratios);
 		devc->curr_captureratio_idx = 0;
 		devc->sw_limits.limit_samples = PICKIT2_SAMPLE_COUNT;
+
+		/* Create the logic channels group. */
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
+		ch_count = ARRAY_SIZE(channel_names);
+		for (ch_idx = 0; ch_idx < ch_count; ch_idx++) {
+			ch = sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
+				TRUE, channel_names[ch_idx]);
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
 	}
 
 	return std_scan_complete(di, devices);
