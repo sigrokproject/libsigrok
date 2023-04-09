@@ -222,6 +222,29 @@ static int scpi_read_data(struct sr_scpi_dev_inst *scpi, char *buf, int maxlen)
 }
 
 /**
+ * Make sure a string buffer contains free space, chunked resize.
+ *
+ * Allocates more space ('add_space' in addition to existing content)
+ * when free buffer space is below 'threshold'.
+ *
+ * @param[in] buf The buffer where free space is desired.
+ * @param[in] threshold Minimum amount of free space accepted.
+ * @param[in] add_space Chunk to ensure when buffer gets extended.
+ */
+static void scpi_make_string_space(GString *buf,
+	size_t threshold, size_t add_space)
+{
+	size_t have_space, prev_size;
+
+	have_space = buf->allocated_len - buf->len;
+	if (have_space < threshold) {
+		prev_size = buf->len;
+		g_string_set_size(buf, prev_size + add_space);
+		g_string_set_size(buf, prev_size);
+	}
+}
+
+/**
  * Do a non-blocking read of up to the allocated length, and
  * check if a timeout has occured, without mutex.
  *
@@ -272,7 +295,6 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 {
 	int ret;
 	GString *response;
-	size_t space;
 	gint64 timeout;
 
 	/* Optionally send caller provided command. */
@@ -290,12 +312,7 @@ static int scpi_get_data(struct sr_scpi_dev_inst *scpi,
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	while (!sr_scpi_read_complete(scpi)) {
 		/* Resize the buffer when free space drops below a threshold. */
-		space = response->allocated_len - response->len;
-		if (space < 128) {
-			size_t oldlen = response->len;
-			g_string_set_size(response, oldlen + 1024);
-			g_string_set_size(response, oldlen);
-		}
+		scpi_make_string_space(response, 128, 1024);
 
 		/* Read another chunk of the response. */
 		ret = scpi_read_response(scpi, response, timeout);
