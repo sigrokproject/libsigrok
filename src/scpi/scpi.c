@@ -1006,37 +1006,27 @@ SR_PRIV int sr_scpi_get_uint8v(struct sr_scpi_dev_inst *scpi,
 	return ret;
 }
 
-/**
- * Send a SCPI command, read the reply, parse it as binary data with a
- * "definite length block" header and store the result in scpi_response.
- *
- * Callers must free the allocated memory (unless it's NULL) regardless of
- * the routine's return code. See @ref g_byte_array_free().
- *
- * The "indefinite length block" is not supported by this implementation.
- * Because not all supported physical transports signal the end-of-message
- * condition out of band.
- *
- * @param[in] scpi Previously initialised SCPI device structure.
- * @param[in] command The SCPI command to send to the device (can be NULL).
- * @param[out] scpi_response Pointer where to store the parsed result.
- *
- * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
- *         error or upon no response.
- */
-SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
-	const char *command, GByteArray **scpi_response)
+/* Internal, serves both sr_scpi_get_block(), sr_scpi_get_text_then_block(). */
+static int scpi_get_block_int(struct sr_scpi_dev_inst *scpi,
+	const char *command,
+	sr_scpi_block_find_cb cb_func, void *cb_data,
+	GString **text_response, GByteArray **block_response)
 {
 	int ret;
 	GString *response;
 	size_t prev_size;
+	size_t blk_off;
 	char buf[10];
 	unsigned long ul_value;
 	size_t digits_count, bytes_count;
 	gint64 timeout;
 	size_t trail_count;
+	uint8_t *blk_bytes;
 
-	*scpi_response = NULL;
+	if (text_response)
+		*text_response = NULL;
+	if (block_response)
+		*block_response = NULL;
 
 	g_mutex_lock(&scpi->scpi_mutex);
 
@@ -1059,16 +1049,68 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	}
 
 	/*
-	 * Get (the first chunk of) the response.
-	 *
-	 * Start with an arbitrary initial buffer size. Which gets
-	 * extended as subsequent reads require more buffer space.
+	 * Get an optional leading text before the data block when the
+	 * caller provided routine can determine the boundary between
+	 * the text and the block parts of the response. Absence of a
+	 * boundary finder assumes that the response is just a block.
 	 */
 	response = g_string_sized_new(1024);
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+	while (cb_func) {
+		/* Extend buffer space in sensible chunks. */
+		scpi_make_string_space(response, 128, 1024);
+		/* Accumulate more receive data. */
+		ret = scpi_read_response(scpi, response, timeout);
+		sr_dbg("SCPI get block, text read, ret %d, len %zu.",
+			ret, response->len);
+		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
+			g_string_free(response, TRUE);
+			return ret;
+		}
+		if (ret == 0) {
+			if (scpi->read_pause_us)
+				g_usleep(scpi->read_pause_us);
+			continue;
+		}
+		timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		/*
+		 * Run caller's routine to find the start of the block.
+		 * Negative return is a fatal error. Zero return found
+		 * the offset. Non-zero positive return needs more data.
+		 */
+		blk_off = 0;
+		ret = cb_func(cb_data, response->str, response->len, &blk_off);
+		sr_dbg("SCPI get block, text check, ret %d, off %zu.",
+			ret, blk_off);
+		if (ret < 0) {
+			g_mutex_unlock(&scpi->scpi_mutex);
+			g_string_free(response, TRUE);
+			return ret;
+		}
+		if (ret > 0)
+			continue;
+		/* Block boundary detected. Grab text before the block. */
+		if (blk_off > response->len)
+			blk_off = response->len;
+		if (text_response)
+			*text_response = g_string_new_len(response->str, blk_off);
+		g_string_erase(response, 0, blk_off);
+		break;
+	}
+
+	/*
+	 * Get (the first chunk of) the block part of the response.
+	 *
+	 * When we get here, there either is no text before the block,
+	 * or the text before the block was already taken above. Either
+	 * way, remaining code exclusively deals with the data block.
+	 * Get enough receive data to determine the block's length.
+	 */
 	while (response->len < 2) {
 		ret = scpi_read_response(scpi, response, timeout);
-		sr_dbg("SCPI get block, initial read, ret %d.", ret);
+		sr_dbg("SCPI get block, block start read, ret %d, len %zu.",
+			ret, response->len);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
@@ -1136,6 +1178,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	while (response->len < 2 + digits_count) {
 		ret = scpi_read_response(scpi, response, timeout);
+		sr_dbg("SCPI get block, block len read, ret %d, len %zu.",
+			ret, response->len);
 		if (ret < 0) {
 			g_mutex_unlock(&scpi->scpi_mutex);
 			g_string_free(response, TRUE);
@@ -1179,7 +1223,8 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	while (response->len < bytes_count) {
 		prev_size = response->len;
 		ret = scpi_read_response(scpi, response, timeout);
-		sr_dbg("SCPI get block, read block, ret %d.", ret);
+		sr_dbg("SCPI get block, read block, ret %d, len %zu.",
+			ret, response->len);
 		if (ret == SR_ERR_TIMEOUT) {
 			sr_dbg("SCPI get block, timeout, had %zu, cap to %zu..",
 				response->len, prev_size);
@@ -1191,10 +1236,12 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 			g_string_free(response, TRUE);
 			return ret;
 		}
-		if (ret == 0 && scpi->read_pause_us)
-			g_usleep(scpi->read_pause_us);
-		if (ret > 0)
-			timeout = g_get_monotonic_time() + scpi->read_timeout_us;
+		if (ret == 0) {
+			if (scpi->read_pause_us)
+				g_usleep(scpi->read_pause_us);
+			continue;
+		}
+		timeout = g_get_monotonic_time() + scpi->read_timeout_us;
 	}
 
 	/*
@@ -1223,11 +1270,75 @@ SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	g_mutex_unlock(&scpi->scpi_mutex);
 
 	/* Convert received data to byte array. */
-	*scpi_response = g_byte_array_new_take(
-		(guint8 *)g_string_free(response, FALSE), bytes_count);
 	sr_dbg("SCPI get block, got block, return bytes %zu.", bytes_count);
+	if (block_response) {
+		blk_bytes = (uint8_t *)g_string_free(response, FALSE);
+		*block_response = g_byte_array_new_take(blk_bytes, bytes_count);
+	} else {
+		g_string_free(response, TRUE);
+	}
 
 	return SR_OK;
+}
+
+/**
+ * Send a SCPI command, read the reply, parse it as binary data with a
+ * "definite length block" header, while optional text can precede the
+ * binary block.
+ *
+ * Callers must provide a routine which determines the position in the
+ * response message where the block starts. In the absence of a block
+ * finding routine the response is assumed to be a block only without
+ * leading text. Common SCPI support code will keep reading until the
+ * caller's routine either finds the start of the block, or communicates
+ * an error condition. Callers must not modify the input text during
+ * block search, the routine can get invoked arbitrary number of times.
+ *
+ * Callers must free the allocated memory (unless it's #NULL) regardless of
+ * the routine's exit code. See @ref g_string_free(), @ref g_byte_array_free().
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[in] cb_func Caller provided routine to find the start of the block.
+ * @param[in] cb_data Context for caller provided callback routine.
+ * @param[out] text_response Pointer where to store the text result.
+ * @param[out] block_response Pointer where to store the bytes result.
+ *
+ * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
+ *         error or upon no response.
+ */
+SR_PRIV int sr_scpi_get_text_then_block(struct sr_scpi_dev_inst *scpi,
+	const char *command,
+	sr_scpi_block_find_cb cb_func, void *cb_data,
+	GString **text_response, GByteArray **block_response)
+{
+	return scpi_get_block_int(scpi, command, cb_func, cb_data,
+		text_response, block_response);
+}
+
+/**
+ * Send a SCPI command, read the reply, parse it as binary data with a
+ * "definite length block" header and store the result in scpi_response.
+ *
+ * Callers must free the allocated memory (unless it's NULL) regardless of
+ * the routine's return code. See @ref g_byte_array_free().
+ *
+ * The "indefinite length block" is not supported by this implementation.
+ * Because not all supported physical transports signal the end-of-message
+ * condition out of band.
+ *
+ * @param[in] scpi Previously initialised SCPI device structure.
+ * @param[in] command The SCPI command to send to the device (can be NULL).
+ * @param[out] scpi_response Pointer where to store the parsed result.
+ *
+ * @return SR_OK upon successfully parsing all values, SR_ERR* upon a parsing
+ *         error or upon no response.
+ */
+SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
+	const char *command, GByteArray **scpi_response)
+{
+	return scpi_get_block_int(scpi, command, NULL, NULL,
+		NULL, scpi_response);
 }
 
 /**

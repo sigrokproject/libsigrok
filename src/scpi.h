@@ -124,6 +124,21 @@ struct sr_scpi_dev_inst {
 	gboolean no_opc_command;
 };
 
+/**
+ * Callback to find a data block after optional leading response text.
+ *
+ * @param[in] cb_data Caller provided context information.
+ * @param[in] rsp_data Previously accumulated response data.
+ * @param[in] rsp_dlen Length of accumulated response data.
+ * @param[out] block_off Position of block start in response.
+ *
+ * @returns Non-zero positive when more input data is required.
+ *   SR_OK when the block start position was determined.
+ *   SR_ERR* when fatal errors were seen.
+ */
+typedef int (*sr_scpi_block_find_cb)(void *cb_data,
+	const char *rsp_data, size_t rsp_dlen, size_t *block_off);
+
 SR_PRIV GSList *sr_scpi_scan(struct drv_context *drvc, GSList *options,
 	struct sr_dev_inst *(*probe_device)(struct sr_scpi_dev_inst *scpi));
 SR_PRIV struct sr_scpi_dev_inst *scpi_dev_inst_new(struct drv_context *drvc,
@@ -170,6 +185,10 @@ SR_PRIV int sr_scpi_get_data(struct sr_scpi_dev_inst *scpi,
 	const char *command, GString **scpi_response);
 SR_PRIV int sr_scpi_get_block(struct sr_scpi_dev_inst *scpi,
 	const char *command, GByteArray **scpi_response);
+SR_PRIV int sr_scpi_get_text_then_block(struct sr_scpi_dev_inst *scpi,
+	const char *command,
+	sr_scpi_block_find_cb cb_func, void *cb_data,
+	GString **scpi_text_response, GByteArray **scpi_block_response);
 SR_PRIV int sr_scpi_get_hw_id(struct sr_scpi_dev_inst *scpi,
 	struct sr_scpi_hw_info **scpi_response);
 SR_PRIV void sr_scpi_hw_info_free(struct sr_scpi_hw_info *hw_info);
