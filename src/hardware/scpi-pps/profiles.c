@@ -1742,6 +1742,18 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		.update_status = NULL,
 	},
 
+	/* Rohde & Schwarz HMC8042 */
+	{ "Rohde&Schwarz", "HMC8042", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(rs_hmc8043_devopts),
+		ARRAY_AND_SIZE(rs_hmc8043_devopts_cg),
+		rs_hmc8043_ch, 2,
+		rs_hmc8043_cg, 2,
+		rs_hmc8043_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
 	/* Rohde & Schwarz HMC8043 */
 	{ "Rohde&Schwarz", "HMC8043", SCPI_DIALECT_UNKNOWN, 0,
 		ARRAY_AND_SIZE(rs_hmc8043_devopts),
