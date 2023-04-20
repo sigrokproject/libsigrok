@@ -1129,6 +1129,14 @@ enum sr_configkey {
 	 */
 	SR_CONF_RESISTANCE_TARGET,
 
+	/**
+	 * Over-current protection (OCP) delay
+	 * @arg type: double (time)
+	 * @arg get: get current delay
+	 * @arg set: set new delay
+	 */
+	SR_CONF_OVER_CURRENT_PROTECTION_DELAY,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
