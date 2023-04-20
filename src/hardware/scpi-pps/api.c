@@ -437,6 +437,10 @@ static int config_get(uint32_t key, GVariant **data,
 		gvtype = G_VARIANT_TYPE_DOUBLE;
 		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD;
 		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_DELAY:
+		gvtype = G_VARIANT_TYPE_DOUBLE;
+		cmd = SCPI_CMD_GET_OVER_CURRENT_PROTECTION_DELAY;
+		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if (devc->device->dialect == SCPI_DIALECT_HMP) {
 			/* OTP is always enabled. */
@@ -698,6 +702,12 @@ static int config_set(uint32_t key, GVariant *data,
 				channel_group_cmd, channel_group_name,
 				SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, d);
 		break;
+	case SR_CONF_OVER_CURRENT_PROTECTION_DELAY:
+		d = g_variant_get_double(data);
+		ret = sr_scpi_cmd(sdi, devc->device->commands,
+				channel_group_cmd, channel_group_name,
+				SCPI_CMD_SET_OVER_CURRENT_PROTECTION_DELAY, d);
+		break;
 	case SR_CONF_OVER_TEMPERATURE_PROTECTION:
 		if (g_variant_get_boolean(data))
 			ret = sr_scpi_cmd(sdi, devc->device->commands,
@@ -793,6 +803,9 @@ static int config_list(uint32_t key, GVariant **data,
 			break;
 		case SR_CONF_OVER_CURRENT_PROTECTION_THRESHOLD:
 			*data = std_gvar_min_max_step_array(ch_spec->ocp);
+			break;
+		case SR_CONF_OVER_CURRENT_PROTECTION_DELAY:
+			*data = std_gvar_min_max_step_array(ch_spec->ocp_delay);
 			break;
 		default:
 			return SR_ERR_NA;

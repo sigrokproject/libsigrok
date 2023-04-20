@@ -29,6 +29,7 @@
 #define FREQ_DC_ONLY {0, 0, 0, 0, 0}
 #define NO_OVP_LIMITS {0, 0, 0, 0, 0}
 #define NO_OCP_LIMITS {0, 0, 0, 0, 0}
+#define NO_OCP_DELAY {0, 0, 0, 0, 0}
 
 /* Agilent/Keysight N5700A series */
 static const uint32_t agilent_n5700a_devopts[] = {
@@ -52,11 +53,11 @@ static const struct channel_group_spec agilent_n5700a_cg[] = {
 };
 
 static const struct channel_spec agilent_n5767a_ch[] = {
-	{ "1", { 0, 60, 0.0072, 3, 4 }, { 0, 25, 0.003, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 60, 0.0072, 3, 4 }, { 0, 25, 0.003, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec agilent_n5763a_ch[] = {
-	{ "1", { 0, 12.5, 0.0015, 3, 4 }, { 0, 120, 0.0144, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 12.5, 0.0015, 3, 4 }, { 0, 120, 0.0144, 3, 4 }, { 0, 1500 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 /*
@@ -103,9 +104,9 @@ static const uint32_t bk_9130_devopts_cg[] = {
 };
 
 static const struct channel_spec bk_9130_ch[] = {
-	{ "1", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0,  5, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 15, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 30, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 90, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0,  5, 0.001, 3, 3 }, { 0, 3, 0.001, 3, 3 }, { 0, 15, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec bk_9130_cg[] = {
@@ -152,7 +153,7 @@ static const uint32_t chroma_61604_devopts_cg[] = {
 };
 
 static const struct channel_spec chroma_61604_ch[] = {
-	{ "1", { 0, 300, 0.1, 1, 1 }, { 0, 16, 0.1, 2, 2 }, { 0, 2000, 0, 1, 1 }, { 1.0, 1000.0, 0.01 }, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 300, 0.1, 1, 1 }, { 0, 16, 0.1, 2, 2 }, { 0, 2000, 0, 1, 1 }, { 1.0, 1000.0, 0.01 }, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec chroma_61604_cg[] = {
@@ -468,11 +469,11 @@ static const uint32_t rigol_dp700_devopts_cg[] = {
 };
 
 static const struct channel_spec rigol_dp711_ch[] = {
-	{ "1", { 0, 30, 0.01, 3, 3 }, { 0, 5, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 33, 0.01}, { 0.01, 5.5, 0.01 } },
+	{ "1", { 0, 30, 0.01, 3, 3 }, { 0, 5, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 33, 0.01}, { 0.01, 5.5, 0.01 }, NO_OCP_DELAY },
 };
 
 static const struct channel_spec rigol_dp712_ch[] = {
-	{ "1", { 0, 50, 0.01, 3, 3 }, { 0, 3, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 55, 0.01}, { 0.01, 3.3, 0.01 } },
+	{ "1", { 0, 50, 0.01, 3, 3 }, { 0, 3, 0.01, 3, 3 }, { 0, 150, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 55, 0.01}, { 0.01, 3.3, 0.01 }, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec rigol_dp700_cg[] = {
@@ -537,20 +538,20 @@ static const uint32_t rigol_dp800_devopts_cg[] = {
 };
 
 static const struct channel_spec rigol_dp821a_ch[] = {
-	{ "1", { 0, 60, 0.001, 3, 3 }, { 0, 1, 0.0001, 4, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0,  8, 0.001, 3, 3 }, { 0, 10, 0.001, 3, 3 }, { 0, 80, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 60, 0.001, 3, 3 }, { 0, 1, 0.0001, 4, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0,  8, 0.001, 3, 3 }, { 0, 10, 0.001, 3, 3 }, { 0, 80, 0, 3, 3 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec rigol_dp831_ch[] = {
-	{ "1", { 0,   8, 0.001, 3, 4 }, { 0, 5, 0.0003, 3, 4 }, { 0, 40, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0,  30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, -30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0,   8, 0.001, 3, 4 }, { 0, 5, 0.0003, 3, 4 }, { 0, 40, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0,  30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, -30, 0.001, 3, 4 }, { 0, 2, 0.0001, 3, 4 }, { 0, 60, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec rigol_dp832_ch[] = {
-	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec rigol_dp820_cg[] = {
@@ -622,15 +623,15 @@ static const uint32_t hp_6630a_devopts_cg[] = {
 };
 
 static const struct channel_spec hp_6632a_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00125, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00125, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6633a_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6634a_ch[] = {
-	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.00025, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS },
+	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.00025, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec hp_6630a_cg[] = {
@@ -764,43 +765,43 @@ static const uint32_t hp_6630b_devopts_cg[] = {
 };
 
 static const struct channel_spec hp_6611c_ch[] = {
-	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 5.1188, 0.00125, 4, 5 }, { 0, 41.92297 }, FREQ_DC_ONLY, { 0, 12, 0.06 }, NO_OCP_LIMITS },
+	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 5.1188, 0.00125, 4, 5 }, { 0, 41.92297 }, FREQ_DC_ONLY, { 0, 12, 0.06 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6612c_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 41.92256 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 2.0475, 0.0005, 4, 5 }, { 0, 41.92256 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6613c_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 1.0238, 0.00025, 4, 5 }, { 0, 52.40627 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 1.0238, 0.00025, 4, 5 }, { 0, 52.40627 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6614c_ch[] = {
-	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 0.5118, 0.000125, 4, 5 }, { 0, 52.39808 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS },
+	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 0.5118, 0.000125, 4, 5 }, { 0, 52.39808 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6631b_ch[] = {
-	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 10.237, 0.00263, 4, 5 }, { 0, 83.84103 }, FREQ_DC_ONLY, { 0, 12, 0.06 }, NO_OCP_LIMITS },
+	{ "1", { 0, 8.19, 0.002, 3, 4 }, { 0, 10.237, 0.00263, 4, 5 }, { 0, 83.84103 }, FREQ_DC_ONLY, { 0, 12, 0.06 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6632b_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_66312a_ch[] = {
-	{ "1", { 0, 20.475, 0.0001, 4, 5 }, { 0, 2.0475, 0.0001, 4, 5 }, { 0, 41.92256 }, FREQ_DC_ONLY, { 0, 22, 0.01 }, NO_OCP_LIMITS },
+	{ "1", { 0, 20.475, 0.0001, 4, 5 }, { 0, 2.0475, 0.0001, 4, 5 }, { 0, 41.92256 }, FREQ_DC_ONLY, { 0, 22, 0.01 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_66332a_ch[] = {
-	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS },
+	{ "1", { 0, 20.475, 0.005, 3, 4 }, { 0, 5.1188, 0.00132, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 22, 0.1 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6633b_ch[] = {
-	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.000526, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS },
+	{ "1", { 0, 51.188, 0.0125, 3, 4 }, { 0, 2.0475, 0.000526, 4, 5 }, { 0, 104.80743 }, FREQ_DC_ONLY, { 0, 55, 0.25 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec hp_6634b_ch[] = {
-	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS },
+	{ "1", { 0, 102.38, 0.025, 3, 4 }, { 0, 1.0238, 0.000263, 4, 5 }, { 0, 104.81664 }, FREQ_DC_ONLY, { 0, 110, 0.5 }, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec hp_6630b_cg[] = {
@@ -1025,11 +1026,11 @@ static const uint32_t owon_p4000_devopts_cg[] = {
 };
 
 static const struct channel_spec owon_p4603_ch[] = {
-	{ "1", { 0.01, 60, 0.001, 3, 3 }, { 0.001, 3, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.001}, { 0.001, 3.1, 0.001} },
+	{ "1", { 0.01, 60, 0.001, 3, 3 }, { 0.001, 3, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.001}, { 0.001, 3.1, 0.001}, NO_OCP_DELAY },
 };
 
 static const struct channel_spec owon_p4305_ch[] = {
-	{ "1", { 0.01, 30, 0.001, 3, 3 }, { 0.001, 5, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 31, 0.001}, { 0.001, 3.1, 0.001} },
+	{ "1", { 0.01, 30, 0.001, 3, 3 }, { 0.001, 5, 0.001, 3, 3 }, { 0, 180, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 31, 0.001}, { 0.001, 3.1, 0.001}, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec owon_p4000_cg[] = {
@@ -1057,7 +1058,7 @@ static const struct scpi_command owon_p4000_cmd[] = {
 /* Owon SPE series*/
 
 static const struct channel_spec owon_spe6103_ch[] = {
-	{ "1", { 0.01, 60, 0.01, 3, 3 }, { 0.001, 10, 0.001, 3, 3 }, { 0, 300, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.01}, { 0.001, 10.1, 0.001} },
+	{ "1", { 0.01, 60, 0.01, 3, 3 }, { 0.001, 10, 0.001, 3, 3 }, { 0, 300, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.01}, { 0.001, 10.1, 0.001}, NO_OCP_DELAY },
 };
 
 static const struct scpi_command owon_spe6103_cmd[] = {
@@ -1250,9 +1251,9 @@ static const uint32_t rs_hmc8043_devopts_cg[] = {
 };
 
 static const struct channel_spec rs_hmc8043_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY  },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 3, 0.001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec rs_hmc8043_cg[] = {
@@ -1301,21 +1302,21 @@ static const uint32_t rs_hmp4040_devopts_cg[] = {
 };
 
 static const struct channel_spec rs_hmp2020_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec rs_hmp2030_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001,  5.01, 0.0001, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_spec rs_hmp4040_ch[] = {
-	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
-	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS },
+	{ "1", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "2", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "4", { 0, 32.050, 0.001, 3, 4 }, { 0.001, 10.01, 0.0002, 3, 4 }, { 0, 0, 0, 0, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec rs_hmp4040_cg[] = {
