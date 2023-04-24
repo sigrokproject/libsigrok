@@ -245,4 +245,3 @@ static struct sr_dev_driver bk_1856d_driver_info = {
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(bk_1856d_driver_info);
-

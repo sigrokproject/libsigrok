@@ -59,4 +59,3 @@ SR_PRIV void bk_1856d_set_gate_time(struct dev_context *devc, int time);
 SR_PRIV void bk_1856d_select_input(struct dev_context *devc, int intput);
 
 #endif
-

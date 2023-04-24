@@ -47,15 +47,15 @@ static void bk_1856d_send_input_sel(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 	char *cmd;
 
-	if(!sdi)
+	if (!sdi)
 		return;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
-	if(!devc || !serial)
+	if (!devc || !serial)
 		return;
 
-	if(devc->sel_input == InputA)
+	if (devc->sel_input == InputA)
 	{
 		sr_spew("selecting input A");
 		cmd = FUNCTION_A;
@@ -79,14 +79,14 @@ static void bk_1856d_chk_select_input(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 
-	if(!sdi)
+	if (!sdi)
 		return;
 
 	devc = sdi->priv;
-	if(!devc)
+	if (!devc)
 		return;
 
-	if(devc->sel_input != devc->curr_sel_input)
+	if (devc->sel_input != devc->curr_sel_input)
 		bk_1856d_send_input_sel(sdi);
 }
 
@@ -97,12 +97,12 @@ static void bk_1856d_send_gate_time(const struct sr_dev_inst *sdi)
 	char *cmd;
 	gulong microseconds;
 
-	if(!sdi)
+	if (!sdi)
 		return;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
-	if(!devc || !serial)
+	if (!devc || !serial)
 		return;
 
 	if (devc->gate_time < 0) devc->gate_time = 0;
@@ -143,12 +143,12 @@ static void bk_1856d_request_data(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if(!sdi)
+	if (!sdi)
 		return;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
-	if(!devc || !serial)
+	if (!devc || !serial)
 		return;
 
 	sr_spew("requesting data");
@@ -164,12 +164,12 @@ SR_PRIV void bk_1856d_init(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
 
-	if(!sdi)
+	if (!sdi)
 		return;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
-	if(!devc || !serial)
+	if (!devc || !serial)
 		return;
 
 	devc->buffer_level = 0;
@@ -192,11 +192,11 @@ static int bk_1856d_check_for_zero_message(struct dev_context *devc)
 	zero_found = 0;
 	has_data = 0;
 
-	for(int idx = 0; idx < BK1856D_MSG_SIZE-1 ; ++idx)
+	for (int idx = 0; idx < BK1856D_MSG_SIZE - 1; ++idx)
 	{
-		if(devc->buffer[idx] == ' ')
+		if (devc->buffer[idx] == ' ')
 			continue;
-		else if(devc->buffer[idx] == '0' && zero_found == 0)
+		else if (devc->buffer[idx] == '0' && zero_found == 0)
 		{
 			zero_found = 1;
 			continue;
@@ -247,7 +247,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 		return;
 
 	/* check for cr at end of message */
-	if(devc->buffer[BK1856D_MSG_SIZE-1] != '\xD')
+	if (devc->buffer[BK1856D_MSG_SIZE-1] != '\xD')
 	{
 		sr_err("expected cr at end of message.");
 		devc->buffer_level = 0;
@@ -262,7 +262,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 
 	devc->buffer[BK1856D_MSG_SIZE-1] = 0; /* set trailing zero */
 
-	if(bk_1856d_check_for_zero_message(devc))
+	if (bk_1856d_check_for_zero_message(devc))
 	{
 		sr_spew("received 0 package");
 		devc->buffer_level = 0;
@@ -274,7 +274,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 	freq_value = strtod(devc->buffer, &endPtr);
 	sr_dbg("parsed value: %f", freq_value);
 
-	if(strcmp(devc->buffer + BK1856D_MSG_NUMBER_SIZE+1, "Hz ") != 0)
+	if (strcmp(devc->buffer + BK1856D_MSG_NUMBER_SIZE+1, "Hz ") != 0)
 	{
 		sr_err("not a frequency returned");
 		devc->buffer_level = 0;
@@ -287,16 +287,16 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 	}
 
 	dotPtr = strchr(devc->buffer, '.');
-	if(dotPtr)
+	if (dotPtr)
 		digits = endPtr - (dotPtr+1);
 	else
 		digits = endPtr - devc->buffer;
 
-	if(devc->buffer[BK1856D_MSG_NUMBER_SIZE] == 'M') {
+	if (devc->buffer[BK1856D_MSG_NUMBER_SIZE] == 'M') {
 		freq_value *= 1e6;
 		digits -= 6;
 	}
-	if(devc->buffer[BK1856D_MSG_NUMBER_SIZE] == 'k') {
+	if (devc->buffer[BK1856D_MSG_NUMBER_SIZE] == 'k') {
 		freq_value *= 1e3;
 		digits -= 3;
 	}
@@ -305,7 +305,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 
 	sr_sw_limits_update_samples_read(&(devc->sw_limits), 1);
 
-	if(!sr_sw_limits_check(&(devc->sw_limits)))
+	if (!sr_sw_limits_check(&(devc->sw_limits)))
 	{
 		devc->buffer_level = 0;
 		g_mutex_lock(&devc->rw_mutex);
@@ -354,7 +354,7 @@ SR_PRIV int bk_1856d_receive_data(int fd, int revents, void *cb_data)
 	if (len < 1)
 		return TRUE;
 	devc->buffer_level += len;
-	if(devc->buffer_level == BK1856D_MSG_SIZE)
+	if (devc->buffer_level == BK1856D_MSG_SIZE)
 		bk_1856d_parse_message(sdi);
 
 	return TRUE;
@@ -373,4 +373,3 @@ SR_PRIV void bk_1856d_select_input(struct dev_context *devc, int intput)
 	devc->sel_input = intput;
 	g_mutex_unlock(&devc->rw_mutex);
 }
-
