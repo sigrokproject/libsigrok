@@ -195,7 +195,7 @@ SR_PRIV int aim_tti_dps_sync_state(struct sr_scpi_dev_inst *scpi,
 	int ret;
 	ret = SR_OK;
 
-	for (int channel = 0 ; channel < devc->model_config->channels ; ++channel) {
+	for (int channel = 0; channel < devc->model_config->channels; ++channel) {
 		for (int param = AIM_TTI_VOLTAGE;
 			param < AIM_TTI_LAST_CHANNEL_PARAM && ret >= SR_OK;
 			++param) {

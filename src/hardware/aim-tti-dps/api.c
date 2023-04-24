@@ -148,7 +148,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	sr_scpi_hw_info_free(hw_info);
 	hw_info = NULL;
 
-	for (int chidx = 0 ; chidx < models[model_idx].channels; ++chidx) {
+	for (int chidx = 0; chidx < models[model_idx].channels; ++chidx) {
 		cg = g_malloc0(sizeof(struct sr_channel_group));
 		snprintf(buf, ARRAY_SIZE(buf), "CH%d", chidx+1);
 		cg->name = g_strdup(buf);
@@ -324,7 +324,7 @@ static int config_set(uint32_t key, GVariant *data,
 			return sr_sw_limits_config_set(&devc->limits, key, data);
 		case SR_CONF_ENABLED:
 			bval = g_variant_get_boolean(data);
-			for (chidx = 0 ; chidx < devc->model_config->channels ; ++chidx) {
+			for (chidx = 0; chidx < devc->model_config->channels; ++chidx) {
 				devc->config[chidx].output_enabled = bval;
 				devc->config[chidx].mode_changed = TRUE;
 			}
