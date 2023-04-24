@@ -76,7 +76,7 @@ SR_PRIV int rohde_schwarz_nrpxsn_receive_data(int fd, int revents,
 		if (devc->trigger_source_changed) {
 			ret = rohde_schwarz_nrpxsn_update_trigger_source(scpi, devc);
 		}
-		else if(devc->curr_freq_changed) {
+		else if (devc->curr_freq_changed) {
 			ret = rohde_schwarz_nrpxsn_update_curr_freq(scpi, devc);
 		}
 		else {
@@ -113,15 +113,15 @@ SR_PRIV int rohde_schwarz_nrpxsn_init(
 	devc->measurement_state = IDLE;
 
 	int ret = sr_scpi_send(scpi, "*RST");
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	ret = rohde_schwarz_nrpxsn_update_trigger_source(scpi, devc);
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	ret = rohde_schwarz_nrpxsn_update_curr_freq(scpi, devc);
-	if(ret != SR_OK)
+	if (ret != SR_OK)
 		return ret;
 
 	return sr_scpi_send(scpi, "UNIT:POW DBM");
