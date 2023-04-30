@@ -43,14 +43,10 @@ SR_PRIV int bv_get_value_len(float *out, const struct binary_value_spec *spec,
 	VALUE_TYPE(BVT_BE_UINT16, read_u16be, sizeof(uint16_t));
 	VALUE_TYPE(BVT_BE_UINT24, read_u24be, 3 * sizeof(uint8_t));
 	VALUE_TYPE(BVT_BE_UINT32, read_u32be, sizeof(uint32_t));
-	VALUE_TYPE(BVT_BE_UINT64, read_u64be, sizeof(uint64_t));
-	VALUE_TYPE(BVT_BE_FLOAT,  read_fltbe, sizeof(float));
 
 	VALUE_TYPE(BVT_LE_UINT16, read_u16le, sizeof(uint16_t));
 	VALUE_TYPE(BVT_LE_UINT24, read_u24le, 3 * sizeof(uint8_t));
 	VALUE_TYPE(BVT_LE_UINT32, read_u32le, sizeof(uint32_t));
-	VALUE_TYPE(BVT_LE_UINT64, read_u64le, sizeof(uint64_t));
-	VALUE_TYPE(BVT_LE_FLOAT,  read_fltle, sizeof(float));
 
 	default:
 		return SR_ERR_ARG;
@@ -84,12 +80,6 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
 	case BVT_BE_UINT32:
 		value = read_u32be(ptr);
 		break;
-	case BVT_BE_UINT64:
-		value = read_u64be(ptr);
-		break;
-	case BVT_BE_FLOAT:
-		value = read_fltbe(ptr);
-		break;
 	case BVT_LE_UINT16:
 		value = read_u16le(ptr);
 		break;
@@ -98,12 +88,6 @@ SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
 		break;
 	case BVT_LE_UINT32:
 		value = read_u32le(ptr);
-		break;
-	case BVT_LE_UINT64:
-		value = read_u64le(ptr);
-		break;
-	case BVT_LE_FLOAT:
-		value = read_fltle(ptr);
 		break;
 	default:
 		return SR_ERR_ARG;
