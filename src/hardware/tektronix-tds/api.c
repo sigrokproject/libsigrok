@@ -326,6 +326,10 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc = NULL;
 	hw_info = NULL;
 
+	// Slow devices (like TDS 220) need lots more time, though even fast
+	// deviecs require ~8 seconds for data xfer
+	scpi->read_timeout_us = 30 * 1000 * 1000;
+
 	if (sr_scpi_get_hw_id(scpi, &hw_info) != SR_OK) {
 		sr_info("Couldn't get IDN response, retrying.");
 		sr_scpi_close(scpi);

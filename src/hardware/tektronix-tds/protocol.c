@@ -111,27 +111,6 @@ static const char *render_scpi_enum(
 	*out_err = SR_ERR_DATA;
 	return "NULL";
 }
-static int parse_scpi_blockstart(const char *data, int *out_err)
-{
-	int len, i;
-	int ret = 0;
-	if (data[0] != '#' || data[1] < '0' || data[1] > '9') {
-		sr_err("block header invalid: %.2s",
-			data);
-		goto err;
-	}
-	len = data[1] - '0';
-	for(i = 0; i < len; ++i) {
-		if (data[2+i] < '0' || data[2+i] > '9')
-			goto err;
-		ret = ret * 10 + (data[2+i] - '0');
-	}
-	return ret;
-err:
-	*out_err = SR_ERR_DATA;
-	return -1;
-}
-
 
 static void check_expected_value(
 	const char* name, int actual, int expected, int* out_err, 
@@ -153,11 +132,12 @@ static void check_expected_value(
 	}
 }
 
-static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, char *end_buf)
+static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, GString *buffer)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
-	char *buf = (char *)devc->buffer;
+	gchar *buf = buffer->str;
+	gchar *end_buf = &buffer->str[buffer->len];
 	char *fields[TEK_PRE_HEADER_FIELDS + 1]; // one extra for block
 	int i = 0;
 	int ret = SR_OK;
@@ -165,7 +145,6 @@ static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, char *end_buf)
 	const char *wfid;
 	int bit_width;
 	int byte_width;
-	int blocklength;
 	enum TEK_POINT_FORMAT pt_format;
 	enum TEK_DATA_ORDERING ordering;
 	enum TEK_DATA_FORMAT format;
@@ -231,15 +210,14 @@ static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, char *end_buf)
 	devc->wavepre.y_off = parse_scpi_float(fields[i++], &ret, 0);
 	devc->wavepre.y_unit = parse_scpi_enum(sr_scpi_unquote_string(fields[i++]),
 		parse_table_yunits, &ret, YU_UNKNOWN);
-	blocklength = parse_scpi_blockstart(fields[i++], &ret);
 
-	sr_dbg("Expected 17 values, parsed %d in header with ret=%i", i, ret);
-	if (i != TEK_PRE_HEADER_FIELDS + 1 && ret == SR_OK)
+	sr_dbg("Expected 16 values, parsed %d in header with ret=%i", i, ret);
+	if (i != TEK_PRE_HEADER_FIELDS && ret == SR_OK)
 		ret = SR_ERR;
 
 	// expensive, so avoid
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW)
-		sr_spew("Line is parsed as: %d;%d;%s;%s;%s;%i;\"%s\";%s;%.2e;%i;%.2e;\"%s\";%.2e;%.2e;%.2e;\"%s\";#.%d... ",
+		sr_spew("Line is parsed as: %d;%d;%s;%s;%s;%i;\"%s\";%s;%.2e;%i;%.2e;\"%s\";%.2e;%.2e;%.2e;\"%s\";%c... ",
 			byte_width, bit_width,
 			render_scpi_enum(encoding, parse_table_data_encoding, &ret),
 			render_scpi_enum(format, parse_table_data_format, &ret),
@@ -253,7 +231,8 @@ static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, char *end_buf)
 			devc->wavepre.y_off,
 			render_scpi_enum(devc->wavepre.y_unit,
 				parse_table_yunits, &ret),
-			blocklength);
+				'#'
+			);
 	
 	// check that settings weren't tampered with
 	check_expected_value("byte width", byte_width, 1, &ret, NULL);
@@ -266,70 +245,89 @@ static int tektronix_tds_parse_header(struct sr_dev_inst *sdi, char *end_buf)
 	check_expected_value("point format", pt_format, PT_FMT_Y, &ret, parse_table_point_format);
 
 	check_expected_value("point offset", pt_off, 0, &ret, NULL);
-	check_expected_value("block length", blocklength, TEK_BUFFER_SIZE, &ret, NULL);
 	return ret;
 }
 
-/* Read the header of a data block. */
-static int tektronix_tds_read_header(struct sr_dev_inst *sdi)
+/* Find all 16 fields by locating their semicolons.
+ * In theory the string values could contain semicolons to throw us off
+ * but I think we are safe based on the docs
+ */
+static int tektronix_tds_count_headers(void *cb_data,
+	const char *rsp_data, size_t rsp_dlen, size_t *block_off)
+{
+	const char *rsp_start = rsp_data;
+	size_t found_fields = 0;
+
+	(void)cb_data;
+
+	/* Zero input length is acceptable here. */
+	if (rsp_data == NULL || block_off == NULL)
+		return SR_ERR_ARG;
+
+	while (rsp_dlen--> 0) {
+		if (*rsp_data++ == ';') {
+			found_fields++;
+
+			// if we found all fields, return the end of the header
+			if (found_fields == TEK_PRE_HEADER_FIELDS) {
+				// found all fields, this is the start of the block
+				*block_off = rsp_data - rsp_start;
+				return SR_OK;
+			}
+		}
+	}
+
+	return 1; /* Need more receive data. */
+}
+
+
+/* Read the header and prepare the data of a data block. */
+static int tektronix_tds_read_header_and_data(struct sr_dev_inst *sdi)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
 	char *buf = (char *)devc->buffer;
 	int ret;
+	GByteArray *block = NULL;
+	GString *text;
+
+	ret = sr_scpi_get_text_then_block(scpi, NULL,
+		tektronix_tds_count_headers, NULL, &text, &block);
+
+
+	if (ret != SR_OK) {
+		sr_err("Read error while reading data: %d",
+			ret);
+		ret = 1; // hack to avoid loosing data. We didn't start reading yet
+		goto err;
+	}
 
 	// header is variable, but at least 100 bytes, and likely no more than
 	// 175 bytes. Typical values are around 150
 
-	int attempt = 100;
-	int found = 0;
-
-	// Find all 16 fields by locating their semicolons.
-	// In theory the string values could contain semicolons to throw us off
-	// but I think we are safe based on the docs
-	while (found < TEK_PRE_HEADER_FIELDS) {
-		/* Read header from device. */
-		ret = sr_scpi_read_data(scpi, buf, attempt);
-		if (ret < attempt) {
-			sr_err("Read error while reading data header: %i of %i",
-				ret, attempt);
-			return SR_ERR;
-		}
-		for (int i = 0; i < ret; i++, buf++) {
-			if (*buf == ';') {
-				found++;
-			}
-		}
-		attempt = TEK_PRE_HEADER_FIELDS - found;
-		if (attempt > 1)
-			attempt *= 2;
+	if (tektronix_tds_parse_header(sdi, text) != SR_OK) {
+		goto err;
 	}
 
-	// read block header prefix (# + <digit>)
-	ret = sr_scpi_read_data(scpi, buf, 2);
-	if (ret < 2) {
-		sr_err("Read error while reading block header: %i of %i",
-			ret, 2);
-		return SR_ERR;
+	// copy points to our buffer
+	if (block->len != TEK_BUFFER_SIZE) {
+		sr_err("Expected full buffer, got one of size %d instead",
+			block->len);
+		ret = SR_ERR;
+		goto err;
 	}
-	if (buf[0] != '#' || buf[1] < '0' || buf[1] > '9') {
-		sr_err("block header invalid: %.2s",
-			buf);
-		return SR_ERR;
-	}
-	attempt = buf[1] - '0';
-	buf+=2;
-	// read block header size
-	ret = sr_scpi_read_data(scpi, buf, attempt);
-	if (ret < attempt) {
-		sr_err("Read error while reading block header: %i of %i",
-			ret, attempt);
-		return SR_ERR;
-	}
-	buf +=attempt;
+	memcpy(buf, block->data, block->len);
+	devc->num_block_read = block->len;
 
-	if (tektronix_tds_parse_header(sdi, buf + 1) != SR_OK)
-		ret = -1;
+	g_byte_array_free(block, TRUE);
+	g_string_free(text, TRUE);
+
+	return SR_OK;
+err:
+	if (block != NULL)
+		g_byte_array_free(block, TRUE);
+	if (text != NULL)
+		g_string_free(text, TRUE);
 	return ret;
 }
 
@@ -695,14 +693,12 @@ SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
 
 		// no data yet
 		sr_dbg("Waiting for data...");
-		if (sr_scpi_read_begin(scpi) != SR_OK)
+		len = tektronix_tds_read_header_and_data(sdi);
+		if (len == 1)
+			/* Still reading the header. */
 			return TRUE;
 
 		sr_dbg("New block with header expected.");
-		len = tektronix_tds_read_header(sdi);
-		if (len == 0)
-			/* Still reading the header. */
-			return TRUE;
 
 		if (len == -1) {
 			sr_err("Read error, aborting capture.");
@@ -715,36 +711,7 @@ SR_PRIV int tektronix_tds_receive(int fd, int revents, void *cb_data)
 
 		// streaming data back is pretty fast, at least once the scope
 		// eventually starts sending it our way
-		devc->num_block_read = 0;
 
-		sr_dbg("Requesting block: %d bytes.", TEK_BUFFER_SIZE + 1);
-		len = sr_scpi_read_data(
-			scpi, (char *)devc->buffer, TEK_BUFFER_SIZE + 1);
-		if (len == -1) {
-			sr_err("Read error, aborting capture.");
-			std_session_send_df_frame_end(sdi);
-			sdi->driver->dev_acquisition_stop(sdi);
-			return TRUE;
-		}
-		sr_dbg("Received block: %d bytes.", len);
-		devc->num_block_read = len;
-
-		// ensure the terminating newline is read
-		while (devc->num_block_read < TEK_BUFFER_SIZE + 1) {
-			sr_dbg("Requesting: %d bytes.",
-				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
-			len = sr_scpi_read_data(scpi,
-				(char *)devc->buffer + devc->num_block_read,
-				TEK_BUFFER_SIZE + 1 - devc->num_block_read);
-			if (len == -1) {
-				sr_err("Read error, aborting capture.");
-				std_session_send_df_frame_end(sdi);
-				sdi->driver->dev_acquisition_stop(sdi);
-				return TRUE;
-			}
-			sr_dbg("Received block: %d bytes.", len);
-			devc->num_block_read += len;
-		}
 		sr_dbg("Transfer has been completed.");
 		if (!sr_scpi_read_complete(scpi)) {
 			sr_err("Read should have been completed.");
