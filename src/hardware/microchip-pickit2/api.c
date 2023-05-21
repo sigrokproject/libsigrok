@@ -72,6 +72,7 @@ static const char *channel_names[] = {
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
+	SR_CONF_PROBE_NAMES,
 };
 
 static const uint32_t drvopts[] = {
@@ -119,6 +120,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
 	const char *conn;
+	const char *probe_names;
 	GSList *l, *devices, *usb_devices;
 	struct sr_config *cfg;
 	struct sr_usb_dev_inst *usb;
@@ -131,11 +133,15 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	drvc = di->context;
 
 	conn = PICKIT2_DEFAULT_ADDRESS;
+	probe_names = NULL;
 	for (l = options; l; l = l->next) {
 		cfg = l->data;
 		switch (cfg->key) {
 		case SR_CONF_CONN:
 			conn = g_variant_get_string(cfg->data, NULL);
+			break;
+		case SR_CONF_PROBE_NAMES:
+			probe_names = g_variant_get_string(cfg->data, NULL);
 			break;
 		}
 	}
@@ -158,15 +164,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		sdi->conn = usb;
 		sdi->connection_id = g_strdup(conn);
 
-		/* Create the logic channels group. */
-		cg = sr_channel_group_new(sdi, "Logic", NULL);
-		ch_count = ARRAY_SIZE(channel_names);
-		for (ch_idx = 0; ch_idx < ch_count; ch_idx++) {
-			ch = sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
-				TRUE, channel_names[ch_idx]);
-			cg->channels = g_slist_append(cg->channels, ch);
-		}
-
 		/*
 		 * Create the device context. Pre-select the highest
 		 * samplerate and the deepest sample count available.
@@ -180,6 +177,17 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		devc->num_captureratios = ARRAY_SIZE(captureratios);
 		devc->curr_captureratio_idx = 0;
 		devc->sw_limits.limit_samples = PICKIT2_SAMPLE_COUNT;
+		devc->channel_names = sr_parse_probe_names(probe_names,
+			channel_names, ARRAY_SIZE(channel_names),
+			ARRAY_SIZE(channel_names), &ch_count);
+
+		/* Create the logic channels group. */
+		cg = sr_channel_group_new(sdi, "Logic", NULL);
+		for (ch_idx = 0; ch_idx < ch_count; ch_idx++) {
+			ch = sr_channel_new(sdi, ch_idx, SR_CHANNEL_LOGIC,
+				TRUE, devc->channel_names[ch_idx]);
+			cg->channels = g_slist_append(cg->channels, ch);
+		}
 	}
 
 	return std_scan_complete(di, devices);

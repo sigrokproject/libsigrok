@@ -45,7 +45,7 @@ static const uint32_t devopts[] = {
 static const char *scan_conn[] = {
 	/* 287/289 */
 	"115200/8n1",
-	/* 187/189 */
+	/* 87/89/187/189 */
 	"9600/8n1",
 	/* Scopemeter 190 series */
 	"1200/8n1",
@@ -53,10 +53,12 @@ static const char *scan_conn[] = {
 };
 
 static const struct flukedmm_profile supported_flukedmm[] = {
+	{ FLUKE_87, "87", 100, 1000 },
+	{ FLUKE_89, "89", 100, 1000 },
 	{ FLUKE_187, "187", 100, 1000 },
 	{ FLUKE_189, "189", 100, 1000 },
-	{ FLUKE_287, "287", 100, 1000 },
 	{ FLUKE_190, "199B", 1000, 3500 },
+	{ FLUKE_287, "287", 100, 1000 },
 	{ FLUKE_289, "289", 100, 1000 },
 };
 
@@ -226,7 +228,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver flukedmm_driver_info = {
 	.name = "fluke-dmm",
-	.longname = "Fluke 18x/28x series DMMs",
+	.longname = "Fluke 8x/18x/28x series DMMs",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,

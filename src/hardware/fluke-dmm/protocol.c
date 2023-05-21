@@ -26,6 +26,28 @@
 #include "libsigrok-internal.h"
 #include "protocol.h"
 
+static int count_digits(const char *str)
+{
+	int digits;
+
+	if (*str == '-' || *str == '+')
+		str++;
+
+	while (*str >= '0' && *str <= '9')
+		str++;
+
+	digits = 0;
+	if (*str == '.') {
+		str++;
+		while (*str >= '0' && *str <= '9') {
+			str++;
+			digits++;
+		}
+	}
+
+	return digits;
+}
+
 static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 {
 	struct dev_context *devc;
@@ -37,6 +59,11 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 	float fvalue;
 	char *e, *u;
 	gboolean is_oor;
+	int digits;
+	int exponent;
+	enum sr_mq mq;
+	enum sr_unit unit;
+	enum sr_mqflag mqflags;
 
 	devc = sdi->priv;
 
@@ -46,6 +73,7 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 	if ((e = strstr(tokens[1], "Out of range"))) {
 		is_oor = TRUE;
 		fvalue = -1;
+		digits = 0;
 		while (*e && *e != '.')
 			e++;
 	} else {
@@ -56,101 +84,111 @@ static void handle_qm_18x(const struct sr_dev_inst *sdi, char **tokens)
 		while (*e && *e != ' ')
 			e++;
 		*e++ = '\0';
-		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK || fvalue == 0.0) {
+		if (sr_atof_ascii(tokens[1], &fvalue) != SR_OK) {
 			/* Happens all the time, when switching modes. */
-			sr_dbg("Invalid float.");
+			sr_dbg("Invalid float: '%s'", tokens[1]);
 			return;
 		}
+		digits = count_digits(tokens[1]);
 	}
 	while (*e && *e == ' ')
 		e++;
 
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
-	analog.data = &fvalue;
-	analog.meaning->channels = sdi->channels;
-	analog.num_samples = 1;
 	if (is_oor)
 		fvalue = NAN;
-	analog.meaning->mq = 0;
 
+	mq = 0;
+	unit = 0;
+	exponent = 0;
+	mqflags = 0;
 	if ((u = strstr(e, "V DC")) || (u = strstr(e, "V AC"))) {
-		analog.meaning->mq = SR_MQ_VOLTAGE;
-		analog.meaning->unit = SR_UNIT_VOLT;
+		mq = SR_MQ_VOLTAGE;
+		unit = SR_UNIT_VOLT;
 		if (!is_oor && e[0] == 'm')
-			fvalue /= 1000;
+			exponent = -3;
 		/* This catches "V AC", "V DC" and "V AC+DC". */
 		if (strstr(u, "AC"))
-			analog.meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		if (strstr(u, "DC"))
-			analog.meaning->mqflags |= SR_MQFLAG_DC;
+			mqflags |= SR_MQFLAG_DC;
 	} else if ((u = strstr(e, "dBV")) || (u = strstr(e, "dBm"))) {
-		analog.meaning->mq = SR_MQ_VOLTAGE;
+		mq = SR_MQ_VOLTAGE;
 		if (u[2] == 'm')
-			analog.meaning->unit = SR_UNIT_DECIBEL_MW;
+			unit = SR_UNIT_DECIBEL_MW;
 		else
-			analog.meaning->unit = SR_UNIT_DECIBEL_VOLT;
-		analog.meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			unit = SR_UNIT_DECIBEL_VOLT;
+		mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 	} else if ((u = strstr(e, "Ohms"))) {
-		analog.meaning->mq = SR_MQ_RESISTANCE;
-		analog.meaning->unit = SR_UNIT_OHM;
+		mq = SR_MQ_RESISTANCE;
+		unit = SR_UNIT_OHM;
 		if (is_oor)
 			fvalue = INFINITY;
 		else if (e[0] == 'k')
-			fvalue *= 1000;
+			exponent = 3;
 		else if (e[0] == 'M')
-			fvalue *= 1000000;
+			exponent = 6;
 	} else if (!strcmp(e, "nS")) {
-		analog.meaning->mq = SR_MQ_CONDUCTANCE;
-		analog.meaning->unit = SR_UNIT_SIEMENS;
-		*((float *)analog.data) /= 1e+9;
+		mq = SR_MQ_CONDUCTANCE;
+		unit = SR_UNIT_SIEMENS;
+		exponent = -9;
 	} else if ((u = strstr(e, "Farads"))) {
-		analog.meaning->mq = SR_MQ_CAPACITANCE;
-		analog.meaning->unit = SR_UNIT_FARAD;
+		mq = SR_MQ_CAPACITANCE;
+		unit = SR_UNIT_FARAD;
 		if (!is_oor) {
 			if (e[0] == 'm')
-				fvalue /= 1e+3;
+				exponent = -3;
 			else if (e[0] == 'u')
-				fvalue /= 1e+6;
+				exponent = -6;
 			else if (e[0] == 'n')
-				fvalue /= 1e+9;
+				exponent = -9;
 		}
 	} else if ((u = strstr(e, "Deg C")) || (u = strstr(e, "Deg F"))) {
-		analog.meaning->mq = SR_MQ_TEMPERATURE;
+		mq = SR_MQ_TEMPERATURE;
 		if (u[4] == 'C')
-			analog.meaning->unit = SR_UNIT_CELSIUS;
+			unit = SR_UNIT_CELSIUS;
 		else
-			analog.meaning->unit = SR_UNIT_FAHRENHEIT;
+			unit = SR_UNIT_FAHRENHEIT;
 	} else if ((u = strstr(e, "A AC")) || (u = strstr(e, "A DC"))) {
-		analog.meaning->mq = SR_MQ_CURRENT;
-		analog.meaning->unit = SR_UNIT_AMPERE;
+		mq = SR_MQ_CURRENT;
+		unit = SR_UNIT_AMPERE;
 		/* This catches "A AC", "A DC" and "A AC+DC". */
 		if (strstr(u, "AC"))
-			analog.meaning->mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
+			mqflags |= SR_MQFLAG_AC | SR_MQFLAG_RMS;
 		if (strstr(u, "DC"))
-			analog.meaning->mqflags |= SR_MQFLAG_DC;
+			mqflags |= SR_MQFLAG_DC;
 		if (!is_oor) {
 			if (e[0] == 'm')
-				fvalue /= 1e+3;
+				exponent = -3;
 			else if (e[0] == 'u')
-				fvalue /= 1e+6;
+				exponent = -6;
 		}
 	} else if ((u = strstr(e, "Hz"))) {
-		analog.meaning->mq = SR_MQ_FREQUENCY;
-		analog.meaning->unit = SR_UNIT_HERTZ;
+		mq = SR_MQ_FREQUENCY;
+		unit = SR_UNIT_HERTZ;
 		if (e[0] == 'k')
-			fvalue *= 1e+3;
+			exponent = 3;
 	} else if (!strcmp(e, "%")) {
-		analog.meaning->mq = SR_MQ_DUTY_CYCLE;
-		analog.meaning->unit = SR_UNIT_PERCENTAGE;
+		mq = SR_MQ_DUTY_CYCLE;
+		unit = SR_UNIT_PERCENTAGE;
 	} else if ((u = strstr(e, "ms"))) {
-		analog.meaning->mq = SR_MQ_PULSE_WIDTH;
-		analog.meaning->unit = SR_UNIT_SECOND;
-		fvalue /= 1e+3;
+		mq = SR_MQ_PULSE_WIDTH;
+		unit = SR_UNIT_SECOND;
+		exponent = -3;
 	}
 
-	if (analog.meaning->mq != 0) {
+	if (mq != 0) {
 		/* Got a measurement. */
+		digits -= exponent;
+		fvalue *= pow(10.0f, exponent);
+
+		sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
+		analog.data = &fvalue;
+		analog.num_samples = 1;
+		analog.meaning->unit = unit;
+		analog.meaning->mq = mq;
+		analog.meaning->mqflags = mqflags;
+		analog.meaning->channels = sdi->channels;
+
 		packet.type = SR_DF_ANALOG;
 		packet.payload = &analog;
 		sr_session_send(sdi, &packet);
@@ -167,19 +205,40 @@ static void handle_qm_28x(const struct sr_dev_inst *sdi, char **tokens)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	float fvalue;
+	int digits;
+	int exponent;
+	char *e;
 
 	devc = sdi->priv;
 
 	if (!tokens[1])
 		return;
 
-	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK || fvalue == 0.0) {
-		sr_err("Invalid float '%s'.", tokens[0]);
+	/* Split measurement into mantissa / exponent */
+	e = tokens[0];
+	while (*e) {
+		if (*e == 'e' || *e == 'E') {
+			*e = '\0';
+			e++;
+			break;
+		}
+		e++;
+	}
+
+	if (sr_atof_ascii(tokens[0], &fvalue) != SR_OK) {
+		sr_err("Invalid mantissa '%s'.", tokens[0]);
 		return;
 	}
 
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
+	if (sr_atoi(e, &exponent) != SR_OK) {
+		sr_err("Invalid exponent '%s'.", e);
+		return;
+	}
+
+	digits = count_digits(tokens[0]) - exponent;
+	fvalue *= pow(10.0f, exponent);
+
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.data = &fvalue;
 	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
@@ -378,7 +437,9 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 	struct sr_analog_meaning meaning;
 	struct sr_analog_spec spec;
 	float fvalue;
+	int digits;
 
+	digits = 2;
 	if (!strcmp(tokens[0], "9.9E+37")) {
 		/* An invalid measurement shows up on the display as "OL", but
 		 * comes through like this. Since comparing 38-digit floats
@@ -389,6 +450,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			sr_err("Invalid float '%s'.", tokens[0]);
 			return;
 		}
+		digits = count_digits(tokens[0]);
 	}
 
 	devc = sdi->priv;
@@ -405,8 +467,7 @@ static void handle_qm_19x_data(const struct sr_dev_inst *sdi, char **tokens)
 			fvalue = 1.0;
 	}
 
-	/* TODO: Use proper 'digits' value for this device (and its modes). */
-	sr_analog_init(&analog, &encoding, &meaning, &spec, 2);
+	sr_analog_init(&analog, &encoding, &meaning, &spec, digits);
 	analog.meaning->channels = sdi->channels;
 	analog.num_samples = 1;
 	analog.data = &fvalue;
@@ -426,6 +487,7 @@ static void handle_line(const struct sr_dev_inst *sdi)
 	struct sr_serial_dev_inst *serial;
 	int num_tokens, n, i;
 	char cmd[16], **tokens;
+	int ret;
 
 	devc = sdi->priv;
 	serial = sdi->conn;
@@ -443,34 +505,48 @@ static void handle_line(const struct sr_dev_inst *sdi)
 
 	tokens = g_strsplit(devc->buf, ",", 0);
 	if (tokens[0]) {
-		if (devc->profile->model == FLUKE_187 || devc->profile->model == FLUKE_189) {
+		switch (devc->profile->model) {
+		case FLUKE_87:
+		case FLUKE_89:
+		case FLUKE_187:
+		case FLUKE_189:
 			devc->expect_response = FALSE;
 			handle_qm_18x(sdi, tokens);
-		} else if (devc->profile->model == FLUKE_287 || devc->profile->model == FLUKE_289) {
+			break;
+		case FLUKE_190:
 			devc->expect_response = FALSE;
-			handle_qm_28x(sdi, tokens);
-		} else if (devc->profile->model == FLUKE_190) {
-			devc->expect_response = FALSE;
-			for (num_tokens = 0; tokens[num_tokens]; num_tokens++);
-			if (num_tokens >= 7) {
-				/* Response to QM: this is a comma-separated list of
-				 * fields with metadata about the measurement. This
-				 * format can return multiple sets of metadata,
-				 * split into sets of 7 tokens each. */
-				devc->meas_type = 0;
-				for (i = 0; i < num_tokens; i += 7)
-					handle_qm_19x_meta(sdi, tokens + i);
-				if (devc->meas_type) {
-					/* Slip the request in now, before the main
-					 * timer loop asks for metadata again. */
-					n = sprintf(cmd, "QM %d\r", devc->meas_type);
-					if (serial_write_blocking(serial, cmd, n, SERIAL_WRITE_TIMEOUT_MS) < 0)
-						sr_err("Unable to send QM (measurement).");
-				}
-			} else {
+			num_tokens = g_strv_length(tokens);
+			if (num_tokens < 7) {
 				/* Response to QM <n> measurement request. */
 				handle_qm_19x_data(sdi, tokens);
+				break;
 			}
+			/*
+			 * Response to QM: This is a comma-separated list of
+			 * fields with metadata about the measurement. This
+			 * format can return multiple sets of metadata,
+			 * split into sets of 7 tokens each.
+			 */
+			devc->meas_type = 0;
+			for (i = 0; i < num_tokens; i += 7)
+				handle_qm_19x_meta(sdi, tokens + i);
+			if (devc->meas_type) {
+				/*
+				 * Slip the request in now, before the main
+				 * timer loop asks for metadata again.
+				 */
+				n = sprintf(cmd, "QM %d\r", devc->meas_type);
+				ret = serial_write_blocking(serial,
+					cmd, n, SERIAL_WRITE_TIMEOUT_MS);
+				if (ret < 0)
+					sr_err("Cannot send QM (measurement).");
+			}
+			break;
+		case FLUKE_287:
+		case FLUKE_289:
+			devc->expect_response = FALSE;
+			handle_qm_28x(sdi, tokens);
+			break;
 		}
 	}
 	g_strfreev(tokens);

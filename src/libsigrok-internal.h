@@ -616,6 +616,30 @@ static inline uint8_t read_u8_inc(const uint8_t **p)
 }
 
 /**
+ * Read unsigned 8bit integer, check length, increment read position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in, out] l Remaining input payload length.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint8_t read_u8_inc_len(const uint8_t **p, size_t *l)
+{
+	uint8_t v;
+
+	if (!p || !*p)
+		return 0;
+	if (l && *l < sizeof(v)) {
+		*l = 0;
+		return 0;
+	}
+	v = read_u8(*p);
+	*p += sizeof(v);
+	if (l)
+		*l -= sizeof(v);
+
+	return v;
+}
+
+/**
  * Read signed 8bit integer from raw memory, increment read position.
  * @param[in, out] p Pointer into byte stream.
  * @return Retrieved integer value, signed.
@@ -662,6 +686,30 @@ static inline uint16_t read_u16le_inc(const uint8_t **p)
 		return 0;
 	v = read_u16le(*p);
 	*p += sizeof(v);
+
+	return v;
+}
+
+/**
+ * Read unsigned 16bit integer (LE format), check length, increment position.
+ * @param[in, out] p Pointer into byte stream.
+ * @param[in, out] l Remaining input payload length.
+ * @return Retrieved integer value, unsigned.
+ */
+static inline uint16_t read_u16le_inc_len(const uint8_t **p, size_t *l)
+{
+	uint16_t v;
+
+	if (!p || !*p)
+		return 0;
+	if (l && *l < sizeof(v)) {
+		*l = 0;
+		return 0;
+	}
+	v = read_u16le(*p);
+	*p += sizeof(v);
+	if (l)
+		*l -= sizeof(v);
 
 	return v;
 }
@@ -1572,6 +1620,9 @@ struct sr_serial_dev_inst {
 		SER_BT_CONN_BLE122,	/**!< BLE, BLE122 module, indications */
 		SER_BT_CONN_NRF51,	/**!< BLE, Nordic nRF51, notifications */
 		SER_BT_CONN_CC254x,	/**!< BLE, TI CC254x, notifications */
+		SER_BT_CONN_AC6328,	/**!< BLE, JL AC6328B, notifications */
+		SER_BT_CONN_DIALOG,	/**!< BLE, dialog DA14580, notifications */
+		SER_BT_CONN_NOTIFY,	/**!< BLE, generic notifications */
 		SER_BT_CONN_MAX,	/**!< sentinel */
 	} bt_conn_type;
 	char *bt_addr_local;
@@ -1581,6 +1632,7 @@ struct sr_serial_dev_inst {
 	uint16_t bt_notify_handle_write;
 	uint16_t bt_notify_handle_cccd;
 	uint16_t bt_notify_value_cccd;
+	uint16_t bt_ble_mtu;
 	struct sr_bt_desc *bt_desc;
 	GSList *bt_source_args;
 #endif
@@ -2096,7 +2148,8 @@ SR_PRIV int sr_bt_config_addr_remote(struct sr_bt_desc *desc, const char *addr);
 SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel);
 SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	uint16_t read_handle, uint16_t write_handle,
-	uint16_t cccd_handle, uint16_t cccd_value);
+	uint16_t cccd_handle, uint16_t cccd_value,
+	uint16_t ble_mtu);
 
 SR_PRIV int sr_bt_scan_le(struct sr_bt_desc *desc, int duration);
 SR_PRIV int sr_bt_scan_bt(struct sr_bt_desc *desc, int duration);
@@ -2163,52 +2216,22 @@ enum binary_value_type {
 
 /** Binary value specification */
 struct binary_value_spec {
-	/** Offset into binary blob */
-	size_t offset;
-	/** Data type to decode */
-	enum binary_value_type type;
-	/** Scale factor to get native units */
-	float scale;
-};
-
-/** Binary channel definition */
-struct binary_analog_channel {
-	/** Channel name */
-	const char *name;
-	/** Binary value in data stream */
-	struct binary_value_spec spec;
-	/** Significant digits */
-	int digits;
-	/** Measured quantity */
-	enum sr_mq mq;
-	/** Measured unit */
-	enum sr_unit unit;
+	size_t offset;			/**!< Offset into binary image */
+	enum binary_value_type type;	/**!< Data type to decode */
 };
 
 /**
- * Read extract a value from a binary blob.
+ * Read extract a value from a binary data image.
  *
- * @param out Pointer to output buffer.
- * @param spec Binary value specification
- * @param data Pointer to binary blob
- * @param length Size of binary blob
+ * @param[out] out Pointer to output buffer (conversion result)
+ * @param[in] spec Binary value specification
+ * @param[in] data Pointer to binary input data
+ * @param[in] length Size of binary input data
+ *
  * @return SR_OK on success, SR_ERR_* error code on failure.
  */
-SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec, const void *data, size_t length);
-
-/**
- * Send an analog channel packet based on a binary analog channel
- * specification.
- *
- * @param sdi Device instance
- * @param ch Sigrok channel
- * @param spec Channel specification
- * @param data Pointer to binary blob
- * @param length Size of binary blob
- * @return SR_OK on success, SR_ERR_* error code on failure.
- */
-SR_PRIV int bv_send_analog_channel(const struct sr_dev_inst *sdi, struct sr_channel *ch,
-				   const struct binary_analog_channel *spec, const void *data, size_t length);
+SR_PRIV int bv_get_value(float *out, const struct binary_value_spec *spec,
+	const void *data, size_t length);
 
 /*--- crc.c -----------------------------------------------------------------*/
 
@@ -2780,6 +2803,10 @@ SR_API void feed_queue_logic_free(struct feed_queue_logic *q);
 SR_API struct feed_queue_analog *feed_queue_analog_alloc(
 	const struct sr_dev_inst *sdi,
 	size_t sample_count, int digits, struct sr_channel *ch);
+SR_API int feed_queue_analog_mq_unit(struct feed_queue_analog *q,
+	enum sr_mq mq, enum sr_mqflag mq_flag, enum sr_unit unit);
+SR_API int feed_queue_analog_scale_offset(struct feed_queue_analog *q,
+	const struct sr_rational *scale, const struct sr_rational *offset);
 SR_API int feed_queue_analog_submit(struct feed_queue_analog *q,
 	float data, size_t count);
 SR_API int feed_queue_analog_flush(struct feed_queue_analog *q);

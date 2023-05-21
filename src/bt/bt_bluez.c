@@ -74,6 +74,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <glib.h>
+#include <inttypes.h>
 #include <poll.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -95,9 +96,6 @@
 
 #define CONNECT_RFCOMM_TRIES	3
 #define CONNECT_RFCOMM_RETRY_MS	100
-
-/* Silence warning about (currently) unused routine. */
-#define WITH_WRITE_TYPE_HANDLE	0
 
 /* {{{ compat decls */
 /*
@@ -239,6 +237,7 @@ struct sr_bt_desc {
 	uint16_t write_handle;
 	uint16_t cccd_handle;
 	uint16_t cccd_value;
+	uint16_t ble_mtu;
 	/* Internal state. */
 	int devid;
 	int fd;
@@ -249,10 +248,8 @@ static int sr_bt_desc_open(struct sr_bt_desc *desc, int *id_ref);
 static void sr_bt_desc_close(struct sr_bt_desc *desc);
 static int sr_bt_check_socket_usable(struct sr_bt_desc *desc);
 static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type);
-#if WITH_WRITE_TYPE_HANDLE
 static ssize_t sr_bt_write_type_handle(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle);
-#endif
 static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle, const uint8_t *data, size_t len);
 static ssize_t sr_bt_char_write_req(struct sr_bt_desc *desc,
@@ -365,7 +362,8 @@ SR_PRIV int sr_bt_config_rfcomm(struct sr_bt_desc *desc, size_t channel)
 
 SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	uint16_t read_handle, uint16_t write_handle,
-	uint16_t cccd_handle, uint16_t cccd_value)
+	uint16_t cccd_handle, uint16_t cccd_value,
+	uint16_t ble_mtu)
 {
 
 	if (!desc)
@@ -375,6 +373,7 @@ SR_PRIV int sr_bt_config_notify(struct sr_bt_desc *desc,
 	desc->write_handle = write_handle;
 	desc->cccd_handle = cccd_handle;
 	desc->cccd_value = cccd_value;
+	desc->ble_mtu = ble_mtu;
 
 	return 0;
 }
@@ -902,10 +901,15 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 {
 	uint8_t buf[1024];
 	ssize_t rdlen;
+	const uint8_t *bufptr;
+	size_t buflen;
 	uint8_t packet_type;
 	uint16_t packet_handle;
 	uint8_t *packet_data;
 	size_t packet_dlen;
+	const char *type_text;
+	int ret;
+	uint16_t mtu;
 
 	if (!desc)
 		return -1;
@@ -913,57 +917,113 @@ SR_PRIV int sr_bt_check_notify(struct sr_bt_desc *desc)
 	if (sr_bt_check_socket_usable(desc) < 0)
 		return -2;
 
-	/* Get another message from the Bluetooth socket. */
+	/*
+	 * Get another message from the Bluetooth socket.
+	 *
+	 * TODO Can we assume that every "message" comes in a separate
+	 * read(2) call, or can data combine at the caller's? Need we
+	 * loop over the received content until all was consumed?
+	 */
 	rdlen = sr_bt_read(desc, buf, sizeof(buf));
-	if (rdlen < 0)
+	if (rdlen < 0) {
+		sr_dbg("check notifiy, read error, %zd", rdlen);
 		return -2;
-	if (!rdlen)
+	}
+	if (!rdlen) {
+		if (0) sr_spew("check notifiy, empty read");
 		return 0;
+	}
+	bufptr = &buf[0];
+	buflen = (size_t)rdlen;
+	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
+		GString *txt;
+		txt = sr_hexdump_new(bufptr, buflen);
+		sr_spew("check notifiy, read succes, length %zd, data: %s",
+			rdlen, txt->str);
+		sr_hexdump_free(txt);
+	}
 
-	/* Get header fields and references to the payload data. */
-	packet_type = 0x00;
+	/*
+	 * Get header fields and references to the payload data. Notice
+	 * that the first 16bit item after the packet type often is the
+	 * handle, but need not always be. That is why the read position
+	 * is kept, so that individual packet type handlers can either
+	 * read _their_ layout strictly sequentially, or can conveniently
+	 * access what a common preparation step has provided to them.
+	 */
 	packet_handle = 0x0000;
 	packet_data = NULL;
 	packet_dlen = 0;
-	if (rdlen >= 1)
-		packet_type = buf[0];
-	if (rdlen >= 3) {
-		packet_handle = bt_get_le16(&buf[1]);
-		packet_data = &buf[3];
-		packet_dlen = rdlen - 3;
+	packet_type = read_u8_inc_len(&bufptr, &buflen);
+	if (buflen >= sizeof(uint16_t)) {
+		packet_handle = read_u16le(bufptr);
+		packet_data = (void *)&bufptr[sizeof(uint16_t)];
+		packet_dlen = buflen - sizeof(uint16_t);
+		if (!packet_dlen)
+			packet_data = NULL;
 	}
+	if (0) sr_spew("check notifiy, prep, hdl %" PRIu16 ", data %p len %zu",
+		packet_handle, packet_data, packet_dlen);
 
 	/* Dispatch according to the message type. */
 	switch (packet_type) {
+	case BLE_ATT_EXCHANGE_MTU_REQ:
+		type_text = "MTU exchange request";
+		if (buflen < sizeof(uint16_t)) {
+			sr_dbg("%s, invalid (size)", type_text);
+			break;
+		}
+		mtu = read_u16le_inc_len(&bufptr, &buflen);
+		sr_dbg("%s, peripheral value %" PRIu16, type_text, mtu);
+		if (desc->ble_mtu) {
+			mtu = desc->ble_mtu;
+			sr_dbg("%s, central value %" PRIu16, type_text, mtu);
+			sr_bt_write_type_handle(desc,
+				BLE_ATT_EXCHANGE_MTU_RESP, mtu);
+			break;
+		}
+		sr_warn("Unhandled BLE %s.", type_text);
+		break;
 	case BLE_ATT_ERROR_RESP:
-		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "error response");
+		type_text = "error response";
+		if (!buflen) {
+			sr_dbg("%s, no payload", type_text);
+			break;
+		}
 		/* EMPTY */
+		sr_dbg("%s, not handled here", type_text);
 		break;
 	case BLE_ATT_WRITE_RESP:
-		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "write response");
-		/* EMPTY */
+		type_text = "write response";
+		sr_dbg("%s, note taken", type_text);
 		break;
 	case BLE_ATT_HANDLE_INDICATION:
-		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "handle indication");
+		type_text = "handle indication";
+		sr_dbg("%s, data len %zu", type_text, packet_dlen);
 		sr_bt_write_type(desc, BLE_ATT_HANDLE_CONFIRMATION);
+		sr_spew("%s, confirmation sent", type_text);
 		if (packet_handle != desc->read_handle)
-			return -4;
-		if (!packet_data)
 			return -4;
 		if (!desc->data_cb)
 			return 0;
-		return desc->data_cb(desc->data_cb_data, packet_data, packet_dlen);
+		ret = desc->data_cb(desc->data_cb_data,
+			packet_data, packet_dlen);
+		sr_spew("%s, data cb ret %d", type_text, ret);
+		return ret;
 	case BLE_ATT_HANDLE_NOTIFICATION:
-		sr_spew("read() len %zd, type 0x%02x (%s)", rdlen, buf[0], "handle notification");
+		type_text = "handle notification";
+		sr_dbg("%s, data len %zu", type_text, packet_dlen);
 		if (packet_handle != desc->read_handle)
-			return -4;
-		if (!packet_data)
 			return -4;
 		if (!desc->data_cb)
 			return 0;
-		return desc->data_cb(desc->data_cb_data, packet_data, packet_dlen);
+		ret = desc->data_cb(desc->data_cb_data,
+			packet_data, packet_dlen);
+		sr_spew("%s, data cb ret %d", type_text, ret);
+		return ret;
 	default:
-		sr_spew("unsupported type 0x%02x", packet_type);
+		sr_dbg("unhandled type 0x%02x, len %zu",
+			packet_type, buflen);
 		return -3;
 	}
 
@@ -1013,13 +1073,11 @@ static ssize_t sr_bt_write_type(struct sr_bt_desc *desc, uint8_t type)
 	return 0;
 }
 
-#if WITH_WRITE_TYPE_HANDLE
 static ssize_t sr_bt_write_type_handle(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle)
 {
 	return sr_bt_write_type_handle_bytes(desc, type, handle, NULL, 0);
 }
-#endif
 
 static ssize_t sr_bt_write_type_handle_bytes(struct sr_bt_desc *desc,
 	uint8_t type, uint16_t handle, const uint8_t *data, size_t len)

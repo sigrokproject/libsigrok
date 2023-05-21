@@ -120,7 +120,7 @@ static int scpi_tcp_connection_id(struct sr_scpi_dev_inst *scpi,
 {
 	struct scpi_tcp *tcp = scpi->priv;
 
-	*connection_id = g_strdup_printf("%s/%s:%s",
+	*connection_id = g_strdup_printf("%s/%s/%s",
 		scpi->prefix, tcp->address, tcp->port);
 
 	return SR_OK;

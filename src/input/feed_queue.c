@@ -162,6 +162,45 @@ SR_API struct feed_queue_analog *feed_queue_analog_alloc(
 	return q;
 }
 
+SR_API int feed_queue_analog_mq_unit(struct feed_queue_analog *q,
+	enum sr_mq mq, enum sr_mqflag mq_flag, enum sr_unit unit)
+{
+	int ret;
+
+	if (!q)
+		return SR_ERR_ARG;
+
+	ret = feed_queue_analog_flush(q);
+	if (ret != SR_OK)
+		return ret;
+
+	q->meaning.mq = mq;
+	q->meaning.mqflags = mq_flag;
+	q->meaning.unit = unit;
+
+	return SR_OK;
+}
+
+SR_API int feed_queue_analog_scale_offset(struct feed_queue_analog *q,
+	const struct sr_rational *scale, const struct sr_rational *offset)
+{
+	int ret;
+
+	if (!q)
+		return SR_ERR_ARG;
+
+	ret = feed_queue_analog_flush(q);
+	if (ret != SR_OK)
+		return ret;
+
+	if (scale)
+		q->encoding.scale = *scale;
+	if (offset)
+		q->encoding.offset = *offset;
+
+	return SR_OK;
+}
+
 SR_API int feed_queue_analog_submit(struct feed_queue_analog *q,
 	float data, size_t count)
 {

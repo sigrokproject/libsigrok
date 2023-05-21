@@ -210,7 +210,7 @@ Formal syntax for serial communication:
      <name>:conn=<spec>" example, that is why the dense form and the use
      of dashes for separation are supported)
    additional parameter keywords can be: channel, handle_rx, handle_tx,
-     handle_cccd, value_cccd
+     handle_cccd, value_cccd, mtu
 
 Some of the drivers implement a default for the connection. Some of the
 drivers can auto-detect USB connected devices.

@@ -111,7 +111,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
          *         descr - handle: 0x0016, uuid: 00002902-0000-1000-8000-00805f9b34fb
          *         descr - handle: 0x0017, uuid: 00002901-0000-1000-8000-00805f9b34fb
 	 */
-	ret = sr_bt_config_notify(desc, 0x0015, 0x0012, 0x0016, 0x0001);
+	ret = sr_bt_config_notify(desc, 0x0015, 0x0012, 0x0016, 0x0001, 0);
 	if (ret < 0)
 		goto err;
 

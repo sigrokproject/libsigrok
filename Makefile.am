@@ -73,7 +73,10 @@ libsigrok_la_SOURCES = \
 
 # Support code, shared among input and driver modules
 libsigrok_la_SOURCES += \
-	src/minilzo/minilzo.c
+	src/minilzo/minilzo.c \
+	src/minilzo/minilzo.h \
+	src/minilzo/lzoconf.h \
+	src/minilzo/lzodefs.h
 
 # Input modules
 libsigrok_la_SOURCES += \
@@ -770,7 +773,11 @@ EXTRA_DIST = \
 	contrib/vnd.sigrok.session.xml \
 	contrib/60-libsigrok.rules \
 	contrib/61-libsigrok-plugdev.rules \
-	contrib/61-libsigrok-uaccess.rules
+	contrib/61-libsigrok-uaccess.rules \
+	src/minilzo/COPYING \
+	src/minilzo/Makefile \
+	src/minilzo/README.LZO \
+	src/minilzo/testmini.c
 
 if HAVE_CHECK
 TESTS = tests/main

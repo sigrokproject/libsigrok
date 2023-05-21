@@ -184,16 +184,24 @@ SR_API int sr_log_callback_get(sr_log_callback *cb, void **cb_data)
 
 static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args)
 {
+	int ret;
 	uint64_t elapsed_us, minutes;
 	unsigned int rest_us, seconds, microseconds;
-	char *raw_output, *output;
-	int raw_len, raw_idx, idx, ret;
+	char *raw_output, *output, c;
+	ssize_t print_len;
+	size_t raw_len;
+	const char *raw_ptr;
+	char *out_ptr;
 
 	/* This specific log callback doesn't need the void pointer data. */
 	(void)cb_data;
 
 	(void)loglevel;
 
+	/* Prefix with 'sr:'. Optionally prefix with timestamp. */
+	ret = fputs("sr: ", stderr);
+	if (ret < 0)
+		return SR_ERR;
 	if (cur_loglevel >= LOGLEVEL_TIMESTAMP) {
 		elapsed_us = g_get_monotonic_time() - sr_log_start_time;
 
@@ -202,30 +210,41 @@ static int sr_logv(void *cb_data, int loglevel, const char *format, va_list args
 		seconds = rest_us / G_TIME_SPAN_SECOND;
 		microseconds = rest_us % G_TIME_SPAN_SECOND;
 
-		ret = g_fprintf(stderr, "sr: [%.2" PRIu64 ":%.2u.%.6u] ",
+		ret = g_fprintf(stderr, "[%.2" PRIu64 ":%.2u.%.6u] ",
 				minutes, seconds, microseconds);
-	} else {
-		ret = fputs("sr: ", stderr);
+		if (ret < 0)
+			return SR_ERR;
 	}
 
-	if (ret < 0 || (raw_len = g_vasprintf(&raw_output, format, args)) < 0)
+	/* Print the caller's message into a local buffer. */
+	raw_output = NULL;
+	print_len = g_vasprintf(&raw_output, format, args);
+	if (print_len < 0) {
+		g_free(raw_output);
 		return SR_ERR;
-
-	output = g_malloc0(raw_len + 1);
-
-	/* Copy the string without any unwanted newlines. */
-	raw_idx = idx = 0;
-	while (raw_idx < raw_len) {
-		if (raw_output[raw_idx] != '\n') {
-			output[idx] = raw_output[raw_idx];
-			idx++;
-		}
-		raw_idx++;
 	}
+	raw_len = (size_t)print_len;
 
+	/* Copy the string. Strip unwanted line breaks. */
+	output = g_malloc(raw_len + 1);
+	if (!output) {
+		g_free(raw_output);
+		return SR_ERR;
+	}
+	out_ptr = output;
+	raw_ptr = raw_output;
+	while (*raw_ptr) {
+		c = *raw_ptr++;
+		if (c == '\r' || c == '\n')
+			continue;
+		*out_ptr++ = c;
+	}
+	*out_ptr = '\0';
+	g_free(raw_output);
+
+	/* Print the trimmed output text. */
 	g_fprintf(stderr, "%s\n", output);
 	fflush(stderr);
-	g_free(raw_output);
 	g_free(output);
 
 	return SR_OK;
@@ -239,6 +258,10 @@ SR_PRIV int sr_log(int loglevel, const char *format, ...)
 
 	/* Only output messages of at least the selected loglevel(s). */
 	if (loglevel > cur_loglevel)
+		return SR_OK;
+
+	/* Silently succeed when no logging callback is registered. */
+	if (!sr_log_cb)
 		return SR_OK;
 
 	va_start(args, format);

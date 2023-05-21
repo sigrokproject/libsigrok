@@ -40,6 +40,7 @@ enum pickit_state {
 };
 
 struct dev_context {
+	char **channel_names;
 	enum pickit_state state;
 	const uint64_t *samplerates;
 	size_t num_samplerates;

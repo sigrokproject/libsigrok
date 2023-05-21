@@ -33,32 +33,34 @@ enum rdtech_um_model_id {
 	RDTECH_UM34C = 0x0d4c,
 };
 
-enum rdtech_um_checksum {
-	RDTECH_CSUM_STATIC_FFF1,
-	RDTECH_CSUM_UM34C,
+struct rdtech_um_channel_desc {
+	const char *name;
+	struct binary_value_spec spec;
+	struct sr_rational scale;
+	int digits;
+	enum sr_mq mq;
+	enum sr_unit unit;
 };
 
-/* Supported device profiles */
 struct rdtech_um_profile {
 	const char *model_name;
 	enum rdtech_um_model_id model_id;
-	const struct binary_analog_channel *channels;
-
-	/* Verify poll packet checksum; return 1 if OK, 0 otherwise. */
-	int (*poll_csum)(char buf[], int len);
+	const struct rdtech_um_channel_desc *channels;
+	size_t channel_count;
+	gboolean (*csum_ok)(const uint8_t *buf, size_t len);
 };
 
 struct dev_context {
 	const struct rdtech_um_profile *profile;
 	struct sr_sw_limits limits;
-
-	char buf[RDTECH_UM_BUFSIZE];
-	int buflen;
+	struct feed_queue_analog **feeds;
+	uint8_t buf[RDTECH_UM_BUFSIZE];
+	size_t buflen;
 	int64_t cmd_sent_at;
 };
 
 SR_PRIV const struct rdtech_um_profile *rdtech_um_probe(struct sr_serial_dev_inst *serial);
 SR_PRIV int rdtech_um_receive_data(int fd, int revents, void *cb_data);
-SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi);
+SR_PRIV int rdtech_um_poll(const struct sr_dev_inst *sdi, gboolean force);
 
 #endif

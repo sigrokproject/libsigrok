@@ -37,6 +37,7 @@
 #define SER_BT_PARAM_PREFIX_HDL_TX	"handle_tx="
 #define SER_BT_PARAM_PREFIX_HDL_CCCD	"handle_cccd="
 #define SER_BT_PARAM_PREFIX_VAL_CCCD	"value_cccd="
+#define SER_BT_PARAM_PREFIX_BLE_MTU	"mtu="
 
 /**
  * @file
@@ -54,16 +55,58 @@
 
 /* {{{ support for serial-over-BT channels */
 
+/*
+ * This builtin database of known devices (keyed by their names as
+ * provided during BT/BLE scans) can help improve the presentation of
+ * scan results. Ideally users could take the output and pass it to
+ * subsequent program invocations, not having to "come up with" the
+ * conn= spec, or only having to touch it up minimally. GUI dialogs
+ * could present scan results such that users just need to pick an
+ * item to open a connection.
+ *
+ * The current implementation guesses connection types from device
+ * names, and optionally amends them with additional parameters if
+ * experience shows that individual devices need these extra specs.
+ *
+ * This database may have to move to a separate source file should
+ * its size grow to amounts that are considered inappropriate here
+ * in the serial transport's BT dispatcher. For now the item count
+ * is small.
+ */
+
 static const struct scan_supported_item {
 	const char *name;
 	enum ser_bt_conn_t type;
+	const char *add_params;
 } scan_supported_items[] = {
-	/* Guess connection types from device names (useful for scans). */
-	{ "121GW", SER_BT_CONN_BLE122, },
-	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, },
-	{ "HC-05", SER_BT_CONN_RFCOMM, },
-	{ NULL, SER_BT_CONN_UNKNOWN, },
+	{ "121GW", SER_BT_CONN_BLE122, NULL, },
+	{ "Adafruit Bluefruit LE 8134", SER_BT_CONN_NRF51, NULL, },
+	{ "DL24M_BLE", SER_BT_CONN_AC6328, NULL, },
+	{ "DL24M_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
+	{ "HC-05", SER_BT_CONN_RFCOMM, NULL, },
+	{ "TC66C", SER_BT_CONN_DIALOG, "/mtu=200", },
+	{ "UC96_BLE", SER_BT_CONN_AC6328, NULL, },
+	{ "UC96_SPP", SER_BT_CONN_RFCOMM, "/channel=2", },
+	{ "UM25C", SER_BT_CONN_RFCOMM, NULL, },
+	{ NULL, SER_BT_CONN_UNKNOWN, NULL, },
 };
+
+static const struct scan_supported_item *scan_is_supported(const char *name)
+{
+	size_t idx;
+	const struct scan_supported_item *item;
+
+	for (idx = 0; idx < ARRAY_SIZE(scan_supported_items); idx++) {
+		item = &scan_supported_items[idx];
+		if (!item->name)
+			break;
+		if (strcmp(name, item->name) != 0)
+			continue;
+		return item;
+	}
+
+	return NULL;
+}
 
 static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_UNKNOWN] = "<type>",
@@ -71,6 +114,9 @@ static const char *ser_bt_conn_names[SER_BT_CONN_MAX] = {
 	[SER_BT_CONN_BLE122] = "ble122",
 	[SER_BT_CONN_NRF51] = "nrf51",
 	[SER_BT_CONN_CC254x] = "cc254x",
+	[SER_BT_CONN_AC6328] = "ac6328",
+	[SER_BT_CONN_DIALOG] = "dialog",
+	[SER_BT_CONN_NOTIFY] = "notify",
 };
 
 static enum ser_bt_conn_t lookup_conn_name(const char *name)
@@ -125,14 +171,16 @@ static const char *conn_name_text(enum ser_bt_conn_t type)
  * - The next field is the remote device's address, either separated
  *   by colons or dashes or spaces, or not separated at all.
  * - Other parameters (RFCOMM channel, notify handles and write values)
- *   get derived from the connection type. A future implementation may
- *   accept more fields, but the syntax is yet to get developed.
+ *   get derived from the connection type.
+ * - More fields after the remote address are options which override
+ *   builtin defaults (RFCOMM channels, BLE handles, etc).
  *
  * Supported formats resulting from these rules:
- *   bt/<conn>/<addr>
+ *   bt/<conn>/<addr>[/<param>]...
  *
  * Examples:
  *   bt/rfcomm/11-22-33-44-55-66
+ *   bt/rfcomm/11-22-33-44-55-66/channel=2
  *   bt/ble122/88:6b:12:34:56:78
  *   bt/cc254x/0123456789ab
  *
@@ -146,7 +194,8 @@ static int ser_bt_parse_conn_spec(
 	enum ser_bt_conn_t *conn_type, const char **remote_addr,
 	size_t *rfcomm_channel,
 	uint16_t *read_hdl, uint16_t *write_hdl,
-	uint16_t *cccd_hdl, uint16_t *cccd_val)
+	uint16_t *cccd_hdl, uint16_t *cccd_val,
+	uint16_t *ble_mtu)
 {
 	char **fields, *field;
 	enum ser_bt_conn_t type;
@@ -170,6 +219,8 @@ static int ser_bt_parse_conn_spec(
 		*cccd_hdl = 0;
 	if (cccd_val)
 		*cccd_val = 0;
+	if (ble_mtu)
+		*ble_mtu = 0;
 
 	if (!serial || !spec || !spec[0])
 		return SR_ERR_ARG;
@@ -244,6 +295,33 @@ static int ser_bt_parse_conn_spec(
 			*write_hdl = 0;
 		if (cccd_hdl)
 			*cccd_hdl = 21;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		break;
+	case SER_BT_CONN_AC6328:
+		if (read_hdl)
+			*read_hdl = 12;
+		if (write_hdl)
+			*write_hdl = 15;
+		if (cccd_hdl)
+			*cccd_hdl = 13;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		break;
+	case SER_BT_CONN_DIALOG:
+		if (read_hdl)
+			*read_hdl = 23;
+		if (write_hdl)
+			*write_hdl = 18;
+		if (cccd_hdl)
+			*cccd_hdl = 0;
+		if (cccd_val)
+			*cccd_val = 0x0001;
+		if (ble_mtu)
+			*ble_mtu = 400;
+		break;
+	case SER_BT_CONN_NOTIFY:
+		/* All other values must be provided externally. */
 		if (cccd_val)
 			*cccd_val = 0x0001;
 		break;
@@ -323,6 +401,18 @@ static int ser_bt_parse_conn_spec(
 				*cccd_val = parm_val;
 			continue;
 		}
+		if (g_str_has_prefix(field, SER_BT_PARAM_PREFIX_BLE_MTU)) {
+			field += strlen(SER_BT_PARAM_PREFIX_BLE_MTU);
+			endp = NULL;
+			ret = sr_atoul_base(field, &parm_val, &endp, 0);
+			if (ret != SR_OK || !endp || *endp != '\0') {
+				ret_parse = SR_ERR_ARG;
+				break;
+			}
+			if (ble_mtu)
+				*ble_mtu = parm_val;
+			continue;
+		}
 		return SR_ERR_DATA;
 	}
 
@@ -353,6 +443,11 @@ static int ser_bt_data_cb(void *cb_data, uint8_t *data, size_t dlen)
 	serial = cb_data;
 	if (!serial)
 		return -1;
+
+	if (!data && dlen)
+		return -1;
+	if (!data || !dlen)
+		return 0;
 
 	ser_bt_mask_databits(serial, data, dlen);
 	sr_ser_queue_rx_data(serial, data, dlen);
@@ -392,6 +487,7 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	const char *remote_addr;
 	size_t rfcomm_channel;
 	uint16_t read_hdl, write_hdl, cccd_hdl, cccd_val;
+	uint16_t ble_mtu;
 	int rc;
 	struct sr_bt_desc *desc;
 
@@ -402,7 +498,8 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 			&conn_type, &remote_addr,
 			&rfcomm_channel,
 			&read_hdl, &write_hdl,
-			&cccd_hdl, &cccd_val);
+			&cccd_hdl, &cccd_val,
+			&ble_mtu);
 	if (rc != SR_OK)
 		return SR_ERR_ARG;
 
@@ -430,14 +527,19 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
+	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_config_notify(desc,
-			read_hdl, write_hdl, cccd_hdl, cccd_val);
+			read_hdl, write_hdl, cccd_hdl, cccd_val,
+			ble_mtu);
 		if (rc < 0)
 			return SR_ERR;
 		serial->bt_notify_handle_read = read_hdl;
 		serial->bt_notify_handle_write = write_hdl;
 		serial->bt_notify_handle_cccd = cccd_hdl;
 		serial->bt_notify_value_cccd = cccd_val;
+		serial->bt_ble_mtu = ble_mtu;
 		break;
 	default:
 		/* Unsupported type, or incomplete implementation. */
@@ -462,6 +564,9 @@ static int ser_bt_open(struct sr_serial_dev_inst *serial, int flags)
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
+	case SER_BT_CONN_NOTIFY:
 		rc = sr_bt_connect_ble(desc);
 		if (rc < 0)
 			return SR_ERR;
@@ -538,6 +643,9 @@ static int ser_bt_write(struct sr_serial_dev_inst *serial,
 	case SER_BT_CONN_BLE122:
 	case SER_BT_CONN_NRF51:
 	case SER_BT_CONN_CC254x:
+	case SER_BT_CONN_AC6328:
+	case SER_BT_CONN_DIALOG:
+	case SER_BT_CONN_NOTIFY:
 		/*
 		 * Assume that when applications call the serial layer's
 		 * write routine, then the BLE chip/module does support
@@ -603,6 +711,9 @@ static int ser_bt_read(struct sr_serial_dev_inst *serial,
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
+		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_DIALOG:
+		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
@@ -700,6 +811,9 @@ static int bt_source_cb(int fd, int revents, void *cb_data)
 		case SER_BT_CONN_BLE122:
 		case SER_BT_CONN_NRF51:
 		case SER_BT_CONN_CC254x:
+		case SER_BT_CONN_AC6328:
+		case SER_BT_CONN_DIALOG:
+		case SER_BT_CONN_NOTIFY:
 			dlen = sr_ser_has_queued_data(serial);
 			rc = sr_bt_check_notify(serial->bt_desc);
 			if (rc < 0)
@@ -777,23 +891,6 @@ static int ser_bt_setup_source_remove(struct sr_session *session,
 	return SR_OK;
 }
 
-static enum ser_bt_conn_t scan_is_supported(const char *name)
-{
-	size_t idx;
-	const struct scan_supported_item *item;
-
-	for (idx = 0; idx < ARRAY_SIZE(scan_supported_items); idx++) {
-		item = &scan_supported_items[idx];
-		if (!item->name)
-			break;
-		if (strcmp(name, item->name) != 0)
-			continue;
-		return item->type;
-	}
-
-	return SER_BT_CONN_UNKNOWN;
-}
-
 struct bt_scan_args_t {
 	GSList *port_list;
 	sr_ser_list_append_t append;
@@ -806,6 +903,7 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 	struct bt_scan_args_t *scan_args;
 	GSList *l;
 	char addr_text[20];
+	const struct scan_supported_item *item;
 	enum ser_bt_conn_t type;
 	char *port_name, *port_desc;
 	char *addr_copy;
@@ -828,9 +926,11 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 	g_strcanon(addr_text, "0123456789abcdefABCDEF", '-');
 
 	/* Create a port name, and a description. */
-	type = scan_is_supported(name);
-	port_name = g_strdup_printf("%s/%s/%s",
-		SER_BT_CONN_PREFIX, conn_name_text(type), addr_text);
+	item = scan_is_supported(name);
+	type = item ? item->type : SER_BT_CONN_UNKNOWN;
+	port_name = g_strdup_printf("%s/%s/%s%s",
+		SER_BT_CONN_PREFIX, conn_name_text(type), addr_text,
+		(item && item->add_params) ? item->add_params : "");
 	port_desc = g_strdup_printf("%s (%s)", name, scan_args->bt_type);
 
 	scan_args->port_list = scan_args->append(scan_args->port_list, port_name, port_desc);
@@ -844,7 +944,7 @@ static void scan_cb(void *cb_args, const char *addr, const char *name)
 
 static GSList *ser_bt_list(GSList *list, sr_ser_list_append_t append)
 {
-	static const int scan_duration = 2;
+	static const int scan_duration = 3;
 
 	struct bt_scan_args_t scan_args;
 	struct sr_bt_desc *desc;

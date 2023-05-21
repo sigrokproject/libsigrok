@@ -429,12 +429,12 @@ sr_have_glibmm=no
 AS_IF([test "x$sr_have_glibmm" != xyes],
 	[SR_PKG_CHECK([glibmm24], [SR_PKGLIBS_CXX], [glibmm-2.4 >= 2.32.0])])
 AS_IF([test "x$sr_have_glibmm24" = xyes],
-	[SR_APPEND([SR_GLIBMM_REQUIRES], [glibmm-2.4>=2.32.0])
+	[SR_APPEND([SR_GLIBMM_REQUIRES], ['glibmm-2.4 >= 2.32.0'])
 	sr_have_glibmm=yes])
 AS_IF([test "x$sr_have_glibmm" != xyes],
 	[SR_PKG_CHECK([glibmm268], [SR_PKGLIBS_CXX], [glibmm-2.68 >= 2.68.0])])
 AS_IF([test "x$sr_have_glibmm268" = xyes],
-	[SR_APPEND([SR_GLIBMM_REQUIRES], [glibmm-2.68>=2.68.0])
+	[SR_APPEND([SR_GLIBMM_REQUIRES], ['glibmm-2.68 >= 2.68.0'])
 	sr_have_glibmm=yes])
 AS_IF([test "x$sr_have_glibmm" = xyes],
 	[AC_SUBST(SR_GLIBMM_REQUIRES)],
