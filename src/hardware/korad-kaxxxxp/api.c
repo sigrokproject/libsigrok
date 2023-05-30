@@ -291,8 +291,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		ret = korad_kaxxxxp_send_cmd(serial, "\n", FALSE);
 		if (ret < 0)
 			return NULL;
+		ret = korad_kaxxxxp_read_chars(serial, len, reply);
 	}
-	ret = korad_kaxxxxp_read_chars(serial, len, reply);
 	if (ret < 0)
 		return NULL;
 	sr_dbg("Received: %d, %s", ret, reply);
