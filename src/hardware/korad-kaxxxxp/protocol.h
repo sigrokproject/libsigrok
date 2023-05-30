@@ -37,7 +37,8 @@ enum korad_quirks_flag {
 	KORAD_QUIRK_ID_NO_VENDOR = 1UL << 1,
 	KORAD_QUIRK_ID_TRAILING = 1UL << 2,
 	KORAD_QUIRK_ID_OPT_VERSION = 1UL << 3,
-	KORAD_QUIRK_ALL = (1UL << 4) - 1,
+	KORAD_QUIRK_KKG_FAMILY = 1UL << 4,
+	KORAD_QUIRK_ALL = (1UL << 5) - 1,
 };
 
 /* Information on single model */
@@ -79,16 +80,20 @@ struct dev_context {
 	float voltage_target;   /**< Output voltage set. */
 	gboolean cc_mode[2];    /**< Device is in CC mode (otherwise CV). */
 
-	gboolean output_enabled; /**< Is the output enabled? */
-	gboolean beep_enabled;   /**< Enable beeper. */
-	gboolean ocp_enabled;    /**< Output current protection enabled. */
-	gboolean ovp_enabled;    /**< Output voltage protection enabled. */
+	gboolean output_enabled;   /**< Is the output enabled? */
+	gboolean beep_enabled;     /**< Enable beeper. */
+	gboolean ocp_enabled;      /**< Output current protection enabled. */
+	gboolean ovp_enabled;      /**< Output voltage protection enabled. */
+	gboolean rmt_comp_enabled; /**< Is remote compensation enabled. */
+	gboolean ext_int_enabled;  /**< Is external interface enabled. */
 
 	gboolean cc_mode_1_changed;      /**< CC mode of channel 1 has changed. */
 	gboolean cc_mode_2_changed;      /**< CC mode of channel 2 has changed. */
 	gboolean output_enabled_changed; /**< Output enabled state has changed. */
 	gboolean ocp_enabled_changed;    /**< OCP enabled state has changed. */
 	gboolean ovp_enabled_changed;    /**< OVP enabled state has changed. */
+	gboolean rmt_comp_changed;       /**< Is remote compensation enabled. */
+	gboolean ext_int_changed;        /**< Is external interface enabled. */
 
 	int acquisition_target;  /**< What reply to expect. */
 	int program;             /**< Program to store or recall. */
@@ -102,7 +107,7 @@ struct dev_context {
 };
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-					const char *cmd);
+					const char *cmd, const gboolean nl_termination);
 SR_PRIV int korad_kaxxxxp_read_chars(struct sr_serial_dev_inst *serial,
 					size_t count, char *buf);
 SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,

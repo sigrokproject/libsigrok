@@ -60,6 +60,8 @@ static const struct korad_kaxxxxp_model models[] = {
 	{"Korad", "KA3005P", "", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_TRAILING},
 	{"Korad", "KD3005P", "", 1, volts_30, amps_5, 0},
+	{"Korad", "KKG305P", "", 1, volts_30, amps_5,
+		KORAD_QUIRK_KKG_FAMILY},
 	{"Korad", "KD6005P", "", 1, volts_60, amps_5, 0},
 	{"RND", "KA3005P", "RND 320-KA3005P", 1, volts_30, amps_5,
 		KORAD_QUIRK_ID_OPT_VERSION},
@@ -276,10 +278,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		len = sizeof(reply) - 1;
 	sr_dbg("Want max %zu bytes.", len);
 
-	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?");
+	ret = korad_kaxxxxp_send_cmd(serial, "*IDN?", FALSE);
 	if (ret < 0)
 		return NULL;
 
+	ret = korad_kaxxxxp_read_chars(serial, len, reply);
+	if (ret == 0) {
+		/* 
+		 * Make an attemp to send line termination
+		 */
+		sr_dbg("Make an attempt to send line termination");
+		ret = korad_kaxxxxp_send_cmd(serial, "\n", FALSE);
+		if (ret < 0)
+			return NULL;
+	}
 	ret = korad_kaxxxxp_read_chars(serial, len, reply);
 	if (ret < 0)
 		return NULL;
