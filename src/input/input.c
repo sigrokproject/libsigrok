@@ -90,7 +90,7 @@ static const struct sr_input_module *input_module_list[] = {
 	&input_raw_analog,
 	&input_logicport,
 	&input_saleae,
-    &input_isf,
+	&input_isf,
 	&input_null,
 	NULL,
 };
