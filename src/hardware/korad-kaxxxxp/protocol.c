@@ -24,15 +24,28 @@
 #define DEVICE_PROCESSING_TIME_MS 80
 
 SR_PRIV int korad_kaxxxxp_send_cmd(struct sr_serial_dev_inst *serial,
-				const char *cmd)
+				const char *cmd, const gboolean nl_termination)
 {
 	int ret;
+	uint32_t cmd_len;
+	char *_cmd;
 
-	sr_dbg("Sending '%s'.", cmd);
-	if ((ret = serial_write_blocking(serial, cmd, strlen(cmd), 0)) < 0) {
-		sr_err("Error sending command: %d.", ret);
-		return ret;
+	cmd_len = strlen(cmd);
+	// '\n' + '\0'
+	_cmd = g_malloc0(cmd_len+2);
+	strcpy(_cmd, cmd);
+
+	if( nl_termination ) {				
+		_cmd[cmd_len] = '\n';
+		_cmd[++cmd_len] = '\0';
+
 	}
+
+	sr_dbg("Sending '%s'.", _cmd);
+	if ((ret = serial_write_blocking(serial, _cmd, cmd_len, 0)) < 0) {
+		sr_err("Error sending command: %d.", ret);		
+	}
+	g_free(_cmd);
 
 	return ret;
 }
@@ -171,9 +184,12 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	const char *cmd;
 	float value;
 	int ret;
+	gboolean nl_termination;
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
+
+	nl_termination = devc->model->quirks & KORAD_QUIRK_KKG_FAMILY;
 
 	switch (target) {
 	case KAXXXXP_CURRENT:
@@ -242,7 +258,7 @@ SR_PRIV int korad_kaxxxxp_set_value(struct sr_serial_dev_inst *serial,
 	if (cmd)
 		sr_snprintf_ascii(msg, 20, cmd, value);
 
-	ret = korad_kaxxxxp_send_cmd(serial, msg);
+	ret = korad_kaxxxxp_send_cmd(serial, msg, nl_termination);
 	devc->req_sent_at = g_get_monotonic_time();
 	g_free(msg);
 
@@ -260,9 +276,11 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	char status_byte;
 	gboolean needs_ovp_quirk;
 	gboolean prev_status;
+	gboolean nl_termination;
 
 	g_mutex_lock(&devc->rw_mutex);
 	give_device_time_to_process(devc);
+	nl_termination = devc->model->quirks & KORAD_QUIRK_KKG_FAMILY;
 
 	value = NULL;
 	count = 5;
@@ -270,22 +288,22 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	switch (target) {
 	case KAXXXXP_CURRENT:
 		/* Read current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "IOUT1?", nl_termination);
 		value = &(devc->current);
 		break;
 	case KAXXXXP_CURRENT_LIMIT:
 		/* Read set current from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "ISET1?", nl_termination);
 		value = &(devc->current_limit);
 		break;
 	case KAXXXXP_VOLTAGE:
 		/* Read voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VOUT1?", nl_termination);
 		value = &(devc->voltage);
 		break;
 	case KAXXXXP_VOLTAGE_TARGET:
 		/* Read set voltage from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?");
+		ret = korad_kaxxxxp_send_cmd(serial, "VSET1?", nl_termination);
 		value = &(devc->voltage_target);
 		break;
 	case KAXXXXP_STATUS:
@@ -293,7 +311,7 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 	case KAXXXXP_OCP:
 	case KAXXXXP_OVP:
 		/* Read status from device. */
-		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?");
+		ret = korad_kaxxxxp_send_cmd(serial, "STATUS?", nl_termination);
 		count = 1;
 		break;
 	default:
@@ -323,16 +341,35 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		prev_status = devc->cc_mode[0];
 		devc->cc_mode[0] = !(status_byte & (1 << 0));
 		devc->cc_mode_1_changed = devc->cc_mode[0] != prev_status;
+
+		if( devc->model->quirks & KORAD_QUIRK_KKG_FAMILY) {		
+		/*
+		* KKG family status bits are different
+		* BIT1 - remote compensation status
+		* BIT2 - external interface (trigger, switch) status
+		*/
+		/* Remote compensation */
+		prev_status = devc->rmt_comp_enabled;
+		devc->rmt_comp_enabled = !(status_byte & (1 << 1));
+		devc->rmt_comp_changed = devc->rmt_comp_enabled != prev_status;
+
+		/* External interface */
+		prev_status = devc->ext_int_enabled;
+		devc->ext_int_enabled = !(status_byte & (1 << 2));
+		devc->ext_int_changed = devc->ext_int_enabled != prev_status;
+		} else {
 		/* Constant current channel two. */
 		prev_status = devc->cc_mode[1];
 		devc->cc_mode[1] = !(status_byte & (1 << 1));
 		devc->cc_mode_2_changed = devc->cc_mode[1] != prev_status;
+		}
 
 		/*
 		 * Tracking:
 		 * status_byte & ((1 << 2) | (1 << 3))
 		 * 00 independent 01 series 11 parallel
 		 */
+
 		devc->beep_enabled = status_byte & (1 << 4);
 
 		/* OCP enabled. */
@@ -354,17 +391,32 @@ SR_PRIV int korad_kaxxxxp_get_value(struct sr_serial_dev_inst *serial,
 		}
 
 		sr_dbg("Status: 0x%02x", status_byte);
-		sr_spew("Status: CH1: constant %s CH2: constant %s. "
-			"Tracking would be %s and %s. Output is %s. "
-			"OCP is %s, OVP is %s. Device is %s.",
-			(status_byte & (1 << 0)) ? "voltage" : "current",
-			(status_byte & (1 << 1)) ? "voltage" : "current",
-			(status_byte & (1 << 2)) ? "parallel" : "series",
-			(status_byte & (1 << 3)) ? "tracking" : "independent",
-			(status_byte & (1 << 6)) ? "enabled" : "disabled",
-			(status_byte & (1 << 5)) ? "enabled" : "disabled",
-			(status_byte & (1 << 7)) ? "enabled" : "disabled",
-			(status_byte & (1 << 4)) ? "beeping" : "silent");
+		if( devc->model->quirks & KORAD_QUIRK_KKG_FAMILY) {
+			sr_spew("Status: CH1: constant %s. "
+				"Remote compensation: %s. External interface: %s "
+				"Reserved bit %s. Output is %s. "
+				"OCP is %s, OVP is %s. Device is %s.",
+				(status_byte & (1 << 0)) ? "voltage" : "current",
+				(status_byte & (1 << 1)) ? "enabled" : "disabled",
+				(status_byte & (1 << 2)) ? "enabled" : "disabled",
+				(status_byte & (1 << 3)) ? "1" : "0",
+				(status_byte & (1 << 6)) ? "enabled" : "disabled",
+				(status_byte & (1 << 5)) ? "enabled" : "disabled",
+				(status_byte & (1 << 7)) ? "enabled" : "disabled",
+				(status_byte & (1 << 4)) ? "beeping" : "silent");
+		} else {
+			sr_spew("Status: CH1: constant %s CH2: constant %s. "
+				"Tracking would be %s and %s. Output is %s. "
+				"OCP is %s, OVP is %s. Device is %s.",
+				(status_byte & (1 << 0)) ? "voltage" : "current",
+				(status_byte & (1 << 1)) ? "voltage" : "current",
+				(status_byte & (1 << 2)) ? "parallel" : "series",
+				(status_byte & (1 << 3)) ? "tracking" : "independent",
+				(status_byte & (1 << 6)) ? "enabled" : "disabled",
+				(status_byte & (1 << 5)) ? "enabled" : "disabled",
+				(status_byte & (1 << 7)) ? "enabled" : "disabled",
+				(status_byte & (1 << 4)) ? "beeping" : "silent");
+		}
 	}
 
 	/* Read the sixth byte from ISET? BUG workaround. */
