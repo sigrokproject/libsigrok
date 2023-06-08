@@ -46,16 +46,21 @@
 #define MAX_ENCODING_STRING_SIZE 10
 #define MAX_WAVEFORM_STRING_SIZE 10
 
+/* Size of buffer in which byte order and data format strings are stored. */
+#define BYTE_ORDER_BUFFER_SIZE 4
+#define DATA_FORMAT_BUFFER_SIZE 4
+
 /* Byte order */
 enum byteorder {
 	LSB = 0,
 	MSB = 1,
 };
 
-/* Format, i.e. RI (signed integer) or FP (floating point) */
+/* Format, i.e. RI (signed integer), RP (unsigned integer) or FP (floating point) */
 enum format {
 	RI = 0,
-	FP = 1,
+	RP = 1,
+	FP = 2,
 };
 
 /* Waveform type, i.e. analog or radar frequency (RF) */
@@ -71,6 +76,7 @@ union floating_point {
 
 struct context {
 	gboolean started;
+	gboolean create_channel;
 	gboolean found_data_section;
 	float yoff;
 	float yzero;
@@ -126,7 +132,7 @@ static gboolean has_header(GString *buf)
 /* Find curve which indicates the end of the header and the start of the data. */
 static char *find_data_section(GString *buf)
 {
-	const char *curve = "CURVE #";
+	const char curve[] = "CURVE #";
 
 	char *data_ptr;
 	size_t offset, metadata_length;
@@ -185,7 +191,6 @@ static int find_encoding(const char *beg)
 
 	find_string_value(beg, value, MAX_ENCODING_STRING_SIZE - 1);
 
-	/* TODO: Use strncmp instead. */
 	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
 		sr_err("Only binary encoding supported.");
@@ -215,6 +220,8 @@ static int find_waveform_type(struct context *inc, const char *beg)
 /* Parse header items. */
 static int process_header_item(const char *beg, struct context *inc, enum header_items_enum item)
 {
+	char byte_order_buf[BYTE_ORDER_BUFFER_SIZE];
+	char format_buf[DATA_FORMAT_BUFFER_SIZE];
 	int ret;
 
 	switch (item) {
@@ -239,18 +246,22 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case BYTE_ORDER:
-		if (strncmp(beg, "LSB", 3) == 0)
+		find_string_value(beg, byte_order_buf, BYTE_ORDER_BUFFER_SIZE - 1);
+		if (strcmp(byte_order_buf, "LSB") == 0)
 			inc->byte_order = LSB;
-		else if (strncmp(beg, "MSB", 3) == 0)
+		else if (strcmp(byte_order_buf, "MSB") == 0)
 			inc->byte_order = MSB;
 		else
 			return SR_ERR_DATA;
 		break;
 
 	case BN_FMT:
-		if (strncmp(beg, "RI", 2) == 0)
+		find_string_value(beg, format_buf, DATA_FORMAT_BUFFER_SIZE - 1);
+		if (strcmp(format_buf, "RI") == 0)
 			inc->bn_fmt = RI;
-		else if (strncmp(beg, "FP", 2) == 0)
+		else if (strcmp(format_buf, "RP") == 0)
+			inc->bn_fmt = RP;
+		else if (strcmp(format_buf, "FP") == 0)
 			inc->bn_fmt = FP;
 		else
 			return SR_ERR_DATA;
@@ -312,8 +323,8 @@ static int parse_isf_header(GString *buf, struct context *inc)
 /* Check if the format matches ISF format. */
 static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
-	const char *default_extension = ".isf";
-	const char *nr_pt = "NR_PT";
+	const char default_extension[] = ".isf";
+	const char nr_pt[] = "NR_PT";
 
 	GString *buf;
 	char *fn;
@@ -353,8 +364,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = g_malloc0(sizeof(struct context));
 
 	inc = in->priv;
-	inc->found_data_section = FALSE;
-	memset(inc->channel_name, 0, MAX_CHANNEL_NAME_SIZE);
+	inc->create_channel = TRUE;
 
 	return SR_OK;
 }
@@ -395,6 +405,31 @@ static int64_t read_int_value(struct sr_input *in, size_t offset)
 		/* Extend the 64-bit integer if the value is negative.  */
 		i = ~((1 << (8*bytnr - 1)) - 1);
 		value |= i;
+	}
+
+	return value;
+}
+
+static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
+{
+	struct context *inc;
+	uint64_t value = 0;
+	char data[8];
+	int i;
+
+	inc = in->priv;
+	g_assert(inc->bytnr <= 8 && inc->bytnr <= sizeof(data));
+	memcpy(data, in->buf->str + offset, inc->bytnr);
+	if (inc->byte_order == MSB) {
+		for (i = 0; i < inc->bytnr; ++i) {
+			value <<= 8;
+			value |= data[i];
+		}
+	} else {
+		for (i = inc->bytnr; i >= 0; --i) {
+			value <<= 8;
+			value |= data[i];
+		}
 	}
 
 	return value;
@@ -448,6 +483,8 @@ static void send_chunk(struct sr_input *in, size_t initial_offset, size_t num_sa
 	for (i = 0; i < num_samples; ++i) {
 		if (inc->bn_fmt == RI) {
 			fdata[i] = ((float) read_int_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
+		} else if (inc->bn_fmt == RP) {
+			fdata[i] = ((float) read_unsigned_int_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		} else if (inc->bn_fmt == FP) {
 			fdata[i] = (read_float_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		}
@@ -552,7 +589,12 @@ static int receive(struct sr_input *in, GString *buf)
 		/* Set default channel name. */
 		if (strlen(inc->channel_name) == 0)
 			snprintf(inc->channel_name, MAX_CHANNEL_NAME_SIZE, "CH");
-		sr_channel_new(in->sdi, 0, SR_CHANNEL_ANALOG, TRUE, inc->channel_name);
+
+		/* Create channel if not created yet. */
+		if (inc->create_channel) {
+			sr_channel_new(in->sdi, 0, SR_CHANNEL_ANALOG, TRUE, inc->channel_name);
+			inc->create_channel = FALSE;
+		}
 
 		in->sdi_ready = TRUE;
 		return SR_OK;
