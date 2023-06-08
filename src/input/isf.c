@@ -34,7 +34,7 @@
 #define CHUNK_SIZE	(4 * 1024 * 1024)
 
 /* Number of bytes required to process the header. */
-#define MIN_INITIAL_OFFSET 512
+#define MIN_INITIAL_OFFSET 1024
 
 /* Number of items in the header. */
 #define HEADER_ITEMS_PARAMETERS 10
@@ -71,8 +71,7 @@ union floating_point {
 
 struct context {
 	gboolean started;
-	gboolean found_header;
-	gboolean create_channel;
+	gboolean found_data_section;
 	float yoff;
 	float yzero;
 	float ymult;
@@ -84,7 +83,7 @@ struct context {
 	char channel_name[MAX_CHANNEL_NAME_SIZE];
 };
 
-/* Header items required to process the input file. */
+/* Header items used to process the input file. */
 enum header_items_enum {
 	YOFF = 0,
 	YZERO = 1,
@@ -187,7 +186,7 @@ static int find_encoding(const char *beg)
 	find_string_value(beg, value, MAX_ENCODING_STRING_SIZE - 1);
 
 	/* TODO: Use strncmp instead. */
-	/* TODO: "BIN" vs "BINARY" as suggested in the github comment. */
+	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
 		sr_err("Only binary encoding supported.");
 		return SR_ERR_NA;
@@ -287,12 +286,16 @@ static int parse_isf_header(GString *buf, struct context *inc)
 
 	if (inc == NULL)
 		return SR_ERR_ARG;
-	
+
+	/* Search for all header items. */
 	for (i = 0; i < HEADER_ITEMS_PARAMETERS; ++i) {
 		pattern = find_item(buf, header_items[i]);
-		if (pattern == NULL)
-			/* Ignore unknown command/header.  */
-			continue;
+		if (pattern == NULL) {
+			/* WFID is not required. */
+			if (i == WFID)
+				continue;
+			return SR_ERR_DATA;
+		}
 		
 		ret = process_header_item(pattern + strlen(header_items[i]), inc, i);
 		if (ret != SR_OK)
@@ -350,8 +353,7 @@ static int init(struct sr_input *in, GHashTable *options)
 	in->priv = g_malloc0(sizeof(struct context));
 
 	inc = in->priv;
-	inc->found_header = FALSE;
-	inc->create_channel = TRUE;
+	inc->found_data_section = FALSE;
 	memset(inc->channel_name, 0, MAX_CHANNEL_NAME_SIZE);
 
 	return SR_OK;
@@ -372,8 +374,8 @@ static int64_t read_int_value(struct sr_input *in, size_t offset)
 
 	inc = in->priv;
 	bytnr = inc->bytnr;
-	/* TODO: Perform proper bound checking. */
-	g_assert(bytnr <= 8);
+	/* TODO: Perform proper bounds checking. */
+	g_assert(bytnr <= 8 && bytnr <= sizeof(data));
 	memcpy(data, in->buf->str + offset, bytnr);
 	value = 0;
 	if (inc->byte_order == MSB) {
@@ -486,14 +488,15 @@ static int process_buffer(struct sr_input *in)
 		inc->started = TRUE;
 	}
 
-	if (!inc->found_header) {
+	/* Set offset to the data section beginning. */
+	if (!inc->found_data_section) {
 		data = find_data_section(in->buf);
 		if (data == NULL) {
 			sr_err("Couldn't find data section.");
 			return SR_ERR;
 		}
 		offset = data - in->buf->str;
-		inc->found_header = TRUE;
+		inc->found_data_section = TRUE;
 	} else {
 		offset = 0;
 	}
@@ -546,8 +549,10 @@ static int receive(struct sr_input *in, GString *buf)
 			return SR_ERR_NA;
 		}
 
-		if (inc->create_channel)
-			sr_channel_new(in->sdi, 0, SR_CHANNEL_ANALOG, TRUE, inc->channel_name);
+		/* Set default channel name. */
+		if (strlen(inc->channel_name) == 0)
+			snprintf(inc->channel_name, MAX_CHANNEL_NAME_SIZE, "CH");
+		sr_channel_new(in->sdi, 0, SR_CHANNEL_ANALOG, TRUE, inc->channel_name);
 
 		in->sdi_ready = TRUE;
 		return SR_OK;
