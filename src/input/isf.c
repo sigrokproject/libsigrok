@@ -356,7 +356,12 @@ static int parse_isf_header(GString *buf, struct context *inc)
 	return SR_OK;
 }
 
-/* Check if the format matches ISF format. */
+/*
+ * Check if the format matches ISF format.
+ *
+ * TODO: The header could be searched for more items
+ * aside from NR_PT to increase the confidence.
+ */
 static int format_match(GHashTable *metadata, unsigned int *confidence)
 {
 	const char default_extension[] = ".isf";
@@ -377,12 +382,8 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
 	/* Check if the header contains NR_PT item. */
-	/* TODO: The header could be searched for more items to increase the confidence. */
-	if (buf == NULL || g_strstr_len(buf->str, buf->len, nr_pt) == NULL) {
-		/* TODO: Maybe confidence shouldn't be modified. */
-		*confidence = 0;
+	if (buf == NULL || g_strstr_len(buf->str, buf->len, nr_pt) == NULL)
 		return SR_ERR;
-	}
 
 	/* The header contains NR_PT item, the confidence is high. */
 	*confidence = 50;
