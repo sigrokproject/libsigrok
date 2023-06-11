@@ -17,6 +17,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * Tektronix devices use ISF format to store captured data.
+ * The format varies depending on the device, so the module
+ * tries to be as general as possible. Tektronix devices
+ * export one file per channel. The following manual was
+ * used for the development:
+ * https://www.manualslib.com/manual/1375808/Tektronix-Tds5000b-Series.html
+ *
+ * ISF files consist of a header section and a data section.
+ * A header contains various items consisting of key-value pairs.
+ * The pairs are split with ';' character. For instance, these items may specify
+ * byte order of data, data format or data encoding type. The end of the header
+ * section is marked by string "CURVE#". It is followed
+ * by an ASCII byte representing the number of bytes
+ * that follow that represent the record length. For more details,
+ * visit: https://www.tek.com/en/support/faqs/what-format-isf-file.
+ * The header size is variable, therefore the module does not
+ * process the data until the "CURVE#" string is located
+ * which means the entire header has been received.
+ *
+ * Data can either be in ASCII or binary encoding. Only binary data encoding
+ * is currently supported. The samples are stored sequentially in the file.
+ * Item "BYT_NR" specifies bytes per sample.
+ * Samples can be stored in three formats: signed integer (RI),
+ * unsigned integer (RP) or floating point/IEEE754 (FP).
+ */
+
 #include <config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -221,11 +248,8 @@ static int find_waveform_type(struct context *inc, const char *beg, size_t beg_l
 	return SR_OK;
 }
 
-/*
- * Check whether the item represents a float value
- * and is bounded by a ';' character.
- */
-static gboolean check_float_length(const char *buf, size_t buflen)
+/* Check whether the item is bounded by ';' character. */
+static gboolean check_item_length(const char *buf, size_t buflen)
 {
 	size_t i = 0;
 
@@ -244,31 +268,31 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 
 	switch (item) {
 	case YOFF:
-		if (!check_float_length(beg, beg_len))
+		if (!check_item_length(beg, beg_len))
 			return SR_ERR_DATA;
 		inc->yoff = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YZERO:
-		if (!check_float_length(beg, beg_len))
+		if (!check_item_length(beg, beg_len))
 			return SR_ERR_DATA;
 		inc->yzero = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YMULT:
-		if (!check_float_length(beg, beg_len))
+		if (!check_item_length(beg, beg_len))
 			return SR_ERR_DATA;
 		inc->ymult = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case XINCR:
-		if (!check_float_length(beg, beg_len))
+		if (!check_item_length(beg, beg_len))
 			return SR_ERR_DATA;
 		inc->xincr = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case BYTNR:
-		if (!check_float_length(beg, beg_len))
+		if (!check_item_length(beg, beg_len))
 			return SR_ERR_DATA;
 		inc->bytnr = (int) g_ascii_strtoll(beg, NULL, 10);
 		break;
@@ -342,7 +366,7 @@ static int parse_isf_header(GString *buf, struct context *inc)
 			return SR_ERR_DATA;
 		}
 
-		/* Calculate the offset of the header item in the buffer. */
+		/* Calculate the offset of the header item value in the buffer. */
 		item_offset = (size_t) (pattern - buf->str);
 		item_offset += strlen(header_items[i]);
 		if (item_offset >= data_section_offset)
