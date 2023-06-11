@@ -33,8 +33,8 @@
 
 #define CHUNK_SIZE	(4 * 1024 * 1024)
 
-/* Number of bytes required to process the header. */
-#define MIN_INITIAL_OFFSET 1024
+/* Maximum header size. */
+#define MAX_HEADER_SIZE 1024
 
 /* Number of items in the header. */
 #define HEADER_ITEMS_PARAMETERS 10
@@ -118,15 +118,9 @@ static const char *header_items[] = {
 };
 
 /* Find the header item in the header. */
-static char *find_item(GString *buf, const char *item)
+static char *find_item(const char *buf, size_t buflen, const char *item)
 {
-	return g_strstr_len(buf->str, buf->len, item);
-}
-
-/* Check if the header is loaded and can be processed. */
-static gboolean has_header(GString *buf)
-{
-	return buf->len >= MIN_INITIAL_OFFSET;
+	return g_strstr_len(buf, buflen, item);
 }
 
 /* Find curve which indicates the end of the header and the start of the data. */
@@ -155,6 +149,12 @@ static char *find_data_section(GString *buf)
 		return NULL;
 
 	return data_ptr;
+}
+
+/* Check if the entire header is loaded and can be processed. */
+static gboolean has_header(GString *buf)
+{
+	return find_data_section(buf) != NULL;
 }
 
 /* Locate and extract the channel name in the header. */
@@ -221,6 +221,10 @@ static int find_waveform_type(struct context *inc, const char *beg, size_t beg_l
 	return SR_OK;
 }
 
+/*
+ * Check whether the item represents a float value
+ * and is bounded by a ';' character.
+ */
 static gboolean check_float_length(const char *buf, size_t buflen)
 {
 	size_t i = 0;
@@ -318,14 +322,19 @@ static int parse_isf_header(GString *buf, struct context *inc)
 {
 	char *pattern, *data_section;
 	int ret, i;
-	size_t item_offset;
+	size_t item_offset, data_section_offset;
 
 	if (inc == NULL)
 		return SR_ERR_ARG;
 
+	data_section = find_data_section(buf);
+	if (data_section == NULL)
+		return SR_ERR_DATA;
+	data_section_offset = (size_t) (data_section - buf->str);
+
 	/* Search for all header items. */
 	for (i = 0; i < HEADER_ITEMS_PARAMETERS; ++i) {
-		pattern = find_item(buf, header_items[i]);
+		pattern = find_item(buf->str, data_section_offset, header_items[i]);
 		if (pattern == NULL) {
 			/* WFID is not required. */
 			if (i == WFID)
@@ -333,19 +342,16 @@ static int parse_isf_header(GString *buf, struct context *inc)
 			return SR_ERR_DATA;
 		}
 
+		/* Calculate the offset of the header item in the buffer. */
 		item_offset = (size_t) (pattern - buf->str);
 		item_offset += strlen(header_items[i]);
-		if (item_offset >= buf->len)
+		if (item_offset >= data_section_offset)
 			return SR_ERR_DATA;
 
-		ret = process_header_item(buf->str + item_offset, buf->len - item_offset, inc, i);
+		ret = process_header_item(buf->str + item_offset, data_section_offset - item_offset, inc, i);
 		if (ret != SR_OK)
 			return ret;
 	}
-
-	data_section = find_data_section(buf);
-	if (data_section == NULL)
-		return SR_ERR_DATA;
 
 	return SR_OK;
 }
@@ -440,6 +446,11 @@ static int64_t read_int_value(struct sr_input *in, size_t offset)
 	return value;
 }
 
+/*
+ * Read an unsigned integer value from the data buffer.
+ * The amount of bytes per sample may vary and a sample
+ * is stored in an unsigned 64-bit integer.
+ */
 static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
@@ -465,7 +476,11 @@ static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
 	return value;
 }
 
-/* Read a float value from the data buffer. */
+/*
+ * Read a float value from the data buffer.
+ * The value is stored as a 32-bit integer representing
+ * a single precision value.
+ */
 static float read_float_value(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
@@ -604,8 +619,11 @@ static int receive(struct sr_input *in, GString *buf)
 	g_string_append_len(in->buf, buf->str, buf->len);
 
 	if (!in->sdi_ready) {
-		if (!has_header(in->buf))
+		if (!has_header(in->buf)) {
+			if (in->buf->len > MAX_HEADER_SIZE)
+				return SR_ERR_DATA;
 			return SR_OK;
+		}
 
 		ret = parse_isf_header(in->buf, inc);
 		if (ret != SR_OK)
@@ -620,7 +638,7 @@ static int receive(struct sr_input *in, GString *buf)
 		if (strlen(inc->channel_name) == 0)
 			snprintf(inc->channel_name, MAX_CHANNEL_NAME_SIZE, "CH");
 
-		/* Create channel if not created yet. */
+		/* Create channel if not yet created. */
 		if (inc->create_channel) {
 			sr_channel_new(in->sdi, 0, SR_CHANNEL_ANALOG, TRUE, inc->channel_name);
 			inc->create_channel = FALSE;
