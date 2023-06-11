@@ -48,7 +48,7 @@
 
 /* Size of buffer in which byte order and data format strings are stored. */
 #define BYTE_ORDER_BUFFER_SIZE 4
-#define DATA_FORMAT_BUFFER_SIZE 4
+#define DATA_FORMAT_BUFFER_SIZE 3
 
 /* Byte order */
 enum byteorder {
@@ -173,15 +173,18 @@ static void extract_channel_name(struct context *inc, const char *beg)
  * Parse and save string value from the string
  * starting at beg and ending with ';' character.
  */
-static void find_string_value(const char *beg, char *value, size_t value_len)
+static void find_string_value(const char *beg, char *value, size_t value_size)
 {
-	size_t i, value_idx;
+	size_t i;
 
-	value_idx = 0;
 	i = 0;
-	while (beg[i] != ';' && value_idx < value_len)
-		value[value_idx++] = beg[i++];
-	value[value_idx] = 0;
+	while (beg[i] != ';' && i < value_size - 1) {
+		value[i] = beg[i];
+		++i;
+	}
+	value[i] = 0;
+	if (beg[i] != ';')
+		memset(value, 0, value_size);
 }
 
 /* Extract enconding type from the header. */
@@ -189,7 +192,7 @@ static int find_encoding(const char *beg)
 {
 	char value[MAX_ENCODING_STRING_SIZE];
 
-	find_string_value(beg, value, MAX_ENCODING_STRING_SIZE - 1);
+	find_string_value(beg, value, MAX_ENCODING_STRING_SIZE);
 
 	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
@@ -205,7 +208,7 @@ static int find_waveform_type(struct context *inc, const char *beg)
 {
 	char value[MAX_WAVEFORM_STRING_SIZE];
 
-	find_string_value(beg, value, MAX_WAVEFORM_STRING_SIZE - 1);
+	find_string_value(beg, value, MAX_WAVEFORM_STRING_SIZE);
 
 	if (strcmp(value, "ANALOG") == 0)
 		inc->wfmtype = ANALOG;
@@ -246,7 +249,7 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case BYTE_ORDER:
-		find_string_value(beg, byte_order_buf, BYTE_ORDER_BUFFER_SIZE - 1);
+		find_string_value(beg, byte_order_buf, BYTE_ORDER_BUFFER_SIZE);
 		if (strcmp(byte_order_buf, "LSB") == 0)
 			inc->byte_order = LSB;
 		else if (strcmp(byte_order_buf, "MSB") == 0)
@@ -256,7 +259,7 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case BN_FMT:
-		find_string_value(beg, format_buf, DATA_FORMAT_BUFFER_SIZE - 1);
+		find_string_value(beg, format_buf, DATA_FORMAT_BUFFER_SIZE);
 		if (strcmp(format_buf, "RI") == 0)
 			inc->bn_fmt = RI;
 		else if (strcmp(format_buf, "RP") == 0)
