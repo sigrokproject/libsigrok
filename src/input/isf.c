@@ -149,7 +149,7 @@ static char *find_data_section(GString *buf)
 	/* Curve metadata length is an ASCII byte, hence -48. */
 	metadata_length = (size_t) *data_ptr - 48;
 	data_ptr += 1 + metadata_length;
-	offset = data_ptr - buf->str;
+	offset = (size_t) (data_ptr - buf->str);
 
 	if (offset >= buf->len)
 		return NULL;
@@ -158,41 +158,42 @@ static char *find_data_section(GString *buf)
 }
 
 /* Locate and extract the channel name in the header. */
-static void extract_channel_name(struct context *inc, const char *beg)
+static void extract_channel_name(struct context *inc, const char *beg, size_t beg_len)
 {
 	size_t i, channel_ix;
 
 	channel_ix = 0;
 	/* ISF WFID looks something like WFID "Ch1, ..."; hence we must skip character '"' */
 	i = 1;
-	while (beg[i] != ',' && beg[i] != '"' && channel_ix < MAX_CHANNEL_NAME_SIZE - 1)
+	while (i < beg_len && beg[i] != ',' && beg[i] != '"' && channel_ix < MAX_CHANNEL_NAME_SIZE - 1)
 		inc->channel_name[channel_ix++] = beg[i++];
+	inc->channel_name[channel_ix] = 0;
 }
 
 /*
  * Parse and save string value from the string
  * starting at beg and ending with ';' character.
  */
-static void find_string_value(const char *beg, char *value, size_t value_size)
+static void find_string_value(const char *beg, size_t beg_len, char *value, size_t value_size)
 {
 	size_t i;
 
 	i = 0;
-	while (beg[i] != ';' && i < value_size - 1) {
+	while (i < beg_len && beg[i] != ';' && i < value_size - 1) {
 		value[i] = beg[i];
 		++i;
 	}
 	value[i] = 0;
-	if (beg[i] != ';')
+	if (i >= beg_len || beg[i] != ';')
 		memset(value, 0, value_size);
 }
 
 /* Extract enconding type from the header. */
-static int find_encoding(const char *beg)
+static int find_encoding(const char *beg, size_t beg_len)
 {
 	char value[MAX_ENCODING_STRING_SIZE];
 
-	find_string_value(beg, value, MAX_ENCODING_STRING_SIZE);
+	find_string_value(beg, beg_len, value, MAX_ENCODING_STRING_SIZE);
 
 	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
@@ -204,11 +205,11 @@ static int find_encoding(const char *beg)
 }
 
 /* Extract waveform type from the header. */
-static int find_waveform_type(struct context *inc, const char *beg)
+static int find_waveform_type(struct context *inc, const char *beg, size_t beg_len)
 {
 	char value[MAX_WAVEFORM_STRING_SIZE];
 
-	find_string_value(beg, value, MAX_WAVEFORM_STRING_SIZE);
+	find_string_value(beg, beg_len, value, MAX_WAVEFORM_STRING_SIZE);
 
 	if (strcmp(value, "ANALOG") == 0)
 		inc->wfmtype = ANALOG;
@@ -221,7 +222,7 @@ static int find_waveform_type(struct context *inc, const char *beg)
 }
 
 /* Parse header items. */
-static int process_header_item(const char *beg, struct context *inc, enum header_items_enum item)
+static int process_header_item(const char *beg, size_t beg_len, struct context *inc, enum header_items_enum item)
 {
 	char byte_order_buf[BYTE_ORDER_BUFFER_SIZE];
 	char format_buf[DATA_FORMAT_BUFFER_SIZE];
@@ -249,7 +250,7 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case BYTE_ORDER:
-		find_string_value(beg, byte_order_buf, BYTE_ORDER_BUFFER_SIZE);
+		find_string_value(beg, beg_len, byte_order_buf, BYTE_ORDER_BUFFER_SIZE);
 		if (strcmp(byte_order_buf, "LSB") == 0)
 			inc->byte_order = LSB;
 		else if (strcmp(byte_order_buf, "MSB") == 0)
@@ -259,7 +260,7 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case BN_FMT:
-		find_string_value(beg, format_buf, DATA_FORMAT_BUFFER_SIZE);
+		find_string_value(beg, beg_len, format_buf, DATA_FORMAT_BUFFER_SIZE);
 		if (strcmp(format_buf, "RI") == 0)
 			inc->bn_fmt = RI;
 		else if (strcmp(format_buf, "RP") == 0)
@@ -271,17 +272,17 @@ static int process_header_item(const char *beg, struct context *inc, enum header
 		break;
 
 	case WFID:
-		extract_channel_name(inc, beg);
+		extract_channel_name(inc, beg, beg_len);
 		break;
 
 	case WFMTYPE:
-		ret = find_waveform_type(inc, beg);
+		ret = find_waveform_type(inc, beg, beg_len);
 		if (ret != SR_OK)
 			return ret;
 		break;
 
 	case ENCODING:
-		ret = find_encoding(beg);
+		ret = find_encoding(beg, beg_len);
 		if (ret != SR_OK)
 			return ret;
 		break;
@@ -297,6 +298,7 @@ static int parse_isf_header(GString *buf, struct context *inc)
 {
 	char *pattern, *data_section;
 	int ret, i;
+	size_t item_offset;
 
 	if (inc == NULL)
 		return SR_ERR_ARG;
@@ -310,8 +312,13 @@ static int parse_isf_header(GString *buf, struct context *inc)
 				continue;
 			return SR_ERR_DATA;
 		}
-		
-		ret = process_header_item(pattern + strlen(header_items[i]), inc, i);
+
+		item_offset = (size_t) (pattern - buf->str);
+		item_offset += strlen(header_items[i]);
+		if (item_offset >= buf->len)
+			return SR_ERR_DATA;
+
+		ret = process_header_item(buf->str + item_offset, buf->len - item_offset, inc, i);
 		if (ret != SR_OK)
 			return ret;
 	}
