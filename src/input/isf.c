@@ -221,6 +221,16 @@ static int find_waveform_type(struct context *inc, const char *beg, size_t beg_l
 	return SR_OK;
 }
 
+static gboolean check_float_length(const char *buf, size_t buflen)
+{
+	size_t i = 0;
+
+	while (i < buflen && buf[i] != ';')
+		++i;
+
+	return i < buflen;
+}
+
 /* Parse header items. */
 static int process_header_item(const char *beg, size_t beg_len, struct context *inc, enum header_items_enum item)
 {
@@ -230,22 +240,32 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 
 	switch (item) {
 	case YOFF:
+		if (!check_float_length(beg, beg_len))
+			return SR_ERR_DATA;
 		inc->yoff = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YZERO:
+		if (!check_float_length(beg, beg_len))
+			return SR_ERR_DATA;
 		inc->yzero = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YMULT:
+		if (!check_float_length(beg, beg_len))
+			return SR_ERR_DATA;
 		inc->ymult = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case XINCR:
+		if (!check_float_length(beg, beg_len))
+			return SR_ERR_DATA;
 		inc->xincr = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case BYTNR:
+		if (!check_float_length(beg, beg_len))
+			return SR_ERR_DATA;
 		inc->bytnr = (int) g_ascii_strtoll(beg, NULL, 10);
 		break;
 
