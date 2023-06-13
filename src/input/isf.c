@@ -53,6 +53,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
+#include <errno.h>
+#include <limits.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
 
@@ -113,7 +115,7 @@ struct context {
 	float yzero;
 	float ymult;
 	float xincr;
-	int bytnr;
+	unsigned int bytnr;
 	enum byteorder byte_order;
 	enum format bn_fmt;
 	enum waveform_type wfmtype;
@@ -263,6 +265,57 @@ static gboolean check_item_length(const char *buf, size_t buflen)
 	return i < buflen;
 }
 
+/* Convert a string to float. */
+static gboolean str_to_float(const char *str, size_t buflen, float *result)
+{
+	char *endptr;
+	double value;
+
+	if (!check_item_length(str, buflen))
+		return FALSE;
+
+	value = g_ascii_strtod(str, &endptr);
+	/* The conversion wasn't performed. */
+	if (value == 0 && endptr == str)
+		return FALSE;
+	/* Detect overflow/underflow. */
+	if ((value == HUGE_VAL || value == DBL_MIN) && errno == ERANGE)
+		return FALSE;
+	/* The character after the last character must be ';'. */
+	if (*endptr != ';')
+		return FALSE;
+
+	*result = (float) value;
+	return TRUE;
+}
+
+/* Convert string to an unsigned integer. */
+static gboolean str_to_uint(const char *str, size_t buflen, unsigned int *result)
+{
+	char *endptr;
+	int64_t value;
+
+	if (!check_item_length(str, buflen))
+		return FALSE;
+
+	value = g_ascii_strtoll(str, &endptr, 10);
+	/* The conversion wasn't performed. */
+	if (value == 0 && endptr == str)
+		return FALSE;
+	/* Detect overflow/underflow. */
+	if ((value == LLONG_MIN || value == LLONG_MAX) && errno == ERANGE)
+		return FALSE;
+	/* The character after the last character must be ';'. */
+	if (*endptr != ';')
+		return FALSE;
+
+	if (value < 0 || value > UINT_MAX)
+		return FALSE;
+
+	*result = (unsigned int) value;
+	return TRUE;
+}
+
 /* Parse header items. */
 static int process_header_item(const char *beg, size_t beg_len, struct context *inc, enum header_items_enum item)
 {
@@ -272,33 +325,28 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 
 	switch (item) {
 	case YOFF:
-		if (!check_item_length(beg, beg_len))
+		if (!str_to_float(beg, beg_len, &inc->yoff))
 			return SR_ERR_DATA;
-		inc->yoff = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YZERO:
-		if (!check_item_length(beg, beg_len))
+		if (!str_to_float(beg, beg_len, &inc->yzero))
 			return SR_ERR_DATA;
-		inc->yzero = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case YMULT:
-		if (!check_item_length(beg, beg_len))
+		if (!str_to_float(beg, beg_len, &inc->ymult))
 			return SR_ERR_DATA;
-		inc->ymult = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case XINCR:
-		if (!check_item_length(beg, beg_len))
+		if (!str_to_float(beg, beg_len, &inc->xincr))
 			return SR_ERR_DATA;
-		inc->xincr = (float) g_ascii_strtod(beg, NULL);
 		break;
 
 	case BYTNR:
-		if (!check_item_length(beg, beg_len))
+		if (!str_to_uint(beg, beg_len, &inc->bytnr))
 			return SR_ERR_DATA;
-		inc->bytnr = (int) g_ascii_strtoll(beg, NULL, 10);
 		break;
 
 	case BYTE_ORDER:
@@ -443,7 +491,8 @@ static int init(struct sr_input *in, GHashTable *options)
 static float read_int_sample(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
-	int bytnr, i;
+	unsigned int bytnr;
+	int i;
 	int64_t value;
 	uint8_t data[MAX_INT_BYTNR];
 
@@ -454,12 +503,12 @@ static float read_int_sample(struct sr_input *in, size_t offset)
 	memcpy(data, in->buf->str + offset, bytnr);
 	value = 0;
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < bytnr; ++i) {
+		for (i = 0; i < (int) bytnr; ++i) {
 			value = value << 8;
 			value |= data[i];
 		}
 	} else {
-		for (i = bytnr - 1; i >= 0; --i) {
+		for (i = (int) bytnr - 1; i >= 0; --i) {
 			value = value << 8;
 			value |= data[i];
 		}
@@ -492,12 +541,12 @@ static float read_unsigned_int_sample(struct sr_input *in, size_t offset)
 	/* Value bytnr is checked in function "receive". */
 	memcpy(data, in->buf->str + offset, inc->bytnr);
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < inc->bytnr; ++i) {
+		for (i = 0; i < (int) inc->bytnr; ++i) {
 			value <<= 8;
 			value |= data[i];
 		}
 	} else {
-		for (i = inc->bytnr; i >= 0; --i) {
+		for (i = (int) inc->bytnr; i >= 0; --i) {
 			value <<= 8;
 			value |= data[i];
 		}
@@ -515,7 +564,8 @@ static float read_float_sample(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
 	union floating_point fp;
-	int bytnr, i;
+	unsigned int bytnr;
+	int i;
 	uint8_t data[FLOAT_BYTNR];
 
 	inc = in->priv;
@@ -523,15 +573,15 @@ static float read_float_sample(struct sr_input *in, size_t offset)
 	fp.i = 0;
 
 	/* Value bytnr is checked in function "receive". */
-	memcpy(data, in->buf->str + offset, sizeof(data));
+	memcpy(data, in->buf->str + offset, bytnr);
 
 	if (inc->byte_order == MSB) {
-		for (i = 0; i < bytnr; ++i) {
+		for (i = 0; i < (int) bytnr; ++i) {
 			fp.i = fp.i << 8;
 			fp.i |= data[i];
 		}
 	} else {
-		for (i = bytnr - 1; i >= 0; --i) {
+		for (i = (int) bytnr - 1; i >= 0; --i) {
 			fp.i = fp.i << 8;
 			fp.i |= data[i];
 		}
@@ -650,6 +700,7 @@ static int receive(struct sr_input *in, GString *buf)
 
 	if (!in->sdi_ready) {
 		if (!has_header(in->buf)) {
+			/* Received sufficient amount of data and couldn't locate the "CURVE#" string. */
 			if (in->buf->len > MAX_HEADER_SIZE)
 				return SR_ERR_DATA;
 			return SR_OK;
