@@ -73,6 +73,10 @@
 #define MAX_ENCODING_STRING_SIZE 10
 #define MAX_WAVEFORM_STRING_SIZE 10
 
+/* Maximum number of bytes per sample. */
+#define MAX_INT_BYTNR 8
+#define FLOAT_BYTNR 4
+
 /* Size of buffer in which byte order and data format strings are stored. */
 #define BYTE_ORDER_BUFFER_SIZE 4
 #define DATA_FORMAT_BUFFER_SIZE 3
@@ -436,17 +440,17 @@ static int init(struct sr_input *in, GHashTable *options)
  * in a signed 64-bit integer. Therefore a negative integer extension
  * might be needed.
  */
-static int64_t read_int_value(struct sr_input *in, size_t offset)
+static float read_int_sample(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
 	int bytnr, i;
 	int64_t value;
-	uint8_t data[8];
+	uint8_t data[MAX_INT_BYTNR];
 
 	inc = in->priv;
 	bytnr = inc->bytnr;
-	/* TODO: Perform proper bounds checking. */
-	g_assert(bytnr <= 8 && bytnr <= sizeof(data));
+
+	/* Value bytnr is checked in function "receive". */
 	memcpy(data, in->buf->str + offset, bytnr);
 	value = 0;
 	if (inc->byte_order == MSB) {
@@ -468,7 +472,7 @@ static int64_t read_int_value(struct sr_input *in, size_t offset)
 		value |= i;
 	}
 
-	return value;
+	return (float) value;
 }
 
 /*
@@ -476,15 +480,16 @@ static int64_t read_int_value(struct sr_input *in, size_t offset)
  * The amount of bytes per sample may vary and a sample
  * is stored in an unsigned 64-bit integer.
  */
-static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
+static float read_unsigned_int_sample(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
 	uint64_t value = 0;
-	char data[8];
+	char data[MAX_INT_BYTNR];
 	int i;
 
 	inc = in->priv;
-	g_assert(inc->bytnr <= 8 && inc->bytnr <= sizeof(data));
+
+	/* Value bytnr is checked in function "receive". */
 	memcpy(data, in->buf->str + offset, inc->bytnr);
 	if (inc->byte_order == MSB) {
 		for (i = 0; i < inc->bytnr; ++i) {
@@ -498,7 +503,7 @@ static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
 		}
 	}
 
-	return value;
+	return (float) value;
 }
 
 /*
@@ -506,18 +511,18 @@ static uint64_t read_unsigned_int_value(struct sr_input *in, size_t offset)
  * The value is stored as a 32-bit integer representing
  * a single precision value.
  */
-static float read_float_value(struct sr_input *in, size_t offset)
+static float read_float_sample(struct sr_input *in, size_t offset)
 {
 	struct context *inc;
 	union floating_point fp;
 	int bytnr, i;
-	uint8_t data[4];
+	uint8_t data[FLOAT_BYTNR];
 
 	inc = in->priv;
 	bytnr = inc->bytnr;
-	/* TODO: Check single-precision format properly. */
-	g_assert(sizeof(float) == 4 && bytnr == 4);
 	fp.i = 0;
+
+	/* Value bytnr is checked in function "receive". */
 	memcpy(data, in->buf->str + offset, sizeof(data));
 
 	if (inc->byte_order == MSB) {
@@ -552,11 +557,11 @@ static void send_chunk(struct sr_input *in, size_t initial_offset, size_t num_sa
 	fdata = g_malloc0(sizeof(float) * num_samples);
 	for (i = 0; i < num_samples; ++i) {
 		if (inc->bn_fmt == RI) {
-			fdata[i] = ((float) read_int_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
+			fdata[i] = (read_int_sample(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		} else if (inc->bn_fmt == RP) {
-			fdata[i] = ((float) read_unsigned_int_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
+			fdata[i] = (read_unsigned_int_sample(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		} else if (inc->bn_fmt == FP) {
-			fdata[i] = (read_float_value(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
+			fdata[i] = (read_float_sample(in, offset) - inc->yoff) * inc->ymult + inc->yzero;
 		}
 		offset += inc->bytnr;
 
@@ -654,8 +659,15 @@ static int receive(struct sr_input *in, GString *buf)
 		if (ret != SR_OK)
 			return ret;
 
-		if (inc->bytnr > 8) {
-			sr_err("Byte number > 8 is not supported.");
+		/* Check bytnr value. */
+		if ((inc->bn_fmt == RI || inc->bn_fmt == RP) && inc->bytnr > MAX_INT_BYTNR) {
+			sr_err("This value of byte number per sample is unsupported.");
+			return SR_ERR_NA;
+		}
+
+		if (inc->bn_fmt == FP &&
+			(inc->bytnr != FLOAT_BYTNR || sizeof(float) != FLOAT_BYTNR)) {
+			sr_err("This value of byte number per sample is unsupported.");
 			return SR_ERR_NA;
 		}
 
