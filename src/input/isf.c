@@ -122,7 +122,11 @@ struct context {
 	char channel_name[MAX_CHANNEL_NAME_SIZE];
 };
 
-/* Header items used to process the input file. */
+/*
+ * Header items used to process the input file.
+ *
+ * Parameter WFID is optional, the rest are required.
+ */
 enum header_items_enum {
 	YOFF = 0,
 	YZERO = 1,
@@ -150,13 +154,13 @@ static const char *header_items[] = {
 	[ENCODING] = "ENCDG ",
 };
 
-/* Find the header item in the header. */
+/* Find the header item string in the header. */
 static char *find_item(const char *buf, size_t buflen, const char *item)
 {
 	return g_strstr_len(buf, buflen, item);
 }
 
-/* Find curve which indicates the end of the header and the start of the data. */
+/* Find curve which marks the end of the header and the start of the data. */
 static char *find_data_section(GString *buf)
 {
 	const char curve[] = "CURVE #";
@@ -191,42 +195,42 @@ static gboolean has_header(GString *buf)
 }
 
 /* Locate and extract the channel name in the header. */
-static void extract_channel_name(struct context *inc, const char *beg, size_t beg_len)
+static void extract_channel_name(struct context *inc, const char *buf, size_t buflen)
 {
 	size_t i, channel_ix;
 
 	channel_ix = 0;
 	/* ISF WFID looks something like WFID "Ch1, ..."; hence we must skip character '"' */
 	i = 1;
-	while (i < beg_len && beg[i] != ',' && beg[i] != '"' && channel_ix < MAX_CHANNEL_NAME_SIZE - 1)
-		inc->channel_name[channel_ix++] = beg[i++];
+	while (i < buflen && buf[i] != ',' && buf[i] != '"' && channel_ix < MAX_CHANNEL_NAME_SIZE - 1)
+		inc->channel_name[channel_ix++] = buf[i++];
 	inc->channel_name[channel_ix] = 0;
 }
 
 /*
  * Parse and save string value from the string
- * starting at beg and ending with ';' character.
+ * starting at buf and ending with ';' character.
  */
-static void find_string_value(const char *beg, size_t beg_len, char *value, size_t value_size)
+static void find_string_value(const char *buf, size_t buflen, char *value, size_t value_size)
 {
 	size_t i;
 
 	i = 0;
-	while (i < beg_len && beg[i] != ';' && i < value_size - 1) {
-		value[i] = beg[i];
+	while (i < buflen && buf[i] != ';' && i < value_size - 1) {
+		value[i] = buf[i];
 		++i;
 	}
 	value[i] = 0;
-	if (i >= beg_len || beg[i] != ';')
+	if (i >= buflen || buf[i] != ';')
 		memset(value, 0, value_size);
 }
 
 /* Extract enconding type from the header. */
-static int find_encoding(const char *beg, size_t beg_len)
+static int find_encoding(const char *buf, size_t buflen)
 {
 	char value[MAX_ENCODING_STRING_SIZE];
 
-	find_string_value(beg, beg_len, value, MAX_ENCODING_STRING_SIZE);
+	find_string_value(buf, buflen, value, MAX_ENCODING_STRING_SIZE);
 
 	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
@@ -238,11 +242,11 @@ static int find_encoding(const char *beg, size_t beg_len)
 }
 
 /* Extract waveform type from the header. */
-static int find_waveform_type(struct context *inc, const char *beg, size_t beg_len)
+static int find_waveform_type(struct context *inc, const char *buf, size_t buflen)
 {
 	char value[MAX_WAVEFORM_STRING_SIZE];
 
-	find_string_value(beg, beg_len, value, MAX_WAVEFORM_STRING_SIZE);
+	find_string_value(buf, buflen, value, MAX_WAVEFORM_STRING_SIZE);
 
 	if (strcmp(value, "ANALOG") == 0)
 		inc->wfmtype = ANALOG;
@@ -265,7 +269,12 @@ static gboolean check_item_length(const char *buf, size_t buflen)
 	return i < buflen;
 }
 
-/* Convert a string to float. */
+/*
+ * Convert a string to float.
+ *
+ * Glib doesn't provide any locale independent ASCII to float function,
+ * therefore double value must be cast to float.
+ */
 static gboolean str_to_float(const char *str, size_t buflen, float *result)
 {
 	char *endptr;
@@ -289,7 +298,12 @@ static gboolean str_to_float(const char *str, size_t buflen, float *result)
 	return TRUE;
 }
 
-/* Convert string to an unsigned integer. */
+/*
+ * Convert a string to an unsigned integer.
+ *
+ * Glib doesn't provide any locale independent ASCII to uint function,
+ * therefore long long (int64_t) must be cast to unsigned int.
+ */
 static gboolean str_to_uint(const char *str, size_t buflen, unsigned int *result)
 {
 	char *endptr;
@@ -317,7 +331,7 @@ static gboolean str_to_uint(const char *str, size_t buflen, unsigned int *result
 }
 
 /* Parse header items. */
-static int process_header_item(const char *beg, size_t beg_len, struct context *inc, enum header_items_enum item)
+static int process_header_item(const char *buf, size_t buflen, struct context *inc, enum header_items_enum item)
 {
 	char byte_order_buf[BYTE_ORDER_BUFFER_SIZE];
 	char format_buf[DATA_FORMAT_BUFFER_SIZE];
@@ -325,32 +339,32 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 
 	switch (item) {
 	case YOFF:
-		if (!str_to_float(beg, beg_len, &inc->yoff))
+		if (!str_to_float(buf, buflen, &inc->yoff))
 			return SR_ERR_DATA;
 		break;
 
 	case YZERO:
-		if (!str_to_float(beg, beg_len, &inc->yzero))
+		if (!str_to_float(buf, buflen, &inc->yzero))
 			return SR_ERR_DATA;
 		break;
 
 	case YMULT:
-		if (!str_to_float(beg, beg_len, &inc->ymult))
+		if (!str_to_float(buf, buflen, &inc->ymult))
 			return SR_ERR_DATA;
 		break;
 
 	case XINCR:
-		if (!str_to_float(beg, beg_len, &inc->xincr))
+		if (!str_to_float(buf, buflen, &inc->xincr))
 			return SR_ERR_DATA;
 		break;
 
 	case BYTNR:
-		if (!str_to_uint(beg, beg_len, &inc->bytnr))
+		if (!str_to_uint(buf, buflen, &inc->bytnr))
 			return SR_ERR_DATA;
 		break;
 
 	case BYTE_ORDER:
-		find_string_value(beg, beg_len, byte_order_buf, BYTE_ORDER_BUFFER_SIZE);
+		find_string_value(buf, buflen, byte_order_buf, BYTE_ORDER_BUFFER_SIZE);
 		if (strcmp(byte_order_buf, "LSB") == 0)
 			inc->byte_order = LSB;
 		else if (strcmp(byte_order_buf, "MSB") == 0)
@@ -360,7 +374,7 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 		break;
 
 	case BN_FMT:
-		find_string_value(beg, beg_len, format_buf, DATA_FORMAT_BUFFER_SIZE);
+		find_string_value(buf, buflen, format_buf, DATA_FORMAT_BUFFER_SIZE);
 		if (strcmp(format_buf, "RI") == 0)
 			inc->bn_fmt = RI;
 		else if (strcmp(format_buf, "RP") == 0)
@@ -372,17 +386,17 @@ static int process_header_item(const char *beg, size_t beg_len, struct context *
 		break;
 
 	case WFID:
-		extract_channel_name(inc, beg, beg_len);
+		extract_channel_name(inc, buf, buflen);
 		break;
 
 	case WFMTYPE:
-		ret = find_waveform_type(inc, beg, beg_len);
+		ret = find_waveform_type(inc, buf, buflen);
 		if (ret != SR_OK)
 			return ret;
 		break;
 
 	case ENCODING:
-		ret = find_encoding(beg, beg_len);
+		ret = find_encoding(buf, buflen);
 		if (ret != SR_OK)
 			return ret;
 		break;
@@ -418,7 +432,10 @@ static int parse_isf_header(GString *buf, struct context *inc)
 			return SR_ERR_DATA;
 		}
 
-		/* Calculate the offset of the header item value in the buffer. */
+		/*
+		 * Calculate the offset of the header item value in the buffer
+		 * as well as its distance from the data section.
+		 */
 		item_offset = (size_t) (pattern - buf->str);
 		item_offset += strlen(header_items[i]);
 		if (item_offset >= data_section_offset)
@@ -484,7 +501,7 @@ static int init(struct sr_input *in, GHashTable *options)
 
 /*
  * Read an integer value from the data buffer.
- * The number of bytes per sample may vary and a sample is stored
+ * The number of bytes per sample may vary and the sample is stored
  * in a signed 64-bit integer. Therefore a negative integer extension
  * might be needed.
  */
@@ -663,10 +680,10 @@ static int process_buffer(struct sr_input *in)
 		offset = 0;
 	}
 
-	/* Slice the chunk into samples and clear the input buffer. */
+	/* Slice the buffer data into chunks, send them and clear the buffer. */
 	processed = 0;
-	chunk_samples = (in->buf->len - offset)/inc->bytnr;
-	max_chunk_samples = CHUNK_SIZE/inc->bytnr;
+	chunk_samples = (in->buf->len - offset) / inc->bytnr;
+	max_chunk_samples = CHUNK_SIZE / inc->bytnr;
 	total_samples = chunk_samples;
 	
 	while (processed < total_samples) {
@@ -722,7 +739,7 @@ static int receive(struct sr_input *in, GString *buf)
 			return SR_ERR_NA;
 		}
 
-		/* Set default channel name. */
+		/* Set default channel name if WFID couldn't be found. */
 		if (strlen(inc->channel_name) == 0)
 			snprintf(inc->channel_name, MAX_CHANNEL_NAME_SIZE, "CH");
 
