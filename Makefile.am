@@ -680,6 +680,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/uni-t-ut32x/protocol.c \
 	src/hardware/uni-t-ut32x/api.c
 endif
+if HW_UNI_T_UT8802E
+src_libdrivers_la_SOURCES += \
+	src/hardware/uni-t-ut8802e/protocol.h \
+	src/hardware/uni-t-ut8802e/protocol.c \
+	src/hardware/uni-t-ut8802e/api.c
+endif
 if HW_YOKOGAWA_DLM
 src_libdrivers_la_SOURCES += \
 	src/hardware/yokogawa-dlm/protocol.h \
