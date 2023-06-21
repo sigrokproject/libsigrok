@@ -85,14 +85,12 @@ enum ut8803e_cmd_code {
     CMD_CODE_D_VALUE = 0x4e,
     CMD_CODE_Q_VALUE = 0x4f,
     CMD_CODE_R_VALUE = 0x51,
-    //...
     CMD_CODE_DEVICE_ID= 0x58,
 };
 
 enum ut8803e_rsp_type {
     RSP_TYPE_INFO = 0x00,
     RSP_TYPE_MEASUREMENT = 0x02,
-    RSP_TYPE_REC_INFO = 0x04,
 };
 
 enum ut8803e_channel_idx {

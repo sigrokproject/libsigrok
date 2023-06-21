@@ -28,8 +28,8 @@
  * - UART frame format 8n1 at 9600 bps.
  * - DMM packet starts with a magic marker, followed by the length, packet indentifity
  * - Example of measurement packet:
- * | HEADER | Lenght | Packet type | Func | RANGE | +/- | Value 6 digit	    | *     | Settings    | Checksum |
- * | ab cd  | 12 	 | 02          | 01   | 31    | 2b  | 30 2e 30 30 30 30 | 30 31 | 30 3c 30 30 | 04 34    |
+ * | HEADER | Lenght | Packet type | Func | RANGE | +/- | Value 6 digit     | *     | Settings    | Checksum |
+ * | ab cd  | 12     | 02          | 01   | 31    | 2b  | 30 2e 30 30 30 30 | 30 31 | 30 3c 30 30 | 04 34    |
  * TO DO:
  * - add handler to packet with ID,
  * - add way to change manually range
@@ -288,6 +288,7 @@ static int process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len) {
                 sr_dev_acquisition_stop(sdi);
             }
             break;
+        /* To Do: Add more packet type */
         default:
             sr_spew("Unkwon packet type");
             return SR_ERR_DATA;
