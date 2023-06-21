@@ -17,10 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-#include "math.h"
-
 #include "protocol.h"
+
+#include <config.h>
+
+#include "math.h"
 
 /*
  * Developer notes on the UT8802E protocol:
@@ -29,9 +30,9 @@
  * - DMM packet starts with a magic marker, functionality, value, etc.
  * - UT8802E only sends a packet with measurement. Example of frame:
  *   Frame | func | value    | comma | settings | checksum |
- *   ac    | 1b   | 45 01 00 | 33	 | 04  	    | 44       |
+ *   ac    | 1b   | 45 01 00 | 33     | 04          | 44       |
  * - The frame to send a command to the multimeter is unknown.
-*/
+ */
 
 static const int8_t range_volt[]  = {-3,  0};
 static const int8_t range_amp[]   = {-6, -3,  0};
@@ -66,7 +67,7 @@ static int process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len) {
     size_t checksum_dlen;
 
     uint8_t v8, got_magic_frame, got_checksum, want_checksum;
-    uint16_t clc_checksum;
+    uint16_t sum_of_bytes;
     uint32_t v32;
     uint8_t got_length, settings;
     float new_value;
@@ -98,18 +99,17 @@ static int process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len) {
 
     payload = &pkt[sizeof(uint8_t)];
 
-    clc_checksum = 0;
+    sum_of_bytes = 0;
     checksum_dlen = got_length;
     for (uint32_t i = 0; i < checksum_dlen; i++) {
-        clc_checksum = clc_checksum + pkt[i];
+        sum_of_bytes = sum_of_bytes + pkt[i];
     }
-    want_checksum = clc_checksum;
-
-    if (clc_checksum > 256 && want_checksum >= 128)
-        want_checksum = want_checksum - 128;
+    want_checksum = sum_of_bytes;
+    want_checksum &= ~(1UL << 7);
 
     got_checksum = R8(&pkt[checksum_dlen]);
-    sr_spew("Checksum: %d, Got: %d, ALL %d", want_checksum, got_checksum, clc_checksum);
+    sr_spew("Checksum: %d, Got: %d, sum of bytes: %d",
+            want_checksum, got_checksum, sum_of_bytes);
     if (want_checksum != got_checksum)
         return SR_ERR_DATA;
 
@@ -296,8 +296,8 @@ static int process_packet(struct sr_dev_inst *sdi, uint8_t *pkt, size_t len) {
     feedbuff.analog.spec->spec_digits = -info->meas_data.main_prec + 4;
 
     feedbuff.main_value = info->meas_data.main_value;
-	if (sdi->status != SR_ST_ACTIVE)
-		return SR_OK;
+    if (sdi->status != SR_ST_ACTIVE)
+        return SR_OK;
 
     ret = sr_session_send(sdi, &feedbuff.packet);
     if (ret != SR_OK)
