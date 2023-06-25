@@ -236,7 +236,7 @@ static int find_encoding(const char *buf, size_t buflen)
 
 	find_string_value(buf, buflen, value, MAX_ENCODING_STRING_SIZE);
 
-	/* "BIN" and "BINARY" are accepted as suggested in a pull request comment. */
+	/* "BIN" and "BINARY" are accepted. */
 	if (strcmp(value, "BINARY") != 0 && strcmp(value, "BIN") != 0) {
 		sr_err("Only binary encoding supported.");
 		return SR_ERR_NA;
