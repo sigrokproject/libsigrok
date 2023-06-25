@@ -202,8 +202,12 @@ static void extract_channel_name(struct context *inc, const char *buf, size_t bu
 	channel_ix = 0;
 	/* ISF WFID looks something like WFID "Ch1, ..."; hence we must skip character '"' */
 	i = 1;
-	while (i < buflen && buf[i] != ',' && buf[i] != '"' && channel_ix < MAX_CHANNEL_NAME_SIZE - 1)
+	while (i < buflen &&
+			buf[i] != ',' &&
+			buf[i] != '"' &&
+			channel_ix < MAX_CHANNEL_NAME_SIZE - 1) {
 		inc->channel_name[channel_ix++] = buf[i++];
+	}
 	inc->channel_name[channel_ix] = 0;
 }
 
