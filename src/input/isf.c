@@ -474,15 +474,6 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 	char *fn;
 	size_t fn_len;
 
-	/* If the extension is '.isf', it is likely the format matches. */
-	fn = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_FILENAME));
-	if (fn != NULL && (fn_len = strlen(fn)) >= strlen(default_extension)) {
-		if (strcmp(fn + fn_len - strlen(default_extension), default_extension) == 0) {
-			*confidence = 10;
-			return SR_OK;
-		}
-	}
-
 	buf = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_HEADER));
 	/* Check if the header contains NR_PT item. */
 	if (buf == NULL || g_strstr_len(buf->str, buf->len, nr_pt) == NULL)
@@ -490,6 +481,14 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 	/* The header contains NR_PT item, the confidence is high. */
 	*confidence = 50;
+
+	/* Increase the confidence if the extension is '.isf'. */
+	fn = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_FILENAME));
+	if (fn != NULL && (fn_len = strlen(fn)) >= strlen(default_extension)) {
+		if (g_ascii_strcasecmp(fn + fn_len - strlen(default_extension), default_extension) == 0) {
+			*confidence += 10;
+		}
+	}
 	return SR_OK;
 }
 
