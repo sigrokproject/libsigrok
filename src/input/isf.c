@@ -177,8 +177,14 @@ static char *find_data_section(GString *buf)
 	if (offset >= buf->len)
 		return NULL;
 
-	/* Curve metadata length is an ASCII byte, hence -48. */
-	metadata_length = (size_t) *data_ptr - 48;
+	/*
+	 * Curve metadata length is encoded as an ASCII
+	 * digit '0' to '9', hence -48.
+	 */
+	metadata_length = (size_t) *data_ptr;
+	if (metadata_length < 48 || metadata_length > 57)
+		return NULL;
+	metadata_length -= 48;
 	data_ptr += 1 + metadata_length;
 	offset = (size_t) (data_ptr - buf->str);
 
