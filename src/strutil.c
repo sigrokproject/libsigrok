@@ -174,7 +174,7 @@ SR_PRIV int sr_atoul_base(const char *str, unsigned long *ret, char **end, int b
 	/* Add "0b" prefix support which strtol(3) may be missing. */
 	while (str && isspace(*str))
 		str++;
-	if (!base && strncmp(str, "0b", strlen("0b")) == 0) {
+	if ((!base || base == 2) && strncmp(str, "0b", strlen("0b")) == 0) {
 		str += strlen("0b");
 		base = 2;
 	}
