@@ -525,7 +525,8 @@ static float read_int_sample(struct sr_input *in, size_t offset)
 	inc = in->priv;
 	bytnr = inc->bytnr;
 
-	/* Value bytnr is checked in function "receive". */
+	if (bytnr > MAX_INT_BYTNR)
+		return 0;
 	memcpy(data, in->buf->str + offset, bytnr);
 	value = 0;
 	if (inc->byte_order == MSB) {
@@ -564,7 +565,8 @@ static float read_unsigned_int_sample(struct sr_input *in, size_t offset)
 
 	inc = in->priv;
 
-	/* Value bytnr is checked in function "receive". */
+	if (inc->bytnr > MAX_INT_BYTNR)
+		return 0;
 	memcpy(data, in->buf->str + offset, inc->bytnr);
 	if (inc->byte_order == MSB) {
 		for (i = 0; i < (int) inc->bytnr; ++i) {
@@ -598,7 +600,8 @@ static float read_float_sample(struct sr_input *in, size_t offset)
 	bytnr = inc->bytnr;
 	fp.i = 0;
 
-	/* Value bytnr is checked in function "receive". */
+	if (bytnr > FLOAT_BYTNR)
+		return 0;
 	memcpy(data, in->buf->str + offset, bytnr);
 
 	if (inc->byte_order == MSB) {
