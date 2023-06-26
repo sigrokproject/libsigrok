@@ -484,8 +484,10 @@ static int format_match(GHashTable *metadata, unsigned int *confidence)
 
 	/* Increase the confidence if the extension is '.isf'. */
 	fn = g_hash_table_lookup(metadata, GINT_TO_POINTER(SR_INPUT_META_FILENAME));
-	if (fn != NULL && (fn_len = strlen(fn)) >= strlen(default_extension)) {
-		if (g_ascii_strcasecmp(fn + fn_len - strlen(default_extension), default_extension) == 0) {
+	if (fn != NULL) {
+		fn_len = strlen(fn);
+		if (fn_len >= strlen(default_extension) &&
+			g_ascii_strcasecmp(fn + fn_len - strlen(default_extension), default_extension) == 0) {
 			*confidence += 10;
 		}
 	}
