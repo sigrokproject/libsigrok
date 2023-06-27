@@ -179,12 +179,12 @@ static char *find_data_section(GString *buf)
 
 	/*
 	 * Curve metadata length is encoded as an ASCII
-	 * digit '0' to '9', hence -48.
+	 * digit '0' to '9'.
 	 */
 	metadata_length = (size_t) *data_ptr;
-	if (metadata_length < 48 || metadata_length > 57)
+	if (metadata_length < '0' || metadata_length > '9')
 		return NULL;
-	metadata_length -= 48;
+	metadata_length -= '0';
 	data_ptr += 1 + metadata_length;
 	offset = (size_t) (data_ptr - buf->str);
 
