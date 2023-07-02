@@ -1667,4 +1667,156 @@ SR_API void sr_free_probe_names(char **names)
 	g_strfreev(names);
 }
 
+/**
+ * Trim leading and trailing whitespace off text.
+ *
+ * @param[in] s The input text.
+ *
+ * @return Start of trimmed input text.
+ *
+ * Manipulates the caller's input text in place.
+ *
+ * @since 0.6.0
+ */
+SR_API char *sr_text_trim_spaces(char *s)
+{
+	char *p;
+
+	if (!s || !*s)
+		return s;
+
+	p = s + strlen(s);
+	while (p > s && isspace((int)p[-1]))
+		*(--p) = '\0';
+	while (isspace((int)*s))
+		s++;
+
+	return s;
+}
+
+/**
+ * Check for another complete text line, trim, return consumed char count.
+ *
+ * @param[in] s The input text, current read position.
+ * @param[in] l The input text, remaining available characters.
+ * @param[out] next Position after the current text line.
+ * @param[out] taken Count of consumed chars in current text line.
+ *
+ * @return Start of trimmed and NUL terminated text line.
+ *   Or #NULL when no text line was found.
+ *
+ * Checks for the availability of another text line of input data.
+ * Manipulates the caller's input text in place.
+ *
+ * The end-of-line condition is the LF character ('\n'). Which covers
+ * LF-only as well as CR/LF input data. CR-only and LF/CR are considered
+ * unpopular and are not supported. LF/CR may appear to work at the
+ * caller's when leading whitespace gets trimmed (line boundaries will
+ * be incorrect, but content may get processed as expected). Support for
+ * all of the above combinations breaks the detection of empty lines (or
+ * becomes unmaintainably complex).
+ *
+ * The input buffer must be end-of-line terminated, lack of EOL results
+ * in failure to detect the text line. This is motivated by accumulating
+ * input in chunks, and the desire to not process incomplete lines before
+ * their reception has completed. Callers should enforce EOL if their
+ * source of input provides an EOF condition and is unreliable in terms
+ * of text line termination.
+ *
+ * When another text line is available, it gets NUL terminated and
+ * space gets trimmed of both ends. The start position of the trimmed
+ * text line is returned. Optionally the number of consumed characters
+ * is returned to the caller. Optionally 'next' points to after the
+ * returned text line, or #NULL when no other text is available in the
+ * input buffer.
+ *
+ * The 'taken' value is not preset by this routine, only gets updated.
+ * This is convenient for callers which expect to find multiple text
+ * lines in a received chunk, before finally discarding processed data
+ * from the input buffer (which can involve expensive memory move
+ * operations, and may be desirable to defer as much as possible).
+ *
+ * @since 0.6.0
+ */
+SR_API char *sr_text_next_line(char *s, size_t l, char **next, size_t *taken)
+{
+	char *p;
+
+	if (next)
+		*next = NULL;
+	if (!l)
+		l = strlen(s);
+
+	/* Immediate reject incomplete input data. */
+	if (!s || !*s || !l)
+		return NULL;
+
+	/* Search for the next line termination. NUL terminate. */
+	p = g_strstr_len(s, l, "\n");
+	if (!p)
+		return NULL;
+	*p++ = '\0';
+	if (taken)
+		*taken += p - s;
+	l -= p - s;
+	if (next)
+		*next = l ? p : NULL;
+
+	/* Trim NUL terminated text line at both ends. */
+	s = sr_text_trim_spaces(s);
+	return s;
+}
+
+/**
+ * Isolates another space separated word in a text line.
+ *
+ * @param[in] s The input text, current read position.
+ * @param[out] next The position after the current word.
+ *
+ * @return The start of the current word. Or #NULL if there is none.
+ *
+ * Advances over leading whitespace. Isolates (NUL terminates) the next
+ * whitespace separated word. Optionally returns the position after the
+ * current word. Manipulates the caller's input text in place.
+ *
+ * @since 0.6.0
+ */
+SR_API char *sr_text_next_word(char *s, char **next)
+{
+	char *word, *p;
+
+	word = s;
+	if (next)
+		*next = NULL;
+
+	/* Immediately reject incomplete input data. */
+	if (!word || !*word)
+		return NULL;
+
+	/* Advance over optional leading whitespace. */
+	while (isspace((int)*word))
+		word++;
+	if (!*word)
+		return NULL;
+
+	/*
+	 * Advance until whitespace or end of text. Quick return when
+	 * end of input is seen. Otherwise advance over whitespace and
+	 * return the position of trailing text.
+	 */
+	p = word;
+	while (*p && !isspace((int)*p))
+		p++;
+	if (!*p)
+		return word;
+	*p++ = '\0';
+	while (isspace((int)*p))
+		p++;
+	if (!*p)
+		return word;
+	if (next)
+		*next = p;
+	return word;
+}
+
 /** @} */
