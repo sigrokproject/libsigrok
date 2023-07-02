@@ -430,6 +430,149 @@ START_TEST(test_exponent)
 }
 END_TEST
 
+START_TEST(test_text_line)
+{
+	/*
+	 * Covers text line splitting as used in input modules. Accepts
+	 * input with differing end-of-line conventions, accepts leading
+	 * and trailing whitespace. Isolates "the core" of a text line.
+	 * Supports repeated calls which accumulate what later needs to
+	 * get discarded after input data got processed in pieces.
+	 */
+#define EOL		"\n"
+
+#define TEXT_CORE_1	"Need to provide"
+#define TEXT_CORE_2	"an input text"
+#define TEXT_CORE_3	""
+#define TEXT_CORE_4	"with empty lines and  funny  spacing perhaps?"
+
+#define TEXT_LINE_1	TEXT_CORE_1 " \n"
+#define TEXT_LINE_2	"  " TEXT_CORE_2 "\n"
+#define TEXT_LINE_3	TEXT_CORE_3 "\r\n"
+#define TEXT_LINE_4	TEXT_CORE_4 "\n"
+
+#define TEXT_INPUT	TEXT_LINE_1 TEXT_LINE_2 TEXT_LINE_3 TEXT_LINE_4
+
+	char *input_text, *read_pos, *next_pos, *line;
+	size_t input_len, taken;
+
+	input_text = g_strdup(TEXT_INPUT);
+	read_pos = input_text;
+	input_len = strlen(input_text);
+
+	/* Cover first line in tests. */
+	taken = 0;
+	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
+	fail_unless(line, "Text line not found");
+	fail_unless(strcmp(line, TEXT_CORE_1) == 0, "Unexpected line content");
+	fail_unless(next_pos, "No next line found");
+	fail_unless(strncmp(next_pos, TEXT_LINE_2, strlen(TEXT_LINE_2)) == 0,
+		"Unexpected next line content");
+	fail_unless(taken == strlen(TEXT_LINE_1),
+		"Unexpected consumed count");
+	read_pos = next_pos;
+	input_len -= taken;
+	taken = 0;
+
+	/* Cover second line in tests. DO NOT void 'taken' yet. */
+	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
+	fail_unless(line, "Text line not found");
+	fail_unless(strcmp(line, TEXT_CORE_2) == 0,
+		"Unexpected text line content");
+	fail_unless(next_pos, "No next line found");
+	fail_unless(strncmp(next_pos, TEXT_LINE_3, strlen(TEXT_LINE_3)) == 0,
+		"Unexpected next line content");
+	fail_unless(taken == strlen(TEXT_LINE_2),
+		"Unexpected consumed count");
+	input_len -= next_pos - read_pos;
+	read_pos = next_pos;
+
+	/* Cover third line in tests. Accumulates 'taken'. */
+	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
+	fail_unless(line, "Text line not found");
+	fail_unless(strcmp(line, TEXT_CORE_3) == 0, "Unexpected line content");
+	fail_unless(next_pos, "No next line found");
+	fail_unless(strncmp(next_pos, TEXT_LINE_4, strlen(TEXT_LINE_4)) == 0,
+		"Unexpected next line content");
+	fail_unless(taken == strlen(TEXT_LINE_2) + strlen(TEXT_LINE_3),
+		"Unexpected consumed count (totalled)");
+	input_len -= next_pos - read_pos;
+	read_pos = next_pos;
+	taken = 0;
+
+	/* Cover last line in tests. */
+	line = sr_text_next_line(read_pos, input_len, &next_pos, &taken);
+	fail_unless(line, "Text line not found");
+	fail_unless(strcmp(line, TEXT_CORE_4) == 0,
+		"Unexpected text line content");
+	fail_unless(!next_pos, "Next line found, unexpected");
+	fail_unless(taken == strlen(TEXT_LINE_4),
+		"Unexpected consumed count");
+	input_len -= taken;
+	read_pos = next_pos;
+
+	/* All input must have been consumed. */
+	fail_unless(!read_pos);
+	fail_unless(!input_len);
+
+	g_free(input_text);
+}
+END_TEST
+
+/*
+ * TODO Ideally this table of test cases should reside within the
+ * test_text_word() routine. But compilation fails when it's put there
+ * (initializers are said to not be constant, cause is yet uncertain).
+ */
+static const struct {
+	const char *line;
+	const char **words;
+} word_cases[] = {
+	{ "", (const char *[]){ NULL, }, },
+	{ " ", (const char *[]){ NULL, }, },
+	{ "one", (const char *[]){ "one", NULL, }, },
+	{ "one ", (const char *[]){ "one", NULL, }, },
+	{ " one ", (const char *[]){ "one", NULL, }, },
+	{ " one two ", (const char *[]){ "one", "two", NULL, }, },
+	{ "one  two three ",
+		(const char *[]){ "one", "two", "three", NULL, },
+	},
+};
+
+START_TEST(test_text_word)
+{
+	size_t case_idx, word_idx;
+	char *line;
+	const char **words, *want;
+	char *read_pos, *next_pos, *have;
+
+	for (case_idx = 0; case_idx < ARRAY_SIZE(word_cases); case_idx++) {
+		line = g_strdup(word_cases[case_idx].line);
+		words = word_cases[case_idx].words;
+		word_idx = 0;
+
+		read_pos = line;
+		while (read_pos) {
+			want = words[word_idx];
+			have = sr_text_next_word(read_pos, &next_pos);
+			if (!want) {
+				fail_unless(!have, "word found, unexpected");
+				fail_unless(!next_pos, "next found after end");
+				break;
+			}
+			word_idx++;
+			read_pos = next_pos;
+			fail_unless(have, "word not found");
+			fail_unless(strcmp(have, want) == 0,
+				"unexpected word found");
+		}
+		fail_unless(!words[word_idx], "missed expected words");
+
+		g_free(line);
+	}
+}
+END_TEST
+
 Suite *suite_strutil(void)
 {
 	Suite *s;
@@ -450,6 +593,11 @@ Suite *suite_strutil(void)
 	tcase_add_test(tc, test_integral);
 	tcase_add_test(tc, test_fractional);
 	tcase_add_test(tc, test_exponent);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("text");
+	tcase_add_test(tc, test_text_line);
+	tcase_add_test(tc, test_text_word);
 	suite_add_tcase(s, tc);
 
 	return s;
