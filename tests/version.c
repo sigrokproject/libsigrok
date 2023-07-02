@@ -70,27 +70,31 @@ END_TEST
  *
  * The upper limit assumes:
  * - The major, minor, and micro parts won't contain more than two
- *   digits each (this is an arbitrary choice).
+ *   digits each (this is an arbitrary choice). The three numbers
+ *   are separated by a period character.
  * - An optional "-git-<hash>" suffix might follow. While git(1)
  *   defaults to 7 hex digits for abbreviated hashes, projects of
  *   larger scale might recommend to use more digits to avoid
  *   potential ambiguity (e.g. Linux recommends core.abbrev=12).
  *   Again, this is an arbitrary choice.
+ * - An optional "-dirty" suffix might follow.
  */
 START_TEST(test_version_strings)
 {
 	const char *str;
 	const size_t len_min = 5;
-	const size_t len_max = 2 + 1 + 2 + 1 + 2 + 5 + 12;
+	const size_t len_max = 2 + 1 + 2 + 1 + 2 + 5 + 12 + 6;
 
 	str = sr_package_version_string_get();
 	fail_unless(str != NULL);
 	fail_unless(strlen(str) >= len_min);
-	fail_unless(strlen(str) <= len_max);
+	fail_unless(strlen(str) <= len_max,
+		"Max len exceeded, max %zu, text %s", len_max, str);
 	str = sr_lib_version_string_get();
 	fail_unless(str != NULL);
 	fail_unless(strlen(str) >= len_min);
-	fail_unless(strlen(str) <= len_max);
+	fail_unless(strlen(str) <= len_max,
+		"Max len exceeded, max %zu, text %s", len_max, str);
 }
 END_TEST
 
