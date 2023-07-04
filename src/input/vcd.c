@@ -152,11 +152,6 @@ struct context {
 	} conv_bits;
 	GString *scope_prefix;
 	struct feed_queue_logic *feed_logic;
-	struct split_state {
-		size_t alloced;
-		char **words;
-		gboolean in_use;
-	} split;
 	struct ts_stats {
 		size_t total_ts_seen;
 		uint64_t last_ts_value;
@@ -457,6 +452,11 @@ static void check_remove_bom(GString *buf)
 /*
  * Reads a single VCD section from input file and parses it to name/contents.
  * e.g. $timescale 1ps $end => "timescale" "1ps"
+ *
+ * The section (its content and its opening/closing markers) can span
+ * multiple text lines. This routine must not modify the caller's input
+ * buffer. Executes potentially multiple times on the same input data,
+ * and executes outside of the processing of the file's data section.
  */
 static gboolean parse_section(GString *buf, char **name, char **contents)
 {
@@ -521,142 +521,6 @@ static gboolean parse_section(GString *buf, char **name, char **contents)
 	return status;
 }
 
-/*
- * The glib routine which splits an input text into a list of words also
- * "provides empty strings" which application code then needs to remove.
- * And copies of the input text get allocated for all words.
- *
- * The repeated memory allocation is acceptable for small workloads like
- * parsing the header sections. But the heavy lifting for sample data is
- * done by DIY code to speedup execution. The use of glib routines would
- * severely hurt throughput. Allocated memory gets re-used while a strict
- * ping-pong pattern is assumed (each text line of input data enters and
- * leaves in a strict symmetrical manner, due to the organization of the
- * receive() routine and parse calls).
- */
-
-/* Remove empty parts from an array returned by g_strsplit(). */
-static void remove_empty_parts(gchar **parts)
-{
-	gchar **src, **dest;
-
-	src = dest = parts;
-	while (*src) {
-		if (!**src) {
-			g_free(*src);
-		} else {
-			if (dest != src)
-				*dest = *src;
-			dest++;
-		}
-		src++;
-	}
-	*dest = NULL;
-}
-
-static char **split_text_line(struct context *inc, char *text, size_t *count)
-{
-	struct split_state *state;
-	size_t counted, alloced, wanted;
-	char **words, *p, **new_words;
-
-	state = &inc->split;
-
-	if (count)
-		*count = 0;
-
-	if (state->in_use) {
-		sr_dbg("coding error, split() called while \"in use\".");
-		return NULL;
-	}
-
-	/*
-	 * Seed allocation when invoked for the first time. Assume
-	 * simple logic data, start with a few words per line. Will
-	 * automatically adjust with subsequent use.
-	 */
-	if (!state->alloced) {
-		alloced = 20;
-		words = g_malloc(sizeof(words[0]) * alloced);
-		if (!words)
-			return NULL;
-		state->alloced = alloced;
-		state->words = words;
-	}
-
-	/* Start with most recently allocated word list space. */
-	alloced = state->alloced;
-	words = state->words;
-	counted = 0;
-
-	/* As long as more input text remains ... */
-	p = text;
-	while (*p) {
-		/* Resize word list if needed. Just double the size. */
-		if (counted + 1 >= alloced) {
-			wanted = 2 * alloced;
-			new_words = g_realloc(words, sizeof(words[0]) * wanted);
-			if (!new_words) {
-				return NULL;
-			}
-			words = new_words;
-			alloced = wanted;
-			state->words = words;
-			state->alloced = alloced;
-		}
-
-		/* Skip leading spaces. */
-		while (g_ascii_isspace(*p))
-			p++;
-		if (!*p)
-			break;
-
-		/* Add found word to word list. */
-		words[counted++] = p;
-
-		/* Find end of the word. Terminate loop upon EOS. */
-		while (*p && !g_ascii_isspace(*p))
-			p++;
-		if (!*p)
-			break;
-
-		/* More text follows. Terminate the word. */
-		*p++ = '\0';
-	}
-
-	/*
-	 * NULL terminate the word list. Provide its length so that
-	 * calling code need not re-iterate the list to get the count.
-	 */
-	words[counted] = NULL;
-	if (count)
-		*count = counted;
-	state->in_use = TRUE;
-
-	return words;
-}
-
-static void free_text_split(struct context *inc, char **words)
-{
-	struct split_state *state;
-
-	state = &inc->split;
-
-	if (words && words != state->words) {
-		sr_dbg("coding error, free() arg differs from split() result.");
-	}
-
-	/* "Double free" finally releases the memory. */
-	if (!state->in_use) {
-		g_free(state->words);
-		state->words = NULL;
-		state->alloced = 0;
-	}
-
-	/* Mark as no longer in use. */
-	state->in_use = FALSE;
-}
-
 static gboolean have_header(GString *buf)
 {
 	static const char *enddef_txt = "$enddefinitions";
@@ -670,7 +534,14 @@ static gboolean have_header(GString *buf)
 		return FALSE;
 	p += strlen(enddef_txt);
 
-	/* Search for end of section (content expected to be empty). */
+	/*
+	 * Search for end of section (content expected to be empty).
+	 * Uses DIY logic to scan for the literals' presence including
+	 * empty space between keywords. MUST NOT modify the caller's
+	 * input data, potentially executes several times on the same
+	 * receive buffer, and executes outside of the processing the
+	 * file's data section.
+	 */
 	p_stop = &buf->str[buf->len];
 	p_stop -= strlen(end_txt);
 	while (p < p_stop && g_ascii_isspace(*p))
@@ -733,8 +604,7 @@ static int parse_timescale(struct context *inc, char *contents)
  */
 static int parse_scope(struct context *inc, char *contents, gboolean is_up)
 {
-	char *sep_pos, *name_pos;
-	char **parts;
+	char *sep_pos, *name_pos, *type_pos;
 	size_t length;
 
 	/*
@@ -774,15 +644,17 @@ static int parse_scope(struct context *inc, char *contents, gboolean is_up)
 	 * was emitted by libsigrok's VCD output module.
 	 */
 	sr_spew("$scope, got: \"%s\"", contents);
-	parts = g_strsplit_set(contents, " \r\n\t", 0);
-	remove_empty_parts(parts);
-	length = g_strv_length(parts);
-	if (length != 2) {
-		sr_err("Unsupported 'scope' syntax: %s", contents);
-		g_strfreev(parts);
+	type_pos = sr_text_next_word(contents, &contents);
+	if (!type_pos) {
+		sr_err("Cannot parse 'scope' directive");
 		return SR_ERR_DATA;
 	}
-	name_pos = parts[1];
+	name_pos = sr_text_next_word(contents, &contents);
+	if (!name_pos || contents) {
+		sr_err("Cannot parse 'scope' directive");
+		return SR_ERR_DATA;
+	}
+
 	if (strcmp(name_pos, PACKAGE_NAME) == 0) {
 		sr_info("Skipping scope with application's package name: %s",
 			name_pos);
@@ -794,7 +666,6 @@ static int parse_scope(struct context *inc, char *contents, gboolean is_up)
 		g_string_append_printf(inc->scope_prefix,
 			"%s%c%c", name_pos, SCOPE_SEP, '\0');
 	}
-	g_strfreev(parts);
 	sr_dbg("$scope, prefix now: \"%s\"", inc->scope_prefix->str);
 
 	return SR_OK;
@@ -808,8 +679,6 @@ static int parse_scope(struct context *inc, char *contents, gboolean is_up)
  */
 static int parse_header_var(struct context *inc, char *contents)
 {
-	char **parts;
-	size_t length;
 	char *type, *size_txt, *id, *ref, *idx;
 	gboolean is_reg, is_wire, is_real, is_int;
 	gboolean is_str;
@@ -821,22 +690,18 @@ static int parse_header_var(struct context *inc, char *contents)
 	 * Format of $var or $reg header specs:
 	 * $var type size identifier reference [opt-index] $end
 	 */
-	parts = g_strsplit_set(contents, " \r\n\t", 0);
-	remove_empty_parts(parts);
-	length = g_strv_length(parts);
-	if (length != 4 && length != 5) {
+	type = sr_text_next_word(contents, &contents);
+	size_txt = sr_text_next_word(contents, &contents);
+	id = sr_text_next_word(contents, &contents);
+	ref = sr_text_next_word(contents, &contents);
+	idx = sr_text_next_word(contents, &contents);
+	if (idx && !*idx)
+		idx = NULL;
+	if (!type || !size_txt || !id || !ref || contents) {
 		sr_warn("$var section should have 4 or 5 items");
-		g_strfreev(parts);
 		return SR_ERR_DATA;
 	}
 
-	type = parts[0];
-	size_txt = parts[1];
-	id = parts[2];
-	ref = parts[3];
-	idx = parts[4];
-	if (idx && !*idx)
-		idx = NULL;
 	is_reg = g_strcmp0(type, "reg") == 0;
 	is_wire = g_strcmp0(type, "wire") == 0;
 	is_real = g_strcmp0(type, "real") == 0;
@@ -852,11 +717,9 @@ static int parse_header_var(struct context *inc, char *contents)
 			id, ref, idx ? idx : "", type);
 		inc->ignored_signals = g_slist_append(inc->ignored_signals,
 			g_strdup(id));
-		g_strfreev(parts);
 		return SR_OK;
 	} else {
 		sr_err("Unsupported signal type: '%s'", type);
-		g_strfreev(parts);
 		return SR_ERR_DATA;
 	}
 
@@ -882,7 +745,6 @@ static int parse_header_var(struct context *inc, char *contents)
 	}
 	if (!size) {
 		sr_warn("Unsupported signal size: '%s'", size_txt);
-		g_strfreev(parts);
 		return SR_ERR_DATA;
 	}
 	if (inc->conv_bits.max_bits < size)
@@ -893,7 +755,6 @@ static int parse_header_var(struct context *inc, char *contents)
 			ref, idx ? idx : "", inc->options.maxchannels);
 		inc->ignored_signals = g_slist_append(inc->ignored_signals,
 			g_strdup(id));
-		g_strfreev(parts);
 		return SR_OK;
 	}
 
@@ -922,7 +783,6 @@ static int parse_header_var(struct context *inc, char *contents)
 		vcd_ch->type == SR_CHANNEL_ANALOG ? "A" : "L",
 		vcd_ch->array_index);
 	inc->channels = g_slist_append(inc->channels, vcd_ch);
-	g_strfreev(parts);
 
 	return SR_OK;
 }
@@ -1597,13 +1457,11 @@ static gboolean vcd_string_valid(const char *s)
 }
 
 /* Parse one text line of the data section. */
-static int parse_textline(const struct sr_input *in, char *lines)
+static int parse_textline(const struct sr_input *in, char *line)
 {
 	struct context *inc;
 	int ret;
-	char **words;
-	size_t word_count, word_idx;
-	char *curr_word, *next_word, curr_first;
+	char *curr_word, curr_first;
 	gboolean is_timestamp, is_section;
 	gboolean is_real, is_multibit, is_singlebit, is_string;
 	uint64_t timestamp;
@@ -1613,30 +1471,33 @@ static int parse_textline(const struct sr_input *in, char *lines)
 	inc = in->priv;
 
 	/*
-	 * Split the caller's text lines into a list of space separated
-	 * words. Note that some of the branches consume the very next
-	 * words as well, and assume that both adjacent words will be
-	 * available when the first word is seen. This constraint applies
-	 * to bit vector data, multi-bit integers and real (float) data,
-	 * as well as single-bit data with whitespace before its
-	 * identifier (if that's valid in VCD, we'd accept it here).
+	 * Consume space separated words from a caller's text line. Note
+	 * that many words are self contained, but some require another
+	 * word to follow. This implementation assumes that both words
+	 * (when involved) become available in the same invocation, that
+	 * is that both words reside on the same text line of the file.
 	 * The fact that callers always pass complete text lines should
-	 * make this assumption acceptable.
+	 * make this assumption acceptable. No generator is known to
+	 * split two corresponding words across text lines.
+	 *
+	 * This constraint applies to bit vector data, multi-bit integer
+	 * and real (float) values, text strings, as well as single-bit
+	 * values with whitespace before their identifiers (if that is
+	 * valid in VCD, we'd accept it here; if generators don't create
+	 * such input, then support for it does not harm).
 	 */
 	ret = SR_OK;
-	words = split_text_line(inc, lines, &word_count);
-	for (word_idx = 0; word_idx < word_count; word_idx++) {
+	while (line) {
 		/*
-		 * Make the next two words available, to simpilify code
-		 * paths below. The second word is optional here.
+		 * Lookup one word here which is mandatory. Locations
+		 * below conditionally lookup another word as needed.
 		 */
-		curr_word = words[word_idx];
-		if (!curr_word && !curr_word[0])
+		curr_word = sr_text_next_word(line, &line);
+		if (!curr_word)
+			break;
+		if (!*curr_word)
 			continue;
 		curr_first = g_ascii_tolower(curr_word[0]);
-		next_word = words[word_idx + 1];
-		if (next_word && !next_word[0])
-			next_word = NULL;
 
 		/*
 		 * Optionally skip some sections that can be interleaved
@@ -1819,8 +1680,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			float real_val;
 
 			real_text = &curr_word[1];
-			identifier = next_word;
-			word_idx++;
+			identifier = sr_text_next_word(line, &line);
 			if (!*real_text || !identifier || !*identifier) {
 				sr_err("Unexpected real format.");
 				ret = SR_ERR_DATA;
@@ -1854,8 +1714,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			 * we may never unify code paths at all here.
 			 */
 			bits_text = &curr_word[1];
-			identifier = next_word;
-			word_idx++;
+			identifier = sr_text_next_word(line, &line);
 
 			if (!*bits_text || !identifier || !*identifier) {
 				sr_err("Unexpected integer/vector format.");
@@ -1940,10 +1799,8 @@ static int parse_textline(const struct sr_input *in, char *lines)
 				break;
 			}
 			identifier = ++bits_text;
-			if (!*identifier) {
-				identifier = next_word;
-				word_idx++;
-			}
+			if (!*identifier)
+				identifier = sr_text_next_word(line, &line);
 			if (!identifier || !*identifier) {
 				sr_err("Identifier missing.");
 				ret = SR_ERR_DATA;
@@ -1965,8 +1822,7 @@ static int parse_textline(const struct sr_input *in, char *lines)
 			const char *str_value;
 
 			str_value = &curr_word[1];
-			identifier = next_word;
-			word_idx++;
+			identifier = sr_text_next_word(line, &line);
 			if (!vcd_string_valid(str_value)) {
 				sr_err("Invalid string data: %s", str_value);
 				ret = SR_ERR_DATA;
@@ -1993,7 +1849,6 @@ static int parse_textline(const struct sr_input *in, char *lines)
 		ret = SR_ERR_DATA;
 		break;
 	}
-	free_text_split(inc, words);
 
 	return ret;
 }
@@ -2004,8 +1859,8 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	uint64_t samplerate;
 	GVariant *gvar;
 	int ret;
-	char *rdptr, *endptr, *trimptr;
-	size_t rdlen;
+	char *rdptr, *line;
+	size_t taken, rdlen;
 
 	inc = in->priv;
 
@@ -2036,28 +1891,19 @@ static int process_buffer(struct sr_input *in, gboolean is_eof)
 	/* Find and process complete text lines in the input data. */
 	ret = SR_OK;
 	rdptr = in->buf->str;
-	while (TRUE) {
+	taken = 0;
+	while (rdptr) {
 		rdlen = &in->buf->str[in->buf->len] - rdptr;
-		endptr = g_strstr_len(rdptr, rdlen, "\n");
-		if (!endptr)
+		line = sr_text_next_line(rdptr, rdlen, &rdptr, &taken);
+		if (!line)
 			break;
-		trimptr = endptr;
-		*endptr++ = '\0';
-		while (g_ascii_isspace(*rdptr))
-			rdptr++;
-		while (trimptr > rdptr && g_ascii_isspace(trimptr[-1]))
-			*(--trimptr) = '\0';
-		if (!*rdptr) {
-			rdptr = endptr;
+		if (!*line)
 			continue;
-		}
-		ret = parse_textline(in, rdptr);
-		rdptr = endptr;
+		ret = parse_textline(in, line);
 		if (ret != SR_OK)
 			break;
 	}
-	rdlen = rdptr - in->buf->str;
-	g_string_erase(in->buf, 0, rdlen);
+	g_string_erase(in->buf, 0, taken);
 
 	return ret;
 }
@@ -2210,7 +2056,6 @@ static void cleanup(struct sr_input *in)
 	inc->scope_prefix = NULL;
 	g_slist_free_full(inc->ignored_signals, g_free);
 	inc->ignored_signals = NULL;
-	free_text_split(inc, NULL);
 }
 
 static int reset(struct sr_input *in)
