@@ -2411,10 +2411,14 @@ static int i2c_get_idle_interframe(struct context *inc,
 	size_t *samplecount, uint8_t *sample)
 {
 
-	/* Describe four bit times, re-use the current pin levels. */
+	/*
+	 * The space around regular bytes already is sufficient. We
+	 * don't need to generate an inter-frame gap, but the code is
+	 * prepared to in case we want to in the future.
+	 */
 	if (samplecount) {
 		*samplecount = inc->curr_opts.samples_per_bit;
-		*samplecount *= 4;
+		*samplecount *= 0;
 	}
 	if (sample)
 		*sample = inc->samples.curr_levels;
