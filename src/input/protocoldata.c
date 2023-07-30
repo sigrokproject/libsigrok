@@ -2878,8 +2878,7 @@ static int process_textline(struct sr_input *in, char *line)
 	struct context *inc;
 	const struct proto_handler_t *handler;
 	gboolean is_comm, is_pseudo;
-	char *word;
-	char *endp;
+	char *p, *word, *endp;
 	unsigned long value;
 	int ret;
 
@@ -2931,11 +2930,16 @@ static int process_textline(struct sr_input *in, char *line)
 	/*
 	 * Non-empty non-comment lines carry protocol values.
 	 * (Empty lines are handled transparently when they get here.)
+	 * Accept comma and semicolon separators for user convenience.
 	 * Convert text according to previously received instructions.
 	 * Pass the values to the protocol handler. Flush waveforms
 	 * when handlers state that their construction has completed.
 	 */
 	sr_spew("got values line: %s", line);
+	for (p = line; *p; p++) {
+		if (*p == ',' || *p == ';')
+			*p = ' ';
+	}
 	while (line) {
 		word = sr_text_next_word(line, &line);
 		if (!word)
