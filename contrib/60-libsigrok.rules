@@ -313,6 +313,9 @@ ATTRS{idVendor}=="2961", ATTRS{idProduct}=="6689", ENV{ID_SIGROK}="1"
 # Sysclk SLA5032 ("32CH 500M" mode)
 ATTRS{idVendor}=="2961", ATTRS{idProduct}=="66b0", ENV{ID_SIGROK}="1"
 
+# Tektronix
+ATTRS{idVendor}=="0699", ATTRS{idProduct}=="036a", ENV{ID_SIGROK}="1"
+
 # Testo 435
 ATTRS{idVendor}=="128d", ATTRS{idProduct}=="0003", ENV{ID_SIGROK}="1"
 

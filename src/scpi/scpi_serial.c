@@ -203,6 +203,19 @@ static int scpi_serial_read_data(void *priv, char *buf, int maxlen)
 	return ret;
 }
 
+static int scpi_serial_block_ends(void *priv, char *buf, size_t remlen)
+{
+	struct scpi_serial *sscpi;
+
+	sscpi = priv;
+
+	sscpi->got_newline = FALSE;
+	while (remlen--)
+		sscpi->got_newline |= *buf++ == '\n';
+
+	return SR_OK;
+}
+
 static int scpi_serial_read_complete(void *priv)
 {
 	struct scpi_serial *sscpi = priv;
@@ -238,6 +251,7 @@ SR_PRIV const struct sr_scpi_dev_inst scpi_serial_dev = {
 	.send          = scpi_serial_send,
 	.read_begin    = scpi_serial_read_begin,
 	.read_data     = scpi_serial_read_data,
+	.block_ends    = scpi_serial_block_ends,
 	.read_complete = scpi_serial_read_complete,
 	.close         = scpi_serial_close,
 	.free          = scpi_serial_free,
