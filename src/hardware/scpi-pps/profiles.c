@@ -1054,6 +1054,32 @@ static const struct scpi_command owon_p4000_cmd[] = {
 	ALL_ZERO
 };
 
+/* Owon SPE series*/
+
+static const struct channel_spec owon_spe6103_ch[] = {
+	{ "1", { 0.01, 60, 0.01, 3, 3 }, { 0.001, 10, 0.001, 3, 3 }, { 0, 300, 0, 3, 3 }, FREQ_DC_ONLY, { 0.01, 61, 0.01}, { 0.001, 10.1, 0.001} },
+};
+
+static const struct scpi_command owon_spe6103_cmd[] = {
+	{ SCPI_CMD_REMOTE, "SYST:REM" },
+	{ SCPI_CMD_LOCAL, "SYST:LOC" },
+	{ SCPI_CMD_GET_MEAS_VOLTAGE, "MEAS:VOLT?" },
+	{ SCPI_CMD_GET_MEAS_CURRENT, "MEAS:CURR?" },
+	{ SCPI_CMD_GET_MEAS_POWER, "MEAS:POW?" },
+	{ SCPI_CMD_GET_VOLTAGE_TARGET, "VOLT?" },
+	{ SCPI_CMD_SET_VOLTAGE_TARGET, "VOLT %.6f" },
+	{ SCPI_CMD_GET_CURRENT_LIMIT, "CURR?" },
+	{ SCPI_CMD_SET_CURRENT_LIMIT, "CURR %.6f" },
+	{ SCPI_CMD_GET_OUTPUT_ENABLED, "OUTP?" },
+	{ SCPI_CMD_SET_OUTPUT_ENABLE, "OUTP 1" },
+	{ SCPI_CMD_SET_OUTPUT_DISABLE, "OUTP 0" },
+	{ SCPI_CMD_GET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:LIM?" },
+	{ SCPI_CMD_SET_OVER_VOLTAGE_PROTECTION_THRESHOLD, "VOLT:LIM %.6f" },
+	{ SCPI_CMD_GET_OVER_CURRENT_PROTECTION_THRESHOLD, "CURR:LIM?" },
+	{ SCPI_CMD_SET_OVER_CURRENT_PROTECTION_THRESHOLD, "CURR:LIM %.6f" },
+	ALL_ZERO
+};
+
 /* Philips/Fluke PM2800 series */
 static const uint32_t philips_pm2800_devopts[] = {
 	SR_CONF_CONTINUOUS,
@@ -1678,6 +1704,17 @@ SR_PRIV const struct scpi_pps pps_profiles[] = {
 		ARRAY_AND_SIZE(owon_p4603_ch),
 		ARRAY_AND_SIZE(owon_p4000_cg),
 		owon_p4000_cmd,
+		.probe_channels = NULL,
+		.init_acquisition = NULL,
+		.update_status = NULL,
+	},
+
+	{ "OWON", "^SPE6103$", SCPI_DIALECT_UNKNOWN, 0,
+		ARRAY_AND_SIZE(owon_p4000_devopts),
+		ARRAY_AND_SIZE(owon_p4000_devopts_cg),
+		ARRAY_AND_SIZE(owon_spe6103_ch),
+		ARRAY_AND_SIZE(owon_p4000_cg),
+		owon_spe6103_cmd,
 		.probe_channels = NULL,
 		.init_acquisition = NULL,
 		.update_status = NULL,
