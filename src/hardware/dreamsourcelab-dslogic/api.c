@@ -135,7 +135,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_handle *hdl;
 	int ret, i, j;
 	const char *conn;
-	char manufacturer[64], product[64], serial_num[64], connection_id[64];
+	char serial_num[64], connection_id[64];
 	char channel_name[16];
 
 	drvc = di->context;
@@ -184,26 +184,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 		}
 
-		if (des.iManufacturer == 0) {
-			manufacturer[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iManufacturer, (unsigned char *) manufacturer,
-				sizeof(manufacturer))) < 0) {
-			sr_warn("Failed to get manufacturer string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
-
-		if (des.iProduct == 0) {
-			product[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iProduct, (unsigned char *) product,
-				sizeof(product))) < 0) {
-			sr_warn("Failed to get product string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
-		}
-
 		if (des.iSerialNumber == 0) {
 			serial_num[0] = '\0';
 		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
@@ -211,6 +191,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 				sizeof(serial_num))) < 0) {
 			sr_warn("Failed to get serial number string descriptor: %s.",
 				libusb_error_name(ret));
+			libusb_close(hdl);
 			continue;
 		}
 

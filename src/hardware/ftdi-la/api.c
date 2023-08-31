@@ -2,6 +2,7 @@
  * This file is part of the libsigrok project.
  *
  * Copyright (C) 2015 Sergey Alirzaev <zl29ah@gmail.com>
+ * Copyright (C) 2021 Thomas Hebb <tommyhebb@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +18,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <ctype.h>
 #include <config.h>
-#include <ftdi.h>
 #include <libusb.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -39,88 +40,126 @@ static const uint32_t devopts[] = {
 	SR_CONF_CONN | SR_CONF_GET,
 };
 
-static const uint64_t samplerates[] = {
-	SR_HZ(3600),
-	SR_MHZ(10),
-	SR_HZ(1),
-};
-
 static const struct ftdi_chip_desc ft2232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6010,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 2,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+	/* My testing on two separate FT2232H chips indicates that channel A
+	 * can run successfully at 15MHz but that channel B will run at 7.5MHz
+	 * if you ask for 15. It's strange, but I'm not gonna turn down three
+	 * extra MHz by limiting both to 12 :) */
+	.max_sample_rates = {15000000u, 12000000u},
+
 	.channel_names = {
-		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",
-		"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		/* TODO: BDBUS[0..7] channels. */
-		NULL
+		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
+		"BDBUS0", "BDBUS1", "BDBUS2", "BDBUS3", "BDBUS4", "BDBUS5", "BDBUS6", "BDBUS7",
 	}
 };
 
 static const struct ftdi_chip_desc ft2232h_tumpa_desc = {
 	.vendor = 0x0403,
 	.product = 0x8a98,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 1, /* Second interface reserved for UART */
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+	.max_sample_rates = {15000000u, 12000000u},
+
 	/* 20 pin JTAG header */
 	.channel_names = {
 		"TCK", "TDI", "TDO", "TMS", "RST", "nTRST", "DBGRQ", "RTCK",
-		NULL
 	}
 };
 
 static const struct ftdi_chip_desc ft4232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6011,
-	.samplerate_div = 20,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 4,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+	/* TODO: It's likely that channel A (and maybe C or D too) can run at
+	 * 15MHz on the FT4232H just like on the FT2232H, as the two chips use
+	 * the same die internally. However, since I don't have a FT4232 to
+	 * test with, I'm playing it safe and capping them all to 12MHz for
+	 * now. */
+	.max_sample_rates = {12000000u, 12000000u, 12000000u, 12000000u},
+
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3",	"ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		/* TODO: BDBUS[0..7], CDBUS[0..7], DDBUS[0..7] channels. */
-		NULL
-	}
-};
-
-static const struct ftdi_chip_desc ft232r_desc = {
-	.vendor = 0x0403,
-	.product = 0x6001,
-	.samplerate_div = 30,
-	.channel_names = {
-		"TXD", "RXD", "RTS#", "CTS#", "DTR#", "DSR#", "DCD#", "RI#",
-		NULL
+		"BDBUS0", "BDBUS1", "BDBUS2", "BDBUS3", "BDBUS4", "BDBUS5", "BDBUS6", "BDBUS7",
+		"CDBUS0", "CDBUS1", "CDBUS2", "CDBUS3", "CDBUS4", "CDBUS5", "CDBUS6", "CDBUS7",
+		"DDBUS0", "DDBUS1", "DDBUS2", "DDBUS3", "DDBUS4", "DDBUS5", "DDBUS6", "DDBUS7",
 	}
 };
 
 static const struct ftdi_chip_desc ft232h_desc = {
 	.vendor = 0x0403,
 	.product = 0x6014,
-	.samplerate_div = 30,
+
+	.multi_iface = TRUE,
+	.num_ifaces = 1,
+
+	.base_clock = 120000000u,
+	.bitbang_divisor = 2u,
+	/* TODO: This can also probably be 15MHz. See FT4232H comment above. */
+	.max_sample_rates = {12000000u},
+
 	.channel_names = {
 		"ADBUS0", "ADBUS1", "ADBUS2", "ADBUS3", "ADBUS4", "ADBUS5", "ADBUS6", "ADBUS7",
-		NULL
 	}
 };
+
+/* TODO: The FT230X and FT231X are a new generation of full-speed chips that
+ * reportedly lack the bitbang erratum that makes the FT232R unusable. They
+ * ought to be usable with this driver's code as-is, but I don't have the
+ * hardware to validate this, so they aren't in the list of chips yet. I would
+ * expect them to have a descriptor almost identical to the former FT232R
+ * descriptor that was removed from this driver ("git blame" this comment to
+ * find it). */
 
 static const struct ftdi_chip_desc *chip_descs[] = {
 	&ft2232h_desc,
 	&ft2232h_tumpa_desc,
 	&ft4232h_desc,
-	&ft232r_desc,
 	&ft232h_desc,
 	NULL,
 };
 
-static void scan_device(struct ftdi_context *ftdic,
-	struct libusb_device *dev, GSList **devices)
+/* iface_idx indicates which device channel to scan. -1 scans all of them. */
+static void scan_device(struct libusb_device *dev, GSList **devices, int iface_idx)
 {
-	static const int usb_str_maxlen = 32;
-
 	struct libusb_device_descriptor usb_desc;
+	struct libusb_config_descriptor *config;
+	const struct libusb_interface_descriptor *iface;
+	struct libusb_device_handle *hdl;
 	const struct ftdi_chip_desc *desc;
 	struct dev_context *devc;
-	char *vendor, *model, *serial_num;
+	char vendor[127], model[127], serial_num[127];
+	char connection_id[64];
 	struct sr_dev_inst *sdi;
+	unsigned int num_ifaces;
+	int in_ep_idx;
 	int rv;
 
 	libusb_get_device_descriptor(dev, &usb_desc);
+
+	if (usb_desc.idVendor == 0x0403 && usb_desc.idProduct == 0x6001) {
+		sr_warn("Detected an FT232R, which FTDI-LA no longer supports "
+			"due to a silicon bug. See "
+			"https://sigrok.org/wiki/FTDI-LA#FT232R_Support_Removal"
+			" for more information.");
+		return;
+	}
 
 	desc = NULL;
 	for (unsigned long i = 0; i < ARRAY_SIZE(chip_descs); i++) {
@@ -132,126 +171,163 @@ static void scan_device(struct ftdi_context *ftdic,
 			break;
 	}
 
-	if (!desc) {
-		sr_spew("Unsupported FTDI device 0x%04x:0x%04x.",
-			usb_desc.idVendor, usb_desc.idProduct);
+	if (!desc)
+		return;
+
+	if ((rv = libusb_open(dev, &hdl)) != 0) {
+		sr_warn("Failed to open potential device with "
+			"VID:PID %04x:%04x: %s.", usb_desc.idVendor,
+			usb_desc.idProduct, libusb_error_name(rv));
 		return;
 	}
 
-	devc = g_malloc0(sizeof(struct dev_context));
-
-	/* Allocate memory for the incoming data. */
-	devc->data_buf = g_malloc0(DATA_BUF_SIZE);
-
-	devc->desc = desc;
-
-	vendor = g_malloc(usb_str_maxlen);
-	model = g_malloc(usb_str_maxlen);
-	serial_num = g_malloc(usb_str_maxlen);
-	rv = ftdi_usb_get_strings(ftdic, dev, vendor, usb_str_maxlen,
-			model, usb_str_maxlen, serial_num, usb_str_maxlen);
-	switch (rv) {
-	case 0:
-		break;
-	/* ftdi_usb_get_strings() fails on first miss, hence fall through. */
-	case -7:
+	if (usb_desc.iManufacturer != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iManufacturer,
+				(unsigned char *)vendor, sizeof(vendor)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
 		sr_dbg("The device lacks a manufacturer descriptor.");
-		g_snprintf(vendor, usb_str_maxlen, "Generic");
-		/* FALLTHROUGH */
-	case -8:
+		g_snprintf(vendor, sizeof(vendor), "Generic");
+	}
+
+	if (usb_desc.iProduct != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iProduct,
+				(unsigned char *)model, sizeof(model)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
 		sr_dbg("The device lacks a product descriptor.");
 		switch (usb_desc.idProduct) {
 		case 0x6001:
-			g_snprintf(model, usb_str_maxlen, "FT232R");
+			g_snprintf(model, sizeof(model), "FT232R");
 			break;
 		case 0x6010:
-			g_snprintf(model, usb_str_maxlen, "FT2232H");
+			g_snprintf(model, sizeof(model), "FT2232H");
 			break;
 		case 0x6011:
-			g_snprintf(model, usb_str_maxlen, "FT4232H");
+			g_snprintf(model, sizeof(model), "FT4232H");
 			break;
 		case 0x6014:
-			g_snprintf(model, usb_str_maxlen, "FT232H");
+			g_snprintf(model, sizeof(model), "FT232H");
 			break;
 		case 0x8a98:
-			g_snprintf(model, usb_str_maxlen, "FT2232H-TUMPA");
+			g_snprintf(model, sizeof(model), "FT2232H-TUMPA");
 			break;
 		default:
-			g_snprintf(model, usb_str_maxlen, "Unknown");
+			g_snprintf(model, sizeof(model), "Unknown");
 			break;
 		}
-		/* FALLTHROUGH */
-	case -9:
+	}
+
+	if (usb_desc.iSerialNumber != 0) {
+		if (libusb_get_string_descriptor_ascii(hdl, usb_desc.iSerialNumber,
+				(unsigned char *)serial_num, sizeof(serial_num)) < 0) {
+			goto out_close_hdl;
+		}
+	} else {
 		sr_dbg("The device lacks a serial number.");
-		g_free(serial_num);
-		serial_num = NULL;
-		break;
-	default:
-		sr_err("Failed to get the FTDI strings: %d", rv);
-		goto err_free_strings;
-	}
-	sr_dbg("Found an FTDI device: %s.", model);
-
-	sdi = g_malloc0(sizeof(struct sr_dev_inst));
-	sdi->status = SR_ST_INACTIVE;
-	sdi->vendor = vendor;
-	sdi->model = model;
-	sdi->serial_num = serial_num;
-	sdi->priv = devc;
-	sdi->connection_id = g_strdup_printf("d:%u/%u",
-		libusb_get_bus_number(dev), libusb_get_device_address(dev));
-
-	for (char *const *chan = &(desc->channel_names[0]); *chan; chan++)
-		sr_channel_new(sdi, chan - &(desc->channel_names[0]),
-				SR_CHANNEL_LOGIC, TRUE, *chan);
-
-	*devices = g_slist_append(*devices, sdi);
-	return;
-
-err_free_strings:
-	g_free(vendor);
-	g_free(model);
-	g_free(serial_num);
-	g_free(devc->data_buf);
-	g_free(devc);
-}
-
-static GSList *scan_all(struct ftdi_context *ftdic, GSList *options)
-{
-	GSList *devices;
-	struct ftdi_device_list *devlist = 0;
-	struct ftdi_device_list *curdev;
-	int ret;
-
-	(void)options;
-
-	devices = NULL;
-
-	ret = ftdi_usb_find_all(ftdic, &devlist, 0, 0);
-	if (ret < 0) {
-		sr_err("Failed to list devices (%d): %s", ret,
-		       ftdi_get_error_string(ftdic));
-		return NULL;
+		serial_num[0] = '\0';
 	}
 
-	curdev = devlist;
-	while (curdev) {
-		scan_device(ftdic, curdev->dev, &devices);
-		curdev = curdev->next;
+	if (usb_get_port_path(dev, connection_id, sizeof(connection_id)) < 0)
+		goto out_close_hdl;
+
+	if ((rv = libusb_get_active_config_descriptor(dev, &config)) != 0) {
+		sr_warn("Failed to get config descriptor for device: %s.",
+			libusb_error_name(rv));
+		goto out_close_hdl;
 	}
 
-	ftdi_list_free(&devlist);
+	num_ifaces = desc->multi_iface ? desc->num_ifaces : 1;
+	if (config->bNumInterfaces < num_ifaces) {
+		sr_err("Found FTDI device with fewer USB interfaces than we "
+			"expect for its type. This is a bug in libsigrok.");
+		goto out_free_config;
+	}
 
-	return devices;
+	sr_dbg("Found a %d-channel FTDI device: %s.", num_ifaces, model);
+
+	for (unsigned int i = 0; i < num_ifaces; i++) {
+		/* If the user asked for a specific interface, skip the others. */
+		if (iface_idx >= 0 && (unsigned int)iface_idx != i)
+			continue;
+
+		if (config->interface[i].num_altsetting <= 0) {
+			sr_err("FTDI interface %d has bad num_altsetting %d",
+				i, config->interface[i].num_altsetting);
+			goto out_free_config;
+		}
+
+		iface = &config->interface[i].altsetting[0];
+
+		/* Locate the IN endpoint */
+		in_ep_idx = -1;
+		for (uint8_t j = 0; j < iface->bNumEndpoints; j++) {
+			/* LIBUSB_TRANSFER_TYPE_BULK should more properly be
+			 * LIBUSB_ENDPOINT_TRANSFER_TYPE_BULK, but we currently support
+			 * libusb 1.0.20-rc3, which does not include that enum value, for
+			 * Windows builds. */
+			if ((iface->endpoint[j].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK) == LIBUSB_ENDPOINT_IN &&
+					(iface->endpoint[j].bmAttributes & LIBUSB_TRANSFER_TYPE_MASK) == LIBUSB_TRANSFER_TYPE_BULK) {
+				in_ep_idx = j;
+				break;
+			}
+		}
+		if (in_ep_idx == -1) {
+			sr_err("FTDI interface %d has no bulk IN endpoint", i);
+			goto out_free_config;
+		}
+
+		devc = g_malloc0(sizeof(struct dev_context));
+		devc->desc = desc;
+		devc->usb_iface_idx = i;
+		devc->ftdi_iface_idx = desc->multi_iface ? i + 1 : i;
+		devc->in_ep_addr = iface->endpoint[in_ep_idx].bEndpointAddress;
+		devc->in_ep_pkt_size = iface->endpoint[in_ep_idx].wMaxPacketSize;
+
+		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi->status = SR_ST_INACTIVE;
+		sdi->vendor = g_strdup(vendor);
+		sdi->model = g_strdup(model);
+		sdi->serial_num = g_strdup(serial_num);
+		sdi->priv = devc;
+		if (num_ifaces > 1) {
+			sdi->connection_id = g_strdup_printf("%s, channel %c",
+					connection_id, 'A' + i);
+		} else {
+			sdi->connection_id = g_strdup(connection_id);
+		}
+		sdi->inst_type = SR_INST_USB;
+		sdi->conn = sr_usb_dev_inst_new(libusb_get_bus_number(dev),
+				libusb_get_device_address(dev), NULL);
+
+		for (int chan = 0; chan < 8; chan++)
+			sr_channel_new(sdi, chan, SR_CHANNEL_LOGIC, TRUE,
+					desc->channel_names[(i*8) + chan]);
+
+		/* Default to max sample rate. */
+		ftdi_la_store_samplerate(sdi, desc->max_sample_rates[i]);
+
+		*devices = g_slist_append(*devices, sdi);
+	}
+
+out_free_config:
+	libusb_free_config_descriptor(config);
+
+out_close_hdl:
+	libusb_close(hdl);
 }
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
-	struct ftdi_context *ftdic;
 	struct sr_config *src;
 	struct sr_usb_dev_inst *usb;
 	const char *conn;
-	GSList *l, *conn_devices;
+	gchar **conn_parts;
+	gboolean conn_has_usb = FALSE;
+	GSList *l, *conn_devices = NULL;
+	int conn_iface = -1;
 	GSList *devices;
 	struct drv_context *drvc;
 	libusb_device **devlist;
@@ -267,108 +343,87 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		}
 	}
 
-	ftdic = ftdi_new();
-	if (!ftdic) {
-		sr_err("Failed to initialize libftdi.");
-		return NULL;
+	if (conn && conn[0]) {
+		conn_parts = g_strsplit(conn, "/", 2);
+
+		/* USB identifier */
+		if (conn_parts[0][0]) {
+			conn_has_usb = TRUE;
+			conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn_parts[0]);
+		}
+
+		/* Interface identifier (e.g. A or B; case-insensitive) */
+		if (conn_parts[1]) {
+			if (strlen(conn_parts[1]) != 1 || !isalpha(conn_parts[1][0])) {
+				sr_err("Invalid interface ID: %s.", conn_parts[1]);
+			} else {
+				conn_iface = toupper(conn_parts[1][0]) - 'A';
+			}
+		}
+
+		g_strfreev(conn_parts);
 	}
 
-	if (conn) {
-		devices = NULL;
-		libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
-		for (i = 0; devlist[i]; i++) {
-			conn_devices = sr_usb_find(drvc->sr_ctx->libusb_ctx, conn);
+	devices = NULL;
+	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist);
+	for (i = 0; devlist[i]; i++) {
+		if (conn_has_usb) {
 			for (l = conn_devices; l; l = l->next) {
 				usb = l->data;
 				if (usb->bus == libusb_get_bus_number(devlist[i])
-					&& usb->address == libusb_get_device_address(devlist[i])) {
-					scan_device(ftdic, devlist[i], &devices);
-				}
+				    && usb->address == libusb_get_device_address(devlist[i]))
+					break;
 			}
+			if (!l)
+				/* This device is not one that matched the conn
+				 * specification. */
+				continue;
 		}
-		libusb_free_device_list(devlist, 1);
-	} else
-		devices = scan_all(ftdic, options);
 
-	ftdi_free(ftdic);
+		scan_device(devlist[i], &devices, conn_iface);
+	}
+	g_slist_free_full(conn_devices, (GDestroyNotify)sr_usb_dev_inst_free);
+	libusb_free_device_list(devlist, 1);
 
 	return std_scan_complete(di, devices);
 }
 
-static void clear_helper(struct dev_context *devc)
-{
-	g_free(devc->data_buf);
-}
-
-static int dev_clear(const struct sr_dev_driver *di)
-{
-	return std_dev_clear_with_callback(di, (std_dev_clear_callback)clear_helper);
-}
-
 static int dev_open(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
-	int ret = SR_OK;
+	struct sr_dev_driver *di = sdi->driver;
+	struct drv_context *drvc = di->context;
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
+	int ret;
 
-	devc = sdi->priv;
+	ret = sr_usb_open(drvc->sr_ctx->libusb_ctx, usb);
+	if (ret != SR_OK)
+		return ret;
 
-	devc->ftdic = ftdi_new();
-	if (!devc->ftdic)
-		return SR_ERR;
+	libusb_detach_kernel_driver(usb->devhdl, devc->usb_iface_idx);
+	/* Ignore failures and just try to claim anyway */
 
-	ret = ftdi_usb_open_string(devc->ftdic, sdi->connection_id);
+	ret = libusb_claim_interface(usb->devhdl, devc->usb_iface_idx);
 	if (ret < 0) {
-		/* Log errors, except for -3 ("device not found"). */
-		if (ret != -3)
-			sr_err("Failed to open device (%d): %s", ret,
-			       ftdi_get_error_string(devc->ftdic));
-		goto err_ftdi_free;
-	}
-
-	ret = PURGE_FTDI_BOTH(devc->ftdic);
-	if (ret < 0) {
-		sr_err("Failed to purge FTDI RX/TX buffers (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
-	}
-
-	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_RESET);
-	if (ret < 0) {
-		sr_err("Failed to reset the FTDI chip bitmode (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
-	}
-
-	ret = ftdi_set_bitmode(devc->ftdic, 0x00, BITMODE_BITBANG);
-	if (ret < 0) {
-		sr_err("Failed to put FTDI chip into bitbang mode (%d): %s.",
-		       ret, ftdi_get_error_string(devc->ftdic));
-		goto err_dev_open_close_ftdic;
+		sr_err("Failed to claim interface: %s.", libusb_error_name(ret));
+		goto err_close_usb;
 	}
 
 	return SR_OK;
 
-err_dev_open_close_ftdic:
-	ftdi_usb_close(devc->ftdic);
-
-err_ftdi_free:
-	ftdi_free(devc->ftdic);
+err_close_usb:
+	sr_usb_close(usb);
 
 	return SR_ERR;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-	struct dev_context *devc;
+	struct dev_context *devc = sdi->priv;
+	struct sr_usb_dev_inst *usb = sdi->conn;
 
-	devc = sdi->priv;
-
-	if (!devc->ftdic)
-		return SR_ERR_BUG;
-
-	ftdi_usb_close(devc->ftdic);
-	ftdi_free(devc->ftdic);
-	devc->ftdic = NULL;
+	libusb_release_interface(usb->devhdl, devc->usb_iface_idx);
+	sr_usb_close(usb);
 
 	return SR_OK;
 }
@@ -376,16 +431,13 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	struct dev_context *devc;
 	struct sr_usb_dev_inst *usb;
 
 	(void)cg;
 
-	devc = sdi->priv;
-
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
-		*data = g_variant_new_uint64(devc->cur_samplerate);
+		*data = g_variant_new_uint64(ftdi_la_cur_samplerate(sdi));
 		break;
 	case SR_CONF_CONN:
 		if (!sdi || !sdi->conn)
@@ -421,15 +473,26 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_SAMPLERATE:
 		value = g_variant_get_uint64(data);
-		if (value < 3600)
-			return SR_ERR_SAMPLERATE;
-		devc->cur_samplerate = value;
-		return ftdi_la_set_samplerate(devc);
+		ftdi_la_store_samplerate(sdi, value);
+		return SR_OK;
 	default:
 		return SR_ERR_NA;
 	}
 
 	return SR_OK;
+}
+
+static GVariant *get_samplerates(const struct sr_dev_inst *sdi)
+{
+	struct dev_context *devc = sdi->priv;
+
+	uint64_t samplerates[] = {
+		SR_HZ(3600),
+		devc->desc->max_sample_rates[devc->usb_iface_idx],
+		SR_HZ(1),
+	};
+	
+	return std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
 }
 
 static int config_list(uint32_t key, GVariant **data,
@@ -440,44 +503,11 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		*data = get_samplerates(sdi);
 		break;
 	default:
 		return SR_ERR_NA;
 	}
-
-	return SR_OK;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	struct dev_context *devc;
-
-	devc = sdi->priv;
-
-	if (!devc->ftdic)
-		return SR_ERR_BUG;
-
-	ftdi_set_bitmode(devc->ftdic, 0, BITMODE_BITBANG);
-
-	/* Properly reset internal variables before every new acquisition. */
-	devc->samples_sent = 0;
-	devc->bytes_received = 0;
-
-	std_session_send_df_header(sdi);
-
-	/* Hook up a dummy handler to receive data from the device. */
-	sr_session_source_add(sdi->session, -1, G_IO_IN, 0,
-			      ftdi_la_receive_data, (void *)sdi);
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	sr_session_source_remove(sdi->session, -1);
-
-	std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
@@ -490,14 +520,14 @@ static struct sr_dev_driver ftdi_la_driver_info = {
 	.cleanup = std_cleanup,
 	.scan = scan,
 	.dev_list = std_dev_list,
-	.dev_clear = dev_clear,
+	.dev_clear = std_dev_clear,
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
 	.dev_open = dev_open,
 	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_acquisition_start = ftdi_la_start_acquisition,
+	.dev_acquisition_stop = ftdi_la_stop_acquisition,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(ftdi_la_driver_info);
