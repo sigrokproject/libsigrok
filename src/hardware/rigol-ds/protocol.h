@@ -38,16 +38,19 @@
 #define MAX_DIGITAL_CHANNELS 16
 
 enum protocol_version {
-	PROTOCOL_V1, /* VS5000 */
-	PROTOCOL_V2, /* DS1000 */
-	PROTOCOL_V3, /* DS2000, DSO1000 */
-	PROTOCOL_V4, /* DS1000Z */
-	PROTOCOL_V5, /* MSO5000 */
+	PROTOCOL_V1, /* DS5000/DSO3000 */
+	PROTOCOL_V2, /* VS5000 */
+	PROTOCOL_V3, /* DS1000 */
+	PROTOCOL_V4, /* DS2000, DSO1000 */
+	PROTOCOL_V5, /* DS1000Z */
+	PROTOCOL_V6, /* MSO5000 */
 };
 
 enum data_format {
 	/* Used by DS1000 versions up to 2.02, and VS5000 series */
 	FORMAT_RAW,
+	/* Used by DSO3000 */
+	FORMAT_HEX,
 	/* Used by DS1000 versions from 2.04 onwards and all later series */
 	FORMAT_IEEE488_2,
 };

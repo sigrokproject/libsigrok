@@ -1656,6 +1656,11 @@ struct sr_serial_dev_inst {
 };
 #endif
 
+struct sr_ds5000usb_dev_inst {
+	char *device;
+	int fd;
+};
+
 struct sr_usbtmc_dev_inst {
 	char *device;
 	int fd;
@@ -1790,6 +1795,10 @@ SR_PRIV struct sr_serial_dev_inst *sr_serial_dev_inst_new(const char *port,
 		const char *serialcomm);
 SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial);
 #endif
+
+/* DS5000USB-specific instances */
+SR_PRIV struct sr_ds5000usb_dev_inst *sr_ds5000usb_dev_inst_new(const char *device);
+SR_PRIV void sr_ds5000usb_dev_inst_free(struct sr_ds5000usb_dev_inst *ds5000usb);
 
 /* USBTMC-specific instances */
 SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device);

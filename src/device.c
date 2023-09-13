@@ -634,6 +634,28 @@ SR_PRIV void sr_serial_dev_inst_free(struct sr_serial_dev_inst *serial)
 #endif
 
 /** @private */
+SR_PRIV struct sr_ds5000usb_dev_inst *sr_ds5000usb_dev_inst_new(const char *device)
+{
+	struct sr_ds5000usb_dev_inst *ds5000usb;
+
+	ds5000usb = g_malloc0(sizeof(*ds5000usb));
+	ds5000usb->device = g_strdup(device);
+	ds5000usb->fd = -1;
+
+	return ds5000usb;
+}
+
+/** @private */
+SR_PRIV void sr_ds5000usb_dev_inst_free(struct sr_ds5000usb_dev_inst *ds5000usb)
+{
+	if (!ds5000usb)
+		return;
+
+	g_free(ds5000usb->device);
+	g_free(ds5000usb);
+}
+
+/** @private */
 SR_PRIV struct sr_usbtmc_dev_inst *sr_usbtmc_dev_inst_new(const char *device)
 {
 	struct sr_usbtmc_dev_inst *usbtmc;
