@@ -1660,6 +1660,7 @@ struct sr_serial_dev_inst {
 	struct sr_bt_desc *bt_desc;
 	GSList *bt_source_args;
 #endif
+	struct sr_tcp_dev_inst *tcp_dev;
 };
 #endif
 
@@ -2119,6 +2120,8 @@ SR_PRIV int ser_name_is_hid(struct sr_serial_dev_inst *serial);
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_hid;
 SR_PRIV int ser_name_is_bt(struct sr_serial_dev_inst *serial);
 extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_bt;
+SR_PRIV int ser_name_is_tcpraw(struct sr_serial_dev_inst *serial);
+extern SR_PRIV struct ser_lib_functions *ser_lib_funcs_tcpraw;
 
 #ifdef HAVE_LIBHIDAPI
 struct vid_pid_item {

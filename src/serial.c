@@ -99,6 +99,8 @@ SR_PRIV int serial_open(struct sr_serial_dev_inst *serial, int flags)
 		serial->lib_funcs = ser_lib_funcs_hid;
 	else if (ser_name_is_bt(serial))
 		serial->lib_funcs = ser_lib_funcs_bt;
+	else if (ser_name_is_tcpraw(serial))
+		serial->lib_funcs = ser_lib_funcs_tcpraw;
 	else
 		serial->lib_funcs = ser_lib_funcs_libsp;
 	if (!serial->lib_funcs)

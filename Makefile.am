@@ -152,6 +152,7 @@ libsigrok_la_SOURCES += \
 	src/serial_hid_cp2110.c \
 	src/serial_hid_victor.c \
 	src/serial_libsp.c \
+	src/serial_tcpraw.c \
 	src/scpi/scpi_serial.c
 else
 libsigrok_la_SOURCES += \
