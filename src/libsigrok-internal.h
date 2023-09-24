@@ -1588,6 +1588,13 @@ struct sr_usb_dev_inst {
 };
 #endif
 
+/** Raw TCP device instance. */
+struct sr_tcp_dev_inst {
+	char *host_addr;	/**!< IP address or host name */
+	char *tcp_port;		/**!< TCP port number/name */
+	int sock_fd;		/**!< TCP socket's file descriptor */
+};
+
 struct sr_serial_dev_inst;
 #ifdef HAVE_SERIAL_COMM
 struct ser_lib_functions;
@@ -2209,6 +2216,27 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len);
 SR_PRIV gboolean usb_match_manuf_prod(libusb_device *dev,
 		const char *manufacturer, const char *product);
 #endif
+
+/*--- tcp.c -----------------------------------------------------------------*/
+
+SR_PRIV gboolean sr_fd_is_readable(int fd);
+
+SR_PRIV struct sr_tcp_dev_inst *sr_tcp_dev_inst_new(
+	const char *host_addr, const char *tcp_port);
+SR_PRIV void sr_tcp_dev_inst_free(struct sr_tcp_dev_inst *tcp);
+SR_PRIV int sr_tcp_get_port_path(struct sr_tcp_dev_inst *tcp,
+	const char *prefix, char separator, char *path, size_t path_len);
+SR_PRIV int sr_tcp_connect(struct sr_tcp_dev_inst *tcp);
+SR_PRIV int sr_tcp_disconnect(struct sr_tcp_dev_inst *tcp);
+SR_PRIV int sr_tcp_write_bytes(struct sr_tcp_dev_inst *tcp,
+	const uint8_t *data, size_t dlen);
+SR_PRIV int sr_tcp_read_bytes(struct sr_tcp_dev_inst *tcp,
+	uint8_t *data, size_t dlen, gboolean nonblocking);
+SR_PRIV int sr_tcp_source_add(struct sr_session *session,
+	struct sr_tcp_dev_inst *tcp, int events, int timeout,
+	sr_receive_data_callback cb, void *cb_data);
+SR_PRIV int sr_tcp_source_remove(struct sr_session *session,
+	struct sr_tcp_dev_inst *tcp);
 
 /*--- binary_helpers.c ------------------------------------------------------*/
 

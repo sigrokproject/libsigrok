@@ -71,7 +71,8 @@ libsigrok_la_SOURCES = \
 	src/version.c \
 	src/error.c \
 	src/std.c \
-	src/sw_limits.c
+	src/sw_limits.c \
+	src/tcp.c
 
 # Support code, shared among input and driver modules
 libsigrok_la_SOURCES += \
