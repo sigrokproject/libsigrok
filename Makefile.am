@@ -335,6 +335,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/demo/protocol.c \
 	src/hardware/demo/api.c
 endif
+if HW_DEVANTECH_ETH008
+src_libdrivers_la_SOURCES += \
+	src/hardware/devantech-eth008/protocol.h \
+	src/hardware/devantech-eth008/protocol.c \
+	src/hardware/devantech-eth008/api.c
+endif
 if HW_DREAMSOURCELAB_DSLOGIC
 src_libdrivers_la_SOURCES += \
 	src/hardware/dreamsourcelab-dslogic/protocol.h \
