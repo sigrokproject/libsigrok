@@ -17,38 +17,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-#ifdef _WIN32
-#define _WIN32_WINNT 0x0501
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-#include <glib.h>
-#include <string.h>
-#include <unistd.h>
-#ifndef _WIN32
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#endif
+#include "config.h"
+
 #include <errno.h>
+#include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include <string.h>
+
 #include "libsigrok-internal.h"
 #include "scpi.h"
 
 #define LOG_PREFIX "scpi_tcp"
 
-#define LENGTH_BYTES 4
+#define LENGTH_BYTES sizeof(uint32_t)
 
 struct scpi_tcp {
-	char *address;
-	char *port;
-	int socket;
-	char length_buf[LENGTH_BYTES];
-	int length_bytes_read;
-	int response_length;
-	int response_bytes_read;
+	struct sr_tcp_dev_inst *tcp_dev;
+	uint8_t length_buf[LENGTH_BYTES];
+	size_t length_bytes_read;
+	size_t response_length;
+	size_t response_bytes_read;
 };
 
 static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
@@ -65,9 +53,9 @@ static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
 		return SR_ERR;
 	}
 
-	tcp->address = g_strdup(params[1]);
-	tcp->port = g_strdup(params[2]);
-	tcp->socket = -1;
+	tcp->tcp_dev = sr_tcp_dev_inst_new(params[1], params[2]);
+	if (!tcp->tcp_dev)
+		return SR_ERR;
 
 	return SR_OK;
 }
@@ -75,42 +63,11 @@ static int scpi_tcp_dev_inst_new(void *priv, struct drv_context *drvc,
 static int scpi_tcp_open(struct sr_scpi_dev_inst *scpi)
 {
 	struct scpi_tcp *tcp = scpi->priv;
-	struct addrinfo hints;
-	struct addrinfo *results, *res;
-	int err;
+	int ret;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-
-	err = getaddrinfo(tcp->address, tcp->port, &hints, &results);
-
-	if (err) {
-		sr_err("Address lookup failed: %s:%s: %s", tcp->address, tcp->port,
-			gai_strerror(err));
-		return SR_ERR;
-	}
-
-	for (res = results; res; res = res->ai_next) {
-		if ((tcp->socket = socket(res->ai_family, res->ai_socktype,
-						res->ai_protocol)) < 0)
-			continue;
-		if (connect(tcp->socket, res->ai_addr, res->ai_addrlen) != 0) {
-			close(tcp->socket);
-			tcp->socket = -1;
-			continue;
-		}
-		break;
-	}
-
-	freeaddrinfo(results);
-
-	if (tcp->socket < 0) {
-		sr_err("Failed to connect to %s:%s: %s", tcp->address, tcp->port,
-				g_strerror(errno));
-		return SR_ERR;
-	}
+	ret = sr_tcp_connect(tcp->tcp_dev);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
@@ -119,10 +76,15 @@ static int scpi_tcp_connection_id(struct sr_scpi_dev_inst *scpi,
 		char **connection_id)
 {
 	struct scpi_tcp *tcp = scpi->priv;
+	char conn_text[128];
+	int ret;
 
-	*connection_id = g_strdup_printf("%s/%s:%s",
-		scpi->prefix, tcp->address, tcp->port);
+	ret = sr_tcp_get_port_path(tcp->tcp_dev, scpi->prefix, '/',
+		conn_text, sizeof(conn_text));
+	if (ret != SR_OK)
+		return ret;
 
+	*connection_id = g_strdup(conn_text);
 	return SR_OK;
 }
 
@@ -131,33 +93,36 @@ static int scpi_tcp_source_add(struct sr_session *session, void *priv,
 {
 	struct scpi_tcp *tcp = priv;
 
-	return sr_session_source_add(session, tcp->socket, events, timeout,
-			cb, cb_data);
+	return sr_tcp_source_add(session, tcp->tcp_dev,
+		events, timeout, cb, cb_data);
 }
 
 static int scpi_tcp_source_remove(struct sr_session *session, void *priv)
 {
 	struct scpi_tcp *tcp = priv;
 
-	return sr_session_source_remove(session, tcp->socket);
+	return sr_tcp_source_remove(session, tcp->tcp_dev);
 }
 
+/* Transmit text, usually a command. tcp-raw and tcp-rigol modes. */
 static int scpi_tcp_send(void *priv, const char *command)
 {
 	struct scpi_tcp *tcp = priv;
-	int len, out;
+	const uint8_t *wrptr;
+	size_t wrlen, written;
+	int ret;
 
-	len = strlen(command);
-	out = send(tcp->socket, command, len, 0);
-
-	if (out < 0) {
+	wrptr = (const uint8_t *)command;
+	wrlen = strlen(command);
+	ret = sr_tcp_write_bytes(tcp->tcp_dev, wrptr, wrlen);
+	if (ret < 0) {
 		sr_err("Send error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
-
-	if (out < len) {
-		sr_dbg("Only sent %d/%d bytes of SCPI command: '%s'.", out,
-		       len, command);
+	written = (size_t)ret;
+	if (written < wrlen) {
+		sr_dbg("Only sent %zu/%zu bytes of SCPI command: '%s'.",
+			written, wrlen, command);
 	}
 
 	sr_spew("Successfully sent SCPI command: '%s'.", command);
@@ -165,6 +130,7 @@ static int scpi_tcp_send(void *priv, const char *command)
 	return SR_OK;
 }
 
+/* Start reception across multiple read calls. tcp-raw and tcp-rigol modes. */
 static int scpi_tcp_read_begin(void *priv)
 {
 	struct scpi_tcp *tcp = priv;
@@ -175,90 +141,126 @@ static int scpi_tcp_read_begin(void *priv)
 	return SR_OK;
 }
 
+/* Receive response data. tcp-raw mode. */
 static int scpi_tcp_raw_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_tcp *tcp = priv;
-	int len;
+	uint8_t *rdptr;
+	size_t rdlen, rcvd;
+	int ret;
 
-	len = recv(tcp->socket, buf, maxlen, 0);
-
-	if (len < 0) {
+	/* Get another chunk of receive data. */
+	rdptr = (uint8_t *)buf;
+	rdlen = maxlen;
+	ret = sr_tcp_read_bytes(tcp->tcp_dev, rdptr, rdlen, FALSE);
+	if (ret < 0) {
 		sr_err("Receive error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
+	rcvd = (size_t)ret;
 
+	/*
+	 * Raw data mode (in contrast to Rigol mode). Prepare to answer
+	 * the "completed" condition while the payload's length is not
+	 * known. Pretend that the length buffer had been received.
+	 * Assume that short reads correspond to the end of a response,
+	 * while full reads of the caller specified size suggest that
+	 * more data can follow.
+	 */
 	tcp->length_bytes_read = LENGTH_BYTES;
-	tcp->response_length = len < maxlen ? len : maxlen + 1;
-	tcp->response_bytes_read = len;
+	tcp->response_length = rcvd < rdlen ? rcvd : rdlen + 1;
+	tcp->response_bytes_read = rcvd;
 
-	return len;
+	return rcvd;
 }
 
+/* Transmit data of given length. tcp-raw mode. */
 static int scpi_tcp_raw_write_data(void *priv, char *buf, int len)
 {
 	struct scpi_tcp *tcp = priv;
-	int sentlen;
+	const uint8_t *wrptr;
+	size_t wrlen, sent;
+	int ret;
 
-	sentlen = send(tcp->socket, buf, len, 0);
-
-	if (sentlen < 0) {
+	wrptr = (const uint8_t *)buf;
+	wrlen = len;
+	ret = sr_tcp_write_bytes(tcp->tcp_dev, wrptr, wrlen);
+	if (ret < 0) {
 		sr_err("Send error: %s.", g_strerror(errno));
 		return SR_ERR;
 	}
+	sent = (size_t)ret;
 
-	return sentlen;
+	return sent;
 }
 
+/* Receive response data. tcp-rigol mode. */
 static int scpi_tcp_rigol_read_data(void *priv, char *buf, int maxlen)
 {
 	struct scpi_tcp *tcp = priv;
-	int len;
+	uint8_t *rdptr;
+	size_t rdlen, rcvd;
+	int ret;
 
-	if (tcp->length_bytes_read < LENGTH_BYTES) {
-		len = recv(tcp->socket, tcp->length_buf + tcp->length_bytes_read,
-				LENGTH_BYTES - tcp->length_bytes_read, 0);
-		if (len < 0) {
+	/*
+	 * Rigol mode, chunks are prefixed by a length spec.
+	 * Get more length bytes when we haven't read them before.
+	 * Return "zero length read" if length has yet to get received.
+	 * Otherwise get chunk length from length bytes buffer.
+	 */
+	if (tcp->length_bytes_read < sizeof(tcp->length_buf)) {
+		rdptr = &tcp->length_buf[tcp->length_bytes_read];
+		rdlen = sizeof(tcp->length_buf) - tcp->length_bytes_read;
+		ret = sr_tcp_read_bytes(tcp->tcp_dev, rdptr, rdlen, FALSE);
+		if (ret < 0) {
 			sr_err("Receive error: %s", g_strerror(errno));
 			return SR_ERR;
 		}
-
-		tcp->length_bytes_read += len;
-
-		if (tcp->length_bytes_read < LENGTH_BYTES)
+		rcvd = (size_t)ret;
+		tcp->length_bytes_read += rcvd;
+		if (tcp->length_bytes_read < sizeof(tcp->length_buf))
 			return 0;
-		else
-			tcp->response_length = RL32(tcp->length_buf);
+		tcp->response_length = read_u32le(tcp->length_buf);
 	}
 
+	/* Received more chunk data than announced size? Fatal. */
 	if (tcp->response_bytes_read >= tcp->response_length)
 		return SR_ERR;
 
-	len = recv(tcp->socket, buf, maxlen, 0);
-
-	if (len < 0) {
+	/* Read another chunk of the receive data. */
+	rdptr = (uint8_t *)buf;
+	rdlen = maxlen;
+	ret = sr_tcp_read_bytes(tcp->tcp_dev, rdptr, rdlen, FALSE);
+	if (ret < 0) {
 		sr_err("Receive error: %s", g_strerror(errno));
 		return SR_ERR;
 	}
+	rcvd = (size_t)ret;
+	tcp->response_bytes_read += rcvd;
 
-	tcp->response_bytes_read += len;
-
-	return len;
+	return rcvd;
 }
 
+/* Check reception completion. tcp-raw and tcp-rigol modes. */
 static int scpi_tcp_read_complete(void *priv)
 {
 	struct scpi_tcp *tcp = priv;
+	gboolean have_length, have_response;
 
-	return (tcp->length_bytes_read == LENGTH_BYTES &&
-			tcp->response_bytes_read >= tcp->response_length);
+	have_length = tcp->length_bytes_read == LENGTH_BYTES;
+	have_response = tcp->response_bytes_read >= tcp->response_length;
+
+	return have_length && have_response;
 }
 
 static int scpi_tcp_close(struct sr_scpi_dev_inst *scpi)
 {
 	struct scpi_tcp *tcp = scpi->priv;
+	int ret;
 
-	if (close(tcp->socket) < 0)
-		return SR_ERR;
+	ret = sr_tcp_disconnect(tcp->tcp_dev);
+	if (ret != SR_OK)
+		return ret;
 
 	return SR_OK;
 }
@@ -267,8 +269,7 @@ static void scpi_tcp_free(void *priv)
 {
 	struct scpi_tcp *tcp = priv;
 
-	g_free(tcp->address);
-	g_free(tcp->port);
+	sr_tcp_dev_inst_free(tcp->tcp_dev);
 }
 
 SR_PRIV const struct sr_scpi_dev_inst scpi_tcp_raw_dev = {
