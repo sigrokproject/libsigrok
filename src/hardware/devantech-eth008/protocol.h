@@ -20,16 +20,62 @@
 #ifndef LIBSIGROK_HARDWARE_DEVANTECH_ETH008_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_DEVANTECH_ETH008_PROTOCOL_H
 
-#include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include <stdint.h>
+
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "devantech-eth008"
 
-struct dev_context {
+/*
+ * Models have differing capabilities, and slightly different protocol
+ * variants. Setting the output state of individual relays usually takes
+ * one byte which carries the channel number. Requests are of identical
+ * length. Getting relay state takes a variable number of bytes to carry
+ * the bit fields. Response length depends on the model's relay count.
+ * As does request length for setting the state of several relays at the
+ * same time.
+ *
+ * Some models have digital inputs and analog inputs. These features
+ * currently are not supported in this implementation.
+ */
+struct devantech_eth008_model {
+	uint8_t code;
+	const char *name;
+	size_t ch_count_do;
+	uint8_t min_serno_fw;
+	size_t width_do;
 };
 
-SR_PRIV int devantech_eth008_receive_data(int fd, int revents, void *cb_data);
+enum devantech_eth008_channel_type {
+	DV_CH_DIGITAL_OUTPUT,
+	DV_CH_SUPPLY_VOLTAGE,
+};
+
+struct channel_group_context {
+	size_t index;
+	size_t number;
+	enum devantech_eth008_channel_type ch_type;
+};
+
+struct dev_context {
+	uint8_t model_code, hardware_version, firmware_version;
+	const struct devantech_eth008_model *model;
+	uint32_t mask_do;
+	uint32_t curr_do;
+};
+
+SR_PRIV int devantech_eth008_get_model(struct sr_serial_dev_inst *serial,
+	uint8_t *model_code, uint8_t *hw_version, uint8_t *fw_version);
+SR_PRIV int devantech_eth008_get_serno(struct sr_serial_dev_inst *serial,
+	char *text_buffer, size_t text_length);
+SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi);
+SR_PRIV int devantech_eth008_query_do(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean *on);
+SR_PRIV int devantech_eth008_setup_do(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean on);
+SR_PRIV int devantech_eth008_query_supply(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, uint16_t *millivolts);
 
 #endif

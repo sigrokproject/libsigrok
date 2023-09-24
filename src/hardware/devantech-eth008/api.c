@@ -17,120 +17,298 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "config.h"
+
+#include <string.h>
+
 #include "protocol.h"
 
+#define VENDOR_TEXT	"Devantech"
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_MULTIPLEXER,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_CONN | SR_CONF_GET,
+	SR_CONF_ENABLED | SR_CONF_SET, /* Enable/disable all relays at once. */
+};
+
+static const uint32_t devopts_cg_do[] = {
+	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg_ai[] = {
+	SR_CONF_VOLTAGE | SR_CONF_GET,
+};
+
+static const struct devantech_eth008_model models[] = {
+	{ 19, "ETH008", 8, 0, 1, },
+};
+
+static const struct devantech_eth008_model *find_model(uint8_t code)
+{
+	size_t idx;
+	const struct devantech_eth008_model *check;
+
+	for (idx = 0; idx < ARRAY_SIZE(models); idx++) {
+		check = &models[idx];
+		if (check->code != code)
+			continue;
+		return check;
+	}
+
+	return NULL;
+}
+
 static struct sr_dev_driver devantech_eth008_driver_info;
+
+static struct sr_dev_inst *probe_device_conn(const char *conn)
+{
+	struct sr_dev_inst *sdi;
+	struct dev_context *devc;
+	struct sr_serial_dev_inst *ser;
+	uint8_t code, hwver, fwver;
+	const struct devantech_eth008_model *model;
+	gboolean has_serno_cmd;
+	char snr_txt[16];
+	struct channel_group_context *cgc;
+	size_t ch_idx, nr, do_idx;
+	struct sr_channel_group *cg;
+	char cg_name[24];
+	int ret;
+
+	sdi = g_malloc0(sizeof(*sdi));
+	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
+	ser = sr_serial_dev_inst_new(conn, NULL);
+	sdi->conn = ser;
+	if (!ser)
+		goto probe_fail;
+	ret = serial_open(ser, 0);
+	if (ret != SR_OK)
+		goto probe_fail;
+
+	ret = devantech_eth008_get_model(ser, &code, &hwver, &fwver);
+	if (ret != SR_OK)
+		goto probe_fail;
+	model = find_model(code);
+	if (!model) {
+		sr_err("Unknown model ID 0x%02x (HW %u, FW %u).",
+			code, hwver, fwver);
+		goto probe_fail;
+	}
+	devc->model_code = code;
+	devc->hardware_version = hwver;
+	devc->firmware_version = fwver;
+	devc->model = model;
+	sdi->vendor = g_strdup(VENDOR_TEXT);
+	sdi->model = g_strdup(model->name);
+	sdi->version = g_strdup_printf("HW%u FW%u", hwver, fwver);
+	sdi->connection_id = g_strdup(conn);
+	sdi->driver = &devantech_eth008_driver_info;
+	sdi->inst_type = SR_INST_SERIAL;
+
+	has_serno_cmd = TRUE;
+	if (model->min_serno_fw && fwver < model->min_serno_fw)
+		has_serno_cmd = FALSE;
+	if (has_serno_cmd) {
+		snr_txt[0] = '\0';
+		ret = devantech_eth008_get_serno(ser,
+			snr_txt, sizeof(snr_txt));
+		if (ret != SR_OK)
+			goto probe_fail;
+		sdi->serial_num = g_strdup(snr_txt);
+	}
+
+	ch_idx = 0;
+	devc->mask_do = (1UL << devc->model->ch_count_do) - 1;
+	for (do_idx = 0; do_idx < devc->model->ch_count_do; do_idx++) {
+		nr = do_idx + 1;
+		snprintf(cg_name, sizeof(cg_name), "DO%zu", nr);
+		cgc = g_malloc0(sizeof(*cgc));
+		cg = sr_channel_group_new(sdi, cg_name, cgc);
+		cgc->index = do_idx;
+		cgc->number = nr;
+		cgc->ch_type = DV_CH_DIGITAL_OUTPUT;
+		(void)cg;
+		ch_idx++;
+	}
+	if (1) {
+		/* Create an analog channel for the supply voltage. */
+		snprintf(cg_name, sizeof(cg_name), "Vsupply");
+		cgc = g_malloc0(sizeof(*cgc));
+		cg = sr_channel_group_new(sdi, cg_name, cgc);
+		cgc->index = 0;
+		cgc->number = 0;
+		cgc->ch_type = DV_CH_SUPPLY_VOLTAGE;
+		(void)cg;
+		ch_idx++;
+	}
+
+	return sdi;
+
+probe_fail:
+	if (ser) {
+		serial_close(ser);
+		sr_serial_dev_inst_free(ser);
+	}
+	if (devc) {
+		g_free(devc);
+	}
+	if (sdi) {
+		sdi->priv = NULL;
+		sr_dev_inst_free(sdi);
+		sdi = NULL;
+	}
+	return sdi;
+}
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
+	const char *conn;
 	GSList *devices;
+	struct sr_dev_inst *sdi;
 
-	(void)options;
-
-	devices = NULL;
 	drvc = di->context;
 	drvc->instances = NULL;
 
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+	/* A conn= spec is required for the TCP attached device. */
+	conn = NULL;
+	(void)sr_serial_extract_options(options, &conn, NULL);
+	if (!conn || !*conn)
+		return NULL;
 
-	return devices;
-}
+	devices = NULL;
+	sdi = probe_device_conn(conn);
+	if (sdi)
+		devices = g_slist_append(devices, sdi);
 
-static int dev_open(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
-
-	return SR_OK;
-}
-
-static int dev_close(struct sr_dev_inst *sdi)
-{
-	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and close it. */
-
-	return SR_OK;
+	return std_scan_complete(di, devices);
 }
 
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+	struct channel_group_context *cgc;
+	gboolean on;
+	uint16_t vin;
+	double vsupply;
 	int ret;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_CONN:
+			if (!sdi->connection_id)
+				return SR_ERR_NA;
+			*data = g_variant_new_string(sdi->connection_id);
+			return SR_OK;
+		default:
+			return SR_ERR_NA;
+		}
+	}
 
-	ret = SR_OK;
+	cgc = cg->priv;
+	if (!cgc)
+		return SR_ERR_NA;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_ENABLED:
+		if (cgc->ch_type == DV_CH_DIGITAL_OUTPUT) {
+			ret = devantech_eth008_query_do(sdi, cg, &on);
+			if (ret != SR_OK)
+				return ret;
+			*data = g_variant_new_boolean(on);
+			return SR_OK;
+		}
+		return SR_ERR_NA;
+	case SR_CONF_VOLTAGE:
+		if (cgc->ch_type == DV_CH_SUPPLY_VOLTAGE) {
+			ret = devantech_eth008_query_supply(sdi, cg, &vin);
+			if (ret != SR_OK)
+				return ret;
+			vsupply = vin;
+			vsupply /= 1000.;
+			*data = g_variant_new_double(vsupply);
+			return SR_OK;
+		}
+		return SR_ERR_NA;
 	default:
 		return SR_ERR_NA;
 	}
-
-	return ret;
 }
 
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
+	struct channel_group_context *cgc;
+	gboolean on;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
-
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		ret = SR_ERR_NA;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_ENABLED:
+			/* Enable/disable all channels at the same time. */
+			on = g_variant_get_boolean(data);
+			return devantech_eth008_setup_do(sdi, cg, on);
+		default:
+			return SR_ERR_NA;
+		}
 	}
 
-	return ret;
+	cgc = cg->priv;
+	if (!cgc)
+		return SR_ERR_NA;
+	switch (key) {
+	case SR_CONF_ENABLED:
+		if (cgc->ch_type != DV_CH_DIGITAL_OUTPUT)
+			return SR_ERR_NA;
+		on = g_variant_get_boolean(data);
+		return devantech_eth008_setup_do(sdi, cg, on);
+	default:
+		return SR_ERR_NA;
+	}
+
+	/* XXX Is this actually UNREACH? */
+	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
-	int ret;
+	struct channel_group_context *cgc;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
+	if (!cg) {
+		switch (key) {
+		case SR_CONF_SCAN_OPTIONS:
+		case SR_CONF_DEVICE_OPTIONS:
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+				scanopts, drvopts, devopts);
+		default:
+			return SR_ERR_NA;
+		}
+	}
 
-	ret = SR_OK;
+	cgc = cg->priv;
+	if (!cgc)
+		return SR_ERR_NA;
 	switch (key) {
-	/* TODO */
+	case SR_CONF_DEVICE_OPTIONS:
+		if (cgc->ch_type == DV_CH_DIGITAL_OUTPUT) {
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_do));
+			return SR_OK;
+		}
+		if (cgc->ch_type == DV_CH_SUPPLY_VOLTAGE) {
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_ai));
+			return SR_OK;
+		}
+		return SR_ERR_NA;
 	default:
 		return SR_ERR_NA;
 	}
-
-	return ret;
-}
-
-static int dev_acquisition_start(const struct sr_dev_inst *sdi)
-{
-	/* TODO: configure hardware, reset acquisition state, set up
-	 * callbacks and send header packet. */
-
-	(void)sdi;
-
-	return SR_OK;
-}
-
-static int dev_acquisition_stop(struct sr_dev_inst *sdi)
-{
-	/* TODO: stop acquisition. */
-
-	(void)sdi;
-
-	return SR_OK;
 }
 
 static struct sr_dev_driver devantech_eth008_driver_info = {
@@ -145,10 +323,10 @@ static struct sr_dev_driver devantech_eth008_driver_info = {
 	.config_get = config_get,
 	.config_set = config_set,
 	.config_list = config_list,
-	.dev_open = dev_open,
-	.dev_close = dev_close,
-	.dev_acquisition_start = dev_acquisition_start,
-	.dev_acquisition_stop = dev_acquisition_stop,
+	.dev_open = std_serial_dev_open,
+	.dev_close = std_serial_dev_close,
+	.dev_acquisition_start = std_dummy_dev_acquisition_start,
+	.dev_acquisition_stop = std_dummy_dev_acquisition_stop,
 	.context = NULL,
 };
 SR_REGISTER_DEV_DRIVER(devantech_eth008_driver_info);
