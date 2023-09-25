@@ -23,7 +23,11 @@
  * See http://www.robot-electronics.co.uk/files/eth008b.pdf for device
  * capabilities and a protocol discussion.
  * See https://github.com/devantech/devantech_eth_python for Python
- * source code which is maintained by the vendor.
+ * source code which is maintained by the vendor. The untested parts
+ * of this sigrok driver are based on version 0.1.2 of this Python
+ * code which is MIT licensed (corresponds to commit 0c0080b88e29),
+ * and example code in ZIP archives provided on the shop's products'
+ * pages.
  *
  * The device provides several means of communication: HTTP requests
  * (as well as an interactive web form). Raw TCP communication with
@@ -76,6 +80,23 @@
  * TODO
  * - Add support for other models. Currently exclusively supports the
  *   ETH008-B model which was used during implementation of the driver.
+ *   (Descriptions for more models were added, their operation is yet
+ *   to get verified.) Getting relay state involves variable length
+ *   responses, bits appear to be in little endian presentation.
+ * - Add support for absent relay output channels (ETH484 lacks R5..R8).
+ * - Add support for digital inputs. ETH484 has command 0x25 which gets
+ *   two bytes, the second byte carries eight digital input bits.
+ *   ETH1610 has 16 inputs, evaluates both bytes. Is data format u16be?
+ *   ETH8020 support code is inconsistent, implements two accessors
+ *   which either retrieve two or three bytes, while callers access the
+ *   fourth byte of these responses? Cannot have worked, seems untested.
+ * - Add support for analog inputs. ETH484 has command 0x32 which takes
+ *   a channel number, and gets two bytes which carry a u16be value(?).
+ *   So does ETH8020. Channel count differs across models.
+ * - Are there other models of interest? ETH1610 product page reads
+ *   as if the card had 10 relays (strict output), and 16 inputs which
+ *   could either be used in analog mode, or simply get interpreted as
+ *   digital input?
  * - Add support for password protection?
  *   - See command 0x79 to "login" (beware of the differing return value
  *     compared to other commands), command 0x7a to check if passwords
@@ -102,6 +123,8 @@ enum cmd_code {
 	CMD_DIGITAL_INACTIVE = 0x21,
 	CMD_DIGITAL_SET_OUTPUTS = 0x23,
 	CMD_DIGITAL_GET_OUTPUTS = 0x24,
+	CMD_DIGITAL_GET_INPUTS = 0x25,
+	CMD_ANALOG_GET_INPUT = 0x32,
 	CMD_ASCII_TEXT_COMMAND = 0x3a,
 	CMD_GET_SERIAL_NUMBER = 0x77,
 	CMD_GET_SUPPLY_VOLTS = 0x78,
@@ -268,6 +291,7 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	if (!devc)
 		return SR_ERR_ARG;
 
+	/* Unconditionally get the state of digital output. */
 	rx_size = devc->model->width_do;
 	if (rx_size > sizeof(rsp))
 		return SR_ERR_NA;
@@ -294,6 +318,38 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	}
 	have &= devc->mask_do;
 	devc->curr_do = have;
+
+	/*
+	 * Get the state of digital inputs when the model supports them.
+	 * Firmware of other models happens to not respond to unknown
+	 * requests. Responses seem to have identical size across all
+	 * models. Payload is assumed to be u16 be formatted. Must be
+	 * verified when other models are seen.
+	 *
+	 * Caching the state of analog inputs is condidered undesirable.
+	 */
+	if (devc->model->ch_count_di) {
+		rx_size = sizeof(uint16_t);
+		if (rx_size > sizeof(rsp))
+			return SR_ERR_NA;
+
+		wrptr = req;
+		write_u8_inc(&wrptr, CMD_DIGITAL_GET_INPUTS);
+		ret = send_then_recv(serial, req, wrptr - req, rsp, rx_size);
+		if (ret != SR_OK)
+			return ret;
+		rdptr = rsp;
+
+		switch (rx_size) {
+		case 2:
+			have = read_u16be_inc(&rdptr);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+		have &= (1UL << devc->model->ch_count_di) - 1;
+		devc->curr_di = have;
+	}
 
 	return SR_OK;
 }
@@ -402,6 +458,87 @@ SR_PRIV int devantech_eth008_setup_do(const struct sr_dev_inst *sdi,
 	v8 = read_u8_inc(&rdptr);
 	if (v8 != 0)
 		return SR_ERR_DATA;
+
+	return SR_OK;
+}
+
+SR_PRIV int devantech_eth008_query_di(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean *on)
+{
+	struct dev_context *devc;
+	struct channel_group_context *cgc;
+	uint32_t have;
+	int ret;
+
+	/* Unconditionally update the internal cache. */
+	ret = devantech_eth008_cache_state(sdi);
+	if (ret != SR_OK)
+		return ret;
+
+	/*
+	 * Only reject unexpected requeusts after the update. Get the
+	 * individual channel's state from the cache of all channels.
+	 */
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+	if (!cg)
+		return SR_ERR_ARG;
+	cgc = cg->priv;
+	if (!cgc)
+		return SR_ERR_BUG;
+	if (cgc->index >= devc->model->ch_count_di)
+		return SR_ERR_ARG;
+	have = devc->curr_di;
+	have >>= cgc->index;
+	have &= 1 << 0;
+	if (on)
+		*on = have ? TRUE : FALSE;
+
+	return SR_OK;
+}
+
+SR_PRIV int devantech_eth008_query_ai(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, uint16_t *adc_value)
+{
+	struct sr_serial_dev_inst *serial;
+	struct dev_context *devc;
+	struct channel_group_context *cgc;
+	uint8_t req[2], *wrptr;
+	uint8_t rsp[2];
+	const uint8_t *rdptr;
+	uint32_t have;
+	int ret;
+
+	serial = sdi->conn;
+	if (!serial)
+		return SR_ERR_ARG;
+	devc = sdi->priv;
+	if (!devc)
+		return SR_ERR_ARG;
+	if (!cg)
+		return SR_ERR_ARG;
+	cgc = cg->priv;
+	if (!cgc)
+		return SR_ERR_ARG;
+	if (cgc->index >= devc->model->ch_count_ai)
+		return SR_ERR_ARG;
+
+	wrptr = req;
+	write_u8_inc(&wrptr, CMD_ANALOG_GET_INPUT);
+	write_u8_inc(&wrptr, cgc->number & 0xff);
+	ret = send_then_recv(serial, req, wrptr - req, rsp, sizeof(rsp));
+	if (ret != SR_OK)
+		return ret;
+	rdptr = rsp;
+
+	/*
+	 * TODO The u16 BE format is a guess. Needs verification.
+	 * As is the unit-less nature of that value.
+	 */
+	have = read_u16be_inc(&rdptr);
+	if (adc_value)
+		*adc_value = have;
 
 	return SR_OK;
 }

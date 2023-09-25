@@ -42,15 +42,19 @@ static const uint32_t devopts_cg_do[] = {
 	SR_CONF_ENABLED | SR_CONF_GET | SR_CONF_SET,
 };
 
+static const uint32_t devopts_cg_di[] = {
+	SR_CONF_ENABLED | SR_CONF_GET,
+};
+
 static const uint32_t devopts_cg_ai[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 };
 
 static const struct devantech_eth008_model models[] = {
-	{ 18, "ETH002",   2, 0, 1, 0, },
-	{ 19, "ETH008",   8, 0, 1, 0, },
-	{ 20, "ETH484",  16, 0, 2, 0x00f0, },
-	{ 21, "ETH8020", 20, 0, 3, 0, },
+	{ 18, "ETH002",   2, 0, 0, 0, 1, 0, },
+	{ 19, "ETH008",   8, 0, 0, 0, 1, 0, },
+	{ 20, "ETH484",  16, 8, 4, 0, 2, 0x00f0, },
+	{ 21, "ETH8020", 20, 8, 8, 0, 3, 0, },
 };
 
 static const struct devantech_eth008_model *find_model(uint8_t code)
@@ -80,7 +84,7 @@ static struct sr_dev_inst *probe_device_conn(const char *conn)
 	gboolean has_serno_cmd;
 	char snr_txt[16];
 	struct channel_group_context *cgc;
-	size_t ch_idx, nr, do_idx;
+	size_t ch_idx, nr, do_idx, di_idx, ai_idx;
 	struct sr_channel_group *cg;
 	char cg_name[24];
 	int ret;
@@ -130,10 +134,10 @@ static struct sr_dev_inst *probe_device_conn(const char *conn)
 
 	ch_idx = 0;
 	devc->mask_do = (1UL << devc->model->ch_count_do) - 1;
-	devc->mask_do &= ~model->mask_do_missing;
+	devc->mask_do &= ~devc->model->mask_do_missing;
 	for (do_idx = 0; do_idx < devc->model->ch_count_do; do_idx++) {
 		nr = do_idx + 1;
-		if (model->mask_do_missing & (1UL << do_idx))
+		if (devc->model->mask_do_missing & (1UL << do_idx))
 			continue;
 		snprintf(cg_name, sizeof(cg_name), "DO%zu", nr);
 		cgc = g_malloc0(sizeof(*cgc));
@@ -141,6 +145,28 @@ static struct sr_dev_inst *probe_device_conn(const char *conn)
 		cgc->index = do_idx;
 		cgc->number = nr;
 		cgc->ch_type = DV_CH_DIGITAL_OUTPUT;
+		(void)cg;
+		ch_idx++;
+	}
+	for (di_idx = 0; di_idx < devc->model->ch_count_di; di_idx++) {
+		nr = di_idx + 1;
+		snprintf(cg_name, sizeof(cg_name), "DI%zu", nr);
+		cgc = g_malloc0(sizeof(*cgc));
+		cg = sr_channel_group_new(sdi, cg_name, cgc);
+		cgc->index = di_idx;
+		cgc->number = nr;
+		cgc->ch_type = DV_CH_DIGITAL_INPUT;
+		(void)cg;
+		ch_idx++;
+	}
+	for (ai_idx = 0; ai_idx < devc->model->ch_count_ai; ai_idx++) {
+		nr = ai_idx + 1;
+		snprintf(cg_name, sizeof(cg_name), "AI%zu", nr);
+		cgc = g_malloc0(sizeof(*cgc));
+		cg = sr_channel_group_new(sdi, cg_name, cgc);
+		cgc->index = ai_idx;
+		cgc->number = nr;
+		cgc->ch_type = DV_CH_ANALOG_INPUT;
 		(void)cg;
 		ch_idx++;
 	}
@@ -231,8 +257,22 @@ static int config_get(uint32_t key, GVariant **data,
 			*data = g_variant_new_boolean(on);
 			return SR_OK;
 		}
+		if (cgc->ch_type == DV_CH_DIGITAL_INPUT) {
+			ret = devantech_eth008_query_di(sdi, cg, &on);
+			if (ret != SR_OK)
+				return ret;
+			*data = g_variant_new_boolean(on);
+			return SR_OK;
+		}
 		return SR_ERR_NA;
 	case SR_CONF_VOLTAGE:
+		if (cgc->ch_type == DV_CH_ANALOG_INPUT) {
+			ret = devantech_eth008_query_ai(sdi, cg, &vin);
+			if (ret != SR_OK)
+				return ret;
+			*data = g_variant_new_uint32(vin);
+			return SR_OK;
+		}
 		if (cgc->ch_type == DV_CH_SUPPLY_VOLTAGE) {
 			ret = devantech_eth008_query_supply(sdi, cg, &vin);
 			if (ret != SR_OK)
@@ -305,6 +345,14 @@ static int config_list(uint32_t key, GVariant **data,
 	case SR_CONF_DEVICE_OPTIONS:
 		if (cgc->ch_type == DV_CH_DIGITAL_OUTPUT) {
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_do));
+			return SR_OK;
+		}
+		if (cgc->ch_type == DV_CH_DIGITAL_INPUT) {
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_di));
+			return SR_OK;
+		}
+		if (cgc->ch_type == DV_CH_ANALOG_INPUT) {
+			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_ai));
 			return SR_OK;
 		}
 		if (cgc->ch_type == DV_CH_SUPPLY_VOLTAGE) {

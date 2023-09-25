@@ -38,13 +38,25 @@
  * same time. Some models have gaps in their relay channel numbers
  * (ETH484 misses R5..R8).
  *
- * Some models have digital inputs and analog inputs. These features
- * currently are not supported in this implementation.
+ * ETH484 also has 8 digital inputs, and 4 analog inputs. Features
+ * beyond relay output are untested in this implementation.
+ *
+ * Vendor's support code for ETH8020 suggests that it has 8 digital
+ * inputs and 8 analog inputs. But that digital input supporting code
+ * could never have worked, probably wasn't tested.
+ *
+ * Digital inputs and analog inputs appear to share I/O pins. Users can
+ * read these pins either in terms of an ADC value, or can interpret
+ * them as raw digital input. While not all models with digital inputs
+ * seem to provide all of them in analog form. DI and AI channel counts
+ * may differ depending on the model.
  */
 struct devantech_eth008_model {
 	uint8_t code;
 	const char *name;
 	size_t ch_count_do;
+	size_t ch_count_di;
+	size_t ch_count_ai;
 	uint8_t min_serno_fw;
 	size_t width_do;
 	uint32_t mask_do_missing;
@@ -52,6 +64,8 @@ struct devantech_eth008_model {
 
 enum devantech_eth008_channel_type {
 	DV_CH_DIGITAL_OUTPUT,
+	DV_CH_DIGITAL_INPUT,
+	DV_CH_ANALOG_INPUT,
 	DV_CH_SUPPLY_VOLTAGE,
 };
 
@@ -66,6 +80,7 @@ struct dev_context {
 	const struct devantech_eth008_model *model;
 	uint32_t mask_do;
 	uint32_t curr_do;
+	uint32_t curr_di;
 };
 
 SR_PRIV int devantech_eth008_get_model(struct sr_serial_dev_inst *serial,
@@ -77,6 +92,10 @@ SR_PRIV int devantech_eth008_query_do(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg, gboolean *on);
 SR_PRIV int devantech_eth008_setup_do(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg, gboolean on);
+SR_PRIV int devantech_eth008_query_di(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, gboolean *on);
+SR_PRIV int devantech_eth008_query_ai(const struct sr_dev_inst *sdi,
+	const struct sr_channel_group *cg, uint16_t *adc_value);
 SR_PRIV int devantech_eth008_query_supply(const struct sr_dev_inst *sdi,
 	const struct sr_channel_group *cg, uint16_t *millivolts);
 
