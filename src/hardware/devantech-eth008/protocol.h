@@ -35,7 +35,8 @@
  * length. Getting relay state takes a variable number of bytes to carry
  * the bit fields. Response length depends on the model's relay count.
  * As does request length for setting the state of several relays at the
- * same time.
+ * same time. Some models have gaps in their relay channel numbers
+ * (ETH484 misses R5..R8).
  *
  * Some models have digital inputs and analog inputs. These features
  * currently are not supported in this implementation.
@@ -46,6 +47,7 @@ struct devantech_eth008_model {
 	size_t ch_count_do;
 	uint8_t min_serno_fw;
 	size_t width_do;
+	uint32_t mask_do_missing;
 };
 
 enum devantech_eth008_channel_type {

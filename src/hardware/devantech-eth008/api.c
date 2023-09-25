@@ -47,7 +47,10 @@ static const uint32_t devopts_cg_ai[] = {
 };
 
 static const struct devantech_eth008_model models[] = {
-	{ 19, "ETH008", 8, 0, 1, },
+	{ 18, "ETH002",   2, 0, 1, 0, },
+	{ 19, "ETH008",   8, 0, 1, 0, },
+	{ 20, "ETH484",  16, 0, 2, 0x00f0, },
+	{ 21, "ETH8020", 20, 0, 3, 0, },
 };
 
 static const struct devantech_eth008_model *find_model(uint8_t code)
@@ -127,8 +130,11 @@ static struct sr_dev_inst *probe_device_conn(const char *conn)
 
 	ch_idx = 0;
 	devc->mask_do = (1UL << devc->model->ch_count_do) - 1;
+	devc->mask_do &= ~model->mask_do_missing;
 	for (do_idx = 0; do_idx < devc->model->ch_count_do; do_idx++) {
 		nr = do_idx + 1;
+		if (model->mask_do_missing & (1UL << do_idx))
+			continue;
 		snprintf(cg_name, sizeof(cg_name), "DO%zu", nr);
 		cgc = g_malloc0(sizeof(*cgc));
 		cg = sr_channel_group_new(sdi, cg_name, cgc);

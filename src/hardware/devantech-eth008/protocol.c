@@ -256,7 +256,7 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	size_t rx_size;
 	uint8_t req[1], *wrptr;
-	uint8_t rsp[1];
+	uint8_t rsp[3];
 	const uint8_t *rdptr;
 	uint32_t have;
 	int ret;
@@ -282,6 +282,12 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	switch (rx_size) {
 	case 1:
 		have = read_u8_inc(&rdptr);
+		break;
+	case 2:
+		have = read_u16le_inc(&rdptr);
+		break;
+	case 3:
+		have = read_u24le_inc(&rdptr);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -343,7 +349,7 @@ SR_PRIV int devantech_eth008_setup_do(const struct sr_dev_inst *sdi,
 	struct channel_group_context *cgc;
 	size_t number;
 	uint32_t reg;
-	uint8_t req[3], *wrptr, cmd;
+	uint8_t req[4], *wrptr, cmd;
 	uint8_t rsp[1], v8;
 	const uint8_t *rdptr;
 	int ret;
@@ -377,6 +383,12 @@ SR_PRIV int devantech_eth008_setup_do(const struct sr_dev_inst *sdi,
 		switch (width_do) {
 		case 1:
 			write_u8_inc(&wrptr, reg & 0xff);
+			break;
+		case 2:
+			write_u16le_inc(&wrptr, reg & 0xffff);
+			break;
+		case 3:
+			write_u24le_inc(&wrptr, reg & 0xffffff);
 			break;
 		default:
 			return SR_ERR_NA;
