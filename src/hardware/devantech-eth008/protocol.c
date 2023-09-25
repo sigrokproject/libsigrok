@@ -291,33 +291,35 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	if (!devc)
 		return SR_ERR_ARG;
 
-	/* Unconditionally get the state of digital output. */
-	rx_size = devc->model->width_do;
-	if (rx_size > sizeof(rsp))
-		return SR_ERR_NA;
+	/* Get the state of digital outputs when the model supports them. */
+	if (devc->model->ch_count_do) {
+		rx_size = devc->model->width_do;
+		if (rx_size > sizeof(rsp))
+			return SR_ERR_NA;
 
-	wrptr = req;
-	write_u8_inc(&wrptr, CMD_DIGITAL_GET_OUTPUTS);
-	ret = send_then_recv(serial, req, wrptr - req, rsp, rx_size);
-	if (ret != SR_OK)
-		return ret;
-	rdptr = rsp;
+		wrptr = req;
+		write_u8_inc(&wrptr, CMD_DIGITAL_GET_OUTPUTS);
+		ret = send_then_recv(serial, req, wrptr - req, rsp, rx_size);
+		if (ret != SR_OK)
+			return ret;
+		rdptr = rsp;
 
-	switch (rx_size) {
-	case 1:
-		have = read_u8_inc(&rdptr);
-		break;
-	case 2:
-		have = read_u16le_inc(&rdptr);
-		break;
-	case 3:
-		have = read_u24le_inc(&rdptr);
-		break;
-	default:
-		return SR_ERR_NA;
+		switch (rx_size) {
+		case 1:
+			have = read_u8_inc(&rdptr);
+			break;
+		case 2:
+			have = read_u16le_inc(&rdptr);
+			break;
+		case 3:
+			have = read_u24le_inc(&rdptr);
+			break;
+		default:
+			return SR_ERR_NA;
+		}
+		have &= devc->mask_do;
+		devc->curr_do = have;
 	}
-	have &= devc->mask_do;
-	devc->curr_do = have;
 
 	/*
 	 * Get the state of digital inputs when the model supports them.
