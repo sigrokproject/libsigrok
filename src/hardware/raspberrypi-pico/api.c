@@ -94,9 +94,9 @@ static const uint64_t samplerates[] = {
        	SR_MHZ(120),
 	/*These may not be practically useful, but someone might want to
 	  try to make it work with overclocking */
-       	SR_MHZ(150),
-       	SR_MHZ(200),
-       	SR_MHZ(240)	
+    //   	SR_MHZ(150),
+    //   	SR_MHZ(200),
+    //   	SR_MHZ(240)	
 };
 
 static const uint32_t drvopts[] = {
@@ -321,12 +321,12 @@ without involvement of the session.
 		devc->a_pretrig_bufs[i] = NULL;
 	}
 	devc->d_data_buf = NULL;
-	devc->sample_rate = 5000;
+	devc->sample_rate = 10000000;
 	devc->capture_ratio = 10;
 	devc->rxstate = RX_IDLE;
 	sdi->priv = devc;
 	/*Set an initial value as various code relies on an inital value.*/
-	devc->limit_samples = 1000;
+	devc->limit_samples = 1000000000;
 
 	if (raspberrypi_pico_get_dev_cfg(sdi) != SR_OK) {
 		return NULL;
