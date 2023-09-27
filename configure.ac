@@ -225,6 +225,20 @@ AM_CONDITIONAL([NEED_RPC], [test "x$sr_cv_have_rpc" = xyes])
 # Check for compiler support of 128 bit integers
 AC_CHECK_TYPES([__int128_t, __uint128_t], [], [], [])
 
+AC_CACHE_CHECK([for poll], [sr_cv_have_poll],
+	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <poll.h>]],
+			[[(void) poll(0, 0, -1);]])],
+		[sr_cv_have_poll=yes], [sr_cv_have_poll=no])])
+AS_IF([test "x$sr_cv_have_poll" = xyes],
+	[AC_DEFINE([HAVE_POLL], [1],
+		[Specifies whether we have the poll(2) function.])])
+AC_CACHE_CHECK([for select], [sr_cv_have_select],
+	[AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/select.h>]],
+			[[(void) select(0, 0, 0, 0, 0);]])],
+		[sr_cv_have_select=yes], [sr_cv_have_select=no])])
+AS_IF([test "x$sr_cv_have_select" = xyes],
+	[AC_DEFINE([HAVE_SELECT], [1],
+		[Specifies whether we have the select(2) function.])])
 
 #######################
 ##  miniLZO related  ##

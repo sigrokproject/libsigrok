@@ -17,7 +17,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
+#include "config.h"
 
 /* TODO
  * Can we sort these include directives? Or do the platform specific
@@ -33,7 +33,6 @@
 
 #include <errno.h>
 #include <glib.h>
-#include <poll.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -45,8 +44,22 @@
 #include <sys/types.h>
 #endif
 
+#if HAVE_POLL
+#include <poll.h>
+#elif HAVE_SELECT
+#include <sys/select.h>
+#endif
+
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
+
+/*
+ * Workaround because Windows cannot simply use established identifiers.
+ * https://learn.microsoft.com/en-us/windows/win32/api/winsock/nf-winsock-shutdown
+ */
+#if !defined SHUT_RDWR && defined SD_BOTH
+#  define SHUT_RDWR SD_BOTH
+#endif
 
 #define LOG_PREFIX "tcp"
 
@@ -64,6 +77,7 @@
  */
 SR_PRIV gboolean sr_fd_is_readable(int fd)
 {
+#if HAVE_POLL
 	struct pollfd fds[1];
 	int ret;
 
@@ -79,6 +93,26 @@ SR_PRIV gboolean sr_fd_is_readable(int fd)
 		return FALSE;
 
 	return TRUE;
+#elif HAVE_SELECT
+	fd_set rfds;
+	struct timeval tv;
+	int ret;
+
+	FD_ZERO(&rfds);
+	FD_SET(fd, &rfds);
+	memset(&tv, 0, sizeof(tv));
+	ret = select(fd + 1, &rfds, NULL, NULL, &tv);
+	if (ret < 0)
+		return FALSE;
+	if (!ret)
+		return FALSE;
+	if (!FD_ISSET(fd, rfds))
+		return FALSE;
+	return TRUE;
+#else
+	(void)fd;
+	return FALSE;
+#endif
 }
 
 /**
