@@ -360,7 +360,7 @@ static int config_set(uint32_t key, GVariant * data,
 	switch (key) {
 	case SR_CONF_SAMPLERATE:
 		devc->sample_rate = g_variant_get_uint64(data);
-		sr_dbg("config_set sr %llu\n", devc->sample_rate);
+		sr_dbg("config_set sr %lu\n", devc->sample_rate);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
 		devc->limit_samples = g_variant_get_uint64(data);
@@ -401,7 +401,7 @@ static int config_get(uint32_t key, GVariant ** data,
 		*data = g_variant_new_uint64(devc->capture_ratio);
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
-		sr_spew("config_get limit_samples of %llu",
+		sr_spew("config_get limit_samples of %lu",
 			devc->limit_samples);
 		*data = g_variant_new_uint64(devc->limit_samples);
 		break;
@@ -592,7 +592,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				devc->sample_rate = 50000;
 			}
 			sr_err
-			    ("WARN: Forcing common integer divisor sample rate of %llu div %u\n\r",
+			    ("WARN: Forcing common integer divisor sample rate of %lu div %u\n\r",
 			     devc->sample_rate, commondivint);
 		}
 
@@ -606,14 +606,14 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	if (a_enabled > 0) {
 		if (48000000ULL % (devc->sample_rate * a_enabled)) {
 			sr_warn
-			    ("WARN: Non integer ADC divisor of 48Mhz clock for sample rate %llu may cause sample to sample variability.",
+			    ("WARN: Non integer ADC divisor of 48Mhz clock for sample rate %lu may cause sample to sample variability.",
 			     devc->sample_rate);
 		}
 	}
 	if (d_enabled > 0) {
 		if (120000000ULL % (devc->sample_rate)) {
 			sr_warn
-			    ("WARN: Non integer PIO divisor of 120Mhz for sample rate %llu may cause sample to sample variability.",
+			    ("WARN: Non integer PIO divisor of 120Mhz for sample rate %lu may cause sample to sample variability.",
 			     devc->sample_rate);
 		}
 	}
@@ -636,7 +636,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	A "*" with subsequent data is success, but allows for the device to print something
 	to the error console without aborting.
 	A non "*" in the first character blocks the start */
-	sprintf(tmpstr, "R%llu\n", devc->sample_rate);
+	sprintf(tmpstr, "R%lu\n", devc->sample_rate);
 	num_read = send_serial_w_resp(serial, tmpstr, buf, 30);
 	buf[num_read]=0;
 	if((num_read>1)&&(buf[0]=='*')){
