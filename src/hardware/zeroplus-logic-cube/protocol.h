@@ -30,24 +30,21 @@
 
 #define LOG_PREFIX "zeroplus-logic-cube"
 
+struct zp_model;
 struct dev_context {
 	uint64_t cur_samplerate;
 	uint64_t max_samplerate;
 	uint64_t limit_samples;
-	int num_channels;
-	int memory_size;
-	unsigned int max_sample_depth;
-	//uint8_t channel_mask;
-	//uint8_t trigger_mask[NUM_TRIGGER_STAGES];
-	//uint8_t trigger_value[NUM_TRIGGER_STAGES];
-	// uint8_t trigger_buffer[NUM_TRIGGER_STAGES];
+	size_t num_channels;
+	size_t memory_size;
+	size_t max_sample_depth;
 	int trigger;
 	uint64_t capture_ratio;
 	double cur_threshold;
 	const struct zp_model *prof;
 };
 
-SR_PRIV unsigned int get_memory_size(int type);
+SR_PRIV size_t get_memory_size(int type);
 SR_PRIV int zp_set_samplerate(struct dev_context *devc, uint64_t samplerate);
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples);
 SR_PRIV int set_voltage_threshold(struct dev_context *devc, double thresh);

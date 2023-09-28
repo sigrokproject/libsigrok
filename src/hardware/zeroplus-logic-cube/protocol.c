@@ -21,14 +21,13 @@
 #include <math.h>
 #include "protocol.h"
 
-SR_PRIV unsigned int get_memory_size(int type)
+SR_PRIV size_t get_memory_size(int type)
 {
 	if (type == MEMORY_SIZE_8K)
 		return (8 * 1024);
-	else if (type <= MEMORY_SIZE_8M)
+	if (type <= MEMORY_SIZE_8M)
 		return (32 * 1024) << type;
-	else
-		return 0;
+	return 0;
 }
 
 static int clz(unsigned int x)
@@ -59,6 +58,8 @@ static int clz(unsigned int x)
 
 SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 {
+	size_t mem_kb;
+
 	if (samples > devc->max_sample_depth)
 		samples = devc->max_sample_depth;
 
@@ -71,8 +72,8 @@ SR_PRIV int set_limit_samples(struct dev_context *devc, uint64_t samples)
 	else
 		devc->memory_size = 19 - clz(samples - 1);
 
-	sr_info("Setting memory size to %dK.",
-		get_memory_size(devc->memory_size) / 1024);
+	mem_kb = get_memory_size(devc->memory_size) / 1024;
+	sr_info("Setting memory size to %zuK.", mem_kb);
 
 	analyzer_set_memory_size(devc->memory_size);
 

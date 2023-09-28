@@ -169,7 +169,9 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct libusb_device_handle *hdl;
 	libusb_device **devlist;
 	GSList *devices;
-	int ret, i, j;
+	int ret;
+	size_t i, j;
+	uint8_t bus, addr;
 	const struct zp_model *check;
 	char serial_num[64], connection_id[64];
 
@@ -181,7 +183,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 	/* Find all ZEROPLUS analyzers and add them to device list. */
 	libusb_get_device_list(drvc->sr_ctx->libusb_ctx, &devlist); /* TODO: Errors. */
-
 	for (i = 0; devlist[i]; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);
 
@@ -209,17 +210,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			continue;
 
 		/* Get the device's serial number from USB strings. */
-		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
+		ret = libusb_open(devlist[i], &hdl);
+		if (ret < 0)
 			continue;
 
-		if (des.iSerialNumber == 0) {
-			serial_num[0] = '\0';
-		} else if ((ret = libusb_get_string_descriptor_ascii(hdl,
-				des.iSerialNumber, (unsigned char *) serial_num,
-				sizeof(serial_num))) < 0) {
-			sr_warn("Failed to get serial number string descriptor: %s.",
-				libusb_error_name(ret));
-			continue;
+		serial_num[0] = '\0';
+		if (des.iSerialNumber != 0) {
+			ret = libusb_get_string_descriptor_ascii(hdl,
+				des.iSerialNumber,
+				(uint8_t *)serial_num, sizeof(serial_num));
+			if (ret < 0) {
+				sr_warn("Cannot get USB serial number: %s.",
+					libusb_error_name(ret));
+				continue;
+			}
 		}
 
 		libusb_close(hdl);
@@ -229,14 +233,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
-		sdi = g_malloc0(sizeof(struct sr_dev_inst));
+		sdi = g_malloc0(sizeof(*sdi));
 		sdi->status = SR_ST_INACTIVE;
 		sdi->vendor = g_strdup("ZEROPLUS");
 		sdi->model = g_strdup(prof->model_name);
 		sdi->serial_num = g_strdup(serial_num);
 		sdi->connection_id = g_strdup(connection_id);
 
-		devc = g_malloc0(sizeof(struct dev_context));
+		bus = libusb_get_bus_number(devlist[i]);
+		addr = libusb_get_device_address(devlist[i]);
+		sdi->inst_type = SR_INST_USB;
+		sdi->conn = sr_usb_dev_inst_new(bus, addr, NULL);
+
+		devc = g_malloc0(sizeof(*devc));
 		sdi->priv = devc;
 		devc->prof = prof;
 		devc->num_channels = prof->channels;
@@ -249,17 +258,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 #endif
 		devc->max_samplerate *= SR_MHZ(1);
 		devc->memory_size = MEMORY_SIZE_8K;
-		// memset(devc->trigger_buffer, 0, NUM_TRIGGER_STAGES);
 
-		for (j = 0; j < devc->num_channels; j++)
+		for (j = 0; j < devc->num_channels; j++) {
 			sr_channel_new(sdi, j, SR_CHANNEL_LOGIC, TRUE,
 					channel_names[j]);
+		}
 
 		devices = g_slist_append(devices, sdi);
-		sdi->inst_type = SR_INST_USB;
-		sdi->conn = sr_usb_dev_inst_new(
-			libusb_get_bus_number(devlist[i]),
-			libusb_get_device_address(devlist[i]), NULL);
 	}
 	libusb_free_device_list(devlist, 1);
 
