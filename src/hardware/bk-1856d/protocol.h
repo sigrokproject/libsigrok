@@ -36,17 +36,11 @@ enum {
 	InputC = 1,
 };
 
-enum {
-	On,
-	Off,
-};
-
 struct dev_context {
 	struct sr_sw_limits sw_limits;
-	int sel_input;
-	int curr_sel_input;
-	int gate_time;
-	int hold;
+	unsigned int sel_input;
+	unsigned int curr_sel_input;
+	unsigned int gate_time;
 	GMutex rw_mutex;
 
 	char buffer[BK1856D_MSG_SIZE];

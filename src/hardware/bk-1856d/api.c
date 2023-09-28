@@ -86,7 +86,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	devc->sel_input = InputC;
 	devc->curr_sel_input = InputC;
 	devc->gate_time = 0;
-	devc->hold = Off;
 
 	g_usleep(150 * 1000); /* Wait a little to allow serial port to settle. */
 
@@ -100,8 +99,9 @@ static int config_get(uint32_t key, GVariant **data,
 
 	(void)cg;
 
-	if (!(devc = sdi->priv))
+	if (!sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_TIMEBASE:
@@ -133,15 +133,16 @@ static int config_set(uint32_t key, GVariant *data,
 
 	(void)cg;
 
-	if (!(devc = sdi->priv))
+	if (!sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	switch (key) {
 	case SR_CONF_TIMEBASE:
 		{
 			uint64_t p, q;
 			g_variant_get(data, "(tt)", &p, &q);
-			if	    (p ==  10 && q == 1000) bk_1856d_set_gate_time(devc, 0);
+			if      (p ==  10 && q == 1000) bk_1856d_set_gate_time(devc, 0);
 			else if (p == 100 && q == 1000) bk_1856d_set_gate_time(devc, 1);
 			else if (p ==   1 && q ==    1) bk_1856d_set_gate_time(devc, 2);
 			else if (p ==  10 && q ==    1) bk_1856d_set_gate_time(devc, 3);
@@ -153,7 +154,8 @@ static int config_set(uint32_t key, GVariant *data,
 		sr_sw_limits_config_set(&(devc->sw_limits),key, data);
 		break;
 	case SR_CONF_DATA_SOURCE:
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources))) < 0)
+		idx = std_str_idx(data, ARRAY_AND_SIZE(data_sources));
+		if (idx < 0)
 			return SR_ERR_ARG;
 		bk_1856d_select_input(devc, idx);
 		break;

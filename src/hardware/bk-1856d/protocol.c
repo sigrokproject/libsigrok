@@ -17,12 +17,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* https://bkpmedia.s3.us-west-1.amazonaws.com/downloads/manuals/en-us/1856D_manual.pdf */
+
 #include <config.h>
 #include "protocol.h"
-
-#define HOLD_OFF        "H0\xD"
-#define HOLD_ON         "H1\xD"
-#define HOLD_TOGGLE     "H2\xD"
 
 #define GATE_TIME_0     "G0\xD"
 #define GATE_TIME_1     "G1\xD"
@@ -33,13 +31,35 @@
 
 #define FUNCTION_A      "F0\xD"
 #define FUNCTION_C      "F2\xD"
-#define FUNCTION_PERIOD "F3\xD"
-#define FUNCTION_TOTAL  "F4\xD"
-#define FUNCTION_RPM    "F5\xD"
 
-#define REMOTE_OFF      "R0\xD"
-#define REMOTE_ON       "R1\xD"
 #define LENGHT_OF_CMD  3
+
+struct gate_time_config_command
+{
+    const char *cmd;
+    const char *info;
+    gulong sleep_time;
+};
+
+static struct gate_time_config_command gate_time_config_commands[] = {
+    {
+        .cmd = GATE_TIME_0,
+        .info = "sending gate time 0 (10ms)",
+        .sleep_time = 40000
+    }, {
+        .cmd = GATE_TIME_1,
+        .info = "sending gate time 0 (10ms)",
+        .sleep_time = 80000
+    }, {
+        .cmd = GATE_TIME_2,
+        .info = "sending gate time 0 (10ms)",
+        .sleep_time = 80000
+    }, {
+        .cmd = GATE_TIME_3,
+        .info = "sending gate time 0 (10ms)",
+        .sleep_time = 800000
+    }
+};
 
 static void bk_1856d_send_input_sel(const struct sr_dev_inst *sdi)
 {
@@ -55,13 +75,11 @@ static void bk_1856d_send_input_sel(const struct sr_dev_inst *sdi)
 	if (!devc || !serial)
 		return;
 
-	if (devc->sel_input == InputA)
-	{
+	if (devc->sel_input == InputA) {
 		sr_spew("selecting input A");
 		cmd = FUNCTION_A;
 	}
-	else
-	{
+	else {
 		sr_spew("selecting input C");
 		cmd = FUNCTION_C;
 	}
@@ -94,8 +112,7 @@ static void bk_1856d_send_gate_time(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
 	struct sr_serial_dev_inst *serial;
-	char *cmd;
-	gulong microseconds;
+	struct gate_time_config_command *cfg;
 
 	if (!sdi)
 		return;
@@ -105,37 +122,17 @@ static void bk_1856d_send_gate_time(const struct sr_dev_inst *sdi)
 	if (!devc || !serial)
 		return;
 
-	if (devc->gate_time < 0) devc->gate_time = 0;
-	if (devc->gate_time > 3) devc->gate_time = 3;
-	switch(devc->gate_time) {
-		default:
-		case 0:
-			cmd = GATE_TIME_0;
-			sr_info("sending gate time 0 (10ms)");
-			microseconds = 40000;
-			break;
-		case 1:
-			cmd = GATE_TIME_1;
-			sr_info("sending gate time 1 (100ms)");
-			microseconds = 80000;
-			break;
-		case 2:
-			cmd = GATE_TIME_2;
-			sr_info("sending gate time 2 (1s)");
-			microseconds = 80000;
-			break;
-		case 3:
-			cmd = GATE_TIME_3;
-			sr_info("sending gate time 3 (10s)");
-			microseconds = 800000;
-			break;
-	}
+	if (devc->gate_time > 3)
+		devc->gate_time = 3;
+	cfg = &(gate_time_config_commands[devc->gate_time]);
 
-	if (serial_write_blocking(serial, cmd, LENGHT_OF_CMD,
+	sr_info("%s", cfg->info);
+
+	if (serial_write_blocking(serial, cfg->cmd, LENGHT_OF_CMD,
 			serial_timeout(serial, LENGHT_OF_CMD)) < 1) {
 		sr_err("unable to send gate time command");
 	}
-	g_usleep(microseconds);
+	g_usleep(cfg->sleep_time);
 }
 
 static void bk_1856d_request_data(const struct sr_dev_inst *sdi)
@@ -192,17 +189,15 @@ static int bk_1856d_check_for_zero_message(struct dev_context *devc)
 	zero_found = 0;
 	has_data = 0;
 
-	for (int idx = 0; idx < BK1856D_MSG_SIZE - 1; ++idx)
-	{
-		if (devc->buffer[idx] == ' ')
+	for (int idx = 0; idx < BK1856D_MSG_SIZE - 1; ++idx) {
+		if (devc->buffer[idx] == ' ') {
 			continue;
-		else if (devc->buffer[idx] == '0' && zero_found == 0)
-		{
+		}
+		else if (devc->buffer[idx] == '0' && zero_found == 0) {
 			zero_found = 1;
 			continue;
 		}
-		else
-		{
+		else {
 			has_data = 1;
 			break;
 		}
@@ -243,12 +238,14 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 	int digits;
 	char *endPtr, *dotPtr;
 
-	if (!(devc = sdi->priv) || !(serial = sdi->conn))
+	if (!sdi->priv || !sdi->conn)
 		return;
 
+	devc = sdi->priv;
+	serial = sdi->conn;
+
 	/* check for cr at end of message */
-	if (devc->buffer[BK1856D_MSG_SIZE-1] != '\xD')
-	{
+	if (devc->buffer[BK1856D_MSG_SIZE-1] != '\xD') {
 		sr_err("expected cr at end of message.");
 		devc->buffer_level = 0;
 		serial_flush(serial);
@@ -262,9 +259,8 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 
 	devc->buffer[BK1856D_MSG_SIZE-1] = 0; /* set trailing zero */
 
-	if (bk_1856d_check_for_zero_message(devc))
-	{
-		sr_spew("received 0 package");
+	if (bk_1856d_check_for_zero_message(devc)) {
+		sr_spew("received an empty packet");
 		devc->buffer_level = 0;
 		bk_1856d_request_data(sdi);
 		return;
@@ -274,8 +270,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 	freq_value = strtod(devc->buffer, &endPtr);
 	sr_dbg("parsed value: %f", freq_value);
 
-	if (strcmp(devc->buffer + BK1856D_MSG_NUMBER_SIZE+1, "Hz ") != 0)
-	{
+	if (strcmp(devc->buffer + BK1856D_MSG_NUMBER_SIZE + 1, "Hz ") != 0) {
 		sr_err("not a frequency returned");
 		devc->buffer_level = 0;
 		g_mutex_lock(&devc->rw_mutex);
@@ -305,8 +300,7 @@ static void bk_1856d_parse_message(const struct sr_dev_inst *sdi)
 
 	sr_sw_limits_update_samples_read(&(devc->sw_limits), 1);
 
-	if (!sr_sw_limits_check(&(devc->sw_limits)))
-	{
+	if (!sr_sw_limits_check(&(devc->sw_limits))) {
 		devc->buffer_level = 0;
 		g_mutex_lock(&devc->rw_mutex);
 		bk_1856d_chk_select_input(sdi);
@@ -327,11 +321,15 @@ SR_PRIV int bk_1856d_receive_data(int fd, int revents, void *cb_data)
 
 	(void)fd;
 
-	if (!(sdi = cb_data) || !(devc = sdi->priv))
+	if (!cb_data)
 		return TRUE;
+	sdi = cb_data;
 
-	if (revents != G_IO_IN)
-	{
+	if (!sdi->priv)
+		return TRUE;
+	devc = sdi->priv;
+
+	if (revents != G_IO_IN) {
 		/* Timeout
 		   in rare cases th bk1856 doesn't respond anymore
 		   (probably timing on rs232)
@@ -345,8 +343,9 @@ SR_PRIV int bk_1856d_receive_data(int fd, int revents, void *cb_data)
 		return TRUE;
 	}
 
-	if (!(serial = sdi->conn))
+	if (!sdi->conn)
 		return TRUE;
+	serial = sdi->conn;
 
 	len = serial_read_nonblocking(serial, devc->buffer + devc->buffer_level,
 			BK1856D_MSG_SIZE - devc->buffer_level );
