@@ -22,7 +22,7 @@
 #ifndef LIBSIGROK_HARDWARE_RDTECH_DPS_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_RDTECH_DPS_PROTOCOL_H
 
-#include <config.h>
+#include "config.h"
 
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
