@@ -580,16 +580,22 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	modbus = sdi->conn;
 	devc = sdi->priv;
 
+	devc->acquisition_started = TRUE;
+
 	/* Seed internal state from current data. */
 	ret = rdtech_dps_seed_receive(sdi);
-	if (ret != SR_OK)
+	if (ret != SR_OK) {
+		devc->acquisition_started = FALSE;
 		return ret;
+	}
 
 	/* Register the periodic data reception callback. */
 	ret = sr_modbus_source_add(sdi->session, modbus, G_IO_IN, 10,
 			rdtech_dps_receive_data, (void *)sdi);
-	if (ret != SR_OK)
+	if (ret != SR_OK) {
+		devc->acquisition_started = FALSE;
 		return ret;
+	}
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
@@ -599,9 +605,13 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 {
+	struct dev_context *devc;
 	struct sr_modbus_dev_inst *modbus;
 
+	devc = sdi->priv;
+
 	std_session_send_df_end(sdi);
+	devc->acquisition_started = FALSE;
 
 	modbus = sdi->conn;
 	sr_modbus_source_remove(sdi->session, modbus);
