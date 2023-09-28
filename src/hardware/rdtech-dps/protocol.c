@@ -249,7 +249,7 @@ SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi)
 	 * Only update range if there are multiple ranges and data
 	 * acquisition hasn't started.
 	 */
-	if (devc->model->n_ranges == 1 || devc->acquisition_started)
+	if (devc->model->n_ranges <= 1 || devc->acquisition_started)
 		return SR_OK;
 	if (devc->model->model_type != MODEL_RD)
 		return SR_ERR;
@@ -258,7 +258,8 @@ SR_PRIV int rdtech_dps_update_range(const struct sr_dev_inst *sdi)
 		REG_RD_RANGE, 1, &range);
 	if (ret != SR_OK)
 		return ret;
-	devc->curr_range = range ? 1 : 0;
+	range = range ? 1 : 0;
+	devc->curr_range = range;
 	rdtech_dps_update_multipliers(sdi);
 
 	return SR_OK;
@@ -317,6 +318,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	uint16_t reg_val, reg_state, out_state, ovpset_raw, ocpset_raw;
 	gboolean is_lock, is_out_enabled, is_reg_cc;
 	gboolean uses_ovp, uses_ocp;
+	gboolean have_range;
 	uint16_t range;
 	float volt_target, curr_limit;
 	float ovp_threshold, ocp_threshold;
@@ -360,12 +362,9 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	(void)get_init_state;
 	(void)get_curr_meas;
 
-	/*
-	 * The model RD6012P has two voltage/current ranges. We set a
-	 * default value here such that the compiler doesn't generate
-	 * an uninitialized variable warning.
-	 */
-	range = 0;
+	have_range = devc->model->n_ranges > 1;
+	if (!have_range)
+		range = 0;
 
 	switch (devc->model->model_type) {
 	case MODEL_DPS:
@@ -460,7 +459,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		is_reg_cc = reg_state == MODE_CC;
 		out_state = read_u16be_inc(&rdptr); /* ENABLE */
 		is_out_enabled = out_state != 0;
-		if (devc->model->n_ranges > 1) {
+		if (have_range) {
 			(void)read_u16be_inc(&rdptr); /* PRESET */
 			range = read_u16be_inc(&rdptr) ? 1 : 0; /* RANGE */
 		}
@@ -524,7 +523,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 	state->mask |= STATE_CURRENT;
 	state->power = curr_power;
 	state->mask |= STATE_POWER;
-	if (devc->model->n_ranges > 1) {
+	if (have_range) {
 		state->range = range;
 		state->mask |= STATE_RANGE;
 	}
@@ -657,10 +656,13 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			break;
 		case MODEL_RD:
 			/*
+			 * Reject unsupported range indices.
 			 * Need not set the range when the device only
 			 * supports a single fixed range.
 			 */
-			if (devc->model->n_ranges == 1)
+			if (reg_value >= devc->model->n_ranges)
+				return SR_ERR_NA;
+			if (devc->model->n_ranges <= 1)
 				return SR_OK;
 			ret = rdtech_rd_set_reg(sdi, REG_RD_RANGE, reg_value);
 			if (ret != SR_OK)
@@ -672,7 +674,7 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 			 * essential for meta package emission.
 			 */
 			if (!devc->acquisition_started) {
-				devc->curr_range = reg_value ? 1 : 0;
+				devc->curr_range = reg_value;
 				rdtech_dps_update_multipliers(sdi);
 			}
 			break;
