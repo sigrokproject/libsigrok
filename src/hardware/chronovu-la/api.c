@@ -20,7 +20,7 @@
 #include <config.h>
 #include "protocol.h"
 
-#define CHRONOVU_VENDOR (0x0403)
+#define SCAN_EXPECTED_VENDOR 0x0403
 
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
@@ -165,9 +165,20 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 
 		libusb_get_device_descriptor(devlist[i], &des);
 
-		/* See https://sigrok.org/bugzilla/show_bug.cgi?id=1115 and
-		 * https://github.com/sigrokproject/libsigrok/pull/166 */
-		if (des.idVendor != CHRONOVU_VENDOR)
+		/*
+		 * In theory we'd accept any USB device with a matching
+		 * product string. In practice the enumeration takes a
+		 * shortcut and only inspects devices when their USB VID
+		 * matches the expectation. This avoids access to flaky
+		 * devices which are unrelated to measurement purposes
+		 * yet cause trouble when accessed including segfaults,
+		 * while libusb won't transparently handle their flaws.
+		 *
+		 * See https://sigrok.org/bugzilla/show_bug.cgi?id=1115
+		 * and https://github.com/sigrokproject/libsigrok/pull/166
+		 * for a discussion.
+		 */
+		if (des.idVendor != SCAN_EXPECTED_VENDOR)
 			continue;
 
 		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
