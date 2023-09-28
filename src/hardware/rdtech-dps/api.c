@@ -68,7 +68,7 @@ static const uint32_t devopts_w_range[] = {
 	SR_CONF_RANGE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
 };
 
-/* range name, max current/voltage/power, current/voltage digits */
+/* Range name, max current/voltage/power, current/voltage digits. */
 static struct rdtech_dps_range ranges_dps3005[] = {
 	{  "5A",  5, 30,  160, 3, 2 }
 };
@@ -102,8 +102,9 @@ static struct rdtech_dps_range ranges_rd6012[] = {
 };
 
 /*
- * Current digits for RD6012P is 4 for the 6A range (RTU reg  20 = 0) and
- * 3 for the 12A range (RTU reg 20 = 1)
+ * RD6012P supports multiple current ranges with differing resolution.
+ * Up to 6A with 4 digits (when RTU reg 20 == 0), up to 12A with 3 digits
+ * (when RTU reg 20 == 1).
  */
 static struct rdtech_dps_range ranges_rd6012p[] = {
 	{  "6A",  6, 60,  360, 4, 3 },
@@ -118,7 +119,7 @@ static struct rdtech_dps_range ranges_rd6024[] = {
 	{ "24A", 24, 60, 1440, 2, 2 }
 };
 
-/* model ID, model name, range */
+/* Model ID, model name, model dependent ranges. */
 static const struct rdtech_dps_model supported_models[] = {
 	{ MODEL_DPS, 3005, "DPS3005", ARRAY_AND_SIZE(ranges_dps3005) },
 	{ MODEL_DPS, 5005, "DPS5005", ARRAY_AND_SIZE(ranges_dps5005) },

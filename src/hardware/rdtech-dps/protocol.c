@@ -26,7 +26,7 @@
 
 #include "protocol.h"
 
-/* These are the Modbus RTU registers for the family of rdtech-dps devices. */
+/* These are the Modbus RTU registers for the DPS family of devices. */
 enum rdtech_dps_register {
 	REG_DPS_USET       = 0x00, /* Mirror of 0x50 */
 	REG_DPS_ISET       = 0x01, /* Mirror of 0x51 */
@@ -72,8 +72,9 @@ enum rdtech_dps_regulation_mode {
 };
 
 /*
- * Some registers are specific to a certain device. For example,
- * REG_RD_RANGE is specific to RD6012P.
+ * These are the Modbus RTU registers for the RD family of devices.
+ * Some registers are device specific, like REG_RD_RANGE of RD6012P
+ * which could be battery related in other devices.
  */
 enum rdtech_rd_register {
 	REG_RD_MODEL = 0, /* u16 */
@@ -649,25 +650,30 @@ SR_PRIV int rdtech_dps_set_state(const struct sr_dev_inst *sdi,
 		reg_value = state->range;
 		switch (devc->model->model_type) {
 		case MODEL_DPS:
+			/* DPS models don't support current ranges at all. */
 			if (reg_value > 0)
 				return SR_ERR_ARG;
 			break;
 		case MODEL_RD:
+			/*
+			 * Need not set the range when the device only
+			 * supports a single fixed range.
+			 */
 			if (devc->model->n_ranges == 1)
-				/* No need to set. */
 				return SR_OK;
 			ret = rdtech_rd_set_reg(sdi, REG_RD_RANGE, reg_value);
 			if (ret != SR_OK)
 				return ret;
+			/*
+			 * Immediately update internal state outside of
+			 * an acquisition. Assume that in-acquisition
+			 * activity will update internal state. This is
+			 * essential for meta package emission.
+			 */
 			if (!devc->acquisition_started) {
 				devc->curr_range = reg_value ? 1 : 0;
 				rdtech_dps_update_multipliers(sdi);
 			}
-			/*
-			 * We rely on the data acquisition to update
-			 * devc->curr_range. If we do it here, there
-			 * will be no range meta package.
-			 */
 			break;
 		default:
 			return SR_ERR_ARG;
