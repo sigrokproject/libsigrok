@@ -69,35 +69,35 @@ static const uint32_t devopts_w_range[] = {
 };
 
 /* Range name, max current/voltage/power, current/voltage digits. */
-static struct rdtech_dps_range ranges_dps3005[] = {
+static const struct rdtech_dps_range ranges_dps3005[] = {
 	{  "5A",  5, 30,  160, 3, 2 }
 };
 
-static struct rdtech_dps_range ranges_dps5005[] = {
+static const struct rdtech_dps_range ranges_dps5005[] = {
 	{  "5A",  5, 50,  250, 3, 2 }
 };
 
-static struct rdtech_dps_range ranges_dps5015[] = {
+static const struct rdtech_dps_range ranges_dps5015[] = {
 	{ "15A", 15, 50,  750, 2, 2 }
 };
 
-static struct rdtech_dps_range ranges_dps5020[] = {
+static const struct rdtech_dps_range ranges_dps5020[] = {
 	{ "20A", 20, 50, 1000, 2, 2 }
 };
 
-static struct rdtech_dps_range ranges_dps8005[] = {
+static const struct rdtech_dps_range ranges_dps8005[] = {
 	{  "5A",  5, 80,  408, 3, 2 }
 };
 
-static struct rdtech_dps_range ranges_rd6006[] = {
+static const struct rdtech_dps_range ranges_rd6006[] = {
 	{  "6A",  6, 60,  360, 3, 2 }
 };
 
-static struct rdtech_dps_range ranges_rd6006p[] = {
+static const struct rdtech_dps_range ranges_rd6006p[] = {
 	{  "6A",  6, 60,  360, 4, 3 }
 };
 
-static struct rdtech_dps_range ranges_rd6012[] = {
+static const struct rdtech_dps_range ranges_rd6012[] = {
 	{ "12A", 12, 60,  720, 2, 2 }
 };
 
@@ -106,40 +106,40 @@ static struct rdtech_dps_range ranges_rd6012[] = {
  * Up to 6A with 4 digits (when RTU reg 20 == 0), up to 12A with 3 digits
  * (when RTU reg 20 == 1).
  */
-static struct rdtech_dps_range ranges_rd6012p[] = {
+static const struct rdtech_dps_range ranges_rd6012p[] = {
 	{  "6A",  6, 60,  360, 4, 3 },
 	{ "12A", 12, 60,  720, 3, 3 }
 };
 
-static struct rdtech_dps_range ranges_rd6018[] = {
+static const struct rdtech_dps_range ranges_rd6018[] = {
 	{ "18A", 18, 60, 1080, 2, 2 }
 };
 
-static struct rdtech_dps_range ranges_rd6024[] = {
+static const struct rdtech_dps_range ranges_rd6024[] = {
 	{ "24A", 24, 60, 1440, 2, 2 }
 };
 
 /* Model ID, model name, model dependent ranges. */
 static const struct rdtech_dps_model supported_models[] = {
-	{ MODEL_DPS, 3005, "DPS3005", ARRAY_AND_SIZE(ranges_dps3005) },
-	{ MODEL_DPS, 5005, "DPS5005", ARRAY_AND_SIZE(ranges_dps5005) },
-	{ MODEL_DPS, 5205, "DPH5005", ARRAY_AND_SIZE(ranges_dps5005) },
-	{ MODEL_DPS, 5015, "DPS5015", ARRAY_AND_SIZE(ranges_dps5015) },
-	{ MODEL_DPS, 5020, "DPS5020", ARRAY_AND_SIZE(ranges_dps5020) },
-	{ MODEL_DPS, 8005, "DPS8005", ARRAY_AND_SIZE(ranges_dps8005) },
+	{ MODEL_DPS, 3005, "DPS3005", ARRAY_AND_SIZE(ranges_dps3005), },
+	{ MODEL_DPS, 5005, "DPS5005", ARRAY_AND_SIZE(ranges_dps5005), },
+	{ MODEL_DPS, 5205, "DPH5005", ARRAY_AND_SIZE(ranges_dps5005), },
+	{ MODEL_DPS, 5015, "DPS5015", ARRAY_AND_SIZE(ranges_dps5015), },
+	{ MODEL_DPS, 5020, "DPS5020", ARRAY_AND_SIZE(ranges_dps5020), },
+	{ MODEL_DPS, 8005, "DPS8005", ARRAY_AND_SIZE(ranges_dps8005), },
 	/*
 	 * Specs for models RD60nn taken from the 2020.12.2 instruction manual,
 	 * specs for RD6006P from the 2021.2.26 (english) manual,
 	 * specs for RD6012P from the 2021.10.26 (english) manual,
 	 * and specs for RD6024P from the 2021.1.7 (english) manual.
 	 */
-	{ MODEL_RD, 60061, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006)  },
-	{ MODEL_RD, 60062, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006)  },
-	{ MODEL_RD, 60065, "RD6006P", ARRAY_AND_SIZE(ranges_rd6006p) },
-	{ MODEL_RD, 60121, "RD6012" , ARRAY_AND_SIZE(ranges_rd6012)  },
-	{ MODEL_RD, 60125, "RD6012P", ARRAY_AND_SIZE(ranges_rd6012p) },
-	{ MODEL_RD, 60181, "RD6018" , ARRAY_AND_SIZE(ranges_rd6018)  },
-	{ MODEL_RD, 60241, "RD6024" , ARRAY_AND_SIZE(ranges_rd6024)  },
+	{ MODEL_RD, 60061, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006),  },
+	{ MODEL_RD, 60062, "RD6006" , ARRAY_AND_SIZE(ranges_rd6006),  },
+	{ MODEL_RD, 60065, "RD6006P", ARRAY_AND_SIZE(ranges_rd6006p), },
+	{ MODEL_RD, 60121, "RD6012" , ARRAY_AND_SIZE(ranges_rd6012),  },
+	{ MODEL_RD, 60125, "RD6012P", ARRAY_AND_SIZE(ranges_rd6012p), },
+	{ MODEL_RD, 60181, "RD6018" , ARRAY_AND_SIZE(ranges_rd6018),  },
+	{ MODEL_RD, 60241, "RD6024" , ARRAY_AND_SIZE(ranges_rd6024),  },
 };
 
 static struct sr_dev_driver rdtech_dps_driver_info;
@@ -213,9 +213,9 @@ static struct sr_dev_inst *probe_device(struct sr_modbus_dev_inst *modbus,
 	sr_channel_new(sdi, 2, SR_CHANNEL_ANALOG, TRUE, "P");
 
 	devc = g_malloc0(sizeof(*devc));
+	sdi->priv = devc;
 	sr_sw_limits_init(&devc->limits);
 	devc->model = model;
-	sdi->priv = devc;
 	ret = rdtech_dps_update_range(sdi);
 	if (ret != SR_OK)
 		return NULL;
@@ -342,7 +342,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	struct rdtech_dps_state state;
 	int ret;
-	const char *cc_text;
+	const char *cc_text, *range_text;
 
 	(void)cg;
 
@@ -457,8 +457,8 @@ static int config_get(uint32_t key, GVariant **data,
 			return ret;
 		if (!(state.mask & STATE_RANGE))
 			return SR_ERR_DATA;
-		*data = g_variant_new_string(
-			devc->model->ranges[state.range].range_str);
+		range_text = devc->model->ranges[state.range].range_str;
+		*data = g_variant_new_string(range_text);
 		break;
 	default:
 		return SR_ERR_NA;
@@ -473,6 +473,7 @@ static int config_set(uint32_t key, GVariant *data,
 	struct dev_context *devc;
 	struct rdtech_dps_state state;
 	const char *range_str;
+	const struct rdtech_dps_range *range;
 	size_t i;
 
 	(void)cg;
@@ -506,13 +507,13 @@ static int config_set(uint32_t key, GVariant *data,
 		return rdtech_dps_set_state(sdi, &state);
 	case SR_CONF_RANGE:
 		range_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < devc->model->n_ranges; ++i) {
-			if (g_strcmp0(devc->model->ranges[i].range_str, range_str)
-					== 0) {
-				state.range = i;
-				state.mask |= STATE_RANGE;
-				return rdtech_dps_set_state(sdi, &state);
-			}
+		for (i = 0; i < devc->model->n_ranges; i++) {
+			range = &devc->model->ranges[i];
+			if (g_strcmp0(range->range_str, range_str) != 0)
+				continue;
+			state.range = i;
+			state.mask |= STATE_RANGE;
+			return rdtech_dps_set_state(sdi, &state);
 		}
 		return SR_ERR_NA;
 	default:
@@ -526,21 +527,23 @@ static int config_list(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
 	struct dev_context *devc;
-	struct rdtech_dps_range *range;
+	const struct rdtech_dps_range *range;
 	GVariantBuilder gvb;
 	size_t i;
+	const char *s;
 
 	devc = (sdi) ? sdi->priv : NULL;
 
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		if (devc && (devc->model->n_ranges > 1))
-			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts,
-				drvopts, devopts_w_range);
-		else
-			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts,
-				drvopts, devopts);
+		if (devc && devc->model->n_ranges > 1) {
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+				scanopts, drvopts, devopts_w_range);
+		} else {
+			return STD_CONFIG_LIST(key, data, sdi, cg,
+				scanopts, drvopts, devopts);
+		}
 	case SR_CONF_VOLTAGE_TARGET:
 		rdtech_dps_update_range(sdi);
 		range = &devc->model->ranges[devc->curr_range];
@@ -555,9 +558,10 @@ static int config_list(uint32_t key, GVariant **data,
 		break;
 	case SR_CONF_RANGE:
 		g_variant_builder_init(&gvb, G_VARIANT_TYPE_ARRAY);
-		for (i = 0; i < devc->model->n_ranges; ++i)
-			g_variant_builder_add(&gvb, "s",
-				devc->model->ranges[i].range_str);
+		for (i = 0; i < devc->model->n_ranges; i++) {
+			s = devc->model->ranges[i].range_str;
+			g_variant_builder_add(&gvb, "s", s);
+		}
 		*data = g_variant_builder_end(&gvb);
 		break;
 	default:

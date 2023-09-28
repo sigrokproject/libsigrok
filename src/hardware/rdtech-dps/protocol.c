@@ -225,7 +225,7 @@ SR_PRIV int rdtech_dps_get_model_version(struct sr_modbus_dev_inst *modbus,
 SR_PRIV void rdtech_dps_update_multipliers(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
-	struct rdtech_dps_range *range;
+	const struct rdtech_dps_range *range;
 
 	devc = sdi->priv;
 	range = &devc->model->ranges[devc->curr_range];
@@ -378,8 +378,9 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		 * a hardware specific device driver ...
 		 */
 		g_mutex_lock(&devc->rw_mutex);
-		ret = rdtech_dps_read_holding_registers(modbus, REG_DPS_USET,
-			REG_DPS_ENABLE - REG_DPS_USET + 1, registers);
+		ret = rdtech_dps_read_holding_registers(modbus,
+			REG_DPS_USET, REG_DPS_ENABLE - REG_DPS_USET + 1,
+			registers);
 		g_mutex_unlock(&devc->rw_mutex);
 		if (ret != SR_OK)
 			return ret;
@@ -460,7 +461,7 @@ SR_PRIV int rdtech_dps_get_state(const struct sr_dev_inst *sdi,
 		out_state = read_u16be_inc(&rdptr); /* ENABLE */
 		is_out_enabled = out_state != 0;
 		if (devc->model->n_ranges > 1) {
-			rdptr += sizeof (uint16_t); /* PRESET */
+			(void)read_u16be_inc(&rdptr); /* PRESET */
 			range = read_u16be_inc(&rdptr) ? 1 : 0; /* RANGE */
 		}
 
@@ -723,7 +724,7 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 	struct rdtech_dps_state state;
 	int ret;
 	struct sr_channel *ch;
-	const char *regulation_text;
+	const char *regulation_text, *range_text;
 
 	(void)fd;
 	(void)revents;
@@ -779,9 +780,9 @@ SR_PRIV int rdtech_dps_receive_data(int fd, int revents, void *cb_data)
 		devc->curr_out_state = state.output_enabled;
 	}
 	if (devc->curr_range != state.range) {
+		range_text = devc->model->ranges[state.range].range_str;
 		(void)sr_session_send_meta(sdi, SR_CONF_RANGE,
-			g_variant_new_string(
-				devc->model->ranges[state.range].range_str));
+			g_variant_new_string(range_text));
 		devc->curr_range = state.range;
 		rdtech_dps_update_multipliers(sdi);
 	}

@@ -51,8 +51,8 @@ struct rdtech_dps_model {
 	enum rdtech_dps_model_type model_type;
 	unsigned int id;
 	const char *name;
-	struct rdtech_dps_range *ranges;
-	unsigned int n_ranges;
+	const struct rdtech_dps_range *ranges;
+	size_t n_ranges;
 };
 
 struct dev_context {
@@ -65,7 +65,7 @@ struct dev_context {
 	gboolean curr_ocp_state;
 	gboolean curr_cc_state;
 	gboolean curr_out_state;
-	unsigned int curr_range;
+	size_t curr_range;
 	gboolean acquisition_started;
 };
 
@@ -93,7 +93,7 @@ struct rdtech_dps_state {
 	float voltage_target, current_limit;
 	float ovp_threshold, ocp_threshold;
 	float voltage, current, power;
-	unsigned int range;
+	size_t range;
 };
 
 enum rdtech_dps_state_context {
