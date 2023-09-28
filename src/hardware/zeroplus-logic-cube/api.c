@@ -170,6 +170,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	libusb_device **devlist;
 	GSList *devices;
 	int ret, i, j;
+	const struct zp_model *check;
 	char serial_num[64], connection_id[64];
 
 	(void)options;
@@ -184,6 +185,30 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	for (i = 0; devlist[i]; i++) {
 		libusb_get_device_descriptor(devlist[i], &des);
 
+		/*
+		 * Check for expected VID:PID first as soon as we got
+		 * the descriptor's content. This avoids access to flaky
+		 * unrelated devices which trouble the application even
+		 * if they are unrelated to measurement purposes.
+		 *
+		 * See https://sigrok.org/bugzilla/show_bug.cgi?id=1115
+		 * and https://github.com/sigrokproject/libsigrok/pull/165
+		 * for a discussion.
+		 */
+		prof = NULL;
+		for (j = 0; zeroplus_models[j].vid; j++) {
+			check = &zeroplus_models[j];
+			if (des.idVendor != check->vid)
+				continue;
+			if (des.idProduct != check->pid)
+				continue;
+			prof = check;
+			break;
+		}
+		if (!prof)
+			continue;
+
+		/* Get the device's serial number from USB strings. */
 		if ((ret = libusb_open(devlist[i], &hdl)) < 0)
 			continue;
 
@@ -202,16 +227,6 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 		if (usb_get_port_path(devlist[i], connection_id, sizeof(connection_id)) < 0)
 			continue;
 
-		prof = NULL;
-		for (j = 0; j < zeroplus_models[j].vid; j++) {
-			if (des.idVendor == zeroplus_models[j].vid &&
-				des.idProduct == zeroplus_models[j].pid) {
-				prof = &zeroplus_models[j];
-			}
-		}
-
-		if (!prof)
-			continue;
 		sr_info("Found ZEROPLUS %s.", prof->model_name);
 
 		sdi = g_malloc0(sizeof(struct sr_dev_inst));
