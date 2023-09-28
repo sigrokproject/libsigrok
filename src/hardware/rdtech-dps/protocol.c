@@ -117,12 +117,12 @@ static int rdtech_dps_read_holding_registers(struct sr_modbus_dev_inst *modbus,
 	int ret;
 
 	retries = 3;
-	do {
+	while (retries--) {
 		ret = sr_modbus_read_holding_registers(modbus,
 			address, nb_registers, registers);
 		if (ret == SR_OK)
 			return ret;
-	} while (--retries);
+	}
 
 	return ret;
 }
