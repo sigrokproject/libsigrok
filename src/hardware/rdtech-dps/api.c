@@ -534,7 +534,7 @@ static int config_list(uint32_t key, GVariant **data,
 	switch (key) {
 	case SR_CONF_SCAN_OPTIONS:
 	case SR_CONF_DEVICE_OPTIONS:
-		if (devc->model->n_ranges > 1)
+		if (devc && (devc->model->n_ranges > 1))
 			return STD_CONFIG_LIST(key, data, sdi, cg, scanopts,
 				drvopts, devopts_w_range);
 		else
