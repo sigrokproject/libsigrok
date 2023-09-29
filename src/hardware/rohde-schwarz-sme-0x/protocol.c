@@ -112,8 +112,9 @@ SR_PRIV int rs_sme0x_init(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	const char *cmd;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	cmd = devc->model_config->commands[RS_CMD_PRESET];
 	if (cmd && (ret = sr_scpi_send(sdi->conn, cmd)) != SR_OK)
@@ -131,8 +132,9 @@ SR_PRIV int rs_sme0x_mode_remote(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	const char *cmd;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	cmd = devc->model_config->commands[RS_CMD_CONTROL_REMOTE];
 	if (cmd)
@@ -148,8 +150,9 @@ SR_PRIV int rs_sme0x_mode_local(const struct sr_dev_inst *sdi)
 	const char *cmd_set;
 	const char *cmd_get;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	cmd_set = devc->model_config->commands[RS_CMD_CONTROL_LOCAL];
 	cmd_get = devc->model_config->commands[RS_CMD_CONTROL_REMOTEQM];
@@ -176,8 +179,9 @@ SR_PRIV int rs_sme0x_sync(const struct sr_dev_inst *sdi)
 	int ret;
 	struct dev_context *devc;
 
-	if (!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if ((ret = rs_sme0x_get_enable(sdi, &devc->enable)) != SR_OK)
 		return ret;
@@ -199,8 +203,9 @@ SR_PRIV int rs_sme0x_get_enable(const struct sr_dev_inst *sdi, gboolean *enable)
 	const char *resp_on;
 	const char *resp_off;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	ret = sr_scpi_get_string(sdi->conn,
 						devc->model_config->commands[RS_CMD_GET_ENABLE], &buf);
@@ -212,13 +217,12 @@ SR_PRIV int rs_sme0x_get_enable(const struct sr_dev_inst *sdi, gboolean *enable)
 	if (strcmp(buf, resp_on) == 0) {
 		ret = SR_OK;
 		*enable = TRUE;
-	}
-	else if (strcmp(buf, resp_off) == 0) {
+	} else if (strcmp(buf, resp_off) == 0) {
 		ret = SR_OK;
 		*enable = FALSE;
-	}
-	else
+	} else {
 		ret = SR_ERR;
+	}
 
 	g_free(buf);
 	return ret;
@@ -229,8 +233,9 @@ SR_PRIV int rs_sme0x_get_freq(const struct sr_dev_inst *sdi, double *freq)
 	int ret;
 	struct dev_context *devc;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	ret = sr_scpi_get_double(sdi->conn,
 							devc->model_config->commands[RS_CMD_GET_FREQ],
@@ -247,8 +252,9 @@ SR_PRIV int rs_sme0x_get_power(const struct sr_dev_inst *sdi, double *power)
 	struct dev_context *devc;
 	const char * cmd;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	cmd = devc->model_config->commands[RS_CMD_GET_POWER];
 	ret = sr_scpi_get_double(sdi->conn, cmd, power);
@@ -267,8 +273,9 @@ SR_PRIV int rs_sme0x_get_clk_src_idx(const struct sr_dev_inst *sdi, int *idx)
 	const char *resp_int;
 	const char *resp_ext;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	cmd = devc->model_config->commands[RS_CMD_GET_CLK_SRC];
 	ret = sr_scpi_get_string(sdi->conn, cmd, &buf);
@@ -280,13 +287,12 @@ SR_PRIV int rs_sme0x_get_clk_src_idx(const struct sr_dev_inst *sdi, int *idx)
 	if (strcmp(buf, resp_int) == 0) {
 		ret = SR_OK;
 		*idx = 0;
-	}
-	else if (strcmp(buf, resp_ext) == 0) {
+	} else if (strcmp(buf, resp_ext) == 0) {
 		ret = SR_OK;
 		*idx = 1;
-	}
-	else
+	} else {
 		ret = SR_ERR;
+	}
 
 	g_free(buf);
 	return ret;
@@ -296,8 +302,10 @@ SR_PRIV int rs_sme0x_set_enable(const struct sr_dev_inst *sdi, gboolean enable)
 {
 	struct dev_context *devc;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
+
 	if (devc->enable == enable)
 		return SR_OK;
 
@@ -312,8 +320,9 @@ SR_PRIV int rs_sme0x_set_freq(const struct sr_dev_inst *sdi, double freq)
 {
 	struct dev_context *devc;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if ((freq > devc->freq_max) || (freq < devc->freq_min))
 		return SR_ERR_ARG;
@@ -326,8 +335,9 @@ SR_PRIV int rs_sme0x_set_power(const struct sr_dev_inst *sdi, double power)
 {
 	struct dev_context *devc;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if ((power > devc->power_max) || (power < devc->power_min))
 		return SR_ERR_ARG;
@@ -340,8 +350,9 @@ SR_PRIV int rs_sme0x_set_clk_src(const struct sr_dev_inst *sdi, int idx)
 {
 	struct dev_context *devc;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if (devc->clk_source_idx == idx)
 		return SR_OK;
@@ -359,8 +370,9 @@ SR_PRIV int rs_sme0x_get_minmax_freq(const struct sr_dev_inst
 	struct dev_context *devc;
 	int ret;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if ((ret = sr_scpi_get_double(sdi->conn, "FREQ? MIN", min_freq)) != SR_OK)
 		return ret;
@@ -374,8 +386,9 @@ SR_PRIV int rs_sme0x_get_minmax_power(const struct sr_dev_inst *sdi,
 	struct dev_context *devc;
 	int ret;
 
-	if(!(devc = sdi->priv))
+	if (!sdi || !sdi->priv)
 		return SR_ERR;
+	devc = sdi->priv;
 
 	if ((ret = sr_scpi_get_double(sdi->conn, "POW? MIN", min_power)) != SR_OK)
 		return ret;

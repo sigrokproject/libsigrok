@@ -107,7 +107,10 @@ static int rs_init_device(struct sr_dev_inst *sdi)
 	double min_val;
 	double max_val;
 
+	if (!sdi || !sdi->priv)
+		return SR_ERR;
 	devc = sdi->priv;
+
 	model_found = 0;
 
 	for (size_t i = 0; i < ARRAY_SIZE(device_models); i++) {
@@ -213,11 +216,10 @@ static int config_get(uint32_t key, GVariant **data,
 	double value_f;
 	int idx;
 	gboolean bval;
-	struct dev_context *devc;
 
 	(void) cg;
 
-	if (!sdi || !(devc = sdi->priv))
+	if (!sdi)
 		return SR_ERR_ARG;
 
 	switch (key) {
@@ -268,11 +270,12 @@ static int config_set(uint32_t key, GVariant *data,
 		break;
 	case SR_CONF_EXTERNAL_CLOCK_SOURCE:
 		clksrc_str = g_variant_get_string(data, NULL);
-		for (i = 0; i < ARRAY_SIZE(clock_sources); i++)
+		for (i = 0; i < ARRAY_SIZE(clock_sources); i++) {
 			if (g_strcmp0(clock_sources[i], clksrc_str) == 0) {
 				ret = rs_sme0x_set_clk_src(sdi, i);
 				break;
 			}
+		}
 		break;
 	default:
 		return SR_ERR_NA;
