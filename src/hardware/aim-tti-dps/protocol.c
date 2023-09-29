@@ -217,15 +217,15 @@ SR_PRIV int aim_tti_dps_sync_state(struct sr_scpi_dev_inst *scpi,
 
 SR_PRIV void aim_tti_dps_next_acqusition(struct dev_context *devc)
 {
-	if (devc->acquisition_param == AIM_TTI_VOLTAGE)
+	if (devc->acquisition_param == AIM_TTI_VOLTAGE) {
 		devc->acquisition_param = AIM_TTI_CURRENT;
-	else if (devc->acquisition_param == AIM_TTI_CURRENT)
+	} else if (devc->acquisition_param == AIM_TTI_CURRENT) {
 		devc->acquisition_param = AIM_TTI_STATUS;
-	else if (devc->acquisition_param == AIM_TTI_STATUS) {
+	} else if (devc->acquisition_param == AIM_TTI_STATUS) {
 		devc->acquisition_param = AIM_TTI_VOLTAGE;
-		if (devc->acquisition_channel < 0)
+		if (devc->acquisition_channel < 0) {
 			devc->acquisition_channel = 0;
-		else {
+		} else {
 			devc->acquisition_channel++;
 			if (devc->acquisition_channel >= devc->model_config->channels)
 				devc->acquisition_channel = 0;
@@ -251,11 +251,14 @@ SR_PRIV int aim_tti_dps_receive_data(int fd, int revents, void *cb_data)
 	(void)fd;
 	(void)revents;
 
-	if (!(sdi = cb_data))
+	if (!cb_data)
 		return TRUE;
+	sdi = cb_data;
 
-	if (!(devc = sdi->priv) || !(scpi = sdi->conn))
+	if (!sdi->priv || !sdi->conn)
 		return TRUE;
+	devc = sdi->priv;
+	scpi = sdi->conn;
 
 
 	aim_tti_dps_get_value(scpi, devc, devc->acquisition_param,

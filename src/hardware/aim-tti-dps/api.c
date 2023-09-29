@@ -194,7 +194,10 @@ static int dev_open(struct sr_dev_inst *sdi)
 	struct sr_scpi_dev_inst *scpi;
 	int ret;
 
+	if (!sdi || !sdi->conn)
+		return SR_ERR_BUG;
 	scpi = sdi->conn;
+
 	ret = sr_scpi_open(scpi);
 	if (ret < 0) {
 		sr_err("Failed to open SCPI device: %s.", sr_strerror(ret));
@@ -209,9 +212,9 @@ static int dev_close(struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
-	scpi = sdi->conn;
-	if (!sdi || !scpi)
+	if (!sdi || !sdi->conn)
 		return SR_ERR_BUG;
+	scpi = sdi->conn;
 
 	sr_dbg("DIAG: sdi->status %d.", sdi->status - SR_ST_NOT_FOUND);
 	if (sdi->status <= SR_ST_INACTIVE)
@@ -233,7 +236,7 @@ static int config_get(uint32_t key, GVariant **data,
 	struct dev_context *devc;
 	int channel;
 
-	if (!sdi || !data)
+	if (!sdi || !sdi->priv || !data)
 		return SR_ERR_ARG;
 
 	devc = sdi->priv;
@@ -315,6 +318,8 @@ static int config_set(uint32_t key, GVariant *data,
 	int channel, chidx;
 	const char *ch_config;
 
+	if (!sdi->priv)
+		return SR_ERR;
 	devc = sdi->priv;
 
 	if (!cg) {
@@ -466,8 +471,10 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	struct sr_scpi_dev_inst *scpi;
 
-	if (!(devc = sdi->priv) || !(scpi = sdi->conn))
+	if (!sdi->priv || !sdi->conn)
 		return SR_ERR_BUG;
+	devc = sdi->priv;
+	scpi = sdi->conn;
 
 	sr_sw_limits_acquisition_start(&devc->limits);
 	std_session_send_df_header(sdi);
