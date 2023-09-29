@@ -75,19 +75,16 @@ SR_PRIV int rohde_schwarz_nrpxsn_receive_data(int fd, int revents,
 	if (devc->measurement_state == IDLE) {
 		if (devc->trigger_source_changed) {
 			ret = rohde_schwarz_nrpxsn_update_trigger_source(scpi, devc);
-		}
-		else if (devc->curr_freq_changed) {
+		} else if (devc->curr_freq_changed) {
 			ret = rohde_schwarz_nrpxsn_update_curr_freq(scpi, devc);
-		}
-		else {
+		} else {
 			ret = sr_scpi_send(scpi, "BUFF:CLE");
 			if (ret == SR_OK) {
 				ret = sr_scpi_send(scpi, "INITiate");
 				devc->measurement_state = WAITING_MEASUREMENT;
 			}
 		}
-	}
-	else {
+	} else {
 		buf_count = 0;
 		ret = sr_scpi_get_int(scpi, "BUFF:COUN?", &buf_count);
 		if (ret == SR_OK && buf_count > 0) {

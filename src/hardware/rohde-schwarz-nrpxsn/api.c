@@ -237,8 +237,7 @@ static struct sr_dev_inst *probe_device(struct sr_scpi_dev_inst *scpi)
 	devc = g_malloc0(sizeof(struct dev_context));
 	sdi->priv = devc;
 
-	if (init_device(sdi) != SR_OK)
-	{
+	if (init_device(sdi) != SR_OK) {
 		sr_dev_inst_free(sdi);
 		g_free(devc);
 	}
@@ -351,7 +350,8 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_TRIGGER_SOURCE:
 		if (!model || !scpi)
 			return SR_ERR;
-		if ((idx = std_str_idx(data, ARRAY_AND_SIZE(rs_trigger_sources))) < 0)
+		idx = std_str_idx(data, ARRAY_AND_SIZE(rs_trigger_sources));
+		if (idx < 0)
 			return SR_ERR_ARG;
 		devc->trigger_source = idx;
 		devc->trigger_source_changed = 1;
