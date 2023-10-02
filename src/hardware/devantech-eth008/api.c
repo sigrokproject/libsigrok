@@ -50,11 +50,17 @@ static const uint32_t devopts_cg_ai[] = {
 	SR_CONF_VOLTAGE | SR_CONF_GET,
 };
 
+/* List of supported devices. Sorted by model ID. */
 static const struct devantech_eth008_model models[] = {
-	{ 18, "ETH002",   2, 0, 0, 0, 1, 0, },
-	{ 19, "ETH008",   8, 0, 0, 0, 1, 0, },
-	{ 20, "ETH484",  16, 8, 4, 0, 2, 0x00f0, },
-	{ 21, "ETH8020", 20, 8, 8, 0, 3, 0, },
+	{ 18, "ETH002",    2,  0,  0, 0, 1, 0, 0, },
+	{ 19, "ETH008",    8,  0,  0, 0, 1, 0, 0, },
+	{ 20, "ETH484",   16,  8,  4, 0, 2, 2, 0x00f0, },
+	{ 21, "ETH8020",  20,  8,  8, 0, 3, 4, 0, },
+	{ 22, "WIFI484",  16,  8,  4, 0, 2, 2, 0x00f0, },
+	{ 24, "WIFI8020", 20,  8,  8, 0, 3, 4, 0, },
+	{ 26, "WIFI002",   2,  0,  0, 0, 1, 0, 0, },
+	{ 28, "WIFI008",   8,  0,  0, 0, 1, 0, 0, },
+	{ 52, "ETH1610",  10, 16, 16, 0, 2, 2, 0, },
 };
 
 static const struct devantech_eth008_model *find_model(uint8_t code)
@@ -317,9 +323,6 @@ static int config_set(uint32_t key, GVariant *data,
 	default:
 		return SR_ERR_NA;
 	}
-
-	/* XXX Is this actually UNREACH? */
-	return SR_OK;
 }
 
 static int config_list(uint32_t key, GVariant **data,

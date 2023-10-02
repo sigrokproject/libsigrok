@@ -19,15 +19,20 @@
 
 /*
  * Communicate to the Devantech ETH008 relay card via TCP and Ethernet.
+ * Also supports other cards when their protocol is similar enough.
+ * USB and Modbus attached cards are not covered by this driver.
  *
  * See http://www.robot-electronics.co.uk/files/eth008b.pdf for device
- * capabilities and a protocol discussion.
- * See https://github.com/devantech/devantech_eth_python for Python
- * source code which is maintained by the vendor. The untested parts
- * of this sigrok driver are based on version 0.1.2 of this Python
- * code which is MIT licensed (corresponds to commit 0c0080b88e29),
- * and example code in ZIP archives provided on the shop's products'
- * pages.
+ * capabilities and a protocol discussion. See other devices' documents
+ * for additional features (digital input, analog input, TCP requests
+ * which ETH008 does not implement).
+ * See https://github.com/devantech/devantech_eth_python for MIT licensed
+ * Python source code which is maintained by the vendor.
+ * This sigrok driver implementation was created based on information in
+ * version 0.1.2 of the Python code (corresponds to commit 0c0080b88e29),
+ * and PDF files that are referenced in the shop's product pages (which
+ * also happen to provide ZIP archives with examples that are written
+ * using other programming languages).
  *
  * The device provides several means of communication: HTTP requests
  * (as well as an interactive web form). Raw TCP communication with
@@ -38,13 +43,7 @@
  * because it is assumed that this existed in all firmware versions.
  * The firmware interestingly accepts concurrent network connections
  * (up to five of them, all share the same password). Which means that
- * the peripheral's state can change even while we control it.
- *
- * It's assumed that WLAN models differ from Ethernet devices in terms
- * of their hardware, but TCP communication should not bother about the
- * underlying physics, and WLAN cards can re-use model IDs and firmware
- * implementations. Given sigrok's abstraction of the serial transport
- * those cards could also be attached by means of COM ports.
+ * the peripheral's state can change even while we are controlling it.
  *
  * TCP communication seems to rely on network fragmentation and assumes
  * that software stacks provide all of a request in a single receive
@@ -52,7 +51,7 @@
  * could become an issue when long distances and tunnels are involved.
  * This sigrok driver also assumes complete reception within a single
  * receive call. The short length of binary transmission helps here
- * (the largest payloads has a length of three bytes).
+ * (the largest payloads has a length of four bytes).
  *
  * The lack of length specs as well as termination in the protocol
  * (both binary as well as text variants over TCP sockets) results in
@@ -77,26 +76,44 @@
  * and even across hardware revisions (model upgrades). Firmware just
  * happens to not respond to unknown requests.
  *
+ * Support for models with differing features also was kept somehwat
+ * simple and straight forward. The mapping of digital outputs to relay
+ * numbers from the user's perspective is incomplete for those cards
+ * where users decide whether relays are attached to digital outputs.
+ * When an individual physical channel can be operated in different
+ * modes, or when its value gets presented in different formats, then
+ * these values are not synchronized. This applies for digital inputs
+ * which are the result of applying a threshold to an analog value.
+ *
  * TODO
- * - Add support for other models. Currently exclusively supports the
- *   ETH008-B model which was used during implementation of the driver.
- *   (Descriptions for more models were added, their operation is yet
- *   to get verified.) Getting relay state involves variable length
- *   responses, bits appear to be in little endian presentation.
- * - Add support for absent relay output channels (ETH484 lacks R5..R8).
- * - Add support for digital inputs. ETH484 has command 0x25 which gets
- *   two bytes, the second byte carries eight digital input bits.
- *   ETH1610 has 16 inputs, evaluates both bytes. Is data format u16be?
- *   ETH8020 support code is inconsistent, implements two accessors
- *   which either retrieve two or three bytes, while callers access the
- *   fourth byte of these responses? Cannot have worked, seems untested.
- * - Add support for analog inputs. ETH484 has command 0x32 which takes
- *   a channel number, and gets two bytes which carry a u16be value(?).
- *   So does ETH8020. Channel count differs across models.
- * - Are there other models of interest? ETH1610 product page reads
- *   as if the card had 10 relays (strict output), and 16 inputs which
- *   could either be used in analog mode, or simply get interpreted as
- *   digital input?
+ * - Add support for other models.
+ *   - The Ethernet (and Wifi) devices should work as they are with
+ *     the current implementation.
+ *     https://www.robot-electronics.co.uk/files/eth484b.pdf.
+ *   - USB could get added here with reasonable effort. Serial over
+ *     CDC is transparently supported (lack of framing prevents the
+ *     use of variable length requests or responses, but should not
+ *     apply to these models anyway). The protocol radically differs
+ *     from Ethernet variants:
+ *     https://www.robot-electronics.co.uk/files/usb-rly16b.pdf
+ *     - 0x38 get serial number, yields 8 bytes
+ *     - 0x5a get software version, yields module ID 9, 1 byte version
+ *     - 0x5b get relay states, yields 1 byte current state
+ *     - 0x5c set relay state, takes 1 byte for all 8 relays
+ *     - 0x5d get supply voltage, yields 1 byte in 0.1V steps
+ *     - 0x5e set individual relay, takes 3 more bytes: relay number,
+ *       hi/lo pulse time in 10ms steps
+ *     - for interactive use? 'd' all relays on, 'e'..'l' relay 1..8 on,
+ *       'n' all relays off, 'o'..'v' relay 1..8 off
+ *   - Modbus may or may not be a good match for this driver, or may
+ *     better be kept in yet another driver? Requests and responses
+ *     again differ from Ethernet and USB models, refer to traditional
+ *     "coils" and have their individual and grouped access.
+ *     https://www.robot-electronics.co.uk/files/mbh88.pdf
+ * - Reconsider the relation of relay channels, and digital outputs
+ *   and their analog sampling and digital input interpretation. The
+ *   current implementation is naive, assumes the simple DO/DI/AI
+ *   groups and ignores their interaction within the firmware.
  * - Add support for password protection?
  *   - See command 0x79 to "login" (beware of the differing return value
  *     compared to other commands), command 0x7a to check if passwords
@@ -124,7 +141,11 @@ enum cmd_code {
 	CMD_DIGITAL_SET_OUTPUTS = 0x23,
 	CMD_DIGITAL_GET_OUTPUTS = 0x24,
 	CMD_DIGITAL_GET_INPUTS = 0x25,
+	CMD_DIGITAL_ACTIVE_1MS = 0x26,
+	CMD_DIGITAL_INACTIVE_1MS = 0x27,
 	CMD_ANALOG_GET_INPUT = 0x32,
+	CMD_ANALOG_GET_INPUT_12BIT = 0x33,
+	CMD_ANALOG_GET_ALL_VOLTAGES = 0x34,
 	CMD_ASCII_TEXT_COMMAND = 0x3a,
 	CMD_GET_SERIAL_NUMBER = 0x77,
 	CMD_GET_SUPPLY_VOLTS = 0x78,
@@ -279,7 +300,7 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 	struct dev_context *devc;
 	size_t rx_size;
 	uint8_t req[1], *wrptr;
-	uint8_t rsp[3];
+	uint8_t rsp[4];
 	const uint8_t *rdptr;
 	uint32_t have;
 	int ret;
@@ -323,15 +344,15 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 
 	/*
 	 * Get the state of digital inputs when the model supports them.
-	 * Firmware of other models happens to not respond to unknown
-	 * requests. Responses seem to have identical size across all
-	 * models. Payload is assumed to be u16 be formatted. Must be
-	 * verified when other models are seen.
+	 * (Sending unsupported requests to unaware firmware versions
+	 * yields no response. That's why requests must be conditional.)
 	 *
 	 * Caching the state of analog inputs is condidered undesirable.
+	 * Firmware does conversion at the very moment when the request
+	 * is received to get a voltage reading.
 	 */
 	if (devc->model->ch_count_di) {
-		rx_size = sizeof(uint16_t);
+		rx_size = devc->model->width_di;
 		if (rx_size > sizeof(rsp))
 			return SR_ERR_NA;
 
@@ -345,6 +366,9 @@ SR_PRIV int devantech_eth008_cache_state(const struct sr_dev_inst *sdi)
 		switch (rx_size) {
 		case 2:
 			have = read_u16be_inc(&rdptr);
+			break;
+		case 4:
+			have = read_u32be_inc(&rdptr);
 			break;
 		default:
 			return SR_ERR_NA;
@@ -375,7 +399,7 @@ SR_PRIV int devantech_eth008_query_do(const struct sr_dev_inst *sdi,
 		return ret;
 
 	/*
-	 * Only reject unexpected requeusts after the update. Get the
+	 * Only reject unexpected requests after the update. Get the
 	 * individual channel's state from the cache of all channels.
 	 */
 	if (!cg)
@@ -478,7 +502,7 @@ SR_PRIV int devantech_eth008_query_di(const struct sr_dev_inst *sdi,
 		return ret;
 
 	/*
-	 * Only reject unexpected requeusts after the update. Get the
+	 * Only reject unexpected requests after the update. Get the
 	 * individual channel's state from the cache of all channels.
 	 */
 	devc = sdi->priv;
@@ -535,8 +559,17 @@ SR_PRIV int devantech_eth008_query_ai(const struct sr_dev_inst *sdi,
 	rdptr = rsp;
 
 	/*
-	 * TODO The u16 BE format is a guess. Needs verification.
-	 * As is the unit-less nature of that value.
+	 * The interpretation of analog readings differs across models.
+	 * All firmware versions provide an ADC result in BE format in
+	 * a 16bit response. Some models provide 10 significant digits,
+	 * others provide 12 bits. Full scale can either be 3V3 or 5V0.
+	 * Some devices are 5V tolerant but won't read more than 3V3
+	 * values (and clip above that full scale value). Some firmware
+	 * versions support request 0x33 in addition to 0x32.
+	 *
+	 * This is why this implementation provides the result to the
+	 * caller as a unit-less value. It is also what the firmware's
+	 * web interface does.
 	 */
 	have = read_u16be_inc(&rdptr);
 	if (adc_value)

@@ -29,50 +29,31 @@
 #define LOG_PREFIX "devantech-eth008"
 
 /*
- * Models have differing capabilities, and slightly different protocol
- * variants. Setting the output state of individual relays usually takes
- * one byte which carries the channel number. Requests are of identical
- * length. Getting relay state takes a variable number of bytes to carry
- * the bit fields. Response length depends on the model's relay count.
- * As does request length for setting the state of several relays at the
- * same time. Some models have gaps in their relay channel numbers
- * (ETH484 misses R5..R8).
- *
- * ETH484 also has 8 digital inputs, and 4 analog inputs. Features
- * beyond relay output are untested in this implementation.
- *
- * Vendor's support code for ETH8020 suggests that it has 8 digital
- * inputs and 8 analog inputs. But that digital input supporting code
- * could never have worked, probably wasn't tested.
- *
- * Digital inputs and analog inputs appear to share I/O pins. Users can
- * read these pins either in terms of an ADC value, or can interpret
- * them as raw digital input. While not all models with digital inputs
- * seem to provide all of them in analog form. DI and AI channel counts
- * may differ depending on the model.
+ * See developer notes in the protocol.c source file for details on the
+ * feature set and communication protocol variants across the series.
+ * This 'model' description tells their discriminating properties apart.
  */
 struct devantech_eth008_model {
-	uint8_t code;
-	const char *name;
-	size_t ch_count_do;
-	size_t ch_count_di;
-	size_t ch_count_ai;
-	uint8_t min_serno_fw;
-	size_t width_do;
-	uint32_t mask_do_missing;
-};
-
-enum devantech_eth008_channel_type {
-	DV_CH_DIGITAL_OUTPUT,
-	DV_CH_DIGITAL_INPUT,
-	DV_CH_ANALOG_INPUT,
-	DV_CH_SUPPLY_VOLTAGE,
+	uint8_t code;		/**!< model ID */
+	const char *name;	/**!< model name */
+	size_t ch_count_do;	/**!< digital output channel count */
+	size_t ch_count_di;	/**!< digital input channel count */
+	size_t ch_count_ai;	/**!< analog input channel count */
+	uint8_t min_serno_fw;	/**!< min FW version to get serial nr */
+	size_t width_do;	/**!< digital output image width */
+	size_t width_di;	/**!< digital input image width */
+	uint32_t mask_do_missing; /**!< missing digital output channels */
 };
 
 struct channel_group_context {
 	size_t index;
 	size_t number;
-	enum devantech_eth008_channel_type ch_type;
+	enum devantech_eth008_channel_type {
+		DV_CH_DIGITAL_OUTPUT,
+		DV_CH_DIGITAL_INPUT,
+		DV_CH_ANALOG_INPUT,
+		DV_CH_SUPPLY_VOLTAGE,
+	} ch_type;
 };
 
 struct dev_context {
