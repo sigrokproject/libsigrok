@@ -134,7 +134,7 @@ typedef guint pyg_flags_type;
 
         auto arglist = Py_BuildValue("(OO)", log_obj, string_obj);
 
-        auto result = PyEval_CallObject($input, arglist);
+        auto result = PyObject_CallObject($input, arglist);
 
         Py_XDECREF(arglist);
         Py_XDECREF(log_obj);
@@ -177,7 +177,7 @@ typedef guint pyg_flags_type;
     $1 = [=] () {
         const auto gstate = PyGILState_Ensure();
 
-        const auto result = PyEval_CallObject($input, nullptr);
+        const auto result = PyObject_CallObject($input, nullptr);
         const bool completed = !PyErr_Occurred();
         const bool valid_result = (completed && result == Py_None);
 
@@ -221,7 +221,7 @@ typedef guint pyg_flags_type;
 
         auto arglist = Py_BuildValue("(OO)", device_obj, packet_obj);
 
-        auto result = PyEval_CallObject($input, arglist);
+        auto result = PyObject_CallObject($input, arglist);
 
         Py_XDECREF(arglist);
         Py_XDECREF(device_obj);
