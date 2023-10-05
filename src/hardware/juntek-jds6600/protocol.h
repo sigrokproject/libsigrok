@@ -20,16 +20,59 @@
 #ifndef LIBSIGROK_HARDWARE_JUNTEK_JDS6600_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_JUNTEK_JDS6600_PROTOCOL_H
 
-#include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
+#include <stdint.h>
+
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "juntek-jds6600"
 
+#define MAX_GEN_CHANNELS	2
+
 struct dev_context {
+	struct devc_dev {
+		unsigned int device_type;
+		char *serial_number;
+		uint64_t max_output_frequency;
+		size_t channel_count_gen;
+	} device;
+	struct devc_wave {
+		size_t builtin_count;
+		size_t arbitrary_count;
+		size_t names_count;
+		const char **names;
+		uint32_t *fw_codes;
+	} waveforms;
+	struct devc_chan {
+		gboolean enabled;
+		uint32_t waveform_code;
+		size_t waveform_index;
+		double output_frequency;
+		double amplitude, offset;
+		double dutycycle;
+	} channel_config[MAX_GEN_CHANNELS];
+	double channels_phase;
+	GString *quick_req;
 };
 
-SR_PRIV int juntek_jds6600_receive_data(int fd, int revents, void *cb_data);
+SR_PRIV int jds6600_identify(struct sr_dev_inst *sdi);
+SR_PRIV int jds6600_setup_devc(struct sr_dev_inst *sdi);
+
+SR_PRIV int jds6600_get_chans_enable(const struct sr_dev_inst *sdi);
+SR_PRIV int jds6600_get_waveform(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_get_frequency(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_get_amplitude(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_get_offset(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_get_dutycycle(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_get_phase_chans(const struct sr_dev_inst *sdi);
+
+SR_PRIV int jds6600_set_chans_enable(const struct sr_dev_inst *sdi);
+SR_PRIV int jds6600_set_waveform(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_set_frequency(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_set_amplitude(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_set_offset(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_set_dutycycle(const struct sr_dev_inst *sdi, size_t ch_idx);
+SR_PRIV int jds6600_set_phase_chans(const struct sr_dev_inst *sdi);
 
 #endif
