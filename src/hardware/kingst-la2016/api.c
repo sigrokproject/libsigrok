@@ -198,15 +198,21 @@ static void kingst_la2016_free_devc(struct dev_context *devc)
 /* Convenience. Release an allocated sdi from error paths. */
 static void kingst_la2016_free_sdi(struct sr_dev_inst *sdi)
 {
+	struct sr_usb_dev_inst *usb;
+	struct dev_context *devc;
+
 	if (!sdi)
 		return;
-	g_free(sdi->vendor);
-	g_free(sdi->model);
-	g_free(sdi->version);
-	g_free(sdi->serial_num);
-	g_free(sdi->connection_id);
-	sr_usb_dev_inst_free(sdi->conn);
-	kingst_la2016_free_devc(sdi->priv);
+
+	usb = sdi->conn;
+	if (usb && usb->devhdl)
+		sr_usb_close(usb);
+	sr_usb_dev_inst_free(usb);
+
+	devc = sdi->priv;
+	kingst_la2016_free_devc(devc);
+
+	sr_dev_inst_free(sdi);
 }
 
 /* Convenience. Open a USB device (including claiming an interface). */
