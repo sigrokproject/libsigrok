@@ -467,6 +467,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/itech-it8500/protocol.c \
 	src/hardware/itech-it8500/api.c
 endif
+if HW_JUNTEK_JDS6600
+src_libdrivers_la_SOURCES += \
+	src/hardware/juntek-jds6600/protocol.h \
+	src/hardware/juntek-jds6600/protocol.c \
+	src/hardware/juntek-jds6600/api.c
+endif
 if HW_KECHENG_KC_330B
 src_libdrivers_la_SOURCES += \
 	src/hardware/kecheng-kc-330b/protocol.h \
