@@ -1678,16 +1678,19 @@ struct drv_context {
 
 /*--- log.c -----------------------------------------------------------------*/
 
+/* Provide a macro for other source code locations to re-use. */
 #if defined(_WIN32) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
 /*
  * On MinGW, we need to specify the gnu_printf format flavor or GCC
  * will assume non-standard Microsoft printf syntax.
  */
-SR_PRIV int sr_log(int loglevel, const char *format, ...)
-		__attribute__((__format__ (__gnu_printf__, 2, 3)));
+#define ATTR_FMT_PRINTF(fmt_pos, arg_pos) \
+		__attribute__((__format__ (__gnu_printf__, fmt_pos, arg_pos)))
 #else
-SR_PRIV int sr_log(int loglevel, const char *format, ...) G_GNUC_PRINTF(2, 3);
+#define ATTR_FMT_PRINTF(fmt_pos, arg_pos)	G_GNUC_PRINTF(fmt_pos, arg_pos)
 #endif
+
+SR_PRIV int sr_log(int loglevel, const char *format, ...) ATTR_FMT_PRINTF(2, 3);
 
 /* Message logging helpers with subsystem-specific prefix string. */
 #define sr_spew(...)	sr_log(SR_LOG_SPEW, LOG_PREFIX ": " __VA_ARGS__)
