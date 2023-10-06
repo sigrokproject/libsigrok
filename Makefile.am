@@ -377,6 +377,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/gmc-mh-1x-2x/protocol.c \
 	src/hardware/gmc-mh-1x-2x/api.c
 endif
+if HW_GREATFET
+src_libdrivers_la_SOURCES += \
+	src/hardware/greatfet/protocol.h \
+	src/hardware/greatfet/protocol.c \
+	src/hardware/greatfet/api.c
+endif
 if HW_GWINSTEK_GDS_800
 src_libdrivers_la_SOURCES += \
 	src/hardware/gwinstek-gds-800/protocol.h \
