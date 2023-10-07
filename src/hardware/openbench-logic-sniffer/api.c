@@ -387,7 +387,16 @@ static int config_list(uint32_t key, GVariant **data,
 		return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts,
 				       devopts);
 	case SR_CONF_SAMPLERATE:
-		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates));
+		if (!sdi)
+			return SR_ERR_ARG;
+		devc = sdi->priv;
+		uint64_t samplerates_ovrd[3];
+		samplerates_ovrd[0] = samplerates[0];
+		samplerates_ovrd[1] = samplerates[1];
+		samplerates_ovrd[2] = samplerates[2];
+		if (devc->max_samplerate)
+			samplerates_ovrd[1] = devc->max_samplerate;
+		*data = std_gvar_samplerates_steps(ARRAY_AND_SIZE(samplerates_ovrd));
 		break;
 	case SR_CONF_TRIGGER_MATCH:
 		*data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
