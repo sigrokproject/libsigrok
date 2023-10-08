@@ -150,6 +150,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	g_usleep(RESPONSE_DELAY_US);
 
 	if (serial_has_receive_data(serial) == 0) {
+		serial_close(serial);
 		sr_dbg("Didn't get any ID reply.");
 		return NULL;
 	}
@@ -157,11 +158,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	num_read =
 		serial_read_blocking(serial, buf, 4, serial_timeout(serial, 4));
 	if (num_read < 0) {
+		serial_close(serial);
 		sr_err("Getting ID reply failed (%d).", num_read);
 		return NULL;
 	}
 
 	if (strncmp(buf, "1SLO", 4) && strncmp(buf, "1ALS", 4)) {
+		serial_close(serial);
 		GString *id = sr_hexdump_new((uint8_t *)buf, num_read);
 
 		sr_err("Invalid ID reply (got %s).", id->str);
