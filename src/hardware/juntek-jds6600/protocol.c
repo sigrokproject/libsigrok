@@ -38,18 +38,19 @@
  * - Add support for the frequency measurement and/or the counter. This
  *   feature's availability may depend on or interact with the state of
  *   other generator channels. Needs consideration of constraints.
- * - Add support for modulation (sweep, pulse, burst). Add support for
- *   other "modes"?
+ * - Add support for "modes" (sweep, pulse, burst; modulation if the
+ *   device supports it).
  * - Add support for download/upload of arbitrary waveforms. This needs
  *   infrastructure in common libsigrok code as well as in applications.
  *   At the moment "blob transfer" (waveform upload/download) appears to
  *   not be supported.
  * - Re-consider parameter value ranges. Frequency depends on the model.
- *   Amplitude range depends on the model and frequencies and interact
- *   with the offset offset configuration. Can be -20..+20, or -10..+10,
- *   or -5..+5 ranges. This implementation caps to the -20..+20 range.
- *   Many values are passed to the device and may result in capping or
- *   transformation there in the firwmare.
+ *   Amplitude depends on the model and frequencies. Can be -20..+20,
+ *   or -10..+10, or -5..+5. Could be affected by offsets and further
+ *   get clipped. This implementation caps application's input to the
+ *   -20..+20 range, and sends the set request to the device. If any
+ *   further transformation happens in the device then applications
+ *   need to read back, this library driver doesn't.
  *
  * Implementation details:
  * - Communicates via USB CDC at 115200/8n1 (virtual COM port).
@@ -64,12 +65,11 @@
  *   by an instruction letter, followed by a number (a parameter index,
  *   or a waveform index), followed by '=' equal sign and one or more
  *   values. Optionally ending in a '.' period. And ending in the
- *   firmware's end-of-line. Read requests will have this format.
- *   Alternatively write requests may just respond with the ":ok"
- *   text phrase.
+ *   firmware's end-of-line. Read responses will have this format.
+ *   Responses to write requests might just have the ":ok." literal.
  * - There are four instructions: 'r' to read and 'w' to write parameters
- *   (think hardware registers, optionaly multi-valued), 'a' to write and
- *   'b' to read arbitrary waveform data (sequence of sample values).
+ *   (think "hardware registers", optionaly multi-valued), 'a' to write
+ *   and 'b' to read arbitrary waveform data (sequence of sample values).
  * - Am not aware of a vendor's documentation for the protocol. Joy-IT
  *   provides the JT-JDS6600-Communication-protocol.pdf document which
  *   leaves a lot of questions. This sigrok driver implementation used
@@ -90,6 +90,39 @@
  *   of responses and phrasing of values in requests is arbitrary, this
  *   "black magic" was found by local experimentation (reading back the
  *   values which were configured by local UI interaction).
+ * - Communication is more reliable when the host unconditionally sends
+ *   "function codes" (register and waveform indices) in two-digit form.
+ *   Device firmware might implement rather specific assumptions.
+ * - Semantics of the right hand side in :rNN= and :bNN= read requests
+ *   is uncertain. Just passing 0 in all situations worked in a local
+ *   setup. As did omitting the value during interactive exploration.
+ *
+ * Example requests and responses.
+ * - Get model identification (max output frequency)
+ *    TX text: --> :r00=0.
+ *    TX bytes: --> 3a 72 30 30 3d 30 2e 0d  0a
+ *    RX bytes: <-- 3a 72 30 30 3d 36 30 2e  0d 0a
+ *    RX text: <-- :r00=60.
+ * - Get all channels' enabled state
+ *    TX text: --> :r20=0.
+ *    TX bytes: --> 3a 72 32 30 3d 30 2e 0d  0a
+ *    RX bytes: <-- 3a 72 32 30 3d 31 2c 31  2e 0d 0a
+ *    RX text: <-- :r20=1,1.
+ * - Get first channel's waveform selection
+ *    TX text: --> :r21=0.
+ *    TX bytes: --> 3a 72 32 31 3d 30 2e 0d  0a
+ *    RX bytes: <-- 3a 72 32 31 3d 31 30 33  2e 0d 0a
+ *    RX text: <-- :r21=103.
+ * - Set second channel's output frequency
+ *    TX text: --> :w24=1234500,0.
+ *    TX bytes: --> 3a 77 32 34 3d 31 32 33  34 35 30 30 2c 30 2e 0d   0a
+ *    RX bytes: <-- 3a 6f 6b 0d 0a
+ *    RX text: <-- :ok
+ * - Read arbitrary waveform number 13
+ *    TX text: --> :b13=0.
+ *    TX bytes: --> 3a 62 31 33 3d 30 2e 0d  0a
+ *    RX bytes: <-- 3a 62 31 33 3d 34 30 39  35 2c 34 30 39 35 2c ... 2c 34 30 39 35 2c   34 30 39 35 2c 0d 0a
+ *    RX text: <-- :b13=4095,4095,...,4095,4095,
  */
 
 #include "config.h"
@@ -100,6 +133,7 @@
 
 #include "protocol.h"
 
+#define WITH_SERIAL_RAW_DUMP	0 /* Includes EOL and non-printables. */
 #define WITH_ARBWAVE_DOWNLOAD	0 /* Development HACK */
 
 /*
@@ -226,9 +260,33 @@ static const char *waveform_names[] = {
 };
 #define WAVEFORM_ARB_NAME_FMT	"arb-%02zu"
 
+static void log_raw_bytes(const char *caption, GString *buff)
+{
+	GString *text;
+
+	if (!WITH_SERIAL_RAW_DUMP)
+		return;
+	if (sr_log_loglevel_get() < SR_LOG_SPEW)
+		return;
+
+	if (!caption)
+		caption = "";
+	text = sr_hexdump_new((const uint8_t *)buff->str, buff->len);
+	sr_spew("%s%s", caption, text->str);
+	sr_hexdump_free(text);
+}
+
 /*
  * Writes a text line to the serial port. Normalizes end-of-line
  * including trailing period.
+ *
+ * Accepts:
+ *   ":r01=0.<CR><LF>"
+ *   ":r01=0."
+ *   ":r01=0<LF>"
+ *   ":r01=0"
+ * Normalizes to:
+ *   ":r01=0.<CR><LF>"
  */
 static int serial_send_textline(const struct sr_dev_inst *sdi,
 	GString *s, unsigned int delay_ms)
@@ -246,7 +304,12 @@ static int serial_send_textline(const struct sr_dev_inst *sdi,
 	if (!s)
 		return SR_ERR_ARG;
 
-	/* Trim surrounding whitespace. Normalize end-of-line. */
+	/*
+	 * Trim surrounding whitespace. Normalize to canonical format.
+	 * Make sure there is enough room for the period and CR/LF
+	 * (and NUL termination). Use a glib API that's easy to adjust
+	 * the padded length of. Performance is not a priority here.
+	 */
 	padlen = 4;
 	while (padlen--)
 		g_string_append_c(s, '\0');
@@ -256,10 +319,11 @@ static int serial_send_textline(const struct sr_dev_inst *sdi,
 		rdlen--;
 	g_string_set_size(s, rdlen);
 	g_string_append_c(s, '.');
-	sr_spew("serial TX data: --> %s", rdptr);
+	sr_spew("serial TX text: --> %s", rdptr);
 	g_string_append_c(s, '\r');
 	g_string_append_c(s, '\n');
 	rdlen = strlen(rdptr);
+	log_raw_bytes("serial TX bytes: --> ", s);
 
 	/* Handle chunked writes, check for transmission errors. */
 	while (rdlen) {
@@ -316,6 +380,8 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 	ser = sdi->conn;
 	if (!ser)
 		return SR_ERR_ARG;
+	if (!s)
+		return SR_ERR_ARG;
 
 	g_string_set_size(s, MAX_RSP_LENGTH);
 	g_string_truncate(s, 0);
@@ -342,6 +408,7 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 		eol_pos = strchr(rdptr, '\n');
 		rdptr += got;
 		rdlen -= got;
+		g_string_set_size(s, s->len + got);
 		/* Check timeout expiration upon empty reception. */
 		has_timedout = FALSE;
 		if (timeout_ms && !got) {
@@ -354,13 +421,14 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 				break;
 			continue;
 		}
+		log_raw_bytes("serial RX bytes: <-- ", s);
 
 		/* Normalize the received text line. */
 		*eol_pos++ = '\0';
 		rdptr = s->str;
 		(void)sr_text_trim_spaces(rdptr);
 		rdlen = strlen(rdptr);
-		sr_spew("serial RX data: <-- %s", rdptr);
+		sr_spew("serial RX text: <-- %s", rdptr);
 		if (rdlen && rdptr[rdlen - 1] == '.')
 			rdptr[--rdlen] = '\0';
 
@@ -407,7 +475,7 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 		if (ret != SR_OK || !endptr)
 			return SR_ERR_DATA;
 		if (wants_index && got_index != wants_index) {
-			sr_dbg("serial read, unexpected index %zu", got_index);
+			sr_dbg("serial read, unexpected index %lu", got_index);
 			return SR_ERR_DATA;
 		}
 		rdptr = endptr;
@@ -427,6 +495,8 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 			*rhs_length = strlen(rdptr);
 		return SR_OK;
 	}
+	log_raw_bytes("serial RX bytes: <-- ", s);
+	sr_dbg("serial read, unterminated response, discarded");
 
 	sr_dbg("serial read, no EOL seen");
 	return SR_ERR_DATA;
@@ -436,7 +506,7 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 
 static void append_insn_read_para(GString *s, char insn, size_t idx)
 {
-	g_string_append_printf(s, ":%c%02zu=0", insn, idx);
+	g_string_append_printf(s, ":%c%02zu=0", insn, idx & 0xff);
 }
 
 static void append_insn_write_para_va(GString *s, char insn, size_t idx,
@@ -444,7 +514,7 @@ static void append_insn_write_para_va(GString *s, char insn, size_t idx,
 static void append_insn_write_para_va(GString *s, char insn, size_t idx,
 	const char *fmt, va_list args)
 {
-	g_string_append_printf(s, ":%c%02zu=", insn, idx);
+	g_string_append_printf(s, ":%c%02zu=", insn, idx & 0xff);
 	g_string_append_vprintf(s, fmt, args);
 }
 
@@ -512,14 +582,14 @@ static int parse_freq_text(char *s, double *value)
 	ret = sr_atoul_base(word, &scale, NULL, 10);
 	if (ret != SR_OK)
 		return ret;
-	sr_spew("parse freq, mant %lf, scale %ld", dvalue, scale);
+	sr_spew("parse freq, mant %f, scale %lu", dvalue, scale);
 	if (scale >= ARRAY_SIZE(scales_freq))
 		return SR_ERR_DATA;
 
 	/* Do scale the mantissa's value. */
 	dvalue /= 100.0;
 	dvalue /= scales_freq[scale];
-	sr_spew("parse freq, value %lf", dvalue);
+	sr_spew("parse freq, value %f", dvalue);
 
 	if (value)
 		*value = dvalue;
@@ -535,9 +605,9 @@ static int parse_volt_text(char *s, double *value)
 	ret = sr_atod(s, &dvalue);
 	if (ret != SR_OK)
 		return ret;
-	sr_spew("parse volt, mant %lf", dvalue);
+	sr_spew("parse volt, mant %f", dvalue);
 	dvalue /= 1000.0;
-	sr_spew("parse volt, value %lf", dvalue);
+	sr_spew("parse volt, value %f", dvalue);
 
 	if (value)
 		*value = dvalue;
@@ -557,14 +627,14 @@ static int parse_bias_text(char *s, double *value)
 	ret = sr_atod(s, &dvalue);
 	if (ret != SR_OK)
 		return ret;
-	sr_spew("parse bias, mant %lf", dvalue);
+	sr_spew("parse bias, mant %f", dvalue);
 	dvalue /= 100.0;
 	dvalue -= 10.0;
 	if (dvalue >= 9.99)
 		dvalue = 9.99;
 	if (dvalue <= -9.99)
 		dvalue = -9.99;
-	sr_spew("parse bias, value %lf", dvalue);
+	sr_spew("parse bias, value %f", dvalue);
 
 	if (value)
 		*value = dvalue;
@@ -583,9 +653,9 @@ static int parse_duty_text(char *s, double *value)
 	ret = sr_atod(s, &dvalue);
 	if (ret != SR_OK)
 		return ret;
-	sr_spew("parse duty, mant %lf", dvalue);
+	sr_spew("parse duty, mant %f", dvalue);
 	dvalue /= 1000.0;
-	sr_spew("parse duty, value %lf", dvalue);
+	sr_spew("parse duty, value %f", dvalue);
 
 	if (value)
 		*value = dvalue;
@@ -601,9 +671,9 @@ static int parse_phase_text(char *s, double *value)
 	ret = sr_atod(s, &dvalue);
 	if (ret != SR_OK)
 		return ret;
-	sr_spew("parse phase, mant %lf", dvalue);
+	sr_spew("parse phase, mant %f", dvalue);
 	dvalue /= 10.0;
-	sr_spew("parse phase, value %lf", dvalue);
+	sr_spew("parse phase, value %f", dvalue);
 
 	if (value)
 		*value = dvalue;
@@ -622,7 +692,7 @@ static void write_freq_text(GString *s, double freq)
 	unsigned long scale_idx;
 	const char *text_pos;
 
-	sr_spew("write freq, value %lf", freq);
+	sr_spew("write freq, value %f", freq);
 	text_pos = &s->str[s->len];
 
 	/*
@@ -634,7 +704,7 @@ static void write_freq_text(GString *s, double freq)
 	freq *= scales_freq[scale_idx];
 	freq *= 100.0;
 
-	g_string_append_printf(s, "%.0lf,%lu", freq, scale_idx);
+	g_string_append_printf(s, "%.0f,%lu", freq, scale_idx);
 	sr_spew("write freq, text %s", text_pos);
 }
 
@@ -642,7 +712,7 @@ static void write_volt_text(GString *s, double volt)
 {
 	const char *text_pos;
 
-	sr_spew("write volt, value %lf", volt);
+	sr_spew("write volt, value %f", volt);
 	text_pos = &s->str[s->len];
 
 	/*
@@ -655,7 +725,7 @@ static void write_volt_text(GString *s, double volt)
 	if (volt < 0.0)
 		volt = 0.0;
 	volt *= 1000.0;
-	g_string_append_printf(s, "%.0lf", volt);
+	g_string_append_printf(s, "%.0f", volt);
 	sr_spew("write volt, text %s", text_pos);
 }
 
@@ -663,7 +733,7 @@ static void write_bias_text(GString *s, double volt)
 {
 	const char *text_pos;
 
-	sr_spew("write bias, value %lf", volt);
+	sr_spew("write bias, value %f", volt);
 	text_pos = &s->str[s->len];
 
 	/*
@@ -677,7 +747,7 @@ static void write_bias_text(GString *s, double volt)
 	volt += 10.0;
 	volt *= 100.0;
 
-	g_string_append_printf(s, "%.0lf", volt);
+	g_string_append_printf(s, "%.0f", volt);
 	sr_spew("write bias, text %s", text_pos);
 }
 
@@ -685,7 +755,7 @@ static void write_duty_text(GString *s, double duty)
 {
 	const char *text_pos;
 
-	sr_spew("write duty, value %lf", duty);
+	sr_spew("write duty, value %f", duty);
 	text_pos = &s->str[s->len];
 
 	/*
@@ -698,7 +768,7 @@ static void write_duty_text(GString *s, double duty)
 		duty = 1.0;
 	duty *= 1000.0;
 
-	g_string_append_printf(s, "%.0lf", duty);
+	g_string_append_printf(s, "%.0f", duty);
 	sr_spew("write duty, text %s", text_pos);
 }
 
@@ -706,7 +776,7 @@ static void write_phase_text(GString *s, double phase)
 {
 	const char *text_pos;
 
-	sr_spew("write phase, value %lf", phase);
+	sr_spew("write phase, value %f", phase);
 	text_pos = &s->str[s->len];
 
 	/*
@@ -716,7 +786,7 @@ static void write_phase_text(GString *s, double phase)
 	phase = fmod(phase, 360.0);
 	phase *= 10.0;
 
-	g_string_append_printf(s, "%.0lf", phase);
+	g_string_append_printf(s, "%.0f", phase);
 	sr_spew("write phase, text %s", text_pos);
 }
 
@@ -980,7 +1050,7 @@ SR_PRIV int jds6600_get_frequency(const struct sr_dev_inst *sdi, size_t ch_idx)
 	ret = parse_freq_text(rdptr, &freq);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
-	sr_dbg("get frequency, value %lf", freq);
+	sr_dbg("get frequency, value %f", freq);
 	chan->output_frequency = freq;
 	return SR_OK;
 }
@@ -1012,7 +1082,7 @@ SR_PRIV int jds6600_get_amplitude(const struct sr_dev_inst *sdi, size_t ch_idx)
 	ret = parse_volt_text(rdptr, &amp);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
-	sr_dbg("get amplitude, value %lf", amp);
+	sr_dbg("get amplitude, value %f", amp);
 	chan->amplitude = amp;
 	return SR_OK;
 }
@@ -1044,7 +1114,7 @@ SR_PRIV int jds6600_get_offset(const struct sr_dev_inst *sdi, size_t ch_idx)
 	ret = parse_bias_text(rdptr, &off);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
-	sr_dbg("get offset, value %lf", off);
+	sr_dbg("get offset, value %f", off);
 	chan->offset = off;
 	return SR_OK;
 }
@@ -1076,7 +1146,7 @@ SR_PRIV int jds6600_get_dutycycle(const struct sr_dev_inst *sdi, size_t ch_idx)
 	ret = parse_duty_text(rdptr, &duty);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
-	sr_dbg("get duty cycle, value %lf", duty);
+	sr_dbg("get duty cycle, value %f", duty);
 	chan->dutycycle = duty;
 	return SR_OK;
 }
@@ -1104,7 +1174,7 @@ SR_PRIV int jds6600_get_phase_chans(const struct sr_dev_inst *sdi)
 	ret = parse_phase_text(rdptr, &phase);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
-	sr_dbg("get phase, value %lf", phase);
+	sr_dbg("get phase, value %f", phase);
 	devc->channels_phase = phase;
 	return SR_OK;
 }
@@ -1485,8 +1555,11 @@ SR_PRIV int jds6600_setup_devc(struct sr_dev_inst *sdi)
 	waves->fw_codes = g_malloc0(alloc_count * sizeof(waves->fw_codes[0]));
 	alloc_count++;
 	waves->names = g_malloc0(alloc_count * sizeof(waves->names[0]));
-	if (!waves->names || !waves->fw_codes)
+	if (!waves->names || !waves->fw_codes) {
+		g_free(waves->names);
+		g_free(waves->fw_codes);
 		return SR_ERR_MALLOC;
+	}
 	assign_idx = 0;
 	for (idx = 0; idx < waves->builtin_count; idx++) {
 		code = idx;
@@ -1508,6 +1581,13 @@ SR_PRIV int jds6600_setup_devc(struct sr_dev_inst *sdi)
 	 * Populate internal channel configuration details from the
 	 * device's current state. Emit a series of queries which
 	 * update internal knowledge.
+	 *
+	 * Implementation detail: Channel count is low, all parameters
+	 * are simple scalars. Communication cycles are few, while we
+	 * still are in the scan/probe phase and successfully verified
+	 * the device to respond. Disconnects and other exceptional
+	 * conditions are extremely unlikely. Not checking every getter
+	 * call's return value is acceptable here.
 	 */
 	ret = SR_OK;
 	ret |= jds6600_get_chans_enable(sdi);
@@ -1517,9 +1597,10 @@ SR_PRIV int jds6600_setup_devc(struct sr_dev_inst *sdi)
 		ret |= jds6600_get_amplitude(sdi, idx);
 		ret |= jds6600_get_offset(sdi, idx);
 		ret |= jds6600_get_dutycycle(sdi, idx);
+		if (ret != SR_OK)
+			break;
 	}
 	ret |= jds6600_get_phase_chans(sdi);
-	ret |= jds6600_get_chans_enable(sdi);
 	if (ret != SR_OK)
 		return SR_ERR_DATA;
 

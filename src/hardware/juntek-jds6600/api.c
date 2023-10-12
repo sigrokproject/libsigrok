@@ -74,8 +74,10 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	if (!ser)
 		return devices;
 	ret = serial_open(ser, SERIAL_RDWR);
-	if (ret != SR_OK)
+	if (ret != SR_OK) {
+		sr_serial_dev_inst_free(ser);
 		return devices;
+	}
 
 	sdi = g_malloc0(sizeof(*sdi));
 	sdi->status = SR_ST_INACTIVE;
@@ -355,14 +357,14 @@ static int config_list(uint32_t key, GVariant **data,
 		*data = std_gvar_array_str(waves->names, waves->names_count);
 		return SR_OK;
 	case SR_CONF_OUTPUT_FREQUENCY:
-		/* Announce range as tupe of min, max, step. */
+		/* Announce range as tuple of min, max, step. */
 		fspec[0] = 0.01;
 		fspec[1] = devc->device.max_output_frequency;
 		fspec[2] = 0.01;
 		*data = std_gvar_min_max_step_array(fspec);
 		return SR_OK;
 	case SR_CONF_DUTY_CYCLE:
-		/* Announce range as tupe of min, max, step. */
+		/* Announce range as tuple of min, max, step. */
 		fspec[0] = 0.0;
 		fspec[1] = 1.0;
 		fspec[2] = 0.001;

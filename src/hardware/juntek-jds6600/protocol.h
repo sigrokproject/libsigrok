@@ -49,7 +49,8 @@ struct dev_context {
 		uint32_t waveform_code;
 		size_t waveform_index;
 		double output_frequency;
-		double amplitude, offset;
+		double amplitude;
+		double offset;
 		double dutycycle;
 	} channel_config[MAX_GEN_CHANNELS];
 	double channels_phase;
