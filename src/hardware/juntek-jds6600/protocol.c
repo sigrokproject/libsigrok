@@ -53,7 +53,10 @@
  *   need to read back, this library driver doesn't.
  *
  * Implementation details:
- * - Communicates via USB CDC at 115200/8n1 (virtual COM port).
+ * - Communicates via USB CDC at 115200/8n1 (virtual COM port). The user
+ *   perceives a USB attached device (full speed, CDC/ACM class). The
+ *   implementation needs to remember that a WCH CH340G forwards data
+ *   to a microcontroller. Maximum throughput is in the 10KiB/s range.
  * - Requests are in text format. Start with a ':' colon, followed by a
  *   single letter instruction opcode, followed by a number which either
  *   addresses a parameter (think hardware register) or storage slot for
@@ -144,11 +147,36 @@
  */
 #define MAX_RSP_LENGTH	(8 + 2048 * 5)
 
-/* Times are in milliseconds. */
-#define DELAY_AFTER_WRITE	10
+/*
+ * Times are in milliseconds.
+ * - Delay after transmission was an option during initial development.
+ *   Has become obsolete. Support remains because it doesn't harm.
+ * - Delay after flash is essential when writing multiple waveforms to
+ *   the device. Not letting more idle time pass after successful write
+ *   and reception of the "ok" response, and before the next write, will
+ *   result in corrupted waveform storage in the device. The next wave
+ *   that is written waveform will start with several hundred samples
+ *   of all-one bits.
+ * - Timeout per receive attempt at the physical layer can be short.
+ *   Experience suggests that 2ms are a good value. Reception ends when
+ *   the response termination was seen. Or when no receive data became
+ *   available within that per-attemt timeout, and no higher level total
+ *   timeout was specified. Allow some slack for USB FS frame intervals.
+ * - Timeout for identify attempts at the logical level can be short.
+ *   Captures of the microcontroller communication suggest that firmware
+ *   responds immediately (within 2ms). So 10ms per identify attempt
+ *   are plenty for successful communication, yet quick enough to not
+ *   stall on missing peripherals.
+ * - Timeout for waveform upload/download needs to be huge. Textual
+ *   presentation of 2k samples with 12 significant bits (0..4095 range)
+ *   combined with 115200bps UART communication result in a 1s maximum
+ *   transfer time per waveform. So 1.2s is a good value.
+ */
+#define DELAY_AFTER_SEND	0
 #define DELAY_AFTER_FLASH	100
-#define TIMEOUT_READ_CHUNK	20
-#define TIMEOUT_IDENTIFY	200
+#define TIMEOUT_READ_CHUNK	2
+#define TIMEOUT_IDENTIFY	10
+#define TIMEOUT_WAVEFORM	1200
 
 /* Instruction codes. Read/write parameters/waveforms. */
 #define INSN_WRITE_PARA	'w'
@@ -498,7 +526,6 @@ static int serial_recv_textline(const struct sr_dev_inst *sdi,
 	log_raw_bytes("serial RX bytes: <-- ", s);
 	sr_dbg("serial read, unterminated response, discarded");
 
-	sr_dbg("serial read, no EOL seen");
 	return SR_ERR_DATA;
 }
 
@@ -815,7 +842,7 @@ static int quick_send_read_then_recv(const struct sr_dev_inst *sdi,
 
 	g_string_truncate(s, 0);
 	append_insn_read_para(s, insn, idx);
-	ret = serial_send_textline(sdi, s, DELAY_AFTER_WRITE);
+	ret = serial_send_textline(sdi, s, DELAY_AFTER_SEND);
 	if (ret != SR_OK)
 		return ret;
 
@@ -860,7 +887,7 @@ static int quick_send_write_then_recv_ok(const struct sr_dev_inst *sdi,
 	va_start(args, fmt);
 	append_insn_write_para_va(s, insn, idx, fmt, args);
 	va_end(args);
-	ret = serial_send_textline(sdi, s, DELAY_AFTER_WRITE);
+	ret = serial_send_textline(sdi, s, DELAY_AFTER_SEND);
 	if (ret != SR_OK)
 		return ret;
 
