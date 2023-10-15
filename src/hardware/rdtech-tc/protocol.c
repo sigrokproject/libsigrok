@@ -268,7 +268,7 @@ static int handle_poll_data(struct sr_dev_inst *sdi)
 		ret = bv_get_value_len(&v, &pch->spec, poll_pkt, TC_POLL_LEN);
 		if (ret != SR_OK)
 			break;
-		ret = feed_queue_analog_submit(devc->feeds[ch_idx], v, 1);
+		ret = feed_queue_analog_submit_one(devc->feeds[ch_idx], v, 1);
 		if (ret != SR_OK)
 			break;
 	}

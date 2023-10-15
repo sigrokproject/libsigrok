@@ -183,7 +183,7 @@ static void parse_report_msg(struct sr_dev_inst *sdi, const uint8_t *report_ptr)
 
 	for (i = 0; i < devc->profile->channel_count; i++) {
 		bv_get_value(&val, &devc->profile->channels[i].spec, report_ptr);
-		feed_queue_analog_submit(devc->feeds[i], val, 1);
+		feed_queue_analog_submit_one(devc->feeds[i], val, 1);
 	}
 
 	std_session_send_df_frame_end(sdi);

@@ -623,7 +623,7 @@ static void add_sample(const struct sr_input *in, uint16_t data, size_t count)
 		count -= inc->submit.samples_to_trigger;
 	}
 	if (send_first) {
-		(void)feed_queue_logic_submit(inc->submit.feed,
+		(void)feed_queue_logic_submit_one(inc->submit.feed,
 			unit_buffer, send_first);
 		inc->submit.submit_count += send_first;
 		inc->submit.samples_to_trigger -= send_first;
@@ -632,7 +632,7 @@ static void add_sample(const struct sr_input *in, uint16_t data, size_t count)
 		feed_queue_logic_send_trigger(inc->submit.feed);
 	}
 	if (count) {
-		(void)feed_queue_logic_submit(inc->submit.feed,
+		(void)feed_queue_logic_submit_one(inc->submit.feed,
 			unit_buffer, count);
 		inc->submit.submit_count += count;
 		if (inc->submit.samples_to_trigger)

@@ -1152,7 +1152,7 @@ static void add_samples(const struct sr_input *in, size_t count, gboolean flush)
 	inc = in->priv;
 
 	if (inc->logic_count) {
-		feed_queue_logic_submit(inc->feed_logic,
+		feed_queue_logic_submit_one(inc->feed_logic,
 			inc->current_logic, count);
 		if (flush)
 			feed_queue_logic_flush(inc->feed_logic);
@@ -1165,7 +1165,7 @@ static void add_samples(const struct sr_input *in, size_t count, gboolean flush)
 		if (!q)
 			continue;
 		value = inc->current_floats[vcd_ch->array_index];
-		feed_queue_analog_submit(q, value, count);
+		feed_queue_analog_submit_one(q, value, count);
 		if (flush)
 			feed_queue_analog_flush(q);
 	}

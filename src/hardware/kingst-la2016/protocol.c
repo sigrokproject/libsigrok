@@ -1391,7 +1391,7 @@ static void send_chunk(struct sr_dev_inst *sdi,
 			devc->total_samples += repetitions;
 
 			write_u32le(sample_buff, sample_value);
-			feed_queue_logic_submit(devc->feed_queue,
+			feed_queue_logic_submit_one(devc->feed_queue,
 				sample_buff, repetitions);
 			sr_sw_limits_update_samples_read(&devc->sw_limits,
 				repetitions);
@@ -1508,7 +1508,8 @@ static void stream_data(struct sr_dev_inst *sdi,
 		for (bit_idx = 0; bit_idx < bit_count; bit_idx++) {
 			sample_value = stream->sample_data[bit_idx];
 			write_u32le(sample_buff, sample_value);
-			feed_queue_logic_submit(devc->feed_queue, sample_buff, 1);
+			feed_queue_logic_submit_one(devc->feed_queue,
+				sample_buff, 1);
 		}
 		sr_sw_limits_update_samples_read(&devc->sw_limits, bit_count);
 		devc->total_samples += bit_count;

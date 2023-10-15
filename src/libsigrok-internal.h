@@ -2854,8 +2854,8 @@ struct feed_queue_analog;
 SR_API struct feed_queue_logic *feed_queue_logic_alloc(
 	const struct sr_dev_inst *sdi,
 	size_t sample_count, size_t unit_size);
-SR_API int feed_queue_logic_submit(struct feed_queue_logic *q,
-	const uint8_t *data, size_t count);
+SR_API int feed_queue_logic_submit_one(struct feed_queue_logic *q,
+	const uint8_t *data, size_t repeat_count);
 SR_API int feed_queue_logic_flush(struct feed_queue_logic *q);
 SR_API int feed_queue_logic_send_trigger(struct feed_queue_logic *q);
 SR_API void feed_queue_logic_free(struct feed_queue_logic *q);
@@ -2867,8 +2867,8 @@ SR_API int feed_queue_analog_mq_unit(struct feed_queue_analog *q,
 	enum sr_mq mq, enum sr_mqflag mq_flag, enum sr_unit unit);
 SR_API int feed_queue_analog_scale_offset(struct feed_queue_analog *q,
 	const struct sr_rational *scale, const struct sr_rational *offset);
-SR_API int feed_queue_analog_submit(struct feed_queue_analog *q,
-	float data, size_t count);
+SR_API int feed_queue_analog_submit_one(struct feed_queue_analog *q,
+	float data, size_t repeat_count);
 SR_API int feed_queue_analog_flush(struct feed_queue_analog *q);
 SR_API void feed_queue_analog_free(struct feed_queue_analog *q);
 

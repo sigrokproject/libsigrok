@@ -714,7 +714,8 @@ static int send_idle_capture(struct context *inc)
 		return ret;
 	count *= inc->curr_opts.samples_per_bit;
 	while (count--) {
-		ret = feed_queue_logic_submit(inc->feed_logic, &data, sizeof(data));
+		ret = feed_queue_logic_submit_one(inc->feed_logic,
+			&data, sizeof(data));
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -738,7 +739,8 @@ static int send_idle_interframe(struct context *inc)
 	if (ret != SR_OK)
 		return ret;
 	while (count--) {
-		ret = feed_queue_logic_submit(inc->feed_logic, &data, sizeof(data));
+		ret = feed_queue_logic_submit_one(inc->feed_logic,
+			&data, sizeof(data));
 		if (ret != SR_OK)
 			return ret;
 	}
@@ -759,7 +761,7 @@ static int send_frame(struct sr_input *in)
 		data = inc->sample_levels[index];
 		count = inc->sample_widths[index];
 		while (count--) {
-			feed_queue_logic_submit(inc->feed_logic,
+			feed_queue_logic_submit_one(inc->feed_logic,
 				&data, sizeof(data));
 		}
 	}

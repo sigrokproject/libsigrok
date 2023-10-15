@@ -215,7 +215,7 @@ static int omega_rtm_cli_process_rawdata(const struct sr_dev_inst *sdi)
 			devc->samples.remain_count -= count;
 		}
 		if (count) {
-			ret = feed_queue_logic_submit(devc->samples.queue,
+			ret = feed_queue_logic_submit_one(devc->samples.queue,
 				devc->samples.last_sample, count);
 			if (ret != SR_OK)
 				break;
@@ -229,13 +229,13 @@ static int omega_rtm_cli_process_rawdata(const struct sr_dev_inst *sdi)
 		 * hand because future chunks might repeat it.
 		 */
 		write_u16le(devc->samples.last_sample, sample1);
-		ret = feed_queue_logic_submit(devc->samples.queue,
+		ret = feed_queue_logic_submit_one(devc->samples.queue,
 			devc->samples.last_sample, 1);
 		if (ret != SR_OK)
 			break;
 
 		write_u16le(devc->samples.last_sample, sample2);
-		ret = feed_queue_logic_submit(devc->samples.queue,
+		ret = feed_queue_logic_submit_one(devc->samples.queue,
 			devc->samples.last_sample, 1);
 		if (ret != SR_OK)
 			break;
