@@ -2856,6 +2856,8 @@ SR_API struct feed_queue_logic *feed_queue_logic_alloc(
 	size_t sample_count, size_t unit_size);
 SR_API int feed_queue_logic_submit_one(struct feed_queue_logic *q,
 	const uint8_t *data, size_t repeat_count);
+SR_API int feed_queue_logic_submit_many(struct feed_queue_logic *q,
+	const uint8_t *data, size_t samples_count);
 SR_API int feed_queue_logic_flush(struct feed_queue_logic *q);
 SR_API int feed_queue_logic_send_trigger(struct feed_queue_logic *q);
 SR_API void feed_queue_logic_free(struct feed_queue_logic *q);

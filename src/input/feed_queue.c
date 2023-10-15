@@ -79,6 +79,35 @@ SR_API int feed_queue_logic_submit_one(struct feed_queue_logic *q,
 	return SR_OK;
 }
 
+SR_API int feed_queue_logic_submit_many(struct feed_queue_logic *q,
+	const uint8_t *data, size_t samples_count)
+{
+	uint8_t *wrptr;
+	size_t space, copy_count;
+	int ret;
+
+	wrptr = &q->data_bytes[q->fill_count * q->unit_size];
+	while (samples_count) {
+		space = q->alloc_count - q->fill_count;
+		copy_count = samples_count;
+		if (copy_count > space)
+			copy_count = space;
+		memcpy(wrptr, data, copy_count * q->unit_size);
+		data += copy_count * q->unit_size;
+		samples_count -= copy_count;
+		wrptr += copy_count * q->unit_size;
+		q->fill_count += copy_count;
+		if (q->fill_count == q->alloc_count) {
+			ret = feed_queue_logic_flush(q);
+			if (ret != SR_OK)
+				return ret;
+			wrptr = &q->data_bytes[0];
+		}
+	}
+
+	return SR_OK;
+}
+
 SR_API int feed_queue_logic_flush(struct feed_queue_logic *q)
 {
 	int ret;
