@@ -22,12 +22,14 @@
  * Software limits helper functions
  */
 
-#include <config.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
+#include "config.h"
+
 #include <ctype.h>
 #include <libsigrok/libsigrok.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "libsigrok-internal.h"
 
 #define LOG_PREFIX "sw_limits"
@@ -55,10 +57,11 @@ SR_PRIV void sr_sw_limits_init(struct sr_sw_limits *limits)
  * @param limits software limit instance
  * @param key config item key
  * @param data config item data
+ *
  * @return SR_ERR_NA if @p key is not a supported limit, SR_OK otherwise
  */
-SR_PRIV int sr_sw_limits_config_get(const struct sr_sw_limits *limits, uint32_t key,
-	GVariant **data)
+SR_PRIV int sr_sw_limits_config_get(const struct sr_sw_limits *limits,
+	uint32_t key, GVariant **data)
 {
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -86,10 +89,11 @@ SR_PRIV int sr_sw_limits_config_get(const struct sr_sw_limits *limits, uint32_t 
  * @param limits software limit instance
  * @param key config item key
  * @param data config item data
+ *
  * @return SR_ERR_NA if @p key is not a supported limit, SR_OK otherwise
  */
-SR_PRIV int sr_sw_limits_config_set(struct sr_sw_limits *limits, uint32_t key,
-	GVariant *data)
+SR_PRIV int sr_sw_limits_config_set(struct sr_sw_limits *limits,
+	uint32_t key, GVariant *data)
 {
 	switch (key) {
 	case SR_CONF_LIMIT_SAMPLES:
@@ -130,6 +134,7 @@ SR_PRIV void sr_sw_limits_acquisition_start(struct sr_sw_limits *limits)
  * processing has been done.
  *
  * @param limits software limits instance
+ *
  * @returns TRUE if any of the software limits has been reached and the driver
  *               should stop data acquisition, otherwise FALSE.
  */
@@ -184,6 +189,7 @@ SR_PRIV gboolean sr_sw_limits_check(struct sr_sw_limits *limits)
  * @param[out] samples remaining samples count until the limit is reached
  * @param[out] frames remaining frames count until the limit is reached
  * @param[out] msecs remaining milliseconds until the limit is reached
+ * @param[out] exceeded whether configured limits were reached before
  *
  * @return SR_ERR_* upon error, SR_OK otherwise
  */
