@@ -268,6 +268,8 @@ SR_API char *sr_text_trim_spaces(char *s);
 SR_API char *sr_text_next_line(char *s, size_t l, char **next, size_t *taken);
 SR_API char *sr_text_next_word(char *s, char **next);
 
+SR_API int sr_next_power_of_two(size_t value, size_t *bits, size_t *power);
+
 /*--- version.c -------------------------------------------------------------*/
 
 SR_API int sr_package_version_major_get(void);

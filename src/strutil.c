@@ -1819,4 +1819,47 @@ SR_API char *sr_text_next_word(char *s, char **next)
 	return word;
 }
 
+/**
+ * Get the number of necessary bits to hold a given value. Also gets
+ * the next power-of-two value at or above the caller provided value.
+ *
+ * @param[in] value The value that must get stored.
+ * @param[out] bits The required number of bits.
+ * @param[out] power The corresponding power-of-two.
+ *
+ * @return SR_OK upon success, SR_ERR* otherwise.
+ *
+ * TODO Move this routine to a more appropriate location, it is not
+ * strictly string related.
+ *
+ * @since 0.6.0
+ */
+SR_API int sr_next_power_of_two(size_t value, size_t *bits, size_t *power)
+{
+	size_t need_bits;
+	size_t check_mask;
+
+	if (bits)
+		*bits = 0;
+	if (power)
+		*power = 0;
+
+	if (!value)
+		return SR_ERR_ARG;
+
+	need_bits = 0;
+	check_mask = 0;
+	do {
+		need_bits++;
+		check_mask <<= 1;
+		check_mask |= 1UL << 0;
+	} while (value & ~check_mask);
+
+	if (bits)
+		*bits = need_bits;
+	if (power)
+		*power = ++check_mask;
+	return SR_OK;
+}
+
 /** @} */
