@@ -53,6 +53,7 @@ static const uint32_t devopts_cg_analog[] = {
 };
 
 static const uint32_t devopts_cg_digital[] = {
+	/* EMPTY */
 };
 
 enum {
@@ -423,12 +424,19 @@ static int config_list(uint32_t key, GVariant **data,
 
 	switch (key) {
 	case SR_CONF_DEVICE_OPTIONS:
-		if (cg_type == CG_ANALOG)
+		if (cg_type == CG_ANALOG) {
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_analog));
-		else if (cg_type == CG_DIGITAL)
+			break;
+		}
+		if (cg_type == CG_DIGITAL) {
+			if (!ARRAY_SIZE(devopts_cg_digital)) {
+				*data = std_gvar_array_u32(NULL, 0);
+				break;
+			}
 			*data = std_gvar_array_u32(ARRAY_AND_SIZE(devopts_cg_digital));
-		else
-			*data = std_gvar_array_u32(NULL, 0);
+			break;
+		}
+		*data = std_gvar_array_u32(NULL, 0);
 		break;
 	case SR_CONF_COUPLING:
 		if (!cg)
