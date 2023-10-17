@@ -396,12 +396,13 @@ static int zip_append(const struct sr_output *o,
  * @returns SR_OK et al error codes.
  */
 static int zip_append_queue(const struct sr_output *o,
-	uint8_t *buf, size_t unitsize, size_t length, gboolean flush)
+	const uint8_t *buf, size_t unitsize, size_t length, gboolean flush)
 {
 	struct out_context *outc;
 	struct logic_buff *buff;
 	size_t send_size, remain, copy_size;
-	uint8_t *wrptr, *rdptr;
+	const uint8_t *rdptr;
+	uint8_t *wrptr;
 	int ret;
 
 	outc = o->priv;
