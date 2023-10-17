@@ -573,6 +573,43 @@ START_TEST(test_text_word)
 }
 END_TEST
 
+static const struct power_case_t {
+	size_t value;
+	size_t want_bits;
+	size_t want_power;
+} power_cases[] = {
+	{ 1, 1, 2, },
+	{ 2, 2, 4, },
+	{ 3, 2, 4, },
+	{ 4, 3, 8, },
+	{ 5, 3, 8, },
+	{ 6, 3, 8, },
+	{ 7, 3, 8, },
+	{ 8, 4, 16, },
+	{ 15, 4, 16, },
+	{ 16, 5, 32, },
+	{ 31, 5, 32, },
+};
+
+START_TEST(test_calc_power_of_two)
+{
+	size_t case_idx, bits, power;
+	const struct power_case_t *tcase;
+	int ret;
+
+	ret = sr_next_power_of_two(0, NULL, NULL);
+	fail_unless(ret != SR_OK, "invalid value, did not fail");
+
+	for (case_idx = 0; case_idx < ARRAY_SIZE(power_cases); case_idx++) {
+		tcase = &power_cases[case_idx];
+		ret = sr_next_power_of_two(tcase->value, &bits, &power);
+		fail_unless(ret == SR_OK, "bits count not found");
+		fail_unless(bits == tcase->want_bits, "bits count differs");
+		fail_unless(power == tcase->want_power, "power differs");
+	}
+}
+END_TEST
+
 Suite *suite_strutil(void)
 {
 	Suite *s;
@@ -598,6 +635,10 @@ Suite *suite_strutil(void)
 	tc = tcase_create("text");
 	tcase_add_test(tc, test_text_line);
 	tcase_add_test(tc, test_text_word);
+	suite_add_tcase(s, tc);
+
+	tc = tcase_create("calc");
+	tcase_add_test(tc, test_calc_power_of_two);
 	suite_add_tcase(s, tc);
 
 	return s;
