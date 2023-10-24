@@ -27,9 +27,54 @@
 
 #define LOG_PREFIX "gwinstek-psp"
 
-struct dev_context {
+#define GWINSTEK_PSP_PROCESSING_TIME_MS 50
+#define GWINSTEK_PSP_STATUS_POLL_TIME_MS 245 /**< 'L' query response time. */
+
+/* Information on single model */
+struct gwinstek_psp_model {
+	const char *vendor;    /**< Vendor name */
+	const char *name;      /**< Model name */
+	const double *voltage; /**< References: Min, max, step */
+	const double *current; /**< References: Min, max, step */
 };
 
+struct dev_context {
+	const struct gwinstek_psp_model *model; /**< Model information. */
+
+	struct sr_sw_limits limits;
+	int64_t next_req_time;
+	int64_t last_status_query_time;
+	GMutex rw_mutex;
+
+	float power;            /**< Last power value [W] read from device. */
+	float current;          /**< Last current value [A] read from device. */
+	float current_limit;    /**< Output current set. */
+	float voltage;          /**< Last voltage value [V] read from device. */
+	float voltage_or_0;     /**< Same, but 0 if output is off. */
+	int voltage_limit;      /**< Output voltage limit. */
+
+	/*< Output voltage target. The device has no means to query this
+	 * directly. It's equal to the voltage if the output is disabled
+	 * (detectable) or the device is in CV mode (undetectable).*/
+	float voltage_target;
+	int64_t voltage_target_updated; /**< When device last reported a voltage target. */
+
+	float set_voltage_target;           /**< The last set output voltage target. */
+	int64_t set_voltage_target_updated; /**< When the voltage target was last set. */
+
+	gboolean output_enabled; /**< Is the output enabled? */
+	gboolean otp_active;     /**< Is the overtemperature protection active? */
+
+	int msg_terminator_len; /** < 2 or 3, depending on the URPSP1/2 setting */
+};
+
+SR_PRIV int gwinstek_psp_send_cmd(struct sr_serial_dev_inst *serial,
+    struct dev_context *devc, const char* cmd, gboolean lock);
+SR_PRIV int gwinstek_psp_check_terminator(struct sr_serial_dev_inst *serial,
+    struct dev_context *devc);
+SR_PRIV int gwinstek_psp_get_initial_voltage_target(struct dev_context *devc);
+SR_PRIV int gwinstek_psp_get_all_values(struct sr_serial_dev_inst *serial,
+	struct dev_context *devc);
 SR_PRIV int gwinstek_psp_receive_data(int fd, int revents, void *cb_data);
 
 #endif
