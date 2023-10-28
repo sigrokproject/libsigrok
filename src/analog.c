@@ -492,8 +492,7 @@ SR_API int sr_analog_unit_to_string(const struct sr_datafeed_analog *analog,
 		if (analog->meaning->mqflags & mq_strings[i].value)
 			g_string_append(buf, mq_strings[i].str);
 
-	*result = buf->str;
-	g_string_free(buf, FALSE);
+	*result = g_string_free(buf, FALSE);
 
 	return SR_OK;
 }
