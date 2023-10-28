@@ -325,10 +325,8 @@ SR_PRIV struct sr_dev_inst *p_ols_get_metadata(uint8_t *buf, int bytes_read, str
 		}
 	}
 
-	sdi->model = devname->str;
-	sdi->version = version->str;
-	g_string_free(devname, FALSE);
-	g_string_free(version, FALSE);
+	sdi->model = g_string_free(devname, FALSE);
+	sdi->version = g_string_free(version, FALSE);
 
 	return sdi;
 }

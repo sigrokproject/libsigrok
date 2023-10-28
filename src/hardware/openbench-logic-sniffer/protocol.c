@@ -292,10 +292,8 @@ SR_PRIV int ols_get_metadata(struct sr_dev_inst *sdi)
 		}
 	}
 
-	sdi->model = devname->str;
-	sdi->version = version->str;
-	g_string_free(devname, FALSE);
-	g_string_free(version, FALSE);
+	sdi->model = g_string_free(devname, FALSE);
+	sdi->version = g_string_free(version, FALSE);
 
 	/* Optionally amend received metadata, model specific quirks. */
 	ols_metadata_quirks(sdi);
