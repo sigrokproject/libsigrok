@@ -44,6 +44,7 @@ struct dev_context {
 		size_t unit_size;
 		struct feed_queue_logic *feed_queue;
 		size_t capture_channels;
+		gboolean use_upper_pins;
 		size_t channel_shift;
 		size_t points_per_byte;
 		uint64_t capture_samplerate;

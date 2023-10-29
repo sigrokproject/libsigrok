@@ -35,8 +35,6 @@
 #define DEFAULT_SAMPLERATE	SR_KHZ(34000)
 #define BANDWIDTH_THRESHOLD	(SR_MHZ(42) * 8)
 
-#define WITH_16CHAN_SUPPORT	0
-
 static const uint32_t scanopts[] = {
 	SR_CONF_CONN,
 	SR_CONF_PROBE_NAMES,
@@ -61,10 +59,8 @@ static const uint32_t devopts_cg[] = {
 static const char *channel_names[] = {
 	"SGPIO0", "SGPIO1", "SGPIO2", "SGPIO3",
 	"SGPIO4", "SGPIO5", "SGPIO6", "SGPIO7",
-#if WITH_16CHAN_SUPPORT
 	"SGPIO8", "SGPIO9", "SGPIO10", "SGPIO11",
 	"SGPIO12", "SGPIO13", "SGPIO14", "SGPIO15",
-#endif
 };
 
 /*

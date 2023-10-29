@@ -121,6 +121,8 @@
 
 #define GREATFET_CLASS_LA	0x10d
 #define LA_VERB_CONFIGURE	0x0
+#define LA_VERB_FIRST_PIN	0x1
+#define LA_VERB_ALT_PIN_MAP	0x2
 #define LA_VERB_START_CAPTURE	0x3
 #define LA_VERB_STOP_CAPTURE	0x4
 
@@ -489,6 +491,42 @@ static int greatfet_logic_config(const struct sr_dev_inst *sdi)
 		return ret;
 
 	/*
+	 * Optionally request to capture the upper pin bank. The device
+	 * can sample from pins starting at number 8. We use the feature
+	 * transparently when the first 8 channels are disabled.
+	 *
+	 * Values different from 0 or 8 are not used here. The details
+	 * of the SGPIO hardware implementation degrade performance in
+	 * this case. Its use is not desirable for users.
+	 */
+	sr_dbg("about to config first pin, upper %d", acq->use_upper_pins);
+	wrptr = req;
+	write_u32le_inc(&wrptr, GREATFET_CLASS_LA);
+	write_u32le_inc(&wrptr, LA_VERB_FIRST_PIN);
+	write_u8_inc(&wrptr, acq->use_upper_pins ? 8 : 0);
+	wrlen = wrptr - req;
+	ret = greatfet_ctrl_out_in(sdi, req, wrlen,
+		NULL, 0, LOGIC_DEFAULT_TIMEOUT);
+	if (ret < 0) {
+		sr_err("Cannot configure first capture pin.");
+		return ret;
+	}
+
+	/* Disable alt pin mapping, just for good measure. */
+	sr_dbg("about to config alt pin mapping");
+	wrptr = req;
+	write_u32le_inc(&wrptr, GREATFET_CLASS_LA);
+	write_u32le_inc(&wrptr, LA_VERB_ALT_PIN_MAP);
+	write_u8_inc(&wrptr, 0);
+	wrlen = wrptr - req;
+	ret = greatfet_ctrl_out_in(sdi, req, wrlen,
+		NULL, 0, LOGIC_DEFAULT_TIMEOUT);
+	if (ret < 0) {
+		sr_err("Cannot configure alt pin mapping.");
+		return ret;
+	}
+
+	/*
 	 * Prepare to get a specific amount of receive data. The logic
 	 * analyzer configure response is strictly binary, in contrast
 	 * to variable length string responses elsewhere.
@@ -549,6 +587,8 @@ static int greatfet_logic_config(const struct sr_dev_inst *sdi)
 		acq->capture_channels, print_bw);
 	g_free(print_bw);
 	bw = acq->capture_samplerate * 8 / acq->points_per_byte;
+	if (!acq->use_upper_pins)
+		bw *= acq->unit_size;
 	print_bw = sr_si_string_u64(bw, "bps");
 	sr_info("Resulting USB bandwidth: %s.", print_bw);
 	g_free(print_bw);
@@ -618,7 +658,9 @@ static int greatfet_calc_capture_chans(const struct sr_dev_inst *sdi)
 	GSList *l;
 	struct sr_channel *ch;
 	int last_used_idx;
+	uint16_t pin_map;
 	size_t logic_ch_count, en_ch_count, fw_ch_count;
+	gboolean have_upper, have_lower, use_upper_pins;
 	int ret;
 
 	if (!sdi)
@@ -630,6 +672,7 @@ static int greatfet_calc_capture_chans(const struct sr_dev_inst *sdi)
 
 	last_used_idx = -1;
 	logic_ch_count = 0;
+	pin_map = 0;
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		if (ch->type != SR_CHANNEL_LOGIC)
@@ -639,14 +682,26 @@ static int greatfet_calc_capture_chans(const struct sr_dev_inst *sdi)
 			continue;
 		if (last_used_idx < ch->index)
 			last_used_idx = ch->index;
+		pin_map |= 1UL << ch->index;
 	}
 	en_ch_count = last_used_idx + 1;
 	sr_dbg("channel count, logic %zu, highest enabled idx %d -> count %zu",
 		logic_ch_count, last_used_idx, en_ch_count);
 	if (!en_ch_count)
 		return SR_ERR_ARG;
+	have_upper = pin_map & 0xff00;
+	have_lower = pin_map & 0x00ff;
+	use_upper_pins = have_upper && !have_lower;
+	if (use_upper_pins) {
+		sr_dbg("ch mask 0x%04x -> using upper pins", pin_map);
+		last_used_idx -= 8;
+		en_ch_count -= 8;
+	}
+	if (have_upper && !use_upper_pins)
+		sr_warn("Multi-bank capture, check firmware support!");
 
 	acq->capture_channels = en_ch_count;
+	acq->use_upper_pins = use_upper_pins;
 	ret = sr_next_power_of_two(last_used_idx, NULL, &fw_ch_count);
 	if (ret != SR_OK)
 		return ret;
@@ -657,6 +712,8 @@ static int greatfet_calc_capture_chans(const struct sr_dev_inst *sdi)
 		acq->points_per_byte = 1;
 	} else {
 		acq->unit_size = sizeof(uint8_t);
+		if (acq->use_upper_pins)
+			acq->unit_size = sizeof(uint16_t);
 		acq->points_per_byte = 8 / fw_ch_count;
 	}
 	acq->channel_shift = fw_ch_count % 8;
@@ -732,7 +789,8 @@ static void greatfet_abort_acquisition_quick(const struct sr_dev_inst *sdi)
 	(void)greatfet_logic_stop(sdi);
 	greatfet_cancel_transfers(sdi);
 
-	feed_queue_logic_flush(acq->feed_queue);
+	if (acq->feed_queue)
+		feed_queue_logic_flush(acq->feed_queue);
 }
 
 /* Allocate USB transfers and associated receive buffers. */
@@ -847,6 +905,8 @@ static int greatfet_cancel_transfers(const struct sr_dev_inst *sdi)
 	if (!devc)
 		return SR_ERR_ARG;
 	dxfer = &devc->transfers;
+	if (!dxfer->transfers)
+		return SR_OK;
 
 	for (idx = 0; idx < dxfer->transfers_count; idx++) {
 		xfer = dxfer->transfers[idx];
@@ -1204,11 +1264,12 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 	struct feed_queue_logic *q;
 	uint64_t samples_remain;
 	gboolean exceeded;
+	gboolean full_bytes, lower_empty;
 	size_t samples_rcvd;
 	uint8_t raw_mask;
 	size_t points_per_byte, points_count;
-	uint8_t raw_data;
-	uint8_t accum[8];
+	uint8_t raw_data, wr_data;
+	uint8_t accum[16];
 	const uint8_t *rdptr;
 	uint8_t *wrptr;
 	int ret;
@@ -1237,9 +1298,21 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 	/*
 	 * Check for the simple case first. Where bytes carry samples
 	 * of exactly one sample point. Pass memory in verbatim form.
-	 * Notice that 16bit sample quantities happen to work here too.
+	 *
+	 * This approach applies to two cases: Captures of the first 8
+	 * channels, and captures for 16 channels where both banks are
+	 * involved (the device firmware provides all 16 bits of data
+	 * for any given sample point). The 16bit case happens to work
+	 * because sample data received from the device and logic data
+	 * in sigrok sessions both use the little endian format.
+	 *
+	 * The "upper pins" case must be handled below because the
+	 * device will not provide data for the lower pin bank, but the
+	 * samples (all-zero values) must be sent to the sigrok session.
 	 */
-	if (!acq->channel_shift) {
+	full_bytes = !acq->channel_shift;
+	lower_empty = acq->use_upper_pins;
+	if (full_bytes && !lower_empty) {
 		samples_rcvd = dlen / acq->unit_size;
 		if (samples_remain && samples_rcvd > samples_remain)
 			samples_rcvd = samples_remain;
@@ -1251,22 +1324,29 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 	}
 
 	/*
-	 * Handle the complex case by means of some naive logic. To
-	 * simplify the implementation for now and see if the approach
-	 * works out. It helps that the firmware provides sample data
-	 * in units of power-of-two bit counts per sample point. This
-	 * eliminates fragments which could span several transfers.
+	 * Handle the complex cases where one byte carries values that
+	 * were taken at multiple sample points, or where the firmware
+	 * does not communicate the lower pin bank's data (upper pins).
+	 * This involves manipulation between reception and forwarding.
+	 * It helps that the firmware provides sample data in units of
+	 * power-of-two bit counts per sample point. This eliminates
+	 * fragments which could span several transfers.
 	 *
-	 * Notice that dense sample memory only happens for channel
-	 * counts under 8. That's why we read bytes here and need not
-	 * dispatch based on unit size.
+	 * Notice that "upper pins" and "multiple samples per byte" can
+	 * happen in combination. The implementation transparently deals
+	 * with upper pin use where bytes carry exactly one value.
 	 */
-	raw_mask = (1UL << acq->channel_shift) - 1;
-	points_per_byte = 8 / acq->channel_shift;
+	if (acq->channel_shift) {
+		raw_mask = (1UL << acq->channel_shift) - 1;
+		points_per_byte = 8 / acq->channel_shift;
+	} else {
+		raw_mask = (1UL << 8) - 1;
+		points_per_byte = 1;
+	}
 	if (!diag_shown++) {
-		sr_dbg("sample memory: ch count %zu, ch shift %zu, mask 0x%x, points %zu",
+		sr_dbg("sample mem: ch count %zu, ch shift %zu, mask 0x%x, points %zu, upper %d",
 			acq->capture_channels, acq->channel_shift,
-			raw_mask, points_per_byte);
+			raw_mask, points_per_byte, acq->use_upper_pins);
 	}
 	samples_rcvd = dlen * points_per_byte;
 	if (samples_remain && samples_rcvd > samples_remain) {
@@ -1281,7 +1361,11 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 		wrptr = accum;
 		points_count = points_per_byte;
 		while (points_count--) {
-			write_u8_inc(&wrptr, raw_data & raw_mask);
+			wr_data = raw_data & raw_mask;
+			if (acq->use_upper_pins)
+				write_u16le_inc(&wrptr, wr_data << 8);
+			else
+				write_u8_inc(&wrptr, wr_data);
 			raw_data >>= acq->channel_shift;
 		}
 		points_count = points_per_byte;
