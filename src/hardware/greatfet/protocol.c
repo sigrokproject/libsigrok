@@ -169,7 +169,7 @@ static int greatfet_ctrl_out_in(const struct sr_dev_inst *sdi,
 		flags, (void *)tx_data, tx_size, timeout_ms);
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		const char *msg;
-		msg = ret ? libusb_error_name(ret) : "-";
+		msg = ret < 0 ? libusb_error_name(ret) : "-";
 		sr_spew("USB out, rc %d, %s", ret, msg);
 	}
 	if (ret < 0) {
@@ -197,7 +197,7 @@ static int greatfet_ctrl_out_in(const struct sr_dev_inst *sdi,
 		0, rx_data, rx_size, timeout_ms);
 	if (sr_log_loglevel_get() >= SR_LOG_SPEW) {
 		const char *msg;
-		msg = ret ? libusb_error_name(ret) : "-";
+		msg = ret < 0 ? libusb_error_name(ret) : "-";
 		sr_spew("USB in, rc %d, %s", ret, msg);
 	}
 	if (ret < 0) {
