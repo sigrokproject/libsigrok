@@ -105,6 +105,7 @@ static const uint64_t timebases[][2] = {
 
 static const uint64_t vdivs[][2] = {
 	/* microvolts */
+	{ 200, 1000000 },
 	{ 500, 1000000 },
 	/* millivolts */
 	{ 1, 1000 },
@@ -185,6 +186,8 @@ enum series {
 	DS4000,
 	MSO5000,
 	MSO7000A,
+	DHO800,
+	DHO900,
 };
 
 /* short name, full name */
@@ -217,6 +220,10 @@ static const struct rigol_ds_series supported_series[] = {
 		{1000, 1}, {500, 1000000}, 10, 1000, 0},
 	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
+	[DHO800] = {VENDOR(RIGOL), "DHO800", PROTOCOL_V5, FORMAT_IEEE488_2,
+		{500, 1}, {500, 1000000}, 10, 1000, 10000000},
+	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V5, FORMAT_IEEE488_2,
+		{500, 1}, {200, 1000000}, 10, 1000, 10000000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -291,6 +298,14 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(MSO5000), "MSO5354", {1, 1000000000}, CH_INFO(4, true), std_cmd},
 	/* TODO: Digital channels are not yet supported on MSO7000A. */
 	{SERIES(MSO7000A), "MSO7034A", {2, 1000000000}, CH_INFO(4, false), mso7000a_cmd},
+	{SERIES(DHO800), "DHO802", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO804", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO800), "DHO812", {5, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO800), "DHO814", {5, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO900), "DHO914", {2, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DHO900), "DHO914S", {2, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DHO900), "DHO924", {2, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DHO900), "DHO924S", {2, 1000000000}, CH_INFO(4, true), std_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
