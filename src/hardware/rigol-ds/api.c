@@ -220,9 +220,9 @@ static const struct rigol_ds_series supported_series[] = {
 		{1000, 1}, {500, 1000000}, 10, 1000, 0},
 	[MSO7000A] = {VENDOR(AGILENT), "MSO7000A", PROTOCOL_V4, FORMAT_IEEE488_2,
 		{50, 1}, {2, 1000}, 10, 1000, 8000000},
-	[DHO800] = {VENDOR(RIGOL), "DHO800", PROTOCOL_V5, FORMAT_IEEE488_2,
+	[DHO800] = {VENDOR(RIGOL), "DHO800", PROTOCOL_V6, FORMAT_IEEE488_2,
 		{500, 1}, {500, 1000000}, 10, 1000, 10000000},
-	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V5, FORMAT_IEEE488_2,
+	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V6, FORMAT_IEEE488_2,
 		{500, 1}, {200, 1000000}, 10, 1000, 10000000},
 };
 
@@ -928,20 +928,43 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 				some_digital = TRUE;
 				/* Turn on LA module if currently off. */
 				if (!devc->la_enabled) {
-					if (rigol_ds_config_set(sdi, protocol >= PROTOCOL_V3 ?
-								":LA:STAT ON" : ":LA:DISP ON") != SR_OK)
+					switch (protocol) {
+					case PROTOCOL_V1:
+					case PROTOCOL_V2:
+						cmd = ":LA:DISP ON";
+						break;
+					case PROTOCOL_V3:
+					case PROTOCOL_V4:
+					case PROTOCOL_V5:
+						cmd = ":LA:STAT ON";
+						break;
+					case PROTOCOL_V6:
+						cmd = ":LA:ENAB ON";
+						break;
+					}
+					if (rigol_ds_config_set(sdi, cmd) != SR_OK)
 						return SR_ERR;
 					devc->la_enabled = TRUE;
 				}
 			}
 			if (ch->enabled != devc->digital_channels[ch->index]) {
 				/* Enabled channel is currently disabled, or vice versa. */
-				if (protocol >= PROTOCOL_V5)
-					cmd = ":LA:DISP D%d,%s";
-				else if (protocol >= PROTOCOL_V3)
-					cmd = ":LA:DIG%d:DISP %s";
-				else
+				switch (protocol) {
+				case PROTOCOL_V1:
+				case PROTOCOL_V2:
 					cmd = ":DIG%d:TURN %s";
+					break;
+				case PROTOCOL_V3:
+				case PROTOCOL_V4:
+					cmd = ":LA:DIG%d:DISP %s";
+					break;
+				case PROTOCOL_V5:
+					cmd = ":LA:DISP D%d,%s";
+					break;
+				case PROTOCOL_V6:
+					cmd = ":LA:DIG:ENAB %";
+					break;
+				}
 
 				if (rigol_ds_config_set(sdi, cmd, ch->index,
 						ch->enabled ? "ON" : "OFF") != SR_OK)
@@ -955,11 +978,24 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 
 	/* Turn off LA module if on and no digital channels selected. */
-	if (devc->la_enabled && !some_digital)
-		if (rigol_ds_config_set(sdi,
-				devc->model->series->protocol >= PROTOCOL_V3 ?
-					":LA:STAT OFF" : ":LA:DISP OFF") != SR_OK)
+	if (devc->la_enabled && !some_digital) {
+		switch (protocol) {
+		case PROTOCOL_V1:
+		case PROTOCOL_V2:
+			cmd = ":LA:DISP OFF";
+			break;
+		case PROTOCOL_V3:
+		case PROTOCOL_V4:
+		case PROTOCOL_V5:
+			cmd = ":LA:STAT OFF";
+			break;
+		case PROTOCOL_V6:
+			cmd = ":LA:ENAB OFF";
+			break;
+		}
+		if (rigol_ds_config_set(sdi, cmd) != SR_OK)
 			return SR_ERR;
+	}
 
 	/* Set memory mode. */
 	if (devc->data_source == DATA_SOURCE_SEGMENTED) {
@@ -985,6 +1021,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			break;
 		}
 		case PROTOCOL_V5:
+		case PROTOCOL_V6:
 			/* The frame limit has to be read on the fly, just set up
 			 * reading of the first frame */
 			if (rigol_ds_config_set(sdi, "REC:CURR 1") != SR_OK)
@@ -999,7 +1036,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->analog_frame_size = analog_frame_size(sdi);
 	devc->digital_frame_size = digital_frame_size(sdi);
 
-	switch (devc->model->series->protocol) {
+	switch (protocol) {
 	case PROTOCOL_V2:
 		if (rigol_ds_config_set(sdi, ":ACQ:MEMD LONG") != SR_OK)
 			return SR_ERR;
@@ -1036,7 +1073,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			(devc->timebase * devc->model->series->num_horizontal_divs);
 	} else {
 		float xinc;
-		if (devc->model->series->protocol < PROTOCOL_V3) {
+		if (protocol < PROTOCOL_V3) {
 			sr_err("Cannot get samplerate (below V3).");
 			return SR_ERR;
 		}
