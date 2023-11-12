@@ -411,9 +411,11 @@ static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_chan
 				/* Clear the buffers to prepare for the new samples */
 				if (ch->index < 8) {
 					g_array_free(data_low_channels, FALSE);
+					g_free(data_low_channels->data);
 					data_low_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
 				} else {
 					g_array_free(data_high_channels, FALSE);
+					g_free(data_high_channels->data);
 					data_high_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
 				}
 
