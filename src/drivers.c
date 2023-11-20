@@ -52,6 +52,5 @@ SR_API void sr_drivers_init(struct sr_context *ctx)
 	     drivers < sr_driver_list__stop; drivers++)
 		g_array_append_val(array, *drivers);
 #endif
-	ctx->driver_list = (struct sr_dev_driver **)array->data;
-	g_array_free(array, FALSE);
+	ctx->driver_list = (struct sr_dev_driver **)g_array_free(array, FALSE);
 }
