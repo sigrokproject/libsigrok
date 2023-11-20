@@ -364,71 +364,71 @@ static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_chan
 	for (l = sdi->channels; l; l = l->next) {
 		ch = l->data;
 		samples_index = 0;
-		if (ch->type == SR_CHANNEL_LOGIC) {
-			if (ch->enabled) {
-				if (sr_scpi_send(sdi->conn, "D%d:WF? DAT2", ch->index) != SR_OK)
-					return SR_ERR;
-				if (sr_scpi_read_begin(scpi) != SR_OK)
-					return TRUE;
-				len = sr_scpi_read_data(scpi, buf, -1);
-				if (len < 0)
-					return TRUE;
-				len -= 15;
-				buffdata = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
-				buf += 15; /* Skipping the data header. */
-				g_array_append_vals(buffdata, buf, len);
-				tmp_samplebuf = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len); /* New temp buffer. */
-				for (uint64_t cur_sample_index = 0; cur_sample_index < devc->memory_depth_digital; cur_sample_index++) {
-					char sample = (char)g_array_index(buffdata, uint8_t, cur_sample_index);
-					for (int ii = 0; ii < 8; ii++, sample >>= 1) {
-						if (ch->index < 8) {
-							channel_index = ch->index;
-							if (data_low_channels->len <= samples_index) {
-								tmp_value = 0; /* New sample. */
-								low_channels = TRUE; /* We have at least one enabled low channel. */
-							} else {
-								/* Get previous stored sample from low channel buffer. */
-								tmp_value = g_array_index(data_low_channels, uint8_t, samples_index);
-							}
-						} else {
-							channel_index = ch->index - 8;
-							if (data_high_channels->len <= samples_index) {
-								tmp_value = 0; /* New sample. */
-								high_channels = TRUE; /* We have at least one enabled high channel. */
-							} else {
-								/* Get previous stored sample from high channel buffer. */
-								tmp_value = g_array_index(data_high_channels, uint8_t, samples_index);
-							}
-						}
-						/* Check if the current scope sample bit is set. */
-						if (sample & 0x1)
-							tmp_value |= 1UL << channel_index; /* Set current scope sample bit based on channel index. */
-						g_array_append_val(tmp_samplebuf, tmp_value);
-						samples_index++;
+		if (ch->type != SR_CHANNEL_LOGIC)
+			continue;
+		if (!ch->enabled)
+			continue;
+		if (sr_scpi_send(sdi->conn, "D%d:WF? DAT2", ch->index) != SR_OK)
+			return SR_ERR;
+		if (sr_scpi_read_begin(scpi) != SR_OK)
+			return TRUE;
+		len = sr_scpi_read_data(scpi, buf, -1);
+		if (len < 0)
+			return TRUE;
+		len -= 15;
+		buffdata = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len);
+		buf += 15; /* Skipping the data header. */
+		g_array_append_vals(buffdata, buf, len);
+		tmp_samplebuf = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), len); /* New temp buffer. */
+		for (uint64_t cur_sample_index = 0; cur_sample_index < devc->memory_depth_digital; cur_sample_index++) {
+			char sample = (char)g_array_index(buffdata, uint8_t, cur_sample_index);
+			for (int ii = 0; ii < 8; ii++, sample >>= 1) {
+				if (ch->index < 8) {
+					channel_index = ch->index;
+					if (data_low_channels->len <= samples_index) {
+						tmp_value = 0; /* New sample. */
+						low_channels = TRUE; /* We have at least one enabled low channel. */
+					} else {
+						/* Get previous stored sample from low channel buffer. */
+						tmp_value = g_array_index(data_low_channels, uint8_t, samples_index);
+					}
+				} else {
+					channel_index = ch->index - 8;
+					if (data_high_channels->len <= samples_index) {
+						tmp_value = 0; /* New sample. */
+						high_channels = TRUE; /* We have at least one enabled high channel. */
+					} else {
+						/* Get previous stored sample from high channel buffer. */
+						tmp_value = g_array_index(data_high_channels, uint8_t, samples_index);
 					}
 				}
-
-				/* Clear the buffers to prepare for the new samples */
-				if (ch->index < 8) {
-					g_array_free(data_low_channels, FALSE);
-					data_low_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
-				} else {
-					g_array_free(data_high_channels, FALSE);
-					data_high_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
-				}
-
-				/* Storing the converted temp values from the the scope into the buffers. */
-				for (uint64_t index = 0; index < tmp_samplebuf->len; index++) {
-					uint8_t value = g_array_index(tmp_samplebuf, uint8_t, index);
-					if (ch->index < 8)
-						g_array_append_val(data_low_channels, value);
-					else
-						g_array_append_val(data_high_channels, value);
-				}
-				g_array_free(tmp_samplebuf, TRUE);
-				g_array_free(buffdata, TRUE);
+				/* Check if the current scope sample bit is set. */
+				if (sample & 0x1)
+					tmp_value |= 1UL << channel_index; /* Set current scope sample bit based on channel index. */
+				g_array_append_val(tmp_samplebuf, tmp_value);
+				samples_index++;
 			}
 		}
+
+		/* Clear the buffers to prepare for the new samples */
+		if (ch->index < 8) {
+			g_array_free(data_low_channels, FALSE);
+			data_low_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
+		} else {
+			g_array_free(data_high_channels, FALSE);
+			data_high_channels = g_array_new(FALSE, FALSE, sizeof(uint8_t));
+		}
+
+		/* Storing the converted temp values from the the scope into the buffers. */
+		for (uint64_t index = 0; index < tmp_samplebuf->len; index++) {
+			uint8_t value = g_array_index(tmp_samplebuf, uint8_t, index);
+			if (ch->index < 8)
+				g_array_append_val(data_low_channels, value);
+			else
+				g_array_append_val(data_high_channels, value);
+		}
+		g_array_free(tmp_samplebuf, TRUE);
+		g_array_free(buffdata, TRUE);
 	}
 
 	/* Combining the lower and higher channel buffers into one buffer for sigrok. */
