@@ -1127,20 +1127,28 @@ static inline void write_dblle_inc(uint8_t **p, double x)
 #define ALL_ZERO { 0 }
 #endif
 
-#ifdef __APPLE__
-#define SR_DRIVER_LIST_SECTION "__DATA,__sr_driver_list"
-#else
-#define SR_DRIVER_LIST_SECTION "__sr_driver_list"
-#endif
 
-#if !defined SR_DRIVER_LIST_NOREORDER && defined __has_attribute
-#if __has_attribute(no_reorder)
-#define SR_DRIVER_LIST_NOREORDER __attribute__((no_reorder))
-#endif
-#endif
-#if !defined SR_DRIVER_LIST_NOREORDER
-#define SR_DRIVER_LIST_NOREORDER /* EMPTY */
-#endif
+/* constructors will assemble a LL with every driver.
+ * Every driver defines one of these struct by using one of the
+ * SR_REGISTER_DEV_DRIVER_* macros below.
+ * This could be greatly simplified if struct sr_dev_driver had a '->next' member. Maybe someday.
+*/
+struct device_node {
+	struct sr_dev_driver *dev;
+	struct device_node *next;
+};
+
+/** should only be called via SR_REGISTER_DEV_DRIVER_LIST() macro */
+void sr_register_dev_array(struct sr_dev_driver *driver_array[], struct device_node *node_array, unsigned num);
+
+/** should only be called via SR_REGISTER_DEV_DRIVER() macro */
+void sr_register_dev_node(struct device_node *devnode);
+
+
+/* glib uses this internally but doesn't seem to make it available.
+ * This is a much simplified def that will only work on gcc/clang.
+ */
+#define G_DEFINE_CONSTRUCTOR(_func) static void __attribute__((constructor)) _func (void);
 
 /**
  * Register a list of hardware drivers.
@@ -1170,13 +1178,14 @@ static inline void write_dblle_inc(uint8_t **p, double x)
  * @param ... Comma separated list of pointers to sr_dev_driver structs.
  */
 #define SR_REGISTER_DEV_DRIVER_LIST(name, ...) \
-	static const struct sr_dev_driver *name[] \
-		SR_DRIVER_LIST_NOREORDER \
-		__attribute__((section (SR_DRIVER_LIST_SECTION), used, \
-			aligned(sizeof(struct sr_dev_driver *)))) \
-		= { \
-			__VA_ARGS__ \
-		};
+	static struct sr_dev_driver *name[] = { \
+		__VA_ARGS__ \
+	}; \
+	static struct device_node name##_nodes[ARRAY_SIZE(name)]; \
+	G_DEFINE_CONSTRUCTOR(register_##name) \
+	static void register_##name(void) { \
+		sr_register_dev_array(name, name##_nodes, ARRAY_SIZE(name)); \
+	}
 
 /**
  * Register a hardware driver.
@@ -1200,7 +1209,11 @@ static inline void write_dblle_inc(uint8_t **p, double x)
  * @param name Identifier name of sr_dev_driver struct to register.
  */
 #define SR_REGISTER_DEV_DRIVER(name) \
-	SR_REGISTER_DEV_DRIVER_LIST(name##_list, &name);
+	static struct device_node name##_node = { .dev = &name }; \
+	G_DEFINE_CONSTRUCTOR(register_##name) \
+	static void register_##name(void) { \
+		sr_register_dev_node(&name##_node); \
+	}
 
 SR_API void sr_drivers_init(struct sr_context *context);
 
