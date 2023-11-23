@@ -1139,7 +1139,7 @@ struct device_node {
 };
 
 /** should only be called via SR_REGISTER_DEV_DRIVER_LIST() macro */
-void sr_register_dev_array(struct sr_dev_driver *driver_array[], struct device_node *node_array, unsigned num);
+void sr_register_dev_array(struct sr_dev_driver * const driver_array[], struct device_node *node_array, unsigned num);
 
 /** should only be called via SR_REGISTER_DEV_DRIVER() macro */
 void sr_register_dev_node(struct device_node *devnode);
@@ -1178,7 +1178,7 @@ void sr_register_dev_node(struct device_node *devnode);
  * @param ... Comma separated list of pointers to sr_dev_driver structs.
  */
 #define SR_REGISTER_DEV_DRIVER_LIST(name, ...) \
-	static struct sr_dev_driver *name[] = { \
+	static struct sr_dev_driver * const name[] = { \
 		__VA_ARGS__ \
 	}; \
 	static struct device_node name##_nodes[ARRAY_SIZE(name)]; \

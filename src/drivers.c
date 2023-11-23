@@ -35,7 +35,7 @@ void sr_register_dev_node(struct device_node *devnode) {
 	devlist_head = devnode;
 }
 
-void sr_register_dev_array(struct sr_dev_driver *driver_array[], struct device_node *node_array, unsigned num) {
+void sr_register_dev_array(struct sr_dev_driver * const driver_array[], struct device_node *node_array, unsigned num) {
 	unsigned i;
 	struct device_node *dnode;
 
