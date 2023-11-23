@@ -20,7 +20,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
 #include "libsigrok-internal.h"
@@ -60,10 +59,8 @@ SR_API void sr_drivers_init(struct sr_context *ctx)
 	GArray *array;
 
 	array = g_array_new(TRUE, FALSE, sizeof(struct sr_dev_driver *));
-#ifdef HAVE_DRIVERS
 	for (struct device_node *cur = devlist_head; cur; cur = cur->next) {
 		g_array_append_val(array, cur->dev);
 	}
-#endif
 	ctx->driver_list = (struct sr_dev_driver **)g_array_free(array, FALSE);
 }
