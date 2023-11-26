@@ -70,14 +70,14 @@ static int parse_value(const uint8_t *buf,
 	sr_atof_ascii((const char *)&valstr, result);
 
 	dot_pos = strcspn(valstr, ".");
-	if (dot_pos < cnt){
+	if (dot_pos < cnt)	//
 		*exponent = -(cnt - dot_pos - 1);
-	}else{
+	else
 		*exponent = 0;
-	};
-
+	
 	return SR_OK;
 }
+
 
 static void parse_flags(const char *buf, struct vc96_info *info)
 {
@@ -89,13 +89,14 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	info->is_ac = !strncmp(buf, "AC", 2);
 	info->is_dc = !strncmp(buf, "DC", 2);
 
+	/*
+	 * Note:
+	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
+	 */
 	/* Bytes 0-2: Measurement mode, except AC/DC */
-	info->is_ohm = !strncmp(buf, "OHM", 3) ||
-		(!strncmp(buf, "  ", 3) && info->is_ohm);
-	info->is_diode = !strncmp(buf, "DIO", 3) ||
-		(!strncmp(buf, "  ", 3) && info->is_volt && info->is_milli);
-	info->is_hfe = !strncmp(buf, "hfe", 3) && !info->is_ampere && !info->is_volt &&
-		!info->is_resistance && !info->is_diode;
+	info->is_ohm = !strncmp(buf, "OHM", 3) || !strncmp(buf, "BEP", 3);
+	info->is_diode = !strncmp(buf, "DIO", 3);
+	info->is_hfe = !strncmp(buf, "hfe", 3);
 
 	/* Bytes 3-8: See parse_value(). */
 
@@ -109,6 +110,7 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
 
+/* the lineup of mA, uA, A is important, 1st detecting A ends the detection and m or u are lost */	
 	if (!g_ascii_strcasecmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "uA"))
@@ -127,11 +129,6 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	else if (!g_ascii_strcasecmp(u, ""))
 		info->is_unitless = TRUE;
 
-	/*
-	 * Note:
-	 * - Protocol doesn't distinguish "resistance" from "beep" mode.
-	 */
-
 	/* Byte 12: Always '\r' (carriage return, 0x0d, 12) */
 	/* Byte 13: Always '\n' (carriage return, 0x0a, 13) */
 }
@@ -143,11 +140,10 @@ static void handle_flags(struct sr_datafeed_analog *analog, float *floatval,
 
 	(void)exponent;
 
-	/* Factors */
+	/* Factors representing the exponent of 123Exx */
 	factor = 0;
-	if (info->is_micro){
+	if (info->is_micro)
 		factor -= 6;
-	};
 	if (info->is_milli)
 		factor -= 3;
 	if (info->is_kilo)
@@ -267,11 +263,6 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 	sr_dbg("DMM packet: \"%.11s\".", buf);
 
 	memset(info_local, 0x00, sizeof(struct vc96_info));
-
-	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
-		sr_dbg("Error parsing value: %d.", ret);
-		return ret;
-	}
 
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
