@@ -275,12 +275,14 @@ static int dso2250_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	memset(cmdstring, 0, sizeof(cmdstring));
 	/* Command */
 	cmdstring[0] = CMD_2250_SET_TRIGGERSOURCE;
-	sr_dbg("Trigger source %s.", devc->triggersource);
-	if (!strcmp("CH2", devc->triggersource))
+	sr_dbg("Trigger source %s.", devc->triggersource ? : "<none>");
+	if (!devc->triggersource)
+		tmp = 0;
+	else if (!strcmp("CH2", devc->triggersource))
 		tmp = 3;
 	else if (!strcmp("CH1", devc->triggersource))
 		tmp = 2;
-	else if (!strcmp("EXT", devc->triggersource) || !strcmp("forced", devc->triggersource))
+	else if (!strcmp("EXT", devc->triggersource))
 		tmp = 0;
 	else {
 		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
@@ -421,12 +423,14 @@ SR_PRIV int dso_set_trigger_samplerate(const struct sr_dev_inst *sdi)
 	cmdstring[0] = CMD_SET_TRIGGER_SAMPLERATE;
 
 	/* Trigger source */
-	sr_dbg("Trigger source %s.", devc->triggersource);
-	if (!strcmp("CH2", devc->triggersource))
+	sr_dbg("Trigger source %s.", devc->triggersource ? : "<none>");
+	if (!devc->triggersource)
+		tmp = 2;
+	else if (!strcmp("CH2", devc->triggersource))
 		tmp = 0;
 	else if (!strcmp("CH1", devc->triggersource))
 		tmp = 1;
-	else if (!strcmp("EXT", devc->triggersource) || !strcmp("forced", devc->triggersource))
+	else if (!strcmp("EXT", devc->triggersource))
 		tmp = 2;
 	else {
 		sr_err("Invalid trigger source: '%s'.", devc->triggersource);
@@ -668,7 +672,7 @@ static int dso_set_relays(const struct sr_dev_inst *sdi)
 	if (devc->coupling[1] != COUPLING_AC)
 		relays[6] = ~relays[6];
 
-	if (!strcmp(devc->triggersource, "EXT"))
+	if (devc->triggersource && strcmp(devc->triggersource, "EXT") == 0)
 		relays[7] = ~relays[7];
 
 	if (sr_log_loglevel_get() >= SR_LOG_DBG) {
