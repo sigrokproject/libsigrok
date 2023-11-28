@@ -70,7 +70,7 @@ static int parse_value(const uint8_t *buf,
 	sr_atof_ascii((const char *)&valstr, result);
 
 	dot_pos = strcspn(valstr, ".");
-	if (dot_pos < cnt)	//
+	if (dot_pos < cnt)
 		*exponent = -(cnt - dot_pos - 1);
 	else
 		*exponent = 0;
@@ -110,7 +110,6 @@ static void parse_flags(const char *buf, struct vc96_info *info)
 	/* Bytes 9-10: Unit */
 	u = (const char *)&unit;
 
-/* the lineup of mA, uA, A is important, 1st detecting A ends the detection and m or u are lost */	
 	if (!g_ascii_strcasecmp(u, "mA"))
 		info->is_milli = info->is_ampere = TRUE;
 	else if (!g_ascii_strcasecmp(u, "uA"))
@@ -263,6 +262,11 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 	sr_dbg("DMM packet: \"%.11s\".", buf);
 
 	memset(info_local, 0x00, sizeof(struct vc96_info));
+
+	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
+		sr_dbg("Error parsing value: %d.", ret);
+		return ret;
+	}
 
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
