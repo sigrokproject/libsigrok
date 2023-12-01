@@ -263,11 +263,6 @@ SR_PRIV int sr_vc96_parse(const uint8_t *buf, float *floatval,
 
 	memset(info_local, 0x00, sizeof(struct vc96_info));
 
-	if ((ret = parse_value(buf, floatval, &exponent)) != SR_OK) {
-		sr_dbg("Error parsing value: %d.", ret);
-		return ret;
-	}
-
 	parse_flags((const char *)buf, info_local);
 	handle_flags(analog, floatval, &exponent, info_local);
 
