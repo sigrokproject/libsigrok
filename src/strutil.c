@@ -1844,8 +1844,18 @@ SR_API int sr_next_power_of_two(size_t value, size_t *bits, size_t *power)
 	if (power)
 		*power = 0;
 
-	if (!value)
-		return SR_ERR_ARG;
+	/*
+	 * Handle the special case of input value 0 (needs 1 bit
+	 * and results in "power of two" value 1) here. It is not
+	 * covered by the generic logic below.
+	 */
+	if (!value) {
+		if (bits)
+			*bits = 1;
+		if (power)
+			*power = 1;
+		return SR_OK;
+	}
 
 	need_bits = 0;
 	check_mask = 0;
