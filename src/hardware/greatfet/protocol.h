@@ -37,11 +37,12 @@ struct dev_context {
 	char *serial_number;
 	size_t channel_count;
 	char **channel_names;
+	size_t feed_unit_size;
 	struct sr_sw_limits sw_limits;
 	uint64_t samplerate;
 	struct dev_acquisition_t {
 		uint64_t bandwidth_threshold;
-		size_t unit_size;
+		size_t wire_unit_size;
 		struct feed_queue_logic *feed_queue;
 		size_t capture_channels;
 		gboolean use_upper_pins;

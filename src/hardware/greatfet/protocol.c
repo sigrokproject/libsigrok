@@ -588,7 +588,7 @@ static int greatfet_logic_config(const struct sr_dev_inst *sdi)
 	g_free(print_bw);
 	bw = acq->capture_samplerate * 8 / acq->points_per_byte;
 	if (!acq->use_upper_pins)
-		bw *= acq->unit_size;
+		bw *= acq->wire_unit_size;
 	print_bw = sr_si_string_u64(bw, "bps");
 	sr_info("Resulting USB bandwidth: %s.", print_bw);
 	g_free(print_bw);
@@ -708,17 +708,15 @@ static int greatfet_calc_capture_chans(const struct sr_dev_inst *sdi)
 	if (!fw_ch_count)
 		return SR_ERR_ARG;
 	if (fw_ch_count > 8) {
-		acq->unit_size = sizeof(uint16_t);
+		acq->wire_unit_size = sizeof(uint16_t);
 		acq->points_per_byte = 1;
 	} else {
-		acq->unit_size = sizeof(uint8_t);
-		if (acq->use_upper_pins)
-			acq->unit_size = sizeof(uint16_t);
+		acq->wire_unit_size = sizeof(uint8_t);
 		acq->points_per_byte = 8 / fw_ch_count;
 	}
 	acq->channel_shift = fw_ch_count % 8;
 	sr_dbg("unit %zu, dense %d -> shift %zu, points %zu",
-		acq->unit_size, !!acq->channel_shift,
+		acq->wire_unit_size, !!acq->channel_shift,
 		acq->channel_shift, acq->points_per_byte);
 
 	return SR_OK;
@@ -1229,14 +1227,20 @@ SR_PRIV void greatfet_release_resources(const struct sr_dev_inst *sdi)
 
 /*
  * Process received sample date. There are two essential modes:
- * - The straight forward case. The device provides 8 bits per sample
- *   point. Forward each byte as is to the sigrok session. It matches
- *   the sizeof(uint8_t) feed queue allocation parameter.
+ * - The straight forward case. The device provides 16 bits per sample
+ *   point. Forward raw received data as is to the sigrok session. The
+ *   device's endianess matches the session's LE expectation. And the
+ *   data matches the device's announced total channel count.
  * - The compact presentation where a smaller number of channels is
  *   active, and their data spans only part of a byte per sample point.
  *   Multiple samples' data is sharing bytes, and bytes will carry data
  *   that was taken at different times. This requires some untangling
- *   before forwarding byte sized sample data to the sigrok session.
+ *   before forwarding sample data to the sigrok session which is of
+ *   the expected width (unit size) and carries one sample per item.
+ * - The cases where one sample point's data occupies full bytes, but
+ *   the firmware only communicates one byte per sample point, are seen
+ *   as a special case of the above bit packing. The "complex case"
+ *   logic covers the "bytes extension" as well.
  *
  * Implementation details:
  * - Samples taken first are found in the least significant bits of a
@@ -1264,12 +1268,11 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 	struct feed_queue_logic *q;
 	uint64_t samples_remain;
 	gboolean exceeded;
-	gboolean full_bytes, lower_empty;
 	size_t samples_rcvd;
-	uint8_t raw_mask;
+	uint8_t raw_mask, raw_data;
 	size_t points_per_byte, points_count;
-	uint8_t raw_data, wr_data;
-	uint8_t accum[16];
+	uint16_t wr_data;
+	uint8_t accum[8 * sizeof(wr_data)];
 	const uint8_t *rdptr;
 	uint8_t *wrptr;
 	int ret;
@@ -1296,24 +1299,17 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 		return SR_OK;
 
 	/*
-	 * Check for the simple case first. Where bytes carry samples
-	 * of exactly one sample point. Pass memory in verbatim form.
+	 * Check for the simple case first. Where the firmware provides
+	 * sample data for all logic channels supported by the device.
+	 * Pass sample memory as received from the device in verbatim
+	 * form to the session feed.
 	 *
-	 * This approach applies to two cases: Captures of the first 8
-	 * channels, and captures for 16 channels where both banks are
-	 * involved (the device firmware provides all 16 bits of data
-	 * for any given sample point). The 16bit case happens to work
-	 * because sample data received from the device and logic data
-	 * in sigrok sessions both use the little endian format.
-	 *
-	 * The "upper pins" case must be handled below because the
-	 * device will not provide data for the lower pin bank, but the
-	 * samples (all-zero values) must be sent to the sigrok session.
+	 * This happens to work because sample data received from the
+	 * device and logic data in sigrok sessions both are in little
+	 * endian format.
 	 */
-	full_bytes = !acq->channel_shift;
-	lower_empty = acq->use_upper_pins;
-	if (full_bytes && !lower_empty) {
-		samples_rcvd = dlen / acq->unit_size;
+	if (acq->wire_unit_size == devc->feed_unit_size) {
+		samples_rcvd = dlen / acq->wire_unit_size;
 		if (samples_remain && samples_rcvd > samples_remain)
 			samples_rcvd = samples_remain;
 		ret = feed_queue_logic_submit_many(q, data, samples_rcvd);
@@ -1322,11 +1318,17 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 		sr_sw_limits_update_samples_read(&devc->sw_limits, samples_rcvd);
 		return SR_OK;
 	}
+	if (sizeof(wr_data) != devc->feed_unit_size) {
+		sr_err("Unhandled unit size mismatch. Flawed implementation?");
+		return SR_ERR_BUG;
+	}
 
 	/*
 	 * Handle the complex cases where one byte carries values that
 	 * were taken at multiple sample points, or where the firmware
-	 * does not communicate the lower pin bank's data (upper pins).
+	 * does not communicate all pin banks to the host (upper pins
+	 * or lower pins only on the wire).
+	 *
 	 * This involves manipulation between reception and forwarding.
 	 * It helps that the firmware provides sample data in units of
 	 * power-of-two bit counts per sample point. This eliminates
@@ -1363,9 +1365,8 @@ static int greatfet_process_receive_data(const struct sr_dev_inst *sdi,
 		while (points_count--) {
 			wr_data = raw_data & raw_mask;
 			if (acq->use_upper_pins)
-				write_u16le_inc(&wrptr, wr_data << 8);
-			else
-				write_u8_inc(&wrptr, wr_data);
+				wr_data <<= 8;
+			write_u16le_inc(&wrptr, wr_data);
 			raw_data >>= acq->channel_shift;
 		}
 		points_count = points_per_byte;

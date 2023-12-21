@@ -307,6 +307,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 			ch_off++;
 			cg->channels = g_slist_append(cg->channels, ch);
 		}
+		devc->feed_unit_size = (ch_max + 8 - 1) / 8;
 
 		sr_sw_limits_init(&devc->sw_limits);
 		devc->samplerate = DEFAULT_SAMPLERATE;
@@ -510,7 +511,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 
 	if (!acq->feed_queue) {
 		acq->feed_queue = feed_queue_logic_alloc(sdi,
-			BUFFER_SIZE, acq->unit_size);
+			BUFFER_SIZE, devc->feed_unit_size);
 		if (!acq->feed_queue) {
 			sr_err("Cannot allocate session feed buffer.");
 			return SR_ERR_MALLOC;
