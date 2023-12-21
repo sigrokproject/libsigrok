@@ -578,6 +578,7 @@ static const struct power_case_t {
 	size_t want_bits;
 	size_t want_power;
 } power_cases[] = {
+	{ 0, 1, 1, },
 	{ 1, 1, 2, },
 	{ 2, 2, 4, },
 	{ 3, 2, 4, },
@@ -596,9 +597,6 @@ START_TEST(test_calc_power_of_two)
 	size_t case_idx, bits, power;
 	const struct power_case_t *tcase;
 	int ret;
-
-	ret = sr_next_power_of_two(0, NULL, NULL);
-	fail_unless(ret != SR_OK, "invalid value, did not fail");
 
 	for (case_idx = 0; case_idx < ARRAY_SIZE(power_cases); case_idx++) {
 		tcase = &power_cases[case_idx];
