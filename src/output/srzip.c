@@ -408,7 +408,7 @@ static int zip_append_queue(const struct sr_output *o,
 	outc = o->priv;
 	buff = &outc->logic_buff;
 	if (length && unitsize != buff->unit_size) {
-		sr_warn("Unexpected unit size, discarding logic data.");
+		sr_warn("Unexpected unit size %zu vs %zu, discarding logic data.", unitsize, buff->unit_size);
 		return SR_ERR_ARG;
 	}
 
