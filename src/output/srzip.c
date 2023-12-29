@@ -38,7 +38,7 @@ struct out_context {
 	size_t analog_ch_count;
 	gint *analog_index_map;
 	struct logic_buff {
-		size_t unit_size;
+		size_t zip_unit_size;
 		size_t alloc_size;
 		uint8_t *samples;
 		size_t fill_size;
@@ -204,14 +204,14 @@ static int zip_create(const struct sr_output *o)
 	 * during execution. This simplifies other locations.
 	 */
 	alloc_size = CHUNK_SIZE;
-	outc->logic_buff.unit_size = logic_channels;
-	outc->logic_buff.unit_size += 8 - 1;
-	outc->logic_buff.unit_size /= 8;
+	outc->logic_buff.zip_unit_size = logic_channels;
+	outc->logic_buff.zip_unit_size += 8 - 1;
+	outc->logic_buff.zip_unit_size /= 8;
 	outc->logic_buff.samples = g_try_malloc0(alloc_size);
 	if (!outc->logic_buff.samples)
 		return SR_ERR_MALLOC;
-	if (outc->logic_buff.unit_size)
-		alloc_size /= outc->logic_buff.unit_size;
+	if (outc->logic_buff.zip_unit_size)
+		alloc_size /= outc->logic_buff.zip_unit_size;
 	outc->logic_buff.alloc_size = alloc_size;
 	outc->logic_buff.fill_size = 0;
 
@@ -396,7 +396,8 @@ static int zip_append(const struct sr_output *o,
  * @returns SR_OK et al error codes.
  */
 static int zip_append_queue(const struct sr_output *o,
-	const uint8_t *buf, size_t unitsize, size_t length, gboolean flush)
+	const uint8_t *buf, size_t unitsize, size_t length,
+	gboolean flush)
 {
 	struct out_context *outc;
 	struct logic_buff *buff;
@@ -407,7 +408,7 @@ static int zip_append_queue(const struct sr_output *o,
 
 	outc = o->priv;
 	buff = &outc->logic_buff;
-	if (length && unitsize != buff->unit_size) {
+	if (length && unitsize != buff->zip_unit_size) {
 		sr_warn("Unexpected unit size, discarding logic data.");
 		return SR_ERR_ARG;
 	}
@@ -417,21 +418,21 @@ static int zip_append_queue(const struct sr_output *o,
 	 * Flush to the ZIP archive when the buffer space is exhausted.
 	 */
 	rdptr = buf;
-	send_size = buff->unit_size ? length / buff->unit_size : 0;
+	send_size = buff->zip_unit_size ? length / buff->zip_unit_size : 0;
 	while (send_size) {
 		remain = buff->alloc_size - buff->fill_size;
 		if (remain) {
-			wrptr = &buff->samples[buff->fill_size * buff->unit_size];
+			wrptr = &buff->samples[buff->fill_size * buff->zip_unit_size];
 			copy_size = MIN(send_size, remain);
 			send_size -= copy_size;
 			buff->fill_size += copy_size;
-			memcpy(wrptr, rdptr, copy_size * buff->unit_size);
-			rdptr += copy_size * buff->unit_size;
+			memcpy(wrptr, rdptr, copy_size * buff->zip_unit_size);
+			rdptr += copy_size * buff->zip_unit_size;
 			remain -= copy_size;
 		}
 		if (send_size && !remain) {
-			ret = zip_append(o, buff->samples, buff->unit_size,
-				buff->fill_size * buff->unit_size);
+			ret = zip_append(o, buff->samples, buff->zip_unit_size,
+				buff->fill_size * buff->zip_unit_size);
 			if (ret != SR_OK)
 				return ret;
 			buff->fill_size = 0;
@@ -441,8 +442,8 @@ static int zip_append_queue(const struct sr_output *o,
 
 	/* Flush to the ZIP archive if the caller wants us to. */
 	if (flush && buff->fill_size) {
-		ret = zip_append(o, buff->samples, buff->unit_size,
-			buff->fill_size * buff->unit_size);
+		ret = zip_append(o, buff->samples, buff->zip_unit_size,
+			buff->fill_size * buff->zip_unit_size);
 		if (ret != SR_OK)
 			return ret;
 		buff->fill_size = 0;
@@ -665,8 +666,9 @@ static int receive(const struct sr_output *o, const struct sr_datafeed_packet *p
 			outc->zip_created = TRUE;
 		}
 		logic = packet->payload;
-		ret = zip_append_queue(o, logic->data,
-			logic->unitsize, logic->length, FALSE);
+		ret = zip_append_queue(o,
+			logic->data, logic->unitsize, logic->length,
+			FALSE);
 		if (ret != SR_OK)
 			return ret;
 		break;
