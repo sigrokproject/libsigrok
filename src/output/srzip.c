@@ -396,21 +396,61 @@ static int zip_append(const struct sr_output *o,
  * @returns SR_OK et al error codes.
  */
 static int zip_append_queue(const struct sr_output *o,
-	const uint8_t *buf, size_t unitsize, size_t length,
+	const uint8_t *buf, size_t feed_unitsize, size_t length,
 	gboolean flush)
 {
+	static gboolean sizes_seen;
+
 	struct out_context *outc;
 	struct logic_buff *buff;
+	size_t sample_copy_size, sample_skip_size, sample_pad_size;
 	size_t send_count, remain, copy_count;
 	const uint8_t *rdptr;
 	uint8_t *wrptr;
 	int ret;
 
+	/*
+	 * Check input parameters. Prepare to either grab data as is,
+	 * or to adjust between differing input and output unit sizes.
+	 * Diagnostics is rate limited for improved usability, assumes
+	 * that session feeds are consistent across calls. Processing
+	 * would cope with inconsistent calls though when required.
+	 */
 	outc = o->priv;
 	buff = &outc->logic_buff;
-	if (length && unitsize != buff->zip_unit_size) {
-		sr_warn("Unexpected unit size, discarding logic data.");
-		return SR_ERR_ARG;
+	if (length) {
+		if (!sizes_seen) {
+			sr_info("output unit size %zu, feed unit size %zu.",
+				buff->zip_unit_size, feed_unitsize);
+		}
+		if (feed_unitsize > buff->zip_unit_size) {
+			if (!sizes_seen)
+				sr_info("Large unit size, discarding excess logic data.");
+			sample_copy_size = buff->zip_unit_size;
+			sample_skip_size = feed_unitsize - buff->zip_unit_size;
+			sample_pad_size = 0;
+		} else if (feed_unitsize < buff->zip_unit_size) {
+			if (!sizes_seen)
+				sr_info("Small unit size, padding logic data.");
+			sample_copy_size = feed_unitsize;
+			sample_skip_size = 0;
+			sample_pad_size = buff->zip_unit_size - feed_unitsize;
+		} else {
+			if (!sizes_seen)
+				sr_dbg("Matching unit size, passing logic data as is.");
+			sample_copy_size = buff->zip_unit_size;
+			sample_skip_size = 0;
+			sample_pad_size = 0;
+		}
+		if (sample_copy_size + sample_skip_size != feed_unitsize) {
+			sr_err("Inconsistent input unit size. Implementation flaw?");
+			return SR_ERR_BUG;
+		}
+		if (sample_copy_size + sample_pad_size != buff->zip_unit_size) {
+			sr_err("Inconsistent output unit size. Implementation flaw?");
+			return SR_ERR_BUG;
+		}
+		sizes_seen = TRUE;
 	}
 
 	/*
@@ -418,16 +458,24 @@ static int zip_append_queue(const struct sr_output *o,
 	 * Flush to the ZIP archive when the buffer space is exhausted.
 	 */
 	rdptr = buf;
-	send_count = buff->zip_unit_size ? length / buff->zip_unit_size : 0;
+	send_count = feed_unitsize ? length / feed_unitsize : 0;
 	while (send_count) {
 		remain = buff->alloc_size - buff->fill_size;
 		if (remain) {
 			wrptr = &buff->samples[buff->fill_size * buff->zip_unit_size];
 			copy_count = MIN(send_count, remain);
+			if (sample_skip_size || sample_pad_size)
+				copy_count = 1;
 			send_count -= copy_count;
 			buff->fill_size += copy_count;
-			memcpy(wrptr, rdptr, copy_count * buff->zip_unit_size);
-			rdptr += copy_count * buff->zip_unit_size;
+			memcpy(wrptr, rdptr, copy_count * sample_copy_size);
+			if (sample_pad_size) {
+				wrptr += sample_copy_size;
+				memset(wrptr, 0, sample_pad_size);
+			}
+			rdptr += copy_count * sample_copy_size;
+			if (sample_skip_size)
+				rdptr += sample_skip_size;
 			remain -= copy_count;
 		}
 		if (send_count && !remain) {
