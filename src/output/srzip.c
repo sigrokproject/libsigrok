@@ -401,7 +401,7 @@ static int zip_append_queue(const struct sr_output *o,
 {
 	struct out_context *outc;
 	struct logic_buff *buff;
-	size_t send_size, remain, copy_size;
+	size_t send_count, remain, copy_count;
 	const uint8_t *rdptr;
 	uint8_t *wrptr;
 	int ret;
@@ -418,19 +418,19 @@ static int zip_append_queue(const struct sr_output *o,
 	 * Flush to the ZIP archive when the buffer space is exhausted.
 	 */
 	rdptr = buf;
-	send_size = buff->zip_unit_size ? length / buff->zip_unit_size : 0;
-	while (send_size) {
+	send_count = buff->zip_unit_size ? length / buff->zip_unit_size : 0;
+	while (send_count) {
 		remain = buff->alloc_size - buff->fill_size;
 		if (remain) {
 			wrptr = &buff->samples[buff->fill_size * buff->zip_unit_size];
-			copy_size = MIN(send_size, remain);
-			send_size -= copy_size;
-			buff->fill_size += copy_size;
-			memcpy(wrptr, rdptr, copy_size * buff->zip_unit_size);
-			rdptr += copy_size * buff->zip_unit_size;
-			remain -= copy_size;
+			copy_count = MIN(send_count, remain);
+			send_count -= copy_count;
+			buff->fill_size += copy_count;
+			memcpy(wrptr, rdptr, copy_count * buff->zip_unit_size);
+			rdptr += copy_count * buff->zip_unit_size;
+			remain -= copy_count;
 		}
-		if (send_size && !remain) {
+		if (send_count && !remain) {
 			ret = zip_append(o, buff->samples, buff->zip_unit_size,
 				buff->fill_size * buff->zip_unit_size);
 			if (ret != SR_OK)
