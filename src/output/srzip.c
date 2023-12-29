@@ -461,8 +461,8 @@ static int zip_append_queue(const struct sr_output *o,
 	send_count = feed_unitsize ? length / feed_unitsize : 0;
 	while (send_count) {
 		remain = buff->alloc_size - buff->fill_size;
+		wrptr = &buff->samples[buff->fill_size * buff->zip_unit_size];
 		if (remain) {
-			wrptr = &buff->samples[buff->fill_size * buff->zip_unit_size];
 			copy_count = MIN(send_count, remain);
 			if (sample_skip_size || sample_pad_size)
 				copy_count = 1;
@@ -484,7 +484,6 @@ static int zip_append_queue(const struct sr_output *o,
 			if (ret != SR_OK)
 				return ret;
 			buff->fill_size = 0;
-			remain = buff->alloc_size - buff->fill_size;
 		}
 	}
 
