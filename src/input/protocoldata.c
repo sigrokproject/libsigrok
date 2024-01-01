@@ -607,7 +607,7 @@ static int assign_bit_widths(struct context *inc)
 		bit_times_total += bit_time_int;
 		sr_spew("Bit %zu, width %" PRIu64 ".", idx, bit_time_int);
 	}
-	sr_dbg("Maximum waveform width: %zu slots, %.2f / %zu samples.",
+	sr_dbg("Maximum waveform width: %zu slots, %.2f / %" PRIu64 " samples.",
 		inc->max_frame_bits, bit_edge, bit_times_total);
 
 	return SR_OK;
@@ -879,7 +879,7 @@ static int uart_check_opts(struct context *inc)
 	total_bits += fmt_opts->stopbit_count;
 	total_bits += fmt_opts->half_stopbit ? 1 : 0;
 	total_bits += UART_ADD_IDLEBITS;
-	sr_dbg("UART frame: total bits %lu.", total_bits);
+	sr_dbg("UART frame: total bits %zu.", total_bits);
 	if (total_bits > UART_MAX_WAVELEN)
 		return SR_ERR_DATA;
 	inc->max_frame_bits = total_bits;
@@ -1550,7 +1550,7 @@ static int spi_check_opts(struct context *inc)
 	total_bits += 2 * fmt_opts->databit_count;
 	total_bits += 3;
 
-	sr_dbg("SPI frame: total bits %lu.", total_bits);
+	sr_dbg("SPI frame: total bits %zu.", total_bits);
 	if (total_bits > SPI_MAX_WAVELEN)
 		return SR_ERR_DATA;
 	inc->max_frame_bits = total_bits;
@@ -2170,7 +2170,7 @@ static int i2c_check_opts(struct context *inc)
 	total_bits *= I2C_BITTIME_QUANTA;
 	total_bits += I2C_ADD_IDLESLOTS;
 
-	sr_dbg("I2C frame: total bits %lu.", total_bits);
+	sr_dbg("I2C frame: total bits %zu.", total_bits);
 	if (total_bits > I2C_MAX_WAVELEN)
 		return SR_ERR_DATA;
 	inc->max_frame_bits = total_bits;
