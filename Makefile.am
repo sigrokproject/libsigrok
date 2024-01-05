@@ -184,6 +184,7 @@ endif
 # Hardware (DMM chip parsers)
 libsigrok_la_SOURCES += \
 	src/dmm/asycii.c \
+	src/dmm/qm1578.c \
 	src/dmm/bm25x.c \
 	src/dmm/bm52x.c \
 	src/dmm/bm85x.c \
