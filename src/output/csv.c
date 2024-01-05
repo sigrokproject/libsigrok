@@ -459,9 +459,11 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			logic_sample =
 			    &ctx->logic_samples[i * ctx->num_logic_channels];
 
+
+			ctx->out_sample_count++;
+
 			if (ctx->dedup) {
-				if (i > 0 && i < ctx->num_samples - 1 &&
-				    !memcmp(logic_sample, ctx->previous_sample,
+				if (!memcmp(logic_sample, ctx->previous_sample,
 					    ctx->num_logic_channels) &&
 				    !memcmp(analog_sample,
 					    ctx->previous_sample +
@@ -478,7 +480,7 @@ static void dump_saved_values(struct context *ctx, GString **out)
 			if (ctx->time && !ctx->sample_rate) {
 				g_string_append_printf(*out, "0%s", ctx->value);
 			} else if (ctx->time) {
-				sample_time_dbl = ctx->out_sample_count++;
+				sample_time_dbl = ctx->out_sample_count - 1;
 				sample_time_dbl /= ctx->sample_rate;
 				sample_time_dbl *= ctx->sample_scale;
 				sample_time_u64 = sample_time_dbl;
@@ -515,12 +517,10 @@ static void dump_saved_values(struct context *ctx, GString **out)
 	}
 
 	/* Discard all of the working space. */
-	g_free(ctx->previous_sample);
 	g_free(ctx->analog_samples);
 	g_free(ctx->logic_samples);
 	ctx->channels_seen = 0;
 	ctx->num_samples = 0;
-	ctx->previous_sample = NULL;
 	ctx->analog_samples = NULL;
 	ctx->logic_samples = NULL;
 }
