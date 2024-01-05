@@ -40,6 +40,7 @@ SR_PRIV int scpi_pps_receive_data(int fd, int revents, void *cb_data)
 	struct pps_channel *pch;
 	const struct channel_spec *ch_spec;
 	int ret;
+
 	float f;
 	GVariant *gvdata;
 	const GVariantType *gvtype;
