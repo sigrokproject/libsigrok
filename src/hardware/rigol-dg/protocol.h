@@ -43,6 +43,8 @@ enum psg_commands {
 	PSG_CMD_SET_DISABLE,
 	PSG_CMD_GET_SOURCE,
 	PSG_CMD_SET_SOURCE,
+	PSG_CMD_GET_SOURCE_NO_PARAM,
+	PSG_CMD_SET_SOURCE_NO_PARAM,
 	PSG_CMD_SET_FREQUENCY,
 	PSG_CMD_GET_FREQUENCY,
 	PSG_CMD_SET_AMPLITUDE,
@@ -69,6 +71,13 @@ enum waveform_type {
 	WF_PULSE,
 	WF_NOISE,
 	WF_ARB,
+	WF_SINC,
+	WF_EXPRISE,
+	WF_EXPFALL,
+	WF_ECG,
+	WF_GAUSS,
+	WF_LORENTZ,
+	WF_HAVERSINE,
 };
 
 enum waveform_options {
@@ -80,7 +89,8 @@ enum waveform_options {
 };
 
 struct waveform_spec {
-	const char *name;
+	const char *scpi_name;
+	const char *user_name;
 	enum waveform_type waveform;
 	double freq_min;
 	double freq_max;
@@ -92,6 +102,7 @@ struct channel_spec {
 	const char *name;
 	const struct waveform_spec *waveforms;
 	uint32_t num_waveforms;
+	const double *phase_min_max_step;
 };
 
 struct channel_status {
@@ -113,6 +124,7 @@ struct device_spec {
 	const struct channel_spec *channels;
 	const uint32_t num_channels;
 	const struct scpi_command *cmdset;
+	const gboolean has_counter;
 };
 
 struct dev_context {
@@ -124,9 +136,12 @@ struct dev_context {
 	uint32_t quirks;
 };
 
-SR_PRIV const char *rigol_dg_waveform_to_string(enum waveform_type type);
+SR_PRIV int rigol_dg_string_to_waveform(
+		const struct channel_spec *ch, const char *s, enum waveform_type *wf);
 SR_PRIV const struct waveform_spec *rigol_dg_get_waveform_spec(
 		const struct channel_spec *ch, enum waveform_type wf);
+SR_PRIV int rigol_dg_get_double_param(const struct sr_dev_inst *sdi,
+		const struct sr_channel_group *cg, int psg_cmd, double *value);
 SR_PRIV int rigol_dg_get_channel_state(const struct sr_dev_inst *sdi,
 		const struct sr_channel_group *cg);
 SR_PRIV int rigol_dg_receive_data(int fd, int revents, void *cb_data);
