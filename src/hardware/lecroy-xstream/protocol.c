@@ -435,20 +435,26 @@ SR_PRIV int lecroy_xstream_state_get(struct sr_dev_inst *sdi)
 		}
 		i++;
 	}
-	g_free(tmp_str);
 
 	if (!trig_source || scope_state_get_array_option(trig_source,
 			config->trigger_sources, config->num_trigger_sources,
-			&state->trigger_source) != SR_OK)
+			&state->trigger_source) != SR_OK) {
+		g_free(tmp_str);
 		return SR_ERR;
+	}
 
 	g_snprintf(command, sizeof(command), "%s:TRIG_SLOPE?", trig_source);
-	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK)
+	g_free(tmp_str);
+	if (sr_scpi_get_string(sdi->conn, command, &tmp_str) != SR_OK) {
+		g_free(tmp_str);
 		return SR_ERR;
+	}
 
 	if (scope_state_get_array_option(tmp_str, config->trigger_slopes,
-			config->num_trigger_slopes, &state->trigger_slope) != SR_OK)
+			config->num_trigger_slopes, &state->trigger_slope) != SR_OK) {
+		g_free(tmp_str);
 		return SR_ERR;
+	}
 	g_free(tmp_str);
 
 	if (sr_scpi_get_float(sdi->conn, "TRIG_DELAY?", &state->horiz_triggerpos) != SR_OK)
