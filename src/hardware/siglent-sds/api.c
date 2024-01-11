@@ -681,8 +681,7 @@ static int config_set(uint32_t key, GVariant *data,
 		}
 		break;
 	case SR_CONF_SAMPLERATE:
-		siglent_sds_get_dev_cfg_horizontal(sdi);
-		data = g_variant_new_uint64(devc->samplerate);
+		sr_err("can't set sample rate");
 		break;
 	case SR_CONF_AVERAGING:
 		devc->average_enabled = g_variant_get_boolean(data);
@@ -881,7 +880,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 200, // retry every 200ms
 		siglent_sds_receive, (void *) sdi);
 
 	std_session_send_df_header(sdi);
