@@ -281,8 +281,8 @@ sr_check_driver_deps() {
 
 AC_ARG_ENABLE([all-drivers],
 	[AS_HELP_STRING([--enable-all-drivers],
-			[enable all drivers by default [default=yes]])],
-	[], [enable_all_drivers=yes])
+			[enable all drivers by default [default=check]])],
+	[], [enable_all_drivers=check])
 
 ## _SR_DRIVER(Device name, driver-name, var-name, [dependencies...])
 m4_define([_SR_DRIVER], [
@@ -290,9 +290,14 @@ m4_define([_SR_DRIVER], [
 		[AS_HELP_STRING([--enable-$2], [enable $1 support])],
 		[$3=$enableval], [$3=$enable_all_drivers])
 
-	AS_IF([test "x[$]$3" = xyes], [sr_hw_info=yes[]m4_ifval([$4], [
+	AS_IF([test "x[$]$3" != xno],
+		[sr_hw_info=yes[]m4_ifval([$4], [
 		sr_check_driver_deps $4 \
-			|| $3=no sr_hw_info="no (missing: $sr_deps_missing)"
+			|| if test "x[$]$3" != xcheck; then
+				AC_MSG_ERROR([driver $2 is enabled, but deps are missing: $sr_deps_missing])
+			else
+				$3=no sr_hw_info="no (missing: $sr_deps_missing)"
+			fi;
 	])], [sr_hw_info='no (disabled)'])
 	sr_driver_summary_append "$2" "$sr_hw_info"
 
