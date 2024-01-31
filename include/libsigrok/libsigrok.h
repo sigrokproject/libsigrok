@@ -755,6 +755,11 @@ enum sr_configkey {
 	 */
 	SR_CONF_MULTIPLEXER,
 
+	/**
+	 * The device can act as a digital delay generator.
+	 */
+	SR_CONF_DELAY_GENERATOR,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Driver scan options -------------------------------------------*/
