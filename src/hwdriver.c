@@ -216,6 +216,8 @@ static struct sr_key_info sr_key_info_config[] = {
 		"Resistance Target", NULL},
 	{SR_CONF_OVER_CURRENT_PROTECTION_DELAY, SR_T_FLOAT, "ocp_delay",
 		"Over-current protection delay", NULL},
+	{SR_CONF_INVERTED, SR_T_BOOL, "inverted",
+		"Signal inverted", NULL},
 
 	/* Special stuff */
 	{SR_CONF_SESSIONFILE, SR_T_STRING, "sessionfile",

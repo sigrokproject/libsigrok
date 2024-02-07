@@ -1137,6 +1137,15 @@ enum sr_configkey {
 	 */
 	SR_CONF_OVER_CURRENT_PROTECTION_DELAY,
 
+	/**
+	 * Signal inversion.
+	 * @arg type: boolean
+	 * @arg get: @b true if the signal is inverted or has negative polarity,
+	 *           @b false otherwise
+	 * @arg set: set @b true to invert the signal
+	 */
+	SR_CONF_INVERTED,
+
 	/* Update sr_key_info_config[] (hwdriver.c) upon changes! */
 
 	/*--- Special stuff -------------------------------------------------*/
