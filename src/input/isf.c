@@ -125,12 +125,9 @@ struct context {
 	char channel_name[MAX_CHANNEL_NAME_SIZE];
 };
 
-/*
- * Header items used to process the input file.
- *
- * Parameter WFID is optional, the rest are required.
- */
+/* Header items used to process the input file. */
 enum header_items_enum {
+	/* Mandatory items */
 	YOFF = 0,
 	YZERO = 1,
 	YMULT = 2,
@@ -138,9 +135,11 @@ enum header_items_enum {
 	BYTNR = 4,
 	BYTE_ORDER = 5,
 	BN_FMT = 6,
-	WFID = 7,
-	WFMTYPE = 8,
-	ENCODING = 9,
+	ENCODING = 7,
+
+	/* Optional items */
+	WFID = 8,
+	WFMTYPE = 9,
 };
 
 /* Strings searched for in the file header representing the header items. */
@@ -152,9 +151,9 @@ static const char *header_items[] = {
 	[BYTNR] = "BYT_NR ",
 	[BYTE_ORDER] = "BYT_OR ",
 	[BN_FMT] = "BN_FMT ",
+	[ENCODING] = "ENCDG ",
 	[WFID] = "WFID ",
 	[WFMTYPE] = "WFMTYPE ",
-	[ENCODING] = "ENCDG ",
 };
 
 /* Find the header item string in the header. */
@@ -442,10 +441,10 @@ static int parse_isf_header(GString *buf, struct context *inc)
 	for (i = 0; i < HEADER_ITEMS_PARAMETERS; ++i) {
 		pattern = find_item(buf->str, data_section_offset, header_items[i]);
 		if (pattern == NULL) {
-			/* WFID is not required. */
-			if (i == WFID)
-				continue;
-			return SR_ERR_DATA;
+			/* Return an error if a mandatory item is not found. */
+			if (i <= ENCODING)
+				return SR_ERR_DATA;
+			continue;
 		}
 
 		/*
@@ -746,6 +745,8 @@ static int receive(struct sr_input *in, GString *buf)
 			return SR_OK;
 		}
 
+		/* Set optional items to default values and parse the header. */
+		inc->wfmtype = ANALOG;
 		ret = parse_isf_header(in->buf, inc);
 		if (ret != SR_OK)
 			return ret;
