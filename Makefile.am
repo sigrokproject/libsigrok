@@ -666,6 +666,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/serial-lcr/protocol.c \
 	src/hardware/serial-lcr/api.c
 endif
+if HW_WCH
+src_libdrivers_la_SOURCES += \
+	src/hardware/wch-ch569/protocol.h \
+	src/hardware/wch-ch569/protocol.c \
+	src/hardware/wch-ch569/api.c
+endif
 if HW_SIGLENT_SDS
 src_libdrivers_la_SOURCES += \
 	src/hardware/siglent-sds/protocol.h \
