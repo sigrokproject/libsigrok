@@ -150,10 +150,8 @@ SR_PRIV struct sr_tcp_dev_inst *sr_tcp_dev_inst_new(
 /**
  * Release a TCP communication instance.
  *
- * @param[in] host_addr The host name or IP address (a string).
- * @param[in] tcp_port The TCP port number.
- *
- * @return A @ref sr_tcp_dev_inst structure on success. #NULL otherwise.
+ * @param[in] tcp TCP connection instance to free. If NULL, the function will do
+ *                nothing.
  *
  * @since 6.0
  */
