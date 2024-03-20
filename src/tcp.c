@@ -163,6 +163,7 @@ SR_PRIV void sr_tcp_dev_inst_free(struct sr_tcp_dev_inst *tcp)
 
 	(void)sr_tcp_disconnect(tcp);
 	g_free(tcp->host_addr);
+	g_free(tcp->tcp_port);
 	g_free(tcp);
 }
 
