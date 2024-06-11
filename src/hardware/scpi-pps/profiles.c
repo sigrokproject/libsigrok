@@ -551,7 +551,7 @@ static const struct channel_spec rigol_dp831_ch[] = {
 static const struct channel_spec rigol_dp832_ch[] = {
 	{ "1", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 	{ "2", { 0, 30, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
-	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 90, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
+	{ "3", { 0,  5, 0.001, 3, 4 }, { 0, 3, 0.001, 3, 4 }, { 0, 15, 0, 3, 4 }, FREQ_DC_ONLY, NO_OVP_LIMITS, NO_OCP_LIMITS, NO_OCP_DELAY },
 };
 
 static const struct channel_group_spec rigol_dp820_cg[] = {
