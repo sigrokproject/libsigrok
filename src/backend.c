@@ -137,13 +137,17 @@ SR_API GSList *sr_buildinfo_libs_get(void)
 		glib_binary_age, glib_interface_age));
 	l = g_slist_append(l, m);
 
+#ifdef CONF_ZLIB_VERSION
 	m = g_slist_append(NULL, g_strdup("zlib"));
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_ZLIB_VERSION));
 	l = g_slist_append(l, m);
+#endif
 
+#ifdef CONF_LIBZIP_VERSION
 	m = g_slist_append(NULL, g_strdup("libzip"));
 	m = g_slist_append(m, g_strdup_printf("%s", CONF_LIBZIP_VERSION));
 	l = g_slist_append(l, m);
+#endif
 
 	m = g_slist_append(NULL, g_strdup("minilzo"));
 	m = g_slist_append(m, g_strdup_printf("%s", lzo_version_string()));

@@ -433,6 +433,11 @@ static int scpi_usbtmc_libusb_source_add(struct sr_session *session,
 {
 	struct scpi_usbtmc_libusb *uscpi = priv;
 	(void)events;
+    (void)timeout;
+
+    // TODO does anyone use the callback here?
+    (void)cb;
+    (void)cb_data;
 	return usb_source_add(session, uscpi->ctx, timeout, cb, cb_data);
 }
 

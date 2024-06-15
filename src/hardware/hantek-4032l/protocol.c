@@ -139,22 +139,6 @@ static void send_data(struct sr_dev_inst *sdi,
 	devc->sent_samples += sample_count;
 }
 
-SR_PRIV int h4032l_receive_data(int fd, int revents, void *cb_data)
-{
-	struct timeval tv;
-	struct drv_context *drvc;
-
-	(void)fd;
-	(void)revents;
-
-	drvc = (struct drv_context *)cb_data;
-
-	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
-
-	return TRUE;
-}
-
 void LIBUSB_CALL h4032l_data_transfer_callback(struct libusb_transfer *transfer)
 {
 	struct sr_dev_inst *const sdi = transfer->user_data;

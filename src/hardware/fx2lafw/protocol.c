@@ -612,22 +612,6 @@ static unsigned int get_timeout(struct dev_context *devc)
 	return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
 }
 
-static int receive_data(int fd, int revents, void *cb_data)
-{
-	struct timeval tv;
-	struct drv_context *drvc;
-
-	(void)fd;
-	(void)revents;
-
-	drvc = (struct drv_context *)cb_data;
-
-	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
-
-	return TRUE;
-}
-
 static int start_transfers(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -714,7 +698,7 @@ SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi)
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
-	int timeout, ret;
+	int ret;
 	size_t size;
 
 	di = sdi->driver;
@@ -732,8 +716,7 @@ SR_PRIV int fx2lafw_start_acquisition(const struct sr_dev_inst *sdi)
 		return SR_ERR;
 	}
 
-	timeout = get_timeout(devc);
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
+	usb_source_add(sdi->session, devc->ctx, 0, NULL, NULL);
 
 	size = get_buffer_size(devc);
 	/* Prepare for analog sampling. */
