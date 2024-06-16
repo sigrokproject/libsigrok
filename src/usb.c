@@ -33,9 +33,12 @@
 
 #define LOG_PREFIX "usb"
 
+// Structure that will be passed to the poll libusb callback and to its destructor
 struct poll_libusb_callback_arg
 {
+    struct sr_session *session; ///< Pointer to Sigrok session struct
     libusb_context * libusb_ctx; ///< Pointer to libusb context
+    GSource * usb_source; ///< Pointer to USB idle source itself
     sr_receive_data_callback cb; ///< Callback to driver each poll
     void *cb_data; ///< Arg for callback to driver
 };
@@ -46,9 +49,8 @@ static gboolean poll_libusb_callback(gpointer user_data_ptr)
 {
     struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
 
-    // Always poll libusb in nonblocking mode
-    struct timeval timeout = {.tv_usec=0, .tv_sec = 0};
-    libusb_handle_events_timeout_completed(callback_arg->libusb_ctx, &timeout, NULL);
+    // Wait for something to happen on the USB descriptors.
+    libusb_handle_events_completed(callback_arg->libusb_ctx, NULL);
 
     // Poll driver if it has a callback
     if(callback_arg->cb != NULL)
@@ -60,9 +62,14 @@ static gboolean poll_libusb_callback(gpointer user_data_ptr)
     return G_SOURCE_CONTINUE;
 }
 
-// Free the passed poll_libusb_callback_arg structure
-static void free_callback_arg(gpointer user_data_ptr)
+// Destroy callback for USB sources
+static void usb_source_destroyed(gpointer user_data_ptr)
 {
+    struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
+
+    // Callback to sr_session that a source was destroyed
+    sr_session_source_destroyed(callback_arg->session, callback_arg->libusb_ctx, callback_arg->usb_source);
+
     g_free(user_data_ptr);
 }
 
@@ -286,6 +293,7 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 
     // Set up argument
     struct poll_libusb_callback_arg * callback_arg = g_malloc0(sizeof(struct poll_libusb_callback_arg));
+    callback_arg->session = session;
     callback_arg->libusb_ctx = ctx->libusb_ctx;
     callback_arg->cb = cb;
     callback_arg->cb_data = cb_data;
@@ -293,9 +301,11 @@ SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
     // Create idle source to poll libusb.
     // Despite the name "idle", this really just means a source which is polled every cycle of the main loop.
     GSource *source = g_idle_source_new();
+    callback_arg->usb_source = source;
+
     g_source_set_priority(source, G_PRIORITY_DEFAULT); // Increase priority to DEFAULT instead of IDLE
     g_source_set_name(source, "usb");
-	g_source_set_callback(source, poll_libusb_callback, callback_arg, free_callback_arg);
+	g_source_set_callback(source, poll_libusb_callback, callback_arg, usb_source_destroyed);
 
 	ret = sr_session_source_add_internal(session, ctx->libusb_ctx, source);
 	g_source_unref(source);
