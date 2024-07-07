@@ -36,41 +36,41 @@
 // Structure that will be passed to the poll libusb callback and to its destructor
 struct poll_libusb_callback_arg
 {
-    struct sr_session *session; ///< Pointer to Sigrok session struct
-    libusb_context * libusb_ctx; ///< Pointer to libusb context
-    GSource * usb_source; ///< Pointer to USB idle source itself
-    sr_receive_data_callback cb; ///< Callback to driver each poll
-    void *cb_data; ///< Arg for callback to driver
+	struct sr_session *session; ///< Pointer to Sigrok session struct
+	libusb_context * libusb_ctx; ///< Pointer to libusb context
+	GSource * usb_source; ///< Pointer to USB idle source itself
+	sr_receive_data_callback cb; ///< Callback to driver each poll
+	void *cb_data; ///< Arg for callback to driver
 };
 
 // Glib source callback which polls libusb.  This will, in turn,
 // invoke any callbacks defined by the hardware layer.
 static gboolean poll_libusb_callback(gpointer user_data_ptr)
 {
-    struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
+	struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
 
-    // Wait for something to happen on the USB descriptors.
-    libusb_handle_events_completed(callback_arg->libusb_ctx, NULL);
+	// Wait for something to happen on the USB descriptors.
+	libusb_handle_events_completed(callback_arg->libusb_ctx, NULL);
 
-    // Poll driver if it has a callback
-    if(callback_arg->cb != NULL)
-    {
-        // As far as I can tell, the first 2 parameters to this callback are not used for USB drivers
-        callback_arg->cb(-1, 0, callback_arg->cb_data);
-    }
+	// Poll driver if it has a callback
+	if(callback_arg->cb != NULL)
+	{
+		// As far as I can tell, the first 2 parameters to this callback are not used for USB drivers
+		callback_arg->cb(-1, 0, callback_arg->cb_data);
+	}
 
-    return G_SOURCE_CONTINUE;
+	return G_SOURCE_CONTINUE;
 }
 
 // Destroy callback for USB sources
 static void usb_source_destroyed(gpointer user_data_ptr)
 {
-    struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
+	struct poll_libusb_callback_arg * callback_arg = (struct poll_libusb_callback_arg *)user_data_ptr;
 
-    // Callback to sr_session that a source was destroyed
-    sr_session_source_destroyed(callback_arg->session, callback_arg->libusb_ctx, callback_arg->usb_source);
+	// Callback to sr_session that a source was destroyed
+	sr_session_source_destroyed(callback_arg->session, callback_arg->libusb_ctx, callback_arg->usb_source);
 
-    g_free(user_data_ptr);
+	g_free(user_data_ptr);
 }
 
 /**
@@ -193,7 +193,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 	for (i = 0; devlist[i]; i++) {
 		if ((ret = libusb_get_device_descriptor(devlist[i], &des))) {
 			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(ret));
+				   libusb_error_name(ret));
 			continue;
 		}
 
@@ -206,7 +206,7 @@ SR_PRIV GSList *sr_usb_find(libusb_context *usb_ctx, const char *conn)
 			continue;
 
 		sr_dbg("Found USB device (VID:PID = %04x:%04x, bus.address = "
-		       "%d.%d).", des.idVendor, des.idProduct, b, a);
+			   "%d.%d).", des.idVendor, des.idProduct, b, a);
 
 		usb = sr_usb_dev_inst_new(b, a, NULL);
 		devices = g_slist_append(devices, usb);
@@ -228,7 +228,7 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 
 	if ((cnt = libusb_get_device_list(usb_ctx, &devlist)) < 0) {
 		sr_err("Failed to retrieve device list: %s.",
-		       libusb_error_name(cnt));
+			   libusb_error_name(cnt));
 		return SR_ERR;
 	}
 
@@ -236,7 +236,7 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 	for (i = 0; i < cnt; i++) {
 		if ((r = libusb_get_device_descriptor(devlist[i], &des)) < 0) {
 			sr_err("Failed to get device descriptor: %s.",
-			       libusb_error_name(r));
+				   libusb_error_name(r));
 			continue;
 		}
 
@@ -247,12 +247,12 @@ SR_PRIV int sr_usb_open(libusb_context *usb_ctx, struct sr_usb_dev_inst *usb)
 
 		if ((r = libusb_open(devlist[i], &usb->devhdl)) < 0) {
 			sr_err("Failed to open device: %s.",
-			       libusb_error_name(r));
+				   libusb_error_name(r));
 			break;
 		}
 
 		sr_dbg("Opened USB device (VID:PID = %04x:%04x, bus.address = "
-		       "%d.%d).", des.idVendor, des.idProduct, b, a);
+			   "%d.%d).", des.idVendor, des.idProduct, b, a);
 
 		ret = SR_OK;
 		break;
@@ -277,9 +277,10 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
  * @param session Session to use
  * @param ctx Sigrok context
  * @param timeout Timeout.  Currently unused by this function.
- * @param cb Callback for your hardware layer to use.  This callback will be polled each execution of the main loop.
+ * @param cb Callback for your hardware layer to use.  This callback will be polled each time libusb sees
+ *     activity on the USB port (i.e. each time \c libusb_handle_events_completed() returns).
  *     You can use it to monitor the status of your device (though you may wish to use libusb callbacks instead).
- *     In the callback, the \c fd and\c revents parameters are unused and will be zeroes.
+ *     In the callback, the \c fd and\c revents parameters are unused and will be -1 and 0.
  * @param cb_data User data pointer passed to the callback when executed.
  *
  * @return Error code or success
@@ -287,24 +288,24 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
 SR_PRIV int usb_source_add(struct sr_session *session, struct sr_context *ctx,
 		int timeout, sr_receive_data_callback cb, void *cb_data)
 {
-    (void)timeout;
+	(void)timeout;
 
 	int ret;
 
-    // Set up argument
-    struct poll_libusb_callback_arg * callback_arg = g_malloc0(sizeof(struct poll_libusb_callback_arg));
-    callback_arg->session = session;
-    callback_arg->libusb_ctx = ctx->libusb_ctx;
-    callback_arg->cb = cb;
-    callback_arg->cb_data = cb_data;
+	// Set up argument
+	struct poll_libusb_callback_arg * callback_arg = g_malloc0(sizeof(struct poll_libusb_callback_arg));
+	callback_arg->session = session;
+	callback_arg->libusb_ctx = ctx->libusb_ctx;
+	callback_arg->cb = cb;
+	callback_arg->cb_data = cb_data;
 
-    // Create idle source to poll libusb.
-    // Despite the name "idle", this really just means a source which is polled every cycle of the main loop.
-    GSource *source = g_idle_source_new();
-    callback_arg->usb_source = source;
+	// Create idle source to poll libusb.
+	// Despite the name "idle", this really just means a source which is polled every cycle of the main loop.
+	GSource *source = g_idle_source_new();
+	callback_arg->usb_source = source;
 
-    g_source_set_priority(source, G_PRIORITY_DEFAULT); // Increase priority to DEFAULT instead of IDLE
-    g_source_set_name(source, "usb");
+	g_source_set_priority(source, G_PRIORITY_DEFAULT); // Increase priority to DEFAULT instead of IDLE
+	g_source_set_name(source, "usb");
 	g_source_set_callback(source, poll_libusb_callback, callback_arg, usb_source_destroyed);
 
 	ret = sr_session_source_add_internal(session, ctx->libusb_ctx, source);
@@ -349,7 +350,7 @@ SR_PRIV int usb_get_port_path(libusb_device *dev, char *path, int path_len)
 		return SR_ERR;
 
 	len = snprintf(path, path_len, "usb/%d-%d",
-	               libusb_get_bus_number(dev), port_numbers[0]);
+				   libusb_get_bus_number(dev), port_numbers[0]);
 
 	for (i = 1; i < n; i++)
 		len += snprintf(path+len, path_len-len, ".%d", port_numbers[i]);
