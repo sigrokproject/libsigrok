@@ -56,7 +56,10 @@ static gboolean poll_libusb_callback(gpointer user_data_ptr)
 	if(callback_arg->cb != NULL)
 	{
 		// As far as I can tell, the first 2 parameters to this callback are not used for USB drivers
-		callback_arg->cb(-1, 0, callback_arg->cb_data);
+		if(!callback_arg->cb(-1, 0, callback_arg->cb_data))
+        {
+            return G_SOURCE_REMOVE;
+        }
 	}
 
 	return G_SOURCE_CONTINUE;
@@ -285,6 +288,7 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
  *     activity on the USB port (i.e. each time \c libusb_handle_events_completed() returns).
  *     You can use it to monitor the status of your device (though you may wish to use libusb callbacks instead).
  *     In the callback, the \c fd and\c revents parameters are unused and will be -1 and 0.
+ *     If the callback returns false, the USB source will be removed from the main loop.
  * @param cb_data User data pointer passed to the callback when executed.
  *
  * @return Error code or success
