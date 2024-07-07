@@ -274,6 +274,10 @@ SR_PRIV void sr_usb_close(struct sr_usb_dev_inst *usb)
  * @brief Add the source of USB events to a session.  This event source will poll libusb
  *   each time the main loop executes so that it can process events and deliver callbacks.
  *
+ * @note In the current version of sigrok, the USB source polls libusb for events automatically.  If all you want to
+ *     do is poll libusb so it delievers callbacks, you do not need to register a callback.  And if you do register
+ *     a callback, that callback no longer needs to poll libusb.
+ *
  * @param session Session to use
  * @param ctx Sigrok context
  * @param timeout Timeout.  Currently unused by this function.
