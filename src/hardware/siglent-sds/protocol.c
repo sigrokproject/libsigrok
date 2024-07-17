@@ -36,6 +36,31 @@
 #include "scpi.h"
 #include "protocol.h"
 
+/** Wait for 500 ms while reading SCPI data */ 
+#define WAIT_DATA_TIMEOUT	500000
+
+/**
+ * Wait and read data from SCPI device.
+ *
+ * @param scpi Previously initialised SCPI device structure.
+ * @param buf Buffer to store result.
+ * @param maxlen Maximum number of bytes to read.
+ *
+ * @return Number of bytes read, or SR_ERR upon failure.
+ */
+static int siglent_scpi_wait_read_data(struct sr_scpi_dev_inst *scpi,
+			char *buf, int maxlen)
+{
+	int64_t start = g_get_monotonic_time();
+	int64_t elapsed;
+	int ret;
+	do {
+		ret = sr_scpi_read_data(scpi, buf, maxlen);
+		elapsed = g_get_monotonic_time() - start;
+	} while ((ret == 0) && (elapsed < WAIT_DATA_TIMEOUT));
+	return ret;
+}
+
 /* Set the next event to wait for in siglent_sds_receive(). */
 static void siglent_sds_set_wait_event(struct dev_context *devc, enum wait_events event)
 {
@@ -398,7 +423,7 @@ static int siglent_sds_get_digital_e11(struct sr_dev_inst *sdi, struct sr_channe
 					/* Conume header */
 					sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
 					do {
-						len = sr_scpi_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
+						len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
 						if (len == -1 || len == 0) {
 							sr_err("Read error, aborting capture.");
 							std_session_send_df_frame_end(sdi);
@@ -769,7 +794,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 						sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
 					}
 					do {
-						len = sr_scpi_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
+						len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
 						if (len == -1 || len == 0) {
 							sr_err("Read error, aborting capture.");
 							std_session_send_df_frame_end(sdi);
