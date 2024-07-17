@@ -61,6 +61,46 @@ static int siglent_scpi_wait_read_data(struct sr_scpi_dev_inst *scpi,
 	return ret;
 }
 
+static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch, gboolean digital)
+{
+	struct sr_scpi_dev_inst *scpi = sdi->conn;
+	struct dev_context *devc = sdi->priv;
+	int len = 0;
+	if(devc->num_block_bytes == 0) {
+		/* New block => send block request command */
+		if(digital) {
+			/* PRE? command is not called on each Digital channel, so we need to set channel number here */
+			if (sr_scpi_send(sdi->conn, "WAV:SOUR D%d", ch->index) != SR_OK)
+				return SR_ERR;
+		}
+		if (sr_scpi_send(sdi->conn, "WAV:STARt %d", devc->num_block_bytes) != SR_OK)
+			return SR_ERR;
+		if (sr_scpi_send(sdi->conn, "WAV:DATA?") != SR_OK)
+			return SR_ERR;
+	}
+	/* Read header size : The header is of form “#9000001000” which nine ASCII integers are used to give the number of the waveform data points (1000 pts). */
+	sr_scpi_read_data(scpi, (char *)devc->buffer, 2);
+	int headerSize = devc->buffer[1]-'0';
+	/* Conume header */
+	sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
+	do {
+		len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
+		if (len == -1 || len == 0) {
+			sr_err("Read error, aborting capture.");
+			std_session_send_df_frame_end(sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
+			return TRUE;
+		}
+		devc->num_block_bytes += len;
+		devc->num_bytes_current_block += len;
+		sr_dbg("Read %" PRIu64 " bytes, %" PRIu64 " remaining.",devc->num_bytes_current_block, devc->num_samples - devc->num_bytes_current_block);
+	} while (devc->num_bytes_current_block < devc->num_samples);
+	/* Consume 0x0A 0x0A message footer */
+	uint16_t footer;
+	sr_scpi_read_data(scpi, (char *)&footer, 2);
+	return len;
+}
+
 /* Set the next event to wait for in siglent_sds_receive(). */
 static void siglent_sds_set_wait_event(struct dev_context *devc, enum wait_events event)
 {
@@ -410,33 +450,7 @@ static int siglent_sds_get_digital_e11(struct sr_dev_inst *sdi, struct sr_channe
 				do {
 					if (sr_scpi_read_begin(scpi) != SR_OK)
 						return TRUE;
-					if (sr_scpi_send(sdi->conn, "WAV:SOUR D%d", ch->index) != SR_OK)
-						return SR_ERR;
-					if (sr_scpi_send(sdi->conn, "WAV:STARt %d", devc->num_block_bytes) != SR_OK)
-						return SR_ERR;
-					if (sr_scpi_send(sdi->conn, "WAV:DATA?") != SR_OK)
-						return SR_ERR;
-					// TODO factorize consume header
-					/* Read header size : The header is of form “#9000001000” which nine ASCII integers are used to give the number of the waveform data points (1000 pts). */
-					sr_scpi_read_data(scpi, (char *)devc->buffer, 2);
-					int headerSize = devc->buffer[1]-'0';
-					/* Conume header */
-					sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
-					do {
-						len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
-						if (len == -1 || len == 0) {
-							sr_err("Read error, aborting capture.");
-							std_session_send_df_frame_end(sdi);
-							sdi->driver->dev_acquisition_stop(sdi);
-							return TRUE;
-						}
-						devc->num_block_bytes += len;
-						devc->num_bytes_current_block += len;
-						// sr_dbg("Read %" PRIu64 " bytes, %" PRIu64 " remaining.",devc->num_bytes_current_block, devc->num_samples - devc->num_bytes_current_block);
-					} while (devc->num_bytes_current_block < devc->num_samples);
-					/* Consume 0x0A 0x0A message footer */
-					uint16_t footer;
-					sr_scpi_read_data(scpi, (char *)&footer, 2);
+					len = siglent_read_wave_e11(sdi,ch,TRUE);
 
 					if (first_pass)
 						buffdata = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), devc->num_bytes_current_block);
@@ -777,38 +791,18 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 					devc->num_bytes_current_block = devc->num_samples;
 				} else {
 					sr_dbg("Requesting: %" PRIu64 " bytes for %" PRIu64 " samples.", devc->num_samples - devc->num_block_bytes,devc->num_samples);
-					/* SDS2000X+ sends 10MB or 5MB blocks, as found by "WAV:MAXPoint?". */
-					/* It needs to have the next starting point specified to continue. */
-					if (devc->model->series->protocol == E11 && (devc->num_block_bytes == 0)) {
-						/*if (sr_scpi_send(sdi->conn, "WAV:SOUR C%d", ch->index + 1) != SR_OK)
-							return SR_ERR;*/
-						/* TODO handle multiple blocks for E11 prtocol => use ACQuire:POINts? and WAVeform:MAXPoint? commands to get total points and points per block */
-						if (sr_scpi_send(sdi->conn, "WAV:STARt %d", devc->num_block_bytes) != SR_OK)
-							return SR_ERR;
-						if (sr_scpi_send(sdi->conn, "WAV:DATA?") != SR_OK)
-							return SR_ERR;
-						/* Read header size : The header is of form “#9000001000” which nine ASCII integers are used to give the number of the waveform data points (1000 pts). */
-						sr_scpi_read_data(scpi, (char *)devc->buffer, 2);
-						int headerSize = devc->buffer[1]-'0';
-						/* Conume header */
-						sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
+					if(devc->model->series->protocol == E11) {
+						len = siglent_read_wave_e11(sdi,ch,FALSE);
 					}
-					do {
-						len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_bytes_current_block), devc->num_samples-devc->num_bytes_current_block);
-						if (len == -1 || len == 0) {
+					else {
+						len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples-devc->num_block_bytes);
+						if (len == -1) {
 							sr_err("Read error, aborting capture.");
 							std_session_send_df_frame_end(sdi);
 							sdi->driver->dev_acquisition_stop(sdi);
 							return TRUE;
 						}
 						devc->num_block_bytes += len;
-						devc->num_bytes_current_block += len;
-						sr_dbg("Read %" PRIu64 " bytes, %" PRIu64 " remaining.",devc->num_bytes_current_block, devc->num_samples - devc->num_bytes_current_block);
-					} while (devc->model->series->protocol == E11 && (devc->num_bytes_current_block < devc->num_samples));
-					if(devc->model->series->protocol == E11) {
-						/* Consume 0x0A 0x0A message footer */
-						uint16_t footer;
-						sr_scpi_read_data(scpi, (char *)&footer, 2);
 					}
 				}
 				sr_dbg("Received block: %i, %d bytes.", devc->num_block_read, devc->num_bytes_current_block);
