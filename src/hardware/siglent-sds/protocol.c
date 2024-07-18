@@ -532,7 +532,7 @@ static int siglent_sds_get_digital_e11(struct sr_dev_inst *sdi, struct sr_channe
 	return len;
 }
 
-static int siglent_sds_get_digital(const struct sr_dev_inst *sdi, struct sr_channel *ch)
+static int siglent_sds_get_digital(struct sr_dev_inst *sdi, struct sr_channel *ch)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
 	struct dev_context *devc = sdi->priv;
@@ -688,7 +688,8 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 	struct sr_analog_spec spec;
 	struct sr_datafeed_logic logic;
 	struct sr_channel *ch;
-	int len, i;
+	int len;
+	uint64_t i;
 	float wait;
 	gboolean read_complete = FALSE;
 
@@ -805,7 +806,7 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 						devc->num_block_bytes += len;
 					}
 				}
-				sr_dbg("Received block: %i, %d bytes.", devc->num_block_read, devc->num_bytes_current_block);
+				sr_dbg("Received block: %i, %" PRIu64 " bytes.", devc->num_block_read, devc->num_bytes_current_block);
 				if (ch->type == SR_CHANNEL_ANALOG) {
 					float vdiv = devc->vdiv[ch->index];
 					float offset = devc->vert_offset[ch->index];
@@ -1111,6 +1112,39 @@ SR_PRIV int siglent_sds_get_dev_cfg_vertical(const struct sr_dev_inst *sdi)
 	return SR_OK;
 }
 
+static int siglent_parse_timebase(int read_result, char *sample_points_string, float* fvalue, float* samplerate_scope)
+{
+	if (read_result != SR_OK) {
+		return SR_ERR;
+	}
+	if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
+		sample_points_string[strlen(sample_points_string) - 4] = '\0';
+		if (sr_atof_ascii(sample_points_string, fvalue) != SR_OK) {
+			sr_dbg("Invalid float converted from scope response.");
+			g_free(sample_points_string);
+			return SR_ERR;
+		}
+		*samplerate_scope = *fvalue * 1000000;
+	} else if (g_strstr_len(sample_points_string, -1, "Kpts") != NULL) {
+		sample_points_string[strlen(sample_points_string) - 4] = '\0';
+		if (sr_atof_ascii(sample_points_string, fvalue) != SR_OK) {
+			sr_dbg("Invalid float converted from scope response.");
+			g_free(sample_points_string);
+			return SR_ERR;
+		}
+		*samplerate_scope = *fvalue * 10000;
+	} else {
+		sample_points_string[strlen(sample_points_string)] = '\0';
+		if (sr_atof_ascii(sample_points_string, fvalue) != SR_OK) {
+			sr_dbg("Invalid float converted from scope response.");
+			g_free(sample_points_string);
+			return SR_ERR;
+		}
+		*samplerate_scope = *fvalue;
+	}
+	return SR_OK;
+}
+
 SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 {
 	struct dev_context *devc;
@@ -1129,36 +1163,10 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 		g_free(cmd);
 		samplerate_scope = 0;
 		fvalue = 0;
-		if (res != SR_OK) {
-			g_free(sample_points_string);
-			return SR_ERR;
-		}
-		if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
-			sample_points_string[strlen(sample_points_string) - 4] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue * 1000000;
-		} else if (g_strstr_len(sample_points_string, -1, "Kpts") != NULL) {
-			sample_points_string[strlen(sample_points_string) - 4] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue * 10000;
-		} else {
-			sample_points_string[strlen(sample_points_string)] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue;
-		}
+		res = siglent_parse_timebase(res,sample_points_string,&fvalue,&samplerate_scope);
 		g_free(sample_points_string);
+		if (res != SR_OK)
+			return SR_ERR;
 		devc->memory_depth_analog = samplerate_scope;
 		break;
 	case ESERIES:
@@ -1210,39 +1218,12 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 			}
 		}
 		g_free(cmd);
-		// TODO : refacto this part with SPO/NON-SPO models
 		samplerate_scope = 0;
 		fvalue = 0;
-		if (res != SR_OK) {
-			g_free(sample_points_string);
-			return SR_ERR;
-		}
-		if (g_strstr_len(sample_points_string, -1, "Mpts") != NULL) {
-			sample_points_string[strlen(sample_points_string) - 4] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue * 1000000;
-		} else if (g_strstr_len(sample_points_string, -1, "Kpts") != NULL) {
-			sample_points_string[strlen(sample_points_string) - 4] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue * 10000;
-		} else {
-			sample_points_string[strlen(sample_points_string)] = '\0';
-			if (sr_atof_ascii(sample_points_string, &fvalue) != SR_OK) {
-				sr_dbg("Invalid float converted from scope response.");
-				g_free(sample_points_string);
-				return SR_ERR;
-			}
-			samplerate_scope = fvalue;
-		}
+		res = siglent_parse_timebase(res,sample_points_string,&fvalue,&samplerate_scope);
 		g_free(sample_points_string);
+		if (res != SR_OK)
+			return SR_ERR;
 		devc->memory_depth_analog = samplerate_scope;
 		break;
 		}
