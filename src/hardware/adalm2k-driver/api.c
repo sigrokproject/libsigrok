@@ -18,13 +18,22 @@
  */
 
 #include <config.h>
+#include <iio/iio.h>
 #include "protocol.h"
+
+#define M2K_VID     0x0456
+#define M2K_PID     0xb672 
 
 static struct sr_dev_driver adalm2k_driver_driver_info;
 
 static GSList *scan(struct sr_dev_driver *di, GSList *options)
 {
 	struct drv_context *drvc;
+    struct dev_context *devc;
+    struct sr_dev_inst *sdi;
+    struct sr_usb_dev_inst *usb;
+    struct sr_config *src;
+
 	GSList *devices;
 
 	(void)options;
@@ -33,10 +42,24 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	drvc = di->context;
 	drvc->instances = NULL;
 
+    if(!iio_scan(NULL, "usb=0456:b672")) {
+        sr_dbg("Found M2K.");
+        sdi = g_malloc(sizeof(struct sr_dev_inst));
+        sdi->status = SR_ST_INITIALIZING;
+        sdi->vendor = g_strdup("Analog Devices");
+        sdi->model = g_strdup("M2K");
+        sdi->connection_id = 0;
+
+        devc = g_malloc(sizeof(struct dev_context));
+        sdi->priv = devc;
+        devices = g_slist_append(devices, sdi);
+    }
+
+
 	/* TODO: scan for devices, either based on a SR_CONF_CONN option
 	 * or on a USB scan. */
 
-	return devices;
+	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
