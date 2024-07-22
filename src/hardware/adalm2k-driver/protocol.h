@@ -20,6 +20,7 @@
 #ifndef LIBSIGROK_HARDWARE_ADALM2K_DRIVER_PROTOCOL_H
 #define LIBSIGROK_HARDWARE_ADALM2K_DRIVER_PROTOCOL_H
 
+#include <iio/iio.h>
 #include <stdint.h>
 #include <glib.h>
 #include <libsigrok/libsigrok.h>
@@ -27,8 +28,31 @@
 
 #define LOG_PREFIX "adalm2k-driver"
 
+// NOTE: Credit to @teoperisanu github https://github.com/teoperisanu/libsigrok/blob/master/src/hardware/adalm2000/protocol.h
 struct dev_context {
+    struct iio_context *m2k;
+    uint64_t start_time;
+	int64_t spent_us;
+	uint64_t limit_msec;
+	uint64_t limit_frames;
+	uint64_t limit_samples;
+	uint64_t sent_samples;
+	uint64_t buffersize;
+	uint32_t logic_unitsize;
+	gboolean avg;
+	uint64_t avg_samples;
+    
+    // TODO: Learn what this stuff does 
+    struct sr_datafeed_analog packet;
+    struct sr_analog_encoding encoding;
+    struct sr_analog_meaning meaning;
+    struct sr_analog_spec spec;
 };
+
+// TODO: And this stuff
+SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
+
+SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi);
 
 SR_PRIV int adalm2k_driver_receive_data(int fd, int revents, void *cb_data);
 

@@ -19,10 +19,76 @@
 
 #include <config.h>
 #include <iio/iio.h>
+#include "libsigrok/libsigrok.h"
 #include "protocol.h"
 
 #define M2K_VID     0x0456
 #define M2K_PID     0xb672 
+
+static const uint32_t scanopts[] = {
+	SR_CONF_CONN,
+};
+
+static const uint32_t drvopts[] = {
+	SR_CONF_LOGIC_ANALYZER,
+	SR_CONF_OSCILLOSCOPE,
+};
+
+static const uint32_t devopts[] = {
+	SR_CONF_SAMPLERATE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_LIMIT_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_LIMIT_MSEC | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_AVERAGING | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_AVG_SAMPLES | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_MATCH | SR_CONF_LIST,
+	SR_CONF_CAPTURE_RATIO | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg_analog_group[] = {
+	SR_CONF_TRIGGER_SOURCE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+};
+
+static const uint32_t devopts_cg_analog_channel[] = {
+	SR_CONF_TRIGGER_SLOPE | SR_CONF_GET | SR_CONF_SET | SR_CONF_LIST,
+	SR_CONF_HIGH_RESOLUTION | SR_CONF_GET | SR_CONF_SET,
+	SR_CONF_TRIGGER_LEVEL | SR_CONF_GET | SR_CONF_SET,
+};
+
+static const uint32_t devopts_cg[] = {
+};
+
+static const int32_t trigger_matches[] = {
+	SR_TRIGGER_ZERO,
+	SR_TRIGGER_ONE,
+	SR_TRIGGER_RISING,
+	SR_TRIGGER_FALLING,
+	SR_TRIGGER_EDGE,
+};
+
+static const uint64_t samplerates[] = {
+	SR_KHZ(1),
+	SR_KHZ(10),
+	SR_KHZ(100),
+	SR_MHZ(1),
+	SR_MHZ(10),
+	SR_MHZ(100),
+};
+
+static const char *trigger_sources[] = {
+	"CHANNEL 1",
+	"CHANNEL 2",
+	"CHANNEL 1 OR CHANNEL 2",
+	"CHANNEL 1 AND CHANNEL 2",
+	"CHANNEL 1 XOR CHANNEL 2",
+	"NONE",
+};
+
+static const char *trigger_slopes[] = {
+	"RISING",
+	"FALLING",
+	"LOW",
+	"HIGH",
+};
 
 static struct sr_dev_driver adalm2k_driver_driver_info;
 
@@ -31,7 +97,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	struct drv_context *drvc;
     struct dev_context *devc;
     struct sr_dev_inst *sdi;
-    struct sr_usb_dev_inst *usb;
+    /* struct sr_usb_dev_inst *usb; */
     struct sr_config *src;
 
 	GSList *devices;
@@ -42,38 +108,61 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
 	drvc = di->context;
 	drvc->instances = NULL;
 
-    if(!iio_scan(NULL, "usb=0456:b672")) {
+    // TODO: Clean this, very basic concept
+    if(iio_scan(NULL, "usb=0456:b672")) {
         sr_dbg("Found M2K.");
         sdi = g_malloc(sizeof(struct sr_dev_inst));
         sdi->status = SR_ST_INITIALIZING;
         sdi->vendor = g_strdup("Analog Devices");
         sdi->model = g_strdup("M2K");
         sdi->connection_id = 0;
+        sdi->conn = g_strdup("usb=0456:b672");
+        sdi->inst_type = SR_INST_USB;
+        sdi->driver = NULL;
+        sdi->session = NULL;
+        sdi->version = g_strdup("0.0.1");
+        sdi->channels = NULL;
+        sdi->serial_num = NULL;
+        sdi->channel_groups = NULL;
 
         devc = g_malloc(sizeof(struct dev_context));
+        devc->m2k = NULL;
+        devc->logic_unitsize = 2;
+        devc->buffersize = 1 << 16;
+        devc->meaning.mq = SR_MQ_VOLTAGE;
+        devc->meaning.unit = SR_UNIT_VOLT;
+        devc->meaning.mqflags = 0;
+        
         sdi->priv = devc;
         devices = g_slist_append(devices, sdi);
     }
-
-
-	/* TODO: scan for devices, either based on a SR_CONF_CONN option
-	 * or on a USB scan. */
+    /* sr_dbg("???"); */
 
 	return std_scan_complete(di, devices);
+    /* return devices; */
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
 {
 	(void)sdi;
-
-	/* TODO: get handle from sdi->conn and open it. */
+    struct dev_context *devc;
+    devc = sdi->priv;
+    devc->m2k = iio_create_context(NULL, sdi->conn);
+    if (!devc->m2k) {
+        sr_err("Failed to open device");
+        return SR_ERR;
+    }
 
 	return SR_OK;
 }
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
+    sr_dbg("???");
 	(void)sdi;
+    struct dev_context *devc;
+    devc = sdi->priv;
+    iio_context_destroy(devc->m2k);
 
 	/* TODO: get handle from sdi->conn and close it. */
 
