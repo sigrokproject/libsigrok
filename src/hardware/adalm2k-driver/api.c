@@ -136,10 +136,8 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options)
         sdi->priv = devc;
         devices = g_slist_append(devices, sdi);
     }
-    /* sr_dbg("???"); */
 
 	return std_scan_complete(di, devices);
-    /* return devices; */
 }
 
 static int dev_open(struct sr_dev_inst *sdi)
@@ -158,13 +156,14 @@ static int dev_open(struct sr_dev_inst *sdi)
 
 static int dev_close(struct sr_dev_inst *sdi)
 {
-    sr_dbg("???");
 	(void)sdi;
     struct dev_context *devc;
     devc = sdi->priv;
     iio_context_destroy(devc->m2k);
-
-	/* TODO: get handle from sdi->conn and close it. */
+    if (devc->m2k) {
+        sr_err("Failed to close device");
+        return SR_ERR;
+    }
 
 	return SR_OK;
 }
@@ -172,14 +171,48 @@ static int dev_close(struct sr_dev_inst *sdi)
 static int config_get(uint32_t key, GVariant **data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+    unsigned int idx, capture_ratio, samplerate;
+    int delay;
+    gboolean analog_en, digital_en;
+    struct sr_channel *ch;
+    struct dev_context *devc;
+
 	int ret;
 
 	(void)sdi;
 	(void)data;
 	(void)cg;
 
+    if (!sdi) {
+        return SR_ERR_ARG;
+    }
+
 	ret = SR_OK;
+
+    devc = sdi->priv;
+
 	switch (key) {
+    case SR_CONF_SAMPLERATE:
+        digital_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) > 0;
+        if (digital_en) {
+
+            }
+        // TODO: samplerate = m2k_get_samplerate(sdi);
+        break;
+    case SR_CONF_LIMIT_SAMPLES:
+        *data = g_variant_new_uint64(devc->limit_samples);
+        break;
+    case SR_CONF_LIMIT_MSEC:
+        *data = g_variant_new_uint64(devc->limit_msec);
+        break;
+    case SR_CONF_AVERAGING:
+        *data = g_variant_new_boolean(devc->avg);
+        break;
+    case SR_CONF_AVG_SAMPLES:
+        *data = g_variant_new_uint64(devc->avg_samples);
+        break;
+    case SR_CONF_CAPTURE_RATIO:
+        break;
 	/* TODO */
 	default:
 		return SR_ERR_NA;
@@ -191,6 +224,8 @@ static int config_get(uint32_t key, GVariant **data,
 static int config_set(uint32_t key, GVariant *data,
 	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
 {
+    struct sr_channel *ch;
+
 	int ret;
 
 	(void)sdi;
@@ -199,8 +234,8 @@ static int config_set(uint32_t key, GVariant *data,
 
 	ret = SR_OK;
 	switch (key) {
-	/* TODO */
-	default:
+        /* TODO */
+		default:
 		ret = SR_ERR_NA;
 	}
 
@@ -208,22 +243,32 @@ static int config_set(uint32_t key, GVariant *data,
 }
 
 static int config_list(uint32_t key, GVariant **data,
-	const struct sr_dev_inst *sdi, const struct sr_channel_group *cg)
-{
-	int ret;
+                       const struct sr_dev_inst *sdi,
+                       const struct sr_channel_group *cg) {
+    int ret;
 
-	(void)sdi;
-	(void)data;
-	(void)cg;
+    (void)sdi;
+    (void)data;
+    (void)cg;
 
-	ret = SR_OK;
-	switch (key) {
-	/* TODO */
-	default:
-		return SR_ERR_NA;
-	}
+    ret = SR_OK;
+    switch (key) {
+    case SR_CONF_SCAN_OPTIONS:
+        break;
+    case SR_CONF_DEVICE_OPTIONS:
+        return STD_CONFIG_LIST(key, data, sdi, cg, scanopts, drvopts, devopts);
+    case SR_CONF_SAMPLERATE:
+        *data = std_gvar_samplerates(ARRAY_AND_SIZE(samplerates));
+        break;
+    case SR_CONF_TRIGGER_MATCH:
+        *data = std_gvar_array_i32(ARRAY_AND_SIZE(trigger_matches));
+        break;
 
-	return ret;
+    default:
+        return SR_ERR_NA;
+    }
+
+    return ret;
 }
 
 static int dev_acquisition_start(const struct sr_dev_inst *sdi)

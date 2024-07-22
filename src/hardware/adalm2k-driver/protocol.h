@@ -50,7 +50,7 @@ struct dev_context {
 };
 
 // TODO: And this stuff
-SR_PRIV int adalm2000_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
+SR_PRIV int adalm2k_driver_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
 
 SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi);
 
