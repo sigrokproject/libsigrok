@@ -28,9 +28,14 @@
 
 #define LOG_PREFIX "adalm2k-driver"
 
+#define DEFAULT_NUM_LOGIC_CHANNELS               16
+#define DEFAULT_NUM_ANALOG_CHANNELS               2
+#define MAX_NEG_DELAY                         -8192
+
 // NOTE: Credit to @teoperisanu github https://github.com/teoperisanu/libsigrok/blob/master/src/hardware/adalm2000/protocol.h
 struct dev_context {
     struct iio_context *m2k;
+    uint64_t samplerate;
     uint64_t start_time;
 	int64_t spent_us;
 	uint64_t limit_msec;
