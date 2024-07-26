@@ -79,6 +79,8 @@ static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch,
 		return SR_ERR;
 	/* Read header size : The header is of form “#9000001000” which nine ASCII integers are used to give the number of the waveform data points (1000 pts). */
 	sr_scpi_read_data(scpi, (char *)devc->buffer, 2);
+	if(devc->buffer[0] != '#')
+		return SR_ERR;
 	int headerSize = devc->buffer[1]-'0';
 	/* Conume header */
 	sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
@@ -469,10 +471,13 @@ static int siglent_sds_get_digital_e11(struct sr_dev_inst *sdi, struct sr_channe
 					if (sr_scpi_read_begin(scpi) != SR_OK)
 						return TRUE;
 					len = siglent_read_wave_e11(sdi,ch,TRUE);
+					if (len < 0) {
+						return len;
+					}
 
 					devc->num_block_read++;
 					devc->num_bytes_current_block = 0;
-				} while (devc->num_block_bytes < devc->memory_depth_digital/* devc->num_samples*/);
+				} while (devc->num_block_bytes < devc->num_samples);
 
 
 				buffdata = g_array_sized_new(FALSE, FALSE, sizeof(uint8_t), devc->num_block_bytes);
@@ -589,6 +594,12 @@ static int siglent_sds_get_digital(struct sr_dev_inst *sdi, struct sr_channel *c
 
 	if(devc->model->series->protocol == E11) {
 		len = siglent_sds_get_digital_e11(sdi,ch,samplerate_ratio,data_low_channels,data_high_channels,&low_channels,&high_channels);
+		if (len < 0) {
+			sr_err("Read error, aborting capture.");
+			std_session_send_df_frame_end(sdi);
+			sdi->driver->dev_acquisition_stop(sdi);
+			return FALSE;
+		}
 	}
 	else {
 		uint8_t tmp_value; /* Holding temp value from data */
@@ -811,6 +822,12 @@ SR_PRIV int siglent_sds_receive(int fd, int revents, void *cb_data)
 					sr_dbg("Requesting: %" PRIu64 " bytes for %" PRIu64 " samples.", devc->num_samples - devc->num_block_bytes,devc->num_samples);
 					if(devc->model->series->protocol == E11) {
 						len = siglent_read_wave_e11(sdi,ch,FALSE);
+						if (len < 0) {
+							sr_err("Read error, aborting capture.");
+							std_session_send_df_frame_end(sdi);
+							sdi->driver->dev_acquisition_stop(sdi);
+							return TRUE;
+						}
 					}
 					else {
 						len = sr_scpi_read_data(scpi, (char *)devc->buffer, devc->num_samples-devc->num_block_bytes);
