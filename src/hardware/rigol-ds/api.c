@@ -1029,6 +1029,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			break;
 		}
 		case PROTOCOL_V6:
+		{
 			/* DHO scopes need to be in UltraAcquire mode for segmented acquisoton */
 			/* This command is not working as for firmware version v00.01.02.00.02 of 2023/12/28
 			   the scope has to be put manually in UltraAcquire mode for segmented acquisition to work */
@@ -1046,6 +1047,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			devc->num_frames_segmented = frames;
 			/* Continue with REC:CURR command */
 			// fall through
+		}
 		case PROTOCOL_V5:
 			/* The frame limit has to be read on the fly, just set up
 			 * reading of the first frame */
