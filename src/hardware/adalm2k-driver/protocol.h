@@ -69,6 +69,6 @@ SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi);
 
 SR_PRIV int adalm2k_driver_receive_data(int fd, int revents, void *cb_data);
 
-SR_PRIV uint8_t * adalm2k_driver_get_samples(struct sr_dev_inst *sdi, long samples);
+/* SR_PRIV uint8_t * adalm2k_driver_get_samples(struct sr_dev_inst *sdi, long samples); */
 
 #endif
