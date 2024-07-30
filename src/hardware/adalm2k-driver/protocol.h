@@ -31,10 +31,14 @@
 #define DEFAULT_NUM_LOGIC_CHANNELS               16
 #define DEFAULT_NUM_ANALOG_CHANNELS               2
 #define MAX_NEG_DELAY                         -8192
+#define M2K_LA "m2k-logic-analyzer"
+#define M2K_TX "m2k-logic-analyzer-tx"
+#define M2K_RX "m2k-logic-analyzer-rx"
 
 // NOTE: Credit to @teoperisanu github https://github.com/teoperisanu/libsigrok/blob/master/src/hardware/adalm2000/protocol.h
 struct dev_context {
     struct iio_context *m2k;
+    struct iio_channels_mask *mask;
     uint64_t samplerate;
     uint64_t start_time;
 	int64_t spent_us;
@@ -55,10 +59,16 @@ struct dev_context {
 };
 
 // TODO: And this stuff
+SR_PRIV int adalm2k_driver_set_samplerate(const struct sr_dev_inst *sdi);
+
+SR_PRIV int adalm2k_driver_enable_channel(const struct sr_dev_inst *sdi, int index);
+
 SR_PRIV int adalm2k_driver_nb_enabled_channels(const struct sr_dev_inst *sdi, int type);
 
 SR_PRIV int adalm2000_convert_trigger(const struct sr_dev_inst *sdi);
 
 SR_PRIV int adalm2k_driver_receive_data(int fd, int revents, void *cb_data);
+
+SR_PRIV uint8_t * adalm2k_driver_get_samples(struct sr_dev_inst *sdi, long samples);
 
 #endif

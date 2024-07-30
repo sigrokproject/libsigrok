@@ -20,6 +20,54 @@
 #include <config.h>
 #include "protocol.h"
 
+SR_PRIV int adalm2k_driver_set_samplerate(const struct sr_dev_inst *sdi)
+{
+    struct dev_context *devc;
+    struct iio_context *m2k_ctx;
+    struct iio_device *m2k_dev;
+    struct iio_attr *attr_sr;
+    int err;
+
+    devc = sdi->priv;
+    m2k_ctx = devc->m2k;
+
+    m2k_dev = iio_context_find_device(m2k_ctx, M2K_RX);
+    if (!m2k_dev) {
+        return SR_ERR;
+    }
+
+    attr_sr = (struct iio_attr *)iio_device_find_attr(m2k_dev, "sampling_frequency");
+    err = iio_attr_write_longlong(attr_sr, devc->samplerate);
+    if (err < 0) {
+        return SR_ERR_SAMPLERATE;
+    }
+
+    return SR_OK;
+}
+
+SR_PRIV int adalm2k_driver_enable_channel(const struct sr_dev_inst *sdi, int index) {
+    struct dev_context *devc;
+    struct iio_context *m2k_ctx;
+    struct iio_device *m2k_dev;
+    struct iio_channel *m2k_chn;
+
+    devc = sdi->priv;
+    m2k_ctx = devc->m2k;
+    m2k_dev = iio_context_find_device(m2k_ctx, M2K_RX);
+    if (!m2k_dev) {
+        return SR_ERR;
+    }
+
+    m2k_chn = iio_device_get_channel(m2k_dev, index);
+    if (!m2k_chn) {
+        return SR_ERR;
+    }
+
+    iio_channel_enable(m2k_chn, devc->mask);
+
+    return SR_OK;
+}
+
 SR_PRIV int adalm2k_driver_nb_enabled_channels(const struct sr_dev_inst *sdi, int type)
 {
 	struct sr_channel *ch;
@@ -43,20 +91,105 @@ SR_PRIV int adalm2k_driver_receive_data(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
 	struct dev_context *devc;
+    struct sr_datafeed_packet packet;
+    struct sr_datafeed_logic logic;
+    uint64_t samples_todo, logic_done, analog_done, sending_now, analog_sent;
+    int64_t elapsed_us, limit_us, todo_us;
+    uint32_t *logic_data;
+    /* float **analog_data; */
+    /* GSList *l; */
+
+    struct iio_context *m2k_ctx;
+    struct iio_device *m2k_dev;
+    struct iio_channel *m2k_chn;
+    struct iio_buffer *m2k_buf;
+    struct iio_block *m2k_blk;
+    struct iio_channels_mask *m2k_msk;
+    uint32_t smp_size;
 
 	(void)fd;
 
+    sr_dbg("made it 1");
 	sdi = cb_data;
 	if (!sdi)
 		return TRUE;
 
+    sr_dbg("made it 2");
 	devc = sdi->priv;
 	if (!devc)
 		return TRUE;
 
+    sr_dbg("made it 3");
 	if (revents == G_IO_IN) {
-		/* TODO */
+        return TRUE;
 	}
 
+    sr_dbg("made it 4");
+    m2k_ctx = devc->m2k;
+    m2k_dev = iio_context_find_device(m2k_ctx, M2K_RX);
+    if(!m2k_dev) {
+        sr_dbg("Failed to make device");
+        return FALSE;
+    }
+
+    m2k_msk = devc->mask;
+    m2k_chn = iio_device_get_channel(m2k_dev, 0);
+    if(!m2k_chn) {
+        sr_dbg("Failed to get channel");
+        return FALSE;
+    }
+    iio_channel_enable(m2k_chn, m2k_msk);
+
+    smp_size= iio_device_get_sample_size(m2k_dev, m2k_msk);
+    m2k_buf = iio_device_create_buffer(m2k_dev, 0, m2k_msk);
+    if(iio_err(m2k_buf) < 0) {
+        sr_dbg("Failed to make buffer");
+        return FALSE;
+    }
+    m2k_blk = iio_buffer_create_block(m2k_buf, devc->limit_samples * smp_size);
+    if(iio_err(m2k_blk) < 0) {
+        sr_dbg("Failed to make block");
+        return FALSE;
+    }
+    sr_dbg("made it 5");
+
+    iio_block_enqueue(m2k_blk, 0, false);
+    iio_buffer_enable(m2k_buf);
+    iio_block_dequeue(m2k_blk, false);
+
+    sr_dbg("made it 6");
+    samples_todo = 5;
+    logic_done = 0;
+    /* while(logic_done < samples_todo) { */
+        
+    /* } */
+
+    sr_dbg("running the thing");
+    logic_data = iio_block_first(m2k_blk, m2k_chn);
+    /* for(void *blk = iio_block_first(m2k_blk, m2k_chn); blk < iio_block_end(m2k_blk); blk += smp_size) { */
+    /*     printf("%d,\t", *((uint16_t *)blk)); */
+    /* } */
+    /* iio_buffer_disable(m2k_buf); */
+
+	packet.type = SR_DF_LOGIC;
+	packet.payload = &logic;
+    logic.unitsize = 2;
+
+    /* sending_now = MIN(samples_todo - logic_done, devc->buffersize); */
+    sending_now = devc->limit_samples;
+
+    logic.length = sending_now * logic.unitsize;
+    logic.data = logic_data;
+
+    iio_buffer_destroy(m2k_buf);
+    /* iio_block_destroy(m2k_blk); */
+
+	sr_session_send(sdi, &packet);
+
+    sdi->driver->dev_acquisition_stop(sdi);
 	return TRUE;
+}
+
+SR_PRIV uint8_t * adalm2k_driver_get_samples(struct sr_dev_inst *sdi, long samples) {
+    return NULL;
 }

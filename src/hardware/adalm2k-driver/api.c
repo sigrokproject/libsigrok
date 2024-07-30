@@ -105,12 +105,13 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
     struct iio_scan *scan = iio_scan(NULL, "usb=0456:b672");
     if(iio_scan_get_results_count(scan) > 0) {
 		sr_dbg("Found M2K.");
+        char *uri = g_strdup((char *)iio_scan_get_uri(scan, 0));
 		sdi = g_malloc(sizeof(struct sr_dev_inst));
 		sdi->status = SR_ST_INITIALIZING;
 		sdi->vendor = g_strdup("Analog Devices");
 		sdi->model = g_strdup("M2K");
-		sdi->connection_id = g_strdup(iio_scan_get_uri(scan, 0));
-		sdi->conn = g_strdup("usb=0456:b672");
+		sdi->connection_id = (void *)uri;
+		sdi->conn = NULL;
 		sdi->inst_type = SR_INST_USB;
 		sdi->driver = NULL;
 		sdi->session = NULL;
@@ -130,6 +131,7 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
 
 		devc = g_malloc(sizeof(struct dev_context));
 		devc->m2k = NULL;
+        devc->mask = iio_create_channels_mask(18);
 		devc->logic_unitsize = 2;
 		devc->buffersize = 1 << 16;
 		devc->meaning.mq = SR_MQ_VOLTAGE;
@@ -140,16 +142,19 @@ static GSList *scan(struct sr_dev_driver *di, GSList *options) {
         sdi->inst_type = SR_INST_USB;
 		devices = g_slist_append(devices, sdi);
 	}
+    iio_scan_destroy(scan);
 
 	return std_scan_complete(di, devices);
 }
 
 static int dev_open(struct sr_dev_inst *sdi) {
+    int err;
 	(void)sdi;
 	struct dev_context *devc;
 	devc = sdi->priv;
-	devc->m2k = iio_create_context(NULL, sdi->conn);
-	if (!devc->m2k) {
+	devc->m2k = iio_create_context(NULL, sdi->connection_id);
+    err = iio_err(devc->m2k);
+	if (err) {
 		sr_err("Failed to open device");
 		return SR_ERR;
 	}
@@ -161,11 +166,15 @@ static int dev_close(struct sr_dev_inst *sdi) {
 	(void)sdi;
 	struct dev_context *devc;
 	devc = sdi->priv;
-	iio_context_destroy(devc->m2k);
-	if (devc->m2k) {
-		sr_err("Failed to close device");
-		return SR_ERR;
-	}
+    if (devc->m2k) {
+        iio_context_destroy(devc->m2k);
+    }
+    /* NOTE: No valid way of checking if the device has been destroyed properly */ 
+	/* if (devc->m2k) { */
+	/* 	sr_err("Failed to close device"); */
+	/* 	return SR_ERR; */
+	/* } */
+    sr_dbg("Successfully closed device");
 
 	return SR_OK;
 }
@@ -254,6 +263,13 @@ static int config_set(uint32_t key, GVariant *data,
 	case SR_CONF_SAMPLERATE:
         sr_dbg("SAMPLERATE");
         devc->samplerate = g_variant_get_uint64(data);
+        /* Set samplerate when starting acquisition */
+        /* if(adalm2k_driver_set_samplerate(sdi) < 0) { */
+        /*     sr_err("Failed to set samplerate"); */
+			/* ret = SR_ERR_NA; */
+			/* break; */
+		/* } */
+        /* sr_dbg("Successfully changed samplerate"); */
 		/* TODO: implement analog */
 		break;
 	case SR_CONF_LIMIT_SAMPLES:
@@ -320,11 +336,32 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi) {
 	/* TODO: configure hardware, reset acquisition state, set up
 	 * callbacks and send header packet. */
     struct dev_context *devc;
+    gboolean analog_en, digital_en;
+    struct sr_channel *ch;
+    GSList *l;
 
 	(void)sdi;
 
     devc = sdi->priv;
 
+    devc->sent_samples = 0;
+    analog_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_ANALOG) ? TRUE : FALSE;
+    digital_en = adalm2k_driver_nb_enabled_channels(sdi, SR_CHANNEL_LOGIC) ? TRUE : FALSE;
+    adalm2k_driver_set_samplerate(sdi);
+
+    for(l = sdi->channels; l; l = l->next) {
+        ch = l->data;
+        if(ch->type == SR_CHANNEL_LOGIC) {
+            sr_dbg("Enabling channels");
+            adalm2k_driver_enable_channel(sdi, ch->index);
+        }
+    }
+
+    std_session_send_df_header(sdi);
+    sr_session_source_add(sdi->session, -1, G_IO_IN, 0, adalm2k_driver_receive_data, (struct sr_dev_inst *)sdi);
+
+    devc->start_time = g_get_monotonic_time();
+    devc->spent_us = 0;
 
 	return SR_OK;
 }
@@ -333,6 +370,9 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi) {
 	/* TODO: stop acquisition. */
 
 	(void)sdi;
+
+    sr_session_source_remove(sdi->session, -1);
+    std_session_send_df_end(sdi);
 
 	return SR_OK;
 }
