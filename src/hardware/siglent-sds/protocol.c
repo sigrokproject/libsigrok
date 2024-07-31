@@ -61,6 +61,51 @@ static int siglent_scpi_wait_read_data(struct sr_scpi_dev_inst *scpi,
 	return ret;
 }
 
+/**
+ * Get the number of points of the current wave and save it to devc->num_samples.
+ *
+ * @param sdi the device instance.
+ * @param devc the device context.
+ *
+ * @return SR_ERR upon failure.
+ */
+static int siglent_get_wave_points(struct sr_dev_inst *sdi,struct dev_context *devc)
+{
+	/* Get maximum number of point per data block */
+	double acq_points;
+	int result = sr_scpi_get_double(sdi->conn, "ACQ:POIN?", &acq_points);
+	if(result == SR_OK)
+		devc->num_samples = acq_points;
+	return result;
+}
+
+/**
+ * Get the number of points of the current digital channel and save it to devc->num_samples.
+ *
+ * @param sdi the device instance.
+ * @param devc the device context.
+ *
+ * @return SR_ERR upon failure.
+ */
+static int siglent_get_digital_points(struct sr_dev_inst *sdi,struct dev_context *devc)
+{
+	/* Get maximum number of point per data block */
+	double dig_points;
+	int result = sr_scpi_get_double(sdi->conn, "DIG:POIN?", &dig_points);
+	if(result == SR_OK)
+		devc->num_samples = dig_points/8; /* 8 points per byte for digital channels */
+	return result;
+}
+
+/**
+ * Wait and read data from SCPI device.
+ *
+ * @param sdi the device instance.
+ * @param ch the channel.
+ * @param digital true for digital channels.
+ *
+ * @return Last number of bytes read, or SR_ERR upon failure.
+ */
 static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch, gboolean digital)
 {
 	struct sr_scpi_dev_inst *scpi = sdi->conn;
@@ -79,21 +124,32 @@ static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch,
 		return SR_ERR;
 	/* Read header size : The header is of form “#9000001000” which nine ASCII integers are used to give the number of the waveform data points (1000 pts). */
 	sr_scpi_read_data(scpi, (char *)devc->buffer, 2);
-	if(devc->buffer[0] != '#')
+	if(devc->buffer[0] != '#') {
+		/* This is protocol error, consume any pending data before returning */
+		sr_scpi_read_data(scpi, (char *)(devc->buffer+devc->num_block_bytes), (devc->model->series->buffer_samples-devc->num_block_bytes));
+		if(digital) {
+			/* In digital mode, SDS 2000X HD (as for firmware 2.5.1.2.2.5) as a bug in block pagination : 
+			 * for memory depth > 50Mpts, if start point is >= to a certain value (625000 or 1250000) the DATA? command returns "DAT2,#9000000000"
+			 * as a workaround, let's silently end acquisition at this point by filling the buffer with zeros */
+			len = devc->num_samples-devc->num_block_bytes;
+			memset((char *)(devc->buffer+devc->num_block_bytes), 0, len);
+			devc->num_block_bytes = devc->num_samples;
+			return len;
+		}
 		return SR_ERR;
+	}
 	int headerSize = devc->buffer[1]-'0';
 	/* Conume header */
 	sr_scpi_read_data(scpi, (char *)devc->buffer, headerSize);
-	if(digital) {
-		/* For digital channel extract block size from header */
-		devc->buffer[headerSize] = 0;
-		devc->max_points = atoi((char*)devc->buffer);
-		sr_dbg("Parsed data lengh from header '%s' : %f.",(char*)devc->buffer,devc->max_points);
-	}
+	/* Extract block size from header */
+	devc->buffer[headerSize] = 0;
+	devc->max_points = atoi((char*)devc->buffer);
+	sr_dbg("Parsed data lengh from header '%s' : %d.",(char*)devc->buffer,devc->max_points);
 	do {
 		/* Try and read end of block if not in last block or end of wave when in last block */
 		maxlen = MIN(devc->num_samples-devc->num_block_bytes,devc->max_points-devc->num_bytes_current_block);
-		len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + devc->num_block_bytes), maxlen);
+		/* For analog channels, blocks are read one at a time, for digital all blocks are read in on buffer */
+		len = siglent_scpi_wait_read_data(scpi, (char *)(devc->buffer + (digital ? devc->num_block_bytes : devc->num_bytes_current_block)), maxlen);
 		if (len == -1 || len == 0) {
 			sr_err("Read error, aborting capture.");
 			std_session_send_df_frame_end(sdi);
@@ -103,7 +159,7 @@ static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch,
 		devc->num_block_bytes += len;
 		devc->num_bytes_current_block += len;
 		sr_dbg("Asked %d, read %" PRIu64 " bytes, %" PRIu64 " remaining.",maxlen,devc->num_block_bytes, devc->num_samples - devc->num_block_bytes);
-	} while ((devc->num_bytes_current_block < devc->max_points) && (devc->num_block_bytes < devc->num_samples));
+	} while ((devc->num_bytes_current_block < (uint64_t)devc->max_points) && (devc->num_block_bytes < devc->num_samples));
 	/* End of block or end of wave => consume 0x0A 0x0A message footer */
 	sr_dbg("End of block => consume footer.");
 	uint16_t footer;
@@ -441,13 +497,25 @@ static int siglent_sds_read_header(struct sr_dev_inst *sdi)
 
 	/* Parse WaveDescriptor header. */
 	memcpy(&desc_length, buf + 36, 4); /* Descriptor block length */
-	memcpy(&data_length, buf + 60, 4); /* Data block length */
-
 	devc->block_header_size = desc_length + block_offset;
-	devc->num_samples = data_length;
 
-	sr_dbg("Received data block header: '%s' -> block length %d.", buf, ret);
-
+	if(devc->model->series->protocol == E11) {
+		/* WAV:PRE? is not working consistenly on SDS2000X HD (as for firmware 2.5.1.2.2.5) => get the sample number ACQ:POIN? command */
+		if(siglent_get_wave_points(sdi,devc) != SR_OK) {
+			sr_err("Read error while reading ACQ:POIN?.");
+			devc->num_samples = 0;
+			return SR_ERR;
+		}
+		if(devc->num_samples > (uint64_t)devc->max_points) {
+			/* We need to set block size to max_points*/
+			if (sr_scpi_send(sdi->conn, "WAV:POINt %d", (int)devc->max_points) != SR_OK)
+					return SR_ERR;
+		}
+	} else {
+		memcpy(&data_length, buf + 60, 4); /* Data block length */
+		devc->num_samples = data_length;
+	}
+	sr_dbg("Received data block header: '%s' -> header length = %d, data length = %" PRIu64 ".", buf, ret, devc->num_samples);
 	return ret;
 }
 
@@ -568,22 +636,15 @@ static int siglent_sds_get_digital(struct sr_dev_inst *sdi, struct sr_channel *c
 	uint8_t samplerate_ratio = 1;
 
 	if (devc->model->series->protocol == E11) {
-		char *cmd;
-		float fvalue;
-		float digital_samplerate;
-		cmd = g_strdup_printf("DIG:SRAT?");
-		int res = sr_scpi_get_float(sdi->conn, cmd, &fvalue);
-		g_free(cmd);
-		if (res != SR_OK) {
+		/* Get num samples for digital channel */
+		if(siglent_get_digital_points(sdi,devc) != SR_OK) {
 			return SR_ERR;
 		}
-		digital_samplerate = (long)fvalue;
-		samplerate_ratio = devc->samplerate / (digital_samplerate / 8);
-		devc->memory_depth_digital = devc->memory_depth_digital / samplerate_ratio;
-		/* WAV:PRE? is not working consistenly on SDS2000X HD (as for firmware 2.5.1.2.2.5) => get the sample number form memory depth */
-		devc->num_samples = devc->memory_depth_digital;
-		sr_dbg("Digital configuration : memory depth = %" PRIu64 ", sammple rate = %f, digital sample rate = %f, sample ratio = %d.",
-			devc->memory_depth_digital,devc->samplerate,digital_samplerate,samplerate_ratio);
+		/* Set memory depth accordingly */
+		devc->memory_depth_digital = devc->num_samples;
+		samplerate_ratio = devc->memory_depth_analog / devc->memory_depth_digital;
+		sr_dbg("Digital configuration : memory depth digital = %" PRIu64 ", memory depth analog = %" PRIu64 ", sample ratio = %d.",
+			devc->memory_depth_digital,devc->memory_depth_analog,samplerate_ratio);
 	}
 
 	len = 0;
@@ -1253,8 +1314,9 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 		}
 
 		/* Get maximum number of point per data block */
-		if (sr_scpi_get_double(sdi->conn, ":WAV:MAXP?", &devc->max_points) != SR_OK)
+		if (sr_scpi_get_int(sdi->conn, ":WAV:MAXP?", &devc->max_points) != SR_OK)
 			return SR_ERR;
+		sr_dbg("Found maxp value of : %d.", devc->max_points);
 
 		g_free(cmd);
 		samplerate_scope = 0;
