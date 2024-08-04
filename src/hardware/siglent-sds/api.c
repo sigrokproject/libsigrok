@@ -947,8 +947,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	siglent_sds_get_dev_cfg_horizontal(sdi);
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
-	case E11:
-		if (siglent_sds_config_set(sdi, ((devc->model->series->protocol == E11) ? "WFSU SP,0,NP,0,FP,0" : "WFSU SP,0,TYPE,1")) != SR_OK)
+		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
 			return SR_ERR;
 		if (devc->average_enabled) {
 			if (siglent_sds_config_set(sdi, "ACQW AVERAGE,%i", devc->average_samples) != SR_OK)
@@ -964,6 +963,9 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			return SR_ERR;
 		if (siglent_sds_config_set(sdi, "ACQW SAMPLING") != SR_OK)
 			return SR_ERR;
+		break;
+	case E11:
+		/** TODO : handle acquisition mode (sampling / average) */
 		break;
 	default:
 		break;

@@ -290,7 +290,6 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
-	case E11:
 		if (devc->data_source == DATA_SOURCE_SCREEN) {
 			char *buf;
 			int out;
@@ -299,22 +298,13 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 				devc->num_frames + 1, devc->limit_frames);
 			if (siglent_sds_config_set(sdi, "ARM") != SR_OK)
 				return SR_ERR;
-			if (devc->model->series->protocol == E11) {
-				/* This pause is necessary for large memory depths. */
-				struct sr_channel *ch = devc->channel_entry->data;
-				if (ch->type == SR_CHANNEL_ANALOG) {
-					float wait = devc->memory_depth_analog / 100;
-					sr_spew("Waiting %.f ms for the instrument to enter ARM mode.", wait / 1000);
-					g_usleep(wait);
-				}
-			}
 			if (sr_scpi_get_string(sdi->conn, ":INR?", &buf) != SR_OK)
 				return SR_ERR;
 			sr_atoi(buf, &out);
 			g_free(buf);
-			if (out == DEVICE_STATE_TRIG_RDY || ((devc->model->series->protocol == E11) && (out == DEVICE_STATE_STOPPED))) {
+			if (out == DEVICE_STATE_TRIG_RDY) {
 				siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
-			} else if (out == DEVICE_STATE_DATA_TRIG_RDY || ((devc->model->series->protocol == E11) && (out == DEVICE_STATE_DATA_ACQ))) {
+			} else if (out == DEVICE_STATE_DATA_TRIG_RDY) {
 				sr_spew("Device triggered.");
 				siglent_sds_set_wait_event(devc, WAIT_BLOCK);
 				return SR_OK;
@@ -401,6 +391,24 @@ SR_PRIV int siglent_sds_capture_start(const struct sr_dev_inst *sdi)
 		break;
 	case NON_SPO_MODEL:
 		siglent_sds_set_wait_event(devc, WAIT_TRIGGER);
+		break;
+	case E11: {
+		char* buf;
+		/* Get maximum number of point per data block */
+		if (sr_scpi_get_int(sdi->conn, "WAV:MAXP?", &devc->max_points) != SR_OK)
+			return SR_ERR;
+		sr_dbg("Found maxp value of : %d.", devc->max_points);
+
+		/* Force trigger stop to make sure we have a consistant acquisition across channels */
+		if (siglent_sds_config_set(sdi, "TRIG:STOP") != SR_OK)
+			return SR_ERR;
+		if (sr_scpi_get_string(sdi->conn, "TRIG:STAT?", &buf) != SR_OK) {
+			g_free(buf);
+			return SR_ERR;
+		}
+		g_free(buf);
+		siglent_sds_set_wait_event(devc, WAIT_BLOCK);
+		}
 		break;
 	}
 
@@ -1278,45 +1286,17 @@ SR_PRIV int siglent_sds_get_dev_cfg_horizontal(const struct sr_dev_inst *sdi)
 		g_free(cmd);
 		break;
 	case E11: {
-		double previous_timebase = devc->timebase;
 		/* Get the timebase. */
 		if (sr_scpi_get_double(sdi->conn, ":TDIV?", &devc->timebase) != SR_OK)
 			return SR_ERR;
 		cmd = g_strdup_printf("SANU? C1");
-
-		/* SDS2000X+: If capturing from the display when the channels or timebase changed
-		 * then quickly trigger and stop to get the correct memory depth.
-		 * This is done due to the number of sample points not being updated after
-		 * the after a channel is enabled/disabled or the timebase changes. */
-		if (devc->data_source == DATA_SOURCE_SCREEN &&
-			(devc->channels_switched || devc->timebase != previous_timebase)) {
-			if (sr_scpi_send(sdi->conn, "TRIG_MODE SINGLE") != SR_OK)
+		res = sr_scpi_get_string(sdi->conn, cmd, &sample_points_string);
+		if (devc->la_enabled) {
+			cmd = g_strdup_printf("SANU? D0");
+			if (sr_scpi_get_float(sdi->conn, cmd, &fvalue) != SR_OK)
 				return SR_ERR;
-			res = sr_scpi_get_string(sdi->conn, cmd, &sample_points_string);
-			if (devc->la_enabled) {
-				cmd = g_strdup_printf("SANU? D0");
-				if (sr_scpi_get_float(sdi->conn, cmd, &fvalue) != SR_OK)
-					return SR_ERR;
-				devc->memory_depth_digital = (long)fvalue;
-			}
-			if (sr_scpi_send(sdi->conn, ":TRIG:STOP") != SR_OK)
-				return SR_ERR;
-			devc->channels_switched = FALSE;
+			devc->memory_depth_digital = (long)fvalue;
 		}
-		else {
-			res = sr_scpi_get_string(sdi->conn, cmd, &sample_points_string);
-			if (devc->la_enabled) {
-				cmd = g_strdup_printf("SANU? D0");
-				if (sr_scpi_get_float(sdi->conn, cmd, &fvalue) != SR_OK)
-					return SR_ERR;
-				devc->memory_depth_digital = (long)fvalue;
-			}
-		}
-
-		/* Get maximum number of point per data block */
-		if (sr_scpi_get_int(sdi->conn, ":WAV:MAXP?", &devc->max_points) != SR_OK)
-			return SR_ERR;
-		sr_dbg("Found maxp value of : %d.", devc->max_points);
 
 		g_free(cmd);
 		samplerate_scope = 0;
