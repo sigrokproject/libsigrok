@@ -1160,7 +1160,7 @@ static int dev_acquisition_stop(struct sr_dev_inst *sdi)
 
 static struct sr_dev_driver rigol_ds_driver_info = {
 	.name = "rigol-ds",
-	.longname = "Rigol DS",
+	.longname = "Rigol DS/DHO",
 	.api_version = 1,
 	.init = std_init,
 	.cleanup = std_cleanup,
