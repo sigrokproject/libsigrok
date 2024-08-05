@@ -188,6 +188,8 @@ enum series {
 	MSO7000A,
 	DHO800,
 	DHO900,
+	DHO1000,
+	DHO4000,
 };
 
 /* short name, full name */
@@ -224,6 +226,10 @@ static const struct rigol_ds_series supported_series[] = {
 		{500, 1}, {500, 1000000}, 10, 1000, 0},
 	[DHO900] = {VENDOR(RIGOL), "DHO900", PROTOCOL_V6, FORMAT_IEEE488_2,
 		{500, 1}, {200, 1000000}, 10, 1000, 0},
+	[DHO1000] = {VENDOR(RIGOL), "DHO1000", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {500, 1000000}, 10, 1000, 0},
+	[DHO4000] = {VENDOR(RIGOL), "DHO4000", PROTOCOL_V6, FORMAT_IEEE488_2,
+		{500, 1}, {100, 1000000}, 10, 1000, 0},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -306,6 +312,15 @@ static const struct rigol_ds_model supported_models[] = {
 	{SERIES(DHO900), "DHO914S", {2, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DHO900), "DHO924", {2, 1000000000}, CH_INFO(4, true), std_cmd},
 	{SERIES(DHO900), "DHO924S", {2, 1000000000}, CH_INFO(4, true), std_cmd},
+	{SERIES(DHO1000), "DHO1072", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO1000), "DHO1074", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO1000), "DHO1102", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO1000), "DHO1104", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO1000), "DHO1202", {2, 1000000000}, CH_INFO(2, false), std_cmd},
+	{SERIES(DHO1000), "DHO1204", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO1074", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO1104", {2, 1000000000}, CH_INFO(4, false), std_cmd},
+	{SERIES(DHO4000), "DHO1204", {2, 1000000000}, CH_INFO(4, false), std_cmd},
 };
 
 static struct sr_dev_driver rigol_ds_driver_info;
@@ -1046,8 +1061,8 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 			}
 			devc->num_frames_segmented = frames;
 			/* Continue with REC:CURR command */
-			// fall through
 		}
+		// fall through
 		case PROTOCOL_V5:
 			/* The frame limit has to be read on the fly, just set up
 			 * reading of the first frame */
