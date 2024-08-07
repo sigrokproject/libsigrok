@@ -255,6 +255,9 @@ ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="044d", ENV{ID_SIGROK}="1"
 # Rigol DHO800 and DHO900 series
 ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="044c", ENV{ID_SIGROK}="1"
 
+# Rigol DHO1000 series
+ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0610", ENV{ID_SIGROK}="1"
+
 # Rohde&Schwarz HMO series mixed-signal oscilloscope (previously branded Hameg) VCP/USBTMC mode
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0117", ENV{ID_SIGROK}="1"
 ATTRS{idVendor}=="0aad", ATTRS{idProduct}=="0118", ENV{ID_SIGROK}="1"
