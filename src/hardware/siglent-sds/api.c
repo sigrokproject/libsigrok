@@ -171,8 +171,6 @@ enum series {
 	SDS1000XP,
 	SDS1000XE,
 	SDS2000X,
-	SDS2000XP,
-	SDS2000XHD,
 };
 
 /* short name, full name */
@@ -185,23 +183,19 @@ static const struct siglent_sds_vendor supported_vendors[] = {
  * number of vertical divs, live waveform samples, memory buffer samples */
 static const struct siglent_sds_series supported_series[] = {
 	[SDS1000CML] = {VENDOR(SIGLENT), "SDS1000CML", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
 	[SDS1000CNL] = {VENDOR(SIGLENT), "SDS1000CNL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
 	[SDS1000DL] = {VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
-		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
+		{ 50, 1 }, { 2, 1000 }, 18, 8, 1400363},
 	[SDS1000X] = {VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
-	[SDS2000XP] = {VENDOR(SIGLENT), "SDS2000X+", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
-	[SDS2000XHD] = {VENDOR(SIGLENT), "SDS2000XHD", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
+		{ 50, 1 }, { 500, 100000 }, 14, 8, 14000363},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -233,15 +227,6 @@ static const struct siglent_sds_model supported_models[] = {
 	{ SERIES(SDS2000X), "SDS2204X", { 2, 1000000000 }, 4, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2302X", { 2, 1000000000 }, 2, FALSE, 0 },
 	{ SERIES(SDS2000X), "SDS2304X", { 2, 1000000000 }, 4, FALSE, 0 },
-	{ SERIES(SDS2000XP), "SDS2102X Plus", { 1, 1000000000 }, 2, TRUE, 16 },
-	{ SERIES(SDS2000XP), "SDS2104X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XP), "SDS2204X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XP), "SDS2354X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XP), "SDS2504X Plus", { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XHD), "SDS2104X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XHD), "SDS2204X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XHD), "SDS2354X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
-	{ SERIES(SDS2000XHD), "SDS2504X HD",  { 1, 1000000000 }, 4, TRUE, 16 },
 };
 
 static struct sr_dev_driver siglent_sds_driver_info;
@@ -785,7 +770,6 @@ static int config_list(uint32_t key, GVariant **data,
 			break;
 		case SPO_MODEL:
 		case ESERIES:
-		case E11:
 			*data = g_variant_new_strv(ARRAY_AND_SIZE(data_sources));
 			break;
 		}
@@ -876,8 +860,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 	siglent_sds_get_dev_cfg_horizontal(sdi);
 	switch (devc->model->series->protocol) {
 	case SPO_MODEL:
-	case E11:
-		if (siglent_sds_config_set(sdi, "WFSU SP,0,NP,0,FP,0") != SR_OK)
+		if (siglent_sds_config_set(sdi, "WFSU SP,0,TYPE,1") != SR_OK)
 			return SR_ERR;
 		if (devc->average_enabled) {
 			if (siglent_sds_config_set(sdi, "ACQW AVERAGE,%i", devc->average_samples) != SR_OK)
@@ -898,8 +881,7 @@ static int dev_acquisition_start(const struct sr_dev_inst *sdi)
 		break;
 	}
 
-	int tiemout = (devc->model->series->protocol == E11) ? 50 : 7000;
-	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, tiemout,
+	sr_scpi_source_add(sdi->session, scpi, G_IO_IN, 7000,
 		siglent_sds_receive, (void *) sdi);
 
 	std_session_send_df_header(sdi);

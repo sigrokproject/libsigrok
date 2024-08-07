@@ -49,9 +49,6 @@ enum protocol_version {
 	SPO_MODEL,
 	NON_SPO_MODEL,
 	ESERIES,
-	// Refers to E11 Siglent Programming Guide :
-	// https://www.siglenteu.com/wp-content/uploads/dlm_uploads/2024/03/ProgrammingGuide_EN11F.pdf
-	E11,
 };
 
 enum data_source {
@@ -72,7 +69,6 @@ struct siglent_sds_series {
 	uint64_t min_vdiv[2];
 	int num_horizontal_divs;
 	int num_vertical_divs;
-	int code_per_div;
 	int buffer_samples;
 };
 
@@ -124,8 +120,7 @@ struct dev_context {
 	gboolean analog_channels[MAX_ANALOG_CHANNELS];
 	gboolean digital_channels[MAX_DIGITAL_CHANNELS];
 	gboolean la_enabled;
-	gboolean channels_switched;
-	double timebase;
+	float timebase;
 	float attenuation[MAX_ANALOG_CHANNELS];
 	float vdiv[MAX_ANALOG_CHANNELS];
 	int vert_reference[MAX_ANALOG_CHANNELS];
@@ -148,8 +143,6 @@ struct dev_context {
 	uint64_t num_header_bytes;
 	/* Number of data blocks bytes already read. */
 	uint64_t num_block_bytes;
-	/* Number of data bytes already read in the current block. */
-	uint64_t num_bytes_current_block;
 	/* Number of data blocks read. */
 	int num_block_read;
 	/* What to wait for in *_receive. */
