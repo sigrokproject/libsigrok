@@ -365,6 +365,12 @@ src_libdrivers_la_SOURCES += \
 	src/hardware/ftdi-la/protocol.c \
 	src/hardware/ftdi-la/api.c
 endif
+if HW_FWILI
+src_libdrivers_la_SOURCES += \
+	src/hardware/fwili/protocol.h \
+	src/hardware/fwili/protocol.c \
+	src/hardware/fwili/api.c
+endif
 if HW_FX2LAFW
 src_libdrivers_la_SOURCES += \
 	src/hardware/fx2lafw/protocol.h \
