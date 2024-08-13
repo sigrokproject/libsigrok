@@ -113,8 +113,6 @@ SR_ARG_OPT_PKG([libserialport], [LIBSERIALPORT], ,
 
 SR_ARG_OPT_PKG([libftdi], [LIBFTDI], , [libftdi1 >= 1.0])
 
-SR_ARG_OPT_PKG([libsdl2], [LIBSDL], , [sdl2 >= 2.0])
-
 # pkg-config file names: MinGW/MacOSX: hidapi; Linux: hidapi-hidraw/-libusb
 SR_ARG_OPT_PKG([libhidapi], [LIBHIDAPI], ,
 	[hidapi >= 0.8.0], [hidapi-hidraw >= 0.8.0], [hidapi-libusb >= 0.8.0])
@@ -375,7 +373,6 @@ SR_DRIVER([Saleae Logic16], [saleae-logic16], [libusb])
 SR_DRIVER([Saleae Logic Pro], [saleae-logic-pro], [libusb])
 SR_DRIVER([SCPI DMM], [scpi-dmm])
 SR_DRIVER([SCPI PPS], [scpi-pps])
-SR_DRIVER([sdl2], [sdl2], [libsdl2])
 SR_DRIVER([serial DMM], [serial-dmm], [serial_comm])
 SR_DRIVER([serial LCR], [serial-lcr], [serial_comm])
 SR_DRIVER([Siglent SDS], [siglent-sds])
