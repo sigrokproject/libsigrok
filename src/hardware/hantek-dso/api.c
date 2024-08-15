@@ -798,7 +798,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 static int handle_event(int fd, int revents, void *cb_data)
 {
 	const struct sr_dev_inst *sdi;
-	struct timeval tv;
 	struct sr_dev_driver *di;
 	struct dev_context *devc;
 	struct drv_context *drvc;
@@ -828,10 +827,6 @@ static int handle_event(int fd, int revents, void *cb_data)
 
 		return TRUE;
 	}
-
-	/* Always handle pending libusb events. */
-	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
 
 	/* TODO: ugh */
 	if (devc->dev_state == NEW_CAPTURE) {

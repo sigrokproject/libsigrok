@@ -874,22 +874,6 @@ static void LIBUSB_CALL receive_transfer(struct libusb_transfer *transfer)
 		resubmit_transfer(transfer);
 }
 
-static int receive_data(int fd, int revents, void *cb_data)
-{
-	struct timeval tv;
-	struct drv_context *drvc;
-
-	(void)fd;
-	(void)revents;
-
-	drvc = (struct drv_context *)cb_data;
-
-	tv.tv_sec = tv.tv_usec = 0;
-	libusb_handle_events_timeout(drvc->sr_ctx->libusb_ctx, &tv);
-
-	return TRUE;
-}
-
 static size_t to_bytes_per_ms(const struct sr_dev_inst *sdi)
 {
 	const struct dev_context *const devc = sdi->priv;
@@ -1028,8 +1012,6 @@ static void LIBUSB_CALL trigger_receive(struct libusb_transfer *transfer)
 
 SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 {
-	const unsigned int timeout = get_timeout(sdi);
-
 	struct sr_dev_driver *di;
 	struct drv_context *drvc;
 	struct dev_context *devc;
@@ -1048,7 +1030,7 @@ SR_PRIV int dslogic_acquisition_start(const struct sr_dev_inst *sdi)
 	devc->empty_transfer_count = 0;
 	devc->acq_aborted = FALSE;
 
-	usb_source_add(sdi->session, devc->ctx, timeout, receive_data, drvc);
+	usb_source_add(sdi->session, devc->ctx, 0, NULL, NULL);
 
 	if ((ret = command_stop_acquisition(sdi)) != SR_OK)
 		return ret;
