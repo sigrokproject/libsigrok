@@ -106,7 +106,7 @@ static const uint64_t timebases[][2] = {
 
 static const uint64_t vdivs[][2] = {
 	/* microvolts */
-	{ 500, 100000 },
+	{ 500, 1000000 },
 	/* millivolts */
 	{ 1, 1000 },
 	{ 2, 1000 },
@@ -199,33 +199,33 @@ static const struct siglent_sds_series supported_series[] = {
 	[SDS1000DL] = {VENDOR(SIGLENT), "SDS1000DL", NON_SPO_MODEL,
 		{ 50, 1 }, { 2, 1000 }, 18, 8, 25, 1400363},
 	[SDS1000X] = {VENDOR(SIGLENT), "SDS1000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS1000XP] = {VENDOR(SIGLENT), "SDS1000X+", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS1000XE] = {VENDOR(SIGLENT), "SDS1000XE", ESERIES,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS2000X] = {VENDOR(SIGLENT), "SDS2000X", SPO_MODEL,
-		{ 50, 1 }, { 500, 100000 }, 14, 8, 25, 14000363},
+		{ 50, 1 }, { 500, 1000000 }, 14, 8, 25, 14000363},
 	[SDS2000XP] = {VENDOR(SIGLENT), "SDS2000X+", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 14000363},
 	[SDS800XHD] = {VENDOR(SIGLENT), "SDS800XHD", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 50000000},
 	[SDS1000XHD] = {VENDOR(SIGLENT), "SDS1000XHD", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 14000363},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 100000000},
 	[SDS2000XHD] = {VENDOR(SIGLENT), "SDS2000XHD", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 100000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 200000000},
 	[SDS3000XHD] = {VENDOR(SIGLENT), "SDS3000XHD", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 400000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 400000000},
 	[SDS5000X] = {VENDOR(SIGLENT), "SDS5000X", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 250000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 250000000},
 	[SDS6000L] = {VENDOR(SIGLENT), "SDS6000L", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 500000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
 	[SDS6000A] = {VENDOR(SIGLENT), "SDS6000A", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 500000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
 	[SDS6000PRO] = {VENDOR(SIGLENT), "SDS6000PRO", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 500000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
 	[SDS7000A] = {VENDOR(SIGLENT), "SDS7000A", E11,
-		{ 100, 1 }, { 500, 100000 }, 10, 8, 30, 500000000},
+		{ 100, 1 }, { 500, 1000000 }, 10, 8, 30, 500000000},
 };
 
 #define SERIES(x) &supported_series[x]
@@ -714,17 +714,22 @@ static int config_set(uint32_t key, GVariant *data,
 		if ((idx = std_u64_tuple_idx(data, ARRAY_AND_SIZE(vdivs))) < 0)
 			return SR_ERR_ARG;
 		devc->vdiv[i] = (float)vdivs[idx][0] / vdivs[idx][1];
-		p = vdivs[idx][0];
-		switch (vdivs[idx][1]) {
-		case 1:
-			cmd = g_strdup_printf("%" PRIu64 "V", p);
-			break;
-		case 1000:
-			cmd = g_strdup_printf("%" PRIu64 "MV", p);
-			break;
-		case 100000:
-			cmd = g_strdup_printf("%" PRIu64 "UV", p);
-			break;
+		if(devc->model->series->protocol == E11) {
+			/* E11 models don't support "MV" format for values bellow 10mV => switch to scientific format */
+			cmd = g_strdup_printf("%.0E", devc->vdiv[i]);
+		} else {
+			p = vdivs[idx][0];
+			switch (vdivs[idx][1]) {
+			case 1:
+				cmd = g_strdup_printf("%" PRIu64 "V", p);
+				break;
+			case 1000:
+				cmd = g_strdup_printf("%" PRIu64 "MV", p);
+				break;
+			case 100000:
+				cmd = g_strdup_printf("%" PRIu64 "UV", p);
+				break;
+			}
 		}
 		ret = siglent_sds_config_set(sdi, "C%d:VDIV %s", i + 1, cmd);
 		g_free(cmd);
