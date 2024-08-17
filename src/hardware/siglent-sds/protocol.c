@@ -118,7 +118,7 @@ static int siglent_read_wave_e11(struct sr_dev_inst *sdi, struct sr_channel *ch,
 		if (sr_scpi_send(sdi->conn, "WAV:SOUR D%d", ch->index) != SR_OK)
 			return SR_ERR;
 	}
-	if (sr_scpi_send(sdi->conn, "WAV:STARt %d", devc->num_block_bytes) != SR_OK)
+	if (sr_scpi_send(sdi->conn, "WAV:STARt %d",digital ? (devc->num_block_bytes*8) : devc->num_block_bytes) != SR_OK) /* 8 points per byte in digital mode */
 			return SR_ERR;
 	if (sr_scpi_send(sdi->conn, "WAV:DATA?") != SR_OK)
 		return SR_ERR;
